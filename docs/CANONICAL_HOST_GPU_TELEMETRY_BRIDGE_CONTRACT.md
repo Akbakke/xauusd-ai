@@ -31,8 +31,13 @@ behavior. After the 250/251 W draw stops, the historical 300 W guard allowed a
 10,000-row recipe to reach 71 C / 263.77 W / 8,951 MiB and a
 1,000-row recipe to reach 71 C / 261.33 W / 8,951 MiB. Both process groups
 were stopped safely for core temperature; no optimizer step, bundle,
-validation, TEST access, edge claim, demo or live action resulted. The local
-CUDA route permits only the new batch-8/220 W smoke, then returns to hold.
+validation, TEST access, edge claim, demo or live action resulted. The
+subsequent batch-8/32-row smoke completed four CUDA optimizer steps and
+validation under the same guard (65 C / 211.77 W / 8,751 MiB), then its trainer
+correctly rejected an inactive static Exit branch in the movement proof. Commit
+`a77ebb6e` repairs the proof to the active episode-native branch. The local
+CUDA route permits exactly one fresh recipe-bound/dry-run-checked repeat, then
+returns to hold.
 
 ## Historical bridge material
 

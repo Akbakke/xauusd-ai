@@ -9,8 +9,10 @@ stay on the record.
 
 > Current-status note, 2026-08-28: the protocol remains frozen and has not
 > been run on V46. V46 has no trained bundle because the local canonical CUDA
-> smoke is thermally held. Do not revise this protocol or treat the hold as a
-> direction result; see the handover for the remote-smoke-first sequence.
+> smoke emitted no bundle after correctly rejecting a retired static Exit path
+> in its movement proof. Do not revise this protocol or treat the bounded smoke
+> as a direction result; see the handover for commit `a77ebb6e`'s one-repeat
+> plan.
 
 ## Why this document exists
 

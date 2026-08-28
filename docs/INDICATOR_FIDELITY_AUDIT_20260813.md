@@ -6,8 +6,9 @@
 > `SYSTEM_MAP.md` and `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`; do not infer
 > them from any count or proposed surface below. No current-contract dataset,
 > model, OOS/edge result or tick-resolution claim is established by this
-> historical audit. V46's all-field liveness PASS and local CUDA thermal hold
-> are recorded only in the current handover, not inferred from this audit.
+> historical audit. V46's all-field liveness PASS and current bounded-smoke
+> status (including commit `a77ebb6e`'s retired-Exit-proof repair) are recorded
+> only in the current handover, not inferred from this audit.
 
 Five parallel read-only audits over EVERY emitted field in the surface
 (608 signal / 158 ctx_cont / 5 ctx_cat / 189×5 per-TF), one question per

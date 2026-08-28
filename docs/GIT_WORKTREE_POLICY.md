@@ -20,5 +20,8 @@ Cleanup under `/home/andre2/GX1_DATA` is a separate explicitly authorized act.
 The authoritative status files (`PROJECT_STATE_xau_direction_launch.json`, the
 handover and every Markdown file fingerprinted by `scripts/gx1_handover.sh`)
 must be updated together in one reviewed commit. They describe the 2026-08-28
-local CUDA thermal hold; do not leave a stale run recipe or old execution plan
-in one document while changing another.
+bounded-smoke status: four 220 W CUDA steps/validation completed, then no
+bundle was allowed because a retired static Exit path was named in the
+movement proof. Do not leave a stale run recipe or old execution plan in one
+document while changing another. Commit `a77ebb6e` repairs that proof; its
+fresh recipe-bound/dry-run-checked repeat remains the only local continuation.

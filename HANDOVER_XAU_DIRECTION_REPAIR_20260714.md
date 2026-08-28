@@ -64,17 +64,21 @@ with 32 rows per model-compute split remains the only local continuation behind
 the 220 W one-second process stop; assess its terminal evidence before any
 second local attempt. Otherwise, use an explicitly approved remote GPU run.
 
-**Latest bounded smoke, 2026-08-28:** the repaired 32/32 recipe and wrapper
-dry-run passed on commit `4d6e5eac`. Its actual canonical run completed full
-CPU preflight, reached the model phase, and exited with Python `child_status=1`
-without a guard breach or a bundle. Guard evidence records peak 67 C, 219.35 W
-and 8,751 MiB. The former runner persisted only the guard summary after a
-background/session interruption, so it did not retain the Python traceback.
-Before another CUDA run, commit-local runner repair adds a separately
-pre-created trainer stdout/stderr sidecar log next to the guard log. This is
-observability only: it changes no V46 byte, feature, target, sampling rule or
-candidate authority. Do not retry until that source revision is committed,
-the recipe is rematerialized and its dry-run proves the sidecar path.
+**Latest bounded smoke, 2026-08-28:** the repaired 32/32 canonical run bound
+to `ea6cdca1` completed the full CPU preflight, compacted both compute splits
+to 32 rows, performed four CUDA optimizer steps and a 32-row validation. Its
+guard exited normally (not a thermal brake) at a measured peak of 65 C, 211.77
+W and 8,751 MiB. It wrote **no bundle** because the post-training unified-Exit
+movement proof still required an older static Exit branch which neither public
+episode Exit forward path executes. The durable sidecar retained the exact
+failure: `UNIFIED_EXIT_SELECTED_CHECKPOINT_UNTRAINED` for that retired path,
+not an OOM, crash, feature, target or sequence failure. Commit `a77ebb6e`
+rebinds the proof to the active episode-native Exit groups and adds regression
+coverage that fails if any active group is unchanged. It changes no V46 byte,
+feature, target, model-compute selection or candidate rule. Before one exact
+repeat, materialize a fresh hash-bound recipe and pass its wrapper dry-run;
+then assess that repeat's terminal guard and sidecar evidence before any later
+local or remote execution.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists

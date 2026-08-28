@@ -7,7 +7,8 @@ from the six-lane headmaster review and the measured HEAD smoke attribution.
 
 > Current-status note, 2026-08-28: V46's recipe owner and hash-bound recipe
 > audit are current. This draft must not change V46 features, objectives,
-> batch geometry or the remote-smoke-first plan recorded in the handover.
+> batch geometry or the one-repeat bounded-smoke plan recorded in the handover
+> after commit `a77ebb6e` repaired the retired Exit-proof mismatch.
 
 ## Why a new decision is needed
 

@@ -3,7 +3,9 @@
 > Historical-scope notice, updated 2026-08-28: this V29 review is retained for
 > provenance only. It is not the active V46 field contract and may not be used
 > to add/remove features or infer current liveness. V46's full-surface proof,
-> canonical smoke status and next action are owned by the handover.
+> canonical smoke status and next action are owned by the handover. The latest
+> smoke's retired-Exit-proof repair is commit `a77ebb6e`; it changes none of
+> the historical review's feature conclusions.
 
 Five parallel read-only reviews over the complete V29 surface (592 signal /
 142+5 ctx / 173×5 MTF), graded against the REAL sealed V29J artifacts

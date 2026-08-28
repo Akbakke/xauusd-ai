@@ -8,10 +8,11 @@ dataset nor any execution authority.
 
 > Current-status note, 2026-08-28: this document describes the historical
 > attended-only exception. The active V46 canonical route is separate and is
-> now thermally held after two native-guard 71 C stops without a bundle. Do not
-> use attended results, a 390 W configured driver limit or this document to
-> bypass the canonical smoke/bundle gate. The authoritative current plan is
-> `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`.
+> now limited to one fresh 220 W batch-8/32-row repeat after the prior smoke
+> completed four steps but correctly rejected a retired static Exit path.
+> Commit `a77ebb6e` repairs that proof. Do not use attended results, a 390 W
+> configured driver limit or this document to bypass the canonical smoke/bundle
+> gate. The authoritative current plan is the handover.
 
 ### 2026-08-26 operator-present 390 W amendment
 

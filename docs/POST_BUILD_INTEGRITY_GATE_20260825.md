@@ -18,6 +18,14 @@ terminal evidence must be assessed before any repeat. If it cannot create a vali
 separately approved remote canonical smoke must still pass every immutable
 recipe and bundle-audit condition below.
 
+**Later runtime amendment — 2026-08-28:** that 32/32 smoke completed full
+preflight, four CUDA optimizer steps and validation inside 65 C / 211.77 W /
+8,751 MiB. It produced no bundle because the post-training movement proof
+incorrectly required a retired static Exit branch. Commit `a77ebb6e` binds that
+proof to the active episode-native Exit path and adds its regression test. One
+fresh recipe-bound/dry-run-checked repeat is permitted; it remains smoke-only
+and creates no edge, TEST, demo or live authority.
+
 ## V46 review record — 2026-08-25
 
 **Decision:** `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`.

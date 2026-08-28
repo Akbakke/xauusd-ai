@@ -1,5 +1,11 @@
 # GX1 data contract
 
+> Runtime-status note, 2026-08-28: V46 data and feature evidence remains PASS.
+> The latest bounded canonical smoke completed four CUDA steps and validation
+> inside its 220 W guard, but emitted no bundle because its movement proof named
+> a retired static Exit path. Commit `a77ebb6e` repairs that proof; the handover
+> owns the one permitted fresh recipe-bound/dry-run-checked repeat.
+
 ## Source authority
 
 GX1 consumes only complete native OANDA `XAU_USD` MBA candles in UTC. M1 and

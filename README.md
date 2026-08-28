@@ -109,12 +109,14 @@ but the system is not empirically finished:
   authorization for an edge or trading claim;
 - the current local CUDA route is limited to one changed measured plan: two
   hash-bound V46 batch-32 smokes stopped safely at 71 C before an optimizer
-  step or bundle, while VRAM stayed at 8.95 GiB. WSL cannot set a physical
-  lower driver limit, so the first batch-8 attempt used the active 220 W
-  one-second stop but was intentionally stopped when its TRAIN-only sample
-  left all 70,880 VAL rows. Only one repaired batch-8/32-row-per-split smoke
-  may run next; assess its terminal evidence before any retry or remote
-  offline smoke on a frozen commit and V46 artifacts;
+  step or bundle, while VRAM stayed at 8.95 GiB. The repaired batch-8/32-row-
+  per-split smoke then completed four optimizer steps and validation within
+  65 C / 211.77 W / 8.75 GiB, but correctly refused its bundle because its
+  movement proof named a retired static Exit branch. Commit `a77ebb6e` binds
+  that proof to active episode-native Exit components. Only one fresh
+  recipe-bound/dry-run-checked repetition may run next; assess guard and
+  durable trainer-sidecar evidence before any retry or remote offline smoke
+  on a frozen commit and V46 artifacts;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

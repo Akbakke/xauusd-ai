@@ -378,8 +378,12 @@ Windows-host driver rejected a physical lower power limit from WSL. The active
 native guard is therefore 70 C/220 W/12 GiB: 220 W is a one-second stop, not a
 throttle. The first batch-8 attempt was intentionally stopped when its
 TRAIN-only 1,000-row subsample was found to leave 70,880 full VAL rows; it was
-not a guard breach or crash. Exactly one repaired batch-8/32-row-per-split V46
-canonical smoke is authorized; assess its terminal evidence before any later local retry. A remote machine, if
+not a guard breach or crash. The repaired batch-8/32-row-per-split V46 smoke
+then completed four CUDA optimizer steps and validation inside 65 C / 211.77 W
+/ 8,751 MiB, but correctly rejected a retired static Exit branch in its
+movement proof. Commit `a77ebb6e` binds the proof to active episode-native
+components. Exactly one fresh recipe-bound/dry-run-checked repeat is authorized;
+assess its terminal evidence before any later local retry. A remote machine, if
 explicitly cost-approved, is still an offline bounded job with frozen
 source/artifacts and an automatic stop; it is not permission to alter scope or
 use broker credentials.
