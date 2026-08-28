@@ -2253,10 +2253,16 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_SWAP_BYTES",
     "GX1_CAPPED_TASKS_MAX",
     "GX1_GPU_GUARD_PATH",
+    # The cap runner publishes this exact boolean transport for both trainer
+    # and CUDA-producer scopes.  For a trainer it is always ``false`` and is
+    # consumed only by the runner's enclosing scope decision; it cannot alter
+    # inputs, targets, optimizer settings or checkpoint selection.
+    "GX1_CUDA_PRODUCER_GUARD",
     # Guard-owned, exclusive sidecar created by gx1_capped_run.sh.  It records
     # safety telemetry only and has no bearing on model inputs, targets or
     # checkpoint decisions.
     "GX1_TRAINER_GUARD_LOG_PATH",
+    "GX1_TRAINER_STDIO_LOG_PATH",
     "GX1_TRAINER_DEVICE",
     "GX1_TRAINER_EXECUTION_MODE",
     "GX1_TRAINER_MAX_WALL_SECONDS",

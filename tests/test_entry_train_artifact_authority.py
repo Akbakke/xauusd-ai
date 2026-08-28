@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,7 @@ from tests.model_native_signal_support import canonical_model_native_selected_fi
 
 RUN_ID = "MODEL_NATIVE_TRAIN_ARTIFACT_PYTEST_V1"
 DATASET_RUN_ID = "MODEL_NATIVE_TRAIN_DATASET_PYTEST_V1"
+REPO = Path(__file__).resolve().parents[1]
 
 
 def _sha(path: Path) -> str:
@@ -283,6 +285,33 @@ def test_trainer_boundary_allows_only_guard_owned_attended_stage_transport(
 
     trainer._enforce_canonical_train_env_contract()
     assert set(guarded_transport).issubset(trainer._TRAIN_CAPPED_SCOPE_ENV)
+
+
+def test_capped_runner_transport_is_whitelisted_at_trainer_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every runner-provided GX1 transport must survive the trainer boundary.
+
+    The runner is the only writer of these values.  A missing whitelist entry
+    used to let dry-run pass and then reject a guarded CUDA trainer before any
+    model work, so compare the two owners directly in the CPU suite.
+    """
+
+    _set_exact_trainer_env(monkeypatch)
+    runner = (REPO / "scripts/gx1_capped_run.sh").read_text(encoding="utf-8")
+    published = set(re.findall(r"--setenv=(GX1_[A-Z0-9_]+)=", runner))
+    unset_before_trainer = {
+        "GX1_EXPECTED_MEMORY_BYTES",
+        "GX1_EXPECTED_SWAP_BYTES",
+        "GX1_EXPECTED_TASKS",
+        "GX1_CPU_AFFINITY",
+    }
+    delivered = published - unset_before_trainer
+
+    assert delivered.issubset(set(trainer._TRAIN_CAPPED_SCOPE_ENV))
+    for key in delivered:
+        monkeypatch.setenv(key, "guard-owned")
+    trainer._enforce_canonical_train_env_contract()
 
 
 @pytest.mark.parametrize("recipe_key", sorted(MODEL_NATIVE_RECIPE_ENV))
