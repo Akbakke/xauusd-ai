@@ -10,6 +10,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_metadata,
 )
 from gx1.contracts.immutable_event_authority_v1 import (
@@ -459,6 +461,10 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
 
     assert report["decision"] == "PASS"
     assert report["failures"] == []
+    assert report["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
+    assert report["expected_signal_dim"] == MODEL_NATIVE_SIGNAL_DIM
+    assert report["expected_selected_feature_count"] == MODEL_NATIVE_SELECTED_FEATURE_COUNT
+    assert report["large_artifact_hashes_verified"] is True
     audit_path = next(
         (tmp_path / "audit").glob("XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_*.json")
     )

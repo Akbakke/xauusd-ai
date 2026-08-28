@@ -17,6 +17,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+    MODEL_NATIVE_SIGNAL_DIM,
     model_native_signal_contract_failures,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
@@ -880,6 +882,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "requested_stem": requested_stem,
         "stem": str(stem or requested_stem),
         "data_splits": splits,
+        # These are not convenience defaults.  Every split has already had
+        # its serialized contract checked against the owners above; publish
+        # that exact identity so the downstream smoke audit can bind the
+        # pretrain proof without inventing a second hash walk.
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "expected_signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "expected_selected_feature_count": MODEL_NATIVE_SELECTED_FEATURE_COUNT,
+        # ``validate_xau_tape_provenance_v1`` rehashes the immutable tape
+        # manifests, partitions and collector snapshots.  This is true only
+        # when it succeeded for every required TRAIN/VAL split.
+        "large_artifact_hashes_verified": (
+            set(tape_provenance_by_split) == set(PREFREEZE_SPLITS)
+            and all(bool(value) for value in tape_provenance_by_split.values())
+        ),
         "require_mandatory_level_features": True,
         "require_inline_seq_structure": True,
         "require_xau_provenance": True,
