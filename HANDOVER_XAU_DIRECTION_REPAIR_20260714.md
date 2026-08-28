@@ -43,8 +43,8 @@ but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists yet.
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
 native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
 driver limit, and poll once per second. Canonical CUDA stops above 70 C core,
-251 W actual draw (a one-watt measurement tolerance over the reviewed 250 W
-target) or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
+300 W actual draw (explicitly operator-approved after a 254.93 W safe
+first-forward observation) or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
 as unobserved rather than fabricated. The legacy host-bridge design is retired
 as a canonical prerequisite. Later historical paragraphs that require a
 physical 250 W driver setting or bridge-provided VRAM temperature do not
