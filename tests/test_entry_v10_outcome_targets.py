@@ -34,6 +34,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     canonical_json_sha256,
     require_unified_exit_m1_pair_authority,
     sha256_file,
+    unified_exit_state_pointer_stream_sha256,
     unified_exit_state_population_arrays,
 )
 import gx1.contracts.unified_exit_lifecycle_v1 as unified_exit_lifecycle
@@ -351,6 +352,7 @@ def _in_memory_full_exit_split(
     episodes: pd.DataFrame | None = None,
     proof: dict[str, object] | None = None,
     entry_row_count: int = 1,
+    entry_times_override: list[pd.Timestamp] | None = None,
 ) -> tuple[
     UnifiedExitLifecycleSplit,
     pd.DataFrame,
@@ -364,13 +366,27 @@ def _in_memory_full_exit_split(
         if source is None
         else source.copy()
     )
-    if episodes is None or proof is None:
+    if entry_times_override is None:
         entry_time = pd.Timestamp(frame["time"].iloc[600]) - pd.Timedelta(
             minutes=5
         )
+        entry_times = [entry_time]
+    else:
+        entry_times = list(entry_times_override)
+    if entry_times_override is None and entry_row_count > 1:
+        entry_times.extend(
+            [
+                pd.Timestamp(frame["time"].iloc[-10])
+                - pd.Timedelta(minutes=5)
+            ]
+            * (entry_row_count - 1)
+        )
+    if len(entry_times) != entry_row_count:
+        raise AssertionError("test fixture entry-row count mismatch")
+    if episodes is None or proof is None:
         episodes, proof = build_unified_exit_lifecycle_episodes(
             min_m1_start_row=0,
-            entry_rows=pd.DataFrame({"time": [entry_time]}),
+            entry_rows=pd.DataFrame({"time": entry_times}),
             closed_m1=frame,
             split_end=pd.Timestamp(frame["time"].iloc[-1])
             + pd.Timedelta(minutes=1),
@@ -404,6 +420,7 @@ def _in_memory_full_exit_split(
     split = UnifiedExitLifecycleSplit(
         split="val",
         entry_row_count=entry_row_count,
+        entry_times=pd.DatetimeIndex(entry_times),
         feature_row_offset=0,
         episodes=episodes,
         split_manifest=proof,
@@ -1011,6 +1028,61 @@ def test_unified_exit_population_rejects_omitted_state_and_pointer_tamper() -> N
     assert ordered_population[511] == (0, 511)
     assert ordered_population[512] == (1, 0)
     assert all(state < 512 for _side, state in ordered_population)
+
+
+def test_unified_exit_population_rejects_omitted_eligible_entry() -> None:
+    source = _closed_m1_lifecycle_source(n_rows=1800)
+    entry_times = [
+        pd.Timestamp(source["time"].iloc[index]) - pd.Timedelta(minutes=5)
+        for index in (600, 605)
+    ]
+    episodes, proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
+        entry_rows=pd.DataFrame({"time": entry_times}),
+        closed_m1=source,
+        split_end=pd.Timestamp(source["time"].iloc[-1])
+        + pd.Timedelta(minutes=1),
+        market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    )
+    assert len(episodes) == 4
+    omitted = episodes.iloc[:2].reset_index(drop=True)
+    source_times = pd.DatetimeIndex(
+        pd.to_datetime(source["time"], utc=True, errors="raise")
+    ).as_unit("ns")
+    tampered_proof = dict(proof)
+    tampered_proof.update(
+        {
+            "eligible_entry_rows": 1,
+            "episode_rows": len(omitted),
+            "state_population_rows": len(omitted) * 512,
+            "state_population_stream_sha256": (
+                unified_exit_state_pointer_stream_sha256(
+                    episode_indices=omitted["episode_index"].to_numpy(
+                        dtype=np.int64
+                    ),
+                    entry_row_indices=omitted["entry_row_index"].to_numpy(
+                        dtype=np.int64
+                    ),
+                    side_indices=omitted["side_index"].to_numpy(dtype=np.int64),
+                    m1_start_rows=omitted["m1_start_row"].to_numpy(
+                        dtype=np.int64
+                    ),
+                    m1_times=source_times,
+                )
+            ),
+        }
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="ELIGIBLE_ENTRY_POPULATION_MISMATCH",
+    ):
+        _in_memory_full_exit_split(
+            source=source,
+            episodes=omitted,
+            proof=tampered_proof,
+            entry_row_count=2,
+            entry_times_override=entry_times,
+        )
 
 
 def test_unified_exit_first_state_has_full_history_and_executable_pnl() -> None:

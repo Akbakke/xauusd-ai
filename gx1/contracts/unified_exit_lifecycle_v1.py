@@ -624,6 +624,7 @@ class UnifiedExitLifecycleSplit:
         *,
         split: str,
         entry_row_count: int,
+        entry_times: pd.DatetimeIndex,
         feature_row_offset: int,
         episodes: pd.DataFrame,
         split_manifest: Mapping[str, Any],
@@ -640,6 +641,24 @@ class UnifiedExitLifecycleSplit:
         )
         self.split = str(split)
         self.entry_row_count = int(entry_row_count)
+        parsed_entry_times = pd.DatetimeIndex(entry_times).as_unit("ns")
+        if (
+            len(parsed_entry_times) != self.entry_row_count
+            or parsed_entry_times.empty
+            or parsed_entry_times.hasnans
+            or not parsed_entry_times.is_unique
+            or not parsed_entry_times.is_monotonic_increasing
+            or parsed_entry_times.tz is None
+            or parsed_entry_times[0].utcoffset() != pd.Timedelta(0)
+            or not parsed_entry_times.floor(
+                f"{ENTRY_DECISION_BAR_SECONDS}s"
+            ).equals(parsed_entry_times)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_ENTRY_TIME_POPULATION_INVALID: "
+                f"{self.split}"
+            )
+        self._entry_times = parsed_entry_times
         self._m1_times = m1_times
         self._m1 = dict(m1_arrays)
         # The canonical native tape names midpoint OHLC ``open/high/low/close``.
@@ -685,6 +704,109 @@ class UnifiedExitLifecycleSplit:
                     f"UNIFIED_EXIT_M1_FEATURE_SURFACE_{name.upper()}_SHAPE_INVALID"
                 )
         self._validate_full_population(episodes, split_manifest)
+        self._validate_complete_eligible_entry_population(
+            episodes,
+            split_manifest,
+        )
+
+    def _validate_complete_eligible_entry_population(
+        self,
+        episodes: pd.DataFrame,
+        manifest: Mapping[str, Any],
+    ) -> None:
+        """Recompute the causal eligibility set; an episode list is not authority.
+
+        A valid compact episode proves every state *inside* that episode, but
+        cannot by itself prove that a producer did not silently omit another
+        fully serviceable Entry row. Reconstruct that exact set from the
+        immutable Entry clock, M1 clock and declared split boundary before a
+        trainer is allowed to treat ``None`` as a legitimate ineligible row.
+        No reward, target or model output participates in this calculation.
+        """
+
+        raw_split_end = manifest.get("split_end_utc")
+        try:
+            split_end = pd.Timestamp(raw_split_end).as_unit("ns")
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_SPLIT_END_INVALID: {self.split}"
+            ) from exc
+        if (
+            pd.isna(split_end)
+            or split_end.tz is None
+            or split_end.utcoffset() != pd.Timedelta(0)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_SPLIT_END_INVALID: {self.split}"
+            )
+
+        m1_ns = np.asarray(self._m1_times.asi8, dtype=np.int64)
+        entry_available_ns = np.asarray(
+            self._entry_times.asi8
+            + int(pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS).value),
+            dtype=np.int64,
+        )
+        start_rows = np.searchsorted(m1_ns, entry_available_ns, side="left")
+        exact_open = start_rows < len(m1_ns)
+        exact_positions = np.flatnonzero(exact_open)
+        exact_open[exact_positions] &= (
+            m1_ns[start_rows[exact_positions]]
+            == entry_available_ns[exact_positions]
+        )
+        path_state_count = int(UNIFIED_EXIT_MAX_PATH_BARS)
+        insufficient_tail = exact_open & (
+            start_rows + path_state_count > len(m1_ns)
+        )
+        complete_tail = exact_open & ~insufficient_tail
+        crosses_split_end = np.zeros(self.entry_row_count, dtype=np.bool_)
+        complete_positions = np.flatnonzero(complete_tail)
+        crosses_split_end[complete_positions] = (
+            m1_ns[start_rows[complete_positions] + path_state_count - 1]
+            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
+            > int(split_end.value)
+        )
+        eligible = complete_tail & ~crosses_split_end
+        expected_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
+        expected_starts = np.asarray(
+            start_rows[expected_rows], dtype=np.int64
+        )
+        feature_floor = self._feature_row_offset + EXIT_FEATURE_SEQUENCE_BARS - 1
+        if expected_starts.size and int(expected_starts.min()) < feature_floor:
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_ELIGIBILITY_BEFORE_FEATURE_FLOOR: "
+                f"{self.split}"
+            )
+
+        observed_rows = episodes["entry_row_index"].to_numpy(
+            dtype=np.int64
+        )[0::2]
+        observed_starts = episodes["m1_start_row"].to_numpy(
+            dtype=np.int64
+        )[0::2]
+        if (
+            not np.array_equal(observed_rows, expected_rows)
+            or not np.array_equal(observed_starts, expected_starts)
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_ELIGIBLE_ENTRY_POPULATION_MISMATCH: "
+                f"{self.split}"
+            )
+        expected_skipped = {
+            "missing_entry_available_m1_open": int(
+                np.count_nonzero(~exact_open)
+            ),
+            "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
+            "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
+        }
+        if (
+            manifest.get("entry_rows") != self.entry_row_count
+            or manifest.get("eligible_entry_rows") != len(expected_rows)
+            or manifest.get("skipped_entry_rows") != expected_skipped
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_LIFECYCLE_ELIGIBILITY_PROOF_INVALID: "
+                f"{self.split}"
+            )
 
     def _validate_full_population(
         self,
@@ -1494,6 +1616,7 @@ class UnifiedExitLifecycleCorpus:
             split_contract = UnifiedExitLifecycleSplit(
                 split=split,
                 entry_row_count=len(entry_times),
+                entry_times=parsed_entry_times,
                 feature_row_offset=covered_offset,
                 episodes=episodes,
                 split_manifest=split_manifest,
