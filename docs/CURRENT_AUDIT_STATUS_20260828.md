@@ -51,6 +51,11 @@ validated five-clock V4 cache, before compute sampling or optimization.
   fails before any large-input binding or recipe publication. This is a CPU
   efficiency and provenance control only; it produces neither a bundle nor
   authority to run CUDA.
+- From clean source commit `3ae102a9`, the fresh CUDA-intended smoke recipe
+  and its wrapper dry-run both pass. They bind the current V46 evidence and
+  the bounded canonical geometry (batch 8, deterministic 32-row smoke,
+  10 GiB host cap); the dry-run allocated no CUDA and produced no bundle.
+  Actual export remains a separately authorised guarded operation.
 - The future serve adapter now opens only the exact V4 cache bound by the
   bundle, injects its frozen artifacts directly, and refuses a context snapshot
   from another immutable pair generation even if its timestamp is identical.
@@ -127,10 +132,10 @@ operation was started while refreshing it.
 1. Preserve the candidate `NOT_READY` block. Do not repair the historical
    bundle in place. A separately authorised, fresh exported-bundle run must
    first pass the current provenance contract; it remains offline and guarded.
-2. From a clean reviewed source commit, first make the CPU-only recipe
-   preflight using the smoke run ID declared by current immutable evidence. It
-   must pass before a separately authorised guarded export; a different ad-hoc
-   run ID is intentionally rejected before large input hashes are computed.
+2. The fresh CUDA-intended CPU recipe preflight and exact wrapper dry-run now
+   pass from commit `3ae102a9`. Do not execute the resulting command without
+   separate explicit authority; an ad-hoc run ID is intentionally rejected
+   before large input hashes are computed.
 3. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.

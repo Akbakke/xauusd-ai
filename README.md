@@ -148,6 +148,9 @@ but the system is not empirically finished:
   evidence records before it hashes multi-gigabyte TRAIN/VAL inputs or writes a
   recipe. This avoids a costly, doomed preflight; it is not a CUDA or bundle
   authorization;
+- the current-source CUDA-intended smoke recipe and wrapper dry-run pass, but
+  no CUDA export has been executed. Its guarded 32-row technical smoke remains
+  separately authorised work, not candidate, backtest or edge evidence;
 - the first six-month chronological **technical integration** session ran on
   V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
   It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step
