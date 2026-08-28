@@ -78,6 +78,7 @@ Model-native seq513 evidence:
   model-native-sizing-bind-bundle
   model-native-sizing-materialize-test-oos
   model-native-sizing-finalize-test-proof
+  model-native-trade-path-metrics
   model-native-serve-parity
   model-native-direction-pocket-audit
 
@@ -978,6 +979,21 @@ case "$cmd" in
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.finalize_entry_model_native_sizing_v1 \
       finalize-test-proof "$@"
+    ;;
+
+  model-native-trade-path-metrics)
+    # Exact unified-Exit rows can yield research-only MAE/MFE/path diagnostics.
+    # This route cannot create a candidate, net-PnL, demo or live authority.
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --replay-rows \
+      --exit-trace-rows \
+      --candidate-bundle-sha256 \
+      --output-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${PRODUCER_CAP[@]}" "$PY" -m \
+      gx1.scripts.materialize_entry_model_native_trade_path_metrics_v1 "$@"
     ;;
 
   model-native-serve-parity)

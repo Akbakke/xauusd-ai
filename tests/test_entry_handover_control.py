@@ -70,6 +70,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-seed-stability",
     "model-native-smoke-train",
     "model-native-candidate-train",
+    "model-native-trade-path-metrics",
 }
 
 
@@ -1134,6 +1135,7 @@ def test_removed_or_mutating_routes_fail_closed() -> None:
         ("model-native-sizing-bind-bundle", "--source-bundle-dir"),
         ("model-native-sizing-materialize-test-oos", "--calibration"),
         ("model-native-sizing-finalize-test-proof", "--calibration"),
+        ("model-native-trade-path-metrics", "--replay-rows"),
         ("model-native-serve-parity", "--dataset-dir"),
         ("model-native-direction-pocket-audit", "--dataset-dir"),
     ],
