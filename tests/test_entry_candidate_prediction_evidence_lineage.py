@@ -9,6 +9,12 @@ import pytest
 from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     MODEL_NATIVE_RUNTIME_HEAD_EVIDENCE_REQUIRED_FIELDS,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_OUTPUT_DIM,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
     model_direction_decision_contract_metadata,
@@ -63,6 +69,19 @@ def _predictions(splits: tuple[str, ...] = ("val",)) -> pd.DataFrame:
                 float(1.0 / (1.0 + np.exp(0.1))),
                 float(1.0 / (1.0 + np.exp(-0.4))),
             ],
+            "dip_pred": [[0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM] * 2,
+            "forecast_pred": [
+                [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS)
+            ]
+            * 2,
+            "tail_risk_pred": [
+                [0.1] * len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS)
+            ]
+            * 2,
+            "vol_forecast_pred": [
+                [0.1] * len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS)
+            ]
+            * 2,
             **turning_point_prediction_columns(2),
         }
     )
@@ -169,6 +188,30 @@ def _resolve(event: dict, **overrides):
     }
     kwargs.update(overrides)
     return resolve_and_validate_prediction_evidence(requested_path, **kwargs)
+
+
+def test_declaration_rejects_flattened_auxiliary_model_head(
+    tmp_path: Path,
+) -> None:
+    """A producer cannot hide an active vector behind ``*_0`` columns."""
+
+    event = _event(tmp_path)
+    frame = pd.read_parquet(event["predictions"])
+    values = np.stack(frame.pop("dip_pred").to_numpy())
+    for index in range(values.shape[1]):
+        frame[f"dip_pred_{index}"] = values[:, index]
+    flattened = event["out"] / "selective_edge_predictions_20260716T120000654321Z.parquet"
+    atomic_write_parquet_immutable(frame, flattened)
+    metadata = json.loads((event["bundle"] / "bundle_metadata.json").read_text())
+
+    with pytest.raises(RuntimeError, match="missing required columns: .*dip_pred"):
+        build_prediction_evidence_declaration(
+            predictions_path=flattened,
+            bundle_dir=event["bundle"],
+            bundle_metadata=metadata,
+            evidence_stage=PRE_CALIBRATION_EVIDENCE_STAGE,
+            requested_splits=["val"],
+        )
 
 
 def test_pre_calibration_requires_exact_val_and_is_non_authoritative(

@@ -53,12 +53,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     encode_model_native_runtime_head_evidence,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_DIP_OUTPUT_DIM,
-    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
-    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
-    MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
-    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -79,6 +74,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     PREDICTION_EVIDENCE_STAGE_SPLITS,
     atomic_write_parquet_immutable,
     atomic_write_text,
@@ -1068,17 +1064,9 @@ def _runtime_head_evidence_for_row(
     for field in sorted(same_name_fields):
         evidence[field] = _python_value(row[field])
     return evidence
-# Multi-dimensional genuine auxiliary heads; widths derive from target owners.
-_EXTRA_VECTOR_HEADS = {
-    # The dip head emits p50/p90/recovery values: 18 outputs over the 12
-    # physical MAE/MFE target columns. Persist its model-output width, not the
-    # target-column width; train/serve and runtime evidence use this owner.
-    "dip_pred": MODEL_NATIVE_DIP_OUTPUT_DIM,
-    "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
-    "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
-    "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
-    "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
-}
+# The declaration owner defines the exact names and model-output widths.  The
+# evaluator must persist the same five vectors, never a duplicate local map.
+_EXTRA_VECTOR_HEADS = MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS
 
 
 def _append_extra_vector_head_evidence(

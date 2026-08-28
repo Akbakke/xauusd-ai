@@ -20,8 +20,12 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_OUTPUT_DIM,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SELECTION_MODE,
@@ -53,6 +57,18 @@ PREDICTION_EVIDENCE_STAGE_SPLITS = {
     RUNTIME_AUTHORITATIVE_EVIDENCE_STAGE: ("test",),
 }
 
+# Every active vector emitted by the exact model-native evaluator must survive
+# as one dense parquet column.  The later smoke audit consumes all five heads;
+# making them required here turns a producer/consumer disagreement into a
+# bounded artifact-preflight failure instead of a late full-VAL failure.
+MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS = {
+    "dip_pred": MODEL_NATIVE_DIP_OUTPUT_DIM,
+    "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+    "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+    "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
+}
+
 REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "split",
     "model",
@@ -60,7 +76,7 @@ REQUIRED_MODEL_DIRECTION_COLUMNS = (
     "pred_direction",
     "selection_score_mode",
     "entry_action_q_bps",
-    "timing_pred",
+    *MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     *MODEL_NATIVE_TIMING_TARGET_COLUMNS,
 )
 RUNTIME_HEAD_PREDICTION_COLUMNS = (
@@ -212,7 +228,11 @@ def validate_model_direction_parquet_semantics(
         return out
 
     entry_action_q = matrix("entry_action_q_bps", 3)
-    timing_pred = matrix("timing_pred", MODEL_NATIVE_TIMING_OUTPUT_DIM)
+    vector_heads = {
+        name: matrix(name, width)
+        for name, width in MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS.items()
+    }
+    timing_pred = vector_heads["timing_pred"]
     if np.any(timing_pred < 0.0) or np.any(timing_pred > 1.0):
         raise RuntimeError("prediction evidence timing_pred is outside [0,1]")
     for target_column in MODEL_NATIVE_TIMING_TARGET_COLUMNS:

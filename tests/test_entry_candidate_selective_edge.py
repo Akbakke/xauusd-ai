@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
+    MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     PREDICTION_EVIDENCE_STAGE_SPLITS,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
@@ -44,6 +45,7 @@ def test_vector_evidence_widths_match_model_output_owners() -> None:
         "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
         "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
     }
+    assert MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS == _EXTRA_VECTOR_HEADS
 
 
 def test_vector_head_evidence_is_persisted_as_exact_dense_vectors() -> None:
