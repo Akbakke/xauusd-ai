@@ -337,7 +337,8 @@ if [[ -n "$trainer_stdio_log_path" ]]; then
   # log.  A terminal Python failure must survive an interrupted shell/session;
   # otherwise a bounded run can consume its preflight budget yet leave only
   # ``child_status=1`` to diagnose.
-  /usr/bin/setsid "$@" >>"$trainer_stdio_log_path" 2>&1 &
+  /usr/bin/setsid /usr/bin/env -u GX1_TRAINER_STDIO_LOG_PATH "$@" \
+    >>"$trainer_stdio_log_path" 2>&1 &
 else
   /usr/bin/setsid "$@" &
 fi
