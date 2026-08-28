@@ -107,10 +107,12 @@ but the system is not empirically finished:
   `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q production-economics
   gate is blocked, so this is neither a trained/admitted candidate nor an
   authorization for an edge or trading claim;
-- the current local CUDA route is thermally held: two hash-bound V46 batch-32
-  smokes stopped safely at 71 C before an optimizer step or bundle, while VRAM
-  stayed at 8.95 GiB. Do not retry local CUDA; an explicitly approved remote
-  offline smoke on a frozen commit and V46 artifacts is the next hardware path;
+- the current local CUDA route is limited to one changed measured plan: two
+  hash-bound V46 batch-32 smokes stopped safely at 71 C before an optimizer
+  step or bundle, while VRAM stayed at 8.95 GiB. WSL cannot set a physical
+  lower driver limit, so exactly one fresh batch-8 canonical smoke may use the
+  active 220 W one-second stop; assess its terminal evidence before any retry
+  or remote offline smoke on a frozen commit and V46 artifacts;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

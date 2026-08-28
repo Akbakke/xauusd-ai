@@ -183,11 +183,14 @@ batch=640 RSS measurement, see CLAUDE.md), 512 MiB swap, CPU 0-1, one job at a
 time. Communicate before any run lasting more than a minute. Never launch live,
 paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
 pre-existing processes unless the user explicitly authorizes that action.
-Canonical CUDA additionally stops above 70 C core, 300 W actual draw or 12 GiB
-resident VRAM from pinned native WSL telemetry. Those are stops, not a power
-throttle. A remote GPU may be prepared only as offline research from the frozen
-commit and V46 hashes, and only after explicit cost approval; it receives no
-broker credential or live route.
+Canonical CUDA additionally stops above 70 C core, 220 W actual draw or 12 GiB
+resident VRAM from pinned native WSL telemetry. The Windows-host driver rejected
+a physical lower power limit from WSL, so 220 W is a one-second process stop,
+not a throttle. Exactly one fresh V46 batch-8 canonical smoke is approved; its
+terminal evidence must be assessed before any further local retry. A remote GPU
+may be prepared only as offline research from the frozen commit and V46 hashes,
+and only after explicit cost approval; it receives no broker credential or live
+route.
 
 The verified takeover environment is CPython 3.10.12 with the direct packages
 in `requirements.txt`. Do not reproduce the workstation by freezing unrelated
@@ -209,9 +212,10 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST. Do not retry local CUDA: prepare an explicitly
-   approved remote canonical smoke, then a full research candidate only if its
-   bundle audit proves safe and valid.
+2. Preserve V46's sealed TEST. Run only the single approved batch-8/220 W local
+   canonical smoke and assess it; otherwise prepare an explicitly approved
+   remote canonical smoke. Train a full research candidate only if its bundle
+   audit proves safe and valid.
 3. Evaluate the candidate on the historical research path (VAL and then the
    untouched TEST only where its seal permits it); report that result as
    research-only, never as a production edge claim.

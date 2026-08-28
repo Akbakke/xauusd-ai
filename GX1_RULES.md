@@ -167,11 +167,13 @@ Complexity must live in the existing owners; unnecessary code is deleted.
 - A cap kill, partial directory or interrupted event is failed evidence.
 - Delete generated runs only through the retention owner after reachability and
   active-process checks. Never delete unknown worktrees or user changes.
-- Canonical CUDA's native guard stops above 70 C core, 300 W actual draw or
-  12 GiB residency. The two 2026-08-28 batch-32 V46 attempts both reached 71 C
-  before a bundle; no further local CUDA retry is allowed without a materially
-  different measured thermal plan. The terminal guard log, not a partial output
-  directory, owns that result.
+- Canonical CUDA's native guard stops above 70 C core, 220 W actual draw or
+  12 GiB residency. WSL cannot set the host driver's physical lower power limit
+  (the driver returns `Insufficient Permissions`), so 220 W is a one-second
+  process stop, not a throttle. The two 2026-08-28 batch-32 V46 attempts reached
+  71 C before a bundle. Exactly one fresh batch-8 V46 canonical smoke is allowed
+  under this changed measured plan; assess its terminal guard log before any
+  further local CUDA retry.
 - An ephemeral remote GPU is permitted only for the same offline research
   scope, exact frozen commit and hash-bound V46 artifacts, after explicit
   operator cost approval. It must have automatic time/cost termination and no

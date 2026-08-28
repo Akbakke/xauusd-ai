@@ -374,7 +374,10 @@ reboot is invalid until its immutable completion manifest and hashes pass.
 
 Current hardware boundary, 2026-08-28: canonical batch-32 CUDA reaches about
 8.95 GiB VRAM but two V46 smokes stopped safely at 71 C before a bundle. The
-70 C/300 W/12 GiB native guard remains unchanged and no new local CUDA attempt
-is authorized. A remote machine, if explicitly cost-approved, is still an
-offline bounded job with frozen source/artifacts and an automatic stop; it is
-not a permission to alter scope or use broker credentials.
+Windows-host driver rejected a physical lower power limit from WSL. The active
+native guard is therefore 70 C/220 W/12 GiB: 220 W is a one-second stop, not a
+throttle. Exactly one fresh batch-8 V46 canonical smoke is authorized; assess
+its terminal evidence before any later local retry. A remote machine, if
+explicitly cost-approved, is still an offline bounded job with frozen
+source/artifacts and an automatic stop; it is not permission to alter scope or
+use broker credentials.

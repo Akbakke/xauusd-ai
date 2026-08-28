@@ -35,8 +35,7 @@ for canonical CUDA. Batch 32 then held 8,949–8,951 MiB resident: VRAM is no
 longer the immediate local blocker.
 
 Two later, hash-bound canonical CUDA attempts terminated **safely** at the
-core-temperature boundary, after the operator-approved actual-draw ceiling had
-been raised to 300 W:
+core-temperature boundary under the historical 300 W actual-draw ceiling:
 
 | Recipe | Result | Peak core / draw / VRAM | Bundle |
 | --- | --- | --- | --- |
@@ -49,9 +48,12 @@ optimizer-step proof, a model bundle, a validation result or an edge result.
 The 1,000-row recipe itself passed its complete hash/lineage dry-run before
 execution. Therefore the present local CUDA blocker is **thermal duration at
 about 260 W**, not missing feature data, unmeasured fields, a VRAM allocation
-mismatch or an unvalidated command. Do not start another local canonical CUDA
-training attempt until a materially different cooling/power-control plan has
-been measured, or an explicitly approved remote GPU run is prepared.
+mismatch or an unvalidated command. The Windows host rejected an attempted
+physical 220 W driver cap from WSL with `Insufficient Permissions`. The only
+changed local plan the operator approved is **one** fresh batch-8 V46 canonical
+smoke behind a 220 W one-second process stop; it is not a throttle and its
+terminal evidence must be assessed before any second local attempt. Otherwise,
+use an explicitly approved remote GPU run.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
@@ -71,12 +73,12 @@ future cleanup still needs a fresh exact retention plan and reachability proof.
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
 native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
 driver limit, and poll once per second. Canonical CUDA stops above 70 C core,
-300 W actual draw or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
-as unobserved rather than fabricated. The two post-300-W attempts above prove
-that 300 W is a **stop ceiling**, not a thermal solution. The legacy host-bridge
-design is retired as a canonical prerequisite. Later historical paragraphs that
-require a physical 250 W driver setting or bridge-provided VRAM temperature do
-not describe the active guard.
+220 W actual draw or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
+as unobserved rather than fabricated. The host driver rejected physical limit
+control from WSL, so 220 W is a **process stop**, not a thermal throttle. The
+legacy host-bridge design is retired as a canonical prerequisite. Later
+historical paragraphs that require a physical 250 W driver setting or
+bridge-provided VRAM temperature do not describe the active guard.
 
 **Active V46 all-field operativity proof, 2026-08-28:**
 `audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260828T075506Z.json` is a new,
@@ -872,10 +874,13 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    already passed the exact current audits. Do not add/remove features, alter
    targets, rebuild the dataset or re-open TEST to chase a hardware issue.
    Repair only a demonstrated defect.
-2. **Treat local canonical CUDA as thermally held.** The two 71 C guard stops
-   are terminal failed evidence, not a reason to raise the temperature limit or
-   keep retrying. The PC is idle after each stop; no background trainer,
-   dataset build, broker process or live process is permitted.
+2. **Use the single approved low-workload local probe, then return to hold.**
+   The two batch-32 71 C guard stops are terminal failed evidence, not a reason
+   to raise the temperature limit or keep retrying. The only allowed local
+   continuation is one fresh batch-8 V46 canonical smoke with the 220 W
+   one-second stop. Assess its guard log and bundle audit before any further
+   local decision. No background trainer, dataset build, broker process or live
+   process is permitted.
 3. **Prepare, but do not rent or launch, remote capacity without an explicit
    spend approval.** The required shape is one ephemeral dedicated GPU with at
    least 48 GiB VRAM, at least 16 vCPUs, 64 GiB host RAM and fast local NVMe.

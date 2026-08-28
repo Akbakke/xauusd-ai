@@ -874,7 +874,7 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=390" in source
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=300" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=220" in source
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=12288" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source

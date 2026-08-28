@@ -72,10 +72,13 @@ TRAINER_GPU_MAX_MEMORY_TEMP_C=90
 # but retains a strict actual-draw stop; it must never be confused with a
 # software authorization to consume 390 W continuously.
 TRAINER_GPU_MAX_POWER_LIMIT_W=390
-# Operator-approved measured CUDA ceiling (2026-08-28). The physical driver
-# setting remains 390 W, but the native one-second guard must terminate the
-# job above 300 W; it is never authorization to consume 390 W continuously.
-TRAINER_GPU_MAX_POWER_DRAW_W=300
+# The Windows-host driver will not accept a lower physical limit from WSL
+# (it returns Insufficient Permissions). The approved local continuation is
+# therefore one batch-8 canonical smoke behind a stricter one-second 220 W
+# actual-draw stop. This is a process-kill boundary, not a hardware throttle:
+# a recipe that needs more than 220 W is failed rather than allowed to heat
+# soak this workstation.
+TRAINER_GPU_MAX_POWER_DRAW_W=220
 # WSL exposes no memory-junction temperature, so use the proven 12 GiB
 # residency boundary and poll at one second for every offline CUDA run.
 TRAINER_GPU_MAX_MEMORY_USED_MIB=12288

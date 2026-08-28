@@ -9,9 +9,11 @@ not produced a bundle. Two batch-32 V46 recipes passed their hash-bound
 preflight and then stopped safely at the unchanged 70 C core boundary: 71 C /
 263.77 W / 8,951 MiB for 10,000 TRAIN rows and 71 C / 261.33 W / 8,951 MiB for
 1,000 rows. This establishes a local thermal hold, not a data, feature, target
-or VRAM failure. No further local CUDA retry is part of this gate; a separately
-approved remote canonical smoke must still pass every immutable recipe and
-bundle-audit condition below.
+or VRAM failure. The only local continuation is one fresh V46 batch-8 canonical
+smoke behind the active 220 W one-second stop; its terminal evidence must be
+assessed before any repeat. If it cannot create a valid bundle safely, a
+separately approved remote canonical smoke must still pass every immutable
+recipe and bundle-audit condition below.
 
 ## V46 review record — 2026-08-25
 
