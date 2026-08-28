@@ -351,6 +351,70 @@ def test_recipe_producer_rejects_smoke_run_lineage_before_large_rehash(
     assert not out_dir.exists()
 
 
+def test_execution_provenance_accepts_clean_descendant_with_exact_source_bindings(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Docs-only descendants must not force a repeat large-input recipe audit."""
+
+    recipe_path = tmp_path / "recipe.json"
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    out_bundle_dir = tmp_path / "bundle"
+    recipe = {
+        "schema_version": launch.RECIPE_AUDIT_SCHEMA,
+        "decision": "PASS",
+        "failures": [],
+        "profile": "smoke",
+        "run_id": "RECIPE_DESCENDANT_SMOKE_V1",
+        "dataset_run_id": "RECIPE_DESCENDANT_DATASET_V1",
+        "dataset_dir": str(dataset_dir),
+        "out_bundle_dir": str(out_bundle_dir),
+        "source_commit": "a" * 40,
+        "source_bindings": {"trainer": {"sha256": "b" * 64}},
+        "source_bindings_sha256": "c" * 64,
+    }
+    recipe_path.write_text(json.dumps(recipe), encoding="utf-8")
+    recipe_sha256 = producer._sha256_file(recipe_path)
+    observed: list[tuple[str, ...]] = []
+
+    def fake_run(command, **_kwargs):
+        observed.append(tuple(command))
+        return subprocess.CompletedProcess(command, 0)
+
+    def fake_check_output(command, **_kwargs):
+        observed.append(tuple(command))
+        assert command[-2:] == ["--porcelain=v1", "--untracked-files=all"]
+        return ""
+
+    monkeypatch.setattr(launch.subprocess, "run", fake_run)
+    monkeypatch.setattr(launch.subprocess, "check_output", fake_check_output)
+    monkeypatch.setattr(launch, "_validate_source_bindings", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        launch,
+        "require_training_recipe_source_provenance_metadata",
+        lambda value, **_kwargs: value,
+    )
+
+    result = launch.require_training_recipe_execution_provenance(
+        recipe_audit_path=recipe_path,
+        recipe_audit_sha256=recipe_sha256,
+        repo=REPO,
+        profile="smoke",
+        run_id="RECIPE_DESCENDANT_SMOKE_V1",
+        dataset_run_id="RECIPE_DESCENDANT_DATASET_V1",
+        dataset_dir=dataset_dir,
+        out_bundle_dir=out_bundle_dir,
+    )
+
+    assert result["source_commit"] == "a" * 40
+    assert any(
+        command[-4:] == ("merge-base", "--is-ancestor", "a" * 40, "HEAD")
+        for command in observed
+    )
+    assert not any(command[-1:] == ("HEAD",) and "rev-parse" in command for command in observed)
+
+
 @pytest.mark.parametrize("invalid_dropout", ("-0.01", "1.0", "nan"))
 def test_train_launch_rejects_invalid_explicit_dropout(
     tmp_path: Path,

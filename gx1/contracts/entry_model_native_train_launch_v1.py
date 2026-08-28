@@ -961,13 +961,12 @@ def require_training_recipe_execution_provenance(
         == out_bundle_dir.resolve(),
         "trainer recipe audit output directory mismatch",
     )
-    current_commit = subprocess.check_output(
-        ["git", "-C", str(repo_root), "rev-parse", "HEAD"], text=True
-    ).strip()
-    _require(
-        recipe.get("source_commit") == current_commit,
-        "trainer recipe audit source_commit must equal current HEAD",
-    )
+    # The exact executed source closure below owns runtime byte freshness.
+    # Requiring identical HEAD as well made an otherwise byte-identical recipe
+    # unusable after a documentation-only commit, needlessly forcing another
+    # multi-gigabyte input rehash.  Keep the recipe commit in the committed
+    # lineage, then require every bound execution file to match exactly.
+    _validate_source_revision(recipe, repo=repo_root)
     worktree = subprocess.check_output(
         ["git", "-C", str(repo_root), "status", "--porcelain=v1", "--untracked-files=all"],
         text=True,
