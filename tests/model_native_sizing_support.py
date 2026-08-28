@@ -165,6 +165,10 @@ def _prediction_row(
         "y_position_size_target": float(target),
         "session": session,
         "session_id": ("ASIA", "EU", "OVERLAP", "US").index(session),
+        "dip_pred": [0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM,
+        "forecast_pred": [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+        "tail_risk_pred": [0.1] * len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+        "vol_forecast_pred": [0.1] * len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
         **turning_point_prediction_row(0),
     }
 
