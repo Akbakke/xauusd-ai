@@ -734,6 +734,8 @@ def build_multi_tf_from_cv3(
     *,
     matrix_contract: str,
     feature_names: list[str],
+    v29_registry_constants: dict,
+    volatility_squeeze_artifacts: Any,
 ) -> dict:
     """Build the exact bundle-declared in-memory MTF surface from live OHLCV.
 
@@ -776,17 +778,10 @@ def build_multi_tf_from_cv3(
         raise RuntimeError(
             "[MODEL_NATIVE_STATE] cv3 must have a DatetimeIndex for MTF build"
         )
-    from gx1.execution.v12_state_from_prebuilt import (
-        _require_v29_registry_constants_from_bound_cache,
-        _require_volatility_squeeze_artifacts_from_bound_cache,
-    )
-
     built = build_multi_tf_per_bar_features_v4(
         m5,
-        v29_registry_constants=_require_v29_registry_constants_from_bound_cache(),
-        volatility_squeeze_artifacts=(
-            _require_volatility_squeeze_artifacts_from_bound_cache()
-        ),
+        v29_registry_constants=v29_registry_constants,
+        volatility_squeeze_artifacts=volatility_squeeze_artifacts,
     )
     for timeframe, frame in built.items():
         if (

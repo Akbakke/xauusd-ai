@@ -76,6 +76,7 @@ from gx1.time.session_detector import SESSION_ORDER  # noqa: E402
 from gx1.contracts.entry_model_native_signal_v1 import (  # noqa: E402
     MODEL_NATIVE_CONTRACT_MODE,
 )
+from gx1.contracts.gx1_scope_v1 import require_offline_scope  # noqa: E402
 from gx1.contracts.oanda_fill_economics_v1 import (  # noqa: E402
     observed_oanda_order_fill_economics,
 )
@@ -2943,6 +2944,11 @@ def main() -> int:
     p.add_argument("--journal-suffix", type=str, default="",
                    help="Suffix for journal filename (e.g. 'live' or 'shadow') to allow parallel runners")
     args = p.parse_args()
+    # Current repository authority is offline-only. Keep this boundary before
+    # singleton/state probing, dependency import, credentials or any broker
+    # reconciliation so a direct module invocation cannot revive a retired
+    # runner through persisted recovery files.
+    require_offline_scope("paper_runner")
     if args.shadow_only and not args.dry_run:
         raise SystemExit("--shadow-only requires --dry-run")
     runner_singleton_handle = acquire_runner_singleton_lock()

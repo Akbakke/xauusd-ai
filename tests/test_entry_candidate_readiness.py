@@ -37,6 +37,8 @@ from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
+    TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA,
+    canonical_json_sha256,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     SCHEMA_VERSION as TRAINING_OBJECTIVE_SCHEMA,
@@ -82,6 +84,27 @@ def _signal_contract() -> dict:
     )
 
 
+def _recipe_source_provenance() -> dict:
+    bindings = {
+        "python:gx1/__init__.py": {
+            "path": "/tmp/gx1/__init__.py",
+            "sha256": "a" * 64,
+            "size_bytes": 1,
+            "mtime_ns": 1,
+            "device": 1,
+            "inode": 1,
+        }
+    }
+    return {
+        "schema_version": TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA,
+        "recipe_audit_path": "/tmp/ENTRY_TRAIN_RECIPE_20260716T120000Z.json",
+        "recipe_audit_sha256": "b" * 64,
+        "source_commit": "c" * 40,
+        "source_bindings": bindings,
+        "source_bindings_sha256": canonical_json_sha256(bindings),
+    }
+
+
 def _event(
     root: Path,
     prefix: str,
@@ -107,6 +130,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
 
     objective = _objective()
     signal = _signal_contract()
+    recipe_source_provenance = _recipe_source_provenance()
     metadata = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "seq_input_dim": MODEL_NATIVE_SIGNAL_DIM,
@@ -114,12 +138,14 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
         "seq_len": 96,
         "model_native_signal_contract": signal,
         "model_native_training_objective": objective,
+        "recipe_source_provenance": recipe_source_provenance,
         "direction_decision_contract": model_direction_decision_contract_metadata(),
     }
     lock = {
         "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
         "model_native_signal_contract": signal,
         "model_native_training_objective": objective,
+        "recipe_source_provenance": recipe_source_provenance,
     }
     metadata_path = _write_json(bundle / "bundle_metadata.json", metadata)
     lock_path = _write_json(bundle / "MASTER_TRANSFORMER_LOCK.json", lock)

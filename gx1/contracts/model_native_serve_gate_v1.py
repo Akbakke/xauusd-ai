@@ -53,9 +53,9 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 
 MODEL_NATIVE_SERVE_GATE_CONTRACT_VERSION = (
-    "xau_model_native_exact_test_full_stack_serve_gate_v14"
+    "xau_model_native_exact_test_full_stack_serve_gate_v15"
 )
-MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v14"
+MODEL_NATIVE_SERVE_PARITY_SCHEMA_VERSION = "model_native_serve_parity_v15"
 MODEL_NATIVE_DIRECTION_POCKET_SCHEMA_VERSION = (
     "model_native_direction_pocket_audit_v2"
 )
@@ -1716,6 +1716,63 @@ def time_coverage_contract_failures(
     return failures
 
 
+def _runtime_mtf_cache_binding_failures(value: object) -> list[str]:
+    label = "serve parity runtime_mtf_cache_binding"
+    expected = {
+        "cache_dir",
+        "cache_identity_sha256",
+        "manifest_sha256",
+        "m5_prebuilt_source",
+        "m5_prebuilt_source_sha256",
+    }
+    if not isinstance(value, dict) or set(value) != expected:
+        return [f"{label} is incomplete"]
+    failures: list[str] = []
+    for field in ("cache_dir", "m5_prebuilt_source"):
+        if not isinstance(value.get(field), str) or not value[field].startswith("/"):
+            failures.append(f"{label}.{field} must be an absolute path")
+    for field in (
+        "cache_identity_sha256",
+        "manifest_sha256",
+        "m5_prebuilt_source_sha256",
+    ):
+        if not _is_sha256(value.get(field)):
+            failures.append(f"{label}.{field} is not an exact SHA-256")
+    return failures
+
+
+def _runtime_prebuilt_pair_binding_failures(value: object) -> list[str]:
+    label = "serve parity runtime_prebuilt_pair_binding"
+    expected = {
+        "pair_generation_id",
+        "pair_manifest_sha256",
+        "pair_generation_manifest_path",
+        "canonical_v3_path",
+        "canonical_v3_sha256",
+        "base28_path",
+        "base28_sha256",
+    }
+    if not isinstance(value, dict) or set(value) != expected:
+        return [f"{label} is incomplete"]
+    failures: list[str] = []
+    for field in (
+        "pair_generation_id",
+        "pair_manifest_sha256",
+        "canonical_v3_sha256",
+        "base28_sha256",
+    ):
+        if not _is_sha256(value.get(field)):
+            failures.append(f"{label}.{field} is not an exact SHA-256")
+    for field in (
+        "pair_generation_manifest_path",
+        "canonical_v3_path",
+        "base28_path",
+    ):
+        if not isinstance(value.get(field), str) or not value[field].startswith("/"):
+            failures.append(f"{label}.{field} must be an absolute path")
+    return failures
+
+
 def serve_gate_event_contract_failures(
     payload: Mapping[str, Any],
     *,
@@ -1822,6 +1879,16 @@ def serve_gate_event_contract_failures(
         failures.extend(
             serve_source_identity_contract_failures(
                 payload.get("serve_source_identity")
+            )
+        )
+        failures.extend(
+            _runtime_mtf_cache_binding_failures(
+                payload.get("runtime_mtf_cache_binding")
+            )
+        )
+        failures.extend(
+            _runtime_prebuilt_pair_binding_failures(
+                payload.get("runtime_prebuilt_pair_binding")
             )
         )
         operating_point = payload.get("operating_point")

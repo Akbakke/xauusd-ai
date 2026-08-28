@@ -45,6 +45,32 @@ def test_v4_family_timeframe_token_arithmetic_is_exact() -> None:
     )
 
 
+def test_serve_gate_requires_actual_runtime_cache_and_pair_bindings() -> None:
+    cache = {
+        "cache_dir": "/tmp/cache",
+        "cache_identity_sha256": "a" * 64,
+        "manifest_sha256": "b" * 64,
+        "m5_prebuilt_source": "/tmp/m5.parquet",
+        "m5_prebuilt_source_sha256": "c" * 64,
+    }
+    pair = {
+        "pair_generation_id": "d" * 64,
+        "pair_manifest_sha256": "e" * 64,
+        "pair_generation_manifest_path": "/tmp/pair.json",
+        "canonical_v3_path": "/tmp/canonical.parquet",
+        "canonical_v3_sha256": "f" * 64,
+        "base28_path": "/tmp/base28.parquet",
+        "base28_sha256": "0" * 64,
+    }
+    assert serve_gate._runtime_mtf_cache_binding_failures(cache) == []
+    assert serve_gate._runtime_prebuilt_pair_binding_failures(pair) == []
+
+    cache["manifest_sha256"] = "invalid"
+    pair["base28_path"] = "relative.parquet"
+    assert serve_gate._runtime_mtf_cache_binding_failures(cache)
+    assert serve_gate._runtime_prebuilt_pair_binding_failures(pair)
+
+
 def _softmax(values: tuple[float, ...]) -> list[float]:
     array = np.asarray(values, dtype=np.float64)
     exp = np.exp(array - array.max())

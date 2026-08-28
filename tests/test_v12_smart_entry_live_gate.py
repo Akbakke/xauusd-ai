@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -54,6 +55,80 @@ def _passing_pocket_metrics(name: str, overrides: dict | None = None) -> dict:
     if overrides:
         row.update(overrides)
     return row
+
+
+def test_smart_entry_requires_route_specific_bundle_mtf_availability_shifts() -> None:
+    assert live._require_bundle_mtf_availability_shifts(
+        {
+            "entry_target_availability_shift_minutes": 5.0,
+            "exit_target_availability_shift_minutes": 1.0,
+        }
+    ) == (5.0, 1.0)
+
+    with pytest.raises(RuntimeError, match="route-specific"):
+        live._require_bundle_mtf_availability_shifts(
+            {"target_availability_shift_minutes": 5.0}
+        )
+
+    with pytest.raises(RuntimeError, match="invalid"):
+        live._require_bundle_mtf_availability_shifts(
+            {
+                "entry_target_availability_shift_minutes": 1.0,
+                "exit_target_availability_shift_minutes": 5.0,
+            }
+        )
+
+
+def test_smart_entry_rejects_ambient_or_mismatched_mtf_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache_dir = Path("/tmp/gx1-bound-v4-cache")
+    binding = {
+        "shared_cache_dir": str(cache_dir),
+        "shared_cache_manifest_path": str(cache_dir / "manifest.json"),
+        "shared_cache_identity_sha256": "a" * 64,
+        "shared_cache_manifest_sha256": "b" * 64,
+        "shared_cache_m5_source": "/tmp/gx1-v46-m5.parquet",
+        "shared_cache_m5_source_sha256": "c" * 64,
+    }
+    fake_cache = SimpleNamespace(
+        cache_identity_sha256="a" * 64,
+        manifest_sha256="b" * 64,
+        m5_prebuilt_source="/tmp/gx1-v46-m5.parquet",
+        m5_prebuilt_source_sha256="c" * 64,
+    )
+    seen: list[Path] = []
+    monkeypatch.setattr(
+        live,
+        "load_multi_tf_v4_cache",
+        lambda path: seen.append(Path(path)) or fake_cache,
+    )
+
+    assert live._load_and_require_bundle_mtf_cache(binding) is fake_cache
+    assert seen == [cache_dir]
+
+    fake_cache.cache_identity_sha256 = "d" * 64
+    with pytest.raises(RuntimeError, match="identity mismatch"):
+        live._load_and_require_bundle_mtf_cache(binding)
+
+
+def test_smart_entry_rejects_context_from_same_timestamp_different_pair() -> None:
+    current_pair = SimpleNamespace(
+        pair_generation_id="a" * 64,
+        pair_manifest_sha256="b" * 64,
+    )
+    ctx = SimpleNamespace(
+        pair_generation_id="a" * 64,
+        pair_manifest_sha256="b" * 64,
+    )
+    live._require_context_pair_identity(ctx, current_pair)
+
+    replacement_pair = SimpleNamespace(
+        pair_generation_id="c" * 64,
+        pair_manifest_sha256="d" * 64,
+    )
+    with pytest.raises(live.SmartContextPairMismatchError, match="different immutable"):
+        live._require_context_pair_identity(ctx, replacement_pair)
 
 
 def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Path) -> None:

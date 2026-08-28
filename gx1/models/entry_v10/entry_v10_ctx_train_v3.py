@@ -10240,6 +10240,7 @@ def run_train(
     cross_family_fusion_scale: float,
     grad_accum_steps: int,
     prefreeze_test_seal_lineage: Mapping[str, Any],
+    recipe_source_provenance: Mapping[str, Any],
     run_id: str = "",
     dataset_run_id: str = "",
     profile: str = "",
@@ -10249,6 +10250,14 @@ def run_train(
     train_sequence_source_audit_json: Optional[Path] = None,
     val_sequence_source_audit_json: Optional[Path] = None,
 ) -> None:
+    from gx1.contracts.entry_model_native_train_launch_v1 import (
+        require_training_recipe_source_provenance_metadata,
+    )
+
+    recipe_source_provenance = require_training_recipe_source_provenance_metadata(
+        recipe_source_provenance,
+        context="ENTRY_TRAIN",
+    )
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
     architecture["exit"]["sequence_bars"] = (
@@ -12369,6 +12378,7 @@ def run_train(
         "input_normalization_fit_population_proof": (
             input_normalization_fit_population_proof
         ),
+        "recipe_source_provenance": recipe_source_provenance,
         "run_lineage": run_lineage,
         "execution_tier": str(execution_tier),
         "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage,
@@ -12443,6 +12453,7 @@ def run_train(
         "input_normalization_fit_population_proof": (
             input_normalization_fit_population_proof
         ),
+        "recipe_source_provenance": recipe_source_provenance,
         "train_data": str(train_parquet),
         "val_data": str(val_parquet),
         "train_data_sha256": _sha256_file(Path(train_parquet)),
@@ -13149,6 +13160,8 @@ def main() -> None:
     parser.add_argument("--val-sequence-roll-audit-json", type=Path)
     parser.add_argument("--train-sequence-source-audit-json", type=Path, required=True)
     parser.add_argument("--val-sequence-source-audit-json", type=Path, required=True)
+    parser.add_argument("--recipe-audit-json", type=Path, required=True)
+    parser.add_argument("--recipe-audit-sha256", type=str, required=True)
     parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(
@@ -13198,6 +13211,26 @@ def main() -> None:
         parser.error(
             "training --run-id must differ from immutable --dataset-run-id"
         )
+    from gx1.contracts.entry_model_native_train_launch_v1 import (
+        LaunchContractError,
+        require_training_recipe_execution_provenance,
+    )
+
+    try:
+        recipe_source_provenance = require_training_recipe_execution_provenance(
+            recipe_audit_path=args.recipe_audit_json,
+            recipe_audit_sha256=str(args.recipe_audit_sha256),
+            repo=Path(__file__).resolve().parents[3],
+            profile=str(args.profile),
+            run_id=str(args.run_id),
+            dataset_run_id=str(args.dataset_run_id),
+            dataset_dir=Path(args.train_parquet).expanduser().resolve().parent,
+            out_bundle_dir=Path(args.out_bundle_dir).expanduser().resolve(),
+        )
+    except (LaunchContractError, OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_RECIPE_SOURCE_PROVENANCE_REJECTED] {exc}"
+        ) from exc
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
     if args.profile == "candidate" and int(args.grad_accum_steps) != 1:
@@ -13318,6 +13351,7 @@ def main() -> None:
         per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
         grad_accum_steps=int(args.grad_accum_steps),
         prefreeze_test_seal_lineage=prefreeze_test_seal_lineage,
+        recipe_source_provenance=recipe_source_provenance,
         run_id=str(args.run_id),
         dataset_run_id=str(args.dataset_run_id),
         profile=str(args.profile),

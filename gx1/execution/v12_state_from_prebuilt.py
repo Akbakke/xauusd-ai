@@ -243,6 +243,8 @@ class PrebuiltServingSnapshot:
     pair_generation_id: str
     pair_manifest_sha256: str
     pair_generation_manifest_path: Path
+    canonical_v3_path: Path
+    canonical_v3_sha256: str
     base28_path: Path
     base28_sha256: str
     base28_file_stamp: tuple[int, int, int, int]
@@ -2151,6 +2153,8 @@ class PrebuiltStateLoader:
                 pair_generation_manifest_path=(
                     self._pair_binding.generation_manifest_path
                 ),
+                canonical_v3_path=self._pair_binding.canonical_v3.parquet_path,
+                canonical_v3_sha256=self._pair_binding.canonical_v3.parquet_sha256,
                 base28_path=self._pair_binding.base28.parquet_path,
                 base28_sha256=self._pair_binding.base28.parquet_sha256,
                 base28_file_stamp=self._base28_file_stamp,

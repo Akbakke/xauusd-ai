@@ -35,11 +35,25 @@ static audit closes.
 - TRAIN normalization now binds the source-backed M5 feature surface and its
   exact sequence-reconstruction audit, in addition to the selected physical
   fit rows. A candidate cannot use an unaudited reconstructed sequence source.
+- Recipe source closure now includes every executed Python package
+  `__init__.py`. The trainer independently revalidates the byte-bound recipe
+  at its own boundary and persists the identical recipe/source map in bundle
+  metadata and lock; readiness and five-seed comparison reject omissions or
+  split-brain provenance.
+- The future serve adapter now opens only the exact V4 cache bound by the
+  bundle, injects its frozen artifacts directly, and refuses a context snapshot
+  from another immutable pair generation even if its timestamp is identical.
+  Serve-parity evidence records the actual cache and full pair component hashes.
+- The current offline boundary rejects direct paper-runner recovery and direct
+  OANDA history ingestion before credentials, network, state reconciliation or
+  writes. This preserves future code without granting present authority.
 - The TEST evaluator is hard closed. A future one-time immutable TEST-release
   authority is required before any TEST file can be opened. This is intentional
   and does not block TRAIN/VAL audit work.
 
-Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`.
+Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`. The current
+uncommitted audit repair set is the prerequisite for the next commit; no
+dataset, CUDA or broker operation was started while applying it.
 
 ## Required next sequence
 

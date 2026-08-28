@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
+
+
+def test_paper_runner_offline_scope_blocks_before_runtime_or_broker_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.execution import v12_paper_runner as runner
+
+    monkeypatch.setattr(sys, "argv", ["v12_paper_runner.py"])
+
+    def forbidden_side_effect(*_args, **_kwargs):
+        raise AssertionError("paper runner touched runtime state before scope gate")
+
+    monkeypatch.setattr(runner, "acquire_runner_singleton_lock", forbidden_side_effect)
+    monkeypatch.setattr(runner, "_load_runtime_dependencies", forbidden_side_effect)
+
+    with pytest.raises(RuntimeError, match="GX1_OFFLINE_SCOPE_FORBIDDEN"):
+        runner.main()
 
 
 def test_active_runtime_source_has_no_decision_state_substitution() -> None:

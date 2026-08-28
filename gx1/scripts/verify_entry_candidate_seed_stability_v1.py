@@ -121,6 +121,7 @@ def _same_recipe_identity(metadata: Mapping[str, Any]) -> dict[str, Any]:
         "model_output_schema_version",
         "model_native_signal_contract",
         "model_native_training_objective",
+        "recipe_source_provenance",
         "aux_head_target_contract",
         "m1_feature_surface_binding",
         "sequence_source_reconstruction",

@@ -409,6 +409,9 @@ for row in "${RECIPE_ENV[@]}"; do
 done
 [[ "$DATASET_RUN_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]] \
   || die "recipe validator emitted invalid dataset run ID"
+RECIPE_AUDIT_SHA256=$("$PY" -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$RECIPE_AUDIT_JSON")
+[[ "$RECIPE_AUDIT_SHA256" =~ ^[0-9a-f]{64}$ ]] \
+  || die "could not derive exact recipe audit sha256"
 
 ENV_COMMAND=("$ENV_BIN")
 while IFS= read -r variable; do
@@ -429,6 +432,8 @@ TRAIN_CMD=(
   --val-parquet "$VAL_PARQUET"
   --prefreeze-test-seal-json "$PREFREEZE_TEST_SEAL_JSON"
   --prefreeze-test-seal-sha256 "$PREFREEZE_TEST_SEAL_SHA256"
+  --recipe-audit-json "$RECIPE_AUDIT_JSON"
+  --recipe-audit-sha256 "$RECIPE_AUDIT_SHA256"
   --unified-exit-lifecycle-manifest-json "$UNIFIED_EXIT_LIFECYCLE_MANIFEST_JSON"
   --out_bundle_dir "$OUT_BUNDLE_DIR" --gx1-data "$GX1_DATA_ROOT"
   --m5-prebuilt-path "$M5_PREBUILT_PATH"

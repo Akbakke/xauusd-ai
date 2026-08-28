@@ -94,6 +94,9 @@ from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
     EntryModelNativeTrainingRunLineageError,
     require_training_run_lineage,
 )
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    require_training_recipe_source_provenance_metadata,
+)
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_lifecycle_authority_evidence,
 )
@@ -361,6 +364,7 @@ def _require_exact_model_native_bundle_metadata(
         "context_specialist_routing",
         "input_normalization",
         "input_normalization_fit_population_proof",
+        "recipe_source_provenance",
         "multi_tf",
         "tf_input_scale",
         "run_lineage",
@@ -412,6 +416,14 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_OBJECTIVE_SPLIT_BRAIN]"
         )
+    require_training_recipe_source_provenance_metadata(
+        meta["recipe_source_provenance"],
+        context="ENTRY_BUNDLE_META",
+    )
+    require_training_recipe_source_provenance_metadata(
+        lock["recipe_source_provenance"],
+        context="ENTRY_BUNDLE_LOCK",
+    )
     meta_joint_task_weighting = require_joint_task_weighting_metadata(
         meta["model_native_joint_task_weighting"],
         context="ENTRY_BUNDLE_META",

@@ -2269,6 +2269,7 @@ def main() -> int:
     report["bundle_dir"] = str(adapter.bundle_dir)
     report["operating_point"] = adapter.operating_point
     report["runtime_device"] = adapter.device
+    report["runtime_mtf_cache_binding"] = adapter.runtime_mtf_cache_binding()
     direction_decision_contract = require_model_direction_decision_contract(
         adapter._meta,
         context="[parity] explicit candidate bundle",
@@ -2299,12 +2300,24 @@ def main() -> int:
     )
     loader.load()
     loader._refresh_enabled = False
+    prebuilt_snapshot = loader.acquire_serving_snapshot()
     cutoff = loader.cutoff_ts
     report["pair_manifest_path"] = str(pair_manifest_path)
     report["pair_generation_root"] = str(pair_generation_root)
     report["pair_generation_id"] = loader.pair_generation_id
     report["canonical_v3_path"] = str(loader.canonical_v3_path)
     report["base28_path"] = str(loader.base28_path)
+    report["runtime_prebuilt_pair_binding"] = {
+        "pair_generation_id": prebuilt_snapshot.pair_generation_id,
+        "pair_manifest_sha256": prebuilt_snapshot.pair_manifest_sha256,
+        "pair_generation_manifest_path": str(
+            prebuilt_snapshot.pair_generation_manifest_path
+        ),
+        "canonical_v3_path": str(prebuilt_snapshot.canonical_v3_path),
+        "canonical_v3_sha256": prebuilt_snapshot.canonical_v3_sha256,
+        "base28_path": str(prebuilt_snapshot.base28_path),
+        "base28_sha256": prebuilt_snapshot.base28_sha256,
+    }
     report["live_prebuilt_cutoff"] = str(cutoff)
     print(f"[parity] live prebuilts loaded (cutoff={cutoff}, {time.time()-t0:.0f}s)", flush=True)
 

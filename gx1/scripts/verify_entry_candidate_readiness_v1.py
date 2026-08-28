@@ -32,6 +32,7 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
     RECIPE_AUDIT_SCHEMA,
     TRAIN_WRAPPER_RELATIVE_PATH,
+    require_training_recipe_source_provenance_metadata,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
@@ -202,10 +203,23 @@ def _bundle_file_check(
             metadata_objective == lock_objective == expected_objective
         ):
             raise RuntimeError("bundle training objective proof is split-brain")
+        metadata_recipe_source = require_training_recipe_source_provenance_metadata(
+            metadata.get("recipe_source_provenance"),
+            context="CANDIDATE_READINESS_BUNDLE_META",
+        )
+        lock_recipe_source = require_training_recipe_source_provenance_metadata(
+            lock.get("recipe_source_provenance"),
+            context="CANDIDATE_READINESS_BUNDLE_LOCK",
+        )
+        if metadata_recipe_source != lock_recipe_source:
+            raise RuntimeError("bundle recipe source proof is split-brain")
         details = {
             "bundle_artifacts": observed_bindings,
             "ordered_fields_sha256": metadata_signal["ordered_fields_sha256"],
             "training_objective_meta_lock_exact": True,
+            "recipe_source_bindings_sha256": metadata_recipe_source[
+                "source_bindings_sha256"
+            ],
         }
         return _check("bundle files rehash and preserve exact seq513 meta/lock", True, details)
     except Exception as exc:

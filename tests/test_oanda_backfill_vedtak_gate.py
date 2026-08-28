@@ -183,6 +183,39 @@ def test_backfill_cli_rejects_invalid_vedtak_before_side_effect_setup(
         module.main()
 
 
+def test_backfill_cli_offline_scope_blocks_valid_vedtak_before_side_effect_setup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = canonical_backfill
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(module.__file__),
+            "--vedtak",
+            "XAU_NATIVE_M5_SCOPE_TEST_001",
+            "--publication-mode",
+            "bootstrap",
+            "--timeframe",
+            "M5",
+            "--start-utc",
+            "2026-01-01T00:00:00Z",
+            "--end-utc",
+            "2026-01-02T00:00:00Z",
+            "--out-root",
+            "/tmp/gx1-oanda-scope-test",
+        ],
+    )
+    monkeypatch.setattr(
+        module,
+        "load_dotenv_if_present",
+        lambda: pytest.fail("environment loading happened before offline scope gate"),
+    )
+
+    with pytest.raises(RuntimeError, match="GX1_OFFLINE_SCOPE_FORBIDDEN"):
+        module.main()
+
+
 def test_m1_downsample_cannot_write_canonical_m5_root() -> None:
     with pytest.raises(RuntimeError, match="CANONICAL_M5_SINGLE_OWNER_VIOLATION"):
         m1_downsample.main()

@@ -52,8 +52,15 @@ from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
     EntryModelNativeTrainingRunLineageError,
     require_training_run_lineage,
 )
-from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
-from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
+from gx1.contracts.entry_exit_feature_base_v1 import (
+    ENTRY_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_COUNT,
+    EXIT_DECISION_BAR_SECONDS,
+)
+from gx1.features.htf_features import (
+    MULTI_TF_FEATURE_COUNT_V4,
+    load_multi_tf_v4_cache,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -205,6 +212,10 @@ class SmartContextStaleError(RuntimeError):
         self.cap = int(cap)
         self.ctx_cutoff = ctx_cutoff
         self.end_ts = end_ts
+
+
+class SmartContextPairMismatchError(RuntimeError):
+    """The completed context belongs to a different immutable pair generation."""
 
 
 def _sha256_file(path: Path) -> str:
@@ -455,6 +466,110 @@ def _validate_model_native_diagnostics(
     return {key: head_out[key] for key in diagnostic_keys}
 
 
+def _require_bundle_mtf_availability_shifts(
+    mtf: Mapping[str, Any],
+) -> tuple[float, float]:
+    """Read the exact route-specific closed-bar availability contract.
+
+    Entry operates on the closed M5 decision clock while Exit operates on M1;
+    they must never be collapsed into an obsolete shared metadata key.
+    """
+
+    try:
+        entry_minutes = float(mtf["entry_target_availability_shift_minutes"])
+        exit_minutes = float(mtf["exit_target_availability_shift_minutes"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "[SMART_ENTRY] bundle route-specific MTF availability shifts are missing"
+        ) from exc
+    expected_entry = ENTRY_DECISION_BAR_SECONDS / 60.0
+    expected_exit = EXIT_DECISION_BAR_SECONDS / 60.0
+    if (
+        not np.isfinite(entry_minutes)
+        or not np.isfinite(exit_minutes)
+        or abs(entry_minutes - expected_entry) > 1e-9
+        or abs(exit_minutes - expected_exit) > 1e-9
+    ):
+        raise RuntimeError(
+            "[SMART_ENTRY] bundle route-specific MTF availability shifts are invalid "
+            f"entry={entry_minutes!r} exit={exit_minutes!r}"
+        )
+    return entry_minutes, exit_minutes
+
+
+def _load_and_require_bundle_mtf_cache(mtf: Mapping[str, Any]) -> Any:
+    """Open the exact V4 cache bound by the bundle, never an ambient env path."""
+
+    try:
+        cache_dir = Path(str(mtf["shared_cache_dir"])).expanduser()
+        declared_manifest = Path(
+            str(mtf["shared_cache_manifest_path"])
+        ).expanduser()
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("[SMART_ENTRY] bundle MTF cache path binding is missing") from exc
+    if (
+        not cache_dir.is_absolute()
+        or declared_manifest != cache_dir / "manifest.json"
+    ):
+        raise RuntimeError("[SMART_ENTRY] bundle MTF cache path binding is invalid")
+    try:
+        cache = load_multi_tf_v4_cache(cache_dir)
+    except Exception as exc:  # noqa: BLE001 - one strict artifact boundary
+        raise RuntimeError(
+            "[SMART_ENTRY] exact bundle-bound MTF cache is unavailable"
+        ) from exc
+    expected = {
+        "cache_identity_sha256": str(mtf.get("shared_cache_identity_sha256") or ""),
+        "manifest_sha256": str(mtf.get("shared_cache_manifest_sha256") or ""),
+        "m5_prebuilt_source": str(mtf.get("shared_cache_m5_source") or ""),
+        "m5_prebuilt_source_sha256": str(
+            mtf.get("shared_cache_m5_source_sha256") or ""
+        ),
+    }
+    observed = {
+        key: str(getattr(cache, key, ""))
+        for key in expected
+    }
+    if observed != expected:
+        raise RuntimeError(
+            "[SMART_ENTRY] bundle MTF cache identity mismatch "
+            f"expected={expected!r} observed={observed!r}"
+        )
+    return cache
+
+
+def _prebuilt_pair_identity(prebuilt_snapshot: Any) -> tuple[str, str]:
+    """Return the exact immutable pair identity carried by one loader snapshot."""
+
+    generation_id = str(getattr(prebuilt_snapshot, "pair_generation_id", ""))
+    manifest_sha256 = str(
+        getattr(prebuilt_snapshot, "pair_manifest_sha256", "")
+    )
+    if (
+        len(generation_id) != 64
+        or len(manifest_sha256) != 64
+        or any(char not in "0123456789abcdef" for char in generation_id)
+        or any(char not in "0123456789abcdef" for char in manifest_sha256)
+    ):
+        raise RuntimeError("[SMART_ENTRY] prebuilt snapshot pair identity is invalid")
+    return generation_id, manifest_sha256
+
+
+def _require_context_pair_identity(
+    ctx: "SmartCtxSnapshot",
+    prebuilt_snapshot: Any,
+) -> None:
+    generation_id, manifest_sha256 = _prebuilt_pair_identity(prebuilt_snapshot)
+    if (
+        ctx.pair_generation_id != generation_id
+        or ctx.pair_manifest_sha256 != manifest_sha256
+    ):
+        raise SmartContextPairMismatchError(
+            "[SMART_ENTRY] context snapshot belongs to a different immutable "
+            "prebuilt pair generation — refusing to mix MTF/context with current bars"
+        )
+
+
 @dataclass(frozen=True)
 class SmartCtxSnapshot:
     """One COMPLETED smart-context build — swapped in as a single atomic reference
@@ -464,6 +579,8 @@ class SmartCtxSnapshot:
     multi_tf: dict
     frame_overrides: pd.DataFrame       # bucket ctx_cat + HTF/REGIME_V4 override cols
     cv3_cutoff: pd.Timestamp
+    pair_generation_id: str
+    pair_manifest_sha256: str
     built_utc: pd.Timestamp
     build_seconds: float
 
@@ -481,6 +598,8 @@ class SmartEntryLiveInference:
     _state_contract: ModelNativeStateContract | None = field(default=None)
     _per_tf_seq_lens: dict[str, int] = field(default_factory=dict)
     _multi_tf_shift: dict = field(default_factory=dict, repr=False)
+    _bound_multi_tf_cache: Any = field(default=None, repr=False)
+    _bound_multi_tf_cache_dir: Path | None = field(default=None, repr=False)
     _multi_tf_target_availability_shift: pd.Timedelta = field(
         default_factory=lambda: pd.Timedelta(minutes=5),
         repr=False,
@@ -661,12 +780,10 @@ class SmartEntryLiveInference:
                 "[SMART_ENTRY] bundle must be exact multi-TF V4 with all "
                 "eight families — refusing"
             )
-        mtf_shift_minutes = float(mtf["target_availability_shift_minutes"])
-        if abs(mtf_shift_minutes - 5.0) > 1e-9:
-            raise RuntimeError(
-                "[SMART_ENTRY] bundle multi_tf.target_availability_shift_minutes must be 5.0 "
-                f"for closed-bar XAU repair serving, got {mtf_shift_minutes!r}"
-            )
+        mtf_shift_minutes, _exit_mtf_shift_minutes = (
+            _require_bundle_mtf_availability_shifts(mtf)
+        )
+        bound_mtf_cache = _load_and_require_bundle_mtf_cache(mtf)
         per_tf = {
             "M5": int(mtf["m5_seq_len"]),
             "M15": int(mtf["m15_seq_len"]),
@@ -675,16 +792,13 @@ class SmartEntryLiveInference:
             "D1": int(mtf["d1_seq_len"]),
         }
         names = [str(x) for x in meta["ordered_signal_names"]]
-        from gx1.execution.v12_state_from_prebuilt import (
-            _require_volatility_squeeze_artifacts_from_bound_cache,
-        )
 
         builder = ModelNativeStateBuilder(
             ordered_signal_names=names,
             state_contract=state_contract,
             signal_contract=dict(signal_contract),
             volatility_squeeze_artifacts=(
-                _require_volatility_squeeze_artifacts_from_bound_cache()
+                bound_mtf_cache.volatility_squeeze_artifacts
             ),
         )
         LOG.info(
@@ -705,6 +819,10 @@ class SmartEntryLiveInference:
             _builder=builder,
             _state_contract=state_contract,
             _per_tf_seq_lens=per_tf,
+            _bound_multi_tf_cache=bound_mtf_cache,
+            _bound_multi_tf_cache_dir=Path(
+                str(mtf["shared_cache_dir"])
+            ).expanduser(),
             _sizing_authority=(
                 dict(sizing_authority) if sizing_authority is not None else {}
             ),
@@ -712,6 +830,21 @@ class SmartEntryLiveInference:
                 minutes=mtf_shift_minutes
             ),
         )
+
+    def runtime_mtf_cache_binding(self) -> dict[str, str]:
+        """Return the actual verified V4 cache consumed by dynamic MTF rebuilds."""
+
+        cache = self._bound_multi_tf_cache
+        cache_dir = self._bound_multi_tf_cache_dir
+        if cache is None or cache_dir is None:
+            raise RuntimeError("[SMART_ENTRY] bundle-bound MTF cache is unavailable")
+        return {
+            "cache_dir": str(cache_dir),
+            "cache_identity_sha256": str(cache.cache_identity_sha256),
+            "manifest_sha256": str(cache.manifest_sha256),
+            "m5_prebuilt_source": str(cache.m5_prebuilt_source),
+            "m5_prebuilt_source_sha256": str(cache.m5_prebuilt_source_sha256),
+        }
 
     # ── smart context (in-memory snapshot, refreshed on cv3 cutoff advance) ──
     # The build (~2 min: float32 MTF over full cv3 + frozen-rank buckets + full-
@@ -723,7 +856,7 @@ class SmartEntryLiveInference:
     # (GIL-atomic); decisions read the last completed snapshot and journal
     # context_age_m5_bars. No lock anywhere — the exit path cannot be starved.
 
-    def _build_ctx_snapshot(self, cv3: pd.DataFrame) -> SmartCtxSnapshot:
+    def _build_ctx_snapshot(self, prebuilt_snapshot: Any) -> SmartCtxSnapshot:
         """The FULL context build (unchanged math — same one-truth functions the
         blocking path always used). Runs on local state only; safe in a thread."""
         from gx1.execution.v12_model_native_state_live import (
@@ -731,10 +864,17 @@ class SmartEntryLiveInference:
         )
         if self._state_contract is None:
             raise RuntimeError("[SMART_ENTRY] model-native state contract not loaded")
+        cv3 = prebuilt_snapshot.cv3
+        pair_generation_id, pair_manifest_sha256 = _prebuilt_pair_identity(
+            prebuilt_snapshot
+        )
         t0 = time.perf_counter()
         cutoff = cv3.index[-1]
         if self._meta is None:
             raise RuntimeError("[SMART_ENTRY] bundle metadata unavailable")
+        bound_mtf_cache = self._bound_multi_tf_cache
+        if bound_mtf_cache is None:
+            raise RuntimeError("[SMART_ENTRY] bundle-bound MTF cache is unavailable")
         mtf_contract = self._meta["multi_tf"]
         multi_tf = build_multi_tf_from_cv3(
             cv3,
@@ -742,6 +882,12 @@ class SmartEntryLiveInference:
             feature_names=[
                 str(name) for name in mtf_contract["feature_names"]
             ],
+            v29_registry_constants=dict(
+                bound_mtf_cache.v29_registry_constants
+            ),
+            volatility_squeeze_artifacts=(
+                bound_mtf_cache.volatility_squeeze_artifacts
+            ),
         )
         # full-frame overrides: ctx_cat buckets (offline frame-global-rank
         # convention) + the long-lookback raw HTF ctx cols (fresh full-frame
@@ -753,7 +899,10 @@ class SmartEntryLiveInference:
         )
         return SmartCtxSnapshot(
             multi_tf=multi_tf, frame_overrides=overrides,
-            cv3_cutoff=cutoff, built_utc=pd.Timestamp.utcnow(),
+            cv3_cutoff=cutoff,
+            pair_generation_id=pair_generation_id,
+            pair_manifest_sha256=pair_manifest_sha256,
+            built_utc=pd.Timestamp.utcnow(),
             build_seconds=time.perf_counter() - t0,
         )
 
@@ -765,47 +914,57 @@ class SmartEntryLiveInference:
         if self._builder is not None:
             self._builder.multi_tf = snap.multi_tf
 
-    def refresh_multi_tf(self, cv3: pd.DataFrame) -> None:
+    def refresh_multi_tf(self, prebuilt_snapshot: Any) -> None:
         """BLOCKING context (re)build when cv3's cutoff advanced — the startup /
         parity-gate / offline-driver path (semantics unchanged from pre-gap-3).
         The live runner path uses maybe_schedule_ctx_refresh + predict_live_bar
         instead and never blocks on this."""
+        cv3 = prebuilt_snapshot.cv3
         cutoff = cv3.index[-1]
         ctx = self._ctx
         if ctx is not None and ctx.cv3_cutoff == cutoff:
+            _require_context_pair_identity(ctx, prebuilt_snapshot)
             return
         from gx1.features.htf_features import MULTI_TF_SHIFT
         LOG.info("[SMART_ENTRY] building smart-context snapshot from cv3 (cutoff=%s, blocking)…", cutoff)
         self._multi_tf_shift = dict(MULTI_TF_SHIFT)
-        snap = self._build_ctx_snapshot(cv3)
+        snap = self._build_ctx_snapshot(prebuilt_snapshot)
         self._install_ctx_snapshot(snap)
         LOG.info("[SMART_ENTRY] smart-context snapshot ready (cutoff=%s, %.1fs)",
                  cutoff, snap.build_seconds)
 
-    def maybe_schedule_ctx_refresh(self, cv3: pd.DataFrame) -> bool:
+    def maybe_schedule_ctx_refresh(self, prebuilt_snapshot: Any) -> bool:
         """NON-BLOCKING: schedule a background context rebuild when cv3's cutoff
         advanced past the snapshot's and no refresh is in flight (the loader's
         refresh_if_changed pattern). Returns True only on the scheduling cycle."""
+        cv3 = prebuilt_snapshot.cv3
         ctx = self._ctx
         if ctx is None:
             raise RuntimeError(
                 "[SMART_ENTRY] no context snapshot — the initial (blocking) "
                 "refresh_multi_tf() at startup is mandatory before live decisions"
             )
-        if cv3.index[-1] <= ctx.cv3_cutoff:
+        pair_generation_id, pair_manifest_sha256 = _prebuilt_pair_identity(
+            prebuilt_snapshot
+        )
+        if (
+            cv3.index[-1] <= ctx.cv3_cutoff
+            and ctx.pair_generation_id == pair_generation_id
+            and ctx.pair_manifest_sha256 == pair_manifest_sha256
+        ):
             return False
         t = self._ctx_refresh_thread
         if t is not None and t.is_alive():
             return False
         t = threading.Thread(
-            target=self._async_ctx_refresh, args=(cv3,), daemon=True,
+            target=self._async_ctx_refresh, args=(prebuilt_snapshot,), daemon=True,
             name="smart_ctx_async_refresh",
         )
         self._ctx_refresh_thread = t
         t.start()
         return True
 
-    def _async_ctx_refresh(self, cv3: pd.DataFrame) -> None:
+    def _async_ctx_refresh(self, prebuilt_snapshot: Any) -> None:
         """Background-thread worker: full context build on the cv3 reference
         grabbed at schedule time (the loader swaps — never mutates — its frames,
         so this read is race-free), then one atomic snapshot swap. Fail-SAFE:
@@ -814,7 +973,7 @@ class SmartEntryLiveInference:
         Entry NO_DIRECTION events — exits are never affected."""
         try:
             old = self._ctx
-            snap = self._build_ctx_snapshot(cv3)
+            snap = self._build_ctx_snapshot(prebuilt_snapshot)
             self._install_ctx_snapshot(snap)
             LOG.info("[smart-ctx-refresh] snapshot cutoff %s → %s (took %.1fs, decisions never blocked)",
                      old.cv3_cutoff if old is not None else None,
@@ -900,8 +1059,11 @@ class SmartEntryLiveInference:
         prebuilt_snapshot = loader.acquire_serving_snapshot()
         cv3 = prebuilt_snapshot.cv3
         if ctx is None:
-            self.refresh_multi_tf(cv3)
+            self.refresh_multi_tf(prebuilt_snapshot)
             ctx = self._ctx
+        if ctx is None:
+            raise RuntimeError("[SMART_ENTRY] context snapshot is unavailable")
+        _require_context_pair_identity(ctx, prebuilt_snapshot)
         multi_tf, overrides, _age, _spliced = self._effective_context(cv3, ctx, end_ts)
         return self._prepare_common_history_frame(
             loader,
@@ -1527,6 +1689,9 @@ class SmartEntryLiveInference:
 
         if self._ctx is None or self._meta is None:
             raise RuntimeError("[SMART_EXIT] complete MTF cache is unavailable")
+        bound_mtf_cache = self._bound_multi_tf_cache
+        if bound_mtf_cache is None:
+            raise RuntimeError("[SMART_EXIT] bundle-bound MTF cache is unavailable")
         from gx1.contracts.entry_exit_feature_base_v1 import (
             EXIT_DECISION_BAR_SECONDS,
             EXIT_MTF_CONTEXT_TIMEFRAMES,
@@ -1544,17 +1709,14 @@ class SmartEntryLiveInference:
                 seconds=EXIT_DECISION_BAR_SECONDS
             ),
         )
-        mtf_meta = self._meta.get("multi_tf")
-        if not isinstance(mtf_meta, Mapping):
-            raise RuntimeError("[SMART_EXIT] MTF bundle binding is unavailable")
         return {
             "windows": windows,
             "cache_binding": {
-                "cache_identity_sha256": mtf_meta.get(
-                    "shared_cache_identity_sha256"
-                ),
-                "manifest_sha256": mtf_meta.get(
-                    "shared_cache_manifest_sha256"
+                "cache_identity_sha256": bound_mtf_cache.cache_identity_sha256,
+                "manifest_sha256": bound_mtf_cache.manifest_sha256,
+                "m5_prebuilt_source": bound_mtf_cache.m5_prebuilt_source,
+                "m5_prebuilt_source_sha256": (
+                    bound_mtf_cache.m5_prebuilt_source_sha256
                 ),
             },
             "per_tf_seq_lens": dict(self._per_tf_seq_lens),
@@ -1583,10 +1745,11 @@ class SmartEntryLiveInference:
         if self._builder is None or self._model is None:
             raise RuntimeError("[SMART_ENTRY] not loaded")
         cv3 = prebuilt_snapshot.cv3
-        self.maybe_schedule_ctx_refresh(cv3)
+        self.maybe_schedule_ctx_refresh(prebuilt_snapshot)
         ctx = self._ctx   # ONE atomic grab — never re-read during this decision
         if ctx is None:
             raise RuntimeError("[SMART_ENTRY] no context snapshot — startup refresh missing")
+        _require_context_pair_identity(ctx, prebuilt_snapshot)
         age = self.context_age_m5_bars(cv3, end_ts, ctx)
         if age > SMART_CTX_MAX_STALENESS_M5:
             raise SmartContextStaleError(

@@ -47,6 +47,38 @@ def test_launch_artifact_binding_rehashes_same_stat_byte_mutation(
         launch.artifact_binding(artifact, content_sha256=expected)
 
 
+def test_recipe_source_provenance_is_durable_and_hash_bound() -> None:
+    bindings = {
+        "python:gx1/__init__.py": {
+            "path": "/tmp/gx1/__init__.py",
+            "sha256": "a" * 64,
+            "size_bytes": 1,
+            "mtime_ns": 1,
+            "device": 1,
+            "inode": 1,
+        }
+    }
+    provenance = {
+        "schema_version": launch.TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA,
+        "recipe_audit_path": "/tmp/ENTRY_TRAIN_RECIPE_20260828T120000Z.json",
+        "recipe_audit_sha256": "b" * 64,
+        "source_commit": "c" * 40,
+        "source_bindings": bindings,
+        "source_bindings_sha256": launch.canonical_json_sha256(bindings),
+    }
+    assert launch.require_training_recipe_source_provenance_metadata(
+        provenance,
+        context="TEST",
+    ) == provenance
+
+    provenance["source_bindings_sha256"] = "d" * 64
+    with pytest.raises(RuntimeError, match="BINDINGS_SHA_INVALID"):
+        launch.require_training_recipe_source_provenance_metadata(
+            provenance,
+            context="TEST",
+        )
+
+
 def test_recipe_env_is_one_exact_complete_value_source_contract() -> None:
     metadata = model_native_recipe_env_contract_metadata()
 
@@ -241,6 +273,12 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "python:gx1/models/entry_v10/entry_v10_input_normalization.py",
         "python:gx1/contracts/entry_model_native_training_objective_v1.py",
         "python:gx1/contracts/entry_model_native_joint_task_weighting_v1.py",
+        # Every package initializer is executable before the corresponding
+        # import target and therefore must be inside the byte-bound closure.
+        "python:gx1/__init__.py",
+        "python:gx1/contracts/__init__.py",
+        "python:gx1/models/__init__.py",
+        "python:gx1/models/entry_v10/__init__.py",
     }.issubset(python_bindings)
 
     original_recipe = str(paths["recipe_audit_json"])

@@ -120,6 +120,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 
 SCHEMA_VERSION = "entry_model_native_seq513_train_launch_contract_v9"
 RECIPE_AUDIT_SCHEMA = "entry_model_native_seq513_train_recipe_audit_v9"
+TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA = (
+    "gx1_entry_training_recipe_source_provenance_v1"
+)
 
 TRAINING_DATA_SPLITS = ("train", "val")
 SEALED_DATA_SPLITS = (*TRAINING_DATA_SPLITS, "test")
@@ -663,6 +666,27 @@ def _module_file_candidates(repo: Path, module: str) -> tuple[Path, ...]:
     return (repo / relative.with_suffix(".py"), repo / relative / "__init__.py")
 
 
+def _ancestor_package_init_candidates(repo: Path, path: Path) -> tuple[Path, ...]:
+    """Return every executed repo-local package initializer for ``path``.
+
+    Importing ``gx1.models.entry_v10.module`` first executes each package
+    initializer from ``gx1/__init__.py`` down to ``entry_v10/__init__.py``.
+    Those files are executable source, so leaving them outside the static
+    import closure would let a clean committed initializer change evade the
+    recipe's claimed byte-exact source binding.
+    """
+
+    repo_root = repo.resolve(strict=True)
+    relative = path.resolve(strict=True).relative_to(repo_root)
+    if not relative.parts or relative.parts[0] != "gx1":
+        return ()
+    package_parts = relative.parts[:-1]
+    return tuple(
+        repo_root.joinpath(*package_parts[:depth], "__init__.py")
+        for depth in range(1, len(package_parts) + 1)
+    )
+
+
 def _module_name_for_path(repo: Path, path: Path) -> str:
     relative = path.resolve(strict=True).relative_to(repo.resolve(strict=True))
     if relative.name == "__init__.py":
@@ -706,6 +730,12 @@ def _recipe_local_python_import_closure(
         if relative in closure:
             continue
         closure[relative] = path
+        # Python executes every ancestor package ``__init__.py`` before this
+        # module. Bind them too, even when no AST import mentions the package
+        # itself directly.
+        for package_init in _ancestor_package_init_candidates(repo_root, path):
+            if package_init.exists():
+                pending.append(package_init.resolve(strict=True))
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except (OSError, SyntaxError, UnicodeError) as exc:
@@ -801,6 +831,163 @@ def _validate_source_bindings(
     _require(
         recipe.get("source_bindings_sha256") == canonical_json_sha256(bindings),
         "recipe source_bindings_sha256 mismatch",
+    )
+
+
+def require_training_recipe_source_provenance_metadata(
+    value: Mapping[str, Any] | Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Validate the durable recipe/source closure stored in a trained bundle.
+
+    This is deliberately structural rather than tied to the current checkout:
+    a selected bundle must remain readable after later source revisions. The
+    trainer execution boundary proves these exact bytes against its checkout;
+    metadata/lock equality then preserves that proof for candidate and seed
+    comparisons.
+    """
+
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"[{context}_RECIPE_SOURCE_PROVENANCE_MISSING]")
+    expected_keys = {
+        "schema_version",
+        "recipe_audit_path",
+        "recipe_audit_sha256",
+        "source_commit",
+        "source_bindings",
+        "source_bindings_sha256",
+    }
+    if set(value) != expected_keys:
+        raise RuntimeError(f"[{context}_RECIPE_SOURCE_PROVENANCE_KEYS_INVALID]")
+    recipe_path = str(value.get("recipe_audit_path") or "")
+    if not recipe_path.startswith("/"):
+        raise RuntimeError(f"[{context}_RECIPE_SOURCE_PROVENANCE_PATH_INVALID]")
+    for key in ("recipe_audit_sha256", "source_bindings_sha256"):
+        if _SHA_RE.fullmatch(str(value.get(key) or "")) is None:
+            raise RuntimeError(
+                f"[{context}_RECIPE_SOURCE_PROVENANCE_SHA_INVALID] {key}"
+            )
+    if re.fullmatch(r"[0-9a-f]{40}", str(value.get("source_commit") or "")) is None:
+        raise RuntimeError(
+            f"[{context}_RECIPE_SOURCE_PROVENANCE_SHA_INVALID] source_commit"
+        )
+    bindings = value.get("source_bindings")
+    if not isinstance(bindings, Mapping) or not bindings:
+        raise RuntimeError(f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDINGS_INVALID]")
+    for key, binding in bindings.items():
+        if not isinstance(key, str) or not key or not isinstance(binding, Mapping):
+            raise RuntimeError(
+                f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDINGS_INVALID]"
+            )
+        if set(binding) != {"path", "sha256", "size_bytes", "mtime_ns", "device", "inode"}:
+            raise RuntimeError(
+                f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDING_SHAPE_INVALID] {key}"
+            )
+        if (
+            not str(binding.get("path") or "").startswith("/")
+            or _SHA_RE.fullmatch(str(binding.get("sha256") or "")) is None
+        ):
+            raise RuntimeError(
+                f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDING_VALUE_INVALID] {key}"
+            )
+        for integer_key in ("size_bytes", "mtime_ns", "device", "inode"):
+            numeric = binding.get(integer_key)
+            if isinstance(numeric, bool) or not isinstance(numeric, int):
+                raise RuntimeError(
+                    f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDING_VALUE_INVALID] "
+                    f"{key}.{integer_key}"
+                )
+    if value.get("source_bindings_sha256") != canonical_json_sha256(bindings):
+        raise RuntimeError(
+            f"[{context}_RECIPE_SOURCE_PROVENANCE_BINDINGS_SHA_INVALID]"
+        )
+    if value.get("schema_version") != TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA:
+        raise RuntimeError(f"[{context}_RECIPE_SOURCE_PROVENANCE_SCHEMA_INVALID]")
+    return {
+        "schema_version": TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA,
+        "recipe_audit_path": recipe_path,
+        "recipe_audit_sha256": str(value["recipe_audit_sha256"]),
+        "source_commit": str(value["source_commit"]),
+        "source_bindings": {str(key): dict(binding) for key, binding in bindings.items()},
+        "source_bindings_sha256": str(value["source_bindings_sha256"]),
+    }
+
+
+def require_training_recipe_execution_provenance(
+    *,
+    recipe_audit_path: Path,
+    recipe_audit_sha256: str,
+    repo: Path,
+    profile: str,
+    run_id: str,
+    dataset_run_id: str,
+    dataset_dir: Path,
+    out_bundle_dir: Path,
+) -> dict[str, Any]:
+    """Revalidate the audited source closure at the direct trainer boundary."""
+
+    repo_root = repo.resolve(strict=True)
+    recipe_path = _resolved_explicit_path(recipe_audit_path, "recipe_audit_json")
+    expected_recipe_sha = str(recipe_audit_sha256 or "")
+    _require(
+        _SHA_RE.fullmatch(expected_recipe_sha) is not None,
+        "trainer recipe audit sha256 is invalid",
+    )
+    _require(
+        sha256_file(recipe_path) == expected_recipe_sha,
+        "trainer recipe audit bytes do not match declared sha256",
+    )
+    recipe = _read_json(recipe_path, "trainer recipe audit")
+    _zero_failure(
+        recipe,
+        label="trainer recipe audit",
+        schema=RECIPE_AUDIT_SCHEMA,
+        decision="PASS",
+    )
+    _require(recipe.get("profile") == profile, "trainer recipe audit profile mismatch")
+    _require(recipe.get("run_id") == run_id, "trainer recipe audit run_id mismatch")
+    _require(
+        recipe.get("dataset_run_id") == dataset_run_id,
+        "trainer recipe audit dataset_run_id mismatch",
+    )
+    _require(
+        Path(str(recipe.get("dataset_dir") or "")).resolve()
+        == dataset_dir.resolve(),
+        "trainer recipe audit dataset directory mismatch",
+    )
+    _require(
+        Path(str(recipe.get("out_bundle_dir") or "")).resolve()
+        == out_bundle_dir.resolve(),
+        "trainer recipe audit output directory mismatch",
+    )
+    current_commit = subprocess.check_output(
+        ["git", "-C", str(repo_root), "rev-parse", "HEAD"], text=True
+    ).strip()
+    _require(
+        recipe.get("source_commit") == current_commit,
+        "trainer recipe audit source_commit must equal current HEAD",
+    )
+    worktree = subprocess.check_output(
+        ["git", "-C", str(repo_root), "status", "--porcelain=v1", "--untracked-files=all"],
+        text=True,
+    )
+    _require(not worktree.strip(), "trainer source worktree must be clean")
+    _validate_source_bindings(
+        recipe,
+        repo=repo_root,
+        wrapper_path=(repo_root / TRAIN_WRAPPER_RELATIVE_PATH).resolve(strict=True),
+    )
+    return require_training_recipe_source_provenance_metadata(
+        {
+            "schema_version": TRAINING_RECIPE_SOURCE_PROVENANCE_SCHEMA,
+            "recipe_audit_path": str(recipe_path),
+            "recipe_audit_sha256": expected_recipe_sha,
+            "source_commit": str(recipe["source_commit"]),
+            "source_bindings": dict(recipe["source_bindings"]),
+            "source_bindings_sha256": str(recipe["source_bindings_sha256"]),
+        },
+        context="ENTRY_TRAIN_EXECUTION",
     )
 
 
