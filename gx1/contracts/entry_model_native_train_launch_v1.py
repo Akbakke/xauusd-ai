@@ -1992,6 +1992,14 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
             str(args.profile) == "smoke",
             "chronological integration is available only to smoke",
         )
+        # The wrapper reserves chronological windows for the attended CUDA
+        # smoke lane.  Rejecting a CPU recipe here prevents a report-only
+        # recipe from passing its own audit and then failing later at the
+        # wrapper boundary before any useful dry-run can be produced.
+        _require(
+            str(args.device) == "cuda",
+            "train time-window requires --device cuda",
+        )
         try:
             start = datetime.fromisoformat(
                 str(train_time_window_start).replace("Z", "+00:00")
