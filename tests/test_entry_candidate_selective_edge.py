@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 
 import numpy as np
 import pandas as pd
@@ -27,6 +28,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _EXTRA_VECTOR_HEADS,
     _append_extra_vector_head_evidence,
     _canonical_live_decision_evidence,
+    _bundle_core_integrity_snapshot,
     _concatenate_evidence_chunks,
     _preregistered_hypothesis,
     _research_policy_pnl,
@@ -126,6 +128,48 @@ def test_mtf_provenance_binds_distinct_model_and_cache_sources(
             bundle_metadata=bundle_metadata,
             m5_prebuilt=cache_source,
             mtf_cache_dir=cache_dir,
+        )
+
+
+def test_bundle_core_snapshot_accepts_only_loader_runtime_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Capability reconstruction is runtime state, not a bundle mutation."""
+
+    state = tmp_path / "model_state_dict.pt"
+    state.write_bytes(b"exact state")
+    state_sha = _sha256(state)
+    metadata = {"state_dict_sha256": state_sha, "contract_mode": "fixture"}
+    (tmp_path / "bundle_metadata.json").write_text(
+        json.dumps(metadata), encoding="utf-8"
+    )
+    (tmp_path / "MASTER_TRANSFORMER_LOCK.json").write_text(
+        json.dumps({"model_sha256": state_sha}), encoding="utf-8"
+    )
+    (tmp_path / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json").write_text(
+        "{}", encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "require_bundle_commit_manifest",
+        lambda _path: {"commit_sha256": "a" * 64},
+    )
+    loader_metadata = {
+        **metadata,
+        "model_variant": "v10_ctx",
+        "capabilities": {"supported_heads": ["entry_action_q"]},
+    }
+    observed = _bundle_core_integrity_snapshot(
+        bundle_dir=tmp_path,
+        bundle_metadata=loader_metadata,
+    )
+    assert observed["model_state_dict_sha256"] == state_sha
+
+    with pytest.raises(RuntimeError, match="SELECTIVE_EDGE_BUNDLE_METADATA_CHANGED"):
+        _bundle_core_integrity_snapshot(
+            bundle_dir=tmp_path,
+            bundle_metadata={**loader_metadata, "unexpected_runtime_key": True},
         )
 
 

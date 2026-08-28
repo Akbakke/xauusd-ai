@@ -1225,9 +1225,15 @@ def _bundle_core_integrity_snapshot(
         lock = json.loads(lock_path.read_text(encoding="utf-8"))
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         raise RuntimeError("SELECTIVE_EDGE_BUNDLE_CORE_INTEGRITY_INVALID") from exc
-    if not isinstance(disk_metadata, Mapping) or dict(disk_metadata) != dict(
-        bundle_metadata
-    ):
+    # The trusted bundle loader adds these two runtime-only observations after
+    # it has validated the committed metadata and state.  Compare the actual
+    # committed JSON to the remainder, so an evaluator can re-hash a loaded
+    # bundle without treating its own capability reconstruction as a disk
+    # mutation.  No other runtime additions are accepted here.
+    runtime_metadata = dict(bundle_metadata)
+    runtime_metadata.pop("model_variant", None)
+    runtime_metadata.pop("capabilities", None)
+    if not isinstance(disk_metadata, Mapping) or dict(disk_metadata) != runtime_metadata:
         raise RuntimeError("SELECTIVE_EDGE_BUNDLE_METADATA_CHANGED")
     state_sha = _sha256_file(state_path)
     if (
