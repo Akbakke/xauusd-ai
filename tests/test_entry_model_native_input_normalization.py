@@ -557,3 +557,44 @@ def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() 
             },
             read_text=read_text,
         )
+
+
+def test_cuda_trainer_guard_requires_exact_execution_tier_before_cuda_probe() -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    memory = 10 * 1024**3
+    swap = 512 * 1024**2
+    files = {
+        "/proc/self/cgroup": "0::/gx1-cuda-trainer.scope\n",
+        "/sys/fs/cgroup/gx1-cuda-trainer.scope/memory.max": str(memory),
+        "/sys/fs/cgroup/gx1-cuda-trainer.scope/memory.high": str(memory),
+        "/sys/fs/cgroup/gx1-cuda-trainer.scope/memory.swap.max": str(swap),
+        "/sys/fs/cgroup/gx1-cuda-trainer.scope/pids.max": "64",
+    }
+    guarded_env = {
+        "GX1_CAPPED_CLASS": "trainer",
+        "GX1_CAPPED_MEMORY_BYTES": str(memory),
+        "GX1_CAPPED_SWAP_BYTES": str(swap),
+        "GX1_CAPPED_TASKS_MAX": "64",
+        "GX1_CUDA_PRODUCER_GUARD": "false",
+        "GX1_TRAINER_DEVICE": "cuda",
+        "GX1_TRAINER_EXECUTION_MODE": "canonical",
+    }
+
+    proof = trainer._require_cuda_trainer_guard_execution(
+        execution_tier="canonical",
+        environ=guarded_env,
+        read_text=lambda path: files[str(path)],
+    )
+    assert proof["class"] == "trainer"
+    assert proof["memory_max"] == memory
+
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_TRAIN_CUDA_GUARD_GX1_TRAINER_EXECUTION_MODE_INVALID",
+    ):
+        trainer._require_cuda_trainer_guard_execution(
+            execution_tier="attended_only",
+            environ=guarded_env,
+            read_text=lambda _path: pytest.fail("must fail before cgroup read"),
+        )

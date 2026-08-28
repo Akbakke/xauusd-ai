@@ -140,6 +140,10 @@ current-contract audit, and do not start full training, TEST, demo or live.
   V46 evidence. Do not bypass the guard or mislabel a partial session as
   candidate evidence. Resolve exact logs and the next decision from the
   handover, never from an old run directory.
+- A smoke recipe's run lineage is validated from the small immutable reports
+  before any large TRAIN/VAL artifact binding. A mismatch must fail before a
+  recipe directory is created. Do not work around it with a new ad-hoc run ID:
+  use the run ID declared by current evidence, from a clean reviewed commit.
 - Before candidate execution, a pre-candidate integration may use only the
   explicit attended-smoke time window `[2024-12-01T00:00:00Z,
   2025-06-01T00:00:00Z)` from V46 TRAIN. It is 32,289 chronological rows,

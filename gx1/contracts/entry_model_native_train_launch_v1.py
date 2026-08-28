@@ -1783,6 +1783,104 @@ def _validate_audits(
             f"Entry execution-causality {split} lifecycle-manifest binding mismatch",
         )
 
+    _validate_profile_run_lineage_preflight(
+        payloads,
+        dataset_dir=dataset_dir,
+        profile=profile,
+        run_id=run_id,
+        dataset_run_id=dataset_run_id,
+    )
+
+    if profile == "smoke":
+        return
+
+    candidate_readiness = payloads["candidate_readiness_json"]
+    _zero_failure(
+        candidate_readiness,
+        label="candidate readiness",
+        schema="entry_candidate_readiness_model_native_v1",
+        decision="READY_FOR_CANDIDATE_TRAINING",
+    )
+    _require(candidate_readiness.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "candidate readiness mode mismatch")
+    _require(
+        int(candidate_readiness.get("sequence_length") or 0)
+        == MODEL_NATIVE_SEQ_LEN,
+        "candidate readiness sequence length mismatch",
+    )
+    _require(int(candidate_readiness.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "candidate readiness signal width mismatch")
+    _require(tuple(candidate_readiness.get("required_specialist_groups") or ()) == REQUIRED_SPECIALISTS, "candidate readiness specialist set mismatch")
+    for readiness_dataset_key in (
+        "expected_smoke_dataset_dir",
+        "dataset_dir",
+        "smoke_bundle_dataset_dir",
+    ):
+        try:
+            readiness_dataset_dir = Path(
+                str(candidate_readiness.get(readiness_dataset_key) or "")
+            ).expanduser().resolve(strict=True)
+        except (OSError, RuntimeError):
+            readiness_dataset_dir = None
+        _require(
+            readiness_dataset_dir == dataset_dir,
+            "candidate readiness dataset binding mismatch: "
+            f"{readiness_dataset_key}",
+        )
+    _require(candidate_readiness.get("candidate_training_allowed") is True, "candidate readiness does not authorize explicit training")
+    _require(
+        candidate_readiness.get("promotion_shadow_live_allowed") is False
+        and candidate_readiness.get("activation_authority") is False,
+        "candidate readiness activation guard mismatch",
+    )
+    readiness_bindings = candidate_readiness.get("input_bindings")
+    _require(
+        isinstance(readiness_bindings, dict)
+        and set(readiness_bindings)
+        == {
+            "smoke_bundle_audit",
+            "specialist_audit",
+            "trainability_readiness",
+        },
+        "candidate readiness input binding set mismatch",
+    )
+    expected_readiness_paths = {
+        "smoke_bundle_audit": artifacts["smoke_bundle_audit_json"],
+        "specialist_audit": artifacts["specialist_audit_json"],
+        "trainability_readiness": artifacts["trainability_readiness_json"],
+    }
+    for name, path in expected_readiness_paths.items():
+        _require(
+            readiness_bindings.get(name)
+            == {"path": str(path), "sha256": sha256_file(path)},
+            f"candidate readiness input binding mismatch: {name}",
+        )
+    _require(
+        candidate_readiness.get("input_bindings_sha256")
+        == canonical_json_sha256(readiness_bindings),
+        "candidate readiness input binding hash mismatch",
+    )
+
+    smoke_bundle = payloads["smoke_bundle_audit_json"]
+    try:
+        require_smoke_bundle_training_pipeline_contract(
+            smoke_bundle,
+            context="CANDIDATE_TRAIN_LAUNCH",
+        )
+    except RuntimeError as exc:
+        raise LaunchContractError(
+            f"smoke bundle technical training contract invalid: {exc}"
+        ) from exc
+
+
+def _validate_profile_run_lineage_preflight(
+    payloads: Mapping[str, Mapping[str, Any]],
+    *,
+    dataset_dir: Path,
+    profile: str,
+    run_id: str,
+    dataset_run_id: str,
+) -> None:
+    """Reject profile/run-ID mismatch before rehashing large immutable inputs."""
+
     trainability = payloads["trainability_readiness_json"]
     _zero_failure(
         trainability,
@@ -1806,138 +1904,70 @@ def _validate_audits(
         "trainability canonical wrapper/profile contract mismatch",
     )
 
-    if profile == "smoke":
-        _require(
-            trainability.get("entry_run_id") == run_id
-            and future_train.get("entry_run_id") == run_id
-            and future_train.get("dataset_run_id") == dataset_run_id,
-            "trainability smoke run lineage mismatch",
-        )
-        future_train_argv = future_train.get("wrapper_argv_template")
-        try:
-            future_train_run_id = future_train_argv[
-                future_train_argv.index("--run-id") + 1
-            ]
-        except (AttributeError, IndexError, ValueError):
-            future_train_run_id = None
-        _require(
-            future_train_run_id == run_id,
-            "trainability future wrapper run_id mismatch",
-        )
-        smoke_manifest = payloads["smoke_manifest_json"]
-        _zero_failure(
-            smoke_manifest,
-            label="smoke manifest",
-            schema="entry_model_native_seq513_smoke_manifest_v3",
-            decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
-        )
-        _require(smoke_manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke manifest mode mismatch")
-        _require(int(smoke_manifest.get("expected_seq_snap_width") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke manifest width mismatch")
-        embedded = smoke_manifest.get("smoke_manifest")
-        _require(isinstance(embedded, dict), "smoke manifest has no embedded immutable manifest")
-        _require(
-            smoke_manifest.get("entry_run_id") == run_id
-            and smoke_manifest.get("dataset_run_id") == dataset_run_id
-            and embedded.get("entry_run_id") == run_id
-            and embedded.get("dataset_run_id") == dataset_run_id,
-            "smoke manifest run lineage mismatch",
-        )
-        _require(Path(str(embedded.get("out_dir") or "")).resolve() == dataset_dir, "smoke manifest dataset mismatch")
-        _require(smoke_manifest.get("manifest_sha256") == canonical_json_sha256(embedded), "smoke embedded manifest hash mismatch")
+    if profile != "smoke":
+        return
 
-        smoke_readiness = payloads["smoke_readiness_json"]
-        _zero_failure(
-            smoke_readiness,
-            label="smoke readiness",
-            schema="entry_model_native_seq513_smoke_readiness_v3",
-            decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
-        )
-        candidate = smoke_readiness.get("smart_candidate")
-        _require(isinstance(candidate, dict), "smoke readiness candidate contract missing")
-        _require(candidate.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke readiness mode mismatch")
-        _require(int(candidate.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke readiness signal width mismatch")
-        _require(int(candidate.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "smoke readiness selected width mismatch")
-        _require(
-            smoke_readiness.get("entry_run_id") == run_id
-            and smoke_readiness.get("dataset_run_id") == dataset_run_id,
-            "smoke readiness run lineage mismatch",
-        )
-    else:
-        candidate_readiness = payloads["candidate_readiness_json"]
-        _zero_failure(
-            candidate_readiness,
-            label="candidate readiness",
-            schema="entry_candidate_readiness_model_native_v1",
-            decision="READY_FOR_CANDIDATE_TRAINING",
-        )
-        _require(candidate_readiness.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE, "candidate readiness mode mismatch")
-        _require(
-            int(candidate_readiness.get("sequence_length") or 0)
-            == MODEL_NATIVE_SEQ_LEN,
-            "candidate readiness sequence length mismatch",
-        )
-        _require(int(candidate_readiness.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "candidate readiness signal width mismatch")
-        _require(tuple(candidate_readiness.get("required_specialist_groups") or ()) == REQUIRED_SPECIALISTS, "candidate readiness specialist set mismatch")
-        for readiness_dataset_key in (
-            "expected_smoke_dataset_dir",
-            "dataset_dir",
-            "smoke_bundle_dataset_dir",
-        ):
-            try:
-                readiness_dataset_dir = Path(
-                    str(candidate_readiness.get(readiness_dataset_key) or "")
-                ).expanduser().resolve(strict=True)
-            except (OSError, RuntimeError):
-                readiness_dataset_dir = None
-            _require(
-                readiness_dataset_dir == dataset_dir,
-                "candidate readiness dataset binding mismatch: "
-                f"{readiness_dataset_key}",
-            )
-        _require(candidate_readiness.get("candidate_training_allowed") is True, "candidate readiness does not authorize explicit training")
-        _require(
-            candidate_readiness.get("promotion_shadow_live_allowed") is False
-            and candidate_readiness.get("activation_authority") is False,
-            "candidate readiness activation guard mismatch",
-        )
-        readiness_bindings = candidate_readiness.get("input_bindings")
-        _require(
-            isinstance(readiness_bindings, dict)
-            and set(readiness_bindings)
-            == {
-                "smoke_bundle_audit",
-                "specialist_audit",
-                "trainability_readiness",
-            },
-            "candidate readiness input binding set mismatch",
-        )
-        expected_readiness_paths = {
-            "smoke_bundle_audit": artifacts["smoke_bundle_audit_json"],
-            "specialist_audit": artifacts["specialist_audit_json"],
-            "trainability_readiness": artifacts["trainability_readiness_json"],
-        }
-        for name, path in expected_readiness_paths.items():
-            _require(
-                readiness_bindings.get(name)
-                == {"path": str(path), "sha256": sha256_file(path)},
-                f"candidate readiness input binding mismatch: {name}",
-            )
-        _require(
-            candidate_readiness.get("input_bindings_sha256")
-            == canonical_json_sha256(readiness_bindings),
-            "candidate readiness input binding hash mismatch",
-        )
+    _require(
+        trainability.get("entry_run_id") == run_id
+        and future_train.get("entry_run_id") == run_id
+        and future_train.get("dataset_run_id") == dataset_run_id,
+        "trainability smoke run lineage mismatch",
+    )
+    future_train_argv = future_train.get("wrapper_argv_template")
+    try:
+        future_train_run_id = future_train_argv[
+            future_train_argv.index("--run-id") + 1
+        ]
+    except (AttributeError, IndexError, ValueError):
+        future_train_run_id = None
+    _require(
+        future_train_run_id == run_id,
+        "trainability future wrapper run_id mismatch",
+    )
+    smoke_manifest = payloads["smoke_manifest_json"]
+    _zero_failure(
+        smoke_manifest,
+        label="smoke manifest",
+        schema="entry_model_native_seq513_smoke_manifest_v3",
+        decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW",
+    )
+    _require(smoke_manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke manifest mode mismatch")
+    _require(int(smoke_manifest.get("expected_seq_snap_width") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke manifest width mismatch")
+    embedded = smoke_manifest.get("smoke_manifest")
+    _require(isinstance(embedded, dict), "smoke manifest has no embedded immutable manifest")
+    _require(
+        smoke_manifest.get("entry_run_id") == run_id
+        and smoke_manifest.get("dataset_run_id") == dataset_run_id
+        and embedded.get("entry_run_id") == run_id
+        and embedded.get("dataset_run_id") == dataset_run_id,
+        "smoke manifest run lineage mismatch",
+    )
+    _require(
+        Path(str(embedded.get("out_dir") or "")).resolve() == dataset_dir,
+        "smoke manifest dataset mismatch",
+    )
+    _require(
+        smoke_manifest.get("manifest_sha256") == canonical_json_sha256(embedded),
+        "smoke embedded manifest hash mismatch",
+    )
 
-        smoke_bundle = payloads["smoke_bundle_audit_json"]
-        try:
-            require_smoke_bundle_training_pipeline_contract(
-                smoke_bundle,
-                context="CANDIDATE_TRAIN_LAUNCH",
-            )
-        except RuntimeError as exc:
-            raise LaunchContractError(
-                f"smoke bundle technical training contract invalid: {exc}"
-            ) from exc
+    smoke_readiness = payloads["smoke_readiness_json"]
+    _zero_failure(
+        smoke_readiness,
+        label="smoke readiness",
+        schema="entry_model_native_seq513_smoke_readiness_v3",
+        decision="READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW",
+    )
+    candidate = smoke_readiness.get("smart_candidate")
+    _require(isinstance(candidate, dict), "smoke readiness candidate contract missing")
+    _require(candidate.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE, "smoke readiness mode mismatch")
+    _require(int(candidate.get("expected_signal_dim") or 0) == MODEL_NATIVE_SIGNAL_DIM, "smoke readiness signal width mismatch")
+    _require(int(candidate.get("expected_selected_feature_count") or 0) == MODEL_NATIVE_SELECTED_FEATURE_COUNT, "smoke readiness selected width mismatch")
+    _require(
+        smoke_readiness.get("entry_run_id") == run_id
+        and smoke_readiness.get("dataset_run_id") == dataset_run_id,
+        "smoke readiness run lineage mismatch",
+    )
 
 
 def _validate_recipe_env(recipe: Mapping[str, Any]) -> list[str]:
@@ -2157,6 +2187,16 @@ def build_recipe_audit_payload(
     _require(
         run_id != dataset_run_id,
         "training run_id must differ from immutable dataset_run_id",
+    )
+    # This is intentionally before artifact_binding(): resolving a stale
+    # smoke run ID must not spend minutes hashing multi-gigabyte TRAIN/VAL
+    # inputs when the metadata alone proves the launch impossible.
+    _validate_profile_run_lineage_preflight(
+        payloads,
+        dataset_dir=dataset_dir,
+        profile=profile,
+        run_id=run_id,
+        dataset_run_id=dataset_run_id,
     )
     _validate_unified_exit_lifecycle_root(
         payloads["unified_exit_lifecycle_manifest_json"],

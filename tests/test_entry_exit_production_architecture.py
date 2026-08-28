@@ -384,3 +384,24 @@ def test_exact_bundle_architecture_reaches_commit_before_state_read(
         )
 
     assert state_read is False
+
+
+def test_bundle_cuda_load_requires_guard_before_bundle_path_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A direct CUDA bundle load must fail before it can inspect artifacts."""
+
+    def reject_unprotected_cuda() -> None:
+        raise RuntimeError("[TEST_CUDA_GUARD_REQUIRED]")
+
+    monkeypatch.setattr(
+        bundle_module,
+        "require_guarded_cuda_producer_execution",
+        reject_unprotected_cuda,
+    )
+
+    with pytest.raises(RuntimeError, match="TEST_CUDA_GUARD_REQUIRED"):
+        bundle_module.load_entry_v10_ctx_bundle(
+            bundle_dir="relative-path-must-not-be-inspected",
+            device="cuda",
+        )

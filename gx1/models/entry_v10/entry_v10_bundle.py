@@ -85,6 +85,9 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     require_bundle_commit_manifest,
 )
+from gx1.contracts.gx1_capped_execution_v1 import (
+    require_guarded_cuda_producer_execution,
+)
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
     require_prefreeze_test_seal_lineage,
@@ -160,7 +163,14 @@ def _guard_required(path: Path, label: str) -> None:
 def _resolve_device(device: str) -> torch.device:
     if not isinstance(device, str) or not device.strip():
         raise RuntimeError("[ENTRY_V10_DEVICE_NOT_EXPLICIT]")
-    return torch.device(device)
+    resolved = torch.device(device)
+    if resolved.type == "cuda":
+        # CUDA bundle reconstruction is currently admitted only for the
+        # guarded selective-edge evaluator.  Fail before any bundle file is
+        # read so a direct loader invocation cannot become an unmonitored GPU
+        # workload.
+        require_guarded_cuda_producer_execution()
+    return resolved
 
 
 _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
@@ -1659,6 +1669,10 @@ def load_entry_v10_ctx_bundle(
     device: str,
 ) -> EntryV10Bundle:
 
+    # Resolve the device first.  In particular, the CUDA guard must reject an
+    # unprotected request before this function touches metadata or state bytes.
+    dev = _resolve_device(device)
+
     supplied_bundle_dir = Path(bundle_dir).expanduser()
     if (
         not supplied_bundle_dir.is_absolute()
@@ -1736,7 +1750,6 @@ def load_entry_v10_ctx_bundle(
             f"meta={meta_state_sha256!r}"
         )
 
-    dev = _resolve_device(device)
     logging.getLogger(__name__).info(
         "[ENTRY_BUNDLE_LOAD_PROOF] ctx_cont_dim=%d ctx_cat_dim=%d seq_input_dim=%d snap_input_dim=%d",
         ctx_cont_dim,

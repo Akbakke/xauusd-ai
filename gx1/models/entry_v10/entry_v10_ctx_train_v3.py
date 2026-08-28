@@ -898,6 +898,46 @@ def _require_trainer_cgroup_preflight(
     }
 
 
+def _require_cuda_trainer_guard_execution(
+    *,
+    execution_tier: str,
+    environ: Mapping[str, str] | None = None,
+    read_text: Any = None,
+) -> dict[str, Any]:
+    """Prove that a CUDA trainer is in its exact guarded execution tier.
+
+    The cgroup proof alone bounds host resources, but it does not distinguish
+    an ordinary trainer scope from the shell-owned telemetry/wall-clock guard.
+    Require the runner's exact CUDA transport before the trainer asks PyTorch
+    whether CUDA is available.  This is intentionally narrower than the CPU
+    path: only a CUDA allocation needs this additional proof.
+    """
+
+    expected_modes = {
+        "canonical": "canonical",
+        "attended_only": "attended_smoke",
+    }
+    expected_mode = expected_modes.get(str(execution_tier))
+    if expected_mode is None:
+        raise RuntimeError("[ENTRY_TRAIN_CUDA_GUARD_EXECUTION_TIER_INVALID]")
+
+    env = os.environ if environ is None else environ
+    required_exact = {
+        "GX1_CAPPED_CLASS": "trainer",
+        "GX1_CUDA_PRODUCER_GUARD": "false",
+        "GX1_TRAINER_DEVICE": "cuda",
+        "GX1_TRAINER_EXECUTION_MODE": expected_mode,
+    }
+    for name, expected_value in required_exact.items():
+        if str(env.get(name) or "") != expected_value:
+            raise RuntimeError(f"[ENTRY_TRAIN_CUDA_GUARD_{name}_INVALID]")
+
+    return _require_trainer_cgroup_preflight(
+        environ=env,
+        read_text=read_text,
+    )
+
+
 def _flush_memmap_pages(*arrays: np.ndarray) -> None:
     """Flush disk-backed arrays and release clean mapped pages from RSS when supported."""
     for arr in arrays:
@@ -2753,8 +2793,6 @@ def _resolve_gx1_data(override: str = "") -> Path:
     return base
 
 def _resolve_device(device_str: str) -> torch.device:
-    if device_str == "auto":
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device_str == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False")
     return torch.device(device_str)
@@ -13147,7 +13185,7 @@ def main() -> None:
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--dataset-run-id", type=str, required=True)
     parser.add_argument("--seed", type=int, required=True)
-    parser.add_argument("--device", type=str, required=True, choices=["cpu", "cuda", "auto"])
+    parser.add_argument("--device", type=str, required=True, choices=["cpu", "cuda"])
     parser.add_argument("--batch_size", type=int, required=True)
     parser.add_argument("--epochs", type=int, required=True)
     parser.add_argument("--lr", type=float, required=True)
@@ -13276,6 +13314,10 @@ def main() -> None:
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)
     _WEIGHT_DECAY = float(args.weight_decay)
     _guard_no_rl()
+    if args.device == "cuda":
+        _require_cuda_trainer_guard_execution(
+            execution_tier=str(args.execution_tier)
+        )
     device = _resolve_device(args.device)
     log.info(
         "[CONFIG] seed=%d device=%s deterministic=true grad_clip_norm=%.6f "

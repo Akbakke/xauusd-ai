@@ -17,6 +17,9 @@ binding scope; `CLAUDE.md` is the process constitution.
 > TRAIN-only contract from the bound Entry, Exit and five-clock MTF sources.
 > A CPU recipe may not carry the attended CUDA chronological-window option;
 > that mismatch is now rejected before a recipe can be published.
+> The CPU recipe producer also rejects stale smoke run lineage from its small
+> immutable evidence before it hashes large TRAIN/VAL files. This avoids a
+> doomed preflight; it does not create a recipe, bundle or CUDA authority.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are

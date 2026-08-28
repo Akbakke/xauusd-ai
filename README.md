@@ -144,6 +144,10 @@ but the system is not empirically finished:
   regression-tested but not yet accepted by a full candidate CUDA run; it must
   be recipe-audited and dry-run before such a run. A partial session is never a
   candidate result;
+- recipe production rejects a stale smoke run ID from the small immutable
+  evidence records before it hashes multi-gigabyte TRAIN/VAL inputs or writes a
+  recipe. This avoids a costly, doomed preflight; it is not a CUDA or bundle
+  authorization;
 - the first six-month chronological **technical integration** session ran on
   V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
   It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step

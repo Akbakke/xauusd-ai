@@ -661,6 +661,8 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     assert "--test-manifest-json" not in audit
     assert "audit_entry_foundation_smoke_bundle_v1" in audit
     assert "CPU-only immutable proof audit" in audit
+    assert 'exec "${AUDIT_CAP[@]}"' in audit
+    assert "PRODUCER_CAP" not in audit
 
     prediction = source.split("  model-native-selective-edge)", 1)[1].split(
         "    ;;", 1

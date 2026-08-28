@@ -1574,7 +1574,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--specialist-audit-json", required=True)
     parser.add_argument("--pretrain-audit-json", required=True)
     parser.add_argument("--out-dir", required=True)
-    parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
+    parser.add_argument("--device", choices=("cpu",), required=True)
     parser.add_argument("--quiet", action="store_true")
     return parser
 

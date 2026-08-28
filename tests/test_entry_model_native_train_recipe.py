@@ -308,6 +308,49 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
     assert "ENTRY_MTF_DIR_AUX_WEIGHT" not in result.stdout
 
 
+def test_recipe_producer_rejects_smoke_run_lineage_before_large_rehash(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A stale run ID must fail before any large parquet binding is read."""
+
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+    )
+    run_id_index = wrapper_argv.index("--run-id") + 1
+    wrapper_argv[run_id_index] = "RECIPE_LINEAGE_MISMATCH_V1"
+    out_dir = (tmp_path / "recipe_20260722T140002Z").resolve()
+    producer_argv = [
+        "--profile",
+        "smoke",
+        "--repo",
+        str(REPO),
+        "--wrapper-path",
+        str(WRAPPER),
+        *wrapper_argv,
+        "--out-dir",
+        str(out_dir),
+        "--quiet",
+    ]
+    recipe_flag = producer_argv.index("--recipe-audit-json")
+    del producer_argv[recipe_flag : recipe_flag + 2]
+    monkeypatch.setattr(producer, "_clean_worktree", lambda _repo: None)
+
+    def fail_if_large_binding_is_reached(*_args, **_kwargs):
+        raise AssertionError("large artifact rehash reached before run-lineage gate")
+
+    monkeypatch.setattr(launch, "artifact_binding", fail_if_large_binding_is_reached)
+
+    with pytest.raises(
+        launch.LaunchContractError,
+        match="trainability smoke run lineage mismatch",
+    ):
+        producer.run(producer.build_parser().parse_args(producer_argv))
+    assert not out_dir.exists()
+
+
 @pytest.mark.parametrize("invalid_dropout", ("-0.01", "1.0", "nan"))
 def test_train_launch_rejects_invalid_explicit_dropout(
     tmp_path: Path,

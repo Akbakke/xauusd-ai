@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -175,3 +177,27 @@ def test_exit_benchmark_uses_complete_contract_owned_specialist_routing() -> Non
         name: list(indices)
         for name, indices in require_multi_tf_specialist_routing_v4(tf_names).items()
     }
+
+
+def test_exit_vectorization_benchmark_rejects_direct_cuda_before_model_build() -> None:
+    """The synthetic benchmark is CPU-only and must not become a GPU bypass."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "gx1.scripts.benchmark_unified_exit_episode_vectorization_v1",
+            "--batch",
+            "1",
+            "--device",
+            "cuda",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "invalid choice" in result.stderr

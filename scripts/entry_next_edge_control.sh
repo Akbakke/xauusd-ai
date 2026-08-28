@@ -907,7 +907,7 @@ case "$cmd" in
     smoke_bundle_device=$(exact_flag_value "$cmd" --device "$@")
     [[ "$smoke_bundle_device" == cpu ]] \
       || die "$cmd is a CPU-only immutable proof audit; --device must be cpu"
-    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
     ;;
 
   model-native-candidate-readiness)

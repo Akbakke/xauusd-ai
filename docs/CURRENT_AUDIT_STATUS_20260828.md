@@ -46,6 +46,11 @@ validated five-clock V4 cache, before compute sampling or optimization.
   at its own boundary and persists the identical recipe/source map in bundle
   metadata and lock; readiness and five-seed comparison reject omissions or
   split-brain provenance.
+- Recipe production now checks the small immutable profile/run-lineage evidence
+  before hashing the multi-gigabyte TRAIN/VAL inputs. A stale smoke run ID
+  fails before any large-input binding or recipe publication. This is a CPU
+  efficiency and provenance control only; it produces neither a bundle nor
+  authority to run CUDA.
 - The future serve adapter now opens only the exact V4 cache bound by the
   bundle, injects its frozen artifacts directly, and refuses a context snapshot
   from another immutable pair generation even if its timestamp is identical.
@@ -122,18 +127,22 @@ operation was started while refreshing it.
 1. Preserve the candidate `NOT_READY` block. Do not repair the historical
    bundle in place. A separately authorised, fresh exported-bundle run must
    first pass the current provenance contract; it remains offline and guarded.
-2. The active normalizer has been confirmed to fit current TRAIN-only source
+2. From a clean reviewed source commit, first make the CPU-only recipe
+   preflight using the smoke run ID declared by current immutable evidence. It
+   must pass before a separately authorised guarded export; a different ad-hoc
+   run ID is intentionally rejected before large input hashes are computed.
+3. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.
-3. Inspect the completed 60-step technical checkpoint and the guard log. It
+4. Inspect the completed 60-step technical checkpoint and the guard log. It
    proves live task/gradient paths and safe bounded execution, but not a
    completed epoch or predictive performance. Do not portray it as VAL,
    backtest or edge evidence.
-4. Do not automatically resume the remaining chronological epoch. A separate
+5. Do not automatically resume the remaining chronological epoch. A separate
    explicit decision is required to run further bounded sessions or to design
    the full candidate-training plan; either route remains offline and keeps
    TEST sealed.
-5. Keep TEST sealed until a single candidate has passed VAL and an immutable
+6. Keep TEST sealed until a single candidate has passed VAL and an immutable
    release event is designed and reviewed. Demo/OANDA comes only after
    backtests and the separate executable-economics/risk gates.
 

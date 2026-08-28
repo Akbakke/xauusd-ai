@@ -90,6 +90,8 @@ def test_smoke_bundle_audit_is_cpu_only_even_when_auto_is_requested() -> None:
     assert audit._device_arg("auto") == "cpu"
     with pytest.raises(SystemExit, match="SMOKE_BUNDLE_AUDIT_CPU_ONLY"):
         audit._device_arg("cuda")
+    with pytest.raises(SystemExit):
+        audit.build_parser().parse_args(["--device", "cuda"])
 
 
 def test_dataset_manifest_contract_keeps_a_successfully_validated_signal_contract(
