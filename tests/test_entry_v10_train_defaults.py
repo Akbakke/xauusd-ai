@@ -137,6 +137,45 @@ def test_dead_current_head_blocks_checkpoint_health() -> None:
     assert any("OUTPUT_DEAD" in failure for failure in failures)
 
 
+def test_technical_smoke_handles_sparse_masked_event_without_weakening_candidate() -> None:
+    """A uniform tiny smoke may see a real rare label fewer than 16 times."""
+
+    accumulator = _live_active_head_epoch_accumulator()
+    component = trainer._ACTIVE_HEAD_TARGET_COMPONENTS["trendline_event"][0]
+    mask = np.ones((32, trainer._ACTIVE_HEAD_COMPONENT_WIDTHS[component]), dtype=bool)
+    mask[7:, 0] = False
+    mask[5:, 1] = False
+    accumulator["heads"]["trendline_event"]["components"][component]["mask"] = [mask]
+
+    strict_metrics, strict_failures = trainer._active_head_epoch_diagnostics(accumulator)
+    assert strict_metrics["active_head_health_ok"] is False
+    assert any("ROWS_INSUFFICIENT" in failure for failure in strict_failures)
+
+    technical_metrics, technical_failures = trainer._active_head_epoch_diagnostics(
+        accumulator,
+        minimum_supervised_rows=trainer._ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS,
+    )
+    assert technical_failures == []
+    assert technical_metrics["active_head_health_ok"] is True
+    validation_stats = {
+        **strict_metrics,
+        "active_head_technical_smoke_evidence": {
+            "minimum_supervised_rows": (
+                trainer._ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS
+            ),
+            "health_ok": True,
+        },
+    }
+    assert trainer._profiled_active_head_admission_health(
+        profile="smoke",
+        validation_stats=validation_stats,
+    ) is True
+    assert trainer._profiled_active_head_admission_health(
+        profile="candidate",
+        validation_stats=validation_stats,
+    ) is False
+
+
 def test_checkpoint_admission_uses_only_learned_head_and_gate_liveness() -> None:
     assert trainer._checkpoint_admission_ok(
         profile="candidate",

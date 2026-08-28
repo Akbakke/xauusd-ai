@@ -612,6 +612,12 @@ _ACTIVE_HEAD_COMPONENT_WIDTHS = {
     for component in components
 }
 _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS = 16
+# A two-row floor is not an empirical quality threshold: it is the minimum
+# population on which a range-based liveness assertion can establish that a
+# masked target/output pair is non-constant. The bounded, uniformly sampled
+# smoke uses this only as a technical execution proof. Candidate training
+# keeps the stricter 16-row diagnostic above and never consults this floor.
+_ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS = 2
 _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS = 1e-8
 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS = {
     "entry_action_q_bps": frozenset({2}),
@@ -8238,8 +8244,12 @@ def _accumulate_active_head_epoch(
 
 def _active_head_epoch_diagnostics(
     accumulator: Dict[str, Any],
+    *,
+    minimum_supervised_rows: int = _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS,
 ) -> Tuple[Dict[str, Any], List[str]]:
     """Finalize epoch-wide target, output-liveness and fusion-influence proof."""
+    if int(minimum_supervised_rows) < 2:
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS_INVALID]")
     failures = _active_head_contract_failures()
     head_store = accumulator.get("heads") if isinstance(accumulator, dict) else None
     if not isinstance(head_store, dict):
@@ -8343,7 +8353,7 @@ def _active_head_epoch_diagnostics(
                 continue
             rows_by_column = element_mask.sum(axis=0).astype(int)
             rows = int(np.min(rows_by_column))
-            if rows < _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS:
+            if rows < int(minimum_supervised_rows):
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ROWS_INSUFFICIENT] "
                     f"head={head_name} component={component_name} "
@@ -8433,14 +8443,44 @@ def _active_head_epoch_diagnostics(
 
     metrics = {
         "active_head_diagnostic_schema": (
-            "entry_model_native_active_head_epoch_diagnostics_v4"
+            "entry_model_native_active_head_epoch_diagnostics_v5"
         ),
+        "minimum_supervised_rows": int(minimum_supervised_rows),
         "active_head_contract": list(MODEL_NATIVE_ACTIVE_HEADS),
         "active_head_diagnostics": head_metrics,
         "active_head_health_ok": not failures,
         "active_head_health_failures": list(failures),
     }
     return metrics, failures
+
+
+def _profiled_active_head_admission_health(
+    *,
+    profile: str,
+    validation_stats: Mapping[str, Any],
+) -> bool:
+    """Select the exact active-head liveness evidence for a train profile.
+
+    Candidate training needs the full 16-row masked-label diagnostic. A
+    uniform 32-row technical smoke can legitimately contain fewer than 16
+    observations of a rare, masked event label, so it instead requires an
+    explicitly recorded two-row non-constant proof. That proof never changes
+    candidate admission and cannot claim quality, edge or promotion.
+    """
+
+    strict_ok = bool(validation_stats.get("active_head_health_ok", False))
+    if profile == "candidate":
+        return strict_ok
+    if profile != "smoke":
+        raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
+    technical = validation_stats.get("active_head_technical_smoke_evidence")
+    if not isinstance(technical, Mapping):
+        return False
+    return bool(
+        technical.get("health_ok") is True
+        and technical.get("minimum_supervised_rows")
+        == _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS
+    )
 
 
 def _require_nonnegative_target(values: torch.Tensor, *, name: str) -> torch.Tensor:
@@ -9162,6 +9202,7 @@ def validate(
     validation_checkpoint_interval_batches: Optional[int] = None,
     validation_checkpoint_hook: Optional[Any] = None,
     validation_session_log_label: str = "CANDIDATE_TRAINING",
+    active_head_technical_smoke_min_supervised_rows: Optional[int] = None,
 ):
     model.eval()
     target_model.eval()
@@ -9183,6 +9224,12 @@ def validate(
         or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(validation_session_log_label))
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_ARGUMENT_INVALID]")
+    if (
+        active_head_technical_smoke_min_supervised_rows is not None
+        and int(active_head_technical_smoke_min_supervised_rows)
+        != _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS
+    ):
+        raise RuntimeError("[ENTRY_TECHNICAL_SMOKE_ACTIVE_HEAD_ARGUMENT_INVALID]")
     if resume_validation_state is None:
         full_trajectory_accumulator = (
             _new_unified_exit_full_trajectory_accumulator(
@@ -9611,6 +9658,27 @@ def validate(
             "[ENTRY_ACTIVE_HEAD_HEALTH_CHECKPOINT_BLOCKED] %s",
             "; ".join(active_head_failures),
         )
+    if active_head_technical_smoke_min_supervised_rows is not None:
+        technical_metrics, technical_failures = _active_head_epoch_diagnostics(
+            active_head_epoch,
+            minimum_supervised_rows=(
+                active_head_technical_smoke_min_supervised_rows
+            ),
+        )
+        stats["active_head_technical_smoke_evidence"] = {
+            "schema_version": "entry_active_head_technical_smoke_evidence_v1",
+            "minimum_supervised_rows": int(
+                active_head_technical_smoke_min_supervised_rows
+            ),
+            "health_ok": not technical_failures,
+            "failures": list(technical_failures),
+            "diagnostics": technical_metrics["active_head_diagnostics"],
+        }
+        if technical_failures:
+            log.error(
+                "[ENTRY_TECHNICAL_SMOKE_ACTIVE_HEAD_HEALTH_BLOCKED] %s",
+                "; ".join(technical_failures),
+            )
     gate_failures = _cooperation_gate_health_failures(stats)
     stats["cooperation_gate_health_ok"] = not gate_failures
     stats["cooperation_gate_health_failures"] = list(gate_failures)
@@ -10117,7 +10185,10 @@ def _run_resumable_candidate_training(
         ) > float(early_stopping_min_delta)
         admission_ok = _checkpoint_admission_ok(
             profile="candidate",
-            active_head_health_ok=bool(val_stats.get("active_head_health_ok", False)),
+            active_head_health_ok=_profiled_active_head_admission_health(
+                profile="candidate",
+                validation_stats=val_stats,
+            ),
             cooperation_gate_health_ok=bool(
                 val_stats.get("cooperation_gate_health_ok", False)
             ),
@@ -11810,6 +11881,11 @@ def run_train(
                 val_loader,
                 device,
                 collect_full_exit_trajectory=(profile == "candidate"),
+                active_head_technical_smoke_min_supervised_rows=(
+                    _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS
+                    if profile == "smoke"
+                    else None
+                ),
             )
 
         # V30 package 5: when the EMA is active the checkpoint gate must judge
@@ -11944,9 +12020,27 @@ def run_train(
         _improved = np.isfinite(_policy_pnl) and (
             _policy_pnl - best_policy_pnl
         ) > float(early_stopping_min_delta)
-        _active_head_health_ok = bool(
+        _strict_active_head_health_ok = bool(
             val_stats.get("active_head_health_ok", False)
         ) if val_stats else False
+        _active_head_health_ok = _profiled_active_head_admission_health(
+            profile=profile,
+            validation_stats=val_stats or {},
+        )
+        if profile == "smoke":
+            _technical_evidence = (
+                val_stats.get("active_head_technical_smoke_evidence", {})
+                if isinstance(val_stats, Mapping)
+                else {}
+            )
+            log.info(
+                "[ENTRY_TECHNICAL_SMOKE_ACTIVE_HEAD_ADMISSION] epoch=%d "
+                "strict_ok=%d technical_ok=%d minimum_supervised_rows=%s",
+                epoch + 1,
+                int(_strict_active_head_health_ok),
+                int(_active_head_health_ok),
+                _technical_evidence.get("minimum_supervised_rows"),
+            )
         _cooperation_gate_health_ok = bool(
             val_stats.get("cooperation_gate_health_ok", False)
         ) if val_stats else False
