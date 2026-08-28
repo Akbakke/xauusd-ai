@@ -132,12 +132,18 @@ but the system is not empirically finished:
   later candidate/OOS ablations must establish which are economically useful by
   regime. The preregistered selective-edge hypothesis is FAIL. Any candidate
   CUDA work must be predeclared and CPU-preflighted behind the same guard. The
-  technical candidate-readiness event now passes. The current source has a
-  hash-bound two-slot candidate-resume protocol for the 20-minute safety
-  window, including exact train/VAL phase state and full-trajectory VAL
-  accumulation. It is regression-tested but not yet accepted by a full
-  candidate CUDA run; it must be committed, recipe-audited and dry-run before
-  such a run. A partial session is never a candidate result;
+  historical technical candidate-readiness event passed under its then-current
+  contract. A fresh current-source recheck is now
+  `NOT_READY_FOR_CANDIDATE_TRAINING`: that historical diagnostic bundle lacks
+  the now-required, hash-bound `recipe_source_provenance` in both metadata and
+  lock. This is a fail-closed provenance mismatch, not missing feature data or
+  a licence to patch/relabel old evidence. A fresh fully exported bundle must
+  pass before any candidate run. The current source has a hash-bound two-slot
+  candidate-resume protocol for the 20-minute safety window, including exact
+  train/VAL phase state and full-trajectory VAL accumulation. It is
+  regression-tested but not yet accepted by a full candidate CUDA run; it must
+  be recipe-audited and dry-run before such a run. A partial session is never a
+  candidate result;
 - the first six-month chronological **technical integration** session ran on
   V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
   It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step

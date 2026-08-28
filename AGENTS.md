@@ -125,10 +125,13 @@ current-contract audit, and do not start full training, TEST, demo or live.
   by actual gradients. Keep the strict quality audit for later candidate/OOS
   qualification, but assess contribution with ablation and regime-sliced OOS,
   not forced equal gate shares. The preregistered selective-edge decision is
-  FAIL. This proves no edge. The clean-source reports emitted 2026-08-28 now
-  explicitly authorize candidate research, never activation: smoke readiness,
-  trainability readiness and candidate readiness all pass. The source now
-  contains a hash-bound, two-slot candidate resume protocol for the
+  FAIL. This proves no edge. The historical clean-source reports emitted
+  2026-08-28 passed under their then-current contract, but the current
+  candidate-readiness recheck is `NOT_READY_FOR_CANDIDATE_TRAINING`: the old
+  diagnostic bundle lacks required `recipe_source_provenance` in both metadata
+  and lock. It must be replaced by a fresh exported bundle; never patched or
+  relabelled in place. The source now contains a hash-bound, two-slot candidate
+  resume protocol for the
   same 20-minute 220 W / 70 C / 12 GiB guarded window. It persists model,
   fixed fitted-Q target, optimizer, EMA, scheduler, deterministic order/RNG,
   selection state and an in-flight full-VAL accumulator. The protocol has

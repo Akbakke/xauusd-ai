@@ -208,8 +208,8 @@ predeclared, CPU-preflighted and guarded; it is not an edge, backtest or trade
 authorization. Family contribution must later be evaluated with ablation and
 regime-sliced untouched OOS, never by forcing equal gate shares.
 
-**Current candidate-start status, completed 2026-08-28:** after committing the
-technical-start/quality separation (`f90b3df9`), three new immutable,
+**Historical candidate-start status, completed 2026-08-28:** after committing
+the technical-start/quality separation (`f90b3df9`), three immutable,
 report-only events passed with no CUDA allocation or dataset rebuild:
 
 - smoke readiness:
@@ -219,12 +219,19 @@ report-only events passed with no CUDA allocation or dataset rebuild:
 - candidate readiness:
   `candidate_readiness_technical_20260828T133352Z/ENTRY_CANDIDATE_READINESS_20260828T133355765086Z.json`.
 
-The last event is `READY_FOR_CANDIDATE_TRAINING`, binds the fixed 238 signal
+The last historical event is `READY_FOR_CANDIDATE_TRAINING`, binds the fixed 238 signal
 fields, 71 continuous plus one categorical context field, all five MTF clocks,
 all eight specialist groups, exact bundle files and all 70,880 VAL prediction
 rows. It explicitly keeps activation/paper/demo/live `false`. This is the
-answer to pipeline readiness: **yes, it is technically ready to start the
-research candidate; no, it has no predictive or economic proof yet.**
+answer to pipeline readiness at that time: **yes, it was technically ready to
+start the research candidate; no, it had no predictive or economic proof.**
+It is superseded for current execution: the 2026-08-28 current-source recheck
+returned `NOT_READY_FOR_CANDIDATE_TRAINING`, because that old diagnostic
+bundle has no `recipe_source_provenance` in bundle metadata or lock. Its other
+technical checks remain green. This is intentional fail-closed provenance
+control, not evidence of a missing feature. Do not modify or relabel the old
+bundle; require a fresh fully exported current-contract bundle before any
+candidate run.
 
 **Candidate execution protocol, implemented in current source 2026-08-28:**
 the local canonical trainer remains limited to a 20-minute process behind the

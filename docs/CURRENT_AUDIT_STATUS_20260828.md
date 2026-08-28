@@ -102,6 +102,15 @@ validated five-clock V4 cache, before compute sampling or optimization.
   The guard exited normally (`child_status=0`) with peaks of 63 C, 195.53 W
   and 8,763 MiB VRAM. This is a partial, technical-only session: it wrote no
   bundle and ran no VAL, TEST, OOS, PnL, win-rate, MAE/MFE or trading step.
+- A current CPU-only candidate-readiness recheck then correctly returned
+  `NOT_READY_FOR_CANDIDATE_TRAINING`. The historical diagnostic smoke bundle
+  has no `recipe_source_provenance` in its metadata or lock, which is now an
+  exact candidate requirement. Its input, prediction-evidence, wrapper and
+  eight-specialist checks remain green; this is a provenance block, not a
+  feature, target or gradient-path failure. Do not relabel or patch the old
+  bundle: a fresh, fully exported bundle from the current source contract is
+  required before candidate training can be considered. A regression test now
+  proves that this legacy-bundle condition fails closed.
 
 Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`, `f2d4862b`.
 The current V46 report pointers in `PROJECT_STATE_xau_direction_launch.json`
@@ -110,9 +119,9 @@ operation was started while refreshing it.
 
 ## Required next sequence
 
-1. Commit and validate the refreshed V46 report pointers. Stop immediately on
-   any content, lineage or fail-closed-state mismatch; do not add, remove or
-   retune features.
+1. Preserve the candidate `NOT_READY` block. Do not repair the historical
+   bundle in place. A separately authorised, fresh exported-bundle run must
+   first pass the current provenance contract; it remains offline and guarded.
 2. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.

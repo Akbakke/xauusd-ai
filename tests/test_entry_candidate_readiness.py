@@ -506,6 +506,50 @@ def test_bundle_rehash_rejects_objective_meta_lock_split_brain(tmp_path: Path) -
     assert readiness._bundle_file_check(normalized)["ok"] is False
 
 
+def test_bundle_rehash_rejects_missing_recipe_source_provenance(
+    tmp_path: Path,
+) -> None:
+    """A legacy bundle cannot be relabelled as current candidate evidence."""
+
+    report, paths = _fixture(tmp_path)
+    bundle = paths["bundle"]
+    for name in ("bundle_metadata.json", "MASTER_TRANSFORMER_LOCK.json"):
+        path = bundle / name
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload.pop("recipe_source_provenance")
+        _write_json(path, payload)
+
+    (bundle / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json").unlink()
+    write_bundle_commit_manifest(
+        bundle_dir=bundle,
+        artifact_names=BUNDLE_COMMIT_CORE_ARTIFACTS,
+        bundle_kind="trained",
+        created_at_utc=STAMP_TIME.isoformat(),
+    )
+    report["bundle_artifacts"] = {
+        name: readiness._artifact_binding(Path(binding["path"]))
+        for name, binding in report["bundle_artifacts"].items()
+    }
+    report["model_native_training_objective_contract"].update(
+        {
+            "metadata_sha256": readiness._sha256_file(
+                bundle / "bundle_metadata.json"
+            ),
+            "lock_sha256": readiness._sha256_file(
+                bundle / "MASTER_TRANSFORMER_LOCK.json"
+            ),
+        }
+    )
+
+    normalized = require_smoke_bundle_audit_contract(report, context="TEST")
+    check = readiness._bundle_file_check(normalized)
+
+    assert check["ok"] is False
+    assert check["details"]["error"] == (
+        "[CANDIDATE_READINESS_BUNDLE_META_RECIPE_SOURCE_PROVENANCE_MISSING]"
+    )
+
+
 def test_prediction_evidence_check_accepts_only_policy_owned_val(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
