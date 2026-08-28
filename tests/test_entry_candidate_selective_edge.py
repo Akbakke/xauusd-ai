@@ -7,6 +7,13 @@ import pytest
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     PREDICTION_EVIDENCE_STAGE_SPLITS,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_OUTPUT_DIM,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
+    MODEL_NATIVE_TIMING_OUTPUT_DIM,
+    MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
+)
 import torch
 
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -14,6 +21,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     EVALUATION_COVERAGES,
+    _EXTRA_VECTOR_HEADS,
     _canonical_live_decision_evidence,
     _concatenate_evidence_chunks,
     _preregistered_hypothesis,
@@ -23,6 +31,18 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _selection_sort_column,
     build_metric_rows,
 )
+
+
+def test_vector_evidence_widths_match_model_output_owners() -> None:
+    """A producer must not substitute physical target count for head width."""
+
+    assert _EXTRA_VECTOR_HEADS == {
+        "dip_pred": MODEL_NATIVE_DIP_OUTPUT_DIM,
+        "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+        "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
+        "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
+        "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
+    }
 
 
 def test_entry_q_is_the_only_decision_surface_and_ties_fail_closed() -> None:

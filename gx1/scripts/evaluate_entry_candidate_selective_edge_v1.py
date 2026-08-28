@@ -53,7 +53,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     encode_model_native_runtime_head_evidence,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
-    MODEL_NATIVE_DIP_TARGET_COLUMNS,
+    MODEL_NATIVE_DIP_OUTPUT_DIM,
     MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
@@ -1070,7 +1070,10 @@ def _runtime_head_evidence_for_row(
     return evidence
 # Multi-dimensional genuine auxiliary heads; widths derive from target owners.
 _EXTRA_VECTOR_HEADS = {
-    "dip_pred": len(MODEL_NATIVE_DIP_TARGET_COLUMNS),
+    # The dip head emits p50/p90/recovery values: 18 outputs over the 12
+    # physical MAE/MFE target columns. Persist its model-output width, not the
+    # target-column width; train/serve and runtime evidence use this owner.
+    "dip_pred": MODEL_NATIVE_DIP_OUTPUT_DIM,
     "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
     "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
     "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
