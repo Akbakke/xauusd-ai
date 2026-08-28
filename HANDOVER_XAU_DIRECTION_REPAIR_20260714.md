@@ -8,7 +8,11 @@ binding scope; `CLAUDE.md` is the process constitution.
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 > before acting on historical run prose below. The active state is audit
 > completion with all background services stopped; no full training, TEST,
-> OANDA/demo or live operation is authorised.
+> OANDA/demo or live operation is authorised. On 2026-08-28, the retained V46
+> TRAIN/VAL bytes passed a fresh v10 liveness scan and the complete downstream
+> report-only rebind (post-rebuild, smoke manifest/readiness, trainability and
+> CPU recipe). The canonical pointers now bind those immutable reports; this
+> is wiring/provenance evidence only, not a CUDA, edge or trading permission.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are

@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-28T11:07:41Z",
+  "updated_utc": "2026-08-28T18:15:13Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -53,8 +53,8 @@
         "decision": "COMPLETED_MODEL_NATIVE_SEQ513_DATASET_REBUILD"
       },
       "post_rebuild_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/post_rebuild_readiness/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260825T200257388615Z.json",
-        "sha256": "cef2023e80aff6cbc12ee24dd2ca34cdce10b4cc0b2ea6736d2751d367b7e851",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/post_rebuild_readiness/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260828T181056389771Z.json",
+        "sha256": "83876ef6ea659efb7610109ba22b7a1a8dad6837e2850a2427492ef6e19700a2",
         "schema_version": "entry_model_native_seq513_post_rebuild_readiness_v2",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_POST_REBUILD_REVIEW"
       },
@@ -83,26 +83,26 @@
         "decision": "PASS"
       },
       "smoke_manifest": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_manifest/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260825T201033048962Z.json",
-        "sha256": "732a83d31ac6b2f145377a3990d8a8cf31cb659be9311c7122d5b8b1229333ed",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_manifest/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_20260828T181138417093Z.json",
+        "sha256": "8b3488081f566aaf37d1f1290d38e73c6336e2f9178b32d510a1df73f180ffcc",
         "schema_version": "entry_model_native_seq513_smoke_manifest_v3",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_MANIFEST_REVIEW"
       },
       "smoke_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_readiness/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260825T201102633708Z.json",
-        "sha256": "bada60b4c05e424e59436232260ac2d269d3a937493b1d6c5f04fe296d8ac6a1",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/smoke_readiness/ENTRY_MODEL_NATIVE_SEQ513_SMOKE_READINESS_20260828T181232831583Z.json",
+        "sha256": "9dfe388a4d8c116711441a70c0a90858fb7833140f6a2f35cdf6e54b13f09ec9",
         "schema_version": "entry_model_native_seq513_smoke_readiness_v3",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_SMOKE_READINESS_REVIEW"
       },
       "trainability_readiness": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/trainability_readiness/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260825T201130766253Z.json",
-        "sha256": "5a7e08a91b5ebcc4da6163339341fea338abea92ddcfb3ebc1353342cda948f2",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/trainability_readiness/ENTRY_MODEL_NATIVE_SEQ513_TRAINABILITY_READINESS_20260828T181307220010Z.json",
+        "sha256": "74d6b882ac7b7e1ff27486c7c97528f8e553a4ee55bf2854776415e637e0388e",
         "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
       },
       "train_recipe": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_canonical_cuda_smoke8_220w_32_20260828T105920Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T105935753291Z.json",
-        "sha256": "7bbc15e22346fae848605515f0b2430879b31da96d617074faa1358e3ec8d55c",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_v10_rebind_20260828T181415Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T181513003868Z.json",
+        "sha256": "972a97c0c31e359f322797c252c4147b3625f112150261cbebf597b9d1c64534",
         "schema_version": "entry_model_native_seq513_train_recipe_audit_v9",
         "decision": "PASS"
       },

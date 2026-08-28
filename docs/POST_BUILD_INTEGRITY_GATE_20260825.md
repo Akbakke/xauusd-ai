@@ -27,6 +27,15 @@ while retaining strict candidate checks. Candidate remains strict: immutable VAL
 predictions and a smoke-bundle audit are now required, and create no edge, TEST,
 demo or live authority.
 
+**Current CPU rebind — 2026-08-28:** the retained V46 source passed a fresh
+full-input liveness v10 scan across all TRAIN/VAL sequence values. The
+post-rebuild, smoke-manifest, smoke-readiness and trainability reports were
+re-issued from that exact evidence, followed by a CPU-only recipe preflight
+that rehashed the live Train/Val bytes. All report checks passed; TEST remained
+byte-opaque and no CUDA, model training, dataset rebuild or broker activity was
+started. These refreshed reports are the canonical state pointers, but they are
+still only evidence of wiring and provenance, not an edge or execution sign-off.
+
 ## V46 review record — 2026-08-25
 
 **Decision:** `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`.

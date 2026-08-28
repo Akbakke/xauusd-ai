@@ -15,10 +15,11 @@ activity, collector, Telegram notifier or dashboard from this state. The
 collector/dashboard/notifier/self-check services are deliberately inactive.
 
 The current V46 source data are retained and are not to be rebuilt merely to
-obtain another smoke run. Full-input liveness has now been refreshed from the
-retained immutable TRAIN/VAL bytes; historical normalization evidence still
-predates the repaired Exit MTF timing contract and is not candidate authority.
-Regenerate only that normalization evidence if the CPU preflight requires it.
+obtain another smoke run. Full-input liveness and its entire downstream
+report-only chain have been refreshed from the retained immutable TRAIN/VAL
+bytes. Historical normalization evidence still predates the repaired Exit MTF
+timing contract and is not candidate authority; regenerate only that evidence
+if a later, explicit candidate preflight requires it.
 
 ## What the current source now proves
 
@@ -69,21 +70,29 @@ Regenerate only that normalization evidence if the CPU preflight requires it.
   all 248,028 TRAIN and 70,880 VAL rows, checked all 7,286,409,984 sequence
   values for finiteness and exact last-step/snapshot parity, and revalidated
   the complete five-clock MTF cache. It did not open TEST.
+- The downstream V46 post-rebuild, smoke-manifest, smoke-readiness and
+  trainability reports were then re-bound to that v10 scan. Their 6, 26, 6 and
+  32 checks respectively passed with no failures. The final CPU-only recipe
+  preflight rehashed the actual large TRAIN/VAL files and passed, while keeping
+  TEST byte-opaque, CUDA unused and all trainer side effects false.
 
-Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`, `34659e36`.
-The current source audit repair is pending its local regression commit. No
-dataset, CUDA or broker operation was started while applying it.
+Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`. The current
+V46 report pointers in `PROJECT_STATE_xau_direction_launch.json` bind the new
+v10 evidence chain. No dataset rebuild, CUDA, broker or TEST operation was
+started while refreshing it.
 
 ## Required next sequence
 
-1. Commit the refreshed V46 liveness pointer and run the bounded CPU
-   source/recipe preflight against retained V46 inputs. Stop immediately on a
-   mismatch; do not add, remove or retune features.
-2. Regenerate only normalization evidence that the CPU preflight identifies
-   as stale for the current source commit; do not rebuild V46 by default.
-3. Run one guarded, bounded learning-validation probe (one epoch over the
-   agreed chronological research window) solely to prove end-to-end learning,
-   field use and numerical stability. It is not a performance claim.
+1. Commit and validate the refreshed V46 report pointers. Stop immediately on
+   any content, lineage or fail-closed-state mismatch; do not add, remove or
+   retune features.
+2. Inspect whether the preserved normalization evidence is stale for the
+   current source commit. Regenerate only that report if required; do not
+   rebuild V46 by default.
+3. Only after that decision, obtain explicit authority for one guarded,
+   bounded learning-validation probe (one epoch over the agreed chronological
+   research window). It must prove learning, field use and numerical stability,
+   not performance.
 4. Inspect the resulting VAL research metrics and artefact proofs. Only if
    those are complete should a full candidate-training decision be considered.
 5. Keep TEST sealed until a single candidate has passed VAL and an immutable
