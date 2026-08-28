@@ -386,9 +386,14 @@ repeat passed that repair but exposed a stale Regime-FiLM metadata requirement.
 Commit `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
 `64d648da` then align and statically check active-head metadata. The final
 recipe-bound 32/32 smoke completed safely at 63 C / 212.37 W / 8,751 MiB and
-published a diagnostic bundle. Candidate evidence remains strict: immutable VAL
-predictions and the smoke-bundle audit are next, with CUDA limited to the exact
-evaluator behind the same guard. A remote machine, if
+published a diagnostic bundle. The exact evaluator then completed the immutable
+70,880-row VAL artifact at 55 C / 156.03 W / 715 MiB after a vector-head
+serialization repair. The final CPU smoke-bundle audit passes input, output and
+lineage checks, but blocks on three specialist gates never top-ranking after
+four optimizer steps. Before any further CUDA step, source tests and the
+prediction-artifact schema/audit preflight must pass; only then may a bounded
+learning-validation probe run behind the same guard. This is not candidate,
+backtest or edge evidence. A remote machine, if
 explicitly cost-approved, is still an offline bounded job with frozen
 source/artifacts and an automatic stop; it is not permission to alter scope or
 use broker credentials.

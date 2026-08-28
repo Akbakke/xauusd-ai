@@ -249,9 +249,12 @@ first train==serve parity event is also still missing. The final 220 W
 batch-8/32-row smoke completed full technical execution and published a
 diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. The latest repair (`c3026c0f`)
 binds bounded smoke structure to the already-passing full-population liveness
-proof without weakening candidate checks. The next execution is immutable VAL
-inference through the exact guarded evaluator, then the smoke-bundle audit;
-never a live route.
+proof without weakening candidate checks. Immutable VAL inference has now
+completed through the exact guarded evaluator, and the CPU smoke-bundle audit
+passes all input/output/lineage checks. It blocks only because three specialist
+gates never top-rank after four optimizer steps. The next execution, after
+CPU artifact-schema preflight, may only be a bounded guarded learning-
+validation probe; never a candidate, live route or edge claim.
 
 ## Scope boundary
 

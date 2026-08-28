@@ -109,11 +109,28 @@ shape, order and finite values. This is technical smoke evidence only: its
 32-row `-7.20 bps` monitor value is not PnL, edge, backtest, win rate, MAE/MFE,
 candidate or TEST evidence.
 
-The next gate is immutable VAL prediction evidence followed by the smoke-bundle
-audit. The exact CUDA evaluator is now enclosed by the same one-second 220 W,
-70 C and 12 GiB automatic guard; it is the only permitted non-trainer local
-CUDA route. Candidate readiness and full training remain blocked until that
-audit passes.
+**VAL evidence and post-run audit, completed 2026-08-28:** the exact guarded
+evaluator completed all 70,880 frozen VAL rows and atomically wrote
+`smoke_predictions_canonical_cuda_guarded8_vectorheads_20260828T114303Z/`
+`selective_edge_predictions_20260828T120046619919Z.parquet` (SHA-256
+`36c04d38645989e2f30bb8d90cc1e2e750c72a242752a1106311d60d3fa5f976`). Its
+guard exited normally at 55 C / 156.03 W / 715 MiB. The emitted artifact now
+preserves all five vector prediction heads, including `timing_pred`; the
+previous evaluator flattened that head and the full-row contract correctly
+rejected it. The repaired CPU-only smoke-bundle audit passes every dataset,
+feature, five-TF, target, lineage, output-schema and prediction-value check.
+It remains `BLOCK` solely because three of the eight specialist gates were
+never the top-ranked gate after the smoke's four optimizer steps. They are
+finite, non-constant and normalized; this is insufficient learning evidence,
+not an unmeasured/dummy input or a V46 rebuild defect.
+
+No candidate, full training or another broad CUDA run is authorized. Before a
+single further GPU step, run the bounded CPU preflight: source contract tests,
+the prediction-artifact schema check, and the smoke-bundle audit against the
+frozen recipe. The only contemplated CUDA work after those checks is a
+pre-declared, bounded **learning-validation** run to establish specialist-gate
+behaviour; it is not a candidate or edge/backtest run and remains behind the
+same one-second 220 W, 70 C and 12 GiB automatic guard.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists

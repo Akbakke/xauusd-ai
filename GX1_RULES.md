@@ -182,10 +182,14 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   Regime-FiLM metadata requirement. Later head-metadata repairs `e0cf52ed` and
   `64d648da` align and statically check trainer/loader keys. The final
   recipe-bound 32/32 smoke completed and atomically published its diagnostic
-  bundle at 63 C / 212.37 W / 8,751 MiB. Candidate admission remains strict.
-  Immutable VAL inference needed by the smoke-bundle audit may use CUDA only
-  through the exact allow-listed evaluator behind the same guard; no other
-  producer gets CUDA permission.
+  bundle at 63 C / 212.37 W / 8,751 MiB. The exact guarded evaluator then
+  completed frozen VAL predictions at 55 C / 156.03 W / 715 MiB. The repaired
+  CPU smoke-bundle audit passes all data, feature, target, lineage and output
+  checks, but blocks because three specialist gates never top-rank after four
+  optimizer steps. Before any further CUDA step, the source tests and
+  prediction-artifact/audit preflight must pass. Only a predeclared bounded
+  learning-validation probe may follow; candidate admission remains strict and
+  no other producer gets CUDA permission.
 - An ephemeral remote GPU is permitted only for the same offline research
   scope, exact frozen commit and hash-bound V46 artifacts, after explicit
   operator cost approval. It must have automatic time/cost termination and no

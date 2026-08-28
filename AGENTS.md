@@ -112,10 +112,15 @@ Read `GX1_RULES.md` first. It is binding.
   `64d648da` then align and statically check active-head metadata; candidate
   evidence remains strict. The final fresh recipe bound to `c3026c0f` completed
   safely at 63 C / 212.37 W / 8,751 MiB and atomically published its diagnostic
-  smoke bundle. It proves no edge: the next gate is immutable VAL predictions
-  and a passing smoke-bundle audit. CUDA VAL evaluation is allow-listed only
-  behind the same automatic 220 W / 70 C / 12 GiB guard. Resolve exact guard
-  logs and the next decision from the handover, never from an old run directory.
+  smoke bundle. The exact guarded evaluator subsequently wrote all 70,880 VAL
+  predictions at 55 C / 156.03 W / 715 MiB after a vector-head serialization
+  repair. The final CPU bundle audit passes every input, output and lineage
+  contract, but remains BLOCK because three specialist gates never top-rank
+  after four optimizer steps. This is a bounded-learning-evidence blocker, not
+  a dummy-field or data-rebuild finding. Do not start a candidate or a broad
+  CUDA retry: first run CPU artifact/schema preflight, then only a predeclared
+  guarded learning-validation probe. It proves no edge. Resolve exact logs and
+  the next decision from the handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -226,9 +231,10 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST. Produce immutable VAL predictions only with the
-   guarded evaluator, then run the smoke-bundle audit. Train a full research
-   candidate only if its bundle audit proves safe and valid.
+2. Preserve V46's sealed TEST. The immutable VAL prediction and CPU audit now
+   exist; repair the remaining smoke learning-evidence gate only with a bounded
+   preflighted learning-validation probe. Train a full research candidate only
+   if that follow-up audit proves safe and valid.
 3. Evaluate the candidate on the historical research path (VAL and then the
    untouched TEST only where its seal permits it); report that result as
    research-only, never as a production edge claim.

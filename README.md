@@ -111,9 +111,13 @@ but the system is not empirically finished:
   optimizer steps, validation, strict load and structural liveness, publishing
   a diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. Commits `57d4ebcb`,
   `e0cf52ed`, `64d648da` and `c3026c0f` repair and check the
-  metadata/liveness path. Its next gate is immutable VAL prediction evidence
-  and the smoke-bundle audit; the exact CUDA evaluator is protected by the
-  same 220 W / 70 C / 12 GiB guard;
+  metadata/liveness path. The guarded evaluator has since completed immutable
+  VAL predictions and the CPU audit passes feature, target, lineage and
+  prediction-schema checks. The audit remains BLOCK solely because three
+  specialist gates never top-rank after four optimizer steps; that is an
+  insufficient-learning-evidence finding, not a dummy-field finding. Any next
+  CUDA work is a bounded learning-validation probe only after CPU artifact
+  preflight, behind the same 220 W / 70 C / 12 GiB guard;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;
