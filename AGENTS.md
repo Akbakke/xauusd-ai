@@ -96,32 +96,32 @@ Read `GX1_RULES.md` first. It is binding.
   live side sources; adversarial tests and a diagnostic V39 replay pass.
   V35/V36/V37/V38/V39 products remain invalid resume/consumer input (rule 7).
   No admitted dataset exists.
-- The current V46 feature/data/sequence evidence is therefore good enough to
-  prepare a smoke, but not to claim training worked. On 2026-08-28 two
-  canonical batch-32 CUDA smokes reached the repaired 8.95 GiB residency and
-  then stopped safely at 71 C (263.77 W for 10,000 TRAIN rows; 261.33 W for
-  1,000 rows). Neither wrote an optimizer step or bundle. A subsequent
-  batch-8/220 W attempt was stopped intentionally when review proved its
-  TRAIN-only subsample would still validate all 70,880 VAL rows. It was not a
-  thermal breach or crash. The repaired 32/32 smoke then completed four CUDA
-  optimizer steps and validation inside 65 C / 211.77 W / 8,751 MiB. Its active
-  episode-native movement proof then passed, but the bundle loader incorrectly
-  imposed a candidate-only Exit gate on smoke. Its next repeat passed that
-  repair but exposed a stale Regime-FiLM metadata requirement. Commit
-  `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
-  `64d648da` then align and statically check active-head metadata; candidate
-  evidence remains strict. The final fresh recipe bound to `c3026c0f` completed
-  safely at 63 C / 212.37 W / 8,751 MiB and atomically published its diagnostic
-  smoke bundle. The exact guarded evaluator subsequently wrote all 70,880 VAL
-  predictions at 55 C / 156.03 W / 715 MiB after a vector-head serialization
-  repair. The final CPU bundle audit passes every input, output and lineage
-  contract, but remains BLOCK because three specialist gates never top-rank
-  after four optimizer steps. This is a bounded-learning-evidence blocker, not
-  a dummy-field or data-rebuild finding. Do not start a candidate or a broad
-  CUDA retry: first run CPU artifact/schema preflight, including the exact
-  EMA-export/reload normalization regression proof, then only a predeclared
-  guarded learning-validation probe. It proves no edge. Resolve exact logs and
-  the next decision from the handover, never from an old run directory.
+- The current V46 feature/data/sequence evidence has passed technical
+  training-pipeline proof, but cannot claim prediction quality or edge. The
+  historical 32-row smoke successfully exercised CUDA bundle plumbing; it is
+  superseded as learning evidence by the fresh batch-8, 60-step one-epoch
+  probe. Its first materialization exposed an exact strict-reload defect: EMA
+  averaged every floating buffer, including immutable input-normalization
+  state. Commit `fad763af` confines EMA averaging to named parameters and
+  copies buffers exactly. Its focused CPU regression executes 60 updates,
+  exports, strictly reloads and validates the complete normalization state; a
+  second production partition test proves all eight local/MTF family branches
+  and every learned specialist-gate logit receive gradient after the
+  zero-initialized correction opens. The repaired probe completed under the
+  automatic guard and produced a fresh atomic bundle. The exact evaluator wrote
+  all 70,880 VAL predictions at 55 C / 155.63 W / 727 MiB. The bundle audit
+  passes data, lineage, shape, liveness and active-head checks but fails an old
+  *quality* heuristic: five families never top-rank and structure/swing averages
+  0.007619497 below a 0.01 floor. Neither condition is a valid prerequisite for
+  the first full candidate because a softmax has only one top rank per row and a
+  small smoke cannot establish economic relevance. The technical start contract
+  instead requires every family to be finite, positive, dynamic and connected
+  by actual gradients. Keep the strict quality audit for later candidate/OOS
+  qualification, but assess contribution with ablation and regime-sliced OOS,
+  not forced equal gate shares. The preregistered selective-edge decision is
+  FAIL. This proves no edge. Any candidate run must still be predeclared,
+  CPU-preflighted and guarded; resolve exact logs and the next decision from the
+  handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are

@@ -107,18 +107,25 @@ but the system is not empirically finished:
   `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q production-economics
   gate is blocked, so this is neither a trained/admitted candidate nor an
   authorization for an edge or trading claim;
-- the final local batch-8/32-row smoke completed full preflight, four CUDA
-  optimizer steps, validation, strict load and structural liveness, publishing
-  a diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. Commits `57d4ebcb`,
-  `e0cf52ed`, `64d648da` and `c3026c0f` repair and check the
-  metadata/liveness path. The guarded evaluator has since completed immutable
-  VAL predictions and the CPU audit passes feature, target, lineage and
-  prediction-schema checks. The audit remains BLOCK solely because three
-  specialist gates never top-rank after four optimizer steps; that is an
-  insufficient-learning-evidence finding, not a dummy-field finding. Any next
-  CUDA work is a bounded learning-validation probe only after CPU artifact
-  preflight, including the exact EMA-export/reload normalization regression
-  proof, behind the same 220 W / 70 C / 12 GiB guard;
+- the earlier 32-row, four-step smoke is superseded as learning evidence. A
+  first 60-step learning-validation run exposed a strict post-export failure:
+  EMA had changed an immutable input-normalization buffer by one floating-point
+  unit. Commit `fad763af` makes EMA average named parameters only and copies
+  all buffers exactly; its CPU regression performs 60 EMA updates, exports and
+  strict-reloads the bundle before CUDA is allowed. The repaired 60-step,
+  batch-8 smoke then completed one bounded epoch, validation, strict load and
+  liveness under the 220 W / 70 C / 12 GiB guard. Its fresh full-VAL evaluator
+  wrote 70,880 immutable predictions. Feature, target, lineage, schema,
+  active-head, exact strict load and all eight real family/MTF gradient paths
+  pass. The old strict smoke-quality audit remains FAIL because five families
+  never top-rank and structure/swing's mean gate weight is 0.007619497 (below
+  the former 0.01 floor). That is neither a dummy-field finding nor a valid
+  first-candidate blocker: softmax routing always has one largest family per
+  row, and a tiny smoke cannot prove market value. The technical start contract
+  requires finite, positive, non-constant routes through all eight families;
+  later candidate/OOS ablations must establish which are economically useful by
+  regime. The preregistered selective-edge hypothesis is FAIL. Any candidate
+  CUDA work must be predeclared and CPU-preflighted behind the same guard;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

@@ -26,6 +26,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     require_smoke_bundle_audit_contract,
+    require_smoke_bundle_training_pipeline_contract,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -380,17 +381,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     normalized_smoke: dict[str, Any] = {}
     try:
-        normalized_smoke = require_smoke_bundle_audit_contract(
+        normalized_smoke = require_smoke_bundle_training_pipeline_contract(
             smoke,
             context="CANDIDATE_READINESS",
         )
         if Path(normalized_smoke["dataset_dir"]).resolve() != expected_dataset:
             raise RuntimeError("smoke audit dataset_dir does not match explicit expected dataset")
-        checks.append(_check("smoke audit satisfies exact compact seq513 contract", True))
+        checks.append(
+            _check(
+                "smoke audit proves exact technical seq513 training pipeline",
+                True,
+                {
+                    "qualification_decision": normalized_smoke[
+                        "qualification_decision"
+                    ],
+                },
+            )
+        )
     except Exception as exc:
         checks.append(
             _check(
-                "smoke audit satisfies exact compact seq513 contract",
+                "smoke audit proves exact technical seq513 training pipeline",
                 False,
                 {"error": str(exc)},
             )

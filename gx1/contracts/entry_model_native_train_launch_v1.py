@@ -68,7 +68,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     PRETRAIN_AUDIT_SCHEMA,
-    require_smoke_bundle_audit_contract,
+    require_smoke_bundle_training_pipeline_contract,
 )
 from gx1.contracts.entry_model_native_state_v2 import (
     validate_state_contract_metadata_v2,
@@ -1552,13 +1552,13 @@ def _validate_audits(
 
         smoke_bundle = payloads["smoke_bundle_audit_json"]
         try:
-            require_smoke_bundle_audit_contract(
+            require_smoke_bundle_training_pipeline_contract(
                 smoke_bundle,
                 context="CANDIDATE_TRAIN_LAUNCH",
             )
         except RuntimeError as exc:
             raise LaunchContractError(
-                f"smoke bundle audit exact contract invalid: {exc}"
+                f"smoke bundle technical training contract invalid: {exc}"
             ) from exc
 
 

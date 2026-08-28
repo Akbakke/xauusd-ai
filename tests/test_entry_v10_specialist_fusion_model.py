@@ -304,6 +304,14 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [1.0, 0.0, 0.0]],
         dtype=torch.float32,
     )
+    # The specialist correction intentionally starts at exactly zero.  The
+    # first optimizer step must open that correction before a following step
+    # can propagate task gradients through the eight family encoders and the
+    # learned routing logits.  Keep this explicit: a future "safe" zero init
+    # that never opens would otherwise look like a healthy forward pass while
+    # every real specialist was disconnected from learning.
+    assert torch.count_nonzero(model.specialist_out.weight).item() == 0
+    assert torch.count_nonzero(model.specialist_out.bias).item() == 0
     for _ in range(2):
         optimizer.zero_grad(set_to_none=True)
         torch.nn.functional.mse_loss(
@@ -314,6 +322,8 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         ).backward()
         optimizer.step()
 
+    assert torch.count_nonzero(model.specialist_out.weight).item() > 0
+
     optimizer.zero_grad(set_to_none=True)
     torch.nn.functional.mse_loss(
         model(seq, snap, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)[
@@ -321,6 +331,16 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         ],
         target,
     ).backward()
+    # Each softmax logit owns one of the eight specialists.  Require a real
+    # gradient per row, not merely a finite aggregate gate tensor.
+    gate_grad = model.specialist_gate.weight.grad
+    assert gate_grad is not None
+    assert torch.isfinite(gate_grad).all()
+    assert torch.all(gate_grad.abs().sum(dim=1) > 0.0)
+    token_gate_grad = model.specialist_token_gate.weight.grad
+    assert token_gate_grad is not None
+    assert torch.isfinite(token_gate_grad).all()
+    assert token_gate_grad.abs().sum().item() > 0.0
     for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS:
         for parameter in (
             model.specialist_proj[specialist].weight,

@@ -24,9 +24,14 @@ TRAIN-only normalization and the repaired M5-decision-to-M1-fill causality
 audit. Its adoption review is deliberately BLOCKED by fitted-Q production
 economics. That blocks production-net edge claims and every paper/demo/live
 route. A gross-research candidate/OOS path exists in source, but is not yet
-available in practice: it has a diagnostic canonical smoke bundle but still
-requires immutable VAL prediction evidence, a passing smoke-bundle audit, a
-fresh candidate and an untouched TEST replay.
+available in practice: the current diagnostic bundle has immutable VAL
+prediction evidence and passes the narrower technical training-pipeline
+contract, while its older strict smoke-quality audit fails a learned-gate
+heuristic. That heuristic is retained for quality review but does not block the
+first full research candidate: all eight routes must instead be finite,
+positive, dynamic and proven connected by gradient before start. It still
+requires a fresh candidate and an untouched TEST replay before any predictive,
+economic or trading claim.
 
 **Current execution status, reconciled 2026-08-28:** canonical V46 smoke
 preflight passed all TRAIN/VAL, eight-family and five-timeframe checks. The old
@@ -143,8 +148,51 @@ data/feature/target/MTF fault, OOM, guard stop or host/WSL crash; its guard
 exited normally after the trainer reported the failure. The repair makes EMA
 average named parameters only and copies every buffer exactly. A CPU regression
 test now performs 60 EMA updates, exports, strictly reloads a new model and
-requires the complete input-normalization state. No rerun is allowed until that
-test, the focused trainer tests and the same hash-bound CPU preflight all pass.
+requires the complete input-normalization state. That regression, the focused
+trainer tests and the same hash-bound CPU preflight passed before the one
+fresh repaired repeat recorded next.
+
+**Current repaired learning-validation result, completed 2026-08-28:** commit
+`fad763af` repaired the EMA buffer mutation. The fresh hash-bound smoke recipe
+`train_recipe_audit_gate_learning_60step_220w_20260828T124525Z/`
+`ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T124527623930Z.json`
+then completed its bounded one-epoch profile: 480 deterministic TRAIN rows,
+batch size 8 and 60 optimizer steps, followed by 480 deterministic validation
+rows. The atomic bundle
+`v10_entry_model_native_seq513_gate_learning_60step_220w_20260828T124525Z`
+passed strict post-export reload and input-normalization liveness. Its guard
+exited `child_status=0`, with **67 C / 217.89 W / 8,769 MiB** peak observed
+core/draw/VRAM. This is a technical learning-validation result only; its small
+profile is not a candidate, edge, backtest, PnL, win-rate or TEST result.
+
+The exact guarded evaluator then processed all 70,880 frozen VAL rows and
+wrote `smoke_predictions_gate_learning_60step_220w_20260828T125731Z/`
+`selective_edge_predictions_20260828T131519434372Z.parquet` (SHA-256
+`fe63cc9d575c731e56d61eb80626b89fe95197f71cb28e94b82f5fc755248b18`). Its
+guard exited normally at **55 C / 155.63 W / 727 MiB**. The evaluator's
+technical prediction contract passed, while its preregistered selective-edge
+hypothesis was `FAIL`; no edge claim is available.
+
+The first CPU smoke-bundle audit caught one stale pretrain-audit reference in
+13 seconds. Re-running against the newest immutable pretrain PASS event
+removed that lineage-only failure and left exactly six real learning-gate
+failures: `structure_swing_encoder` has mean gate weight `0.007619497` below
+the `0.01` floor, and structure/swing, SMC/liquidity, trend/EMA,
+session/regime and price-action/candle are never top-ranked on full VAL. All
+eight gate values are finite, normalized and non-constant; chart/geometry,
+momentum/flow and volatility do become top-ranked. The strict audit remains
+`FAIL`, but it is now classified as a post-training quality heuristic rather
+than a candidate-start condition: a softmax has one top-ranked family per row,
+and a 60-step smoke cannot honestly establish a family's market value. The
+technical candidate-start contract requires the real bundle, active heads,
+eight dynamic positive gates and the exact gradient path instead. The CPU
+production partition regression additionally performs two optimizer updates and
+requires the zero-initialized specialist correction to open, a non-zero
+gradient in all eight learned gate-logit rows, and gradients through each
+actual local/MTF family branch. It passes. A future candidate must remain
+predeclared, CPU-preflighted and guarded; it is not an edge, backtest or trade
+authorization. Family contribution must later be evaluated with ablation and
+regime-sliced untouched OOS, never by forcing equal gate shares.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists

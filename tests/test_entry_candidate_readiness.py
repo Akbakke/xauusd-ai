@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -31,6 +32,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     SCHEMA_VERSION as SMOKE_BUNDLE_AUDIT_SCHEMA_VERSION,
     require_smoke_bundle_audit_contract,
+    require_smoke_bundle_training_pipeline_contract,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -302,6 +304,48 @@ def _fixture(tmp_path: Path) -> tuple[dict, dict[str, Path]]:
     return report, paths
 
 
+def _technical_only_smoke(report: dict) -> None:
+    """Make a real pipeline proof that deliberately lacks model-quality proof."""
+
+    report["decision"] = "FAIL"
+    report["failures"] = [
+        "split/val: specialist family is not top-ranked in tiny smoke",
+    ]
+    report["specialist_contract"] = {
+        "decision": "FAIL",
+        "failures": ["specialist gate liveness is unproven"],
+        "specialists": list(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        "gate_liveness_proven": False,
+    }
+    report["liveness_contract"] = {
+        "decision": "FAIL",
+        "failures": ["one or more specialists lack strict quality evidence"],
+        "all_active_head_predictions_live": True,
+        "all_specialist_gates_live": False,
+        "strict_bundle_components_live": True,
+    }
+    report["splits"]["val"]["decision"] = "FAIL"
+    report["splits"]["val"]["failures"] = list(report["failures"])
+    weights = {
+        name: 1.0 / len(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        for name in MODEL_NATIVE_REQUIRED_SPECIALISTS
+    }
+    report["splits"]["val"]["specialist_gate"] = {
+        "decision": "FAIL",
+        "failures": list(report["failures"]),
+        "finite": True,
+        "row_sum_max_abs_error": 0.0,
+        "entropy_mean": 1.0,
+        "mean_weight": weights,
+        "std_weight": {
+            name: 0.01 for name in MODEL_NATIVE_REQUIRED_SPECIALISTS
+        },
+        "top_rank_count": {
+            name: 0 for name in MODEL_NATIVE_REQUIRED_SPECIALISTS
+        },
+    }
+
+
 def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
     tmp_path: Path,
 ) -> None:
@@ -341,6 +385,34 @@ def test_exact_smoke_consumer_contract_accepts_only_full_seq513_proof(
         assert context_contract["minimum_trade_rows_per_slice"] == policy[
             "min_context_trade_rows"
         ]
+
+
+def test_candidate_start_uses_technical_pipeline_not_smoke_quality_result(
+    tmp_path: Path,
+) -> None:
+    report, _ = _fixture(tmp_path)
+    _technical_only_smoke(report)
+
+    with pytest.raises(RuntimeError):
+        require_smoke_bundle_audit_contract(report, context="STRICT")
+
+    technical = require_smoke_bundle_training_pipeline_contract(
+        report,
+        context="TRAIN_START",
+    )
+    assert technical["training_pipeline_ready"] is True
+    assert technical["qualification_decision"] == "FAIL"
+    assert technical["specialist_gate_connectivity"]["finite"] is True
+
+    broken = copy.deepcopy(report)
+    broken["splits"]["val"]["specialist_gate"]["std_weight"][
+        MODEL_NATIVE_REQUIRED_SPECIALISTS[0]
+    ] = 0.0
+    with pytest.raises(RuntimeError, match="ROUTE_CONSTANT"):
+        require_smoke_bundle_training_pipeline_contract(
+            broken,
+            context="TRAIN_START",
+        )
 
 
 @pytest.mark.parametrize(
@@ -464,6 +536,7 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
     tmp_path: Path,
 ) -> None:
     smoke, paths = _fixture(tmp_path)
+    _technical_only_smoke(smoke)
     smoke_path, _ = _event(
         paths["evidence"],
         "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT",
@@ -523,6 +596,7 @@ def test_candidate_readiness_run_uses_only_exact_immutable_inputs(
     assert report["failures"] == []
     assert report["candidate_training_allowed"] is True
     assert report["promotion_shadow_live_allowed"] is False
+    assert report["checks"][0]["details"]["qualification_decision"] == "FAIL"
     assert Path(report["json_path"]).is_file()
 
 

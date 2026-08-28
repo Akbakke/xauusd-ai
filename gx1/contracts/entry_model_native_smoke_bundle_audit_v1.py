@@ -699,6 +699,320 @@ def _input_audit_binding(value: Any, *, name: str, context: str) -> dict[str, An
     return normalized
 
 
+def _require_dynamic_specialist_gate_connectivity(
+    value: Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Require observed routing, without requiring an artificial winner.
+
+    A softmax gate always has one largest family.  Requiring every family to
+    become that largest value in a small smoke population would make candidate
+    *training* depend on a model-quality result that can only honestly be
+    measured after candidate training.  This pre-training contract instead
+    proves that every family has a finite, positive and state-varying observed
+    route.  The separate strict smoke-quality qualification remains owned by
+    :func:`require_smoke_bundle_audit_contract`.
+    """
+
+    _require(isinstance(value, Mapping), f"[{context}_GATE_MISSING]")
+    _require(value.get("finite") is True, f"[{context}_GATE_NONFINITE]")
+    row_error = _finite_float(
+        value.get("row_sum_max_abs_error"),
+        context=f"{context}_GATE_ROW_SUM_ERROR",
+    )
+    _require(row_error <= 1e-5, f"[{context}_GATE_SIMPLEX_INVALID]")
+    entropy = _finite_float(
+        value.get("entropy_mean"),
+        context=f"{context}_GATE_ENTROPY",
+    )
+    minimum_entropy = float(_SMOKE_EDGE_POLICY["min_specialist_gate_entropy"])
+    _require(
+        entropy >= minimum_entropy,
+        f"[{context}_GATE_ENTROPY_TOO_LOW]",
+    )
+    mean_raw = value.get("mean_weight")
+    std_raw = value.get("std_weight")
+    _require(
+        isinstance(mean_raw, Mapping)
+        and set(mean_raw) == set(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        f"[{context}_GATE_MEAN_SET_INVALID]",
+    )
+    _require(
+        isinstance(std_raw, Mapping)
+        and set(std_raw) == set(MODEL_NATIVE_REQUIRED_SPECIALISTS),
+        f"[{context}_GATE_STD_SET_INVALID]",
+    )
+    minimum_std = float(_SMOKE_EDGE_POLICY["min_specialist_gate_std"])
+    mean_weight: dict[str, float] = {}
+    std_weight: dict[str, float] = {}
+    for specialist in MODEL_NATIVE_REQUIRED_SPECIALISTS:
+        mean = _finite_float(
+            mean_raw[specialist],
+            context=f"{context}_{specialist.upper()}_MEAN",
+        )
+        std = _finite_float(
+            std_raw[specialist],
+            context=f"{context}_{specialist.upper()}_STD",
+        )
+        # Positivity and state variation prove that the learned softmax route
+        # is observed.  A one-percent share or a top-rank count is deliberately
+        # not a pre-training requirement: neither establishes predictive value.
+        _require(mean > 0.0, f"[{context}_{specialist.upper()}_ROUTE_DEAD]")
+        _require(
+            std > minimum_std,
+            f"[{context}_{specialist.upper()}_ROUTE_CONSTANT]",
+        )
+        mean_weight[specialist] = mean
+        std_weight[specialist] = std
+    return {
+        "finite": True,
+        "row_sum_max_abs_error": row_error,
+        "entropy_mean": entropy,
+        "mean_weight": mean_weight,
+        "std_weight": std_weight,
+    }
+
+
+def require_smoke_bundle_training_pipeline_contract(
+    value: Any,
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Require enough immutable evidence to *start* research candidate training.
+
+    This is intentionally narrower than the full smoke-bundle qualification
+    contract below.  It proves real inputs, strict bundle loading, every active
+    output and a dynamic route through every specialist family.  It does not
+    require a smoke-sized model to demonstrate edge, or every family to be the
+    maximum softmax weight at least once.  Those are post-training quality
+    questions and cannot honestly be prerequisites for the first full
+    candidate run.
+    """
+
+    _require(isinstance(value, Mapping), f"[{context}_SMOKE_AUDIT_MISSING]")
+    report = dict(value)
+    _require(report.get("schema_version") == SCHEMA_VERSION, f"[{context}_SCHEMA_INVALID]")
+    _require(
+        report.get("decision") in {"PASS", "FAIL"}
+        and isinstance(report.get("failures"), list),
+        f"[{context}_DECISION_SHAPE_INVALID]",
+    )
+    policy_binding = require_foundation_audit_policy_binding(
+        report,
+        context=f"{context}_SMOKE_AUDIT",
+    )
+    _require(
+        report.get("contract_mode") == MODEL_NATIVE_CONTRACT_MODE,
+        f"[{context}_CONTRACT_MODE_INVALID]",
+    )
+    _require(
+        report.get("sequence_length") == MODEL_NATIVE_SEQ_LEN,
+        f"[{context}_SEQUENCE_LENGTH_INVALID]",
+    )
+    _require(
+        report.get("signal_dim") == MODEL_NATIVE_SIGNAL_DIM,
+        f"[{context}_SIGNAL_DIM_INVALID]",
+    )
+    _require(
+        tuple(report.get("data_splits") or ()) == DATA_SPLITS,
+        f"[{context}_DATA_SPLITS_INVALID]",
+    )
+    bundle_dir = Path(str(report.get("bundle_dir") or "")).expanduser()
+    dataset_dir = Path(str(report.get("dataset_dir") or "")).expanduser()
+    _require(bundle_dir.is_absolute(), f"[{context}_BUNDLE_DIR_INVALID]")
+    _require(dataset_dir.is_absolute(), f"[{context}_DATASET_DIR_INVALID]")
+
+    readiness = require_model_native_readiness_contract(
+        report.get("model_native_readiness_contract"),
+        context=f"{context}_SMOKE_AUDIT",
+    )
+    direction = require_model_direction_decision_contract(
+        {"direction_decision_contract": report.get("direction_decision_contract")},
+        context=f"{context} smoke audit",
+    )
+
+    artifacts_raw = report.get("bundle_artifacts")
+    _require(isinstance(artifacts_raw, Mapping), f"[{context}_BUNDLE_ARTIFACTS_MISSING]")
+    _require(
+        set(artifacts_raw) == set(BUNDLE_ARTIFACT_KEYS),
+        f"[{context}_BUNDLE_ARTIFACT_SET_INVALID]",
+    )
+    artifacts = {
+        name: _artifact_binding(artifacts_raw[name], context=f"{context}_{name.upper()}")
+        for name in BUNDLE_ARTIFACT_KEYS
+    }
+    expected_paths = {
+        "bundle_commit": bundle_dir / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json",
+        "bundle_metadata": bundle_dir / "bundle_metadata.json",
+        "master_transformer_lock": bundle_dir / "MASTER_TRANSFORMER_LOCK.json",
+        "model_state_dict": bundle_dir / "model_state_dict.pt",
+    }
+    for name, expected in expected_paths.items():
+        _require(
+            Path(artifacts[name]["path"]).resolve() == expected.resolve(),
+            f"[{context}_{name.upper()}_PATH_INVALID]",
+        )
+    input_audits_raw = report.get("input_audits")
+    _require(isinstance(input_audits_raw, Mapping), f"[{context}_INPUT_AUDITS_MISSING]")
+    _require(
+        set(input_audits_raw) == set(INPUT_AUDIT_SCHEMAS),
+        f"[{context}_INPUT_AUDIT_SET_INVALID]",
+    )
+    input_audits = {
+        name: _input_audit_binding(
+            input_audits_raw[name], name=name, context=context
+        )
+        for name in INPUT_AUDIT_SCHEMAS
+    }
+
+    objective_proof = _zero_failure(
+        report.get("model_native_training_objective_contract"),
+        context=f"{context}_TRAINING_OBJECTIVE_PROOF",
+        exact_keys={
+            "decision", "failures", "meta_lock_exact", "objective",
+            "metadata_path", "metadata_sha256", "lock_path", "lock_sha256",
+        },
+    )
+    _require(
+        objective_proof.get("meta_lock_exact") is True,
+        f"[{context}_TRAINING_OBJECTIVE_SPLIT_BRAIN]",
+    )
+    objective = require_training_objective_contract(
+        objective_proof.get("objective"), context=f"{context}_SMOKE_AUDIT"
+    )
+    _require(
+        objective_proof.get("metadata_path") == artifacts["bundle_metadata"]["path"]
+        and objective_proof.get("metadata_sha256")
+        == artifacts["bundle_metadata"]["sha256"],
+        f"[{context}_TRAINING_OBJECTIVE_METADATA_BINDING_INVALID]",
+    )
+    _require(
+        objective_proof.get("lock_path")
+        == artifacts["master_transformer_lock"]["path"]
+        and objective_proof.get("lock_sha256")
+        == artifacts["master_transformer_lock"]["sha256"],
+        f"[{context}_TRAINING_OBJECTIVE_LOCK_BINDING_INVALID]",
+    )
+
+    head = _zero_failure(
+        report.get("head_contract"),
+        context=f"{context}_HEAD_PROOF",
+        exact_keys={"decision", "failures", "active_heads", "blocked_heads"},
+    )
+    _require(
+        tuple(head.get("active_heads") or ()) == MODEL_NATIVE_ACTIVE_HEADS,
+        f"[{context}_ACTIVE_HEAD_SET_INVALID]",
+    )
+    _require(
+        tuple(head.get("blocked_heads") or ()) == MODEL_NATIVE_BLOCKED_HEADS,
+        f"[{context}_BLOCKED_HEAD_SET_INVALID]",
+    )
+
+    specialist = report.get("specialist_contract")
+    _require(isinstance(specialist, Mapping), f"[{context}_SPECIALIST_PROOF_MISSING]")
+    _require(
+        set(specialist) == {"decision", "failures", "specialists", "gate_liveness_proven"},
+        f"[{context}_SPECIALIST_PROOF_KEYS_INVALID]",
+    )
+    _require(
+        tuple(specialist.get("specialists") or ()) == MODEL_NATIVE_REQUIRED_SPECIALISTS,
+        f"[{context}_SPECIALIST_SET_INVALID]",
+    )
+    liveness = report.get("liveness_contract")
+    _require(isinstance(liveness, Mapping), f"[{context}_LIVENESS_PROOF_MISSING]")
+    _require(
+        set(liveness) == {
+            "decision", "failures", "all_active_head_predictions_live",
+            "all_specialist_gates_live", "strict_bundle_components_live",
+        },
+        f"[{context}_LIVENESS_PROOF_KEYS_INVALID]",
+    )
+    _require(
+        liveness.get("all_active_head_predictions_live") is True
+        and liveness.get("strict_bundle_components_live") is True,
+        f"[{context}_HEAD_OR_BUNDLE_LIVENESS_UNPROVEN]",
+    )
+
+    splits_raw = report.get("splits")
+    _require(isinstance(splits_raw, Mapping), f"[{context}_SPLITS_MISSING]")
+    _require(set(splits_raw) == set(DATA_SPLITS), f"[{context}_SPLIT_SET_INVALID]")
+    split = splits_raw[DATA_SPLITS[0]]
+    _require(isinstance(split, Mapping), f"[{context}_SPLIT_REPORT_INVALID]")
+    gate_raw = split.get("specialist_gate")
+    # A historical full PASS audit already certifies the stronger gate proof.
+    # A diagnostic FAIL must supply its raw dynamic gate evidence explicitly.
+    if gate_raw is None and specialist.get("gate_liveness_proven") is True:
+        gate_connectivity = {"qualified_by_full_smoke_audit": True}
+    else:
+        gate_connectivity = _require_dynamic_specialist_gate_connectivity(
+            gate_raw,
+            context=f"{context}_{DATA_SPLITS[0].upper()}",
+        )
+
+    prediction = report.get("prediction_evidence")
+    _require(isinstance(prediction, Mapping), f"[{context}_PREDICTION_EVIDENCE_MISSING]")
+    _require(
+        prediction.get("schema_version") == PREDICTION_EVIDENCE_SCHEMA_VERSION
+        and prediction.get("evidence_stage") == "pre_calibration"
+        and prediction.get("authoritative") is False
+        and prediction.get("runtime_head_evidence_authoritative") is False
+        and prediction.get("splits") == list(DATA_SPLITS),
+        f"[{context}_PREDICTION_EVIDENCE_INVALID]",
+    )
+    _require(
+        _SHA256_RE.fullmatch(str(prediction.get("sha256") or "")) is not None,
+        f"[{context}_PREDICTION_EVIDENCE_SHA256_INVALID]",
+    )
+    prediction_path = Path(str(prediction.get("path") or "")).expanduser()
+    _require(
+        prediction_path.is_absolute(),
+        f"[{context}_PREDICTION_EVIDENCE_PATH_INVALID]",
+    )
+    prediction_report = Path(str(report.get("prediction_report_json") or "")).expanduser()
+    _require(
+        prediction_report.is_absolute(),
+        f"[{context}_PREDICTION_REPORT_PATH_INVALID]",
+    )
+    _require(
+        _SHA256_RE.fullmatch(str(report.get("prediction_report_sha256") or ""))
+        is not None,
+        f"[{context}_PREDICTION_REPORT_SHA256_INVALID]",
+    )
+    _require(
+        report.get("promotion_shadow_live_allowed") is False
+        and report.get("activation_authority") is False,
+        f"[{context}_ACTIVATION_AUTHORITY_FORBIDDEN]",
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        **policy_binding,
+        "training_pipeline_ready": True,
+        "qualification_decision": str(report["decision"]),
+        "qualification_failures": list(report["failures"]),
+        "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+        "sequence_length": MODEL_NATIVE_SEQ_LEN,
+        "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "bundle_dir": str(bundle_dir),
+        "dataset_dir": str(dataset_dir),
+        "data_splits": list(DATA_SPLITS),
+        "model_native_readiness_contract": readiness,
+        "direction_decision_contract": direction,
+        "bundle_artifacts": artifacts,
+        "input_audits": input_audits,
+        "model_native_training_objective_contract": dict(objective_proof),
+        "model_native_training_objective": objective,
+        "head_contract": dict(head),
+        "specialist_contract": dict(specialist),
+        "liveness_contract": dict(liveness),
+        "specialist_gate_connectivity": gate_connectivity,
+        "prediction_evidence": dict(prediction),
+        "prediction_evidence_stage": "pre_calibration",
+        "prediction_report_json": str(report.get("prediction_report_json") or ""),
+        "prediction_report_sha256": str(report.get("prediction_report_sha256") or ""),
+    }
+
+
 def require_smoke_bundle_audit_contract(
     value: Any,
     *,
