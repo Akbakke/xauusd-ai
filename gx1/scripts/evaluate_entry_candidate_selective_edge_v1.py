@@ -1081,6 +1081,25 @@ _EXTRA_VECTOR_HEADS = {
 }
 
 
+def _append_extra_vector_head_evidence(
+    extra_chunks: dict[str, list[np.ndarray]],
+    out: dict[str, torch.Tensor],
+) -> None:
+    """Keep each learned auxiliary head as one dense evidence vector.
+
+    The immutable prediction-evidence contract consumes ``timing_pred`` (and
+    the other auxiliary heads) as list-valued parquet columns.  Splitting a
+    head into ``*_0``, ``*_1``, ... fields leaves its declared head absent,
+    even though the model did emit it.  Persisting the exact vector also keeps
+    evaluation, runtime-head evidence, and smoke auditing on one schema.
+    """
+
+    for output_key, width in _EXTRA_VECTOR_HEADS.items():
+        extra_chunks.setdefault(output_key, []).append(
+            _tensor_np(out, output_key, width=width)
+        )
+
+
 def _require_evaluation_lineage(
     run_lineage: Any,
     *,
@@ -1410,10 +1429,7 @@ def _predict_bundle(
                         extra_chunks.setdefault("position_size_logit", []).append(
                             _tensor_np(out, "position_size_logit", width=1).reshape(-1)
                         )
-                        for _out_key, _width in _EXTRA_VECTOR_HEADS.items():
-                            _vec = _tensor_np(out, _out_key, width=_width)
-                            for _i in range(_width):
-                                extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
+                        _append_extra_vector_head_evidence(extra_chunks, out)
                         specialist_gate = _tensor_np(
                             out,
                             "specialist_gate",

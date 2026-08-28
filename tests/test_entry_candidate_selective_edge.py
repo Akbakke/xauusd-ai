@@ -22,6 +22,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     EVALUATION_COVERAGES,
     _EXTRA_VECTOR_HEADS,
+    _append_extra_vector_head_evidence,
     _canonical_live_decision_evidence,
     _concatenate_evidence_chunks,
     _preregistered_hypothesis,
@@ -43,6 +44,23 @@ def test_vector_evidence_widths_match_model_output_owners() -> None:
         "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
         "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
     }
+
+
+def test_vector_head_evidence_is_persisted_as_exact_dense_vectors() -> None:
+    """Prediction evidence must retain head names, not split them into scalars."""
+
+    outputs = {
+        name: torch.full((2, width), float(index + 1), dtype=torch.float32)
+        for index, (name, width) in enumerate(_EXTRA_VECTOR_HEADS.items())
+    }
+    chunks: dict[str, list[np.ndarray]] = {}
+    _append_extra_vector_head_evidence(chunks, outputs)
+    combined = _concatenate_evidence_chunks(chunks, expected_rows=2)
+
+    assert set(combined) == set(_EXTRA_VECTOR_HEADS)
+    for name, width in _EXTRA_VECTOR_HEADS.items():
+        assert combined[name].shape == (2, width)
+    assert not any(name.rsplit("_", 1)[0] in _EXTRA_VECTOR_HEADS for name in combined)
 
 
 def test_entry_q_is_the_only_decision_surface_and_ties_fail_closed() -> None:
