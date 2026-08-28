@@ -132,6 +132,20 @@ pre-declared, bounded **learning-validation** run to establish specialist-gate
 behaviour; it is not a candidate or edge/backtest run and remains behind the
 same one-second 220 W, 70 C and 12 GiB automatic guard.
 
+**Latest learning-validation attempt, 2026-08-28:** the pre-declared 60-TRAIN
+step / 60-VAL-step probe completed its full preflight, all optimizer steps and
+all validation under the guard (68 C / 217.73 W / 8,769 MiB). It did not publish
+a bundle because the final strict reload rejected a one-ULP change in
+`input_norm_signal_center`. The cause was precisely bounded: weight EMA was
+averaging every floating-point state-dict entry, including immutable
+input-normalization buffers. This was a post-export contract failure, not a
+data/feature/target/MTF fault, OOM, guard stop or host/WSL crash; its guard
+exited normally after the trainer reported the failure. The repair makes EMA
+average named parameters only and copies every buffer exactly. A CPU regression
+test now performs 60 EMA updates, exports, strictly reloads a new model and
+requires the complete input-normalization state. No rerun is allowed until that
+test, the focused trainer tests and the same hash-bound CPU preflight all pass.
+
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
 yet.

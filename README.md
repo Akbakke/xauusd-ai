@@ -117,7 +117,8 @@ but the system is not empirically finished:
   specialist gates never top-rank after four optimizer steps; that is an
   insufficient-learning-evidence finding, not a dummy-field finding. Any next
   CUDA work is a bounded learning-validation probe only after CPU artifact
-  preflight, behind the same 220 W / 70 C / 12 GiB guard;
+  preflight, including the exact EMA-export/reload normalization regression
+  proof, behind the same 220 W / 70 C / 12 GiB guard;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

@@ -36,6 +36,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
     _build_unit_test_entry_v10_ctx_hybrid_transformer,
 )
+from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as model_module
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MAX_PATH_BARS,
@@ -170,6 +171,34 @@ def _make_inputs(batch_size: int = 2) -> tuple:
 def _forward(model: EntryV10CtxHybridTransformer, batch_size: int = 2) -> dict:
     seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size)
     return model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+
+
+def test_weight_ema_preserves_immutable_input_normalization_on_export() -> None:
+    """The EMA export must round-trip the exact immutable normalizer buffers.
+
+    A floating-point buffer cannot be treated as a learned parameter: even an
+    EMA of the same value can round by one ULP.  This reproduces the complete
+    train-export-load boundary without CUDA or a parquet build.
+    """
+
+    model = _make_model()
+    model.require_input_normalization_state()
+    ema = trainer._WeightEma(model, 0.5)
+    parameter_name, parameter = next(iter(model.named_parameters()))
+    initial_parameter = parameter.detach().clone()
+    with torch.no_grad():
+        parameter.add_(1.0)
+    for _ in range(60):
+        ema.update(model)
+
+    exported_state = ema.state_dict_clone()
+    # EMA is still active for a real learned parameter.
+    assert not torch.equal(exported_state[parameter_name], initial_parameter)
+    assert not torch.equal(exported_state[parameter_name], parameter.detach().cpu())
+
+    restored = _make_model()
+    restored.load_state_dict(exported_state, strict=True)
+    restored.require_input_normalization_state()
 
 
 def _make_exit_episode_inputs(

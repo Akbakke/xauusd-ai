@@ -118,7 +118,8 @@ Read `GX1_RULES.md` first. It is binding.
   contract, but remains BLOCK because three specialist gates never top-rank
   after four optimizer steps. This is a bounded-learning-evidence blocker, not
   a dummy-field or data-rebuild finding. Do not start a candidate or a broad
-  CUDA retry: first run CPU artifact/schema preflight, then only a predeclared
+  CUDA retry: first run CPU artifact/schema preflight, including the exact
+  EMA-export/reload normalization regression proof, then only a predeclared
   guarded learning-validation probe. It proves no edge. Resolve exact logs and
   the next decision from the handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;

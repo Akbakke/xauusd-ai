@@ -4288,11 +4288,13 @@ class _WeightEma:
     """Exponential moving average of the model weights (V30 package 5).
 
     ``shadow <- decay*shadow + (1 - decay)*current`` after every optimizer
-    step, over the model's complete ``state_dict`` (floating tensors are
-    averaged; integer/bool buffers are carried by exact copy because an average
-    of a counter is not a counter).  The raw weights keep training untouched;
-    only VALIDATION and checkpoint selection read the averaged weights, through
-    ``evaluating``.
+    step, over model *parameters* only.  Every buffer is carried by exact copy,
+    including floating-point buffers: buffers encode architecture, positional
+    state, and immutable input-normalization metadata rather than learned model
+    weights.  Averaging an unchanged float buffer can still introduce a rounding
+    delta, which would silently corrupt a byte-exact metadata contract.  The raw
+    weights keep training untouched; only VALIDATION and checkpoint selection
+    read the averaged weights, through ``evaluating``.
 
     This object is constructed ONLY when the recipe decay is > 0.0.  At the 0.0
     OFF sentinel no instance exists, nothing is allocated and no state_dict is
@@ -4312,6 +4314,11 @@ class _WeightEma:
             name: tensor.detach().clone()
             for name, tensor in model.state_dict().items()
         }
+        self._parameter_names = frozenset(
+            name for name, _tensor in model.named_parameters()
+        )
+        if not self._parameter_names <= set(self._shadow):
+            raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_PARAMETER_KEYS_INVALID]")
         self._steps = 0
 
     @property
@@ -4325,7 +4332,7 @@ class _WeightEma:
             raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_STATE_KEYS_CHANGED]")
         for name, tensor in current.items():
             shadow = self._shadow[name]
-            if tensor.is_floating_point():
+            if name in self._parameter_names:
                 shadow.mul_(self.decay).add_(
                     tensor.detach(), alpha=1.0 - self.decay
                 )
