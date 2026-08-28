@@ -17,22 +17,37 @@ and no win-rate proof**.
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
 
-**Current V46 status, reconciled 2026-08-27:** `V46_20260825T170935Z` is the
+**Current V46 status, reconciled 2026-08-28:** `V46_20260825T170935Z` is the
 current hash-bound research dataset in `PROJECT_STATE_xau_direction_launch.json`.
 It has PASS evidence for all eight feature families, source-backed sequences,
 TRAIN-only normalization and the repaired M5-decision-to-M1-fill causality
 audit. Its adoption review is deliberately BLOCKED by fitted-Q production
 economics. That blocks production-net edge claims and every paper/demo/live
-route, but does **not** block the separate gross-research smoke, candidate and
-historical OOS/backtest path supported by the fitted-Q research contract.
+route. A gross-research candidate/OOS path exists in source, but is not yet
+available in practice: it still requires a successful canonical smoke bundle,
+a fresh candidate and an untouched TEST replay.
 
 **Current execution status, 2026-08-28:** canonical V46 smoke preflight passed
-all TRAIN/VAL, eight-family and five-timeframe checks, then its first batch
-reached 24,277 MiB VRAM. The 12 GiB guard stopped it safely before any optimizer
-step or bundle. Commit `4754853a` repairs that exact allocation mismatch by
-using the existing eight-row streamed Exit-episode path for canonical CUDA.
-The next action is a fresh source-bound smoke only; no TEST bytes, demo account,
-paper route or live route is in scope.
+all TRAIN/VAL, eight-family and five-timeframe checks. The old batch-64 attempt
+reached 24,277 MiB VRAM; commit `4754853a` repaired that allocation mismatch by
+using the existing eight-row streamed Exit-episode path for canonical CUDA. A
+fresh batch-32 recipe (`…canonical_cuda_smoke32_20260828T070400Z`, source
+`c82ca0dc`) then repeated the complete preflight and reached the first forward
+with only 8,873 MiB VRAM at 65 C. The native guard stopped it at 250.48 W
+against the strict 250 W actual-draw boundary, before an optimizer step or a
+bundle. This is a safe stop, not an OOM or a PC/WSL crash. The new
+hash-bound trade-path reporter is ready for a later full candidate TEST replay,
+but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists yet.
+
+**Active CUDA safety truth:** `scripts/gx1_capped_run.sh` and
+`scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
+native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
+driver limit, and poll once per second. Canonical CUDA stops above 70 C core,
+250 W actual draw or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
+as unobserved rather than fabricated. The legacy host-bridge design is retired
+as a canonical prerequisite. Later historical paragraphs that require a
+physical 250 W driver setting or bridge-provided VRAM temperature do not
+describe the active guard.
 
 **Historical V42 status, verified 2026-08-25:** the explicit
 `current_audited_dataset_evidence` binding in
