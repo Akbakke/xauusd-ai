@@ -968,16 +968,16 @@ if ENTRY_CKPT_MONITOR != "entry_policy_pnl":
 # (dropout RNG ordering aside), with the attention peak bounded by the chunk size
 # independent of batch. 8 rows keeps the 480-bar attention transient near 1.2 GB.
 UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8
-# CUDA measurement 2026-08-08 verified VRAM headroom (0.06-0.17 GB) only up to
-# 128 rows and was then extrapolated to "unbounded" (chunk_rows=valid_rows) on
-# the assumption that cost is linear in rows past that point. A real batch=640
-# run on 2026-08-09 disproved the extrapolation: the same 8,000-row subsample
-# took ~9.5x longer wall-clock at batch=640 (up to 2,560 valid rows in one
-# unchunked call) than at batch=64 (up to 256 rows), and validation's first
-# large unchunked call crashed with a CUDA "illegal memory access" after 13
-# training steps had already pressured the allocator. The cost past 128 rows is
-# not proven linear, so CUDA is bounded at the one size actually measured safe.
-UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 128
+# Canonical CUDA used to pass ``None`` here, which materialised every selected
+# Exit episode from a 64-row Entry batch in one graph.  The V46 canonical smoke
+# on 2026-08-28 reached 24,277 MiB on the RTX 3090 on its *first* forward pass;
+# that contradicted the 12 GiB WSL residency guard and was stopped before any
+# optimizer step.  The existing streamed implementation is the bounded owner:
+# it backpropagates the sum-normalised contribution for one complete group at a
+# time.  Eight rows is the only documented safe 480-bar attention geometry, so
+# canonical CUDA uses that same fixed source-owned bound rather than relying on
+# an invalid linear-VRAM extrapolation.
+UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA = 8
 
 # The attended route is a bounded trainability diagnostic, never a candidate
 # producer.  Its Exit branch is intentionally narrower than the canonical
@@ -5189,9 +5189,9 @@ def _episode_native_exit_train(
     if exit_action_forward_chunk_rows is not None:
         if int(exit_action_forward_chunk_rows) < 1:
             raise RuntimeError("[UNIFIED_EXIT_ACTION_CHUNK_ROWS_INVALID]")
-        # This attended-only path streams one contiguous group of complete
-        # episodes at a time.  The canonical route retains the established
-        # unchunked implementation below exactly.
+        # Stream one contiguous group of complete episodes at a time.  CUDA
+        # callers use this source-owned path to release each attention graph
+        # before the next group; CPU retains the established monolithic path.
         return _episode_native_exit_train_chunked(
             model=model,
             target_model=target_model,
@@ -6427,7 +6427,11 @@ def train_epoch(
                 exit_action_forward_chunk_rows=(
                     attended_exit_action_forward_chunk_rows
                     if attended_max_optimizer_steps is not None
-                    else None
+                    else (
+                        UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                        if device.type == "cuda"
+                        else None
+                    )
                 ),
             )
         )
