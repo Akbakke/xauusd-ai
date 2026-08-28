@@ -136,7 +136,7 @@ three different `contract_sha256`, and the V31 chains bound
 `..._GEN1f9424_20260818T160532Z`, not the `..._20260818` set the documents named
 until 2026-08-19. Resolve the binding from the consuming run's own V4 cache
 manifest key `volatility_squeeze_artifact_set`. No downstream rebuild is
-admitted. V40 completed TRAIN/VAL/sealed TEST, compact Exit lifecycle,
+ admitted. V46 completed TRAIN/VAL/sealed TEST, compact Exit lifecycle,
 full-input liveness, pretrain v6 and the report-only post-rebuild gate. Target
 audit v4 validates the manifest's non-authoritative diagnostic projection
 instead of requiring the retired full direction-policy payload. It keeps the
@@ -144,7 +144,9 @@ structurally-zero selected-side `y_bad_path` finite/exact-copy checked and
 requires both side sources live. The operative fitted-Q/sizing/risk/event heads
 are exact across target, specialist, trainer and readiness contracts; retired
 direction/tradable/path/bad-path/MTF heads cannot be reactivated by diagnostic
-liveness. V40 is not admitted until the remaining gates pass.
+ liveness. V46 is not admitted until the remaining gates pass. Local CUDA
+ smoke is thermally held after two safe 71 C stops; that runtime fact changes
+ no source, feature, target or data-contract byte.
 
 The M5 Entry surface must additionally match the exact full M5 source timeline,
 dataset run ID and pair generation. Dataset construction loads it once through

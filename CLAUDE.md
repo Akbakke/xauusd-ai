@@ -371,3 +371,10 @@ numerical-library thread. Any request above those limits, missing host state,
 lock contention or a missing cgroup is a hard failure. Never bypass, weaken,
 background or duplicate a heavy job. Partial output after a cap kill, crash or
 reboot is invalid until its immutable completion manifest and hashes pass.
+
+Current hardware boundary, 2026-08-28: canonical batch-32 CUDA reaches about
+8.95 GiB VRAM but two V46 smokes stopped safely at 71 C before a bundle. The
+70 C/300 W/12 GiB native guard remains unchanged and no new local CUDA attempt
+is authorized. A remote machine, if explicitly cost-approved, is still an
+offline bounded job with frozen source/artifacts and an automatic stop; it is
+not a permission to alter scope or use broker credentials.

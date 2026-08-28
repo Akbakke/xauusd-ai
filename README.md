@@ -107,6 +107,10 @@ but the system is not empirically finished:
   `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q production-economics
   gate is blocked, so this is neither a trained/admitted candidate nor an
   authorization for an edge or trading claim;
+- the current local CUDA route is thermally held: two hash-bound V46 batch-32
+  smokes stopped safely at 71 C before an optimizer step or bundle, while VRAM
+  stayed at 8.95 GiB. Do not retry local CUDA; an explicitly approved remote
+  offline smoke on a frozen commit and V46 artifacts is the next hardware path;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;
@@ -140,8 +144,8 @@ forward-filter decoder, the fit method identity is bumped so the old artifacts
 fail closed at load, and the admission gate proves low-state reachability. The
 refit is admissible on real TRAIN bytes, but several non-retired six-clock
 sets exist with different `contract_sha256`. Read the binding from a run's own
-V4 cache manifest, never from a document. V40 passed its data-level gates on
-its own binding; that still establishes no model or edge claim.
+V4 cache manifest, never from a document. V46 is the current data-level
+artifact; that still establishes no model or edge claim.
 Exit remains native closed M1. No tick-level dataset, evaluation, OOS or
 trading claim exists.
 

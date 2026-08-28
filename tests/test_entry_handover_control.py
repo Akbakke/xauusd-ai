@@ -173,7 +173,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     # next added test (rule 13/25).
     assert (
         "source_regression: "
-        "FULL_CAPPED_SUITE_MUST_PASS_ZERO_FAILED_ZERO_SKIPPED_ZERO_WARNINGS"
+        "RELEVANT_CONTRACT_TESTS_MUST_PASS_BEFORE_EACH_SOURCE_CHANGE"
         in result.stdout
     )
     assert "source_regression_last_verified: " in result.stdout
@@ -208,7 +208,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "OFFLINE_V46_RESEARCH_SMOKE_THEN_CANDIDATE_THEN_HISTORICAL_OOS"
+        "LOCAL_CUDA_THERMAL_HOLD_THEN_APPROVED_REMOTE_SMOKE_THEN_CANDIDATE_THEN_HISTORICAL_OOS"
         in result.stdout
     )
     assert (
@@ -223,7 +223,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "bounded V46 offline research smoke" in result.stdout
+    assert "do not retry local CUDA" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
@@ -319,7 +319,7 @@ def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> N
     assert "## Current feature architecture" in rendered_handover
     assert "## What is implemented" in rendered_handover
     assert "## What remains empirically unproven or unadmitted" in rendered_handover
-    assert "## Next implementation sequence" in rendered_handover
+    assert "## Current shared plan — no feature expansion" in rendered_handover
     assert "## Takeover" in rendered_handover
     assert rendered_handover.splitlines()[-1] == authoritative_handover.splitlines()[-1]
 

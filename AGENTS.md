@@ -96,6 +96,13 @@ Read `GX1_RULES.md` first. It is binding.
   live side sources; adversarial tests and a diagnostic V39 replay pass.
   V35/V36/V37/V38/V39 products remain invalid resume/consumer input (rule 7).
   No admitted dataset exists.
+- The current V46 feature/data/sequence evidence is therefore good enough to
+  prepare a smoke, but not to claim training worked. On 2026-08-28 two
+  canonical batch-32 CUDA smokes reached the repaired 8.95 GiB residency and
+  then stopped safely at 71 C (263.77 W for 10,000 TRAIN rows; 261.33 W for
+  1,000 rows). Neither wrote an optimizer step or bundle. Local canonical CUDA
+  is thermally held; do not retry it. Resolve exact guard logs and the next
+  remote/offline decision from the handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -176,6 +183,11 @@ batch=640 RSS measurement, see CLAUDE.md), 512 MiB swap, CPU 0-1, one job at a
 time. Communicate before any run lasting more than a minute. Never launch live,
 paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
 pre-existing processes unless the user explicitly authorizes that action.
+Canonical CUDA additionally stops above 70 C core, 300 W actual draw or 12 GiB
+resident VRAM from pinned native WSL telemetry. Those are stops, not a power
+throttle. A remote GPU may be prepared only as offline research from the frozen
+commit and V46 hashes, and only after explicit cost approval; it receives no
+broker credential or live route.
 
 The verified takeover environment is CPython 3.10.12 with the direct packages
 in `requirements.txt`. Do not reproduce the workstation by freezing unrelated
@@ -197,8 +209,9 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST and run the bounded offline research smoke, then
-   a full research candidate only if the smoke proves safe and valid.
+2. Preserve V46's sealed TEST. Do not retry local CUDA: prepare an explicitly
+   approved remote canonical smoke, then a full research candidate only if its
+   bundle audit proves safe and valid.
 3. Evaluate the candidate on the historical research path (VAL and then the
    untouched TEST only where its seal permits it); report that result as
    research-only, never as a production edge claim.

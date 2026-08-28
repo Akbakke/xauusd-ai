@@ -16,3 +16,9 @@ dirty source is a clean committed artifact.
 Do not use `git reset --hard`, destructive checkout, force-push or automated
 cleanup of unknown files. Repository cleanup requires reachability checks.
 Cleanup under `/home/andre2/GX1_DATA` is a separate explicitly authorized act.
+
+The authoritative status files (`PROJECT_STATE_xau_direction_launch.json`, the
+handover and every Markdown file fingerprinted by `scripts/gx1_handover.sh`)
+must be updated together in one reviewed commit. They describe the 2026-08-28
+local CUDA thermal hold; do not leave a stale run recipe or old execution plan
+in one document while changing another.

@@ -167,6 +167,16 @@ Complexity must live in the existing owners; unnecessary code is deleted.
 - A cap kill, partial directory or interrupted event is failed evidence.
 - Delete generated runs only through the retention owner after reachability and
   active-process checks. Never delete unknown worktrees or user changes.
+- Canonical CUDA's native guard stops above 70 C core, 300 W actual draw or
+  12 GiB residency. The two 2026-08-28 batch-32 V46 attempts both reached 71 C
+  before a bundle; no further local CUDA retry is allowed without a materially
+  different measured thermal plan. The terminal guard log, not a partial output
+  directory, owns that result.
+- An ephemeral remote GPU is permitted only for the same offline research
+  scope, exact frozen commit and hash-bound V46 artifacts, after explicit
+  operator cost approval. It must have automatic time/cost termination and no
+  broker credential, demo, paper or live endpoint. Remote capacity does not
+  waive smoke, bundle, VAL, TEST, economics or risk gates.
 
 ## Takeover
 

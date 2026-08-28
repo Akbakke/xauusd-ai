@@ -27,28 +27,46 @@ route. A gross-research candidate/OOS path exists in source, but is not yet
 available in practice: it still requires a successful canonical smoke bundle,
 a fresh candidate and an untouched TEST replay.
 
-**Current execution status, 2026-08-28:** canonical V46 smoke preflight passed
-all TRAIN/VAL, eight-family and five-timeframe checks. The old batch-64 attempt
-reached 24,277 MiB VRAM; commit `4754853a` repaired that allocation mismatch by
-using the existing eight-row streamed Exit-episode path for canonical CUDA. A
-fresh batch-32 recipe (`…canonical_cuda_smoke32_20260828T070400Z`, source
-`c82ca0dc`) then repeated the complete preflight and reached the first forward
-with only 8,873 MiB VRAM at 65 C. The former native guard stopped it at 250.48 W
-against its then-strict 250 W actual-draw boundary, before an optimizer step or a
-bundle. This is a safe stop, not an OOM or a PC/WSL crash. The new
-hash-bound trade-path reporter is ready for a later full candidate TEST replay,
-but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists yet.
+**Current execution status, reconciled 2026-08-28:** canonical V46 smoke
+preflight passed all TRAIN/VAL, eight-family and five-timeframe checks. The old
+batch-64 attempt reached 24,277 MiB VRAM; commit `4754853a` repaired that
+allocation mismatch by using the existing eight-row streamed Exit-episode path
+for canonical CUDA. Batch 32 then held 8,949–8,951 MiB resident: VRAM is no
+longer the immediate local blocker.
+
+Two later, hash-bound canonical CUDA attempts terminated **safely** at the
+core-temperature boundary, after the operator-approved actual-draw ceiling had
+been raised to 300 W:
+
+| Recipe | Result | Peak core / draw / VRAM | Bundle |
+| --- | --- | --- | --- |
+| `canonical_cuda_smoke32_300w_20260828T080337Z` (10,000 TRAIN rows) | guard stop | 71 C / 263.77 W / 8,951 MiB | none |
+| `canonical_cuda_smoke32_1k_300w_20260828T081900Z` (1,000 TRAIN rows) | guard stop | 71 C / 261.33 W / 8,951 MiB | none |
+
+The terminal authority is each adjacent `.guard.*.log`, not a directory name.
+Both runs were stopped by the guard; neither is an OOM, a PC/WSL crash, an
+optimizer-step proof, a model bundle, a validation result or an edge result.
+The 1,000-row recipe itself passed its complete hash/lineage dry-run before
+execution. Therefore the present local CUDA blocker is **thermal duration at
+about 260 W**, not missing feature data, unmeasured fields, a VRAM allocation
+mismatch or an unvalidated command. Do not start another local canonical CUDA
+training attempt until a materially different cooling/power-control plan has
+been measured, or an explicitly approved remote GPU run is prepared.
+
+The hash-bound trade-path reporter is ready for a later full candidate TEST
+replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
+yet.
 
 **Active CUDA safety truth:** `scripts/gx1_capped_run.sh` and
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
 native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
 driver limit, and poll once per second. Canonical CUDA stops above 70 C core,
-300 W actual draw (explicitly operator-approved after a 254.93 W safe
-first-forward observation) or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
-as unobserved rather than fabricated. The legacy host-bridge design is retired
-as a canonical prerequisite. Later historical paragraphs that require a
-physical 250 W driver setting or bridge-provided VRAM temperature do not
-describe the active guard.
+300 W actual draw or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
+as unobserved rather than fabricated. The two post-300-W attempts above prove
+that 300 W is a **stop ceiling**, not a thermal solution. The legacy host-bridge
+design is retired as a canonical prerequisite. Later historical paragraphs that
+require a physical 250 W driver setting or bridge-provided VRAM temperature do
+not describe the active guard.
 
 **Active V46 all-field operativity proof, 2026-08-28:**
 `audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260828T075506Z.json` is a new,
@@ -65,6 +83,13 @@ cache contains 176 measured, non-constant fields on each of M5/M15/H1/H4/D1
 suite proves all eight family branches and all five MTF lanes reach the model;
 no CUDA training may cite an older 419-field/304-"unmeasured" diagnostic as
 the active V46 contract.
+
+**How to read the retained history below:** paragraphs explicitly marked
+historical, attended, V40–V45, or dated before the V46 status above are
+reproducibility records only. They do not supply a runnable command, an active
+thermal threshold, a dataset choice or an execution authorization. Resolve any
+apparent disagreement in favor of the Current verdict, Active CUDA safety truth
+and `scripts/gx1_handover.sh`.
 
 **Historical V42 status, verified 2026-08-25:** the explicit
 `current_audited_dataset_evidence` binding in
@@ -605,7 +630,7 @@ weaken the sequence hash or extend the 300-second guard implicitly: a later
 staged preflight must retain the exact source identity before a distinct GPU
 phase may consume it.
 
-**Observed staged attended data/model smoke, 2026-08-24:** source commits
+**Historical observed attended data/model smoke, 2026-08-24:** source commits
 `11c6e63e` (verified V4 cache memory mapping/reuse) and `e8d26eaa` (pre-model
 RSS telemetry) passed their hooks and the fresh immutable recipe audit
 `train_recipe_attended_cache_rss_20260824T065600Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260824T045627627308Z.json`
@@ -626,7 +651,7 @@ The token-bound private FIFO then moved the same cgroup into the separate
 complete Exit/Entry forward-backward-optimizer steps finished; RSS was 3.55 GiB
 after the first full loss, 3.58 GiB during steps two/three and 3.63 GiB when
 batch five began. Observed guard heartbeats were 54–62 C and 105–192 W, below
-the fixed 75 C and 250 W actual-draw stops. The guard ended the live process
+the then-fixed historical 75 C and 250 W actual-draw stops. The guard ended the live process
 group only at `stage_model_smoke_wall_clock_limit_300s` (exit 75); there was no
 cgroup OOM, temperature or power stop, no output bundle, no active trainer,
 no attended FIFO/scratch directory and no V40 data write. This is a successful
@@ -637,9 +662,9 @@ One WSL kernel line, `dxgkio_make_resident: Ioctl failed: -12`, was logged
 during the scope. It did not produce a trainer exception or override the
 guard's time-limit termination, but it means GPU/WSL residency capacity remains
 an observed platform risk. Do not enlarge batch size, duration, cgroup limits
-or power limits on the basis of this smoke. The next work is to make the
-bounded run resumable/observable and then assess a separately audited training
-budget; it is not permission for full/candidate training.
+or power limits on the basis of this smoke. It is not permission for
+full/candidate training and is operationally superseded by the V46 thermal hold
+at the top of this handover.
 
 **Implemented attended-session continuation, first bounded session observed:** the
 trainer now keeps deterministic FP32 and the same V40 model/data/objective, but
@@ -830,52 +855,39 @@ at a cache whose manifest carries frozen v29 registry constants — it has no
 default by design; the env propagates because `gx1_capped_run.sh` uses
 `systemd-run --scope`.
 
-## Next implementation sequence
+## Current shared plan — no feature expansion
 
-1. ~~Land the repair wave as one surface generation.~~ Done 2026-08-20,
-   `b11ec2b2` (v34 surface: fidelity repairs, three chain blockers, doc truth
-   pass) and `e69ab0fb` (sealed-JSON bound derived from the tape).
-2. ~~Rebuild the canonical pair on the v34 owners.~~ Done, `53cba459…`.
-3. ~~Run the fresh audit-v6 successor chain; never resume V34–V39.~~ V40 is
-   terminal GREEN. Its foundation audits and current-source report-only smoke
-   chain now pass. The one explicitly bounded attended smoke completed its
-   data preflight and four optimizer steps within every cgroup, temperature and
-   actual-power stop; a later session observed near-capacity VRAM/DXG residency
-   risk and tightened its future bounded configuration. It is still
-   research-only and does not authorize
-   candidate or full training. Do not rebuild V40 merely to change a
-   report-only consumer.
-4. **Split, and why it is what it is.** TRAIN `2021-06-01 → 2025-05-31` (4y),
-   VAL `2025-06-01 → 2026-06-30` (13 months), TEST `2026-07-01 → 2026-08-04T07:50`.
-   Four years is a floor, not a preference: below two years the normalization fit
-   raises `[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]` on seven constant D1 fields
-   and the trainer cannot start. 2020 is excluded — spread p90 12.46 bps against
-   1.78–2.82 everywhere else. **VAL is 13 months because 1 month could not answer
-   the question**: 30 days is ~480 independent label windows, 1σ ≈ 2.3pp, against
-   an effect size of ~1.6pp. Thirteen months gives ~6,200 windows, 1σ ≈ 0.64pp.
-   VAL also spans the 2025–2026 volatility expansion (median M5 bar range ~2.5 →
-   ~5.1 USD) by design, so it tests regime transfer, not just fit.
-   Derivations: `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
-5. ~~Re-measure every field and target against real TRAIN/VAL bytes.~~ Feature,
-   target-v4 and specialist audits pass. The report-only smoke gates, wrapper
-   dry-run and the bounded attended data/model smoke have passed their
-   safety/data phases. Historical CUDA `--research-smoke` is suspended after
-   a WSL/GPU reset: it held nearly all VRAM resident under a 24-hour watchdog.
-   The long-running historical route remains disabled. The first low-VRAM
-   attended data measurement safely stopped at the 180 W actual-draw guard
-   before an optimizer step. Do not retry it or raise its draw threshold until
-   an independently measurable host-side power plan exists. Do not reuse either
-   attended private checkpoint session as a bundle output.
-6. **Run the pre-registered test in
-   `docs/PREREGISTERED_DIRECTION_TEST_20260820.md`.** It was
-   written before the dataset existed and must not be edited after seeing a
-   number. Its central correction: all four previous refutations measured
-   *average accuracy over all bars*, which is nearly guaranteed to answer "no"
-   whether or not an edge exists — a model that abstains on 92% of bars and has
-   real edge on the remaining 8% is invisible in that average. The test asks for
-   a selective-edge curve against a re-derived coin-flip null and an
-   autocorrelation-preserving (circular-shift) floor, with the decision rule
-   fixed in advance.
+1. **Freeze the V46 input surface.** The eight families, 310 local fields,
+   five-clock MTF cache, sequence reconstruction and M1-fill causality have
+   already passed the exact current audits. Do not add/remove features, alter
+   targets, rebuild the dataset or re-open TEST to chase a hardware issue.
+   Repair only a demonstrated defect.
+2. **Treat local canonical CUDA as thermally held.** The two 71 C guard stops
+   are terminal failed evidence, not a reason to raise the temperature limit or
+   keep retrying. The PC is idle after each stop; no background trainer,
+   dataset build, broker process or live process is permitted.
+3. **Prepare, but do not rent or launch, remote capacity without an explicit
+   spend approval.** The required shape is one ephemeral dedicated GPU with at
+   least 48 GiB VRAM, at least 16 vCPUs, 64 GiB host RAM and fast local NVMe.
+   It receives only the frozen Git commit, V46 hashes and offline artifacts;
+   no OANDA credential, demo route or live endpoint is copied there. It needs a
+   cost/time auto-stop and returns only bundle/audit artifacts.
+4. **First remote execution is still a canonical smoke, not full training.**
+   From the clean committed workspace, materialize a fresh immutable V46 smoke
+   recipe; do not reuse either terminal local thermal-run recipe as execution
+   authority. The remote smoke must create an atomic bundle and pass
+   smoke-bundle audit. A remote GPU does not waive any data, lineage, validation
+   or TEST gate.
+5. **Only after a passing smoke-bundle audit, choose and cost a full candidate
+   recipe.** Candidate training uses all TRAIN rows; it is research-only and
+   cannot touch TEST until the frozen protocol permits it.
+6. **Only after candidate, VAL qualification and untouched TEST/replay do we
+   report research metrics.** Required outputs include realised research PnL,
+   costs where evidence allows, win rate, drawdown, MAE/MFE, holding time,
+   turnover and regime splits. None exists today.
+7. **Demo is later and separately gated.** It requires the prior research
+   evidence plus immutable executable economics, risk controls, serve parity
+   and a new explicit operator decision. Live trading remains outside scope.
 
 ## Takeover
 

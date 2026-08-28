@@ -6,6 +6,13 @@ standing safety constraint: no expanded model run may bypass these fixed
 limits, active telemetry or the full data preflight. This changes neither the
 dataset nor any execution authority.
 
+> Current-status note, 2026-08-28: this document describes the historical
+> attended-only exception. The active V46 canonical route is separate and is
+> now thermally held after two native-guard 71 C stops without a bundle. Do not
+> use attended results, a 390 W configured driver limit or this document to
+> bypass the canonical smoke/bundle gate. The authoritative current plan is
+> `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`.
+
 ### 2026-08-26 operator-present 390 W amendment
 
 The operator explicitly approved the attended-only actual-draw ceiling at

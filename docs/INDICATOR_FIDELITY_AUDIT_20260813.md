@@ -1,12 +1,13 @@
 # Indicator fidelity audit — 2026-08-13
 
-> Historical-scope notice, 2026-08-14: this document records the 608/158/189
+> Historical-scope notice, updated 2026-08-28: this document records the 608/158/189
 > audit substrate and must not be read as the active contract. Current schema,
 > dimensions, retirements and empirical status are owned by `AGENTS.md`,
 > `SYSTEM_MAP.md` and `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`; do not infer
 > them from any count or proposed surface below. No current-contract dataset,
 > model, OOS/edge result or tick-resolution claim is established by this
-> historical audit.
+> historical audit. V46's all-field liveness PASS and local CUDA thermal hold
+> are recorded only in the current handover, not inferred from this audit.
 
 Five parallel read-only audits over EVERY emitted field in the surface
 (608 signal / 158 ctx_cont / 5 ctx_cat / 189×5 per-TF), one question per

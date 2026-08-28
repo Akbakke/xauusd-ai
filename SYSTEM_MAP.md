@@ -219,7 +219,7 @@ gone is **not examined**.
 The TRAIN-fit squeeze owner is implemented and six per-clock artifacts have
 been fitted and admitted; several such sets now exist on disk with different
 `contract_sha256`, so the current binding is read from a run's V4 cache
-manifest and is not named here. The current V40 data chain completed its
+manifest and is not named here. The current V46 data chain completed its
 feature/cache/lifecycle/liveness gates on its own bound artifacts. Fit and
 serve share one causal forward-filter decoder; a second decoder is what made
 the 2026-08-15 artifacts absorbing. This is data-level evidence only: Exit
@@ -241,12 +241,13 @@ source pair
 
 Failure at any arrow stops the chain. Fresh native and canonical source
 exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. V39 remains
-invalid. V40 is the current GREEN data artifact: TRAIN/VAL/sealed TEST,
-compact lifecycle and full-input liveness passed under the repaired
-selected-side diagnostic policy. It has not admitted a candidate, calibration,
-TEST evaluation or trading claim. The first train==serve parity event is also
-still missing.
+feature contracts and have no training or comparison authority. V39/V40 are
+historical. V46 is the current audited research artifact: TRAIN/VAL/sealed
+TEST, compact lifecycle, all-field liveness and M1-fill causality pass, but no
+bundle, candidate, calibration, TEST evaluation or trading claim exists. The
+first train==serve parity event is also still missing. Local CUDA is thermally
+held after two guarded 71 C stops; the next execution path is an explicitly
+approved remote offline smoke, never a live route.
 
 ## Scope boundary
 

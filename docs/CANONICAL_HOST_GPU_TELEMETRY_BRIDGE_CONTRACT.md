@@ -24,10 +24,13 @@ authorization. WSL currently reports
 it does not invent a junction temperature and retains the other three hard
 limits.
 
-The 2026-08-28 batch-32 canonical V46 attempt demonstrates the intended
-behavior: its full data preflight completed, the first CUDA forward peaked at
-65 C and 8,873 MiB, then the former 250 W guard stopped it at 250.48 W. No optimizer step,
-bundle, validation, TEST access, edge claim, demo or live action resulted.
+The 2026-08-28 batch-32 canonical V46 attempts demonstrate the intended
+behavior. After the 250/251 W draw stops, the operator-approved 300 W guard
+allowed a 10,000-row recipe to reach 71 C / 263.77 W / 8,951 MiB and a
+1,000-row recipe to reach 71 C / 261.33 W / 8,951 MiB. Both process groups
+were stopped safely for core temperature; no optimizer step, bundle,
+validation, TEST access, edge claim, demo or live action resulted. The local
+CUDA route is held rather than repeatedly retried.
 
 ## Historical bridge material
 

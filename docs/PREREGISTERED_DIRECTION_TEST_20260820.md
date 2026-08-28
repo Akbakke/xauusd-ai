@@ -7,6 +7,11 @@ bytes and may not inherit partial V34 output. Nothing below may be revised after
 seeing a number; a revision is a new pre-registration with its own date, and both
 stay on the record.
 
+> Current-status note, 2026-08-28: the protocol remains frozen and has not
+> been run on V46. V46 has no trained bundle because the local canonical CUDA
+> smoke is thermally held. Do not revise this protocol or treat the hold as a
+> direction result; see the handover for the remote-smoke-first sequence.
+
 ## Why this document exists
 
 Direction has been refuted four times: the June information-ceiling work, the

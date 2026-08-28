@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-27T21:10:40Z",
+  "updated_utc": "2026-08-28T08:29:21Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -100,10 +100,10 @@
         "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
       },
-    "train_recipe": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_canonical_cuda_smoke_20260828T061800Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T061708865663Z.json",
-      "sha256": "b4a25c683356ee5c9d17c425171736a3ea28b48e3d67503087782f10792e277b",
-      "schema_version": "entry_model_native_seq513_train_recipe_audit_v9",
+      "train_recipe": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_canonical_cuda_smoke32_1k_300w_20260828T081900Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T081852947020Z.json",
+        "sha256": "2c82733a850e7daf909529e7255432f9b592ddc95b845d3a54743ef8c2a496c1",
+        "schema_version": "entry_model_native_seq513_train_recipe_audit_v9",
         "decision": "PASS"
       },
       "execution_causality": {
@@ -128,7 +128,7 @@
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
     "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
     "No admitted dataset, distinct candidate-training recipe or same-bundle Entry/Exit model exists under the current model-native contract.",
-    "The 2026-08-28 canonical V46 batch-32 smoke completed every immutable TRAIN/VAL preflight and reached the first CUDA forward at 8,873 MiB and 65 C, but the former native one-second guard stopped at 250.48 W against its then-fixed 250 W actual-draw boundary. A later bounded retry reached 8,949 MiB and 67 C, then correctly stopped at 254.93 W against its former 251 W boundary; neither wrote an optimizer step or bundle. The active canonical guard now has an operator-approved 300 W hard boundary. The required V46 all-field operativity audit passed at `audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260828T075506Z.json`: all 310 local fields are live on both M5 Entry and M1 Exit, and the separately bound 176-field five-timeframe cache has zero constants and duplicates. A fresh source-bound smoke recipe is still required. The separately attended 390 W diagnostic is non-promotable and cannot satisfy this missing canonical-smoke evidence.",
+    "The 2026-08-28 canonical V46 batch-32 smoke completed every immutable TRAIN/VAL preflight and held 8,949–8,951 MiB VRAM after the streamed Exit-episode repair. Two later canonical recipes under the operator-approved 300 W actual-draw guard terminated safely for core temperature, not power or VRAM: the 10,000-row recipe peaked at 71 C / 263.77 W / 8,951 MiB and the 1,000-row recipe peaked at 71 C / 261.33 W / 8,951 MiB. Neither wrote an optimizer step or bundle. Local canonical CUDA is therefore thermally held: do not retry until a materially different measured cooling/power-control plan exists, or a separately approved remote offline GPU smoke is prepared. The required V46 all-field operativity audit passed at `audit/ENTRY_FEATURE_SURFACE_LIVENESS_20260828T075506Z.json`: all 310 local fields are live on both M5 Entry and M1 Exit, and the separately bound 176-field five-timeframe cache has zero constants and duplicates. The current 1,000-row recipe is hash-bound and passes dry-run, but has no bundle authority. The separately attended 390 W diagnostic is non-promotable and cannot satisfy this missing canonical-smoke evidence.",
     "The fitted-Q decision objective is raw-bps masked MSE with learned task weights and unique action-Q argmax authority. Whether every remaining static trainer magnitude is data-derived has not been examined.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

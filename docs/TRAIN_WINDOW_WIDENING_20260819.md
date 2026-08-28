@@ -6,6 +6,11 @@ Date: 2026-08-19. Decision: widen the declared TRAIN window from
 (`2026-06-01 → 2026-06-30`) and TEST (`2026-07-01 → 2026-08-04T07:50`) are
 unchanged.
 
+> Current-status note, 2026-08-28: this is a historical derivation, not a
+> command to rebuild or change V46. Resolve the exact active split from V46's
+> hash-bound artifacts. The current blocker is a local CUDA thermal hold, not a
+> train-window decision.
+
 Every number below is a dated observation of a *tape*, which is why it may be
 written down at all (rule 13). Everything with a code owner is named, not
 restated. Evidence classes are marked throughout (rule 2d).

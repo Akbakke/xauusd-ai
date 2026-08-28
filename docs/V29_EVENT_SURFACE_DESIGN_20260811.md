@@ -12,6 +12,11 @@ decision for the normalized substrate (V8-smoke FLAT collapse on the repaired
 V27/V28 substrate is the active-track blocker); adopting this design changes
 nothing until the recipe owner adopts it and the evidence ladder runs.
 
+> Current-status note, 2026-08-28: V29 is retired historical design material.
+> The active V46 surface is frozen; do not revive this proposal to solve the
+> current local CUDA thermal hold. Current authority is the handover plus the
+> code-owned contracts.
+
 Shared finding of all eight reports, stated once: the current surface is a
 dense continuous conditioning system with almost no discrete events, no level
 identity, no touch/reaction memory, and no retest semantics. The operator's
