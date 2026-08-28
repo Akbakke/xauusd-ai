@@ -151,6 +151,9 @@ but the system is not empirically finished:
 - the current-source CUDA-intended smoke recipe and wrapper dry-run pass, but
   no CUDA export has been executed. Its guarded 32-row technical smoke remains
   separately authorised work, not candidate, backtest or edge evidence;
+- clean documentation-only descendants do not invalidate that recipe: runtime
+  still requires a committed ancestor, clean worktree and exact byte bindings
+  for every executed source file;
 - the first six-month chronological **technical integration** session ran on
   V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
   It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step

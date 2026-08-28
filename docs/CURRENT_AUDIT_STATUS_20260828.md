@@ -51,10 +51,15 @@ validated five-clock V4 cache, before compute sampling or optimization.
   fails before any large-input binding or recipe publication. This is a CPU
   efficiency and provenance control only; it produces neither a bundle nor
   authority to run CUDA.
-- From clean source commit `3ae102a9`, the fresh CUDA-intended smoke recipe
-  and its wrapper dry-run both pass. They bind the current V46 evidence and
-  the bounded canonical geometry (batch 8, deterministic 32-row smoke,
-  10 GiB host cap); the dry-run allocated no CUDA and produced no bundle.
+- From clean source commit `78b00d66`, the fresh CUDA-intended smoke recipe
+  passes at
+  `train_recipe_audit_current_export_cuda_smoke_20260828T195400Z/`
+  `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T195622479693Z.json`
+  (SHA-256 `54548f69325ae79111364e7e4e8e99eec92660a4fe47b217a35fbdc60eda41b8`).
+  It binds the current V46 evidence and bounded canonical geometry (batch 8,
+  deterministic 32-row smoke, 10 GiB host cap). Runtime now accepts a clean
+  descendant only when every byte-bound execution file remains exact, so a
+  documentation-only commit no longer forces another large-input rehash.
   Actual export remains a separately authorised guarded operation.
 - The future serve adapter now opens only the exact V4 cache bound by the
   bundle, injects its frozen artifacts directly, and refuses a context snapshot

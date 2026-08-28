@@ -20,9 +20,10 @@ binding scope; `CLAUDE.md` is the process constitution.
 > The CPU recipe producer also rejects stale smoke run lineage from its small
 > immutable evidence before it hashes large TRAIN/VAL files. This avoids a
 > doomed preflight; it does not create a recipe, bundle or CUDA authority.
-> The clean `3ae102a9` source has passed the fresh CUDA-intended recipe audit
-> and exact wrapper dry-run for the bounded 32-row technical smoke. It has not
-> executed CUDA or exported a bundle; that remains separately authorised.
+> The clean `78b00d66` source has passed the fresh CUDA-intended recipe audit
+> for the bounded 32-row technical smoke. A documentation-only descendant is
+> valid only where the full byte-bound execution closure remains exact. It has
+> not executed CUDA or exported a bundle; that remains separately authorised.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are

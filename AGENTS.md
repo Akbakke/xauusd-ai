@@ -144,9 +144,10 @@ current-contract audit, and do not start full training, TEST, demo or live.
   before any large TRAIN/VAL artifact binding. A mismatch must fail before a
   recipe directory is created. Do not work around it with a new ad-hoc run ID:
   use the run ID declared by current evidence, from a clean reviewed commit.
-- The clean-source CUDA-intended V46 smoke recipe and wrapper dry-run pass at
-  `3ae102a9`, but there is no `--execute` authority. The validated command is
-  a bounded technical export only; it is neither a candidate nor an edge claim.
+- The clean-source CUDA-intended V46 smoke recipe passes at `78b00d66`, but
+  there is no `--execute` authority. A clean descendant is accepted only when
+  its exact byte-bound execution closure still matches; the validated command
+  is a bounded technical export only, never a candidate or edge claim.
 - Before candidate execution, a pre-candidate integration may use only the
   explicit attended-smoke time window `[2024-12-01T00:00:00Z,
   2025-06-01T00:00:00Z)` from V46 TRAIN. It is 32,289 chronological rows,
