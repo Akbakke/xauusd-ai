@@ -497,7 +497,7 @@ def test_publisher_rejects_timestamps_not_derived_from_native_m5(
     frames["H4"] = shifted
     with pytest.raises(
         RuntimeError,
-        match="HTF_V4_CACHE_SOURCE_TIMESTAMP_GEOMETRY_MISMATCH: H4",
+        match="HTF_V4_CACHE_TIMESTAMP_GRID_INVALID: timestamps are not on the declared H4 grid",
     ):
         producer.publish_multi_tf_v4_cache(
             out_dir=tmp_path / "cache",

@@ -89,6 +89,19 @@ validated five-clock V4 cache, before compute sampling or optimization.
   attended CUDA lane; the recipe contract now rejects that invalid CPU
   combination before publication, with a regression test. The current CPU
   recipe has no time window and is hash-bound to the repaired source.
+- The explicitly authorised guarded learning-validation session then completed
+  safely from the clean source commit `135e92c2`. Its fresh CUDA recipe is
+  `train_recipe_audit_learning_validation_6m_20260828T184151Z/`
+  `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T184059379124Z.json`
+  (SHA-256 `d8c191f50c764e943f75f691db66524382cc1e8e31ff348d11a2fde9415152b2`).
+  It fitted normalization on full TRAIN before selecting the exact
+  `[2024-12-01T00:00:00Z, 2025-06-01T00:00:00Z)` window (32,289 rows), then
+  ran the fixed 60 batch-8 optimizer steps and checkpointed every step. All
+  ten joint tasks recorded supervision and gradients; the checkpoint records
+  optimizer step 60 and 722 online tensors differing from the fixed target.
+  The guard exited normally (`child_status=0`) with peaks of 63 C, 195.53 W
+  and 8,763 MiB VRAM. This is a partial, technical-only session: it wrote no
+  bundle and ran no VAL, TEST, OOS, PnL, win-rate, MAE/MFE or trading step.
 
 Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`, `f2d4862b`.
 The current V46 report pointers in `PROJECT_STATE_xau_direction_launch.json`
@@ -103,12 +116,14 @@ operation was started while refreshing it.
 2. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.
-3. Obtain explicit authority for one guarded,
-   bounded learning-validation probe (one epoch over the agreed chronological
-   research window). It must prove learning, field use and numerical stability,
-   not performance.
-4. Inspect the resulting VAL research metrics and artefact proofs. Only if
-   those are complete should a full candidate-training decision be considered.
+3. Inspect the completed 60-step technical checkpoint and the guard log. It
+   proves live task/gradient paths and safe bounded execution, but not a
+   completed epoch or predictive performance. Do not portray it as VAL,
+   backtest or edge evidence.
+4. Do not automatically resume the remaining chronological epoch. A separate
+   explicit decision is required to run further bounded sessions or to design
+   the full candidate-training plan; either route remains offline and keeps
+   TEST sealed.
 5. Keep TEST sealed until a single candidate has passed VAL and an immutable
    release event is designed and reviewed. Demo/OANDA comes only after
    backtests and the separate executable-economics/risk gates.

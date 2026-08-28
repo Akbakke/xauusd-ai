@@ -144,6 +144,11 @@ current-contract audit, and do not start full training, TEST, demo or live.
   its terminal private report must prove exact liveness, all joint-task
   supervision/gradients and parameter movement. It produces no bundle and has
   no validation, TEST, backtest, candidate, demo or live authority.
+- The latest current-source pre-candidate segment completed 60/4,037 steps
+  under that contract with all ten joint tasks supervised and gradient-live.
+  It exited normally at 63 C / 195.53 W / 8,763 MiB and persisted its exact
+  resume state. It is still `complete=false`, has no bundle or VAL result, and
+  must not be resumed automatically or represented as an edge result.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are

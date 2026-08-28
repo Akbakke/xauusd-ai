@@ -260,6 +260,18 @@ backtest, PnL, candidate, demo or live authority. Do not start it from a dirty
 worktree or reuse a prior recipe; first materialize a fresh recipe bound to the
 committed source, then dry-run it.
 
+**Latest current-source guarded rebind, 2026-08-28:** after the fresh v10
+liveness/readiness chain and a new immutable recipe
+`ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T184059379124Z.json`
+(SHA-256 `d8c191f50c764e943f75f691db66524382cc1e8e31ff348d11a2fde9415152b2`),
+the same bounded chronological lane completed 60/4,037 steps from clean commit
+`135e92c2`. Full TRAIN-only normalization preceded selection of the exact
+32,289-row window; all ten tasks were supervised and gradient-live, optimizer
+state reached step 60, and 722 online tensors differed from the fixed target.
+The guard exited normally at 63 C / 195.53 W / 8,763 MiB. This is a partial
+technical checkpoint only: no bundle, VAL, TEST, OOS/backtest, PnL, win rate,
+MAE/MFE, candidate or trading authority exists. Do not resume it automatically.
+
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
 yet.

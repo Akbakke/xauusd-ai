@@ -15,6 +15,7 @@ from gx1.features.htf_features import (
     MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     attach_model_native_mtf_scalars_v4,
+    multi_tf_bar_label,
     model_native_mtf_owner_marker_v4,
     project_model_native_mtf_scalars_v4,
     require_model_native_mtf_scalar_owner_v4,
@@ -33,8 +34,14 @@ _TF_FIXTURES = {
 def _verified_v4_frames() -> dict[str, pd.DataFrame]:
     frames: dict[str, pd.DataFrame] = {}
     for timeframe, (freq, rows, offset) in _TF_FIXTURES.items():
+        # Derive every synthetic axis from the same owner as the cache rather
+        # than retaining the old midnight H4/D1 fixture grid. H4/D1 are phased
+        # from the 22:00 UTC trading-session boundary.
+        start = multi_tf_bar_label(
+            pd.Timestamp("2025-12-20T00:00:00Z"), timeframe
+        )
         index = pd.date_range(
-            "2025-12-20T00:00:00Z",
+            start,
             periods=rows,
             freq=freq,
         )

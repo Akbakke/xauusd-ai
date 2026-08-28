@@ -146,6 +146,13 @@ but the system is not empirically finished:
   202.48 W / 8,763 MiB, with no VAL, OOS/backtest, PnL or trading authority.
   The private terminal report still requires a completed epoch, full liveness
   and parameter movement;
+- the latest clean-source rebind of that technical integration used the fresh
+  V46 v10 evidence and completed its bounded 60-step segment normally: all ten
+  tasks were supervised and received gradients, optimizer state reached step
+  60, and 722 online tensors differed from the fixed target. The guard peaked
+  at 63 C / 195.53 W / 8,763 MiB. It is deliberately partial (60 of 4,037
+  steps), writes no bundle and performs no VAL/OOS/PnL/win-rate/MAE/MFE
+  evaluation; it is learning-path and machine-safety evidence only;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

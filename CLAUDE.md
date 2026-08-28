@@ -402,3 +402,7 @@ backtest or edge evidence. A remote machine, if
 explicitly cost-approved, is still an offline bounded job with frozen
 source/artifacts and an automatic stop; it is not permission to alter scope or
 use broker credentials.
+
+The current-source v10 rebind has now completed one guarded 60-step technical
+segment safely (63 C / 195.53 W / 8,763 MiB) with all ten task paths live. It
+remains a partial checkpoint with no bundle, VAL, TEST, edge or trading result.
