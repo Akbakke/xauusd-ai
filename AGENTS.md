@@ -109,11 +109,13 @@ Read `GX1_RULES.md` first. It is binding.
   imposed a candidate-only Exit gate on smoke. Its next repeat passed that
   repair but exposed a stale Regime-FiLM metadata requirement. Commit
   `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
-  `64d648da` then align and statically check active-head metadata; candidate evidence
-  remains strict. One fresh recipe-bound/dry-run-checked repeat is the only
-  local continuation. Resolve
-  exact guard logs and the next decision from the handover, never from an old
-  run directory.
+  `64d648da` then align and statically check active-head metadata; candidate
+  evidence remains strict. The final fresh recipe bound to `c3026c0f` completed
+  safely at 63 C / 212.37 W / 8,751 MiB and atomically published its diagnostic
+  smoke bundle. It proves no edge: the next gate is immutable VAL predictions
+  and a passing smoke-bundle audit. CUDA VAL evaluation is allow-listed only
+  behind the same automatic 220 W / 70 C / 12 GiB guard. Resolve exact guard
+  logs and the next decision from the handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -197,8 +199,9 @@ pre-existing processes unless the user explicitly authorizes that action.
 Canonical CUDA additionally stops above 70 C core, 220 W actual draw or 12 GiB
 resident VRAM from pinned native WSL telemetry. The Windows-host driver rejected
 a physical lower power limit from WSL, so 220 W is a one-second process stop,
-not a throttle. Exactly one fresh V46 batch-8 canonical smoke is approved; its
-terminal evidence must be assessed before any further local retry. A remote GPU
+not a throttle. The completed V46 batch-8 smoke published a diagnostic bundle;
+the exact VAL evaluator inherits the same guard before its smoke-bundle audit.
+A remote GPU
 may be prepared only as offline research from the frozen commit and V46 hashes,
 and only after explicit cost approval; it receives no broker credential or live
 route.
@@ -223,10 +226,9 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST. Run only the single repaired batch-8/220 W,
-   32-row-per-split local canonical smoke and assess it; otherwise prepare an explicitly approved
-   remote canonical smoke. Train a full research candidate only if its bundle
-   audit proves safe and valid.
+2. Preserve V46's sealed TEST. Produce immutable VAL predictions only with the
+   guarded evaluator, then run the smoke-bundle audit. Train a full research
+   candidate only if its bundle audit proves safe and valid.
 3. Evaluate the candidate on the historical research path (VAL and then the
    untouched TEST only where its seal permits it); report that result as
    research-only, never as a production edge claim.

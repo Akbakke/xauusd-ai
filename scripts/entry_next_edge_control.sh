@@ -126,6 +126,32 @@ require_flag() {
     || die "$route requires exactly one explicit $required (observed=$count)"
 }
 
+exact_flag_value() {
+  local route="$1"
+  local required="$2"
+  shift 2
+  local arg value= count=0
+  local -a values=()
+  while [[ $# -gt 0 ]]; do
+    arg="$1"
+    if [[ "$arg" == "$required" ]]; then
+      [[ $# -ge 2 ]] || die "$route $required requires a value"
+      values+=("$2")
+      count=$((count + 1))
+      shift 2
+      continue
+    fi
+    if [[ "$arg" == "$required="* ]]; then
+      values+=("${arg#"$required="}")
+      count=$((count + 1))
+    fi
+    shift
+  done
+  [[ $count -eq 1 && -n "${values[0]:-}" ]] \
+    || die "$route requires one non-empty $required value"
+  printf '%s\n' "${values[0]}"
+}
+
 reject_non_authoritative_args() {
   local arg
   for arg in "$@"; do
@@ -922,6 +948,15 @@ case "$cmd" in
       --out-dir; do
       require_flag "$cmd" "$flag" "$@"
     done
+    selective_edge_device=$(exact_flag_value "$cmd" --device "$@")
+    if [[ "$selective_edge_device" == cuda ]]; then
+      # Prediction evidence is required before the smoke-bundle audit. It is
+      # nevertheless a long CUDA process, so route the only accepted CUDA
+      # evaluator through the same one-second 220 W / thermal / VRAM guard as
+      # canonical training. CPU evaluation remains the ordinary producer path.
+      exec "$REPO/scripts/gx1_capped_run.sh" --class producer --mem 10G --swap 512M --cuda-producer -- \
+        "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
+    fi
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
     ;;
 

@@ -13,6 +13,7 @@ REPO = Path(__file__).resolve().parents[1]
 RUNNER = REPO / "scripts/gx1_capped_run.sh"
 TRAINER_GUARD = REPO / "scripts/gx1_guarded_trainer_exec.sh"
 TRAINER_MODULE = "gx1.models.entry_v10.entry_v10_ctx_train_v3"
+CUDA_PRODUCER_MODULE = "gx1.scripts.evaluate_entry_candidate_selective_edge_v1"
 
 
 def _hostile_nested_env(job_class: str) -> dict[str, str]:
@@ -901,6 +902,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=12288" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
+    assert "CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1" in source
+    assert "--cuda-producer" in source
+    assert "--cuda-producer requires exactly one --device cuda" in source
+    assert "CUDA_PRODUCER_GUARD=true" in source
     assert "required native CUDA telemetry owner" in source
     assert "--attended-smoke" in source
     assert "disabled after the WSL/GPU reset" in source
@@ -926,6 +931,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
     assert "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" in guard_source
     assert "GX1_TRAINER_NVIDIA_SMI_PATH" in guard_source
+    assert "cuda_producer" in guard_source
+    assert "producer cgroup is reserved here for CUDA inference only" in guard_source
     assert "GX1_TRAINER_GUARD_LOG_PATH" in source
     assert "event=heartbeat" in guard_source
     assert "event=exit child_status=$child_status" in guard_source

@@ -18,15 +18,14 @@ terminal evidence must be assessed before any repeat. If it cannot create a vali
 separately approved remote canonical smoke must still pass every immutable
 recipe and bundle-audit condition below.
 
-**Later runtime amendment — 2026-08-28:** that 32/32 smoke completed full
-preflight, four CUDA optimizer steps and validation inside 65 C / 211.77 W /
-8,751 MiB. Its active episode-native movement proof passed, but the bundle
-loader then incorrectly applied candidate-only Exit-gate evidence to smoke. Its
-next repeat passed that repair but exposed a stale Regime-FiLM metadata
-requirement. Commits `e0cf52ed` and `64d648da` then align and statically check
-active-head metadata; candidate remains strict.
-One fresh recipe-bound/dry-run-checked repeat is permitted; it remains smoke-only
-and creates no edge, TEST, demo or live authority.
+**Later runtime amendment — 2026-08-28:** the final fresh 32/32 smoke completed
+full preflight, four CUDA optimizer steps, validation, strict load and
+post-export structural liveness. It atomically published a diagnostic bundle
+inside 63 C / 212.37 W / 8,751 MiB. Commit `c3026c0f` makes bounded smoke use
+the separate immutable full-population liveness proof for rare-event variability
+while retaining strict candidate checks. Candidate remains strict: immutable VAL
+predictions and a smoke-bundle audit are now required, and create no edge, TEST,
+demo or live authority.
 
 ## V46 review record — 2026-08-25
 

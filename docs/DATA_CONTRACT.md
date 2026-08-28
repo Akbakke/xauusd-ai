@@ -1,13 +1,11 @@
 # GX1 data contract
 
 > Runtime-status note, 2026-08-28: V46 data and feature evidence remains PASS.
-> The latest bounded canonical smoke completed four CUDA steps, validation and
-> its active episode movement proof inside the 220 W guard, but emitted no
-> bundle because the loader imposed a candidate-only Exit gate on smoke. Its
-> next repeat passed that repair but exposed a stale Regime-FiLM metadata
-> requirement. Commits `57d4ebcb`, `e0cf52ed` and `64d648da` repair and
-> statically check the metadata path;
-> the handover owns the one permitted fresh recipe-bound/dry-run-checked repeat.
+> The final bounded canonical smoke completed CUDA execution, strict load and
+> post-export structural liveness, then atomically published a diagnostic bundle
+> at 63 C / 212.37 W / 8,751 MiB. Full-population V46 liveness remains the
+> authority for rare field variability. VAL predictions and the smoke-bundle
+> audit are next; neither the smoke nor its monitor value is an edge claim.
 
 ## Source authority
 

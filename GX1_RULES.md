@@ -180,11 +180,12 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   episode movement proof passed, but the bundle loader imposed a candidate-only
   Exit gate on smoke. Its next repeat passed that repair but exposed a stale
   Regime-FiLM metadata requirement. Later head-metadata repairs `e0cf52ed` and
-  `64d648da` align and statically check trainer/loader keys. Candidate admission
-  remains strict. Exactly one
-  fresh recipe-bound/dry-run-checked
-  repetition of that batch-8 32/32 smoke is allowed; inspect both terminal
-  guard and trainer-sidecar evidence before any later local CUDA retry.
+  `64d648da` align and statically check trainer/loader keys. The final
+  recipe-bound 32/32 smoke completed and atomically published its diagnostic
+  bundle at 63 C / 212.37 W / 8,751 MiB. Candidate admission remains strict.
+  Immutable VAL inference needed by the smoke-bundle audit may use CUDA only
+  through the exact allow-listed evaluator behind the same guard; no other
+  producer gets CUDA permission.
 - An ephemeral remote GPU is permitted only for the same offline research
   scope, exact frozen commit and hash-bound V46 artifacts, after explicit
   operator cost approval. It must have automatic time/cost termination and no

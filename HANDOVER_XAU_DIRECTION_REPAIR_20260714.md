@@ -24,8 +24,9 @@ TRAIN-only normalization and the repaired M5-decision-to-M1-fill causality
 audit. Its adoption review is deliberately BLOCKED by fitted-Q production
 economics. That blocks production-net edge claims and every paper/demo/live
 route. A gross-research candidate/OOS path exists in source, but is not yet
-available in practice: it still requires a successful canonical smoke bundle,
-a fresh candidate and an untouched TEST replay.
+available in practice: it has a diagnostic canonical smoke bundle but still
+requires immutable VAL prediction evidence, a passing smoke-bundle audit, a
+fresh candidate and an untouched TEST replay.
 
 **Current execution status, reconciled 2026-08-28:** canonical V46 smoke
 preflight passed all TRAIN/VAL, eight-family and five-timeframe checks. The old
@@ -59,10 +60,9 @@ The source now requires smoke to select deterministic, label-free bounded
 populations for **both** TRAIN and VAL after the full input/sequence/
 normalization preflight, and records both selections in the one lineage
 contract enforced by the bundle loader. This changes no V46 feature, target,
-dataset row or candidate rule. One fresh repaired batch-8 V46 canonical smoke
-with 32 rows per model-compute split remains the only local continuation behind
-the 220 W one-second process stop; assess its terminal evidence before any
-second local attempt. Otherwise, use an explicitly approved remote GPU run.
+dataset row or candidate rule. The only approved local smoke has now completed;
+its terminal evidence is recorded below. No second local training smoke is
+authorized by this document.
 
 **Latest bounded smokes, 2026-08-28:** the repaired 32/32 canonical run bound
 to `ea6cdca1` completed the full CPU preflight, compacted both compute splits
@@ -92,10 +92,28 @@ the active trainer emits `trendline_event_head` instead. Commit `e0cf52ed`
 aligns that contract, and `64d648da` statically compares every direct loader
 metadata requirement with the trainer's emitted dictionary before CUDA. These
 commits change no V46 byte, feature, target, model-compute selection, economics
-or candidate rule. Before one exact repeat, materialize a fresh hash-bound recipe
-and pass its wrapper dry-run; then assess terminal guard, durable trainer
-sidecar, committed bundle and smoke-bundle audit before any later local or
-remote execution.
+or candidate rule.
+
+**Current canonical smoke, completed 2026-08-28:** recipe
+`ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T105935753291Z.json`
+(SHA-256 `7bbc15e22346fae848605515f0b2430879b31da96d617074faa1358e3ec8d55c`,
+source commit `c3026c0f`) completed complete hash-bound preflight, four CUDA
+optimizer steps, 32-row validation, strict staged bundle load and post-export
+input proof. It atomically published
+`v10_entry_model_native_seq513_canonical_cuda_smoke8_220w_32_20260828T105920Z`.
+The guard ended `child_status=0`, peaking at **63 C / 212.37 W / 8,751 MiB**.
+All ten trained heads received gradient and moved; all eight specialists and all
+five MTF inputs were present. The full-population V46 liveness artifact remains
+the proof of rare-field variability; the 32-row smoke verifies exact contract
+shape, order and finite values. This is technical smoke evidence only: its
+32-row `-7.20 bps` monitor value is not PnL, edge, backtest, win rate, MAE/MFE,
+candidate or TEST evidence.
+
+The next gate is immutable VAL prediction evidence followed by the smoke-bundle
+audit. The exact CUDA evaluator is now enclosed by the same one-second 220 W,
+70 C and 12 GiB automatic guard; it is the only permitted non-trainer local
+CUDA route. Candidate readiness and full training remain blocked until that
+audit passes.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
@@ -916,13 +934,12 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
    already passed the exact current audits. Do not add/remove features, alter
    targets, rebuild the dataset or re-open TEST to chase a hardware issue.
    Repair only a demonstrated defect.
-2. **Use the single approved low-workload local probe, then return to hold.**
-   The two batch-32 71 C guard stops are terminal failed evidence, not a reason
-   to raise the temperature limit or keep retrying. The only allowed local
-   continuation is one fresh batch-8 V46 canonical smoke with the 220 W
-   one-second stop. Assess its guard log and bundle audit before any further
-   local decision. No background trainer, dataset build, broker process or live
-   process is permitted.
+2. **Produce the required bounded VAL evidence.** The batch-8 V46 canonical
+   smoke is complete and its guard log, bundle commit and strict load proof are
+   valid technical evidence. Run only the exact VAL evaluator behind the 220 W,
+   70 C and 12 GiB automatic guard, then run the smoke-bundle audit. No
+   background trainer, dataset build, broker process or live process is
+   permitted.
 3. **Prepare, but do not rent or launch, remote capacity without an explicit
    spend approval.** The required shape is one ephemeral dedicated GPU with at
    least 48 GiB VRAM, at least 16 vCPUs, 64 GiB host RAM and fast local NVMe.

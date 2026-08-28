@@ -6,7 +6,8 @@ prerequisite.** As of 2026-08-28, offline research uses the pinned native WSL
 `scripts/gx1_guarded_trainer_exec.sh`.
 
 The authoritative canonical CUDA guard samples once per second and terminates
-the trainer process group when any of these facts is exceeded or unavailable:
+the canonical trainer or the one allow-listed VAL inference producer when any of
+these facts is exceeded or unavailable:
 
 - core temperature above 70 C;
 - actual GPU draw above 220 W;
@@ -19,9 +20,10 @@ is not an authorization to draw 390 W continuously. The independently sampled
 **actual draw** boundary is 220 W in canonical mode. A physical 220 W driver
 limit was requested through pinned WSL `nvidia-smi` and rejected with
 `Insufficient Permissions`; therefore this boundary is a one-second process
-stop, not a hardware throttle. The first permitted continuation is exactly one
-fresh batch-8 V46 canonical smoke. The configured 390 W driver ceiling remains
-never a workload authorization. WSL currently reports
+stop, not a hardware throttle. The batch-8 V46 canonical smoke has completed;
+the only next local CUDA process is the exact VAL evaluator needed by the
+smoke-bundle audit. The configured 390 W driver ceiling remains never a
+workload authorization. WSL currently reports
 `temperature.memory=N/A`. The guard records this as `memory_observed=false`;
 it does not invent a junction temperature and retains the other three hard
 limits.
@@ -36,10 +38,10 @@ subsequent batch-8/32-row smoke completed four CUDA optimizer steps, validation
 and active episode movement proof under the same guard (65 C / 211.77 W /
 8,751 MiB), then its bundle loader imposed a candidate-only Exit gate on
 smoke. Its next repeat exposed a stale Regime-FiLM metadata requirement;
-commits `57d4ebcb`, `e0cf52ed` and `64d648da` repair and statically check
-the metadata path. The local CUDA
-route permits exactly one fresh recipe-bound/dry-run-checked repeat, then
-returns to hold.
+commits `57d4ebcb`, `e0cf52ed`, `64d648da` and `c3026c0f` repair and statically
+check the metadata/liveness path. The final repeat published its diagnostic
+bundle at 63 C / 212.37 W / 8,751 MiB. The guarded evaluator can now produce
+the immutable VAL evidence required before the smoke-bundle audit.
 
 ## Historical bridge material
 

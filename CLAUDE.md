@@ -384,10 +384,11 @@ then completed four CUDA optimizer steps and validation inside 65 C / 211.77 W
 loader incorrectly imposed a candidate-only Exit gate on smoke. Its next
 repeat passed that repair but exposed a stale Regime-FiLM metadata requirement.
 Commit `57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
-`64d648da` then align and statically check active-head metadata. Candidate
-evidence remains strict. Exactly one fresh recipe-bound/dry-run-checked repeat
-is authorized;
-assess its terminal evidence before any later local retry. A remote machine, if
+`64d648da` then align and statically check active-head metadata. The final
+recipe-bound 32/32 smoke completed safely at 63 C / 212.37 W / 8,751 MiB and
+published a diagnostic bundle. Candidate evidence remains strict: immutable VAL
+predictions and the smoke-bundle audit are next, with CUDA limited to the exact
+evaluator behind the same guard. A remote machine, if
 explicitly cost-approved, is still an offline bounded job with frozen
 source/artifacts and an automatic stop; it is not permission to alter scope or
 use broker credentials.

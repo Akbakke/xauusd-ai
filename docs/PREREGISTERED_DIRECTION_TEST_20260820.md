@@ -8,12 +8,10 @@ seeing a number; a revision is a new pre-registration with its own date, and bot
 stay on the record.
 
 > Current-status note, 2026-08-28: the protocol remains frozen and has not
-> been run on V46. V46 has no trained bundle because the local canonical CUDA
-> smoke emitted no bundle after a smoke/candidate Exit-gate mismatch in the
-> bundle loader, despite passing its active movement proof. Do not revise this
-> protocol or treat the bounded smoke as a direction result; see the handover
-> for commits `57d4ebcb`, `e0cf52ed` and `64d648da`'s one-repeat
-> plan.
+> been run on V46. V46 has a diagnostic smoke bundle only; it is neither a
+> trained candidate nor direction evidence. Do not revise this protocol or
+> treat the bounded smoke as a direction result. Immutable VAL predictions and
+> the smoke-bundle audit must still pass before candidate planning.
 
 ## Why this document exists
 

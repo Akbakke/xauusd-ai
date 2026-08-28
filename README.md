@@ -107,18 +107,13 @@ but the system is not empirically finished:
   `PROJECT_STATE_xau_direction_launch.json`. Its fitted-Q production-economics
   gate is blocked, so this is neither a trained/admitted candidate nor an
   authorization for an edge or trading claim;
-- the current local CUDA route is limited to one changed measured plan: two
-  hash-bound V46 batch-32 smokes stopped safely at 71 C before an optimizer
-  step or bundle, while VRAM stayed at 8.95 GiB. The repaired batch-8/32-row-
-  per-split smoke then completed four optimizer steps and validation within
-  65 C / 211.77 W / 8.75 GiB. Its active episode-native movement proof passed,
-  but the bundle loader imposed a candidate-only Exit gate on smoke. Its next
-  repeat passed that repair but exposed a stale Regime-FiLM metadata requirement.
-  Commits `57d4ebcb`, `e0cf52ed` and `64d648da` repair and statically check
-  the metadata path; only one fresh
-  recipe-bound/dry-run-checked repetition may run next; assess guard and
-  durable trainer-sidecar evidence before any retry or remote offline smoke
-  on a frozen commit and V46 artifacts;
+- the final local batch-8/32-row smoke completed full preflight, four CUDA
+  optimizer steps, validation, strict load and structural liveness, publishing
+  a diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. Commits `57d4ebcb`,
+  `e0cf52ed`, `64d648da` and `c3026c0f` repair and check the
+  metadata/liveness path. Its next gate is immutable VAL prediction evidence
+  and the smoke-bundle audit; the exact CUDA evaluator is protected by the
+  same 220 W / 70 C / 12 GiB guard;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Fail-closed wall-clock and GPU safety owner for the canonical trainer.
-# This script is entered only by gx1_capped_run.sh after that runner has
-# validated the exact trainer target and proved the enclosing cgroup limits.
+# Fail-closed wall-clock and GPU safety owner for the canonical trainer and
+# the one allow-listed CUDA inference producer. This script is entered only by
+# gx1_capped_run.sh after that runner has validated the target and proved the
+# enclosing cgroup limits.
 set -euo pipefail
 
 guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
@@ -61,16 +62,25 @@ for variable in \
   GX1_TRAINER_NVIDIA_SMI_PATH; do
   [[ -n "${!variable:-}" ]] || die "missing protected environment: $variable"
 done
-[[ "$GX1_CAPPED_CLASS" == trainer ]] \
-  || die "requires the canonical trainer cgroup"
+case "$GX1_CAPPED_CLASS" in
+  trainer|producer) ;;
+  *) die "requires a guarded trainer or producer cgroup" ;;
+esac
 case "$GX1_TRAINER_DEVICE" in
   cpu|cuda) ;;
   *) die "GX1_TRAINER_DEVICE must be cpu or cuda" ;;
 esac
 case "$GX1_TRAINER_EXECUTION_MODE" in
-  canonical|attended_smoke|attended_cpu_smoke) ;;
-  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical, attended_smoke or attended_cpu_smoke" ;;
+  canonical|attended_smoke|attended_cpu_smoke|cuda_producer) ;;
+  *) die "GX1_TRAINER_EXECUTION_MODE must be canonical, attended_smoke, attended_cpu_smoke or cuda_producer" ;;
 esac
+if [[ "$GX1_CAPPED_CLASS" == producer \
+  && ( "$GX1_TRAINER_EXECUTION_MODE" != cuda_producer || "$GX1_TRAINER_DEVICE" != cuda ) ]]; then
+  die "producer cgroup is reserved here for CUDA inference only"
+fi
+if [[ "$GX1_CAPPED_CLASS" == trainer && "$GX1_TRAINER_EXECUTION_MODE" == cuda_producer ]]; then
+  die "cuda_producer execution mode requires producer cgroup"
+fi
 case "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" in
   true|false) ;;
   *) die "GX1_TRAINER_ATTENDED_STAGE_REQUIRED must be true or false" ;;

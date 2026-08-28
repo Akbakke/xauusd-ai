@@ -7,15 +7,12 @@ limits, active telemetry or the full data preflight. This changes neither the
 dataset nor any execution authority.
 
 > Current-status note, 2026-08-28: this document describes the historical
-> attended-only exception. The active V46 canonical route is separate and is
-> now limited to one fresh 220 W batch-8/32-row repeat after the prior smoke
-> completed four steps and active movement proof, but hit a smoke/candidate
-> bundle-gate mismatch. Its next repeat exposed a stale Regime-FiLM metadata
-> requirement; later commits `e0cf52ed` and `64d648da` align and statically
-> check all direct metadata keys. Do not use attended
-> results, a 390 W
-> configured driver limit or this document to bypass the canonical smoke/bundle
-> gate. The authoritative current plan is the handover.
+> attended-only exception. The active V46 canonical smoke is separate and has
+> completed, publishing a diagnostic bundle at 63 C / 212.37 W / 8,751 MiB.
+> Its next gate is immutable VAL inference through the exact 220 W-guarded
+> evaluator, followed by the smoke-bundle audit. Do not use attended results, a
+> 390 W configured driver limit or this document to bypass that gate. The
+> authoritative current plan is the handover.
 
 ### 2026-08-26 operator-present 390 W amendment
 

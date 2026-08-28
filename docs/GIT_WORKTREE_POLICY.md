@@ -20,11 +20,9 @@ Cleanup under `/home/andre2/GX1_DATA` is a separate explicitly authorized act.
 The authoritative status files (`PROJECT_STATE_xau_direction_launch.json`, the
 handover and every Markdown file fingerprinted by `scripts/gx1_handover.sh`)
 must be updated together in one reviewed commit. They describe the 2026-08-28
-bounded-smoke status: four 220 W CUDA steps/validation and its active movement
-proof completed, then no bundle was allowed because the loader imposed a
-candidate-only Exit gate on smoke. Do not leave a stale run recipe or old
-execution plan in one document while changing another. The next repeat passed
-that gate repair but exposed a stale Regime-FiLM metadata requirement. Commit
-`57d4ebcb` requires the retired component to be absent; `e0cf52ed` and
-`64d648da` align and statically check active-head metadata. Its fresh recipe-
-bound/dry-run-checked repeat remains the only local continuation.
+bounded-smoke status: the final 220 W run completed and atomically published a
+diagnostic bundle at 63 C / 212.37 W / 8,751 MiB. Do not leave a stale recipe or
+old execution plan in one document while changing another. The next local CUDA
+operation is only immutable VAL inference through the exact guarded evaluator,
+followed by the smoke-bundle audit; candidate, TEST, demo and live remain
+blocked.

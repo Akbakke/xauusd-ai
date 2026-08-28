@@ -245,15 +245,13 @@ feature contracts and have no training or comparison authority. V39/V40 are
 historical. V46 is the current audited research artifact: TRAIN/VAL/sealed
 TEST, compact lifecycle, all-field liveness and M1-fill causality pass, but no
 bundle, candidate, calibration, TEST evaluation or trading claim exists. The
-first train==serve parity event is also still missing. A 220 W batch-8/32-row
-smoke completed four CUDA steps and validation inside 65 C / 211.77 W / 8.75
-GiB. Its active episode-native movement proof passed, but the bundle loader
-applied a candidate-only Exit gate to smoke. Its next repeat passed that repair
-but exposed stale metadata requirements. Commits `57d4ebcb`, `e0cf52ed` and
-`64d648da` repair and statically check them while retaining strict candidate
-evidence; the next execution is one fresh hash-bound/dry-run-checked
-repetition, never
-a live route.
+first train==serve parity event is also still missing. The final 220 W
+batch-8/32-row smoke completed full technical execution and published a
+diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. The latest repair (`c3026c0f`)
+binds bounded smoke structure to the already-passing full-population liveness
+proof without weakening candidate checks. The next execution is immutable VAL
+inference through the exact guarded evaluator, then the smoke-bundle audit;
+never a live route.
 
 ## Scope boundary
 

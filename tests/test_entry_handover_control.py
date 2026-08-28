@@ -208,7 +208,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "ONE_APPROVED_LOCAL_BATCH8_220W_SMOKE_THEN_REASSESS_THEN_REMOTE_OR_CANDIDATE"
+        "GUARDED_VAL_PREDICTIONS_THEN_SMOKE_BUNDLE_AUDIT_THEN_CANDIDATE_READINESS"
         in result.stdout
     )
     assert (
@@ -223,7 +223,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "run exactly one fresh V46 batch-8 canonical smoke" in result.stdout
+    assert "produce immutable V46 VAL prediction evidence" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
@@ -663,6 +663,8 @@ def test_recipe_and_post_smoke_audit_routes_are_explicit() -> None:
     ):
         assert flag in prediction
     assert 'reject_flags "$cmd" --top-fracs --model-name --selection-score-mode' in prediction
+    assert "--cuda-producer" in prediction
+    assert "same one-second 220 W / thermal / VRAM guard" in prediction
     assert "evaluate_entry_candidate_selective_edge_v1" in prediction
 
 

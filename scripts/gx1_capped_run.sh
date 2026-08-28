@@ -3,8 +3,8 @@
 # its cap fails inside its own cgroup instead of consuming the workstation.
 # GX1_RULES.md and AGENTS.md require this wrapper for every heavy operation.
 #
-# Usage: scripts/gx1_capped_run.sh --class audit|trainer [--mem 4G] [--swap 512M]
-#          [--attended-smoke] -- <command ...>
+# Usage: scripts/gx1_capped_run.sh --class audit|producer|trainer [--mem 4G] [--swap 512M]
+#          [--attended-smoke|--cuda-producer] -- <command ...>
 #   --class audit is capped at 4G and cannot launch the trainer.
 #   --class producer is for the heavy offline dataset producers (feature lanes,
 #           model source, ranker, dataset rebuild) and may request at most 20G.
@@ -21,9 +21,10 @@
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
 # The runner also requires >=20G currently available RAM, serializes heavy jobs, binds the
 # job to two CPU cores, lowers its CPU/I/O priority, and constrains common numerical
-# libraries to one thread. Trainer jobs additionally pass through the fail-closed
-# wall-clock/GPU guard below; an unavailable sensor, excessive configured power
-# limit, thermal breach, or wall-clock expiry terminates the trainer process group.
+# libraries to one thread. Trainer jobs and the one allow-listed CUDA inference
+# producer additionally pass through the fail-closed wall-clock/GPU guard below; an
+# unavailable sensor, excessive configured power limit, thermal breach, or
+# wall-clock expiry terminates the whole process group.
 # `--attended-smoke` is a deliberately narrower operator-present exception for
 # one CUDA smoke only. It neither creates candidate authority nor relaxes CPU,
 # memory, pids or actual-power protection; see the fixed policy below.
@@ -34,6 +35,7 @@ JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
+CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -85,6 +87,7 @@ TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 TRAINER_DEVICE=
 TRAINER_OUT_BUNDLE_DIR=
+CUDA_PRODUCER_GUARD=false
 
 SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))
 SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
@@ -122,7 +125,7 @@ validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
-  local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0
+  local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
   local profile_value= execution_tier_value=
   local -a target_args=("$@")
 
@@ -153,6 +156,57 @@ validate_target_command() {
     if [[ "$hardware_smoke_reference" == true ]]; then
       echo "FATAL: attended hardware smoke requires --class trainer" >&2
       exit 75
+    fi
+    if [[ "$CUDA_PRODUCER_GUARD" == true ]]; then
+      [[ "$JOB_CLASS" == producer ]] || {
+        echo "FATAL: --cuda-producer requires --class producer" >&2
+        exit 75
+      }
+      if ! is_direct_python "$1" || [[ "${2:-}" != "-m" || "${3:-}" != "$CUDA_PRODUCER_MODULE" ]]; then
+        echo "FATAL: --cuda-producer is reserved for the exact selective-edge evaluator" >&2
+        exit 75
+      fi
+      for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
+        case "${target_args[$target_index]}" in
+          --device)
+            trainer_device_count=$((trainer_device_count + 1))
+            (( target_index + 1 < ${#target_args[@]} )) || {
+              echo "FATAL: CUDA producer requires a value after --device" >&2
+              exit 75
+            }
+            TRAINER_DEVICE="${target_args[$((target_index + 1))]}"
+            ;;
+          --device=*)
+            trainer_device_count=$((trainer_device_count + 1))
+            TRAINER_DEVICE="${target_args[$target_index]#--device=}"
+            ;;
+          --out-dir)
+            out_dir_count=$((out_dir_count + 1))
+            (( target_index + 1 < ${#target_args[@]} )) || {
+              echo "FATAL: CUDA producer requires a value after --out-dir" >&2
+              exit 75
+            }
+            TRAINER_OUT_BUNDLE_DIR="${target_args[$((target_index + 1))]}"
+            ;;
+          --out-dir=*)
+            out_dir_count=$((out_dir_count + 1))
+            TRAINER_OUT_BUNDLE_DIR="${target_args[$target_index]#--out-dir=}"
+            ;;
+        esac
+      done
+      if (( trainer_device_count != 1 )) || [[ "$TRAINER_DEVICE" != cuda ]]; then
+        echo "FATAL: --cuda-producer requires exactly one --device cuda" >&2
+        exit 75
+      fi
+      if (( out_dir_count != 1 )) || [[ "$TRAINER_OUT_BUNDLE_DIR" != /* ]]; then
+        echo "FATAL: --cuda-producer requires one absolute --out-dir" >&2
+        exit 75
+      fi
+      TRAINER_EXECUTION_MODE=cuda_producer
+      # Full bounded VAL inference needs more than the trainer's short smoke
+      # window, but is still terminated after one hour if it stalls.
+      TRAINER_MAX_WALL_SECONDS=3600
+      TRAINER_MODEL_MAX_WALL_SECONDS=3600
     fi
     return
   fi
@@ -277,6 +331,9 @@ while [[ $# -gt 0 ]]; do
     --attended-smoke)
       ATTENDED_SMOKE=true; shift
       ;;
+    --cuda-producer)
+      CUDA_PRODUCER_GUARD=true; shift
+      ;;
     --research-smoke)
       echo "FATAL: --research-smoke is disabled after the WSL/GPU reset; use only the bounded attended hardware diagnostic" >&2
       exit 75
@@ -346,6 +403,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
   TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 fi
+if [[ "$CUDA_PRODUCER_GUARD" == true && "$ATTENDED_SMOKE" == true ]]; then
+  echo "FATAL: --cuda-producer and --attended-smoke are mutually exclusive" >&2
+  exit 75
+fi
 
 if [[ -n "${GX1_CAPPED_CLASS:-}" \
   || -n "${GX1_CAPPED_MEMORY_BYTES:-}" \
@@ -377,9 +438,9 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     echo "FATAL: nested capped job parent scope proof failed" >&2
     exit 75
   }
-  if [[ "$JOB_CLASS" == trainer ]]; then
+  if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
     [[ "${GX1_TRAINER_DEVICE:-}" == "$TRAINER_DEVICE" ]] || {
-      echo "FATAL: nested trainer device differs from protected parent scope" >&2
+      echo "FATAL: nested guarded CUDA device differs from protected parent scope" >&2
       exit 75
     }
     [[ -x "$GPU_GUARD_PATH" ]] || {
@@ -448,11 +509,11 @@ fi
 for helper in /usr/bin/taskset /usr/bin/ionice /usr/bin/nice /bin/bash; do
   [[ -x "$helper" ]] || { echo "FATAL: required capacity helper is missing: $helper" >&2; exit 75; }
 done
-if [[ "$JOB_CLASS" == trainer && ! -x "$GPU_GUARD_PATH" ]]; then
-  echo "FATAL: canonical trainer safety guard is unavailable: $GPU_GUARD_PATH" >&2
+if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && ! -x "$GPU_GUARD_PATH" ]]; then
+  echo "FATAL: guarded CUDA safety owner is unavailable: $GPU_GUARD_PATH" >&2
   exit 75
 fi
-if [[ "$JOB_CLASS" == trainer && "$TRAINER_DEVICE" == cuda \
+if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && "$TRAINER_DEVICE" == cuda \
   && ! -x "$TRAINER_NVIDIA_SMI_PATH" ]]; then
   echo "FATAL: required native CUDA telemetry owner is unavailable: $TRAINER_NVIDIA_SMI_PATH" >&2
   exit 75
@@ -473,7 +534,7 @@ echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax
 echo "[capped_run] cmd: $*" >&2
 TRAINER_GUARD_LOG_PATH=
 TRAINER_STDIO_LOG_PATH=
-if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
+if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
   TRAINER_GUARD_LOG_PARENT="${TRAINER_OUT_BUNDLE_DIR%/*}"
   TRAINER_GUARD_LOG_BASENAME="${TRAINER_OUT_BUNDLE_DIR##*/}"
   [[ -d "$TRAINER_GUARD_LOG_PARENT" && ! -L "$TRAINER_GUARD_LOG_PARENT" ]] || {
@@ -495,7 +556,7 @@ if [[ "$JOB_CLASS" == trainer && -n "$TRAINER_OUT_BUNDLE_DIR" ]]; then
   echo "[capped_run_trainer_guard_log] path=$TRAINER_GUARD_LOG_PATH" >&2
   echo "[capped_run_trainer_stdio_log] path=$TRAINER_STDIO_LOG_PATH" >&2
 fi
-if [[ "$JOB_CLASS" == trainer ]]; then
+if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
 echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=$TRAINER_NVIDIA_SMI_PATH" >&2
 fi
 
@@ -516,8 +577,8 @@ cg_dir="/sys/fs/cgroup${cg_rel}"
 echo "[capped_run_scope_verified] memory.max=$GX1_EXPECTED_MEMORY_BYTES memory.high=$GX1_EXPECTED_MEMORY_BYTES memory.swap.max=$GX1_EXPECTED_SWAP_BYTES pids.max=$GX1_EXPECTED_TASKS" >&2
 verified_cpu_affinity="$GX1_CPU_AFFINITY"
 unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES GX1_EXPECTED_TASKS GX1_CPU_AFFINITY
-if [[ "$GX1_CAPPED_CLASS" == trainer ]]; then
-  [[ -x "$GX1_GPU_GUARD_PATH" ]] || { echo "FATAL: trainer safety guard unavailable inside scope" >&2; exit 75; }
+if [[ "$GX1_CAPPED_CLASS" == trainer || "$GX1_CUDA_PRODUCER_GUARD" == true ]]; then
+  [[ -x "$GX1_GPU_GUARD_PATH" ]] || { echo "FATAL: guarded CUDA safety owner unavailable inside scope" >&2; exit 75; }
   exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$GX1_GPU_GUARD_PATH" "$@"
 fi
 exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$@"
@@ -534,6 +595,7 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
+  --setenv=GX1_CUDA_PRODUCER_GUARD="$CUDA_PRODUCER_GUARD" \
   --setenv=GX1_TRAINER_GUARD_LOG_PATH="$TRAINER_GUARD_LOG_PATH" \
   --setenv=GX1_TRAINER_STDIO_LOG_PATH="$TRAINER_STDIO_LOG_PATH" \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \
