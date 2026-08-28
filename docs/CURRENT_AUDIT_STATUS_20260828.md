@@ -84,11 +84,16 @@ validated five-clock V4 cache, before compute sampling or optimization.
   regression tests also pass. Therefore there is no separate stale
   normalization artifact to rebuild before the first explicitly authorized
   learning-validation run.
+- A CPU recipe carrying a chronological time window was found during the
+  wrapper dry-run check. The wrapper correctly reserves such a window for the
+  attended CUDA lane; the recipe contract now rejects that invalid CPU
+  combination before publication, with a regression test. The current CPU
+  recipe has no time window and is hash-bound to the repaired source.
 
-Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`. The current
-V46 report pointers in `PROJECT_STATE_xau_direction_launch.json` bind the new
-v10 evidence chain. No dataset rebuild, CUDA, broker or TEST operation was
-started while refreshing it.
+Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`, `f2d4862b`.
+The current V46 report pointers in `PROJECT_STATE_xau_direction_launch.json`
+bind the new v10 evidence chain. No dataset rebuild, CUDA, broker or TEST
+operation was started while refreshing it.
 
 ## Required next sequence
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-28T18:15:13Z",
+  "updated_utc": "2026-08-28T18:25:09Z",
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",
@@ -101,8 +101,8 @@
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
       },
       "train_recipe": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_v10_rebind_20260828T181415Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T181513003868Z.json",
-        "sha256": "972a97c0c31e359f322797c252c4147b3625f112150261cbebf597b9d1c64534",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_v10_wrapper_dryrun_20260828T182508Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T182509297929Z.json",
+        "sha256": "c4298383667817726e589819b41da77da6fb8beea8170e15920cfbe44adafc72",
         "schema_version": "entry_model_native_seq513_train_recipe_audit_v9",
         "decision": "PASS"
       },

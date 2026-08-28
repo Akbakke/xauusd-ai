@@ -15,6 +15,8 @@ binding scope; `CLAUDE.md` is the process constitution.
 > is wiring/provenance evidence only, not a CUDA, edge or trading permission.
 > The active trainer does not reuse a historical normalizer: it refits an exact
 > TRAIN-only contract from the bound Entry, Exit and five-clock MTF sources.
+> A CPU recipe may not carry the attended CUDA chronological-window option;
+> that mismatch is now rejected before a recipe can be published.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
