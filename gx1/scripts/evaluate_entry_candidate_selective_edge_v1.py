@@ -37,6 +37,10 @@ from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_production_economics_readiness,
 )
+from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
+    EntryModelNativeTrainingRunLineageError,
+    require_training_run_lineage,
+)
 from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
     require_entry_exit_production_architecture,
@@ -1086,23 +1090,43 @@ def _require_evaluation_lineage(
     if not isinstance(run_lineage, Mapping):
         raise RuntimeError("evaluation bundle lacks exact training run lineage")
 
+    try:
+        run_lineage = require_training_run_lineage(run_lineage)
+    except EntryModelNativeTrainingRunLineageError as exc:
+        raise RuntimeError(f"evaluation bundle run lineage is invalid: {exc}") from exc
+
     requested = run_lineage.get("requested_subsample_rows")
-    physical = run_lineage.get("physical_train_rows")
-    effective = run_lineage.get("effective_train_rows")
-    exact_counts = all(type(value) is int for value in (requested, physical, effective))
+    physical_train = run_lineage.get("physical_train_rows")
+    effective_train = run_lineage.get("effective_train_rows")
+    physical_val = run_lineage.get("physical_val_rows")
+    effective_val = run_lineage.get("effective_val_rows")
+    exact_counts = all(
+        type(value) is int
+        for value in (
+            requested,
+            physical_train,
+            effective_train,
+            physical_val,
+            effective_val,
+        )
+    )
     full_candidate = bool(
         exact_counts
         and run_lineage.get("training_profile") == "candidate"
         and requested == 0
-        and physical == effective
-        and physical > 0
+        and physical_train == effective_train
+        and physical_train > 0
+        and physical_val == effective_val
+        and physical_val > 0
     )
     bounded_smoke = bool(
         exact_counts
         and run_lineage.get("training_profile") == "smoke"
         and requested > 0
-        and physical > effective > 0
-        and effective <= requested
+        and physical_train > effective_train > 0
+        and effective_train <= requested
+        and physical_val > effective_val > 0
+        and effective_val <= requested
     )
 
     if evidence_stage == "runtime_authoritative" and not full_candidate:

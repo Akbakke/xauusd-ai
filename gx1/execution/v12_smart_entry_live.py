@@ -48,6 +48,10 @@ from gx1.contracts.immutable_event_authority_v1 import (
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_production_economics_readiness,
 )
+from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
+    EntryModelNativeTrainingRunLineageError,
+    require_training_run_lineage,
+)
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.contracts.entry_model_native_signal_v1 import (
@@ -522,12 +526,20 @@ class SmartEntryLiveInference:
             load_context="pre-launch candidate parity",
         )
         lineage = adapter._meta.get("run_lineage")
+        try:
+            lineage = require_training_run_lineage(lineage)
+        except EntryModelNativeTrainingRunLineageError as exc:
+            raise RuntimeError(
+                "[SMART_ENTRY] parity requires an exact full-population "
+                f"candidate lineage: {exc}"
+            ) from exc
         if (
-            not isinstance(lineage, Mapping)
-            or lineage.get("training_profile") != "candidate"
+            lineage.get("training_profile") != "candidate"
             or lineage.get("requested_subsample_rows") != 0
             or lineage.get("physical_train_rows")
             != lineage.get("effective_train_rows")
+            or lineage.get("physical_val_rows")
+            != lineage.get("effective_val_rows")
         ):
             raise RuntimeError(
                 "[SMART_ENTRY] parity requires a full-population "

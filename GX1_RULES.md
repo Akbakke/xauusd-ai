@@ -171,9 +171,12 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   12 GiB residency. WSL cannot set the host driver's physical lower power limit
   (the driver returns `Insufficient Permissions`), so 220 W is a one-second
   process stop, not a throttle. The two 2026-08-28 batch-32 V46 attempts reached
-  71 C before a bundle. Exactly one fresh batch-8 V46 canonical smoke is allowed
-  under this changed measured plan; assess its terminal guard log before any
-  further local CUDA retry.
+  71 C before a bundle. The first batch-8 attempt was intentionally stopped
+  after source review found a TRAIN-only sample left all 70,880 VAL rows; it
+  was not a thermal breach or crash. Exactly one repaired batch-8 V46 smoke
+  with 32 deterministic compute rows for both TRAIN and VAL is allowed under
+  this changed measured plan; assess its terminal guard log before any further
+  local CUDA retry.
 - An ephemeral remote GPU is permitted only for the same offline research
   scope, exact frozen commit and hash-bound V46 artifacts, after explicit
   operator cost approval. It must have automatic time/cost termination and no

@@ -12,6 +12,12 @@ import pandas as pd
 from gx1.contracts.entry_model_native_sizing_authority_v1 import (
     learned_sizing_authority_contract_metadata,
 )
+from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
+    FULL_POPULATION_ALGORITHM,
+    build_training_run_lineage,
+    deterministic_uniform_subsample_indices,
+    population_selection_descriptor,
+)
 from gx1.contracts.entry_model_native_sizing_execution_v1 import (
     MODEL_NATIVE_JOINT_EXIT_SIZING_FACT_MODE,
     MODEL_NATIVE_JOINT_EXIT_TRACE_COLUMNS,
@@ -431,15 +437,37 @@ def write_passing_sizing_calibration_and_proof(root: Path) -> dict[str, Any]:
     state.write_bytes(b"canonical sizing checkpoint")
     state_sha = _sha(state)
     direction_contract = model_direction_decision_contract_metadata()
-    run_lineage = {
-        "schema_version": "entry_model_native_training_run_lineage_v2",
-        "training_run_id": "UNIT_INITIAL_ADAPTATION_ADMISSION",
-        "dataset_run_id": "UNIT_DATASET_RUN_20260717",
-        "training_profile": "candidate",
-        "requested_subsample_rows": 0,
-        "physical_train_rows": 300,
-        "effective_train_rows": 300,
-    }
+    train_indices = deterministic_uniform_subsample_indices(
+        population_rows=300,
+        requested_rows=0,
+        seed=1337,
+        split_salt=0,
+    )
+    val_indices = deterministic_uniform_subsample_indices(
+        population_rows=300,
+        requested_rows=0,
+        seed=1337,
+        split_salt=1,
+    )
+    run_lineage = build_training_run_lineage(
+        training_run_id="UNIT_INITIAL_ADAPTATION_ADMISSION",
+        dataset_run_id="UNIT_DATASET_RUN_20260717",
+        training_profile="candidate",
+        execution_tier="canonical",
+        requested_subsample_rows=0,
+        physical_train_rows=300,
+        train_selection=population_selection_descriptor(
+            population_rows=300,
+            selected_indices=train_indices,
+            algorithm=FULL_POPULATION_ALGORITHM,
+        ),
+        physical_val_rows=300,
+        val_selection=population_selection_descriptor(
+            population_rows=300,
+            selected_indices=val_indices,
+            algorithm=FULL_POPULATION_ALGORITHM,
+        ),
+    )
     source_metadata: dict[str, Any] = {
         "state_dict_sha256": state_sha,
         "direction_decision_contract": direction_contract,

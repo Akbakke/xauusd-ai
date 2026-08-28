@@ -100,9 +100,13 @@ Read `GX1_RULES.md` first. It is binding.
   prepare a smoke, but not to claim training worked. On 2026-08-28 two
   canonical batch-32 CUDA smokes reached the repaired 8.95 GiB residency and
   then stopped safely at 71 C (263.77 W for 10,000 TRAIN rows; 261.33 W for
-  1,000 rows). Neither wrote an optimizer step or bundle. Local canonical CUDA
-  is thermally held; do not retry it. Resolve exact guard logs and the next
-  remote/offline decision from the handover, never from an old run directory.
+  1,000 rows). Neither wrote an optimizer step or bundle. A subsequent
+  batch-8/220 W attempt was stopped intentionally when review proved its
+  TRAIN-only subsample would still validate all 70,880 VAL rows. It was not a
+  thermal breach or crash. Smoke now must bound both compute populations after
+  full preflight and bind both in bundle lineage; one repaired batch-8/32-row
+  smoke remains the only local continuation. Resolve exact guard logs and the
+  next decision from the handover, never from an old run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
@@ -212,8 +216,8 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST. Run only the single approved batch-8/220 W local
-   canonical smoke and assess it; otherwise prepare an explicitly approved
+2. Preserve V46's sealed TEST. Run only the single repaired batch-8/220 W,
+   32-row-per-split local canonical smoke and assess it; otherwise prepare an explicitly approved
    remote canonical smoke. Train a full research candidate only if its bundle
    audit proves safe and valid.
 3. Evaluate the candidate on the historical research path (VAL and then the

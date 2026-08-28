@@ -49,11 +49,20 @@ The 1,000-row recipe itself passed its complete hash/lineage dry-run before
 execution. Therefore the present local CUDA blocker is **thermal duration at
 about 260 W**, not missing feature data, unmeasured fields, a VRAM allocation
 mismatch or an unvalidated command. The Windows host rejected an attempted
-physical 220 W driver cap from WSL with `Insufficient Permissions`. The only
-changed local plan the operator approved is **one** fresh batch-8 V46 canonical
-smoke behind a 220 W one-second process stop; it is not a throttle and its
-terminal evidence must be assessed before any second local attempt. Otherwise,
-use an explicitly approved remote GPU run.
+physical 220 W driver cap from WSL with `Insufficient Permissions`. The first
+batch-8/220 W attempt was deliberately stopped before a useful result when
+source review proved that its `--subsample-rows=1000` bounded only TRAIN while
+still scheduling all 70,880 VAL rows (8,860 batch-8 validation steps). The
+model stage stayed inside the guard (up to 68 C, about 218 W and 8,751 MiB);
+this was neither a guard breach nor a PC/WSL crash, and it wrote no bundle.
+The source now requires smoke to select deterministic, label-free bounded
+populations for **both** TRAIN and VAL after the full input/sequence/
+normalization preflight, and records both selections in the one lineage
+contract enforced by the bundle loader. This changes no V46 feature, target,
+dataset row or candidate rule. One fresh repaired batch-8 V46 canonical smoke
+with 32 rows per model-compute split remains the only local continuation behind
+the 220 W one-second process stop; assess its terminal evidence before any
+second local attempt. Otherwise, use an explicitly approved remote GPU run.
 
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists

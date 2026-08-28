@@ -110,9 +110,11 @@ but the system is not empirically finished:
 - the current local CUDA route is limited to one changed measured plan: two
   hash-bound V46 batch-32 smokes stopped safely at 71 C before an optimizer
   step or bundle, while VRAM stayed at 8.95 GiB. WSL cannot set a physical
-  lower driver limit, so exactly one fresh batch-8 canonical smoke may use the
-  active 220 W one-second stop; assess its terminal evidence before any retry
-  or remote offline smoke on a frozen commit and V46 artifacts;
+  lower driver limit, so the first batch-8 attempt used the active 220 W
+  one-second stop but was intentionally stopped when its TRAIN-only sample
+  left all 70,880 VAL rows. Only one repaired batch-8/32-row-per-split smoke
+  may run next; assess its terminal evidence before any retry or remote
+  offline smoke on a frozen commit and V46 artifacts;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

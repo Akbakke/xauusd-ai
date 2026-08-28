@@ -85,7 +85,10 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     require_prefreeze_test_seal_lineage,
     require_prefreeze_test_seal_lineage_metadata,
 )
-from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
+    EntryModelNativeTrainingRunLineageError,
+    require_training_run_lineage,
+)
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     require_unified_exit_lifecycle_authority_evidence,
 )
@@ -1093,53 +1096,13 @@ def _require_exact_model_native_bundle_metadata(
     if not state_contract:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_CONTRACT_MISSING]")
     run_lineage = _require_mapping_field(meta, "run_lineage", context="meta")
-    if set(run_lineage) != {
-        "schema_version",
-        "training_run_id",
-        "dataset_run_id",
-        "training_profile",
-        "requested_subsample_rows",
-        "physical_train_rows",
-        "effective_train_rows",
-    }:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_FIELDS_INVALID]")
-    if run_lineage.get("schema_version") != "entry_model_native_training_run_lineage_v2":
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_SCHEMA_INVALID]")
     try:
-        training_run_id = require_entry_run_id(run_lineage.get("training_run_id"))
-        dataset_run_id = require_entry_run_id(run_lineage.get("dataset_run_id"))
-    except Exception as exc:
+        run_lineage = require_training_run_lineage(run_lineage)
+    except EntryModelNativeTrainingRunLineageError as exc:
         raise RuntimeError(
             f"[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_INVALID] {exc}"
         ) from exc
-    if training_run_id == dataset_run_id:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_RUN_LINEAGE_ROLES_COLLAPSED]")
-    training_profile = run_lineage.get("training_profile")
-    requested_subsample_rows = run_lineage.get("requested_subsample_rows")
-    physical_train_rows = run_lineage.get("physical_train_rows")
-    effective_train_rows = run_lineage.get("effective_train_rows")
-    if (
-        training_profile not in {"smoke", "candidate"}
-        or isinstance(requested_subsample_rows, bool)
-        or not isinstance(requested_subsample_rows, int)
-        or requested_subsample_rows < 0
-        or isinstance(physical_train_rows, bool)
-        or not isinstance(physical_train_rows, int)
-        or physical_train_rows <= 0
-        or isinstance(effective_train_rows, bool)
-        or not isinstance(effective_train_rows, int)
-        or not 0 < effective_train_rows <= physical_train_rows
-        or (
-            training_profile == "candidate"
-            and (
-                requested_subsample_rows != 0
-                or effective_train_rows != physical_train_rows
-            )
-        )
-    ):
-        raise RuntimeError(
-            "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_POPULATION_LINEAGE_INVALID]"
-        )
+    dataset_run_id = run_lineage["dataset_run_id"]
     if state_contract.get("entry_run_id") != dataset_run_id:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DATASET_RUN_LINEAGE_MISMATCH]")
     try:

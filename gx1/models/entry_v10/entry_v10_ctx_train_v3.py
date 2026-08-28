@@ -78,6 +78,13 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     training_objective_contract_metadata,
 )
+from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
+    FULL_POPULATION_ALGORITHM,
+    UNIFORM_SUBSAMPLE_ALGORITHM,
+    build_training_run_lineage,
+    deterministic_uniform_subsample_indices,
+    population_selection_descriptor,
+)
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
     joint_task_weighting_metadata,
@@ -8029,6 +8036,11 @@ def run_train(
             "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
             "use the full TRAIN population"
         )
+    if profile == "smoke" and int(subsample_rows) <= 0:
+        raise RuntimeError(
+            "[ENTRY_SMOKE_SUBSAMPLE_REQUIRED] smoke must declare a positive "
+            "bounded model-compute population"
+        )
     try:
         prefreeze_test_seal_lineage = (
             require_prefreeze_test_seal_lineage_metadata(
@@ -8241,25 +8253,6 @@ def run_train(
             ]
         ),
     )
-    # V12.2 sweep mode: uniform TRAIN-only subsample (VAL untouched). Sampling
-    # may not depend on a retired direction label.
-    if subsample_rows > 0 and subsample_rows < len(train_ds):
-        rng = np.random.default_rng(seed=seed)
-        sampled_idx = sorted(
-            rng.choice(
-                np.arange(len(train_ds), dtype=np.int64),
-                size=int(subsample_rows),
-                replace=False,
-            ).tolist()
-        )
-        train_ds.indices = np.array(sampled_idx, dtype=np.int64)
-        train_ds.compact_materialized_rows(train_ds.indices)
-        log.info(
-            "[SUBSAMPLE] uniform TRAIN-only subsample: %d/%d rows",
-            len(sampled_idx),
-            len(train_ds.df),
-        )
-    effective_train_rows = int(len(train_ds))
     val_ds = EntryV10CtxDataset(
         val_parquet,
         seq_len=seq_len,
@@ -8271,6 +8264,7 @@ def run_train(
     val_ds.bind_unified_exit_lifecycle(
         unified_exit_lifecycle.splits["val"]
     )
+    physical_val_rows = int(len(val_ds))
     if (
         not train_ds._sequence_source_reconstructed
         or not val_ds._sequence_source_reconstructed
@@ -8417,6 +8411,73 @@ def run_train(
                 "outcome/event auxiliaries must not use fallback labels."
             )
 
+    # Smoke is compute-only evidence, never candidate/OOS authority.  It keeps
+    # the full TRAIN normalization fit and all TRAIN+VAL contract/liveness
+    # checks above, then bounds both optimizer and validation work using two
+    # deterministic, label-free samples.  Previously only TRAIN was bounded,
+    # silently leaving the full VAL population (8,860 batch-8 steps on V46)
+    # after every smoke epoch.
+    if profile == "smoke" and int(subsample_rows) >= min(
+        physical_train_rows,
+        physical_val_rows,
+    ):
+        raise RuntimeError(
+            "[ENTRY_SMOKE_SUBSAMPLE_NOT_BOUNDED] --subsample-rows must be "
+            "smaller than both immutable TRAIN and VAL populations"
+        )
+    train_selected_indices = deterministic_uniform_subsample_indices(
+        population_rows=physical_train_rows,
+        requested_rows=int(subsample_rows),
+        seed=int(seed),
+        split_salt=0,
+    )
+    val_selected_indices = deterministic_uniform_subsample_indices(
+        population_rows=physical_val_rows,
+        requested_rows=int(subsample_rows),
+        seed=int(seed),
+        split_salt=1,
+    )
+    train_selection_algorithm = (
+        UNIFORM_SUBSAMPLE_ALGORITHM
+        if int(train_selected_indices.size) < physical_train_rows
+        else FULL_POPULATION_ALGORITHM
+    )
+    val_selection_algorithm = (
+        UNIFORM_SUBSAMPLE_ALGORITHM
+        if int(val_selected_indices.size) < physical_val_rows
+        else FULL_POPULATION_ALGORITHM
+    )
+    train_population_selection = population_selection_descriptor(
+        population_rows=physical_train_rows,
+        selected_indices=train_selected_indices,
+        algorithm=train_selection_algorithm,
+    )
+    val_population_selection = population_selection_descriptor(
+        population_rows=physical_val_rows,
+        selected_indices=val_selected_indices,
+        algorithm=val_selection_algorithm,
+    )
+    if train_selection_algorithm == UNIFORM_SUBSAMPLE_ALGORITHM:
+        train_ds.indices = train_selected_indices
+        train_ds.compact_materialized_rows(train_ds.indices)
+    if val_selection_algorithm == UNIFORM_SUBSAMPLE_ALGORITHM:
+        val_ds.indices = val_selected_indices
+        val_ds.compact_materialized_rows(val_ds.indices)
+    effective_train_rows = int(len(train_ds))
+    effective_val_rows = int(len(val_ds))
+    log.info(
+        "[MODEL_COMPUTE_POPULATION] profile=%s TRAIN=%d/%d algorithm=%s "
+        "VAL=%d/%d algorithm=%s; full TRAIN normalization and input "
+        "contracts were completed before selection",
+        profile,
+        effective_train_rows,
+        physical_train_rows,
+        train_selection_algorithm,
+        effective_val_rows,
+        physical_val_rows,
+        val_selection_algorithm,
+    )
+
     if int(num_workers) != 0:
         raise RuntimeError(
             "[ENTRY_DATALOADER_WORKERS_INVALID] num_workers must equal 0 "
@@ -8544,8 +8605,8 @@ def run_train(
     # decay this run applies. The recipe owner owns both the declared vocabulary
     # and the formula (rule 14); the trainer only supplies the run's declared
     # budget. `effective_train_rows` is the rows one epoch iterates: the
-    # declared --subsample-rows budget as realized by uniform sampling on
-    # the smoke profile, and the complete declared TRAIN population on the
+    # declared --subsample-rows budget as realized by uniform TRAIN sampling
+    # on the smoke profile, and the complete declared TRAIN population on the
     # candidate profile (where --subsample-rows is 0 by contract). Rule 2g: the
     # horizon is only "one epoch" if that row count is the one the optimizer
     # actually steps through, so the loader's own micro-batch count is required
@@ -9731,16 +9792,17 @@ def run_train(
     entry_fitted_q_production_economics = (
         entry_fitted_q_production_economics_readiness()
     )
-    run_lineage = {
-        "schema_version": "entry_model_native_training_run_lineage_v2",
-        "training_run_id": str(run_id),
-        "dataset_run_id": str(dataset_run_id),
-        "training_profile": str(profile),
-        "execution_tier": str(execution_tier),
-        "requested_subsample_rows": int(subsample_rows),
-        "physical_train_rows": physical_train_rows,
-        "effective_train_rows": effective_train_rows,
-    }
+    run_lineage = build_training_run_lineage(
+        training_run_id=str(run_id),
+        dataset_run_id=str(dataset_run_id),
+        training_profile=str(profile),
+        execution_tier=str(execution_tier),
+        requested_subsample_rows=int(subsample_rows),
+        physical_train_rows=physical_train_rows,
+        train_selection=train_population_selection,
+        physical_val_rows=physical_val_rows,
+        val_selection=val_population_selection,
+    )
     lock = {
         "version": "entry_v10_ctx_lock_v3",
         "model_architecture_schema_version": MODEL_ARCHITECTURE_SCHEMA_VERSION,
@@ -10580,6 +10642,11 @@ def main() -> None:
         )
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
+    if args.profile == "smoke" and int(args.subsample_rows) <= 0:
+        parser.error(
+            "smoke training requires an explicit positive --subsample-rows "
+            "to bound both TRAIN and VAL model compute"
+        )
     if _is_attended_execution_tier(args.execution_tier) and args.profile != "smoke":
         parser.error("attended execution tiers require --profile smoke")
     if _is_attended_execution_tier(args.execution_tier) and (

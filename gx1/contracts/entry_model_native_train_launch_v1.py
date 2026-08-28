@@ -1607,6 +1607,11 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
             integer_values["subsample_rows"] == 0,
             "candidate training requires full TRAIN population (subsample_rows=0)",
         )
+    else:
+        _require(
+            integer_values["subsample_rows"] > 0,
+            "smoke training requires an explicit positive bounded compute population",
+        )
     _require(
         integer_values["num_workers"] == 0,
         "num_workers must equal 0 under the fixed low-memory recipe",
