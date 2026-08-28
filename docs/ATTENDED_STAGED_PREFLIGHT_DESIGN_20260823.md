@@ -9,8 +9,9 @@ dataset nor any execution authority.
 > Current-status note, 2026-08-28: this document describes the historical
 > attended-only exception. The active V46 canonical route is separate and is
 > now limited to one fresh 220 W batch-8/32-row repeat after the prior smoke
-> completed four steps but correctly rejected a retired static Exit path.
-> Commit `a77ebb6e` repairs that proof. Do not use attended results, a 390 W
+> completed four steps and active movement proof, but hit a smoke/candidate
+> bundle-gate mismatch. Commit `31f376ca` scopes that gate by profile. Do not
+> use attended results, a 390 W
 > configured driver limit or this document to bypass the canonical smoke/bundle
 > gate. The authoritative current plan is the handover.
 

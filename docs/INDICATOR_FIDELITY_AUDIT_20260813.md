@@ -7,7 +7,7 @@
 > them from any count or proposed surface below. No current-contract dataset,
 > model, OOS/edge result or tick-resolution claim is established by this
 > historical audit. V46's all-field liveness PASS and current bounded-smoke
-> status (including commit `a77ebb6e`'s retired-Exit-proof repair) are recorded
+> status (including commit `31f376ca`'s smoke bundle-gate repair) are recorded
 > only in the current handover, not inferred from this audit.
 
 Five parallel read-only audits over EVERY emitted field in the surface

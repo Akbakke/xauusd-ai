@@ -20,10 +20,10 @@ recipe and bundle-audit condition below.
 
 **Later runtime amendment — 2026-08-28:** that 32/32 smoke completed full
 preflight, four CUDA optimizer steps and validation inside 65 C / 211.77 W /
-8,751 MiB. It produced no bundle because the post-training movement proof
-incorrectly required a retired static Exit branch. Commit `a77ebb6e` binds that
-proof to the active episode-native Exit path and adds its regression test. One
-fresh recipe-bound/dry-run-checked repeat is permitted; it remains smoke-only
+8,751 MiB. Its active episode-native movement proof passed, but the bundle
+loader then incorrectly applied candidate-only Exit-gate evidence to smoke.
+Commit `31f376ca` scopes that evidence by profile and candidate remains strict.
+One fresh recipe-bound/dry-run-checked repeat is permitted; it remains smoke-only
 and creates no edge, TEST, demo or live authority.
 
 ## V46 review record — 2026-08-25

@@ -104,10 +104,11 @@ Read `GX1_RULES.md` first. It is binding.
   batch-8/220 W attempt was stopped intentionally when review proved its
   TRAIN-only subsample would still validate all 70,880 VAL rows. It was not a
   thermal breach or crash. The repaired 32/32 smoke then completed four CUDA
-  optimizer steps and validation inside 65 C / 211.77 W / 8,751 MiB, but its
-  post-training proof correctly rejected a retired static Exit branch. Commit
-  `a77ebb6e` binds the proof to active episode-native components. One fresh
-  recipe-bound/dry-run-checked repeat is the only local continuation. Resolve
+  optimizer steps and validation inside 65 C / 211.77 W / 8,751 MiB. Its active
+  episode-native movement proof then passed, but the bundle loader incorrectly
+  imposed a candidate-only Exit gate on smoke. Commit `31f376ca` scopes that
+  gate by profile; candidate evidence remains strict. One fresh recipe-bound/
+  dry-run-checked repeat is the only local continuation. Resolve
   exact guard logs and the next decision from the handover, never from an old
   run directory.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
