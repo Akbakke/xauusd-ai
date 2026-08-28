@@ -37,6 +37,7 @@ from gx1.features.htf_features import (
 from gx1.models.entry_v10 import entry_v10_input_normalization as normalization
 from gx1.models.entry_v10.entry_v10_input_normalization import (
     TrainNormalizationArtifacts,
+    _validate_source_backed_train_inputs,
     fit_entry_v10_train_input_normalization,
     select_causal_mtf_fit_population,
 )
@@ -733,6 +734,30 @@ def test_fit_is_structurally_independent_of_downstream_subsamples(
         first["fit_population_proof"]["proof_sha256"]
         == second["fit_population_proof"]["proof_sha256"]
     )
+
+
+def test_source_backed_normalization_rejects_unaudited_sequence_surface(
+    fit_fixture: dict,
+) -> None:
+    with pytest.raises(
+        RuntimeError,
+        match="ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_INVALID",
+    ):
+        _validate_source_backed_train_inputs(
+            train_snap=fit_fixture["snap"],
+            train_ctx_cont=fit_fixture["ctx_cont"],
+            train_ctx_cat=fit_fixture["ctx_cat"],
+            entry_sequence_source={
+                "signal": fit_fixture["seq"][0],
+                "times_ns": np.arange(MODEL_NATIVE_SEQ_LEN, dtype=np.int64),
+                "sample_positions": np.arange(
+                    len(fit_fixture["snap"]), dtype=np.int64
+                ),
+            },
+            ordered_signal_names=fit_fixture["names"],
+            temporal_aliases=[],
+            row_chunk=5,
+        )
 
 
 def test_mtf_warmup_is_a_hard_failure() -> None:

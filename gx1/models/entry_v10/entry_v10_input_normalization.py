@@ -50,6 +50,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
 )
+from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
+    require_sequence_source_reconstruction_audit,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     model_native_context_temporal_alias_policy,
@@ -126,6 +129,11 @@ class TrainNormalizationArtifacts:
     train_manifest_path: Path
     m5_prebuilt_path: Path
     mtf_cache_dir: Path
+    # Candidate TRAIN reconstructs Entry sequences from the immutable M5
+    # feature surface. The source-reconstruction audit is required here as
+    # well as at launch: otherwise the normalizer could record only sampled
+    # values without recording which audited physical surface supplied them.
+    train_sequence_source_audit_path: Path | None = None
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -600,6 +608,7 @@ def _validate_source_backed_train_inputs(
     np.ndarray,
     np.ndarray,
     np.ndarray,
+    dict[str, Any],
 ]:
     """Validate source-backed Entry windows without materialising ``N×96``.
 
@@ -617,11 +626,13 @@ def _validate_source_backed_train_inputs(
         "signal",
         "times_ns",
         "sample_positions",
+        "audit",
     }:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_INVALID]")
     signal = np.asarray(entry_sequence_source["signal"])
     source_times = np.asarray(entry_sequence_source["times_ns"])
     positions = np.asarray(entry_sequence_source["sample_positions"])
+    audit = entry_sequence_source["audit"]
     snap = np.asarray(train_snap)
     ctx_cont = np.asarray(train_ctx_cont)
     ctx_cat = np.asarray(train_ctx_cat)
@@ -648,6 +659,7 @@ def _validate_source_backed_train_inputs(
         or np.any(np.diff(positions) <= 0)
         or names != list(dict.fromkeys(names))
         or len(names) != MODEL_NATIVE_SIGNAL_DIM
+        or not isinstance(audit, Mapping)
     ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_INVALID]")
     alias_signal_indices = np.asarray(
@@ -680,7 +692,15 @@ def _validate_source_backed_train_inputs(
                 "[ENTRY_INPUT_NORMALIZATION_SOURCE_BACKING_VALUE_INVALID] "
                 f"rows={start}:{stop}"
             )
-    return signal, source_times, positions, snap, ctx_cont, ctx_cat
+    return (
+        signal,
+        source_times,
+        positions,
+        snap,
+        ctx_cont,
+        ctx_cat,
+        dict(audit),
+    )
 
 
 def _load_entry_m5_source_times(path: Path) -> np.ndarray:
@@ -1607,6 +1627,7 @@ def fit_entry_v10_train_input_normalization(
     source_signal: np.ndarray | None = None
     source_times_ns: np.ndarray | None = None
     source_positions: np.ndarray | None = None
+    source_reconstruction_audit: dict[str, Any] | None = None
     if entry_sequence_source is None:
         seq, snap, ctx_cont, ctx_cat = _validate_full_train_inputs(
             train_seq=train_seq,
@@ -1625,6 +1646,7 @@ def fit_entry_v10_train_input_normalization(
             snap,
             ctx_cont,
             ctx_cat,
+            source_reconstruction_audit,
         ) = _validate_source_backed_train_inputs(
             train_snap=train_snap,
             train_ctx_cont=train_ctx_cont,
@@ -1662,6 +1684,74 @@ def fit_entry_v10_train_input_normalization(
     ):
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_TRAIN_MANIFEST_TIMES_MISMATCH]"
+        )
+
+    entry_sequence_source_provenance: dict[str, Any]
+    if entry_sequence_source is None:
+        entry_sequence_source_provenance = {
+            "mode": "materialized_entry_sequences",
+            "candidate_authorized": False,
+        }
+    else:
+        if source_reconstruction_audit is None:
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_SOURCE_AUDIT_MISSING]"
+            )
+        raw_audit_path = artifacts.train_sequence_source_audit_path
+        if raw_audit_path is None:
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_SOURCE_AUDIT_PATH_MISSING]"
+            )
+        audit_path = _exact_regular_file(
+            raw_audit_path,
+            label="train_sequence_source_audit",
+        )
+        audit_payload = _read_json_object(
+            audit_path,
+            label="train_sequence_source_audit",
+        )
+        if audit_payload != source_reconstruction_audit:
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_SOURCE_AUDIT_SPLIT_BRAIN]"
+            )
+        try:
+            require_sequence_source_reconstruction_audit(
+                audit_payload,
+                expected_parquet_path=Path(base_lineage["train_parquet_path"]),
+                expected_manifest_path=Path(base_lineage["train_manifest_path"]),
+                expected_parquet_sha256=str(base_lineage["train_parquet_sha256"]),
+                expected_manifest_sha256=str(base_lineage["train_manifest_sha256"]),
+                expected_feature_surface=manifest,
+                expected_rows=row_count,
+                expected_seq_len=MODEL_NATIVE_SEQ_LEN,
+                expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+            )
+        except RuntimeError as exc:
+            raise RuntimeError(
+                "[ENTRY_INPUT_NORMALIZATION_SOURCE_AUDIT_INVALID]"
+            ) from exc
+        entry_sequence_source_provenance = {
+            "mode": "source_backed_m5_feature_surface_reconstruction",
+            "candidate_authorized": True,
+            "audit_path": str(audit_path),
+            "audit_sha256": _sha256_file(audit_path),
+            "audit_canonical_sha256": _canonical_sha256(audit_payload),
+            "audit": audit_payload,
+            "feature_surface_path": audit_payload["feature_surface_path"],
+            "feature_surface_sha256": audit_payload["feature_surface_sha256"],
+            "feature_surface_manifest_path": audit_payload[
+                "feature_surface_manifest_path"
+            ],
+            "feature_surface_manifest_sha256": audit_payload[
+                "feature_surface_manifest_sha256"
+            ],
+            "feature_surface_rows": audit_payload["feature_surface_rows"],
+            "sequence_source_chain_sha256": audit_payload[
+                "sequence_source_chain_sha256"
+            ],
+        }
+        entry_sequence_source_provenance["provenance_sha256"] = _canonical_sha256(
+            entry_sequence_source_provenance
         )
 
     exit_population = _validate_exit_train_population(
@@ -1937,6 +2027,9 @@ def fit_entry_v10_train_input_normalization(
         "temporal_aliases_sha256": normalization_contract[
             "temporal_aliases_sha256"
         ],
+        "entry_sequence_source_provenance": (
+            entry_sequence_source_provenance
+        ),
         "local_populations": {
             "entry": entry_local_proof,
             "exit": exit_local_proof,

@@ -4268,7 +4268,7 @@ class EntryV10CtxDataset(Dataset):
             raise RuntimeError("[ENTRY_V10_CTX_SEQUENCE_SOURCE_SHAPE_INVALID]")
         return sequence
 
-    def source_reconstruction_normalization_input(self) -> Optional[dict[str, np.ndarray]]:
+    def source_reconstruction_normalization_input(self) -> Optional[dict[str, Any]]:
         """Expose the exact source representation to TRAIN-only normalization."""
 
         if not self._sequence_source_reconstructed:
@@ -4277,6 +4277,7 @@ class EntryV10CtxDataset(Dataset):
             self._sequence_source_signal is None
             or self._sequence_source_times_ns is None
             or self._sequence_source_positions is None
+            or self._sequence_source_audit is None
             or self._compact_row_indices is not None
         ):
             raise RuntimeError(
@@ -4286,6 +4287,7 @@ class EntryV10CtxDataset(Dataset):
             "signal": self._sequence_source_signal,
             "times_ns": self._sequence_source_times_ns,
             "sample_positions": self._sequence_source_positions,
+            "audit": dict(self._sequence_source_audit),
         }
 
     def compact_materialized_rows(self, row_indices: Sequence[int]) -> None:
@@ -10556,6 +10558,9 @@ def run_train(
             train_manifest_path=Path(train_manifest_path),
             m5_prebuilt_path=Path(m5_prebuilt_path),
             mtf_cache_dir=mtf_cache_dir,
+            train_sequence_source_audit_path=(
+                train_sequence_source_audit_json
+            ),
         ),
         prevalidated_multi_tf_cache=multi_tf_features,
         entry_sequence_source=(
@@ -10566,6 +10571,27 @@ def run_train(
     input_normalization_fit_population_proof = normalization_fit[
         "fit_population_proof"
     ]
+    normalization_entry_source = (
+        input_normalization_fit_population_proof.get(
+            "entry_sequence_source_provenance"
+        )
+        if isinstance(input_normalization_fit_population_proof, Mapping)
+        else None
+    )
+    if profile == "candidate":
+        if (
+            not isinstance(normalization_entry_source, Mapping)
+            or normalization_entry_source.get("mode")
+            != "source_backed_m5_feature_surface_reconstruction"
+            or normalization_entry_source.get("candidate_authorized") is not True
+            or not isinstance(
+                normalization_entry_source.get("provenance_sha256"), str
+            )
+            or len(str(normalization_entry_source["provenance_sha256"])) != 64
+        ):
+            raise RuntimeError(
+                "[ENTRY_CANDIDATE_NORMALIZATION_SOURCE_PROVENANCE_INVALID]"
+            )
     log.info(
         "[ENTRY_INPUT_NORMALIZATION_FIT] contract_sha256=%s "
         "shared_context_train_rows=%d val_rows=0 test_rows=0",
