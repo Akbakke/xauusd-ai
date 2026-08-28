@@ -197,15 +197,16 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 ## Next implementation sequence
 
 1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST and bind causal executable prices, costs,
-   financing, gap/terminal treatment and portfolio constraints to a new
-   production-economics evidence contract.
-3. Audit the net-cost target on TRAIN/VAL only; do not rebuild V46 merely to
-   change a report-only consumer.
-4. Reassess a distinct bounded research run only after the economics audit and
-   explicit operator authorization.
-5. Train/audit smoke, then full candidate if every gate passes.
-6. Fit allowed calibration, freeze the candidate, evaluate untouched TEST and
-   run the same bundle's unified Exit replay.
+2. Preserve V46's sealed TEST and run the bounded offline research smoke, then
+   a full research candidate only if the smoke proves safe and valid.
+3. Evaluate the candidate on the historical research path (VAL and then the
+   untouched TEST only where its seal permits it); report that result as
+   research-only, never as a production edge claim.
+4. Separately bind causal executable prices, costs, financing, gap/terminal
+   treatment and portfolio constraints before any production-net claim, demo,
+   paper or live route. Do not rebuild V46 merely to change a report-only
+   consumer.
+5. Fit allowed calibration, freeze the candidate and run the same bundle's
+   unified Exit replay only after the relevant research gates pass.
 
 Run `bash scripts/gx1_handover.sh` whenever authority or status changes.

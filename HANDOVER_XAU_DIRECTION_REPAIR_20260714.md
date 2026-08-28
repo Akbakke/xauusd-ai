@@ -1,6 +1,6 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-27. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-28. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
@@ -10,8 +10,9 @@ load-bearing. This is a map, not a diary; cut history, never a checklist.
 
 ## Current verdict
 
-Launch is `BLOCK`. There is **no admitted dataset, no model, no calibration, no
-untouched-TEST result, no PnL and no win-rate proof**.
+Launch is `BLOCK` for admission, demo, paper and live operation. There is **no
+admitted dataset, no model, no calibration, no untouched-TEST result, no PnL
+and no win-rate proof**.
 
 This repository is **offline-only**: no change, rebuild, audit or result here
 authorizes paper, demo or live trading.
@@ -20,12 +21,18 @@ authorizes paper, demo or live trading.
 current hash-bound research dataset in `PROJECT_STATE_xau_direction_launch.json`.
 It has PASS evidence for all eight feature families, source-backed sequences,
 TRAIN-only normalization and the repaired M5-decision-to-M1-fill causality
-audit. Its new adoption review is still deliberately BLOCKED by exactly one
-gate: fitted-Q production economics. No immutable historical broker commission,
-slippage, financing/swap, gap/terminal or shared-capital replay evidence exists,
-so V46 is neither a candidate, a PnL result nor authority for paper/demo/live.
-This status update does not authorize rebuilding, training or any external
-collection.
+audit. Its adoption review is deliberately BLOCKED by fitted-Q production
+economics. That blocks production-net edge claims and every paper/demo/live
+route, but does **not** block the separate gross-research smoke, candidate and
+historical OOS/backtest path supported by the fitted-Q research contract.
+
+**Current execution status, 2026-08-28:** canonical V46 smoke preflight passed
+all TRAIN/VAL, eight-family and five-timeframe checks, then its first batch
+reached 24,277 MiB VRAM. The 12 GiB guard stopped it safely before any optimizer
+step or bundle. Commit `4754853a` repairs that exact allocation mismatch by
+using the existing eight-row streamed Exit-episode path for canonical CUDA.
+The next action is a fresh source-bound smoke only; no TEST bytes, demo account,
+paper route or live route is in scope.
 
 **Historical V42 status, verified 2026-08-25:** the explicit
 `current_audited_dataset_evidence` binding in

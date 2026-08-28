@@ -1,16 +1,14 @@
 # Canonical host GPU telemetry bridge contract
 
-Status: the signed bridge remains a non-admitted prerequisite. The repository
-now contains a fail-closed Linux query client wired into the canonical trainer
-guard and a Windows service installer, but the service has not been installed
-and the generated public certificate is deliberately source-unbound. The guard
-therefore rejects canonical CUDA before it can create a cgroup, load data or
-allocate a model. The companion
-`scripts/windows/Install-GX1-HostTelemetry.ps1` remains solely an elevated
-host sensor-installation and validation tool; none of these artifacts relax a
-guard, change a model/feature/target/dataset or grant execution authority.
+Status: **retired as a canonical execution prerequisite on 2026-08-28**. The
+bridge and Windows installer remain optional host-sensor tooling, not a gate
+for offline research. Canonical CUDA now uses only the pinned, system-owned
+WSL `nvidia-smi` path with a one-second guard: core <=70 C, actual draw <=250 W
+and residency <=12 GiB. The observed 390 W *configured* driver limit is allowed
+only because the actual-draw stop remains enforced. Neither path grants demo,
+paper, live or production-edge authority.
 
-## Why this exists
+## Historical bridge design (not a current CUDA prerequisite)
 
 The canonical CUDA guard intentionally fails closed when any safety sensor is
 unavailable. On the current RTX 3090 / WSL host, the system-owned
@@ -84,7 +82,7 @@ not a signed bridge reply. It must never be admitted as canonical evidence.
 The 390 W reading also means canonical CUDA remains blocked until the physical
 limit is demonstrably at or below 250 W in a later signed bridge preflight.
 
-## Non-negotiable prerequisites
+## Historical bridge prerequisites (not current canonical constraints)
 
 Before a canonical CUDA smoke can start, both of these must be demonstrated in
 the same preflight:

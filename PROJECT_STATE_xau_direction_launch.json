@@ -100,10 +100,10 @@
         "schema_version": "entry_model_native_seq513_trainability_readiness_v1",
         "decision": "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW"
       },
-      "train_recipe": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_20260825T211500Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260825T205303897382Z.json",
-        "sha256": "a6c6063aa69b9dcccddce6ac6f51575c9462fbccbdaa7ab2a4e8a23c28ea5916",
-        "schema_version": "entry_model_native_seq513_train_recipe_audit_v8",
+    "train_recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/train_recipe_audit_canonical_cuda_smoke_20260828T061800Z/ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T061708865663Z.json",
+      "sha256": "b4a25c683356ee5c9d17c425171736a3ea28b48e3d67503087782f10792e277b",
+      "schema_version": "entry_model_native_seq513_train_recipe_audit_v9",
         "decision": "PASS"
       },
       "execution_causality": {

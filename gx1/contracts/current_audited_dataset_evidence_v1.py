@@ -69,7 +69,7 @@ _REQUIRED_REPORTS: dict[str, tuple[str, str]] = {
         "entry_model_native_seq513_trainability_readiness_v1",
         "READY_FOR_MODEL_NATIVE_SEQ513_TRAINABILITY_REVIEW",
     ),
-    "train_recipe": ("entry_model_native_seq513_train_recipe_audit_v8", "PASS"),
+    "train_recipe": ("entry_model_native_seq513_train_recipe_audit_v9", "PASS"),
     "execution_causality": (
         ENTRY_EXECUTION_CAUSALITY_AUDIT_SCHEMA_VERSION,
         "PASS",

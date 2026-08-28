@@ -207,12 +207,13 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "BIND_PRODUCTION_ECONOMICS_BEFORE_ANY_ADMISSION_OR_EDGE_CLAIM"
+        "OFFLINE_V46_RESEARCH_SMOKE_THEN_CANDIDATE_THEN_HISTORICAL_OOS"
         in result.stdout
     )
     assert (
         "dataset_rebuild: "
-        "REQUIRED_AFTER_PRODUCTION_ECONOMICS_BINDING_BEFORE_CANDIDATE_TRAINING"
+        "NOT_REQUIRED_FOR_OFFLINE_RESEARCH; "
+        "PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
         in result.stdout
     )
     assert (
@@ -221,8 +222,8 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "independently measurable host-side power limits" in result.stdout
-    assert "same-bundle unified Exit proof" in result.stdout
+    assert "bounded V46 offline research smoke" in result.stdout
+    assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
 
