@@ -6,25 +6,24 @@ standing safety constraint: no expanded model run may bypass these fixed
 limits, active telemetry or the full data preflight. This changes neither the
 dataset nor any execution authority.
 
-> Current-status note, 2026-08-28: this document describes the historical
-> attended-only exception. The active V46 canonical smoke is separate and has
-> completed, publishing a diagnostic bundle at 63 C / 212.37 W / 8,751 MiB.
-> Its next gate is immutable VAL inference through the exact 220 W-guarded
-> evaluator, followed by the smoke-bundle audit. Do not use attended results, a
-> 390 W configured driver limit or this document to bypass that gate. The
-> authoritative current plan is the handover.
+> Current-status correction, 2026-08-29: the prior attended-only 390 W
+> actual-draw amendment is retired. The active source-bound policy is 70 C
+> core, **220 W actual draw** and 12 GiB VRAM for every CUDA route, including
+> attended learning validation. The RTX 3090 may still report a 390 W
+> configured driver limit because WSL cannot lower it; that is never authority
+> to consume 390 W. The authoritative current plan is the handover.
 
-### 2026-08-26 operator-present 390 W amendment
+### Historical 2026-08-26 operator-present 390 W amendment — superseded
 
-The operator explicitly approved the attended-only actual-draw ceiling at
-390 W. The current source-bound attended policy is therefore 390 W configured
-and 390 W actual draw, while retaining the 70 C core stop, 12 GiB NVML-use
-stop, one-second telemetry, 10 GiB cgroup, 512 MiB swap ceiling, two logical
-CPU cores (affinity 0-1), and the staged 600+300-second deadlines. Canonical
-training is separate: it accepts the observed 390 W configured limit but keeps
-the stricter 70 C core, 220 W actual-draw and 12 GiB residency stops. The
-Windows driver rejected a physical lower power limit from WSL; 220 W is thus a
-one-second canonical process stop, not a throttle.
+The operator previously approved an attended-only 390 W actual-draw ceiling.
+That exception was superseded on 2026-08-29 after a fresh run showed that it
+could reach 210.53 W while the machine is operated under the 220 W project
+safety boundary. The source-bound policy is now 390 W configured at most and
+220 W actual draw for attended and canonical routes alike, while retaining the
+70 C core stop, 12 GiB NVML-use stop, one-second telemetry, 10 GiB cgroup,
+512 MiB swap ceiling, two logical CPU cores (affinity 0-1), and staged
+600+300-second deadlines. The Windows driver rejected a physical lower limit
+from WSL; 220 W is therefore a one-second process stop, not a throttle.
 
 The fresh V46 run bound to source commit `42c78b94` completed the full data
 preflight and two CUDA optimizer steps without a WSL/GPU reset, thermal
@@ -53,7 +52,7 @@ The attended-only route would receive two fixed, source-bound deadlines:
 
 | Stage | Fixed maximum | Work included | Protection retained |
 | --- | ---: | --- | --- |
-| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 10 GiB hard cgroup, 512 MiB swap ceiling, two logical CPU cores (affinity 0-1), low priority, one-second GPU telemetry, 70 C core stop, 390 W actual-draw stop, 12 GiB NVML-use stop |
+| `data_preflight` | 600 seconds | exact parquet + manifest re-hash; full MTF/lifecycle validation; full TRAIN normalization; both datasets, target/contract and specialist-routing checks | 10 GiB hard cgroup, 512 MiB swap ceiling, two logical CPU cores (affinity 0-1), low priority, one-second GPU telemetry, 70 C core stop, 220 W actual-draw stop, 12 GiB NVML-use stop |
 | `model_smoke` | 300 seconds | model construction, CUDA input-contract forward, optimizer and the declared attended smoke epoch | exactly the same controls, with a newly measured 300-second deadline |
 
 The total maximum is therefore 900 seconds. It is a more tightly specified
@@ -199,7 +198,7 @@ is admitted only through the attended-only route with its source-owned
 low-VRAM geometry: CUDA batch size 8, one epoch, gradient accumulation 1, two
 complete optimizer steps, at most eight 480-bar Exit episodes per backward
 group, a 50% per-process CUDA allocator fence, and a 12 GiB NVML-use stop.
-It also retains the five-minute model deadline, 70 C core stop, 390 W
+It also retains the five-minute model deadline, 70 C core stop, 220 W
 **actual-draw** stop, 10 GiB cgroup, 512 MiB swap and CPU affinity 0-1. This is
 one fresh bounded measurement, not permission for continued historical CUDA
 training; it is non-promotable and may not create a bundle or any edge result.
@@ -211,5 +210,5 @@ pass. The outer guard then stopped the process for actual draw above 180 W
 before an optimizer step completed. The intended bundle remained absent and
 the session contains no completed checkpoint. This is a successful historical
 safety stop, not trainability or edge evidence. It predates the explicit
-2026-08-26 operator-present 390 W amendment above; no further power increase
-or automatic retry is authorized by that amendment.
+historical 2026-08-26 operator-present 390 W amendment above; it has been
+superseded and does not authorize a power increase or automatic retry.

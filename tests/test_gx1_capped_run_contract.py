@@ -915,7 +915,13 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_MAX_WALL_SECONDS=86400" not in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=86400" not in source
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=390" in source
+    assert (
+        "same one-second 220 W actual-draw stop applies to every CUDA route"
+        in source
+    )
+    attended_block = source.split('if [[ "$ATTENDED_SMOKE" == true ]]; then', 1)[1]
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=390" not in attended_block
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=220" in attended_block
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source

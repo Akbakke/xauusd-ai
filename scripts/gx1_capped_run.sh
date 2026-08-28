@@ -370,10 +370,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
     exit 75
   }
   # This is an operator-present diagnostic exception, not a second training
-  # policy. It permits only WSL's literal `N/A` memory reading, retains all
-  # hard cgroup controls, lowers the core threshold, observes every second,
-  # and terminates at a deliberately lower actual-draw ceiling.  The former
-  # 24-hour research route held nearly all VRAM under WSL and is disabled.
+  # policy. It permits only WSL's literal `N/A` memory reading and retains all
+  # hard cgroup controls, the one-second 220 W actual-draw stop, 70 C core
+  # stop, and 12 GiB VRAM stop. The former 24-hour research route held nearly
+  # all VRAM under WSL and is disabled.
   if [[ "$TRAINER_DEVICE" == cpu ]]; then
     TRAINER_EXECUTION_MODE=attended_cpu_smoke
   else
@@ -393,10 +393,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
   fi
   TRAINER_GPU_MAX_CORE_TEMP_C=70
   TRAINER_GPU_MAX_POWER_LIMIT_W=390
-  # The attended 390 W ceiling is an explicit operator-present exception.
-  # It retains the one-second telemetry, 70 C core stop, 12 GiB VRAM stop,
-  # and 600+300 second staged wall-clock limits below.
-  TRAINER_GPU_MAX_POWER_DRAW_W=390
+  # The physical driver may remain configured at 390 W because WSL cannot set
+  # a lower limit. That does not authorize an attended run to draw 390 W: the
+  # same one-second 220 W actual-draw stop applies to every CUDA route.
+  TRAINER_GPU_MAX_POWER_DRAW_W=220
   # WSL/DXG previously approached the 24 GiB device ceiling and then lost
   # residency. Keep a visible 12 GiB stop in addition to the trainer's
   # allocator-level half-device cap; neither is caller configurable.
