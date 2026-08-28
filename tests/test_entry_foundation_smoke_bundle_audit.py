@@ -86,6 +86,12 @@ def test_smoke_audit_parser_has_no_implicit_artifact_defaults() -> None:
         parser.parse_args([])
 
 
+def test_smoke_bundle_audit_is_cpu_only_even_when_auto_is_requested() -> None:
+    assert audit._device_arg("auto") == "cpu"
+    with pytest.raises(SystemExit, match="SMOKE_BUNDLE_AUDIT_CPU_ONLY"):
+        audit._device_arg("cuda")
+
+
 def test_dataset_manifest_contract_keeps_a_successfully_validated_signal_contract(
     tmp_path: Path,
 ) -> None:

@@ -665,6 +665,9 @@ def _stage_exact_target(
         raise RuntimeError("cleanup stage mapping does not match target")
     wrapper = Path(mapping["quarantine_wrapper"])
     quarantine = Path(mapping["quarantine_path"])
+    # Do not make an active artifact disappear from its canonical path before
+    # checking whether any process still has it open for writing.
+    _reject_open_writer_fds(source)
     flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
     parent_fd = _open_absolute_directory_nofollow(source.parent)
     try:

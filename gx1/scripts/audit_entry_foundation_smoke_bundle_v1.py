@@ -275,12 +275,15 @@ def _parse_csv(raw: str) -> list[str]:
 def _device_arg(raw: str) -> str:
     value = str(raw or "").strip().lower()
     if value == "auto":
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    if value not in {"cpu", "cuda"}:
-        raise SystemExit(f"--device must be auto, cpu, or cuda; got {raw!r}")
-    if value == "cuda" and not torch.cuda.is_available():
-        raise SystemExit("--device cuda requested but CUDA is unavailable")
-    return value
+        # A proof-only bundle audit never needs to allocate a GPU. ``auto``
+        # must therefore remain CPU even on a CUDA workstation.
+        return "cpu"
+    if value != "cpu":
+        raise SystemExit(
+            "SMOKE_BUNDLE_AUDIT_CPU_ONLY: current proof audit accepts only "
+            "--device cpu"
+        )
+    return "cpu"
 
 
 def _bundle_dataset_kwargs(

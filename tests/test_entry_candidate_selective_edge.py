@@ -34,6 +34,8 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _require_requested_test_bindings_match_seal,
     _require_selective_edge_stage_split,
     _selection_sort_column,
+    _selective_edge_device_arg,
+    build_summary,
     run,
     build_metric_rows,
 )
@@ -305,6 +307,44 @@ def test_preregistered_metrics_use_fixed_grid_and_autocorrelation_null() -> None
     )
     assert hypothesis["decision"] == "PASS"
     assert 0.25 in hypothesis["qualifying_coverages"]
+
+
+def test_summary_uses_emitted_preregistered_scope_and_preserves_booleans() -> None:
+    predictions = pd.DataFrame({"split": ["val"], "model": ["candidate"]})
+    metrics = pd.DataFrame(
+        {
+            "split": ["val", "val"],
+            "model": ["candidate", "candidate"],
+            "scope": [
+                "preregistered_raw_q_coverage",
+                "preregistered_raw_q_coverage",
+            ],
+            "group": ["ALL", "ALL"],
+            "top_frac": [0.05, 0.10],
+            "mean_pnl_bps": [1.25, 2.5],
+            "primary_pass": [True, False],
+        }
+    )
+
+    summary = build_summary(predictions, metrics)["summaries"]
+
+    assert summary == [
+        {
+            "split": "val",
+            "model": "candidate",
+            "rows": 1,
+            "top5_all_mean_pnl_bps": 1.25,
+            "top10_all_mean_pnl_bps": 2.5,
+            "top5_primary_pass": True,
+            "top10_primary_pass": False,
+        }
+    ]
+
+
+def test_selective_edge_auto_is_cpu_and_direct_cuda_fails_closed() -> None:
+    assert _selective_edge_device_arg("auto") == "cpu"
+    with pytest.raises(RuntimeError, match="GX1_CUDA_PRODUCER_GX1_CAPPED_CLASS_INVALID"):
+        _selective_edge_device_arg("cuda")
 
 
 @pytest.mark.parametrize(

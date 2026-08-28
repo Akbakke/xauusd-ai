@@ -904,6 +904,9 @@ case "$cmd" in
       --device; do
       require_flag "$cmd" "$flag" "$@"
     done
+    smoke_bundle_device=$(exact_flag_value "$cmd" --device "$@")
+    [[ "$smoke_bundle_device" == cpu ]] \
+      || die "$cmd is a CPU-only immutable proof audit; --device must be cpu"
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
     ;;
 

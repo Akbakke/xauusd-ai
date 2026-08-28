@@ -281,6 +281,64 @@ def _stub_sparse_registry_age_layer(
     )
 
 
+def test_inline_m1_registry_fallback_uses_m1_clock_not_m5_literals(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The unprecomputed direct M1 fallback must retain native geometry."""
+
+    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(8)
+    source = tmp_path / "direct_m1_fallback.parquet"
+    source_frame.to_parquet(source, index=False)
+    observed: dict[str, object] = {}
+
+    def level_stub(sample: pd.DataFrame, _source: Path, **kwargs: object):
+        observed["level"] = kwargs
+        names = list(feature_layers.LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES)
+        return np.zeros((len(sample), len(names)), dtype=np.float32), names
+
+    def trendline_stub(sample: pd.DataFrame, _source: Path, **kwargs: object):
+        observed["trendline"] = kwargs
+        names = list(feature_layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+        return np.zeros((len(sample), len(names)), dtype=np.float32), names
+
+    monkeypatch.setattr(feature_layers, "build_level_registry_m5_layer", level_stub)
+    monkeypatch.setattr(
+        feature_layers,
+        "build_trendline_registry_m5_layer",
+        trendline_stub,
+    )
+    requested = [
+        feature_layers.LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES[0],
+        feature_layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES[0],
+    ]
+    values, names, _metadata = _build_inline_seq_structure_extension(
+        frame,
+        requested_features=requested,
+        ctx_cont_names=list(MODEL_NATIVE_CTX_CONT_FIELDS),
+        ctx_cat_names=list(MODEL_NATIVE_CTX_CAT_FIELDS),
+        source_parquet=source,
+        local_timeframe="M1",
+        source_contract_label="direct_test_m1",
+        base_signal_fields=list(MODEL_NATIVE_BASE_FIELDS),
+        v29_registry_layer_params=_V29_TEST_LAYER_PARAMS,
+    )
+
+    assert values.shape == (len(frame), len(requested))
+    assert names == requested
+    assert observed["level"] == {
+        "recurrence_threshold_atr": 1.0,
+        "max_evidence_age_bars": 96,
+        "decision_clock": "M1",
+        "decision_bar_seconds": 60,
+    }
+    assert observed["trendline"] == {
+        "timeframe": "M1",
+        "band_atr": 0.5,
+        "seq_len": 96,
+    }
+
+
 def test_bounded_owner_orchestration_matches_full_history_exactly(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

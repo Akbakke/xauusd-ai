@@ -324,6 +324,7 @@ echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_R
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 one_job_at_a_time"
 echo "local_cuda: PREDECLARED_BOUNDED_LEARNING_VALIDATION_ONLY_BEHIND_220W_70C_12G_GUARD"
+echo "current_cuda_authority: NONE_UNTIL_CURRENT_V46_LIVENESS_NORMALIZATION_REFRESH_AND_CPU_PREFLIGHT_PASS"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"

@@ -50,17 +50,34 @@ static audit closes.
 - The TEST evaluator is hard closed. A future one-time immutable TEST-release
   authority is required before any TEST file can be opened. This is intentional
   and does not block TRAIN/VAL audit work.
+- The deep source audit traced the retained V46 feature chain end to end. Its
+  latest liveness evidence covers 310 qualified local fields across all eight
+  families on both native clocks (M5 Entry and M1 Exit), and the V4 cache
+  covers all five MTF clocks with no constant field or exact duplicate pair.
+  This proves wiring and variation, not predictive edge.
+- The direct M1 fallback now derives the level/trendline registry clock from
+  its declared local timeframe. Canonical V46 already supplied its exact M1
+  layers, so this closes a latent fallback defect without rebuilding data.
+- Report-only selective-edge summaries now read the emitted pre-registered
+  metric scope and preserve boolean pass/fail values. This repairs reporting;
+  it creates neither an edge claim nor TEST authority.
+- CUDA-capable non-trainer paths now fail closed unless they are inside the
+  capped/guarded producer scope; proof-only smoke-bundle audits and the
+  synthetic Exit benchmark are CPU-only. Evidence cleanup checks for an open
+  writer before moving any target into quarantine.
 
-Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`. The current
-uncommitted audit repair set is the prerequisite for the next commit; no
+Recent repair commits: `3570ed51`, `64db63d1`, `a8717ec6`, `34659e36`.
+The current source audit repair is pending its local regression commit. No
 dataset, CUDA or broker operation was started while applying it.
 
 ## Required next sequence
 
-1. Finish the remaining read-only/source audit and update the explicit
-   preflight checklist; do not add, remove or retune features.
-2. Regenerate only the stale current-contract liveness/normalization evidence
-   from V46 and run the bounded CPU preflight. Stop immediately on a mismatch.
+1. Commit the closed source-audit repair, then run the bounded CPU preflight
+   against retained V46 inputs. Stop immediately on a mismatch; do not add,
+   remove or retune features.
+2. Regenerate only liveness/normalization evidence that the CPU preflight
+   identifies as stale for the current source commit; do not rebuild V46 by
+   default.
 3. Run one guarded, bounded learning-validation probe (one epoch over the
    agreed chronological research window) solely to prove end-to-end learning,
    field use and numerical stability. It is not a performance claim.

@@ -33,6 +33,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
     require_model_native_signal_contract,
 )
+from gx1.contracts.gx1_capped_execution_v1 import (
+    require_guarded_cuda_producer_execution,
+)
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_production_economics_readiness,
@@ -95,7 +98,6 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
 )
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _bundle_dataset_kwargs,
-    _device_arg,
 )
 from gx1.time.session_detector import SESSION_NAME_BY_ID
 
@@ -698,7 +700,7 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
             scoped = metrics[
                 (metrics["split"].astype(str) == split)
                 & (metrics["model"].astype(str) == model)
-                & (metrics["scope"].astype(str) == "top_score")
+                & (metrics["scope"].astype(str) == "preregistered_raw_q_coverage")
                 & (metrics["group"].astype(str) == "ALL")
             ]
             def _value(top_frac: float, key: str) -> Any:
@@ -708,6 +710,8 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
                 value = row.iloc[0].get(key)
                 if pd.isna(value):
                     return None
+                if isinstance(value, (bool, np.bool_)):
+                    return bool(value)
                 return float(value)
 
             summaries.append(
@@ -726,6 +730,24 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
         "models": models,
         "summaries": summaries,
     }
+
+
+def _selective_edge_device_arg(raw: str) -> str:
+    """Resolve device without allowing an ambient CUDA allocation."""
+
+    value = str(raw or "").strip().lower()
+    if value == "auto":
+        # Evidence must not become a surprise GPU job merely because CUDA is
+        # present. The control route already requires an explicit device.
+        return "cpu"
+    if value == "cpu":
+        return "cpu"
+    if value != "cuda":
+        raise SystemExit(f"--device must be cpu, cuda, or auto; got {raw!r}")
+    require_guarded_cuda_producer_execution()
+    if not torch.cuda.is_available():
+        raise SystemExit("--device cuda requested but CUDA is unavailable")
+    return "cuda"
 
 
 def _preregistered_hypothesis(
@@ -2033,7 +2055,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
     split_bindings = _require_stage_split_bindings(args, splits=splits)
-    device = torch.device(_device_arg(args.device))
+    device = torch.device(_selective_edge_device_arg(args.device))
     _reject_retired_selection_environment()
     bundle = _load_selective_edge_stage_bundle(
         bundle_dir=bundle_dir,

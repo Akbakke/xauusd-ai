@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -340,6 +341,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_parser().parse_args()
+    # Reject direct ``python -m`` CUDA allocation before querying the driver.
+    # The parent attended guard remains the owner of telemetry and termination.
+    trainer._require_trainer_cgroup_preflight()
+    if (
+        os.environ.get("GX1_TRAINER_EXECUTION_MODE") != "attended_smoke"
+        or os.environ.get("GX1_TRAINER_DEVICE") != "cuda"
+        or os.environ.get("GX1_CUDA_PRODUCER_GUARD") != "false"
+    ):
+        raise RuntimeError("[ATTENDED_HARDWARE_SMOKE_GUARD_PROVENANCE_INVALID]")
     if not torch.cuda.is_available():
         raise RuntimeError("[ATTENDED_HARDWARE_SMOKE_CUDA_UNAVAILABLE]")
     audit_path = args.specialist_audit_json.expanduser().resolve(strict=True)

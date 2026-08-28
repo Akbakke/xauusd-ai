@@ -102,14 +102,14 @@ def _rss_bytes() -> int:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch", type=int, required=True)
-    parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    # This synthetic benchmark is not an authorised CUDA workload; keeping it
+    # CPU-only removes a direct GPU-bypass route.
+    parser.add_argument("--device", choices=("cpu",), default="cpu")
     args = parser.parse_args()
     batch = int(args.batch)
     if batch < 1:
         raise RuntimeError("BENCHMARK_BATCH_INVALID")
     device = torch.device(args.device)
-    if device.type == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("BENCHMARK_CUDA_UNAVAILABLE")
     torch.manual_seed(20260814)
     tf_names = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
     tf_width = len(tf_names)

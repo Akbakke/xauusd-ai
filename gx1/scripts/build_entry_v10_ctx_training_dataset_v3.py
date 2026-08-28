@@ -1196,6 +1196,7 @@ def _build_inline_seq_structure_extension(
         raise RuntimeError("SEQ_STRUCTURE_INLINE_SOURCE_PARQUET_REQUIRED")
     if local_timeframe not in {"M1", "M5"}:
         raise RuntimeError("SEQ_STRUCTURE_INLINE_LOCAL_TIMEFRAME_INVALID")
+    local_bar_seconds = {"M1": 60, "M5": 300}[local_timeframe]
     if (
         isinstance(emit_offset, bool)
         or not isinstance(emit_offset, int)
@@ -1431,8 +1432,8 @@ def _build_inline_seq_structure_extension(
                 "level_recurrence_threshold_atr"
             ],
             max_evidence_age_bars=int(params["level_expiry_bars"]),
-            decision_clock="M5",
-            decision_bar_seconds=300,
+            decision_clock=local_timeframe,
+            decision_bar_seconds=local_bar_seconds,
         )
 
     def _v29_trendline_layer() -> Tuple[np.ndarray, List[str]]:
@@ -1440,7 +1441,7 @@ def _build_inline_seq_structure_extension(
         return build_trendline_registry_m5_layer(
             merged3[["time"]].copy(),
             Path(source_parquet),
-            timeframe="M5",
+            timeframe=local_timeframe,
             band_atr=params["trendline_band_atr"],
             seq_len=int(params["trendline_seq_len"]),
         )

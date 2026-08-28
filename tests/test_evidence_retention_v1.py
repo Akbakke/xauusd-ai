@@ -176,6 +176,44 @@ def test_valid_plan_proves_byte_identity_and_dry_run_deletes_nothing(
     assert not report_dir.exists()
 
 
+def test_stage_rejects_open_writer_before_moving_the_canonical_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "evidence" / "active.bin"
+    target.parent.mkdir()
+    target.write_bytes(b"still-writing")
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan(
+        tmp_path,
+        target=target,
+        registry=registry,
+        launch=launch,
+    )
+    validated = validate_cleanup_plan(
+        plan_path,
+        plan_sha,
+        vedtak=VEDTAK,
+        allowed_roots=(tmp_path,),
+        required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    mapping = cleanup_script._stage_plan(
+        validated["targets"], plan_sha256=plan_sha
+    )[0]
+    monkeypatch.setattr(
+        cleanup_script,
+        "_reject_open_writer_fds",
+        lambda _path: (_ for _ in ()).throw(RuntimeError("open writer")),
+    )
+
+    with pytest.raises(RuntimeError, match="open writer"):
+        cleanup_script._stage_exact_target(validated["targets"][0], mapping)
+
+    assert target.read_bytes() == b"still-writing"
+    assert not Path(mapping["quarantine_wrapper"]).exists()
+
+
 def test_explicit_execution_writes_clearance_and_deletes_exact_target(
     tmp_path: Path,
 ) -> None:
