@@ -12,6 +12,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_DIRECTION_LOGIT_MODE,
     model_native_signal_contract_metadata,
 )
+from gx1.contracts.immutable_event_authority_v1 import (
+    require_newest_immutable_event,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
@@ -456,6 +459,13 @@ def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: P
 
     assert report["decision"] == "PASS"
     assert report["failures"] == []
+    audit_path = next(
+        (tmp_path / "audit").glob("XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_*.json")
+    )
+    assert require_newest_immutable_event(
+        audit_path,
+        "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT",
+    ) == audit_path
 
 
 def test_pretrain_audit_fails_closed_when_causal_m1_lifecycle_binding_is_missing(

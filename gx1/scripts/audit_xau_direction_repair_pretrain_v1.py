@@ -867,10 +867,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     f"{baseline_split}; TRAIN/VAL must share one exact tape lineage"
                 )
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    # One event instant owns both the immutable filename and the payload.  Two
+    # separate clock reads can differ by microseconds and make a technically
+    # valid audit unusable by the immutable-event authority.
+    created = datetime.now(timezone.utc)
+    timestamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     report = {
         "schema_version": PRETRAIN_AUDIT_SCHEMA,
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": created.isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         "dataset_dir": str(dataset_dir),
         "requested_stem": requested_stem,

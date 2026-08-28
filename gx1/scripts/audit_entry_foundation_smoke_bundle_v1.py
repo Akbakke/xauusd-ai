@@ -443,10 +443,15 @@ def _dataset_manifest_contract(
                 row_failures.append("split manifest direction mode mismatch")
             signal_contract = extra.get("model_native_signal_contract")
             try:
-                normalized = require_model_native_signal_contract(
+                require_model_native_signal_contract(
                     signal_contract,
                     context=f"SMOKE_AUDIT_DATASET_{split.upper()}",
                 )
+                # The contract owner is a validator and deliberately returns
+                # ``None`` on success.  Retain the proven serialized payload
+                # for the subsequent split/bundle equality checks rather than
+                # mistaking the successful validation result for no contract.
+                normalized = dict(signal_contract)
                 if reference_signal_contract is None:
                     reference_signal_contract = normalized
                 elif normalized != reference_signal_contract:

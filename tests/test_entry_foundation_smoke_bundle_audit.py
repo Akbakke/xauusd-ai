@@ -16,6 +16,15 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     training_objective_contract_metadata,
 )
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+    model_native_signal_contract_metadata,
+)
 from gx1.scripts import audit_entry_foundation_smoke_bundle_v1 as audit
 
 
@@ -75,6 +84,46 @@ def test_smoke_audit_parser_has_no_implicit_artifact_defaults() -> None:
     parser = audit.build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args([])
+
+
+def test_dataset_manifest_contract_keeps_a_successfully_validated_signal_contract(
+    tmp_path: Path,
+) -> None:
+    """A validator returning None must not erase the proved payload."""
+
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    parquet = dataset_dir / "fixture_val.parquet"
+    parquet.touch()
+    signal_contract = model_native_signal_contract_metadata(
+        (
+            *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+            *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+        )
+    )
+    manifest = dataset_dir / "fixture_val.manifest.json"
+    _write_json(
+        manifest,
+        {
+            "schema_version": MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+            "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+            "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
+            "output_data_path": str(parquet),
+            "extra": {
+                "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
+                "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
+                "model_native_signal_contract": signal_contract,
+            },
+        },
+    )
+
+    report, observed = audit._dataset_manifest_contract(
+        dataset_dir=dataset_dir,
+        manifests={"val": manifest},
+    )
+
+    assert report["decision"] == "PASS"
+    assert observed == signal_contract
 
 
 def test_attended_only_bundle_cannot_pass_smoke_bundle_audit(
