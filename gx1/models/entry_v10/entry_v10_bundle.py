@@ -1070,16 +1070,7 @@ def _require_exact_model_native_bundle_metadata(
             "[ENTRY_BUNDLE_STALE_DIRECTION_ARTIFACT_FORBIDDEN] " + ",".join(stale)
         )
 
-    hierarchy = _require_mapping_field(meta, "hierarchical_entry_heads", context="meta")
-    if hierarchy.get("enabled") is not True:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_HIERARCHY_REQUIRED]")
-    trendline = _require_mapping_field(meta, "trendline_rail_head", context="meta")
-    if trendline.get("enabled") is not True or int(trendline.get("output_dim", 0)) != 6:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_RAIL_CONTRACT_INVALID]")
-    if trendline.get("hand_written_direction_pressure") is not False:
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_DIRECTION_PRESSURE_FORBIDDEN]")
-    if trendline.get("direction_mapping") != "representation_only_no_entry_authority":
-        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_ROLE_INVALID]")
+    _require_model_native_retired_head_contract(meta)
     state_contract = _require_mapping_field(meta, "model_native_state_contract", context="meta")
     if not state_contract:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_STATE_CONTRACT_MISSING]")
@@ -1302,6 +1293,20 @@ def _require_model_native_architecture_markers(meta: Mapping[str, Any]) -> None:
             "[ENTRY_BUNDLE_MODEL_NATIVE_RETIRED_REGIME_FILM_FORBIDDEN] "
             "meta.enable_regime_film"
         )
+
+
+def _require_model_native_retired_head_contract(meta: Mapping[str, Any]) -> None:
+    """Require the active event head and reject retired metadata-only heads."""
+
+    if "hierarchical_entry_heads" in meta or "trendline_rail_head" in meta:
+        raise RuntimeError("[ENTRY_BUNDLE_STALE_ENTRY_HEAD_METADATA_FORBIDDEN]")
+    trendline = _require_mapping_field(meta, "trendline_event_head", context="meta")
+    if trendline.get("enabled") is not True or int(trendline.get("output_dim", 0)) != 4:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_EVENT_CONTRACT_INVALID]")
+    if trendline.get("hand_written_direction_pressure") is not False:
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_DIRECTION_PRESSURE_FORBIDDEN]")
+    if trendline.get("direction_mapping") != "representation_only_no_entry_authority":
+        raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_TRENDLINE_ROLE_INVALID]")
 
 
 def _require_model_native_state_head_contract(

@@ -26,3 +26,20 @@ def test_architecture_markers_fail_closed_on_train_serve_split(
 ) -> None:
     with pytest.raises(RuntimeError, match=error):
         bundle._require_model_native_architecture_markers(metadata)
+
+
+def test_active_event_head_contract_rejects_retired_head_metadata() -> None:
+    active = {
+        "trendline_event_head": {
+            "enabled": True,
+            "output_dim": 4,
+            "hand_written_direction_pressure": False,
+            "direction_mapping": "representation_only_no_entry_authority",
+        }
+    }
+    bundle._require_model_native_retired_head_contract(active)
+
+    with pytest.raises(RuntimeError, match="STALE_ENTRY_HEAD"):
+        bundle._require_model_native_retired_head_contract(
+            {**active, "hierarchical_entry_heads": {"enabled": True}}
+        )
