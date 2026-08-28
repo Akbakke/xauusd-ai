@@ -7,6 +7,7 @@ only the audited, allowlisted trainer environment.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
@@ -1602,6 +1603,41 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
     for key in ("epochs", "batch_size", "early_stop_patience"):
         _require(integer_values[key] > 0, f"{key} must be > 0")
     _require(integer_values["subsample_rows"] >= 0, "subsample_rows must be >= 0")
+    train_time_window_start = getattr(args, "train_time_window_start_utc", None)
+    train_time_window_end = getattr(args, "train_time_window_end_utc", None)
+    _require(
+        bool(train_time_window_start) == bool(train_time_window_end),
+        "train time-window bounds must be supplied together",
+    )
+    train_time_window: dict[str, str] | None = None
+    if train_time_window_start is not None:
+        _require(
+            str(args.profile) == "smoke",
+            "chronological integration is available only to smoke",
+        )
+        try:
+            start = datetime.fromisoformat(
+                str(train_time_window_start).replace("Z", "+00:00")
+            )
+            end = datetime.fromisoformat(
+                str(train_time_window_end).replace("Z", "+00:00")
+            )
+        except ValueError as exc:
+            raise LaunchContractError(
+                "train time-window bounds must be ISO-8601 UTC datetimes"
+            ) from exc
+        _require(
+            start.tzinfo is not None
+            and end.tzinfo is not None
+            and start.utcoffset() == timezone.utc.utcoffset(start)
+            and end.utcoffset() == timezone.utc.utcoffset(end)
+            and start < end,
+            "train time-window bounds must be ordered UTC datetimes",
+        )
+        train_time_window = {
+            "start_utc": start.astimezone(timezone.utc).isoformat(),
+            "end_utc": end.astimezone(timezone.utc).isoformat(),
+        }
     if str(args.profile) == "candidate":
         _require(
             integer_values["subsample_rows"] == 0,
@@ -1680,6 +1716,7 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         "memory_cap": str(args.memory_cap),
         "swap_cap": str(args.swap_cap),
         "gx1_data_root": str(gx1_data_root),
+        "train_time_window": train_time_window,
     }
 
 
@@ -2013,6 +2050,8 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--specialist-fusion-scale", required=True)
     parser.add_argument("--cross-family-fusion-scale", required=True)
     parser.add_argument("--subsample-rows", required=True)
+    parser.add_argument("--train-time-window-start-utc")
+    parser.add_argument("--train-time-window-end-utc")
     # Per-timeframe lookback is decision-affecting and therefore a required
     # explicit input at every layer, never a wrapper default (rule 14).
     parser.add_argument("--num-workers", required=True)

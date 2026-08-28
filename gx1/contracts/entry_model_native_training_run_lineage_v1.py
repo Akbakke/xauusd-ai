@@ -22,6 +22,10 @@ SCHEMA_VERSION = "entry_model_native_training_run_lineage_v3"
 SAMPLING_SCHEMA_VERSION = "entry_model_native_population_sampling_v1"
 FULL_POPULATION_ALGORITHM = "full_population_v1"
 UNIFORM_SUBSAMPLE_ALGORITHM = "uniform_without_replacement_pcg64_v1"
+# A pre-candidate integration may deliberately use one contiguous, causal
+# TRAIN interval. It is a smoke-only evidence lane: candidate bundles still
+# require both complete immutable populations below.
+TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM = "contiguous_time_window_v1"
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 
 REQUIRED_FIELDS = frozenset(
@@ -91,6 +95,7 @@ def population_selection_descriptor(
     if algorithm not in {
         FULL_POPULATION_ALGORITHM,
         UNIFORM_SUBSAMPLE_ALGORITHM,
+        TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM,
     }:
         raise ValueError(f"unsupported population sampling algorithm: {algorithm!r}")
     indices = np.asarray(selected_indices, dtype=np.int64)
@@ -213,6 +218,7 @@ def require_training_run_lineage(value: Any) -> dict[str, Any]:
             algorithm not in {
                 FULL_POPULATION_ALGORITHM,
                 UNIFORM_SUBSAMPLE_ALGORITHM,
+                TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM,
             }
             or type(spec.get("population_rows")) is not int
             or spec.get("population_rows") != physical
@@ -226,6 +232,10 @@ def require_training_run_lineage(value: Any) -> dict[str, Any]:
             )
             or (
                 algorithm == UNIFORM_SUBSAMPLE_ALGORITHM
+                and effective >= physical
+            )
+            or (
+                algorithm == TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM
                 and effective >= physical
             )
         ):

@@ -101,20 +101,23 @@ def test_first_pass_full_trajectory_report_is_complete_and_hash_bound() -> None:
     assert report["target_model_state_sha256"] == trainer._model_state_sha256(
         target_model
     )
-    reference_stream = hashlib.sha256()
+    reference_stream = hashlib.sha256(
+        b"gx1_unified_exit_full_trajectory_stream_v7"
+    ).hexdigest()
     q_np = q_values.double().numpy()
-    reference_stream.update(
-        np.ascontiguousarray(
-            np.column_stack((
-                np.repeat(17, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
-                np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
-                np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
-                q_np[0, ..., 0].reshape(-1),
-                q_np[0, ..., 1].reshape(-1),
-            ))
-        ).tobytes()
-    )
-    assert report["state_prediction_stream_sha256"] == reference_stream.hexdigest()
+    row_bytes = np.ascontiguousarray(
+        np.column_stack((
+            np.repeat(17, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
+            np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
+            np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
+            q_np[0, ..., 0].reshape(-1),
+            q_np[0, ..., 1].reshape(-1),
+        ))
+    ).tobytes()
+    expected_stream = hashlib.sha256(
+        bytes.fromhex(reference_stream) + hashlib.sha256(row_bytes).digest()
+    ).hexdigest()
+    assert report["state_prediction_stream_sha256"] == expected_stream
 
 
 def test_first_pass_full_trajectory_rejects_exact_predicted_q_ties() -> None:

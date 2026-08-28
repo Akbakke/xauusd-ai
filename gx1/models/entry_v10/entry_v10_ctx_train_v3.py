@@ -80,6 +80,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 )
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
     FULL_POPULATION_ALGORITHM,
+    TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM,
     UNIFORM_SUBSAMPLE_ALGORITHM,
     build_training_run_lineage,
     deterministic_uniform_subsample_indices,
@@ -1019,6 +1020,41 @@ _ATTENDED_RESEARCH_STATE_FILENAMES = (
     "attended_research_state_slot_1.pt",
 )
 
+# Canonical candidate training is deliberately distinct from the attended
+# smoke.  It must eventually cover the full immutable TRAIN and VAL
+# populations, so the five-minute attended research state cannot be promoted
+# or repurposed for it.  The candidate state is a durable, hash-bound resume
+# point owned by the same local 220 W / 70 C / 12 GiB guard; it changes no
+# feature, label, model or selection rule.
+_CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION = "gx1_candidate_training_session_v1"
+_CANDIDATE_TRAINING_SESSION_DIR_PREFIX = ".gx1-candidate-training-session."
+_CANDIDATE_TRAINING_CONTRACT_FILENAME = "CANDIDATE_TRAINING_SESSION_CONTRACT.json"
+_CANDIDATE_TRAINING_ACTIVE_FILENAME = "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
+_CANDIDATE_TRAINING_STATE_FILENAMES = (
+    "candidate_training_state_slot_0.pt",
+    "candidate_training_state_slot_1.pt",
+)
+_CANDIDATE_TRAINING_PHASES = frozenset(("train", "validation"))
+_CANDIDATE_TRAINING_STATE_KEYS = frozenset(
+    (
+        "schema_version",
+        "session_contract_sha256",
+        "checkpoint_index",
+        "phase",
+        "epoch_index",
+        "next_batch_offset",
+        "epoch_order",
+        "model_state",
+        "target_model_state",
+        "optimizer_state",
+        "weight_ema_state",
+        "lr_scheduler_state",
+        "rng_state",
+        "training_progress",
+        "complete",
+    )
+)
+
 
 class _ExactIndexSampler(Sampler[int]):
     """Yield one persisted order without consuming any additional RNG state."""
@@ -1351,6 +1387,8 @@ class _AttendedResearchSession:
         next_batch_offset: int,
         epoch_order: torch.Tensor,
         complete: bool,
+        task_supervision_observed: Optional[Mapping[str, bool]] = None,
+        task_gradient_observed: Optional[Mapping[str, bool]] = None,
     ) -> None:
         if (
             int(checkpoint_index) < 1
@@ -1371,6 +1409,29 @@ class _AttendedResearchSession:
         if state_path.is_symlink():
             raise RuntimeError("[ATTENDED_RESEARCH_STATE_PATH_INVALID]")
         order_cpu = epoch_order.detach().cpu().contiguous()
+        supervision = (
+            {
+                name: bool(task_supervision_observed[name])
+                for name in JOINT_TASK_NAMES
+            }
+            if task_supervision_observed is not None
+            else {name: False for name in JOINT_TASK_NAMES}
+        )
+        gradients = (
+            {
+                name: bool(task_gradient_observed[name])
+                for name in JOINT_TASK_NAMES
+            }
+            if task_gradient_observed is not None
+            else {name: False for name in JOINT_TASK_NAMES}
+        )
+        if (
+            set(supervision) != set(JOINT_TASK_NAMES)
+            or set(gradients) != set(JOINT_TASK_NAMES)
+            or any(type(value) is not bool for value in supervision.values())
+            or any(type(value) is not bool for value in gradients.values())
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_TASK_PATH_STATE_INVALID]")
         state = {
             "schema_version": _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION,
             "session_contract_sha256": self._contract_sha256,
@@ -1389,6 +1450,8 @@ class _AttendedResearchSession:
                 lr_scheduler.state_dict() if lr_scheduler is not None else None
             ),
             "rng_state": _attended_session_rng_state(device=device),
+            "task_supervision_observed": supervision,
+            "task_gradient_observed": gradients,
             "complete": bool(complete),
         }
         fd, temporary = tempfile.mkstemp(prefix=f".{state_path.name}.", dir=str(self._directory))
@@ -1417,6 +1480,244 @@ class _AttendedResearchSession:
             "complete": bool(complete),
         }
         _attended_session_atomic_write_json(self._active_path, active)
+
+
+def _candidate_training_session_json_bytes(value: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            default=_train_json_default,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _candidate_training_session_atomic_write_json(
+    path: Path, value: Mapping[str, Any]
+) -> None:
+    if path.is_symlink() or not path.parent.is_dir() or path.parent.is_symlink():
+        raise RuntimeError("[CANDIDATE_TRAINING_SESSION_PATH_INVALID]")
+    payload = _candidate_training_session_json_bytes(value)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        _fsync_regular_file(path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def _candidate_training_session_read_json(path: Path, *, label: str) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"[CANDIDATE_TRAINING_SESSION_{label}_PATH_INVALID]")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise RuntimeError(
+            f"[CANDIDATE_TRAINING_SESSION_{label}_JSON_INVALID]"
+        ) from exc
+    if not isinstance(value, dict):
+        raise RuntimeError(f"[CANDIDATE_TRAINING_SESSION_{label}_JSON_INVALID]")
+    return value
+
+
+class _CandidateTrainingSession:
+    """Two-slot exact state for an interruptible canonical candidate.
+
+    Unlike :class:`_AttendedResearchSession`, this state is only for the full
+    candidate profile.  It is deliberately a sibling of the not-yet-published
+    bundle, so a partial session is never a checkpoint, prediction, TEST or
+    promotion artifact.  Every resume binds the immutable launch contract,
+    exact current epoch/phase/order, model, fixed fitted-Q target, optimizer,
+    EMA, scheduler and all deterministic RNG sources.
+    """
+
+    def __init__(self, *, out_bundle_dir: Path, contract: Mapping[str, Any]) -> None:
+        output = Path(out_bundle_dir).expanduser().resolve()
+        if output.exists() or output.is_symlink() or output.parent.is_symlink():
+            raise RuntimeError("[CANDIDATE_TRAINING_OUTPUT_PATH_INVALID]")
+        if not output.parent.is_dir():
+            raise RuntimeError("[CANDIDATE_TRAINING_OUTPUT_PARENT_INVALID]")
+        self._directory = output.parent / (
+            _CANDIDATE_TRAINING_SESSION_DIR_PREFIX + output.name
+        )
+        self._contract = dict(contract)
+        self._contract_bytes = _candidate_training_session_json_bytes(self._contract)
+        self._contract_sha256 = hashlib.sha256(self._contract_bytes).hexdigest()
+        self._active_path = self._directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
+        self._contract_path = self._directory / _CANDIDATE_TRAINING_CONTRACT_FILENAME
+        if self._directory.exists():
+            directory_stat = os.stat(self._directory, follow_symlinks=False)
+            if (
+                self._directory.is_symlink()
+                or not self._directory.is_dir()
+                or directory_stat.st_uid != os.getuid()
+                or directory_stat.st_mode & 0o077
+            ):
+                raise RuntimeError("[CANDIDATE_TRAINING_SESSION_DIRECTORY_INVALID]")
+            on_disk = _candidate_training_session_read_json(
+                self._contract_path, label="CONTRACT"
+            )
+            if on_disk != self._contract:
+                raise RuntimeError("[CANDIDATE_TRAINING_SESSION_CONTRACT_MISMATCH]")
+        else:
+            self._directory.mkdir(mode=0o700)
+            try:
+                descriptor = os.open(
+                    self._contract_path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                )
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(self._contract_bytes)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                _fsync_regular_file(self._contract_path)
+            except Exception:
+                raise
+
+    @property
+    def directory(self) -> Path:
+        return self._directory
+
+    @property
+    def contract_sha256(self) -> str:
+        return self._contract_sha256
+
+    def _slot_path(self, slot: int) -> Path:
+        if slot not in (0, 1):
+            raise RuntimeError("[CANDIDATE_TRAINING_SLOT_INVALID]")
+        return self._directory / _CANDIDATE_TRAINING_STATE_FILENAMES[slot]
+
+    def load_checkpoint(self) -> Optional[dict[str, Any]]:
+        if self._active_path.is_symlink():
+            raise RuntimeError("[CANDIDATE_TRAINING_SESSION_ACTIVE_PATH_INVALID]")
+        if not self._active_path.exists():
+            return None
+        active = _candidate_training_session_read_json(self._active_path, label="ACTIVE")
+        expected_keys = {
+            "schema_version",
+            "session_contract_sha256",
+            "slot",
+            "checkpoint_index",
+            "state_sha256",
+            "phase",
+            "epoch_index",
+            "next_batch_offset",
+            "complete",
+        }
+        if (
+            set(active) != expected_keys
+            or active.get("schema_version")
+            != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+            or active.get("session_contract_sha256") != self._contract_sha256
+            or active.get("slot") not in (0, 1)
+            or not isinstance(active.get("checkpoint_index"), int)
+            or int(active["checkpoint_index"]) < 1
+            or not isinstance(active.get("epoch_index"), int)
+            or int(active["epoch_index"]) < 0
+            or not isinstance(active.get("next_batch_offset"), int)
+            or int(active["next_batch_offset"]) < 0
+            or active.get("phase") not in _CANDIDATE_TRAINING_PHASES
+            or not isinstance(active.get("state_sha256"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", str(active.get("state_sha256")))
+            or not isinstance(active.get("complete"), bool)
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_ACTIVE_POINTER_INVALID]")
+        state_path = self._slot_path(int(active["slot"]))
+        if state_path.is_symlink() or not state_path.is_file():
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_PATH_INVALID]")
+        if _sha256_file(state_path) != active["state_sha256"]:
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_SHA256_MISMATCH]")
+        try:
+            state = torch.load(state_path, map_location="cpu", weights_only=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_LOAD_INVALID]") from exc
+        if not isinstance(state, dict) or set(state) != _CANDIDATE_TRAINING_STATE_KEYS:
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_SCHEMA_INVALID]")
+        if (
+            state.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+            or state.get("session_contract_sha256") != self._contract_sha256
+            or int(state.get("checkpoint_index", -1))
+            != int(active["checkpoint_index"])
+            or state.get("phase") != active["phase"]
+            or int(state.get("epoch_index", -1)) != int(active["epoch_index"])
+            or int(state.get("next_batch_offset", -1))
+            != int(active["next_batch_offset"])
+            or bool(state.get("complete", False)) != bool(active["complete"])
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_POINTER_MISMATCH]")
+        epoch_order = state.get("epoch_order")
+        if (
+            not isinstance(epoch_order, torch.Tensor)
+            or epoch_order.dtype != torch.int64
+            or epoch_order.ndim != 1
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
+        return state
+
+    def save_checkpoint(self, state: Mapping[str, Any]) -> None:
+        value = dict(state)
+        if set(value) != _CANDIDATE_TRAINING_STATE_KEYS:
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_SCHEMA_INVALID]")
+        if (
+            value.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+            or value.get("session_contract_sha256") != self._contract_sha256
+            or not isinstance(value.get("checkpoint_index"), int)
+            or int(value["checkpoint_index"]) < 1
+            or value.get("phase") not in _CANDIDATE_TRAINING_PHASES
+            or not isinstance(value.get("epoch_index"), int)
+            or int(value["epoch_index"]) < 0
+            or not isinstance(value.get("next_batch_offset"), int)
+            or int(value["next_batch_offset"]) < 0
+            or not isinstance(value.get("complete"), bool)
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ARGUMENT_INVALID]")
+        epoch_order = value.get("epoch_order")
+        if (
+            not isinstance(epoch_order, torch.Tensor)
+            or epoch_order.dtype != torch.int64
+            or epoch_order.ndim != 1
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
+        previous = self.load_checkpoint()
+        previous_slot = -1 if previous is None else int(
+            _candidate_training_session_read_json(self._active_path, label="ACTIVE")["slot"]
+        )
+        slot = 0 if previous_slot != 0 else 1
+        state_path = self._slot_path(slot)
+        if state_path.is_symlink():
+            raise RuntimeError("[CANDIDATE_TRAINING_STATE_PATH_INVALID]")
+        fd, temporary = tempfile.mkstemp(prefix=f".{state_path.name}.", dir=str(self._directory))
+        try:
+            os.close(fd)
+            torch.save(value, temporary)
+            with open(temporary, "rb") as handle:
+                os.fsync(handle.fileno())
+            os.replace(temporary, state_path)
+            _fsync_regular_file(state_path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+        active = {
+            "schema_version": _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+            "session_contract_sha256": self._contract_sha256,
+            "slot": slot,
+            "checkpoint_index": int(value["checkpoint_index"]),
+            "state_sha256": _sha256_file(state_path),
+            "phase": str(value["phase"]),
+            "epoch_index": int(value["epoch_index"]),
+            "next_batch_offset": int(value["next_batch_offset"]),
+            "complete": bool(value["complete"]),
+        }
+        _candidate_training_session_atomic_write_json(self._active_path, active)
 
 
 def _enforce_canonical_train_env_contract() -> None:
@@ -6043,7 +6344,7 @@ def _unified_exit_input_influence_contract(
 
 
 _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION = (
-    "gx1_unified_exit_full_trajectory_validation_v6"
+    "gx1_unified_exit_full_trajectory_validation_v7"
 )
 
 
@@ -6079,7 +6380,15 @@ def _new_unified_exit_full_trajectory_accumulator(
         "immediate_realized": [],
         "terminal_realized": [],
         "learned_exit_states": [],
-        "state_stream": hashlib.sha256(),
+        # A resumable digest chain, rather than a live hashlib object.  The
+        # previous object could not be safely serialized at a candidate-session
+        # boundary, making it impossible to resume a full causal VAL scan
+        # without silently replacing its evidence stream.  The chain is bound
+        # to each exact episode row in order and is deterministic for the
+        # fixed batch geometry in the candidate session contract.
+        "state_stream_chain_sha256": hashlib.sha256(
+            b"gx1_unified_exit_full_trajectory_stream_v7"
+        ).hexdigest(),
     }
 
 
@@ -6182,9 +6491,15 @@ def _accumulate_unified_exit_full_trajectory(
             q_np[episode_position, ..., 0].reshape(-1),
             q_np[episode_position, ..., 1].reshape(-1),
         ))
-        accumulator["state_stream"].update(
+        row_digest = hashlib.sha256(
             np.ascontiguousarray(stream_rows).tobytes()
-        )
+        ).digest()
+        prior = accumulator.get("state_stream_chain_sha256")
+        if not isinstance(prior, str) or not re.fullmatch(r"[0-9a-f]{64}", prior):
+            raise RuntimeError("UNIFIED_EXIT_FULL_VAL_STREAM_INVALID")
+        accumulator["state_stream_chain_sha256"] = hashlib.sha256(
+            bytes.fromhex(prior) + row_digest
+        ).hexdigest()
 
 
 def _finalize_unified_exit_full_trajectory_validation(
@@ -6219,7 +6534,7 @@ def _finalize_unified_exit_full_trajectory_validation(
         "immediate_realized",
         "terminal_realized",
         "learned_exit_states",
-        "state_stream",
+        "state_stream_chain_sha256",
     }
     if set(accumulator) != required:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_SCHEMA_INVALID")
@@ -6264,8 +6579,8 @@ def _finalize_unified_exit_full_trajectory_validation(
             f"predicted_ties={predicted_tied_rows} "
             f"entries={accumulator['entry_rows_scanned']}/{len(dataset)}"
         )
-    state_stream = accumulator["state_stream"]
-    if not hasattr(state_stream, "hexdigest"):
+    state_stream = accumulator["state_stream_chain_sha256"]
+    if not isinstance(state_stream, str) or not re.fullmatch(r"[0-9a-f]{64}", state_stream):
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_STREAM_INVALID")
     return {
         "schema_version": _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION,
@@ -6302,7 +6617,7 @@ def _finalize_unified_exit_full_trajectory_validation(
             np.mean(terminal_realized)
         ),
         "learned_mean_exit_state_index": float(np.mean(learned_exit_states)),
-        "state_prediction_stream_sha256": state_stream.hexdigest(),
+        "state_prediction_stream_sha256": state_stream,
         "online_model_state_sha256": accumulator["online_model_state_sha256"],
         "target_model_state_sha256": accumulator["target_model_state_sha256"],
         "future_outcomes_used_as_model_inputs": False,
@@ -6334,10 +6649,12 @@ def train_epoch(
     task_supervision_observed: dict[str, bool],
     task_gradient_observed: dict[str, bool],
     weight_ema: Optional["_WeightEma"] = None,
-    attended_batch_offset: int = 0,
-    attended_max_optimizer_steps: Optional[int] = None,
-    attended_checkpoint_hook: Optional[Any] = None,
-    attended_exit_action_forward_chunk_rows: Optional[int] = None,
+    session_batch_offset: int = 0,
+    session_max_optimizer_steps: Optional[int] = None,
+    session_checkpoint_hook: Optional[Any] = None,
+    session_exit_action_forward_chunk_rows: Optional[int] = None,
+    session_checkpoint_every_optimizer_step: bool = True,
+    session_log_label: str = "BOUNDED_TRAINING",
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -6353,16 +6670,17 @@ def train_epoch(
         )
     if _accum_steps > 1:
         log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
-    if attended_max_optimizer_steps is not None:
+    if session_max_optimizer_steps is not None:
         if (
-            int(attended_max_optimizer_steps) < 1
-            or attended_checkpoint_hook is None
+            int(session_max_optimizer_steps) < 1
+            or session_checkpoint_hook is None
             or _accum_steps != 1
-            or int(attended_batch_offset) < 0
-            or attended_exit_action_forward_chunk_rows is None
-            or int(attended_exit_action_forward_chunk_rows) < 1
+            or int(session_batch_offset) < 0
+            or session_exit_action_forward_chunk_rows is None
+            or int(session_exit_action_forward_chunk_rows) < 1
+            or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
         ):
-            raise RuntimeError("[ATTENDED_RESEARCH_TRAIN_EPOCH_ARGUMENT_INVALID]")
+            raise RuntimeError("[BOUNDED_TRAINING_EPOCH_ARGUMENT_INVALID]")
     _accum_count = 0
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
@@ -6396,7 +6714,7 @@ def train_epoch(
     _optimizer_steps_this_call = 0
     for batch in loader:
         _batch_i += 1
-        _absolute_batch_i = int(attended_batch_offset) + _batch_i
+        _absolute_batch_i = int(session_batch_offset) + _batch_i
         log.info("[TRAIN_STEP] batch=%d begin rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
@@ -6473,8 +6791,8 @@ def train_epoch(
                 exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
                 profile_timing=_profile_timing,
                 exit_action_forward_chunk_rows=(
-                    attended_exit_action_forward_chunk_rows
-                    if attended_max_optimizer_steps is not None
+                    session_exit_action_forward_chunk_rows
+                    if session_max_optimizer_steps is not None
                     else (
                         UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
                         if device.type == "cuda"
@@ -6591,23 +6909,32 @@ def train_epoch(
             _accum_count = 0
             _optimizer_steps_this_call += 1
             log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
-            if attended_checkpoint_hook is not None:
+            if (
+                session_checkpoint_hook is not None
+                and session_checkpoint_every_optimizer_step
+            ):
                 _is_final_batch = _batch_i == len(loader)
-                attended_checkpoint_hook(
+                session_checkpoint_hook(
                     next_batch_offset=_absolute_batch_i,
                     complete_epoch=_is_final_batch,
                 )
             if (
-                attended_max_optimizer_steps is not None
-                and _optimizer_steps_this_call >= int(attended_max_optimizer_steps)
+                session_max_optimizer_steps is not None
+                and _optimizer_steps_this_call >= int(session_max_optimizer_steps)
                 and _batch_i < len(loader)
             ):
+                if session_checkpoint_hook is not None and not session_checkpoint_every_optimizer_step:
+                    session_checkpoint_hook(
+                        next_batch_offset=_absolute_batch_i,
+                        complete_epoch=False,
+                    )
                 log.info(
-                    "[ATTENDED_RESEARCH_SESSION_PAUSE] batches_completed=%d "
+                    "[%s_SESSION_PAUSE] batches_completed=%d "
                     "optimizer_steps_this_session=%d max_optimizer_steps=%d",
+                    session_log_label,
                     _absolute_batch_i,
                     _optimizer_steps_this_call,
-                    int(attended_max_optimizer_steps),
+                    int(session_max_optimizer_steps),
                 )
                 return (
                     total / max(1, n),
@@ -6968,6 +7295,102 @@ def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
     }
 
 
+_CANDIDATE_VALIDATION_SNAPSHOT_KEYS = frozenset(
+    (
+        "total",
+        "entry_q_loss_sum",
+        "cooperation_gate_epoch",
+        "feature_tf_gate_epoch",
+        "exit_cooperation_gate_epoch",
+        "exit_feature_tf_gate_epoch",
+        "rows",
+        "side_mae_loss_sum",
+        "trendline_event_loss_sum",
+        "trendline_event_rows_sum",
+        "trendline_support_rows_sum",
+        "trendline_resistance_rows_sum",
+        "unified_exit_loss_sum",
+        "unified_exit_population_rows",
+        "unified_exit_rows",
+        "unified_exit_tied_rows",
+        "unified_exit_eligible_entry_rows",
+        "unified_exit_hold_rows",
+        "unified_exit_now_rows",
+        "unified_exit_correct",
+        "active_head_epoch",
+        "entry_policy_realized_pnl_chunks",
+        "entry_unique_target_rows",
+        "entry_target_equivalent_rows",
+        "entry_unique_target_agreement_rows",
+        "full_trajectory_accumulator",
+    )
+)
+
+
+def _candidate_snapshot_safe(value: Any) -> Any:
+    """Convert validation evidence to ``weights_only``-loadable state."""
+
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu().clone()
+    if isinstance(value, np.ndarray):
+        return torch.as_tensor(np.ascontiguousarray(value)).clone()
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, Mapping):
+        if not all(isinstance(key, str) for key in value):
+            raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_KEY_INVALID]")
+        return {str(key): _candidate_snapshot_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_candidate_snapshot_safe(item) for item in value]
+    raise RuntimeError(
+        "[CANDIDATE_TRAINING_VALIDATION_STATE_VALUE_INVALID] "
+        f"type={type(value).__name__}"
+    )
+
+
+def _candidate_snapshot_restore(value: Any) -> Any:
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu().numpy().copy()
+    if isinstance(value, Mapping):
+        return {str(key): _candidate_snapshot_restore(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_candidate_snapshot_restore(item) for item in value]
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    raise RuntimeError(
+        "[CANDIDATE_TRAINING_VALIDATION_STATE_VALUE_INVALID] "
+        f"type={type(value).__name__}"
+    )
+
+
+def _candidate_validation_snapshot(**values: Any) -> dict[str, Any]:
+    if set(values) != _CANDIDATE_VALIDATION_SNAPSHOT_KEYS:
+        raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_SCHEMA_INVALID]")
+    return {
+        key: _candidate_snapshot_safe(value)
+        for key, value in values.items()
+    }
+
+
+def _restore_candidate_validation_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
+    if set(value) != _CANDIDATE_VALIDATION_SNAPSHOT_KEYS:
+        raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_SCHEMA_INVALID]")
+    restored = {
+        str(key): _candidate_snapshot_restore(item)
+        for key, item in value.items()
+    }
+    if not isinstance(restored.get("rows"), int) or int(restored["rows"]) < 0:
+        raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_ROWS_INVALID]")
+    full_trajectory = restored.get("full_trajectory_accumulator")
+    if full_trajectory is not None and not isinstance(full_trajectory, dict):
+        raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_TRAJECTORY_INVALID]")
+    return restored
+
+
 def _accumulate_active_head_epoch(
     accumulator: Dict[str, Any],
     model: nn.Module,
@@ -7291,6 +7714,7 @@ def _attended_research_session_contract(
     execution_tier: str,
     device_type: str,
     max_optimizer_steps: int,
+    train_time_window: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Bind an attended session to one exact, non-promotable train surface."""
 
@@ -7305,6 +7729,35 @@ def _attended_research_session_contract(
         raise RuntimeError("[ATTENDED_RESEARCH_DEVICE_INVALID]")
     if int(max_optimizer_steps) < 1:
         raise RuntimeError("[ATTENDED_RESEARCH_MAX_STEPS_INVALID]")
+    if train_time_window is not None:
+        expected_window_keys = {
+            "start_utc",
+            "end_utc",
+            "selected_rows",
+            "selection_sha256",
+            "first_selected_time_utc",
+            "last_selected_time_utc",
+        }
+        if (
+            set(train_time_window) != expected_window_keys
+            or not all(
+                isinstance(train_time_window.get(key), str)
+                and str(train_time_window[key]).endswith("+00:00")
+                for key in (
+                    "start_utc",
+                    "end_utc",
+                    "first_selected_time_utc",
+                    "last_selected_time_utc",
+                )
+            )
+            or not isinstance(train_time_window.get("selected_rows"), int)
+            or int(train_time_window["selected_rows"]) < 1
+            or not isinstance(train_time_window.get("selection_sha256"), str)
+            or re.fullmatch(
+                r"[0-9a-f]{64}", str(train_time_window["selection_sha256"])
+            ) is None
+        ):
+            raise RuntimeError("[ATTENDED_RESEARCH_TIME_WINDOW_INVALID]")
     normalized = dict(input_normalization)
     normalization_sha256 = normalized.get("contract_sha256")
     if not isinstance(normalization_sha256, str) or not re.fullmatch(
@@ -7350,6 +7803,9 @@ def _attended_research_session_contract(
             "epochs": int(epochs),
             "grad_accum_steps": int(grad_accum_steps),
             "subsample_rows": int(subsample_rows),
+            "train_time_window": (
+                dict(train_time_window) if train_time_window is not None else None
+            ),
             "learning_rate": float(lr),
             "dropout": float(dropout),
             "device": str(device_type),
@@ -7408,6 +7864,8 @@ def _restore_attended_research_checkpoint(
         "weight_ema_state",
         "lr_scheduler_state",
         "rng_state",
+        "task_supervision_observed",
+        "task_gradient_observed",
         "complete",
     }
     if (
@@ -7436,10 +7894,21 @@ def _restore_attended_research_checkpoint(
     model_state = state["model_state"]
     target_state = state["target_model_state"]
     optimizer_state = state["optimizer_state"]
+    supervision = state["task_supervision_observed"]
+    gradients = state["task_gradient_observed"]
     if not isinstance(model_state, Mapping) or not isinstance(target_state, Mapping):
         raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_MODEL_STATE_INVALID]")
     if not isinstance(optimizer_state, Mapping):
         raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_OPTIMIZER_INVALID]")
+    if (
+        not isinstance(supervision, Mapping)
+        or not isinstance(gradients, Mapping)
+        or set(supervision) != set(JOINT_TASK_NAMES)
+        or set(gradients) != set(JOINT_TASK_NAMES)
+        or any(type(value) is not bool for value in supervision.values())
+        or any(type(value) is not bool for value in gradients.values())
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_TASK_PATH_STATE_INVALID]")
     try:
         model.load_state_dict(model_state, strict=True)
         target_model.load_state_dict(target_state, strict=True)
@@ -7475,6 +7944,191 @@ def _restore_attended_research_checkpoint(
         "epoch_index": int(state["epoch_index"]),
         "next_batch_offset": int(state["next_batch_offset"]),
         "epoch_order": order.detach().cpu().contiguous(),
+        "task_supervision_observed": {
+            name: bool(supervision[name]) for name in JOINT_TASK_NAMES
+        },
+        "task_gradient_observed": {
+            name: bool(gradients[name]) for name in JOINT_TASK_NAMES
+        },
+        "complete": bool(state["complete"]),
+    }
+
+
+def _candidate_training_session_contract(
+    *,
+    out_bundle_dir: Path,
+    run_id: str,
+    dataset_run_id: str,
+    train_parquet: Path,
+    val_parquet: Path,
+    m5_prebuilt_path: Path,
+    lifecycle_manifest_path: Path,
+    input_normalization: Mapping[str, Any],
+    seed: int,
+    batch_size: int,
+    epochs: int,
+    grad_accum_steps: int,
+    lr: float,
+    dropout: float,
+    execution_tier: str,
+    device_type: str,
+) -> dict[str, Any]:
+    """Bind a full candidate session to its immutable launch surface.
+
+    The contract has deliberately no tuning knob for an alternate data slice,
+    objective, model, feature family or target.  A changed source revision,
+    artifact or execution geometry must create a new candidate output rather
+    than resume a state trained under different semantics.
+    """
+
+    if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
+        raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
+    if (
+        int(batch_size) < 1
+        or int(epochs) < 1
+        or int(grad_accum_steps) < 1
+        or not math.isfinite(float(lr))
+        or float(lr) <= 0.0
+        or not math.isfinite(float(dropout))
+        or float(dropout) < 0.0
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
+    normalization_sha256 = dict(input_normalization).get("contract_sha256")
+    if not isinstance(normalization_sha256, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", normalization_sha256
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_NORMALIZATION_BINDING_INVALID]")
+    artifact_paths = {
+        "train_parquet": Path(train_parquet).resolve(strict=True),
+        "val_parquet": Path(val_parquet).resolve(strict=True),
+        "m5_prebuilt_path": Path(m5_prebuilt_path).resolve(strict=True),
+        "unified_exit_lifecycle_manifest": Path(lifecycle_manifest_path).resolve(
+            strict=True
+        ),
+    }
+    if any(path.is_symlink() or not path.is_file() for path in artifact_paths.values()):
+        raise RuntimeError("[CANDIDATE_TRAINING_ARTIFACT_PATH_INVALID]")
+    return {
+        "schema_version": _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+        "authority": {
+            "candidate_training": True,
+            "bundle": False,
+            "validation": False,
+            "test": False,
+            "promotion": False,
+            "paper": False,
+            "live": False,
+        },
+        "source_commit": _git_commit(),
+        "out_bundle_dir": str(Path(out_bundle_dir).expanduser().resolve()),
+        "run_id": str(run_id),
+        "dataset_run_id": str(dataset_run_id),
+        "profile": "candidate",
+        "execution_tier": str(execution_tier),
+        "artifacts": {
+            name: {"path": str(path), "sha256": _sha256_file(path)}
+            for name, path in artifact_paths.items()
+        },
+        "input_normalization_sha256": normalization_sha256,
+        "training": {
+            "seed": int(seed),
+            "batch_size": int(batch_size),
+            "epochs": int(epochs),
+            "grad_accum_steps": int(grad_accum_steps),
+            "learning_rate": float(lr),
+            "dropout": float(dropout),
+            "device": str(device_type),
+            "precision": "deterministic_fp32",
+            "compile": False,
+            "tf32": False,
+            "autocast": False,
+        },
+    }
+
+
+def _restore_candidate_training_checkpoint(
+    state: Mapping[str, Any],
+    *,
+    session: _CandidateTrainingSession,
+    model: nn.Module,
+    target_model: nn.Module,
+    optimizer: optim.Optimizer,
+    weight_ema: Optional[_WeightEma],
+    lr_scheduler: Optional[optim.lr_scheduler.LRScheduler],
+    device: torch.device,
+    dataset_rows: int,
+) -> dict[str, Any]:
+    """Restore one exact candidate step boundary; no partial gradients exist."""
+
+    if set(state) != _CANDIDATE_TRAINING_STATE_KEYS:
+        raise RuntimeError("[CANDIDATE_TRAINING_STATE_SCHEMA_INVALID]")
+    if (
+        state.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+        or state.get("session_contract_sha256") != session.contract_sha256
+        or int(state.get("checkpoint_index", 0)) < 1
+        or state.get("phase") not in _CANDIDATE_TRAINING_PHASES
+        or int(state.get("epoch_index", -1)) < 0
+        or int(state.get("next_batch_offset", -1)) < 0
+        or not isinstance(state.get("complete"), bool)
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_SCHEMA_INVALID]")
+    order = state.get("epoch_order")
+    if (
+        not isinstance(order, torch.Tensor)
+        or order.dtype != torch.int64
+        or order.ndim != 1
+        or int(order.numel()) != int(dataset_rows)
+        or not torch.equal(
+            torch.sort(order.detach().cpu()).values,
+            torch.arange(int(dataset_rows)),
+        )
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ORDER_INVALID]")
+    model_state = state.get("model_state")
+    target_state = state.get("target_model_state")
+    optimizer_state = state.get("optimizer_state")
+    progress = state.get("training_progress")
+    if (
+        not isinstance(model_state, Mapping)
+        or not isinstance(target_state, Mapping)
+        or not isinstance(optimizer_state, Mapping)
+        or not isinstance(progress, Mapping)
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_PAYLOAD_INVALID]")
+    try:
+        model.load_state_dict(model_state, strict=True)
+        target_model.load_state_dict(target_state, strict=True)
+        target_model.requires_grad_(False)
+        target_model.eval()
+        optimizer.load_state_dict(optimizer_state)
+        if weight_ema is None:
+            if state.get("weight_ema_state") is not None:
+                raise RuntimeError("[CANDIDATE_TRAINING_WEIGHT_EMA_UNEXPECTED]")
+        else:
+            if not isinstance(state.get("weight_ema_state"), Mapping):
+                raise RuntimeError("[CANDIDATE_TRAINING_WEIGHT_EMA_MISSING]")
+            weight_ema.restore_checkpoint_state(state["weight_ema_state"], model=model)
+        if lr_scheduler is None:
+            if state.get("lr_scheduler_state") is not None:
+                raise RuntimeError("[CANDIDATE_TRAINING_LR_SCHEDULER_UNEXPECTED]")
+        else:
+            if not isinstance(state.get("lr_scheduler_state"), Mapping):
+                raise RuntimeError("[CANDIDATE_TRAINING_LR_SCHEDULER_MISSING]")
+            lr_scheduler.load_state_dict(state["lr_scheduler_state"])
+        if not isinstance(state.get("rng_state"), Mapping):
+            raise RuntimeError("[CANDIDATE_TRAINING_RNG_STATE_INVALID]")
+        _restore_attended_session_rng_state(state["rng_state"], device=device)
+    except (RuntimeError, TypeError, ValueError) as exc:
+        if isinstance(exc, RuntimeError) and str(exc).startswith("[CANDIDATE_"):
+            raise
+        raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_RESTORE_INVALID]") from exc
+    return {
+        "checkpoint_index": int(state["checkpoint_index"]),
+        "phase": str(state["phase"]),
+        "epoch_index": int(state["epoch_index"]),
+        "next_batch_offset": int(state["next_batch_offset"]),
+        "epoch_order": order.detach().cpu().contiguous(),
+        "training_progress": dict(progress),
         "complete": bool(state["complete"]),
     }
 
@@ -7516,6 +8170,109 @@ def _write_checkpoint_failure_evidence(
     return path
 
 
+def _write_pre_candidate_time_window_integration_report(
+    *,
+    session: _AttendedResearchSession,
+    train_time_window: Mapping[str, Any],
+    model: nn.Module,
+    target_model: nn.Module,
+    task_supervision_observed: Mapping[str, bool],
+    task_gradient_observed: Mapping[str, bool],
+    train_stats: Mapping[str, Any],
+    effective_train_rows: int,
+) -> Path:
+    """Publish one non-promotable completion record for a chronological smoke.
+
+    This deliberately lives in the private attended-session directory, never
+    in an Entry bundle directory. It answers only the technical question
+    "did every frozen branch execute and learn over this exact TRAIN window?";
+    it cannot be mistaken for a VAL/OOS/backtest or deployment artifact.
+    """
+
+    missing_supervision = sorted(
+        name for name in JOINT_TASK_NAMES
+        if task_supervision_observed.get(name) is not True
+    )
+    missing_gradients = sorted(
+        name for name in JOINT_TASK_NAMES
+        if task_gradient_observed.get(name) is not True
+    )
+    if missing_supervision or missing_gradients:
+        raise RuntimeError(
+            "[PRE_CANDIDATE_TIME_WINDOW_TASK_PATH_INCOMPLETE] "
+            f"missing_supervision={missing_supervision} "
+            f"missing_gradients={missing_gradients}"
+        )
+    initial_model_state_sha256 = _model_state_sha256(target_model)
+    final_model_state_sha256 = _model_state_sha256(model)
+    if initial_model_state_sha256 == final_model_state_sha256:
+        raise RuntimeError("[PRE_CANDIDATE_TIME_WINDOW_NO_PARAMETER_MOVEMENT]")
+    report_path = session.directory / "PRE_CANDIDATE_TIME_WINDOW_INTEGRATION_REPORT.json"
+    if report_path.exists() or report_path.is_symlink():
+        raise RuntimeError("[PRE_CANDIDATE_TIME_WINDOW_REPORT_DESTINATION_INVALID]")
+    report = {
+        "schema_version": "gx1_pre_candidate_time_window_integration_v1",
+        "created_at_utc": _utc_now(),
+        "decision": "PASS_TECHNICAL_INTEGRATION_NOT_EDGE",
+        "authority": {
+            "feature_pipeline": True,
+            "gradient_path": True,
+            "parameter_movement": True,
+            "candidate": False,
+            "validation": False,
+            "test": False,
+            "backtest": False,
+            "bundle": False,
+            "promotion": False,
+            "paper": False,
+            "live": False,
+        },
+        "session_contract_sha256": session.contract_sha256,
+        "train_time_window": dict(train_time_window),
+        "effective_train_rows": int(effective_train_rows),
+        "model_native_inputs": {
+            "signal_fields": int(MODEL_NATIVE_SIGNAL_DIM),
+            "ctx_cont_fields": int(MODEL_NATIVE_CTX_CONT_DIM),
+            "ctx_cat_fields": int(MODEL_NATIVE_CTX_CAT_DIM),
+            "multi_timeframes": list(MULTI_TF_TIMEFRAMES),
+            "specialists": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
+        },
+        "joint_task_supervision_observed": {
+            name: bool(task_supervision_observed[name])
+            for name in JOINT_TASK_NAMES
+        },
+        "joint_task_gradient_observed": {
+            name: bool(task_gradient_observed[name])
+            for name in JOINT_TASK_NAMES
+        },
+        "model_state": {
+            "initial_fixed_target_sha256": initial_model_state_sha256,
+            "final_online_sha256": final_model_state_sha256,
+            "different": True,
+        },
+        "last_session_train_stats": dict(train_stats),
+    }
+    payload = _attended_session_json_bytes(report)
+    fd, temporary = tempfile.mkstemp(prefix=f".{report_path.name}.", dir=str(session.directory))
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        # link(2) gives us no-replace publication even if another process or a
+        # stale shell races this terminal checkpoint.
+        os.link(temporary, report_path)
+        _fsync_regular_file(report_path)
+    except FileExistsError as exc:
+        raise RuntimeError(
+            "[PRE_CANDIDATE_TIME_WINDOW_REPORT_DESTINATION_INVALID]"
+        ) from exc
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return report_path
+
+
 def validate(
     model,
     target_model,
@@ -7523,6 +8280,11 @@ def validate(
     device,
     *,
     collect_full_exit_trajectory: bool = False,
+    resume_validation_state: Optional[Mapping[str, Any]] = None,
+    validation_batch_offset: int = 0,
+    max_validation_batches: Optional[int] = None,
+    validation_checkpoint_hook: Optional[Any] = None,
+    validation_session_log_label: str = "CANDIDATE_TRAINING",
 ):
     model.eval()
     target_model.eval()
@@ -7533,46 +8295,88 @@ def validate(
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
     if dataset._unified_exit_lifecycle is None:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
-    full_trajectory_accumulator = (
-        _new_unified_exit_full_trajectory_accumulator(
-            model=model,
-            target_model=target_model,
+    if max_validation_batches is not None and (
+        int(max_validation_batches) < 1
+        or validation_checkpoint_hook is None
+        or int(validation_batch_offset) < 0
+        or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(validation_session_log_label))
+    ):
+        raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_ARGUMENT_INVALID]")
+    if resume_validation_state is None:
+        full_trajectory_accumulator = (
+            _new_unified_exit_full_trajectory_accumulator(
+                model=model,
+                target_model=target_model,
+            )
+            if collect_full_exit_trajectory
+            else None
         )
-        if collect_full_exit_trajectory
-        else None
-    )
-    total = 0.0
-    entry_q_loss_sum = 0.0
-    cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
-    feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator()
-    exit_cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator(
-        _UNIFIED_EXIT_COOPERATION_GATE_WIDTHS
-    )
-    exit_feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator(
-        _UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE
-    )
-    n = 0
-    side_mae_loss_sum = 0.0
-    trendline_event_loss_sum = 0.0
-    trendline_event_rows_sum = 0
-    trendline_support_rows_sum = 0
-    trendline_resistance_rows_sum = 0
-    unified_exit_loss_sum = 0.0
-    unified_exit_population_rows = 0
-    unified_exit_rows = 0
-    unified_exit_tied_rows = 0
-    unified_exit_eligible_entry_rows = 0
-    unified_exit_hold_rows = 0
-    unified_exit_now_rows = 0
-    unified_exit_correct = 0
-    active_head_epoch = _new_active_head_epoch_accumulator()
-    entry_policy_realized_pnl_chunks: List[np.ndarray] = []
-    entry_unique_target_rows = 0
-    entry_target_equivalent_rows = 0
-    entry_unique_target_agreement_rows = 0
+        total = 0.0
+        entry_q_loss_sum = 0.0
+        cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
+        feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator()
+        exit_cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator(
+            _UNIFIED_EXIT_COOPERATION_GATE_WIDTHS
+        )
+        exit_feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator(
+            _UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE
+        )
+        n = 0
+        side_mae_loss_sum = 0.0
+        trendline_event_loss_sum = 0.0
+        trendline_event_rows_sum = 0
+        trendline_support_rows_sum = 0
+        trendline_resistance_rows_sum = 0
+        unified_exit_loss_sum = 0.0
+        unified_exit_population_rows = 0
+        unified_exit_rows = 0
+        unified_exit_tied_rows = 0
+        unified_exit_eligible_entry_rows = 0
+        unified_exit_hold_rows = 0
+        unified_exit_now_rows = 0
+        unified_exit_correct = 0
+        active_head_epoch = _new_active_head_epoch_accumulator()
+        entry_policy_realized_pnl_chunks: List[np.ndarray] = []
+        entry_unique_target_rows = 0
+        entry_target_equivalent_rows = 0
+        entry_unique_target_agreement_rows = 0
+    else:
+        restored = _restore_candidate_validation_snapshot(resume_validation_state)
+        total = float(restored["total"])
+        entry_q_loss_sum = float(restored["entry_q_loss_sum"])
+        cooperation_gate_epoch = restored["cooperation_gate_epoch"]
+        feature_tf_gate_epoch = restored["feature_tf_gate_epoch"]
+        exit_cooperation_gate_epoch = restored["exit_cooperation_gate_epoch"]
+        exit_feature_tf_gate_epoch = restored["exit_feature_tf_gate_epoch"]
+        n = int(restored["rows"])
+        side_mae_loss_sum = float(restored["side_mae_loss_sum"])
+        trendline_event_loss_sum = float(restored["trendline_event_loss_sum"])
+        trendline_event_rows_sum = int(restored["trendline_event_rows_sum"])
+        trendline_support_rows_sum = int(restored["trendline_support_rows_sum"])
+        trendline_resistance_rows_sum = int(restored["trendline_resistance_rows_sum"])
+        unified_exit_loss_sum = float(restored["unified_exit_loss_sum"])
+        unified_exit_population_rows = int(restored["unified_exit_population_rows"])
+        unified_exit_rows = int(restored["unified_exit_rows"])
+        unified_exit_tied_rows = int(restored["unified_exit_tied_rows"])
+        unified_exit_eligible_entry_rows = int(restored["unified_exit_eligible_entry_rows"])
+        unified_exit_hold_rows = int(restored["unified_exit_hold_rows"])
+        unified_exit_now_rows = int(restored["unified_exit_now_rows"])
+        unified_exit_correct = int(restored["unified_exit_correct"])
+        active_head_epoch = restored["active_head_epoch"]
+        entry_policy_realized_pnl_chunks = list(
+            restored["entry_policy_realized_pnl_chunks"]
+        )
+        entry_unique_target_rows = int(restored["entry_unique_target_rows"])
+        entry_target_equivalent_rows = int(restored["entry_target_equivalent_rows"])
+        entry_unique_target_agreement_rows = int(
+            restored["entry_unique_target_agreement_rows"]
+        )
+        full_trajectory_accumulator = restored["full_trajectory_accumulator"]
+        if bool(collect_full_exit_trajectory) != bool(full_trajectory_accumulator):
+            raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_MODE_MISMATCH]")
 
     with torch.no_grad():
-        for batch in loader:
+        for batch_i, batch in enumerate(loader, start=1):
             non_blocking = device.type == "cuda"
             seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
             snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
@@ -7766,6 +8570,63 @@ def validate(
             entry_policy_realized_pnl_chunks.append(
                 realized_policy_pnl.detach().cpu().numpy()
             )
+            if (
+                max_validation_batches is not None
+                and batch_i >= int(max_validation_batches)
+                and batch_i < len(loader)
+            ):
+                snapshot = _candidate_validation_snapshot(
+                    total=total,
+                    entry_q_loss_sum=entry_q_loss_sum,
+                    cooperation_gate_epoch=cooperation_gate_epoch,
+                    feature_tf_gate_epoch=feature_tf_gate_epoch,
+                    exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                    exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                    rows=n,
+                    side_mae_loss_sum=side_mae_loss_sum,
+                    trendline_event_loss_sum=trendline_event_loss_sum,
+                    trendline_event_rows_sum=trendline_event_rows_sum,
+                    trendline_support_rows_sum=trendline_support_rows_sum,
+                    trendline_resistance_rows_sum=trendline_resistance_rows_sum,
+                    unified_exit_loss_sum=unified_exit_loss_sum,
+                    unified_exit_population_rows=unified_exit_population_rows,
+                    unified_exit_rows=unified_exit_rows,
+                    unified_exit_tied_rows=unified_exit_tied_rows,
+                    unified_exit_eligible_entry_rows=unified_exit_eligible_entry_rows,
+                    unified_exit_hold_rows=unified_exit_hold_rows,
+                    unified_exit_now_rows=unified_exit_now_rows,
+                    unified_exit_correct=unified_exit_correct,
+                    active_head_epoch=active_head_epoch,
+                    entry_policy_realized_pnl_chunks=entry_policy_realized_pnl_chunks,
+                    entry_unique_target_rows=entry_unique_target_rows,
+                    entry_target_equivalent_rows=entry_target_equivalent_rows,
+                    entry_unique_target_agreement_rows=(
+                        entry_unique_target_agreement_rows
+                    ),
+                    full_trajectory_accumulator=full_trajectory_accumulator,
+                )
+                next_batch_offset = int(validation_batch_offset) + int(batch_i)
+                validation_checkpoint_hook(
+                    next_batch_offset=next_batch_offset,
+                    validation_snapshot=snapshot,
+                )
+                log.info(
+                    "[%s_VALIDATION_SESSION_PAUSE] batches_completed=%d "
+                    "max_batches=%d",
+                    validation_session_log_label,
+                    next_batch_offset,
+                    int(max_validation_batches),
+                )
+                return (
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                    {
+                        "candidate_session_partial": True,
+                        "next_batch_offset": next_batch_offset,
+                    },
+                )
 
     if (
         unified_exit_rows <= 0
@@ -7986,6 +8847,8 @@ def run_train(
     per_tf_seq_len_d1: int,
     multi_tf_scale: float,
     subsample_rows: int,
+    train_time_window_start_utc: Optional[str],
+    train_time_window_end_utc: Optional[str],
     specialist_num_layers: int,
     specialist_fusion_scale: float,
     cross_family_fusion_scale: float,
@@ -8075,6 +8938,41 @@ def run_train(
             "[ENTRY_SMOKE_SUBSAMPLE_REQUIRED] smoke must declare a positive "
             "bounded model-compute population"
         )
+    time_window_requested = (
+        train_time_window_start_utc is not None
+        or train_time_window_end_utc is not None
+    )
+    if time_window_requested:
+        if (
+            profile != "smoke"
+            or not _is_attended_execution_tier(execution_tier)
+            or not isinstance(train_time_window_start_utc, str)
+            or not isinstance(train_time_window_end_utc, str)
+        ):
+            raise RuntimeError(
+                "[ENTRY_TRAIN_TIME_WINDOW_ROUTE_INVALID] chronological "
+                "integration is available only to attended smoke with both "
+                "UTC bounds"
+            )
+        try:
+            train_time_window_start = pd.Timestamp(
+                train_time_window_start_utc
+            )
+            train_time_window_end = pd.Timestamp(train_time_window_end_utc)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_PARSE_INVALID]") from exc
+        if (
+            train_time_window_start.tzinfo is None
+            or train_time_window_end.tzinfo is None
+        ):
+            raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_UTC_REQUIRED]")
+        train_time_window_start = train_time_window_start.tz_convert("UTC")
+        train_time_window_end = train_time_window_end.tz_convert("UTC")
+        if train_time_window_start >= train_time_window_end:
+            raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_ORDER_INVALID]")
+    else:
+        train_time_window_start = None
+        train_time_window_end = None
     try:
         prefreeze_test_seal_lineage = (
             require_prefreeze_test_seal_lineage_metadata(
@@ -8459,22 +9357,48 @@ def run_train(
             "[ENTRY_SMOKE_SUBSAMPLE_NOT_BOUNDED] --subsample-rows must be "
             "smaller than both immutable TRAIN and VAL populations"
         )
-    train_selected_indices = deterministic_uniform_subsample_indices(
-        population_rows=physical_train_rows,
-        requested_rows=int(subsample_rows),
-        seed=int(seed),
-        split_salt=0,
-    )
+    train_time_window: Optional[dict[str, Any]] = None
+    if train_time_window_start is not None and train_time_window_end is not None:
+        train_times = pd.to_datetime(train_ds.df["time"], utc=True, errors="coerce")
+        if bool(train_times.isna().any()):
+            raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_DATA_TIME_INVALID]")
+        train_selected_indices = np.flatnonzero(
+            (train_times >= train_time_window_start)
+            & (train_times < train_time_window_end)
+        ).astype(np.int64, copy=False)
+        if int(train_selected_indices.size) < 1:
+            raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_EMPTY]")
+        selected_times = train_times.iloc[train_selected_indices]
+        train_time_window = {
+            "start_utc": train_time_window_start.isoformat(),
+            "end_utc": train_time_window_end.isoformat(),
+            "selected_rows": int(train_selected_indices.size),
+            "selection_sha256": hashlib.sha256(
+                np.ascontiguousarray(
+                    train_selected_indices.astype("<i8", copy=False)
+                ).tobytes()
+            ).hexdigest(),
+            "first_selected_time_utc": selected_times.iloc[0].isoformat(),
+            "last_selected_time_utc": selected_times.iloc[-1].isoformat(),
+        }
+        train_selection_algorithm = TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM
+    else:
+        train_selected_indices = deterministic_uniform_subsample_indices(
+            population_rows=physical_train_rows,
+            requested_rows=int(subsample_rows),
+            seed=int(seed),
+            split_salt=0,
+        )
+        train_selection_algorithm = (
+            UNIFORM_SUBSAMPLE_ALGORITHM
+            if int(train_selected_indices.size) < physical_train_rows
+            else FULL_POPULATION_ALGORITHM
+        )
     val_selected_indices = deterministic_uniform_subsample_indices(
         population_rows=physical_val_rows,
         requested_rows=int(subsample_rows),
         seed=int(seed),
         split_salt=1,
-    )
-    train_selection_algorithm = (
-        UNIFORM_SUBSAMPLE_ALGORITHM
-        if int(train_selected_indices.size) < physical_train_rows
-        else FULL_POPULATION_ALGORITHM
     )
     val_selection_algorithm = (
         UNIFORM_SUBSAMPLE_ALGORITHM
@@ -8491,7 +9415,10 @@ def run_train(
         selected_indices=val_selected_indices,
         algorithm=val_selection_algorithm,
     )
-    if train_selection_algorithm == UNIFORM_SUBSAMPLE_ALGORITHM:
+    if train_selection_algorithm in {
+        UNIFORM_SUBSAMPLE_ALGORITHM,
+        TEMPORAL_WINDOW_SUBSAMPLE_ALGORITHM,
+    }:
         train_ds.indices = train_selected_indices
         train_ds.compact_materialized_rows(train_ds.indices)
     if val_selection_algorithm == UNIFORM_SUBSAMPLE_ALGORITHM:
@@ -8511,6 +9438,17 @@ def run_train(
         physical_val_rows,
         val_selection_algorithm,
     )
+    if train_time_window is not None:
+        log.info(
+            "[MODEL_COMPUTE_TRAIN_TIME_WINDOW] start=%s end=%s selected_rows=%d "
+            "selection_sha256=%s first=%s last=%s",
+            train_time_window["start_utc"],
+            train_time_window["end_utc"],
+            int(train_time_window["selected_rows"]),
+            train_time_window["selection_sha256"],
+            train_time_window["first_selected_time_utc"],
+            train_time_window["last_selected_time_utc"],
+        )
 
     if int(num_workers) != 0:
         raise RuntimeError(
@@ -8563,6 +9501,7 @@ def run_train(
                 execution_tier=execution_tier,
                 device_type=device.type,
                 max_optimizer_steps=attended_max_optimizer_steps,
+                train_time_window=train_time_window,
             ),
         )
         attended_checkpoint_state = attended_session.load_checkpoint()
@@ -9031,6 +9970,12 @@ def run_train(
                 "epoch_index": 0,
                 "next_batch_offset": 0,
                 "epoch_order": attended_epoch_order,
+                "task_supervision_observed": {
+                    name: False for name in JOINT_TASK_NAMES
+                },
+                "task_gradient_observed": {
+                    name: False for name in JOINT_TASK_NAMES
+                },
                 "complete": False,
             }
         else:
@@ -9104,6 +10049,8 @@ def run_train(
                 next_batch_offset=int(next_batch_offset),
                 epoch_order=attended_order,
                 complete=bool(complete_epoch),
+                task_supervision_observed=attended_supervision,
+                task_gradient_observed=attended_gradients,
             )
             log.info(
                 "[ATTENDED_RESEARCH_CHECKPOINT] directory=%s checkpoint_index=%d "
@@ -9115,8 +10062,12 @@ def run_train(
                 int(bool(complete_epoch)),
             )
 
-        attended_supervision = {name: False for name in JOINT_TASK_NAMES}
-        attended_gradients = {name: False for name in JOINT_TASK_NAMES}
+        attended_supervision = dict(
+            attended_progress["task_supervision_observed"]
+        )
+        attended_gradients = dict(
+            attended_progress["task_gradient_observed"]
+        )
         _attended_loss, attended_stats, attended_epoch_complete = train_epoch(
             model,
             target_model,
@@ -9127,13 +10078,31 @@ def run_train(
             task_supervision_observed=attended_supervision,
             task_gradient_observed=attended_gradients,
             weight_ema=weight_ema,
-            attended_batch_offset=attended_start_offset,
-            attended_max_optimizer_steps=attended_max_optimizer_steps,
-            attended_checkpoint_hook=_checkpoint_attended_step,
-            attended_exit_action_forward_chunk_rows=(
+            session_batch_offset=attended_start_offset,
+            session_max_optimizer_steps=attended_max_optimizer_steps,
+            session_checkpoint_hook=_checkpoint_attended_step,
+            session_exit_action_forward_chunk_rows=(
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
+            session_checkpoint_every_optimizer_step=True,
+            session_log_label="ATTENDED_RESEARCH",
         )
+        if bool(attended_epoch_complete) and train_time_window is not None:
+            report_path = _write_pre_candidate_time_window_integration_report(
+                session=attended_session,
+                train_time_window=train_time_window,
+                model=model,
+                target_model=target_model,
+                task_supervision_observed=attended_supervision,
+                task_gradient_observed=attended_gradients,
+                train_stats=attended_stats,
+                effective_train_rows=effective_train_rows,
+            )
+            log.info(
+                "[PRE_CANDIDATE_TIME_WINDOW_INTEGRATION_PASS] report=%s "
+                "authority=technical_only",
+                report_path,
+            )
         log.info(
             "[ATTENDED_RESEARCH_SESSION_DONE] directory=%s epoch_complete=%d "
             "stats=%s authority=none bundle_written=0 validation_run=0",
@@ -9735,7 +10704,7 @@ def run_train(
             "required_for_candidate": True,
         }
         full_trajectory_validation = {
-            "schema_version": "gx1_unified_exit_full_trajectory_validation_v6",
+            "schema_version": "gx1_unified_exit_full_trajectory_validation_v7",
             "decision": "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE",
             "required_for_candidate": True,
         }
@@ -10546,7 +11515,10 @@ def run_train(
                                   multi_tf_names=_live_mtf_names,
                                   raise_on_fail=True,
                                   population_stats=_population_stats,
-                                  require_variability=(profile == "candidate"))
+                                  require_variability=(
+                                      profile == "candidate"
+                                      or train_time_window is not None
+                                  ))
         if _pop_cache:
             log.info(
                 "[FEATURE_LIVENESS_POPULATION_ESCALATION] %d field(s) below "
@@ -10670,6 +11642,8 @@ def main() -> None:
     parser.add_argument("--cross-family-fusion-scale", type=float, required=True)
     parser.add_argument("--grad-accum-steps", type=int, required=True)
     parser.add_argument("--subsample-rows", type=int, required=True)
+    parser.add_argument("--train-time-window-start-utc", type=str)
+    parser.add_argument("--train-time-window-end-utc", type=str)
     parser.add_argument("--grad-clip-norm", type=float, required=True)
     parser.add_argument("--weight-decay", type=float, required=True)
     parser.add_argument("--dropout", type=float, required=True)
@@ -10692,6 +11666,13 @@ def main() -> None:
         parser.error(
             "smoke training requires an explicit positive --subsample-rows "
             "to bound both TRAIN and VAL model compute"
+        )
+    if bool(args.train_time_window_start_utc) != bool(
+        args.train_time_window_end_utc
+    ):
+        parser.error(
+            "--train-time-window-start-utc and --train-time-window-end-utc "
+            "must be supplied together"
         )
     if _is_attended_execution_tier(args.execution_tier) and args.profile != "smoke":
         parser.error("attended execution tiers require --profile smoke")
@@ -10783,6 +11764,8 @@ def main() -> None:
         multi_tf_num_layers=int(args.multi_tf_num_layers),
         multi_tf_scale=args.multi_tf_scale,
         subsample_rows=args.subsample_rows,
+        train_time_window_start_utc=args.train_time_window_start_utc,
+        train_time_window_end_utc=args.train_time_window_end_utc,
         specialist_num_layers=int(args.specialist_num_layers),
         specialist_fusion_scale=float(args.specialist_fusion_scale),
         cross_family_fusion_scale=float(args.cross_family_fusion_scale),

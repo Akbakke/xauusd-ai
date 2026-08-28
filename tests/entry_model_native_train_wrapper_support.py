@@ -323,8 +323,15 @@ def _split_manifest(
     )
 
 
-def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tuple[list[str], dict[str, Path]]:
+def build_wrapper_contract(
+    tmp_path: Path,
+    *,
+    profile: str,
+    wrapper: Path,
+    train_time_window: tuple[str, str] | None = None,
+) -> tuple[list[str], dict[str, Path]]:
     assert profile in {"smoke", "candidate"}
+    assert train_time_window is None or profile == "smoke"
     dataset_dir = (tmp_path / f"dataset_{STAMP}").resolve()
     dataset_dir.mkdir(parents=True)
     gx1_data_root = (tmp_path / "GX1_DATA").resolve()
@@ -1167,6 +1174,14 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
         "batch_size": 8,
         "early_stop_patience": 1,
         "subsample_rows": 32 if profile == "smoke" else 0,
+        "train_time_window": (
+            {
+                "start_utc": train_time_window[0].replace("Z", "+00:00"),
+                "end_utc": train_time_window[1].replace("Z", "+00:00"),
+            }
+            if train_time_window is not None
+            else None
+        ),
         "num_workers": 0,
         "learning_rate": 0.0003,
         "early_stop_min_delta": 0.0,
@@ -1301,6 +1316,13 @@ def build_wrapper_contract(tmp_path: Path, *, profile: str, wrapper: Path) -> tu
             [
                 "--candidate-readiness-json", str(artifacts["candidate_readiness_json"]),
                 "--smoke-bundle-audit-json", str(artifacts["smoke_bundle_audit_json"]),
+            ]
+        )
+    if train_time_window is not None:
+        args.extend(
+            [
+                "--train-time-window-start-utc", train_time_window[0],
+                "--train-time-window-end-utc", train_time_window[1],
             ]
         )
     return args, {**artifacts, "dataset_dir": dataset_dir, "out_bundle_dir": out_bundle}

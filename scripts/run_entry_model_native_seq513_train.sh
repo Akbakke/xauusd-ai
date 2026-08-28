@@ -65,6 +65,7 @@ Required audited execution values (there are no wrapper defaults):
   --early-stop-patience N --early-stop-min-delta X --grad-clip-norm X
   --weight-decay X --dropout X --multi-tf-scale X
   --specialist-fusion-scale X --cross-family-fusion-scale X --subsample-rows N
+  [--train-time-window-start-utc ISO8601Z --train-time-window-end-utc ISO8601Z]
   --multi-tf-num-layers N --specialist-num-layers N --grad-accum-steps N
   --per-tf-seq-len-m5 N --per-tf-seq-len-m15 N
   --per-tf-seq-len-h1 N --per-tf-seq-len-h4 N --per-tf-seq-len-d1 N
@@ -85,6 +86,11 @@ use against the immutable M5 feature surface.
 --research-smoke is intentionally disabled after a WSL/GPU reset during the
 former long-running route. Historical CUDA training requires a separately
 designed low-VRAM, resumable architecture before it may be re-enabled.
+
+The optional paired train-time window is a chronological, attended-smoke-only
+integration lane. It never creates a candidate bundle, validation, TEST or
+trading authority; --subsample-rows remains the bounded deterministic VAL
+sample size in that lane.
 EOF
 }
 
@@ -116,6 +122,7 @@ TRAIN_SEQUENCE_SOURCE_AUDIT_JSON= VAL_SEQUENCE_SOURCE_AUDIT_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
 DROPOUT= MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= CROSS_FAMILY_FUSION_SCALE= SUBSAMPLE_ROWS=
+TRAIN_TIME_WINDOW_START_UTC= TRAIN_TIME_WINDOW_END_UTC=
 NUM_WORKERS= MULTI_TF_NUM_LAYERS= SPECIALIST_NUM_LAYERS= GRAD_ACCUM_STEPS=
 PER_TF_SEQ_LEN_M5= PER_TF_SEQ_LEN_M15=
 PER_TF_SEQ_LEN_H1= PER_TF_SEQ_LEN_H4= PER_TF_SEQ_LEN_D1=
@@ -157,7 +164,7 @@ while [[ $# -gt 0 ]]; do
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
     --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
     --weight-decay|--dropout|--multi-tf-scale|--specialist-fusion-scale|--cross-family-fusion-scale|\
-    --subsample-rows|--memory-cap|--swap-cap|\
+    --subsample-rows|--train-time-window-start-utc|--train-time-window-end-utc|--memory-cap|--swap-cap|\
     --num-workers|\
     --multi-tf-num-layers|--specialist-num-layers|--grad-accum-steps|\
     --per-tf-seq-len-m5|--per-tf-seq-len-m15|\
@@ -218,6 +225,8 @@ while [[ $# -gt 0 ]]; do
         --specialist-fusion-scale) variable=SPECIALIST_FUSION_SCALE ;;
         --cross-family-fusion-scale) variable=CROSS_FAMILY_FUSION_SCALE ;;
         --subsample-rows) variable=SUBSAMPLE_ROWS ;;
+        --train-time-window-start-utc) variable=TRAIN_TIME_WINDOW_START_UTC ;;
+        --train-time-window-end-utc) variable=TRAIN_TIME_WINDOW_END_UTC ;;
         --memory-cap) variable=MEMORY_CAP ;;
         --swap-cap) variable=SWAP_CAP ;;
       esac
@@ -277,6 +286,12 @@ if [[ "$ATTENDED_SMOKE" == true && "$DEVICE" != cuda ]]; then
 fi
 if [[ "$ATTENDED_CPU_SMOKE" == true && "$DEVICE" != cpu ]]; then
   die "--attended-cpu-smoke requires --device cpu"
+fi
+if [[ -n "$TRAIN_TIME_WINDOW_START_UTC" || -n "$TRAIN_TIME_WINDOW_END_UTC" ]]; then
+  [[ -n "$TRAIN_TIME_WINDOW_START_UTC" && -n "$TRAIN_TIME_WINDOW_END_UTC" ]] \
+    || die "train time-window start and end must be supplied together"
+  [[ "$PROFILE" == smoke && "$ATTENDED_SMOKE" == true && "$DEVICE" == cuda ]] \
+    || die "train time-window requires --profile smoke --attended-smoke --device cuda"
 fi
 if [[ "$ATTENDED_SMOKE" == true || "$ATTENDED_CPU_SMOKE" == true ]]; then
   # This lane is a one-off historical CUDA measurement, not a faster smoke
@@ -357,6 +372,12 @@ VALIDATOR_ARGS=(
   --per-tf-seq-len-d1 "$PER_TF_SEQ_LEN_D1"
   --memory-cap "$MEMORY_CAP" --swap-cap "$SWAP_CAP" --gx1-data-root "$GX1_DATA_ROOT"
 )
+if [[ -n "$TRAIN_TIME_WINDOW_START_UTC" ]]; then
+  VALIDATOR_ARGS+=(
+    --train-time-window-start-utc "$TRAIN_TIME_WINDOW_START_UTC"
+    --train-time-window-end-utc "$TRAIN_TIME_WINDOW_END_UTC"
+  )
+fi
 VALIDATOR_ARGS+=("${PROFILE_VALIDATOR_ARGS[@]}")
 if ! RECIPE_ENV_TEXT=$(cd "$REPO" && "$PY" -m gx1.contracts.entry_model_native_train_launch_v1 "${VALIDATOR_ARGS[@]}"); then
   exit 2
@@ -429,6 +450,12 @@ TRAIN_CMD=(
   --specialist-num-layers "$SPECIALIST_NUM_LAYERS" --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
   --cross-family-fusion-scale "$CROSS_FAMILY_FUSION_SCALE"
 )
+if [[ -n "$TRAIN_TIME_WINDOW_START_UTC" ]]; then
+  TRAIN_CMD+=(
+    --train-time-window-start-utc "$TRAIN_TIME_WINDOW_START_UTC"
+    --train-time-window-end-utc "$TRAIN_TIME_WINDOW_END_UTC"
+  )
+fi
 TRAIN_CMD+=(
   --train-sequence-source-audit-json "$TRAIN_SEQUENCE_SOURCE_AUDIT_JSON"
   --val-sequence-source-audit-json "$VAL_SEQUENCE_SOURCE_AUDIT_JSON"

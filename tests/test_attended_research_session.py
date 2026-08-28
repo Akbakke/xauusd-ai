@@ -176,6 +176,54 @@ def test_exact_index_sampler_starts_at_complete_batch_boundary() -> None:
     assert len(sampler) == 4
 
 
+def test_time_window_completion_report_requires_all_task_paths_and_movement(
+    tmp_path: Path,
+) -> None:
+    out_bundle = tmp_path / "BUNDLE_20260824T120000Z"
+    session = trainer._AttendedResearchSession(
+        out_bundle_dir=out_bundle,
+        contract=_contract(),
+    )
+    target_model = torch.nn.Linear(3, 2)
+    model = copy.deepcopy(target_model)
+    with torch.no_grad():
+        next(model.parameters()).add_(0.25)
+    all_tasks = {name: True for name in trainer.JOINT_TASK_NAMES}
+    report = trainer._write_pre_candidate_time_window_integration_report(
+        session=session,
+        train_time_window={
+            "start_utc": "2024-12-01T00:00:00+00:00",
+            "end_utc": "2025-06-01T00:00:00+00:00",
+            "selected_rows": 32,
+            "selection_sha256": "a" * 64,
+            "first_selected_time_utc": "2024-12-01T00:05:00+00:00",
+            "last_selected_time_utc": "2025-05-30T12:55:00+00:00",
+        },
+        model=model,
+        target_model=target_model,
+        task_supervision_observed=all_tasks,
+        task_gradient_observed=all_tasks,
+        train_stats={"unified_exit_q_valid_cells": 1},
+        effective_train_rows=32,
+    )
+    payload = trainer._attended_session_read_json(report, label="REPORT")
+    assert payload["decision"] == "PASS_TECHNICAL_INTEGRATION_NOT_EDGE"
+    assert payload["authority"]["backtest"] is False
+    assert payload["authority"]["candidate"] is False
+    assert payload["model_state"]["different"] is True
+    with pytest.raises(RuntimeError, match="REPORT_DESTINATION_INVALID"):
+        trainer._write_pre_candidate_time_window_integration_report(
+            session=session,
+            train_time_window=payload["train_time_window"],
+            model=model,
+            target_model=target_model,
+            task_supervision_observed=all_tasks,
+            task_gradient_observed=all_tasks,
+            train_stats={},
+            effective_train_rows=32,
+        )
+
+
 def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     source = Path(trainer.__file__).read_text(encoding="utf-8")
 

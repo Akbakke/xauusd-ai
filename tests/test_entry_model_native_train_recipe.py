@@ -259,6 +259,34 @@ def test_train_launch_rejects_invalid_explicit_dropout(
         launch._trainer_cli_contract(args)
 
 
+def test_time_window_is_hash_bound_in_trainer_cli_contract(tmp_path: Path) -> None:
+    wrapper_argv, _ = build_wrapper_contract(
+        tmp_path,
+        profile="smoke",
+        wrapper=WRAPPER,
+        train_time_window=(
+            "2024-12-01T00:00:00Z",
+            "2025-06-01T00:00:00Z",
+        ),
+    )
+    args = launch.build_parser().parse_args(
+        [
+            "--profile",
+            "smoke",
+            "--repo",
+            str(REPO),
+            "--wrapper-path",
+            str(WRAPPER),
+            *wrapper_argv,
+        ]
+    )
+    trainer_cli = launch._trainer_cli_contract(args)
+    assert trainer_cli["train_time_window"] == {
+        "start_utc": "2024-12-01T00:00:00+00:00",
+        "end_utc": "2025-06-01T00:00:00+00:00",
+    }
+
+
 def test_train_launch_rejects_every_noncanonical_wrapper_path(
     tmp_path: Path,
 ) -> None:

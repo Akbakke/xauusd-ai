@@ -608,7 +608,7 @@ def _require_exact_model_native_bundle_metadata(
             training_profile == "candidate"
             and (
                 full_trajectory_validation.get("schema_version")
-                != "gx1_unified_exit_full_trajectory_validation_v6"
+                != "gx1_unified_exit_full_trajectory_validation_v7"
                 or full_trajectory_validation.get("decision") != "PASS"
                 or full_trajectory_validation.get("population")
                 != "all_causal_states_both_sides_batched_episode_forward"

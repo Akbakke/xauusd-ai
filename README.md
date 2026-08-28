@@ -131,6 +131,13 @@ but the system is not empirically finished:
   protocol; it must not be used to pretend a truncated job is a 30-epoch run.
   A reviewed resumable executor or external compute is the remaining execution
   prerequisite;
+- a prepared, unrun six-month chronological **technical integration** lane is
+  narrower than candidate training: it selects only V46 TRAIN timestamps from
+  2024-12-01 (inclusive) to 2025-06-01 (exclusive), binds that selection into
+  the recipe/session, runs one checkpointed batch-8 epoch under the existing
+  guard, and emits a private technical report only. It must prove full feature
+  liveness, every joint-task gradient and parameter movement, but creates no
+  bundle, OOS/backtest or trading authority;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

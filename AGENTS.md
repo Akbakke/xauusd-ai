@@ -129,6 +129,13 @@ Read `GX1_RULES.md` first. It is binding.
   compute; do not bypass the guard or mislabel a truncated run as candidate
   evidence. Resolve exact logs and the next decision from the handover, never
   from an old run directory.
+- Before candidate execution, a pre-candidate integration may use only the
+  explicit attended-smoke time window `[2024-12-01T00:00:00Z,
+  2025-06-01T00:00:00Z)` from V46 TRAIN. It is 32,289 chronological rows,
+  never a uniform TRAIN sample. Its recipe/session binds the UTC boundaries;
+  its terminal private report must prove exact liveness, all joint-task
+  supervision/gradients and parameter movement. It produces no bundle and has
+  no validation, TEST, backtest, candidate, demo or live authority.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are

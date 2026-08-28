@@ -223,6 +223,21 @@ restart-safe candidate checkpoint/session protocol with the same guard, or
 prepare a reproducible external-GPU run after an explicit provider decision.
 Neither route changes V46 data, features, targets or the untouched TEST seal.
 
+**Pending chronological integration, prepared 2026-08-28 (not yet run):** the
+only newly permitted local learning check is a non-promotable attended smoke
+over `[2024-12-01T00:00:00Z, 2025-06-01T00:00:00Z)`, the last six calendar
+months available in V46 TRAIN (32,289 decision rows). It is not a random
+subsample: the exact UTC bounds and selected-row hash are bound into the
+recipe/session contract, while a small deterministic VAL sample is used only
+to preserve the preflight memory ceiling. Each completed batch-8 optimizer
+step is two-slot checkpointed under the existing 220 W / 70 C / 12 GiB guard.
+On completion it writes a private technical-only report that requires every
+joint task to receive supervision and gradient and the online model to differ
+from its frozen initial target. It writes no bundle and has no VAL, TEST,
+backtest, PnL, candidate, demo or live authority. Do not start it from a dirty
+worktree or reuse a prior recipe; first materialize a fresh recipe bound to the
+committed source, then dry-run it.
+
 The hash-bound trade-path reporter is ready for a later full candidate TEST
 replay, but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists
 yet.
