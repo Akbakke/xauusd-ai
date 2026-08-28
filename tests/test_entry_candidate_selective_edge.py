@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -29,6 +31,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     _preregistered_hypothesis,
     _research_policy_pnl,
     _require_entry_q_ssot,
+    _require_evaluation_mtf_source_provenance,
     _load_val_reference,
     _require_post_prediction_input_stability,
     _require_requested_test_bindings_match_seal,
@@ -40,6 +43,90 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     build_metric_rows,
 )
 from pathlib import Path
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_mtf_provenance_binds_distinct_model_and_cache_sources(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The model frame and the MTF cache source are distinct bound objects."""
+
+    model_source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
+    model_source.write_bytes(b"model source")
+    cache_source = tmp_path / "m5_enriched.parquet"
+    cache_source.write_bytes(b"cache source")
+    split_manifest = tmp_path / "val.manifest.json"
+    split_manifest.write_text("{}", encoding="utf-8")
+    cache_dir = tmp_path / "MULTI_TF_V4_CACHE"
+    cache_dir.mkdir()
+    (cache_dir / "manifest.json").write_text("{}", encoding="utf-8")
+
+    cache_binding = {
+        "cache_identity_sha256": "a" * 64,
+        "manifest_sha256": _sha256(cache_dir / "manifest.json"),
+        "m5_prebuilt_source": str(cache_source),
+        "m5_prebuilt_source_sha256": _sha256(cache_source),
+    }
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "require_dataset_manifest_multi_tf_cache_binding",
+        lambda *_args, **_kwargs: cache_binding,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "require_multi_tf_v4_cache_binding_files",
+        lambda *_args, **_kwargs: cache_binding,
+    )
+    dataset_contract = {
+        "splits": {
+            "val": {
+                "manifest_path": str(split_manifest),
+                "source_frame": {
+                    "parquet_path": str(model_source),
+                    "parquet_sha256": _sha256(model_source),
+                },
+            }
+        }
+    }
+    bundle_metadata = {
+        "run_lineage": {"dataset_run_id": "pytest-run"},
+        "multi_tf": {
+            "shared_cache_identity_sha256": cache_binding[
+                "cache_identity_sha256"
+            ],
+            "shared_cache_manifest_sha256": cache_binding["manifest_sha256"],
+            "shared_cache_dir": str(cache_dir),
+            "shared_cache_manifest_path": str(cache_dir / "manifest.json"),
+            "shared_cache_m5_source": str(cache_source),
+            "shared_cache_m5_source_sha256": cache_binding[
+                "m5_prebuilt_source_sha256"
+            ],
+        },
+    }
+
+    observed = _require_evaluation_mtf_source_provenance(
+        dataset_contract=dataset_contract,
+        bundle_metadata=bundle_metadata,
+        m5_prebuilt=model_source,
+        mtf_cache_dir=cache_dir,
+    )
+    assert observed["source_frame"]["parquet_path"] == str(model_source)
+    assert observed["bundle_mtf"]["shared_cache_m5_source"] == str(cache_source)
+
+    with pytest.raises(
+        RuntimeError,
+        match="SELECTIVE_EDGE_EVALUATION_M5_PROVENANCE_INVALID",
+    ):
+        _require_evaluation_mtf_source_provenance(
+            dataset_contract=dataset_contract,
+            bundle_metadata=bundle_metadata,
+            m5_prebuilt=cache_source,
+            mtf_cache_dir=cache_dir,
+        )
 
 
 def test_post_prediction_integrity_rechecks_every_scored_input(

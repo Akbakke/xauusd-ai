@@ -1168,11 +1168,15 @@ def _require_evaluation_mtf_source_provenance(
         )
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
         raise RuntimeError("SELECTIVE_EDGE_EVALUATION_MTF_PROVENANCE_INVALID") from exc
+    # ``m5_prebuilt`` is the exact model-source frame from which this split
+    # must be reconstructed.  The V4 cache has a distinct, earlier M5
+    # enriched source.  Both objects are deliberately bound, but they must
+    # never be conflated: a full model source can legitimately contain the
+    # causal M1/exit surface in addition to the cache's M5 source.
     source_frame = row.get("source_frame")
     if not isinstance(source_frame, Mapping) or (
         source_frame.get("parquet_path") != str(m5_prebuilt)
-        or source_frame.get("parquet_sha256")
-        != verified["m5_prebuilt_source_sha256"]
+        or source_frame.get("parquet_sha256") != _sha256_file(m5_prebuilt)
     ):
         raise RuntimeError("SELECTIVE_EDGE_EVALUATION_M5_PROVENANCE_INVALID")
     bundle_mtf = bundle_metadata.get("multi_tf")
@@ -1181,7 +1185,7 @@ def _require_evaluation_mtf_source_provenance(
         "shared_cache_manifest_sha256": verified["manifest_sha256"],
         "shared_cache_dir": str(mtf_cache_dir),
         "shared_cache_manifest_path": str(mtf_cache_dir / "manifest.json"),
-        "shared_cache_m5_source": str(m5_prebuilt),
+        "shared_cache_m5_source": verified["m5_prebuilt_source"],
         "shared_cache_m5_source_sha256": verified["m5_prebuilt_source_sha256"],
     }
     if not isinstance(bundle_mtf, Mapping) or any(
