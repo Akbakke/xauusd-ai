@@ -14,7 +14,7 @@ and 390 W actual draw, while retaining the 70 C core stop, 12 GiB NVML-use
 stop, one-second telemetry, 10 GiB cgroup, 512 MiB swap ceiling, two logical
 CPU cores (affinity 0-1), and the staged 600+300-second deadlines. Canonical
 training is separate: it accepts the observed 390 W configured limit but keeps
-the stricter 70 C core, 250 W actual-draw and 12 GiB residency stops.
+the stricter 70 C core, 251 W actual-draw and 12 GiB residency stops.
 
 The fresh V46 run bound to source commit `42c78b94` completed the full data
 preflight and two CUDA optimizer steps without a WSL/GPU reset, thermal

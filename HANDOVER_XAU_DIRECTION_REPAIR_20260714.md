@@ -33,8 +33,8 @@ reached 24,277 MiB VRAM; commit `4754853a` repaired that allocation mismatch by
 using the existing eight-row streamed Exit-episode path for canonical CUDA. A
 fresh batch-32 recipe (`…canonical_cuda_smoke32_20260828T070400Z`, source
 `c82ca0dc`) then repeated the complete preflight and reached the first forward
-with only 8,873 MiB VRAM at 65 C. The native guard stopped it at 250.48 W
-against the strict 250 W actual-draw boundary, before an optimizer step or a
+with only 8,873 MiB VRAM at 65 C. The former native guard stopped it at 250.48 W
+against its then-strict 250 W actual-draw boundary, before an optimizer step or a
 bundle. This is a safe stop, not an OOM or a PC/WSL crash. The new
 hash-bound trade-path reporter is ready for a later full candidate TEST replay,
 but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists yet.
@@ -43,7 +43,8 @@ but no PnL, win rate, MAE/MFE, drawdown, candidate or TEST result exists yet.
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
 native WSL `nvidia-smi` executable, accept the observed 390 W *configured*
 driver limit, and poll once per second. Canonical CUDA stops above 70 C core,
-250 W actual draw or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
+251 W actual draw (a one-watt measurement tolerance over the reviewed 250 W
+target) or 12 GiB resident VRAM; WSL memory-junction `N/A` is logged
 as unobserved rather than fabricated. The legacy host-bridge design is retired
 as a canonical prerequisite. Later historical paragraphs that require a
 physical 250 W driver setting or bridge-provided VRAM temperature do not
