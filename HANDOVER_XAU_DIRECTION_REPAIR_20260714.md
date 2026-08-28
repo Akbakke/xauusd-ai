@@ -13,6 +13,8 @@ binding scope; `CLAUDE.md` is the process constitution.
 > report-only rebind (post-rebuild, smoke manifest/readiness, trainability and
 > CPU recipe). The canonical pointers now bind those immutable reports; this
 > is wiring/provenance evidence only, not a CUDA, edge or trading permission.
+> The active trainer does not reuse a historical normalizer: it refits an exact
+> TRAIN-only contract from the bound Entry, Exit and five-clock MTF sources.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are

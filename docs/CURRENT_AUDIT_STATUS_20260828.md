@@ -21,6 +21,11 @@ bytes. Historical normalization evidence still predates the repaired Exit MTF
 timing contract and is not candidate authority; regenerate only that evidence
 if a later, explicit candidate preflight requires it.
 
+There is no persistent historical normalizer selected by the active trainer.
+For every future run it fits a new TRAIN-only normalization contract from the
+exact source-backed Entry M5 surface, the closed M1 Exit lifecycle and the
+validated five-clock V4 cache, before compute sampling or optimization.
+
 ## What the current source now proves
 
 - All eight families have exact local/context/MTF routing. Entry consumes local
@@ -75,6 +80,10 @@ if a later, explicit candidate preflight requires it.
   32 checks respectively passed with no failures. The final CPU-only recipe
   preflight rehashed the actual large TRAIN/VAL files and passed, while keeping
   TEST byte-opaque, CUDA unused and all trainer side effects false.
+- Targeted normalization, Entry/Exit shared-base, event/parity and recipe
+  regression tests also pass. Therefore there is no separate stale
+  normalization artifact to rebuild before the first explicitly authorized
+  learning-validation run.
 
 Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`. The current
 V46 report pointers in `PROJECT_STATE_xau_direction_launch.json` bind the new
@@ -86,10 +95,10 @@ started while refreshing it.
 1. Commit and validate the refreshed V46 report pointers. Stop immediately on
    any content, lineage or fail-closed-state mismatch; do not add, remove or
    retune features.
-2. Inspect whether the preserved normalization evidence is stale for the
-   current source commit. Regenerate only that report if required; do not
-   rebuild V46 by default.
-3. Only after that decision, obtain explicit authority for one guarded,
+2. The active normalizer has been confirmed to fit current TRAIN-only source
+   inputs at run time; do not rebuild V46 or manufacture a replacement
+   normalization artifact.
+3. Obtain explicit authority for one guarded,
    bounded learning-validation probe (one epoch over the agreed chronological
    research window). It must prove learning, field use and numerical stability,
    not performance.
