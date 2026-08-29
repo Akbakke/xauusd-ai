@@ -148,6 +148,65 @@ def test_ranker_feature_attachment_is_single_worker() -> None:
     assert ranker.ATTACH_WORKERS == 1
 
 
+def test_pretest_ranker_uses_the_same_canonical_quote_provenance_as_dataset(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pair = tmp_path / "pair.json"
+    quote_manifest = tmp_path / "m5_quotes.manifest.json"
+    quote = tmp_path / "m5_quotes.parquet"
+    authority = {
+        "schema_version": "gx1_pretest_m5_quote_authority_v1",
+        "pair_generation_id": "pair-id",
+        "m5_source_path": str(quote),
+        "m5_source_manifest_path": str(quote_manifest),
+        "test_accessed": False,
+        "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+    }
+    captured: dict[str, object] = {}
+
+    def _require_pretest(**kwargs: object) -> tuple[Path, dict[str, object]]:
+        captured.update(kwargs)
+        return quote, authority
+
+    monkeypatch.setattr(ranker, "require_pretest_m5_quote_authority", _require_pretest)
+    resolved = ranker._resolve_tape_provenance(
+        argparse.Namespace(
+            tape_root=None,
+            pretest_m5_pair_json=pair,
+            pretest_m5_quote_source_manifest=quote_manifest,
+        ),
+        run_id=RUN_ID,
+        source_cascade={"pair_generation_id": "pair-id"},
+    )
+
+    assert captured == {
+        "pair_lineage_path": pair,
+        "quote_source_manifest_path": quote_manifest,
+        "expected_pair_generation_id": "pair-id",
+    }
+    assert resolved == {
+        "schema_version": "gx1_pretest_m5_quote_tape_authority_v1",
+        "test_accessed": False,
+        "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+        "authority": authority,
+    }
+
+
+def test_pretest_ranker_requires_its_quote_manifest(tmp_path: Path) -> None:
+    with pytest.raises(
+        RuntimeError, match="FEATURE_RANKER_PRETEST_M5_QUOTE_MANIFEST_REQUIRED"
+    ):
+        ranker._resolve_tape_provenance(
+            argparse.Namespace(
+                tape_root=None,
+                pretest_m5_pair_json=tmp_path / "pair.json",
+                pretest_m5_quote_source_manifest=None,
+            ),
+            run_id=RUN_ID,
+            source_cascade={"pair_generation_id": "pair-id"},
+        )
+
+
 def test_main_rejects_invalid_output_identity_before_reading_sources(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -184,6 +184,7 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS,
     UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
     canonical_json_sha256,
+    pretest_m5_quote_tape_provenance_v1,
     require_pretest_m5_quote_authority,
     require_unified_exit_m1_pair_authority,
     require_unified_exit_pretest_m1_quote_authority,
@@ -5604,12 +5605,9 @@ def main() -> None:
         tape_root = None
         if pretest_m5_quote_tape_path is None or pretest_m5_quote_authority is None:
             raise RuntimeError("MODEL_NATIVE_PRETEST_M5_AUTHORITY_MISSING")
-        xau_tape_provenance = {
-            "schema_version": "gx1_pretest_m5_quote_tape_authority_v1",
-            "test_accessed": False,
-            "test_boundary_utc": str(end),
-            "authority": pretest_m5_quote_authority,
-        }
+        xau_tape_provenance = pretest_m5_quote_tape_provenance_v1(
+            pretest_m5_quote_authority
+        )
     else:
         tape_root = Path(str(args.tape_root)).expanduser().resolve()
         if not tape_root.is_dir():

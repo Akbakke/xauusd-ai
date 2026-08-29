@@ -67,6 +67,9 @@ UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION = (
 )
 PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v3"
 PRETEST_DIRECT_NATIVE_SOURCE_SCHEMA_VERSION = "gx1_direct_native_pretest_source_v2"
+PRETEST_M5_QUOTE_TAPE_PROVENANCE_SCHEMA_VERSION = (
+    "gx1_pretest_m5_quote_tape_authority_v1"
+)
 UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS = (
     "time",
     "open",
@@ -985,6 +988,33 @@ def require_unified_exit_m1_pair_authority(
         "base28_native_m1_subset_proof": native_subset_proof,
     }
     return source_path, authority
+
+
+def pretest_m5_quote_tape_provenance_v1(
+    authority: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return the single canonical pre-TEST M5 provenance payload.
+
+    The TRAIN feature ranker and the dataset builder both bind causal labels
+    to this payload.  Keeping its construction here prevents a semantically
+    identical timestamp from being serialized differently on either side of
+    that immutable hash boundary.
+    """
+
+    if not isinstance(authority, Mapping):
+        raise RuntimeError("PRETEST_M5_TAPE_AUTHORITY_INVALID")
+    if authority.get("test_accessed") is not False:
+        raise RuntimeError("PRETEST_M5_TAPE_AUTHORITY_TEST_ACCESS_INVALID")
+    boundary = _require_pretest_utc_boundary(
+        authority.get("test_boundary_utc"),
+        context="PRETEST_M5_TAPE_AUTHORITY_BOUNDARY",
+    )
+    return {
+        "schema_version": PRETEST_M5_QUOTE_TAPE_PROVENANCE_SCHEMA_VERSION,
+        "test_accessed": False,
+        "test_boundary_utc": str(boundary.isoformat()),
+        "authority": dict(authority),
+    }
 
 
 def require_unified_exit_lifecycle_authority_evidence(

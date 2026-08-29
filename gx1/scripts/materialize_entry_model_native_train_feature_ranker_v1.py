@@ -59,6 +59,10 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     canonical_json_sha256,
     validate_xau_tape_provenance_v1,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    pretest_m5_quote_tape_provenance_v1,
+    require_pretest_m5_quote_authority,
+)
 from gx1.contracts.entry_causal_m1_outcomes_v1 import (
     build_entry_m1_fill_surface,
     causal_m1_terminal_outcomes_at_horizon,
@@ -194,6 +198,36 @@ def _ranker_checkpoint_key(
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _resolve_tape_provenance(
+    args: argparse.Namespace,
+    *,
+    run_id: str,
+    source_cascade: dict[str, Any],
+) -> dict[str, Any]:
+    """Resolve exactly one M5 lineage for the TRAIN-only target policy."""
+
+    if args.tape_root is not None:
+        if args.pretest_m5_quote_source_manifest is not None:
+            raise RuntimeError("FEATURE_RANKER_TAPE_PROVENANCE_MODE_CONFLICT")
+        return validate_xau_tape_provenance_v1(
+            args.tape_root,
+            expected_run_id=run_id,
+            require_current=True,
+        )
+
+    if args.pretest_m5_quote_source_manifest is None:
+        raise RuntimeError("FEATURE_RANKER_PRETEST_M5_QUOTE_MANIFEST_REQUIRED")
+    pair_generation_id = str(source_cascade.get("pair_generation_id") or "")
+    if not pair_generation_id:
+        raise RuntimeError("FEATURE_RANKER_PRETEST_PAIR_GENERATION_ID_MISSING")
+    _quote_path, authority = require_pretest_m5_quote_authority(
+        pair_lineage_path=args.pretest_m5_pair_json,
+        quote_source_manifest_path=args.pretest_m5_quote_source_manifest,
+        expected_pair_generation_id=pair_generation_id,
+    )
+    return pretest_m5_quote_tape_provenance_v1(authority)
 
 
 def _write_ranker_checkpoint(path: Path, **arrays: Any) -> None:
@@ -638,7 +672,17 @@ def main() -> None:
     parser.add_argument("--canonical-v2-parquet", type=Path, required=True)
     parser.add_argument("--mtf-cache-dir", type=Path, required=True)
     parser.add_argument("--source-cascade-proof", type=Path, required=True)
-    parser.add_argument("--tape-root", type=Path, required=True)
+    tape_group = parser.add_mutually_exclusive_group(required=True)
+    tape_group.add_argument("--tape-root", type=Path)
+    tape_group.add_argument("--pretest-m5-pair-json", type=Path)
+    parser.add_argument(
+        "--pretest-m5-quote-source-manifest",
+        type=Path,
+        help=(
+            "Exact TEST-sealed M5 quote-source manifest. Required with "
+            "--pretest-m5-pair-json and forbidden with --tape-root."
+        ),
+    )
     parser.add_argument(
         "--m1-lifecycle-source",
         type=Path,
@@ -687,10 +731,10 @@ def main() -> None:
         expected_history_start_utc=history_start,
         expected_time_max_utc=args.expected_source_time_max,
     )
-    tape_provenance = validate_xau_tape_provenance_v1(
-        args.tape_root,
-        expected_run_id=run_id,
-        require_current=True,
+    tape_provenance = _resolve_tape_provenance(
+        args,
+        run_id=run_id,
+        source_cascade=source_cascade,
     )
     m1_lifecycle_source = args.m1_lifecycle_source.expanduser().resolve()
     if m1_lifecycle_source.is_symlink() or not m1_lifecycle_source.is_file():
