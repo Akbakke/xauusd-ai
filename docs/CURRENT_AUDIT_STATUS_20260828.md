@@ -38,11 +38,12 @@ data-boundary NO-GO.
 ### Failed-safe reconstruction check — 2026-08-29
 
 An attempted offline reconstruction of a pre-TEST M5 source was also rejected
-before any new cache was published. The available M1 reports omit the direct
-M5 rollover candle at 22:00 UTC (the first mismatch is 2026-06-11 22:05 in the
-M1-derived axis versus 22:00 in the existing M5 cache). Therefore M1 resampling
-is not a byte- and axis-equivalent substitute for the direct M5 tape. The
-attempted candidate and its rejection note are retained under
+before any new cache was published. The available M1 reports produce 97
+timestamp-axis differences against the direct-M5 prefix: the first is
+2026-06-11 22:05 in the M1-derived axis versus 22:00 in the direct M5 cache;
+additional direct-M5-only timestamps occur during the retained M1 gaps.
+Therefore M1 resampling is not a byte- and axis-equivalent substitute for the
+direct M5 tape. The attempted candidate and its rejection note are retained under
 `artifacts/pretest_mtf_source_20260829T230000Z/`; neither is training input.
 No TEST row was loaded for the check, and no MTF cache was published.
 
