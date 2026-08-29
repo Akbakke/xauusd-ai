@@ -177,3 +177,33 @@ def test_rejects_quote_complete_mode_for_m5(
             include_m1_quotes=True,
             repo_root=repository,
         )
+
+
+def test_materializes_quote_complete_pretest_m5_for_sealed_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bypass_native_bundle_validation(monkeypatch)
+    native = tmp_path / "native"
+    _native_fixture(
+        native,
+        ["2026-06-30T23:50:00Z", "2026-06-30T23:55:00Z"],
+        timeframe="M5",
+        include_quotes=True,
+    )
+    output = tmp_path / "published"
+    repository = tmp_path / "repo"
+    repository.mkdir()
+
+    manifest = producer.materialize_direct_m5_pretest_source(
+        native_m5_root=native,
+        out_dir=output,
+        timeframe="M5",
+        include_m5_quotes=True,
+        repo_root=repository,
+    )
+
+    quotes = output / "m5_quotes.parquet"
+    assert manifest["quote_complete_m1"] is False
+    assert manifest["output_columns"] == list(producer.M1_QUOTE_OUTPUT_COLUMNS)
+    assert pq.read_schema(quotes).names == list(producer.M1_QUOTE_OUTPUT_COLUMNS)
+    assert pq.read_table(quotes, columns=["bid_open", "ask_close"]).num_rows == 2

@@ -184,7 +184,9 @@ from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS,
     UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
     canonical_json_sha256,
+    require_pretest_m5_quote_authority,
     require_unified_exit_m1_pair_authority,
+    require_unified_exit_pretest_m1_quote_authority,
     unified_exit_state_pointer_stream_sha256,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
@@ -1856,6 +1858,52 @@ def _load_canonical_tape(
     return tape
 
 
+def _load_pretest_quote_tape(
+    *,
+    quote_parquet: Path,
+    t_min: pd.Timestamp,
+    t_max: pd.Timestamp,
+    required_cols: List[str],
+    test_boundary: pd.Timestamp,
+) -> pd.DataFrame:
+    """Read only a hash-bound M5 quote tape that physically ends before TEST."""
+
+    source = Path(quote_parquet).expanduser()
+    if (
+        not source.is_absolute()
+        or source.is_symlink()
+        or not source.is_file()
+        or source.resolve() != source
+    ):
+        raise RuntimeError("PRETEST_QUOTE_TAPE_PATH_INVALID")
+    requested = ["time", *required_cols]
+    frame = pd.read_parquet(source, columns=list(dict.fromkeys(requested)))
+    if "time" not in frame.columns:
+        raise RuntimeError("PRETEST_QUOTE_TAPE_TIME_MISSING")
+    frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="coerce")
+    if (
+        len(frame) == 0
+        or frame["time"].isna().any()
+        or frame["time"].duplicated().any()
+        or not frame["time"].is_monotonic_increasing
+        or bool((frame["time"] >= test_boundary).any())
+    ):
+        raise RuntimeError("PRETEST_QUOTE_TAPE_BOUNDARY_INVALID")
+    missing = [name for name in required_cols if name not in frame.columns]
+    if missing:
+        raise RuntimeError(f"PRETEST_QUOTE_TAPE_COLUMNS_MISSING: {missing}")
+    frame = frame.loc[
+        (frame["time"] >= t_min) & (frame["time"] <= t_max),
+        ["time", *required_cols],
+    ].copy()
+    if len(frame) == 0:
+        raise RuntimeError("PRETEST_QUOTE_TAPE_EMPTY_IN_RANGE")
+    values = frame[required_cols].apply(pd.to_numeric, errors="coerce")
+    if not np.isfinite(values.to_numpy(dtype=np.float64)).all():
+        raise RuntimeError("PRETEST_QUOTE_TAPE_NONFINITE")
+    return frame
+
+
 def build_unified_exit_lifecycle_episodes(
     *,
     entry_rows: pd.DataFrame,
@@ -2344,12 +2392,18 @@ def _require_model_native_seq513_split_manifest_contract(
 ) -> Dict[str, Any]:
     """Validate the exact split windows and model-native signal contract."""
 
-    if set(splits) != {"train", "val", "test"}:
+    pretest_only = bool(
+        isinstance(extra, Mapping) and extra.get("pretest_only") is True
+    )
+    expected_split_names = (
+        ("train", "val") if pretest_only else ("train", "val", "test")
+    )
+    if set(splits) != set(expected_split_names):
         raise RuntimeError(
             "MODEL_NATIVE_SPLIT_SET_INVALID: "
-            f"got={sorted(splits)} expected=['test', 'train', 'val']"
+            f"got={sorted(splits)} expected={list(expected_split_names)!r}"
         )
-    for split_name in ("train", "val", "test"):
+    for split_name in expected_split_names:
         window = splits.get(split_name)
         if not isinstance(window, dict) or set(window) != {"start", "end"}:
             raise RuntimeError(
@@ -2363,20 +2417,35 @@ def _require_model_native_seq513_split_manifest_contract(
             raise RuntimeError(f"MODEL_NATIVE_SPLIT_WINDOW_EMPTY: split={split_name}")
     parsed = {
         f"{split_name}_{edge}": _parse_ts(str(splits[split_name][edge]))
-        for split_name in ("train", "val", "test")
+        for split_name in expected_split_names
         for edge in ("start", "end")
     }
     if any(value is None for value in parsed.values()):
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_TIMESTAMP_INVALID")
-    if not (
+    ordered = (
         parsed["train_start"]
         <= parsed["train_end"]
         < parsed["val_start"]
         <= parsed["val_end"]
-        < parsed["test_start"]
-        <= parsed["test_end"]
-    ):
+    )
+    if not pretest_only:
+        ordered = ordered and (
+            parsed["val_end"]
+            < parsed["test_start"]
+            <= parsed["test_end"]
+        )
+    if not ordered:
         raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_ORDER_INVALID")
+    if pretest_only:
+        test_guard = extra.get("pretest_test_guard") if isinstance(extra, Mapping) else None
+        if (
+            not isinstance(test_guard, Mapping)
+            or set(test_guard) != {"test_accessed", "test_boundary_utc"}
+            or test_guard.get("test_accessed") is not False
+            or _parse_ts(str(test_guard.get("test_boundary_utc") or ""))
+            != parsed["val_end"]
+        ):
+            raise RuntimeError("MODEL_NATIVE_PRETEST_TEST_GUARD_INVALID")
     signal_contract = _require_model_native_manifest_contract(extra)
     # The causal M1 sizing target is valid only against the exact M1 source
     # that owns the Exit lifecycle.  Keep that binding in every split manifest
@@ -2806,8 +2875,10 @@ def _align_native_m5_feature_surface(
 def build_dataset_canonical(
     *,
     source_parquet: Path,
-    tape_root: Path,
+    tape_root: Path | None,
     tape_provenance: Mapping[str, Any],
+    pretest_quote_tape_parquet: Path | None = None,
+    pretest_test_boundary: pd.Timestamp | None = None,
     start: pd.Timestamp,
     end: pd.Timestamp,
     seq_len: int,
@@ -3055,13 +3126,26 @@ def build_dataset_canonical(
         "low",
         "close",
     ]
-    tape = _load_canonical_tape(
-        tape_root=tape_root,
-        tape_provenance=tape_provenance,
-        t_min=t_min,
-        t_max=t_max,
-        required_cols=_risk_tape_cols,
-    )
+    if pretest_quote_tape_parquet is None:
+        if tape_root is None:
+            raise RuntimeError("CANONICAL_TAPE_ROOT_MISSING")
+        tape = _load_canonical_tape(
+            tape_root=tape_root,
+            tape_provenance=tape_provenance,
+            t_min=t_min,
+            t_max=t_max,
+            required_cols=_risk_tape_cols,
+        )
+    else:
+        if pretest_test_boundary is None:
+            raise RuntimeError("PRETEST_QUOTE_TAPE_BOUNDARY_REQUIRED")
+        tape = _load_pretest_quote_tape(
+            quote_parquet=pretest_quote_tape_parquet,
+            t_min=t_min,
+            t_max=t_max,
+            required_cols=_risk_tape_cols,
+            test_boundary=pretest_test_boundary,
+        )
 
     # Inner join tape to the source by time. Every exact M5 source timestamp
     # must resolve to one tape row; the tape may cover a wider time range.
@@ -3421,13 +3505,26 @@ def build_dataset_canonical(
     # exist in this context; a later floor silently made otherwise valid
     # pre-2020 feature surfaces unrunnable and diverged from the ranker.
     _common_history_start = pd.Timestamp(_common_index.min())
-    _htf_m5_src = _load_canonical_tape(
-        tape_root=tape_root,
-        tape_provenance=tape_provenance,
-        t_min=_common_history_start,
-        t_max=pd.Timestamp(_common_index.max()),
-        required_cols=["open", "high", "low", "close"],
-    )
+    if pretest_quote_tape_parquet is None:
+        if tape_root is None:
+            raise RuntimeError("CANONICAL_TAPE_ROOT_MISSING")
+        _htf_m5_src = _load_canonical_tape(
+            tape_root=tape_root,
+            tape_provenance=tape_provenance,
+            t_min=_common_history_start,
+            t_max=pd.Timestamp(_common_index.max()),
+            required_cols=["open", "high", "low", "close"],
+        )
+    else:
+        if pretest_test_boundary is None:
+            raise RuntimeError("PRETEST_QUOTE_TAPE_BOUNDARY_REQUIRED")
+        _htf_m5_src = _load_pretest_quote_tape(
+            quote_parquet=pretest_quote_tape_parquet,
+            t_min=_common_history_start,
+            t_max=pd.Timestamp(_common_index.max()),
+            required_cols=["open", "high", "low", "close"],
+            test_boundary=pretest_test_boundary,
+        )
     _common_m5 = _htf_m5_src.set_index("time")[
         ["open", "high", "low", "close"]
     ].sort_index()
@@ -4658,7 +4755,11 @@ def build_dataset_canonical(
         "model_native_signal_contract": signal_build_contract[
             "model_native_signal_contract"
         ],
-        "tape_root": str(Path(tape_root).resolve()),
+        "tape_root": (
+            str(Path(tape_root).resolve())
+            if tape_root is not None
+            else str(pretest_quote_tape_parquet)
+        ),
         "join_ratio_tape": float(rows_joined / max(1, rows_source)),
         "signal_bridge": {
             "id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -4730,13 +4831,13 @@ def main() -> None:
     parser.add_argument(
         "--rebuild-terminal-json",
         type=str,
-        required=True,
+        required=False,
         help="Fresh event-owned immutable dataset-rebuild terminal JSON.",
     )
     parser.add_argument(
         "--prefreeze-test-seal-json",
         type=str,
-        required=True,
+        required=False,
         help="Fresh event-owned immutable pre-freeze TEST seal JSON.",
     )
     parser.add_argument(
@@ -4801,13 +4902,13 @@ def main() -> None:
     parser.add_argument(
         "--tape_root",
         type=str,
-        required=True,
+        required=False,
         help="Exact canonical tape lane root.",
     )
     parser.add_argument(
         "--m1-lifecycle-pair-manifest-json",
         type=str,
-        required=True,
+        required=False,
         help=(
             "Exact generation-local PAIR_MANIFEST.json binding lifecycle M1 "
             "to revalidated immutable native OANDA complete=true responses."
@@ -4816,8 +4917,43 @@ def main() -> None:
     parser.add_argument(
         "--m1-lifecycle-pair-generation-root",
         type=str,
-        required=True,
+        required=False,
         help="Exact immutable canonical pair generation root.",
+    )
+    parser.add_argument(
+        "--pretest-only",
+        action="store_true",
+        help=(
+            "Build only TRAIN and VAL from a TEST-sealed source. This mode "
+            "rejects TEST windows, TEST authority files and legacy BASE28 M1."
+        ),
+    )
+    parser.add_argument(
+        "--m1-lifecycle-pretest-pair-json",
+        type=str,
+        required=False,
+        help=(
+            "Immutable V3 pre-TEST native-pair lineage. Required only with "
+            "--pretest-only; never accepts a mutable pair pointer."
+        ),
+    )
+    parser.add_argument(
+        "--m1-lifecycle-pretest-source-manifest",
+        type=str,
+        required=False,
+        help=(
+            "Quote-complete direct M1 source manifest bound to the V3 "
+            "pre-TEST pair. Required only with --pretest-only."
+        ),
+    )
+    parser.add_argument(
+        "--pretest-m5-quote-source-manifest",
+        type=str,
+        required=False,
+        help=(
+            "Quote-complete direct M5 source manifest bound to the same V3 "
+            "pre-TEST pair. Required only with --pretest-only."
+        ),
     )
     parser.add_argument(
         "--m1-feature-base-parquet",
@@ -4918,6 +5054,30 @@ def main() -> None:
         raise RuntimeError(
             f"MODEL_NATIVE_SEQ_LEN_INVALID: got={args.seq_len} expected={MODEL_NATIVE_SEQ_LEN}"
         )
+    # One explicit source path. No truth-config, BASE28 resolution or manual
+    # preference lane may alter the build input. Read its clock before any
+    # lineage admission so a pre-TEST build cannot accidentally accept a
+    # source whose last M5 bar belongs to TEST.
+    source_parquet_path = Path(args.source_parquet).expanduser().resolve()
+    if source_parquet_path.is_symlink() or not source_parquet_path.is_file():
+        raise RuntimeError(f"SOURCE_PARQUET_MISSING: {source_parquet_path}")
+    m5_source_times = pd.DatetimeIndex(
+        pd.to_datetime(
+            pd.read_parquet(source_parquet_path, columns=["time"])["time"],
+            utc=True,
+            errors="coerce",
+        )
+    ).as_unit("ns")
+    if (
+        len(m5_source_times) == 0
+        or m5_source_times.hasnans
+        or not m5_source_times.is_unique
+        or not m5_source_times.is_monotonic_increasing
+        or not m5_source_times.floor(f"{ENTRY_DECISION_BAR_SECONDS}s").equals(
+            m5_source_times
+        )
+    ):
+        raise RuntimeError("MODEL_NATIVE_SOURCE_CLOCK_INVALID")
     start = _parse_ts(args.start)
     end = _parse_ts(args.end)
     if start is None or end is None or start > end:
@@ -4932,23 +5092,73 @@ def main() -> None:
     val_end = _parse_ts(args.val_end)
     test_start = _parse_ts(args.test_start)
     test_end = _parse_ts(args.test_end)
-    split_points = (train_start, train_end, val_start, val_end, test_start, test_end)
-    if any(point is None for point in split_points):
-        raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_MISSING")
-    if not (
-        start
-        <= train_start
-        <= train_end
-        < val_start
-        <= val_end
-        < test_start
-        <= test_end
-        == end
-    ):
-        raise RuntimeError(
-            "MODEL_NATIVE_SPLIT_WINDOWS_INVALID: expected one common history start and ordered, "
-            "non-overlapping TRAIN/VAL/TEST windows ending exactly at --end"
+    legacy_m1_args = (
+        args.m1_lifecycle_pair_manifest_json,
+        args.m1_lifecycle_pair_generation_root,
+    )
+    pretest_m1_args = (
+        args.m1_lifecycle_pretest_pair_json,
+        args.m1_lifecycle_pretest_source_manifest,
+    )
+    if args.pretest_only:
+        if (
+            any(value is not None for value in legacy_m1_args)
+            or any(value is None for value in pretest_m1_args)
+            or args.pretest_m5_quote_source_manifest is None
+            or args.tape_root is not None
+            or args.rebuild_terminal_json is not None
+            or args.prefreeze_test_seal_json is not None
+            or test_start is not None
+            or test_end is not None
+        ):
+            raise RuntimeError("MODEL_NATIVE_PRETEST_AUTHORITY_ARGUMENTS_INVALID")
+        split_points = (train_start, train_end, val_start, val_end)
+        if any(point is None for point in split_points):
+            raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_MISSING")
+        if not (
+            start
+            <= train_start
+            <= train_end
+            < val_start
+            <= val_end
+            == end
+            and m5_source_times[-1] < end
+        ):
+            raise RuntimeError("MODEL_NATIVE_PRETEST_SPLIT_WINDOWS_INVALID")
+    else:
+        if (
+            any(value is not None for value in pretest_m1_args)
+            or args.pretest_m5_quote_source_manifest is not None
+            or args.tape_root is None
+            or any(value is None for value in legacy_m1_args)
+            or args.rebuild_terminal_json is None
+            or args.prefreeze_test_seal_json is None
+        ):
+            raise RuntimeError("MODEL_NATIVE_LEGACY_AUTHORITY_ARGUMENTS_INVALID")
+        split_points = (
+            train_start,
+            train_end,
+            val_start,
+            val_end,
+            test_start,
+            test_end,
         )
+        if any(point is None for point in split_points):
+            raise RuntimeError("MODEL_NATIVE_SPLIT_WINDOW_MISSING")
+        if not (
+            start
+            <= train_start
+            <= train_end
+            < val_start
+            <= val_end
+            < test_start
+            <= test_end
+            == end
+        ):
+            raise RuntimeError(
+                "MODEL_NATIVE_SPLIT_WINDOWS_INVALID: expected one common history start and ordered, "
+                "non-overlapping TRAIN/VAL/TEST windows ending exactly at --end"
+            )
     state_contract = _model_native_state_contract(
         args=args,
         feature_history_start=start,
@@ -4959,14 +5169,14 @@ def main() -> None:
         manifest_path=Path(args.seq_structure_manifest),
         feature_ranking_path=Path(args.feature_ranking_json),
         expected_run_id=entry_run_id,
-        expected_source_parquet=Path(args.source_parquet),
-        expected_source_sha256=_sha256_file(Path(args.source_parquet)),
+        expected_source_parquet=source_parquet_path,
+        expected_source_sha256=_sha256_file(source_parquet_path),
         expected_canonical_v2_parquet=Path(args.canonical_v2_parquet),
         expected_mtf_cache_dir=Path(
             os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"]
         ),
         expected_history_start_utc=start,
-        expected_time_max_utc=end,
+        expected_time_max_utc=m5_source_times[-1],
         expected_train_start_utc=train_start.isoformat(),
         expected_train_end_utc=train_end.isoformat(),
     )
@@ -5012,11 +5222,6 @@ def main() -> None:
         },
     }
 
-    # One explicit source path. No truth-config, BASE28 resolution or manual
-    # preference lane may alter the build input.
-    source_parquet_path = Path(args.source_parquet).expanduser().resolve()
-    if not source_parquet_path.is_file():
-        raise RuntimeError(f"SOURCE_PARQUET_MISSING: {source_parquet_path}")
     proof_payload.update({"truth_source": "exact_source_parquet"})
 
     output_path = Path(args.output).resolve()
@@ -5025,43 +5230,95 @@ def main() -> None:
             f"{output_path.stem}{ENTRY_FITTED_Q_DATASET_STEM_SUFFIX}{output_path.suffix}"
         )
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    rebuild_terminal_path = Path(args.rebuild_terminal_json).expanduser()
-    test_seal_path = Path(args.prefreeze_test_seal_json).expanduser()
-    authority_dir = output_path.parent.parent / "rebuild_authority"
-    for label, authority_path in (
-        ("rebuild terminal", rebuild_terminal_path),
-        ("pre-freeze TEST seal", test_seal_path),
-    ):
-        if (
-            not authority_path.is_absolute()
-            or authority_path != authority_path.resolve(strict=False)
-            or authority_path.parent != authority_dir
-            or authority_path.exists()
-            or authority_path.is_symlink()
-            or any("latest" in part.lower() for part in authority_path.parts)
-        ):
-            raise RuntimeError(
-                f"DATASET_BUILDER_{label.upper().replace(' ', '_')}_PATH_INVALID"
+    rebuild_terminal_path: Path | None = None
+    test_seal_path: Path | None = None
+    if args.pretest_only:
+        proof_payload.update(
+            {
+                "pretest_only": True,
+                "pretest_test_guard": {
+                    "test_accessed": False,
+                    "test_boundary_utc": str(end),
+                },
+            }
+        )
+        m1_lifecycle_source_path, m1_lifecycle_authority = (
+            require_unified_exit_pretest_m1_quote_authority(
+                pair_lineage_path=Path(
+                    str(args.m1_lifecycle_pretest_pair_json)
+                ),
+                quote_source_manifest_path=Path(
+                    str(args.m1_lifecycle_pretest_source_manifest)
+                ),
             )
+        )
+        if (
+            m1_lifecycle_authority.get("test_accessed") is not False
+            or _parse_ts(str(m1_lifecycle_authority.get("test_boundary_utc")))
+            != end
+        ):
+            raise RuntimeError("MODEL_NATIVE_PRETEST_M1_AUTHORITY_BOUNDARY_INVALID")
+        pretest_m5_quote_tape_path, pretest_m5_quote_authority = (
+            require_pretest_m5_quote_authority(
+                pair_lineage_path=Path(
+                    str(args.m1_lifecycle_pretest_pair_json)
+                ),
+                quote_source_manifest_path=Path(
+                    str(args.pretest_m5_quote_source_manifest)
+                ),
+                expected_pair_generation_id=str(
+                    m1_lifecycle_authority["pair_generation_id"]
+                ),
+            )
+        )
+        if (
+            pretest_m5_quote_authority.get("test_accessed") is not False
+            or _parse_ts(
+                str(pretest_m5_quote_authority.get("test_boundary_utc"))
+            )
+            != end
+        ):
+            raise RuntimeError("MODEL_NATIVE_PRETEST_M5_AUTHORITY_BOUNDARY_INVALID")
+    else:
+        pretest_m5_quote_tape_path = None
+        pretest_m5_quote_authority = None
+        rebuild_terminal_path = Path(args.rebuild_terminal_json).expanduser()
+        test_seal_path = Path(args.prefreeze_test_seal_json).expanduser()
+        authority_dir = output_path.parent.parent / "rebuild_authority"
+        for label, authority_path in (
+            ("rebuild terminal", rebuild_terminal_path),
+            ("pre-freeze TEST seal", test_seal_path),
+        ):
+            if (
+                not authority_path.is_absolute()
+                or authority_path != authority_path.resolve(strict=False)
+                or authority_path.parent != authority_dir
+                or authority_path.exists()
+                or authority_path.is_symlink()
+                or any("latest" in part.lower() for part in authority_path.parts)
+            ):
+                raise RuntimeError(
+                    f"DATASET_BUILDER_{label.upper().replace(' ', '_')}_PATH_INVALID"
+                )
+        proof_payload["prefreeze_test_authority_targets"] = {
+            "rebuild_terminal_json": str(rebuild_terminal_path),
+            "test_seal_json": str(test_seal_path),
+        }
+        m1_lifecycle_source_path, m1_lifecycle_authority = (
+            require_unified_exit_m1_pair_authority(
+                pair_manifest_path=Path(
+                    str(args.m1_lifecycle_pair_manifest_json)
+                ),
+                pair_generation_root=Path(
+                    str(args.m1_lifecycle_pair_generation_root)
+                ),
+            )
+        )
     proof_payload.update(
         {
             "source_parquet": str(source_parquet_path),
             "output_path": str(output_path),
-            "prefreeze_test_authority_targets": {
-                "rebuild_terminal_json": str(rebuild_terminal_path),
-                "test_seal_json": str(test_seal_path),
-            },
         }
-    )
-    m1_lifecycle_source_path, m1_lifecycle_authority = (
-        require_unified_exit_m1_pair_authority(
-            pair_manifest_path=Path(
-                args.m1_lifecycle_pair_manifest_json
-            ),
-            pair_generation_root=Path(
-                args.m1_lifecycle_pair_generation_root
-            ),
-        )
     )
     m1_lifecycle_authority_sha256 = canonical_json_sha256(
         m1_lifecycle_authority
@@ -5209,13 +5466,6 @@ def main() -> None:
         context="DATASET_BUILDER_ENTRY_M5",
         expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
     )
-    m5_source_times = pd.DatetimeIndex(
-        pd.to_datetime(
-            pd.read_parquet(source_parquet_path, columns=["time"])["time"],
-            utc=True,
-            errors="coerce",
-        )
-    ).as_unit("ns")
     # The Entry surface cannot carry the leading rows on which the price-derived
     # layer is undefined, so it is the source timeline after that warmup. Before
     # the wave those rows reached the surface only because zero_before_ready
@@ -5340,20 +5590,35 @@ def main() -> None:
         ),
     }
 
-    tape_root = Path(args.tape_root).expanduser().resolve()
-    if not tape_root.is_dir():
-        raise RuntimeError(f"CANONICAL_TAPE_ROOT_MISSING: {tape_root}")
-    xau_tape_provenance = validate_xau_tape_provenance_v1(
-        tape_root,
-        expected_run_id=entry_run_id,
-        require_current=True,
-    )
+    if args.pretest_only:
+        tape_root = None
+        if pretest_m5_quote_tape_path is None or pretest_m5_quote_authority is None:
+            raise RuntimeError("MODEL_NATIVE_PRETEST_M5_AUTHORITY_MISSING")
+        xau_tape_provenance = {
+            "schema_version": "gx1_pretest_m5_quote_tape_authority_v1",
+            "test_accessed": False,
+            "test_boundary_utc": str(end),
+            "authority": pretest_m5_quote_authority,
+        }
+    else:
+        tape_root = Path(str(args.tape_root)).expanduser().resolve()
+        if not tape_root.is_dir():
+            raise RuntimeError(f"CANONICAL_TAPE_ROOT_MISSING: {tape_root}")
+        xau_tape_provenance = validate_xau_tape_provenance_v1(
+            tape_root,
+            expected_run_id=entry_run_id,
+            require_current=True,
+        )
     canonical_v2_path = Path(args.canonical_v2_parquet).expanduser().resolve()
     if not canonical_v2_path.is_file():
         raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_path}")
     proof_payload.update(
         {
-            "tape_root": str(tape_root),
+            "tape_root": (
+                str(tape_root)
+                if tape_root is not None
+                else str(pretest_m5_quote_tape_path)
+            ),
             "xau_tape_provenance": xau_tape_provenance,
             "time_start_utc": str(start),
             "time_end_utc": str(end),
@@ -5364,13 +5629,18 @@ def main() -> None:
     ]
     if len(train_m5_source_times) <= MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
         raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_SOURCE_TOO_SHORT")
-    train_direction_tape = _load_canonical_tape(
-        tape_root=tape_root,
-        tape_provenance=xau_tape_provenance,
-        t_min=train_m5_source_times[0],
-        t_max=train_m5_source_times[-1],
-        required_cols=["bid_close", "ask_close"],
-    ).loc[:, ["time", "bid_close", "ask_close"]]
+    if args.pretest_only:
+        train_direction_tape = pd.DataFrame({"time": train_m5_source_times})
+    else:
+        if tape_root is None:
+            raise RuntimeError("CANONICAL_TAPE_ROOT_MISSING")
+        train_direction_tape = _load_canonical_tape(
+            tape_root=tape_root,
+            tape_provenance=xau_tape_provenance,
+            t_min=train_m5_source_times[0],
+            t_max=train_m5_source_times[-1],
+            required_cols=["bid_close", "ask_close"],
+        ).loc[:, ["time", "bid_close", "ask_close"]]
     train_direction_tape_times = pd.DatetimeIndex(
         pd.to_datetime(
             train_direction_tape["time"],
@@ -5380,7 +5650,6 @@ def main() -> None:
     ).as_unit("ns")
     if not train_direction_tape_times.equals(train_m5_source_times):
         raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_TAPE_TIME_MISMATCH")
-    tape_provenance_sha256 = canonical_json_sha256(xau_tape_provenance)
     # The same authoritative M1 source serves the causal Entry auxiliaries and
     # the already-M1-bound fitted-Q Exit lifecycle.  Read it once before
     # fitting either auxiliary policy; no M5 close is admissible as a proxy.
@@ -5392,25 +5661,36 @@ def main() -> None:
         closed_m1_lifecycle,
         context="UNIFIED_EXIT_M1_SOURCE",
     )
-    entry_direction_target_policy = fit_causal_m1_target_policy(
-        closed_m5=train_direction_tape,
-        closed_m1=closed_m1_lifecycle,
-        train_start=train_start,
-        train_end=train_end,
-        source_parquet_sha256=_sha256_file(source_parquet_path),
-        tape_provenance_sha256=tape_provenance_sha256,
-        m1_source_sha256=m1_lifecycle_source_sha256,
-    )
-    if (
-        signal_lineage.get("entry_direction_target_policy")
-        != entry_direction_target_policy
-        or signal_lineage.get("entry_direction_target_policy_sha256")
-        != entry_direction_target_policy["policy_sha256"]
-    ):
-        raise RuntimeError(
-            "ENTRY_TARGET_POLICY_RANKING_DATASET_MISMATCH: feature ranking, "
-            "signal manifest and dataset labels must share one exact TRAIN fit"
+    if args.pretest_only:
+        entry_direction_target_policy = require_causal_m1_target_policy(
+            signal_lineage.get("entry_direction_target_policy"),
+            expected_source_parquet_sha256=_sha256_file(source_parquet_path),
+            expected_m1_source_sha256=m1_lifecycle_source_sha256,
         )
+        tape_provenance_sha256 = entry_direction_target_policy[
+            "tape_provenance_sha256"
+        ]
+    else:
+        tape_provenance_sha256 = canonical_json_sha256(xau_tape_provenance)
+        entry_direction_target_policy = fit_causal_m1_target_policy(
+            closed_m5=train_direction_tape,
+            closed_m1=closed_m1_lifecycle,
+            train_start=train_start,
+            train_end=train_end,
+            source_parquet_sha256=_sha256_file(source_parquet_path),
+            tape_provenance_sha256=tape_provenance_sha256,
+            m1_source_sha256=m1_lifecycle_source_sha256,
+        )
+        if (
+            signal_lineage.get("entry_direction_target_policy")
+            != entry_direction_target_policy
+            or signal_lineage.get("entry_direction_target_policy_sha256")
+            != entry_direction_target_policy["policy_sha256"]
+        ):
+            raise RuntimeError(
+                "ENTRY_TARGET_POLICY_RANKING_DATASET_MISMATCH: feature ranking, "
+                "signal manifest and dataset labels must share one exact TRAIN fit"
+            )
     entry_position_size_target_policy = fit_causal_m1_position_size_target_policy(
         closed_m5=train_direction_tape,
         closed_m1=closed_m1_lifecycle,
@@ -5434,6 +5714,17 @@ def main() -> None:
     )
     _m1_covered_offset = len(m1_source_times) - len(
         m1_comparable_source_times
+    )
+    pretest_manifest_extra: dict[str, Any] = (
+        {
+            "pretest_only": True,
+            "pretest_test_guard": {
+                "test_accessed": False,
+                "test_boundary_utc": str(end),
+            },
+        }
+        if args.pretest_only
+        else {}
     )
     proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
     proof_bytes = (
@@ -5480,6 +5771,7 @@ def main() -> None:
                 "start": args.start,
                 "end": args.end,
                 "time_split": bool(args.time_split),
+                **pretest_manifest_extra,
                 "seq_len": int(args.seq_len),
                 "aux_head_target_contract": model_native_aux_target_contract_metadata(),
                 **entry_fitted_q_dataset_contract(),
@@ -5561,11 +5853,16 @@ def main() -> None:
     if not m5_feature_surface_times.equals(m5_feature_times_expected):
         raise RuntimeError("DATASET_BUILDER_M5_FEATURE_BASE_LOAD_TIME_MISMATCH")
 
-    splits = {
+    split_windows = {
         "train": {"start": str(train_start), "end": str(train_end)},
         "val": {"start": str(val_start), "end": str(val_end)},
-        "test": {"start": str(test_start), "end": str(test_end)},
     }
+    if not args.pretest_only:
+        split_windows["test"] = {
+            "start": str(test_start),
+            "end": str(test_end),
+        }
+    splits = split_windows
     base = output_path
     out_dir = base.parent
     stem = base.stem
@@ -5585,7 +5882,9 @@ def main() -> None:
     for split_name, (s0, s1) in {
         "train": (train_start, train_end),
         "val": (val_start, val_end),
-        "test": (test_start, test_end),
+        **(
+            {} if args.pretest_only else {"test": (test_start, test_end)}
+        ),
     }.items():
         log.info(
             "[BUILD_COMMON_HISTORY] split=%s history_start=%s emit=%s..%s",
@@ -5599,6 +5898,8 @@ def main() -> None:
             source_parquet=source_parquet_path,
             tape_root=tape_root,
             tape_provenance=xau_tape_provenance,
+            pretest_quote_tape_parquet=pretest_m5_quote_tape_path,
+            pretest_test_boundary=end if args.pretest_only else None,
             start=start,
             end=s1,
             emit_start=s0,
@@ -5725,6 +6026,7 @@ def main() -> None:
             ),
             extra={
                 **metas[split_name],
+                **pretest_manifest_extra,
                 "model_native_state_contract": state_contract,
                 "xau_tape_provenance": xau_tape_provenance,
                 "entry_run_id": entry_run_id,
@@ -5780,7 +6082,7 @@ def main() -> None:
         "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
         *(
             f"{split}_unified_exit_lifecycle{suffix}"
-            for split in ("train", "val", "test")
+            for split in splits
             for suffix in (".parquet", ".manifest.json")
         ),
     }
@@ -5831,7 +6133,7 @@ def main() -> None:
             Path(entry_position_size_target_policy["ecdf_artifact_path"]),
             label="position-size TRAIN ECDF",
         ),
-        "multi_tf_cache": metas["test"]["multi_tf_cache_binding"],
+        "multi_tf_cache": metas["val"]["multi_tf_cache_binding"],
         "xau_tape_provenance": xau_tape_provenance,
     }
     pair_lineage = {
@@ -5839,11 +6141,23 @@ def main() -> None:
             "pair_generation_id"
         ],
         "pair_manifest": _artifact_binding(
-            Path(args.m1_lifecycle_pair_manifest_json).expanduser().resolve(),
+            Path(
+                str(
+                    args.m1_lifecycle_pretest_pair_json
+                    if args.pretest_only
+                    else args.m1_lifecycle_pair_manifest_json
+                )
+            ).expanduser().resolve(),
             label="pair manifest",
         ),
-        "pair_generation_root": str(
-            Path(args.m1_lifecycle_pair_generation_root).expanduser().resolve()
+        "pair_generation_root": (
+            None
+            if args.pretest_only
+            else str(
+                Path(
+                    str(args.m1_lifecycle_pair_generation_root)
+                ).expanduser().resolve()
+            )
         ),
         "m1_lifecycle_source": _artifact_binding(
             m1_lifecycle_source_path,
@@ -5870,22 +6184,32 @@ def main() -> None:
             label="unified Exit lifecycle manifest",
         ),
     }
-    authority = publish_prefreeze_test_authority(
-        entry_run_id=entry_run_id,
-        dataset_dir=out_dir,
-        dataset_stem=stem,
-        pair_lineage=pair_lineage,
-        source_lineage=source_lineage,
-        rebuild_terminal_json=rebuild_terminal_path,
-        test_seal_json=test_seal_path,
-    )
+    authority = None
+    if not args.pretest_only:
+        if rebuild_terminal_path is None or test_seal_path is None:
+            raise RuntimeError("DATASET_BUILDER_LEGACY_AUTHORITY_PATH_MISSING")
+        authority = publish_prefreeze_test_authority(
+            entry_run_id=entry_run_id,
+            dataset_dir=out_dir,
+            dataset_stem=stem,
+            pair_lineage=pair_lineage,
+            source_lineage=source_lineage,
+            rebuild_terminal_json=rebuild_terminal_path,
+            test_seal_json=test_seal_path,
+        )
     del m5_feature_surface_arrays
     m5_surface_storage.cleanup()
-    log.info(
-        "[DATASET_BUILD] Common-history TRAIN/VAL/TEST build complete; "
-        "TEST authority=%s",
-        authority,
-    )
+    if args.pretest_only:
+        log.info(
+            "[DATASET_BUILD] TEST-SEALED common-history TRAIN/VAL build complete; "
+            "TEST ACCESSED: NO"
+        )
+    else:
+        log.info(
+            "[DATASET_BUILD] Common-history TRAIN/VAL/TEST build complete; "
+            "TEST authority=%s",
+            authority,
+        )
 
 
 if __name__ == "__main__":

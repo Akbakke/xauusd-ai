@@ -4,7 +4,7 @@
 This is a narrow provenance bridge, not a feature builder.  It reads only a
 complete canonical native M1 or M5 bundle whose declared end is exactly the
 2026-07-01 TEST boundary, preserves its direct OANDA axis, and writes either
-the six OHLCV columns or the complete native M1 bid/ask quote columns required
+the six OHLCV columns or the complete native bid/ask quote columns required
 by executable-PnL labels. It rejects a source or an output row at/after that
 boundary; it neither opens nor accepts a TEST split file.
 """
@@ -211,6 +211,7 @@ def materialize_direct_m5_pretest_source(
     out_dir: Path,
     timeframe: str = "M5",
     include_m1_quotes: bool = False,
+    include_m5_quotes: bool = False,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Write a hash-bound direct native file from an all-pre-TEST bundle."""
@@ -221,6 +222,10 @@ def materialize_direct_m5_pretest_source(
         raise RuntimeError("DIRECT_M5_PRETEST_TIMEFRAME_INVALID")
     if include_m1_quotes and normalized_timeframe != "M1":
         raise RuntimeError("DIRECT_M5_PRETEST_M1_QUOTES_REQUIRE_M1")
+    if include_m5_quotes and normalized_timeframe != "M5":
+        raise RuntimeError("DIRECT_M5_PRETEST_M5_QUOTES_REQUIRE_M5")
+    if include_m1_quotes and include_m5_quotes:
+        raise RuntimeError("DIRECT_M5_PRETEST_QUOTE_MODE_AMBIGUOUS")
     native_root = _require_exact_directory(native_m5_root, label="NATIVE_ROOT")
     destination = _require_new_output_directory(out_dir)
     repository = (
@@ -240,15 +245,14 @@ def materialize_direct_m5_pretest_source(
     stage = Path(tempfile.mkdtemp(prefix=f".{destination.name}.staging.", dir=destination.parent))
     published = False
     try:
-        output_columns = (
-            M1_QUOTE_OUTPUT_COLUMNS if include_m1_quotes else OUTPUT_COLUMNS
-        )
+        include_quotes = include_m1_quotes or include_m5_quotes
+        output_columns = M1_QUOTE_OUTPUT_COLUMNS if include_quotes else OUTPUT_COLUMNS
         output_schema = (
-            M1_QUOTE_OUTPUT_SCHEMA if include_m1_quotes else OUTPUT_SCHEMA
+            M1_QUOTE_OUTPUT_SCHEMA if include_quotes else OUTPUT_SCHEMA
         )
         output_name = (
-            "m1_quotes.parquet"
-            if include_m1_quotes
+            f"{normalized_timeframe.lower()}_quotes.parquet"
+            if include_quotes
             else f"{normalized_timeframe.lower()}_ohlcv.parquet"
         )
         output = stage / output_name
@@ -348,6 +352,11 @@ def main() -> None:
         "--include-m1-quotes",
         action="store_true",
         help="For M1 only, preserve native bid/ask OHLC required by executable labels.",
+    )
+    parser.add_argument(
+        "--include-m5-quotes",
+        action="store_true",
+        help="For M5 only, preserve native bid/ask OHLC for TEST-sealed labels.",
     )
     parser.add_argument("--out-dir", type=Path, required=True)
     args = parser.parse_args()

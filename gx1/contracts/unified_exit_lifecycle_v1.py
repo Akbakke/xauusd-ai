@@ -275,10 +275,14 @@ def _require_native_m1_subset_identity(
     native_years: Mapping[str, Any],
     expected_rows: int,
     source_kind: str,
+    timeframe: str = "M1",
 ) -> dict[str, Any]:
-    """Prove every declared M1 source row is byte-equivalent to native M1."""
+    """Prove every declared native-resolution source row is byte-equivalent."""
 
-    if source_kind not in {"base28", "quote_complete_pretest"}:
+    if (
+        source_kind not in {"base28", "quote_complete_pretest"}
+        or timeframe not in {"M1", "M5"}
+    ):
         raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SOURCE_KIND_INVALID")
 
     base_times_frame = pd.read_parquet(source_path, columns=["time"])
@@ -343,10 +347,10 @@ def _require_native_m1_subset_identity(
         base = base.reset_index(drop=True)
         matched["time"] = base_index
         base["time"] = base_index
-        base_hash = canonical_native_rows_sha256(base, timeframe="M1")
+        base_hash = canonical_native_rows_sha256(base, timeframe=timeframe)
         native_hash = canonical_native_rows_sha256(
             matched,
-            timeframe="M1",
+            timeframe=timeframe,
         )
         if base_hash != native_hash:
             raise RuntimeError(
@@ -360,7 +364,9 @@ def _require_native_m1_subset_identity(
     if observed_rows != expected_rows:
         raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SUBSET_ROW_COUNT_MISMATCH")
     return {
-        "method": f"exact_{source_kind}_rows_are_native_m1_subset_v1",
+        "method": (
+            f"exact_{source_kind}_rows_are_native_{timeframe.lower()}_subset_v1"
+        ),
         "rows": observed_rows,
         "years": proof_by_year,
         "proof_sha256": canonical_json_sha256(proof_by_year),
@@ -666,6 +672,209 @@ def require_unified_exit_pretest_m1_quote_authority(
         "base28_native_m1_subset_proof": native_subset_proof,
     }
     return source_path, authority
+
+
+def require_pretest_m5_quote_authority(
+    *,
+    pair_lineage_path: Path,
+    quote_source_manifest_path: Path,
+    expected_pair_generation_id: str,
+) -> tuple[Path, dict[str, Any]]:
+    """Bind the TEST-sealed M5 executable-quote tape used by Entry labels."""
+
+    pair_path, pair, pair_file_sha256 = _require_exact_json_object(
+        pair_lineage_path,
+        expected_keys={
+            "schema_version",
+            "pair_generation_id",
+            "pair_symbol",
+            "test_boundary_utc",
+            "test_accessed",
+            "lineage",
+            "m1",
+            "m5",
+            "manifest_payload_sha256",
+        },
+        context="PRETEST_M5_PAIR",
+    )
+    _require_payload_sha256(
+        pair,
+        key="manifest_payload_sha256",
+        context="PRETEST_M5_PAIR",
+    )
+    pair_generation_id = pair.get("pair_generation_id")
+    if (
+        pair.get("schema_version") != PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION
+        or pair.get("pair_symbol") != "XAUUSD"
+        or pair.get("test_accessed") is not False
+        or pair_generation_id != expected_pair_generation_id
+    ):
+        raise RuntimeError("PRETEST_M5_PAIR_CONTRACT_INVALID")
+    test_boundary = _require_pretest_utc_boundary(
+        pair.get("test_boundary_utc"),
+        context="PRETEST_M5_PAIR_BOUNDARY",
+    )
+    lineage = pair.get("lineage")
+    m5_binding = pair.get("m5")
+    if (
+        not isinstance(lineage, Mapping)
+        or set(lineage) != {"native_sources"}
+        or not isinstance(lineage.get("native_sources"), Mapping)
+        or set(lineage["native_sources"]) != {"m1", "m5"}
+        or not isinstance(m5_binding, Mapping)
+        or set(m5_binding)
+        != {
+            "native_source",
+            "row_count",
+            "source_manifest_path",
+            "source_manifest_payload_sha256",
+            "source_manifest_sha256",
+            "source_parquet",
+            "source_parquet_sha256",
+            "time_max_utc",
+            "time_min_utc",
+        }
+    ):
+        raise RuntimeError("PRETEST_M5_PAIR_LINEAGE_INVALID")
+    declared_native = lineage["native_sources"]["m5"]
+    if (
+        not isinstance(declared_native, Mapping)
+        or dict(m5_binding["native_source"]) != dict(declared_native)
+        or set(declared_native)
+        != {
+            "root",
+            "manifest_path",
+            "manifest_sha256",
+            "row_count",
+            "time_min_utc",
+            "time_max_utc",
+        }
+    ):
+        raise RuntimeError("PRETEST_M5_NATIVE_BINDING_INVALID")
+    native_root = Path(str(declared_native["root"])).expanduser()
+    if not native_root.is_absolute() or native_root.is_symlink():
+        raise RuntimeError("PRETEST_M5_NATIVE_ROOT_INVALID")
+    observed_native = canonical_xau_source_descriptor_v1(
+        native_root,
+        timeframe="M5",
+    )
+    for key, expected in declared_native.items():
+        if observed_native.get(key) != expected:
+            raise RuntimeError(
+                "PRETEST_M5_NATIVE_PAIR_BINDING_MISMATCH: "
+                f"field={key}"
+            )
+    if (
+        observed_native.get("completion_field") != "complete"
+        or observed_native.get("completion_value") is not True
+        or observed_native.get("market_closure_contract")
+        != CANONICAL_NATIVE_CLOSURE_CONTRACT
+        or _require_pretest_utc_boundary(
+            observed_native.get("time_max_utc"),
+            context="PRETEST_M5_NATIVE_MAX",
+        )
+        >= test_boundary
+    ):
+        raise RuntimeError("PRETEST_M5_COMPLETION_PROOF_INVALID")
+
+    quote_path, quote, quote_manifest_file_sha256 = _require_exact_json_object(
+        quote_source_manifest_path,
+        expected_keys={
+            "schema_version",
+            "instrument",
+            "timeframe",
+            "timestamp_semantics",
+            "test_boundary_utc",
+            "test_accessed",
+            "quote_complete_m1",
+            "source_native_root",
+            "source_native_manifest_path",
+            "source_native_manifest_sha256",
+            "source_native_manifest_payload_sha256",
+            "source_requested_start_utc",
+            "source_requested_end_utc_exclusive",
+            "time_min_utc",
+            "time_max_utc",
+            "row_count",
+            "output_columns",
+            "output_parquet",
+            "output_parquet_sha256",
+            "producer_git_commit",
+            "producer_repository_clean",
+            "manifest_payload_sha256",
+        },
+        context="PRETEST_M5_QUOTES",
+    )
+    _require_payload_sha256(
+        quote,
+        key="manifest_payload_sha256",
+        context="PRETEST_M5_QUOTES",
+    )
+    if (
+        quote.get("schema_version") != PRETEST_DIRECT_NATIVE_SOURCE_SCHEMA_VERSION
+        or quote.get("instrument") != "XAU_USD"
+        or quote.get("timeframe") != "M5"
+        or quote.get("timestamp_semantics") != "bar_start_utc"
+        or quote.get("test_accessed") is not False
+        or quote.get("quote_complete_m1") is not False
+        or quote.get("output_columns")
+        != list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS)
+        or quote.get("source_native_root") != str(native_root)
+        or quote.get("source_native_manifest_path")
+        != observed_native.get("manifest_path")
+        or quote.get("source_native_manifest_sha256")
+        != observed_native.get("manifest_sha256")
+        or quote.get("source_native_manifest_payload_sha256")
+        != observed_native.get("manifest_payload_sha256")
+        or quote.get("row_count") != declared_native["row_count"]
+        or quote.get("time_min_utc") != declared_native["time_min_utc"]
+        or quote.get("time_max_utc") != declared_native["time_max_utc"]
+        or _require_pretest_utc_boundary(
+            quote.get("test_boundary_utc"),
+            context="PRETEST_M5_QUOTES_BOUNDARY",
+        )
+        != test_boundary
+        or _require_pretest_utc_boundary(
+            quote.get("source_requested_end_utc_exclusive"),
+            context="PRETEST_M5_QUOTES_END",
+        )
+        != test_boundary
+    ):
+        raise RuntimeError("PRETEST_M5_QUOTES_CONTRACT_INVALID")
+    source_path = Path(str(quote["output_parquet"])).expanduser()
+    if (
+        not source_path.is_absolute()
+        or source_path.is_symlink()
+        or not source_path.is_file()
+        or source_path.resolve() != source_path
+        or sha256_file(source_path) != quote.get("output_parquet_sha256")
+    ):
+        raise RuntimeError("PRETEST_M5_QUOTES_SOURCE_INVALID")
+    native_subset_proof = _require_native_m1_subset_identity(
+        source_path=source_path,
+        native_root=native_root,
+        native_years=observed_native["year_sha256"],
+        expected_rows=int(quote["row_count"]),
+        source_kind="quote_complete_pretest",
+        timeframe="M5",
+    )
+    return source_path, {
+        "schema_version": "gx1_pretest_m5_quote_authority_v1",
+        "pair_manifest_path": str(pair_path),
+        "pair_manifest_sha256": pair_file_sha256,
+        "pair_generation_id": pair_generation_id,
+        "m5_source_path": str(source_path),
+        "m5_source_sha256": quote["output_parquet_sha256"],
+        "m5_source_rows": quote["row_count"],
+        "m5_source_manifest_path": str(quote_path),
+        "m5_source_manifest_sha256": quote_manifest_file_sha256,
+        "test_accessed": False,
+        "test_boundary_utc": str(test_boundary.isoformat()),
+        "native_m5_market_closure_contract": observed_native[
+            "market_closure_contract"
+        ],
+        "native_m5_subset_proof": native_subset_proof,
+    }
 
 
 def require_unified_exit_m1_pair_authority(
