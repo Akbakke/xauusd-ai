@@ -175,6 +175,40 @@ def test_main_rejects_invalid_output_identity_before_reading_sources(
         ranker.main()
 
 
+def test_ranker_common_history_keeps_accepted_pre_2020_source_prefix(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
+    pd.DataFrame(
+        {
+            "time": pd.to_datetime(
+                [
+                    "2019-11-08T21:55:00Z",
+                    "2020-01-01T00:00:00Z",
+                    "2020-01-01T00:05:00Z",
+                ],
+                utc=True,
+            ),
+            "open": [1.0, 2.0, 3.0],
+            "high": [1.1, 2.1, 3.1],
+            "low": [0.9, 1.9, 2.9],
+            "close": [1.05, 2.05, 3.05],
+        }
+    ).to_parquet(source, index=False)
+
+    observed = ranker._load_ranker_common_history_m5(
+        train_end=pd.Timestamp("2020-01-01T00:00:00Z"),
+        source_parquet=source,
+        source_cascade={"schema_version": ranker.SEQ513_SOURCE_CASCADE_PAIR_PROOF_SCHEMA_VERSION},
+    )
+
+    assert list(observed.index) == list(
+        pd.to_datetime(
+            ["2019-11-08T21:55:00Z", "2020-01-01T00:00:00Z"], utc=True
+        )
+    )
+
+
 def test_candidate_universe_is_clean_and_large_enough() -> None:
     universe = ranker._candidate_universe(list(MODEL_NATIVE_CTX_CONT_FIELDS))
 

@@ -289,10 +289,12 @@ def _load_ranker_common_history_m5(
         columns=["time", "open", "high", "low", "close"],
     )
     current["time"] = pd.to_datetime(current["time"], utc=True, errors="raise")
-    current = current.loc[
-        (current["time"] >= pd.Timestamp("2020-01-01T00:00:00Z"))
-        & (current["time"] <= train_end)
-    ]
+    # The exact model source already begins at its sealed usable-history
+    # boundary.  Do not impose a calendar floor here: one would make the
+    # Group-A context omit valid decision rows whenever the accepted feature
+    # surface begins before that old, arbitrary date.  The dataset builder
+    # consumes the same complete source-history prefix.
+    current = current.loc[current["time"] <= train_end]
     out = current.set_index("time")[["open", "high", "low", "close"]].sort_index()
     if (
         out.empty

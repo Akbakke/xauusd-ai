@@ -3416,10 +3416,15 @@ def build_dataset_canonical(
     # does (live computes HTF state from complete canonical history): sourcing
     # it from the truncated common frame would reset the retained D1 EMA200
     # distance history and skew the extension head.
+    # Use the actual first row of the sealed common source rather than an
+    # arbitrary calendar floor.  Group-A requires every decision timestamp to
+    # exist in this context; a later floor silently made otherwise valid
+    # pre-2020 feature surfaces unrunnable and diverged from the ranker.
+    _common_history_start = pd.Timestamp(_common_index.min())
     _htf_m5_src = _load_canonical_tape(
         tape_root=tape_root,
         tape_provenance=tape_provenance,
-        t_min=pd.Timestamp("2020-01-01T00:00:00Z"),
+        t_min=_common_history_start,
         t_max=pd.Timestamp(_common_index.max()),
         required_cols=["open", "high", "low", "close"],
     )
