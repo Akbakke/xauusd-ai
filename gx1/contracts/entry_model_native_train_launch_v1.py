@@ -55,6 +55,11 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
     require_prefreeze_test_seal_lineage,
 )
+from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+    SCHEMA_VERSION as PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION,
+    PretestTechnicalRecipeError,
+    require_pretest_technical_recipe_metadata,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_BASE_SIGNAL_DIM,
@@ -943,28 +948,43 @@ def require_training_recipe_execution_provenance(
         "trainer recipe audit bytes do not match declared sha256",
     )
     recipe = _read_json(recipe_path, "trainer recipe audit")
-    _zero_failure(
-        recipe,
-        label="trainer recipe audit",
-        schema=RECIPE_AUDIT_SCHEMA,
-        decision="PASS",
-    )
-    _require(recipe.get("profile") == profile, "trainer recipe audit profile mismatch")
-    _require(recipe.get("run_id") == run_id, "trainer recipe audit run_id mismatch")
-    _require(
-        recipe.get("dataset_run_id") == dataset_run_id,
-        "trainer recipe audit dataset_run_id mismatch",
-    )
-    _require(
-        Path(str(recipe.get("dataset_dir") or "")).resolve()
-        == dataset_dir.resolve(),
-        "trainer recipe audit dataset directory mismatch",
-    )
-    _require(
-        Path(str(recipe.get("out_bundle_dir") or "")).resolve()
-        == out_bundle_dir.resolve(),
-        "trainer recipe audit output directory mismatch",
-    )
+    if recipe.get("schema_version") == PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
+        try:
+            recipe = require_pretest_technical_recipe_metadata(
+                recipe,
+                expected_profile=profile,
+                expected_run_id=run_id,
+                expected_dataset_run_id=dataset_run_id,
+                expected_dataset_dir=dataset_dir.resolve(),
+                expected_out_bundle_dir=out_bundle_dir.resolve(),
+            )
+        except (PretestTechnicalRecipeError, ValueError) as exc:
+            raise LaunchContractError(
+                f"trainer pre-TEST technical recipe rejected: {exc}"
+            ) from exc
+    else:
+        _zero_failure(
+            recipe,
+            label="trainer recipe audit",
+            schema=RECIPE_AUDIT_SCHEMA,
+            decision="PASS",
+        )
+        _require(recipe.get("profile") == profile, "trainer recipe audit profile mismatch")
+        _require(recipe.get("run_id") == run_id, "trainer recipe audit run_id mismatch")
+        _require(
+            recipe.get("dataset_run_id") == dataset_run_id,
+            "trainer recipe audit dataset_run_id mismatch",
+        )
+        _require(
+            Path(str(recipe.get("dataset_dir") or "")).resolve()
+            == dataset_dir.resolve(),
+            "trainer recipe audit dataset directory mismatch",
+        )
+        _require(
+            Path(str(recipe.get("out_bundle_dir") or "")).resolve()
+            == out_bundle_dir.resolve(),
+            "trainer recipe audit output directory mismatch",
+        )
     # The exact executed source closure below owns runtime byte freshness.
     # Requiring identical HEAD as well made an otherwise byte-identical recipe
     # unusable after a documentation-only commit, needlessly forcing another
