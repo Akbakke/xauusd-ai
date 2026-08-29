@@ -125,8 +125,8 @@ from gx1.contracts.model_native_serve_gate_v1 import (
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     PrefreezeTestSealLineageError,
-    require_prefreeze_test_seal_lineage,
-    require_prefreeze_test_seal_lineage_metadata,
+    require_pretest_or_prefreeze_test_guard_lineage,
+    require_pretest_or_prefreeze_test_guard_lineage_metadata,
 )
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
@@ -10779,7 +10779,7 @@ def run_train(
         train_time_window_end = None
     try:
         prefreeze_test_seal_lineage = (
-            require_prefreeze_test_seal_lineage_metadata(
+            require_pretest_or_prefreeze_test_guard_lineage_metadata(
                 prefreeze_test_seal_lineage,
                 expected_dataset_run_id=dataset_run_id,
                 expected_dataset_dir=Path(train_parquet).parent,
@@ -13757,7 +13757,7 @@ def main() -> None:
     train_parquet = parquets["train"]
     val_parquet = parquets["val"]
     try:
-        prefreeze_test_seal_lineage = require_prefreeze_test_seal_lineage(
+        prefreeze_test_seal_lineage = require_pretest_or_prefreeze_test_guard_lineage(
             args.prefreeze_test_seal_json,
             args.prefreeze_test_seal_sha256,
             expected_dataset_run_id=str(args.dataset_run_id),

@@ -89,9 +89,10 @@ from gx1.contracts.gx1_capped_execution_v1 import (
     require_guarded_cuda_producer_execution,
 )
 from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION,
     PrefreezeTestSealLineageError,
-    require_prefreeze_test_seal_lineage,
-    require_prefreeze_test_seal_lineage_metadata,
+    require_pretest_or_prefreeze_test_guard_lineage,
+    require_pretest_or_prefreeze_test_guard_lineage_metadata,
 )
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
     EntryModelNativeTrainingRunLineageError,
@@ -1159,7 +1160,7 @@ def _require_exact_model_native_bundle_metadata(
     if state_contract.get("entry_run_id") != dataset_run_id:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_DATASET_RUN_LINEAGE_MISMATCH]")
     try:
-        require_prefreeze_test_seal_lineage_metadata(
+        require_pretest_or_prefreeze_test_guard_lineage_metadata(
             meta["prefreeze_test_seal_lineage"],
             expected_dataset_run_id=dataset_run_id,
         )
@@ -1641,14 +1642,18 @@ def _require_current_prefreeze_test_seal_lineage(
     if not isinstance(declared, Mapping) or not isinstance(run_lineage, Mapping):
         raise RuntimeError("[ENTRY_BUNDLE_PREFREEZE_TEST_SEAL_LINEAGE_MISSING]")
     try:
-        normalized = require_prefreeze_test_seal_lineage_metadata(
+        normalized = require_pretest_or_prefreeze_test_guard_lineage_metadata(
             declared,
             expected_dataset_run_id=str(run_lineage.get("dataset_run_id") or ""),
         )
-        seal_event = normalized["seal_event"]
-        observed = require_prefreeze_test_seal_lineage(
-            seal_event["path"],
-            seal_event["sha256"],
+        event = normalized[
+            "seal_event"
+            if normalized.get("schema_version") == PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION
+            else "guard_event"
+        ]
+        observed = require_pretest_or_prefreeze_test_guard_lineage(
+            event["path"],
+            event["sha256"],
             expected_dataset_run_id=normalized["dataset_run_id"],
             expected_dataset_dir=normalized["dataset_dir"],
         )

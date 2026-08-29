@@ -48,6 +48,24 @@ PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION = (
 PREFREEZE_TEST_SEAL_VERIFICATION_MODE = (
     "seal_event_bytes_only_no_test_artifact_or_metrics_access"
 )
+# A pre-TEST dataset deliberately has no physical TEST parquet or manifest.
+# It must therefore never be forced to invent a legacy TEST seal simply to
+# start an otherwise TRAIN/VAL-only technical run.  This guard is a separate,
+# intentionally narrow control-plane contract: it binds only already-approved
+# TRAIN/VAL metadata and proves that TEST was neither materialized nor read.
+# The legacy physical seal remains mandatory for every TEST evaluation path.
+PRETEST_TEST_GUARD_SCHEMA_VERSION = "entry_model_native_pretest_test_guard_v1"
+PRETEST_TEST_GUARD_DECISION = "SEALED_PRETEST_TEST_UNMATERIALIZED"
+PRETEST_TEST_GUARD_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_PRETEST_TEST_GUARD"
+PRETEST_TEST_GUARD_ACCESS_POLICY = (
+    "pretest_guard_no_test_artifact_or_metrics_access"
+)
+PRETEST_TEST_GUARD_LINEAGE_SCHEMA_VERSION = (
+    "entry_model_native_pretest_test_guard_lineage_v1"
+)
+PRETEST_TEST_GUARD_VERIFICATION_MODE = (
+    "guard_event_bytes_only_no_test_artifact_or_metrics_access"
+)
 
 _SHA256_HEX = frozenset("0123456789abcdef")
 _SEAL_KEYS = frozenset(
@@ -121,6 +139,59 @@ _TEST_MANIFEST_LINEAGE_KEYS = frozenset(
 _ACCESS_PROOF_KEYS = frozenset(
     {
         "seal_event_bytes_hash_validated",
+        "test_dataset_bytes_read",
+        "test_manifest_bytes_read",
+        "test_metrics_read",
+        "test_paths_resolved_or_statted",
+    }
+)
+_PRETEST_GUARD_KEYS = frozenset(
+    {
+        "schema_version",
+        "decision",
+        "created_utc",
+        "guard_path",
+        "entry_run_id",
+        "dataset_dir",
+        "split",
+        "access_policy",
+        "disclosure_count",
+        "test_boundary_utc",
+        "test_accessed",
+        "test_materialized",
+        "train_manifest",
+        "train_parquet",
+        "val_manifest",
+        "val_parquet",
+        "dataset_build_proof",
+        "content_binding_sha256",
+    }
+)
+_PRETEST_GUARD_EVENT_LINEAGE_KEYS = frozenset(
+    {"path", "sha256", "schema_version", "decision", "created_utc", "content_binding_sha256"}
+)
+_PRETEST_GUARD_LINEAGE_KEYS = frozenset(
+    {
+        "schema_version",
+        "verification_mode",
+        "guard_event",
+        "dataset_run_id",
+        "dataset_dir",
+        "split",
+        "access_policy",
+        "disclosure_count",
+        "test_boundary_utc",
+        "train_manifest",
+        "train_parquet",
+        "val_manifest",
+        "val_parquet",
+        "dataset_build_proof",
+        "access_proof",
+    }
+)
+_PRETEST_GUARD_ACCESS_PROOF_KEYS = frozenset(
+    {
+        "guard_event_bytes_hash_validated",
         "test_dataset_bytes_read",
         "test_manifest_bytes_read",
         "test_metrics_read",
@@ -451,6 +522,289 @@ def require_prefreeze_test_seal_lineage(
         expected_dataset_run_id=dataset_run_id,
         expected_dataset_dir=dataset_dir,
     )
+
+
+def _require_pretest_guard_artifact(
+    value: Any,
+    *,
+    dataset_dir: Path,
+    split: str,
+    manifest: bool,
+    label: str,
+) -> dict[str, Any]:
+    artifact = _mapping(value, keys=_ARTIFACT_KEYS, label=label)
+    path = _absolute_immutable_path(artifact.get("path"), label=f"{label} path")
+    expected_suffix = f"_{split}.manifest.json" if manifest else f"_{split}.parquet"
+    if path.parent != dataset_dir or not path.name.endswith(expected_suffix):
+        raise PrefreezeTestSealLineageError(f"{label}: path is outside its sealed split")
+    return {"path": str(path), "sha256": _sha256(artifact.get("sha256"), label=f"{label} sha256")}
+
+
+def require_pretest_test_guard_lineage_metadata(
+    value: Mapping[str, Any],
+    *,
+    expected_dataset_run_id: str | None = None,
+    expected_dataset_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Validate an unopened-TEST lineage without touching TEST or any artifact.
+
+    This is deliberately metadata-only.  The event holds only TRAIN/VAL and
+    build-proof hashes; it contains no TEST filename, hash, row count or
+    statistics.  A caller that needs a physical TEST evaluation must use
+    :func:`require_prefreeze_test_seal_lineage_metadata` instead.
+    """
+
+    lineage = _mapping(value, keys=_PRETEST_GUARD_LINEAGE_KEYS, label="pre-TEST guard lineage")
+    if (
+        lineage.get("schema_version") != PRETEST_TEST_GUARD_LINEAGE_SCHEMA_VERSION
+        or lineage.get("verification_mode") != PRETEST_TEST_GUARD_VERIFICATION_MODE
+    ):
+        raise PrefreezeTestSealLineageError("pre-TEST guard lineage schema mismatch")
+    dataset_run_id = require_entry_run_id(lineage.get("dataset_run_id"))
+    if expected_dataset_run_id is not None and dataset_run_id != require_entry_run_id(expected_dataset_run_id):
+        raise PrefreezeTestSealLineageError("pre-TEST guard dataset run lineage mismatch")
+    dataset_dir = _absolute_immutable_path(lineage.get("dataset_dir"), label="pre-TEST guard dataset_dir")
+    if expected_dataset_dir is not None and str(dataset_dir) != str(expected_dataset_dir):
+        raise PrefreezeTestSealLineageError("pre-TEST guard dataset directory mismatch")
+    if (
+        lineage.get("split") != "test"
+        or lineage.get("access_policy") != PRETEST_TEST_GUARD_ACCESS_POLICY
+        or lineage.get("disclosure_count") != 0
+        or not isinstance(lineage.get("test_boundary_utc"), str)
+        or not str(lineage["test_boundary_utc"]).strip()
+    ):
+        raise PrefreezeTestSealLineageError("pre-TEST guard isolation contract mismatch")
+
+    event = _mapping(
+        lineage.get("guard_event"),
+        keys=_PRETEST_GUARD_EVENT_LINEAGE_KEYS,
+        label="pre-TEST guard event lineage",
+    )
+    event_path = _absolute_immutable_path(event.get("path"), label="pre-TEST guard event path")
+    if (
+        not event_path.name.startswith(f"{PRETEST_TEST_GUARD_EVENT_PREFIX}_")
+        or not event_path.name.endswith(".json")
+        or event_path.parent == dataset_dir
+        or dataset_dir in event_path.parents
+        or event.get("schema_version") != PRETEST_TEST_GUARD_SCHEMA_VERSION
+        or event.get("decision") != PRETEST_TEST_GUARD_DECISION
+        or not isinstance(event.get("created_utc"), str)
+        or not str(event["created_utc"]).strip()
+    ):
+        raise PrefreezeTestSealLineageError("pre-TEST guard event identity mismatch")
+    normalized_event = {
+        "path": str(event_path),
+        "sha256": _sha256(event.get("sha256"), label="pre-TEST guard event sha256"),
+        "schema_version": event["schema_version"],
+        "decision": event["decision"],
+        "created_utc": event["created_utc"],
+        "content_binding_sha256": _sha256(
+            event.get("content_binding_sha256"),
+            label="pre-TEST guard event content binding sha256",
+        ),
+    }
+    train_manifest = _require_pretest_guard_artifact(
+        lineage.get("train_manifest"), dataset_dir=dataset_dir, split="train", manifest=True,
+        label="pre-TEST TRAIN manifest",
+    )
+    train_parquet = _require_pretest_guard_artifact(
+        lineage.get("train_parquet"), dataset_dir=dataset_dir, split="train", manifest=False,
+        label="pre-TEST TRAIN parquet",
+    )
+    val_manifest = _require_pretest_guard_artifact(
+        lineage.get("val_manifest"), dataset_dir=dataset_dir, split="val", manifest=True,
+        label="pre-TEST VAL manifest",
+    )
+    val_parquet = _require_pretest_guard_artifact(
+        lineage.get("val_parquet"), dataset_dir=dataset_dir, split="val", manifest=False,
+        label="pre-TEST VAL parquet",
+    )
+    proof = _mapping(
+        lineage.get("dataset_build_proof"), keys=_ARTIFACT_KEYS, label="pre-TEST dataset build proof"
+    )
+    proof_path = _absolute_immutable_path(proof.get("path"), label="pre-TEST dataset build proof path")
+    if proof_path.parent != dataset_dir or proof_path.name != "DATASET_BUILD_PROOF.json":
+        raise PrefreezeTestSealLineageError("pre-TEST dataset build proof path mismatch")
+    dataset_build_proof = {
+        "path": str(proof_path),
+        "sha256": _sha256(proof.get("sha256"), label="pre-TEST dataset build proof sha256"),
+    }
+    access = _mapping(
+        lineage.get("access_proof"),
+        keys=_PRETEST_GUARD_ACCESS_PROOF_KEYS,
+        label="pre-TEST guard access proof",
+    )
+    if access != {
+        "guard_event_bytes_hash_validated": True,
+        "test_dataset_bytes_read": False,
+        "test_manifest_bytes_read": False,
+        "test_metrics_read": False,
+        "test_paths_resolved_or_statted": False,
+    }:
+        raise PrefreezeTestSealLineageError("pre-TEST guard access proof is not exact")
+    return {
+        "schema_version": PRETEST_TEST_GUARD_LINEAGE_SCHEMA_VERSION,
+        "verification_mode": PRETEST_TEST_GUARD_VERIFICATION_MODE,
+        "guard_event": normalized_event,
+        "dataset_run_id": dataset_run_id,
+        "dataset_dir": str(dataset_dir),
+        "split": "test",
+        "access_policy": PRETEST_TEST_GUARD_ACCESS_POLICY,
+        "disclosure_count": 0,
+        "test_boundary_utc": lineage["test_boundary_utc"],
+        "train_manifest": train_manifest,
+        "train_parquet": train_parquet,
+        "val_manifest": val_manifest,
+        "val_parquet": val_parquet,
+        "dataset_build_proof": dataset_build_proof,
+        "access_proof": dict(access),
+    }
+
+
+def require_pretest_test_guard_lineage(
+    guard_json: str | Path,
+    guard_sha256: str,
+    *,
+    expected_dataset_run_id: str,
+    expected_dataset_dir: str | Path,
+) -> dict[str, Any]:
+    """Hash/parse a pre-TEST guard event; no TEST path is ever present or read."""
+
+    supplied_path = _absolute_immutable_path(guard_json, label="pre-TEST guard event path")
+    if supplied_path.is_symlink() or not supplied_path.is_file():
+        raise PrefreezeTestSealLineageError("pre-TEST guard event must be a regular file")
+    resolved_path = supplied_path.resolve(strict=True)
+    if resolved_path != supplied_path:
+        raise PrefreezeTestSealLineageError("pre-TEST guard event path must already be canonical")
+    expected_sha = _sha256(guard_sha256, label="pre-TEST guard event sha256")
+    raw = resolved_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha:
+        raise PrefreezeTestSealLineageError("pre-TEST guard event sha256 mismatch")
+    guard = _parse_exact_json_object(raw, label="pre-TEST guard event")
+    _mapping(guard, keys=_PRETEST_GUARD_KEYS, label="pre-TEST guard event")
+    dataset_run_id = require_entry_run_id(expected_dataset_run_id)
+    dataset_dir = _absolute_immutable_path(expected_dataset_dir, label="expected pre-TEST dataset_dir")
+    if (
+        guard.get("schema_version") != PRETEST_TEST_GUARD_SCHEMA_VERSION
+        or guard.get("decision") != PRETEST_TEST_GUARD_DECISION
+        or guard.get("guard_path") != str(resolved_path)
+        or guard.get("entry_run_id") != dataset_run_id
+        or guard.get("dataset_dir") != str(dataset_dir)
+        or guard.get("split") != "test"
+        or guard.get("access_policy") != PRETEST_TEST_GUARD_ACCESS_POLICY
+        or guard.get("disclosure_count") != 0
+        or guard.get("test_accessed") is not False
+        or guard.get("test_materialized") is not False
+        or not isinstance(guard.get("test_boundary_utc"), str)
+        or not str(guard["test_boundary_utc"]).strip()
+        or not isinstance(guard.get("created_utc"), str)
+        or not str(guard["created_utc"]).strip()
+    ):
+        raise PrefreezeTestSealLineageError("pre-TEST guard event identity/access mismatch")
+    content = {key: guard[key] for key in sorted(_PRETEST_GUARD_KEYS - {"content_binding_sha256"})}
+    content_sha = _sha256(
+        guard.get("content_binding_sha256"), label="pre-TEST guard content binding sha256"
+    )
+    if _canonical_json_sha256(content) != content_sha:
+        raise PrefreezeTestSealLineageError("pre-TEST guard canonical content binding mismatch")
+    lineage = {
+        "schema_version": PRETEST_TEST_GUARD_LINEAGE_SCHEMA_VERSION,
+        "verification_mode": PRETEST_TEST_GUARD_VERIFICATION_MODE,
+        "guard_event": {
+            "path": str(resolved_path),
+            "sha256": expected_sha,
+            "schema_version": guard["schema_version"],
+            "decision": guard["decision"],
+            "created_utc": guard["created_utc"],
+            "content_binding_sha256": content_sha,
+        },
+        "dataset_run_id": dataset_run_id,
+        "dataset_dir": str(dataset_dir),
+        "split": "test",
+        "access_policy": PRETEST_TEST_GUARD_ACCESS_POLICY,
+        "disclosure_count": 0,
+        "test_boundary_utc": guard["test_boundary_utc"],
+        "train_manifest": guard["train_manifest"],
+        "train_parquet": guard["train_parquet"],
+        "val_manifest": guard["val_manifest"],
+        "val_parquet": guard["val_parquet"],
+        "dataset_build_proof": guard["dataset_build_proof"],
+        "access_proof": {
+            "guard_event_bytes_hash_validated": True,
+            "test_dataset_bytes_read": False,
+            "test_manifest_bytes_read": False,
+            "test_metrics_read": False,
+            "test_paths_resolved_or_statted": False,
+        },
+    }
+    return require_pretest_test_guard_lineage_metadata(
+        lineage,
+        expected_dataset_run_id=dataset_run_id,
+        expected_dataset_dir=dataset_dir,
+    )
+
+
+def require_pretest_or_prefreeze_test_guard_lineage_metadata(
+    value: Mapping[str, Any],
+    *,
+    expected_dataset_run_id: str | None = None,
+    expected_dataset_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Accept either legacy physical TEST sealing or strict pre-TEST guarding.
+
+    Consumers that evaluate TEST must call the legacy physical-seal validator
+    directly.  TRAIN/VAL-only control-plane consumers may use this union.
+    """
+
+    if not isinstance(value, Mapping):
+        raise PrefreezeTestSealLineageError("TEST guard lineage must be a mapping")
+    schema = value.get("schema_version")
+    if schema == PREFREEZE_TEST_SEAL_LINEAGE_SCHEMA_VERSION:
+        return require_prefreeze_test_seal_lineage_metadata(
+            value,
+            expected_dataset_run_id=expected_dataset_run_id,
+            expected_dataset_dir=expected_dataset_dir,
+        )
+    if schema == PRETEST_TEST_GUARD_LINEAGE_SCHEMA_VERSION:
+        return require_pretest_test_guard_lineage_metadata(
+            value,
+            expected_dataset_run_id=expected_dataset_run_id,
+            expected_dataset_dir=expected_dataset_dir,
+        )
+    raise PrefreezeTestSealLineageError("unrecognized TEST guard lineage schema")
+
+
+def require_pretest_or_prefreeze_test_guard_lineage(
+    event_json: str | Path,
+    event_sha256: str,
+    *,
+    expected_dataset_run_id: str,
+    expected_dataset_dir: str | Path,
+) -> dict[str, Any]:
+    """Read only the supplied control-plane event and dispatch by its schema."""
+
+    supplied_path = _absolute_immutable_path(event_json, label="TEST guard event path")
+    if supplied_path.is_symlink() or not supplied_path.is_file():
+        raise PrefreezeTestSealLineageError("TEST guard event must be a regular file")
+    raw = supplied_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != _sha256(event_sha256, label="TEST guard event sha256"):
+        raise PrefreezeTestSealLineageError("TEST guard event sha256 mismatch")
+    event = _parse_exact_json_object(raw, label="TEST guard event")
+    if event.get("schema_version") == TEST_SEAL_SCHEMA_VERSION:
+        return require_prefreeze_test_seal_lineage(
+            supplied_path,
+            event_sha256,
+            expected_dataset_run_id=expected_dataset_run_id,
+            expected_dataset_dir=expected_dataset_dir,
+        )
+    if event.get("schema_version") == PRETEST_TEST_GUARD_SCHEMA_VERSION:
+        return require_pretest_test_guard_lineage(
+            supplied_path,
+            event_sha256,
+            expected_dataset_run_id=expected_dataset_run_id,
+            expected_dataset_dir=expected_dataset_dir,
+        )
+    raise PrefreezeTestSealLineageError("unrecognized TEST guard event schema")
 
 REQUIRED_PROOF_CHECKS = (
     "rebuild chain terminal is exact green",
