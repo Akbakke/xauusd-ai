@@ -238,3 +238,38 @@ def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     assert '"tf32": False' in source
     assert '"autocast": False' in source
     assert "[TRAIN_PROFILE]" in source
+
+
+def test_attended_time_window_uses_full_window_train_and_bounded_val_only() -> None:
+    """Prevent a six-month attended run from silently becoming a 32-row TRAIN smoke.
+
+    The attended lane deliberately uses ``subsample_rows`` to bound VAL model
+    work, while the explicit causal time window owns the TRAIN population.
+    Keep the assertion close to the trainer source because this precedence is
+    a launch/runtime invariant rather than a new feature surface.
+    """
+    source = Path(trainer.__file__).read_text(encoding="utf-8")
+
+    time_window_start = source.index(
+        "if train_time_window_start is not None and train_time_window_end is not None:"
+    )
+    train_window_selection = source.index(
+        "train_selected_indices = np.flatnonzero(", time_window_start
+    )
+    uniform_train_fallback = source.index(
+        "train_selected_indices = deterministic_uniform_subsample_indices(",
+        train_window_selection,
+    )
+    val_selection = source.index(
+        "val_selected_indices = deterministic_uniform_subsample_indices(",
+        uniform_train_fallback,
+    )
+
+    assert time_window_start < train_window_selection < uniform_train_fallback
+    assert uniform_train_fallback < val_selection
+    assert "train_times >= train_time_window_start" in source[
+        time_window_start:uniform_train_fallback
+    ]
+    assert "requested_rows=int(subsample_rows)" in source[
+        val_selection : val_selection + 500
+    ]
