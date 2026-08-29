@@ -65,6 +65,8 @@ UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION = (
 UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION = (
     "gx1_unified_exit_native_pair_m1_authority_v1"
 )
+PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v3"
+PRETEST_DIRECT_NATIVE_SOURCE_SCHEMA_VERSION = "gx1_direct_native_pretest_source_v2"
 UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS = (
     "time",
     "open",
@@ -266,14 +268,18 @@ def unified_exit_state_pointer_stream_sha256(
     return digest.hexdigest()
 
 
-def _require_base28_native_m1_subset_identity(
+def _require_native_m1_subset_identity(
     *,
     source_path: Path,
     native_root: Path,
     native_years: Mapping[str, Any],
     expected_rows: int,
+    source_kind: str,
 ) -> dict[str, Any]:
-    """Prove every pair BASE28 row is byte-equivalent to native M1."""
+    """Prove every declared M1 source row is byte-equivalent to native M1."""
+
+    if source_kind not in {"base28", "quote_complete_pretest"}:
+        raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SOURCE_KIND_INVALID")
 
     base_times_frame = pd.read_parquet(source_path, columns=["time"])
     base_times = pd.DatetimeIndex(
@@ -354,11 +360,312 @@ def _require_base28_native_m1_subset_identity(
     if observed_rows != expected_rows:
         raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SUBSET_ROW_COUNT_MISMATCH")
     return {
-        "method": "exact_base28_rows_are_native_m1_subset_v1",
+        "method": f"exact_{source_kind}_rows_are_native_m1_subset_v1",
         "rows": observed_rows,
         "years": proof_by_year,
         "proof_sha256": canonical_json_sha256(proof_by_year),
     }
+
+
+def _require_exact_json_object(
+    path: Path,
+    *,
+    expected_keys: set[str],
+    context: str,
+) -> tuple[Path, dict[str, Any], str]:
+    """Load one immutable JSON object with no undeclared contract fields."""
+
+    candidate = Path(path).expanduser()
+    if (
+        not candidate.is_absolute()
+        or candidate.is_symlink()
+        or not candidate.is_file()
+        or candidate.resolve() != candidate
+    ):
+        raise RuntimeError(f"{context}_PATH_INVALID")
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"{context}_JSON_INVALID") from exc
+    if not isinstance(payload, dict) or set(payload) != expected_keys:
+        raise RuntimeError(f"{context}_SCHEMA_INVALID")
+    observed_file_sha256 = sha256_file(candidate)
+    return candidate, payload, observed_file_sha256
+
+
+def _require_payload_sha256(
+    payload: Mapping[str, Any],
+    *,
+    key: str,
+    context: str,
+) -> None:
+    """Require the self-declared canonical payload digest without guessing."""
+
+    declared = payload.get(key)
+    stripped = dict(payload)
+    stripped.pop(key, None)
+    if (
+        not isinstance(declared, str)
+        or len(declared) != 64
+        or any(char not in "0123456789abcdef" for char in declared)
+        or declared != canonical_json_sha256(stripped)
+    ):
+        raise RuntimeError(f"{context}_PAYLOAD_SHA256_INVALID")
+
+
+def _require_pretest_utc_boundary(value: Any, *, context: str) -> pd.Timestamp:
+    try:
+        parsed = pd.Timestamp(value).as_unit("ns")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError(f"{context}_TIMESTAMP_INVALID") from exc
+    if (
+        pd.isna(parsed)
+        or parsed.tz is None
+        or parsed.utcoffset() != pd.Timedelta(0)
+    ):
+        raise RuntimeError(f"{context}_TIMESTAMP_INVALID")
+    return parsed
+
+
+def require_unified_exit_pretest_m1_quote_authority(
+    *,
+    pair_lineage_path: Path,
+    quote_source_manifest_path: Path,
+) -> tuple[Path, dict[str, Any]]:
+    """Resolve pre-TEST executable M1 quotes through immutable native proof.
+
+    This is deliberately a separate admission path from the historical BASE28
+    pair.  It accepts only the exact quote-complete M1 source produced from the
+    same TEST-sealed native M1 root named by the V3 pre-TEST pair lineage.
+    """
+
+    pair_path, pair, pair_file_sha256 = _require_exact_json_object(
+        pair_lineage_path,
+        expected_keys={
+            "schema_version",
+            "pair_generation_id",
+            "pair_symbol",
+            "test_boundary_utc",
+            "test_accessed",
+            "lineage",
+            "m1",
+            "m5",
+            "manifest_payload_sha256",
+        },
+        context="UNIFIED_EXIT_PRETEST_M1_PAIR",
+    )
+    _require_payload_sha256(
+        pair,
+        key="manifest_payload_sha256",
+        context="UNIFIED_EXIT_PRETEST_M1_PAIR",
+    )
+    if (
+        pair.get("schema_version") != PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION
+        or pair.get("pair_symbol") != "XAUUSD"
+        or pair.get("test_accessed") is not False
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_PAIR_CONTRACT_INVALID")
+    pair_generation_id = pair.get("pair_generation_id")
+    if (
+        not isinstance(pair_generation_id, str)
+        or len(pair_generation_id) != 64
+        or any(char not in "0123456789abcdef" for char in pair_generation_id)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_PAIR_GENERATION_INVALID")
+    test_boundary = _require_pretest_utc_boundary(
+        pair.get("test_boundary_utc"),
+        context="UNIFIED_EXIT_PRETEST_M1_PAIR_BOUNDARY",
+    )
+    lineage = pair.get("lineage")
+    m1_binding = pair.get("m1")
+    if (
+        not isinstance(lineage, Mapping)
+        or set(lineage) != {"native_sources"}
+        or not isinstance(lineage.get("native_sources"), Mapping)
+        or set(lineage["native_sources"]) != {"m1", "m5"}
+        or not isinstance(m1_binding, Mapping)
+        or set(m1_binding)
+        != {
+            "native_source",
+            "row_count",
+            "source_manifest_path",
+            "source_manifest_payload_sha256",
+            "source_manifest_sha256",
+            "source_parquet",
+            "source_parquet_sha256",
+            "time_max_utc",
+            "time_min_utc",
+        }
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_PAIR_LINEAGE_INVALID")
+    declared_native = lineage["native_sources"]["m1"]
+    if (
+        not isinstance(declared_native, Mapping)
+        or dict(m1_binding["native_source"]) != dict(declared_native)
+        or set(declared_native)
+        != {
+            "root",
+            "manifest_path",
+            "manifest_sha256",
+            "row_count",
+            "time_min_utc",
+            "time_max_utc",
+        }
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_NATIVE_BINDING_INVALID")
+    native_root = Path(str(declared_native["root"])).expanduser()
+    if not native_root.is_absolute() or native_root.is_symlink():
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_NATIVE_ROOT_INVALID")
+    observed_native = canonical_xau_source_descriptor_v1(
+        native_root,
+        timeframe="M1",
+    )
+    for key, expected in declared_native.items():
+        if observed_native.get(key) != expected:
+            raise RuntimeError(
+                "UNIFIED_EXIT_PRETEST_M1_NATIVE_PAIR_BINDING_MISMATCH: "
+                f"field={key}"
+            )
+    if (
+        observed_native.get("schema_version")
+        not in {
+            CANONICAL_NATIVE_SOURCE_SCHEMA,
+            CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+        }
+        or observed_native.get("completion_field") != "complete"
+        or observed_native.get("completion_value") is not True
+        or observed_native.get("market_closure_contract")
+        != CANONICAL_NATIVE_CLOSURE_CONTRACT
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_COMPLETION_PROOF_INVALID")
+    if (
+        _require_pretest_utc_boundary(
+            observed_native.get("time_max_utc"),
+            context="UNIFIED_EXIT_PRETEST_M1_NATIVE_MAX",
+        )
+        >= test_boundary
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_NATIVE_TEST_BOUNDARY_BREACH")
+
+    quote_path, quote, quote_manifest_file_sha256 = _require_exact_json_object(
+        quote_source_manifest_path,
+        expected_keys={
+            "schema_version",
+            "instrument",
+            "timeframe",
+            "timestamp_semantics",
+            "test_boundary_utc",
+            "test_accessed",
+            "quote_complete_m1",
+            "source_native_root",
+            "source_native_manifest_path",
+            "source_native_manifest_sha256",
+            "source_native_manifest_payload_sha256",
+            "source_requested_start_utc",
+            "source_requested_end_utc_exclusive",
+            "time_min_utc",
+            "time_max_utc",
+            "row_count",
+            "output_columns",
+            "output_parquet",
+            "output_parquet_sha256",
+            "producer_git_commit",
+            "producer_repository_clean",
+            "manifest_payload_sha256",
+        },
+        context="UNIFIED_EXIT_PRETEST_M1_QUOTES",
+    )
+    _require_payload_sha256(
+        quote,
+        key="manifest_payload_sha256",
+        context="UNIFIED_EXIT_PRETEST_M1_QUOTES",
+    )
+    required_columns = list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS)
+    if (
+        quote.get("schema_version") != PRETEST_DIRECT_NATIVE_SOURCE_SCHEMA_VERSION
+        or quote.get("instrument") != "XAU_USD"
+        or quote.get("timeframe") != "M1"
+        or quote.get("timestamp_semantics") != "bar_start_utc"
+        or quote.get("test_accessed") is not False
+        or quote.get("quote_complete_m1") is not True
+        or quote.get("output_columns") != required_columns
+        or quote.get("source_native_root") != str(native_root)
+        or quote.get("source_native_manifest_path")
+        != observed_native.get("manifest_path")
+        or quote.get("source_native_manifest_sha256")
+        != observed_native.get("manifest_sha256")
+        or quote.get("source_native_manifest_payload_sha256")
+        != observed_native.get("manifest_payload_sha256")
+        or quote.get("row_count") != declared_native["row_count"]
+        or quote.get("time_min_utc") != declared_native["time_min_utc"]
+        or quote.get("time_max_utc") != declared_native["time_max_utc"]
+        or _require_pretest_utc_boundary(
+            quote.get("test_boundary_utc"),
+            context="UNIFIED_EXIT_PRETEST_M1_QUOTES_BOUNDARY",
+        )
+        != test_boundary
+        or _require_pretest_utc_boundary(
+            quote.get("source_requested_end_utc_exclusive"),
+            context="UNIFIED_EXIT_PRETEST_M1_QUOTES_END",
+        )
+        != test_boundary
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_QUOTES_CONTRACT_INVALID")
+    source_path = Path(str(quote["output_parquet"])).expanduser()
+    if (
+        not source_path.is_absolute()
+        or source_path.is_symlink()
+        or not source_path.is_file()
+        or source_path.resolve() != source_path
+        or sha256_file(source_path) != quote.get("output_parquet_sha256")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_QUOTES_SOURCE_INVALID")
+    native_subset_proof = _require_native_m1_subset_identity(
+        source_path=source_path,
+        native_root=native_root,
+        native_years=observed_native["year_sha256"],
+        expected_rows=int(quote["row_count"]),
+        source_kind="quote_complete_pretest",
+    )
+    authority = {
+        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "authority_mode": "pretest_quote_complete_native_v1",
+        "pair_manifest_path": str(pair_path),
+        "pair_manifest_sha256": pair_file_sha256,
+        "pair_generation_root": None,
+        "pair_generation_id": pair_generation_id,
+        "pair_lineage_schema_version": pair["schema_version"],
+        "m1_source_path": str(source_path),
+        "m1_source_sha256": quote["output_parquet_sha256"],
+        "m1_source_rows": quote["row_count"],
+        "m1_source_manifest_path": str(quote_path),
+        "m1_source_manifest_sha256": quote_manifest_file_sha256,
+        "native_m1_root": str(native_root),
+        "native_m1_manifest_path": str(observed_native["manifest_path"]),
+        "native_m1_manifest_sha256": observed_native["manifest_sha256"],
+        "native_m1_canonical_rows_sha256": observed_native[
+            "canonical_rows_sha256"
+        ],
+        "native_m1_source_chunks_sha256": observed_native[
+            "source_chunks_sha256"
+        ],
+        "native_m1_producer_source_inventory_sha256": observed_native[
+            "producer_source_inventory_sha256"
+        ],
+        "native_m1_completion_field": observed_native["completion_field"],
+        "native_m1_completion_value": observed_native["completion_value"],
+        "native_m1_market_closure_contract": observed_native[
+            "market_closure_contract"
+        ],
+        "native_m1_requested_end_utc_exclusive": observed_native[
+            "requested_end_utc_exclusive"
+        ],
+        "native_m1_time_max_utc": observed_native["time_max_utc"],
+        "test_accessed": False,
+        "test_boundary_utc": str(test_boundary.isoformat()),
+        "base28_native_m1_subset_proof": native_subset_proof,
+    }
+    return source_path, authority
 
 
 def require_unified_exit_m1_pair_authority(
@@ -428,11 +735,12 @@ def require_unified_exit_m1_pair_authority(
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_COMPLETION_PROOF_INVALID")
     source_path = base28_verified.binding.parquet_path
-    native_subset_proof = _require_base28_native_m1_subset_identity(
+    native_subset_proof = _require_native_m1_subset_identity(
         source_path=source_path,
         native_root=native_root,
         native_years=observed_native["year_sha256"],
         expected_rows=base28_verified.binding.rows,
+        source_kind="base28",
     )
     authority = {
         "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
@@ -500,11 +808,31 @@ def require_unified_exit_lifecycle_authority_evidence(
         or value.get("extra_lookahead_beyond_trajectory") != 0
     ):
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_AUTHORITY_EVIDENCE_INVALID")
+    authority_mode = authority.get("authority_mode")
+    expected_subset_method = (
+        "exact_quote_complete_pretest_rows_are_native_m1_subset_v1"
+        if authority_mode == "pretest_quote_complete_native_v1"
+        else "exact_base28_rows_are_native_m1_subset_v1"
+    )
+    if authority_mode not in {None, "pretest_quote_complete_native_v1"}:
+        raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_MODE_INVALID")
+    if authority_mode == "pretest_quote_complete_native_v1" and (
+        authority.get("test_accessed") is not False
+        or _require_pretest_utc_boundary(
+            authority.get("test_boundary_utc"),
+            context="UNIFIED_EXIT_PRETEST_M1_EVIDENCE_BOUNDARY",
+        )
+        <= _require_pretest_utc_boundary(
+            authority.get("native_m1_time_max_utc"),
+            context="UNIFIED_EXIT_PRETEST_M1_EVIDENCE_MAX",
+        )
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_AUTHORITY_EVIDENCE_INVALID")
     subset = authority.get("base28_native_m1_subset_proof")
     if (
         not isinstance(subset, Mapping)
         or subset.get("method")
-        != "exact_base28_rows_are_native_m1_subset_v1"
+        != expected_subset_method
         or isinstance(subset.get("rows"), bool)
         or not isinstance(subset.get("rows"), int)
         or int(subset["rows"]) <= 0

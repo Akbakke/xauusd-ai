@@ -606,6 +606,129 @@ def _strict_native_pair_fixture(
     return generation_manifest, generation_root, pointer
 
 
+def _strict_pretest_quote_authority_fixture(
+    tmp_path: Path,
+) -> tuple[Path, Path, Path]:
+    """Build a V3 pre-TEST pair plus a quote-complete M1 source fixture."""
+
+    generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
+        tmp_path,
+    )
+    binding = incremental.read_prebuilt_pair_manifest(
+        generation_manifest,
+        generation_root=generation_root,
+    )
+    native_sources = binding.lineage["native_sources"]
+
+    def _short_native(timeframe: str) -> dict[str, object]:
+        descriptor = native_sources[timeframe.lower()]
+        return {
+            key: descriptor[key]
+            for key in (
+                "root",
+                "manifest_path",
+                "manifest_sha256",
+                "row_count",
+                "time_min_utc",
+                "time_max_utc",
+            )
+        }
+
+    m1_native = _short_native("M1")
+    m5_native = _short_native("M5")
+    m1_frame = pd.read_parquet(
+        Path(str(m1_native["root"])) / "year=2026" / "part-000.parquet"
+    ).loc[:, list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS)]
+    quote_parquet = (tmp_path / "pretest_m1_quotes.parquet").resolve()
+    m1_frame.to_parquet(quote_parquet, index=False)
+    m1_descriptor = canonical_xau_source_descriptor_v1(
+        Path(str(m1_native["root"])),
+        timeframe="M1",
+    )
+    boundary = str(m1_descriptor["requested_end_utc_exclusive"])
+    quote_manifest = (tmp_path / "pretest_m1_quotes.manifest.json").resolve()
+    quote_payload: dict[str, object] = {
+        "schema_version": "gx1_direct_native_pretest_source_v2",
+        "instrument": "XAU_USD",
+        "timeframe": "M1",
+        "timestamp_semantics": "bar_start_utc",
+        "test_boundary_utc": boundary,
+        "test_accessed": False,
+        "quote_complete_m1": True,
+        "source_native_root": str(m1_native["root"]),
+        "source_native_manifest_path": str(m1_descriptor["manifest_path"]),
+        "source_native_manifest_sha256": m1_descriptor["manifest_sha256"],
+        "source_native_manifest_payload_sha256": m1_descriptor[
+            "manifest_payload_sha256"
+        ],
+        "source_requested_start_utc": m1_descriptor["requested_start_utc"],
+        "source_requested_end_utc_exclusive": boundary,
+        "time_min_utc": m1_native["time_min_utc"],
+        "time_max_utc": m1_native["time_max_utc"],
+        "row_count": len(m1_frame),
+        "output_columns": list(UNIFIED_EXIT_LIFECYCLE_REQUIRED_M1_COLUMNS),
+        "output_parquet": str(quote_parquet),
+        "output_parquet_sha256": sha256_file(quote_parquet),
+        "producer_git_commit": "a" * 40,
+        "producer_repository_clean": True,
+    }
+    quote_payload["manifest_payload_sha256"] = canonical_json_sha256(
+        quote_payload
+    )
+    quote_manifest.write_text(
+        json.dumps(quote_payload, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+    def _direct_binding(
+        *,
+        native: dict[str, object],
+        source_manifest: Path,
+        source_parquet: Path,
+    ) -> dict[str, object]:
+        return {
+            "native_source": native,
+            "row_count": native["row_count"],
+            "source_manifest_path": str(source_manifest),
+            "source_manifest_payload_sha256": "f" * 64,
+            "source_manifest_sha256": sha256_file(source_manifest),
+            "source_parquet": str(source_parquet),
+            "source_parquet_sha256": sha256_file(source_parquet),
+            "time_min_utc": native["time_min_utc"],
+            "time_max_utc": native["time_max_utc"],
+        }
+
+    m5_parquet = (tmp_path / "pretest_m5_ohlcv.parquet").resolve()
+    pd.read_parquet(
+        Path(str(m5_native["root"])) / "year=2026" / "part-000.parquet"
+    ).to_parquet(m5_parquet, index=False)
+    pair_path = (tmp_path / "pretest_pair_lineage.json").resolve()
+    pair_payload: dict[str, object] = {
+        "schema_version": "gx1_pretest_native_pair_lineage_v3",
+        "pair_generation_id": "e" * 64,
+        "pair_symbol": "XAUUSD",
+        "test_boundary_utc": boundary,
+        "test_accessed": False,
+        "m1": _direct_binding(
+            native=m1_native,
+            source_manifest=quote_manifest,
+            source_parquet=quote_parquet,
+        ),
+        "m5": _direct_binding(
+            native=m5_native,
+            source_manifest=quote_manifest,
+            source_parquet=m5_parquet,
+        ),
+        "lineage": {"native_sources": {"m1": m1_native, "m5": m5_native}},
+    }
+    pair_payload["manifest_payload_sha256"] = canonical_json_sha256(pair_payload)
+    pair_path.write_text(
+        json.dumps(pair_payload, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    return pair_path, quote_manifest, quote_parquet
+
+
 def _write_exact_m1_feature_surface_fixture(
     tmp_path: Path,
     *,
@@ -863,6 +986,46 @@ def test_unified_exit_m1_authority_revalidates_native_complete_source(
         require_unified_exit_m1_pair_authority(
             pair_manifest_path=pointer,
             pair_generation_root=generation_root,
+        )
+
+
+def test_unified_exit_pretest_quote_authority_requires_exact_native_rows(
+    tmp_path: Path,
+) -> None:
+    pair_path, quote_manifest, quote_parquet = (
+        _strict_pretest_quote_authority_fixture(tmp_path)
+    )
+
+    source_path, authority = (
+        unified_exit_lifecycle.require_unified_exit_pretest_m1_quote_authority(
+            pair_lineage_path=pair_path,
+            quote_source_manifest_path=quote_manifest,
+        )
+    )
+
+    assert source_path == quote_parquet
+    assert authority["authority_mode"] == "pretest_quote_complete_native_v1"
+    assert authority["test_accessed"] is False
+    assert authority["m1_source_rows"] == len(pd.read_parquet(quote_parquet))
+    assert authority["base28_native_m1_subset_proof"]["method"] == (
+        "exact_quote_complete_pretest_rows_are_native_m1_subset_v1"
+    )
+
+    quote = json.loads(quote_manifest.read_text(encoding="utf-8"))
+    quote["quote_complete_m1"] = False
+    quote.pop("manifest_payload_sha256")
+    quote["manifest_payload_sha256"] = canonical_json_sha256(quote)
+    quote_manifest.write_text(
+        json.dumps(quote, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="UNIFIED_EXIT_PRETEST_M1_QUOTES_CONTRACT_INVALID",
+    ):
+        unified_exit_lifecycle.require_unified_exit_pretest_m1_quote_authority(
+            pair_lineage_path=pair_path,
+            quote_source_manifest_path=quote_manifest,
         )
 
 
