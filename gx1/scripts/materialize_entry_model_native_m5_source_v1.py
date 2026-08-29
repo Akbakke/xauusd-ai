@@ -44,6 +44,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.contracts.gx1_scope_v1 import require_offline_scope
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_SOURCE_SCHEMA,
+    CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+)
 from gx1.features.htf_features import (
     HTF_V4_CACHE_SCHEMA_VERSION,
     MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
@@ -57,7 +61,17 @@ M5_NS = ENTRY_DECISION_BAR_SECONDS * 1_000_000_000
 M5_SOURCE_SCHEMA_VERSION = "gx1_entry_model_native_m5_source_surface_v4"
 PAIR_MANIFEST_SCHEMA_VERSION = "gx1_canonical_v3_raw_base28_pair_generation_v3"
 PAIR_LINEAGE_SCHEMA_VERSION = "gx1_native_pair_lineage_v2"
-NATIVE_SOURCE_SCHEMA_VERSION = "xau_canonical_native_source_v4"
+# A sealed pre-TEST history is a canonical V3 native source.  A later sealed
+# successor can be V4.  Both are the one native OHLCV contract; the pair
+# manifest, exact file hashes, row/time bounds and Arrow schema below remain
+# mandatory.  Do not accept an arbitrary version string just because its
+# column layout happens to match.
+NATIVE_SOURCE_SCHEMA_VERSIONS = frozenset(
+    (
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    )
+)
 
 RAW_MARKET_COLUMNS = (
     "open",
@@ -407,7 +421,7 @@ def _preflight_native_source(
     if source_payload_sha256 != _canonical_sha256(source_without_hash):
         raise RuntimeError("M5_SOURCE_NATIVE_M5_MANIFEST_PAYLOAD_MISMATCH")
     if (
-        source_manifest.get("schema_version") != NATIVE_SOURCE_SCHEMA_VERSION
+        source_manifest.get("schema_version") not in NATIVE_SOURCE_SCHEMA_VERSIONS
         or source_manifest.get("instrument") != "XAU_USD"
         or source_manifest.get("timeframe") != "M5"
         or source_manifest.get("out_root") != str(root)
