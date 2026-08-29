@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -327,6 +328,94 @@ def test_runtime_authoritative_route_is_locked_without_single_use_release(
         match="SELECTIVE_EDGE_TEST_RELEASE_AUTHORITY_REQUIRED",
     ):
         run(Args())
+
+
+def test_dry_run_preflights_on_cpu_without_prediction_or_output_write(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The CUDA evaluator must prove immutable inputs before device allocation."""
+
+    bundle_dir = tmp_path / "bundle"
+    dataset_dir = tmp_path / "dataset"
+    cache_dir = tmp_path / "cache"
+    bundle_dir.mkdir()
+    dataset_dir.mkdir()
+    cache_dir.mkdir()
+    m5_prebuilt = dataset_dir / "FULL_PLUS_CTX_v3src.parquet"
+    m5_prebuilt.write_bytes(b"m5")
+    val_manifest = dataset_dir / "candidate_val.manifest.json"
+    val_parquet = dataset_dir / "candidate_val.parquet"
+    val_manifest.write_text("{}", encoding="utf-8")
+    val_parquet.write_bytes(b"val")
+    out_dir = tmp_path / "new-evidence"
+    load_devices: list[str] = []
+
+    class Bundle:
+        metadata: dict[str, object] = {}
+
+    def load_bundle(**kwargs: object) -> Bundle:
+        device = kwargs["device"]
+        assert isinstance(device, torch.device)
+        load_devices.append(device.type)
+        return Bundle()
+
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "_load_selective_edge_stage_bundle",
+        load_bundle,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "_dataset_model_native_contract",
+        lambda *_args, **_kwargs: {"contract": {}, "splits": {"val": {}}},
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "_require_evaluation_mtf_source_provenance",
+        lambda **_kwargs: {"cache_binding": {"cache_identity_sha256": "a" * 64}},
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
+        "_bundle_core_integrity_snapshot",
+        lambda **_kwargs: {"model_state_dict_sha256": "b" * 64},
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._load_val_reference",
+        lambda *_args, **_kwargs: (None, None),
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.evaluate_entry_candidate_selective_edge_v1._predict_bundle",
+        lambda **_kwargs: pytest.fail("dry-run must not predict"),
+    )
+
+    report = run(
+        SimpleNamespace(
+            evidence_stage="pre_calibration",
+            splits="val",
+            bundle_dir=str(bundle_dir),
+            dataset_dir=str(dataset_dir),
+            out_dir=str(out_dir),
+            m5_prebuilt_path=str(m5_prebuilt),
+            multi_tf_cache_dir=str(cache_dir),
+            val_manifest_json=str(val_manifest),
+            val_manifest_sha256=_sha256(val_manifest),
+            val_parquet=str(val_parquet),
+            val_parquet_sha256=_sha256(val_parquet),
+            test_manifest_json=None,
+            test_manifest_sha256=None,
+            test_parquet=None,
+            test_parquet_sha256=None,
+            device="cpu",
+            dry_run=True,
+            quiet=True,
+        )
+    )
+
+    assert report["decision"] == "PASS_PREFLIGHT_NO_PREDICTION"
+    assert report["prediction_written"] is False
+    assert load_devices == ["cpu"]
+    assert not out_dir.exists()
 
 
 def test_live_decision_evidence_contains_raw_q_argmax_and_no_probabilities() -> None:

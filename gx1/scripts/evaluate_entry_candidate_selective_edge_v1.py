@@ -2065,11 +2065,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not valid:
             raise RuntimeError(f"explicit {label} artifact is missing: {path}")
     split_bindings = _require_stage_split_bindings(args, splits=splits)
-    device = torch.device(_selective_edge_device_arg(args.device))
+    requested_device = _selective_edge_device_arg(args.device)
     _reject_retired_selection_environment()
+    # Validate the exact bundle and every immutable input on CPU before any
+    # CUDA allocation.  A malformed manifest, cache binding or output request
+    # must never be discovered only after a multi-hour GPU evaluator starts.
+    # CUDA is loaded again below only after this complete preflight passes.
     bundle = _load_selective_edge_stage_bundle(
         bundle_dir=bundle_dir,
-        device=device,
+        device=torch.device("cpu"),
         evidence_stage=evidence_stage,
     )
     test_seal = (
@@ -2112,6 +2116,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         dataset_dir=dataset_dir,
         dataset_contract=dataset_contract,
     )
+    exclude_sessions = tuple(
+        s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
+    )
+    if exclude_sessions:
+        raise RuntimeError(
+            "external session exclusion is forbidden; session evidence "
+            "must be fused into the model-native LONG/SHORT/FLAT decision"
+        )
+    if bool(getattr(args, "dry_run", False)):
+        preflight = {
+            "schema_version": "entry_candidate_selective_edge_preflight_v1",
+            "decision": "PASS_PREFLIGHT_NO_PREDICTION",
+            "evidence_stage": evidence_stage,
+            "splits": splits,
+            "requested_device": requested_device,
+            "bundle_dir": str(bundle_dir),
+            "dataset_dir": str(dataset_dir),
+            "bundle_core_integrity": bundle_core_integrity,
+            "mtf_source_provenance": mtf_source_provenance,
+            "prediction_written": False,
+            "activation_authority": False,
+        }
+        if not bool(getattr(args, "quiet", False)):
+            print(json.dumps(preflight, indent=2, sort_keys=True))
+        return preflight
+
     split_parquets = {
         split: Path(dataset_contract["splits"][split]["parquet_path"])
         for split in splits
@@ -2122,13 +2152,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
     top_fracs = list(EVALUATION_COVERAGES)
     selection_score_mode = MODEL_DIRECTION_SELECTION_MODE
-    exclude_sessions = tuple(
-        s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
-    )
-    if exclude_sessions:
-        raise RuntimeError(
-            "external session exclusion is forbidden; session evidence "
-            "must be fused into the model-native LONG/SHORT/FLAT decision"
+    device = torch.device(requested_device)
+    if device.type == "cuda":
+        bundle = _load_selective_edge_stage_bundle(
+            bundle_dir=bundle_dir,
+            device=device,
+            evidence_stage=evidence_stage,
         )
     out_dir.mkdir(parents=True, exist_ok=True)
     os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(mtf_cache_dir)
@@ -2399,6 +2428,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exact SHA-256 of --val-reference-json; required for sealed TEST.",
     )
     ap.add_argument("--out-dir", required=True)
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Validate the exact bundle, split bindings and MTF provenance on "
+            "CPU; do not allocate CUDA, predict, or write evidence."
+        ),
+    )
     ap.add_argument("--quiet", action="store_true")
     return ap
 
