@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish a minimal immutable lineage binding for direct pre-TEST M1 and M5.
+"""Publish an immutable lineage binding for direct pre-TEST M1 and M5.
 
 The MTF-cache calibration and the M1 Exit-lifecycle rebuild both require a
 single hash-bound statement of the two direct OANDA clock sources.  This is not
@@ -20,7 +20,7 @@ from typing import Any
 from gx1.contracts.gx1_scope_v1 import require_offline_scope
 
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
-PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v1"
+PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v2"
 _SOURCE_SCHEMAS = frozenset(
     {"gx1_direct_m5_pretest_source_v1", "gx1_direct_native_pretest_source_v2"}
 )
@@ -64,6 +64,13 @@ def _read_direct_source(path: Path, *, timeframe: str) -> dict[str, Any]:
     output_raw = str(payload.get("output_parquet") or "")
     output = Path(output_raw).expanduser()
     expected_sha = str(payload.get("output_parquet_sha256") or "")
+    native_root = Path(str(payload.get("source_native_root") or "")).expanduser()
+    native_manifest = Path(
+        str(payload.get("source_native_manifest_path") or "")
+    ).expanduser()
+    expected_native_manifest_sha = str(
+        payload.get("source_native_manifest_sha256") or ""
+    )
     if (
         payload.get("schema_version") not in _SOURCE_SCHEMAS
         or payload.get("timeframe") != timeframe
@@ -81,8 +88,28 @@ def _read_direct_source(path: Path, *, timeframe: str) -> dict[str, Any]:
         or int(payload["row_count"]) <= 0
         or not isinstance(payload.get("time_max_utc"), str)
         or payload["time_max_utc"] >= TEST_BOUNDARY_UTC
+        or not native_root.is_absolute()
+        or native_root.is_symlink()
+        or not native_root.is_dir()
+        or native_root.resolve(strict=True) != native_root
+        or not native_manifest.is_absolute()
+        or native_manifest.is_symlink()
+        or not native_manifest.is_file()
+        or native_manifest.resolve(strict=True) != native_manifest
+        or native_manifest.parent != native_root
+        or len(expected_native_manifest_sha) != 64
+        or any(char not in "0123456789abcdef" for char in expected_native_manifest_sha)
+        or _sha256_file(native_manifest) != expected_native_manifest_sha
     ):
         raise RuntimeError("PRETEST_NATIVE_PAIR_SOURCE_BOUNDARY_INVALID")
+    native_source = {
+        "root": str(native_root),
+        "manifest_path": str(native_manifest),
+        "manifest_sha256": expected_native_manifest_sha,
+        "row_count": int(payload["row_count"]),
+        "time_min_utc": payload.get("time_min_utc"),
+        "time_max_utc": payload["time_max_utc"],
+    }
     return {
         "source_manifest_path": str(artifact),
         "source_manifest_sha256": _sha256_file(artifact),
@@ -92,6 +119,7 @@ def _read_direct_source(path: Path, *, timeframe: str) -> dict[str, Any]:
         "row_count": int(payload["row_count"]),
         "time_min_utc": payload.get("time_min_utc"),
         "time_max_utc": payload["time_max_utc"],
+        "native_source": native_source,
     }
 
 
@@ -125,6 +153,16 @@ def materialize_pretest_native_pair_lineage(
         "test_accessed": False,
         "m1": m1,
         "m5": m5,
+        # The active M5 and M1 enriched-frame producers consume native roots,
+        # not the regular-file materialisations above.  Bind those exact roots
+        # here so a later producer can prove both its physical input and the
+        # pre-TEST direct-source lineage without a format adapter or fallback.
+        "lineage": {
+            "native_sources": {
+                "m1": m1["native_source"],
+                "m5": m5["native_source"],
+            }
+        },
     }
     payload["manifest_payload_sha256"] = _canonical_sha256(payload)
     descriptor, temporary_raw = tempfile.mkstemp(
