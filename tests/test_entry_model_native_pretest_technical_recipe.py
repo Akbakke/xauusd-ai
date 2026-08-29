@@ -28,6 +28,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _require_pretest_recipe_cli_match,
 )
 from gx1.scripts.materialize_entry_pretest_technical_recipe_v1 import (
+    _require_split_m5_prebuilt_binding,
     materialize_pretest_technical_recipe,
 )
 
@@ -185,6 +186,26 @@ def test_pretest_recipe_rejects_artifact_not_bound_to_guard(tmp_path: Path) -> N
     recipe["artifact_bindings_sha256"] = canonical_json_sha256(bindings)
     with pytest.raises(PretestTechnicalRecipeError, match="differs from unopened-TEST guard"):
         require_pretest_technical_recipe_metadata(recipe)
+
+
+def test_pretest_recipe_requires_exact_split_declared_m5_prebuilt_path(
+    tmp_path: Path,
+) -> None:
+    declared = (tmp_path / "FULL_PLUS_CTX_v3src.parquet").resolve()
+    wrong_surface = (tmp_path / "m5_feature_base.parquet").resolve()
+    manifest = {"inputs": {"source_parquet": str(declared)}}
+
+    _require_split_m5_prebuilt_binding(
+        manifest,
+        split="train",
+        m5_prebuilt=declared,
+    )
+    with pytest.raises(RuntimeError, match="TRAIN_M5_PREBUILT_PATH_MISMATCH"):
+        _require_split_m5_prebuilt_binding(
+            manifest,
+            split="train",
+            m5_prebuilt=wrong_surface,
+        )
 
 
 def test_pretest_recipe_materializer_rejects_noncanonical_wrapper_before_inputs(

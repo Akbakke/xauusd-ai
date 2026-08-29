@@ -82,6 +82,34 @@ def _require_pass(payload: Mapping[str, Any], *, label: str) -> None:
         raise RuntimeError(f"PRETEST_TECHNICAL_RECIPE_{label}_NOT_PASS")
 
 
+def _require_split_m5_prebuilt_binding(
+    manifest: Mapping[str, Any],
+    *,
+    split: str,
+    m5_prebuilt: Path,
+) -> None:
+    """Require the exact model-range M5 source declared by a split.
+
+    The derived M5 feature surface is a different artifact from the immutable
+    M5 parquet used to reconstruct the model's sequence and multi-TF inputs.
+    Accepting the former here makes a recipe look valid but makes the trainer
+    fail only after it has entered its guarded data preflight.
+    """
+
+    inputs = manifest.get("inputs")
+    declared_raw = (
+        str(inputs.get("source_parquet") or "")
+        if isinstance(inputs, Mapping)
+        else ""
+    )
+    declared = Path(declared_raw).expanduser()
+    if not declared_raw or not declared.is_absolute() or declared != m5_prebuilt:
+        raise RuntimeError(
+            "PRETEST_TECHNICAL_RECIPE_"
+            f"{split.upper()}_M5_PREBUILT_PATH_MISMATCH"
+        )
+
+
 def materialize_pretest_technical_recipe(
     *,
     repo: Path,
@@ -195,6 +223,11 @@ def materialize_pretest_technical_recipe(
             or manifest.get("output_data_path") != str(files[f"{split}_parquet"])
         ):
             raise RuntimeError("PRETEST_TECHNICAL_RECIPE_SPLIT_MANIFEST_INVALID")
+        _require_split_m5_prebuilt_binding(
+            manifest,
+            split=split,
+            m5_prebuilt=files["m5_prebuilt"],
+        )
     artifacts = {name: _artifact(path) for name, path in files.items()}
     for split in ("train", "val"):
         for kind in ("manifest", "parquet"):
