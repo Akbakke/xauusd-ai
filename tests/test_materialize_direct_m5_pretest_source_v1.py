@@ -11,7 +11,13 @@ import pytest
 from gx1.scripts import materialize_direct_m5_pretest_source_v1 as producer
 
 
-def _native_fixture(root: Path, timestamps: list[str], *, timeframe: str = "M5") -> None:
+def _native_fixture(
+    root: Path,
+    timestamps: list[str],
+    *,
+    timeframe: str = "M5",
+    include_quotes: bool = False,
+) -> None:
     root.mkdir()
     manifest = {
         "instrument": "XAU_USD",
@@ -26,16 +32,25 @@ def _native_fixture(root: Path, timestamps: list[str], *, timeframe: str = "M5")
     part = root / "year=2026"
     part.mkdir()
     values = pd.to_datetime(timestamps, utc=True)
-    table = pa.table(
-        {
+    columns = {
             "time": pa.array(values, type=pa.timestamp("ns", tz="UTC")),
             "open": pa.array([1.0] * len(values), type=pa.float64()),
             "high": pa.array([2.0] * len(values), type=pa.float64()),
             "low": pa.array([0.5] * len(values), type=pa.float64()),
             "close": pa.array([1.5] * len(values), type=pa.float64()),
             "volume": pa.array([10] * len(values), type=pa.int64()),
-        }
-    )
+    }
+    if include_quotes:
+        for prefix, offset in (("bid", 0.0), ("ask", 0.1)):
+            columns.update(
+                {
+                    f"{prefix}_open": pa.array([1.0 + offset] * len(values), type=pa.float64()),
+                    f"{prefix}_high": pa.array([2.0 + offset] * len(values), type=pa.float64()),
+                    f"{prefix}_low": pa.array([0.5 + offset] * len(values), type=pa.float64()),
+                    f"{prefix}_close": pa.array([1.5 + offset] * len(values), type=pa.float64()),
+                }
+            )
+    table = pa.table(columns)
     pq.write_table(table, part / "part-000.parquet")
 
 
@@ -113,3 +128,52 @@ def test_materializes_direct_m1_with_its_own_axis(
 
     assert manifest["timeframe"] == "M1"
     assert (output / "m1_ohlcv.parquet").is_file()
+
+
+def test_materializes_quote_complete_pretest_m1_for_executable_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bypass_native_bundle_validation(monkeypatch)
+    native = tmp_path / "native"
+    _native_fixture(
+        native,
+        ["2026-06-30T23:58:00Z", "2026-06-30T23:59:00Z"],
+        timeframe="M1",
+        include_quotes=True,
+    )
+    output = tmp_path / "published"
+    repository = tmp_path / "repo"
+    repository.mkdir()
+
+    manifest = producer.materialize_direct_m5_pretest_source(
+        native_m5_root=native,
+        out_dir=output,
+        timeframe="M1",
+        include_m1_quotes=True,
+        repo_root=repository,
+    )
+
+    quotes = output / "m1_quotes.parquet"
+    assert manifest["quote_complete_m1"] is True
+    assert manifest["output_columns"] == list(producer.M1_QUOTE_OUTPUT_COLUMNS)
+    assert pq.read_schema(quotes).names == list(producer.M1_QUOTE_OUTPUT_COLUMNS)
+    assert pq.read_table(quotes, columns=["bid_open", "ask_close"]).num_rows == 2
+
+
+def test_rejects_quote_complete_mode_for_m5(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bypass_native_bundle_validation(monkeypatch)
+    native = tmp_path / "native"
+    _native_fixture(native, ["2026-06-30T23:55:00Z"])
+    output = tmp_path / "published"
+    repository = tmp_path / "repo"
+    repository.mkdir()
+
+    with pytest.raises(RuntimeError, match="DIRECT_M5_PRETEST_M1_QUOTES_REQUIRE_M1"):
+        producer.materialize_direct_m5_pretest_source(
+            native_m5_root=native,
+            out_dir=output,
+            include_m1_quotes=True,
+            repo_root=repository,
+        )

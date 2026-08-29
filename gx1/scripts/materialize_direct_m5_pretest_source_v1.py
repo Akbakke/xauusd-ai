@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Publish one immutable direct M1/M5 OHLCV source that ends before sealed TEST.
+"""Publish one immutable direct M1/M5 source that ends before sealed TEST.
 
 This is a narrow provenance bridge, not a feature builder.  It reads only a
 complete canonical native M1 or M5 bundle whose declared end is exactly the
-2026-07-01 TEST boundary, preserves its direct OANDA axis, and writes the six
-OHLCV columns needed by the cache and Exit-lifecycle owners.  It rejects a
-source or an output row at/after that boundary; it neither opens nor accepts a
-TEST split file.
+2026-07-01 TEST boundary, preserves its direct OANDA axis, and writes either
+the six OHLCV columns or the complete native M1 bid/ask quote columns required
+by executable-PnL labels. It rejects a source or an output row at/after that
+boundary; it neither opens nor accepts a TEST split file.
 """
 
 from __future__ import annotations
@@ -37,13 +37,39 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
 PRETEST_NATIVE_SOURCE_SCHEMA_VERSION = "gx1_direct_native_pretest_source_v2"
 OUTPUT_COLUMNS = ("time", "open", "high", "low", "close", "volume")
-OUTPUT_SCHEMA = pa.schema(
-    [
-        pa.field("time", pa.timestamp("ns", tz="UTC"), nullable=False),
-        *(pa.field(name, pa.float64(), nullable=False) for name in OUTPUT_COLUMNS[1:-1]),
-        pa.field("volume", pa.int64(), nullable=False),
-    ]
+M1_QUOTE_OUTPUT_COLUMNS = (
+    "time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close",
+    "volume",
 )
+
+
+def _output_schema(columns: tuple[str, ...]) -> pa.Schema:
+    return pa.schema(
+        [
+            pa.field("time", pa.timestamp("ns", tz="UTC"), nullable=False),
+            *(
+                pa.field(name, pa.float64(), nullable=False)
+                for name in columns[1:-1]
+            ),
+            pa.field("volume", pa.int64(), nullable=False),
+        ]
+    )
+
+
+OUTPUT_SCHEMA = _output_schema(OUTPUT_COLUMNS)
+M1_QUOTE_OUTPUT_SCHEMA = _output_schema(M1_QUOTE_OUTPUT_COLUMNS)
 
 
 def _sha256_file(path: Path) -> str:
@@ -184,14 +210,17 @@ def materialize_direct_m5_pretest_source(
     native_m5_root: Path,
     out_dir: Path,
     timeframe: str = "M5",
+    include_m1_quotes: bool = False,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Write a hash-bound direct OHLCV file from an all-pre-TEST native bundle."""
+    """Write a hash-bound direct native file from an all-pre-TEST bundle."""
 
     require_offline_scope("featurebase_build")
     normalized_timeframe = str(timeframe or "").strip().upper()
     if normalized_timeframe not in {"M1", "M5"}:
         raise RuntimeError("DIRECT_M5_PRETEST_TIMEFRAME_INVALID")
+    if include_m1_quotes and normalized_timeframe != "M1":
+        raise RuntimeError("DIRECT_M5_PRETEST_M1_QUOTES_REQUIRE_M1")
     native_root = _require_exact_directory(native_m5_root, label="NATIVE_ROOT")
     destination = _require_new_output_directory(out_dir)
     repository = (
@@ -211,9 +240,19 @@ def materialize_direct_m5_pretest_source(
     stage = Path(tempfile.mkdtemp(prefix=f".{destination.name}.staging.", dir=destination.parent))
     published = False
     try:
-        output_name = f"{normalized_timeframe.lower()}_ohlcv.parquet"
+        output_columns = (
+            M1_QUOTE_OUTPUT_COLUMNS if include_m1_quotes else OUTPUT_COLUMNS
+        )
+        output_schema = (
+            M1_QUOTE_OUTPUT_SCHEMA if include_m1_quotes else OUTPUT_SCHEMA
+        )
+        output_name = (
+            "m1_quotes.parquet"
+            if include_m1_quotes
+            else f"{normalized_timeframe.lower()}_ohlcv.parquet"
+        )
         output = stage / output_name
-        writer = pq.ParquetWriter(output, OUTPUT_SCHEMA, compression="zstd")
+        writer = pq.ParquetWriter(output, output_schema, compression="zstd")
         row_count = 0
         first_time: pd.Timestamp | None = None
         last_time: pd.Timestamp | None = None
@@ -221,12 +260,12 @@ def materialize_direct_m5_pretest_source(
         try:
             for source_part in source_parts:
                 parquet = pq.ParquetFile(source_part)
-                if any(name not in parquet.schema_arrow.names for name in OUTPUT_COLUMNS):
+                if any(name not in parquet.schema_arrow.names for name in output_columns):
                     raise RuntimeError("DIRECT_M5_PRETEST_NATIVE_SCHEMA_INVALID")
                 for row_group in range(parquet.metadata.num_row_groups):
-                    table = parquet.read_row_group(row_group, columns=list(OUTPUT_COLUMNS))
-                    if not table.schema.equals(OUTPUT_SCHEMA, check_metadata=False):
-                        table = table.cast(OUTPUT_SCHEMA, safe=True)
+                    table = parquet.read_row_group(row_group, columns=list(output_columns))
+                    if not table.schema.equals(output_schema, check_metadata=False):
+                        table = table.cast(output_schema, safe=True)
                     timestamps = pd.DatetimeIndex(
                         pd.to_datetime(table["time"].to_pandas(), utc=True, errors="raise")
                     )
@@ -255,7 +294,7 @@ def materialize_direct_m5_pretest_source(
         verified = pq.ParquetFile(output)
         if (
             verified.metadata.num_rows != row_count
-            or not verified.schema_arrow.equals(OUTPUT_SCHEMA, check_metadata=False)
+            or not verified.schema_arrow.equals(output_schema, check_metadata=False)
         ):
             raise RuntimeError("DIRECT_M5_PRETEST_OUTPUT_VERIFY_FAILED")
         output_sha256 = _sha256_file(output)
@@ -263,6 +302,8 @@ def materialize_direct_m5_pretest_source(
             "schema_version": PRETEST_NATIVE_SOURCE_SCHEMA_VERSION,
             "instrument": XAU_INSTRUMENT,
             "timeframe": normalized_timeframe,
+            "output_columns": list(output_columns),
+            "quote_complete_m1": bool(include_m1_quotes),
             "timestamp_semantics": "bar_start_utc",
             "test_boundary_utc": TEST_BOUNDARY_UTC,
             "test_accessed": False,
@@ -303,6 +344,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--native-m5-root", type=Path, required=True)
     parser.add_argument("--timeframe", choices=("M1", "M5"), default="M5")
+    parser.add_argument(
+        "--include-m1-quotes",
+        action="store_true",
+        help="For M1 only, preserve native bid/ask OHLC required by executable labels.",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     args = parser.parse_args()
     print(json.dumps(materialize_direct_m5_pretest_source(**vars(args)), indent=2, sort_keys=True))
