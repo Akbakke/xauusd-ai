@@ -72,6 +72,39 @@ REQUIRED_ARTIFACTS = frozenset(
         "multi_tf_cache_manifest",
     }
 )
+TRAINER_CLI_KEYS = frozenset(
+    {
+        "execution_tier",
+        "device",
+        "seed",
+        "epochs",
+        "batch_size",
+        "learning_rate",
+        "seq_len",
+        "early_stop_patience",
+        "early_stop_min_delta",
+        "minimum_epochs_before_stop",
+        "save_top_k",
+        "grad_clip_norm",
+        "weight_decay",
+        "dropout",
+        "multi_tf_scale",
+        "specialist_fusion_scale",
+        "cross_family_fusion_scale",
+        "subsample_rows",
+        "num_workers",
+        "multi_tf_num_layers",
+        "specialist_num_layers",
+        "grad_accum_steps",
+        "per_tf_seq_len_m5",
+        "per_tf_seq_len_m15",
+        "per_tf_seq_len_h1",
+        "per_tf_seq_len_h4",
+        "per_tf_seq_len_d1",
+        "gx1_data_root",
+        "train_time_window",
+    }
+)
 SIDE_EFFECTS_ZERO = {
     "training": False,
     "replay": False,
@@ -248,8 +281,46 @@ def require_pretest_technical_recipe_metadata(
             if bindings[key] != guard[guard_key]:
                 raise PretestTechnicalRecipeError(f"{key}: differs from unopened-TEST guard")
     trainer_cli = recipe.get("trainer_cli")
-    if not isinstance(trainer_cli, Mapping) or not trainer_cli:
-        raise PretestTechnicalRecipeError("trainer CLI contract missing")
+    if not isinstance(trainer_cli, Mapping) or frozenset(trainer_cli) != TRAINER_CLI_KEYS:
+        raise PretestTechnicalRecipeError("trainer CLI contract keys invalid")
+    for key in (
+        "seed", "epochs", "batch_size", "seq_len", "early_stop_patience",
+        "minimum_epochs_before_stop", "save_top_k", "subsample_rows", "num_workers",
+        "multi_tf_num_layers", "specialist_num_layers", "grad_accum_steps",
+        "per_tf_seq_len_m5", "per_tf_seq_len_m15", "per_tf_seq_len_h1",
+        "per_tf_seq_len_h4", "per_tf_seq_len_d1",
+    ):
+        if isinstance(trainer_cli.get(key), bool) or not isinstance(trainer_cli.get(key), int):
+            raise PretestTechnicalRecipeError(f"trainer CLI {key} invalid")
+    for key in (
+        "learning_rate", "early_stop_min_delta", "grad_clip_norm", "weight_decay",
+        "dropout", "multi_tf_scale", "specialist_fusion_scale", "cross_family_fusion_scale",
+    ):
+        if isinstance(trainer_cli.get(key), bool) or not isinstance(trainer_cli.get(key), (int, float)):
+            raise PretestTechnicalRecipeError(f"trainer CLI {key} invalid")
+    if (
+        trainer_cli.get("execution_tier") not in {"canonical", "attended_only", "attended_cpu_only"}
+        or trainer_cli.get("device") not in {"cpu", "cuda"}
+        or not isinstance(trainer_cli.get("gx1_data_root"), str)
+        or not str(trainer_cli["gx1_data_root"]).startswith("/")
+    ):
+        raise PretestTechnicalRecipeError("trainer CLI execution identity invalid")
+    window = trainer_cli.get("train_time_window")
+    if window is not None and (
+        not isinstance(window, Mapping)
+        or frozenset(window) != {"start_utc", "end_utc"}
+        or not all(isinstance(window.get(key), str) and str(window[key]).strip() for key in window)
+    ):
+        raise PretestTechnicalRecipeError("trainer CLI time window invalid")
+    if profile == "smoke" and (
+        trainer_cli["epochs"] != 1
+        or trainer_cli["batch_size"] != 8
+        or trainer_cli["grad_accum_steps"] != 1
+        or trainer_cli["execution_tier"] not in {"attended_only", "attended_cpu_only"}
+        or trainer_cli["subsample_rows"] <= 0
+        or window is None
+    ):
+        raise PretestTechnicalRecipeError("bounded smoke geometry invalid")
     if recipe.get("trainer_cli_sha256") != canonical_json_sha256(trainer_cli):
         raise PretestTechnicalRecipeError("trainer CLI contract hash mismatch")
     if _GIT_SHA_RE.fullmatch(str(recipe.get("source_commit") or "")) is None:

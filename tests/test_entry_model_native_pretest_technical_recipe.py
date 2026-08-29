@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -21,6 +23,9 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     PretestTechnicalRecipeError,
     canonical_json_sha256,
     require_pretest_technical_recipe_metadata,
+)
+from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+    _require_pretest_recipe_cli_match,
 )
 
 
@@ -99,7 +104,40 @@ def _recipe(tmp_path: Path) -> dict[str, object]:
             "inode": 1,
         }
     }
-    trainer_cli = {"device": "cuda", "epochs": 1, "batch_size": 8}
+    trainer_cli = {
+        "execution_tier": "attended_only",
+        "device": "cuda",
+        "seed": 1337,
+        "epochs": 1,
+        "batch_size": 8,
+        "learning_rate": 0.0003,
+        "seq_len": 96,
+        "early_stop_patience": 1,
+        "early_stop_min_delta": 0.0,
+        "minimum_epochs_before_stop": 1,
+        "save_top_k": 1,
+        "grad_clip_norm": 1.0,
+        "weight_decay": 0.00001,
+        "dropout": 0.05,
+        "multi_tf_scale": 0.5,
+        "specialist_fusion_scale": 0.25,
+        "cross_family_fusion_scale": 0.25,
+        "subsample_rows": 32,
+        "num_workers": 0,
+        "multi_tf_num_layers": 2,
+        "specialist_num_layers": 1,
+        "grad_accum_steps": 1,
+        "per_tf_seq_len_m5": 16,
+        "per_tf_seq_len_m15": 64,
+        "per_tf_seq_len_h1": 96,
+        "per_tf_seq_len_h4": 96,
+        "per_tf_seq_len_d1": 252,
+        "gx1_data_root": "/tmp/gx1-data",
+        "train_time_window": {
+            "start_utc": "2024-12-01T00:00:00+00:00",
+            "end_utc": "2025-06-01T00:00:00+00:00",
+        },
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "decision": DECISION,
@@ -144,3 +182,38 @@ def test_pretest_recipe_rejects_artifact_not_bound_to_guard(tmp_path: Path) -> N
     recipe["artifact_bindings_sha256"] = canonical_json_sha256(bindings)
     with pytest.raises(PretestTechnicalRecipeError, match="differs from unopened-TEST guard"):
         require_pretest_technical_recipe_metadata(recipe)
+
+
+def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path) -> None:
+    recipe = _recipe(tmp_path)
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(json.dumps(recipe), encoding="utf-8")
+    cli = recipe["trainer_cli"]
+    assert isinstance(cli, dict)
+    args = SimpleNamespace(
+        recipe_audit_json=recipe_path,
+        profile="smoke",
+        run_id=RUN_ID,
+        dataset_run_id=DATASET_RUN_ID,
+        train_parquet=Path(str(recipe["dataset_dir"])) / "entry_train.parquet",
+        out_bundle_dir=Path(str(recipe["out_bundle_dir"])),
+        execution_tier=cli["execution_tier"], device=cli["device"], seed=cli["seed"],
+        epochs=cli["epochs"], batch_size=cli["batch_size"], lr=cli["learning_rate"],
+        seq_len=cli["seq_len"], early_stopping_patience=cli["early_stop_patience"],
+        early_stopping_min_delta=cli["early_stop_min_delta"],
+        minimum_epochs_before_stop=cli["minimum_epochs_before_stop"], save_top_k=cli["save_top_k"],
+        grad_clip_norm=cli["grad_clip_norm"], weight_decay=cli["weight_decay"], dropout=cli["dropout"],
+        multi_tf_scale=cli["multi_tf_scale"], specialist_fusion_scale=cli["specialist_fusion_scale"],
+        cross_family_fusion_scale=cli["cross_family_fusion_scale"], subsample_rows=cli["subsample_rows"],
+        num_workers=cli["num_workers"], multi_tf_num_layers=cli["multi_tf_num_layers"],
+        specialist_num_layers=cli["specialist_num_layers"], grad_accum_steps=cli["grad_accum_steps"],
+        per_tf_seq_len_m5=cli["per_tf_seq_len_m5"], per_tf_seq_len_m15=cli["per_tf_seq_len_m15"],
+        per_tf_seq_len_h1=cli["per_tf_seq_len_h1"], per_tf_seq_len_h4=cli["per_tf_seq_len_h4"],
+        per_tf_seq_len_d1=cli["per_tf_seq_len_d1"], gx1_data=cli["gx1_data_root"],
+        train_time_window_start_utc=cli["train_time_window"]["start_utc"],
+        train_time_window_end_utc=cli["train_time_window"]["end_utc"],
+    )
+    _require_pretest_recipe_cli_match(args)
+    args.batch_size = 16
+    with pytest.raises(RuntimeError, match="CLI_MISMATCH"):
+        _require_pretest_recipe_cli_match(args)

@@ -128,6 +128,11 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     require_pretest_or_prefreeze_test_guard_lineage,
     require_pretest_or_prefreeze_test_guard_lineage_metadata,
 )
+from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+    SCHEMA_VERSION as PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION,
+    PretestTechnicalRecipeError,
+    require_pretest_technical_recipe_metadata,
+)
 from gx1.contracts.entry_model_native_readiness_v1 import MODEL_NATIVE_ACTIVE_HEADS
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS,
@@ -13562,6 +13567,76 @@ def _install_attended_smoke_termination_handler() -> None:
     signal.signal(signal.SIGTERM, _terminate)
 
 
+def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
+    """Bind every direct trainer control to a pre-TEST technical recipe.
+
+    The legacy wrapper already compares its full CLI to a legacy recipe.  The
+    strict pre-TEST route enters the same canonical trainer directly, so this
+    local check prevents a caller from swapping its bounded smoke geometry
+    after materialisation and before CUDA is considered.
+    """
+
+    recipe_path = Path(args.recipe_audit_json).expanduser().resolve(strict=True)
+    try:
+        payload = json.loads(recipe_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_READ_FAILED]") from exc
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
+        return
+    try:
+        recipe = require_pretest_technical_recipe_metadata(
+            payload,
+            expected_profile=str(args.profile),
+            expected_run_id=str(args.run_id),
+            expected_dataset_run_id=str(args.dataset_run_id),
+            expected_dataset_dir=Path(args.train_parquet).expanduser().resolve().parent,
+            expected_out_bundle_dir=Path(args.out_bundle_dir).expanduser().resolve(),
+        )
+    except (PretestTechnicalRecipeError, ValueError) as exc:
+        raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_INVALID]") from exc
+    window = (
+        {
+            "start_utc": str(args.train_time_window_start_utc),
+            "end_utc": str(args.train_time_window_end_utc),
+        }
+        if args.train_time_window_start_utc is not None
+        else None
+    )
+    observed = {
+        "execution_tier": str(args.execution_tier),
+        "device": str(args.device),
+        "seed": int(args.seed),
+        "epochs": int(args.epochs),
+        "batch_size": int(args.batch_size),
+        "learning_rate": float(args.lr),
+        "seq_len": int(args.seq_len),
+        "early_stop_patience": int(args.early_stopping_patience),
+        "early_stop_min_delta": float(args.early_stopping_min_delta),
+        "minimum_epochs_before_stop": int(args.minimum_epochs_before_stop),
+        "save_top_k": int(args.save_top_k),
+        "grad_clip_norm": float(args.grad_clip_norm),
+        "weight_decay": float(args.weight_decay),
+        "dropout": float(args.dropout),
+        "multi_tf_scale": float(args.multi_tf_scale),
+        "specialist_fusion_scale": float(args.specialist_fusion_scale),
+        "cross_family_fusion_scale": float(args.cross_family_fusion_scale),
+        "subsample_rows": int(args.subsample_rows),
+        "num_workers": int(args.num_workers),
+        "multi_tf_num_layers": int(args.multi_tf_num_layers),
+        "specialist_num_layers": int(args.specialist_num_layers),
+        "grad_accum_steps": int(args.grad_accum_steps),
+        "per_tf_seq_len_m5": int(args.per_tf_seq_len_m5),
+        "per_tf_seq_len_m15": int(args.per_tf_seq_len_m15),
+        "per_tf_seq_len_h1": int(args.per_tf_seq_len_h1),
+        "per_tf_seq_len_h4": int(args.per_tf_seq_len_h4),
+        "per_tf_seq_len_d1": int(args.per_tf_seq_len_d1),
+        "gx1_data_root": str(args.gx1_data),
+        "train_time_window": window,
+    }
+    if recipe["trainer_cli"] != observed:
+        raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_CLI_MISMATCH]")
+
+
 def main() -> None:
     _require_trainer_cgroup_preflight()
     _enforce_canonical_train_env_contract()
@@ -13663,6 +13738,7 @@ def main() -> None:
         raise RuntimeError(
             f"[ENTRY_TRAIN_RECIPE_SOURCE_PROVENANCE_REJECTED] {exc}"
         ) from exc
+    _require_pretest_recipe_cli_match(args)
     if args.profile == "candidate" and int(args.subsample_rows) != 0:
         parser.error("candidate training requires --subsample-rows 0")
     if args.profile == "candidate" and int(args.grad_accum_steps) != 1:
