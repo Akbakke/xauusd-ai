@@ -1084,6 +1084,12 @@ _ATTENDED_RESEARCH_MAX_OPTIMIZER_STEPS = 60
 # needed because a WSL residency failure can occur before the next poll.
 _ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION = 0.50
 _ATTENDED_RESEARCH_BATCH_SIZE = 8
+# A full model/optimizer snapshot costs roughly as much as one bounded
+# optimizer step.  Eight steps keeps a forced-stop replay below about
+# half a minute while avoiding one synchronous disk write after every batch.
+# It is still much tighter than the 64-step candidate interval because this
+# lane is guarded by the shorter five-minute attended CUDA window.
+_ATTENDED_RESEARCH_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS = 8
 # The former 32-row attended group kept almost all of the WSL GPU allocation
 # resident in the historical smoke.  Use the only group size with a documented
 # bounded 480-bar attention measurement instead.  This is a diagnostic-only,
@@ -11970,7 +11976,10 @@ def run_train(
             session_exit_action_forward_chunk_rows=(
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
-            session_checkpoint_every_optimizer_step=True,
+            session_checkpoint_every_optimizer_step=False,
+            session_checkpoint_interval_optimizer_steps=(
+                _ATTENDED_RESEARCH_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
+            ),
             session_log_label="ATTENDED_RESEARCH",
         )
         if bool(attended_epoch_complete) and train_time_window is not None:

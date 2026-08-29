@@ -231,6 +231,9 @@ def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     assert "_ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS = 8" in source
     assert "_ATTENDED_RESEARCH_CUDA_MEMORY_FRACTION = 0.50" in source
     assert "_ATTENDED_RESEARCH_BATCH_SIZE = 8" in source
+    assert "_ATTENDED_RESEARCH_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS = 8" in source
+    assert "session_checkpoint_every_optimizer_step=False" in source
+    assert "session_checkpoint_interval_optimizer_steps=(" in source
     assert "torch.cuda.set_per_process_memory_fraction(" in source
     assert "cuda_index = torch.cuda.current_device()" in source
     assert 'map_location="cpu", weights_only=True' in source
