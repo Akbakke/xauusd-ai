@@ -47,6 +47,7 @@ def _state(
         "phase": "train",
         "epoch_index": 0,
         "next_batch_offset": 17,
+        "global_optimizer_steps": 17,
         "epoch_order": torch.tensor([4, 2, 0, 5, 1, 3], dtype=torch.int64),
         "model_state": model.state_dict(),
         "target_model_state": target_model.state_dict(),
@@ -87,6 +88,7 @@ def test_candidate_session_round_trips_exact_torch_state(tmp_path: Path) -> None
     assert restored["phase"] == "train"
     assert restored["epoch_index"] == 0
     assert restored["next_batch_offset"] == 17
+    assert restored["global_optimizer_steps"] == 17
     assert torch.equal(
         restored["epoch_order"],
         torch.tensor([4, 2, 0, 5, 1, 3], dtype=torch.int64),
@@ -182,6 +184,39 @@ def test_candidate_session_refuses_state_without_active_pointer(tmp_path: Path) 
     (session.directory / trainer._CANDIDATE_TRAINING_ACTIVE_FILENAME).unlink()
     with pytest.raises(RuntimeError, match="ACTIVE_POINTER_MISSING_WITH_STATE"):
         session.load_checkpoint()
+
+
+def test_candidate_session_rejects_missing_optimizer_or_early_stop_state(
+    tmp_path: Path,
+) -> None:
+    out_bundle = tmp_path / "BUNDLE_20260828T140000Z"
+    session = trainer._CandidateTrainingSession(
+        out_bundle_dir=out_bundle,
+        contract=_contract(),
+    )
+    model = torch.nn.Linear(3, 2)
+    target_model = copy.deepcopy(model)
+    target_model.requires_grad_(False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=30, eta_min=0.0
+    )
+    ema = trainer._WeightEma(model, 0.5)
+    state = _state(session, model, target_model, optimizer, ema, scheduler)
+
+    missing_optimizer = dict(state)
+    missing_optimizer.pop("optimizer_state")
+    with pytest.raises(RuntimeError, match="STATE_SCHEMA_INVALID"):
+        session.save_checkpoint(missing_optimizer)
+
+    missing_early_stop = dict(state)
+    progress = dict(missing_early_stop["training_progress"])
+    selection = dict(progress["checkpoint_selection"])
+    selection.pop("epochs_since_improve")
+    progress["checkpoint_selection"] = selection
+    missing_early_stop["training_progress"] = progress
+    with pytest.raises(RuntimeError, match="SELECTION_STATE_INVALID"):
+        session.save_checkpoint(missing_early_stop)
 
 
 def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(

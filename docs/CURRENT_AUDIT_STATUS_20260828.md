@@ -10,6 +10,31 @@ The project is offline research only. There is no admitted production model,
 predictive edge, realised PnL, win rate, MAE/MFE result, calibration,
 untouched-TEST result, demo account, paper route or live route.
 
+### Strict pre-full-train override — 2026-08-29
+
+**NO-GO for external full training. Do not rent or start a remote machine.**
+The new strict preflight read only the explicit TRAIN and VAL sequence
+parquets: 248,028 and 70,880 rows respectively, with no duplicate timestamps,
+no timestamp at or after the TEST boundary, and no TEST fit rows in the
+TRAIN-only normalization lineage. `TEST ACCESSED: NO` for that preflight.
+
+It also found a critical boundary defect in the current V4 MTF cache: its
+metadata declares M5/M15/H1/H4/D1 content through 2026-08-02/04, after the
+sealed 2026-07-01 TEST boundary. The standard cache loader verifies every
+array byte before serving a VAL window, so it would read TEST-era cache bytes.
+Under the strict preflight rule that is not allowed. The earlier 70,880-row
+technical VAL prediction artifact therefore remains historical technical
+evidence, but is not evidence for this strict preflight.
+
+Do not work around this by slicing, hashing or inspecting the current cache in
+the VAL run. First provide a separately immutable, byte-bound five-timeframe
+cache whose declared final timestamp is strictly before 2026-07-01, then rerun
+the static preflight, full all-head VAL, bundle reload and VAL plumbing. The
+current report is
+`artifacts/pre_fulltrain_preflight_20260829T142524Z/preflight_manifest.json`.
+The candidate checkpoint fixes below are green, but they cannot override the
+data-boundary NO-GO.
+
 The narrow research-candidate admission is now technically green, but it is
 not an edge or trading admission. Do not start an unpredeclared CUDA job, TEST
 evaluation, OANDA activity, collector, Telegram notifier or dashboard. The

@@ -1115,6 +1115,7 @@ _CANDIDATE_TRAINING_STATE_KEYS = frozenset(
         "phase",
         "epoch_index",
         "next_batch_offset",
+        "global_optimizer_steps",
         "epoch_order",
         "model_state",
         "target_model_state",
@@ -1854,6 +1855,7 @@ class _CandidateTrainingSession:
             "phase",
             "epoch_index",
             "next_batch_offset",
+            "global_optimizer_steps",
             "complete",
         }
         if (
@@ -1868,6 +1870,8 @@ class _CandidateTrainingSession:
             or int(active["epoch_index"]) < 0
             or not isinstance(active.get("next_batch_offset"), int)
             or int(active["next_batch_offset"]) < 0
+            or not isinstance(active.get("global_optimizer_steps"), int)
+            or int(active["global_optimizer_steps"]) < 0
             or active.get("phase") not in _CANDIDATE_TRAINING_PHASES
             or not isinstance(active.get("state_sha256"), str)
             or not re.fullmatch(r"[0-9a-f]{64}", str(active.get("state_sha256")))
@@ -1894,6 +1898,8 @@ class _CandidateTrainingSession:
             or int(state.get("epoch_index", -1)) != int(active["epoch_index"])
             or int(state.get("next_batch_offset", -1))
             != int(active["next_batch_offset"])
+            or int(state.get("global_optimizer_steps", -1))
+            != int(active["global_optimizer_steps"])
             or bool(state.get("complete", False)) != bool(active["complete"])
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_STATE_POINTER_MISMATCH]")
@@ -1928,6 +1934,8 @@ class _CandidateTrainingSession:
             or int(value["epoch_index"]) < 0
             or not isinstance(value.get("next_batch_offset"), int)
             or int(value["next_batch_offset"]) < 0
+            or not isinstance(value.get("global_optimizer_steps"), int)
+            or int(value["global_optimizer_steps"]) < 0
             or not isinstance(value.get("complete"), bool)
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ARGUMENT_INVALID]")
@@ -1975,6 +1983,7 @@ class _CandidateTrainingSession:
             "phase": str(value["phase"]),
             "epoch_index": int(value["epoch_index"]),
             "next_batch_offset": int(value["next_batch_offset"]),
+            "global_optimizer_steps": int(value["global_optimizer_steps"]),
             "complete": bool(value["complete"]),
         }
         _candidate_training_session_atomic_write_json(self._active_path, active)
@@ -9190,6 +9199,7 @@ def _restore_candidate_training_checkpoint(
         or state.get("phase") not in _CANDIDATE_TRAINING_PHASES
         or int(state.get("epoch_index", -1)) < 0
         or int(state.get("next_batch_offset", -1)) < 0
+        or int(state.get("global_optimizer_steps", -1)) < 0
         or not isinstance(state.get("complete"), bool)
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_SCHEMA_INVALID]")
@@ -9248,6 +9258,7 @@ def _restore_candidate_training_checkpoint(
         "phase": str(state["phase"]),
         "epoch_index": int(state["epoch_index"]),
         "next_batch_offset": int(state["next_batch_offset"]),
+        "global_optimizer_steps": int(state["global_optimizer_steps"]),
         "epoch_order": order.detach().cpu().contiguous(),
         "training_progress": dict(progress),
         "complete": bool(state["complete"]),
@@ -10103,6 +10114,7 @@ def _run_resumable_candidate_training(
         phase = "train"
         epoch_index = 0
         next_batch_offset = 0
+        global_optimizer_steps = 0
         checkpoint_index = 1
         complete = False
     else:
@@ -10125,8 +10137,17 @@ def _run_resumable_candidate_training(
         phase = str(restored["phase"])
         epoch_index = int(restored["epoch_index"])
         next_batch_offset = int(restored["next_batch_offset"])
+        global_optimizer_steps = int(restored["global_optimizer_steps"])
         checkpoint_index = int(restored["checkpoint_index"])
         complete = bool(restored["complete"])
+        expected_global_optimizer_steps = (
+            int(epoch_index) * int(expected_train_batches)
+            + int(next_batch_offset)
+            if phase == "train"
+            else (int(epoch_index) + 1) * int(expected_train_batches)
+        )
+        if global_optimizer_steps != expected_global_optimizer_steps:
+            raise RuntimeError("[CANDIDATE_TRAINING_GLOBAL_STEP_MISMATCH]")
         if device.type == "cuda":
             torch.cuda.empty_cache()
 
@@ -10138,7 +10159,19 @@ def _run_resumable_candidate_training(
         complete_value: bool,
         advance_checkpoint: bool = True,
     ) -> None:
-        nonlocal checkpoint_index
+        nonlocal checkpoint_index, global_optimizer_steps
+        # Candidate accumulation is frozen at one.  At each durable boundary
+        # the completed optimizer count follows from the persisted epoch order
+        # and offset; retaining it makes resume evidence independently auditable.
+        if phase_value == "train":
+            global_optimizer_steps = (
+                int(epoch_value) * int(expected_train_batches)
+                + int(batch_offset_value)
+            )
+        else:
+            global_optimizer_steps = (
+                (int(epoch_value) + 1) * int(expected_train_batches)
+            )
         if advance_checkpoint:
             checkpoint_index += 1
         session.save_checkpoint(
@@ -10149,6 +10182,7 @@ def _run_resumable_candidate_training(
                 "phase": str(phase_value),
                 "epoch_index": int(epoch_value),
                 "next_batch_offset": int(batch_offset_value),
+                "global_optimizer_steps": int(global_optimizer_steps),
                 "epoch_order": epoch_order.detach().cpu().contiguous(),
                 "model_state": model.state_dict(),
                 "target_model_state": target_model.state_dict(),
@@ -10166,12 +10200,13 @@ def _run_resumable_candidate_training(
         )
         log.info(
             "[CANDIDATE_TRAINING_CHECKPOINT] directory=%s checkpoint_index=%d "
-            "phase=%s epoch_index=%d next_batch_offset=%d complete=%d",
+            "phase=%s epoch_index=%d next_batch_offset=%d global_optimizer_steps=%d complete=%d",
             session.directory,
             int(checkpoint_index),
             phase_value,
             int(epoch_value),
             int(batch_offset_value),
+            int(global_optimizer_steps),
             int(bool(complete_value)),
         )
 
