@@ -124,8 +124,13 @@ validated five-clock V4 cache, before compute sampling or optimization.
   eight-specialist checks remain green; this is a provenance block, not a
   feature, target or gradient-path failure. Do not relabel or patch the old
   bundle: a fresh, fully exported bundle from the current source contract is
-  required before candidate training can be considered. A regression test now
-  proves that this legacy-bundle condition fails closed.
+  required before candidate training can be considered. The historical
+  60-step smoke's separate strict-quality `FAIL` (some families were never
+  top-ranked) is deliberately not a candidate-start condition: the actual
+  admission contract requires eight finite, positive, non-constant routes,
+  not a tiny smoke to prove market edge. A regression test now proves both
+  this technical/quality separation and that the legacy provenance condition
+  fails closed.
 
 Recent safety/source commits: `34659e36`, `c3b67b6f`, `6ee59296`, `f2d4862b`.
 The current V46 report pointers in `PROJECT_STATE_xau_direction_launch.json`
