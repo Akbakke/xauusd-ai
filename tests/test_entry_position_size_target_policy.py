@@ -191,6 +191,9 @@ def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
     assert result["expected_tape_provenance_sha256"] is None
     assert result["expected_m1_source_sha256"] == "2" * 64
     assert result["expected_source_parquet_sha256"] == "1" * 64
+    assert result["expected_train_end"] == pd.Timestamp(
+        "2025-05-31T23:55:00Z"
+    )
 
 
 def test_position_size_training_loss_has_zero_gradient_outside_policy_mask() -> None:

@@ -872,6 +872,7 @@ def _entry_position_size_policy_from_split_manifest(
         )
     lifecycle = extra.get("unified_exit_lifecycle")
     m1_sha256 = str(lifecycle.get("m1_source_sha256") or "") if isinstance(lifecycle, Mapping) else ""
+    expected_train_end: Any = train_window.get("end")
     # The strict pre-TEST build deliberately binds the causal M1 target policy
     # to the separately sealed M1 quote authority.  `xau_tape_provenance` is
     # the direct M5 quote authority for the Entry surface, so its JSON hash is
@@ -883,6 +884,16 @@ def _entry_position_size_policy_from_split_manifest(
         if extra.get("pretest_only") is True
         else canonical_json_sha256(provenance)
     )
+    if extra.get("pretest_only") is True:
+        # The M5 policy closes at the bar immediately preceding the nominal
+        # half-open split boundary.  Keeping the nominal boundary here would
+        # incorrectly demand a non-existent Saturday bar at 2025-06-01 00:00.
+        boundary = pd.Timestamp(expected_train_end)
+        if boundary.tzinfo is None:
+            boundary = boundary.tz_localize("UTC")
+        else:
+            boundary = boundary.tz_convert("UTC")
+        expected_train_end = boundary - pd.Timedelta(minutes=5)
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=source_sha256,
@@ -890,7 +901,7 @@ def _entry_position_size_policy_from_split_manifest(
         expected_m1_source_sha256=m1_sha256,
         expected_direction_policy_sha256=direction_policy["policy_sha256"],
         expected_train_start=train_window.get("start"),
-        expected_train_end=train_window.get("end"),
+        expected_train_end=expected_train_end,
     )
 
 
