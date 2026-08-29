@@ -29,6 +29,7 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     require_pretest_technical_recipe_metadata,
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
+    PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH,
     recipe_source_bindings,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
@@ -112,6 +113,11 @@ def materialize_pretest_technical_recipe(
 ) -> dict[str, Any]:
     repo = repo.resolve(strict=True)
     wrapper_path = wrapper_path.resolve(strict=True)
+    expected_wrapper_path = (
+        repo / PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH
+    ).resolve(strict=True)
+    if wrapper_path != expected_wrapper_path:
+        raise RuntimeError("PRETEST_TECHNICAL_RECIPE_WRAPPER_PATH_INVALID")
     dataset_dir = dataset_dir.resolve(strict=True)
     if not dataset_dir.is_dir() or dataset_dir.is_symlink():
         raise RuntimeError("PRETEST_TECHNICAL_RECIPE_DATASET_DIR_INVALID")

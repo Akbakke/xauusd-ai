@@ -27,6 +27,9 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _require_pretest_recipe_cli_match,
 )
+from gx1.scripts.materialize_entry_pretest_technical_recipe_v1 import (
+    materialize_pretest_technical_recipe,
+)
 
 
 RUN_ID = "PRETEST_TECHNICAL_RECIPE_RUN_V1"
@@ -182,6 +185,52 @@ def test_pretest_recipe_rejects_artifact_not_bound_to_guard(tmp_path: Path) -> N
     recipe["artifact_bindings_sha256"] = canonical_json_sha256(bindings)
     with pytest.raises(PretestTechnicalRecipeError, match="differs from unopened-TEST guard"):
         require_pretest_technical_recipe_metadata(recipe)
+
+
+def test_pretest_recipe_materializer_rejects_noncanonical_wrapper_before_inputs(
+    tmp_path: Path,
+) -> None:
+    """A bad wrapper must fail before the materializer can touch data inputs."""
+
+    repo = (tmp_path / "repo").resolve()
+    wrong_wrapper = (repo / "scripts" / "wrong-wrapper.sh").resolve()
+    expected_wrapper = (
+        repo / "gx1" / "scripts" / "run_entry_model_native_pretest_technical_train_v1.py"
+    ).resolve()
+    wrong_wrapper.parent.mkdir(parents=True)
+    wrong_wrapper.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    expected_wrapper.parent.mkdir(parents=True)
+    expected_wrapper.write_text("# canonical wrapper fixture\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="WRAPPER_PATH_INVALID"):
+        materialize_pretest_technical_recipe(
+            repo=repo,
+            wrapper_path=wrong_wrapper,
+            profile="smoke",
+            run_id=RUN_ID,
+            dataset_dir=tmp_path / "missing-dataset",
+            out_bundle_dir=tmp_path / "bundle",
+            test_guard_json=tmp_path / "guard.json",
+            test_guard_sha256="a" * 64,
+            train_manifest=tmp_path / "train.manifest.json",
+            train_parquet=tmp_path / "train.parquet",
+            val_manifest=tmp_path / "val.manifest.json",
+            val_parquet=tmp_path / "val.parquet",
+            dataset_build_proof=tmp_path / "proof.json",
+            full_input_liveness=tmp_path / "liveness.json",
+            feature_audit=tmp_path / "feature.json",
+            target_audit=tmp_path / "target.json",
+            specialist_audit=tmp_path / "specialist.json",
+            execution_causality_audit=tmp_path / "causality.json",
+            train_sequence_source_reconstruction=tmp_path / "train-sequence.json",
+            val_sequence_source_reconstruction=tmp_path / "val-sequence.json",
+            unified_exit_lifecycle_manifest=tmp_path / "lifecycle.json",
+            m5_prebuilt=tmp_path / "m5.parquet",
+            multi_tf_cache_manifest=tmp_path / "cache.json",
+            trainer_cli={},
+            out_json=tmp_path / "recipe.json",
+            created_utc="2026-08-30T01:02:03+00:00",
+        )
 
 
 def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path) -> None:
