@@ -22,6 +22,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _entry_position_size_target_policy_from_manifest,
     _masked_position_size_mse,
+    _xau_direction_repair_manifest_failures,
 )
 
 
@@ -237,6 +238,81 @@ def test_pretest_trainer_uses_last_closed_m5_bar_for_causal_size_policy(
     assert _entry_position_size_target_policy_from_manifest(split_manifest) == captured
     assert captured["expected_train_start"] == "2021-06-01T00:00:00+00:00"
     assert captured["expected_train_end"] == pd.Timestamp("2025-05-31T23:55:00Z")
+
+
+def test_pretest_trainer_revalidates_m5_quote_authority_not_legacy_tape_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    parquet = tmp_path / "train.parquet"
+    parquet.touch()
+    quote = tmp_path / "m5_quotes.parquet"
+    quote.touch()
+    pair = tmp_path / "pair.json"
+    quote_manifest = tmp_path / "m5_manifest.json"
+    authority = {
+        "schema_version": "gx1_pretest_m5_quote_authority_v1",
+        "pair_manifest_path": str(pair),
+        "pair_manifest_sha256": "1" * 64,
+        "pair_generation_id": "pair-generation",
+        "m5_source_path": str(quote),
+        "m5_source_sha256": "2" * 64,
+        "m5_source_rows": 10,
+        "m5_source_manifest_path": str(quote_manifest),
+        "m5_source_manifest_sha256": "3" * 64,
+        "test_accessed": False,
+        "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+        "native_m5_market_closure_contract": "oanda_complete_true_source_absence_no_synthesis_v1",
+        "native_m5_subset_proof": {"method": "exact"},
+    }
+    provenance = {
+        "schema_version": "gx1_pretest_m5_quote_tape_authority_v1",
+        "test_accessed": False,
+        "test_boundary_utc": "2026-07-01 00:00:00+00:00",
+        "authority": authority,
+    }
+    parquet.with_suffix(".manifest.json").write_text(
+        json.dumps(
+            {
+                "extra": {
+                    "pretest_only": True,
+                    "tape_root": str(quote),
+                    "xau_tape_provenance": provenance,
+                },
+                "inputs": {"tape_root": None},
+                "splits": {"train": {"start": "2021-06-01", "end": "2025-06-01"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(trainer, "_signal_contract_from_manifest_obj", lambda _value: {})
+    monkeypatch.setattr(
+        trainer,
+        "_model_native_state_contract_from_manifest_obj",
+        lambda _value: {"entry_run_id": "PRETEST_V3_20260829T173000Z"},
+    )
+    monkeypatch.setattr(trainer, "_model_native_state_contract_failures", lambda _value, **_kwargs: [])
+    captured: dict[str, object] = {}
+
+    def _require_pretest(**kwargs: object) -> tuple[Path, dict[str, object]]:
+        captured.update(kwargs)
+        return quote.resolve(), authority
+
+    monkeypatch.setattr(trainer, "require_pretest_m5_quote_authority", _require_pretest)
+    assert _xau_direction_repair_manifest_failures({"train": parquet}) == []
+    assert captured["pair_lineage_path"] == pair
+    assert captured["quote_source_manifest_path"] == quote_manifest
+    assert captured["expected_pair_generation_id"] == "pair-generation"
+
+    payload = json.loads(parquet.with_suffix(".manifest.json").read_text(encoding="utf-8"))
+    payload["extra"]["tape_root"] = str(tmp_path / "wrong-m5-quotes.parquet")
+    parquet.with_suffix(".manifest.json").write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
+    failures = _xau_direction_repair_manifest_failures({"train": parquet})
+    assert any("PRETEST_M5_TAPE_PROVENANCE_BINDING_MISMATCH" in item for item in failures)
 
 
 def test_position_size_training_loss_has_zero_gradient_outside_policy_mask() -> None:

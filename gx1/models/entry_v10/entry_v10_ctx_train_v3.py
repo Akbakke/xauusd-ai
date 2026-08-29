@@ -73,6 +73,9 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
     require_causal_m1_position_size_target_manifest_binding,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    require_pretest_m5_quote_authority,
+)
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
 )
@@ -3523,13 +3526,47 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
         expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
         cache_key = (tape_root, expected_run_id)
         try:
-            if cache_key not in tape_provenance_cache:
-                tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
-                    tape_root,
-                    expected_run_id=expected_run_id,
-                    require_current=True,
+            pretest_provenance = extra.get("xau_tape_provenance")
+            if extra.get("pretest_only") is True:
+                # Pre-TEST uses an immutable, quote-complete M5 authority,
+                # deliberately not the legacy canonical-tape directory
+                # layout.  Resolve it through the same native pair proof as
+                # the dataset builder; never downgrade it to a path check.
+                if (
+                    not isinstance(pretest_provenance, Mapping)
+                    or pretest_provenance.get("schema_version")
+                    != "gx1_pretest_m5_quote_tape_authority_v1"
+                    or pretest_provenance.get("test_accessed") is not False
+                    or not isinstance(pretest_provenance.get("authority"), Mapping)
+                ):
+                    raise RuntimeError("PRETEST_M5_TAPE_PROVENANCE_INVALID")
+                declared_authority = pretest_provenance["authority"]
+                quote_path, observed_authority = require_pretest_m5_quote_authority(
+                    pair_lineage_path=Path(
+                        str(declared_authority.get("pair_manifest_path") or "")
+                    ),
+                    quote_source_manifest_path=Path(
+                        str(declared_authority.get("m5_source_manifest_path") or "")
+                    ),
+                    expected_pair_generation_id=str(
+                        declared_authority.get("pair_generation_id") or ""
+                    ),
                 )
-            tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
+                if (
+                    not tape_root
+                    or Path(tape_root).expanduser().resolve() != quote_path
+                    or dict(declared_authority) != observed_authority
+                ):
+                    raise RuntimeError("PRETEST_M5_TAPE_PROVENANCE_BINDING_MISMATCH")
+                tape_provenance_by_split[split] = dict(pretest_provenance)
+            else:
+                if cache_key not in tape_provenance_cache:
+                    tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
+                        tape_root,
+                        expected_run_id=expected_run_id,
+                        require_current=True,
+                    )
+                tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
             if extra.get("xau_tape_provenance") != tape_provenance_by_split[split]:
                 failures.append(
                     f"{split} dataset manifest XAU_USD tape binding differs from "
