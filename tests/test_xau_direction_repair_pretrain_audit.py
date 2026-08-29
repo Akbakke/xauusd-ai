@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import gx1.scripts.audit_xau_direction_repair_pretrain_v1 as pretrain_audit
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -23,6 +25,9 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 from gx1.contracts.entry_exit_feature_surface_v1 import (
     ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    pretest_m5_quote_tape_provenance_v1,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
     BASE_REPAIR_METHOD,
@@ -451,6 +456,79 @@ def _read_immutable_audit(tmp_path: Path) -> dict:
     assert len(files) == 1
     assert "_latest" not in files[0].name
     return json.loads(files[0].read_text(encoding="utf-8"))
+
+
+def test_pretrain_audit_uses_last_closed_m5_for_pretest_sizing_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture(_extra: object, **kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(
+        pretrain_audit,
+        "require_causal_m1_position_size_target_manifest_binding",
+        _capture,
+    )
+    pretrain_audit._position_size_target_policy(
+        {
+            "splits": {
+                "train": {
+                    "start": "2021-06-01T00:00:00Z",
+                    "end": "2025-06-01T00:00:00Z",
+                }
+            },
+            "extra": {
+                "pretest_only": True,
+                "source_frame": {"parquet_sha256": "a" * 64},
+                "xau_tape_provenance": {},
+                "diagnostic_outcome_policy_sha256": "b" * 64,
+                "entry_causal_m1_position_size_target_policy": {},
+                "unified_exit_lifecycle": {"m1_source_sha256": "c" * 64},
+            },
+        }
+    )
+
+    assert captured["expected_train_start"] == "2021-06-01T00:00:00Z"
+    assert captured["expected_train_end"] == "2025-05-31T23:55:00+00:00"
+
+
+def test_pretrain_audit_revalidates_direct_pretest_m5_quote_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pair = tmp_path / "pair.json"
+    quote_manifest = tmp_path / "m5_quotes.manifest.json"
+    quote = tmp_path / "m5_quotes.parquet"
+    authority = {
+        "schema_version": "gx1_pretest_m5_quote_authority_v1",
+        "pair_generation_id": "pair-id",
+        "pair_manifest_path": str(pair),
+        "m5_source_manifest_path": str(quote_manifest),
+        "m5_source_path": str(quote),
+        "test_accessed": False,
+        "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+    }
+    captured: dict[str, object] = {}
+
+    def _require_pretest(**kwargs: object) -> tuple[Path, dict[str, object]]:
+        captured.update(kwargs)
+        return quote, authority
+
+    monkeypatch.setattr(
+        pretrain_audit,
+        "require_pretest_m5_quote_authority",
+        _require_pretest,
+    )
+    declared = pretest_m5_quote_tape_provenance_v1(authority)
+
+    assert pretrain_audit._validated_pretest_m5_tape_provenance(declared) == declared
+    assert captured == {
+        "pair_lineage_path": pair,
+        "quote_source_manifest_path": quote_manifest,
+        "expected_pair_generation_id": "pair-id",
+    }
 
 
 def test_xau_direction_repair_pretrain_audit_passes_correct_polarity(tmp_path: Path) -> None:

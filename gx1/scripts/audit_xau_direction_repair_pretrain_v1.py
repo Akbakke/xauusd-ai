@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +45,10 @@ from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
 )
 from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    pretest_m5_quote_tape_provenance_v1,
+    require_pretest_m5_quote_authority,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     ENTRY_DIRECTION_TARGET_MODE_ID,
@@ -201,6 +205,7 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
         "direction_logit_mode": str(extra.get("direction_logit_mode") or ""),
         "model_native_signal_contract": extra.get("model_native_signal_contract"),
         "xau_tape_provenance": extra.get("xau_tape_provenance"),
+        "pretest_only": extra.get("pretest_only") is True,
         "entry_fitted_q": extra.get("entry_fitted_q"),
         "entry_position_size_target_policy": extra.get(
             "entry_position_size_target_policy"
@@ -214,6 +219,34 @@ def _manifest_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
             dict(state_contract) if isinstance(state_contract, dict) else {}
         ),
     }
+
+
+def _validated_pretest_m5_tape_provenance(
+    declared: Any,
+) -> dict[str, Any]:
+    """Revalidate the direct-quote authority used by a PRETEST dataset."""
+
+    if not isinstance(declared, dict):
+        raise RuntimeError("PRETEST_M5_TAPE_PROVENANCE_MISSING")
+    authority = declared.get("authority")
+    if not isinstance(authority, dict):
+        raise RuntimeError("PRETEST_M5_TAPE_AUTHORITY_MISSING")
+    pair_path = str(authority.get("pair_manifest_path") or "").strip()
+    quote_manifest_path = str(
+        authority.get("m5_source_manifest_path") or ""
+    ).strip()
+    pair_generation_id = str(authority.get("pair_generation_id") or "").strip()
+    if not pair_path or not quote_manifest_path or not pair_generation_id:
+        raise RuntimeError("PRETEST_M5_TAPE_AUTHORITY_BINDING_MISSING")
+    _quote_path, observed_authority = require_pretest_m5_quote_authority(
+        pair_lineage_path=Path(pair_path),
+        quote_source_manifest_path=Path(quote_manifest_path),
+        expected_pair_generation_id=pair_generation_id,
+    )
+    observed = pretest_m5_quote_tape_provenance_v1(observed_authority)
+    if declared != observed:
+        raise RuntimeError("PRETEST_M5_TAPE_PROVENANCE_DECLARATION_MISMATCH")
+    return observed
 
 
 def _position_size_target_policy(
@@ -268,6 +301,21 @@ def _position_size_target_policy(
     )
     if len(expected_m1_source) != 64:
         raise RuntimeError("manifest unified_exit_lifecycle M1 source hash missing")
+    expected_train_end = train_window.get("end")
+    if extra.get("pretest_only") is True and expected_train_end is not None:
+        # The train window is half-open.  A PRETEST M5 build therefore fits
+        # the causal M1 sizing policy through the last closed M5 bar, five
+        # minutes before its nominal boundary.  The foundation-target audit
+        # already applies this rule; keep the pretrain gate identical so it
+        # does not reject a correctly bound PRETEST dataset at midnight.
+        boundary = datetime.fromisoformat(
+            str(expected_train_end).replace("Z", "+00:00")
+        )
+        if boundary.tzinfo is None:
+            boundary = boundary.replace(tzinfo=timezone.utc)
+        else:
+            boundary = boundary.astimezone(timezone.utc)
+        expected_train_end = (boundary - timedelta(minutes=5)).isoformat()
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=expected_source,
@@ -275,7 +323,7 @@ def _position_size_target_policy(
         expected_m1_source_sha256=expected_m1_source,
         expected_direction_policy_sha256=expected_direction_policy,
         expected_train_start=train_window.get("start"),
-        expected_train_end=train_window.get("end"),
+        expected_train_end=expected_train_end,
     )
 
 
@@ -711,23 +759,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         state_contract = provenance.get("model_native_state_contract")
         state_contract = state_contract if isinstance(state_contract, dict) else {}
         failures.extend(_state_contract_failures(state_contract, split=split))
-        tape_root = str(provenance.get("tape_root") or "").strip()
-        expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
-        cache_key = (tape_root, expected_run_id)
         try:
-            if cache_key not in tape_provenance_cache:
-                tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
-                    tape_root,
-                    expected_run_id=expected_run_id,
-                    require_current=True,
+            if provenance.get("pretest_only") is True:
+                tape_provenance_by_split[split] = (
+                    _validated_pretest_m5_tape_provenance(
+                        provenance.get("xau_tape_provenance")
+                    )
                 )
-            tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
-            declared_tape_provenance = provenance.get("xau_tape_provenance")
-            if declared_tape_provenance != tape_provenance_by_split[split]:
-                failures.append(
-                    f"{split}: dataset manifest XAU_USD tape binding differs from "
-                    "the revalidated immutable tape lineage"
-                )
+            else:
+                tape_root = str(provenance.get("tape_root") or "").strip()
+                expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
+                cache_key = (tape_root, expected_run_id)
+                if cache_key not in tape_provenance_cache:
+                    tape_provenance_cache[cache_key] = validate_xau_tape_provenance_v1(
+                        tape_root,
+                        expected_run_id=expected_run_id,
+                        require_current=True,
+                    )
+                tape_provenance_by_split[split] = tape_provenance_cache[cache_key]
+                declared_tape_provenance = provenance.get("xau_tape_provenance")
+                if declared_tape_provenance != tape_provenance_by_split[split]:
+                    failures.append(
+                        f"{split}: dataset manifest XAU_USD tape binding differs from "
+                        "the revalidated immutable tape lineage"
+                    )
         except (RuntimeError, OSError, ValueError) as exc:
             failures.append(f"{split}: immutable XAU_USD tape provenance invalid: {exc}")
         splits_contract = provenance.get("splits")
