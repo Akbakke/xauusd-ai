@@ -68,10 +68,12 @@ def passing_unified_exit_input_influence(
         "numeric": numeric,
         "categorical": categorical,
         "structural": {
-            "exit_path_length": {
+            "exit_side_axis": {
                 "decision": "PASS",
                 "failures": [],
-                "counterfactual": "truncate_one_bar_and_zero_removed_suffix",
+                "counterfactual": (
+                    "same_market_token_and_path_compare_both_side_axes"
+                ),
                 "max_abs_exit_margin_delta": 0.1,
                 "changed_rows": SAMPLE_COUNT,
                 "total_rows": SAMPLE_COUNT,
