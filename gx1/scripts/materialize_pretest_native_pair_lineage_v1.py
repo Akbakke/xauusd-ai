@@ -20,7 +20,7 @@ from typing import Any
 from gx1.contracts.gx1_scope_v1 import require_offline_scope
 
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
-PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v2"
+PAIR_LINEAGE_SCHEMA_VERSION = "gx1_pretest_native_pair_lineage_v3"
 _SOURCE_SCHEMAS = frozenset(
     {"gx1_direct_m5_pretest_source_v1", "gx1_direct_native_pretest_source_v2"}
 )
@@ -147,7 +147,11 @@ def materialize_pretest_native_pair_lineage(
     pair_identity = _canonical_sha256({"m1": m1, "m5": m5})
     payload: dict[str, Any] = {
         "schema_version": PAIR_LINEAGE_SCHEMA_VERSION,
-        "pair_generation_id": f"pretest_native_{pair_identity}",
+        # The active M5/M1 enriched producers require the canonical pair
+        # generation identifier to be exactly a 64-character lowercase digest.
+        # The schema/provenance already distinguishes this pre-TEST pair, so a
+        # textual prefix here would make an otherwise exact lineage unusable.
+        "pair_generation_id": pair_identity,
         "pair_symbol": "XAUUSD",
         "test_boundary_utc": TEST_BOUNDARY_UTC,
         "test_accessed": False,

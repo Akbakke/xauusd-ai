@@ -55,6 +55,8 @@ def test_binds_exact_direct_pretest_m1_and_m5(tmp_path: Path) -> None:
     )
 
     assert payload["test_accessed"] is False
+    assert len(payload["pair_generation_id"]) == 64
+    assert set(payload["pair_generation_id"]) <= set("0123456789abcdef")
     assert payload["m1"]["source_manifest_path"] == str(m1)
     assert payload["m5"]["source_manifest_path"] == str(m5)
     assert payload["lineage"]["native_sources"]["m1"]["root"] == str(
