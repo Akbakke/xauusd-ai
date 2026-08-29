@@ -1897,6 +1897,23 @@ class UnifiedExitLifecycleCorpus:
             },
             context="UNIFIED_EXIT_LIFECYCLE_ROOT",
         )
+        # The pre-TEST authority deliberately materializes no TEST lifecycle
+        # files.  A trainer using that authority may only consume the two
+        # physical TRAIN/VAL bindings.  Legacy/post-seal authority retains the
+        # complete three-split inventory.  This is a root-manifest rule, not
+        # merely an iteration choice: admitting a missing TEST split under the
+        # legacy authority would weaken its sealed inventory contract.
+        raw_authority = root_manifest["m1_authority"]
+        pretest_authority = (
+            isinstance(raw_authority, Mapping)
+            and raw_authority.get("authority_mode")
+            == "pretest_quote_complete_native_v1"
+        )
+        expected_root_splits = (
+            {"train", "val"}
+            if pretest_authority
+            else {"train", "val", "test"}
+        )
         if (
             root_manifest["schema_version"]
             != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
@@ -1911,14 +1928,13 @@ class UnifiedExitLifecycleCorpus:
             or root_manifest["side_order"] != list(UNIFIED_EXIT_SIDE_ORDER)
             or root_manifest["action_order"] != list(UNIFIED_EXIT_ACTION_ORDER)
             or not isinstance(root_manifest["splits"], Mapping)
-            or set(root_manifest["splits"]) != {"train", "val", "test"}
+            or set(root_manifest["splits"]) != expected_root_splits
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ROOT_CONTRACT_INVALID")
         require_entry_exit_shared_feature_base_contract(
             root_manifest["shared_feature_base_contract"],
             context="UNIFIED_EXIT_LIFECYCLE_ROOT",
         )
-        raw_authority = root_manifest["m1_authority"]
         if (
             not isinstance(raw_authority, dict)
             or raw_authority.get("schema_version")

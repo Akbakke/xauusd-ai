@@ -1557,6 +1557,70 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     assert set(prefreeze_corpus.splits) == {"train", "val"}
 
 
+def test_pretest_lifecycle_root_allows_only_train_val_inventory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pre-TEST roots have no TEST lifecycle files to inspect or invent."""
+
+    # Reuse the fully validated legacy fixture, then change only the root
+    # inventory and authority mode.  The constructor must fail at the exact
+    # next authority check rather than rejecting the legal two-split shape.
+    entries = pd.DataFrame(
+        {"time": pd.to_datetime(["2026-01-01T08:00:00Z"], utc=True)}
+    )
+    generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
+        tmp_path,
+        successor_end="2026-01-02T06:00:00Z",
+        trend_prices=True,
+    )
+    m1_source, m1_authority = require_unified_exit_m1_pair_authority(
+        pair_manifest_path=generation_manifest,
+        pair_generation_root=generation_root,
+    )
+    lifecycle_dir = tmp_path / "pretest_exit_lifecycle"
+    lifecycle_dir.mkdir()
+    root_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    root_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+                "decision": "PASS",
+                "entry_run_id": "EXIT_PRETEST_ROOT_V1",
+                "m1_source_path": str(m1_source),
+                "m1_source_sha256": sha256_file(m1_source),
+                "m1_feature_base_path": str(m1_source),
+                "m1_feature_base_sha256": sha256_file(m1_source),
+                "m1_feature_base_manifest_path": str(root_manifest),
+                "m1_feature_base_manifest_sha256": "0" * 64,
+                "m1_authority": {
+                    **m1_authority,
+                    "authority_mode": "pretest_quote_complete_native_v1",
+                },
+                "m1_authority_sha256": "0" * 64,
+                "path_state_count": 512,
+                "state_population_schema_version": UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
+                "state_population_per_episode": 512,
+                "m1_row_clock": "consecutive_authoritative_closed_m1_source_rows",
+                "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+                "side_order": ["long", "short"],
+                "action_order": ["HOLD", "EXIT_NOW"],
+                "splits": {"train": {}, "val": {}},
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_M1_AUTHORITY_EVIDENCE_INVALID"):
+        UnifiedExitLifecycleCorpus(
+            root_manifest_path=root_manifest,
+            entry_parquets={"train": tmp_path / "train.parquet", "val": tmp_path / "val.parquet"},
+            dataset_run_id="EXIT_PRETEST_ROOT_V1",
+        )
+
+
 def test_aux_target_builder_requires_bid_ask_high_low() -> None:
     frame = _spread_tape().drop(columns=["ask_low"])
 
