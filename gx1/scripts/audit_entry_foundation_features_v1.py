@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -943,6 +944,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     missing_by_split: dict[str, list[str]] = {}
     emitted_contracts: dict[str, dict[str, Any]] = {}
     audited_feature_count_by_split: dict[str, int] = {}
+    liveness_jobs: dict[str, dict[str, Any]] = {}
     if schema:
         for split in splits:
             split_schema = schema.get(split)
@@ -1027,27 +1029,49 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if audit_missing:
                 failures.append(f"{split}: audit features missing from emitted signal fields: {audit_missing[:30]} total={len(audit_missing)}")
                 continue
-            try:
-                split_stats, split_source_rows = _stream_split_liveness_rows(
-                    parquet_path,
-                    split=split,
-                    signal_fields=signal_fields,
-                    ctx_cont_names=ctx_cont_names,
-                    audit_features=audit_features,
-                    batch_size=PARQUET_BATCH_SIZE,
-                    liveness_epsilon=LIVENESS_EPSILON,
-                    near_constant_std=NEAR_CONSTANT_STD,
-                    min_source_active_rate=MIN_REQUIRED_SOURCE_ACTIVE_RATE,
-                    min_source_active_count=MIN_REQUIRED_SOURCE_ACTIVE_COUNT,
-                )
-            except _SplitMatrixShapeError as exc:
-                failures.append(exc.message)
-                continue
-            except Exception as exc:
-                failures.append(f"{split}: snap/ctx_cont load failed: {exc}")
-                continue
-            source_field_liveness.extend(split_source_rows)
-            stats.extend(split_stats)
+            liveness_jobs[split] = {
+                "parquet_path": parquet_path,
+                "signal_fields": signal_fields,
+                "ctx_cont_names": ctx_cont_names,
+                "audit_features": audit_features,
+            }
+        if liveness_jobs:
+            # TRAIN and VAL use immutable, disjoint files.  Streaming them
+            # together uses the two CPU cores already granted to one capped
+            # audit while preserving both per-split calculations and
+            # deterministic report ordering.  No model, feature, or target
+            # byte is changed.
+            with ThreadPoolExecutor(max_workers=min(2, len(liveness_jobs))) as pool:
+                futures = {
+                    split: pool.submit(
+                        _stream_split_liveness_rows,
+                        job["parquet_path"],
+                        split=split,
+                        signal_fields=job["signal_fields"],
+                        ctx_cont_names=job["ctx_cont_names"],
+                        audit_features=job["audit_features"],
+                        batch_size=PARQUET_BATCH_SIZE,
+                        liveness_epsilon=LIVENESS_EPSILON,
+                        near_constant_std=NEAR_CONSTANT_STD,
+                        min_source_active_rate=MIN_REQUIRED_SOURCE_ACTIVE_RATE,
+                        min_source_active_count=MIN_REQUIRED_SOURCE_ACTIVE_COUNT,
+                    )
+                    for split, job in liveness_jobs.items()
+                }
+                for split in splits:
+                    future = futures.get(split)
+                    if future is None:
+                        continue
+                    try:
+                        split_stats, split_source_rows = future.result()
+                    except _SplitMatrixShapeError as exc:
+                        failures.append(exc.message)
+                        continue
+                    except Exception as exc:
+                        failures.append(f"{split}: snap/ctx_cont load failed: {exc}")
+                        continue
+                    source_field_liveness.extend(split_source_rows)
+                    stats.extend(split_stats)
     else:
         for split in splits:
             missing_by_split[split] = []
