@@ -29,9 +29,10 @@ def _event(tmp_path: Path) -> tuple[Path, str, dict[str, object], set[Path]]:
     val_manifest = dataset_dir / "entry_val.manifest.json"
     val_parquet = dataset_dir / "entry_val.parquet"
     proof = dataset_dir / "DATASET_BUILD_PROOF.json"
+    liveness = dataset_dir / "ENTRY_FULL_INPUT_LIVENESS_20260830T010000Z.json"
     # Deliberately create no TEST path.  The guard event must be sufficient
     # without even naming one.
-    for path in (train_manifest, train_parquet, val_manifest, val_parquet, proof):
+    for path in (train_manifest, train_parquet, val_manifest, val_parquet, proof, liveness):
         path.write_bytes(b"allowed-control-plane-fixture")
     event_path = authority / (
         f"{guard.PRETEST_TEST_GUARD_EVENT_PREFIX}_20260830T010203000000Z.json"
@@ -54,6 +55,7 @@ def _event(tmp_path: Path) -> tuple[Path, str, dict[str, object], set[Path]]:
         "val_manifest": {"path": str(val_manifest), "sha256": "c" * 64},
         "val_parquet": {"path": str(val_parquet), "sha256": "d" * 64},
         "dataset_build_proof": {"path": str(proof), "sha256": "e" * 64},
+        "full_input_liveness": {"path": str(liveness), "sha256": "f" * 64},
     }
     payload["content_binding_sha256"] = guard._canonical_json_sha256(payload)
     raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")

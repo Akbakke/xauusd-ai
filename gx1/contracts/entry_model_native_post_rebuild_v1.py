@@ -164,6 +164,7 @@ _PRETEST_GUARD_KEYS = frozenset(
         "val_manifest",
         "val_parquet",
         "dataset_build_proof",
+        "full_input_liveness",
         "content_binding_sha256",
     }
 )
@@ -186,6 +187,7 @@ _PRETEST_GUARD_LINEAGE_KEYS = frozenset(
         "val_manifest",
         "val_parquet",
         "dataset_build_proof",
+        "full_input_liveness",
         "access_proof",
     }
 )
@@ -629,6 +631,26 @@ def require_pretest_test_guard_lineage_metadata(
         "path": str(proof_path),
         "sha256": _sha256(proof.get("sha256"), label="pre-TEST dataset build proof sha256"),
     }
+    liveness = _mapping(
+        lineage.get("full_input_liveness"),
+        keys=_ARTIFACT_KEYS,
+        label="pre-TEST full-input liveness proof",
+    )
+    liveness_path = _absolute_immutable_path(
+        liveness.get("path"), label="pre-TEST full-input liveness proof path"
+    )
+    if (
+        liveness_path.parent != dataset_dir
+        or not liveness_path.name.startswith("ENTRY_FULL_INPUT_LIVENESS_")
+        or not liveness_path.name.endswith(".json")
+    ):
+        raise PrefreezeTestSealLineageError("pre-TEST full-input liveness proof path mismatch")
+    full_input_liveness = {
+        "path": str(liveness_path),
+        "sha256": _sha256(
+            liveness.get("sha256"), label="pre-TEST full-input liveness proof sha256"
+        ),
+    }
     access = _mapping(
         lineage.get("access_proof"),
         keys=_PRETEST_GUARD_ACCESS_PROOF_KEYS,
@@ -657,6 +679,7 @@ def require_pretest_test_guard_lineage_metadata(
         "val_manifest": val_manifest,
         "val_parquet": val_parquet,
         "dataset_build_proof": dataset_build_proof,
+        "full_input_liveness": full_input_liveness,
         "access_proof": dict(access),
     }
 
@@ -729,6 +752,7 @@ def require_pretest_test_guard_lineage(
         "val_manifest": guard["val_manifest"],
         "val_parquet": guard["val_parquet"],
         "dataset_build_proof": guard["dataset_build_proof"],
+        "full_input_liveness": guard["full_input_liveness"],
         "access_proof": {
             "guard_event_bytes_hash_validated": True,
             "test_dataset_bytes_read": False,
