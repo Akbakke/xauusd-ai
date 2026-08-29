@@ -223,7 +223,17 @@ def validate_cross_surface_overlap_report(
         or not candidate.is_file()
         or candidate.resolve() != candidate
     ):
-        raise RuntimeError("CROSS_SURFACE_REPORT_PATH_INVALID")
+        # This guard runs after several large immutable-input validations in
+        # the dataset builder.  Keep the rejection fail-closed, but include
+        # the concrete filesystem observation so a transient WSL/filesystem
+        # state can be distinguished from a bad artifact identity without
+        # repeating an expensive build blindly.
+        raise RuntimeError(
+            "CROSS_SURFACE_REPORT_PATH_INVALID: "
+            f"path={candidate!s} absolute={candidate.is_absolute()} "
+            f"symlink={candidate.is_symlink()} file={candidate.is_file()} "
+            f"resolved={candidate.resolve()!s}"
+        )
     observed_sha = _sha256_file(candidate)
     if expected_sha256 is not None and observed_sha != str(expected_sha256):
         raise RuntimeError("CROSS_SURFACE_REPORT_SHA256_MISMATCH")
