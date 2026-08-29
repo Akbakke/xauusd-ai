@@ -1,0 +1,33 @@
+# Offline champion/challenger v1
+
+This is a review-only contract for comparing two already completed
+walk-forward, out-of-sample candidate results. It is not reinforcement
+learning, not online learning and not a promotion mechanism.
+
+The contract deliberately enforces all of the following:
+
+- both results bind immutable files by SHA-256;
+- both candidates use the same unseen evaluation window, feature contract,
+  target contract, raw-Q decision contract and cost model;
+- each candidate's training window ends at or before that unseen window;
+- the sealed TEST set is forbidden as a repeatable comparison surface;
+- the comparison only reports metric deltas for human review;
+- activation, promotion, online weight updates and background scheduling are
+  all `false`.
+
+The report compares net PnL, win rate, maximum drawdown **loss** (a positive
+loss magnitude), MAE, MFE and the share of trades where MAE came before MFE.
+It only records deltas; it never chooses a winner automatically.
+
+When the first honest rolling-OOS reports exist, materialize one comparison:
+
+```bash
+scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
+  .venv/bin/python -m gx1.scripts.materialize_entry_offline_challenger_v1 \
+  --champion-result-json /absolute/champion-result.json \
+  --challenger-result-json /absolute/challenger-result.json \
+  --out-dir /absolute/review-events
+```
+
+The command cannot load a model or training dataset. It only reads the two
+bound result events and writes one immutable review record.
