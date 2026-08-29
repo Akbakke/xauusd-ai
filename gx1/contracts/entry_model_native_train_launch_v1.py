@@ -72,6 +72,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
     require_model_native_signal_contract,
 )
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    checkpoint_policy_metadata,
+    require_checkpoint_policy,
+)
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     PRETRAIN_AUDIT_SCHEMA,
     require_smoke_bundle_training_pipeline_contract,
@@ -1992,6 +1996,8 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         "epochs": int(args.epochs),
         "batch_size": int(args.batch_size),
         "early_stop_patience": int(args.early_stop_patience),
+        "minimum_epochs_before_stop": int(args.minimum_epochs_before_stop),
+        "save_top_k": int(args.save_top_k),
         "subsample_rows": int(args.subsample_rows),
         # Bound as lineage: a bundle must record how far back each timeframe
         # looked, or train==serve cannot be proved for the multi-TF stack.
@@ -2006,7 +2012,13 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
         "per_tf_seq_len_d1": int(args.per_tf_seq_len_d1),
     }
     _require(integer_values["seed"] >= 0, "seed must be >= 0")
-    for key in ("epochs", "batch_size", "early_stop_patience"):
+    for key in (
+        "epochs",
+        "batch_size",
+        "early_stop_patience",
+        "minimum_epochs_before_stop",
+        "save_top_k",
+    ):
         _require(integer_values[key] > 0, f"{key} must be > 0")
     _require(integer_values["subsample_rows"] >= 0, "subsample_rows must be >= 0")
     train_time_window_start = getattr(args, "train_time_window_start_utc", None)
@@ -2126,6 +2138,26 @@ def _trainer_cli_contract(args: argparse.Namespace) -> dict[str, Any]:
             _require(0.0 <= value < 1.0, "dropout must be in [0,1)")
         else:
             _require(value > 0.0, f"{key} must be > 0")
+
+    if str(args.profile) == "candidate":
+        try:
+            require_checkpoint_policy(
+                {
+                    **checkpoint_policy_metadata(),
+                    "max_epochs": integer_values["epochs"],
+                    "early_stop_patience": integer_values["early_stop_patience"],
+                    "minimum_epochs_before_stop": integer_values[
+                        "minimum_epochs_before_stop"
+                    ],
+                    "save_top_k": integer_values["save_top_k"],
+                    "early_stop_min_delta": float_values["early_stop_min_delta"],
+                },
+                context="ENTRY_MODEL_NATIVE_TRAIN_LAUNCH",
+            )
+        except RuntimeError as exc:
+            raise LaunchContractError(
+                "candidate launch does not match the frozen checkpoint policy"
+            ) from exc
 
     return {
         "device": str(args.device),
@@ -2498,6 +2530,8 @@ def build_parser(*, require_recipe_audit: bool = True) -> argparse.ArgumentParse
     parser.add_argument("--learning-rate", required=True)
     parser.add_argument("--early-stop-patience", required=True)
     parser.add_argument("--early-stop-min-delta", required=True)
+    parser.add_argument("--minimum-epochs-before-stop", required=True)
+    parser.add_argument("--save-top-k", required=True)
     parser.add_argument("--grad-clip-norm", required=True)
     parser.add_argument("--weight-decay", required=True)
     parser.add_argument("--dropout", required=True)

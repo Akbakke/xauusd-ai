@@ -62,7 +62,8 @@ Required only for --profile candidate:
 
 Required audited execution values (there are no wrapper defaults):
   --device cpu|cuda --seed N --epochs N --batch-size N --learning-rate X
-  --early-stop-patience N --early-stop-min-delta X --grad-clip-norm X
+  --early-stop-patience N --early-stop-min-delta X --minimum-epochs-before-stop N
+  --save-top-k N --grad-clip-norm X
   --weight-decay X --dropout X --multi-tf-scale X
   --specialist-fusion-scale X --cross-family-fusion-scale X --subsample-rows N
   [--train-time-window-start-utc ISO8601Z --train-time-window-end-utc ISO8601Z]
@@ -121,6 +122,7 @@ CANDIDATE_READINESS_JSON= SMOKE_BUNDLE_AUDIT_JSON=
 TRAIN_SEQUENCE_SOURCE_AUDIT_JSON= VAL_SEQUENCE_SOURCE_AUDIT_JSON=
 OUT_BUNDLE_DIR= GX1_DATA_ROOT= DEVICE= SEED= EPOCHS= BATCH_SIZE= LEARNING_RATE=
 EARLY_STOP_PATIENCE= EARLY_STOP_MIN_DELTA= GRAD_CLIP_NORM= WEIGHT_DECAY=
+MINIMUM_EPOCHS_BEFORE_STOP= SAVE_TOP_K=
 DROPOUT= MULTI_TF_SCALE= SPECIALIST_FUSION_SCALE= CROSS_FAMILY_FUSION_SCALE= SUBSAMPLE_ROWS=
 TRAIN_TIME_WINDOW_START_UTC= TRAIN_TIME_WINDOW_END_UTC=
 NUM_WORKERS= MULTI_TF_NUM_LAYERS= SPECIALIST_NUM_LAYERS= GRAD_ACCUM_STEPS=
@@ -162,7 +164,7 @@ while [[ $# -gt 0 ]]; do
     --candidate-readiness-json|--smoke-bundle-audit-json|\
     --train-sequence-source-audit-json|--val-sequence-source-audit-json|\
     --out-bundle-dir|--gx1-data-root|--device|--seed|--epochs|--batch-size|\
-    --learning-rate|--early-stop-patience|--early-stop-min-delta|--grad-clip-norm|\
+    --learning-rate|--early-stop-patience|--early-stop-min-delta|--minimum-epochs-before-stop|--save-top-k|--grad-clip-norm|\
     --weight-decay|--dropout|--multi-tf-scale|--specialist-fusion-scale|--cross-family-fusion-scale|\
     --subsample-rows|--train-time-window-start-utc|--train-time-window-end-utc|--memory-cap|--swap-cap|\
     --num-workers|\
@@ -209,6 +211,8 @@ while [[ $# -gt 0 ]]; do
         --learning-rate) variable=LEARNING_RATE ;;
         --early-stop-patience) variable=EARLY_STOP_PATIENCE ;;
         --early-stop-min-delta) variable=EARLY_STOP_MIN_DELTA ;;
+        --minimum-epochs-before-stop) variable=MINIMUM_EPOCHS_BEFORE_STOP ;;
+        --save-top-k) variable=SAVE_TOP_K ;;
         --grad-clip-norm) variable=GRAD_CLIP_NORM ;;
         --weight-decay) variable=WEIGHT_DECAY ;;
         --dropout) variable=DROPOUT ;;
@@ -268,7 +272,8 @@ for variable in RUN_ID DATASET_DIR TRAIN_MANIFEST_JSON VAL_MANIFEST_JSON \
   TRAIN_SEQUENCE_SOURCE_AUDIT_JSON VAL_SEQUENCE_SOURCE_AUDIT_JSON \
   RECIPE_AUDIT_JSON TRAINABILITY_READINESS_JSON \
   OUT_BUNDLE_DIR GX1_DATA_ROOT DEVICE SEED EPOCHS BATCH_SIZE LEARNING_RATE \
-  EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA GRAD_CLIP_NORM WEIGHT_DECAY MULTI_TF_SCALE \
+  EARLY_STOP_PATIENCE EARLY_STOP_MIN_DELTA MINIMUM_EPOCHS_BEFORE_STOP SAVE_TOP_K \
+  GRAD_CLIP_NORM WEIGHT_DECAY MULTI_TF_SCALE \
   DROPOUT \
   SPECIALIST_FUSION_SCALE CROSS_FAMILY_FUSION_SCALE SUBSAMPLE_ROWS MEMORY_CAP SWAP_CAP \
   NUM_WORKERS MULTI_TF_NUM_LAYERS SPECIALIST_NUM_LAYERS GRAD_ACCUM_STEPS \
@@ -357,6 +362,7 @@ VALIDATOR_ARGS=(
   --device "$DEVICE" --seed "$SEED" --epochs "$EPOCHS" --batch-size "$BATCH_SIZE"
   --learning-rate "$LEARNING_RATE" --early-stop-patience "$EARLY_STOP_PATIENCE"
   --early-stop-min-delta "$EARLY_STOP_MIN_DELTA" --grad-clip-norm "$GRAD_CLIP_NORM"
+  --minimum-epochs-before-stop "$MINIMUM_EPOCHS_BEFORE_STOP" --save-top-k "$SAVE_TOP_K"
   --weight-decay "$WEIGHT_DECAY" --multi-tf-scale "$MULTI_TF_SCALE"
   --dropout "$DROPOUT"
   --specialist-fusion-scale "$SPECIALIST_FUSION_SCALE"
@@ -447,6 +453,7 @@ TRAIN_CMD=(
   --seq_len 96 --epochs "$EPOCHS" --lr "$LEARNING_RATE" --batch_size "$BATCH_SIZE"
   --early-stopping-patience "$EARLY_STOP_PATIENCE"
   --early-stopping-min-delta "$EARLY_STOP_MIN_DELTA"
+  --minimum-epochs-before-stop "$MINIMUM_EPOCHS_BEFORE_STOP" --save-top-k "$SAVE_TOP_K"
   --num-workers "$NUM_WORKERS" --grad-accum-steps "$GRAD_ACCUM_STEPS" --subsample-rows "$SUBSAMPLE_ROWS"
   --grad-clip-norm "$GRAD_CLIP_NORM" --weight-decay "$WEIGHT_DECAY"
   --dropout "$DROPOUT"

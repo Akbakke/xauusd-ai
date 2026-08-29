@@ -1170,12 +1170,15 @@ def build_wrapper_contract(
         wrapper_path=wrapper.resolve(),
     )
     env_map = dict(MODEL_NATIVE_RECIPE_ENV)
+    candidate_policy = profile == "candidate"
     trainer_cli = {
         "device": "cpu",
         "seed": 1337,
-        "epochs": 2,
+        "epochs": 30 if candidate_policy else 2,
         "batch_size": 8,
-        "early_stop_patience": 1,
+        "early_stop_patience": 5 if candidate_policy else 1,
+        "minimum_epochs_before_stop": 2 if candidate_policy else 1,
+        "save_top_k": 3 if candidate_policy else 1,
         "subsample_rows": 32 if profile == "smoke" else 0,
         "train_time_window": (
             {
@@ -1283,11 +1286,13 @@ def build_wrapper_contract(
         "--gx1-data-root", str(gx1_data_root),
         "--device", "cpu",
         "--seed", "1337",
-        "--epochs", "2",
+        "--epochs", str(trainer_cli["epochs"]),
         "--batch-size", "8",
         "--learning-rate", "0.0003",
-        "--early-stop-patience", "1",
+        "--early-stop-patience", str(trainer_cli["early_stop_patience"]),
         "--early-stop-min-delta", "0.0",
+        "--minimum-epochs-before-stop", str(trainer_cli["minimum_epochs_before_stop"]),
+        "--save-top-k", str(trainer_cli["save_top_k"]),
         "--grad-clip-norm", "1.0",
         "--weight-decay", "0.00001",
         "--dropout", "0.05",

@@ -184,6 +184,49 @@ def test_candidate_session_refuses_state_without_active_pointer(tmp_path: Path) 
         session.load_checkpoint()
 
 
+def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(
+    tmp_path: Path,
+) -> None:
+    out_bundle = tmp_path / "BUNDLE_20260828T140000Z"
+    session = trainer._CandidateTrainingSession(
+        out_bundle_dir=out_bundle,
+        contract=_contract(),
+    )
+    model = torch.nn.Linear(3, 2)
+    target_model = copy.deepcopy(model)
+    target_model.requires_grad_(False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=30, eta_min=0.0
+    )
+    ema = trainer._WeightEma(model, 0.5)
+    state = _state(session, model, target_model, optimizer, ema, scheduler)
+    selection = state["training_progress"]["checkpoint_selection"]
+    records = []
+    for epoch, metric in ((1, 1.0), (2, 5.0), (3, 3.0), (4, 4.0)):
+        record = session.save_top_k_checkpoint(
+            epoch=epoch,
+            metric=metric,
+            model_state=model.state_dict(),
+            target_model_state=target_model.state_dict(),
+        )
+        records.append(record)
+    selection["top_k_checkpoints"] = trainer.retain_top_k(records, top_k=3)
+    selection["best_checkpoint"] = selection["top_k_checkpoints"][0]
+    session.save_checkpoint(state)
+
+    restored = session.load_checkpoint()
+    assert restored is not None
+    restored_selection = restored["training_progress"]["checkpoint_selection"]
+    assert [row["epoch"] for row in restored_selection["top_k_checkpoints"]] == [2, 4, 3]
+    assert restored_selection["best_checkpoint"]["epoch"] == 2
+
+    selected_path = session.directory / restored_selection["best_checkpoint"]["path"]
+    selected_path.write_bytes(selected_path.read_bytes() + b"tamper")
+    with pytest.raises(RuntimeError, match="TOP_K_SHA256_MISMATCH"):
+        session.load_checkpoint()
+
+
 def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> None:
     snapshot = trainer._candidate_validation_snapshot(
         total=1.5,
@@ -312,9 +355,14 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
             pin_memory=False,
             persistent_workers=False,
             prefetch_factor=None,
-            epochs=1,
-            early_stopping_patience=1,
+            # Candidate selection is intentionally frozen to the external
+            # 30/5/min-2/top-3 policy.  The deterministic fake metric below
+            # then exercises the early-stop boundary at completed epoch six.
+            epochs=30,
+            early_stopping_patience=5,
             early_stopping_min_delta=0.0,
+            minimum_epochs_before_stop=2,
+            save_top_k=3,
             out_bundle_dir=out_bundle,
             gx1_data_override="",
             run_id="V46_20260825T170935Z_CANDIDATE",
@@ -362,13 +410,13 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
 
     second_model = torch.nn.Linear(3, 2)
     second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))
-    assert calls == {"train": 2, "validation": 1}
-    assert train_offsets == [0, 1]
+    assert calls == {"train": 7, "validation": 6}
+    assert train_offsets == [0, 1, 0, 0, 0, 0, 0]
     assert second["best_epoch"] == 1
     assert second["best_policy_pnl"] == 2.0
     assert not out_bundle.exists()
 
     third_model = torch.nn.Linear(3, 2)
     third = _run(third_model, torch.optim.AdamW(third_model.parameters(), lr=0.001))
-    assert calls == {"train": 2, "validation": 1}
+    assert calls == {"train": 7, "validation": 6}
     assert third["best_epoch"] == 1

@@ -91,6 +91,13 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
     joint_task_weighting_metadata,
 )
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    checkpoint_policy_metadata,
+    metric_improved as candidate_metric_improved,
+    require_checkpoint_policy,
+    retain_top_k,
+    should_early_stop as candidate_should_early_stop,
+)
 from gx1.contracts.entry_model_native_train_recipe_v1 import (
     MODEL_NATIVE_RECIPE_ENV,
     MODEL_NATIVE_RECIPE_ENV_KEYS,
@@ -1133,6 +1140,8 @@ _CANDIDATE_TRAINING_PROGRESS_KEYS = frozenset(
 )
 _CANDIDATE_TRAINING_SELECTION_KEYS = frozenset(
     (
+        "checkpoint_policy",
+        "best_checkpoint",
         "best_state",
         "best_val",
         "best_policy_pnl",
@@ -1147,6 +1156,7 @@ _CANDIDATE_TRAINING_SELECTION_KEYS = frozenset(
         "last_epoch",
         "last_val_stats",
         "early_stopped",
+        "top_k_checkpoints",
     )
 )
 # A candidate does not rely on an unbounded process.  These source-owned
@@ -1179,6 +1189,8 @@ def _new_candidate_training_progress() -> dict[str, Any]:
             name: False for name in JOINT_TASK_NAMES
         },
         "checkpoint_selection": {
+            "checkpoint_policy": checkpoint_policy_metadata(),
+            "best_checkpoint": None,
             "best_state": None,
             "best_val": float("inf"),
             "best_policy_pnl": float("-inf"),
@@ -1193,6 +1205,7 @@ def _new_candidate_training_progress() -> dict[str, Any]:
             "last_epoch": 0,
             "last_val_stats": {},
             "early_stopped": False,
+            "top_k_checkpoints": [],
         },
         "validation_snapshot": None,
     }
@@ -1235,9 +1248,40 @@ def _require_candidate_training_progress(
         or not isinstance(selection.get("last_epoch"), int)
         or int(selection["last_epoch"]) < 0
         or not isinstance(selection.get("early_stopped"), bool)
+        or not isinstance(selection.get("top_k_checkpoints"), list)
+        or (
+            selection.get("best_checkpoint") is not None
+            and not isinstance(selection.get("best_checkpoint"), Mapping)
+        )
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]")
-    progress["checkpoint_selection"] = dict(selection)
+    try:
+        policy = require_checkpoint_policy(
+            selection.get("checkpoint_policy", {}),
+            context="CANDIDATE_TRAINING_SELECTION",
+        )
+        top_k = retain_top_k(
+            selection["top_k_checkpoints"], top_k=int(policy["save_top_k"])
+        )
+    except RuntimeError as exc:
+        raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]") from exc
+    if top_k != list(selection["top_k_checkpoints"]):
+        raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]")
+    normalized_selection = dict(selection)
+    normalized_selection["checkpoint_policy"] = policy
+    normalized_selection["top_k_checkpoints"] = top_k
+    best_checkpoint = normalized_selection.get("best_checkpoint")
+    if best_checkpoint is not None:
+        try:
+            normalized_best = retain_top_k(
+                [best_checkpoint], top_k=1
+            )[0]
+        except RuntimeError as exc:
+            raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]") from exc
+        if normalized_best not in top_k:
+            raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]")
+        normalized_selection["best_checkpoint"] = normalized_best
+    progress["checkpoint_selection"] = normalized_selection
     validation_snapshot = progress.get("validation_snapshot")
     if validation_snapshot is not None:
         if not isinstance(validation_snapshot, Mapping):
@@ -1863,6 +1907,11 @@ class _CandidateTrainingSession:
         state["training_progress"] = _require_candidate_training_progress(
             state["training_progress"]
         )
+        self.validate_top_k_checkpoints(
+            state["training_progress"]["checkpoint_selection"][
+                "top_k_checkpoints"
+            ]
+        )
         return state
 
     def save_checkpoint(self, state: Mapping[str, Any]) -> None:
@@ -1891,6 +1940,11 @@ class _CandidateTrainingSession:
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
         value["training_progress"] = _require_candidate_training_progress(
             value["training_progress"]
+        )
+        self.validate_top_k_checkpoints(
+            value["training_progress"]["checkpoint_selection"][
+                "top_k_checkpoints"
+            ]
         )
         previous = self.load_checkpoint()
         previous_slot = -1 if previous is None else int(
@@ -1924,6 +1978,146 @@ class _CandidateTrainingSession:
             "complete": bool(value["complete"]),
         }
         _candidate_training_session_atomic_write_json(self._active_path, active)
+
+    def save_top_k_checkpoint(
+        self,
+        *,
+        epoch: int,
+        metric: float,
+        model_state: Mapping[str, torch.Tensor],
+        target_model_state: Mapping[str, torch.Tensor],
+    ) -> dict[str, Any]:
+        """Persist one immutable candidate-selection snapshot.
+
+        The two rotating session slots are the *last/resume* checkpoint.  Top-k
+        selection needs separately named, immutable snapshots so an interrupt
+        cannot replace a previously selected epoch.  They are private session
+        evidence, never a publishable bundle or inference artifact.
+        """
+
+        if (
+            isinstance(epoch, bool)
+            or int(epoch) < 1
+            or not math.isfinite(float(metric))
+            or not isinstance(model_state, Mapping)
+            or not isinstance(target_model_state, Mapping)
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_ARGUMENT_INVALID]")
+        directory = self._directory / "top_k"
+        if directory.exists():
+            stat_result = os.stat(directory, follow_symlinks=False)
+            if (
+                directory.is_symlink()
+                or not directory.is_dir()
+                or stat_result.st_uid != os.getuid()
+                or stat_result.st_mode & 0o077
+            ):
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_DIRECTORY_INVALID]")
+        else:
+            directory.mkdir(mode=0o700)
+            _fsync_directory(self._directory)
+        destination = directory / f"epoch_{int(epoch):04d}.pt"
+        if destination.exists() or destination.is_symlink():
+            if destination.is_symlink() or not destination.is_file():
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_COLLISION]")
+            try:
+                existing = torch.load(
+                    destination, map_location="cpu", weights_only=True
+                )
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_COLLISION]") from exc
+            if (
+                not isinstance(existing, Mapping)
+                or existing.get("schema_version")
+                != "gx1_candidate_training_top_k_checkpoint_v1"
+                or existing.get("session_contract_sha256") != self._contract_sha256
+                or existing.get("epoch") != int(epoch)
+                or float(existing.get("metric", float("nan"))) != float(metric)
+            ):
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_COLLISION]")
+            return {
+                "epoch": int(epoch),
+                "metric": float(metric),
+                "path": str(destination.relative_to(self._directory)),
+                "sha256": _sha256_file(destination),
+            }
+        payload = {
+            "schema_version": "gx1_candidate_training_top_k_checkpoint_v1",
+            "session_contract_sha256": self._contract_sha256,
+            "epoch": int(epoch),
+            "metric": float(metric),
+            "model_state": {
+                str(key): value.detach().cpu().clone()
+                for key, value in model_state.items()
+            },
+            "target_model_state": {
+                str(key): value.detach().cpu().clone()
+                for key, value in target_model_state.items()
+            },
+        }
+        fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=str(directory))
+        try:
+            os.close(fd)
+            torch.save(payload, temporary)
+            with open(temporary, "rb") as handle:
+                os.fsync(handle.fileno())
+            os.replace(temporary, destination)
+            _fsync_regular_file(destination)
+            _fsync_directory(directory)
+            _fsync_directory(self._directory)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+        return {
+            "epoch": int(epoch),
+            "metric": float(metric),
+            "path": str(destination.relative_to(self._directory)),
+            "sha256": _sha256_file(destination),
+        }
+
+    def validate_top_k_checkpoints(
+        self, records: Sequence[Mapping[str, Any]]
+    ) -> None:
+        """Verify retained selection snapshots before a resume can use them."""
+
+        for record in records:
+            path_text = str(record["path"])
+            relative = Path(path_text)
+            if (
+                relative.is_absolute()
+                or relative.parts[:1] != ("top_k",)
+                or ".." in relative.parts
+            ):
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_PATH_INVALID]")
+            path = self._directory / relative
+            if path.is_symlink() or not path.is_file():
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_PATH_INVALID]")
+            if _sha256_file(path) != record["sha256"]:
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_SHA256_MISMATCH]")
+            try:
+                payload = torch.load(path, map_location="cpu", weights_only=True)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_LOAD_INVALID]") from exc
+            if (
+                not isinstance(payload, Mapping)
+                or set(payload)
+                != {
+                    "schema_version",
+                    "session_contract_sha256",
+                    "epoch",
+                    "metric",
+                    "model_state",
+                    "target_model_state",
+                }
+                or payload.get("schema_version")
+                != "gx1_candidate_training_top_k_checkpoint_v1"
+                or payload.get("session_contract_sha256") != self._contract_sha256
+                or payload.get("epoch") != record["epoch"]
+                or float(payload.get("metric", float("nan"))) != float(record["metric"])
+                or not isinstance(payload.get("model_state"), Mapping)
+                or not isinstance(payload.get("target_model_state"), Mapping)
+            ):
+                raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_PAYLOAD_INVALID]")
 
 
 def _enforce_canonical_train_env_contract() -> None:
@@ -8841,6 +9035,8 @@ def _candidate_training_session_contract(
     dropout: float,
     early_stopping_patience: int,
     early_stopping_min_delta: float,
+    minimum_epochs_before_stop: int,
+    save_top_k: int,
     seq_len: int,
     per_tf_seq_lens: Mapping[str, int],
     multi_tf_num_layers: int,
@@ -8866,6 +9062,8 @@ def _candidate_training_session_contract(
         or int(epochs) < 1
         or int(grad_accum_steps) != 1
         or int(early_stopping_patience) < 1
+        or int(minimum_epochs_before_stop) < 1
+        or int(save_top_k) < 1
         or int(seq_len) < 1
         or set(per_tf_seq_lens) != set(MULTI_TF_TIMEFRAMES)
         or any(int(per_tf_seq_lens[name]) < 1 for name in MULTI_TF_TIMEFRAMES)
@@ -8885,6 +9083,20 @@ def _candidate_training_session_contract(
         or not math.isfinite(float(cross_family_fusion_scale))
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
+    checkpoint_policy = {
+        **checkpoint_policy_metadata(),
+        "max_epochs": int(epochs),
+        "early_stop_patience": int(early_stopping_patience),
+        "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
+        "save_top_k": int(save_top_k),
+        "early_stop_min_delta": float(early_stopping_min_delta),
+    }
+    try:
+        require_checkpoint_policy(
+            checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE"
+        )
+    except RuntimeError as exc:
+        raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]") from exc
     normalization_sha256 = dict(input_normalization).get("contract_sha256")
     if not isinstance(normalization_sha256, str) or not re.fullmatch(
         r"[0-9a-f]{64}", normalization_sha256
@@ -8933,6 +9145,9 @@ def _candidate_training_session_contract(
             "dropout": float(dropout),
             "early_stopping_patience": int(early_stopping_patience),
             "early_stopping_min_delta": float(early_stopping_min_delta),
+            "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
+            "save_top_k": int(save_top_k),
+            "checkpoint_policy": checkpoint_policy,
             "seq_len": int(seq_len),
             "per_tf_seq_lens": {
                 name: int(per_tf_seq_lens[name])
@@ -9798,6 +10013,8 @@ def _run_resumable_candidate_training(
     epochs: int,
     early_stopping_patience: int,
     early_stopping_min_delta: float,
+    minimum_epochs_before_stop: int,
+    save_top_k: int,
     out_bundle_dir: Path,
     gx1_data_override: str,
     run_id: str,
@@ -9860,6 +10077,8 @@ def _run_resumable_candidate_training(
             dropout=dropout,
             early_stopping_patience=early_stopping_patience,
             early_stopping_min_delta=early_stopping_min_delta,
+            minimum_epochs_before_stop=minimum_epochs_before_stop,
+            save_top_k=save_top_k,
             seq_len=seq_len,
             per_tf_seq_lens=per_tf_seq_lens,
             multi_tf_num_layers=multi_tf_num_layers,
@@ -10180,9 +10399,17 @@ def _run_resumable_candidate_training(
                 float("nan"),
             )
         )
-        improved = np.isfinite(policy_pnl) and (
-            policy_pnl - float(selection["best_policy_pnl"])
-        ) > float(early_stopping_min_delta)
+        improved = bool(
+            np.isfinite(policy_pnl)
+            and (
+                int(selection["best_epoch"]) < 0
+                or candidate_metric_improved(
+                    candidate=policy_pnl,
+                    best=float(selection["best_policy_pnl"]),
+                    min_delta=float(early_stopping_min_delta),
+                )
+            )
+        )
         admission_ok = _checkpoint_admission_ok(
             profile="candidate",
             active_head_health_ok=_profiled_active_head_admission_health(
@@ -10196,7 +10423,7 @@ def _run_resumable_candidate_training(
                 val_stats.get("exit_cooperation_gate_health_ok", False)
             ),
         )
-        if improved and admission_ok:
+        if admission_ok and np.isfinite(policy_pnl):
             full_trajectory = val_stats.get("unified_exit_full_trajectory_validation")
             if not isinstance(full_trajectory, Mapping):
                 raise RuntimeError("[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]")
@@ -10241,6 +10468,30 @@ def _run_resumable_candidate_training(
                 exit_fitted_q_iteration_state=fitted_q_iteration_state,
                 context="CANDIDATE_TRAINING",
             )
+            selected_state = (
+                weight_ema.state_dict_clone()
+                if weight_ema is not None
+                else {
+                    key: value.detach().cpu().clone()
+                    for key, value in model.state_dict().items()
+                }
+            )
+            selected_target_state = {
+                key: value.detach().cpu().clone()
+                for key, value in target_model.state_dict().items()
+            }
+            top_k_record = session.save_top_k_checkpoint(
+                epoch=int(epoch_index) + 1,
+                metric=policy_pnl,
+                model_state=selected_state,
+                target_model_state=selected_target_state,
+            )
+            selection["top_k_checkpoints"] = retain_top_k(
+                [*selection["top_k_checkpoints"], top_k_record],
+                top_k=int(save_top_k),
+            )
+
+        if improved and admission_ok:
             selection["best_val"] = float(va_loss)
             selection["best_policy_pnl"] = policy_pnl
             # Preserve the pre-resume candidate semantics: agreement is
@@ -10260,18 +10511,9 @@ def _run_resumable_candidate_training(
             )
             selection["best_unified_exit_fitted_q_state"] = fitted_q_iteration_state
             selection["best_entry_fitted_q_state"] = entry_fitted_q_iteration_state
-            selection["best_fitted_q_target_state"] = {
-                key: value.detach().cpu().clone()
-                for key, value in target_model.state_dict().items()
-            }
-            selection["best_state"] = (
-                weight_ema.state_dict_clone()
-                if weight_ema is not None
-                else {
-                    key: value.detach().cpu().clone()
-                    for key, value in model.state_dict().items()
-                }
-            )
+            selection["best_fitted_q_target_state"] = selected_target_state
+            selection["best_state"] = selected_state
+            selection["best_checkpoint"] = top_k_record
             selection["best_epoch"] = int(epoch_index) + 1
             selection["epochs_since_improve"] = 0
             log.info(
@@ -10287,8 +10529,11 @@ def _run_resumable_candidate_training(
             selection["epochs_since_improve"] = int(
                 selection["epochs_since_improve"]
             ) + 1
-            if int(selection["epochs_since_improve"]) >= int(
-                early_stopping_patience
+            if candidate_should_early_stop(
+                completed_epochs=int(epoch_index) + 1,
+                epochs_since_improve=int(selection["epochs_since_improve"]),
+                patience=int(early_stopping_patience),
+                minimum_epochs_before_stop=int(minimum_epochs_before_stop),
             ):
                 selection["early_stopped"] = True
         if bool(selection["early_stopped"]) or epoch_index + 1 >= int(epochs):
@@ -10330,6 +10575,8 @@ def run_train(
     num_workers: int,
     early_stopping_patience: int,
     early_stopping_min_delta: float,
+    minimum_epochs_before_stop: int,
+    save_top_k: int,
     m5_prebuilt_path: Path,
     specialist_audit_json: Path,
     specialist_contract_mode: str,
@@ -10442,6 +10689,19 @@ def run_train(
             "[ENTRY_CANDIDATE_GRAD_ACCUM_STEPS_INVALID] candidate training "
             "requires grad_accum_steps=1 for exact resumable checkpoints"
         )
+    if profile == "candidate":
+        candidate_policy = {
+            **checkpoint_policy_metadata(),
+            "max_epochs": int(epochs),
+            "early_stop_patience": int(early_stopping_patience),
+            "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
+            "save_top_k": int(save_top_k),
+            "early_stop_min_delta": float(early_stopping_min_delta),
+        }
+        try:
+            require_checkpoint_policy(candidate_policy, context="ENTRY_TRAIN")
+        except RuntimeError as exc:
+            raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_POLICY_INVALID]") from exc
     if profile == "smoke" and int(subsample_rows) <= 0:
         raise RuntimeError(
             "[ENTRY_SMOKE_SUBSAMPLE_REQUIRED] smoke must declare a positive "
@@ -10552,7 +10812,8 @@ def run_train(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
         f"signal_dim={MODEL_NATIVE_SIGNAL_DIM} ctx_cont={MODEL_NATIVE_CTX_CONT_DIM} "
         f"ctx_cat={MODEL_NATIVE_CTX_CAT_DIM} early_stop_patience={early_stopping_patience} "
-        f"early_stop_min_delta={early_stopping_min_delta}"
+        f"early_stop_min_delta={early_stopping_min_delta} "
+        f"minimum_epochs_before_stop={minimum_epochs_before_stop} save_top_k={save_top_k}"
     )
 
     # Build exact per-TF sequence lengths.
@@ -11689,6 +11950,8 @@ def run_train(
             epochs=epochs,
             early_stopping_patience=early_stopping_patience,
             early_stopping_min_delta=early_stopping_min_delta,
+            minimum_epochs_before_stop=minimum_epochs_before_stop,
+            save_top_k=save_top_k,
             out_bundle_dir=out_bundle_dir,
             gx1_data_override=gx1_data_override,
             run_id=run_id,
@@ -13306,6 +13569,8 @@ def main() -> None:
     parser.add_argument("--num-workers", type=int, required=True)
     parser.add_argument("--early-stopping-patience", type=int, required=True)
     parser.add_argument("--early-stopping-min-delta", type=float, required=True)
+    parser.add_argument("--minimum-epochs-before-stop", type=int, required=True)
+    parser.add_argument("--save-top-k", type=int, required=True)
     parser.add_argument("--m5-prebuilt-path", type=Path, required=True)
     parser.add_argument("--multi-tf-num-layers", type=int, required=True)
     parser.add_argument("--per-tf-seq-len-m5", type=int, required=True)
@@ -13369,6 +13634,24 @@ def main() -> None:
         parser.error(
             "candidate training requires --grad-accum-steps 1 for exact resumable checkpoints"
         )
+    if args.profile == "candidate":
+        try:
+            require_checkpoint_policy(
+                {
+                    **checkpoint_policy_metadata(),
+                    "max_epochs": int(args.epochs),
+                    "early_stop_patience": int(args.early_stopping_patience),
+                    "minimum_epochs_before_stop": int(args.minimum_epochs_before_stop),
+                    "save_top_k": int(args.save_top_k),
+                    "early_stop_min_delta": float(args.early_stopping_min_delta),
+                },
+                context="ENTRY_TRAIN_CLI",
+            )
+        except RuntimeError:
+            parser.error(
+                "candidate requires the frozen 30-epoch / patience-5 / "
+                "minimum-2 / top-k-3 checkpoint policy"
+            )
     if args.profile == "smoke" and int(args.subsample_rows) <= 0:
         parser.error(
             "smoke training requires an explicit positive --subsample-rows "
@@ -13468,6 +13751,8 @@ def main() -> None:
         num_workers=args.num_workers,
         early_stopping_patience=args.early_stopping_patience,
         early_stopping_min_delta=args.early_stopping_min_delta,
+        minimum_epochs_before_stop=args.minimum_epochs_before_stop,
+        save_top_k=args.save_top_k,
         m5_prebuilt_path=args.m5_prebuilt_path,
         specialist_audit_json=args.specialist_audit_json,
         specialist_contract_mode=str(args.specialist_contract_mode),
