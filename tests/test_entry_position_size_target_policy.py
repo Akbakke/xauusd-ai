@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from pathlib import Path
 
@@ -147,6 +148,49 @@ def test_position_size_manifest_binding_checks_projection_and_train_window(
             expected_train_end=pd.Timestamp(direction["train_end_utc"])
             + pd.Timedelta(minutes=5),
         )
+
+
+def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import audit_entry_foundation_targets_v1 as target_audit
+
+    split_manifest = tmp_path / "pretest_split.manifest.json"
+    split_manifest.write_text(
+        json.dumps(
+            {
+                "splits": {"train": {"start": "2021-06-01", "end": "2025-06-01"}},
+                "extra": {
+                    "pretest_only": True,
+                    "source_frame": {"parquet_sha256": "1" * 64},
+                    "xau_tape_provenance": {"authority": "direct_m5"},
+                    "unified_exit_lifecycle": {"m1_source_sha256": "2" * 64},
+                    "entry_causal_m1_position_size_target_policy": {},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured: dict[str, object] = {}
+
+    def _capture(extra: object, **kwargs: object) -> dict[str, object]:
+        del extra
+        captured.update(kwargs)
+        return captured
+
+    monkeypatch.setattr(
+        target_audit,
+        "require_causal_m1_position_size_target_manifest_binding",
+        _capture,
+    )
+    result = target_audit._entry_position_size_policy_from_split_manifest(
+        split_manifest,
+        direction_policy={"policy_sha256": "3" * 64},
+    )
+    assert result["expected_tape_provenance_sha256"] is None
+    assert result["expected_m1_source_sha256"] == "2" * 64
+    assert result["expected_source_parquet_sha256"] == "1" * 64
 
 
 def test_position_size_training_loss_has_zero_gradient_outside_policy_mask() -> None:

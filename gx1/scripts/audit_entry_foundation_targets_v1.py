@@ -872,10 +872,21 @@ def _entry_position_size_policy_from_split_manifest(
         )
     lifecycle = extra.get("unified_exit_lifecycle")
     m1_sha256 = str(lifecycle.get("m1_source_sha256") or "") if isinstance(lifecycle, Mapping) else ""
+    # The strict pre-TEST build deliberately binds the causal M1 target policy
+    # to the separately sealed M1 quote authority.  `xau_tape_provenance` is
+    # the direct M5 quote authority for the Entry surface, so its JSON hash is
+    # not the M1 policy's tape hash.  The execution-causality audit receives
+    # the immutable signal manifest and proves their exact M1-policy binding;
+    # this foundation audit must not manufacture a false M5=M1 requirement.
+    expected_tape_provenance_sha256 = (
+        None
+        if extra.get("pretest_only") is True
+        else canonical_json_sha256(provenance)
+    )
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=source_sha256,
-        expected_tape_provenance_sha256=canonical_json_sha256(provenance),
+        expected_tape_provenance_sha256=expected_tape_provenance_sha256,
         expected_m1_source_sha256=m1_sha256,
         expected_direction_policy_sha256=direction_policy["policy_sha256"],
         expected_train_start=train_window.get("start"),
