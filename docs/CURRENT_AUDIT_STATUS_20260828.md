@@ -35,6 +35,34 @@ current report is
 The candidate checkpoint fixes below are green, but they cannot override the
 data-boundary NO-GO.
 
+### Strict-chain repair progress — 2026-08-29
+
+The required independent direct pre-TEST M5 source has now been materialized
+from the authorised native OANDA history, and a new immutable five-clock cache
+has been published at
+`artifacts/MULTI_TF_V4_CACHE_PRETEST_20260829T161500Z/`. Its manifest SHA-256
+is `776defca60d58ff3ba7b516c361b75c4809de7146a1f8b1c61934bd0f7e01a1e` and
+its cache identity is
+`f98a0cedf757ae3055d1fd6eebdcf46efb2bf75dd9d9ee4d970f429e9440b4ca`.
+The strict cache loader accepts it. Its declared final timestamps are all
+strictly before the TEST boundary: M5 `2026-06-30T23:55Z`, M15 `23:45Z`, H1
+`23:00Z`, H4 `18:00Z`, and D1 `2026-06-29T22:00Z`. `TEST ACCESSED: NO` for
+the build and loader/boundary checks.
+
+This alone does **not** make the retained TRAIN/VAL datasets admissible. Both
+existing split manifests still bind the old cache manifest
+`d1064166b8e0f581c6cfbd0900e74a7601a1d312eab7d55efdd2a4f8778b93d1`, old
+cache identity, and old M5 source hash. A new static-preflight guard now
+compares all three immutable fields for both splits. The fresh report
+`artifacts/pre_fulltrain_preflight_20260829T163500Z/preflight_manifest.json`
+correctly returns `NO_GO` and `TEST ACCESSED: NO` because of that mismatch.
+This prevents a clean cache from being paired silently with legacy feature
+rows. The next required work is a source-backed TRAIN/VAL rebuild, followed by
+fresh M1 Exit-lifecycle construction and exact M1-to-M5/M15/H1/H4/D1 causal
+join proof. In that future Exit proof, each M1 decision must use its local M1
+sequence plus the most recently closed value from every one of the five shared
+MTF clocks; M1-only exit logic is not candidate-admissible.
+
 ### Failed-safe reconstruction check — 2026-08-29
 
 An attempted offline reconstruction of a pre-TEST M5 source was also rejected

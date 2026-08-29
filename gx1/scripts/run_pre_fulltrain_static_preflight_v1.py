@@ -267,6 +267,45 @@ def inspect_mtf_cache_test_boundary(cache_manifest: Path) -> dict[str, Any]:
     }
 
 
+def inspect_dataset_mtf_cache_binding(
+    dataset_manifest: Path,
+    *,
+    expected_manifest_sha256: str,
+    expected_cache_identity_sha256: str,
+    expected_source_sha256: str,
+) -> dict[str, Any]:
+    """Prove that a split was emitted from the exact inspected MTF cache.
+
+    A clean cache cannot make an already-emitted dataset clean by itself.  The
+    dataset's immutable provenance must bind to the manifest, content identity
+    and M5 source of the cache passed to this preflight.  This reads only the
+    explicit TRAIN/VAL manifest -- never cache arrays or TEST data.
+    """
+
+    manifest = _read_json(dataset_manifest, label="dataset_manifest")
+    extra = manifest.get("extra")
+    binding = extra.get("multi_tf_cache_binding") if isinstance(extra, Mapping) else None
+    expected = {
+        "manifest_sha256": expected_manifest_sha256,
+        "cache_identity_sha256": expected_cache_identity_sha256,
+        "m5_prebuilt_source_sha256": expected_source_sha256,
+    }
+    observed = {
+        key: binding.get(key) if isinstance(binding, Mapping) else None
+        for key in expected
+    }
+    mismatches = [key for key, value in expected.items() if observed[key] != value]
+    return {
+        "dataset_manifest": _artifact_binding(dataset_manifest, label="dataset_manifest"),
+        "expected": expected,
+        "observed": observed,
+        "matches_inspected_cache": not mismatches,
+        "mismatched_fields": mismatches,
+        "array_bytes_read": 0,
+        "test_accessed": False,
+    }
+
+
 def build_static_preflight(
     *,
     train_parquet: Path,
@@ -312,6 +351,28 @@ def build_static_preflight(
         raise PreflightError(f"[PREFLIGHT_SOURCE_AUDIT_NOT_PASS] audits={failed}")
     bundle = _read_json(bundle_metadata, label="bundle_metadata")
     mtf_cache = inspect_mtf_cache_test_boundary(multi_tf_cache_manifest)
+    cache_payload = _read_json(multi_tf_cache_manifest, label="multi_tf_cache_manifest")
+    cache_identity = cache_payload.get("cache_identity_sha256")
+    cache_source_sha256 = cache_payload.get("m5_prebuilt_source_sha256")
+    if not isinstance(cache_identity, str) or not isinstance(cache_source_sha256, str):
+        raise PreflightError("[PREFLIGHT_MTF_CACHE_BINDING_METADATA_INVALID]")
+    dataset_cache_bindings = {
+        "train": inspect_dataset_mtf_cache_binding(
+            train_manifest,
+            expected_manifest_sha256=mtf_cache["manifest"]["sha256"],
+            expected_cache_identity_sha256=cache_identity,
+            expected_source_sha256=cache_source_sha256,
+        ),
+        "val": inspect_dataset_mtf_cache_binding(
+            val_manifest,
+            expected_manifest_sha256=mtf_cache["manifest"]["sha256"],
+            expected_cache_identity_sha256=cache_identity,
+            expected_source_sha256=cache_source_sha256,
+        ),
+    }
+    datasets_match_mtf_cache = all(
+        item["matches_inspected_cache"] for item in dataset_cache_bindings.values()
+    )
     normalization = bundle.get("input_normalization")
     if not isinstance(normalization, Mapping) or normalization.get("fit_scope") != "train_only":
         raise PreflightError("[PREFLIGHT_NORMALIZATION_SCOPE_INVALID]")
@@ -375,7 +436,11 @@ def build_static_preflight(
     return {
         "schema_version": SCHEMA_VERSION,
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "decision": "PASS" if mtf_cache["safe_for_strict_preflight"] else "NO_GO",
+        "decision": (
+            "PASS"
+            if mtf_cache["safe_for_strict_preflight"] and datasets_match_mtf_cache
+            else "NO_GO"
+        ),
         "test_accessed": False,
         "test_accessed_confirmation": "NO",
         "environment": _environment_metadata(),
@@ -402,6 +467,7 @@ def build_static_preflight(
                 "entry_family_tf_token_order": mtf["entry_family_tf_token_order"],
             },
             "mtf_cache_test_boundary": mtf_cache,
+            "dataset_mtf_cache_binding": dataset_cache_bindings,
             "five_timeframes": ["M5", "M15", "H1", "H4", "D1"],
             "source_audits": {
                 name: {"decision": payload["decision"], "sha256": bindings[f"{name}_audit"]["sha256"]}

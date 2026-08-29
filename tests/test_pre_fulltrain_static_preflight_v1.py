@@ -10,6 +10,7 @@ import pytest
 from gx1.scripts.run_pre_fulltrain_static_preflight_v1 import (
     PreflightError,
     TEST_BOUNDARY_UTC,
+    inspect_dataset_mtf_cache_binding,
     inspect_mtf_cache_test_boundary,
     scan_allowed_split,
 )
@@ -95,3 +96,53 @@ def test_mtf_cache_metadata_detects_test_exposure_without_reading_arrays(
             nominal_start_utc="2025-06-01T00:00:00+00:00",
             nominal_end_utc=TEST_BOUNDARY_UTC,
         )
+
+
+def test_dataset_manifest_must_bind_exact_inspected_mtf_cache(tmp_path: Path) -> None:
+    manifest = tmp_path / "train.manifest.json"
+    manifest.write_text(
+        """{
+          "extra": {
+            "multi_tf_cache_binding": {
+              "manifest_sha256": "manifest-new",
+              "cache_identity_sha256": "identity-new",
+              "m5_prebuilt_source_sha256": "source-new"
+            }
+          }
+        }""",
+        encoding="utf-8",
+    )
+    report = inspect_dataset_mtf_cache_binding(
+        manifest,
+        expected_manifest_sha256="manifest-new",
+        expected_cache_identity_sha256="identity-new",
+        expected_source_sha256="source-new",
+    )
+    assert report["matches_inspected_cache"]
+    assert report["array_bytes_read"] == 0
+    assert report["test_accessed"] is False
+
+    manifest.write_text(
+        """{
+          "extra": {
+            "multi_tf_cache_binding": {
+              "manifest_sha256": "manifest-old",
+              "cache_identity_sha256": "identity-old",
+              "m5_prebuilt_source_sha256": "source-old"
+            }
+          }
+        }""",
+        encoding="utf-8",
+    )
+    mismatch = inspect_dataset_mtf_cache_binding(
+        manifest,
+        expected_manifest_sha256="manifest-new",
+        expected_cache_identity_sha256="identity-new",
+        expected_source_sha256="source-new",
+    )
+    assert not mismatch["matches_inspected_cache"]
+    assert mismatch["mismatched_fields"] == [
+        "manifest_sha256",
+        "cache_identity_sha256",
+        "m5_prebuilt_source_sha256",
+    ]

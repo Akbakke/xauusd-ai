@@ -43,6 +43,14 @@ binding scope; `CLAUDE.md` is the process constitution.
 > paper/demo/live and economic authority false. The offline champion/challenger
 > reviewer is implemented and tested but waits for two honest rolling-OOS
 > result events; it does not train or automatically promote anything.
+>
+> **Strict preflight boundary update (2026-08-29):** a separate pre-TEST
+> five-clock cache now exists and its loader/boundary control passes, but the
+> retained TRAIN and VAL manifests still bind the previous TEST-exposed cache.
+> The strengthened static preflight reports `NO_GO` with `TEST ACCESSED: NO`.
+> Rebuild the source-backed TRAIN/VAL and closed M1 Exit chain before any full
+> VAL or external training. Each Exit decision must retain local M1 timing and
+> consume causal M5/M15/H1/H4/D1 context; M1-only exit is not admissible.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
