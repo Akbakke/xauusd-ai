@@ -76,6 +76,20 @@ The current successor must never be substituted for, merged into or inspected
 by the strict preflight source path. Its purpose is to retain the newest direct
 market tape for later, separately authorized measurement only.
 
+Completed evidence under `/home/andre2/GX1_DATA/data/native_xau/`:
+
+- `XAU_M5_NATIVE_2019_20260701_PRETEST_20260829` contains 531,190 direct M5
+  bars and ends at `2026-06-30T23:55:00Z`
+  (payload SHA-256 `34d0b9e43ca0e801ab02e3bb04df19677778cf66bd01f2df2c5570157b9cbb4f`).
+- `XAU_M1_NATIVE_2019_20260701_PRETEST_20260829` contains 2,628,372 direct M1
+  bars and ends at `2026-06-30T23:59:00Z`
+  (payload SHA-256 `79bea9fead18f67b358fd59e89c62a4be91b368fd4d9eb096961a4f25a797703`).
+- Their separately sealed successors reach the last complete Friday bar before
+  the 2026-08-29 weekend closure: M5 `20:55Z` (542,986 rows; payload
+  `5cac8241adc216f7742a446446319a72c2f94533f4e12dc1836a53b90d68dd2a`) and
+  M1 `20:59Z` (2,687,184 rows; payload
+  `74efd5dcd586df46d4b47e45ba3bb530662065f63401bf5fc4ebb27b5b13f6e0`).
+
 The narrow research-candidate admission is now technically green, but it is
 not an edge or trading admission. Do not start an unpredeclared CUDA job, TEST
 evaluation, OANDA activity, collector, Telegram notifier or dashboard. The
