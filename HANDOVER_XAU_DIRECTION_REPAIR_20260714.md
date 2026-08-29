@@ -7,8 +7,8 @@ binding scope; `CLAUDE.md` is the process constitution.
 > Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 > before acting on historical run prose below. The active state is audit
-> completion with all background services stopped; no candidate training, TEST,
-> OANDA/demo or live operation is authorised. On 2026-08-28, the retained V46
+> completion with all background services stopped; TEST, OANDA/demo and live
+> operation are not authorised. On 2026-08-28, the retained V46
 > TRAIN/VAL bytes passed a fresh v10 liveness scan and the complete downstream
 > report-only rebind (post-rebuild, smoke manifest/readiness, trainability and
 > CPU recipe). The canonical pointers now bind those immutable reports; this
@@ -31,6 +31,18 @@ binding scope; `CLAUDE.md` is the process constitution.
 > narrow window; this is a real candidate gate to re-audit on the full window,
 > not evidence that the eight-family routing is absent and not a licence to add
 > synthetic variation.
+>
+> The fresh guarded 2026-08-29 bundle is no longer missing its VAL/audit
+> chain. Its all-70,880-row VAL prediction event passed technical validation;
+> its preregistered selective-edge result correctly failed. The CPU-only audit
+> shows all eight family gates finite, positive and state-varying; its stricter
+> quality verdict failed solely because three families never won the largest
+> softmax weight in a four-step smoke. The current immutable candidate event is
+> `READY_FOR_CANDIDATE_TRAINING`, binds the fresh recipe provenance, bundle,
+> 238 signals, eight families and five MTF clocks, and keeps all activation,
+> paper/demo/live and economic authority false. The offline champion/challenger
+> reviewer is implemented and tested but waits for two honest rolling-OOS
+> result events; it does not train or automatically promote anything.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
@@ -61,7 +73,7 @@ positive, dynamic and proven connected by gradient before start. It still
 requires a fresh candidate and an untouched TEST replay before any predictive,
 economic or trading claim.
 
-**Newest bounded bundle, completed 2026-08-29:** the separately authorised,
+**Newest bounded bundle and candidate admission, completed 2026-08-29:** the separately authorised,
 guarded export bound to recipe
 `train_recipe_audit_guarded_cuda_bundle_export_20260829T001005Z/`
 `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260829T001008366250Z.json`
@@ -71,10 +83,18 @@ It completed full source/normalization preflight, four batch-8 CUDA optimizer
 steps, strict reload and post-export liveness at a measured guard peak of
 66 C / 214.59 W / 8,763 MiB. Its metadata and lock contain the same exact
 recipe-source provenance, so it is not the legacy provenance-deficient bundle.
-It remains a technical smoke only: no immutable prediction event bound to this
-bundle, CPU smoke-bundle audit, candidate-readiness event, OOS, PnL, MAE/MFE,
-TEST or trading authority exists. Do not infer any of those results from the
-successful export.
+It remains a technical smoke only, but now has its required technical evidence:
+the guarded VAL evaluation processed all 70,880 rows, the CPU-only immutable
+smoke-bundle audit completed, and
+`ENTRY_CANDIDATE_READINESS_20260829T122708592909Z.json` is
+`READY_FOR_CANDIDATE_TRAINING`. The quality audit's `FAIL` is limited to three
+families never being the largest gate in four smoke steps; every family has a
+finite, positive, non-constant route, which is the exact technical-training
+admission condition. This creates no OOS, PnL, MAE/MFE, TEST, economic or
+trading authority. The regression-tested offline champion/challenger contract
+is ready only to compare two later, independently materialized rolling-OOS
+results under identical cost/target/decision contracts; it cannot choose or
+promote a winner automatically.
 
 **Current execution status, reconciled 2026-08-28:** canonical V46 smoke
 preflight passed all TRAIN/VAL, eight-family and five-timeframe checks. The old

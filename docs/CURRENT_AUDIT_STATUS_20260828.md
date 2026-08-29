@@ -6,13 +6,14 @@ authority. `scripts/gx1_handover.sh` remains the executable status owner.
 
 ## Current verdict
 
-The project is offline research only. There is no admitted model, predictive
-edge, realised PnL, win rate, MAE/MFE result, calibration, untouched-TEST
-result, demo account, paper route or live route.
+The project is offline research only. There is no admitted production model,
+predictive edge, realised PnL, win rate, MAE/MFE result, calibration,
+untouched-TEST result, demo account, paper route or live route.
 
-Do not start full training, a rebuild, CUDA work, TEST evaluation, OANDA
-activity, collector, Telegram notifier or dashboard from this state. The
-collector/dashboard/notifier/self-check services are deliberately inactive.
+The narrow research-candidate admission is now technically green, but it is
+not an edge or trading admission. Do not start an unpredeclared CUDA job, TEST
+evaluation, OANDA activity, collector, Telegram notifier or dashboard. The
+collector/dashboard/notifier/self-check services remain deliberately inactive.
 
 The current V46 source data are retained and are not to be rebuilt merely to
 obtain another smoke run. Full-input liveness and its entire downstream
@@ -70,9 +71,32 @@ validated five-clock V4 cache, before compute sampling or optimization.
   optimizer steps, strict reload and post-export liveness under the guard
   (66 C / 214.59 W / 8,763 MiB peak). Both bundle metadata and lock bind the
   same current recipe-source provenance. This removes the legacy-bundle
-  provenance defect, but is still only a technical smoke: no prediction
-  artifact bound to this bundle, CPU smoke-bundle audit, candidate-readiness
-  event, OOS, PnL or trading authority exists yet.
+  provenance defect. Its guarded VAL evaluator subsequently wrote an immutable
+  70,880-row prediction artifact and report
+  `val_predictions_guarded_cuda_bundle_export_20260829T001005Z/`
+  `ENTRY_CANDIDATE_SELECTIVE_EDGE_20260829T122405807858Z.json` (technical
+  prediction decision `PASS`; preregistered selective-edge decision `FAIL`).
+  The CPU-only smoke-bundle audit then recorded finite, normalized and
+  state-varying routes for all eight specialists. Three families were never
+  the largest softmax weight in this four-step smoke, so its strict
+  post-training-quality decision is correctly `FAIL`; it is not a missing,
+  constant or disconnected feature route. The narrower technical admission
+  contract independently verified positive, non-constant routing for every
+  family and emitted
+  `candidate_readiness_guarded_cuda_bundle_export_20260829T001005Z/`
+  `ENTRY_CANDIDATE_READINESS_20260829T122708592909Z.json` with
+  `READY_FOR_CANDIDATE_TRAINING`. That event binds the current bundle, all
+  70,880 VAL rows, 238 signal fields, all eight specialists and all five
+  MTF clocks. It keeps activation, shadow/paper/demo/live promotion and
+  economic authority false.
+- The offline champion/challenger review loop is rebuilt and regression-tested
+  (`tests/test_entry_offline_challenger.py`: four passing tests). It accepts
+  only two immutable, independently completed rolling-OOS candidate-result
+  events for the exact same unseen window and economic contracts, then reports
+  deltas for human review. It cannot train, schedule, change weights, select a
+  winner automatically or activate a model. See
+  `docs/OFFLINE_CHAMPION_CHALLENGER_V1.md`. No synthetic OOS events were
+  manufactured for this verification.
 - The future serve adapter now opens only the exact V4 cache bound by the
   bundle, injects its frozen artifacts directly, and refuses a context snapshot
   from another immutable pair generation even if its timestamp is identical.
@@ -151,24 +175,24 @@ operation was started while refreshing it.
 
 ## Required next sequence
 
-1. Preserve the candidate `NOT_READY` block. Do not repair the historical
-   bundle in place. The fresh guarded bundle now has the required provenance,
-   but needs a matching immutable VAL prediction event and the CPU-only
-   smoke-bundle audit before candidate-readiness can be recomputed; it remains
-   offline and guarded.
-2. The fresh CUDA-intended CPU recipe preflight and exact wrapper dry-run now
-   pass from commit `3ae102a9`. Do not execute the resulting command without
-   separate explicit authority; an ad-hoc run ID is intentionally rejected
-   before large input hashes are computed.
+1. Preserve the historical provenance block; do not repair or relabel the old
+   bundle. The fresh, current-provenance bundle has now separately passed
+   technical candidate-readiness. Before a candidate CUDA launch, materialize
+   its exact immutable recipe and pass its no-GPU dry-run; do not turn this
+   readiness event into an unbounded or unattended run.
+2. Candidate training remains offline research only. Its later rolling-OOS
+   result must use a frozen cost/replay contract; only then can the prepared
+   champion/challenger review loop compare two candidates. It cannot promote
+   either one automatically.
 3. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.
 4. Inspect the terminal technical-epoch report and guard logs. They prove live
    task/gradient paths and safe bounded execution, but not predictive
    performance. Do not portray them as VAL, backtest or edge evidence.
-5. Do not resume the completed technical epoch. Resolve candidate provenance
-   and complete the fresh full-candidate preflight, including full-window Exit
-   gate evidence, before designing a candidate-training run; TEST stays sealed.
+5. Do not resume the completed technical epoch. The next model job, if
+   separately launched, is the declared candidate recipe rather than another
+   exploratory smoke; TEST stays sealed.
 6. Keep TEST sealed until a single candidate has passed VAL and an immutable
    release event is designed and reviewed. Demo/OANDA comes only after
    backtests and the separate executable-economics/risk gates.
