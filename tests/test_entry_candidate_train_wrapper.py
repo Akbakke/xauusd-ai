@@ -193,3 +193,15 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
         "gx1_allow_legacy",
     ):
         assert stale not in lowered
+
+
+def test_candidate_wrapper_caps_large_preflight_validation() -> None:
+    """Even --dry-run rehashes large immutable bindings, so it is a capped job."""
+
+    source = WRAPPER.read_text(encoding="utf-8")
+    assert 'RECIPE_ENV_TEXT=$(cd "$REPO" && "$CAPPED_RUNNER" \\' in source
+    assert '--class audit --mem 4G --swap 512M -- \\' in source
+    assert (
+        '"$PY" -m gx1.contracts.entry_model_native_train_launch_v1 '
+        '"${VALIDATOR_ARGS[@]}"'
+    ) in source

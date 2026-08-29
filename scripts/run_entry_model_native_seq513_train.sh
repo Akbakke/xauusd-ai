@@ -379,7 +379,14 @@ if [[ -n "$TRAIN_TIME_WINDOW_START_UTC" ]]; then
   )
 fi
 VALIDATOR_ARGS+=("${PROFILE_VALIDATOR_ARGS[@]}")
-if ! RECIPE_ENV_TEXT=$(cd "$REPO" && "$PY" -m gx1.contracts.entry_model_native_train_launch_v1 "${VALIDATOR_ARGS[@]}"); then
+# The launch contract re-hashes the exact immutable data/recipe bindings.  It
+# can therefore be a multi-gigabyte CPU read even for --dry-run.  Never run it
+# directly from the wrapper: a failed preflight must stay inside the same hard
+# audit cgroup boundary as a recipe materialisation, rather than consuming the
+# workstation outside GX1's resource controls.
+if ! RECIPE_ENV_TEXT=$(cd "$REPO" && "$CAPPED_RUNNER" \
+  --class audit --mem 4G --swap 512M -- \
+  "$PY" -m gx1.contracts.entry_model_native_train_launch_v1 "${VALIDATOR_ARGS[@]}"); then
   exit 2
 fi
 mapfile -t RECIPE_ENV <<<"$RECIPE_ENV_TEXT"
