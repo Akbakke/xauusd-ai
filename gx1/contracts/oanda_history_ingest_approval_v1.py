@@ -13,6 +13,9 @@ publisher must independently bind a source ending strictly before TEST.
 
 from __future__ import annotations
 
+from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_SUCCESSOR_MODE,
+)
 from gx1_guards.gates import GateError, require_retrain_vedtak
 
 OANDA_HISTORY_INGEST_APPROVAL_SCHEMA_VERSION = (
@@ -21,7 +24,7 @@ OANDA_HISTORY_INGEST_APPROVAL_SCHEMA_VERSION = (
 OANDA_HISTORY_INGEST_APPROVAL_ID = "OANDA_M5_PRETEST_CURRENT_20260829"
 OANDA_HISTORY_PRETEST_START_UTC = "2019-01-01T00:00:00Z"
 OANDA_HISTORY_PRETEST_END_UTC = "2026-07-01T00:00:00Z"
-_SUCCESSOR_MODE = "CANONICAL_NATIVE_SUCCESSOR_MODE"
+_SUCCESSOR_MODE = CANONICAL_NATIVE_SUCCESSOR_MODE
 
 
 def require_approved_oanda_history_ingest(

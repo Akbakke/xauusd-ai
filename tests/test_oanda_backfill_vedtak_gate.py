@@ -14,6 +14,7 @@ import pytest
 from gx1.contracts import xau_tape_provenance_v1 as tape_contract
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
+    CANONICAL_NATIVE_SUCCESSOR_MODE,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     NATIVE_TIMEFRAME_POLICY,
     canonical_json_sha256,
@@ -247,6 +248,20 @@ def test_backfill_cli_approved_pretest_history_authorization_precedes_side_effec
 
     with pytest.raises(pytest.fail.Exception, match="authorization should permit"):
         module.main()
+
+
+def test_history_authorization_accepts_only_the_bound_successor_mode() -> None:
+    from gx1.contracts.oanda_history_ingest_approval_v1 import (
+        require_approved_oanda_history_ingest,
+    )
+
+    assert require_approved_oanda_history_ingest(
+        vedtak_id="OANDA_M5_PRETEST_CURRENT_20260829",
+        timeframe="M5",
+        publication_mode=CANONICAL_NATIVE_SUCCESSOR_MODE,
+        start_utc=None,
+        end_utc="2026-08-29T14:55:00Z",
+    ) == "OANDA_M5_PRETEST_CURRENT_20260829"
 
 
 def test_m1_downsample_cannot_write_canonical_m5_root() -> None:
