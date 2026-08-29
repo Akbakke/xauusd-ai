@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,6 +12,7 @@ import pytest
 from gx1.scripts.run_pre_fulltrain_static_preflight_v1 import (
     PreflightError,
     TEST_BOUNDARY_UTC,
+    inspect_bundle_normalization_binding,
     inspect_dataset_mtf_cache_binding,
     inspect_mtf_cache_test_boundary,
     scan_allowed_split,
@@ -146,3 +149,51 @@ def test_dataset_manifest_must_bind_exact_inspected_mtf_cache(tmp_path: Path) ->
         "cache_identity_sha256",
         "m5_prebuilt_source_sha256",
     ]
+
+
+def test_bundle_normalization_must_bind_exact_rebuilt_train_surface(
+    tmp_path: Path,
+) -> None:
+    train_manifest = tmp_path / "train.manifest.json"
+    train_manifest.write_text(
+        """{
+          "extra": {
+            "entry_run_id": "PRETEST_RUN",
+            "source_frame": {"parquet_sha256": "source-new"}
+          }
+        }""",
+        encoding="utf-8",
+    )
+    bundle = {
+        "run_lineage": {"dataset_run_id": "PRETEST_RUN"},
+        "input_normalization": {
+            "lineage": {
+                "dataset_run_id": "PRETEST_RUN",
+                "train_parquet_sha256": "train-new",
+                "train_manifest_sha256": hashlib.sha256(
+                    train_manifest.read_bytes()
+                ).hexdigest(),
+                "m5_prebuilt_sha256": "source-new",
+                "mtf_cache_manifest_sha256": "cache-new",
+            }
+        },
+    }
+    matched = inspect_bundle_normalization_binding(
+        bundle,
+        train={"sha256": "train-new"},
+        train_manifest=train_manifest,
+        train_manifest_payload=json.loads(train_manifest.read_text()),
+        mtf_cache_manifest_sha256="cache-new",
+    )
+    assert matched["matches_exact_train_surface"]
+
+    bundle["input_normalization"]["lineage"]["mtf_cache_manifest_sha256"] = "cache-old"
+    mismatch = inspect_bundle_normalization_binding(
+        bundle,
+        train={"sha256": "train-new"},
+        train_manifest=train_manifest,
+        train_manifest_payload=json.loads(train_manifest.read_text()),
+        mtf_cache_manifest_sha256="cache-new",
+    )
+    assert not mismatch["matches_exact_train_surface"]
+    assert mismatch["mismatched_fields"] == ["mtf_cache_manifest_sha256"]

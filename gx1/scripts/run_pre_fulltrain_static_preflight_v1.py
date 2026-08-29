@@ -306,6 +306,67 @@ def inspect_dataset_mtf_cache_binding(
     }
 
 
+def inspect_bundle_normalization_binding(
+    bundle: Mapping[str, Any],
+    *,
+    train: Mapping[str, Any],
+    train_manifest: Path,
+    train_manifest_payload: Mapping[str, Any],
+    mtf_cache_manifest_sha256: str,
+) -> dict[str, Any]:
+    """Require normalization in a bundle to match this exact TRAIN surface.
+
+    A prior technical bundle can be structurally valid while its normalizer
+    was fitted on a different dataset/cache generation.  It is therefore not
+    usable as preflight evidence for a rebuilt strict pre-TEST candidate.
+    """
+
+    normalization = bundle.get("input_normalization")
+    lineage = (
+        normalization.get("lineage")
+        if isinstance(normalization, Mapping)
+        and isinstance(normalization.get("lineage"), Mapping)
+        else None
+    )
+    extra = train_manifest_payload.get("extra")
+    source_frame = extra.get("source_frame") if isinstance(extra, Mapping) else None
+    dataset_run_id = extra.get("entry_run_id") if isinstance(extra, Mapping) else None
+    expected = {
+        "dataset_run_id": dataset_run_id,
+        "train_parquet_sha256": train.get("sha256"),
+        "train_manifest_sha256": _sha256_file(train_manifest),
+        "m5_prebuilt_sha256": (
+            source_frame.get("parquet_sha256")
+            if isinstance(source_frame, Mapping)
+            else None
+        ),
+        "mtf_cache_manifest_sha256": mtf_cache_manifest_sha256,
+    }
+    if not all(isinstance(value, str) and value for value in expected.values()):
+        raise PreflightError("[PREFLIGHT_BUNDLE_EXPECTED_LINEAGE_INVALID]")
+    observed = {
+        key: lineage.get(key) if isinstance(lineage, Mapping) else None
+        for key in expected
+    }
+    mismatched = [key for key, value in expected.items() if observed[key] != value]
+    run_lineage = bundle.get("run_lineage")
+    run_lineage_dataset = (
+        run_lineage.get("dataset_run_id")
+        if isinstance(run_lineage, Mapping)
+        else None
+    )
+    if run_lineage_dataset != expected["dataset_run_id"]:
+        mismatched.append("run_lineage.dataset_run_id")
+    return {
+        "expected": expected,
+        "observed": observed,
+        "run_lineage_dataset_run_id": run_lineage_dataset,
+        "matches_exact_train_surface": not mismatched,
+        "mismatched_fields": mismatched,
+        "test_accessed": False,
+    }
+
+
 def build_static_preflight(
     *,
     train_parquet: Path,
@@ -350,6 +411,7 @@ def build_static_preflight(
     if failed:
         raise PreflightError(f"[PREFLIGHT_SOURCE_AUDIT_NOT_PASS] audits={failed}")
     bundle = _read_json(bundle_metadata, label="bundle_metadata")
+    train_manifest_payload = _read_json(train_manifest, label="train_manifest")
     mtf_cache = inspect_mtf_cache_test_boundary(multi_tf_cache_manifest)
     cache_payload = _read_json(multi_tf_cache_manifest, label="multi_tf_cache_manifest")
     cache_identity = cache_payload.get("cache_identity_sha256")
@@ -384,6 +446,13 @@ def build_static_preflight(
         lineage.get("test_fit_row_count", -1)
     ) != 0:
         raise PreflightError("[PREFLIGHT_NORMALIZATION_LEAKAGE]")
+    bundle_normalization_binding = inspect_bundle_normalization_binding(
+        bundle,
+        train=train,
+        train_manifest=train_manifest,
+        train_manifest_payload=train_manifest_payload,
+        mtf_cache_manifest_sha256=mtf_cache["manifest"]["sha256"],
+    )
 
     local_feature_layers = model_native_mandatory_full_stack_metadata()
     # The local physical feature registry intentionally has ten implementation
@@ -438,7 +507,11 @@ def build_static_preflight(
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": (
             "PASS"
-            if mtf_cache["safe_for_strict_preflight"] and datasets_match_mtf_cache
+            if (
+                mtf_cache["safe_for_strict_preflight"]
+                and datasets_match_mtf_cache
+                and bundle_normalization_binding["matches_exact_train_surface"]
+            )
             else "NO_GO"
         ),
         "test_accessed": False,
@@ -481,6 +554,7 @@ def build_static_preflight(
             "fit_scope": normalization["fit_scope"],
             "fit_population_proof": fit_proof,
             "lineage": dict(lineage),
+            "exact_candidate_binding": bundle_normalization_binding,
         },
         "bundle_candidate": {
             "path": str(bundle_metadata.resolve()),
