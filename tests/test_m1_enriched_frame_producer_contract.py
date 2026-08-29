@@ -518,3 +518,46 @@ def test_enriched_regime_projection_fails_closed_on_owner_and_field_conflicts(
             multi_tf={},
             decision_bar_duration=pd.Timedelta(minutes=5),
         )
+
+
+def test_m1_exit_proof_requires_latest_closed_context_from_all_five_clocks() -> None:
+    builder = _load_builder()
+    from gx1.features.htf_features import (
+        MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4,
+        multi_tf_bar_label,
+    )
+
+    target_index = pd.date_range(
+        "2026-01-02T00:00:00Z", periods=30, freq="min"
+    )
+    frame = pd.DataFrame(
+        {
+            name: np.ones(len(target_index), dtype=np.float64)
+            for name in MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4
+        },
+        index=target_index,
+    )
+    clocks = {
+        "M5": ("5min", 500),
+        "M15": ("15min", 200),
+        "H1": ("1h", 60),
+        "H4": ("4h", 20),
+        "D1": ("1D", 10),
+    }
+    multi_tf: dict[str, pd.DataFrame] = {}
+    for timeframe, (frequency, rows) in clocks.items():
+        start = multi_tf_bar_label(pd.Timestamp("2026-01-01T00:00:00Z"), timeframe)
+        index = pd.date_range(start, periods=rows, freq=frequency)
+        source = pd.DataFrame({"sentinel": np.zeros(rows)}, index=index)
+        source.attrs["ts_int64"] = index.asi8.astype(np.int64, copy=True)
+        multi_tf[timeframe] = source
+
+    proof = builder._prove_m1_exit_mtf_causality(frame, multi_tf=multi_tf)
+
+    assert proof["route_timeframes"] == ["M5", "M15", "H1", "H4", "D1"]
+    assert proof["all_rows_have_all_five_closed_contexts"] is True
+    assert proof["all_contexts_are_latest_closed"] is True
+    assert set(proof["per_timeframe"]) == {"M5", "M15", "H1", "H4", "D1"}
+    for row in proof["per_timeframe"].values():
+        assert row["rows_with_closed_context"] == len(frame)
+        assert row["all_selected_are_latest_closed"] is True

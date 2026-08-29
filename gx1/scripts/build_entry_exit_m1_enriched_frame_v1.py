@@ -56,13 +56,16 @@ from gx1.features.htf_features import (  # noqa: E402
     HTF_V4_MATRIX_CONTRACT,
     MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
     MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
+    MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
+    MULTI_TF_SHIFT,
     MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
     attach_model_native_mtf_scalars_v4,
     build_multi_tf_v4_closed_timestamp_indices,
     build_multi_tf_per_bar_features_v4,
     load_multi_tf_v4_cache,
+    model_native_mtf_owner_marker_v4,
     project_multi_tf_v4_scalars,
     require_model_native_mtf_scalar_owner_v4,
     validate_causal_feature_matrix,
@@ -753,6 +756,102 @@ def _load_bound_m5_cache_context(
     }
 
 
+def _prove_m1_exit_mtf_causality(
+    frame: pd.DataFrame,
+    *,
+    multi_tf: Mapping[str, pd.DataFrame],
+) -> dict[str, Any]:
+    """Prove every emitted M1 Exit row selects each latest closed MTF bar.
+
+    Exit timing is local M1, but its decision context is the one M5/M15/H1/H4/
+    D1 cache.  This proof records the actual cache-axis selection for every
+    emitted row; it adds no feature and accepts neither fill nor a future bar.
+    """
+
+    decision_bar_duration = pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS)
+    marker = model_native_mtf_owner_marker_v4(
+        decision_bar_duration=decision_bar_duration
+    )
+    expected_timeframes = tuple(MULTI_TF_RESAMPLE_RULES)
+    if tuple(marker["route_timeframes"]) != expected_timeframes:
+        raise RuntimeError("M1_ENRICHED_MTF_ROUTE_TIMEFRAMES_INVALID")
+    if (
+        frame.empty
+        or not isinstance(frame.index, pd.DatetimeIndex)
+        or frame.index.tz is None
+        or frame.index.has_duplicates
+        or not frame.index.is_monotonic_increasing
+        or np.any(frame.index.asi8 % int(decision_bar_duration.value) != 0)
+    ):
+        raise RuntimeError("M1_ENRICHED_MTF_PROOF_TARGET_AXIS_INVALID")
+    missing_fields = sorted(set(marker["field_order"]) - set(frame.columns))
+    if missing_fields:
+        raise RuntimeError(
+            f"M1_ENRICHED_MTF_PROOF_FIELDS_MISSING: {missing_fields}"
+        )
+    values = frame.loc[:, list(MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4)].to_numpy(
+        dtype=np.float64,
+        copy=False,
+    )
+    if not np.isfinite(values).all():
+        raise RuntimeError("M1_ENRICHED_MTF_PROOF_FIELDS_NONFINITE")
+
+    target_ns = frame.index.asi8.astype(np.int64, copy=False)
+    decision_close_ns = target_ns + int(decision_bar_duration.value)
+    per_timeframe: dict[str, Any] = {}
+    for timeframe in expected_timeframes:
+        source = multi_tf.get(timeframe)
+        timestamps = (
+            np.asarray(source.attrs.get("ts_int64"), dtype=np.int64)
+            if isinstance(source, pd.DataFrame)
+            else np.empty(0, dtype=np.int64)
+        )
+        if (
+            timestamps.ndim != 1
+            or len(timestamps) == 0
+            or np.any(np.diff(timestamps) <= 0)
+        ):
+            raise RuntimeError(
+                f"M1_ENRICHED_MTF_PROOF_CACHE_AXIS_INVALID: {timeframe}"
+            )
+        cutoffs = decision_close_ns - int(MULTI_TF_SHIFT[timeframe].value)
+        right = np.searchsorted(timestamps, cutoffs, side="right") - 1
+        if np.any(right < 0):
+            raise RuntimeError(
+                f"M1_ENRICHED_MTF_PROOF_CLOSED_CONTEXT_MISSING: {timeframe}"
+            )
+        selected = timestamps[right]
+        if np.any(selected > cutoffs):
+            raise RuntimeError(
+                f"M1_ENRICHED_MTF_PROOF_FUTURE_CONTEXT: {timeframe}"
+            )
+        successor = right + 1
+        has_successor = successor < len(timestamps)
+        if np.any(timestamps[successor[has_successor]] <= cutoffs[has_successor]):
+            raise RuntimeError(
+                f"M1_ENRICHED_MTF_PROOF_NOT_LATEST_CLOSED: {timeframe}"
+            )
+        lag_seconds = (cutoffs - selected) // 1_000_000_000
+        per_timeframe[timeframe] = {
+            "cache_rows": int(len(timestamps)),
+            "rows_with_closed_context": int(len(selected)),
+            "all_rows_have_closed_context": True,
+            "all_selected_at_or_before_cutoff": True,
+            "all_selected_are_latest_closed": True,
+            "minimum_context_label_lag_seconds": int(lag_seconds.min()),
+            "maximum_context_label_lag_seconds": int(lag_seconds.max()),
+        }
+    return {
+        "schema_version": "gx1_exit_m1_mtf_causality_proof_v1",
+        "decision_bar_seconds": int(decision_bar_duration.total_seconds()),
+        "route_timeframes": list(expected_timeframes),
+        "rows": int(len(frame)),
+        "all_rows_have_all_five_closed_contexts": True,
+        "all_contexts_are_latest_closed": True,
+        "per_timeframe": per_timeframe,
+    }
+
+
 def _rss_gib() -> float:
     """Resident set size in GiB. Always valid wherever it is called."""
 
@@ -1252,6 +1351,11 @@ def _build_enriched_stage(
     _log_rss("after_group_a_warmup_trim")
     enriched = _finish_model_native_surface(enriched, timeframe=timeframe)
     _log_rss("after_finish_surface")
+    exit_m1_mtf_causality_proof = (
+        _prove_m1_exit_mtf_causality(enriched, multi_tf=multi_tf)
+        if timeframe == "M1"
+        else None
+    )
     _write_output_parquet_bounded(
         enriched,
         output_stage,
@@ -1288,6 +1392,7 @@ def _build_enriched_stage(
         "rows": int(len(enriched)),
         "output_sha256": output_sha256,
         "multi_tf_binding": multi_tf_binding,
+        "exit_m1_mtf_causality_proof": exit_m1_mtf_causality_proof,
         "v29_registry_m1_lane_params": v29_registry_m1_lane_params,
     }
 
@@ -1778,6 +1883,7 @@ def _build_enriched_frame(
             multi_tf_binding = observed_binding
 
         v29_registry_m1_lane_params: dict[str, Any] | None = None
+        exit_m1_mtf_causality_proof: dict[str, Any] | None = None
         if timeframe == "M1":
             # Freeze the declared M1-lane TRAIN fit into the hash-bound M1
             # manifest (rule 2f provenance shape validated by the one owner).
@@ -1788,6 +1894,17 @@ def _build_enriched_frame(
             v29_registry_m1_lane_params = require_v29_registry_m1_lane_params(
                 enriched_result.get("v29_registry_m1_lane_params")
             )
+            observed_proof = enriched_result.get("exit_m1_mtf_causality_proof")
+            if (
+                not isinstance(observed_proof, dict)
+                or observed_proof.get("route_timeframes")
+                != list(MULTI_TF_RESAMPLE_RULES)
+                or observed_proof.get("all_rows_have_all_five_closed_contexts")
+                is not True
+                or observed_proof.get("all_contexts_are_latest_closed") is not True
+            ):
+                raise RuntimeError("M1_ENRICHED_MTF_CAUSALITY_PROOF_INVALID")
+            exit_m1_mtf_causality_proof = observed_proof
 
         result = {
             "schema_version": ENTRY_EXIT_ENRICHED_CAUSAL_FRAME_SCHEMA_VERSION,
@@ -1805,6 +1922,13 @@ def _build_enriched_frame(
                 if v29_registry_m1_lane_params is None
                 else {
                     "v29_registry_m1_lane_params": v29_registry_m1_lane_params
+                }
+            ),
+            **(
+                {}
+                if exit_m1_mtf_causality_proof is None
+                else {
+                    "exit_m1_mtf_causality_proof": exit_m1_mtf_causality_proof
                 }
             ),
             "checkpoint_dir": str(checkpoint),
