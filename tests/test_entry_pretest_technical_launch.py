@@ -65,6 +65,7 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     cli = recipe["trainer_cli"]
     assert isinstance(cli, dict)
     cli["execution_tier"] = "canonical"
+    cli["train_time_window"] = None
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     recipe_path = (tmp_path / "pretest-canonical-recipe.json").resolve()
     recipe_path.write_text(json.dumps(recipe, sort_keys=True), encoding="utf-8")
@@ -93,3 +94,5 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     ]
     assert "--attended-smoke" not in command
     assert command[command.index("--execution-tier") + 1] == "canonical"
+    assert "--train-time-window-start-utc" not in command
+    assert "--train-time-window-end-utc" not in command

@@ -153,8 +153,14 @@ def build_pretest_technical_launch(
     if not guard_path or len(guard_sha) != _SHA256_HEX_LENGTH:
         raise PretestTechnicalLaunchError("recipe unopened-TEST guard is incomplete")
     window = cli["train_time_window"]
-    if not isinstance(window, Mapping):
-        raise PretestTechnicalLaunchError("technical smoke requires a train time window")
+    if execution_tier == "attended_only" and not isinstance(window, Mapping):
+        raise PretestTechnicalLaunchError(
+            "attended technical smoke requires a train time window"
+        )
+    if execution_tier == "canonical" and window is not None:
+        raise PretestTechnicalLaunchError(
+            "canonical technical smoke must use deterministic uniform sampling"
+        )
     cache_manifest = Path(bound_path("multi_tf_cache_manifest"))
     if cache_manifest.name != "manifest.json":
         raise PretestTechnicalLaunchError("multi-TF cache identity is invalid")
@@ -197,11 +203,14 @@ def build_pretest_technical_launch(
         "--cross-family-fusion-scale", str(cli["cross_family_fusion_scale"]),
         "--grad-accum-steps", str(cli["grad_accum_steps"]),
         "--subsample-rows", str(cli["subsample_rows"]),
-        "--train-time-window-start-utc", str(window["start_utc"]),
-        "--train-time-window-end-utc", str(window["end_utc"]),
         "--grad-clip-norm", str(cli["grad_clip_norm"]),
         "--weight-decay", str(cli["weight_decay"]), "--dropout", str(cli["dropout"]),
     ]
+    if isinstance(window, Mapping):
+        trainer_command.extend((
+            "--train-time-window-start-utc", str(window["start_utc"]),
+            "--train-time-window-end-utc", str(window["end_utc"]),
+        ))
     environment = dict(MODEL_NATIVE_RECIPE_ENV)
     environment.update({
         env_name: bound_sha(name)

@@ -314,10 +314,11 @@ def require_pretest_technical_recipe_metadata(
         raise PretestTechnicalRecipeError("trainer CLI time window invalid")
     # A pre-TEST smoke has two deliberately distinct execution lanes.  The
     # attended lanes end after a guarded trainability diagnostic and therefore
-    # cannot publish a bundle.  The canonical CUDA lane uses the same bounded
-    # smoke geometry, but remains behind the normal capped CUDA guard so it can
-    # publish a clearly non-candidate smoke bundle for the subsequent VAL-only
-    # technical evaluation.  Neither lane may access TEST.
+    # cannot publish a bundle; their chronological time window is an explicit
+    # integration proof.  The canonical CUDA lane instead uses the normal
+    # deterministic uniform smoke sampling so it can publish a clearly
+    # non-candidate bundle for the subsequent VAL-only technical evaluation.
+    # Neither lane may access TEST.
     smoke_execution_identity = (
         str(trainer_cli["execution_tier"]), str(trainer_cli["device"])
     )
@@ -332,9 +333,22 @@ def require_pretest_technical_recipe_metadata(
         or trainer_cli["grad_accum_steps"] != 1
         or smoke_execution_identity not in allowed_smoke_execution_identities
         or trainer_cli["subsample_rows"] <= 0
-        or window is None
     ):
         raise PretestTechnicalRecipeError("bounded smoke geometry invalid")
+    if smoke_execution_identity == ("canonical", "cuda") and window is not None:
+        raise PretestTechnicalRecipeError(
+            "canonical smoke must use deterministic uniform sampling without a time window"
+        )
+    if (
+        smoke_execution_identity in {
+            ("attended_only", "cuda"),
+            ("attended_cpu_only", "cpu"),
+        }
+        and window is None
+    ):
+        raise PretestTechnicalRecipeError(
+            "attended smoke requires an explicit chronological time window"
+        )
     if recipe.get("trainer_cli_sha256") != canonical_json_sha256(trainer_cli):
         raise PretestTechnicalRecipeError("trainer CLI contract hash mismatch")
     if _GIT_SHA_RE.fullmatch(str(recipe.get("source_commit") or "")) is None:
