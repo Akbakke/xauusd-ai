@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Publish one immutable direct-M5 OHLCV source that ends before sealed TEST.
+"""Publish one immutable direct M1/M5 OHLCV source that ends before sealed TEST.
 
 This is a narrow provenance bridge, not a feature builder.  It reads only a
-complete canonical native-M5 bundle whose declared end is exactly the 2026-07-01
-TEST boundary, preserves its direct OANDA M5 axis, and writes the six OHLCV
-columns needed by the five-clock cache owner.  It rejects a source or an output
-row at/after that boundary; it neither opens nor accepts a TEST split file.
+complete canonical native M1 or M5 bundle whose declared end is exactly the
+2026-07-01 TEST boundary, preserves its direct OANDA axis, and writes the six
+OHLCV columns needed by the cache and Exit-lifecycle owners.  It rejects a
+source or an output row at/after that boundary; it neither opens nor accepts a
+TEST split file.
 """
 
 from __future__ import annotations
@@ -34,8 +35,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
 )
 
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
-PRETEST_M5_SOURCE_SCHEMA_VERSION = "gx1_direct_m5_pretest_source_v1"
-OUTPUT_NAME = "m5_ohlcv.parquet"
+PRETEST_NATIVE_SOURCE_SCHEMA_VERSION = "gx1_direct_native_pretest_source_v2"
 OUTPUT_COLUMNS = ("time", "open", "high", "low", "close", "volume")
 OUTPUT_SCHEMA = pa.schema(
     [
@@ -158,10 +158,10 @@ def _native_part_paths(root: Path) -> Iterable[Path]:
     return paths
 
 
-def _preflight_native_m5(root: Path) -> tuple[dict[str, Any], Path, str]:
+def _preflight_native(root: Path, *, timeframe: str) -> tuple[dict[str, Any], Path, str]:
     validate_canonical_native_source_bundle(
         root,
-        timeframe="M5",
+        timeframe=timeframe,
         expected_declared_root=root,
     )
     manifest_path = root / "MANIFEST.json"
@@ -169,7 +169,7 @@ def _preflight_native_m5(root: Path) -> tuple[dict[str, Any], Path, str]:
     boundary = pd.Timestamp(TEST_BOUNDARY_UTC)
     if (
         manifest.get("instrument") != XAU_INSTRUMENT
-        or manifest.get("timeframe") != "M5"
+        or manifest.get("timeframe") != timeframe
         or pd.Timestamp(manifest.get("requested_end_utc_exclusive")) != boundary
         or pd.Timestamp(manifest.get("time_max_utc")) >= boundary
         or not isinstance(manifest.get("row_count"), int)
@@ -183,11 +183,15 @@ def materialize_direct_m5_pretest_source(
     *,
     native_m5_root: Path,
     out_dir: Path,
+    timeframe: str = "M5",
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Write a hash-bound direct OHLCV file from an all-pre-TEST native bundle."""
 
     require_offline_scope("featurebase_build")
+    normalized_timeframe = str(timeframe or "").strip().upper()
+    if normalized_timeframe not in {"M1", "M5"}:
+        raise RuntimeError("DIRECT_M5_PRETEST_TIMEFRAME_INVALID")
     native_root = _require_exact_directory(native_m5_root, label="NATIVE_ROOT")
     destination = _require_new_output_directory(out_dir)
     repository = (
@@ -198,15 +202,17 @@ def materialize_direct_m5_pretest_source(
     if repository == destination or repository in destination.parents:
         raise RuntimeError("DIRECT_M5_PRETEST_OUTPUT_INSIDE_REPOSITORY")
     initial_commit = _require_clean_repository(repository)
-    native_manifest, native_manifest_path, native_manifest_sha256 = _preflight_native_m5(
-        native_root
+    native_manifest, native_manifest_path, native_manifest_sha256 = _preflight_native(
+        native_root,
+        timeframe=normalized_timeframe,
     )
     source_parts = tuple(_native_part_paths(native_root))
     boundary = pd.Timestamp(TEST_BOUNDARY_UTC)
     stage = Path(tempfile.mkdtemp(prefix=f".{destination.name}.staging.", dir=destination.parent))
     published = False
     try:
-        output = stage / OUTPUT_NAME
+        output_name = f"{normalized_timeframe.lower()}_ohlcv.parquet"
+        output = stage / output_name
         writer = pq.ParquetWriter(output, OUTPUT_SCHEMA, compression="zstd")
         row_count = 0
         first_time: pd.Timestamp | None = None
@@ -254,9 +260,9 @@ def materialize_direct_m5_pretest_source(
             raise RuntimeError("DIRECT_M5_PRETEST_OUTPUT_VERIFY_FAILED")
         output_sha256 = _sha256_file(output)
         manifest: dict[str, Any] = {
-            "schema_version": PRETEST_M5_SOURCE_SCHEMA_VERSION,
+            "schema_version": PRETEST_NATIVE_SOURCE_SCHEMA_VERSION,
             "instrument": XAU_INSTRUMENT,
-            "timeframe": "M5",
+            "timeframe": normalized_timeframe,
             "timestamp_semantics": "bar_start_utc",
             "test_boundary_utc": TEST_BOUNDARY_UTC,
             "test_accessed": False,
@@ -270,7 +276,7 @@ def materialize_direct_m5_pretest_source(
             "source_requested_end_utc_exclusive": native_manifest[
                 "requested_end_utc_exclusive"
             ],
-            "output_parquet": str(destination / OUTPUT_NAME),
+            "output_parquet": str(destination / output_name),
             "output_parquet_sha256": output_sha256,
             "row_count": row_count,
             "time_min_utc": first_time.isoformat(),
@@ -296,6 +302,7 @@ def materialize_direct_m5_pretest_source(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--native-m5-root", type=Path, required=True)
+    parser.add_argument("--timeframe", choices=("M1", "M5"), default="M5")
     parser.add_argument("--out-dir", type=Path, required=True)
     args = parser.parse_args()
     print(json.dumps(materialize_direct_m5_pretest_source(**vars(args)), indent=2, sort_keys=True))

@@ -11,11 +11,11 @@ import pytest
 from gx1.scripts import materialize_direct_m5_pretest_source_v1 as producer
 
 
-def _native_fixture(root: Path, timestamps: list[str]) -> None:
+def _native_fixture(root: Path, timestamps: list[str], *, timeframe: str = "M5") -> None:
     root.mkdir()
     manifest = {
         "instrument": "XAU_USD",
-        "timeframe": "M5",
+        "timeframe": timeframe,
         "requested_start_utc": "2019-01-01T00:00:00+00:00",
         "requested_end_utc_exclusive": producer.TEST_BOUNDARY_UTC,
         "time_max_utc": "2026-06-30T23:55:00+00:00",
@@ -88,3 +88,28 @@ def test_rejects_native_row_at_test_boundary(
             repo_root=repository,
         )
     assert not output.exists()
+
+
+def test_materializes_direct_m1_with_its_own_axis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bypass_native_bundle_validation(monkeypatch)
+    native = tmp_path / "native"
+    _native_fixture(
+        native,
+        ["2026-06-30T23:58:00Z", "2026-06-30T23:59:00Z"],
+        timeframe="M1",
+    )
+    output = tmp_path / "published"
+    repository = tmp_path / "repo"
+    repository.mkdir()
+
+    manifest = producer.materialize_direct_m5_pretest_source(
+        native_m5_root=native,
+        out_dir=output,
+        timeframe="M1",
+        repo_root=repository,
+    )
+
+    assert manifest["timeframe"] == "M1"
+    assert (output / "m1_ohlcv.parquet").is_file()
