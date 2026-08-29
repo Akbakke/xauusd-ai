@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -111,3 +112,60 @@ def test_bundle_metadata_requires_source_reconstruction_lineage() -> None:
         bundle._require_exact_model_native_bundle_metadata({}, {})
     assert "ENTRY_BUNDLE_MODEL_NATIVE_EXACT_METADATA_MISSING" in str(exc_info.value)
     assert "sequence_source_reconstruction" in str(exc_info.value)
+
+
+def _literal_mapping_keys_assigned_to(
+    source: str,
+    name: str,
+    *,
+    required_markers: set[str],
+) -> set[str]:
+    """Return keys from the one literal export mapping owned by ``name``.
+
+    The trainer writes the two bundle identity files directly rather than via a
+    convenience serializer.  Keep this tiny static check beside the loader
+    contract so a future refactor cannot drop a required provenance field
+    until a long CUDA smoke discovers it after export.
+    """
+
+    mappings: list[set[str]] = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(
+            isinstance(target, ast.Name) and target.id == name
+            for target in node.targets
+        ):
+            continue
+        if isinstance(node.value, ast.Dict):
+            mappings.append(
+                {
+                    key.value
+                    for key in node.value.keys
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str)
+                }
+            )
+    export_mappings = [
+        keys for keys in mappings if required_markers.issubset(keys)
+    ]
+    assert len(export_mappings) == 1, (
+        f"expected one {name} bundle export mapping"
+    )
+    return export_mappings[0]
+
+
+def test_bundle_export_writes_recipe_source_provenance_to_meta_and_lock() -> None:
+    """Fresh exports must satisfy candidate provenance without a GPU retry."""
+
+    trainer_source = (
+        Path(bundle.__file__).parent / "entry_v10_ctx_train_v3.py"
+    ).read_text(encoding="utf-8")
+    for export_name in ("lock", "meta"):
+        assert "recipe_source_provenance" in _literal_mapping_keys_assigned_to(
+            trainer_source,
+            export_name,
+            required_markers={
+                "model_native_training_objective",
+                "input_normalization",
+            },
+        )
