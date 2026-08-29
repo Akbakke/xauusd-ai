@@ -1581,6 +1581,11 @@ def test_pretest_lifecycle_root_allows_only_train_val_inventory(
     lifecycle_dir = tmp_path / "pretest_exit_lifecycle"
     lifecycle_dir.mkdir()
     root_manifest = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    pretest_authority = {
+        **m1_authority,
+        "authority_mode": "pretest_quote_complete_native_v1",
+        "m1_source_manifest_path": str(root_manifest),
+    }
     root_manifest.write_text(
         json.dumps(
             {
@@ -1593,11 +1598,8 @@ def test_pretest_lifecycle_root_allows_only_train_val_inventory(
                 "m1_feature_base_sha256": sha256_file(m1_source),
                 "m1_feature_base_manifest_path": str(root_manifest),
                 "m1_feature_base_manifest_sha256": "0" * 64,
-                "m1_authority": {
-                    **m1_authority,
-                    "authority_mode": "pretest_quote_complete_native_v1",
-                },
-                "m1_authority_sha256": "0" * 64,
+                "m1_authority": pretest_authority,
+                "m1_authority_sha256": canonical_json_sha256(pretest_authority),
                 "path_state_count": 512,
                 "state_population_schema_version": UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION,
                 "state_population_per_episode": 512,
@@ -1613,7 +1615,15 @@ def test_pretest_lifecycle_root_allows_only_train_val_inventory(
         encoding="utf-8",
     )
 
-    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_M1_AUTHORITY_EVIDENCE_INVALID"):
+    def _pretest_dispatch(**_kwargs: object) -> tuple[Path, dict[str, object]]:
+        raise RuntimeError("PRETEST_QUOTE_AUTHORITY_DISPATCHED")
+
+    monkeypatch.setattr(
+        unified_exit_lifecycle,
+        "require_unified_exit_pretest_m1_quote_authority",
+        _pretest_dispatch,
+    )
+    with pytest.raises(RuntimeError, match="PRETEST_QUOTE_AUTHORITY_DISPATCHED"):
         UnifiedExitLifecycleCorpus(
             root_manifest_path=root_manifest,
             entry_parquets={"train": tmp_path / "train.parquet", "val": tmp_path / "val.parquet"},

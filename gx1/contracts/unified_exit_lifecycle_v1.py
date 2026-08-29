@@ -1943,14 +1943,30 @@ class UnifiedExitLifecycleCorpus:
             != root_manifest["m1_authority_sha256"]
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_EVIDENCE_INVALID")
-        m1_path_from_authority, observed_authority = (
-            require_unified_exit_m1_pair_authority(
-                pair_manifest_path=Path(raw_authority["pair_manifest_path"]),
-                pair_generation_root=Path(
-                    raw_authority["pair_generation_root"]
-                ),
+        if pretest_authority:
+            # The strict pre-TEST authority has no mutable generation root;
+            # its M1 source is instead bound through the explicit immutable
+            # quote-source manifest.  Do not coerce the intentional null to
+            # a Path, and do not fall back to the legacy BASE28 admission.
+            m1_path_from_authority, observed_authority = (
+                require_unified_exit_pretest_m1_quote_authority(
+                    pair_lineage_path=Path(
+                        str(raw_authority["pair_manifest_path"])
+                    ),
+                    quote_source_manifest_path=Path(
+                        str(raw_authority["m1_source_manifest_path"])
+                    ),
+                )
             )
-        )
+        else:
+            m1_path_from_authority, observed_authority = (
+                require_unified_exit_m1_pair_authority(
+                    pair_manifest_path=Path(raw_authority["pair_manifest_path"]),
+                    pair_generation_root=Path(
+                        raw_authority["pair_generation_root"]
+                    ),
+                )
+            )
         if observed_authority != raw_authority:
             raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_REVALIDATION_MISMATCH")
         m1_path = Path(root_manifest["m1_source_path"]).expanduser().absolute()
