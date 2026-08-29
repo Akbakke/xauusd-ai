@@ -148,6 +148,12 @@ SMOKE_BUNDLE_AUDIT_RELATIVE_PATH = (
 )
 CONTROL_SURFACE_RELATIVE_PATH = "scripts/entry_next_edge_control.sh"
 TRAIN_WRAPPER_RELATIVE_PATH = "scripts/run_entry_model_native_seq513_train.sh"
+# The strict pre-TEST technical lane has a deliberately separate, recipe-only
+# wrapper.  It must not inherit the historical wrapper's physical-TEST and
+# readiness inputs: neither exists while TEST is intentionally unopened.
+PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH = (
+    "gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py"
+)
 LAUNCH_CONTRACT_RELATIVE_PATH = (
     "gx1/contracts/entry_model_native_train_launch_v1.py"
 )
@@ -996,10 +1002,15 @@ def require_training_recipe_execution_provenance(
         text=True,
     )
     _require(not worktree.strip(), "trainer source worktree must be clean")
+    wrapper_relative_path = (
+        PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH
+        if recipe.get("schema_version") == PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION
+        else TRAIN_WRAPPER_RELATIVE_PATH
+    )
     _validate_source_bindings(
         recipe,
         repo=repo_root,
-        wrapper_path=(repo_root / TRAIN_WRAPPER_RELATIVE_PATH).resolve(strict=True),
+        wrapper_path=(repo_root / wrapper_relative_path).resolve(strict=True),
     )
     return require_training_recipe_source_provenance_metadata(
         {
