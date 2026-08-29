@@ -61,6 +61,21 @@ positive, dynamic and proven connected by gradient before start. It still
 requires a fresh candidate and an untouched TEST replay before any predictive,
 economic or trading claim.
 
+**Newest bounded bundle, completed 2026-08-29:** the separately authorised,
+guarded export bound to recipe
+`train_recipe_audit_guarded_cuda_bundle_export_20260829T001005Z/`
+`ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260829T001008366250Z.json`
+(PASS) atomically published
+`v10_entry_model_native_seq513_guarded_cuda_bundle_export_20260829T001005Z`.
+It completed full source/normalization preflight, four batch-8 CUDA optimizer
+steps, strict reload and post-export liveness at a measured guard peak of
+66 C / 214.59 W / 8,763 MiB. Its metadata and lock contain the same exact
+recipe-source provenance, so it is not the legacy provenance-deficient bundle.
+It remains a technical smoke only: no immutable prediction event bound to this
+bundle, CPU smoke-bundle audit, candidate-readiness event, OOS, PnL, MAE/MFE,
+TEST or trading authority exists. Do not infer any of those results from the
+successful export.
+
 **Current execution status, reconciled 2026-08-28:** canonical V46 smoke
 preflight passed all TRAIN/VAL, eight-family and five-timeframe checks. The old
 batch-64 attempt reached 24,277 MiB VRAM; commit `4754853a` repaired that

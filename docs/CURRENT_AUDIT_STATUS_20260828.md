@@ -61,6 +61,18 @@ validated five-clock V4 cache, before compute sampling or optimization.
   descendant only when every byte-bound execution file remains exact, so a
   documentation-only commit no longer forces another large-input rehash.
   Actual export remains a separately authorised guarded operation.
+- The separately authorised guarded export completed on 2026-08-29 from
+  `train_recipe_audit_guarded_cuda_bundle_export_20260829T001005Z/`
+  `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260829T001008366250Z.json`
+  (PASS). Its atomic bundle is
+  `v10_entry_model_native_seq513_guarded_cuda_bundle_export_20260829T001005Z`.
+  It completed the full source/normalization preflight, four bounded CUDA
+  optimizer steps, strict reload and post-export liveness under the guard
+  (66 C / 214.59 W / 8,763 MiB peak). Both bundle metadata and lock bind the
+  same current recipe-source provenance. This removes the legacy-bundle
+  provenance defect, but is still only a technical smoke: no prediction
+  artifact bound to this bundle, CPU smoke-bundle audit, candidate-readiness
+  event, OOS, PnL or trading authority exists yet.
 - The future serve adapter now opens only the exact V4 cache bound by the
   bundle, injects its frozen artifacts directly, and refuses a context snapshot
   from another immutable pair generation even if its timestamp is identical.
@@ -140,8 +152,10 @@ operation was started while refreshing it.
 ## Required next sequence
 
 1. Preserve the candidate `NOT_READY` block. Do not repair the historical
-   bundle in place. A separately authorised, fresh exported-bundle run must
-   first pass the current provenance contract; it remains offline and guarded.
+   bundle in place. The fresh guarded bundle now has the required provenance,
+   but needs a matching immutable VAL prediction event and the CPU-only
+   smoke-bundle audit before candidate-readiness can be recomputed; it remains
+   offline and guarded.
 2. The fresh CUDA-intended CPU recipe preflight and exact wrapper dry-run now
    pass from commit `3ae102a9`. Do not execute the resulting command without
    separate explicit authority; an ad-hoc run ID is intentionally rejected
