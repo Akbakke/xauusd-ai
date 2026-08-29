@@ -2425,13 +2425,13 @@ def _require_model_native_seq513_split_manifest_contract(
     ordered = (
         parsed["train_start"]
         <= parsed["train_end"]
-        < parsed["val_start"]
+        <= parsed["val_start"]
         <= parsed["val_end"]
     )
     if not pretest_only:
         ordered = ordered and (
             parsed["val_end"]
-            < parsed["test_start"]
+            <= parsed["test_start"]
             <= parsed["test_end"]
         )
     if not ordered:
@@ -5119,7 +5119,7 @@ def main() -> None:
             start
             <= train_start
             <= train_end
-            < val_start
+            <= val_start
             <= val_end
             == end
             and m5_source_times[-1] < end
@@ -5149,9 +5149,9 @@ def main() -> None:
             start
             <= train_start
             <= train_end
-            < val_start
+            <= val_start
             <= val_end
-            < test_start
+            <= test_start
             <= test_end
             == end
         ):
@@ -5159,6 +5159,16 @@ def main() -> None:
                 "MODEL_NATIVE_SPLIT_WINDOWS_INVALID: expected one common history start and ordered, "
                 "non-overlapping TRAIN/VAL/TEST windows ending exactly at --end"
             )
+
+    def _last_source_bar_before(boundary: pd.Timestamp) -> pd.Timestamp:
+        position = int(m5_source_times.searchsorted(boundary, side="left"))
+        if position < 1 or m5_source_times[position - 1] >= boundary:
+            raise RuntimeError("MODEL_NATIVE_SPLIT_EFFECTIVE_END_INVALID")
+        return m5_source_times[position - 1]
+
+    train_effective_end = _last_source_bar_before(train_end)
+    val_effective_end = _last_source_bar_before(val_end)
+    train_policy_end = train_end - pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)
     state_contract = _model_native_state_contract(
         args=args,
         feature_history_start=start,
@@ -5178,7 +5188,7 @@ def main() -> None:
         expected_history_start_utc=start,
         expected_time_max_utc=m5_source_times[-1],
         expected_train_start_utc=train_start.isoformat(),
-        expected_train_end_utc=train_end.isoformat(),
+        expected_train_end_utc=train_policy_end.isoformat(),
     )
     if (
         signal_lineage["model_native_signal_contract"]
@@ -5625,7 +5635,7 @@ def main() -> None:
         }
     )
     train_m5_source_times = m5_source_times[
-        (m5_source_times >= train_start) & (m5_source_times <= train_end)
+        (m5_source_times >= train_start) & (m5_source_times <= train_effective_end)
     ]
     if len(train_m5_source_times) <= MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
         raise RuntimeError("ENTRY_TARGET_POLICY_TRAIN_SOURCE_TOO_SHORT")
@@ -5676,7 +5686,7 @@ def main() -> None:
             closed_m5=train_direction_tape,
             closed_m1=closed_m1_lifecycle,
             train_start=train_start,
-            train_end=train_end,
+            train_end=train_policy_end,
             source_parquet_sha256=_sha256_file(source_parquet_path),
             tape_provenance_sha256=tape_provenance_sha256,
             m1_source_sha256=m1_lifecycle_source_sha256,
@@ -5880,8 +5890,8 @@ def main() -> None:
     # advances only to that split's own boundary, so no later split can affect
     # either features or labels and label horizons cannot cross a boundary.
     for split_name, (s0, s1) in {
-        "train": (train_start, train_end),
-        "val": (val_start, val_end),
+        "train": (train_start, train_effective_end),
+        "val": (val_start, val_effective_end),
         **(
             {} if args.pretest_only else {"test": (test_start, test_end)}
         ),

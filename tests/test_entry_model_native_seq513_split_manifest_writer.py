@@ -29,6 +29,7 @@ from gx1.contracts.entry_model_native_state_v2 import (
 )
 from gx1.contracts.entry_fitted_q_v1 import require_entry_fitted_q_contract
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+    _require_model_native_seq513_split_manifest_contract,
     _log_label_distribution_proof,
     _model_native_state_contract,
     entry_fitted_q_dataset_contract,
@@ -211,6 +212,45 @@ def test_canonical_writer_records_one_exact_source(tmp_path: Path) -> None:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["inputs"]["source_parquet"] == str(source)
+
+
+def test_pretest_split_contract_allows_touching_half_open_windows(
+    tmp_path: Path,
+) -> None:
+    """TRAIN's excluded end is allowed to equal VAL's included start."""
+    extra = _extra(tmp_path)
+    extra.update(
+        {
+            "pretest_only": True,
+            "pretest_test_guard": {
+                "test_accessed": False,
+                "test_boundary_utc": "2026-07-01T00:00:00Z",
+            },
+        }
+    )
+    splits = {
+        "train": {
+            "start": "2021-06-01T00:00:00Z",
+            "end": "2025-06-01T00:00:00Z",
+        },
+        "val": {
+            "start": "2025-06-01T00:00:00Z",
+            "end": "2026-07-01T00:00:00Z",
+        },
+    }
+
+    _require_model_native_seq513_split_manifest_contract(
+        splits=splits,
+        extra=extra,
+    )
+
+    overlapping = copy.deepcopy(splits)
+    overlapping["val"]["start"] = "2025-05-31T23:59:59Z"
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_SPLIT_WINDOW_ORDER_INVALID"):
+        _require_model_native_seq513_split_manifest_contract(
+            splits=overlapping,
+            extra=extra,
+        )
 
 
 def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
