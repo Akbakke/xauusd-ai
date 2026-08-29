@@ -553,19 +553,35 @@ def _preflight_native_source(
         "time_min_utc": pd.Timestamp(time_min_ns, tz="UTC").isoformat(),
         "time_max_utc": pd.Timestamp(time_max_ns, tz="UTC").isoformat(),
     }
-    for name, expected in {
-        **expected_pair_binding,
-        "instrument": "XAU_USD",
-        "timeframe": "M5",
-        "canonical_rows_sha256": source_manifest.get("canonical_rows_sha256"),
-        "manifest_payload_sha256": source_payload_sha256,
-        "year_rows": year_rows,
-        "year_sha256": year_sha256,
-    }.items():
-        if bound_m5.get(name) != expected:
-            raise RuntimeError(
-                f"M5_SOURCE_PAIR_NATIVE_M5_BINDING_MISMATCH: field={name}"
-            )
+    if pair_payload.get("schema_version") == PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION:
+        # The pre-TEST pair keeps this leaf deliberately compact: its sealed
+        # native manifest hash commits instrument, timeframe, native schema,
+        # year inventory and every remaining source detail.  Requiring the
+        # legacy duplicated fields here would reject the stronger V3 lineage.
+        expected_bound_m5: Mapping[str, Any] = expected_pair_binding
+    else:
+        expected_bound_m5 = {
+            **expected_pair_binding,
+            "instrument": "XAU_USD",
+            "timeframe": "M5",
+            "canonical_rows_sha256": source_manifest.get("canonical_rows_sha256"),
+            "manifest_payload_sha256": source_payload_sha256,
+            "year_rows": year_rows,
+            "year_sha256": year_sha256,
+        }
+    if dict(bound_m5) != dict(expected_bound_m5):
+        mismatched = next(
+            (
+                name
+                for name in sorted(set(bound_m5) | set(expected_bound_m5))
+                if bound_m5.get(name) != expected_bound_m5.get(name)
+            ),
+            "key_set",
+        )
+        raise RuntimeError(
+            "M5_SOURCE_PAIR_NATIVE_M5_BINDING_MISMATCH: "
+            f"field={mismatched}"
+        )
 
     expected_year_keys = sorted(year_rows)
     if any(

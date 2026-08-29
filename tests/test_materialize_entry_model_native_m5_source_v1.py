@@ -55,10 +55,14 @@ def _pretest_pair_payload() -> dict[str, object]:
 
 def test_m5_source_requires_sealed_pretest_pair_shape() -> None:
     payload = _pretest_pair_payload()
-    assert producer._require_pair_manifest_native_sources(
+    bound_m5 = producer._require_pair_manifest_native_sources(
         payload,
         pair_generation_id="a" * 64,
-    ) == {"root": "/native/m5"}
+    )
+    # The compact pre-TEST leaf carries only source identity.  The producer
+    # compares that entire mapping with its locally sealed native manifest;
+    # detailed native fields remain authenticated by manifest_sha256.
+    assert bound_m5 == {"root": "/native/m5"}
 
     payload["test_accessed"] = True
     with pytest.raises(
