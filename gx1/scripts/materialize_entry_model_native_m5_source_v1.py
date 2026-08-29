@@ -55,6 +55,10 @@ from gx1.features.htf_features import (
     load_multi_tf_v4_cache,
     project_multi_tf_v4_scalars,
 )
+from gx1.scripts.materialize_pretest_native_pair_lineage_v1 import (
+    PAIR_LINEAGE_SCHEMA_VERSION as PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION,
+    TEST_BOUNDARY_UTC as PRETEST_TEST_BOUNDARY_UTC,
+)
 MAX_BATCH_ROWS = 32_768
 MAX_NATIVE_COMPACT_BYTES = 512 * 1024 * 1024
 M5_NS = ENTRY_DECISION_BAR_SECONDS * 1_000_000_000
@@ -393,6 +397,78 @@ def _native_schema_valid(schema: pa.Schema) -> bool:
     )
 
 
+def _require_pair_manifest_native_sources(
+    pair_payload: Mapping[str, Any],
+    *,
+    pair_generation_id: str,
+) -> Mapping[str, Any]:
+    """Admit only a legacy native pair or the sealed pre-TEST native pair.
+
+    The pre-TEST lineage is intentionally a distinct schema: it binds direct,
+    physically pre-TEST M1/M5 materialisations and must never be coerced into
+    the old raw/base28 pair format.  Both routes return the exact native-source
+    mapping which the caller then compares field-for-field with the supplied
+    M5 root and its sealed manifest.
+    """
+
+    pair_schema = pair_payload.get("schema_version")
+    lineage = pair_payload.get("lineage")
+    native_sources = (
+        lineage.get("native_sources") if isinstance(lineage, Mapping) else None
+    )
+    bound_m5 = (
+        native_sources.get("m5") if isinstance(native_sources, Mapping) else None
+    )
+    if pair_schema == PAIR_MANIFEST_SCHEMA_VERSION:
+        if (
+            pair_payload.get("pair_generation_id") != pair_generation_id
+            or not isinstance(lineage, Mapping)
+            or lineage.get("schema_version") != PAIR_LINEAGE_SCHEMA_VERSION
+            or not isinstance(bound_m5, Mapping)
+        ):
+            raise RuntimeError("M5_SOURCE_PAIR_MANIFEST_CONTRACT_MISMATCH")
+        return bound_m5
+
+    if pair_schema != PRETEST_NATIVE_PAIR_LINEAGE_SCHEMA_VERSION:
+        raise RuntimeError("M5_SOURCE_PAIR_MANIFEST_CONTRACT_MISMATCH")
+    declared_payload_sha256 = _exact_sha256(
+        pair_payload.get("manifest_payload_sha256"),
+        label="PRETEST_PAIR_MANIFEST_PAYLOAD",
+    )
+    pair_without_hash = dict(pair_payload)
+    pair_without_hash.pop("manifest_payload_sha256", None)
+    direct_m5 = pair_payload.get("m5")
+    if (
+        declared_payload_sha256 != _canonical_sha256(pair_without_hash)
+        or set(pair_payload)
+        != {
+            "schema_version",
+            "pair_generation_id",
+            "pair_symbol",
+            "test_boundary_utc",
+            "test_accessed",
+            "m1",
+            "m5",
+            "lineage",
+            "manifest_payload_sha256",
+        }
+        or pair_payload.get("pair_generation_id") != pair_generation_id
+        or pair_payload.get("pair_symbol") != "XAUUSD"
+        or pair_payload.get("test_boundary_utc") != PRETEST_TEST_BOUNDARY_UTC
+        or pair_payload.get("test_accessed") is not False
+        or not isinstance(lineage, Mapping)
+        or set(lineage) != {"native_sources"}
+        or not isinstance(native_sources, Mapping)
+        or set(native_sources) != {"m1", "m5"}
+        or not isinstance(bound_m5, Mapping)
+        or not isinstance(pair_payload.get("m1"), Mapping)
+        or not isinstance(direct_m5, Mapping)
+        or direct_m5.get("native_source") != dict(bound_m5)
+    ):
+        raise RuntimeError("M5_SOURCE_PRETEST_PAIR_MANIFEST_CONTRACT_MISMATCH")
+    return bound_m5
+
+
 def _preflight_native_source(
     *,
     native_root: Path,
@@ -436,17 +512,10 @@ def _preflight_native_source(
 
     pair_path = _require_regular_file(pair_manifest_path, label="PAIR_MANIFEST")
     pair_payload, pair_seal = _read_json_sealed(pair_path, label="PAIR_MANIFEST")
-    lineage = pair_payload.get("lineage")
-    native_sources = lineage.get("native_sources") if isinstance(lineage, dict) else None
-    bound_m5 = native_sources.get("m5") if isinstance(native_sources, dict) else None
-    if (
-        pair_payload.get("schema_version") != PAIR_MANIFEST_SCHEMA_VERSION
-        or pair_payload.get("pair_generation_id") != pair_generation_id
-        or not isinstance(lineage, dict)
-        or lineage.get("schema_version") != PAIR_LINEAGE_SCHEMA_VERSION
-        or not isinstance(bound_m5, dict)
-    ):
-        raise RuntimeError("M5_SOURCE_PAIR_MANIFEST_CONTRACT_MISMATCH")
+    bound_m5 = _require_pair_manifest_native_sources(
+        pair_payload,
+        pair_generation_id=pair_generation_id,
+    )
 
     row_count = _exact_positive_int(
         source_manifest.get("row_count"),
