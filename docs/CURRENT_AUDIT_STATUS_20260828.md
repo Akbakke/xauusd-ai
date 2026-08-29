@@ -31,7 +31,7 @@ the VAL run. First provide a separately immutable, byte-bound five-timeframe
 cache whose declared final timestamp is strictly before 2026-07-01, then rerun
 the static preflight, full all-head VAL, bundle reload and VAL plumbing. The
 current report is
-`artifacts/pre_fulltrain_preflight_20260829T143010Z/preflight_manifest.json`.
+`artifacts/pre_fulltrain_preflight_20260829T235000Z/preflight_manifest.json`.
 The candidate checkpoint fixes below are green, but they cannot override the
 data-boundary NO-GO.
 
