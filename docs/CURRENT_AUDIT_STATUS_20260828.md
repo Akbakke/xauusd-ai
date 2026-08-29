@@ -31,9 +31,28 @@ the VAL run. First provide a separately immutable, byte-bound five-timeframe
 cache whose declared final timestamp is strictly before 2026-07-01, then rerun
 the static preflight, full all-head VAL, bundle reload and VAL plumbing. The
 current report is
-`artifacts/pre_fulltrain_preflight_20260829T142524Z/preflight_manifest.json`.
+`artifacts/pre_fulltrain_preflight_20260829T143010Z/preflight_manifest.json`.
 The candidate checkpoint fixes below are green, but they cannot override the
 data-boundary NO-GO.
+
+### Failed-safe reconstruction check — 2026-08-29
+
+An attempted offline reconstruction of a pre-TEST M5 source was also rejected
+before any new cache was published. The available M1 reports omit the direct
+M5 rollover candle at 22:00 UTC (the first mismatch is 2026-06-11 22:05 in the
+M1-derived axis versus 22:00 in the existing M5 cache). Therefore M1 resampling
+is not a byte- and axis-equivalent substitute for the direct M5 tape. The
+attempted candidate and its rejection note are retained under
+`artifacts/pretest_mtf_source_20260829T230000Z/`; neither is training input.
+No TEST row was loaded for the check, and no MTF cache was published.
+
+The remaining critical prerequisite is consequently precise: a separately
+immutable, direct-M5 artifact ending before 2026-07-01, including the missing
+rollover candles, must be made available under the existing offline policy.
+Do not work around this with synthetic candles, Parquet filtering of a
+cross-boundary row group, or an external machine. Once that artifact exists,
+the prefix-cache publisher will recheck every safe timestamp before a full VAL
+is allowed.
 
 The narrow research-candidate admission is now technically green, but it is
 not an edge or trading admission. Do not start an unpredeclared CUDA job, TEST
