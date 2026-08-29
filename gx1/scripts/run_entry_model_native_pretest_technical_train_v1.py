@@ -122,8 +122,15 @@ def build_pretest_technical_launch(
         raise PretestTechnicalLaunchError("validated recipe lost its exact bindings")
     if provenance.get("source_commit") != validated["source_commit"]:
         raise PretestTechnicalLaunchError("source provenance does not match recipe")
-    if cli["execution_tier"] != "attended_only" or cli["device"] != "cuda":
-        raise PretestTechnicalLaunchError("this launcher admits only attended CUDA smoke")
+    execution_tier = str(cli["execution_tier"])
+    device = str(cli["device"])
+    if (execution_tier, device) not in {
+        ("attended_only", "cuda"),
+        ("canonical", "cuda"),
+    }:
+        raise PretestTechnicalLaunchError(
+            "this launcher admits only guarded attended or canonical CUDA smoke"
+        )
 
     def bound_path(name: str) -> str:
         value = artifact.get(name)
@@ -202,10 +209,14 @@ def build_pretest_technical_launch(
     })
     environment["GX1_ENTRY_DATASET_RUN_ID"] = str(validated["dataset_run_id"])
     environment["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_manifest.parent)
+    # Canonical smoke remains guarded by gx1_capped_run's normal CUDA path;
+    # only the attended diagnostic needs the shorter attended-only envelope.
     command = [
         str(CAPPED_RUNNER), "--class", "trainer", "--mem", "20G", "--swap", "512M",
-        "--attended-smoke", "--", *trainer_command,
     ]
+    if execution_tier == "attended_only":
+        command.append("--attended-smoke")
+    command.extend(("--", *trainer_command))
     return command, environment, validated
 
 

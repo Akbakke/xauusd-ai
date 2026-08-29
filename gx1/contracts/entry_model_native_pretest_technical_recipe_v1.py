@@ -312,11 +312,25 @@ def require_pretest_technical_recipe_metadata(
         or not all(isinstance(window.get(key), str) and str(window[key]).strip() for key in window)
     ):
         raise PretestTechnicalRecipeError("trainer CLI time window invalid")
+    # A pre-TEST smoke has two deliberately distinct execution lanes.  The
+    # attended lanes end after a guarded trainability diagnostic and therefore
+    # cannot publish a bundle.  The canonical CUDA lane uses the same bounded
+    # smoke geometry, but remains behind the normal capped CUDA guard so it can
+    # publish a clearly non-candidate smoke bundle for the subsequent VAL-only
+    # technical evaluation.  Neither lane may access TEST.
+    smoke_execution_identity = (
+        str(trainer_cli["execution_tier"]), str(trainer_cli["device"])
+    )
+    allowed_smoke_execution_identities = {
+        ("canonical", "cuda"),
+        ("attended_only", "cuda"),
+        ("attended_cpu_only", "cpu"),
+    }
     if profile == "smoke" and (
         trainer_cli["epochs"] != 1
         or trainer_cli["batch_size"] != 8
         or trainer_cli["grad_accum_steps"] != 1
-        or trainer_cli["execution_tier"] not in {"attended_only", "attended_cpu_only"}
+        or smoke_execution_identity not in allowed_smoke_execution_identities
         or trainer_cli["subsample_rows"] <= 0
         or window is None
     ):
