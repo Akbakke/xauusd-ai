@@ -2125,6 +2125,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "must be fused into the model-native LONG/SHORT/FLAT decision"
         )
     if bool(getattr(args, "dry_run", False)):
+        cache_binding = dict(mtf_source_provenance["cache_binding"])
         preflight = {
             "schema_version": "entry_candidate_selective_edge_preflight_v1",
             "decision": "PASS_PREFLIGHT_NO_PREDICTION",
@@ -2134,7 +2135,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "bundle_dir": str(bundle_dir),
             "dataset_dir": str(dataset_dir),
             "bundle_core_integrity": bundle_core_integrity,
-            "mtf_source_provenance": mtf_source_provenance,
+            # The full cache provenance contains fitted-registry evidence and
+            # can be megabytes.  It was verified above; the preflight output
+            # records only the identities needed to recognize that result.
+            "mtf_cache_identity_sha256": cache_binding["cache_identity_sha256"],
+            "mtf_cache_manifest_sha256": cache_binding["manifest_sha256"],
+            "mtf_m5_source_sha256": cache_binding["m5_prebuilt_source_sha256"],
             "prediction_written": False,
             "activation_authority": False,
         }

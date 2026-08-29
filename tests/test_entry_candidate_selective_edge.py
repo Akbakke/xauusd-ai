@@ -373,7 +373,13 @@ def test_dry_run_preflights_on_cpu_without_prediction_or_output_write(
     monkeypatch.setattr(
         "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
         "_require_evaluation_mtf_source_provenance",
-        lambda **_kwargs: {"cache_binding": {"cache_identity_sha256": "a" * 64}},
+        lambda **_kwargs: {
+            "cache_binding": {
+                "cache_identity_sha256": "a" * 64,
+                "manifest_sha256": "c" * 64,
+                "m5_prebuilt_source_sha256": "d" * 64,
+            }
+        },
     )
     monkeypatch.setattr(
         "gx1.scripts.evaluate_entry_candidate_selective_edge_v1."
@@ -414,6 +420,7 @@ def test_dry_run_preflights_on_cpu_without_prediction_or_output_write(
 
     assert report["decision"] == "PASS_PREFLIGHT_NO_PREDICTION"
     assert report["prediction_written"] is False
+    assert report["mtf_cache_identity_sha256"] == "a" * 64
     assert load_devices == ["cpu"]
     assert not out_dir.exists()
 
