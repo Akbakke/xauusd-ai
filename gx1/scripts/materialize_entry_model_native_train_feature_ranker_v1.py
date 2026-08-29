@@ -107,6 +107,22 @@ def _parse_utc_arg(value: str, *, field: str) -> pd.Timestamp:
     return ts.tz_convert("UTC")
 
 
+def _require_ranking_output_path(path: Path) -> Path:
+    """Reject an invalid event filename before any source frame is read.
+
+    The ranking build can take material CPU time before its checkpoint is
+    written.  Event identity is independent of every data input, so it must
+    be checked at argument-preflight rather than after target-policy fitting.
+    """
+
+    out_path = path.expanduser().resolve()
+    if not _RANKING_OUTPUT_RE.fullmatch(out_path.name):
+        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_IDENTITY_INVALID: {out_path}")
+    if out_path.exists() or out_path.is_symlink():
+        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_ALREADY_EXISTS: {out_path}")
+    return out_path
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -634,6 +650,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
 
+    # This validation is deliberately first: output-event identity has no
+    # dependency on source data and must not waste a costly TRAIN-only pass.
+    out_path = _require_ranking_output_path(args.out)
     run_id = require_entry_run_id(args.run_id)
     history_start = _parse_utc_arg(args.history_start, field="history_start")
     train_start = _parse_utc_arg(args.train_start, field="train_start")
@@ -719,11 +738,6 @@ def main() -> None:
 
     # Checkpoint: attach + extension cost hours; a trivial late failure must
     # never force recomputation. Bound to run/source/cache and exact window.
-    out_path = args.out.expanduser().resolve()
-    if not _RANKING_OUTPUT_RE.fullmatch(out_path.name):
-        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_IDENTITY_INVALID: {out_path}")
-    if out_path.exists() or out_path.is_symlink():
-        raise RuntimeError(f"FEATURE_RANKER_OUTPUT_ALREADY_EXISTS: {out_path}")
     out_dir = out_path.parent
     checkpoint_path = out_dir / "_ranker_checkpoint.npz"
     group_a_checkpoint_dir = out_dir / "_ranker_group_a_checkpoint"

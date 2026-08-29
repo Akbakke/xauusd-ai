@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -145,6 +146,33 @@ def _availability_fixture() -> tuple[list[str], dict[str, object], dict[str, flo
 
 def test_ranker_feature_attachment_is_single_worker() -> None:
     assert ranker.ATTACH_WORKERS == 1
+
+
+def test_main_rejects_invalid_output_identity_before_reading_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "ranker",
+            "--run-id", RUN_ID,
+            "--source-parquet", str(tmp_path / "missing_source.parquet"),
+            "--canonical-v2-parquet", str(tmp_path / "missing_canonical.parquet"),
+            "--mtf-cache-dir", str(tmp_path / "missing_cache"),
+            "--source-cascade-proof", str(tmp_path / "missing_proof.json"),
+            "--tape-root", str(tmp_path / "missing_tape"),
+            "--m1-lifecycle-source", str(tmp_path / "missing_m1.parquet"),
+            "--expected-source-time-max", "2026-06-30T23:55:00+00:00",
+            "--history-start", "2021-06-01T00:00:00+00:00",
+            "--train-start", "2021-06-01T00:00:00+00:00",
+            "--train-end", "2025-05-31T23:55:00+00:00",
+            "--out", str(tmp_path / "not_a_ranking_event.json"),
+        ],
+    )
+
+    with pytest.raises(RuntimeError, match="FEATURE_RANKER_OUTPUT_IDENTITY_INVALID"):
+        ranker.main()
 
 
 def test_candidate_universe_is_clean_and_large_enough() -> None:
