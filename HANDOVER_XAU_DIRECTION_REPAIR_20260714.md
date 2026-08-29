@@ -1,13 +1,13 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-28. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-29. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
-> Current operational override (2026-08-28): read
+> Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 > before acting on historical run prose below. The active state is audit
-> completion with all background services stopped; no full training, TEST,
+> completion with all background services stopped; no candidate training, TEST,
 > OANDA/demo or live operation is authorised. On 2026-08-28, the retained V46
 > TRAIN/VAL bytes passed a fresh v10 liveness scan and the complete downstream
 > report-only rebind (post-rebuild, smoke manifest/readiness, trainability and
@@ -24,6 +24,13 @@ binding scope; `CLAUDE.md` is the process constitution.
 > for the bounded 32-row technical smoke. A documentation-only descendant is
 > valid only where the full byte-bound execution closure remains exact. It has
 > not executed CUDA or exported a bundle; that remains separately authorised.
+> The later attended technical epoch is now terminal at 4,037/4,037 steps over
+> its declared six-month TRAIN window. Its report is technical-only and keeps
+> candidate, VAL, TEST, backtest and trading authority false. Ten final Exit
+> gates remain neutral because their raw H4/D1 sources were constant in that
+> narrow window; this is a real candidate gate to re-audit on the full window,
+> not evidence that the eight-family routing is absent and not a licence to add
+> synthetic variation.
 
 Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
@@ -274,7 +281,7 @@ backtest, PnL, candidate, demo or live authority. Do not start it from a dirty
 worktree or reuse a prior recipe; first materialize a fresh recipe bound to the
 committed source, then dry-run it.
 
-**Latest current-source guarded rebind, 2026-08-28:** after the fresh v10
+**Historical partial current-source rebind, 2026-08-28:** after the fresh v10
 liveness/readiness chain and a new immutable recipe
 `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T184059379124Z.json`
 (SHA-256 `d8c191f50c764e943f75f691db66524382cc1e8e31ff348d11a2fde9415152b2`),

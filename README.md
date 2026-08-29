@@ -154,21 +154,17 @@ but the system is not empirically finished:
 - clean documentation-only descendants do not invalidate that recipe: runtime
   still requires a committed ancestor, clean worktree and exact byte bindings
   for every executed source file;
-- the first six-month chronological **technical integration** session ran on
-  V46 TRAIN timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive).
-  It bound 32,289 rows and completed a controlled 60/4,037 optimizer-step
-  checkpoint segment: all eight specialists, all five MTF clocks and all ten
-  joint tasks were live and received gradients. It exited normally at 64 C /
-  202.48 W / 8,763 MiB, with no VAL, OOS/backtest, PnL or trading authority.
-  The private terminal report still requires a completed epoch, full liveness
-  and parameter movement;
-- the latest clean-source rebind of that technical integration used the fresh
-  V46 v10 evidence and completed its bounded 60-step segment normally: all ten
-  tasks were supervised and received gradients, optimizer state reached step
-  60, and 722 online tensors differed from the fixed target. The guard peaked
-  at 63 C / 195.53 W / 8,763 MiB. It is deliberately partial (60 of 4,037
-  steps), writes no bundle and performs no VAL/OOS/PnL/win-rate/MAE/MFE
-  evaluation; it is learning-path and machine-safety evidence only;
+- the six-month chronological **technical integration** epoch on V46 TRAIN
+  timestamps from 2024-12-01 (inclusive) to 2025-06-01 (exclusive) is now
+  terminal at 4,037/4,037 optimizer steps over 32,289 rows. Its immutable
+  report is `PASS_TECHNICAL_INTEGRATION_NOT_EDGE`: all eight specialists, five
+  MTF clocks and ten joint tasks were present, supervised, gradient-live and
+  accompanied by parameter movement. It wrote no bundle and performed no VAL,
+  OOS/backtest, PnL, win-rate, MAE/MFE or trading evaluation. The final
+  short-window Exit gate audit is RED for ten neutral gates whose raw MTF
+  source fields were constant in that narrow window; this is neither evidence
+  of missing routing nor a reason to manufacture variation. A full-candidate
+  gate audit remains mandatory;
 - train==serve is a requirement, not a proven state: the source-level ATR,
   long-lookback context and float32-assembly divergences are repaired, but the
   serve-parity gate has not yet emitted a real same-bundle event;

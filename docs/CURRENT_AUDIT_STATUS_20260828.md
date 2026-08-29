@@ -1,4 +1,4 @@
-# Current audit status — 2026-08-28
+# Current audit status — 2026-08-29
 
 This document is the short, current-state override for operational decisions.
 It complements the historical design documents; it does not grant execution
@@ -104,19 +104,19 @@ validated five-clock V4 cache, before compute sampling or optimization.
   attended CUDA lane; the recipe contract now rejects that invalid CPU
   combination before publication, with a regression test. The current CPU
   recipe has no time window and is hash-bound to the repaired source.
-- The explicitly authorised guarded learning-validation session then completed
-  safely from the clean source commit `135e92c2`. Its fresh CUDA recipe is
-  `train_recipe_audit_learning_validation_6m_20260828T184151Z/`
-  `ENTRY_MODEL_NATIVE_SEQ513_TRAIN_RECIPE_AUDIT_20260828T184059379124Z.json`
-  (SHA-256 `d8c191f50c764e943f75f691db66524382cc1e8e31ff348d11a2fde9415152b2`).
-  It fitted normalization on full TRAIN before selecting the exact
-  `[2024-12-01T00:00:00Z, 2025-06-01T00:00:00Z)` window (32,289 rows), then
-  ran the fixed 60 batch-8 optimizer steps and checkpointed every step. All
-  ten joint tasks recorded supervision and gradients; the checkpoint records
-  optimizer step 60 and 722 online tensors differing from the fixed target.
-  The guard exited normally (`child_status=0`) with peaks of 63 C, 195.53 W
-  and 8,763 MiB VRAM. This is a partial, technical-only session: it wrote no
-  bundle and ran no VAL, TEST, OOS, PnL, win-rate, MAE/MFE or trading step.
+- The explicitly authorised guarded learning-validation session reached its
+  terminal state without a restart: the immutable resume pointer is
+  `complete=true` at 4,037/4,037 batch-8 optimizer steps over the exact
+  `[2024-12-01T00:00:00Z, 2025-06-01T00:00:00Z)` 32,289-row TRAIN window.
+  Its terminal report is `PASS_TECHNICAL_INTEGRATION_NOT_EDGE`: all ten joint
+  tasks recorded supervision and gradients, and model parameters moved. It
+  wrote no bundle and ran no VAL, TEST, OOS, PnL, win-rate, MAE/MFE or trading
+  step. The report also correctly keeps candidate authority false: ten Exit
+  feature gates were exactly neutral because their correctly routed H4/D1 raw
+  fields were constant over this deliberately narrow six-month window. The
+  retained full-V46 liveness proof, not artificial gate noise, establishes
+  whether those fields vary across candidate training; a fresh full-candidate
+  gate audit remains required.
 - A current CPU-only candidate-readiness recheck then correctly returned
   `NOT_READY_FOR_CANDIDATE_TRAINING`. The historical diagnostic smoke bundle
   has no `recipe_source_provenance` in its metadata or lock, which is now an
@@ -144,14 +144,12 @@ operation was started while refreshing it.
 3. The active normalizer has been confirmed to fit current TRAIN-only source
    inputs at run time; do not rebuild V46 or manufacture a replacement
    normalization artifact.
-4. Inspect the completed 60-step technical checkpoint and the guard log. It
-   proves live task/gradient paths and safe bounded execution, but not a
-   completed epoch or predictive performance. Do not portray it as VAL,
-   backtest or edge evidence.
-5. Do not automatically resume the remaining chronological epoch. A separate
-   explicit decision is required to run further bounded sessions or to design
-   the full candidate-training plan; either route remains offline and keeps
-   TEST sealed.
+4. Inspect the terminal technical-epoch report and guard logs. They prove live
+   task/gradient paths and safe bounded execution, but not predictive
+   performance. Do not portray them as VAL, backtest or edge evidence.
+5. Do not resume the completed technical epoch. Resolve candidate provenance
+   and complete the fresh full-candidate preflight, including full-window Exit
+   gate evidence, before designing a candidate-training run; TEST stays sealed.
 6. Keep TEST sealed until a single candidate has passed VAL and an immutable
    release event is designed and reviewed. Demo/OANDA comes only after
    backtests and the separate executable-economics/risk gates.

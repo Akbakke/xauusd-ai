@@ -155,11 +155,17 @@ current-contract audit, and do not start full training, TEST, demo or live.
   its terminal private report must prove exact liveness, all joint-task
   supervision/gradients and parameter movement. It produces no bundle and has
   no validation, TEST, backtest, candidate, demo or live authority.
-- The latest current-source pre-candidate segment completed 60/4,037 steps
-  under that contract with all ten joint tasks supervised and gradient-live.
-  It exited normally at 63 C / 195.53 W / 8,763 MiB and persisted its exact
-  resume state. It is still `complete=false`, has no bundle or VAL result, and
-  must not be resumed automatically or represented as an edge result.
+- The attended pre-candidate technical epoch is terminal: its hash-bound resume
+  pointer records `complete=true` at 4,037/4,037 optimizer steps over the
+  declared 32,289-row time window. Its terminal report is
+  `PASS_TECHNICAL_INTEGRATION_NOT_EDGE`: all ten joint tasks were supervised
+  and gradient-live, and model parameters moved. It has no bundle, VAL, TEST,
+  backtest, candidate, promotion, demo or live authority. The final short-window
+  Exit gate evidence is deliberately RED for ten gates that remained neutral
+  because their correctly routed raw MTF fields were constant in that six-month
+  window. Do not fake gate variation or waive the candidate gate: full V46
+  liveness and a fresh full-candidate gate audit must prove those paths before
+  candidate admission.
 - No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
   the current Exit input clock is native closed M1.
 - The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
