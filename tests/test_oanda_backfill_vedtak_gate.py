@@ -183,7 +183,7 @@ def test_backfill_cli_rejects_invalid_vedtak_before_side_effect_setup(
         module.main()
 
 
-def test_backfill_cli_offline_scope_blocks_valid_vedtak_before_side_effect_setup(
+def test_backfill_cli_rejects_unapproved_history_vedtak_before_side_effect_setup(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = canonical_backfill
@@ -212,7 +212,40 @@ def test_backfill_cli_offline_scope_blocks_valid_vedtak_before_side_effect_setup
         lambda: pytest.fail("environment loading happened before offline scope gate"),
     )
 
-    with pytest.raises(RuntimeError, match="GX1_OFFLINE_SCOPE_FORBIDDEN"):
+    with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
+        module.main()
+
+
+def test_backfill_cli_approved_pretest_history_authorization_precedes_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = canonical_backfill
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(module.__file__),
+            "--vedtak",
+            "OANDA_M5_PRETEST_CURRENT_20260829",
+            "--publication-mode",
+            "bootstrap",
+            "--timeframe",
+            "M5",
+            "--start-utc",
+            "2019-01-01T00:00:00Z",
+            "--end-utc",
+            "2026-07-01T00:00:00Z",
+            "--out-root",
+            "/tmp/gx1-oanda-authorized-pretest-test",
+        ],
+    )
+    monkeypatch.setattr(
+        module,
+        "load_dotenv_if_present",
+        lambda: pytest.fail("authorization should permit the next setup stage"),
+    )
+
+    with pytest.raises(pytest.fail.Exception, match="authorization should permit"):
         module.main()
 
 

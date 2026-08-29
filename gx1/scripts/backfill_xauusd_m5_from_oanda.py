@@ -36,7 +36,9 @@ import pyarrow.parquet as pq
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     publish_bundle_directory_noreplace,
 )
-from gx1.contracts.gx1_scope_v1 import require_offline_scope
+from gx1.contracts.oanda_history_ingest_approval_v1 import (
+    require_approved_oanda_history_ingest,
+)
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_CLOSURE_CONTRACT,
     CANONICAL_NATIVE_PRODUCER_OWNER,
@@ -1554,11 +1556,16 @@ def main() -> int:
                 "successor requires a lowercase SHA-256 "
                 "--expected-parent-manifest-sha256"
             )
-    # A syntactically valid historic-data decision is not authority to contact
-    # OANDA while the repository is explicitly frozen to offline evidence.
-    # Keep the future producer intact, but make the current code boundary fail
-    # before dotenv, credentials, network or writes.
-    require_offline_scope("oanda_history_ingest")
+    # This remains a fail-closed exception to the offline freeze.  The narrow
+    # authorization below executes before dotenv, credentials, network, or
+    # writes and permits only the separately approved direct-M5 publications.
+    require_approved_oanda_history_ingest(
+        vedtak_id=args.vedtak,
+        timeframe=args.timeframe,
+        publication_mode=args.publication_mode,
+        start_utc=args.start_utc,
+        end_utc=args.end_utc,
+    )
     load_dotenv_if_present()
     client = _load_oanda_client()
     if args.publication_mode == "bootstrap":
