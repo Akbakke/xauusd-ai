@@ -264,6 +264,28 @@ def test_history_authorization_accepts_only_the_bound_successor_mode() -> None:
     ) == "OANDA_M5_PRETEST_CURRENT_20260829"
 
 
+def test_history_authorization_keeps_m1_and_m5_decision_ids_separate() -> None:
+    from gx1.contracts.oanda_history_ingest_approval_v1 import (
+        require_approved_oanda_history_ingest,
+    )
+
+    assert require_approved_oanda_history_ingest(
+        vedtak_id="OANDA_M1_PRETEST_CURRENT_20260829",
+        timeframe="M1",
+        publication_mode="bootstrap",
+        start_utc="2019-01-01T00:00:00Z",
+        end_utc="2026-07-01T00:00:00Z",
+    ) == "OANDA_M1_PRETEST_CURRENT_20260829"
+    with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
+        require_approved_oanda_history_ingest(
+            vedtak_id="OANDA_M5_PRETEST_CURRENT_20260829",
+            timeframe="M1",
+            publication_mode="bootstrap",
+            start_utc="2019-01-01T00:00:00Z",
+            end_utc="2026-07-01T00:00:00Z",
+        )
+
+
 def test_m1_downsample_cannot_write_canonical_m5_root() -> None:
     with pytest.raises(RuntimeError, match="CANONICAL_M5_SINGLE_OWNER_VIOLATION"):
         m1_downsample.main()

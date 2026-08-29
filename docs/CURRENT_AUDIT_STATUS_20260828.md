@@ -57,14 +57,17 @@ is allowed.
 
 ### Narrow read-only OANDA history intake — authorized 2026-08-29
 
-The user has now authorized one explicitly named, read-only OANDA **M5**
+The user has now authorized separately named, read-only OANDA **M1 and M5**
 history intake. It is not an authorization for OANDA accounts, orders, demo,
 paper execution, collector services or live execution. The code accepts only
-`OANDA_M5_PRETEST_CURRENT_20260829`, and only two immutable publications:
+`OANDA_M1_PRETEST_CURRENT_20260829` on M1 and
+`OANDA_M5_PRETEST_CURRENT_20260829` on M5, and only two immutable
+publications per clock:
 
-- a direct native-M5 bootstrap from `2019-01-01T00:00:00Z` to the exclusive
-  TEST boundary `2026-07-01T00:00:00Z`; this is the sole candidate source for
-  rebuilding the pre-TEST MTF cache; and
+- a direct native bootstrap from `2019-01-01T00:00:00Z` to the exclusive TEST
+  boundary `2026-07-01T00:00:00Z`; the M5 tape is the sole candidate source
+  for rebuilding the pre-TEST MTF cache, and the M1 tape supplies the future
+  closed Exit-lifecycle rebuild; and
 - a CAS-bound successor of that exact source through the completed present;
   this is separate current-market research material and is sealed from the
   preflight TRAIN/VAL/TEST path.
