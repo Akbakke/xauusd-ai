@@ -20,6 +20,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_policy,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+    _entry_position_size_target_policy_from_manifest,
     _masked_position_size_mse,
 )
 
@@ -194,6 +195,48 @@ def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
     assert result["expected_train_end"] == pd.Timestamp(
         "2025-05-31T23:55:00Z"
     )
+
+
+def test_pretest_trainer_uses_last_closed_m5_bar_for_causal_size_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    split_manifest = tmp_path / "pretest_split.manifest.json"
+    split_manifest.write_text(
+        json.dumps(
+            {
+                "splits": {
+                    "train": {
+                        "start": "2021-06-01T00:00:00+00:00",
+                        "end": "2025-06-01T00:00:00+00:00",
+                    }
+                },
+                "extra": {
+                    "pretest_only": True,
+                    "unified_exit_lifecycle": {"m1_source_sha256": "2" * 64},
+                    "entry_causal_m1_position_size_target_policy": {},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured: dict[str, object] = {}
+
+    def _capture(extra: object, **kwargs: object) -> dict[str, object]:
+        del extra
+        captured.update(kwargs)
+        return captured
+
+    monkeypatch.setattr(
+        trainer,
+        "require_causal_m1_position_size_target_manifest_binding",
+        _capture,
+    )
+    assert _entry_position_size_target_policy_from_manifest(split_manifest) == captured
+    assert captured["expected_train_start"] == "2021-06-01T00:00:00+00:00"
+    assert captured["expected_train_end"] == pd.Timestamp("2025-05-31T23:55:00Z")
 
 
 def test_position_size_training_loss_has_zero_gradient_outside_policy_mask() -> None:

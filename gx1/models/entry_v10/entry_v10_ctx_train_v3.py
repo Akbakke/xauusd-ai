@@ -3427,11 +3427,24 @@ def _entry_position_size_target_policy_from_manifest(
     )
     if len(expected_m1_source) != 64:
         raise RuntimeError("[ENTRY_POSITION_SIZE_POLICY_M1_SOURCE_MISSING]")
+    expected_train_end: Any = train_window.get("end")
+    if extra.get("pretest_only") is True:
+        # The pre-TEST M5 split is half-open.  Its causal-M1 sizing policy is
+        # fitted through the last closed M5 bar, not the nominal split
+        # boundary itself.  The target audit uses this same convention; the
+        # trainer must bind exactly the same frozen policy rather than
+        # requesting a non-existent boundary bar.
+        boundary = pd.Timestamp(expected_train_end)
+        if boundary.tzinfo is None:
+            boundary = boundary.tz_localize("UTC")
+        else:
+            boundary = boundary.tz_convert("UTC")
+        expected_train_end = boundary - pd.Timedelta(minutes=5)
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_m1_source_sha256=expected_m1_source,
         expected_train_start=train_window.get("start"),
-        expected_train_end=train_window.get("end"),
+        expected_train_end=expected_train_end,
     )
 
 
