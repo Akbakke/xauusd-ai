@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,30 @@ def _contract(*, nonce: str = "a") -> dict[str, object]:
             "live": False,
         },
         "nonce": nonce,
+    }
+
+
+def _recipe_source_provenance(*, source_commit: str) -> dict[str, object]:
+    bindings = {
+        "trainer": {
+            "path": "/repo/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+            "sha256": "a" * 64,
+            "size_bytes": 1,
+            "mtime_ns": 1,
+            "device": 1,
+            "inode": 1,
+        }
+    }
+    encoded = json.dumps(bindings, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return {
+        "schema_version": "gx1_entry_training_recipe_source_provenance_v1",
+        "recipe_audit_path": "/repo/recipe.json",
+        "recipe_audit_sha256": "b" * 64,
+        "source_commit": source_commit,
+        "source_bindings": bindings,
+        "source_bindings_sha256": hashlib.sha256(encoded).hexdigest(),
     }
 
 
@@ -163,6 +189,39 @@ def test_candidate_session_refuses_contract_and_state_tampering(tmp_path: Path) 
     slot_path.write_bytes(slot_path.read_bytes() + b"tamper")
     with pytest.raises(RuntimeError, match="STATE_SHA256_MISMATCH"):
         session.load_checkpoint()
+
+
+def test_candidate_session_legacy_resume_requires_recipe_source_closure(
+    tmp_path: Path,
+) -> None:
+    out_bundle = tmp_path / "BUNDLE_20260830T081406Z"
+    source_commit = "1" * 40
+    legacy_contract = _contract()
+    legacy_contract["source_commit"] = source_commit
+    legacy = trainer._CandidateTrainingSession(
+        out_bundle_dir=out_bundle,
+        contract=legacy_contract,
+    )
+
+    requested_contract = dict(legacy_contract)
+    requested_contract["recipe_source_provenance"] = _recipe_source_provenance(
+        source_commit=source_commit
+    )
+    resumed = trainer._CandidateTrainingSession(
+        out_bundle_dir=out_bundle,
+        contract=requested_contract,
+    )
+    assert resumed.contract_sha256 == legacy.contract_sha256
+
+    wrong_source_contract = dict(requested_contract)
+    wrong_source_contract["recipe_source_provenance"] = _recipe_source_provenance(
+        source_commit="2" * 40
+    )
+    with pytest.raises(RuntimeError, match="CONTRACT_MISMATCH"):
+        trainer._CandidateTrainingSession(
+            out_bundle_dir=out_bundle,
+            contract=wrong_source_contract,
+        )
 
 
 def test_candidate_session_refuses_state_without_active_pointer(tmp_path: Path) -> None:
@@ -427,6 +486,9 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
             specialist_fusion_scale=0.25,
             cross_family_fusion_scale=0.25,
             unified_exit_lifecycle_evidence=lifecycle,
+            recipe_source_provenance=_recipe_source_provenance(
+                source_commit="1" * 40
+            ),
         )
 
     first_model = torch.nn.Linear(3, 2)

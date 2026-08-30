@@ -5,6 +5,10 @@ For current execution authority and the audit/preflight checkpoint, read
 before using this architecture map. The map describes the intended offline
 pipeline; it does not authorise training, TEST, demo or live operation.
 
+The active candidate-session point is not architecture-map data. Query
+`bash scripts/gx1_handover.sh`; it derives and verifies the referenced recipe,
+source closure, contract and active two-slot state at runtime.
+
 > **Operational checkpoint, 2026-08-30:** the map below remains the intended
 > M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has
 > exact clean-CPU reload parity, but that is not a trained candidate or market

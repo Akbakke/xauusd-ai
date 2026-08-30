@@ -1,5 +1,9 @@
 # Attended staged preflight safety contract
 
+> Runtime-state rule: this safety design has no independent candidate-session
+> authority. Obtain the verified session/recipe/source-closure position from
+> `bash scripts/gx1_handover.sh` before any operator action.
+
 Status: implemented; test and fresh-recipe validation required before the
 first observed V40 execution. The 2026-08-23 operator approval applies as a
 standing safety constraint: no expanded model run may bypass these fixed

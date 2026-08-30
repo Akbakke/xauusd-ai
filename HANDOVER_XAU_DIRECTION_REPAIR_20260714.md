@@ -4,6 +4,12 @@ Updated 2026-08-30. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
+The live candidate position is intentionally derived, not recorded as a
+hardcoded checkpoint below: `bash scripts/gx1_handover.sh` verifies the
+launch-state reference, recipe/source-closure digests, immutable session
+contract, active pointer and state SHA. Any prose value in this handover is
+historical context and cannot authorise a resume.
+
 > **Active continuation — 2026-08-30:** no CUDA, collector, Telegram, OANDA,
 > TEST, demo, paper or live process is active or authorised.  The exact
 > technical checkpoint bundle/reload parity is now `PASS_TECHNICAL_ONLY_NOT_CANDIDATE`:

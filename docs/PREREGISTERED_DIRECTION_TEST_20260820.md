@@ -1,5 +1,9 @@
 # Pre-registered direction test — V34 substrate (aborted; rules retained)
 
+> Runtime-state rule: this protocol owns no candidate-session state. Use
+> `bash scripts/gx1_handover.sh` for the verified recipe/source closure,
+> contract and active-state identity; no copied checkpoint can open TEST.
+
 Written 2026-08-20, BEFORE the dataset exists. Chain V34_20260820T145741Z was
 intentionally aborted before it produced an admissible dataset. The grid, nulls
 and VAL→TEST rule below remain frozen; a successor chain must bind fresh complete

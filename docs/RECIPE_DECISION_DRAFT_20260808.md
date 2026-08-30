@@ -1,5 +1,9 @@
 # DRAFT — next immutable recipe decision (awaiting owner approval)
 
+> Runtime-state rule: this draft does not own a resumable recipe or session.
+> The active recipe/source closure, immutable contract and pointer are verified
+> at read time by `bash scripts/gx1_handover.sh`.
+
 Status: **SUPERSEDED HISTORICAL PROPOSAL ONLY.** This document carries no authority. The recipe owner
 is `gx1/contracts/entry_model_native_train_recipe_v1.py`; nothing changes until
 the owner adopts a decision and the recipe audit re-binds. Drafted 2026-08-08

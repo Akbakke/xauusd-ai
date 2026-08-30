@@ -15,6 +15,10 @@ The contract deliberately enforces all of the following:
 - activation, promotion, online weight updates and background scheduling are
 all `false`.
 
+> Runtime-state rule: this review does not own a candidate checkpoint. Read
+> `bash scripts/gx1_handover.sh` for the runtime-verified recipe, source
+> closure, session contract and active-state identity.
+
 > **Current status, 2026-08-30:** no eligible champion or challenger exists.
 > The technical VAL decision journal is intentionally excluded: it is a
 > one-smoke-checkpoint label/plumbing diagnostic, not a completed rolling-OOS

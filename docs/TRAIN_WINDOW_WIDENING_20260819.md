@@ -1,5 +1,9 @@
 # TRAIN window widening — derivation, measurements, and what stays unproved
 
+> Runtime-state rule: this derivation owns no active candidate session. Obtain
+> the verified recipe/source closure, contract and state identity from
+> `bash scripts/gx1_handover.sh`, never from a checkpoint number below.
+
 Date: 2026-08-19. Decision: widen the declared TRAIN window from
 `2025-06-01 → 2026-05-31` (one year) to **`2021-06-01 → 2026-05-31`**, with
 `--history-start` at the usable feature-surface start. VAL

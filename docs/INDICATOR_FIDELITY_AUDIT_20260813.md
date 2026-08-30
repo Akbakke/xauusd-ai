@@ -1,5 +1,9 @@
 # Indicator fidelity audit — 2026-08-13
 
+> Runtime-state rule: this historical audit owns no live session state.
+> Obtain the selected candidate's verified recipe, source closure, contract and
+> state identity only from `bash scripts/gx1_handover.sh`.
+
 > Historical-scope notice, updated 2026-08-30: this document records the 608/158/189
 > audit substrate and must not be read as the active contract. Current schema,
 > dimensions, retirements and empirical status are owned by `AGENTS.md`,

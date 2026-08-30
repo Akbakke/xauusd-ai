@@ -1,5 +1,9 @@
 # Canonical GPU telemetry: retired bridge record
 
+> Runtime-state rule: GPU telemetry does not identify a resumable candidate.
+> `bash scripts/gx1_handover.sh` is the read-only verifier for the declared
+> recipe/source closure, session contract, pointer and active state.
+
 Status: **the Windows host-telemetry bridge is not a canonical CUDA
 prerequisite.** As of 2026-08-28, offline research uses the pinned native WSL
 `nvidia-smi` path owned by `scripts/gx1_capped_run.sh` and

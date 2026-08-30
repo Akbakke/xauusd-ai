@@ -1,5 +1,9 @@
 # Post-build integrity gate: XAUUSD directional bot
 
+> Runtime-state rule: this gate does not identify a resumable candidate.
+> `bash scripts/gx1_handover.sh` verifies the declared recipe/source closure,
+> immutable session contract, active pointer and state before reporting it.
+
 Status: **V46 REVIEWED — `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`; this is not a training, demo, live, or edge sign-off.**
 
 > **30 August 2026 current-status override:** an immutable technical

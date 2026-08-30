@@ -1,5 +1,9 @@
 # V29 EVENT SURFACE — unified design (2026-08-11)
 
+> Runtime-state rule: this proposal owns no active candidate session. Use
+> `bash scripts/gx1_handover.sh` for the verified recipe/source closure,
+> contract and active-state identity.
+
 Status: **PROPOSAL ONLY.** This document carries no authority and authorizes no
 heavy job. It is the synthesis of the eight family event-gap reports of
 2026-08-11 (`/home/andre2/GX1_DATA/logs/event_gap_review_20260811/{structure_swing,

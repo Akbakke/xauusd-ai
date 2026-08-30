@@ -9,6 +9,11 @@ It overrides older run-history prose for the next action: the V46 feature/data
 audit and bounded CUDA train/resume mechanics are complete, but no full epoch,
 VAL, TEST, demo, live route or background service is authorised automatically.
 
+The current candidate-session position is runtime-derived by
+`bash scripts/gx1_handover.sh`, which validates the declared recipe, source
+closure, session contract and active state pointer. This README never grants a
+resume based on a copied checkpoint number.
+
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is
 > available solely to verify label/trade plumbing.  The observed negative

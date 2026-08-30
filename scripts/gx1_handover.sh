@@ -79,6 +79,7 @@ readarray -t identity < <("$PY" - "$REPO" "$LAUNCH_STATE" \
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -116,6 +117,198 @@ pair_path = Path(sys.argv[3])
 authority_paths = tuple(Path(raw) for raw in sys.argv[4:])
 
 state = json.loads(launch_path.read_text(encoding="utf-8"))
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_regular_json(path: Path, *, label: str) -> dict:
+    if path.is_symlink() or not path.is_file():
+        raise SystemExit(f"FATAL: candidate {label} path is not a regular file: {path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise SystemExit(f"FATAL: candidate {label} JSON is invalid: {path}") from exc
+    if not isinstance(value, dict):
+        raise SystemExit(f"FATAL: candidate {label} JSON is not an object: {path}")
+    return value
+
+
+def _canonical_session_json_sha256(value: dict) -> str:
+    payload = (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        + "\n"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _active_candidate_session_status(launch_state: dict) -> tuple[str, ...]:
+    """Verify the declared session, recipe and live two-slot pointer.
+
+    This is intentionally read-only.  The trainer independently verifies the
+    recipe's source-file bindings immediately before it can resume; this
+    handover check proves that the selected state, recipe identity and session
+    lineage have not drifted into a prose-only checkpoint claim.
+    """
+
+    reference = launch_state.get("active_candidate_training_session")
+    expected_reference_keys = {
+        "schema_version", "session_dir", "recipe_audit_path", "recipe_audit_sha256",
+        "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
+    }
+    if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
+        raise SystemExit("FATAL: active candidate session reference is invalid")
+    if reference.get("schema_version") != "gx1_active_candidate_training_session_reference_v1":
+        raise SystemExit("FATAL: active candidate session reference schema is invalid")
+    for key in ("session_dir", "recipe_audit_path"):
+        if not isinstance(reference.get(key), str) or not reference[key].startswith("/"):
+            raise SystemExit(f"FATAL: active candidate session {key} is invalid")
+    for key in ("recipe_audit_sha256", "source_bindings_sha256"):
+        if not isinstance(reference.get(key), str) or re.fullmatch(r"[0-9a-f]{64}", reference[key]) is None:
+            raise SystemExit(f"FATAL: active candidate session {key} is invalid")
+    if not isinstance(reference.get("source_commit"), str) or re.fullmatch(r"[0-9a-f]{40}", reference["source_commit"]) is None:
+        raise SystemExit("FATAL: active candidate session source_commit is invalid")
+    if not all(isinstance(reference.get(key), str) and reference[key] for key in ("run_id", "dataset_run_id")):
+        raise SystemExit("FATAL: active candidate session run identity is invalid")
+
+    session_dir = Path(reference["session_dir"])
+    if session_dir.is_symlink() or not session_dir.is_dir():
+        raise SystemExit("FATAL: active candidate session directory is invalid")
+    recipe_path = Path(reference["recipe_audit_path"])
+    recipe = _read_regular_json(recipe_path, label="recipe")
+    if _sha256_file(recipe_path) != reference["recipe_audit_sha256"]:
+        raise SystemExit("FATAL: active candidate recipe SHA-256 mismatch")
+    if (
+        recipe.get("decision") != "PASS"
+        or recipe.get("run_id") != reference["run_id"]
+        or recipe.get("dataset_run_id") != reference["dataset_run_id"]
+        or recipe.get("source_commit") != reference["source_commit"]
+        or recipe.get("source_bindings_sha256") != reference["source_bindings_sha256"]
+    ):
+        raise SystemExit("FATAL: active candidate recipe identity mismatch")
+
+    bindings = recipe.get("source_bindings")
+    if (
+        not isinstance(bindings, dict)
+        or not bindings
+        or hashlib.sha256(
+            json.dumps(bindings, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+        ).hexdigest()
+        != reference["source_bindings_sha256"]
+    ):
+        raise SystemExit("FATAL: active candidate source bindings are invalid")
+    for binding_name, binding in bindings.items():
+        if not isinstance(binding_name, str) or not isinstance(binding, dict):
+            raise SystemExit("FATAL: active candidate source binding shape is invalid")
+        binding_path = binding.get("path")
+        binding_sha256 = binding.get("sha256")
+        if (
+            not isinstance(binding_path, str)
+            or not isinstance(binding_sha256, str)
+            or re.fullmatch(r"[0-9a-f]{64}", binding_sha256) is None
+        ):
+            raise SystemExit("FATAL: active candidate source binding value is invalid")
+        try:
+            relative_path = Path(binding_path).relative_to(repo).as_posix()
+        except ValueError as exc:
+            raise SystemExit(
+                "FATAL: active candidate source binding escapes repository"
+            ) from exc
+        frozen = subprocess.run(
+            [
+                "git", "-C", str(repo), "show",
+                f"{reference['source_commit']}:{relative_path}",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if (
+            frozen.returncode != 0
+            or hashlib.sha256(frozen.stdout).hexdigest() != binding_sha256
+        ):
+            raise SystemExit(
+                "FATAL: active candidate frozen source closure mismatch: "
+                f"{binding_name}"
+            )
+
+    contract = _read_regular_json(
+        session_dir / "CANDIDATE_TRAINING_SESSION_CONTRACT.json", label="contract"
+    )
+    expected_authority = {
+        "candidate_training": True, "bundle": False, "validation": False,
+        "test": False, "promotion": False, "paper": False, "live": False,
+    }
+    if (
+        contract.get("schema_version") != "gx1_candidate_training_session_v1"
+        or contract.get("authority") != expected_authority
+        or contract.get("run_id") != reference["run_id"]
+        or contract.get("dataset_run_id") != reference["dataset_run_id"]
+        or contract.get("source_commit") != reference["source_commit"]
+        or contract.get("profile") != "candidate"
+        or contract.get("execution_tier") != "canonical"
+    ):
+        raise SystemExit("FATAL: active candidate contract identity mismatch")
+    contract_sha256 = _canonical_session_json_sha256(contract)
+
+    pointer = _read_regular_json(
+        session_dir / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json", label="pointer"
+    )
+    expected_pointer_keys = {
+        "schema_version", "session_contract_sha256", "slot", "checkpoint_index",
+        "state_sha256", "phase", "epoch_index", "next_batch_offset",
+        "global_optimizer_steps", "complete",
+    }
+    if set(pointer) != expected_pointer_keys:
+        raise SystemExit("FATAL: active candidate pointer keys are invalid")
+    if (
+        pointer.get("schema_version") != "gx1_candidate_training_session_v1"
+        or pointer.get("session_contract_sha256") != contract_sha256
+        or pointer.get("slot") not in (0, 1)
+        or not isinstance(pointer.get("checkpoint_index"), int)
+        or int(pointer["checkpoint_index"]) < 1
+        or pointer.get("phase") not in ("train", "validation")
+        or not isinstance(pointer.get("epoch_index"), int)
+        or int(pointer["epoch_index"]) < 0
+        or not isinstance(pointer.get("next_batch_offset"), int)
+        or int(pointer["next_batch_offset"]) < 0
+        or not isinstance(pointer.get("global_optimizer_steps"), int)
+        or int(pointer["global_optimizer_steps"]) < 0
+        or not isinstance(pointer.get("complete"), bool)
+        or not isinstance(pointer.get("state_sha256"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", pointer["state_sha256"]) is None
+    ):
+        raise SystemExit("FATAL: active candidate pointer is invalid")
+    state_path = session_dir / f"candidate_training_state_slot_{pointer['slot']}.pt"
+    if state_path.is_symlink() or not state_path.is_file():
+        raise SystemExit("FATAL: active candidate state path is invalid")
+    if _sha256_file(state_path) != pointer["state_sha256"]:
+        raise SystemExit("FATAL: active candidate state SHA-256 mismatch")
+
+    validation = "NOT_REACHED" if pointer["phase"] == "train" else "REQUIRES_AUDIT"
+    return (
+        "SESSION_INTACT"
+        f"__checkpoint={pointer['checkpoint_index']}"
+        f"__phase={pointer['phase']}"
+        f"__epoch={pointer['epoch_index']}"
+        f"__next_batch={pointer['next_batch_offset']}"
+        f"__optimizer_steps={pointer['global_optimizer_steps']}"
+        f"__complete={int(pointer['complete'])}",
+        validation,
+        contract_sha256,
+        str(pointer["state_sha256"]),
+        str(reference["recipe_audit_sha256"]),
+        str(reference["source_bindings_sha256"]),
+        "FROZEN_COMMIT_BYTES_MATCH_RECIPE",
+    )
+
+
+candidate_session = _active_candidate_session_status(state)
 try:
     audited_dataset = require_blocked_launch_state_with_current_audited_dataset(
         state
@@ -201,9 +394,21 @@ for raw in filter(None, git_bytes("ls-files", "--others", "--exclude-standard", 
 
 status = git_bytes("status", "--porcelain=v1", "-z")
 changed = len(tuple(filter(None, status.split(b"\0"))))
+ignored_status = git_bytes("status", "--ignored", "--porcelain=v1", "-z")
+ignored = sum(
+    1
+    for entry in filter(None, ignored_status.split(b"\0"))
+    if entry.startswith(b"!! ")
+)
+worktree_porcelain = git_bytes("worktree", "list", "--porcelain").decode("utf-8")
+prunable_worktrees = sum(
+    1 for line in worktree_porcelain.splitlines() if line.startswith("prunable")
+)
 print(authority.hexdigest())
 print(worktree.hexdigest())
 print(changed)
+print(ignored)
+print(prunable_worktrees)
 print(state.get("required_contract_mode", "MISSING"))
 print(state.get("dataset_event_id") or "NONE")
 print(state.get("dataset_admission_stage") or "NONE")
@@ -233,29 +438,49 @@ print(
     f"cache={HTF_V4_CACHE_SCHEMA_VERSION} "
     f"liveness={HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION}"
 )
+for value in candidate_session:
+    print(value)
 PY
 )
 
 authority_sha256=${identity[0]}
 worktree_sha256=${identity[1]}
 changed_path_count=${identity[2]}
-required_contract_mode=${identity[3]}
-dataset_event_id=${identity[4]}
-dataset_admission_stage=${identity[5]}
-audited_dataset_status=${identity[6]}
-audited_dataset_run_id=${identity[7]}
-audited_dataset_report_count=${identity[8]}
-audited_dataset_blocker=${identity[9]}
-pair_generation_id=${identity[10]}
-canonical_v3_path=${identity[11]}
-base28_path=${identity[12]}
-native_m1_root=${identity[13]}
-native_m5_root=${identity[14]}
-m1_time_max=${identity[15]}
-m5_time_max=${identity[16]}
-entry_contract_summary=${identity[17]}
-feature_contract_summary=${identity[18]}
+ignored_path_count=${identity[3]}
+prunable_worktree_count=${identity[4]}
+required_contract_mode=${identity[5]}
+dataset_event_id=${identity[6]}
+dataset_admission_stage=${identity[7]}
+audited_dataset_status=${identity[8]}
+audited_dataset_run_id=${identity[9]}
+audited_dataset_report_count=${identity[10]}
+audited_dataset_blocker=${identity[11]}
+pair_generation_id=${identity[12]}
+canonical_v3_path=${identity[13]}
+base28_path=${identity[14]}
+native_m1_root=${identity[15]}
+native_m5_root=${identity[16]}
+m1_time_max=${identity[17]}
+m5_time_max=${identity[18]}
+entry_contract_summary=${identity[19]}
+feature_contract_summary=${identity[20]}
+candidate_session_status=${identity[21]}
+candidate_validation_status=${identity[22]}
+candidate_session_contract_sha256=${identity[23]}
+candidate_session_state_sha256=${identity[24]}
+candidate_recipe_sha256=${identity[25]}
+candidate_source_bindings_sha256=${identity[26]}
+candidate_source_closure=${identity[27]}
 head_commit=$(git rev-parse HEAD)
+if (( prunable_worktree_count > 0 )); then
+  source_identity_gate=BLOCK_PRUNABLE_WORKTREE_REGISTRATION
+elif (( changed_path_count > 0 )); then
+  source_identity_gate=BLOCK_DIRTY_WORKTREE
+elif (( ignored_path_count > 0 )); then
+  source_identity_gate=REVIEW_IGNORED_CONTENT_OUT_OF_SCOPE
+else
+  source_identity_gate=READY_CLEAN_WORKTREE
+fi
 
 if [[ "$mode" == check ]]; then
   echo "mode: check"
@@ -263,7 +488,12 @@ if [[ "$mode" == check ]]; then
   echo "decision: BLOCK"
   echo "head_commit: $head_commit"
   echo "changed_path_count: $changed_path_count"
+  echo "ignored_path_count: $ignored_path_count"
+  echo "prunable_worktree_count: $prunable_worktree_count"
   echo "worktree_fingerprint: $worktree_sha256"
+  echo "candidate_session: $candidate_session_status"
+  echo "candidate_recipe_sha256: $candidate_recipe_sha256"
+  echo "candidate_source_closure: $candidate_source_closure"
   exit 0
 fi
 
@@ -298,8 +528,13 @@ echo "technical_checkpoint_bundle_parity_method: CLEAN_CPU_TO_CLEAN_CPU_EXACT__C
 echo "val_decision_journal: PASS_VAL_ONLY_PLUMBING_NOT_EDGE_OR_BACKTEST"
 echo "candidate_static_gate_source_policy: EXIT_ONLY_PROVISIONAL_POSITIVE_OPEN__HASH_BOUND_DIRECT_EXIT_INPUT_REQUIRED__ENTRY_STRICT"
 echo "candidate_static_gate_runtime_evidence: PARTIAL_TRAIN_AND_FRESH_PROCESS_RESUME_ONLY_NO_VAL"
-echo "candidate_session: CHECKPOINT_640__FIRST_WINDOW_576__FRESH_PROCESS_RESUMED_577_TO_640"
-echo "candidate_validation: NOT_REACHED__FIRST_VAL_AFTER_31004_TRAIN_BATCHES"
+echo "candidate_session: $candidate_session_status"
+echo "candidate_validation: $candidate_validation_status"
+echo "candidate_session_contract_sha256: $candidate_session_contract_sha256"
+echo "candidate_session_state_sha256: $candidate_session_state_sha256"
+echo "candidate_recipe_sha256: $candidate_recipe_sha256"
+echo "candidate_source_bindings_sha256: $candidate_source_bindings_sha256"
+echo "candidate_source_closure: $candidate_source_closure"
 echo "external_full_training: NO_GO_PENDING_EXPLICIT_COST_REVIEW_FROZEN_COMMIT_RECIPE_AND_FULL_CANDIDATE_PLAN"
 echo "exit_contract: LOCAL_M1_PLUS_CAUSAL_M5_M15_H1_H4_D1_REQUIRED"
 # A restated test count goes stale the moment anyone adds a test — and
@@ -330,8 +565,8 @@ echo "execution_path: DETERMINISTIC_FP32 feature_workers=1 dataloader_workers=0"
 echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
-echo "source_identity_gate: $([[ $changed_path_count == 0 ]] && echo READY_CLEAN_WORKTREE || echo BLOCK_DIRTY_WORKTREE)"
-echo "resume_stage: PRESERVE_FROZEN_CHECKPOINT_640__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
+echo "source_identity_gate: $source_identity_gate"
+echo "resume_stage: VERIFY_SESSION_AND_RECIPE_AT_RUNTIME__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
 echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 dataloader_workers=0 one_job_at_a_time"
@@ -352,9 +587,12 @@ echo
 echo "## Source worktree"
 echo "head_commit: $head_commit"
 echo "changed_path_count: $changed_path_count"
+echo "ignored_path_count: $ignored_path_count"
+echo "ignored_content_scope: NOT_HASHED__REVIEW_REQUIRED_BEFORE_HEAVY_LAUNCH"
 echo "worktree_fingerprint: $worktree_sha256"
 echo "authority_fingerprint: $authority_sha256"
 echo "registered_worktrees: $(git worktree list --porcelain | awk '$1 == "worktree" {count++} END {print count+0}')"
+echo "prunable_worktree_count: $prunable_worktree_count"
 echo "active_training_processes: $(pgrep -fc 'gx1.models.entry_v10.entry_v10_ctx_train_v3 --train' || true)"
 
 if [[ "$mode" == verbose ]]; then

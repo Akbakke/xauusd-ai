@@ -23,6 +23,11 @@ candidate Exit-evidence repair, and a fresh-process resume from batch 576 to a
 durable batch-640 checkpoint. Those are not candidate, backtest or execution
 authority; Entry gate failures remain strict.
 
+The candidate-session position is deliberately not duplicated here. Obtain it
+from `bash scripts/gx1_handover.sh`; its runtime check binds the declared
+recipe, source-closure digest, immutable session contract and active state
+pointer before printing it.
+
 ## Scope freeze
 
 The only active work is offline XAUUSD work: Entry on native M5, Exit on native

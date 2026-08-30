@@ -1,5 +1,9 @@
 # Feature value review — 2026-08-13
 
+> Runtime-state rule: this historical review owns no live session state.
+> Obtain the selected candidate's verified recipe, source closure, contract and
+> state identity only from `bash scripts/gx1_handover.sh`.
+
 > Historical-scope notice, updated 2026-08-30: this V29 review is retained for
 > provenance only. It is not the active V46 field contract and may not be used
 > to add/remove features or infer current liveness. V46's full-surface proof,

@@ -169,14 +169,14 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "candidate_session: "
-        "CHECKPOINT_640__FIRST_WINDOW_576__FRESH_PROCESS_RESUMED_577_TO_640"
+        "SESSION_INTACT__checkpoint=11__phase=train__epoch=0__next_batch=640"
         in result.stdout
     )
-    assert (
-        "candidate_validation: "
-        "NOT_REACHED__FIRST_VAL_AFTER_31004_TRAIN_BATCHES"
-        in result.stdout
-    )
+    assert "candidate_validation: NOT_REACHED" in result.stdout
+    assert "candidate_session_contract_sha256: " in result.stdout
+    assert "candidate_session_state_sha256: " in result.stdout
+    assert "candidate_recipe_sha256: " in result.stdout
+    assert "candidate_source_bindings_sha256: " in result.stdout
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     launch_state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -234,9 +234,10 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "PRESERVE_FROZEN_CHECKPOINT_640__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
+        "VERIFY_SESSION_AND_RECIPE_AT_RUNTIME__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
         in result.stdout
     )
+    assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
     assert (
         "dataset_rebuild: "
         "NOT_REQUIRED_FOR_OFFLINE_RESEARCH; "
@@ -310,6 +311,17 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None
+    candidate_session = state["active_candidate_training_session"]
+    assert candidate_session["schema_version"] == (
+        "gx1_active_candidate_training_session_reference_v1"
+    )
+    assert Path(candidate_session["session_dir"]).is_absolute()
+    assert Path(candidate_session["recipe_audit_path"]).is_absolute()
+    assert re.fullmatch(r"[0-9a-f]{64}", candidate_session["recipe_audit_sha256"])
+    assert re.fullmatch(
+        r"[0-9a-f]{64}", candidate_session["source_bindings_sha256"]
+    )
+    assert re.fullmatch(r"[0-9a-f]{40}", candidate_session["source_commit"])
     blockers = "\n".join(state["blockers"])
     assert "fresh immutable native M1/M5 pair" in blockers
     assert "No admitted dataset" in blockers
@@ -395,11 +407,16 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "decision: BLOCK" in result.stdout
     assert "head_commit:" in result.stdout
     assert "changed_path_count:" in result.stdout
+    assert "ignored_path_count:" in result.stdout
+    assert "prunable_worktree_count:" in result.stdout
     assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
+    assert "candidate_session: SESSION_INTACT__checkpoint=11" in result.stdout
+    assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
+    assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert "## Host capacity" not in result.stdout
     assert "## Active GX1 process groups" not in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
-    assert len(result.stdout.encode("utf-8")) < 420
+    assert len(result.stdout.encode("utf-8")) < 1_000
 
 
 def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:

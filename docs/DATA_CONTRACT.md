@@ -1,5 +1,10 @@
 # GX1 data contract
 
+> Runtime-state rule: the active candidate-session position is owned by
+> `bash scripts/gx1_handover.sh`, which verifies its recipe/source closure,
+> immutable contract and active state. This data contract does not authorise a
+> resume from any prose checkpoint number.
+
 > Runtime-status note, 2026-08-30: V46 data and feature evidence remains PASS.
 > The technical checkpoint now has exact clean-CPU bundle/reload parity and a
 > sealed-VAL-only decision journal, with `TEST ACCESSED: NO`. These prove

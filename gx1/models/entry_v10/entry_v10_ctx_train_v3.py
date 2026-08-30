@@ -1782,6 +1782,36 @@ def _candidate_training_session_read_json(path: Path, *, label: str) -> dict[str
     return value
 
 
+def _candidate_training_session_legacy_contract_matches(
+    *,
+    on_disk: Mapping[str, Any],
+    requested_contract: Mapping[str, Any],
+) -> bool:
+    """Accept only the pre-provenance form of an otherwise exact contract.
+
+    Candidate sessions written before recipe source provenance was persisted
+    cannot be rewritten: their two-slot states bind the legacy contract hash.
+    The launcher now validates the recipe source closure before constructing
+    ``requested_contract``. This narrow bridge therefore permits the old
+    contract only when its recorded commit is the commit certified by that
+    verified closure, and every other immutable setting is byte-for-byte
+    identical.
+    """
+
+    provenance = requested_contract.get("recipe_source_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    source_commit = provenance.get("source_commit")
+    if (
+        not isinstance(source_commit, str)
+        or on_disk.get("source_commit") != source_commit
+    ):
+        return False
+    legacy_requested = dict(requested_contract)
+    legacy_requested.pop("recipe_source_provenance", None)
+    return dict(on_disk) == legacy_requested
+
+
 class _CandidateTrainingSession:
     """Two-slot exact state for an interruptible canonical candidate.
 
@@ -1802,9 +1832,7 @@ class _CandidateTrainingSession:
         self._directory = output.parent / (
             _CANDIDATE_TRAINING_SESSION_DIR_PREFIX + output.name
         )
-        self._contract = dict(contract)
-        self._contract_bytes = _candidate_training_session_json_bytes(self._contract)
-        self._contract_sha256 = hashlib.sha256(self._contract_bytes).hexdigest()
+        requested_contract = dict(contract)
         self._active_path = self._directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
         self._contract_path = self._directory / _CANDIDATE_TRAINING_CONTRACT_FILENAME
         if self._directory.exists():
@@ -1819,24 +1847,42 @@ class _CandidateTrainingSession:
             on_disk = _candidate_training_session_read_json(
                 self._contract_path, label="CONTRACT"
             )
-            if on_disk != self._contract:
+            if on_disk == requested_contract:
+                resolved_contract = requested_contract
+            elif _candidate_training_session_legacy_contract_matches(
+                on_disk=on_disk,
+                requested_contract=requested_contract,
+            ):
+                # Sessions written before recipe source provenance was retained
+                # have state pointers bound to this exact legacy contract hash.
+                # Keep that immutable binding, but only after the current
+                # trainer boundary has revalidated the recipe's byte closure.
+                resolved_contract = on_disk
+            else:
                 raise RuntimeError("[CANDIDATE_TRAINING_SESSION_CONTRACT_MISMATCH]")
         else:
+            resolved_contract = requested_contract
             self._directory.mkdir(mode=0o700)
             try:
+                contract_bytes = _candidate_training_session_json_bytes(
+                    resolved_contract
+                )
                 descriptor = os.open(
                     self._contract_path,
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL,
                     0o600,
                 )
                 with os.fdopen(descriptor, "wb") as handle:
-                    handle.write(self._contract_bytes)
+                    handle.write(contract_bytes)
                     handle.flush()
                     os.fsync(handle.fileno())
                 _fsync_regular_file(self._contract_path)
                 _fsync_directory(self._directory)
             except Exception:
                 raise
+        self._contract = resolved_contract
+        self._contract_bytes = _candidate_training_session_json_bytes(self._contract)
+        self._contract_sha256 = hashlib.sha256(self._contract_bytes).hexdigest()
 
     @property
     def directory(self) -> Path:
@@ -9677,13 +9723,17 @@ def _candidate_training_session_contract(
     cross_family_fusion_scale: float,
     execution_tier: str,
     device_type: str,
+    recipe_source_provenance: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
     The contract has deliberately no tuning knob for an alternate data slice,
-    objective, model, feature family or target.  A changed source revision,
-    artifact or execution geometry must create a new candidate output rather
-    than resume a state trained under different semantics.
+    objective, model, feature family or target. The direct trainer boundary
+    has already revalidated the recipe's exact source bytes; retain that full
+    closure here rather than binding resume to an unrelated later HEAD commit.
+    A changed recipe/source closure, artifact or execution geometry must create
+    a new candidate output rather than resume a state trained under different
+    semantics.
     """
 
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
@@ -9743,6 +9793,14 @@ def _candidate_training_session_contract(
     }
     if any(path.is_symlink() or not path.is_file() for path in artifact_paths.values()):
         raise RuntimeError("[CANDIDATE_TRAINING_ARTIFACT_PATH_INVALID]")
+    from gx1.contracts.entry_model_native_train_launch_v1 import (
+        require_training_recipe_source_provenance_metadata,
+    )
+
+    recipe_source_provenance = require_training_recipe_source_provenance_metadata(
+        recipe_source_provenance,
+        context="CANDIDATE_TRAINING_SESSION",
+    )
     return {
         "schema_version": _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
         "authority": {
@@ -9754,7 +9812,11 @@ def _candidate_training_session_contract(
             "paper": False,
             "live": False,
         },
-        "source_commit": _git_commit(),
+        # The recipe commit is retained for committed lineage. Its exact file
+        # bindings, verified at the launch boundary, own source freshness and
+        # permit a documentation-only descendant checkout to resume safely.
+        "source_commit": str(recipe_source_provenance["source_commit"]),
+        "recipe_source_provenance": recipe_source_provenance,
         "out_bundle_dir": str(Path(out_bundle_dir).expanduser().resolve()),
         "run_id": str(run_id),
         "dataset_run_id": str(dataset_run_id),
@@ -10714,6 +10776,7 @@ def _run_resumable_candidate_training(
     specialist_fusion_scale: float,
     cross_family_fusion_scale: float,
     unified_exit_lifecycle_evidence: Mapping[str, Any],
+    recipe_source_provenance: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -10764,6 +10827,7 @@ def _run_resumable_candidate_training(
             cross_family_fusion_scale=cross_family_fusion_scale,
             execution_tier="canonical",
             device_type=device.type,
+            recipe_source_provenance=recipe_source_provenance,
         ),
     )
     restored_state = session.load_checkpoint()
@@ -12694,6 +12758,7 @@ def run_train(
             specialist_fusion_scale=specialist_fusion_scale,
             cross_family_fusion_scale=cross_family_fusion_scale,
             unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
+            recipe_source_provenance=recipe_source_provenance,
         )
         best_state = candidate_result["best_state"]
         best_val = float(candidate_result["best_val"])

@@ -8,6 +8,11 @@ It is intentionally stricter than historical run notes: background services
 remain stopped and no full training, TEST, demo or live route is authorised
 until the current V46 audit/preflight sequence is complete.
 
+`bash scripts/gx1_handover.sh` owns the live candidate-session position. It
+must verify the launch-state session reference, recipe/source-closure identity,
+session contract and active checkpoint state at runtime; prose checkpoint
+numbers are historical evidence only.
+
 > **2026-08-30 override:** the technical checkpoint bundle/reload parity and
 > VAL-only label journal are plumbing evidence only.  They do not authorise
 > external compute, a backtest/edge claim, TEST, OANDA, demo, paper or live

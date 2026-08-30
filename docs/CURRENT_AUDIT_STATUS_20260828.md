@@ -4,6 +4,12 @@ This document is the short, current-state override for operational decisions.
 It complements the historical design documents; it does not grant execution
 authority. `scripts/gx1_handover.sh` remains the executable status owner.
 
+The selected candidate session is now a runtime-verified launch-state
+reference: the handover verifies its recipe SHA/source-closure identity,
+immutable contract, active pointer and state SHA before it reports progress.
+The checkpoint numbers retained below document observed evidence only; they do
+not bypass a clean source preflight or authorise a new heavy job.
+
 ## Current verdict
 
 The project is offline research only. There is no admitted production model,

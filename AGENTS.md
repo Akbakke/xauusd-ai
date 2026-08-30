@@ -4,6 +4,11 @@ Read `GX1_RULES.md` first. It is binding.
 
 ## Current truth
 
+`bash scripts/gx1_handover.sh` is the only source for the active candidate
+session position. It verifies the launch-state reference, recipe SHA/source
+closure identity, session contract, pointer and active state SHA at runtime;
+never treat a checkpoint number in this document as an operational command.
+
 **Operational override, 2026-08-30:**
 [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 is the short current-state companion to this historical handover. It controls

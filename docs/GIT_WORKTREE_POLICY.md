@@ -8,6 +8,14 @@ untracked files may belong to the user or another agent. Do not reset,
 checkout, overwrite, stage or delete unrelated changes. Coordinate overlapping
 files and inspect the exact diff before editing.
 
+`bash scripts/gx1_handover.sh --check` is the read-only worktree/status
+verifier. It reports prunable registered worktrees separately and treats one
+as a fail-closed source-identity condition; inspect its path and reachability
+before an owner explicitly runs any prune/cleanup command. The fingerprint
+covers tracked changes and non-ignored untracked paths. Ignored content is
+reported but deliberately not hashed, so it requires review before a heavy
+launch; never mistake a green tracked diff for proof about ignored files.
+
 > **2026-08-30 checkpoint:** the active repair contains technical
 > checkpoint-parity, VAL-journal and candidate Exit-evidence binding changes,
 > plus the checkpoint-640 fresh-process resume evidence. They must pass focused
@@ -26,10 +34,10 @@ Cleanup under `/home/andre2/GX1_DATA` is a separate explicitly authorized act.
 
 The authoritative status files (`PROJECT_STATE_xau_direction_launch.json`, the
 handover and every Markdown file fingerprinted by `scripts/gx1_handover.sh`)
-must be updated together in one reviewed commit. They describe the current
-checkpoint-640 partial candidate, not an admitted model: its first guarded
-window reached 576 batches and a fresh process resumed to 640. Do not leave a
-stale recipe, stale driver-cap assertion or old execution plan in one document
-while changing another. The next local CUDA operation must be explicitly
-declared against the frozen source/recipe/session; candidate VAL, TEST, demo
-and live remain blocked.
+must be updated together in one reviewed commit. They describe a partial,
+non-admitted candidate session, but its live position is derived only by the
+handover's runtime checks of the launch-state reference, recipe/source closure,
+contract, pointer and state SHA. Do not leave a stale recipe, stale driver-cap
+assertion or old execution plan in one document while changing another. The
+next local CUDA operation must be explicitly declared against the frozen
+source/recipe/session; candidate VAL, TEST, demo and live remain blocked.
