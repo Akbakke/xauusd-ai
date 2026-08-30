@@ -513,10 +513,7 @@ class _TechnicalValidationSession:
 
 def _task_summary(stats: Mapping[str, Any], model: torch.nn.Module) -> dict[str, Any]:
     loss_keys = {
-        "entry_action_q": "entry_action_q_raw_bps_mse_mean",
-        "unified_exit_action": "unified_exit_raw_bps_q_mse_mean",
-        "side_mae_bps": "side_mae_loss_mean",
-        "trendline_event": "trendline_event_loss_mean",
+        task: f"joint_task_raw_loss_mean_{task}" for task in JOINT_TASK_NAMES
     }
     diagnostics = stats.get("active_head_diagnostics")
     diagnostics = diagnostics if isinstance(diagnostics, Mapping) else {}
@@ -537,7 +534,10 @@ def _task_summary(stats: Mapping[str, Any], model: torch.nn.Module) -> dict[str,
             "task_name": task,
             "learned_log_variance": log_variance,
             "effective_weight": (math.exp(-log_variance) if log_variance is not None else None),
-            "validation_loss": _safe_json(stats.get(loss_keys[task])) if task in loss_keys else None,
+            "validation_loss": _safe_json(stats.get(loss_keys[task])),
+            "supervised_cells": _safe_json(
+                stats.get(f"joint_task_supervised_cells_{task}")
+            ),
             "diagnostics": _safe_json(diagnostics.get(alias.get(task, task))),
         }
         if task == "unified_exit_action":

@@ -8347,7 +8347,14 @@ def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
         "heads": {
             head_name: {"components": {}}
             for head_name in MODEL_NATIVE_ACTIVE_HEADS
-        }
+        },
+        "entry_row_index_chunks": [],
+        # Kept inside the existing resume-safe active-head accumulator so a
+        # segmented full VAL can report the exact raw loss of every task.
+        "joint_task_loss_evidence": {
+            task_name: {"weighted_sum": 0.0, "supervised_cells": 0}
+            for task_name in JOINT_TASK_NAMES
+        },
     }
 
 
@@ -8453,7 +8460,7 @@ def _accumulate_active_head_epoch(
     out: Dict[str, torch.Tensor],
     batch: Dict[str, torch.Tensor],
     device: torch.device,
-) -> None:
+) -> dict[str, int]:
     surfaces = _active_head_target_surfaces(
         out,
         batch,
@@ -8464,8 +8471,21 @@ def _accumulate_active_head_epoch(
         MODEL_NATIVE_ACTIVE_HEADS
     ):
         raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ACCUMULATOR_INVALID]")
+    entry_row_index = batch.get("entry_row_index")
+    if (
+        not isinstance(entry_row_index, torch.Tensor)
+        or entry_row_index.ndim != 1
+        or int(entry_row_index.shape[0]) < 1
+    ):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ENTRY_INDEX_INVALID]")
+    index_chunks = accumulator.setdefault("entry_row_index_chunks", [])
+    if not isinstance(index_chunks, list):
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ENTRY_INDEX_INVALID]")
+    index_chunks.append(entry_row_index.detach().cpu().long().numpy())
 
+    supervised_cells: dict[str, int] = {}
     for head_name, components in surfaces.items():
+        head_supervised_cells = 0
         for component_name, (prediction, target, mask) in components.items():
             if prediction.ndim != 2 or target.ndim != 2:
                 raise RuntimeError(
@@ -8503,6 +8523,333 @@ def _accumulate_active_head_epoch(
             component_store["mask"].append(
                 element_mask.detach().bool().cpu().numpy()
             )
+            head_supervised_cells += int(element_mask.detach().sum().cpu().item())
+        supervised_cells[head_name] = head_supervised_cells
+    return supervised_cells
+
+
+_ACTIVE_HEAD_TO_JOINT_TASK = {
+    "entry_action_q": "entry_action_q",
+    "position_size": "position_size",
+    "dip": "dip_bps",
+    "forecast": "forecast_return_bps",
+    "timing": "dip_timing_fraction",
+    "tail_risk": "tail_risk_bps",
+    "vol_forecast": "forward_volatility_bps",
+    "side_mae": "side_mae_bps",
+    "trendline_event": "trendline_event",
+}
+
+
+def _accumulate_joint_task_loss_evidence(
+    accumulator: Dict[str, Any],
+    task_losses: Mapping[str, torch.Tensor],
+    *,
+    active_head_supervised_cells: Mapping[str, int],
+    unified_exit_supervised_cells: int,
+) -> None:
+    """Add exact task-loss evidence without changing the learned objective."""
+
+    evidence = accumulator.setdefault(
+        "joint_task_loss_evidence",
+        {
+            task_name: {"weighted_sum": 0.0, "supervised_cells": 0}
+            for task_name in JOINT_TASK_NAMES
+        },
+    )
+    if not isinstance(evidence, dict) or set(evidence) != set(JOINT_TASK_NAMES):
+        raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+    cells_by_task = {
+        _ACTIVE_HEAD_TO_JOINT_TASK[head_name]: int(cells)
+        for head_name, cells in active_head_supervised_cells.items()
+        if head_name in _ACTIVE_HEAD_TO_JOINT_TASK
+    }
+    cells_by_task["unified_exit_action"] = int(unified_exit_supervised_cells)
+    for task_name, loss in task_losses.items():
+        if task_name not in JOINT_TASK_NAMES or not isinstance(loss, torch.Tensor):
+            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+        cells = int(cells_by_task.get(task_name, 0))
+        if cells < 1:
+            raise RuntimeError(
+                "[ENTRY_JOINT_TASK_LOSS_EVIDENCE_DENOMINATOR_INVALID]"
+            )
+        row = evidence.get(task_name)
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"weighted_sum", "supervised_cells"}
+            or not isinstance(row["weighted_sum"], (int, float))
+            or not isinstance(row["supervised_cells"], int)
+        ):
+            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+        value = float(loss.detach().cpu().item())
+        if not math.isfinite(value):
+            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_NONFINITE]")
+        row["weighted_sum"] = float(row["weighted_sum"]) + value * cells
+        row["supervised_cells"] = int(row["supervised_cells"]) + cells
+
+
+def _finalize_joint_task_loss_evidence(
+    accumulator: Mapping[str, Any],
+) -> dict[str, Any]:
+    evidence = accumulator.get("joint_task_loss_evidence")
+    if not isinstance(evidence, Mapping) or set(evidence) != set(JOINT_TASK_NAMES):
+        raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+    result: dict[str, Any] = {}
+    for task_name in JOINT_TASK_NAMES:
+        row = evidence.get(task_name)
+        if (
+            not isinstance(row, Mapping)
+            or set(row) != {"weighted_sum", "supervised_cells"}
+            or not isinstance(row.get("supervised_cells"), int)
+            or int(row["supervised_cells"]) < 1
+            or not isinstance(row.get("weighted_sum"), (int, float))
+            or not math.isfinite(float(row["weighted_sum"]))
+        ):
+            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+        count = int(row["supervised_cells"])
+        result[f"joint_task_raw_loss_mean_{task_name}"] = (
+            float(row["weighted_sum"]) / count
+        )
+        result[f"joint_task_supervised_cells_{task_name}"] = count
+    return result
+
+
+def _finite_pearson(left: np.ndarray, right: np.ndarray) -> float | None:
+    if (
+        left.size < 2
+        or not np.isfinite(left).all()
+        or not np.isfinite(right).all()
+        or float(np.std(left)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+        or float(np.std(right)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+    ):
+        return None
+    value = float(np.corrcoef(left, right)[0, 1])
+    return value if math.isfinite(value) else None
+
+
+def _active_head_component_validation_metrics(
+    *,
+    component_name: str,
+    prediction: np.ndarray,
+    target: np.ndarray,
+    element_mask: np.ndarray,
+) -> dict[str, Any]:
+    """Return task-appropriate, no-TEST metrics from already-held VAL arrays."""
+
+    flat_prediction = prediction[element_mask].astype(np.float64, copy=False)
+    flat_target = target[element_mask].astype(np.float64, copy=False)
+    if flat_prediction.size < 1 or not np.isfinite(flat_prediction).all() or not np.isfinite(flat_target).all():
+        raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_NONFINITE]")
+
+    is_binary = component_name == "trendline_event_logits"
+    is_unit_interval_regression = component_name == "position_size_logit"
+    if is_binary or is_unit_interval_regression:
+        clipped = np.clip(flat_prediction, -60.0, 60.0)
+        observed_prediction = 1.0 / (1.0 + np.exp(-clipped))
+        prediction_space = "sigmoid_probability"
+    else:
+        observed_prediction = flat_prediction
+        prediction_space = "native"
+
+    result: dict[str, Any] = {
+        "prediction_space": prediction_space,
+        "prediction_mean": float(np.mean(observed_prediction)),
+        "prediction_std": float(np.std(observed_prediction)),
+        "target_mean": float(np.mean(flat_target)),
+        "target_std": float(np.std(flat_target)),
+        "prediction_nan_inf_count": 0,
+        "target_nan_inf_count": 0,
+    }
+    if is_binary:
+        labels = flat_target >= 0.5
+        probability = observed_prediction
+        predicted_positive = probability >= 0.5
+        positives = int(labels.sum())
+        negatives = int(labels.size - positives)
+        baseline_probability = float(np.mean(labels))
+        epsilon = 1e-12
+        bce = -np.mean(
+            labels * np.log(np.clip(probability, epsilon, 1.0 - epsilon))
+            + (~labels) * np.log(np.clip(1.0 - probability, epsilon, 1.0 - epsilon))
+        )
+        baseline_bce = -(
+            baseline_probability * math.log(max(baseline_probability, epsilon))
+            + (1.0 - baseline_probability)
+            * math.log(max(1.0 - baseline_probability, epsilon))
+        )
+        true_positive = int((predicted_positive & labels).sum())
+        precision_denominator = int(predicted_positive.sum())
+        ranks = pd.Series(probability).rank(method="average").to_numpy(dtype=np.float64)
+        auc = (
+            float((ranks[labels].sum() - positives * (positives + 1) / 2.0) / (positives * negatives))
+            if positives > 0 and negatives > 0
+            else None
+        )
+        bins = np.minimum((probability * 10.0).astype(np.int64), 9)
+        calibration_error = 0.0
+        for bin_index in range(10):
+            in_bin = bins == bin_index
+            if bool(in_bin.any()):
+                calibration_error += float(in_bin.mean()) * abs(
+                    float(probability[in_bin].mean())
+                    - float(labels[in_bin].mean())
+                )
+        result.update(
+            {
+                "metric_type": "binary_classification",
+                "binary_cross_entropy": float(bce),
+                "constant_prevalence_baseline_binary_cross_entropy": float(baseline_bce),
+                "accuracy_at_0_5": float(np.mean(predicted_positive == labels)),
+                "precision_at_0_5": (
+                    float(true_positive / precision_denominator)
+                    if precision_denominator > 0
+                    else None
+                ),
+                "recall_at_0_5": (
+                    float(true_positive / positives) if positives > 0 else None
+                ),
+                "auc": auc,
+                "expected_calibration_error_10_bins": float(calibration_error),
+            }
+        )
+        return result
+
+    baseline = float(np.mean(flat_target))
+    rank_prediction = pd.Series(observed_prediction).rank(method="average").to_numpy(
+        dtype=np.float64
+    )
+    rank_target = pd.Series(flat_target).rank(method="average").to_numpy(
+        dtype=np.float64
+    )
+    result.update(
+        {
+            "metric_type": "regression",
+            "mean_absolute_error": float(
+                np.mean(np.abs(observed_prediction - flat_target))
+            ),
+            "mean_squared_error": float(
+                np.mean((observed_prediction - flat_target) ** 2)
+            ),
+            "constant_mean_baseline_mean_squared_error": float(
+                np.mean((baseline - flat_target) ** 2)
+            ),
+            "pearson": _finite_pearson(observed_prediction, flat_target),
+            "spearman_rank_ic": _finite_pearson(rank_prediction, rank_target),
+        }
+    )
+    return result
+
+
+def _entry_action_q_primary_validation_diagnostics(
+    *,
+    prediction: np.ndarray,
+    target: np.ndarray,
+    valid: np.ndarray,
+    entry_row_indices: np.ndarray,
+    dataset: EntryV10CtxDataset,
+) -> dict[str, Any]:
+    """Diagnostic ranking evidence for the sole production Entry-Q authority."""
+
+    if (
+        prediction.ndim != 2
+        or target.shape != prediction.shape
+        or valid.shape != prediction.shape
+        or prediction.shape[1] != 3
+        or entry_row_indices.shape != (prediction.shape[0],)
+        or entry_row_indices.size < 10
+        or int(entry_row_indices.min()) < 0
+        or int(entry_row_indices.max()) >= len(dataset.df)
+        or not np.all(np.diff(entry_row_indices) > 0)
+    ):
+        raise RuntimeError("[ENTRY_PRIMARY_Q_DIAGNOSTIC_INDEX_INVALID]")
+    if not bool(valid.any(axis=1).all()):
+        raise RuntimeError("[ENTRY_PRIMARY_Q_DIAGNOSTIC_MASK_INVALID]")
+    masked_prediction = np.where(valid, prediction, -np.inf)
+    chosen_action = np.argmax(masked_prediction, axis=1)
+    rows = np.arange(prediction.shape[0])
+    selected_prediction = prediction[rows, chosen_action]
+    selected_target = target[rows, chosen_action]
+    if not np.isfinite(selected_prediction).all() or not np.isfinite(selected_target).all():
+        raise RuntimeError("[ENTRY_PRIMARY_Q_DIAGNOSTIC_NONFINITE]")
+    # `method=first` gives a deterministic, complete ten-way partition even
+    # for tied Q predictions. It is reporting-only and cannot affect policy.
+    decile = np.minimum(
+        np.ceil(
+            pd.Series(selected_prediction).rank(method="first", pct=True).to_numpy()
+            * 10.0
+        ).astype(np.int64)
+        - 1,
+        9,
+    )
+    deciles: list[dict[str, Any]] = []
+    target_means: list[float] = []
+    for index in range(10):
+        members = decile == index
+        target_mean = float(selected_target[members].mean())
+        target_means.append(target_mean)
+        deciles.append(
+            {
+                "decile": index + 1,
+                "rows": int(members.sum()),
+                "prediction_mean_bps": float(selected_prediction[members].mean()),
+                "target_mean_bps": target_mean,
+            }
+        )
+    times = pd.to_datetime(
+        dataset.df.iloc[entry_row_indices]["time"], utc=True, errors="raise"
+    )
+
+    def grouped(rows: np.ndarray, labels: np.ndarray) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for label in sorted(set(str(value) for value in labels)):
+            members = np.asarray([str(value) == label for value in labels], dtype=bool)
+            result.append(
+                {
+                    "bucket": label,
+                    "rows": int(members.sum()),
+                    "prediction_mean_bps": float(selected_prediction[members].mean()),
+                    "target_mean_bps": float(selected_target[members].mean()),
+                    "pearson": _finite_pearson(
+                        selected_prediction[members], selected_target[members]
+                    ),
+                }
+            )
+        return result
+
+    month = times.dt.strftime("%Y-%m").to_numpy()
+    hour = times.dt.hour.to_numpy()
+    utc_session = np.select(
+        [hour < 7, hour < 13, hour < 22],
+        ["asia_utc", "london_utc", "new_york_utc"],
+        default="asia_utc",
+    )
+    return {
+        "primary_head": "entry_action_q",
+        "selection": "highest_valid_raw_bps_q",
+        "rows": int(prediction.shape[0]),
+        "selected_q_pearson": _finite_pearson(selected_prediction, selected_target),
+        "selected_q_spearman_rank_ic": _finite_pearson(
+            pd.Series(selected_prediction).rank(method="average").to_numpy(dtype=np.float64),
+            pd.Series(selected_target).rank(method="average").to_numpy(dtype=np.float64),
+        ),
+        "deciles": deciles,
+        "top_decile_minus_bottom_decile_target_bps": float(
+            target_means[-1] - target_means[0]
+        ),
+        "adjacent_decile_non_decreasing_fraction": float(
+            np.mean(np.diff(np.asarray(target_means)) >= 0.0)
+        ),
+        "monthly_stability": grouped(entry_row_indices, month),
+        "utc_session_stability": grouped(entry_row_indices, utc_session),
+        "volatility_regime_stability": {
+            "available": False,
+            "reason": "no locked regime label column exists in the fitted-Q VAL parquet",
+        },
+        "trend_range_regime_stability": {
+            "available": False,
+            "reason": "no locked regime label column exists in the fitted-Q VAL parquet",
+        },
+    }
 
 
 
@@ -8510,6 +8857,7 @@ def _active_head_epoch_diagnostics(
     accumulator: Dict[str, Any],
     *,
     minimum_supervised_rows: int = _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS,
+    dataset: EntryV10CtxDataset | None = None,
 ) -> Tuple[Dict[str, Any], List[str]]:
     """Finalize epoch-wide target, output-liveness and fusion-influence proof."""
     if int(minimum_supervised_rows) < 2:
@@ -8518,6 +8866,20 @@ def _active_head_epoch_diagnostics(
     head_store = accumulator.get("heads") if isinstance(accumulator, dict) else None
     if not isinstance(head_store, dict):
         return {}, failures + ["[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_EVIDENCE_MISSING]"]
+    entry_row_indices: np.ndarray | None = None
+    index_chunks = accumulator.get("entry_row_index_chunks")
+    if index_chunks is not None:
+        if not isinstance(index_chunks, list) or not index_chunks:
+            if dataset is not None:
+                failures.append("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ENTRY_INDEX_INVALID]")
+        else:
+            try:
+                entry_row_indices = np.concatenate(
+                    [np.asarray(chunk, dtype=np.int64) for chunk in index_chunks],
+                    axis=0,
+                )
+            except (TypeError, ValueError):
+                failures.append("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ENTRY_INDEX_INVALID]")
 
     missing_heads = sorted(set(MODEL_NATIVE_ACTIVE_HEADS) - set(head_store))
     unexpected_heads = sorted(set(head_store) - set(MODEL_NATIVE_ACTIVE_HEADS))
@@ -8693,9 +9055,15 @@ def _active_head_epoch_diagnostics(
                 "structural_constant_columns": sorted(
                     structural_constant_columns
                 ),
+                "validation_metrics": _active_head_component_validation_metrics(
+                    component_name=component_name,
+                    prediction=prediction,
+                    target=target,
+                    element_mask=element_mask,
+                ),
             }
 
-        head_metrics[head_name] = {
+        head_metric = {
             "ok": len(failures) == failure_count_before,
             "components": component_metrics,
             "entry_action_authority": (
@@ -8704,6 +9072,31 @@ def _active_head_epoch_diagnostics(
                 else "sole_raw_bps_entry_q"
             ),
         }
+        if head_name == "entry_action_q":
+            component = components.get("entry_action_q_bps")
+            if (
+                dataset is not None
+                and isinstance(component, dict)
+                and entry_row_indices is not None
+            ):
+                prediction_chunks = component.get("prediction")
+                target_chunks = component.get("target")
+                mask_chunks = component.get("mask")
+                if (
+                    isinstance(prediction_chunks, list)
+                    and isinstance(target_chunks, list)
+                    and isinstance(mask_chunks, list)
+                ):
+                    head_metric["primary_production_diagnostics"] = (
+                        _entry_action_q_primary_validation_diagnostics(
+                            prediction=np.concatenate(prediction_chunks, axis=0),
+                            target=np.concatenate(target_chunks, axis=0),
+                            valid=np.concatenate(mask_chunks, axis=0),
+                            entry_row_indices=entry_row_indices,
+                            dataset=dataset,
+                        )
+                    )
+        head_metrics[head_name] = head_metric
 
     metrics = {
         "active_head_diagnostic_schema": (
@@ -9658,7 +10051,7 @@ def validate(
             active_head_out["_entry_action_q_valid"] = (
                 entry_action_q_valid
             )
-            _accumulate_active_head_epoch(
+            active_head_supervised_cells = _accumulate_active_head_epoch(
                 active_head_epoch,
                 model,
                 active_head_out,
@@ -9714,6 +10107,14 @@ def validate(
                 )
             task_losses.update(dip_forecast_task_losses(out, batch, device))
             loss, _joint_task_stats = _joint_task_loss(model, task_losses)
+            _accumulate_joint_task_loss_evidence(
+                active_head_epoch,
+                task_losses,
+                active_head_supervised_cells=active_head_supervised_cells,
+                unified_exit_supervised_cells=int(
+                    unified_exit_stats["q_valid_cells"]
+                ),
+            )
             bs = batch_rows
             total += float(loss) * bs
             entry_q_loss_sum += float(entry_action_q_loss) * bs
@@ -9920,6 +10321,7 @@ def validate(
             for name in JOINT_TASK_NAMES
         }
     )
+    stats.update(_finalize_joint_task_loss_evidence(active_head_epoch))
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     exit_gate_stats, exit_gate_failures = _finalize_unified_exit_gate_epoch(
@@ -9937,7 +10339,8 @@ def validate(
             )
         )
     active_head_metrics, active_head_failures = _active_head_epoch_diagnostics(
-        active_head_epoch
+        active_head_epoch,
+        dataset=dataset,
     )
     stats.update(active_head_metrics)
     if active_head_failures:
@@ -9951,6 +10354,7 @@ def validate(
             minimum_supervised_rows=(
                 active_head_technical_smoke_min_supervised_rows
             ),
+            dataset=dataset,
         )
         stats["active_head_technical_smoke_evidence"] = {
             "schema_version": "entry_active_head_technical_smoke_evidence_v1",

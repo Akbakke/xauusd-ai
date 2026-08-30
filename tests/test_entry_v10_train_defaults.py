@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
+import pandas as pd
+import torch
 
 from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_ACTIVE_HEADS,
@@ -124,6 +127,67 @@ def test_every_current_active_head_has_live_target_and_output_evidence() -> None
         ]
         == "sole_raw_bps_entry_q"
     )
+    component = metrics["active_head_diagnostics"]["forecast"]["components"][
+        "forecast_pred"
+    ]
+    assert component["validation_metrics"]["metric_type"] == "regression"
+    assert "pearson" in component["validation_metrics"]
+
+
+def test_primary_entry_q_diagnostics_are_chronological_and_deciled() -> None:
+    rows = 20
+    prediction = np.column_stack(
+        (
+            np.linspace(-2.0, 2.0, rows),
+            np.linspace(-3.0, 1.0, rows),
+            np.linspace(-4.0, 0.0, rows),
+        )
+    )
+    target = prediction * 2.0
+    dataset = SimpleNamespace(
+        df=pd.DataFrame(
+            {
+                "time": pd.date_range(
+                    "2025-06-01T00:00:00Z", periods=rows, freq="12h"
+                )
+            }
+        )
+    )
+    observed = trainer._entry_action_q_primary_validation_diagnostics(
+        prediction=prediction,
+        target=target,
+        valid=np.ones_like(prediction, dtype=bool),
+        entry_row_indices=np.arange(rows, dtype=np.int64),
+        dataset=dataset,
+    )
+    assert observed["primary_head"] == "entry_action_q"
+    assert len(observed["deciles"]) == 10
+    assert observed["top_decile_minus_bottom_decile_target_bps"] > 0.0
+    assert observed["volatility_regime_stability"]["available"] is False
+
+
+def test_joint_task_loss_evidence_covers_all_ten_tasks() -> None:
+    accumulator = trainer._new_active_head_epoch_accumulator()
+    task_losses = {
+        name: torch.tensor(float(index + 1))
+        for index, name in enumerate(trainer.JOINT_TASK_NAMES)
+    }
+    trainer._accumulate_joint_task_loss_evidence(
+        accumulator,
+        task_losses,
+        active_head_supervised_cells={
+            head_name: 4 for head_name in trainer._ACTIVE_HEAD_TO_JOINT_TASK
+        },
+        unified_exit_supervised_cells=3,
+    )
+    observed = trainer._finalize_joint_task_loss_evidence(accumulator)
+    assert {
+        key.removeprefix("joint_task_raw_loss_mean_")
+        for key in observed
+        if key.startswith("joint_task_raw_loss_mean_")
+    } == set(trainer.JOINT_TASK_NAMES)
+    assert observed["joint_task_raw_loss_mean_entry_action_q"] == 1.0
+    assert observed["joint_task_supervised_cells_unified_exit_action"] == 3
 
 
 def test_dead_current_head_blocks_checkpoint_health() -> None:
