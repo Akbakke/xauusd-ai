@@ -14514,11 +14514,15 @@ def main() -> None:
         )
     device = _resolve_device(args.device)
     log.info(
-        "[CONFIG] seed=%d device=%s deterministic=true tf32_matmul=%s "
-        "grad_clip_norm=%.6f weight_decay=%.6f dropout=%.6f",
+        "[CONFIG] seed=%d device=%s deterministic=true tf32_matmul=false "
+        "cuda_memory_fraction=%s grad_clip_norm=%.6f weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
-        bool(device.type == "cuda"),
+        (
+            f"{_CANONICAL_CUDA_MEMORY_FRACTION:.2f}"
+            if device.type == "cuda"
+            else "none"
+        ),
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
         float(args.dropout),

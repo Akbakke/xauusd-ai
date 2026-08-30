@@ -80,6 +80,8 @@ def test_cuda_memory_fence_and_strict_fp32_policy_are_source_bound() -> None:
     source = TRAINER_PATH.read_text(encoding="utf-8")
     assert "torch.backends.cuda.matmul.allow_tf32 = False" in source
     assert "torch.cuda.set_per_process_memory_fraction(" in source
+    assert 'tf32_matmul=false "' in source
+    assert 'cuda_memory_fraction=%s "' in source
 
 
 def test_exit_mtf_history_uses_m1_state_start_not_already_closed_clock() -> None:
