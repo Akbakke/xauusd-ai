@@ -16,8 +16,8 @@ resume based on a copied checkpoint number.
 The same handover allows only declared local runtime state and regenerable
 Python/pytest/ruff caches to be ignored; all other ignored paths block it.
 The retained V4 checkpoint is historical evidence; V5 is a separately
-current-source-bound 32-row technical smoke recipe whose CPU launch dry-run
-passed, with no CUDA execution or bundle.
+current-source-bound 32-row technical smoke that completed under the CUDA
+guard and published an immutable bundle, pending CPU-only post-run audit.
 
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is

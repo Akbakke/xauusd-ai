@@ -30,8 +30,8 @@ pointer before printing it.
 It permits only declared local runtime state and regenerable Python/pytest/ruff
 caches; an unrecognised ignored path is fail-closed.
 The retained V4 checkpoint is historical evidence. The separate V5
-current-source technical smoke recipe has only passed CPU launch dry-run; CUDA
-and bundle creation remain unexecuted.
+current-source technical smoke completed under the canonical CUDA guard and
+published an immutable bundle; its CPU-only post-run audit remains pending.
 
 ## Scope freeze
 

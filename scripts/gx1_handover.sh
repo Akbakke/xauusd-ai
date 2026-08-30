@@ -99,6 +99,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.current_audited_dataset_evidence_v1 import (
     require_blocked_launch_state_with_current_audited_dataset,
 )
+from gx1.contracts.entry_model_native_bundle_commit_v1 import (
+    MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
+    require_bundle_commit_manifest,
+)
 from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     canonical_json_sha256,
     require_pretest_technical_recipe_metadata,
@@ -326,19 +330,30 @@ def _current_source_technical_recipe_status(
     source bytes without granting CUDA, candidate, TEST or execution authority.
     """
     reference = launch_state.get("current_source_technical_recipe")
-    expected_reference_keys = {
+    base_reference_keys = {
         "schema_version", "status", "recipe_path", "recipe_sha256",
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
         "out_bundle_dir",
     }
+    executed_status = (
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__"
+        "NO_CANDIDATE_AUTHORITY"
+    )
+    expected_reference_keys = set(base_reference_keys)
+    if isinstance(reference, dict) and reference.get("status") == executed_status:
+        expected_reference_keys.update({
+            "bundle_commit_manifest_sha256", "bundle_commit_sha256",
+            "bundle_metadata_sha256",
+        })
     if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
         raise SystemExit("FATAL: current-source technical recipe reference is invalid")
-    if (
-        reference.get("schema_version")
-        != "gx1_current_source_technical_recipe_reference_v1"
-        or reference.get("status")
-        != "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
-    ):
+    if reference.get("schema_version") != "gx1_current_source_technical_recipe_reference_v1":
+        raise SystemExit("FATAL: current-source technical recipe status is invalid")
+    status = str(reference.get("status") or "")
+    if status not in {
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+        executed_status,
+    }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
         if not isinstance(reference.get(key), str) or not reference[key].startswith("/"):
@@ -395,13 +410,56 @@ def _current_source_technical_recipe_status(
     ):
         raise SystemExit("FATAL: current-source technical recipe live source mismatch")
     out_bundle_dir = Path(reference["out_bundle_dir"])
-    if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
-        raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
+    if status == "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED":
+        if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
+            raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
+        closure = "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
+    else:
+        try:
+            bundle_commit = require_bundle_commit_manifest(out_bundle_dir)
+        except RuntimeError as exc:
+            raise SystemExit(
+                "FATAL: current-source technical smoke bundle commit is invalid"
+            ) from exc
+        bundle_commit_path = out_bundle_dir / BUNDLE_COMMIT_MANIFEST_NAME
+        metadata_path = out_bundle_dir / "bundle_metadata.json"
+        if (
+            _sha256_file(bundle_commit_path)
+            != reference["bundle_commit_manifest_sha256"]
+            or bundle_commit.get("commit_sha256")
+            != reference["bundle_commit_sha256"]
+            or bundle_commit.get("bundle_kind") != "trained"
+            or bundle_commit["artifacts"]["bundle_metadata.json"].get("sha256")
+            != reference["bundle_metadata_sha256"]
+            or _sha256_file(metadata_path) != reference["bundle_metadata_sha256"]
+        ):
+            raise SystemExit("FATAL: current-source technical smoke bundle mismatch")
+        bundle_metadata = _read_regular_json(
+            metadata_path,
+            label="current-source technical smoke bundle metadata",
+        )
+        provenance = bundle_metadata.get("recipe_source_provenance")
+        if (
+            not isinstance(provenance, dict)
+            or provenance.get("recipe_audit_path") != str(recipe_path)
+            or provenance.get("recipe_audit_sha256") != reference["recipe_sha256"]
+            or provenance.get("source_commit") != reference["source_commit"]
+            or provenance.get("source_bindings_sha256")
+            != reference["source_bindings_sha256"]
+            or bundle_metadata.get("execution_tier") != "canonical"
+        ):
+            raise SystemExit(
+                "FATAL: current-source technical smoke bundle provenance mismatch"
+            )
+        closure = (
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__"
+            "POSTRUN_AUDIT_PENDING"
+        )
     return (
-        str(reference["status"]),
+        status,
         str(reference["recipe_sha256"]),
         str(reference["source_bindings_sha256"]),
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED",
+        closure,
     )
 
 
@@ -752,18 +810,18 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $source_identity_gate"
-echo "resume_stage: RETAIN_HISTORICAL_V4_SESSION__CURRENT_V5_SMOKE_RECIPE_CPU_READY_CUDA_NOT_EXECUTED"
+echo "resume_stage: RETAIN_HISTORICAL_V4_SESSION__V5_TECHNICAL_BUNDLE_PUBLISHED__POSTRUN_AUDIT_PENDING"
 echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 dataloader_workers=0 one_job_at_a_time"
-echo "local_cuda: V5_TECHNICAL_SMOKE_NOT_EXECUTED__220W_ACTUAL_70C_12G_GUARD__390W_DRIVER_LIMIT_IS_NOT_AUTHORITY"
+echo "local_cuda: V5_TECHNICAL_SMOKE_COMPLETED__63C_211_56W_9447MIB__POSTRUN_CPU_AUDIT_PENDING"
 echo "cuda_speed: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__FULL_TRAIN_EPOCH_APPROX_11_7H"
 echo "current_cuda_authority: PARTIAL_SESSION_MECHANICS_PROVED__NO_AUTOMATIC_FULL_EPOCH_OR_VAL_TEST_EXECUTION"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
-echo "  1. run this handover and confirm clean source, no competing job, retained checkpoint-640 evidence and live V5 smoke source identity"
-echo "  2. authorise at most the separately declared V5 technical CUDA smoke, then assess its new immutable bundle; do not resume V4 under current source"
+echo "  1. run this handover and confirm clean source, no competing job, retained checkpoint-640 evidence and the V5 bundle commit/source identity"
+echo "  2. run the CPU-only V5 smoke-bundle audit, then a fresh candidate-readiness recheck; do not resume V4 under current source"
 echo "  3. reach first complete TRAIN epoch and full VAL before interpreting learning; checkpoint selection and early-stop policy stay frozen"
 echo "  4. repeat candidate audit only after a completed full candidate; no partial-session metric is an edge claim"
 echo "  5. run preregistered untouched-TEST evaluation only after the candidate/OOS gates, never as a troubleshooting input"

@@ -16,8 +16,9 @@ Only declared local runtime state and regenerable Python/pytest/ruff caches may
 be ignored; any other ignored path blocks source identity.
 
 The checkpoint-640 V4 candidate session is historical, source-bound evidence.
-The new V5 current-source technical smoke recipe is a separate 32-row,
-CPU-dry-run-only technical control; it has no CUDA, bundle or candidate authority.
+The separate V5 current-source 32-row technical smoke completed under the
+canonical CUDA guard and has an immutable bundle. Its CPU-only post-run audit
+is pending; it has no candidate, TEST or execution authority.
 
 > **2026-08-30 override:** the technical checkpoint bundle/reload parity and
 > VAL-only label journal are plumbing evidence only.  They do not authorise

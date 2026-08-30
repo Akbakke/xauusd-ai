@@ -191,12 +191,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_source_bindings_sha256: " in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
         in result.stdout
     )
     assert (
@@ -261,7 +261,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "RETAIN_HISTORICAL_V4_SESSION__CURRENT_V5_SMOKE_RECIPE_CPU_READY_CUDA_NOT_EXECUTED"
+        "RETAIN_HISTORICAL_V4_SESSION__V5_TECHNICAL_BUNDLE_PUBLISHED__POSTRUN_AUDIT_PENDING"
         in result.stdout
     )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
@@ -281,7 +281,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "dataloader_workers=0 one_job_at_a_time" in result.stdout
     )
     assert (
-        "authorise at most the separately declared V5 technical CUDA smoke"
+        "run the CPU-only V5 smoke-bundle audit"
         in result.stdout
     )
     assert "reach first complete TRAIN epoch and full VAL" in result.stdout
@@ -361,15 +361,22 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "gx1_current_source_technical_recipe_reference_v1"
     )
     assert current_source_recipe["status"] == (
-        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
     )
     assert current_source_recipe["run_id"].startswith(
         "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_"
     )
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()
-    assert not Path(current_source_recipe["out_bundle_dir"]).exists()
+    assert Path(current_source_recipe["out_bundle_dir"]).is_dir()
+    assert (Path(current_source_recipe["out_bundle_dir"]) / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json").is_file()
     for key in ("recipe_sha256", "source_bindings_sha256"):
+        assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
+    for key in (
+        "bundle_commit_manifest_sha256",
+        "bundle_commit_sha256",
+        "bundle_metadata_sha256",
+    ):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
     blockers = "\n".join(state["blockers"])
@@ -467,12 +474,12 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
         in result.stdout
     )
     assert "## Host capacity" not in result.stdout

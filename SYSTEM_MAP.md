@@ -10,9 +10,9 @@ The active candidate-session point is not architecture-map data. Query
 source closure, contract and active two-slot state at runtime.
 It allows only declared local runtime state and regenerable Python/pytest/ruff
 caches to be ignored; any other ignored content blocks source identity.
-It also distinguishes the retained V4 checkpoint from the new V5
-current-source technical smoke recipe: V5 passed CPU launch dry-run only and
-has not executed CUDA or created a bundle.
+It also distinguishes the retained V4 checkpoint from the V5 current-source
+technical smoke recipe: V5 completed under the CUDA guard and published an
+immutable technical bundle, pending CPU-only post-run audit.
 
 > **Operational checkpoint, 2026-08-30:** the map below remains the intended
 > M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has
