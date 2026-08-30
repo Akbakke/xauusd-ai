@@ -9,7 +9,9 @@
 > historical audit. V46's all-field liveness PASS and current bounded-smoke
 > status are recorded only in the current handover, not inferred from this
 > audit. The current source repair binds evidence only; it does not change any
-> historical indicator conclusion.
+> historical indicator conclusion. The active V46 candidate is only at partial
+> checkpoint 640 after a fresh-process resume and has produced no new indicator
+> ranking, VAL or edge evidence.
 
 Five parallel read-only audits over EVERY emitted field in the surface
 (608 signal / 158 ctx_cont / 5 ctx_cat / 189×5 per-TF), one question per

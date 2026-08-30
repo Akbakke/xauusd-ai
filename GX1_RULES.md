@@ -20,6 +20,31 @@ until the current V46 audit/preflight sequence is complete.
 > full-TRAIN batches precede it).  Consequently it is operational and
 > throughput evidence only — never a candidate, edge or backtest claim.
 
+## Current performance and machine-safety boundary
+
+- The only resumable candidate state is the source/recipe-bound session at
+  partial TRAIN batch `640`; it has no VAL, TEST, bundle, PnL or backtest
+  authority. A new source commit, recipe, output root or data identity must
+  never be substituted for that state.
+- Every heavy job enters through `scripts/gx1_capped_run.sh`: one job at a
+  time, cgroup RAM `20G`, swap `512M`, CPU affinity `0-1`, numerical-library
+  threads one and DataLoader workers zero. Adding CPU workers/cores is not an
+  approved speed knob: measured data fetch is small compared with the GPU Exit
+  calculation, while extra WSL CPU load increases the freeze/heat risk.
+- CUDA is fail-closed at core `70 C`, actual draw `220 W`, resident VRAM
+  `12 GiB`, one-second telemetry and a 20-minute process limit. The RTX 3090
+  currently reports a configured driver limit of `390 W`; that is not a power
+  cap or permission to draw 390 W. The actual-draw guard remains mandatory.
+- CUDA activation retention is permitted only with the `0.45` allocator fence
+  and deterministic FP32. TF32, autocast and compilation remain disabled. It
+  reduced the measured 64-batch interval from `101.889 s` to `86.863 s`
+  (14.7%). A full 31,004-batch TRAIN epoch is therefore about 11.7 hours of
+  GPU work before VAL, excluding guarded preflight/restart overhead.
+- Efficiency means resuming the exact hash-bound checkpoint, not rebuilding
+  data or repeating broad audits. A full candidate should be planned either as
+  controlled local resumptions or separately approved external compute; it may
+  not weaken the guard, use more CPU opportunistically or touch TEST.
+
 ## One pipeline
 
 ```text

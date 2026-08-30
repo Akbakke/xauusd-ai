@@ -75,6 +75,19 @@ validation; a 20-minute local guard can prove only safe resumable progress, not
 candidate VAL, edge, PnL, win-rate, MAE/MFE or backtest evidence. Full external
 training remains `NO-GO`; TEST, demo, paper and live remain sealed.
 
+### Efficient-but-safe execution rule — 2026-08-30
+
+The observed model bottleneck is GPU Exit computation, not CPU data delivery.
+The accepted CUDA-only activation-retention route reduced a 64-batch interval
+from `101.889 s` to `86.863 s` (14.7%) without changing inputs, features,
+targets, precision or model topology. Do not trade reliability for further
+unmeasured tuning: CPU affinity stays `0-1`, DataLoader workers stay `0`, one
+heavy job remains the limit, RAM/swap stay `20G`/`512M`, and CUDA remains under
+the 70 C / 220 W actual / 12 GiB one-second guard with a 0.45 allocator fence.
+The reported 390 W driver limit is not a workload authorization. A full epoch
+is roughly 11.7 hours of GPU work before VAL; checkpoint-resume avoids lost
+model work but does not waive the guarded preflight or permit TEST access.
+
 ### Current technical-preflight override — 2026-08-30
 
 The older 2026-08-29 strict-cache blocker below is historical.  It is

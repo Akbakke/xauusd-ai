@@ -10,7 +10,9 @@ unchanged.
 > command to rebuild or change V46. Resolve the exact active split from V46's
 > hash-bound artifacts. The current next step is source/regression closure for
 > the technical parity/journal/Exit-evidence binding repair, not a train-window decision. The
-> current V46 TRAIN/VAL data remains immutable and TEST remains sealed.
+> current V46 TRAIN/VAL data remains immutable and TEST remains sealed. The
+> active session is a partial checkpoint-640 candidate with fresh-process
+> resume proof, not a reason to widen/rebuild the window.
 
 Every number below is a dated observation of a *tape*, which is why it may be
 written down at all (rule 13). Everything with a code owner is named, not

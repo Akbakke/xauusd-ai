@@ -5,9 +5,9 @@ system. It is not currently an admitted or profitable trading bot.
 
 Current operational status is in
 [docs/CURRENT_AUDIT_STATUS_20260828.md](docs/CURRENT_AUDIT_STATUS_20260828.md).
-It overrides older run-history prose for the next action: no full training,
-TEST, demo, live route or background service is authorised while the V46
-current-contract audit is being completed.
+It overrides older run-history prose for the next action: the V46 feature/data
+audit and bounded CUDA train/resume mechanics are complete, but no full epoch,
+VAL, TEST, demo, live route or background service is authorised automatically.
 
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is
@@ -15,10 +15,11 @@ current-contract audit is being completed.
 > smoke-label PnL is not an edge or backtest result. Candidate Exit evidence
 > is now hash-bound to the loaded model, VAL bytes, MTF cache and lifecycle,
 > and its full trajectory is bound to online/target states; Entry gates remain
-> strict. It has not yet been exercised by candidate CUDA. A 20-minute full
-> candidate session cannot reach first VAL, so it yields only resumable
-> session evidence. No external training, TEST, OANDA/demo, paper or live
-> route is authorised.
+> strict. Candidate CUDA has completed 640 partial TRAIN batches: the first
+> 576 were stopped at the guard boundary, and a fresh process reloaded that
+> exact state and checkpointed batch 640. A 20-minute session cannot reach
+> first VAL, so this is resumability/throughput evidence only. No external
+> training, TEST, OANDA/demo, paper or live route is authorised.
 
 ## Architecture
 

@@ -9,8 +9,10 @@ pipeline; it does not authorise training, TEST, demo or live operation.
 > M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has
 > exact clean-CPU reload parity, but that is not a trained candidate or market
 > result.  The VAL-only journal is a label-plumbing diagnostic, not a backtest.
-> Candidate CUDA, external compute, TEST and all broker routes remain blocked
-> pending fresh candidate evidence described in the current audit. The current
+> Candidate CUDA has reached partial TRAIN checkpoint 640 and passed a
+> fresh-process resume canary, but external compute, TEST and all broker routes
+> remain blocked pending a completed candidate and the evidence described in
+> the current audit. The current
 > source binds Exit input/trajectory evidence to the selected model and its
 > VAL/cache/lifecycle lineage; Entry gate failures cannot use a provisional
 > escape hatch.

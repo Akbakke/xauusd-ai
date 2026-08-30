@@ -6,7 +6,9 @@
 > canonical smoke status and next action are owned by the handover. The latest
 > current technical CPU parity/journal and candidate Exit-evidence binding
 > repair change none of the historical review's feature conclusions. No feature addition,
-> removal or retraining is authorised by this historical review.
+> removal or retraining is authorised by this historical review. The active
+> source-bound candidate session is at partial checkpoint 640 after a
+> fresh-process resume; this does not alter any V29 conclusion.
 
 Five parallel read-only reviews over the complete V29 surface (592 signal /
 142+5 ctx / 173×5 MTF), graded against the REAL sealed V29J artifacts

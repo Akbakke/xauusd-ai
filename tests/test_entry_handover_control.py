@@ -162,7 +162,21 @@ def test_handover_viewer_prints_current_goal() -> None:
         "HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
         in result.stdout
     )
-    assert "train_recipe: CURRENT_AUDITED_RESEARCH_ONLY_NO_CANDIDATE_AUTHORITY" in result.stdout
+    assert (
+        "train_recipe: "
+        "FROZEN_PRETEST_V4_RESEARCH_RECIPE_PARTIAL_CANDIDATE_SESSION_ONLY"
+        in result.stdout
+    )
+    assert (
+        "candidate_session: "
+        "CHECKPOINT_640__FIRST_WINDOW_576__FRESH_PROCESS_RESUMED_577_TO_640"
+        in result.stdout
+    )
+    assert (
+        "candidate_validation: "
+        "NOT_REACHED__FIRST_VAL_AFTER_31004_TRAIN_BATCHES"
+        in result.stdout
+    )
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     launch_state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -220,7 +234,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "COMMIT_SOURCE_BINDING_REPAIR_THEN_DECLARE_ONE_GUARDED_CANDIDATE_PARTIAL_SESSION"
+        "PRESERVE_FROZEN_CHECKPOINT_640__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
         in result.stdout
     )
     assert (
@@ -234,9 +248,12 @@ def test_handover_viewer_prints_current_goal() -> None:
         "ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_NOT_BOUND"
         in result.stdout
     )
-    assert "capacity: audits=4G training_max=20G swap=512M" in result.stdout
-    assert "materialize a fresh recipe and pass its no-GPU dry-run" in result.stdout
-    assert "bounded 20-minute candidate session" in result.stdout
+    assert (
+        "capacity: audits=4G training_max=20G swap=512M cpu=0-1 "
+        "dataloader_workers=0 one_job_at_a_time" in result.stdout
+    )
+    assert "full-epoch execution plan: guarded local resumes or approved external compute" in result.stdout
+    assert "reach first complete TRAIN epoch and full VAL" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000

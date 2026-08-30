@@ -17,7 +17,9 @@ nothing until the recipe owner adopts it and the evidence ladder runs.
 > current technical checkpoint parity, VAL journal or candidate Exit-evidence
 > binding repair.
 > Current authority is the handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
-> `57d4ebcb`, `e0cf52ed` and `64d648da` change no feature surface.
+> `57d4ebcb`, `e0cf52ed` and `64d648da` change no feature surface. The active
+> candidate has only reached partial checkpoint 640 after a fresh-process
+> resume; do not use this proposal to modify it.
 
 Shared finding of all eight reports, stated once: the current surface is a
 dense continuous conditioning system with almost no discrete events, no level

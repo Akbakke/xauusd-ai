@@ -10,7 +10,9 @@ from the six-lane headmaster review and the measured HEAD smoke attribution.
 > batch geometry or the guarded candidate-learning-validation plan recorded in
 > the handover. The technical CPU parity/journal and candidate Exit-evidence
 > binding repair change no recipe authority and do not authorise full or
-> external training.
+> external training. The current exact recipe has a partial checkpoint-640
+> session with fresh-process resume proof; this historical draft may not alter
+> or replace it.
 
 ## Why a new decision is needed
 

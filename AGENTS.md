@@ -7,16 +7,20 @@ Read `GX1_RULES.md` first. It is binding.
 **Operational override, 2026-08-30:**
 [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 is the short current-state companion to this historical handover. It controls
-the next action: retain V46, keep background services stopped, finish the
-current-contract repair, and do not start full training, TEST, demo or live.
+the next action: retain V46, keep background services stopped, preserve the
+checkpoint-640 candidate session, and do not start full training, TEST, demo
+or live automatically.
 The technical checkpoint bundle/reload parity and VAL-only journal are plumbing
 evidence only. The current source repair binds candidate Exit influence to the
 exact loaded model, VAL bytes, MTF cache and lifecycle; it binds the complete
 Exit trajectory to online and target states, while Entry gates remain strict.
-No candidate CUDA epoch has run under it. A 20-minute guarded full-candidate
-session can create resumable session evidence only: first VAL is after 31,004
-TRAIN batches, so it cannot be called candidate evidence. Resume through the
-executable handover, never by restarting a historical smoke or external run.
+Candidate CUDA has executed 640 partial TRAIN batches under it. The first
+guarded window reached batch 576; a fresh process then proved exact state
+reload by resuming at 577 and checkpointing 640. A 20-minute guarded session
+can create resumable session evidence only: first VAL is after 31,004 TRAIN
+batches, so it cannot be called candidate evidence. Resume only the exact
+recipe/source-bound session through the executable handover, never by
+restarting a historical smoke or external run.
 
 - Scope is offline XAUUSD only.
 - Architecture is fixed: the same eight code-owned feature implementations run

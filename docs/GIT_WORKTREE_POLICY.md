@@ -9,10 +9,11 @@ checkout, overwrite, stage or delete unrelated changes. Coordinate overlapping
 files and inspect the exact diff before editing.
 
 > **2026-08-30 checkpoint:** the active repair contains technical
-> checkpoint-parity, VAL-journal and candidate Exit-evidence binding changes.
-> They must pass focused regressions and be committed with their status docs before any
-> candidate CUDA declaration. No heavy training is allowed from an uncommitted
-> or ambiguous worktree.
+> checkpoint-parity, VAL-journal and candidate Exit-evidence binding changes,
+> plus the checkpoint-640 fresh-process resume evidence. They must pass focused
+> regressions and be committed with their status docs before any new candidate
+> declaration. No heavy training is allowed from an uncommitted or ambiguous
+> worktree.
 
 Tests and read-only audits may run in a dirty tree. A heavy dataset build,
 training/replay evidence run or launch must bind the exact source revision and
@@ -25,10 +26,10 @@ Cleanup under `/home/andre2/GX1_DATA` is a separate explicitly authorized act.
 
 The authoritative status files (`PROJECT_STATE_xau_direction_launch.json`, the
 handover and every Markdown file fingerprinted by `scripts/gx1_handover.sh`)
-must be updated together in one reviewed commit. They describe the 2026-08-28
-bounded-smoke status: the final 220 W run completed and atomically published a
-diagnostic bundle at 63 C / 212.37 W / 8,751 MiB. Do not leave a stale recipe or
-old execution plan in one document while changing another. The next local CUDA
-operation is only immutable VAL inference through the exact guarded evaluator,
-followed by the smoke-bundle audit; candidate, TEST, demo and live remain
-blocked.
+must be updated together in one reviewed commit. They describe the current
+checkpoint-640 partial candidate, not an admitted model: its first guarded
+window reached 576 batches and a fresh process resumed to 640. Do not leave a
+stale recipe, stale driver-cap assertion or old execution plan in one document
+while changing another. The next local CUDA operation must be explicitly
+declared against the frozen source/recipe/session; candidate VAL, TEST, demo
+and live remain blocked.

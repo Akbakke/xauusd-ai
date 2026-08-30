@@ -7,7 +7,9 @@
 > not a candidate result, backtest or edge claim. No dataset rebuild is running
 > or required solely for this repair. The candidate source repair consumes the
 > existing immutable VAL hash, shared MTF-cache identity and Exit lifecycle
-> root as explicit evidence bindings; it changes no feature or data bytes.
+> root as explicit evidence bindings; it changes no feature or data bytes. The
+> current candidate session reached checkpoint 640 only by resuming the same
+> hash-bound TRAIN/VAL inputs; no data rebuild or alternate cache was used.
 
 ## Source authority
 

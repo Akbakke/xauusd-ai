@@ -18,9 +18,10 @@ dataset nor any execution authority.
 > allocated CUDA nor changes the 70 C / 220 W actual / 12 GiB guard.  A source
 > repair for positive-but-static candidate feature gates is Exit-only and
 > remains fail-closed on raw liveness, hash-bound direct Exit input evidence
-> and full candidate-VAL proof; Entry gates remain strict. No candidate CUDA
-> run has used it yet. A 20-minute full-candidate guard cannot reach first VAL
-> and can only emit resumable partial-session evidence.
+> and full candidate-VAL proof; Entry gates remain strict. Candidate CUDA has
+> now reached partial checkpoint 640, including a fresh-process resume from
+> checkpoint 576. A 20-minute full-candidate guard cannot reach first VAL and
+> can only emit resumable partial-session evidence.
 
 ### Historical 2026-08-26 operator-present 390 W amendment — superseded
 

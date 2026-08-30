@@ -14,7 +14,8 @@ stay on the record.
 > treat the bounded smoke as a direction result. Immutable VAL predictions and
 > the smoke-bundle audit must still pass before any candidate direction claim.
 > A guarded 20-minute candidate session can create no such claim because it
-> stops before first VAL.
+> stops before first VAL. The active partial candidate has reached checkpoint
+> 640 through a fresh-process resume; that is still not direction evidence.
 
 ## Why this document exists
 

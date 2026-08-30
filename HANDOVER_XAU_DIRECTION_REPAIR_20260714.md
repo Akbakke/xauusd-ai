@@ -30,6 +30,15 @@ binding scope; `CLAUDE.md` is the process constitution.
 > 220 W actual-draw stop.  This is a safety/throughput result, not learning,
 > edge or backtest evidence. Do not rent external compute or touch TEST.**
 
+> **Efficiency and machine boundary — 2026-08-30:** the model is GPU-Exit
+> bound, not CPU-data-loader bound. Keep one heavy job, CPU affinity `0-1`,
+> DataLoader workers `0`, cgroup `20G` RAM / `512M` swap, deterministic FP32
+> and the `0.45` CUDA allocator fence. The driver currently reports a 390 W
+> configured limit, but the only allowed workload boundary is the one-second
+> 220 W actual-draw / 70 C core / 12 GiB VRAM guard. Do not use more CPU,
+> TF32, autocast, compilation or a higher driver limit as an unmeasured speed
+> shortcut. A full TRAIN epoch is about 11.7 GPU-hours before VAL.
+
 > Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
 > before acting on historical run prose below. The active state is audit

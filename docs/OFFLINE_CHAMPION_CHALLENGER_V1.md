@@ -19,9 +19,10 @@ all `false`.
 > The technical VAL decision journal is intentionally excluded: it is a
 > one-smoke-checkpoint label/plumbing diagnostic, not a completed rolling-OOS
 > candidate result. The current 20-minute candidate guard cannot reach first
-> VAL and therefore cannot supply either event. This contract remains inactive
-> until two independently materialised, like-for-like rolling-OOS candidate
-> result events exist.
+> VAL and therefore cannot supply either event. It has now reached checkpoint
+> 640 through a fresh-process resume, which changes neither restriction. This
+> contract remains inactive until two independently materialised, like-for-like
+> rolling-OOS candidate result events exist.
 
 The report compares net PnL, win rate, maximum drawdown **loss** (a positive
 loss magnitude), MAE, MFE and the share of trades where MAE came before MFE.

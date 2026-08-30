@@ -11,8 +11,9 @@ Status: **V46 REVIEWED — `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`; thi
 > the Exit surface, after its direct-input report is bound to selected model,
 > VAL, MTF-cache and lifecycle bytes; Entry gates remain strict. Full Exit
 > trajectory evidence is also bound to online/target states on bundle load.
-> Candidate CUDA has not yet emitted that evidence, so external compute and
-> every execution route remain blocked.
+> Candidate CUDA has exercised partial TRAIN through checkpoint 640 and a
+> fresh-process resume, but it has not reached candidate VAL or emitted a
+> candidate bundle. External compute and every execution route remain blocked.
 
 ## Runtime amendment — 2026-08-28
 
