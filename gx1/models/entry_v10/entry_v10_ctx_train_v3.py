@@ -2797,7 +2797,12 @@ def _model_forward_fp32(
     *args,
     **kwargs,
 ) -> Dict[str, torch.Tensor]:
-    """Use the one deterministic fp32 model path owned by the recipe."""
+    """Use the deterministic FP32 tensor path owned by the recipe.
+
+    CUDA candidates may use Ampere TF32 tensor cores for FP32 matrix products.
+    That is a source-bound numerical execution policy, not a reduced-precision
+    input/weight/output surface: tensors and persisted states remain FP32.
+    """
 
     out = model(*args, **kwargs)
     if isinstance(out, dict):
@@ -3019,9 +3024,34 @@ def _set_deterministic(seed: int, device: torch.device) -> None:
     np.random.seed(seed)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(seed)
+        # RTX 3090's tensor cores accelerate FP32 matrix products through the
+        # deterministic TF32 path. It leaves model parameters, inputs, targets
+        # and persisted checkpoints as FP32. The session contract records this
+        # explicitly, so a TF32 candidate cannot resume as strict FP32 matmul.
+        torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     torch.use_deterministic_algorithms(True)
+
+
+def _training_precision_metadata(device_type: str) -> dict[str, Any]:
+    """Return the source-owned numerical execution policy for run contracts."""
+
+    if device_type == "cuda":
+        return {
+            "precision": "deterministic_fp32_tensors_tf32_matmul",
+            "compile": False,
+            "tf32": True,
+            "autocast": False,
+        }
+    if device_type == "cpu":
+        return {
+            "precision": "deterministic_fp32",
+            "compile": False,
+            "tf32": False,
+            "autocast": False,
+        }
+    raise RuntimeError("[ENTRY_TRAIN_PRECISION_DEVICE_INVALID]")
 # -----------------------------------------------------------------------------
 # Exact immutable dataset identity
 # -----------------------------------------------------------------------------
@@ -7848,7 +7878,20 @@ def train_epoch(
     for batch in loader:
         _batch_i += 1
         _absolute_batch_i = int(session_batch_offset) + _batch_i
-        log.info("[TRAIN_STEP] batch=%d begin rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
+        # The durable candidate checkpoint is already the authoritative
+        # progress record. Writing three synchronous records per tiny batch
+        # adds avoidable WSL filesystem work without adding evidence.
+        _step_log_due = (
+            _batch_i == 1
+            or _absolute_batch_i % _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
+            == 0
+        )
+        if _step_log_due:
+            log.info(
+                "[TRAIN_STEP] batch=%d begin rss_gib=%.2f",
+                _absolute_batch_i,
+                _train_rss_gib(),
+            )
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
@@ -8019,7 +8062,12 @@ def train_epoch(
             raise RuntimeError("[ENTRY_FITTED_Q_TRAIN_PREDICTED_TIE]")
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
-        log.info("[TRAIN_STEP] batch=%d loss_ready rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
+        if _step_log_due:
+            log.info(
+                "[TRAIN_STEP] batch=%d loss_ready rss_gib=%.2f",
+                _absolute_batch_i,
+                _train_rss_gib(),
+            )
         scaled_main_loss = loss / float(_accum_steps)
         if exit_supervised:
             scaled_main_loss = scaled_main_loss + (
@@ -8027,7 +8075,12 @@ def train_epoch(
             ).sum()
         scaled_main_loss.backward()
         _observe_joint_task_weight_gradients(model, task_gradient_observed)
-        log.info("[TRAIN_STEP] batch=%d backward_done rss_gib=%.2f", _absolute_batch_i, _train_rss_gib())
+        if _step_log_due:
+            log.info(
+                "[TRAIN_STEP] batch=%d backward_done rss_gib=%.2f",
+                _absolute_batch_i,
+                _train_rss_gib(),
+            )
         _accum_count += 1
         if _accum_count >= _accum_steps:
             torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
@@ -8041,7 +8094,8 @@ def train_epoch(
                 weight_ema.update(model)
             _accum_count = 0
             _optimizer_steps_this_call += 1
-            log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
+            if _step_log_due:
+                log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
             _is_final_batch = _batch_i == len(loader)
             _checkpoint_interval_due = (
                 session_checkpoint_interval_optimizer_steps is not None
@@ -9446,10 +9500,7 @@ def _attended_research_session_contract(
             "unified_exit_action_forward_chunk_rows": (
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
-            "precision": "deterministic_fp32",
-            "compile": False,
-            "tf32": False,
-            "autocast": False,
+            **_training_precision_metadata(str(device_type)),
         },
     }
 
@@ -9731,10 +9782,7 @@ def _candidate_training_session_contract(
             "specialist_fusion_scale": float(specialist_fusion_scale),
             "cross_family_fusion_scale": float(cross_family_fusion_scale),
             "device": str(device_type),
-            "precision": "deterministic_fp32",
-            "compile": False,
-            "tf32": False,
-            "autocast": False,
+            **_training_precision_metadata(str(device_type)),
         },
     }
 
@@ -14453,10 +14501,11 @@ def main() -> None:
         )
     device = _resolve_device(args.device)
     log.info(
-        "[CONFIG] seed=%d device=%s deterministic=true grad_clip_norm=%.6f "
-        "weight_decay=%.6f dropout=%.6f",
+        "[CONFIG] seed=%d device=%s deterministic=true tf32_matmul=%s "
+        "grad_clip_norm=%.6f weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
+        bool(device.type == "cuda"),
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
         float(args.dropout),

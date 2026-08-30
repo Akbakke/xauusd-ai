@@ -60,6 +60,26 @@ def test_trainer_uses_direct_masked_raw_bps_entry_q_mse() -> None:
     assert "frozen_exit_first_state_values_bps" in source
 
 
+def test_cuda_tf32_policy_is_explicitly_source_bound() -> None:
+    cuda_policy = trainer._training_precision_metadata("cuda")
+    cpu_policy = trainer._training_precision_metadata("cpu")
+    assert cuda_policy == {
+        "precision": "deterministic_fp32_tensors_tf32_matmul",
+        "compile": False,
+        "tf32": True,
+        "autocast": False,
+    }
+    assert cpu_policy == {
+        "precision": "deterministic_fp32",
+        "compile": False,
+        "tf32": False,
+        "autocast": False,
+    }
+    assert "torch.backends.cuda.matmul.allow_tf32 = True" in TRAINER_PATH.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_exit_mtf_history_uses_m1_state_start_not_already_closed_clock() -> None:
     """The shared MTF route owns the single +60-second Exit availability shift."""
 
