@@ -17,7 +17,9 @@ documentation and the code together.
 The current status companion is
 `docs/CURRENT_AUDIT_STATUS_20260828.md`: it makes the active audit/preflight
 hold explicit, including inactive background services and the prohibition on
-full training, TEST, demo and live work.
+full training, TEST, demo and live work. Its 2026-08-30 continuation records
+the exact technical checkpoint parity and VAL-journal repair; those are not
+candidate, backtest or execution authority.
 
 ## Scope freeze
 

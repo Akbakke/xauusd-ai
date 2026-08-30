@@ -1,4 +1,4 @@
-# Current audit status — 2026-08-29
+# Current audit status — 2026-08-30
 
 This document is the short, current-state override for operational decisions.
 It complements the historical design documents; it does not grant execution
@@ -9,6 +9,48 @@ authority. `scripts/gx1_handover.sh` remains the executable status owner.
 The project is offline research only. There is no admitted production model,
 predictive edge, realised PnL, win rate, MAE/MFE result, calibration,
 untouched-TEST result, demo account, paper route or live route.
+
+### Continuation checkpoint — 2026-08-30
+
+This is the active resume point.  There is no active CUDA job, collector,
+Telegram listener, OANDA account activity, TEST read, demo route or live route.
+The bounded technical run was stopped at its intended boundary; it is not being
+silently continued in the background.
+
+- The technical online checkpoint has now been exported into an immutable
+  CPU-verifiable bundle at
+  `artifacts/PRETEST_V4_EXTERNAL_TRAINING_PREFLIGHT_20260830T010000Z/`
+  `ENTRY_V4_TECHNICAL_CHECKPOINT_PARITY_BUNDLE_20260830T080000Z/`.
+  A clean CPU process and a clean strict bundle load agree exactly on eight
+  deterministic VAL rows (53 numeric prediction columns, maximum absolute
+  difference `0.0`).  The historical CUDA VAL event is bound to the same
+  online-state semantic hash and deterministic VAL rows; CPU/CUDA arithmetic
+  is deliberately not represented as bit-identical.  Decision:
+  `PASS_TECHNICAL_ONLY_NOT_CANDIDATE`.
+- A separate VAL-only decision journal binds the 70,880 technical VAL
+  predictions to sealed VAL labels without reading TEST.  It contains 70,827
+  trade decisions and 53 FLAT decisions.  Its mean selected-trade label PnL is
+  `-1.742979` bps and win share `0.457283`; mean MFE is `27.748140` bps and
+  mean MAE is `28.261570` bps.  These are **plumbing diagnostics from a
+  1,024-row smoke checkpoint**, not a backtest, compounded equity curve,
+  candidate result or edge estimate.  Ordered `MAE-before-MFE` cannot be
+  recovered from the stored extrema and is correctly reported unavailable.
+- The source now treats a positive, non-saturated learned feature multiplier
+  that is static over one finite VAL interval as *provisional*, not as proof
+  that its raw feature is missing.  This does not waive the raw full-population
+  liveness check, selected-checkpoint per-input Entry/Exit influence checks,
+  Entry local-and-five-clock family ablations, strict bundle reload, or the
+  complete candidate VAL trajectory.  Zero, saturation, non-finite values,
+  routing errors and every other gate failure remain hard blocks.  This is a
+  source repair with focused regressions; no candidate CUDA training has been
+  run under it yet.
+
+**Next controlled work:** complete source/regression verification and commit
+the checkpoint/journal/gate repair.  Only then may an explicitly declared,
+guarded candidate learning-validation run be considered.  Full external
+training remains `NO-GO` until that candidate gate actually emits its own
+fresh, hash-bound evidence.  No result above authorises an edge claim,
+backtest claim, TEST access, demo, paper or live trading.
 
 ### Current technical-preflight override — 2026-08-30
 

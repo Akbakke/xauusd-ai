@@ -1,11 +1,11 @@
 # GX1 data contract
 
-> Runtime-status note, 2026-08-28: V46 data and feature evidence remains PASS.
-> The final bounded canonical smoke completed CUDA execution, strict load and
-> post-export structural liveness, then atomically published a diagnostic bundle
-> at 63 C / 212.37 W / 8,751 MiB. Full-population V46 liveness remains the
-> authority for rare field variability. VAL predictions and the smoke-bundle
-> audit are next; neither the smoke nor its monitor value is an edge claim.
+> Runtime-status note, 2026-08-30: V46 data and feature evidence remains PASS.
+> The technical checkpoint now has exact clean-CPU bundle/reload parity and a
+> sealed-VAL-only decision journal, with `TEST ACCESSED: NO`. These prove
+> byte-bound data/model/label plumbing only; the journal's smoke metrics are
+> not a candidate result, backtest or edge claim. No dataset rebuild is running
+> or required solely for this repair.
 
 ## Source authority
 

@@ -44,8 +44,17 @@ def require_unified_exit_gate_evidence(
     *,
     expected_rows: int,
     context: str,
+    allow_static_feature_gate_provisional: bool = False,
 ) -> None:
-    """Recompute the five-TF Exit health verdict from persisted raw evidence."""
+    """Recompute the five-TF Exit health verdict from persisted raw evidence.
+
+    ``allow_static_feature_gate_provisional`` is not a general softening of
+    gate liveness.  It permits only a positive, non-saturated feature
+    multiplier whose finite-window standard deviation is zero.  The caller
+    must separately bind that narrow exception to a selected-checkpoint
+    direct-input proof (plus the Entry family-ablation proof) before it can
+    publish any bundle.
+    """
 
     if not isinstance(value, Mapping):
         raise RuntimeError(f"[{context}_EXIT_GATE_EVIDENCE_MISSING]")
@@ -53,7 +62,10 @@ def require_unified_exit_gate_evidence(
         raise RuntimeError(f"[{context}_EXIT_GATE_EVIDENCE_SCHEMA_INVALID]")
     if isinstance(expected_rows, bool) or int(expected_rows) <= 0:
         raise RuntimeError(f"[{context}_EXIT_GATE_EXPECTED_ROWS_INVALID]")
+    if not isinstance(allow_static_feature_gate_provisional, bool):
+        raise RuntimeError(f"[{context}_EXIT_GATE_PROVISIONAL_ARGUMENT_INVALID]")
     failures: list[str] = []
+    static_feature_gate_only = False
     for output_name, width in COOPERATION_GATE_WIDTHS.items():
         prefix = f"exit_{output_name}"
         rows = value.get(f"{prefix}_rows")
@@ -133,7 +145,13 @@ def require_unified_exit_gate_evidence(
         assert feature_max is not None
         observed_min_std = float(feature_std.min())
         if observed_min_std <= FEATURE_GATE_MIN_STD:
-            failures.append("exit_family_tf_feature_gate.dead")
+            static_feature_gate_only = bool(
+                allow_static_feature_gate_provisional
+                and bool((feature_min > 0.0).all())
+                and bool((feature_max < 2.0).all())
+            )
+            if not static_feature_gate_only:
+                failures.append("exit_family_tf_feature_gate.dead")
         if bool(((feature_min <= 0.0) | (feature_max >= 2.0)).any()):
             failures.append("exit_family_tf_feature_gate.saturated")
         if (
@@ -148,9 +166,22 @@ def require_unified_exit_gate_evidence(
             )
         ):
             failures.append("exit_family_tf_feature_gate.min_std")
-    if value.get("exit_cooperation_gate_health_ok") is not True:
+    reported_failures = value.get("exit_cooperation_gate_health_failures")
+    expected_static_failure = (
+        isinstance(reported_failures, list)
+        and len(reported_failures) == 1
+        and isinstance(reported_failures[0], str)
+        and reported_failures[0].startswith(
+            "family_tf_feature_gate constant/dead indices="
+        )
+    )
+    if value.get("exit_cooperation_gate_health_ok") is not True and not (
+        static_feature_gate_only and expected_static_failure
+    ):
         failures.append("exit_cooperation_gate_health_ok")
-    if value.get("exit_cooperation_gate_health_failures") != []:
+    if reported_failures != [] and not (
+        static_feature_gate_only and expected_static_failure
+    ):
         failures.append("exit_cooperation_gate_health_failures")
     if failures:
         raise RuntimeError(

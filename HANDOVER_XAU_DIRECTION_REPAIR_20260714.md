@@ -1,8 +1,23 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-29. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-08-30. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
+
+> **Active continuation — 2026-08-30:** no CUDA, collector, Telegram, OANDA,
+> TEST, demo, paper or live process is active or authorised.  The exact
+> technical checkpoint bundle/reload parity is now `PASS_TECHNICAL_ONLY_NOT_CANDIDATE`:
+> a clean CPU checkpoint and clean strict bundle reload match exactly on the
+> deterministic VAL probe.  A separate 70,880-row VAL decision journal was
+> materialised with no TEST access; its negative smoke-label PnL is a plumbing
+> observation, not an edge/backtest result.  Candidate static positive/open
+> feature gates are source-provisionally admissible only pending the existing
+> full-population raw-liveness, direct-input and Entry-family-ablation proofs;
+> all other gate failures still fail closed.  The implementation has not run a
+> candidate CUDA epoch under this new policy.  **Resume with focused source
+> tests and the executable handover, then decide on one declared guarded
+> candidate learning-validation run.  Do not rent external compute or touch
+> TEST before that fresh candidate evidence exists.**
 
 > Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)

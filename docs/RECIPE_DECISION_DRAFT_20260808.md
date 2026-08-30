@@ -5,10 +5,11 @@ is `gx1/contracts/entry_model_native_train_recipe_v1.py`; nothing changes until
 the owner adopts a decision and the recipe audit re-binds. Drafted 2026-08-08
 from the six-lane headmaster review and the measured HEAD smoke attribution.
 
-> Current-status note, 2026-08-28: V46's recipe owner and hash-bound recipe
+> Current-status note, 2026-08-30: V46's recipe owner and hash-bound recipe
 > audit are current. This draft must not change V46 features, objectives,
-> batch geometry or the one-repeat bounded-smoke plan recorded in the handover
-> after commits through `64d648da` repaired and statically checked metadata mismatches.
+> batch geometry or the guarded candidate-learning-validation plan recorded in
+> the handover. The technical CPU parity/journal repair changes no recipe
+> authority and does not authorise full or external training.
 
 ## Why a new decision is needed
 

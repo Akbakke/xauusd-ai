@@ -5099,6 +5099,58 @@ def _technical_preflight_exit_gate_disposition(
     }
 
 
+def _candidate_static_feature_gate_disposition(
+    failures: Sequence[str],
+    *,
+    surface: str,
+) -> tuple[list[str], dict[str, Any] | None]:
+    """Classify only a positive, non-saturated static feature gate as provisional.
+
+    This is intentionally narrower than an admission waiver.  The raw
+    full-population liveness contract has already run before candidate CUDA is
+    reached, and this provisional disposition is only used to let the selected
+    checkpoint reach the mandatory direct-input audit.  That audit is
+    per-physical Exit input; the companion Entry audit also masks every local
+    and five-clock family route.  Bundle publication still fails unless that
+    complete selected-checkpoint proof passes.
+    Every non-static failure, including a zero/saturated route, remains a hard
+    checkpoint block.
+    """
+
+    static_feature_failures = [
+        str(failure)
+        for failure in failures
+        if str(failure).startswith(_STATIC_FEATURE_GATE_FAILURE_PREFIX)
+    ]
+    blocking = [
+        str(failure)
+        for failure in failures
+        if not str(failure).startswith(_STATIC_FEATURE_GATE_FAILURE_PREFIX)
+    ]
+    if not static_feature_failures:
+        return blocking, None
+    return blocking, {
+        "schema_version": "gx1_candidate_static_feature_gate_provisional_v1",
+        "decision": "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE",
+        "surface": str(surface),
+        "nonblocking_for_checkpoint_selection_only": True,
+        "required_before_bundle_publication": [
+            "hash_bound_full_population_raw_input_liveness",
+            "selected_checkpoint_direct_input_influence",
+            "selected_checkpoint_family_ablation",
+        ],
+        "failures": static_feature_failures,
+        "blocking_failures_after_disposition": blocking,
+        "interpretation": (
+            "A positive non-saturated learned multiplier that is static over "
+            "one VAL interval is not itself evidence that its raw feature is "
+            "constant or disconnected. It has no candidate, serving, paper, "
+            "or live authority until the selected checkpoint independently "
+            "proves all direct inputs and the Entry family ablations."
+        ),
+    }
+
+
 def _side_mae_auxiliary_loss(
     out: Dict[str, torch.Tensor],
     batch: Dict[str, torch.Tensor],
@@ -9210,14 +9262,20 @@ def _checkpoint_admission_ok(
     active_head_health_ok: bool,
     cooperation_gate_health_ok: bool,
     exit_cooperation_gate_health_ok: bool,
+    candidate_entry_gate_health_provisional_ok: bool = False,
+    candidate_exit_gate_health_provisional_ok: bool = False,
 ) -> bool:
     """Decide checkpoint admission for the exact training profile.
 
     Profile-separated admission (user vedtak 2026-07-25).
 
     ``candidate`` requires exact active-head, Entry cooperation and independent
-    five-TF Exit cooperation health. Retired threshold/composite heads have no
-    parallel health gate.
+    five-TF Exit cooperation health. A static-but-positive feature multiplier
+    may be provisional only when the caller has classified it through
+    ``_candidate_static_feature_gate_disposition``; bundle publication then
+    remains blocked until the selected checkpoint passes the direct-input and
+    family-ablation audit. Retired threshold/composite heads have no parallel
+    health gate.
 
     ``smoke`` answers the trainability question it is named for — does this
     recipe train at all and does the raw-Q authority remain live — so it admits
@@ -9232,8 +9290,14 @@ def _checkpoint_admission_ok(
     if profile == "candidate":
         return bool(
             active_head_health_ok
-            and cooperation_gate_health_ok
-            and exit_cooperation_gate_health_ok
+            and (
+                cooperation_gate_health_ok
+                or candidate_entry_gate_health_provisional_ok
+            )
+            and (
+                exit_cooperation_gate_health_ok
+                or candidate_exit_gate_health_provisional_ok
+            )
         )
     if profile == "smoke":
         return bool(active_head_health_ok)
@@ -9928,6 +9992,7 @@ def validate(
     validation_session_log_label: str = "CANDIDATE_TRAINING",
     active_head_technical_smoke_min_supervised_rows: Optional[int] = None,
     technical_preflight_allow_static_exit_feature_gates: bool = False,
+    candidate_allow_static_feature_gates: bool = False,
 ):
     model.eval()
     target_model.eval()
@@ -9957,6 +10022,11 @@ def validate(
         raise RuntimeError("[ENTRY_TECHNICAL_SMOKE_ACTIVE_HEAD_ARGUMENT_INVALID]")
     if not isinstance(technical_preflight_allow_static_exit_feature_gates, bool):
         raise RuntimeError("[ENTRY_TECHNICAL_PRELIGHT_EXIT_GATE_ARGUMENT_INVALID]")
+    if not isinstance(candidate_allow_static_feature_gates, bool) or (
+        candidate_allow_static_feature_gates
+        and technical_preflight_allow_static_exit_feature_gates
+    ):
+        raise RuntimeError("[ENTRY_CANDIDATE_STATIC_GATE_ARGUMENT_INVALID]")
     if resume_validation_state is None:
         full_trajectory_accumulator = (
             _new_unified_exit_full_trajectory_accumulator(
@@ -10390,6 +10460,21 @@ def validate(
             stats["technical_preflight_exit_gate_health_ok"] = not (
                 effective_exit_gate_failures
             )
+    elif candidate_allow_static_feature_gates:
+        (
+            effective_exit_gate_failures,
+            candidate_exit_gate_diagnostic,
+        ) = _candidate_static_feature_gate_disposition(
+            exit_gate_failures,
+            surface="unified_exit",
+        )
+        if candidate_exit_gate_diagnostic is not None:
+            stats["candidate_exit_static_feature_gate_diagnostic"] = (
+                candidate_exit_gate_diagnostic
+            )
+            stats["candidate_exit_gate_health_provisional_ok"] = not (
+                effective_exit_gate_failures
+            )
     if full_trajectory_accumulator is not None:
         stats["unified_exit_full_trajectory_validation"] = (
             _finalize_unified_exit_full_trajectory_validation(
@@ -10434,6 +10519,21 @@ def validate(
     gate_failures = _cooperation_gate_health_failures(stats)
     stats["cooperation_gate_health_ok"] = not gate_failures
     stats["cooperation_gate_health_failures"] = list(gate_failures)
+    if candidate_allow_static_feature_gates:
+        (
+            effective_entry_gate_failures,
+            candidate_entry_gate_diagnostic,
+        ) = _candidate_static_feature_gate_disposition(
+            gate_failures,
+            surface="entry",
+        )
+        if candidate_entry_gate_diagnostic is not None:
+            stats["candidate_entry_static_feature_gate_diagnostic"] = (
+                candidate_entry_gate_diagnostic
+            )
+            stats["candidate_entry_gate_health_provisional_ok"] = not (
+                effective_entry_gate_failures
+            )
     if gate_failures:
         log.error(
             "[ENTRY_COOPERATION_GATE_HEALTH_CHECKPOINT_BLOCKED] %s",
@@ -10915,6 +11015,7 @@ def _run_resumable_candidate_training(
                 ),
                 validation_checkpoint_hook=_checkpoint_validation,
                 validation_session_log_label="CANDIDATE_TRAINING",
+                candidate_allow_static_feature_gates=True,
             )
         else:
             raw_model_state = {
@@ -10949,6 +11050,7 @@ def _run_resumable_candidate_training(
                     ),
                     validation_checkpoint_hook=_checkpoint_ema_validation,
                     validation_session_log_label="CANDIDATE_TRAINING",
+                    candidate_allow_static_feature_gates=True,
                 )
 
         progress["validation_snapshot"] = None
@@ -10982,6 +11084,12 @@ def _run_resumable_candidate_training(
             ),
             exit_cooperation_gate_health_ok=bool(
                 val_stats.get("exit_cooperation_gate_health_ok", False)
+            ),
+            candidate_entry_gate_health_provisional_ok=bool(
+                val_stats.get("candidate_entry_gate_health_provisional_ok", False)
+            ),
+            candidate_exit_gate_health_provisional_ok=bool(
+                val_stats.get("candidate_exit_gate_health_provisional_ok", False)
             ),
         )
         if admission_ok and np.isfinite(policy_pnl):
@@ -11064,7 +11172,11 @@ def _run_resumable_candidate_training(
                 {
                     key: val_stats[key]
                     for key in val_stats
-                    if key.startswith("unified_exit_") or key.startswith("exit_")
+                    if (
+                        key.startswith("unified_exit_")
+                        or key.startswith("exit_")
+                        or key.startswith("candidate_")
+                    )
                 }
             )
             selection["best_unified_exit_full_trajectory_validation"] = (
@@ -13238,6 +13350,22 @@ def run_train(
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
     state_dict_sha256 = _sha256_file(model_path)
+    candidate_static_gate_provisional = False
+    if profile == "candidate":
+        provisional_diagnostics = [
+            best_unified_exit_validation.get(
+                "candidate_entry_static_feature_gate_diagnostic"
+            ),
+            best_unified_exit_validation.get(
+                "candidate_exit_static_feature_gate_diagnostic"
+            ),
+        ]
+        candidate_static_gate_provisional = any(
+            isinstance(item, Mapping)
+            and item.get("decision")
+            == "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE"
+            for item in provisional_diagnostics
+        )
     if profile == "candidate":
         model_native_entry_val_input_influence = (
             _entry_val_input_influence_contract(
@@ -13261,6 +13389,19 @@ def run_train(
             len(model_native_entry_val_input_influence["family_ablation"]["local_context"]),
             len(model_native_entry_val_input_influence["family_ablation"]["multi_tf"]),
         )
+        if candidate_static_gate_provisional:
+            if (
+                model_native_entry_val_input_influence.get("decision") != "PASS"
+                or unified_exit_input_influence.get("decision") != "PASS"
+            ):
+                raise RuntimeError(
+                    "[CANDIDATE_STATIC_GATE_PROVISIONAL_INPUT_INFLUENCE_INVALID]"
+                )
+            log.info(
+                "[CANDIDATE_STATIC_GATE_PROVISIONAL_RESOLVED] "
+                "selected checkpoint passed raw-liveness launch control, "
+                "direct input influence, and family ablation before export",
+            )
     else:
         model_native_entry_val_input_influence = {
             "schema_version": ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,

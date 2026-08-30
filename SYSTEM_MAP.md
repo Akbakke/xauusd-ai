@@ -5,6 +5,13 @@ For current execution authority and the audit/preflight checkpoint, read
 before using this architecture map. The map describes the intended offline
 pipeline; it does not authorise training, TEST, demo or live operation.
 
+> **Operational checkpoint, 2026-08-30:** the map below remains the intended
+> M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has
+> exact clean-CPU reload parity, but that is not a trained candidate or market
+> result.  The VAL-only journal is a label-plumbing diagnostic, not a backtest.
+> Candidate CUDA, external compute, TEST and all broker routes remain blocked
+> pending fresh candidate evidence described in the current audit.
+
 ## Current feature architecture
 
 ```text

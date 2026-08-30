@@ -13,6 +13,13 @@ dataset nor any execution authority.
 > configured driver limit because WSL cannot lower it; that is never authority
 > to consume 390 W. The authoritative current plan is the handover.
 
+> **Continuation note, 2026-08-30:** the checkpoint-bundle parity export and
+> the VAL decision journal were CPU-only, no-TEST technical controls; neither
+> allocated CUDA nor changes the 70 C / 220 W actual / 12 GiB guard.  A source
+> repair for positive-but-static candidate feature gates remains fail-closed on
+> every raw-liveness, direct-input, family-ablation and full candidate-VAL
+> proof.  No candidate CUDA run has used it yet.
+
 ### Historical 2026-08-26 operator-present 390 W amendment — superseded
 
 The operator previously approved an attended-only 390 W actual-draw ceiling.

@@ -9,6 +9,14 @@ It overrides older run-history prose for the next action: no full training,
 TEST, demo, live route or background service is authorised while the V46
 current-contract audit is being completed.
 
+> **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
+> exact on its deterministic VAL probe, and a no-TEST VAL decision journal is
+> available solely to verify label/trade plumbing.  The observed negative
+> smoke-label PnL is not an edge or backtest result.  Candidate static-gate
+> handling is repaired in source but has not yet been exercised by candidate
+> CUDA.  See the current audit for the only valid next step; no external
+> training, TEST, OANDA/demo, paper or live route is authorised.
+
 ## Architecture
 
 ```text

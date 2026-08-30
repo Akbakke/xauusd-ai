@@ -8,6 +8,12 @@ untracked files may belong to the user or another agent. Do not reset,
 checkout, overwrite, stage or delete unrelated changes. Coordinate overlapping
 files and inspect the exact diff before editing.
 
+> **2026-08-30 checkpoint:** the active repair contains technical
+> checkpoint-parity, VAL-journal and candidate-gate source changes. They must
+> pass focused regressions and be committed with their status docs before any
+> candidate CUDA declaration. No heavy training is allowed from an uncommitted
+> or ambiguous worktree.
+
 Tests and read-only audits may run in a dirty tree. A heavy dataset build,
 training/replay evidence run or launch must bind the exact source revision and
 worktree state required by its immutable run contract; it must not pretend a

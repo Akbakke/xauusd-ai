@@ -1342,12 +1342,72 @@ def _require_profiled_unified_exit_gate_evidence(
         exit_validation,
         expected_rows=int(exit_validation["unified_exit_population_rows"]),
         context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+        allow_static_feature_gate_provisional=(
+            _candidate_static_exit_gate_provisional(exit_validation)
+        ),
     )
     require_unified_exit_gate_evidence(
         full_trajectory_validation,
         expected_rows=int(full_trajectory_validation["population_rows"]),
         context="ENTRY_BUNDLE_FULL_TRAJECTORY",
+        allow_static_feature_gate_provisional=(
+            _candidate_static_exit_gate_provisional(exit_validation)
+        ),
     )
+
+
+def _candidate_static_exit_gate_provisional(
+    exit_validation: Mapping[str, Any],
+) -> bool:
+    """Accept only the trainer's narrow static-but-open candidate disposition.
+
+    This controls the gate-evidence decoder only.  The normal candidate loader
+    still requires the selected checkpoint's complete per-input Exit proof,
+    and the trainer refuses bundle publication if its Entry direct-input and
+    family-ablation proof fails.
+    """
+
+    diagnostic = exit_validation.get(
+        "candidate_exit_static_feature_gate_diagnostic"
+    )
+    if diagnostic is None:
+        return False
+    if not isinstance(diagnostic, Mapping):
+        raise RuntimeError("[ENTRY_BUNDLE_CANDIDATE_STATIC_EXIT_GATE_INVALID]")
+    expected = {
+        "schema_version": "gx1_candidate_static_feature_gate_provisional_v1",
+        "decision": "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE",
+        "surface": "unified_exit",
+        "nonblocking_for_checkpoint_selection_only": True,
+    }
+    if any(diagnostic.get(key) != value for key, value in expected.items()):
+        raise RuntimeError("[ENTRY_BUNDLE_CANDIDATE_STATIC_EXIT_GATE_INVALID]")
+    required_before_publication = diagnostic.get(
+        "required_before_bundle_publication"
+    )
+    expected_requirements = [
+        "hash_bound_full_population_raw_input_liveness",
+        "selected_checkpoint_direct_input_influence",
+        "selected_checkpoint_family_ablation",
+    ]
+    failures = diagnostic.get("failures")
+    reported_failures = exit_validation.get(
+        "exit_cooperation_gate_health_failures"
+    )
+    if (
+        required_before_publication != expected_requirements
+        or not isinstance(failures, list)
+        or not failures
+        or failures != reported_failures
+        or any(
+            not isinstance(failure, str)
+            or not failure.startswith("family_tf_feature_gate constant/dead indices=")
+            for failure in failures
+        )
+        or diagnostic.get("blocking_failures_after_disposition") != []
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_CANDIDATE_STATIC_EXIT_GATE_INVALID]")
+    return True
 
 
 def _require_model_native_architecture_markers(meta: Mapping[str, Any]) -> None:

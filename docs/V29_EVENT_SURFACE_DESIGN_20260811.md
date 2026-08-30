@@ -12,10 +12,10 @@ decision for the normalized substrate (V8-smoke FLAT collapse on the repaired
 V27/V28 substrate is the active-track blocker); adopting this design changes
 nothing until the recipe owner adopts it and the evidence ladder runs.
 
-> Current-status note, 2026-08-28: V29 is retired historical design material.
+> Current-status note, 2026-08-30: V29 is retired historical design material.
 > The active V46 surface is frozen; do not revive this proposal to solve the
-> current bounded-smoke movement-proof repair. Current authority is the
-> handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
+> current technical checkpoint parity, VAL journal or candidate-gate repair.
+> Current authority is the handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
 > `57d4ebcb`, `e0cf52ed` and `64d648da` change no feature surface.
 
 Shared finding of all eight reports, stated once: the current surface is a

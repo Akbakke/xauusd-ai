@@ -8,6 +8,14 @@ It is intentionally stricter than historical run notes: background services
 remain stopped and no full training, TEST, demo or live route is authorised
 until the current V46 audit/preflight sequence is complete.
 
+> **2026-08-30 override:** the technical checkpoint bundle/reload parity and
+> VAL-only label journal are plumbing evidence only.  They do not authorise
+> candidate training, external compute, a backtest/edge claim, TEST, OANDA,
+> demo, paper or live activity.  The next possible CUDA action is one freshly
+> declared guarded candidate learning-validation run after the repaired source
+> and focused regressions are committed; it must produce its own full candidate
+> evidence and cannot inherit technical-smoke authority.
+
 ## One pipeline
 
 ```text

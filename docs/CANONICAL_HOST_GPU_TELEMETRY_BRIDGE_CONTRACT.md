@@ -5,6 +5,11 @@ prerequisite.** As of 2026-08-28, offline research uses the pinned native WSL
 `nvidia-smi` path owned by `scripts/gx1_capped_run.sh` and
 `scripts/gx1_guarded_trainer_exec.sh`.
 
+> **30 August 2026 operational status:** there is no active CUDA job. The
+> technical checkpoint parity export and VAL journal were CPU-only and do not
+> loosen this guard. Any later candidate learning-validation run remains bounded
+> by 70 C core, 220 W actual draw and 12 GiB VRAM.
+
 The authoritative canonical CUDA guard samples once per second and terminates
 the canonical trainer or the one allow-listed VAL inference producer when any of
 these facts is exceeded or unavailable:

@@ -6,11 +6,11 @@ Date: 2026-08-19. Decision: widen the declared TRAIN window from
 (`2026-06-01 → 2026-06-30`) and TEST (`2026-07-01 → 2026-08-04T07:50`) are
 unchanged.
 
-> Current-status note, 2026-08-28: this is a historical derivation, not a
+> Current-status note, 2026-08-30: this is a historical derivation, not a
 > command to rebuild or change V46. Resolve the exact active split from V46's
-> hash-bound artifacts. The current next step is one bounded-smoke repeat after
-> commits through `64d648da` repaired and statically checked metadata mismatches, not a train-window
-> decision.
+> hash-bound artifacts. The current next step is source/regression closure for
+> the technical parity/journal/gate repair, not a train-window decision. The
+> current V46 TRAIN/VAL data remains immutable and TEST remains sealed.
 
 Every number below is a dated observation of a *tape*, which is why it may be
 written down at all (rule 13). Everything with a code owner is named, not

@@ -7,9 +7,10 @@ bytes and may not inherit partial V34 output. Nothing below may be revised after
 seeing a number; a revision is a new pre-registration with its own date, and both
 stay on the record.
 
-> Current-status note, 2026-08-28: the protocol remains frozen and has not
-> been run on V46. V46 has a diagnostic smoke bundle only; it is neither a
-> trained candidate nor direction evidence. Do not revise this protocol or
+> Current-status note, 2026-08-30: the protocol remains frozen and has not
+> been run on V46. V46 has a technically parity-verified smoke bundle and a
+> VAL label-plumbing journal only; it is neither a trained candidate nor
+> direction evidence. Do not revise this protocol or
 > treat the bounded smoke as a direction result. Immutable VAL predictions and
 > the smoke-bundle audit must still pass before candidate planning.
 

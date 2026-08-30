@@ -2,6 +2,16 @@
 
 Status: **V46 REVIEWED — `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`; this is not a training, demo, live, or edge sign-off.**
 
+> **30 August 2026 current-status override:** an immutable technical
+> checkpoint bundle now has exact clean-CPU reload parity and a 70,880-row
+> VAL-only label journal exists with `TEST ACCESSED: NO`.  The journal's
+> negative smoke-label PnL, win share, MFE and MAE are permitted here only as
+> model/label plumbing diagnostics; they are not Gate 8 backtest or edge
+> evidence.  A candidate static positive/open learned multiplier may reach
+> post-selection proof only when every raw-liveness, direct-input and Entry
+> family-ablation contract passes.  Candidate CUDA has not yet emitted that
+> evidence, so external compute and every execution route remain blocked.
+
 ## Runtime amendment — 2026-08-28
 
 The data/feature gate remains PASS, but the requested canonical CUDA proof has

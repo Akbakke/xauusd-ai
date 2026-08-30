@@ -13,7 +13,13 @@ The contract deliberately enforces all of the following:
 - the sealed TEST set is forbidden as a repeatable comparison surface;
 - the comparison only reports metric deltas for human review;
 - activation, promotion, online weight updates and background scheduling are
-  all `false`.
+all `false`.
+
+> **Current status, 2026-08-30:** no eligible champion or challenger exists.
+> The technical VAL decision journal is intentionally excluded: it is a
+> one-smoke-checkpoint label/plumbing diagnostic, not a completed rolling-OOS
+> candidate result.  This contract remains inactive until two independently
+> materialised, like-for-like rolling-OOS candidate result events exist.
 
 The report compares net PnL, win rate, maximum drawdown **loss** (a positive
 loss magnitude), MAE, MFE and the share of trades where MAE came before MFE.
