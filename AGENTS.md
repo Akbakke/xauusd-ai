@@ -9,10 +9,14 @@ Read `GX1_RULES.md` first. It is binding.
 is the short current-state companion to this historical handover. It controls
 the next action: retain V46, keep background services stopped, finish the
 current-contract repair, and do not start full training, TEST, demo or live.
-The technical checkpoint bundle/reload parity and VAL-only journal are now
-complete plumbing evidence; candidate static-gate source repair is tested but
-not yet exercised by candidate CUDA. Resume with the executable handover and
-focused regressions, never by restarting a historical smoke or external run.
+The technical checkpoint bundle/reload parity and VAL-only journal are plumbing
+evidence only. The current source repair binds candidate Exit influence to the
+exact loaded model, VAL bytes, MTF cache and lifecycle; it binds the complete
+Exit trajectory to online and target states, while Entry gates remain strict.
+No candidate CUDA epoch has run under it. A 20-minute guarded full-candidate
+session can create resumable session evidence only: first VAL is after 31,004
+TRAIN batches, so it cannot be called candidate evidence. Resume through the
+executable handover, never by restarting a historical smoke or external run.
 
 - Scope is offline XAUUSD only.
 - Architecture is fixed: the same eight code-owned feature implementations run

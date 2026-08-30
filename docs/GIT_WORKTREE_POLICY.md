@@ -9,8 +9,8 @@ checkout, overwrite, stage or delete unrelated changes. Coordinate overlapping
 files and inspect the exact diff before editing.
 
 > **2026-08-30 checkpoint:** the active repair contains technical
-> checkpoint-parity, VAL-journal and candidate-gate source changes. They must
-> pass focused regressions and be committed with their status docs before any
+> checkpoint-parity, VAL-journal and candidate Exit-evidence binding changes.
+> They must pass focused regressions and be committed with their status docs before any
 > candidate CUDA declaration. No heavy training is allowed from an uncommitted
 > or ambiguous worktree.
 

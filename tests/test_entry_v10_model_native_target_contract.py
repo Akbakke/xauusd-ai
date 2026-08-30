@@ -520,11 +520,10 @@ def test_technical_preflight_only_journals_static_open_exit_feature_gates() -> N
     assert diagnostic["blocking_failures_after_disposition"] == blocking
 
 
-def test_candidate_static_open_gate_is_provisional_not_a_general_waiver() -> None:
+def test_candidate_static_open_exit_gate_is_provisional_but_entry_remains_strict() -> None:
     static_failure = "family_tf_feature_gate constant/dead indices=[7, 9]"
-    blocking, diagnostic = trainer._candidate_static_feature_gate_disposition(
-        [static_failure],
-        surface="entry",
+    blocking, diagnostic = trainer._candidate_static_exit_feature_gate_disposition(
+        [static_failure]
     )
 
     assert blocking == []
@@ -532,7 +531,7 @@ def test_candidate_static_open_gate_is_provisional_not_a_general_waiver() -> Non
     assert diagnostic["decision"] == (
         "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE"
     )
-    assert diagnostic["surface"] == "entry"
+    assert diagnostic["surface"] == "unified_exit"
     assert diagnostic["nonblocking_for_checkpoint_selection_only"] is True
     assert "selected_checkpoint_direct_input_influence" in diagnostic[
         "required_before_bundle_publication"
@@ -540,20 +539,20 @@ def test_candidate_static_open_gate_is_provisional_not_a_general_waiver() -> Non
     assert trainer._checkpoint_admission_ok(
         profile="candidate",
         active_head_health_ok=True,
-        cooperation_gate_health_ok=False,
-        exit_cooperation_gate_health_ok=True,
-        candidate_entry_gate_health_provisional_ok=True,
+        cooperation_gate_health_ok=True,
+        exit_cooperation_gate_health_ok=False,
+        candidate_exit_gate_health_provisional_ok=True,
     )
     assert not trainer._checkpoint_admission_ok(
         profile="candidate",
         active_head_health_ok=True,
         cooperation_gate_health_ok=False,
         exit_cooperation_gate_health_ok=True,
+        candidate_exit_gate_health_provisional_ok=True,
     )
 
-    blocking, diagnostic = trainer._candidate_static_feature_gate_disposition(
-        [static_failure, "family_tf_feature_gate saturated indices=[7]"],
-        surface="unified_exit",
+    blocking, diagnostic = trainer._candidate_static_exit_feature_gate_disposition(
+        [static_failure, "family_tf_feature_gate saturated indices=[7]"]
     )
     assert diagnostic is not None
     assert blocking == ["family_tf_feature_gate saturated indices=[7]"]
@@ -616,6 +615,7 @@ def test_cooperation_gate_epoch_health_uses_empirical_liveness_not_target_share(
             active_head_health_ok=True,
             cooperation_gate_health_ok=False,
             exit_cooperation_gate_health_ok=True,
+            candidate_exit_gate_health_provisional_ok=False,
         )
         is False
     )

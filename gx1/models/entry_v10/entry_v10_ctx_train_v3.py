@@ -194,6 +194,7 @@ from gx1.contracts.unified_exit_input_influence_v1 import (
     require_unified_exit_input_influence,
     unified_exit_input_influence_layout,
 )
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
     ENTRY_EXIT_RESOLUTION_RATIO,
@@ -2559,15 +2560,7 @@ def _require_sequence_roll_audit(
 def _model_state_sha256(model: nn.Module) -> str:
     """Hash one exact immutable target-network state without serialization."""
 
-    digest = hashlib.sha256()
-    for name, tensor in sorted(model.state_dict().items()):
-        value = tensor.detach().cpu().contiguous()
-        digest.update(name.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(str(value.dtype).encode("ascii"))
-        digest.update(np.asarray(value.shape, dtype="<i8").tobytes())
-        digest.update(value.numpy().tobytes())
-    return digest.hexdigest()
+    return canonical_model_state_sha256(model.state_dict())
 
 def _git_commit() -> str:
     try:
@@ -5099,20 +5092,19 @@ def _technical_preflight_exit_gate_disposition(
     }
 
 
-def _candidate_static_feature_gate_disposition(
+def _candidate_static_exit_feature_gate_disposition(
     failures: Sequence[str],
-    *,
-    surface: str,
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Classify only a positive, non-saturated static feature gate as provisional.
 
     This is intentionally narrower than an admission waiver.  The raw
     full-population liveness contract has already run before candidate CUDA is
     reached, and this provisional disposition is only used to let the selected
-    checkpoint reach the mandatory direct-input audit.  That audit is
-    per-physical Exit input; the companion Entry audit also masks every local
-    and five-clock family route.  Bundle publication still fails unless that
-    complete selected-checkpoint proof passes.
+    checkpoint reach the mandatory direct Exit-input audit. Bundle publication
+    still fails unless that hash-bound selected-checkpoint proof passes.
+    Entry gates deliberately remain strict: Entry's family-ablation report is
+    not a symmetric persisted gate-evidence contract and therefore cannot
+    waive an Entry routing-gate failure.
     Every non-static failure, including a zero/saturated route, remains a hard
     checkpoint block.
     """
@@ -5132,12 +5124,11 @@ def _candidate_static_feature_gate_disposition(
     return blocking, {
         "schema_version": "gx1_candidate_static_feature_gate_provisional_v1",
         "decision": "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE",
-        "surface": str(surface),
+        "surface": "unified_exit",
         "nonblocking_for_checkpoint_selection_only": True,
         "required_before_bundle_publication": [
             "hash_bound_full_population_raw_input_liveness",
             "selected_checkpoint_direct_input_influence",
-            "selected_checkpoint_family_ablation",
         ],
         "failures": static_feature_failures,
         "blocking_failures_after_disposition": blocking,
@@ -5146,7 +5137,7 @@ def _candidate_static_feature_gate_disposition(
             "one VAL interval is not itself evidence that its raw feature is "
             "constant or disconnected. It has no candidate, serving, paper, "
             "or live authority until the selected checkpoint independently "
-            "proves all direct inputs and the Entry family ablations."
+            "proves all direct Exit inputs."
         ),
     }
 
@@ -6768,6 +6759,8 @@ def _unified_exit_input_influence_contract(
     model: nn.Module,
     loader: DataLoader,
     device: torch.device,
+    selected_online_model_state_sha256: str,
+    unified_exit_lifecycle_root_manifest_sha256: str,
 ) -> dict[str, Any]:
     """Prove every physical Exit input can move the HOLD/EXIT_NOW margin."""
 
@@ -6976,6 +6969,12 @@ def _unified_exit_input_influence_contract(
         "categorical_delta_epsilon": UNIFIED_EXIT_INFLUENCE_CAT_EPSILON,
         "sample_entry_row_indices": entry_rows,
         "sample_decision_times_ns": decision_times_ns,
+        "selected_online_model_state_sha256": selected_online_model_state_sha256,
+        "val_data_sha256": _sha256_file(Path(dataset.parquet_path)),
+        "multi_tf_cache_identity_sha256": dataset._multi_tf_cache_identity_sha256,
+        "unified_exit_lifecycle_root_manifest_sha256": (
+            unified_exit_lifecycle_root_manifest_sha256
+        ),
         "ordered_signal_names": signal_names,
         "signal_names_sha256": unified_exit_influence_sha256(signal_names),
         "input_ownership": ownership,
@@ -7002,6 +7001,12 @@ def _unified_exit_input_influence_contract(
     require_unified_exit_input_influence(
         report,
         ordered_signal_names=signal_names,
+        selected_online_model_state_sha256=selected_online_model_state_sha256,
+        val_data_sha256=_sha256_file(Path(dataset.parquet_path)),
+        multi_tf_cache_identity_sha256=dataset._multi_tf_cache_identity_sha256,
+        unified_exit_lifecycle_root_manifest_sha256=(
+            unified_exit_lifecycle_root_manifest_sha256
+        ),
         context="UNIFIED_EXIT_SELECTED_CHECKPOINT",
     )
     return report
@@ -9262,8 +9267,7 @@ def _checkpoint_admission_ok(
     active_head_health_ok: bool,
     cooperation_gate_health_ok: bool,
     exit_cooperation_gate_health_ok: bool,
-    candidate_entry_gate_health_provisional_ok: bool = False,
-    candidate_exit_gate_health_provisional_ok: bool = False,
+    candidate_exit_gate_health_provisional_ok: bool,
 ) -> bool:
     """Decide checkpoint admission for the exact training profile.
 
@@ -9271,11 +9275,11 @@ def _checkpoint_admission_ok(
 
     ``candidate`` requires exact active-head, Entry cooperation and independent
     five-TF Exit cooperation health. A static-but-positive feature multiplier
-    may be provisional only when the caller has classified it through
-    ``_candidate_static_feature_gate_disposition``; bundle publication then
-    remains blocked until the selected checkpoint passes the direct-input and
-    family-ablation audit. Retired threshold/composite heads have no parallel
-    health gate.
+    may be provisional only for Exit when the caller has classified it through
+    ``_candidate_static_exit_feature_gate_disposition``; bundle publication
+    then remains blocked until the selected checkpoint passes the hash-bound
+    direct Exit-input audit. Entry cooperation health remains strict.
+    Retired threshold/composite heads have no parallel health gate.
 
     ``smoke`` answers the trainability question it is named for — does this
     recipe train at all and does the raw-Q authority remain live — so it admits
@@ -9290,10 +9294,7 @@ def _checkpoint_admission_ok(
     if profile == "candidate":
         return bool(
             active_head_health_ok
-            and (
-                cooperation_gate_health_ok
-                or candidate_entry_gate_health_provisional_ok
-            )
+            and cooperation_gate_health_ok
             and (
                 exit_cooperation_gate_health_ok
                 or candidate_exit_gate_health_provisional_ok
@@ -10464,10 +10465,7 @@ def validate(
         (
             effective_exit_gate_failures,
             candidate_exit_gate_diagnostic,
-        ) = _candidate_static_feature_gate_disposition(
-            exit_gate_failures,
-            surface="unified_exit",
-        )
+        ) = _candidate_static_exit_feature_gate_disposition(exit_gate_failures)
         if candidate_exit_gate_diagnostic is not None:
             stats["candidate_exit_static_feature_gate_diagnostic"] = (
                 candidate_exit_gate_diagnostic
@@ -10519,21 +10517,6 @@ def validate(
     gate_failures = _cooperation_gate_health_failures(stats)
     stats["cooperation_gate_health_ok"] = not gate_failures
     stats["cooperation_gate_health_failures"] = list(gate_failures)
-    if candidate_allow_static_feature_gates:
-        (
-            effective_entry_gate_failures,
-            candidate_entry_gate_diagnostic,
-        ) = _candidate_static_feature_gate_disposition(
-            gate_failures,
-            surface="entry",
-        )
-        if candidate_entry_gate_diagnostic is not None:
-            stats["candidate_entry_static_feature_gate_diagnostic"] = (
-                candidate_entry_gate_diagnostic
-            )
-            stats["candidate_entry_gate_health_provisional_ok"] = not (
-                effective_entry_gate_failures
-            )
     if gate_failures:
         log.error(
             "[ENTRY_COOPERATION_GATE_HEALTH_CHECKPOINT_BLOCKED] %s",
@@ -11084,9 +11067,6 @@ def _run_resumable_candidate_training(
             ),
             exit_cooperation_gate_health_ok=bool(
                 val_stats.get("exit_cooperation_gate_health_ok", False)
-            ),
-            candidate_entry_gate_health_provisional_ok=bool(
-                val_stats.get("candidate_entry_gate_health_provisional_ok", False)
             ),
             candidate_exit_gate_health_provisional_ok=bool(
                 val_stats.get("candidate_exit_gate_health_provisional_ok", False)
@@ -12993,6 +12973,7 @@ def run_train(
             exit_cooperation_gate_health_ok=(
                 _exit_cooperation_gate_health_ok
             ),
+            candidate_exit_gate_health_provisional_ok=False,
         )
         if _improved and not _admission_ok:
             log.info(
@@ -13258,6 +13239,10 @@ def run_train(
                 model=model,
                 loader=val_loader,
                 device=device,
+                selected_online_model_state_sha256=selected_model_state_sha256,
+                unified_exit_lifecycle_root_manifest_sha256=str(
+                    unified_exit_lifecycle_evidence["root_manifest_sha256"]
+                ),
             )
         )
         log.info(
@@ -13350,21 +13335,13 @@ def run_train(
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
     state_dict_sha256 = _sha256_file(model_path)
-    candidate_static_gate_provisional = False
+    candidate_static_exit_gate_provisional = False
     if profile == "candidate":
-        provisional_diagnostics = [
-            best_unified_exit_validation.get(
-                "candidate_entry_static_feature_gate_diagnostic"
-            ),
+        candidate_static_exit_gate_provisional = isinstance(
             best_unified_exit_validation.get(
                 "candidate_exit_static_feature_gate_diagnostic"
             ),
-        ]
-        candidate_static_gate_provisional = any(
-            isinstance(item, Mapping)
-            and item.get("decision")
-            == "PROVISIONAL_STATIC_BUT_OPEN_PENDING_INPUT_INFLUENCE"
-            for item in provisional_diagnostics
+            Mapping,
         )
     if profile == "candidate":
         model_native_entry_val_input_influence = (
@@ -13389,18 +13366,15 @@ def run_train(
             len(model_native_entry_val_input_influence["family_ablation"]["local_context"]),
             len(model_native_entry_val_input_influence["family_ablation"]["multi_tf"]),
         )
-        if candidate_static_gate_provisional:
-            if (
-                model_native_entry_val_input_influence.get("decision") != "PASS"
-                or unified_exit_input_influence.get("decision") != "PASS"
-            ):
+        if candidate_static_exit_gate_provisional:
+            if unified_exit_input_influence.get("decision") != "PASS":
                 raise RuntimeError(
                     "[CANDIDATE_STATIC_GATE_PROVISIONAL_INPUT_INFLUENCE_INVALID]"
                 )
             log.info(
                 "[CANDIDATE_STATIC_GATE_PROVISIONAL_RESOLVED] "
                 "selected checkpoint passed raw-liveness launch control, "
-                "direct input influence, and family ablation before export",
+                "hash-bound direct Exit input influence before export",
             )
     else:
         model_native_entry_val_input_influence = {
@@ -13498,6 +13472,9 @@ def run_train(
         "num_classes": 3,
         "model_path_relative": "model_state_dict.pt",
         "model_sha256": state_dict_sha256,
+        "selected_online_model_state_sha256": (
+            selected_model_state_sha256 if profile == "candidate" else None
+        ),
     }
     # State stores unconstrained raw scalars; the immutable contract records
     # their hashes and the corresponding strictly-positive effective scales.
@@ -13704,6 +13681,9 @@ def run_train(
             "cross_family_fusion_scale": float(cross_family_fusion_scale),
         },
         "state_dict_sha256": state_dict_sha256,
+        "selected_online_model_state_sha256": (
+            selected_model_state_sha256 if profile == "candidate" else None
+        ),
         "anchored_entry_enabled": False,
         "anchor_source": None,
         "anchor_gate": {"enabled": False},

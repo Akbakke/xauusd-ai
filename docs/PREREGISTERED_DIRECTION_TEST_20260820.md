@@ -12,7 +12,9 @@ stay on the record.
 > VAL label-plumbing journal only; it is neither a trained candidate nor
 > direction evidence. Do not revise this protocol or
 > treat the bounded smoke as a direction result. Immutable VAL predictions and
-> the smoke-bundle audit must still pass before candidate planning.
+> the smoke-bundle audit must still pass before any candidate direction claim.
+> A guarded 20-minute candidate session can create no such claim because it
+> stops before first VAL.
 
 ## Why this document exists
 

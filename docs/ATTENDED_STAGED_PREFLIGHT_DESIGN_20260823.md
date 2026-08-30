@@ -16,9 +16,11 @@ dataset nor any execution authority.
 > **Continuation note, 2026-08-30:** the checkpoint-bundle parity export and
 > the VAL decision journal were CPU-only, no-TEST technical controls; neither
 > allocated CUDA nor changes the 70 C / 220 W actual / 12 GiB guard.  A source
-> repair for positive-but-static candidate feature gates remains fail-closed on
-> every raw-liveness, direct-input, family-ablation and full candidate-VAL
-> proof.  No candidate CUDA run has used it yet.
+> repair for positive-but-static candidate feature gates is Exit-only and
+> remains fail-closed on raw liveness, hash-bound direct Exit input evidence
+> and full candidate-VAL proof; Entry gates remain strict. No candidate CUDA
+> run has used it yet. A 20-minute full-candidate guard cannot reach first VAL
+> and can only emit resumable partial-session evidence.
 
 ### Historical 2026-08-26 operator-present 390 W amendment — superseded
 

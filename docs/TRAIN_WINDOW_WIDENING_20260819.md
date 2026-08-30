@@ -9,7 +9,7 @@ unchanged.
 > Current-status note, 2026-08-30: this is a historical derivation, not a
 > command to rebuild or change V46. Resolve the exact active split from V46's
 > hash-bound artifacts. The current next step is source/regression closure for
-> the technical parity/journal/gate repair, not a train-window decision. The
+> the technical parity/journal/Exit-evidence binding repair, not a train-window decision. The
 > current V46 TRAIN/VAL data remains immutable and TEST remains sealed.
 
 Every number below is a dated observation of a *tape*, which is why it may be

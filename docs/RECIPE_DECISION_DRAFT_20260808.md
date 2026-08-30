@@ -8,8 +8,9 @@ from the six-lane headmaster review and the measured HEAD smoke attribution.
 > Current-status note, 2026-08-30: V46's recipe owner and hash-bound recipe
 > audit are current. This draft must not change V46 features, objectives,
 > batch geometry or the guarded candidate-learning-validation plan recorded in
-> the handover. The technical CPU parity/journal repair changes no recipe
-> authority and does not authorise full or external training.
+> the handover. The technical CPU parity/journal and candidate Exit-evidence
+> binding repair change no recipe authority and do not authorise full or
+> external training.
 
 ## Why a new decision is needed
 

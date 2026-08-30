@@ -11,10 +11,12 @@ until the current V46 audit/preflight sequence is complete.
 > **2026-08-30 override:** the technical checkpoint bundle/reload parity and
 > VAL-only label journal are plumbing evidence only.  They do not authorise
 > candidate training, external compute, a backtest/edge claim, TEST, OANDA,
-> demo, paper or live activity.  The next possible CUDA action is one freshly
-> declared guarded candidate learning-validation run after the repaired source
-> and focused regressions are committed; it must produce its own full candidate
-> evidence and cannot inherit technical-smoke authority.
+> demo, paper or live activity. The next possible CUDA action is one freshly
+> declared guarded candidate learning-validation session after the repaired
+> source and focused regressions are committed. Its 20-minute safety window
+> reaches no first VAL (31,004 full-TRAIN batches precede it), so its only
+> allowed output is resumable partial-session evidence — never a candidate,
+> edge or backtest claim.
 
 ## One pipeline
 

@@ -11,13 +11,17 @@ binding scope; `CLAUDE.md` is the process constitution.
 > deterministic VAL probe.  A separate 70,880-row VAL decision journal was
 > materialised with no TEST access; its negative smoke-label PnL is a plumbing
 > observation, not an edge/backtest result.  Candidate static positive/open
-> feature gates are source-provisionally admissible only pending the existing
-> full-population raw-liveness, direct-input and Entry-family-ablation proofs;
-> all other gate failures still fail closed.  The implementation has not run a
-> candidate CUDA epoch under this new policy.  **Resume with focused source
-> tests and the executable handover, then decide on one declared guarded
-> candidate learning-validation run.  Do not rent external compute or touch
-> TEST before that fresh candidate evidence exists.**
+> feature gates are source-provisionally admissible on the **Exit surface only**
+> after a direct-input report binds the selected online state, VAL parquet,
+> shared MTF-cache identity and Exit lifecycle root. The bundle loader
+> independently rehashes the loaded state and binds full Exit trajectory to it
+> and to its fitted-Q target state. Entry gates remain strict. The
+> implementation has not run a candidate CUDA epoch under this new policy.
+> **Resume with focused source tests, commit and a fresh recipe/dry-run, then
+> run one guarded candidate learning-validation session. Its 20-minute window
+> ends before first VAL (31,004 TRAIN batches), so it yields only resumable
+> partial-session evidence — not candidate evidence. Do not rent external
+> compute or touch TEST.**
 
 > Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)

@@ -18,8 +18,9 @@ The current status companion is
 `docs/CURRENT_AUDIT_STATUS_20260828.md`: it makes the active audit/preflight
 hold explicit, including inactive background services and the prohibition on
 full training, TEST, demo and live work. Its 2026-08-30 continuation records
-the exact technical checkpoint parity and VAL-journal repair; those are not
-candidate, backtest or execution authority.
+the exact technical checkpoint parity, VAL-journal repair and the new
+hash-bound candidate Exit-evidence repair. Those are not candidate, backtest
+or execution authority; Entry gate failures remain strict.
 
 ## Scope freeze
 

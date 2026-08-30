@@ -14,7 +14,8 @@ nothing until the recipe owner adopts it and the evidence ladder runs.
 
 > Current-status note, 2026-08-30: V29 is retired historical design material.
 > The active V46 surface is frozen; do not revive this proposal to solve the
-> current technical checkpoint parity, VAL journal or candidate-gate repair.
+> current technical checkpoint parity, VAL journal or candidate Exit-evidence
+> binding repair.
 > Current authority is the handover plus the code-owned contracts; commits `a77ebb6e`, `31f376ca` and
 > `57d4ebcb`, `e0cf52ed` and `64d648da` change no feature surface.
 

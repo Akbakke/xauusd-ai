@@ -96,7 +96,6 @@ def test_candidate_static_exit_gate_requires_exact_provisional_diagnostic(
             "required_before_bundle_publication": [
                 "hash_bound_full_population_raw_input_liveness",
                 "selected_checkpoint_direct_input_influence",
-                "selected_checkpoint_family_ablation",
             ],
             "failures": [static_failure],
             "blocking_failures_after_disposition": [],
@@ -115,3 +114,32 @@ def test_candidate_static_exit_gate_requires_exact_provisional_diagnostic(
     ] = ["bad"]
     with pytest.raises(RuntimeError, match="CANDIDATE_STATIC_EXIT_GATE_INVALID"):
         bundle._candidate_static_exit_gate_provisional(selected)
+
+
+def test_candidate_full_trajectory_requires_loaded_online_and_target_state_bindings() -> None:
+    online = "a" * 64
+    target = "b" * 64
+    report = {
+        "online_model_state_sha256": online,
+        "target_model_state_sha256": target,
+        "state_prediction_stream_sha256": "c" * 64,
+    }
+    bundle._require_candidate_full_trajectory_bindings(
+        report,
+        selected_online_model_state_sha256=online,
+        target_model_state_sha256=target,
+    )
+
+    for field, value in (
+        ("online_model_state_sha256", "d" * 64),
+        ("target_model_state_sha256", "d" * 64),
+        ("state_prediction_stream_sha256", "not-a-sha"),
+    ):
+        broken = dict(report)
+        broken[field] = value
+        with pytest.raises(RuntimeError, match="FULL_TRAJECTORY_BINDING_INVALID"):
+            bundle._require_candidate_full_trajectory_bindings(
+                broken,
+                selected_online_model_state_sha256=online,
+                target_model_state_sha256=target,
+            )

@@ -19,7 +19,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 
 
-SCHEMA_VERSION = "gx1_unified_exit_input_influence_v3"
+SCHEMA_VERSION = "gx1_unified_exit_input_influence_v4"
 SPLIT = "val"
 SAMPLE_COUNT = 8
 SIDE_ROWS = 4
@@ -90,10 +90,22 @@ def _finite_above(value: Any, epsilon: float) -> bool:
     )
 
 
+def _is_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
 def require_unified_exit_input_influence(
     value: Mapping[str, Any],
     *,
     ordered_signal_names: list[str] | tuple[str, ...],
+    selected_online_model_state_sha256: str,
+    val_data_sha256: str,
+    multi_tf_cache_identity_sha256: str,
+    unified_exit_lifecycle_root_manifest_sha256: str,
     context: str,
 ) -> None:
     if not isinstance(value, Mapping):
@@ -113,6 +125,10 @@ def require_unified_exit_input_influence(
         "categorical_delta_epsilon",
         "sample_entry_row_indices",
         "sample_decision_times_ns",
+        "selected_online_model_state_sha256",
+        "val_data_sha256",
+        "multi_tf_cache_identity_sha256",
+        "unified_exit_lifecycle_root_manifest_sha256",
         "ordered_signal_names",
         "signal_names_sha256",
         "input_ownership",
@@ -157,6 +173,17 @@ def require_unified_exit_input_influence(
         failures.append("input_ownership")
     if value.get("input_ownership_sha256") != canonical_json_sha256(layout):
         failures.append("input_ownership_sha256")
+    for field, expected in (
+        ("selected_online_model_state_sha256", selected_online_model_state_sha256),
+        ("val_data_sha256", val_data_sha256),
+        ("multi_tf_cache_identity_sha256", multi_tf_cache_identity_sha256),
+        (
+            "unified_exit_lifecycle_root_manifest_sha256",
+            unified_exit_lifecycle_root_manifest_sha256,
+        ),
+    ):
+        if not _is_sha256(expected) or value.get(field) != expected:
+            failures.append(field)
 
     expected_numeric = layout["numeric"]
     expected_categorical = layout["categorical"]

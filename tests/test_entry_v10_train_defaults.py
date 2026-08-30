@@ -246,18 +246,21 @@ def test_checkpoint_admission_uses_only_learned_head_and_gate_liveness() -> None
         active_head_health_ok=True,
         cooperation_gate_health_ok=True,
         exit_cooperation_gate_health_ok=True,
+        candidate_exit_gate_health_provisional_ok=False,
     )
     assert not trainer._checkpoint_admission_ok(
         profile="candidate",
         active_head_health_ok=False,
         cooperation_gate_health_ok=True,
         exit_cooperation_gate_health_ok=True,
+        candidate_exit_gate_health_provisional_ok=False,
     )
     assert trainer._checkpoint_admission_ok(
         profile="smoke",
         active_head_health_ok=True,
         cooperation_gate_health_ok=False,
         exit_cooperation_gate_health_ok=False,
+        candidate_exit_gate_health_provisional_ok=False,
     )
 
 

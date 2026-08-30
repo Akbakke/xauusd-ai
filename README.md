@@ -12,10 +12,13 @@ current-contract audit is being completed.
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is
 > available solely to verify label/trade plumbing.  The observed negative
-> smoke-label PnL is not an edge or backtest result.  Candidate static-gate
-> handling is repaired in source but has not yet been exercised by candidate
-> CUDA.  See the current audit for the only valid next step; no external
-> training, TEST, OANDA/demo, paper or live route is authorised.
+> smoke-label PnL is not an edge or backtest result. Candidate Exit evidence
+> is now hash-bound to the loaded model, VAL bytes, MTF cache and lifecycle,
+> and its full trajectory is bound to online/target states; Entry gates remain
+> strict. It has not yet been exercised by candidate CUDA. A 20-minute full
+> candidate session cannot reach first VAL, so it yields only resumable
+> session evidence. No external training, TEST, OANDA/demo, paper or live
+> route is authorised.
 
 ## Architecture
 

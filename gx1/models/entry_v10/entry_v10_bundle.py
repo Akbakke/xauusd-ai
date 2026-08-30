@@ -115,6 +115,7 @@ from gx1.contracts.unified_exit_input_influence_v1 import (
     SCHEMA_VERSION as UNIFIED_EXIT_INPUT_INFLUENCE_SCHEMA_VERSION,
     require_unified_exit_input_influence,
 )
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -713,6 +714,19 @@ def _require_exact_model_native_bundle_metadata(
             require_unified_exit_input_influence(
                 exit_input_influence,
                 ordered_signal_names=meta.get("ordered_signal_names", ()),
+                selected_online_model_state_sha256=str(
+                    meta.get("selected_online_model_state_sha256") or ""
+                ),
+                val_data_sha256=str(meta.get("val_data_sha256") or ""),
+                multi_tf_cache_identity_sha256=str(
+                    _require_mapping_field(meta, "multi_tf", context="meta").get(
+                        "shared_cache_identity_sha256"
+                    )
+                    or ""
+                ),
+                unified_exit_lifecycle_root_manifest_sha256=str(
+                    exit_lifecycle.get("root_manifest_sha256") or ""
+                ),
                 context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
             )
         except RuntimeError as exc:
@@ -1388,7 +1402,6 @@ def _candidate_static_exit_gate_provisional(
     expected_requirements = [
         "hash_bound_full_population_raw_input_liveness",
         "selected_checkpoint_direct_input_influence",
-        "selected_checkpoint_family_ablation",
     ]
     failures = diagnostic.get("failures")
     reported_failures = exit_validation.get(
@@ -1408,6 +1421,35 @@ def _candidate_static_exit_gate_provisional(
     ):
         raise RuntimeError("[ENTRY_BUNDLE_CANDIDATE_STATIC_EXIT_GATE_INVALID]")
     return True
+
+
+def _require_candidate_full_trajectory_bindings(
+    full_trajectory_validation: Mapping[str, Any],
+    *,
+    selected_online_model_state_sha256: str,
+    target_model_state_sha256: str,
+) -> None:
+    """Bind persisted full-VAL Exit evidence to the exact loaded states."""
+
+    values = (
+        selected_online_model_state_sha256,
+        target_model_state_sha256,
+        full_trajectory_validation.get("state_prediction_stream_sha256"),
+    )
+    if any(
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+        for value in values
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_UNIFIED_EXIT_FULL_TRAJECTORY_BINDING_INVALID]")
+    if (
+        full_trajectory_validation.get("online_model_state_sha256")
+        != selected_online_model_state_sha256
+        or full_trajectory_validation.get("target_model_state_sha256")
+        != target_model_state_sha256
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_UNIFIED_EXIT_FULL_TRAJECTORY_BINDING_INVALID]")
 
 
 def _require_model_native_architecture_markers(meta: Mapping[str, Any]) -> None:
@@ -1860,6 +1902,26 @@ def load_entry_v10_ctx_bundle(
     if missing_tf_scale_keys:
         raise RuntimeError(f"[ENTRY_BUNDLE_MODEL_NATIVE_TF_INPUT_SCALE_STATE_MISSING] {missing_tf_scale_keys}")
     require_tf_input_scale_state(meta["tf_input_scale"], state_dict_preview)
+    selected_online_model_state_sha256 = canonical_model_state_sha256(
+        state_dict_preview
+    )
+    if str(meta["run_lineage"]["training_profile"]) == "candidate":
+        if (
+            meta.get("selected_online_model_state_sha256")
+            != selected_online_model_state_sha256
+            or lock.get("selected_online_model_state_sha256")
+            != selected_online_model_state_sha256
+        ):
+            raise RuntimeError("[ENTRY_BUNDLE_SELECTED_ONLINE_MODEL_STATE_MISMATCH]")
+        _require_candidate_full_trajectory_bindings(
+            meta["unified_exit_training_evidence"]["full_trajectory_validation"],
+            selected_online_model_state_sha256=selected_online_model_state_sha256,
+            target_model_state_sha256=str(
+                meta["unified_exit_training_evidence"]
+                ["selected_fitted_q_iteration_state"]
+                ["target_model_state_sha256"]
+            ),
+        )
 
     _specialist_cfg = meta["specialist_fusion"]
     _indices = _specialist_cfg["input_indices"]

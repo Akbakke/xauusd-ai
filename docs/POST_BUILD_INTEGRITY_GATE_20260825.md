@@ -7,10 +7,12 @@ Status: **V46 REVIEWED — `PASS_FOR_BOUNDED_SMOKE_RECIPE_AND_DRY_RUN_ONLY`; thi
 > VAL-only label journal exists with `TEST ACCESSED: NO`.  The journal's
 > negative smoke-label PnL, win share, MFE and MAE are permitted here only as
 > model/label plumbing diagnostics; they are not Gate 8 backtest or edge
-> evidence.  A candidate static positive/open learned multiplier may reach
-> post-selection proof only when every raw-liveness, direct-input and Entry
-> family-ablation contract passes.  Candidate CUDA has not yet emitted that
-> evidence, so external compute and every execution route remain blocked.
+> evidence. A static positive/open learned multiplier is provisional only on
+> the Exit surface, after its direct-input report is bound to selected model,
+> VAL, MTF-cache and lifecycle bytes; Entry gates remain strict. Full Exit
+> trajectory evidence is also bound to online/target states on bundle load.
+> Candidate CUDA has not yet emitted that evidence, so external compute and
+> every execution route remain blocked.
 
 ## Runtime amendment — 2026-08-28
 

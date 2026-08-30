@@ -35,22 +35,32 @@ silently continued in the background.
   1,024-row smoke checkpoint**, not a backtest, compounded equity curve,
   candidate result or edge estimate.  Ordered `MAE-before-MFE` cannot be
   recovered from the stored extrema and is correctly reported unavailable.
-- The source now treats a positive, non-saturated learned feature multiplier
-  that is static over one finite VAL interval as *provisional*, not as proof
-  that its raw feature is missing.  This does not waive the raw full-population
-  liveness check, selected-checkpoint per-input Entry/Exit influence checks,
-  Entry local-and-five-clock family ablations, strict bundle reload, or the
-  complete candidate VAL trajectory.  Zero, saturation, non-finite values,
-  routing errors and every other gate failure remain hard blocks.  This is a
-  source repair with focused regressions; no candidate CUDA training has been
-  run under it yet.
+- A positive, non-saturated learned feature multiplier that is static over one
+  finite VAL interval is provisional on the **Exit surface only**, not proof
+  that its raw feature is missing. Its selected-checkpoint direct-input report
+  now binds the canonical online model-state digest, VAL parquet SHA, shared
+  MTF-cache identity and Exit lifecycle root-manifest SHA. The strict loader
+  recomputes that digest from `model_state_dict.pt`, requires it in metadata
+  and lock, and binds full Exit trajectory online/target hashes to the loaded
+  model and fitted-Q target state. Entry gate health remains strict: its family
+  ablation is useful observability, not a gate-waiver contract. Zero,
+  saturation, non-finite values, routing errors and every other gate failure
+  remain hard blocks. Focused CPU regressions are green; no candidate CUDA
+  training has run under this repair.
+- Data/MTF/source audit is green: the V46 liveness artifact contains 620
+  observed statuses (`LIVE=306`, `OBSERVED_VARIABLE=304`,
+  `OBSERVED_RARE_EVENT=6`, `ALLOWED_RARE_EVENT=4`) and no failed/constant/dummy
+  field. Entry uses native M5 plus M15/H1/H4/D1; Exit uses native M1 plus
+  M5/M15/H1/H4/D1, all causally closed and TEST-isolated.
 
-**Next controlled work:** complete source/regression verification and commit
-the checkpoint/journal/gate repair.  Only then may an explicitly declared,
-guarded candidate learning-validation run be considered.  Full external
-training remains `NO-GO` until that candidate gate actually emits its own
-fresh, hash-bound evidence.  No result above authorises an edge claim,
-backtest claim, TEST access, demo, paper or live trading.
+**Next controlled work:** commit the source repair, materialise a fresh
+source-bound recipe and pass its no-GPU dry-run. Then run exactly one guarded
+full-candidate learning-validation session. It has 248,028 TRAIN rows at
+batch 8 (31,004 optimizer batches) before first validation, while the safety
+guard ends the process at 20 minutes. Therefore that run can prove only safe
+resumable session progress, not candidate VAL, edge, PnL, win-rate, MAE/MFE or
+backtest evidence. Full external training remains `NO-GO`; TEST, demo, paper
+and live remain sealed.
 
 ### Current technical-preflight override — 2026-08-30
 

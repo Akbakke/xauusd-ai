@@ -51,6 +51,10 @@ def _admission_health_keywords() -> tuple[str, ...]:
 
 def _admission(profile: str, **flags: Any) -> bool:
     base = {name: True for name in _admission_health_keywords()}
+    # The Exit-only provisional is an explicit exception evidence, never
+    # baseline health.  Tests of the ordinary candidate gate start closed.
+    if profile == "candidate":
+        base["candidate_exit_gate_health_provisional_ok"] = False
     unknown = sorted(set(flags) - set(base))
     assert not unknown, f"test used non-owner admission keywords: {unknown}"
     base.update(flags)
@@ -78,7 +82,11 @@ def test_admission_takes_only_keyword_health_evidence() -> None:
 
 def test_candidate_admission_still_requires_every_health_gate() -> None:
     assert _admission("candidate") is True
-    for blocking in _admission_health_keywords():
+    for blocking in (
+        name
+        for name in _admission_health_keywords()
+        if name != "candidate_exit_gate_health_provisional_ok"
+    ):
         assert _admission("candidate", **{blocking: False}) is False
 
 

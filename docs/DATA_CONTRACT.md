@@ -5,7 +5,9 @@
 > sealed-VAL-only decision journal, with `TEST ACCESSED: NO`. These prove
 > byte-bound data/model/label plumbing only; the journal's smoke metrics are
 > not a candidate result, backtest or edge claim. No dataset rebuild is running
-> or required solely for this repair.
+> or required solely for this repair. The candidate source repair consumes the
+> existing immutable VAL hash, shared MTF-cache identity and Exit lifecycle
+> root as explicit evidence bindings; it changes no feature or data bytes.
 
 ## Source authority
 
