@@ -3068,6 +3068,12 @@ def _resolve_device(device_str: str) -> torch.device:
 
 def _set_deterministic(seed: int, device: torch.device) -> None:
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    # The canonical capped runner reserves logical CPUs 0-5 and pins the
+    # numerical-library thread environment to six.  PyTorch otherwise chooses
+    # four physical cores on this WSL host, leaving two approved CPU slots
+    # unused.  Set the matching source-bound count before any training work;
+    # deterministic CUDA kernels and FP32 policy remain unchanged.
+    torch.set_num_threads(6)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if device.type == "cuda":
@@ -14580,7 +14586,8 @@ def main() -> None:
     device = _resolve_device(args.device)
     log.info(
         "[CONFIG] seed=%d device=%s deterministic=true tf32_matmul=false "
-        "cuda_memory_fraction=%s grad_clip_norm=%.6f weight_decay=%.6f dropout=%.6f",
+        "cuda_memory_fraction=%s cpu_threads=%d grad_clip_norm=%.6f "
+        "weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
         (
@@ -14588,6 +14595,7 @@ def main() -> None:
             if device.type == "cuda"
             else "none"
         ),
+        torch.get_num_threads(),
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
         float(args.dropout),

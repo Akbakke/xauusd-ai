@@ -220,8 +220,8 @@ assert_safe_telemetry() {
     float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
       && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
   fi
-  # The physical power-limit setting may be 390 W, but actual draw remains a
-  # strict independently observed safety boundary for every CUDA tier.
+  # The physical 210 W cap is required independently; actual draw remains a
+  # strict separately observed safety boundary for every CUDA tier.
   float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
     && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_DRAW_W}W during $phase"
   (( memory_used > GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB )) \

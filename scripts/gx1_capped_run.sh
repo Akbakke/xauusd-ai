@@ -65,25 +65,25 @@ resolve_nvidia_smi_path() {
 TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"
 
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
-# not caller-controlled defaults. A later measured performance contract may
-# change them only through a new reviewed commit and recipe source binding.
+# not caller-controlled defaults. The V5 fast-candidate measurement (2026-08-30)
+# retains every hardware stop but permits a two-hour bounded run so the full
+# immutable preflight is not repeated every twenty minutes. Any later change
+# still requires a reviewed commit and recipe source binding.
 TRAINER_EXECUTION_MODE=canonical
-TRAINER_MAX_WALL_SECONDS=1200
-TRAINER_MODEL_MAX_WALL_SECONDS=1200
+TRAINER_MAX_WALL_SECONDS=7200
+TRAINER_MODEL_MAX_WALL_SECONDS=7200
 TRAINER_ATTENDED_STAGE_REQUIRED=false
 TRAINER_GPU_INDEX=0
 TRAINER_GPU_MAX_CORE_TEMP_C=70
 TRAINER_GPU_MAX_MEMORY_TEMP_C=90
-# The card is physically configured at 390 W.  The guard permits that setting
-# but retains a strict actual-draw stop; it must never be confused with a
-# software authorization to consume 390 W continuously.
-TRAINER_GPU_MAX_POWER_LIMIT_W=390
-# The Windows-host driver will not accept a lower physical limit from WSL
-# (it returns Insufficient Permissions). The approved local continuation is
-# therefore one batch-8 canonical smoke behind a stricter one-second 220 W
-# actual-draw stop. This is a process-kill boundary, not a hardware throttle:
-# a recipe that needs more than 220 W is failed rather than allowed to heat
-# soak this workstation.
+# The Windows host has been explicitly configured with a physical 210 W cap.
+# Require that cap on every canonical run; a driver reset to 390 W must fail
+# before the trainer is trusted. The one-second draw stop remains a separate
+# telemetry backstop rather than a substitute for the hardware throttle.
+TRAINER_GPU_MAX_POWER_LIMIT_W=210
+# Keep ten watts of reporting tolerance above the physical cap. This avoids a
+# false stop from the 220.52 W transient observed before the hardware cap was
+# installed, while the driver itself prevents sustained operation above 210 W.
 TRAINER_GPU_MAX_POWER_DRAW_W=220
 # WSL exposes no memory-junction temperature, so use the proven 12 GiB
 # residency boundary and poll at one second for every offline CUDA run.
@@ -101,7 +101,11 @@ MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))
 WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))
 WSL_CONFIG_TOLERANCE_KIB=$((1024 * 1024))
 TASKS_MAX=64
-CPU_AFFINITY=0-1
+# WSL exposes eight logical CPUs. Keep two available to the host/desktop and
+# bind canonical training to six (0-5). Numerical-library worker limits below
+# use the same source-bound count; DataLoader workers remain disabled by the
+# model's fixed low-memory contract.
+CPU_AFFINITY=0-5
 
 size_to_kib() {
   local value="$1" number unit multiplier
@@ -617,12 +621,12 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB="$TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
   --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
-  --setenv=OMP_NUM_THREADS=1 \
-  --setenv=MKL_NUM_THREADS=1 \
-  --setenv=OPENBLAS_NUM_THREADS=1 \
-  --setenv=NUMEXPR_NUM_THREADS=1 \
-  --setenv=VECLIB_MAXIMUM_THREADS=1 \
-  --setenv=BLIS_NUM_THREADS=1 \
+  --setenv=OMP_NUM_THREADS=6 \
+  --setenv=MKL_NUM_THREADS=6 \
+  --setenv=OPENBLAS_NUM_THREADS=6 \
+  --setenv=NUMEXPR_NUM_THREADS=6 \
+  --setenv=VECLIB_MAXIMUM_THREADS=6 \
+  --setenv=BLIS_NUM_THREADS=6 \
   --setenv=ARROW_NUM_THREADS=1 \
   --setenv=POLARS_MAX_THREADS=1 \
   --setenv=MALLOC_ARENA_MAX=2 \

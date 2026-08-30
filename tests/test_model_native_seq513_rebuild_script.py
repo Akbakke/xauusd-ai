@@ -8,6 +8,7 @@ from gx1.scripts import build_entry_v10_ctx_training_dataset_v3 as dataset_build
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "rebuild_entry_model_native_seq513_dataset.sh"
 CAPPED_RUNNER = REPO / "scripts" / "gx1_capped_run.sh"
+CANONICAL_TRAINER = REPO / "gx1" / "models" / "entry_v10" / "entry_v10_ctx_train_v3.py"
 PRE_COMMIT = REPO / ".claude" / "git-hooks" / "pre-commit"
 
 
@@ -217,7 +218,13 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     ) in source
     assert '/usr/bin/taskset -c "$verified_cpu_affinity"' in source
     assert "/usr/bin/taskset -c" in source
-    assert "--setenv=OMP_NUM_THREADS=1" in source
+    assert "TRAINER_MAX_WALL_SECONDS=7200" in source
+    assert "TRAINER_MODEL_MAX_WALL_SECONDS=7200" in source
+    assert "CPU_AFFINITY=0-5" in source
+    assert "TRAINER_GPU_MAX_POWER_LIMIT_W=210" in source
+    assert "--setenv=OMP_NUM_THREADS=6" in source
+    trainer_source = CANONICAL_TRAINER.read_text(encoding="utf-8")
+    assert "torch.set_num_threads(6)" in trainer_source
 
 
 def test_pre_commit_model_contracts_use_capped_runner() -> None:
