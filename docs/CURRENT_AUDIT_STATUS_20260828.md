@@ -37,13 +37,17 @@ silently continued in the background.
   recovered from the stored extrema and is correctly reported unavailable.
 - A fresh source-bound guarded candidate session exercised the repaired CUDA
   route for 576 partial TRAIN batches, then stopped normally at its mandatory
-  20-minute wall-clock boundary.  Two resumable state slots were written;
-  there was no VAL, TEST, candidate bundle, PnL or backtest output.  CUDA-only
-  retained activations under a 0.45 allocator fence reduced the measured
-  64-batch interval from `101.889 s` to `86.863 s` (14.7%), while guard peaks
-  remained `65 C` core, `193.34 W` actual draw and `9,655 MiB` VRAM.  The route
-  stays deterministic FP32; TF32, autocast and compilation remain disabled.
-  This is safe throughput evidence only, not a learning or edge result.
+  20-minute wall-clock boundary.  A separate fresh process reloaded that exact
+  state, resumed at batch 577 and wrote checkpoint 640 before a controlled
+  stop.  The pointer and state SHA matched before resume, and the resumed state
+  has a new hash-bound checkpoint pointer.  There was no VAL, TEST, candidate
+  bundle, PnL or backtest output.  CUDA-only retained activations under a 0.45
+  allocator fence reduced the measured 64-batch interval from `101.889 s` to
+  `86.863 s` (14.7%), while the first guard-window peaks remained `65 C` core,
+  `193.34 W` actual draw and `9,655 MiB` VRAM.  The resume canary remained
+  below the `220 W` actual-draw stop.  The route stays deterministic FP32;
+  TF32, autocast and compilation remain disabled.  This is safe throughput
+  evidence only, not a learning or edge result.
 - A positive, non-saturated learned feature multiplier that is static over one
   finite VAL interval is provisional on the **Exit surface only**, not proof
   that its raw feature is missing. Its selected-checkpoint direct-input report

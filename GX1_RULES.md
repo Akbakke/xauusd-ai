@@ -12,10 +12,12 @@ until the current V46 audit/preflight sequence is complete.
 > VAL-only label journal are plumbing evidence only.  They do not authorise
 > external compute, a backtest/edge claim, TEST, OANDA, demo, paper or live
 > activity. One freshly declared, source-bound guarded candidate
-> learning-validation session has now exercised the repaired CUDA path.  It
-> stopped normally at its 20-minute wall-clock boundary after 576 partial
-> TRAIN batches and wrote resumable checkpoints; it did not reach first VAL
-> (31,004 full-TRAIN batches precede it).  Consequently it is operational and
+> learning-validation session has now exercised the repaired CUDA path.  Its
+> first guarded window stopped normally at the 20-minute wall-clock boundary
+> after 576 partial TRAIN batches.  A separate fresh-process canary then
+> reloaded that exact state, resumed at batch 577 and durably checkpointed
+> batch 640 before a controlled stop.  It did not reach first VAL (31,004
+> full-TRAIN batches precede it).  Consequently it is operational and
 > throughput evidence only — never a candidate, edge or backtest claim.
 
 ## One pipeline

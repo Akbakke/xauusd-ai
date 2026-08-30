@@ -17,15 +17,18 @@ binding scope; `CLAUDE.md` is the process constitution.
 > independently rehashes the loaded state and binds full Exit trajectory to it
 > and to its fitted-Q target state. Entry gates remain strict. The
 > implementation has now run one fresh source-bound guarded CUDA session under
-> this new policy.  The 20-minute guard stopped it normally at 576 partial
-> TRAIN batches, with resumable state slots written; it did not reach first VAL
+> this new policy.  The 20-minute guard stopped its first window normally at
+> 576 partial TRAIN batches, with resumable state slots written.  A fresh
+> process then reloaded that exact state, started at batch 577 and durably
+> checkpointed batch 640 before a controlled stop.  It did not reach first VAL
 > (31,004 TRAIN batches), so it remains partial-session evidence—not candidate
 > evidence.  CUDA activation retention was enabled only on the guarded CUDA
 > route, under a 0.45 allocator fence and deterministic FP32 (TF32 remains
 > disabled).  It reduced the measured 64-batch interval from 101.889 seconds
 > to 86.863 seconds (14.7%) with observed peaks of 65 C, 193.34 W and
-> 9,655 MiB.  This is a safety/throughput result, not learning, edge or
-> backtest evidence. Do not rent external compute or touch TEST.**
+> 9,655 MiB in the first guard window; the resume canary stayed below the
+> 220 W actual-draw stop.  This is a safety/throughput result, not learning,
+> edge or backtest evidence. Do not rent external compute or touch TEST.**
 
 > Current operational override (2026-08-29): read
 > [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
