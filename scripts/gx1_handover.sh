@@ -291,7 +291,7 @@ echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOC
 echo "train_recipe: CURRENT_AUDITED_RESEARCH_ONLY_NO_CANDIDATE_AUTHORITY"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
-echo "strict_preflight: NO_GO_REBUILD_TRAIN_VAL_FROM_PRETEST_MTF_CACHE"
+echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
 echo "strict_preflight_test_accessed: NO"
 echo "exit_contract: LOCAL_M1_PLUS_CAUSAL_M5_M15_H1_H4_D1_REQUIRED"
 # A restated test count goes stale the moment anyone adds a test — and

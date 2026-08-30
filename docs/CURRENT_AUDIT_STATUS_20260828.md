@@ -10,6 +10,58 @@ The project is offline research only. There is no admitted production model,
 predictive edge, realised PnL, win rate, MAE/MFE result, calibration,
 untouched-TEST result, demo account, paper route or live route.
 
+### Current technical-preflight override — 2026-08-30
+
+The older 2026-08-29 strict-cache blocker below is historical.  It is
+superseded for the immutable pre-TEST V4 TRAIN/VAL artefacts by the following
+new, explicit evidence root:
+
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V4_EXTERNAL_TRAINING_PREFLIGHT_20260830T010000Z/`
+
+- Static TRAIN/VAL preflight: `PASS`.  It scanned 248,028 TRAIN and 70,880
+  VAL rows, found monotone timestamps with no duplicates, no rows at or after
+  `2026-07-01T00:00:00Z`, and a maximum observed label horizon of 19 M5 bars.
+  The declared maximum contract horizon is 96 bars; the TRAIN end is
+  exclusive and the emitted tail is purged before the split boundary.
+- The five-clock cache is the exact cache bound by both V4 split manifests.
+  Its M5/M15/H1/H4/D1 final timestamps are all strictly before TEST.  The
+  static preflight verified the manifest, cache identity and M5-source hashes
+  for both splits without mapping cache arrays beyond the pre-TEST surface.
+- Normalization is bound to the exact TRAIN M5 surface and is `train_only`;
+  its lineage reports zero VAL and TEST fit rows.
+- The deterministic FP32 checkpoint/resume probe passed in a fresh Python
+  process with zero difference in model state, optimizer state, loss and
+  prediction.  This is a protocol proof, not a market-learning result.
+- The strict-loaded current-provenance V4 diagnostic bundle completed all
+  70,880 VAL inference rows under the automatic CUDA guard.  Guard peak:
+  55 C core, 155.32 W actual draw and 921 MiB VRAM.  No temperature, power,
+  VRAM or wall-clock boundary was approached.
+- The technical training-pipeline contract passes: all eight specialist routes
+  are finite, positive and state-varying; all active exported Entry heads are
+  finite and non-constant; the frozen signal surface remains 238 fields over
+  local M5 plus M15/H1/H4/D1.  The separate strict smoke-*quality* report is
+  `FAIL` because a 1,024-row smoke model gives several softmax gates little
+  share or no top rank.  That is retained as a post-training quality
+  observation, not relabelled as missing/disconnected features and not used as
+  an edge claim.
+- The same smoke bundle's full-VAL selective-edge result is negative (top 5%
+  mean research PnL -1.40 bps; top 10% -1.55 bps).  It is deliberately **not**
+  a verdict on the untrained candidate: this bundle trained on only 1,024
+  sampled TRAIN rows.  It proves full-VAL data/model plumbing, not edge.
+
+`TEST ACCESSED: NO` for this entire preflight, resume probe and full-VAL
+evaluation.  The evaluator accepts only the explicit `val` split under the
+`pre_calibration` stage; no TEST path was supplied or resolved.
+
+**Decision:** technical pipeline readiness for a future offline,
+recipe-bound candidate is `PASS`; authorization to rent/start external full
+training is still `BLOCK` until the operator explicitly approves the cost and
+the exact candidate recipe and frozen commit/hash manifest are reviewed.
+Demo, paper, broker and live authority remain `BLOCK`, as does every edge or
+production-PnL claim.  A full candidate run must itself execute the complete
+joint Entry/Exit validation and its untouched-TEST release remains separately
+sealed.
+
 ### Strict pre-full-train override — 2026-08-29
 
 **NO-GO for external full training. Do not rent or start a remote machine.**

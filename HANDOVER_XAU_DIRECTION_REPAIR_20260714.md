@@ -1186,6 +1186,31 @@ default by design; the env propagates because `gx1_capped_run.sh` uses
 
 ## Takeover
 
+### Latest preflight evidence — 2026-08-30
+
+Read this subsection before the older historical run chronology above.  The
+current pre-TEST V4 technical-preflight root is
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V4_EXTERNAL_TRAINING_PREFLIGHT_20260830T010000Z/`.
+
+It records a PASS static TRAIN/VAL split, cache and TRAIN-only-normalization
+audit; a PASS exact FP32 checkpoint/resume probe; and a guarded full-VAL
+inference event over all 70,880 VAL rows.  The V4 split manifests and the
+five-clock cache agree exactly, cache timestamps end before the sealed TEST
+boundary, and `TEST ACCESSED: NO`.
+
+The 1,024-row broad smoke bundle used for that full-VAL plumbing is not an
+edge or candidate result.  Its technical routing contract passes: every one
+of the eight specialist routes is finite, positive and state-varying, and
+every active exported Entry head is finite and non-constant.  Its strict
+post-training quality check and pre-registered VAL edge test fail, as expected
+for a tiny diagnostic model; do not confuse either with missing features or an
+authorization to trade.  The next model run remains a fresh, recipe-bound,
+offline full candidate only after explicit external-compute cost approval.
+
+The overall project decision remains BLOCK for TEST, demo, paper, live and
+production claims.  Do not modify features, labels, sequence lengths,
+objectives or architecture to chase the smoke metric.
+
 ```bash
 bash scripts/gx1_handover.sh --check
 bash scripts/gx1_handover.sh
