@@ -35,6 +35,15 @@ silently continued in the background.
   1,024-row smoke checkpoint**, not a backtest, compounded equity curve,
   candidate result or edge estimate.  Ordered `MAE-before-MFE` cannot be
   recovered from the stored extrema and is correctly reported unavailable.
+- A fresh source-bound guarded candidate session exercised the repaired CUDA
+  route for 576 partial TRAIN batches, then stopped normally at its mandatory
+  20-minute wall-clock boundary.  Two resumable state slots were written;
+  there was no VAL, TEST, candidate bundle, PnL or backtest output.  CUDA-only
+  retained activations under a 0.45 allocator fence reduced the measured
+  64-batch interval from `101.889 s` to `86.863 s` (14.7%), while guard peaks
+  remained `65 C` core, `193.34 W` actual draw and `9,655 MiB` VRAM.  The route
+  stays deterministic FP32; TF32, autocast and compilation remain disabled.
+  This is safe throughput evidence only, not a learning or edge result.
 - A positive, non-saturated learned feature multiplier that is static over one
   finite VAL interval is provisional on the **Exit surface only**, not proof
   that its raw feature is missing. Its selected-checkpoint direct-input report
@@ -45,22 +54,22 @@ silently continued in the background.
   model and fitted-Q target state. Entry gate health remains strict: its family
   ablation is useful observability, not a gate-waiver contract. Zero,
   saturation, non-finite values, routing errors and every other gate failure
-  remain hard blocks. Focused CPU regressions are green; no candidate CUDA
-  training has run under this repair.
+  remain hard blocks. Focused CPU regressions are green; the guarded partial
+  CUDA session described above has run under this repair, but no CUDA candidate
+  has completed a TRAIN epoch or reached validation.
 - Data/MTF/source audit is green: the V46 liveness artifact contains 620
   observed statuses (`LIVE=306`, `OBSERVED_VARIABLE=304`,
   `OBSERVED_RARE_EVENT=6`, `ALLOWED_RARE_EVENT=4`) and no failed/constant/dummy
   field. Entry uses native M5 plus M15/H1/H4/D1; Exit uses native M1 plus
   M5/M15/H1/H4/D1, all causally closed and TEST-isolated.
 
-**Next controlled work:** commit the source repair, materialise a fresh
-source-bound recipe and pass its no-GPU dry-run. Then run exactly one guarded
-full-candidate learning-validation session. It has 248,028 TRAIN rows at
-batch 8 (31,004 optimizer batches) before first validation, while the safety
-guard ends the process at 20 minutes. Therefore that run can prove only safe
-resumable session progress, not candidate VAL, edge, PnL, win-rate, MAE/MFE or
-backtest evidence. Full external training remains `NO-GO`; TEST, demo, paper
-and live remain sealed.
+**Next controlled work:** preserve the completed guarded session and its
+resumable state as operational evidence, then explicitly review the frozen
+recipe/commit and external-compute cost before any complete candidate training.
+It has 248,028 TRAIN rows at batch 8 (31,004 optimizer batches) before first
+validation; a 20-minute local guard can prove only safe resumable progress, not
+candidate VAL, edge, PnL, win-rate, MAE/MFE or backtest evidence. Full external
+training remains `NO-GO`; TEST, demo, paper and live remain sealed.
 
 ### Current technical-preflight override — 2026-08-30
 
