@@ -101,6 +101,12 @@ MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))
 WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))
 WSL_CONFIG_TOLERANCE_KIB=$((1024 * 1024))
 TASKS_MAX=64
+# The canonical CUDA trainer needs room for PyTorch/CUDA worker threads as
+# well as the one-second safety watchdog. With sixteen numerical workers, a
+# 64-task cgroup can exhaust before the first batch, abort the trainer, and
+# prevent the watchdog from spawning its next telemetry probe. Keep the
+# tighter audit cap, while retaining a finite trainer-specific ceiling.
+TRAINER_TASKS_MAX=128
 # WSL exposes nineteen logical CPUs. Keep three available to the host/desktop
 # and bind canonical training to sixteen (0-15). Numerical-library worker
 # limits below use the same source-bound count; DataLoader workers remain
@@ -109,7 +115,8 @@ CPU_AFFINITY=0-15
 # Audit and producer processes retain one numerical worker so the hard
 # TasksMax=64 boundary continues to leave room for their own Python/Arrow
 # helper threads. The canonical trainer receives the measured sixteen-thread
-# allowance only after its class has been validated below.
+# allowance and bounded 128-task cgroup only after its class has been
+# validated below.
 NUMERICAL_THREAD_COUNT=1
 
 size_to_kib() {
@@ -381,6 +388,7 @@ validate_target_command "$@"
 
 if [[ "$JOB_CLASS" == trainer ]]; then
   NUMERICAL_THREAD_COUNT=16
+  TASKS_MAX="$TRAINER_TASKS_MAX"
 fi
 
 if [[ "$ATTENDED_SMOKE" == true ]]; then

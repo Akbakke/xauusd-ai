@@ -221,6 +221,8 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "TRAINER_MAX_WALL_SECONDS=7200" in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=7200" in source
     assert "CPU_AFFINITY=0-15" in source
+    assert "TRAINER_TASKS_MAX=128" in source
+    assert 'TASKS_MAX="$TRAINER_TASKS_MAX"' in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=210" in source
     assert "NUMERICAL_THREAD_COUNT=16" in source
     assert '--setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT"' in source

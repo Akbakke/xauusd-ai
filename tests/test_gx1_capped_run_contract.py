@@ -895,8 +895,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert '-p MemoryMax="$MEM" -p MemoryHigh="$MEM" -p MemorySwapMax="$SWAP"' in source
     assert '--setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))"' in source
     assert '--setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX"' in source
-    assert "TRAINER_MAX_WALL_SECONDS=1200" in source
-    assert "TRAINER_MODEL_MAX_WALL_SECONDS=1200" in source
+    assert "TRAINER_MAX_WALL_SECONDS=7200" in source
+    assert "TRAINER_MODEL_MAX_WALL_SECONDS=7200" in source
     assert "TRAINER_MAX_WALL_SECONDS=600" in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=300" in source
     assert 'if [[ "$TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then' in source
