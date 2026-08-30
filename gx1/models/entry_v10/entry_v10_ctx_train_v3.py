@@ -823,7 +823,11 @@ log = logging.getLogger(__name__)
 
 _TRAINER_MEMORY_LIMIT_BYTES = 20 * 1024**3
 _TRAINER_SWAP_LIMIT_BYTES = 512 * 1024**2
-_TRAINER_PIDS_LIMIT = 64
+# Sixteen bounded numerical workers plus PyTorch/CUDA helper threads and the
+# one-second safety watchdog require more than the audit cgroup's 64 tasks.
+# This remains a finite trainer-only ceiling; the capped runner independently
+# proves the exact value in the live cgroup before any dataset bytes are read.
+_TRAINER_PIDS_LIMIT = 128
 _TRAINER_CGROUP_ENV = {
     "memory": "GX1_CAPPED_MEMORY_BYTES",
     "swap": "GX1_CAPPED_SWAP_BYTES",

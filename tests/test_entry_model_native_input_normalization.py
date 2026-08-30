@@ -514,7 +514,7 @@ def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() 
         "/sys/fs/cgroup/gx1-test.scope/memory.max": str(memory),
         "/sys/fs/cgroup/gx1-test.scope/memory.high": str(memory),
         "/sys/fs/cgroup/gx1-test.scope/memory.swap.max": str(swap),
-        "/sys/fs/cgroup/gx1-test.scope/pids.max": "64",
+        "/sys/fs/cgroup/gx1-test.scope/pids.max": "128",
     }
 
     def read_text(path) -> str:
@@ -525,7 +525,7 @@ def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() 
     base_env = {
         "GX1_CAPPED_MEMORY_BYTES": str(memory),
         "GX1_CAPPED_SWAP_BYTES": str(swap),
-        "GX1_CAPPED_TASKS_MAX": "64",
+        "GX1_CAPPED_TASKS_MAX": "128",
     }
     with pytest.raises(RuntimeError, match="CGROUP_CLASS_INVALID"):
         trainer._require_trainer_cgroup_preflight(
@@ -546,7 +546,17 @@ def test_trainer_cgroup_preflight_rejects_uncapped_and_audit_without_training() 
     )
     assert proof["memory_max"] == proof["memory_high"] == memory
     assert proof["swap"] == swap
-    assert proof["pids"] == 64
+    assert proof["pids"] == 128
+
+    with pytest.raises(RuntimeError, match="ENV_LIMIT_EXCEEDED"):
+        trainer._require_trainer_cgroup_preflight(
+            environ={
+                **base_env,
+                "GX1_CAPPED_CLASS": "trainer",
+                "GX1_CAPPED_TASKS_MAX": "129",
+            },
+            read_text=read_text,
+        )
 
     with pytest.raises(RuntimeError, match="ENV_ACTUAL_MISMATCH"):
         trainer._require_trainer_cgroup_preflight(
