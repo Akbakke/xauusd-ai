@@ -35,7 +35,11 @@ JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
+# CUDA producer routes are intentionally enumerated rather than accepting an
+# arbitrary module.  Both are read-only, TRAIN/VAL-only evidence producers;
+# neither has an execution, promotion or TEST surface.
 CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1
+TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_technical_checkpoint_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -162,8 +166,10 @@ validate_target_command() {
         echo "FATAL: --cuda-producer requires --class producer" >&2
         exit 75
       }
-      if ! is_direct_python "$1" || [[ "${2:-}" != "-m" || "${3:-}" != "$CUDA_PRODUCER_MODULE" ]]; then
-        echo "FATAL: --cuda-producer is reserved for the exact selective-edge evaluator" >&2
+      if ! is_direct_python "$1" || [[ "${2:-}" != "-m" ]] \
+        || { [[ "${3:-}" != "$CUDA_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TECHNICAL_VALIDATION_PRODUCER_MODULE" ]]; }; then
+        echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
       for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
