@@ -1,7 +1,15 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-30T09:30:38Z",
+  "updated_utc": "2026-08-30T10:30:00Z",
+  "reviewed_local_runtime_exclusions": {
+    "paths": [
+      ".claude/worktrees/",
+      ".env",
+      ".venv/"
+    ],
+    "schema_version": "gx1_reviewed_local_runtime_exclusions_v1"
+  },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",

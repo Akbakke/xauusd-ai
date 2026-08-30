@@ -8,6 +8,8 @@ Read `GX1_RULES.md` first. It is binding.
 session position. It verifies the launch-state reference, recipe SHA/source
 closure identity, session contract, pointer and active state SHA at runtime;
 never treat a checkpoint number in this document as an operational command.
+For source hygiene, it permits only declared local runtime state and
+regenerable Python/pytest/ruff caches; any other ignored path blocks handover.
 
 **Operational override, 2026-08-30:**
 [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)

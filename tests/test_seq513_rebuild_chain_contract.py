@@ -106,6 +106,14 @@ def test_chain_binds_clean_source_revision_and_terminal_status() -> None:
 
     assert 'git -C "$ENG" rev-parse --verify HEAD' in source
     assert 'git -C "$ENG" status --porcelain --untracked-files=all' in source
+    assert (
+        'HANDOVER_CHECK=$(PYTHONDONTWRITEBYTECODE=1 '
+        '"$ENG/scripts/gx1_handover.sh" --check'
+    ) in source
+    assert "unexpected_ignored_path_count: 0" in source
+    assert "prunable_worktree_count: 0" in source
+    assert "repository contains unexpected ignored content" in source
+    assert "repository contains prunable worktree registration" in source
     # Two of the pre-wave 17 belonged to the retired train-rank-reference step.
     assert source.count("require_source_identity") == 15
     assert 'repository HEAD changed after binding' in source

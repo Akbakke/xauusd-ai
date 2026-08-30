@@ -13,6 +13,8 @@ The current candidate-session position is runtime-derived by
 `bash scripts/gx1_handover.sh`, which validates the declared recipe, source
 closure, session contract and active state pointer. This README never grants a
 resume based on a copied checkpoint number.
+The same handover allows only declared local runtime state and regenerable
+Python/pytest/ruff caches to be ignored; all other ignored paths block it.
 
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is

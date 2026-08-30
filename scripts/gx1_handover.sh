@@ -395,20 +395,92 @@ for raw in filter(None, git_bytes("ls-files", "--others", "--exclude-standard", 
 status = git_bytes("status", "--porcelain=v1", "-z")
 changed = len(tuple(filter(None, status.split(b"\0"))))
 ignored_status = git_bytes("status", "--ignored", "--porcelain=v1", "-z")
-ignored = sum(
-    1
+ignored_paths = tuple(
+    os.fsdecode(entry[3:])
     for entry in filter(None, ignored_status.split(b"\0"))
     if entry.startswith(b"!! ")
 )
+ignored = len(ignored_paths)
 worktree_porcelain = git_bytes("worktree", "list", "--porcelain").decode("utf-8")
 prunable_worktrees = sum(
     1 for line in worktree_porcelain.splitlines() if line.startswith("prunable")
+)
+reviewed_exclusions = state.get("reviewed_local_runtime_exclusions")
+if (
+    not isinstance(reviewed_exclusions, dict)
+    or set(reviewed_exclusions) != {"schema_version", "paths"}
+    or reviewed_exclusions.get("schema_version")
+    != "gx1_reviewed_local_runtime_exclusions_v1"
+    or not isinstance(reviewed_exclusions.get("paths"), list)
+    or any(
+        not isinstance(path, str) for path in reviewed_exclusions["paths"]
+    )
+    or set(reviewed_exclusions["paths"])
+    != {".claude/worktrees/", ".env", ".venv/"}
+    or len(reviewed_exclusions["paths"]) != 3
+):
+    raise SystemExit("FATAL: reviewed local runtime exclusions are invalid")
+environment_file = repo / ".env"
+if environment_file.is_symlink() or (
+    environment_file.exists()
+    and (
+        not environment_file.is_file()
+        or os.stat(environment_file, follow_symlinks=False).st_mode & 0o077
+    )
+):
+    raise SystemExit("FATAL: reviewed local .env exclusion is unsafe")
+venv = repo / ".venv"
+if venv.is_symlink() or (
+    venv.exists()
+    and (
+        not venv.is_dir()
+        or (venv / "pyvenv.cfg").is_symlink()
+        or not (venv / "pyvenv.cfg").is_file()
+    )
+):
+    raise SystemExit("FATAL: reviewed local virtual environment exclusion is invalid")
+worktree_root = repo / ".claude" / "worktrees"
+registered_worktree_paths = {
+    Path(line.removeprefix("worktree ")).resolve()
+    for line in worktree_porcelain.splitlines()
+    if line.startswith("worktree ")
+}
+if worktree_root.is_symlink() or (
+    worktree_root.exists()
+    and (
+        not worktree_root.is_dir()
+        or not any(
+            str(path).startswith(str(worktree_root.resolve()) + os.sep)
+            for path in registered_worktree_paths
+        )
+    )
+):
+    raise SystemExit("FATAL: reviewed local Claude worktree exclusion is invalid")
+declared_exclusion_paths = set(reviewed_exclusions["paths"])
+
+
+def reviewed_ignored_path(path: str) -> bool:
+    """Return whether an ignored path is declared local state or regenerable cache."""
+    return (
+        path in declared_exclusion_paths
+        or path in {".pytest_cache/", ".ruff_cache/"}
+        or path.endswith("/__pycache__/")
+    )
+
+
+reviewed_ignored = sum(
+    reviewed_ignored_path(path) for path in ignored_paths
+)
+unexpected_ignored = sorted(
+    path for path in ignored_paths if not reviewed_ignored_path(path)
 )
 print(authority.hexdigest())
 print(worktree.hexdigest())
 print(changed)
 print(ignored)
 print(prunable_worktrees)
+print(reviewed_ignored)
+print(len(unexpected_ignored))
 print(state.get("required_contract_mode", "MISSING"))
 print(state.get("dataset_event_id") or "NONE")
 print(state.get("dataset_admission_stage") or "NONE")
@@ -448,38 +520,40 @@ worktree_sha256=${identity[1]}
 changed_path_count=${identity[2]}
 ignored_path_count=${identity[3]}
 prunable_worktree_count=${identity[4]}
-required_contract_mode=${identity[5]}
-dataset_event_id=${identity[6]}
-dataset_admission_stage=${identity[7]}
-audited_dataset_status=${identity[8]}
-audited_dataset_run_id=${identity[9]}
-audited_dataset_report_count=${identity[10]}
-audited_dataset_blocker=${identity[11]}
-pair_generation_id=${identity[12]}
-canonical_v3_path=${identity[13]}
-base28_path=${identity[14]}
-native_m1_root=${identity[15]}
-native_m5_root=${identity[16]}
-m1_time_max=${identity[17]}
-m5_time_max=${identity[18]}
-entry_contract_summary=${identity[19]}
-feature_contract_summary=${identity[20]}
-candidate_session_status=${identity[21]}
-candidate_validation_status=${identity[22]}
-candidate_session_contract_sha256=${identity[23]}
-candidate_session_state_sha256=${identity[24]}
-candidate_recipe_sha256=${identity[25]}
-candidate_source_bindings_sha256=${identity[26]}
-candidate_source_closure=${identity[27]}
+reviewed_ignored_path_count=${identity[5]}
+unexpected_ignored_path_count=${identity[6]}
+required_contract_mode=${identity[7]}
+dataset_event_id=${identity[8]}
+dataset_admission_stage=${identity[9]}
+audited_dataset_status=${identity[10]}
+audited_dataset_run_id=${identity[11]}
+audited_dataset_report_count=${identity[12]}
+audited_dataset_blocker=${identity[13]}
+pair_generation_id=${identity[14]}
+canonical_v3_path=${identity[15]}
+base28_path=${identity[16]}
+native_m1_root=${identity[17]}
+native_m5_root=${identity[18]}
+m1_time_max=${identity[19]}
+m5_time_max=${identity[20]}
+entry_contract_summary=${identity[21]}
+feature_contract_summary=${identity[22]}
+candidate_session_status=${identity[23]}
+candidate_validation_status=${identity[24]}
+candidate_session_contract_sha256=${identity[25]}
+candidate_session_state_sha256=${identity[26]}
+candidate_recipe_sha256=${identity[27]}
+candidate_source_bindings_sha256=${identity[28]}
+candidate_source_closure=${identity[29]}
 head_commit=$(git rev-parse HEAD)
 if (( prunable_worktree_count > 0 )); then
   source_identity_gate=BLOCK_PRUNABLE_WORKTREE_REGISTRATION
 elif (( changed_path_count > 0 )); then
   source_identity_gate=BLOCK_DIRTY_WORKTREE
-elif (( ignored_path_count > 0 )); then
-  source_identity_gate=REVIEW_IGNORED_CONTENT_OUT_OF_SCOPE
+elif (( unexpected_ignored_path_count > 0 )); then
+  source_identity_gate=BLOCK_UNEXPECTED_IGNORED_CONTENT
 else
-  source_identity_gate=READY_CLEAN_WORKTREE
+  source_identity_gate=READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS
 fi
 
 if [[ "$mode" == check ]]; then
@@ -489,6 +563,8 @@ if [[ "$mode" == check ]]; then
   echo "head_commit: $head_commit"
   echo "changed_path_count: $changed_path_count"
   echo "ignored_path_count: $ignored_path_count"
+  echo "reviewed_ignored_path_count: $reviewed_ignored_path_count"
+  echo "unexpected_ignored_path_count: $unexpected_ignored_path_count"
   echo "prunable_worktree_count: $prunable_worktree_count"
   echo "worktree_fingerprint: $worktree_sha256"
   echo "candidate_session: $candidate_session_status"
@@ -588,7 +664,9 @@ echo "## Source worktree"
 echo "head_commit: $head_commit"
 echo "changed_path_count: $changed_path_count"
 echo "ignored_path_count: $ignored_path_count"
-echo "ignored_content_scope: NOT_HASHED__REVIEW_REQUIRED_BEFORE_HEAVY_LAUNCH"
+echo "reviewed_ignored_path_count: $reviewed_ignored_path_count"
+echo "unexpected_ignored_path_count: $unexpected_ignored_path_count"
+echo "ignored_content_scope: DECLARED_LOCAL_RUNTIME_EXCLUSIONS_PLUS_REGENERABLE_CACHE_ONLY"
 echo "worktree_fingerprint: $worktree_sha256"
 echo "authority_fingerprint: $authority_sha256"
 echo "registered_worktrees: $(git worktree list --porcelain | awk '$1 == "worktree" {count++} END {print count+0}')"

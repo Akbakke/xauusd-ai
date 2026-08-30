@@ -489,8 +489,9 @@ if ! (set -o noclobber; : >"$LOG") 2>/dev/null; then
 fi
 printf '[chain] run_id=%s event=%s log=%s\n' "$RUN_ID" "$EVENT" "$LOG"
 
-# Source authority is one exact clean revision. Ignored files do not take part
-# in the gate, while tracked changes and every non-ignored untracked file do.
+# Source authority is one exact clean revision. The executable handover owns
+# the ignored-content policy too: only its reviewed local runtime exclusions
+# and regenerable caches may sit outside the source fingerprint.
 CURRENT_STEP=source-revision
 write_status "$CURRENT_STEP" RUNNING
 if ! GIT_HEAD=$(git -C "$ENG" rev-parse --verify HEAD 2>>"$LOG"); then
@@ -501,6 +502,15 @@ if ! WORKTREE_STATUS=$(git -C "$ENG" status --porcelain --untracked-files=all 2>
 fi
 if [[ -n $WORKTREE_STATUS ]]; then
   fail "repository worktree is not clean"
+fi
+if ! HANDOVER_CHECK=$(PYTHONDONTWRITEBYTECODE=1 "$ENG/scripts/gx1_handover.sh" --check 2>>"$LOG"); then
+  fail "canonical handover source-identity verification failed"
+fi
+if ! printf '%s\n' "$HANDOVER_CHECK" | grep -Fqx 'unexpected_ignored_path_count: 0'; then
+  fail "repository contains unexpected ignored content"
+fi
+if ! printf '%s\n' "$HANDOVER_CHECK" | grep -Fqx 'prunable_worktree_count: 0'; then
+  fail "repository contains prunable worktree registration"
 fi
 write_status "$CURRENT_STEP" RUNNING
 

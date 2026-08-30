@@ -9,6 +9,8 @@ hardcoded checkpoint below: `bash scripts/gx1_handover.sh` verifies the
 launch-state reference, recipe/source-closure digests, immutable session
 contract, active pointer and state SHA. Any prose value in this handover is
 historical context and cannot authorise a resume.
+The verifier permits only declared local runtime state and regenerable
+Python/pytest/ruff caches; any other ignored path blocks source identity.
 
 > **Active continuation — 2026-08-30:** no CUDA, collector, Telegram, OANDA,
 > TEST, demo, paper or live process is active or authorised.  The exact

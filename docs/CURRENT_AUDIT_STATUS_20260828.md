@@ -9,6 +9,8 @@ reference: the handover verifies its recipe SHA/source-closure identity,
 immutable contract, active pointer and state SHA before it reports progress.
 The checkpoint numbers retained below document observed evidence only; they do
 not bypass a clean source preflight or authorise a new heavy job.
+Source hygiene permits only declared local runtime state and regenerable
+Python/pytest/ruff caches; any other ignored path is fail-closed.
 
 ## Current verdict
 

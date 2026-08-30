@@ -27,6 +27,8 @@ The candidate-session position is deliberately not duplicated here. Obtain it
 from `bash scripts/gx1_handover.sh`; its runtime check binds the declared
 recipe, source-closure digest, immutable session contract and active state
 pointer before printing it.
+It permits only declared local runtime state and regenerable Python/pytest/ruff
+caches; an unrecognised ignored path is fail-closed.
 
 ## Scope freeze
 

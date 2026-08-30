@@ -12,9 +12,13 @@ files and inspect the exact diff before editing.
 verifier. It reports prunable registered worktrees separately and treats one
 as a fail-closed source-identity condition; inspect its path and reachability
 before an owner explicitly runs any prune/cleanup command. The fingerprint
-covers tracked changes and non-ignored untracked paths. Ignored content is
-reported but deliberately not hashed, so it requires review before a heavy
-launch; never mistake a green tracked diff for proof about ignored files.
+covers tracked changes and non-ignored untracked paths. The handover permits
+only the declared local `.env`, canonical `.venv`, registered
+`.claude/worktrees` and regenerable Python/pytest/ruff caches outside that
+fingerprint; every other ignored path is a fail-closed source-identity block.
+Never mistake a green tracked diff for proof about ignored files.
+`scripts/run_seq513_rebuild_chain_v1.sh` consumes the same handover check
+before it can start a heavyweight producer.
 
 > **2026-08-30 checkpoint:** the active repair contains technical
 > checkpoint-parity, VAL-journal and candidate Exit-evidence binding changes,

@@ -12,6 +12,8 @@ until the current V46 audit/preflight sequence is complete.
 must verify the launch-state session reference, recipe/source-closure identity,
 session contract and active checkpoint state at runtime; prose checkpoint
 numbers are historical evidence only.
+Only declared local runtime state and regenerable Python/pytest/ruff caches may
+be ignored; any other ignored path blocks source identity.
 
 > **2026-08-30 override:** the technical checkpoint bundle/reload parity and
 > VAL-only label journal are plumbing evidence only.  They do not authorise

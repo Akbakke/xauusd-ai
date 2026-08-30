@@ -168,6 +168,10 @@ def test_candidate_wrapper_source_is_exact_model_native_and_has_no_stale_launch_
     assert "gx1.contracts.entry_model_native_signal_v1" in text
     assert "s.MODEL_NATIVE_CONTRACT_MODE" in text
     assert "s.MODEL_NATIVE_SIGNAL_DIM" in text
+    assert '"$REPO/scripts/gx1_handover.sh" --check' in text
+    assert "unexpected_ignored_path_count: 0" in text
+    assert "prunable_worktree_count: 0" in text
+    assert "--execute rejects unexpected ignored content" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
     for flag in (
         "--enable-pos-enc",

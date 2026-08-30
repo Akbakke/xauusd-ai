@@ -73,7 +73,8 @@ Required audited execution values (there are no wrapper defaults):
   --memory-cap SIZE --swap-cap SIZE
 
 --dry-run validates and prints the exact capped command without writing files.
---execute additionally requires a clean worktree and runs the capped trainer.
+--execute additionally requires a clean worktree with no unexpected ignored
+content or prunable worktree registration, then runs the capped trainer.
 The profile has no default. Evidence from one profile is rejected in the other.
 --attended-smoke is accepted only for CUDA smoke runs. --attended-cpu-smoke
 is its CPU-only recovery counterpart after a GPU safety stop. Both have a
@@ -98,6 +99,19 @@ EOF
 die() {
   printf 'FATAL: %s\n' "$*" >&2
   exit 2
+}
+
+require_handover_source_hygiene() {
+  local handover_check
+  if ! handover_check=$(PYTHONDONTWRITEBYTECODE=1 "$REPO/scripts/gx1_handover.sh" --check); then
+    die "canonical handover source-identity verification failed"
+  fi
+  if ! printf '%s\n' "$handover_check" | grep -Fqx 'unexpected_ignored_path_count: 0'; then
+    die "--execute rejects unexpected ignored content"
+  fi
+  if ! printf '%s\n' "$handover_check" | grep -Fqx 'prunable_worktree_count: 0'; then
+    die "--execute rejects prunable worktree registration"
+  fi
 }
 
 declare -A SEEN=()
@@ -501,4 +515,5 @@ fi
 
 [[ -z "$(git -C "$REPO" status --porcelain=v1 --untracked-files=all)" ]] || \
   die "--execute requires a clean worktree matching the audited source bindings"
+require_handover_source_hygiene
 exec "${RUN_CMD[@]}"

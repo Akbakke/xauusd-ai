@@ -123,6 +123,18 @@ def test_only_one_handover_shell_entrypoint_exists() -> None:
     assert handover_scripts == [HANDOVER_VIEWER]
 
 
+def test_execute_routes_reuse_handover_source_hygiene() -> None:
+    for path in (
+        CONTROL,
+        REPO / "scripts/run_entry_model_native_seq513_train.sh",
+        REPO / "scripts/run_seq513_rebuild_chain_v1.sh",
+    ):
+        source = path.read_text(encoding="utf-8")
+        assert 'scripts/gx1_handover.sh" --check' in source
+        assert "unexpected_ignored_path_count: 0" in source
+        assert "prunable_worktree_count: 0" in source
+
+
 def test_handover_viewer_prints_current_goal() -> None:
     result = subprocess.run(
         ["bash", str(HANDOVER_VIEWER)],
@@ -177,6 +189,11 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_session_state_sha256: " in result.stdout
     assert "candidate_recipe_sha256: " in result.stdout
     assert "candidate_source_bindings_sha256: " in result.stdout
+    assert (
+        "ignored_content_scope: "
+        "DECLARED_LOCAL_RUNTIME_EXCLUSIONS_PLUS_REGENERABLE_CACHE_ONLY"
+        in result.stdout
+    )
     assert "historical_pnl_winrate: UNPROVEN" in result.stdout
     launch_state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -294,6 +311,10 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["required_same_bundle_shared_encoder"] is True
     assert state["required_exact_closed_m1_exit_path_envelope"] is True
     assert state["external_decision_models_allowed"] is False
+    assert state["reviewed_local_runtime_exclusions"] == {
+        "schema_version": "gx1_reviewed_local_runtime_exclusions_v1",
+        "paths": [".claude/worktrees/", ".env", ".venv/"],
+    }
     assert state["dataset_event_id"] is None
     assert state["dataset_admission_stage"] == "NO_ADMITTED_UNIFIED_DATASET"
     assert state["accepted_dataset_dir"] is None
@@ -408,6 +429,8 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "head_commit:" in result.stdout
     assert "changed_path_count:" in result.stdout
     assert "ignored_path_count:" in result.stdout
+    assert "reviewed_ignored_path_count:" in result.stdout
+    assert "unexpected_ignored_path_count: 0" in result.stdout
     assert "prunable_worktree_count:" in result.stdout
     assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
     assert "candidate_session: SESSION_INTACT__checkpoint=11" in result.stdout

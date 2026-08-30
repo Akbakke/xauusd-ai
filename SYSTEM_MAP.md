@@ -8,6 +8,8 @@ pipeline; it does not authorise training, TEST, demo or live operation.
 The active candidate-session point is not architecture-map data. Query
 `bash scripts/gx1_handover.sh`; it derives and verifies the referenced recipe,
 source closure, contract and active two-slot state at runtime.
+It allows only declared local runtime state and regenerable Python/pytest/ruff
+caches to be ignored; any other ignored content blocks source identity.
 
 > **Operational checkpoint, 2026-08-30:** the map below remains the intended
 > M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has

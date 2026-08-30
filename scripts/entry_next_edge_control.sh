@@ -112,6 +112,19 @@ die() {
   exit 2
 }
 
+require_handover_source_hygiene() {
+  local handover_check
+  if ! handover_check=$(PYTHONDONTWRITEBYTECODE=1 "$REPO/scripts/gx1_handover.sh" --check); then
+    die "canonical handover source-identity verification failed"
+  fi
+  if ! printf '%s\n' "$handover_check" | grep -Fqx 'unexpected_ignored_path_count: 0'; then
+    die "--execute rejects unexpected ignored content"
+  fi
+  if ! printf '%s\n' "$handover_check" | grep -Fqx 'prunable_worktree_count: 0'; then
+    die "--execute rejects prunable worktree registration"
+  fi
+}
+
 require_flag() {
   local route="$1"
   local required="$2"
@@ -854,6 +867,7 @@ case "$cmd" in
     fi
     [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
       || die "$cmd --execute requires a clean worktree"
+    require_handover_source_hygiene
     exec "${HARDWARE_CMD[@]}"
     ;;
 
