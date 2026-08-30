@@ -60,24 +60,26 @@ def test_trainer_uses_direct_masked_raw_bps_entry_q_mse() -> None:
     assert "frozen_exit_first_state_values_bps" in source
 
 
-def test_cuda_tf32_policy_is_explicitly_source_bound() -> None:
+def test_cuda_memory_fence_and_strict_fp32_policy_are_source_bound() -> None:
     cuda_policy = trainer._training_precision_metadata("cuda")
     cpu_policy = trainer._training_precision_metadata("cpu")
     assert cuda_policy == {
-        "precision": "deterministic_fp32_tensors_tf32_matmul",
+        "precision": "deterministic_fp32",
         "compile": False,
-        "tf32": True,
+        "tf32": False,
         "autocast": False,
+        "cuda_memory_fraction": 0.45,
     }
     assert cpu_policy == {
         "precision": "deterministic_fp32",
         "compile": False,
         "tf32": False,
         "autocast": False,
+        "cuda_memory_fraction": None,
     }
-    assert "torch.backends.cuda.matmul.allow_tf32 = True" in TRAINER_PATH.read_text(
-        encoding="utf-8"
-    )
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert "torch.backends.cuda.matmul.allow_tf32 = False" in source
+    assert "torch.cuda.set_per_process_memory_fraction(" in source
 
 
 def test_exit_mtf_history_uses_m1_state_start_not_already_closed_clock() -> None:

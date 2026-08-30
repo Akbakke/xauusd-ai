@@ -670,6 +670,18 @@ def test_exact_architecture_eval_is_deterministic() -> None:
         assert torch.allclose(first[key], second[key]), key
 
 
+def test_cuda_training_uses_retained_activations_behind_the_hard_fence() -> None:
+    """CUDA may avoid recomputation, but the encoder graph itself is unchanged."""
+
+    assert model_module.TRAIN_ACTIVATION_CHECKPOINT_POLICY == (
+        "cuda_disabled_cpu_checkpointed_v2"
+    )
+    assert model_module.CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED is False
+    source = inspect.getsource(model_module._memory_bounded_transformer_encoder)
+    assert "if src.is_cuda and not CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED:" in source
+    assert "return encoder(" in source
+
+
 def test_tf_input_scale_cannot_become_zero_or_negative() -> None:
     model = _make_model()
     for tf_name in ("m5", "m15", "h1", "h4", "d1"):

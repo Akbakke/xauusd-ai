@@ -2790,6 +2790,10 @@ def _entry_fitted_q_movement_proof(
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
 _WEIGHT_DECAY: float = 1e-5
+# Below the outer guard's 12 GiB observation boundary. An unsafe
+# activation-retention run fails locally as CUDA OOM before it can reserve
+# enough VRAM to destabilise WSL or the workstation.
+_CANONICAL_CUDA_MEMORY_FRACTION = 0.45
 
 
 def _model_forward_fp32(
@@ -2799,9 +2803,7 @@ def _model_forward_fp32(
 ) -> Dict[str, torch.Tensor]:
     """Use the deterministic FP32 tensor path owned by the recipe.
 
-    CUDA candidates may use Ampere TF32 tensor cores for FP32 matrix products.
-    That is a source-bound numerical execution policy, not a reduced-precision
-    input/weight/output surface: tensors and persisted states remain FP32.
+    Parameters, inputs, targets, matmuls and persisted states remain FP32.
     """
 
     out = model(*args, **kwargs)
@@ -3024,11 +3026,15 @@ def _set_deterministic(seed: int, device: torch.device) -> None:
     np.random.seed(seed)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(seed)
-        # RTX 3090's tensor cores accelerate FP32 matrix products through the
-        # deterministic TF32 path. It leaves model parameters, inputs, targets
-        # and persisted checkpoints as FP32. The session contract records this
-        # explicitly, so a TF32 candidate cannot resume as strict FP32 matmul.
-        torch.backends.cuda.matmul.allow_tf32 = True
+        # TF32 did not produce a material gain in the measured Exit workload;
+        # retain strict FP32 arithmetic. The allocation fence protects the
+        # activation-retention path independently of the one-second hardware
+        # guard.
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.cuda.set_per_process_memory_fraction(
+            _CANONICAL_CUDA_MEMORY_FRACTION,
+            torch.cuda.current_device(),
+        )
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     torch.use_deterministic_algorithms(True)
@@ -3039,10 +3045,11 @@ def _training_precision_metadata(device_type: str) -> dict[str, Any]:
 
     if device_type == "cuda":
         return {
-            "precision": "deterministic_fp32_tensors_tf32_matmul",
+            "precision": "deterministic_fp32",
             "compile": False,
-            "tf32": True,
+            "tf32": False,
             "autocast": False,
+            "cuda_memory_fraction": _CANONICAL_CUDA_MEMORY_FRACTION,
         }
     if device_type == "cpu":
         return {
@@ -3050,6 +3057,7 @@ def _training_precision_metadata(device_type: str) -> dict[str, Any]:
             "compile": False,
             "tf32": False,
             "autocast": False,
+            "cuda_memory_fraction": None,
         }
     raise RuntimeError("[ENTRY_TRAIN_PRECISION_DEVICE_INVALID]")
 # -----------------------------------------------------------------------------
@@ -12301,9 +12309,14 @@ def run_train(
         "trendline_events=true position_size=true all_aux_direction_authority=none",
     )
     log.info(
-        "[TRAIN_MEMORY_POLICY] activation_checkpoint=%s "
+        "[TRAIN_MEMORY_POLICY] activation_checkpoint=%s cuda_memory_fraction=%s "
         "features=unchanged samples=unchanged batch_semantics=unchanged",
         TRAIN_ACTIVATION_CHECKPOINT_POLICY,
+        (
+            f"{_CANONICAL_CUDA_MEMORY_FRACTION:.2f}"
+            if device.type == "cuda"
+            else "none"
+        ),
     )
     log.info(
         "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V4) "

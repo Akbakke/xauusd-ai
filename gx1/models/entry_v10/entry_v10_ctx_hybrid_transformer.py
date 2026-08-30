@@ -133,9 +133,14 @@ class UnifiedExitIncrementalCarry:
     path_hidden: torch.Tensor
 
 
-TRAIN_ACTIVATION_CHECKPOINT_POLICY = (
-    "per_transformer_layer_non_reentrant_preserve_rng_v1"
-)
+# Candidate batch-8 profiling showed only 5.7 GiB peak allocated inside the
+# model under a hard 12 GiB process fence. CUDA checkpoint recomputation was
+# therefore throughput cost at this geometry: it re-ran every encoder layer
+# during backward while retaining less than the safely available VRAM.
+# CPU training keeps the bounded policy; CUDA has an independent allocator
+# fence in the trainer before this path is entered.
+TRAIN_ACTIVATION_CHECKPOINT_POLICY = "cuda_disabled_cpu_checkpointed_v2"
+CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
 MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v8"
 MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v8"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
@@ -147,17 +152,22 @@ def _memory_bounded_transformer_encoder(
     *,
     src_key_padding_mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
-    """Run the exact encoder while bounding retained training activations.
+    """Run the exact encoder under the source-bound activation policy.
 
     Entry M5, all five MTF branches, and Exit M1 keep the same layers, rows,
-    features, batch semantics, dropout stream, and gradients.  During a
-    gradient-enabled training forward, each Transformer layer is recomputed
-    once during backward instead of retaining every attention/FFN activation
-    at the same time.  Evaluation and live inference use the ordinary encoder
-    path without checkpoint machinery.
+    features, batch semantics, dropout stream, and gradients. CUDA candidate
+    batch-8 training retains activations within the trainer's 12 GiB allocator
+    fence, avoiding a second encoder forward during backward. CPU training
+    retains the memory-bounded recomputation path. Evaluation and live
+    inference always use the ordinary encoder path.
     """
 
     if not (encoder.training and torch.is_grad_enabled()):
+        return encoder(
+            src,
+            src_key_padding_mask=src_key_padding_mask,
+        )
+    if src.is_cuda and not CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED:
         return encoder(
             src,
             src_key_padding_mask=src_key_padding_mask,
