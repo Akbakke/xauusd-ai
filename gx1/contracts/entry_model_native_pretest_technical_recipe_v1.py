@@ -329,12 +329,28 @@ def require_pretest_technical_recipe_metadata(
     }
     if profile == "smoke" and (
         trainer_cli["epochs"] != 1
-        or trainer_cli["batch_size"] != 8
         or trainer_cli["grad_accum_steps"] != 1
         or smoke_execution_identity not in allowed_smoke_execution_identities
         or trainer_cli["subsample_rows"] <= 0
     ):
         raise PretestTechnicalRecipeError("bounded smoke geometry invalid")
+    # The attended diagnostic keeps its proved batch-8 geometry.  The normal
+    # canonical smoke lane is non-candidate and TEST-sealed, so it may measure
+    # only the three explicitly bounded batch geometries before a new
+    # candidate recipe is selected.  It remains one epoch and a positive,
+    # deterministic TRAIN/VAL sample above.
+    if profile == "smoke" and (
+        (
+            smoke_execution_identity == ("canonical", "cuda")
+            and trainer_cli["batch_size"] not in {8, 9, 10}
+        )
+        or (
+            smoke_execution_identity
+            in {("attended_only", "cuda"), ("attended_cpu_only", "cpu")}
+            and trainer_cli["batch_size"] != 8
+        )
+    ):
+        raise PretestTechnicalRecipeError("bounded smoke batch geometry invalid")
     if smoke_execution_identity == ("canonical", "cuda") and window is not None:
         raise PretestTechnicalRecipeError(
             "canonical smoke must use deterministic uniform sampling without a time window"

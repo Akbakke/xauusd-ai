@@ -178,6 +178,37 @@ def test_pretest_recipe_accepts_only_a_bound_unopened_test_guard(tmp_path: Path)
     ) == recipe
 
 
+def test_canonical_smoke_allows_only_bounded_throughput_batch_geometries(
+    tmp_path: Path,
+) -> None:
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    assert isinstance(cli, dict)
+    cli["execution_tier"] = "canonical"
+    cli["train_time_window"] = None
+    for batch_size in (8, 9, 10):
+        cli["batch_size"] = batch_size
+        recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+        assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"][
+            "batch_size"
+        ] == batch_size
+
+    cli["batch_size"] = 11
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="batch geometry invalid"):
+        require_pretest_technical_recipe_metadata(recipe)
+
+    cli["execution_tier"] = "attended_only"
+    cli["train_time_window"] = {
+        "start_utc": "2024-12-01T00:00:00+00:00",
+        "end_utc": "2025-06-01T00:00:00+00:00",
+    }
+    cli["batch_size"] = 9
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="batch geometry invalid"):
+        require_pretest_technical_recipe_metadata(recipe)
+
+
 def test_pretest_recipe_rejects_artifact_not_bound_to_guard(tmp_path: Path) -> None:
     recipe = _recipe(tmp_path)
     bindings = dict(recipe["artifact_bindings"])
