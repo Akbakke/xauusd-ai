@@ -220,11 +220,12 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "/usr/bin/taskset -c" in source
     assert "TRAINER_MAX_WALL_SECONDS=7200" in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=7200" in source
-    assert "CPU_AFFINITY=0-5" in source
+    assert "CPU_AFFINITY=0-15" in source
     assert "TRAINER_GPU_MAX_POWER_LIMIT_W=210" in source
-    assert "--setenv=OMP_NUM_THREADS=6" in source
+    assert "NUMERICAL_THREAD_COUNT=16" in source
+    assert '--setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT"' in source
     trainer_source = CANONICAL_TRAINER.read_text(encoding="utf-8")
-    assert "torch.set_num_threads(6)" in trainer_source
+    assert "torch.set_num_threads(16)" in trainer_source
 
 
 def test_pre_commit_model_contracts_use_capped_runner() -> None:

@@ -101,11 +101,16 @@ MIN_AVAILABLE_MEMORY_KIB=$((20 * 1024 * 1024))
 WSL_GUARD_MIN_REQUEST_KIB=$((4 * 1024 * 1024))
 WSL_CONFIG_TOLERANCE_KIB=$((1024 * 1024))
 TASKS_MAX=64
-# WSL exposes eight logical CPUs. Keep two available to the host/desktop and
-# bind canonical training to six (0-5). Numerical-library worker limits below
-# use the same source-bound count; DataLoader workers remain disabled by the
-# model's fixed low-memory contract.
-CPU_AFFINITY=0-5
+# WSL exposes nineteen logical CPUs. Keep three available to the host/desktop
+# and bind canonical training to sixteen (0-15). Numerical-library worker
+# limits below use the same source-bound count; DataLoader workers remain
+# disabled by the model's fixed low-memory contract.
+CPU_AFFINITY=0-15
+# Audit and producer processes retain one numerical worker so the hard
+# TasksMax=64 boundary continues to leave room for their own Python/Arrow
+# helper threads. The canonical trainer receives the measured sixteen-thread
+# allowance only after its class has been validated below.
+NUMERICAL_THREAD_COUNT=1
 
 size_to_kib() {
   local value="$1" number unit multiplier
@@ -374,6 +379,10 @@ if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
 fi
 validate_target_command "$@"
 
+if [[ "$JOB_CLASS" == trainer ]]; then
+  NUMERICAL_THREAD_COUNT=16
+fi
+
 if [[ "$ATTENDED_SMOKE" == true ]]; then
   [[ "$JOB_CLASS" == trainer ]] || {
     echo "FATAL: --attended-smoke requires --class trainer" >&2
@@ -540,7 +549,7 @@ if ! flock -n 9; then
   echo "FATAL: another GX1 heavy job owns the exclusive lock: $LOCK_PATH" >&2
   exit 75
 fi
-echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY TasksMax=$TASKS_MAX" >&2
+echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY NumericalThreads=$NUMERICAL_THREAD_COUNT TasksMax=$TASKS_MAX" >&2
 echo "[capped_run] cmd: $*" >&2
 TRAINER_GUARD_LOG_PATH=
 TRAINER_STDIO_LOG_PATH=
@@ -621,12 +630,12 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB="$TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
   --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
-  --setenv=OMP_NUM_THREADS=6 \
-  --setenv=MKL_NUM_THREADS=6 \
-  --setenv=OPENBLAS_NUM_THREADS=6 \
-  --setenv=NUMEXPR_NUM_THREADS=6 \
-  --setenv=VECLIB_MAXIMUM_THREADS=6 \
-  --setenv=BLIS_NUM_THREADS=6 \
+  --setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
+  --setenv=MKL_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
+  --setenv=OPENBLAS_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
+  --setenv=NUMEXPR_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
+  --setenv=VECLIB_MAXIMUM_THREADS="$NUMERICAL_THREAD_COUNT" \
+  --setenv=BLIS_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=ARROW_NUM_THREADS=1 \
   --setenv=POLARS_MAX_THREADS=1 \
   --setenv=MALLOC_ARENA_MAX=2 \
