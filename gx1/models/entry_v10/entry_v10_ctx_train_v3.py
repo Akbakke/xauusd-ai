@@ -5055,6 +5055,50 @@ def _finalize_unified_exit_gate_epoch(
     return prefixed, failures
 
 
+_STATIC_FEATURE_GATE_FAILURE_PREFIX = "family_tf_feature_gate constant/dead indices="
+
+
+def _technical_preflight_exit_gate_disposition(
+    failures: Sequence[str],
+) -> tuple[list[str], dict[str, Any] | None]:
+    """Separate a static-but-open feature gate from a technical route failure.
+
+    A learned feature multiplier can remain positive and non-saturated over a
+    finite validation interval while its raw input still reaches the Exit Q
+    surface. Candidate admission deliberately retains the stricter dynamic
+    gate-health rule. The bounded technical preflight is narrower: it proves
+    that the frozen model/target pair can execute every objective on sealed
+    VAL, so a static-but-open multiplier is journaled there rather than
+    misreported as a missing source feature.
+    """
+
+    static_feature_failures = [
+        str(failure)
+        for failure in failures
+        if str(failure).startswith(_STATIC_FEATURE_GATE_FAILURE_PREFIX)
+    ]
+    blocking = [
+        str(failure)
+        for failure in failures
+        if not str(failure).startswith(_STATIC_FEATURE_GATE_FAILURE_PREFIX)
+    ]
+    if not static_feature_failures:
+        return blocking, None
+    return blocking, {
+        "schema_version": "gx1_technical_exit_static_feature_gate_diagnostic_v1",
+        "decision": "WARN_STATIC_BUT_OPEN_GATE",
+        "nonblocking_for_technical_preflight": True,
+        "candidate_gate_health_remains_strict": True,
+        "failures": static_feature_failures,
+        "blocking_failures_after_disposition": blocking,
+        "interpretation": (
+            "A finite-window static learned multiplier is not evidence that "
+            "its raw feature is absent. Saturated, nonfinite, routing, and "
+            "all other gate failures remain blocking."
+        ),
+    }
+
+
 def _side_mae_auxiliary_loss(
     out: Dict[str, torch.Tensor],
     batch: Dict[str, torch.Tensor],
@@ -9883,6 +9927,7 @@ def validate(
     validation_checkpoint_hook: Optional[Any] = None,
     validation_session_log_label: str = "CANDIDATE_TRAINING",
     active_head_technical_smoke_min_supervised_rows: Optional[int] = None,
+    technical_preflight_allow_static_exit_feature_gates: bool = False,
 ):
     model.eval()
     target_model.eval()
@@ -9910,6 +9955,8 @@ def validate(
         != _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS
     ):
         raise RuntimeError("[ENTRY_TECHNICAL_SMOKE_ACTIVE_HEAD_ARGUMENT_INVALID]")
+    if not isinstance(technical_preflight_allow_static_exit_feature_gates, bool):
+        raise RuntimeError("[ENTRY_TECHNICAL_PRELIGHT_EXIT_GATE_ARGUMENT_INVALID]")
     if resume_validation_state is None:
         full_trajectory_accumulator = (
             _new_unified_exit_full_trajectory_accumulator(
@@ -10329,13 +10376,27 @@ def validate(
         exit_feature_tf_gate_epoch,
     )
     stats.update(exit_gate_stats)
+    technical_exit_gate_diagnostic: dict[str, Any] | None = None
+    effective_exit_gate_failures = list(exit_gate_failures)
+    if technical_preflight_allow_static_exit_feature_gates:
+        (
+            effective_exit_gate_failures,
+            technical_exit_gate_diagnostic,
+        ) = _technical_preflight_exit_gate_disposition(exit_gate_failures)
+        if technical_exit_gate_diagnostic is not None:
+            stats["technical_preflight_exit_gate_diagnostic"] = (
+                technical_exit_gate_diagnostic
+            )
+            stats["technical_preflight_exit_gate_health_ok"] = not (
+                effective_exit_gate_failures
+            )
     if full_trajectory_accumulator is not None:
         stats["unified_exit_full_trajectory_validation"] = (
             _finalize_unified_exit_full_trajectory_validation(
                 full_trajectory_accumulator,
                 dataset=dataset,
                 exit_gate_stats=exit_gate_stats,
-                exit_gate_failures=exit_gate_failures,
+                exit_gate_failures=effective_exit_gate_failures,
             )
         )
     active_head_metrics, active_head_failures = _active_head_epoch_diagnostics(

@@ -881,6 +881,7 @@ def run(
         max_validation_batches=max_validation_batches,
         validation_checkpoint_hook=(on_partial if max_validation_batches is not None else None),
         validation_session_log_label="TECHNICAL_PRELIGHT",
+        technical_preflight_allow_static_exit_feature_gates=True,
     )
     elapsed = time.monotonic() - started
     partial = bool(stats.get("candidate_session_partial", False))

@@ -500,6 +500,26 @@ def test_unified_exit_gate_health_covers_all_five_timeframes_and_features() -> N
     assert "exit_cooperation_gate_health_ok=(" in source
 
 
+def test_technical_preflight_only_journals_static_open_exit_feature_gates() -> None:
+    static_failure = "family_tf_feature_gate constant/dead indices=[7, 9]"
+    blocking, diagnostic = trainer._technical_preflight_exit_gate_disposition(
+        [static_failure]
+    )
+
+    assert blocking == []
+    assert diagnostic is not None
+    assert diagnostic["decision"] == "WARN_STATIC_BUT_OPEN_GATE"
+    assert diagnostic["candidate_gate_health_remains_strict"] is True
+    assert diagnostic["failures"] == [static_failure]
+
+    blocking, diagnostic = trainer._technical_preflight_exit_gate_disposition(
+        [static_failure, "family_tf_feature_gate saturated indices=[7]"]
+    )
+    assert blocking == ["family_tf_feature_gate saturated indices=[7]"]
+    assert diagnostic is not None
+    assert diagnostic["blocking_failures_after_disposition"] == blocking
+
+
 def test_cooperation_gate_epoch_health_uses_empirical_liveness_not_target_share() -> None:
     accumulator = trainer._new_cooperation_gate_epoch_accumulator()
     out = {
