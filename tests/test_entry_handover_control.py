@@ -191,12 +191,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_source_bindings_sha256: " in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
         in result.stdout
     )
     assert (
@@ -261,7 +261,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "RETAIN_HISTORICAL_V4_SESSION__V5_TECHNICAL_BUNDLE_PUBLISHED__POSTRUN_AUDIT_PENDING"
+            "RETAIN_HISTORICAL_V4_SESSION__V5_POSTRUN_AUDIT_RECORDED__CANDIDATE_READINESS_MATERIALIZED"
         in result.stdout
     )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
@@ -361,7 +361,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "gx1_current_source_technical_recipe_reference_v1"
     )
     assert current_source_recipe["status"] == (
-        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
     )
     assert current_source_recipe["run_id"].startswith(
         "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_"
@@ -474,12 +474,12 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
         in result.stdout
     )
     assert "## Host capacity" not in result.stdout

@@ -339,11 +339,21 @@ def _current_source_technical_recipe_status(
         "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__"
         "NO_CANDIDATE_AUTHORITY"
     )
+    audited_status = (
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__"
+        "CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
+    )
     expected_reference_keys = set(base_reference_keys)
-    if isinstance(reference, dict) and reference.get("status") == executed_status:
+    if isinstance(reference, dict) and reference.get("status") in {executed_status, audited_status}:
         expected_reference_keys.update({
             "bundle_commit_manifest_sha256", "bundle_commit_sha256",
             "bundle_metadata_sha256",
+        })
+    if isinstance(reference, dict) and reference.get("status") == audited_status:
+        expected_reference_keys.update({
+            "postrun_bundle_audit_path", "postrun_bundle_audit_sha256",
+            "postrun_bundle_audit_decision", "candidate_readiness_path",
+            "candidate_readiness_sha256", "candidate_readiness_decision",
         })
     if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
         raise SystemExit("FATAL: current-source technical recipe reference is invalid")
@@ -353,6 +363,7 @@ def _current_source_technical_recipe_status(
     if status not in {
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
         executed_status,
+        audited_status,
     }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
@@ -455,6 +466,22 @@ def _current_source_technical_recipe_status(
             "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__"
             "POSTRUN_AUDIT_PENDING"
         )
+        if status == audited_status:
+            for prefix, expected_decision in (
+                ("postrun_bundle_audit", "FAIL"),
+                ("candidate_readiness", "READY_FOR_CANDIDATE_TRAINING"),
+            ):
+                event_path = Path(reference[f"{prefix}_path"])
+                if (
+                    _sha256_file(event_path) != reference[f"{prefix}_sha256"]
+                    or _read_regular_json(event_path, label=prefix).get("decision") != expected_decision
+                    or reference[f"{prefix}_decision"] != expected_decision
+                ):
+                    raise SystemExit(f"FATAL: current-source technical {prefix} mismatch")
+            closure = (
+                "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__"
+                "POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
+            )
     return (
         status,
         str(reference["recipe_sha256"]),
@@ -810,11 +837,11 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $source_identity_gate"
-echo "resume_stage: RETAIN_HISTORICAL_V4_SESSION__V5_TECHNICAL_BUNDLE_PUBLISHED__POSTRUN_AUDIT_PENDING"
+echo "resume_stage: RETAIN_HISTORICAL_V4_SESSION__V5_POSTRUN_AUDIT_RECORDED__CANDIDATE_READINESS_MATERIALIZED"
 echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 dataloader_workers=0 one_job_at_a_time"
-echo "local_cuda: V5_TECHNICAL_SMOKE_COMPLETED__63C_211_56W_9447MIB__POSTRUN_CPU_AUDIT_PENDING"
+echo "local_cuda: V5_TECHNICAL_SMOKE_COMPLETED__63C_211_56W_9447MIB__POSTRUN_CPU_AUDIT_FAIL__CANDIDATE_READINESS_READY"
 echo "cuda_speed: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__FULL_TRAIN_EPOCH_APPROX_11_7H"
 echo "current_cuda_authority: PARTIAL_SESSION_MECHANICS_PROVED__NO_AUTOMATIC_FULL_EPOCH_OR_VAL_TEST_EXECUTION"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"

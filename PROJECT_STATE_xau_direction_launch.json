@@ -12,7 +12,7 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_RECIPE_20260830T101915Z.json",
     "recipe_sha256": "df7d3c249cc626cf25e1582bdf5491e7ea21ef5319718dd67c352a992367d068",
     "source_commit": "53dc91b8cc8a8c5d917c49dbd5cc41d1157b2c58",
@@ -22,7 +22,13 @@
     "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_20260830T101915Z",
     "bundle_commit_manifest_sha256": "20b93b3485374d71a5b68b08c91532b15759e27a6957e1ba071e8319b252feca",
     "bundle_commit_sha256": "bba28c7ea21fda11e0772ec12c244e2a6f33a3b7cb6c6aeeed48f964ccb5b5c5",
-    "bundle_metadata_sha256": "5da280a9741f7392d8560b64a9d6370831d2a9b41f4bca93caa057ba06652c25"
+    "bundle_metadata_sha256": "5da280a9741f7392d8560b64a9d6370831d2a9b41f4bca93caa057ba06652c25",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V5_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_AUDIT_20260830T121500Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260830T121508440597Z.json",
+    "postrun_bundle_audit_sha256": "db324295063f37fa21e13e14f116538607eded6f2cce856f09d484531b007159",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V5_CURRENT_SOURCE_CANDIDATE_READINESS_20260830T121600Z/ENTRY_CANDIDATE_READINESS_20260830T121524926549Z.json",
+    "candidate_readiness_sha256": "f45dad223a6299e5ea4735036bd4f647c9511652a1c0bb76c972076497635f8c",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
