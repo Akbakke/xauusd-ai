@@ -12,6 +12,10 @@ not bypass a clean source preflight or authorise a new heavy job.
 Source hygiene permits only declared local runtime state and regenerable
 Python/pytest/ruff caches; any other ignored path is fail-closed.
 
+The V4 checkpoint-640 session is retained historical evidence, not a current
+source resume command. A separate V5 current-source 32-row canonical technical
+smoke recipe passed CPU launch dry-run only; no CUDA job or bundle exists from it.
+
 ## Current verdict
 
 The project is offline research only. There is no admitted production model,

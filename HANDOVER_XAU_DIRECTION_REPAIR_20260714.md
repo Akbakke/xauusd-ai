@@ -12,6 +12,11 @@ historical context and cannot authorise a resume.
 The verifier permits only declared local runtime state and regenerable
 Python/pytest/ruff caches; any other ignored path blocks source identity.
 
+The retained V4 checkpoint-640 candidate session is historical source-bound
+evidence. The separate V5 current-source 32-row canonical technical smoke
+recipe passed CPU launch dry-run only; it has not allocated CUDA or created a
+bundle and cannot change candidate, TEST or execution authority.
+
 > **Active continuation — 2026-08-30:** no CUDA, collector, Telegram, OANDA,
 > TEST, demo, paper or live process is active or authorised.  The exact
 > technical checkpoint bundle/reload parity is now `PASS_TECHNICAL_ONLY_NOT_CANDIDATE`:

@@ -10,6 +10,17 @@
     ],
     "schema_version": "gx1_reviewed_local_runtime_exclusions_v1"
   },
+  "current_source_technical_recipe": {
+    "schema_version": "gx1_current_source_technical_recipe_reference_v1",
+    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_RECIPE_20260830T101915Z.json",
+    "recipe_sha256": "df7d3c249cc626cf25e1582bdf5491e7ea21ef5319718dd67c352a992367d068",
+    "source_commit": "53dc91b8cc8a8c5d917c49dbd5cc41d1157b2c58",
+    "source_bindings_sha256": "d42b683c02ea9112240602ae0ccb6512278661bbd55f9ce801988186437bc9ca",
+    "run_id": "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_20260830T101915Z",
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_20260830T101915Z"
+  },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
   "latest_terminal_event_decision": "BLOCK",

@@ -99,6 +99,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.current_audited_dataset_evidence_v1 import (
     require_blocked_launch_state_with_current_audited_dataset,
 )
+from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+    canonical_json_sha256,
+    require_pretest_technical_recipe_metadata,
+)
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH,
+    recipe_source_bindings,
+)
 from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES,
     MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,
@@ -308,7 +316,97 @@ def _active_candidate_session_status(launch_state: dict) -> tuple[str, ...]:
     )
 
 
+def _current_source_technical_recipe_status(
+    launch_state: dict,
+) -> tuple[str, str, str, str]:
+    """Verify the separate current-source technical smoke recipe.
+
+    The retained candidate session is immutable historical evidence. This
+    reference proves the next technical smoke is bound to *live* executable
+    source bytes without granting CUDA, candidate, TEST or execution authority.
+    """
+    reference = launch_state.get("current_source_technical_recipe")
+    expected_reference_keys = {
+        "schema_version", "status", "recipe_path", "recipe_sha256",
+        "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
+        "out_bundle_dir",
+    }
+    if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
+        raise SystemExit("FATAL: current-source technical recipe reference is invalid")
+    if (
+        reference.get("schema_version")
+        != "gx1_current_source_technical_recipe_reference_v1"
+        or reference.get("status")
+        != "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+    ):
+        raise SystemExit("FATAL: current-source technical recipe status is invalid")
+    for key in ("recipe_path", "out_bundle_dir"):
+        if not isinstance(reference.get(key), str) or not reference[key].startswith("/"):
+            raise SystemExit(f"FATAL: current-source technical recipe {key} is invalid")
+    for key in ("recipe_sha256", "source_bindings_sha256"):
+        if (
+            not isinstance(reference.get(key), str)
+            or re.fullmatch(r"[0-9a-f]{64}", reference[key]) is None
+        ):
+            raise SystemExit(f"FATAL: current-source technical recipe {key} is invalid")
+    if (
+        not isinstance(reference.get("source_commit"), str)
+        or re.fullmatch(r"[0-9a-f]{40}", reference["source_commit"]) is None
+        or not all(
+            isinstance(reference.get(key), str) and reference[key]
+            for key in ("run_id", "dataset_run_id")
+        )
+    ):
+        raise SystemExit("FATAL: current-source technical recipe identity is invalid")
+
+    recipe_path = Path(reference["recipe_path"])
+    recipe = _read_regular_json(recipe_path, label="current-source technical recipe")
+    if _sha256_file(recipe_path) != reference["recipe_sha256"]:
+        raise SystemExit("FATAL: current-source technical recipe SHA-256 mismatch")
+    try:
+        validated = require_pretest_technical_recipe_metadata(
+            recipe,
+            expected_profile="smoke",
+            expected_run_id=reference["run_id"],
+            expected_dataset_run_id=reference["dataset_run_id"],
+            expected_out_bundle_dir=reference["out_bundle_dir"],
+        )
+    except RuntimeError as exc:
+        raise SystemExit(
+            "FATAL: current-source technical recipe metadata is invalid"
+        ) from exc
+    if (
+        validated.get("source_commit") != reference["source_commit"]
+        or validated.get("source_bindings_sha256")
+        != reference["source_bindings_sha256"]
+        or validated["trainer_cli"].get("execution_tier") != "canonical"
+        or validated["trainer_cli"].get("device") != "cuda"
+        or validated["trainer_cli"].get("subsample_rows") != 32
+    ):
+        raise SystemExit("FATAL: current-source technical recipe contract mismatch")
+    live_bindings = recipe_source_bindings(
+        repo=repo,
+        wrapper_path=(repo / PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH),
+    )
+    if (
+        validated.get("source_bindings") != live_bindings
+        or canonical_json_sha256(live_bindings)
+        != reference["source_bindings_sha256"]
+    ):
+        raise SystemExit("FATAL: current-source technical recipe live source mismatch")
+    out_bundle_dir = Path(reference["out_bundle_dir"])
+    if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
+        raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
+    return (
+        str(reference["status"]),
+        str(reference["recipe_sha256"]),
+        str(reference["source_bindings_sha256"]),
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED",
+    )
+
+
 candidate_session = _active_candidate_session_status(state)
+current_source_technical_recipe = _current_source_technical_recipe_status(state)
 try:
     audited_dataset = require_blocked_launch_state_with_current_audited_dataset(
         state
@@ -512,6 +610,8 @@ print(
 )
 for value in candidate_session:
     print(value)
+for value in current_source_technical_recipe:
+    print(value)
 PY
 )
 
@@ -545,6 +645,10 @@ candidate_session_state_sha256=${identity[26]}
 candidate_recipe_sha256=${identity[27]}
 candidate_source_bindings_sha256=${identity[28]}
 candidate_source_closure=${identity[29]}
+current_source_technical_recipe_status=${identity[30]}
+current_source_technical_recipe_sha256=${identity[31]}
+current_source_technical_recipe_bindings_sha256=${identity[32]}
+current_source_technical_recipe_closure=${identity[33]}
 head_commit=$(git rev-parse HEAD)
 if (( prunable_worktree_count > 0 )); then
   source_identity_gate=BLOCK_PRUNABLE_WORKTREE_REGISTRATION
@@ -570,6 +674,8 @@ if [[ "$mode" == check ]]; then
   echo "candidate_session: $candidate_session_status"
   echo "candidate_recipe_sha256: $candidate_recipe_sha256"
   echo "candidate_source_closure: $candidate_source_closure"
+  echo "current_source_technical_recipe: $current_source_technical_recipe_status"
+  echo "current_source_technical_recipe_closure: $current_source_technical_recipe_closure"
   exit 0
 fi
 
@@ -594,7 +700,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: FROZEN_PRETEST_V4_RESEARCH_RECIPE_PARTIAL_CANDIDATE_SESSION_ONLY"
+echo "train_recipe: HISTORICAL_V4_CANDIDATE_SESSION_PLUS_CURRENT_SOURCE_V5_TECHNICAL_SMOKE_ONLY"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
@@ -611,6 +717,10 @@ echo "candidate_session_state_sha256: $candidate_session_state_sha256"
 echo "candidate_recipe_sha256: $candidate_recipe_sha256"
 echo "candidate_source_bindings_sha256: $candidate_source_bindings_sha256"
 echo "candidate_source_closure: $candidate_source_closure"
+echo "current_source_technical_recipe: $current_source_technical_recipe_status"
+echo "current_source_technical_recipe_sha256: $current_source_technical_recipe_sha256"
+echo "current_source_technical_recipe_bindings_sha256: $current_source_technical_recipe_bindings_sha256"
+echo "current_source_technical_recipe_closure: $current_source_technical_recipe_closure"
 echo "external_full_training: NO_GO_PENDING_EXPLICIT_COST_REVIEW_FROZEN_COMMIT_RECIPE_AND_FULL_CANDIDATE_PLAN"
 echo "exit_contract: LOCAL_M1_PLUS_CAUSAL_M5_M15_H1_H4_D1_REQUIRED"
 # A restated test count goes stale the moment anyone adds a test — and
@@ -642,18 +752,18 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $source_identity_gate"
-echo "resume_stage: VERIFY_SESSION_AND_RECIPE_AT_RUNTIME__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
+echo "resume_stage: RETAIN_HISTORICAL_V4_SESSION__CURRENT_V5_SMOKE_RECIPE_CPU_READY_CUDA_NOT_EXECUTED"
 echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M cpu=0-1 dataloader_workers=0 one_job_at_a_time"
-echo "local_cuda: CHECKPOINT_640_RESUME_ONLY_BEHIND_220W_ACTUAL_70C_12G_GUARD__390W_DRIVER_LIMIT_IS_NOT_AUTHORITY"
+echo "local_cuda: V5_TECHNICAL_SMOKE_NOT_EXECUTED__220W_ACTUAL_70C_12G_GUARD__390W_DRIVER_LIMIT_IS_NOT_AUTHORITY"
 echo "cuda_speed: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__FULL_TRAIN_EPOCH_APPROX_11_7H"
 echo "current_cuda_authority: PARTIAL_SESSION_MECHANICS_PROVED__NO_AUTOMATIC_FULL_EPOCH_OR_VAL_TEST_EXECUTION"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
-echo "  1. run this handover and confirm clean source, no competing job, checkpoint-640 pointer and frozen recipe/source identity"
-echo "  2. choose an explicitly declared full-epoch execution plan: guarded local resumes or approved external compute; do not change features, targets or guard limits"
+echo "  1. run this handover and confirm clean source, no competing job, retained checkpoint-640 evidence and live V5 smoke source identity"
+echo "  2. authorise at most the separately declared V5 technical CUDA smoke, then assess its new immutable bundle; do not resume V4 under current source"
 echo "  3. reach first complete TRAIN epoch and full VAL before interpreting learning; checkpoint selection and early-stop policy stay frozen"
 echo "  4. repeat candidate audit only after a completed full candidate; no partial-session metric is an edge claim"
 echo "  5. run preregistered untouched-TEST evaluation only after the candidate/OOS gates, never as a troubleshooting input"

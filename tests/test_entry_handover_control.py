@@ -176,7 +176,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-        "FROZEN_PRETEST_V4_RESEARCH_RECIPE_PARTIAL_CANDIDATE_SESSION_ONLY"
+        "HISTORICAL_V4_CANDIDATE_SESSION_PLUS_CURRENT_SOURCE_V5_TECHNICAL_SMOKE_ONLY"
         in result.stdout
     )
     assert (
@@ -189,6 +189,16 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_session_state_sha256: " in result.stdout
     assert "candidate_recipe_sha256: " in result.stdout
     assert "candidate_source_bindings_sha256: " in result.stdout
+    assert (
+        "current_source_technical_recipe: "
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+        in result.stdout
+    )
+    assert (
+        "current_source_technical_recipe_closure: "
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
+        in result.stdout
+    )
     assert (
         "ignored_content_scope: "
         "DECLARED_LOCAL_RUNTIME_EXCLUSIONS_PLUS_REGENERABLE_CACHE_ONLY"
@@ -251,7 +261,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-        "VERIFY_SESSION_AND_RECIPE_AT_RUNTIME__DECLARE_NEXT_FULL_EPOCH_OR_EXTERNAL_PLAN_EXPLICITLY"
+        "RETAIN_HISTORICAL_V4_SESSION__CURRENT_V5_SMOKE_RECIPE_CPU_READY_CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
@@ -270,7 +280,10 @@ def test_handover_viewer_prints_current_goal() -> None:
         "capacity: audits=4G training_max=20G swap=512M cpu=0-1 "
         "dataloader_workers=0 one_job_at_a_time" in result.stdout
     )
-    assert "full-epoch execution plan: guarded local resumes or approved external compute" in result.stdout
+    assert (
+        "authorise at most the separately declared V5 technical CUDA smoke"
+        in result.stdout
+    )
     assert "reach first complete TRAIN epoch and full VAL" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
@@ -343,6 +356,22 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         r"[0-9a-f]{64}", candidate_session["source_bindings_sha256"]
     )
     assert re.fullmatch(r"[0-9a-f]{40}", candidate_session["source_commit"])
+    current_source_recipe = state["current_source_technical_recipe"]
+    assert current_source_recipe["schema_version"] == (
+        "gx1_current_source_technical_recipe_reference_v1"
+    )
+    assert current_source_recipe["status"] == (
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+    )
+    assert current_source_recipe["run_id"].startswith(
+        "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_"
+    )
+    assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
+    assert Path(current_source_recipe["recipe_path"]).is_file()
+    assert not Path(current_source_recipe["out_bundle_dir"]).exists()
+    for key in ("recipe_sha256", "source_bindings_sha256"):
+        assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
+    assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
     blockers = "\n".join(state["blockers"])
     assert "fresh immutable native M1/M5 pair" in blockers
     assert "No admitted dataset" in blockers
@@ -351,7 +380,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     # The state now carries twelve hash-bound V46 report identities. Keep the
     # launch authority compact enough to inspect, while treating those exact
     # identities as necessary fail-closed control data rather than a history.
-    assert len(LAUNCH_STATE.read_bytes()) < 12_000
+    assert len(LAUNCH_STATE.read_bytes()) < 14_000
     assert not any(
         key in state
         for key in (
@@ -436,6 +465,16 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "candidate_session: SESSION_INTACT__checkpoint=11" in result.stdout
     assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
+    assert (
+        "current_source_technical_recipe: "
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+        in result.stdout
+    )
+    assert (
+        "current_source_technical_recipe_closure: "
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
+        in result.stdout
+    )
     assert "## Host capacity" not in result.stdout
     assert "## Active GX1 process groups" not in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout

@@ -29,6 +29,10 @@ batches, so it cannot be called candidate evidence. Resume only the exact
 recipe/source-bound session through the executable handover, never by
 restarting a historical smoke or external run.
 
+The old checkpoint is retained historical evidence, not the current execution
+recipe. A separate V5 current-source 32-row technical smoke recipe has passed
+its CPU launch dry-run only; it has not allocated CUDA or created a bundle.
+
 - Scope is offline XAUUSD only.
 - Architecture is fixed: the same eight code-owned feature implementations run
   independently on local M5 for Entry and local M1 for Exit, in one model and
