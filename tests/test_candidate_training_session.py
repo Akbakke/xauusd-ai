@@ -358,6 +358,13 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
     assert restored["rows"] == 1
     assert restored["cooperation_gate_epoch"]["gate"]["sum"].shape == (2,)
     assert restored["full_trajectory_accumulator"]["state_stream_chain_sha256"] == "0" * 64
+    # The candidate coordinator validates a resumed snapshot before passing it
+    # to ``validate``, which performs the same restoration at its own entry.
+    # Restoring an already-restored snapshot must therefore be safe and retain
+    # the accumulated ndarray evidence.
+    restored_again = trainer._restore_candidate_validation_snapshot(restored)
+    assert restored_again["cooperation_gate_epoch"]["gate"]["sum"].shape == (2,)
+    assert restored_again["entry_policy_realized_pnl_chunks"][0].shape == (1,)
 
 
 def test_candidate_runner_resumes_completed_hash_bound_session(

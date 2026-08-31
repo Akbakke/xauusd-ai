@@ -8638,6 +8638,13 @@ def _candidate_snapshot_safe(value: Any) -> Any:
 def _candidate_snapshot_restore(value: Any) -> Any:
     if isinstance(value, torch.Tensor):
         return value.detach().cpu().numpy().copy()
+    # ``validate`` restores the durable snapshot it receives.  The candidate
+    # coordinator also validates a resumed snapshot before handing it to that
+    # function, so a nested value may already be a host ndarray on the second
+    # pass.  Treat that representation as an idempotent restore result rather
+    # than rejecting an otherwise valid, weights-only checkpoint.
+    if isinstance(value, np.ndarray):
+        return np.ascontiguousarray(value).copy()
     if isinstance(value, Mapping):
         return {str(key): _candidate_snapshot_restore(item) for key, item in value.items()}
     if isinstance(value, list):
