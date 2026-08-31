@@ -20,6 +20,10 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     PretestTechnicalRecipeError,
     require_pretest_technical_recipe_metadata,
 )
+from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import (
+    PretestCandidateLaunchGateError,
+    require_pretest_candidate_launch_gate,
+)
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MODE
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     LaunchContractError,
@@ -96,6 +100,8 @@ def build_pretest_technical_launch(
     *,
     recipe_path: Path,
     recipe_sha256: str,
+    candidate_gate_path: Path | None = None,
+    candidate_gate_sha256: str | None = None,
 ) -> tuple[list[str], dict[str, str], dict[str, Any]]:
     """Validate the immutable recipe and derive the sole allowed command."""
 
@@ -122,6 +128,27 @@ def build_pretest_technical_launch(
         raise PretestTechnicalLaunchError("validated recipe lost its exact bindings")
     if provenance.get("source_commit") != validated["source_commit"]:
         raise PretestTechnicalLaunchError("source provenance does not match recipe")
+    candidate_profile = str(validated["profile"]) == "candidate"
+    if candidate_profile:
+        if candidate_gate_path is None or candidate_gate_sha256 is None:
+            raise PretestTechnicalLaunchError(
+                "candidate execution requires an immutable candidate launch gate"
+            )
+        try:
+            require_pretest_candidate_launch_gate(
+                candidate_gate_path,
+                candidate_gate_sha256,
+                expected_recipe_path=recipe_path,
+                expected_recipe_sha256=recipe_sha256,
+            )
+        except (OSError, PretestCandidateLaunchGateError, ValueError) as exc:
+            raise PretestTechnicalLaunchError(
+                f"candidate launch gate rejected: {exc}"
+            ) from exc
+    elif candidate_gate_path is not None or candidate_gate_sha256 is not None:
+        raise PretestTechnicalLaunchError(
+            "candidate launch gate is invalid for a smoke recipe"
+        )
     execution_tier = str(cli["execution_tier"])
     device = str(cli["device"])
     if (execution_tier, device) not in {
@@ -243,6 +270,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recipe-json", type=Path, required=True)
     parser.add_argument("--recipe-sha256", required=True)
+    parser.add_argument("--candidate-gate-json", type=Path)
+    parser.add_argument("--candidate-gate-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -251,6 +280,8 @@ def main() -> None:
         command, environment, recipe = build_pretest_technical_launch(
             recipe_path=args.recipe_json,
             recipe_sha256=str(args.recipe_sha256),
+            candidate_gate_path=args.candidate_gate_json,
+            candidate_gate_sha256=args.candidate_gate_sha256,
         )
     except PretestTechnicalLaunchError as exc:
         parser.error(str(exc))

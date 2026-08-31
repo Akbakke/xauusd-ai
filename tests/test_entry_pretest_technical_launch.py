@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from gx1.scripts import run_entry_model_native_pretest_technical_train_v1 as launcher
 from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     canonical_json_sha256,
@@ -96,3 +98,28 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     assert command[command.index("--execution-tier") + 1] == "canonical"
     assert "--train-time-window-start-utc" not in command
     assert "--train-time-window-end-utc" not in command
+
+
+def test_pretest_candidate_launcher_requires_immutable_launch_gate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    recipe = _recipe(tmp_path)
+    recipe["profile"] = "candidate"
+    recipe_path = (tmp_path / "pretest-candidate-recipe.json").resolve()
+    recipe_path.write_text(json.dumps(recipe, sort_keys=True), encoding="utf-8")
+    recipe_sha = hashlib.sha256(recipe_path.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        launcher,
+        "require_training_recipe_execution_provenance",
+        lambda **_kwargs: {"source_commit": recipe["source_commit"]},
+    )
+
+    with pytest.raises(
+        launcher.PretestTechnicalLaunchError,
+        match="requires an immutable candidate launch gate",
+    ):
+        launcher.build_pretest_technical_launch(
+            recipe_path=recipe_path,
+            recipe_sha256=recipe_sha,
+        )
