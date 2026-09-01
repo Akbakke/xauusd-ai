@@ -6,12 +6,12 @@
   This elevated native-Windows script creates a non-exportable RSA signing
   certificate in LocalMachine, stores a SYSTEM-run loopback service under
   C:\ProgramData\GX1\HostTelemetryBridge, and exports only its public
-  certificate.  The optional WslClientAddress mode adds one listener on the
-  Windows WSL gateway and an inbound firewall rule limited to that single WSL
-  client address; it never listens on a LAN or wildcard address.  The service
-  loads the already hash-verified LibreHardwareMonitor library solely to obtain
-  Nvidia "GPU Memory Junction"; the remaining physical fields come from native
-  Windows nvidia-smi.
+  certificate.  The optional WslClientAddress mode adds an exact-address IPv4
+  port proxy from the Windows WSL gateway to the existing loopback listener,
+  plus an inbound firewall rule limited to that single WSL client address; it
+  never listens on a LAN or wildcard address.  The service loads the already
+  hash-verified LibreHardwareMonitor library solely to obtain Nvidia "GPU Memory
+  Junction"; the remaining physical fields come from native Windows nvidia-smi.
 
   It is not a training command and does not change the GPU power limit.  The
   Linux canonical guard will remain locked until the exported public-certificate
@@ -350,8 +350,7 @@ param(
     [ValidateRange(0, 31)]
     [int]$GpuIndex,
     [ValidateRange(1024, 65535)]
-    [int]$Port,
-    [string]$WslListenAddress = ''
+    [int]$Port
 )
 
 Set-StrictMode -Version Latest
@@ -514,9 +513,6 @@ $computer.IsGpuEnabled = $true
 $computer.Open()
 $listener = [System.Net.HttpListener]::new()
 $listener.Prefixes.Add("http://127.0.0.1:$Port/gx1/v1/telemetry/")
-if (-not [string]::IsNullOrWhiteSpace($WslListenAddress)) {
-    $listener.Prefixes.Add("http://${WslListenAddress}:$Port/gx1/v1/telemetry/")
-}
 
 try {
     $listener.Start()
@@ -573,7 +569,7 @@ $runnerSource = @"
 `$ErrorActionPreference = 'Stop'
 try {
     Add-Content -LiteralPath '$serviceLogPath' -Value 'runner-start'
-    & '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port -WslListenAddress '$wslListenAddress' *>> '$serviceLogPath'
+    & '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port *>> '$serviceLogPath'
     exit `$LASTEXITCODE
 }
 catch {
@@ -601,6 +597,7 @@ $configuration = [ordered]@{
     wsl_endpoint = $wslEndpoint
     wsl_listen_address = $wslListenAddress
     wsl_client_address = $wslClientAddressCanonical
+    wsl_transport = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { '' } else { 'v4tov4_portproxy_to_windows_loopback' }
     service_path = $servicePath
     runner_path = $runnerPath
     service_log_path = $serviceLogPath
@@ -610,16 +607,32 @@ Export-PublicCertificatePem -Certificate $certificate -DestinationPath $publicCe
 Set-BridgeDirectoryAcl -BridgeRoot $bridgeRoot
 
 $netsh = Join-Path $env:WINDIR 'System32\netsh.exe'
-# A first install has no URL ACL to remove; an old reservation is replaced in
-# either case.  The subsequent add is the checked operation that matters.
-foreach ($reservedEndpoint in @($loopbackEndpoint, $wslEndpoint) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
-    & $netsh http delete urlacl "url=$reservedEndpoint" 2>$null | Out-Null
-    Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "url=$reservedEndpoint", 'user=NT AUTHORITY\SYSTEM') | Out-Null
+# A first install has no URL ACL to remove; the loopback reservation is replaced
+# either way.  A historical release attempted to give HTTP.sys the WSL gateway
+# directly; remove only that exact obsolete reservation.  HTTP.sys keeps serving
+# loopback, while the WSL transport below is an exact-address TCP port proxy.
+& $netsh http delete urlacl "url=$loopbackEndpoint" 2>$null | Out-Null
+if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
+    & $netsh http delete urlacl "url=$wslEndpoint" 2>$null | Out-Null
 }
+Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "url=$loopbackEndpoint", 'user=NT AUTHORITY\SYSTEM') | Out-Null
 
-# The WSL listener is opt-in.  Its endpoint is bound to the virtual WSL gateway
-# (never 0.0.0.0) and this rule accepts only the exact client address supplied
-# above.  Reinstalling without WslClientAddress removes a prior WSL rule.
+# The WSL transport is opt-in.  Its TCP proxy is bound to the virtual WSL
+# gateway (never 0.0.0.0) and forwards only to the already-owned Windows
+# loopback listener. The firewall admits only the supplied WSL client address.
+if (-not [string]::IsNullOrWhiteSpace($wslListenAddress)) {
+    & $netsh interface portproxy delete v4tov4 "listenaddress=$wslListenAddress" "listenport=$Port" protocol=tcp 2>$null | Out-Null
+}
+if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
+    Invoke-NativeChecked -FilePath $netsh -ArgumentList @(
+        'interface', 'portproxy', 'add', 'v4tov4',
+        "listenaddress=$wslListenAddress",
+        "listenport=$Port",
+        'connectaddress=127.0.0.1',
+        "connectport=$Port",
+        'protocol=tcp'
+    ) | Out-Null
+}
 Get-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue |
     Remove-NetFirewallRule -ErrorAction Stop
 if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
@@ -666,6 +679,7 @@ $report = [ordered]@{
     loopback_endpoint = $loopbackEndpoint
     wsl_endpoint = $wslEndpoint
     wsl_client_address = $wslClientAddressCanonical
+    wsl_transport = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { '' } else { 'v4tov4_portproxy_to_windows_loopback' }
     public_certificate_windows_path = $publicCertificatePath
     public_certificate_wsl_path = "/mnt/c/ProgramData/GX1/$BridgeDirectoryName/GX1HostTelemetryBridgePublic.pem"
     public_certificate_sha256 = $certificateSha256

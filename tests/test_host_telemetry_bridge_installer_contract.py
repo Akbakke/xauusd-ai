@@ -53,6 +53,10 @@ def test_host_bridge_wsl_transport_is_opt_in_and_single_client_restricted() -> N
     assert "Test-Ipv4SameSubnet" in source
     assert 'vEthernet (WSL*' in source
     assert '"http://${wslListenAddress}:$Port/gx1/v1/telemetry/"' in source
+    assert "'interface', 'portproxy', 'add', 'v4tov4'" in source
+    assert '"listenaddress=$wslListenAddress"' in source
+    assert "'connectaddress=127.0.0.1'" in source
+    assert '"connectport=$Port"' in source
     assert "New-NetFirewallRule @firewallArguments" in source
     assert "RemoteAddress = $wslClientAddressCanonical" in source
     assert "LocalAddress = $wslListenAddress" in source
@@ -61,11 +65,11 @@ def test_host_bridge_wsl_transport_is_opt_in_and_single_client_restricted() -> N
     assert 'Prefixes.Add("http://0.0.0.0:' not in source
 
 
-def test_host_bridge_service_is_loopback_nonce_bound_and_sensor_complete() -> None:
+def test_host_bridge_service_stays_loopback_nonce_bound_and_sensor_complete() -> None:
     source = INSTALLER.read_text(encoding="utf-8")
 
     assert 'http://127.0.0.1:$Port/gx1/v1/telemetry/' in source
-    assert '$listener.Prefixes.Add("http://${WslListenAddress}:$Port/gx1/v1/telemetry/")' in source
+    assert "v4tov4_portproxy_to_windows_loopback" in source
     assert "request_nonce,schema_version" in source
     assert "'^[0-9a-f]{64}$'" in source
     assert "GPU Memory Junction" in source
