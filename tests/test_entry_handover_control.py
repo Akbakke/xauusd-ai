@@ -178,7 +178,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-        "V6_EPOCH_ONE_TECHNICAL_RESULT_PLUS_CURRENT_SOURCE_V7_SMOKE_PREFLIGHT_ONLY"
+            "HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SAFETY_PREFLIGHT_ONLY"
         in result.stdout
     )
     assert (
@@ -366,7 +366,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
     )
     assert current_source_recipe["run_id"].startswith(
-        "V8_CURRENT_SOURCE_TECHNICAL_SMOKE_"
+        "V9_CURRENT_SOURCE_TECHNICAL_SMOKE_"
     )
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()
