@@ -24,6 +24,8 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert "public_certificate_wsl_path" in source
     assert "GX1-HostTelemetryBridgeRunner.ps1" in source
     assert "GX1-HostTelemetryBridgeService.log" in source
+    assert "BridgeDirectoryName" in source
+    assert "A-Za-z0-9_-" in source
     assert "Diagnostic output:" in source
     assert "Repair-ExistingBridgeDirectoryAccess" in source
     assert "'/reset', '/T', '/C'" in source

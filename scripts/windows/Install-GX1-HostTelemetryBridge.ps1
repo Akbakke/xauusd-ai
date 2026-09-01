@@ -22,6 +22,8 @@ param(
     [int]$GpuIndex = 0,
     [ValidateRange(1024, 65535)]
     [int]$Port = 38127,
+    [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,63}$')]
+    [string]$BridgeDirectoryName = 'HostTelemetryBridge',
     [switch]$RotateCertificate
 )
 
@@ -183,7 +185,10 @@ if (-not (Test-Path -LiteralPath $nativeSmi -PathType Leaf)) {
     throw "Native nvidia-smi.exe is unavailable at $nativeSmi"
 }
 
-$bridgeRoot = Join-Path $env:ProgramData 'GX1\HostTelemetryBridge'
+# Keep a damaged legacy bridge directory intact for forensic inspection.  An
+# explicit versioned name allows a clean, elevated installation beside it when
+# a historical ACL cannot be repaired without destructive intervention.
+$bridgeRoot = Join-Path (Join-Path $env:ProgramData 'GX1') $BridgeDirectoryName
 New-Item -ItemType Directory -Path $bridgeRoot -Force | Out-Null
 Repair-ExistingBridgeDirectoryAccess -BridgeRoot $bridgeRoot
 $configPath = Join-Path $bridgeRoot 'bridge-config.json'
