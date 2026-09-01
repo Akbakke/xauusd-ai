@@ -430,8 +430,15 @@ finally {
 )
 $runnerSource = @"
 `$ErrorActionPreference = 'Stop'
-& '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port *>> '$serviceLogPath'
-exit `$LASTEXITCODE
+try {
+    Add-Content -LiteralPath '$serviceLogPath' -Value 'runner-start'
+    & '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port *>> '$serviceLogPath'
+    exit `$LASTEXITCODE
+}
+catch {
+    Add-Content -LiteralPath '$serviceLogPath' -Value ("runner-fatal: " + (`$_ | Out-String))
+    throw
+}
 "@
 [System.IO.File]::WriteAllText(
     $runnerPath,
@@ -496,7 +503,7 @@ $report = [ordered]@{
     task_name = $taskName
     endpoint = $endpoint
     public_certificate_windows_path = $publicCertificatePath
-    public_certificate_wsl_path = '/mnt/c/ProgramData/GX1/HostTelemetryBridge/GX1HostTelemetryBridgePublic.pem'
+    public_certificate_wsl_path = "/mnt/c/ProgramData/GX1/$BridgeDirectoryName/GX1HostTelemetryBridgePublic.pem"
     public_certificate_sha256 = $certificateSha256
     gpu_uuid_expected_from_sensor_bootstrap = 'GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
     next_gate = 'Linux signed bridge probe and source binding; this does not authorize canonical training.'
