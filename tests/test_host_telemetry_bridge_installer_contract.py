@@ -37,10 +37,27 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     )
 
 
+def test_host_bridge_wsl_transport_is_opt_in_and_single_client_restricted() -> None:
+    source = INSTALLER.read_text(encoding="utf-8")
+
+    assert "[string]$WslClientAddress = ''" in source
+    assert "Get-WslGatewayIpv4" in source
+    assert "Test-Ipv4SameSubnet" in source
+    assert 'vEthernet (WSL*' in source
+    assert '"http://${wslListenAddress}:$Port/gx1/v1/telemetry/"' in source
+    assert "New-NetFirewallRule @firewallArguments" in source
+    assert "RemoteAddress = $wslClientAddressCanonical" in source
+    assert "LocalAddress = $wslListenAddress" in source
+    assert "EdgeTraversalPolicy = 'Block'" in source
+    assert "wsl_endpoint" in source
+    assert 'Prefixes.Add("http://0.0.0.0:' not in source
+
+
 def test_host_bridge_service_is_loopback_nonce_bound_and_sensor_complete() -> None:
     source = INSTALLER.read_text(encoding="utf-8")
 
     assert 'http://127.0.0.1:$Port/gx1/v1/telemetry/' in source
+    assert '$listener.Prefixes.Add("http://${WslListenAddress}:$Port/gx1/v1/telemetry/")' in source
     assert "request_nonce,schema_version" in source
     assert "'^[0-9a-f]{64}$'" in source
     assert "GPU Memory Junction" in source

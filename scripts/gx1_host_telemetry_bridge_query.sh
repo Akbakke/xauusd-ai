@@ -22,8 +22,12 @@ certificate_sha256="$3"
 expected_gpu_uuid="$4"
 timeout_seconds="$5"
 
-[[ "$bridge_url" =~ ^http://127\.0\.0\.1:[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
-  || die 'bridge URL is not the fixed loopback telemetry endpoint'
+# The bridge has two deliberately narrow transports: Windows loopback, or the
+# RFC1918 WSL gateway address selected and firewall-restricted by the elevated
+# Windows installer.  The canonical runner source-binds the exact URL; this
+# helper never accepts a public or wildcard listener.
+[[ "$bridge_url" =~ ^http://(127\.0\.0\.1|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}):[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
+  || die 'bridge URL is not an approved loopback or private WSL telemetry endpoint'
 [[ "$certificate_path" == /* && -f "$certificate_path" && ! -L "$certificate_path" ]] \
   || die 'certificate path is not an existing absolute regular file'
 [[ "$certificate_sha256" =~ ^[0-9a-f]{64}$ ]] \

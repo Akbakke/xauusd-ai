@@ -6,9 +6,12 @@
   This elevated native-Windows script creates a non-exportable RSA signing
   certificate in LocalMachine, stores a SYSTEM-run loopback service under
   C:\ProgramData\GX1\HostTelemetryBridge, and exports only its public
-  certificate.  The service loads the already hash-verified LibreHardwareMonitor
-  library solely to obtain Nvidia "GPU Memory Junction"; the remaining physical
-  fields come from native Windows nvidia-smi.
+  certificate.  The optional WslClientAddress mode adds one listener on the
+  Windows WSL gateway and an inbound firewall rule limited to that single WSL
+  client address; it never listens on a LAN or wildcard address.  The service
+  loads the already hash-verified LibreHardwareMonitor library solely to obtain
+  Nvidia "GPU Memory Junction"; the remaining physical fields come from native
+  Windows nvidia-smi.
 
   It is not a training command and does not change the GPU power limit.  The
   Linux canonical guard will remain locked until the exported public-certificate
@@ -24,6 +27,7 @@ param(
     [int]$Port = 38127,
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,63}$')]
     [string]$BridgeDirectoryName = 'HostTelemetryBridge',
+    [string]$WslClientAddress = '',
     [switch]$RotateCertificate
 )
 
@@ -52,6 +56,76 @@ function Invoke-NativeChecked {
         throw "Native command failed ($LASTEXITCODE): $FilePath $($ArgumentList -join ' ')`n$rendered"
     }
     return @($output | ForEach-Object { $_.ToString() })
+}
+
+function ConvertTo-CanonicalIpv4 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value,
+        [Parameter(Mandatory = $true)]
+        [string]$Description
+    )
+
+    try {
+        $address = [System.Net.IPAddress]::Parse($Value)
+    }
+    catch {
+        throw "$Description is not a valid IPv4 address."
+    }
+    if ($address.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
+        throw "$Description must be an IPv4 address."
+    }
+    if ($address.Equals([System.Net.IPAddress]::Any) -or
+        $address.Equals([System.Net.IPAddress]::Loopback) -or
+        $address.GetAddressBytes()[0] -ge 224) {
+        throw "$Description must be a specific unicast IPv4 address."
+    }
+    return $address.IPAddressToString
+}
+
+function Test-Ipv4SameSubnet {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FirstAddress,
+        [Parameter(Mandatory = $true)]
+        [string]$SecondAddress,
+        [ValidateRange(1, 30)]
+        [int]$PrefixLength
+    )
+
+    $first = [System.Net.IPAddress]::Parse($FirstAddress).GetAddressBytes()
+    $second = [System.Net.IPAddress]::Parse($SecondAddress).GetAddressBytes()
+    $bitsRemaining = $PrefixLength
+    foreach ($index in 0..3) {
+        $mask = if ($bitsRemaining -ge 8) {
+            255
+        }
+        elseif ($bitsRemaining -le 0) {
+            0
+        }
+        else {
+            [byte]((0xff -shl (8 - $bitsRemaining)) -band 0xff)
+        }
+        if (($first[$index] -band $mask) -ne ($second[$index] -band $mask)) {
+            return $false
+        }
+        $bitsRemaining -= 8
+    }
+    return $true
+}
+
+function Get-WslGatewayIpv4 {
+    $candidates = @(
+        Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object {
+            $_.InterfaceAlias -like 'vEthernet (WSL*' -and
+            $_.IPAddress -notlike '169.254.*' -and
+            $_.PrefixLength -ge 1 -and $_.PrefixLength -le 30
+        }
+    )
+    if ($candidates.Count -ne 1) {
+        throw "Could not identify exactly one IPv4 address on the Windows WSL gateway (found $($candidates.Count)). Do not expose the bridge manually."
+    }
+    return $candidates[0]
 }
 
 function Get-BridgeCertificate {
@@ -200,7 +274,20 @@ $servicePath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.ps1'
 $runnerPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeRunner.ps1'
 $serviceLogPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.log'
 $publicCertificatePath = Join-Path $bridgeRoot 'GX1HostTelemetryBridgePublic.pem'
-$endpoint = "http://127.0.0.1:$Port/gx1/v1/telemetry/"
+$loopbackEndpoint = "http://127.0.0.1:$Port/gx1/v1/telemetry/"
+$wslListenAddress = ''
+$wslClientAddressCanonical = ''
+$wslEndpoint = ''
+if (-not [string]::IsNullOrWhiteSpace($WslClientAddress)) {
+    $wslClientAddressCanonical = ConvertTo-CanonicalIpv4 -Value $WslClientAddress -Description 'WslClientAddress'
+    $wslGateway = Get-WslGatewayIpv4
+    $wslListenAddress = ConvertTo-CanonicalIpv4 -Value $wslGateway.IPAddress -Description 'Windows WSL gateway address'
+    if (-not (Test-Ipv4SameSubnet -FirstAddress $wslListenAddress -SecondAddress $wslClientAddressCanonical -PrefixLength $wslGateway.PrefixLength)) {
+        throw "WslClientAddress $wslClientAddressCanonical is not in the Windows WSL gateway subnet $wslListenAddress/$($wslGateway.PrefixLength)."
+    }
+    $wslEndpoint = "http://${wslListenAddress}:$Port/gx1/v1/telemetry/"
+}
+$firewallRuleName = "GX1HostTelemetryBridge-Wsl-$Port"
 $certificate = Get-BridgeCertificate -ConfigPath $configPath -ForceRotate:$RotateCertificate
 
 $serviceSource = @'
@@ -213,7 +300,8 @@ param(
     [ValidateRange(0, 31)]
     [int]$GpuIndex,
     [ValidateRange(1024, 65535)]
-    [int]$Port
+    [int]$Port,
+    [string]$WslListenAddress = ''
 )
 
 Set-StrictMode -Version Latest
@@ -376,6 +464,9 @@ $computer.IsGpuEnabled = $true
 $computer.Open()
 $listener = [System.Net.HttpListener]::new()
 $listener.Prefixes.Add("http://127.0.0.1:$Port/gx1/v1/telemetry/")
+if (-not [string]::IsNullOrWhiteSpace($WslListenAddress)) {
+    $listener.Prefixes.Add("http://${WslListenAddress}:$Port/gx1/v1/telemetry/")
+}
 
 try {
     $listener.Start()
@@ -432,7 +523,7 @@ $runnerSource = @"
 `$ErrorActionPreference = 'Stop'
 try {
     Add-Content -LiteralPath '$serviceLogPath' -Value 'runner-start'
-    & '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port *>> '$serviceLogPath'
+    & '$servicePath' -CertificateThumbprint '$($certificate.Thumbprint)' -ExpectedGpuName '$ExpectedGpuName' -GpuIndex $GpuIndex -Port $Port -WslListenAddress '$wslListenAddress' *>> '$serviceLogPath'
     exit `$LASTEXITCODE
 }
 catch {
@@ -456,7 +547,10 @@ $configuration = [ordered]@{
     certificate_thumbprint = $certificate.Thumbprint
     expected_gpu_name = $ExpectedGpuName
     gpu_index = $GpuIndex
-    endpoint = $endpoint
+    loopback_endpoint = $loopbackEndpoint
+    wsl_endpoint = $wslEndpoint
+    wsl_listen_address = $wslListenAddress
+    wsl_client_address = $wslClientAddressCanonical
     service_path = $servicePath
     runner_path = $runnerPath
     service_log_path = $serviceLogPath
@@ -468,8 +562,30 @@ Set-BridgeDirectoryAcl -BridgeRoot $bridgeRoot
 $netsh = Join-Path $env:WINDIR 'System32\netsh.exe'
 # A first install has no URL ACL to remove; an old reservation is replaced in
 # either case.  The subsequent add is the checked operation that matters.
-& $netsh http delete urlacl "url=$endpoint" 2>$null | Out-Null
-Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "url=$endpoint", 'user=NT AUTHORITY\SYSTEM') | Out-Null
+foreach ($reservedEndpoint in @($loopbackEndpoint, $wslEndpoint) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
+    & $netsh http delete urlacl "url=$reservedEndpoint" 2>$null | Out-Null
+    Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "url=$reservedEndpoint", 'user=NT AUTHORITY\SYSTEM') | Out-Null
+}
+
+# The WSL listener is opt-in.  Its endpoint is bound to the virtual WSL gateway
+# (never 0.0.0.0) and this rule accepts only the exact client address supplied
+# above.  Reinstalling without WslClientAddress removes a prior WSL rule.
+Get-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue |
+    Remove-NetFirewallRule -ErrorAction Stop
+if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
+    $firewallArguments = @{
+        DisplayName = $firewallRuleName
+        Direction = 'Inbound'
+        Action = 'Allow'
+        Protocol = 'TCP'
+        LocalAddress = $wslListenAddress
+        LocalPort = $Port
+        RemoteAddress = $wslClientAddressCanonical
+        Profile = 'Any'
+        EdgeTraversalPolicy = 'Block'
+    }
+    New-NetFirewallRule @firewallArguments | Out-Null
+}
 
 $taskName = 'GX1HostTelemetryBridge'
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -501,12 +617,14 @@ $certificateSha256 = (Get-FileHash -LiteralPath $publicCertificatePath -Algorith
 $report = [ordered]@{
     schema_version = 'gx1_host_telemetry_bridge_install_v1'
     task_name = $taskName
-    endpoint = $endpoint
+    loopback_endpoint = $loopbackEndpoint
+    wsl_endpoint = $wslEndpoint
+    wsl_client_address = $wslClientAddressCanonical
     public_certificate_windows_path = $publicCertificatePath
     public_certificate_wsl_path = "/mnt/c/ProgramData/GX1/$BridgeDirectoryName/GX1HostTelemetryBridgePublic.pem"
     public_certificate_sha256 = $certificateSha256
     gpu_uuid_expected_from_sensor_bootstrap = 'GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
-    next_gate = 'Linux signed bridge probe and source binding; this does not authorize canonical training.'
+    next_gate = 'Linux signed bridge probe against wsl_endpoint (when configured) and source binding; this does not authorize canonical training.'
 }
 Write-Host ''
 Write-Host 'GX1 host telemetry bridge installed:' -ForegroundColor Green
