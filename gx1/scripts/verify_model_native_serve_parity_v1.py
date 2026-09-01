@@ -417,6 +417,17 @@ def _batched_entry_action_q(
             index = int(categorical_perturbation["source_index"])
             ctx_cat_t = ctx_cat_t.clone()
             ctx_cat_t[:, index] = _next_valid_category(ctx_cat_t[:, index], domain)
+        elif owner == "signal_nominal_embedding":
+            index = int(categorical_perturbation["source_index"])
+            if not torch.equal(seq_t[:, -1, index], snap_t[:, index]):
+                raise RuntimeError(
+                    "nominal signal source is off its exact physical manifold"
+                )
+            next_value = _next_valid_category(seq_t[..., index], domain)
+            seq_t = seq_t.clone()
+            snap_t = snap_t.clone()
+            seq_t[..., index] = next_value.to(seq_t.dtype)
+            snap_t[:, index] = next_value[:, -1].to(snap_t.dtype)
         elif owner == "ctx_cont_nominal_embedding":
             index = int(categorical_perturbation["source_index"])
             ctx_cont_t = ctx_cont_t.clone()

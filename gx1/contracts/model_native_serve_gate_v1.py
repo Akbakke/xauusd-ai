@@ -29,6 +29,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
+    SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_MTF_CONTEXT_TIMEFRAMES,
@@ -171,26 +172,35 @@ def individual_input_influence_layout(
     alias_by_ctx = {str(item["ctx_cont_field"]): item for item in aliases}
     alias_signal_fields = {str(item["signal_field"]) for item in aliases}
     alias_ctx_fields = set(alias_by_ctx)
+    signal_nominal_fields = set(SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS)
     nominal_ctx_fields = set(CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
     numeric: dict[str, dict[str, list[object]]] = {
         "seq_signal": {
             "tokens": [
-                name for name in signal_names if name not in alias_signal_fields
+                name
+                for name in signal_names
+                if name not in alias_signal_fields
+                and name not in signal_nominal_fields
             ],
             "source_indices": [
                 index
                 for index, name in enumerate(signal_names)
                 if name not in alias_signal_fields
+                and name not in signal_nominal_fields
             ],
         },
         "snap_signal": {
             "tokens": [
-                name for name in signal_names if name not in alias_signal_fields
+                name
+                for name in signal_names
+                if name not in alias_signal_fields
+                and name not in signal_nominal_fields
             ],
             "source_indices": [
                 index
                 for index, name in enumerate(signal_names)
                 if name not in alias_signal_fields
+                and name not in signal_nominal_fields
             ],
         },
         "ctx_cont": {
@@ -242,6 +252,32 @@ def individual_input_influence_layout(
         )
 
     categorical: list[dict[str, object]] = []
+    signal_field_index = {
+        name: index for index, name in enumerate(signal_names)
+    }
+    for field, domain in SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS.items():
+        if field not in signal_field_index:
+            # The layout helper is also intentionally usable by synthetic
+            # contract tests that carry the exact production width but not its
+            # production field names.  Real bundle/dataset admission owns the
+            # exact signal-name requirement; only a present semantic field is
+            # an owner on this generic layout surface.
+            continue
+        if field in alias_signal_fields:
+            raise RuntimeError(
+                "SERVE_PARITY_INDIVIDUAL_INPUT_SIGNAL_CATEGORY_ALIAS_INVALID"
+            )
+        categorical.append(
+            {
+                "token": f"signal.{field}",
+                "owner": "signal_nominal_embedding",
+                "surface": "signal",
+                "source_index": signal_field_index[field],
+                "field": field,
+                "domain": list(domain),
+                "manifold": "causal_local_history_category",
+            }
+        )
     for index, field in enumerate(MODEL_NATIVE_CTX_CAT_FIELDS):
         categorical.append(
             {

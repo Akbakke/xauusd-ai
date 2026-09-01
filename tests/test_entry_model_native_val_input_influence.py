@@ -29,6 +29,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _entry_val_influence_sample,
+    _entry_val_perturb_owner,
 )
 
 
@@ -192,3 +193,38 @@ def test_entry_val_probe_reads_eight_direct_evenly_spaced_dataset_positions() ->
     assert dataset.calls == [0, 2, 4, 6, 8, 10, 12, 15]
     assert rows == dataset.calls
     assert len(times) == SAMPLE_COUNT
+
+
+def test_entry_val_signal_nominal_owner_uses_a_category_counterfactual() -> None:
+    seq = torch.tensor(
+        [
+            [[0.0, 1.0], [2.0, 3.0], [4.0, 4.0]],
+            [[1.0, 0.0], [3.0, 2.0], [0.0, 1.0]],
+        ],
+        dtype=torch.float32,
+    )
+    baseline = {
+        "seq_x": seq,
+        "snap_x": seq[:, -1, :].clone(),
+        "ctx_cat": torch.zeros((2, 1), dtype=torch.long),
+        "ctx_cont": torch.zeros((2, 1), dtype=torch.float32),
+        "mtf": {},
+    }
+
+    altered = _entry_val_perturb_owner(
+        model=object(),
+        baseline=baseline,
+        owner={
+            "owner": "signal_nominal_embedding",
+            "source_index": 1,
+            "domain": [0, 1, 2, 3, 4],
+        },
+        continuous=False,
+    )
+
+    assert torch.equal(baseline["seq_x"], seq)
+    assert torch.equal(
+        altered["seq_x"][..., 1],
+        torch.tensor([[2.0, 4.0, 0.0], [1.0, 3.0, 2.0]]),
+    )
+    assert torch.equal(altered["snap_x"][:, 1], altered["seq_x"][:, -1, 1])

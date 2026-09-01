@@ -6969,6 +6969,12 @@ def _unified_exit_input_influence_contract(
             perturbed["exit_state_ctx_cat"][..., index] = _next_valid_category(
                 perturbed["exit_state_ctx_cat"][..., index], owner["domain"]
             )
+        elif owner_name == "signal_nominal_embedding":
+            index = int(owner["source_index"])
+            history = perturbed["exit_local_history_x"]
+            history[..., index] = _next_valid_category(
+                history[..., index], owner["domain"]
+            ).to(history.dtype)
         elif owner_name == "ctx_cont_nominal_embedding":
             index = int(owner["source_index"])
             next_value = _next_valid_category(
@@ -7283,6 +7289,14 @@ def _entry_val_perturb_owner(
     if owner_name == "ctx_cat_embedding":
         index = int(owner["source_index"])
         inputs["ctx_cat"][:, index] = _next_valid_category(inputs["ctx_cat"][:, index], domain)
+    elif owner_name == "signal_nominal_embedding":
+        index = int(owner["source_index"])
+        current = inputs["seq_x"][:, -1, index]
+        if not torch.equal(current, inputs["snap_x"][:, index]):
+            raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_SIGNAL_MANIFOLD_INVALID")
+        replacement = _next_valid_category(inputs["seq_x"][..., index], domain)
+        inputs["seq_x"][..., index] = replacement.to(inputs["seq_x"].dtype)
+        inputs["snap_x"][:, index] = replacement[:, -1].to(inputs["snap_x"].dtype)
     elif owner_name == "ctx_cont_nominal_embedding":
         index = int(owner["source_index"])
         inputs["ctx_cont"][:, index] = _next_valid_category(inputs["ctx_cont"][:, index], domain).to(inputs["ctx_cont"].dtype)

@@ -820,6 +820,7 @@ def test_individual_input_layout_uses_physical_owners_and_nominal_manifolds() ->
         signal_names[index] = f"ctx_cont.{field}"
     numeric_alias = "atr_bps"
     signal_names[len(nominal_ctx)] = f"ctx_cont.{numeric_alias}"
+    signal_names[-1] = "smc_swing_state"
 
     layout = serve_gate.individual_input_influence_layout(signal_names)
     numeric = layout["numeric"]
@@ -849,9 +850,23 @@ def test_individual_input_layout_uses_physical_owners_and_nominal_manifolds() ->
             row for row in categorical if row["token"] == f"temporal_alias.{field}"
         )
         assert owner["manifold"] == "joint_seq_last_snap_ctx_cont_alias"
+    assert "smc_swing_state" not in seq_tokens
+    assert "smc_swing_state" not in snap_tokens
+    signal_owner = next(
+        row for row in categorical if row["token"] == "signal.smc_swing_state"
+    )
+    assert signal_owner == {
+        "token": "signal.smc_swing_state",
+        "owner": "signal_nominal_embedding",
+        "surface": "signal",
+        "source_index": MODEL_NATIVE_SIGNAL_DIM - 1,
+        "field": "smc_swing_state",
+        "domain": [0, 1, 2, 3, 4],
+        "manifold": "causal_local_history_category",
+    }
     # V30 (2026-08-14): the per-timeframe `regime_class_id` categorical is
-    # retired, so every multi-TF token is numeric and the only categorical
-    # owner left is the ctx_cat embedding surface.
+    # retired, so every multi-TF token is numeric.  The one declared local
+    # signal category stays an embedding owner alongside ctx_cat.
     assert not serve_gate.MTF_SEMANTIC_CATEGORICAL_DOMAINS
     mtf_tokens = {
         token
@@ -859,10 +874,10 @@ def test_individual_input_layout_uses_physical_owners_and_nominal_manifolds() ->
         for token in numeric[f"seq_{timeframe.lower()}"]["tokens"]
     }
     assert not [token for token in mtf_tokens if token.endswith(":regime_class_id")]
-    assert {row["surface"] for row in categorical} == {"ctx_cat"}
+    assert {row["surface"] for row in categorical} == {"ctx_cat", "signal"}
     assert {row["token"] for row in categorical} == {
         f"ctx_cat.{field}" for field in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
-    }
+    } | {"signal.smc_swing_state"}
 
 
 def test_pinned_contract_rejects_direction_only_partial_head_artifact() -> None:
