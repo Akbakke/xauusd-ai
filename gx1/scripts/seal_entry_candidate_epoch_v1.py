@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import torch
@@ -33,6 +34,35 @@ def _read_json(path: Path) -> dict:
     if not isinstance(value, dict):
         raise RuntimeError("[CANDIDATE_EPOCH_SEAL_JSON_INVALID]")
     return value
+
+
+def _write_failure_report(*, out_bundle: Path, seal: dict, error: RuntimeError) -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    destination = out_bundle.parent / (
+        f"{out_bundle.name}_EPOCH{seal['selected_epoch']}_TECHNICAL_SEAL_FAILURE_{stamp}.json"
+    )
+    payload = {
+        "schema_version": "gx1_candidate_epoch_technical_seal_failure_v1",
+        "decision": "FAIL_NO_BUNDLE_PUBLISHED",
+        "authority": {
+            "technical_epoch_result_only": True,
+            "candidate": False,
+            "test": False,
+            "promotion": False,
+            "paper": False,
+            "live": False,
+        },
+        "seal": seal,
+        "error": str(error),
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    encoded = json.dumps(payload, sort_keys=True, indent=2).encode("utf-8")
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(encoded)
+        handle.flush()
+        os.fsync(handle.fileno())
+    return destination
 
 
 def main() -> None:
@@ -136,7 +166,8 @@ def main() -> None:
         "source_recipe_sha256": args.recipe_sha256,
         "sealer_script_sha256": _sha256(Path(__file__).resolve()),
     }
-    trainer.run_train(
+    try:
+        trainer.run_train(
         train_parquet=artifact("train_parquet"),
         train_manifest_path=artifact("train_manifest"),
         val_parquet=artifact("val_parquet"),
@@ -188,7 +219,15 @@ def main() -> None:
         ),
         candidate_result_override=result,
         candidate_epoch_seal=seal,
-    )
+        )
+    except RuntimeError as exc:
+        report = _write_failure_report(
+            out_bundle=out_bundle,
+            seal=seal,
+            error=exc,
+        )
+        print(f"[CANDIDATE_EPOCH_TECHNICAL_SEAL_FAILURE] {report}")
+        raise
 
 
 if __name__ == "__main__":
