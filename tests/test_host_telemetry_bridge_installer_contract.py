@@ -26,6 +26,7 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert "GX1-HostTelemetryBridgeService.log" in source
     assert "Diagnostic output:" in source
     assert "Repair-ExistingBridgeDirectoryAccess" in source
+    assert "'/reset', '/T', '/C'" in source
     assert source.index("Repair-ExistingBridgeDirectoryAccess -BridgeRoot $bridgeRoot") < source.index(
         "$certificate = Get-BridgeCertificate"
     )

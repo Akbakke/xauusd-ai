@@ -159,6 +159,15 @@ function Repair-ExistingBridgeDirectoryAccess {
         '/F', $BridgeRoot,
         '/A', '/R', '/D', 'Y'
     ) | Out-Null
+    # A direct grant does not remove an inherited or legacy explicit DENY ACE.
+    # First restore ACL inheritance for this exact bridge directory and its
+    # children, then immediately replace it with the narrowly scoped bridge
+    # ACL below.  This remains contained to ProgramData\GX1\HostTelemetryBridge.
+    $icacls = Join-Path $env:WINDIR 'System32\icacls.exe'
+    Invoke-NativeChecked -FilePath $icacls -ArgumentList @(
+        $BridgeRoot,
+        '/reset', '/T', '/C'
+    ) | Out-Null
     Set-BridgeDirectoryAcl -BridgeRoot $BridgeRoot
 }
 
