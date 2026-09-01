@@ -26,6 +26,7 @@ AUTHORITY_PATHS = (
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
     REPO / "docs/CANONICAL_HOST_GPU_TELEMETRY_BRIDGE_CONTRACT.md",
+    REPO / "docs/CANDIDATE_THROUGHPUT_DECISION_20260830.md",
     # 3c84bec9 committed this review doc without extending the authority
     # fingerprint; covered here so no tracked markdown escapes the fingerprint.
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",
@@ -176,12 +177,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-        "HISTORICAL_V4_CANDIDATE_SESSION_PLUS_CURRENT_SOURCE_V5_TECHNICAL_SMOKE_ONLY"
+        "V6_EPOCH_ONE_TECHNICAL_RESULT_PLUS_CURRENT_SOURCE_V7_SMOKE_PREFLIGHT_ONLY"
         in result.stdout
     )
     assert (
         "candidate_session: "
-        "SESSION_INTACT__checkpoint=11__phase=train__epoch=0__next_batch=640"
+        "SESSION_INTACT__checkpoint=913__phase=train__epoch=1__next_batch=18368"
         in result.stdout
     )
     assert "candidate_validation: NOT_REACHED" in result.stdout
@@ -191,12 +192,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_source_bindings_sha256: " in result.stdout
     assert (
         "current_source_technical_recipe: "
-            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert (
@@ -261,7 +262,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-            "RETAIN_HISTORICAL_V4_SESSION__V5_POSTRUN_AUDIT_RECORDED__CANDIDATE_READINESS_MATERIALIZED"
+            "RETAIN_V6_EPOCH_ONE_TECHNICAL_RESULT__V7_SMOKE_PREFLIGHT_MATERIALIZED"
         in result.stdout
     )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
@@ -361,22 +362,15 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "gx1_current_source_technical_recipe_reference_v1"
     )
     assert current_source_recipe["status"] == (
-        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
     )
     assert current_source_recipe["run_id"].startswith(
-        "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_"
+        "V7_CURRENT_SOURCE_TECHNICAL_SMOKE_"
     )
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()
-    assert Path(current_source_recipe["out_bundle_dir"]).is_dir()
-    assert (Path(current_source_recipe["out_bundle_dir"]) / "ENTRY_MODEL_NATIVE_BUNDLE_COMMIT.json").is_file()
+    assert not Path(current_source_recipe["out_bundle_dir"]).exists()
     for key in ("recipe_sha256", "source_bindings_sha256"):
-        assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
-    for key in (
-        "bundle_commit_manifest_sha256",
-        "bundle_commit_sha256",
-        "bundle_metadata_sha256",
-    ):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
     blockers = "\n".join(state["blockers"])
@@ -384,9 +378,8 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert "No admitted dataset" in blockers
     assert "Untouched TEST direction edge" in blockers
     assert "remain fail-closed" in blockers
-    # The state now carries twelve hash-bound V46 report identities. Keep the
-    # launch authority compact enough to inspect, while treating those exact
-    # identities as necessary fail-closed control data rather than a history.
+    # Keep the fail-closed authority compact enough to inspect; immutable
+    # run evidence remains in its external artifact paths.
     assert len(LAUNCH_STATE.read_bytes()) < 14_000
     assert not any(
         key in state
@@ -469,17 +462,17 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "unexpected_ignored_path_count: 0" in result.stdout
     assert "prunable_worktree_count:" in result.stdout
     assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
-    assert "candidate_session: SESSION_INTACT__checkpoint=11" in result.stdout
+    assert "candidate_session: SESSION_INTACT__checkpoint=913" in result.stdout
     assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
         "current_source_technical_recipe: "
-            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert "## Host capacity" not in result.stdout

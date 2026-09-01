@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-08-30T10:43:22Z",
+  "updated_utc": "2026-09-01T07:48:46Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -12,23 +12,14 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY",
-    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_RECIPE_20260830T101915Z.json",
-    "recipe_sha256": "df7d3c249cc626cf25e1582bdf5491e7ea21ef5319718dd67c352a992367d068",
-    "source_commit": "53dc91b8cc8a8c5d917c49dbd5cc41d1157b2c58",
-    "source_bindings_sha256": "d42b683c02ea9112240602ae0ccb6512278661bbd55f9ce801988186437bc9ca",
-    "run_id": "V5_CURRENT_SOURCE_TECHNICAL_SMOKE_20260830T101915Z",
+    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z_RECIPE_20260901T074900Z.json",
+    "recipe_sha256": "bf4aede7507cbf1cc56c2f177f52bfd7797e20d2e01dc7c212ceeff071a74a54",
+    "source_commit": "1a313f52f284e704e9815f568a0f5cf80cdc8413",
+    "source_bindings_sha256": "4a29bbcd658c460c9284693c64bc33604c16d962e2acdfe1a7c21d11b4f5ad28",
+    "run_id": "V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z",
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V5_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_20260830T101915Z",
-    "bundle_commit_manifest_sha256": "20b93b3485374d71a5b68b08c91532b15759e27a6957e1ba071e8319b252feca",
-    "bundle_commit_sha256": "bba28c7ea21fda11e0772ec12c244e2a6f33a3b7cb6c6aeeed48f964ccb5b5c5",
-    "bundle_metadata_sha256": "5da280a9741f7392d8560b64a9d6370831d2a9b41f4bca93caa057ba06652c25",
-    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V5_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_AUDIT_20260830T121500Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260830T121508440597Z.json",
-    "postrun_bundle_audit_sha256": "db324295063f37fa21e13e14f116538607eded6f2cce856f09d484531b007159",
-    "postrun_bundle_audit_decision": "FAIL",
-    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V5_CURRENT_SOURCE_CANDIDATE_READINESS_20260830T121600Z/ENTRY_CANDIDATE_READINESS_20260830T121524926549Z.json",
-    "candidate_readiness_sha256": "f45dad223a6299e5ea4735036bd4f647c9511652a1c0bb76c972076497635f8c",
-    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING"
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V7_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_20260901T074900Z"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -154,19 +145,18 @@
   "accepted_via_vedtak": null,
   "active_candidate_training_session": {
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V4_EXTERNAL_TRAINING_PREFLIGHT_20260830T010000Z/ENTRY_V4_GUARDED_CANDIDATE_RETAINED_ACTIVATIONS_RECIPE_20260830T081406Z.json",
-    "recipe_audit_sha256": "eef6819a72dcd6e914a9602d0eecde212a0fc3f3df6c32aa45edd2a022829cdb",
-    "run_id": "V4_GUARDED_CANDIDATE_RETAINED_ACTIVATIONS_20260830T081406Z",
+    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_RECIPE_20260831T064721Z.json",
+    "recipe_audit_sha256": "08458af14020c84f5300256a8eff78622cf7eed191c9726a63d13b1a7259a70a",
+    "run_id": "V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z",
     "schema_version": "gx1_active_candidate_training_session_reference_v1",
-    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/.gx1-candidate-training-session.ENTRY_V4_GUARDED_CANDIDATE_RETAINED_ACTIVATIONS_BUNDLE_20260830T081406Z",
-    "source_bindings_sha256": "100856a89dbdbf47431ebad4b5ddb7f5183f7d98ab4cd53373d0660ebcc33403",
-    "source_commit": "7805a0c974b70aad82dc27cd1b2467c43a778210"
+    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/.gx1-candidate-training-session.ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z",
+    "source_bindings_sha256": "be0e86a36eccc985919573f84ff477a3efbd6eee14b08d44aed111698efb5fa4",
+    "source_commit": "faa6c2a7f5b39bc00b3f3be6676dbb549090c8ae"
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
     "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
-    "No admitted dataset, distinct candidate-training recipe or same-bundle Entry/Exit model exists under the current model-native contract.",
-    "The historical V46 canonical batch-8/32-row smoke bound to recipe SHA-256 7bbc15e22346fae848605515f0b2430879b31da96d617074faa1358e3ec8d55c remains technical evidence only; its old bundle lacks hash-bound recipe_source_provenance in metadata and lock. The fresh V5 current-source 32-row recipe df7d3c249cc626cf25e1582bdf5491e7ea21ef5319718dd67c352a992367d068 completed four CUDA optimizer steps and 32-row VAL under the canonical guard, then atomically published its provenance-bound bundle. The next required evidence is its CPU-only smoke-bundle audit followed by a fresh candidate-readiness recheck. This proves neither edge, backtest, candidate, PnL, win rate, TEST, demo nor live readiness.",
+    "No admitted dataset or bundle exists. V5's CPU-only post-run audit is FAIL and its candidate-readiness recheck is READY, both research-only. V6 completed the requested first 31,004 TRAIN batches and full VAL, but no candidate bundle exists: immutable technical-seal failure ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z_EPOCH1_TECHNICAL_SEAL_FAILURE_20260901T073055Z.json (SHA-256 9cb05b75dfb51abd9ac8e2abf7698db7a55c49f3e92282a87e3d8921534e9c66) correctly denies candidate/TEST/promotion/paper/live authority. It exposed the signal-category audit defect corrected by source commit 1a313f52f284e704e9815f568a0f5cf80cdc8413; a fresh current-source recipe is still required before any new candidate run.",
     "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

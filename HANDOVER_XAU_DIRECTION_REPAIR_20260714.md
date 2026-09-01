@@ -1269,3 +1269,45 @@ git worktree list --porcelain
 
 Then read `GX1_RULES.md`, `AGENTS.md`, `SYSTEM_MAP.md` and
 `docs/DATA_CONTRACT.md`. Do not infer state from old run directories.
+
+### V6 epoch-one result and corrective action — 2026-09-01
+
+V6 reached the requested first complete TRAIN epoch of **31,004 batches** and
+then completed its full VAL pass. This also exercised the V5 validation-state
+restore repair on the route that previously failed. The original frozen V6
+checkpoint policy nevertheless required two minimum epochs, so it entered a
+second TRAIN epoch after VAL. That unintended second pass was operator-stopped
+at `epoch_index=1`, `next_batch_offset=18,368`, with no authority attached to
+those additional batches. Do not resume that session.
+
+The selected first-epoch checkpoint is `top_k/epoch_0001.pt`, SHA-256
+`29ba9932290c44de65c88f597069b0088b3f5a3b1e48a28c320238cce4f8ae2a`.
+Its session contract and final two-slot pointer have SHA-256
+`2ca129c8ce7bbb416630ca48ed36c0d3f14a677b01a700037ca5a68367e708c0` and
+`e812984eb72cd6e0080caf98cda8e0e47b852e4e3f8901297f45f80980f65e28`.
+They remain immutable technical evidence, not a completed candidate: the
+frozen V6 recipe was source-bound to `faa6c2a7` and did not satisfy its own
+two-epoch policy.
+
+A CPU-only, no-optimizer technical export of that exact checkpoint failed
+closed before publishing a bundle. Its immutable result is
+`ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z_EPOCH1_TECHNICAL_SEAL_FAILURE_20260901T073055Z.json`,
+SHA-256 `9cb05b75dfb51abd9ac8e2abf7698db7a55c49f3e92282a87e3d8921534e9c66`.
+The result is `FAIL_NO_BUNDLE_PUBLISHED` with candidate, TEST, promotion,
+paper and live authority all false. The error was
+`numeric.seq_signal.smc_swing_state`: the audit had incorrectly demanded a
+numeric gradient for a field the model deliberately masks and routes through
+a categorical embedding.
+
+Source commit `1a313f52f284e704e9815f568a0f5cf80cdc8413` fixes that ownership
+contract: `smc_swing_state` is now tested by an on-manifold categorical
+counterfactual in Entry, unified Exit and serve-parity paths. The focused
+contract suite passed (40 tests). This changes neither features, data, targets
+nor model objective. The current-source V7 smoke preflight is
+`V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z_RECIPE_20260901T074900Z.json`,
+SHA-256 `bf4aede7507cbf1cc56c2f177f52bfd7797e20d2e01dc7c212ceeff071a74a54`;
+it declares `training=false` and no CUDA execution. A fresh, current-source,
+**one-epoch (31,004 batch)** candidate recipe is still required before another
+candidate attempt; it must use the repaired source and must not inherit V6's
+two-epoch minimum. No TEST artifact was read, and no bundle, VAL qualification,
+post-run bundle audit, promotion, shadow, paper or live authority exists.
