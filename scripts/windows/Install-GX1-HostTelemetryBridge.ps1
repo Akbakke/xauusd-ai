@@ -25,6 +25,8 @@ param(
     [int]$GpuIndex = 0,
     [ValidateRange(1024, 65535)]
     [int]$Port = 38127,
+    [ValidateRange(1024, 65535)]
+    [int]$WslPort = 38128,
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,63}$')]
     [string]$BridgeDirectoryName = 'HostTelemetryBridge',
     [string]$WslClientAddress = '',
@@ -328,16 +330,21 @@ $loopbackEndpoint = "http://127.0.0.1:$Port/gx1/v1/telemetry/"
 $wslListenAddress = ''
 $wslClientAddressCanonical = ''
 $wslEndpoint = ''
+$legacyWslHttpEndpoint = ''
 if (-not [string]::IsNullOrWhiteSpace($WslClientAddress)) {
+    if ($WslPort -eq $Port) {
+        throw 'WslPort must differ from the loopback bridge Port to prevent a Windows portproxy collision.'
+    }
     $wslClientAddressCanonical = ConvertTo-CanonicalIpv4 -Value $WslClientAddress -Description 'WslClientAddress'
     $wslGateway = Get-WslGatewayIpv4
     $wslListenAddress = ConvertTo-CanonicalIpv4 -Value $wslGateway.IPAddress -Description 'Windows WSL gateway address'
     if (-not (Test-Ipv4SameSubnet -FirstAddress $wslListenAddress -SecondAddress $wslClientAddressCanonical -PrefixLength $wslGateway.PrefixLength)) {
         throw "WslClientAddress $wslClientAddressCanonical is not in the Windows WSL gateway subnet $wslListenAddress/$($wslGateway.PrefixLength)."
     }
-    $wslEndpoint = "http://${wslListenAddress}:$Port/gx1/v1/telemetry/"
+    $wslEndpoint = "http://${wslListenAddress}:$WslPort/gx1/v1/telemetry/"
+    $legacyWslHttpEndpoint = "http://${wslListenAddress}:$Port/gx1/v1/telemetry/"
 }
-$firewallRuleName = "GX1HostTelemetryBridge-Wsl-$Port"
+$firewallRuleName = "GX1HostTelemetryBridge-Wsl-$WslPort"
 $certificate = Get-BridgeCertificate -ConfigPath $configPath -ForceRotate:$RotateCertificate
 
 $serviceSource = @'
@@ -597,6 +604,7 @@ $configuration = [ordered]@{
     wsl_endpoint = $wslEndpoint
     wsl_listen_address = $wslListenAddress
     wsl_client_address = $wslClientAddressCanonical
+    wsl_proxy_port = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { $null } else { $WslPort }
     wsl_transport = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { '' } else { 'v4tov4_portproxy_to_windows_loopback' }
     service_path = $servicePath
     runner_path = $runnerPath
@@ -612,8 +620,8 @@ $netsh = Join-Path $env:WINDIR 'System32\netsh.exe'
 # directly; remove only that exact obsolete reservation.  HTTP.sys keeps serving
 # loopback, while the WSL transport below is an exact-address TCP port proxy.
 & $netsh http delete urlacl "url=$loopbackEndpoint" 2>$null | Out-Null
-if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
-    & $netsh http delete urlacl "url=$wslEndpoint" 2>$null | Out-Null
+if (-not [string]::IsNullOrWhiteSpace($legacyWslHttpEndpoint)) {
+    & $netsh http delete urlacl "url=$legacyWslHttpEndpoint" 2>$null | Out-Null
 }
 Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "url=$loopbackEndpoint", 'user=NT AUTHORITY\SYSTEM') | Out-Null
 
@@ -621,13 +629,16 @@ Invoke-NativeChecked -FilePath $netsh -ArgumentList @('http', 'add', 'urlacl', "
 # gateway (never 0.0.0.0) and forwards only to the already-owned Windows
 # loopback listener. The firewall admits only the supplied WSL client address.
 if (-not [string]::IsNullOrWhiteSpace($wslListenAddress)) {
+    # Remove the same-port rule produced by the short-lived HTTP.sys transport
+    # attempt before creating the distinct-port proxy below.
     & $netsh interface portproxy delete v4tov4 "listenaddress=$wslListenAddress" "listenport=$Port" protocol=tcp 2>$null | Out-Null
+    & $netsh interface portproxy delete v4tov4 "listenaddress=$wslListenAddress" "listenport=$WslPort" protocol=tcp 2>$null | Out-Null
 }
 if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
     Invoke-NativeChecked -FilePath $netsh -ArgumentList @(
         'interface', 'portproxy', 'add', 'v4tov4',
         "listenaddress=$wslListenAddress",
-        "listenport=$Port",
+        "listenport=$WslPort",
         'connectaddress=127.0.0.1',
         "connectport=$Port",
         'protocol=tcp'
@@ -642,7 +653,7 @@ if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
         Action = 'Allow'
         Protocol = 'TCP'
         LocalAddress = $wslListenAddress
-        LocalPort = $Port
+        LocalPort = $WslPort
         RemoteAddress = $wslClientAddressCanonical
         Profile = 'Any'
         EdgeTraversalPolicy = 'Block'
@@ -679,6 +690,7 @@ $report = [ordered]@{
     loopback_endpoint = $loopbackEndpoint
     wsl_endpoint = $wslEndpoint
     wsl_client_address = $wslClientAddressCanonical
+    wsl_proxy_port = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { $null } else { $WslPort }
     wsl_transport = if ([string]::IsNullOrWhiteSpace($wslEndpoint)) { '' } else { 'v4tov4_portproxy_to_windows_loopback' }
     public_certificate_windows_path = $publicCertificatePath
     public_certificate_wsl_path = "/mnt/c/ProgramData/GX1/$BridgeDirectoryName/GX1HostTelemetryBridgePublic.pem"

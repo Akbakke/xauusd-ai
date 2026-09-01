@@ -49,12 +49,15 @@ def test_host_bridge_wsl_transport_is_opt_in_and_single_client_restricted() -> N
     source = INSTALLER.read_text(encoding="utf-8")
 
     assert "[string]$WslClientAddress = ''" in source
+    assert "[int]$WslPort = 38128" in source
+    assert "WslPort must differ from the loopback bridge Port" in source
     assert "Get-WslGatewayIpv4" in source
     assert "Test-Ipv4SameSubnet" in source
     assert 'vEthernet (WSL*' in source
-    assert '"http://${wslListenAddress}:$Port/gx1/v1/telemetry/"' in source
+    assert '"http://${wslListenAddress}:$WslPort/gx1/v1/telemetry/"' in source
     assert "'interface', 'portproxy', 'add', 'v4tov4'" in source
     assert '"listenaddress=$wslListenAddress"' in source
+    assert '"listenport=$WslPort"' in source
     assert "'connectaddress=127.0.0.1'" in source
     assert '"connectport=$Port"' in source
     assert "New-NetFirewallRule @firewallArguments" in source
