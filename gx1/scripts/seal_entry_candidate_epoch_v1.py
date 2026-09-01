@@ -98,6 +98,26 @@ def main() -> None:
     trainer._WEIGHT_DECAY = float(cli["weight_decay"])
     cache_manifest = artifact("multi_tf_cache_manifest")
     os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_manifest.parent)
+    for artifact_name, env_name in (
+        ("train_manifest", "GX1_ENTRY_TRAIN_MANIFEST_SHA256"),
+        ("val_manifest", "GX1_ENTRY_VAL_MANIFEST_SHA256"),
+        ("train_parquet", "GX1_ENTRY_TRAIN_PARQUET_SHA256"),
+        ("val_parquet", "GX1_ENTRY_VAL_PARQUET_SHA256"),
+        ("m5_prebuilt", "GX1_ENTRY_M5_PREBUILT_SHA256"),
+        (
+            "unified_exit_lifecycle_manifest",
+            "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256",
+        ),
+        (
+            "train_sequence_source_reconstruction",
+            "GX1_ENTRY_TRAIN_SEQUENCE_SOURCE_AUDIT_SHA256",
+        ),
+        (
+            "val_sequence_source_reconstruction",
+            "GX1_ENTRY_VAL_SEQUENCE_SOURCE_AUDIT_SHA256",
+        ),
+    ):
+        os.environ[env_name] = str(artifacts[artifact_name]["sha256"])
     seal = {
         "schema_version": "gx1_candidate_epoch_technical_seal_v1",
         "authority": "technical_epoch_result_only",
