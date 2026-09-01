@@ -297,7 +297,7 @@ def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(
     state = _state(session, model, target_model, optimizer, ema, scheduler)
     selection = state["training_progress"]["checkpoint_selection"]
     records = []
-    for epoch, metric in ((1, 1.0), (2, 5.0), (3, 3.0), (4, 4.0)):
+    for epoch, metric in ((1, 1.0),):
         record = session.save_top_k_checkpoint(
             epoch=epoch,
             metric=metric,
@@ -305,15 +305,15 @@ def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(
             target_model_state=target_model.state_dict(),
         )
         records.append(record)
-    selection["top_k_checkpoints"] = trainer.retain_top_k(records, top_k=3)
+    selection["top_k_checkpoints"] = trainer.retain_top_k(records, top_k=1)
     selection["best_checkpoint"] = selection["top_k_checkpoints"][0]
     session.save_checkpoint(state)
 
     restored = session.load_checkpoint()
     assert restored is not None
     restored_selection = restored["training_progress"]["checkpoint_selection"]
-    assert [row["epoch"] for row in restored_selection["top_k_checkpoints"]] == [2, 4, 3]
-    assert restored_selection["best_checkpoint"]["epoch"] == 2
+    assert [row["epoch"] for row in restored_selection["top_k_checkpoints"]] == [1]
+    assert restored_selection["best_checkpoint"]["epoch"] == 1
 
     selected_path = session.directory / restored_selection["best_checkpoint"]["path"]
     selected_path.write_bytes(selected_path.read_bytes() + b"tamper")
@@ -456,14 +456,13 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
             pin_memory=False,
             persistent_workers=False,
             prefetch_factor=None,
-            # Candidate selection is intentionally frozen to the external
-            # 30/5/min-2/top-3 policy.  The deterministic fake metric below
-            # then exercises the early-stop boundary at completed epoch six.
-            epochs=30,
-            early_stopping_patience=5,
-            early_stopping_min_delta=0.0,
-            minimum_epochs_before_stop=2,
-            save_top_k=3,
+                # Candidate selection is intentionally terminal after its one
+                # full TRAIN epoch and one complete VAL pass.
+                epochs=1,
+                early_stopping_patience=5,
+                early_stopping_min_delta=0.0,
+                minimum_epochs_before_stop=1,
+                save_top_k=1,
             out_bundle_dir=out_bundle,
             gx1_data_override="",
             run_id="V46_20260825T170935Z_CANDIDATE",
@@ -514,13 +513,13 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
 
     second_model = torch.nn.Linear(3, 2)
     second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))
-    assert calls == {"train": 7, "validation": 6}
-    assert train_offsets == [0, 1, 0, 0, 0, 0, 0]
+    assert calls == {"train": 2, "validation": 1}
+    assert train_offsets == [0, 1]
     assert second["best_epoch"] == 1
     assert second["best_policy_pnl"] == 2.0
     assert not out_bundle.exists()
 
     third_model = torch.nn.Linear(3, 2)
     third = _run(third_model, torch.optim.AdamW(third_model.parameters(), lr=0.001))
-    assert calls == {"train": 7, "validation": 6}
+    assert calls == {"train": 2, "validation": 1}
     assert third["best_epoch"] == 1

@@ -16,11 +16,12 @@ def _record(epoch: int, metric: float) -> dict[str, object]:
 
 def test_policy_is_the_frozen_external_candidate_contract() -> None:
     observed = policy.checkpoint_policy_metadata()
-    assert observed["max_epochs"] == 30
+    assert observed["schema_version"] == "gx1_entry_candidate_checkpoint_policy_v2"
+    assert observed["max_epochs"] == 1
     assert observed["validation_frequency_epochs"] == 1
     assert observed["early_stop_patience"] == 5
-    assert observed["minimum_epochs_before_stop"] == 2
-    assert observed["save_top_k"] == 3
+    assert observed["minimum_epochs_before_stop"] == 1
+    assert observed["save_top_k"] == 1
     assert observed["checkpoint_mode"] == "max"
     assert policy.require_checkpoint_policy(observed, context="TEST") == observed
 

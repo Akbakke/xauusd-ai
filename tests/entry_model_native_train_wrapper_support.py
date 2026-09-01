@@ -1174,11 +1174,11 @@ def build_wrapper_contract(
     trainer_cli = {
         "device": "cpu",
         "seed": 1337,
-        "epochs": 30 if candidate_policy else 2,
+        "epochs": 1 if candidate_policy else 2,
         "batch_size": 8,
         "early_stop_patience": 5 if candidate_policy else 1,
-        "minimum_epochs_before_stop": 2 if candidate_policy else 1,
-        "save_top_k": 3 if candidate_policy else 1,
+        "minimum_epochs_before_stop": 1,
+        "save_top_k": 1,
         "subsample_rows": 32 if profile == "smoke" else 0,
         "train_time_window": (
             {

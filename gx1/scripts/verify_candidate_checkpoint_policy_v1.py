@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Executable early-stop/top-k policy proof for the external candidate."""
+"""Executable one-epoch candidate checkpoint-policy proof."""
 from __future__ import annotations
 
 import argparse
@@ -61,33 +61,20 @@ def _advance(
 
 
 def run_policy_proof() -> dict[str, Any]:
-    # Improvement, plateau, then deterioration.  Resume happens after epoch 4
-    # with two patience checks already consumed; it must not reset to zero.
-    metrics = [1.0, 1.5, 1.5, 1.4, 1.3, 1.2, 1.1]
+    # The full candidate is terminal after its first complete TRAIN/VAL epoch.
+    # A new process may resume *within* that epoch, but it must never advance
+    # into a second one under this recipe family.
+    metrics = [1.0]
     uninterrupted = _advance(metrics)
-    before_resume = _advance(metrics, stop_after=4)
-    # `_advance` enumerates local arrays, so assert persistence with a direct
-    # policy continuation below for unambiguous external epoch numbering.
     policy = checkpoint_policy_metadata()
-    since = int(before_resume["since"])
-    stopped_epoch = None
-    for epoch, value in enumerate(metrics[4:], start=5):
-        assert not metric_improved(candidate=value, best=1.5, min_delta=0.0)
-        since += 1
-        if should_early_stop(
-            completed_epochs=epoch,
-            epochs_since_improve=since,
-            patience=policy["early_stop_patience"],
-            minimum_epochs_before_stop=policy["minimum_epochs_before_stop"],
-        ):
-            stopped_epoch = epoch
-            break
     if (
-        uninterrupted["best_epoch"] != 2
-        or uninterrupted["last_epoch"] != 7
-        or not uninterrupted["stopped"]
-        or stopped_epoch != 7
-        or [row["epoch"] for row in uninterrupted["records"]] != [2, 3, 4]
+        policy["max_epochs"] != 1
+        or policy["minimum_epochs_before_stop"] != 1
+        or policy["save_top_k"] != 1
+        or uninterrupted["best_epoch"] != 1
+        or uninterrupted["last_epoch"] != 1
+        or uninterrupted["stopped"]
+        or [row["epoch"] for row in uninterrupted["records"]] != [1]
     ):
         raise RuntimeError("[CANDIDATE_CHECKPOINT_POLICY_PROOF_FAILED]")
     return {
@@ -99,9 +86,9 @@ def run_policy_proof() -> dict[str, Any]:
         "best_checkpoint_epoch": uninterrupted["best_epoch"],
         "best_metric": uninterrupted["best"],
         "last_checkpoint_epoch": uninterrupted["last_epoch"],
-        "early_stop_epoch": 7,
-        "epochs_since_improve_before_resume": before_resume["since"],
-        "early_stop_epoch_after_resume": stopped_epoch,
+        "terminal_epoch": 1,
+        "terminal_reason": "max_epochs_one_after_full_validation",
+        "early_stop": False,
         "top_k": uninterrupted["records"],
         "disk_checkpoint_immutability": "covered by test_candidate_training_session.py",
     }

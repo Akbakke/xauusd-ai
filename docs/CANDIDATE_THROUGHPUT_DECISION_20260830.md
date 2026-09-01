@@ -34,10 +34,11 @@ This is an intentional trainer contract, not a resource failure.
 
 The next materialized candidate must retain batch size 8, `num_workers=0`,
 full TRAIN population (248,028 rows), deterministic FP32 behavior, and the
-frozen 30-epoch candidate checkpoint policy.  The first epoch is exactly
-31,004 optimizer batches before its VAL pass.  Batch 8 preserves that explicit
-milestone, has the lowest measured VRAM use, and is within measurement noise
-of B10's throughput without changing optimizer geometry.
+frozen one-epoch candidate checkpoint policy. The one epoch is exactly 31,004
+optimizer batches before its complete VAL pass; it must terminally complete
+there rather than begin a second full TRAIN epoch. Batch 8 preserves that
+explicit milestone, has the lowest measured VRAM use, and is within measurement
+noise of B10's throughput without changing optimizer geometry.
 
 The previously interrupted candidate remains preserved, resumable evidence at
 batch 704 and is not reused as the selected current-source candidate.  Its

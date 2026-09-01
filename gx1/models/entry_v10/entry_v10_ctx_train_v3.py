@@ -14679,8 +14679,8 @@ def main() -> None:
             )
         except RuntimeError:
             parser.error(
-                "candidate requires the frozen 30-epoch / patience-5 / "
-                "minimum-2 / top-k-3 checkpoint policy"
+                "candidate requires the frozen one-epoch / patience-5 / "
+                "minimum-1 / top-k-1 checkpoint policy"
             )
     if args.profile == "smoke" and int(args.subsample_rows) <= 0:
         parser.error(
