@@ -365,7 +365,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
     )
     assert current_source_recipe["run_id"].startswith(
-        "V7_CURRENT_SOURCE_TECHNICAL_SMOKE_"
+        "V8_CURRENT_SOURCE_TECHNICAL_SMOKE_"
     )
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()

@@ -1303,11 +1303,26 @@ Source commit `1a313f52f284e704e9815f568a0f5cf80cdc8413` fixes that ownership
 contract: `smc_swing_state` is now tested by an on-manifold categorical
 counterfactual in Entry, unified Exit and serve-parity paths. The focused
 contract suite passed (40 tests). This changes neither features, data, targets
-nor model objective. The current-source V7 smoke preflight is
-`V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z_RECIPE_20260901T074900Z.json`,
-SHA-256 `bf4aede7507cbf1cc56c2f177f52bfd7797e20d2e01dc7c212ceeff071a74a54`;
-it declares `training=false` and no CUDA execution. A fresh, current-source,
-**one-epoch (31,004 batch)** candidate recipe is still required before another
-candidate attempt; it must use the repaired source and must not inherit V6's
-two-epoch minimum. No TEST artifact was read, and no bundle, VAL qualification,
-post-run bundle audit, promotion, shadow, paper or live authority exists.
+nor model objective. Source commit `9f733b4b6563ff9e87309b9c9fb719c64e9c87cf`
+then freezes the exact one-epoch policy (`max_epochs=1`,
+`minimum_epochs_before_stop=1`, `save_top_k=1`), preventing another accidental
+second 31,004-batch epoch.
+
+The current-source V8 smoke preflight is
+`V8_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T080300Z_RECIPE.json`, SHA-256
+`4ceb7e808589db21836a6ec34ae588e7923a58d729928786d124de84dcde653d`; it
+declares `training=false` and no CUDA execution. The corresponding V8 candidate
+recipe is `V8_ONE_EPOCH_CANDIDATE_20260901T080300Z_RECIPE.json`, SHA-256
+`ffc90fe31b71c56dd2b2e64b0409324e4456a6b143b5ca3dda9741817e3088ef`.
+It is hash-bound to the repaired source and declares CUDA/B8/full TRAIN,
+one epoch and one complete VAL, but has **not** been launched. No TEST artifact
+was read, and no bundle, VAL qualification, post-run bundle audit, promotion,
+shadow, paper or live authority exists.
+
+The V8 candidate launch gate is intentionally not materialized yet: it must
+bind a matching V8 32-row smoke bundle audit and the successor candidate
+readiness report. The historical V5 audit is evidence only and cannot be
+relabelled as current-source V8 evidence. Therefore the next required compute,
+before the one 31,004-batch candidate launch, is exactly one guarded V8
+32-row smoke, its CPU-only bundle audit and the new readiness/launch-gate
+artifacts. It is not another full candidate epoch and it does not touch TEST.

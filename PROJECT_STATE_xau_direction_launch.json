@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-01T07:48:46Z",
+  "updated_utc": "2026-09-01T08:03:00Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -13,13 +13,13 @@
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
     "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
-    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z_RECIPE_20260901T074900Z.json",
-    "recipe_sha256": "bf4aede7507cbf1cc56c2f177f52bfd7797e20d2e01dc7c212ceeff071a74a54",
-    "source_commit": "1a313f52f284e704e9815f568a0f5cf80cdc8413",
-    "source_bindings_sha256": "4a29bbcd658c460c9284693c64bc33604c16d962e2acdfe1a7c21d11b4f5ad28",
-    "run_id": "V7_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T074900Z",
+    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V8_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T080300Z_RECIPE.json",
+    "recipe_sha256": "4ceb7e808589db21836a6ec34ae588e7923a58d729928786d124de84dcde653d",
+    "source_commit": "9f733b4b6563ff9e87309b9c9fb719c64e9c87cf",
+    "source_bindings_sha256": "29641592756c9bd7efdfe6f09cc925210e8e1430d4039a91e78a970a4970e8c8",
+    "run_id": "V8_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T080300Z",
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V7_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_20260901T074900Z"
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V8_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T080300Z_BUNDLE"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -156,7 +156,7 @@
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
     "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
-    "No admitted dataset or bundle exists. V5's CPU-only post-run audit is FAIL and its candidate-readiness recheck is READY, both research-only. V6 completed the requested first 31,004 TRAIN batches and full VAL, but no candidate bundle exists: immutable technical-seal failure ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z_EPOCH1_TECHNICAL_SEAL_FAILURE_20260901T073055Z.json (SHA-256 9cb05b75dfb51abd9ac8e2abf7698db7a55c49f3e92282a87e3d8921534e9c66) correctly denies candidate/TEST/promotion/paper/live authority. It exposed the signal-category audit defect corrected by source commit 1a313f52f284e704e9815f568a0f5cf80cdc8413; a fresh current-source recipe is still required before any new candidate run.",
+    "No admitted dataset or bundle exists. V5's CPU-only post-run audit is FAIL and its candidate-readiness recheck is READY, both research-only. V6 completed the requested first 31,004 TRAIN batches and full VAL, but no candidate bundle exists: immutable technical-seal failure ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z_EPOCH1_TECHNICAL_SEAL_FAILURE_20260901T073055Z.json (SHA-256 9cb05b75dfb51abd9ac8e2abf7698db7a55c49f3e92282a87e3d8921534e9c66) correctly denies candidate/TEST/promotion/paper/live authority. The signal-category audit defect is fixed by 1a313f52 and the one-epoch policy by 9f733b4b. V8's current-source candidate recipe ffc90fe31b71c56dd2b2e64b0409324e4456a6b143b5ca3dda9741817e3088ef is materialized but not launched; its only missing preflight is a matching V8 32-row smoke bundle/audit and successor readiness gate.",
     "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",
