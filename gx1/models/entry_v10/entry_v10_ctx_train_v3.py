@@ -11350,6 +11350,97 @@ def _run_resumable_candidate_training(
         )
 
 
+def load_completed_candidate_epoch_for_seal(
+    *,
+    out_bundle_dir: Path,
+    completed_epoch: int,
+) -> dict[str, Any]:
+    """Read one VAL-complete epoch for an explicit export-only technical seal.
+
+    The helper never writes or advances the private candidate session.  It
+    admits the state only when a retained top-k checkpoint, the selection
+    state and the durable session pointer all prove that the requested VAL
+    phase completed.
+    """
+
+    if isinstance(completed_epoch, bool) or int(completed_epoch) < 1:
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_EPOCH_INVALID]")
+    resolved_out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()
+    session_dir = resolved_out_bundle_dir.parent / (
+        _CANDIDATE_TRAINING_SESSION_DIR_PREFIX + resolved_out_bundle_dir.name
+    )
+    contract = _candidate_training_session_read_json(
+        session_dir / _CANDIDATE_TRAINING_CONTRACT_FILENAME,
+        label="EPOCH_SEAL_CONTRACT",
+    )
+    authority = contract.get("authority")
+    if (
+        contract.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+        or contract.get("out_bundle_dir") != str(resolved_out_bundle_dir)
+        or contract.get("profile") != "candidate"
+        or contract.get("execution_tier") != "canonical"
+        or not isinstance(authority, Mapping)
+        or authority.get("candidate_training") is not True
+        or authority.get("bundle") is not False
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_CONTRACT_INVALID]")
+    session = _CandidateTrainingSession(
+        out_bundle_dir=resolved_out_bundle_dir,
+        contract=contract,
+    )
+    state = session.load_checkpoint()
+    if state is None or bool(state.get("complete", False)):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_STATE_INVALID]")
+    progress = _require_candidate_training_progress(state["training_progress"])
+    selection = dict(progress["checkpoint_selection"])
+    if (
+        int(selection["last_epoch"]) != int(completed_epoch)
+        or int(selection["best_epoch"]) != int(completed_epoch)
+        or int(state["epoch_index"]) < int(completed_epoch)
+        or state.get("phase") != "train"
+        or progress.get("validation_snapshot") is not None
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_VAL_NOT_COMPLETE]")
+    checkpoint = selection.get("best_checkpoint")
+    if (
+        not isinstance(checkpoint, Mapping)
+        or int(checkpoint.get("epoch", -1)) != int(completed_epoch)
+        or checkpoint not in selection["top_k_checkpoints"]
+        or not isinstance(selection.get("best_state"), Mapping)
+        or not isinstance(selection.get("best_fitted_q_target_state"), Mapping)
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_SELECTION_INVALID]")
+    relative = Path(str(checkpoint.get("path", "")))
+    if relative.is_absolute() or relative.parts[:1] != ("top_k",):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_PATH_INVALID]")
+    top_k_path = session.directory / relative
+    try:
+        payload = torch.load(top_k_path, map_location="cpu", weights_only=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_LOAD_INVALID]") from exc
+    if (
+        not isinstance(payload, Mapping)
+        or payload.get("session_contract_sha256") != session.contract_sha256
+        or payload.get("epoch") != int(completed_epoch)
+        or payload.get("metric") != checkpoint.get("metric")
+        or canonical_model_state_sha256(payload.get("model_state", {}))
+        != canonical_model_state_sha256(selection["best_state"])
+        or canonical_model_state_sha256(payload.get("target_model_state", {}))
+        != canonical_model_state_sha256(selection["best_fitted_q_target_state"])
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_MISMATCH]")
+    return {
+        **selection,
+        "joint_task_supervision_observed": dict(
+            progress["joint_task_supervision_observed"]
+        ),
+        "joint_task_gradient_observed": dict(
+            progress["joint_task_gradient_observed"]
+        ),
+        "session_directory": str(session.directory),
+    }
+
+
 def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
@@ -11396,6 +11487,8 @@ def run_train(
     val_sequence_roll_audit_json: Optional[Path] = None,
     train_sequence_source_audit_json: Optional[Path] = None,
     val_sequence_source_audit_json: Optional[Path] = None,
+    candidate_result_override: Optional[Mapping[str, Any]] = None,
+    candidate_epoch_seal: Optional[Mapping[str, Any]] = None,
 ) -> None:
     from gx1.contracts.entry_model_native_train_launch_v1 import (
         require_training_recipe_source_provenance_metadata,
@@ -12732,7 +12825,14 @@ def run_train(
     )
     candidate_training_already_completed = False
     if profile == "candidate":
-        candidate_result = _run_resumable_candidate_training(
+        if candidate_result_override is not None:
+            if not isinstance(candidate_epoch_seal, Mapping):
+                raise RuntimeError("[CANDIDATE_EPOCH_SEAL_METADATA_REQUIRED]")
+            candidate_result = dict(candidate_result_override)
+        else:
+            if candidate_epoch_seal is not None:
+                raise RuntimeError("[CANDIDATE_EPOCH_SEAL_OVERRIDE_REQUIRED]")
+            candidate_result = _run_resumable_candidate_training(
             model=model,
             optimizer=optimizer,
             weight_ema=weight_ema,
@@ -12776,8 +12876,8 @@ def run_train(
             specialist_fusion_scale=specialist_fusion_scale,
             cross_family_fusion_scale=cross_family_fusion_scale,
             unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
-            recipe_source_provenance=recipe_source_provenance,
-        )
+                recipe_source_provenance=recipe_source_provenance,
+            )
         best_state = candidate_result["best_state"]
         best_val = float(candidate_result["best_val"])
         best_policy_pnl = float(candidate_result["best_policy_pnl"])
@@ -13900,6 +14000,22 @@ def run_train(
             "active_heads": active_heads,
         },
     }
+    if candidate_epoch_seal is not None:
+        if profile != "candidate" or not isinstance(candidate_epoch_seal, Mapping):
+            raise RuntimeError("[CANDIDATE_EPOCH_SEAL_METADATA_INVALID]")
+        seal = dict(candidate_epoch_seal)
+        if (
+            seal.get("schema_version") != "gx1_candidate_epoch_technical_seal_v1"
+            or seal.get("authority") != "technical_epoch_result_only"
+            or seal.get("promotion") is not False
+            or seal.get("paper") is not False
+            or seal.get("live") is not False
+            or not isinstance(seal.get("source_session_contract_sha256"), str)
+            or not isinstance(seal.get("selected_checkpoint_sha256"), str)
+        ):
+            raise RuntimeError("[CANDIDATE_EPOCH_SEAL_METADATA_INVALID]")
+        meta["candidate_epoch_seal"] = seal
+        lock["candidate_epoch_seal"] = seal
     if sequence_source_reconstruction_evidence is not None:
         # This records the exact storage-reconstruction proof for every
         # profile. It is an explicit denial of candidate and deployment

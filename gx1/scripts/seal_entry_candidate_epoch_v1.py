@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Export one already VAL-complete candidate epoch as technical-only evidence.
+
+The source candidate session remains immutable and incomplete.  This command
+only reads its hash-verified top-k state, records why the requested epoch was
+sealed, and delegates the normal immutable bundle export to the canonical
+trainer.  It never resumes optimizer work and never reads TEST.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+
+import torch
+
+from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_json(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_JSON_INVALID]")
+    return value
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        "seal one completed candidate epoch without resuming training"
+    )
+    parser.add_argument("--recipe-json", type=Path, required=True)
+    parser.add_argument("--recipe-sha256", type=str, required=True)
+    parser.add_argument("--completed-epoch", type=int, required=True)
+    args = parser.parse_args()
+
+    recipe_path = args.recipe_json.expanduser().resolve(strict=True)
+    if _sha256(recipe_path) != args.recipe_sha256:
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_RECIPE_SHA256_MISMATCH]")
+    recipe = _read_json(recipe_path)
+    required = {
+        "schema_version",
+        "run_id",
+        "dataset_run_id",
+        "out_bundle_dir",
+        "trainer_cli",
+        "artifact_bindings",
+        "test_guard_lineage",
+    }
+    if not required.issubset(recipe):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_RECIPE_INVALID]")
+    cli = recipe["trainer_cli"]
+    artifacts = recipe["artifact_bindings"]
+    if (
+        not isinstance(cli, dict)
+        or not isinstance(artifacts, dict)
+        or recipe.get("profile") != "candidate"
+        or cli.get("subsample_rows") != 0
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_RECIPE_INVALID]")
+
+    out_bundle = Path(recipe["out_bundle_dir"]).expanduser().resolve()
+    session_dir = out_bundle.parent / (
+        ".gx1-candidate-training-session." + out_bundle.name
+    )
+    contract_path = session_dir / "CANDIDATE_TRAINING_SESSION_CONTRACT.json"
+    pointer_path = session_dir / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
+    contract = _read_json(contract_path)
+    result = trainer.load_completed_candidate_epoch_for_seal(
+        out_bundle_dir=out_bundle,
+        completed_epoch=args.completed_epoch,
+    )
+    checkpoint = result["best_checkpoint"]
+    checkpoint_path = session_dir / str(checkpoint["path"])
+    if _sha256(checkpoint_path) != str(checkpoint["sha256"]):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_CHECKPOINT_SHA256_MISMATCH]")
+
+    def artifact(name: str) -> Path:
+        value = artifacts.get(name)
+        if not isinstance(value, dict) or not isinstance(value.get("path"), str):
+            raise RuntimeError(f"[CANDIDATE_EPOCH_SEAL_ARTIFACT_MISSING] {name}")
+        path = Path(value["path"]).expanduser().resolve(strict=True)
+        if _sha256(path) != value.get("sha256"):
+            raise RuntimeError(f"[CANDIDATE_EPOCH_SEAL_ARTIFACT_SHA256_MISMATCH] {name}")
+        return path
+
+    trainer._GRAD_CLIP_NORM = float(cli["grad_clip_norm"])
+    trainer._WEIGHT_DECAY = float(cli["weight_decay"])
+    cache_manifest = artifact("multi_tf_cache_manifest")
+    os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_manifest.parent)
+    seal = {
+        "schema_version": "gx1_candidate_epoch_technical_seal_v1",
+        "authority": "technical_epoch_result_only",
+        "candidate_training": False,
+        "promotion": False,
+        "paper": False,
+        "live": False,
+        "test": False,
+        "selected_epoch": int(args.completed_epoch),
+        "source_session_directory": str(session_dir),
+        "source_session_contract_sha256": _sha256(contract_path),
+        "source_resume_pointer_sha256": _sha256(pointer_path),
+        "selected_checkpoint_path": str(checkpoint_path),
+        "selected_checkpoint_sha256": str(checkpoint["sha256"]),
+        "source_recipe_path": str(recipe_path),
+        "source_recipe_sha256": args.recipe_sha256,
+        "sealer_script_sha256": _sha256(Path(__file__).resolve()),
+    }
+    trainer.run_train(
+        train_parquet=artifact("train_parquet"),
+        train_manifest_path=artifact("train_manifest"),
+        val_parquet=artifact("val_parquet"),
+        unified_exit_lifecycle_manifest_path=artifact(
+            "unified_exit_lifecycle_manifest"
+        ),
+        seq_len=int(cli["seq_len"]),
+        seed=int(cli["seed"]),
+        device=torch.device("cpu"),
+        batch_size=int(cli["batch_size"]),
+        epochs=int(cli["epochs"]),
+        lr=float(cli["learning_rate"]),
+        out_bundle_dir=out_bundle,
+        gx1_data_override=str(cli["gx1_data_root"]),
+        num_workers=0,
+        early_stopping_patience=int(cli["early_stop_patience"]),
+        early_stopping_min_delta=float(cli["early_stop_min_delta"]),
+        minimum_epochs_before_stop=int(cli["minimum_epochs_before_stop"]),
+        save_top_k=int(cli["save_top_k"]),
+        m5_prebuilt_path=artifact("m5_prebuilt"),
+        specialist_audit_json=artifact("specialist_audit"),
+        specialist_contract_mode=trainer.MODEL_NATIVE_CONTRACT_MODE,
+        dropout=float(cli["dropout"]),
+        multi_tf_num_layers=int(cli["multi_tf_num_layers"]),
+        per_tf_seq_len_m5=int(cli["per_tf_seq_len_m5"]),
+        per_tf_seq_len_m15=int(cli["per_tf_seq_len_m15"]),
+        per_tf_seq_len_h1=int(cli["per_tf_seq_len_h1"]),
+        per_tf_seq_len_h4=int(cli["per_tf_seq_len_h4"]),
+        per_tf_seq_len_d1=int(cli["per_tf_seq_len_d1"]),
+        multi_tf_scale=float(cli["multi_tf_scale"]),
+        subsample_rows=0,
+        train_time_window_start_utc=None,
+        train_time_window_end_utc=None,
+        specialist_num_layers=int(cli["specialist_num_layers"]),
+        specialist_fusion_scale=float(cli["specialist_fusion_scale"]),
+        cross_family_fusion_scale=float(cli["cross_family_fusion_scale"]),
+        grad_accum_steps=int(cli["grad_accum_steps"]),
+        prefreeze_test_seal_lineage=recipe["test_guard_lineage"],
+        recipe_source_provenance=contract["recipe_source_provenance"],
+        run_id=str(recipe["run_id"]),
+        dataset_run_id=str(recipe["dataset_run_id"]),
+        profile="candidate",
+        execution_tier="canonical",
+        train_sequence_source_audit_json=artifact(
+            "train_sequence_source_reconstruction"
+        ),
+        val_sequence_source_audit_json=artifact(
+            "val_sequence_source_reconstruction"
+        ),
+        candidate_result_override=result,
+        candidate_epoch_seal=seal,
+    )
+
+
+if __name__ == "__main__":
+    main()
