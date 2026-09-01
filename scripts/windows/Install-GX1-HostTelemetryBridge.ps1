@@ -58,6 +58,54 @@ function Invoke-NativeChecked {
     return @($output | ForEach-Object { $_.ToString() })
 }
 
+function Stop-ExistingBridgeTask {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TaskName
+    )
+
+    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($null -eq $task -or $task.State -ne 'Running') {
+        return
+    }
+    Stop-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+    foreach ($attempt in 1..25) {
+        Start-Sleep -Milliseconds 200
+        $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+        if ($null -eq $task -or $task.State -ne 'Running') {
+            return
+        }
+    }
+    throw "Existing bridge task $TaskName did not stop within five seconds; refusing to replace files it may still own."
+}
+
+function Wait-ForExclusiveFileAccess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return
+    }
+    foreach ($attempt in 1..25) {
+        try {
+            $stream = [System.IO.File]::Open(
+                $Path,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None
+            )
+            $stream.Dispose()
+            return
+        }
+        catch [System.IO.IOException] {
+            Start-Sleep -Milliseconds 200
+        }
+    }
+    throw "Bridge file remained locked after the old task stopped: $Path"
+}
+
 function ConvertTo-CanonicalIpv4 {
     param(
         [Parameter(Mandatory = $true)]
@@ -252,6 +300,7 @@ function Repair-ExistingBridgeDirectoryAccess {
 }
 
 Assert-Administrator
+Stop-ExistingBridgeTask -TaskName 'GX1HostTelemetryBridge'
 
 $lhmRoot = Join-Path $env:ProgramData 'GX1\LibreHardwareMonitor\v0.9.6'
 $lhmLibrary = Join-Path $lhmRoot 'LibreHardwareMonitorLib.dll'
@@ -274,6 +323,7 @@ $servicePath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.ps1'
 $runnerPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeRunner.ps1'
 $serviceLogPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.log'
 $publicCertificatePath = Join-Path $bridgeRoot 'GX1HostTelemetryBridgePublic.pem'
+Wait-ForExclusiveFileAccess -Path $serviceLogPath
 $loopbackEndpoint = "http://127.0.0.1:$Port/gx1/v1/telemetry/"
 $wslListenAddress = ''
 $wslClientAddressCanonical = ''
@@ -588,10 +638,6 @@ if (-not [string]::IsNullOrWhiteSpace($wslEndpoint)) {
 }
 
 $taskName = 'GX1HostTelemetryBridge'
-$existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-if ($null -ne $existingTask) {
-    Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-}
 $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runnerPath`""
 $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments

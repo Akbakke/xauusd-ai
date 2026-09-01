@@ -35,6 +35,14 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert source.index("Repair-ExistingBridgeDirectoryAccess -BridgeRoot $bridgeRoot") < source.index(
         "$certificate = Get-BridgeCertificate"
     )
+    assert "Stop-ExistingBridgeTask" in source
+    assert "Wait-ForExclusiveFileAccess" in source
+    assert source.index("Stop-ExistingBridgeTask -TaskName 'GX1HostTelemetryBridge'") < source.index(
+        "New-Item -ItemType Directory -Path $bridgeRoot -Force"
+    )
+    assert source.index("Wait-ForExclusiveFileAccess -Path $serviceLogPath") < source.index(
+        "[System.IO.File]::WriteAllText(\n    $servicePath"
+    )
 
 
 def test_host_bridge_wsl_transport_is_opt_in_and_single_client_restricted() -> None:
