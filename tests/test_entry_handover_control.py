@@ -27,6 +27,7 @@ AUTHORITY_PATHS = (
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
     REPO / "docs/CANONICAL_HOST_GPU_TELEMETRY_BRIDGE_CONTRACT.md",
     REPO / "docs/CANDIDATE_THROUGHPUT_DECISION_20260830.md",
+    REPO / "docs/V8_CANDIDATE_HOST_HANG_INCIDENT_20260901.md",
     # 3c84bec9 committed this review doc without extending the authority
     # fingerprint; covered here so no tracked markdown escapes the fingerprint.
     REPO / "docs/FEATURE_VALUE_REVIEW_20260813.md",

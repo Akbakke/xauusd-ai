@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import signal
 import subprocess
@@ -108,7 +109,16 @@ def _guard_env(
         "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": str(max_power_draw_w),
         "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": str(max_memory_used_mib),
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
-        "GX1_TRAINER_NVIDIA_SMI_PATH": str(nvidia_smi_path),
+        # The fake script accepts arbitrary arguments and returns the exact
+        # five signed-bridge telemetry fields the guard consumes.
+        "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH": str(nvidia_smi_path),
+        "GX1_TRAINER_HOST_TELEMETRY_URL": "http://172.30.224.1:38128/gx1/v1/telemetry/",
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH": str(Path(__file__).resolve()),
+        "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256": hashlib.sha256(
+            Path(__file__).read_bytes()
+        ).hexdigest(),
+        "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID": "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29",
+        "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS": "2",
     }
     numeric_values = (
         value
@@ -119,7 +129,12 @@ def _guard_env(
             "GX1_TRAINER_DEVICE",
             "GX1_TRAINER_EXECUTION_MODE",
             "GX1_TRAINER_ATTENDED_STAGE_REQUIRED",
-            "GX1_TRAINER_NVIDIA_SMI_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_URL",
+            "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH",
+            "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256",
+            "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID",
+            "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS",
         }
     )
     if any(not value.isdigit() for value in numeric_values):
@@ -385,12 +400,12 @@ def test_trainer_guard_accepts_complete_safe_cuda_telemetry(tmp_path: Path) -> N
     )
 
 
-def test_canonical_cuda_guard_requires_pinned_native_nvidia_smi(
+def test_canonical_cuda_guard_requires_signed_host_query(
     tmp_path: Path,
 ) -> None:
     nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 250, 1000")
     env = _guard_env(device="cuda", nvidia_smi_path=nvidia_smi)
-    env["GX1_TRAINER_NVIDIA_SMI_PATH"] = "/bin/false"
+    env["GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH"] = "/bin/false"
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -478,7 +493,7 @@ def test_trainer_guard_rejects_unavailable_cuda_telemetry(
     assert "CUDA telemetry unavailable during preflight" in result.stderr
 
 
-def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
+def test_trainer_guard_rejects_missing_signed_memory_junction_for_attended_smoke(
     tmp_path: Path,
 ) -> None:
     nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390, 1000")
@@ -499,9 +514,8 @@ def test_trainer_guard_allows_only_literal_wsl_memory_na_for_attended_smoke(
         check=False,
     )
 
-    assert result.returncode == 0, result.stderr
-    assert "execution_mode=attended_smoke" in result.stderr
-    assert "attended_only" in result.stderr
+    assert result.returncode == 75
+    assert "CUDA telemetry unavailable during preflight" in result.stderr
 
 
 def test_trainer_guard_allows_cpu_attended_recovery_without_cuda_telemetry(
@@ -555,7 +569,7 @@ def test_trainer_guard_rejects_retired_research_smoke_execution_mode(
     )
 
 
-def test_trainer_guard_allows_wsl_memory_na_for_canonical_cuda(
+def test_trainer_guard_rejects_missing_signed_memory_junction_for_canonical_cuda(
     tmp_path: Path,
 ) -> None:
     nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 250, 1000")
@@ -570,13 +584,14 @@ def test_trainer_guard_allows_wsl_memory_na_for_canonical_cuda(
         check=False,
     )
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 75
+    assert "CUDA telemetry unavailable during preflight" in result.stderr
 
 
 def test_attended_smoke_rejects_draw_above_operator_authorized_ceiling(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 391, 390, 1000")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 391, 390, 1000")
     result = subprocess.run(
         ["bash", str(TRAINER_GUARD), "/bin/true"],
         cwd=REPO,
@@ -601,7 +616,7 @@ def test_attended_smoke_rejects_draw_above_operator_authorized_ceiling(
 def test_trainer_guard_persists_terminal_telemetry_when_given_sidecar(
     tmp_path: Path,
 ) -> None:
-    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, N/A, 100, 390, 1000")
+    nvidia_smi = _fake_nvidia_smi(tmp_path, "50, 70, 100, 390, 1000")
     guard_log = tmp_path / "guard.log"
     guard_log.write_text("", encoding="utf-8")
     env = _guard_env(
@@ -630,7 +645,7 @@ def test_trainer_guard_persists_terminal_telemetry_when_given_sidecar(
     assert "event=exit child_status=0" in log_text
     assert "telemetry_samples=1" in log_text
     assert "peak_core_temp_c=50" in log_text
-    assert "peak_memory_temp_c=N/A" in log_text
+    assert "peak_memory_temp_c=70" in log_text
     assert "peak_power_draw_w=100" in log_text
     assert "peak_memory_used_mib=1000" in log_text
 
@@ -901,10 +916,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=300" in source
     assert 'if [[ "$TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then' in source
     assert "hardware diagnostic remains a single five-minute run" in source
-    assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
-    assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=90" in source
-    assert "TRAINER_GPU_MAX_POWER_LIMIT_W=390" in source
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=220" in source
+    assert "TRAINER_GPU_MAX_CORE_TEMP_C=65" in source
+    assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=80" in source
+    assert "TRAINER_GPU_MAX_POWER_LIMIT_W=160" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=170" in source
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=12288" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
@@ -913,19 +928,18 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "--cuda-producer" in source
     assert "--cuda-producer requires exactly one --device cuda" in source
     assert "CUDA_PRODUCER_GUARD=true" in source
-    assert "required native CUDA telemetry owner" in source
+    assert "signed host telemetry query is unavailable" in source
     assert "--attended-smoke" in source
     assert "disabled after the WSL/GPU reset" in source
     assert "TRAINER_MAX_WALL_SECONDS=86400" not in source
     assert "TRAINER_MODEL_MAX_WALL_SECONDS=86400" not in source
-    assert "TRAINER_GPU_MAX_CORE_TEMP_C=70" in source
-    assert (
-        "same one-second 220 W actual-draw stop applies to every CUDA route"
-        in source
-    )
+    assert "CPU_AFFINITY=0-7" in source
+    assert "NUMERICAL_THREAD_COUNT=8" in source
+    assert "TRAINER_HOST_TELEMETRY_URL='http://172.30.224.1:38128/gx1/v1/telemetry/'" in source
+    assert "TRAINER_HOST_TELEMETRY_CERT_SHA256='25c9260c2168db53cf58c5f963f2008d5163d80aa69699c5726e0680ed74eb6e'" in source
     attended_block = source.split('if [[ "$ATTENDED_SMOKE" == true ]]; then', 1)[1]
     assert "TRAINER_GPU_MAX_POWER_DRAW_W=390" not in attended_block
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=220" in attended_block
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=170" not in attended_block
     assert (
         '--setenv=GX1_TRAINER_MAX_WALL_SECONDS="$TRAINER_MAX_WALL_SECONDS"'
         in source
@@ -935,21 +949,19 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
         in source
     )
     assert '"$GX1_GPU_GUARD_PATH" "$@"' in source
-    assert (
-        "--query-gpu=temperature.gpu,temperature.memory,power.draw,power.limit,memory.used"
-        in guard_source
-    )
+    assert "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" in guard_source
+    assert "GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" in guard_source
     assert "CUDA telemetry unavailable" in guard_source
     assert "GX1_TRAINER_EXECUTION_MODE" in guard_source
     assert "GX1_TRAINER_GPU_MAX_POWER_DRAW_W" in guard_source
     assert "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" in guard_source
-    assert "GX1_TRAINER_NVIDIA_SMI_PATH" in guard_source
+    assert "GX1_TRAINER_NVIDIA_SMI_PATH" not in guard_source
     assert "cuda_producer" in guard_source
     assert "producer cgroup is reserved here for CUDA inference only" in guard_source
     assert "GX1_TRAINER_GUARD_LOG_PATH" in source
     assert "event=heartbeat" in guard_source
     assert "event=exit child_status=$child_status" in guard_source
-    assert '"$memory_temp" == N/A' in guard_source
+    assert '"$memory_temp" =~ ^[0-9]+' in guard_source
     assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
     assert '/bin/kill -KILL -- "-$child_pid"' in guard_source
     assert "stage_elapsed >= stage_limit" in guard_source
@@ -959,14 +971,14 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert validation_call < nested_fast_path
 
 
-def test_capped_runner_resolves_only_explicit_system_nvidia_smi_paths() -> None:
-    """WSL driver placement may differ, but caller-controlled PATH is unsafe."""
+def test_capped_runner_source_binds_the_signed_windows_bridge() -> None:
+    """Canonical CUDA never falls back to an ambient WSL GPU sensor."""
     source = RUNNER.read_text(encoding="utf-8")
 
-    assert "resolve_nvidia_smi_path()" in source
-    assert "for candidate in /usr/bin/nvidia-smi /usr/lib/wsl/lib/nvidia-smi; do" in source
+    assert 'TRAINER_HOST_TELEMETRY_QUERY_PATH="$REPO_ROOT/scripts/gx1_host_telemetry_bridge_query.sh"' in source
+    assert "signed_windows_bridge" in source
+    assert "resolve_nvidia_smi_path" not in source
     assert "command -v nvidia-smi" not in source
-    assert 'TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"' in source
 
 
 def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:

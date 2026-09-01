@@ -59,7 +59,12 @@ for variable in \
   GX1_TRAINER_GPU_MAX_POWER_DRAW_W \
   GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB \
   GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS \
-  GX1_TRAINER_NVIDIA_SMI_PATH; do
+  GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH \
+  GX1_TRAINER_HOST_TELEMETRY_URL \
+  GX1_TRAINER_HOST_TELEMETRY_CERT_PATH \
+  GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256 \
+  GX1_TRAINER_HOST_TELEMETRY_GPU_UUID \
+  GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS; do
   [[ -n "${!variable:-}" ]] || die "missing protected environment: $variable"
 done
 case "$GX1_CAPPED_CLASS" in
@@ -106,6 +111,18 @@ for variable in \
 done
 [[ "$GX1_TRAINER_GPU_INDEX" =~ ^[0-9]+$ ]] \
   || die "GX1_TRAINER_GPU_INDEX must be a non-negative integer"
+[[ -x "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" && ! -L "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" ]] \
+  || die "signed host telemetry query is unavailable"
+[[ "$GX1_TRAINER_HOST_TELEMETRY_URL" =~ ^http://172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}:[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
+  || die "signed host telemetry URL is not an approved private WSL endpoint"
+[[ "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" == /* && -f "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" && ! -L "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" ]] \
+  || die "signed host telemetry certificate is unavailable"
+[[ "$GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]] \
+  || die "signed host telemetry certificate SHA-256 is malformed"
+[[ "$GX1_TRAINER_HOST_TELEMETRY_GPU_UUID" =~ ^GPU-[0-9a-fA-F-]{36}$ ]] \
+  || die "signed host telemetry GPU UUID is malformed"
+[[ "$GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" =~ ^[1-5]$ ]] \
+  || die "signed host telemetry timeout must be one through five seconds"
 [[ $# -ge 1 ]] || die "missing canonical trainer command"
 if [[ -n "$guard_log_path" ]]; then
   [[ "$guard_log_path" == /* && -f "$guard_log_path" && ! -L "$guard_log_path" ]] \
@@ -138,14 +155,15 @@ trim() {
 
 telemetry_values=()
 read_gpu_telemetry() {
-  local output core_temp memory_temp power_draw power_limit memory_used extra memory_observed
-  [[ -x "$GX1_TRAINER_NVIDIA_SMI_PATH" ]] || return 1
+  local output core_temp memory_temp power_draw power_limit memory_used extra
   output=$(
-    /usr/bin/timeout --signal=KILL 5s \
-      "$GX1_TRAINER_NVIDIA_SMI_PATH" \
-      --id="$GX1_TRAINER_GPU_INDEX" \
-      --query-gpu=temperature.gpu,temperature.memory,power.draw,power.limit,memory.used \
-      --format=csv,noheader,nounits 2>/dev/null
+    /usr/bin/timeout --signal=KILL 7s \
+      "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" \
+      "$GX1_TRAINER_HOST_TELEMETRY_URL" \
+      "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" \
+      "$GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" \
+      "$GX1_TRAINER_HOST_TELEMETRY_GPU_UUID" \
+      "$GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" 2>/dev/null
   ) || return 1
   IFS=, read -r core_temp memory_temp power_draw power_limit memory_used extra <<<"$output"
   [[ -z "${extra:-}" ]] || return 1
@@ -155,22 +173,11 @@ read_gpu_telemetry() {
   power_limit=$(trim "${power_limit:-}")
   memory_used=$(trim "${memory_used:-}")
   [[ "$core_temp" =~ ^[0-9]+([.][0-9]+)?$ \
+    && "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_draw" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_limit" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$memory_used" =~ ^[0-9]+$ ]] || return 1
-  memory_observed=true
-  if [[ "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    :
-  elif [[ "$memory_temp" == N/A ]]; then
-    # WSL's pinned driver can expose a literal N/A memory-junction sensor.  Do
-    # not turn that missing sensor into an unbounded load: the surrounding
-    # guard still polls every second and stops on core temperature, actual
-    # power draw and 12 GiB device residency.
-    memory_observed=false
-  else
-    return 1
-  fi
-  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit" "$memory_used" "$memory_observed")
+  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit" "$memory_used" true)
 }
 
 float_gt() {
@@ -220,7 +227,7 @@ assert_safe_telemetry() {
     float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
       && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
   fi
-  # The physical 210 W cap is required independently; actual draw remains a
+  # The physical 160 W cap is independently verified; actual draw remains a
   # strict separately observed safety boundary for every CUDA tier.
   float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
     && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_DRAW_W}W during $phase"
@@ -311,7 +318,7 @@ if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
   assert_safe_telemetry preflight
 fi
 
-printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s attended_stage_required=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s max_memory_used_mib=%s monitor_interval_seconds=%s\n' \
+printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s attended_stage_required=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s max_memory_used_mib=%s monitor_interval_seconds=%s telemetry_owner=signed_windows_bridge\n' \
   "$GX1_TRAINER_EXECUTION_MODE" \
   "$GX1_TRAINER_DEVICE" \
   "$GX1_TRAINER_MAX_WALL_SECONDS" \
@@ -324,9 +331,9 @@ printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wa
   "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
-guard_log "event=start execution_mode=$GX1_TRAINER_EXECUTION_MODE device=$GX1_TRAINER_DEVICE data_preflight_max_wall_seconds=$GX1_TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS max_core_temp_c=$GX1_TRAINER_GPU_MAX_CORE_TEMP_C max_power_limit_w=$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$GX1_TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB"
+guard_log "event=start execution_mode=$GX1_TRAINER_EXECUTION_MODE device=$GX1_TRAINER_DEVICE data_preflight_max_wall_seconds=$GX1_TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS max_core_temp_c=$GX1_TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$GX1_TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB telemetry_owner=signed_windows_bridge"
 if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
-  printf '[trainer_safety_attended_only] WSL VRAM telemetry may be literal N/A; this run has no candidate, TEST, promotion, or live authority\n' >&2
+  printf '[trainer_safety_attended_only] signed Windows junction telemetry is mandatory; this run has no candidate, TEST, promotion, or live authority\n' >&2
 elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_cpu_smoke ]]; then
   printf '[trainer_safety_attended_cpu_only] no CUDA allocation; this run has no candidate, TEST, promotion, or live authority\n' >&2
 fi

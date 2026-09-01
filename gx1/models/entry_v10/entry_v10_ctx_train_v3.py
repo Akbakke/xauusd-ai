@@ -1115,7 +1115,8 @@ _ATTENDED_RESEARCH_STATE_FILENAMES = (
 # smoke.  It must eventually cover the full immutable TRAIN and VAL
 # populations, so the five-minute attended research state cannot be promoted
 # or repurposed for it.  The candidate state is a durable, hash-bound resume
-# point owned by the same local 220 W / 70 C / 12 GiB guard; it changes no
+# point owned by the V9 signed-host 160 W / 65 C / 80 C-junction / 12 GiB guard;
+# it changes no
 # feature, label, model or selection rule.
 _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION = "gx1_candidate_training_session_v1"
 _CANDIDATE_TRAINING_SESSION_DIR_PREFIX = ".gx1-candidate-training-session."
@@ -1180,13 +1181,13 @@ _CANDIDATE_TRAINING_SELECTION_KEYS = frozenset(
     )
 )
 # A candidate does not rely on an unbounded process.  These source-owned
-# intervals bound lost work if the independent 20-minute 220 W / 70 C guard
+# intervals bound lost work if the independent two-hour V9 signed-host guard
 # terminates a process between checkpoints.  They do not alter batch geometry,
 # data order, labels, model, objective or validation population.
 # The observed eight-row full-path probe averaged about 3.7 seconds per
 # optimizer step after preflight.  Sixty-four steps therefore bounds replay to
 # roughly four minutes while halving the durable state I/O versus the initial
-# 32-step design.  It remains well inside the independent 20-minute guard.
+# 32-step design. It remains well inside the independent two-hour guard.
 _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS = 64
 _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES = 64
 
@@ -3072,13 +3073,12 @@ def _resolve_device(device_str: str) -> torch.device:
 
 def _set_deterministic(seed: int, device: torch.device) -> None:
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    # The canonical capped runner reserves logical CPUs 0-15 and pins the
-    # numerical-library thread environment to sixteen. PyTorch otherwise
-    # chooses only the physical-core count on this WSL host, leaving approved
-    # logical CPU capacity unused. Set the matching source-bound count before
-    # any training work; deterministic CUDA kernels and FP32 policy remain
+    # The V9 capped runner reserves logical CPUs 0-7 and pins numerical
+    # libraries to eight threads, leaving eleven WSL vCPUs available to the
+    # Windows host and desktop. Set the matching source-bound count before any
+    # training work; deterministic CUDA kernels and FP32 policy remain
     # unchanged.
-    torch.set_num_threads(16)
+    torch.set_num_threads(8)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if device.type == "cuda":
@@ -3179,12 +3179,10 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_TRAINER_GPU_MAX_POWER_DRAW_W",
     "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB",
     "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS",
-    "GX1_TRAINER_NVIDIA_SMI_PATH",
-    # Historical bridge identifiers remain here only so a launch environment
-    # cannot silently leak an obsolete control into the trainer. The active
-    # capped guard owns the native WSL nvidia-smi path for every CUDA tier;
-    # these values never affect model inputs, targets, loss or checkpoint
-    # selection.
+    # Guard-owned signed Windows bridge transport. The capped runner alone
+    # supplies the exact query executable, private WSL endpoint, public-key
+    # hash and physical GPU identity. These values are telemetry-only: they
+    # never affect model inputs, targets, loss or checkpoint selection.
     "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH",
     "GX1_TRAINER_HOST_TELEMETRY_URL",
     "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH",

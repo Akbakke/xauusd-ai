@@ -1,70 +1,69 @@
-# Canonical GPU telemetry: retired bridge record
+# Canonical GPU telemetry — V9 signed Windows bridge contract
 
 > Runtime-state rule: GPU telemetry does not identify a resumable candidate.
-> `bash scripts/gx1_handover.sh` is the read-only verifier for the declared
-> recipe/source closure, session contract, pointer and active state.
+> `bash scripts/gx1_handover.sh` verifies the declared recipe/source closure,
+> session contract, pointer and active state. TEST remains unread.
 
-Status: **the Windows host-telemetry bridge is not a canonical CUDA
-prerequisite.** As of 2026-08-28, offline research uses the pinned native WSL
-`nvidia-smi` path owned by `scripts/gx1_capped_run.sh` and
-`scripts/gx1_guarded_trainer_exec.sh`.
+Status: **active V9 canonical CUDA prerequisite.** The V8 host hang proved that
+WSL `temperature.memory=N/A` is insufficient for a 3090 candidate run. Every
+canonical CUDA trainer, attended hardware smoke and allow-listed CUDA evidence
+producer must instead obtain a fresh nonce-bound response from the signed
+Windows host bridge. There is no native-WSL fallback and missing/non-numeric
+memory-junction telemetry fails closed.
 
-> **30 August 2026 operational status:** there is no active CUDA job. The
-> technical checkpoint parity export and VAL journal were CPU-only and do not
-> loosen this guard. Candidate learning-validation has now reached partial
-> checkpoint 640, including a fresh-process resume, while remaining bounded by
-> 70 C core, 220 W actual draw and 12 GiB VRAM. The driver currently reports a
-> configured 390 W limit, which is not a physical throttle or permission to
-> draw 390 W. The 20-minute process bound yields partial session evidence only,
-> because full-candidate VAL occurs after 31,004 TRAIN batches.
+## Source-bound transport
 
-The authoritative canonical CUDA guard samples once per second and terminates
-the canonical trainer or the one allow-listed VAL inference producer when any of
-these facts is exceeded or unavailable:
+`scripts/gx1_capped_run.sh` supplies, and
+`scripts/gx1_guarded_trainer_exec.sh` verifies, all of the following values:
 
-- core temperature above 70 C;
-- actual GPU draw above 220 W;
-- resident GPU memory above 12 GiB;
-- configured power limit above 390 W; or
-- numeric core/power/residency telemetry unavailable.
+- query executable: `scripts/gx1_host_telemetry_bridge_query.sh`;
+- WSL endpoint: `http://172.30.224.1:38128/gx1/v1/telemetry/`;
+- public certificate:
+  `/mnt/c/ProgramData/GX1/HostTelemetryBridgeV4/GX1HostTelemetryBridgePublic.pem`;
+- public certificate SHA-256:
+  `25c9260c2168db53cf58c5f963f2008d5163d80aa69699c5726e0680ed74eb6e`;
+- expected physical GPU UUID:
+  `GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29`.
 
-The current RTX 3090 reports a configured 390 W limit. That is permitted; it
-is not an authorization to draw 390 W continuously. The independently sampled
-**actual draw** boundary is 220 W in canonical mode. A physical 220 W driver
-limit was requested through pinned WSL `nvidia-smi` and rejected with
-`Insufficient Permissions`; therefore this boundary is a one-second process
-stop, not a hardware throttle. The batch-8 V46 canonical smoke has completed;
-the only next local CUDA process is the exact VAL evaluator needed by the
-smoke-bundle audit. The configured 390 W driver ceiling remains never a
-workload authorization. WSL currently reports
-`temperature.memory=N/A`. The guard records this as `memory_observed=false`;
-it does not invent a junction temperature and retains the other three hard
-limits.
+The Windows bridge signs each response with a non-exportable local-machine RSA
+key. The Linux query creates a new 256-bit nonce, verifies the certificate hash
+and RSA signature, requires the exact response schema and GPU UUID, and returns
+only numeric core temperature, memory junction, actual draw, configured limit
+and VRAM residency. The Windows portproxy is bound to the WSL gateway only and
+its firewall rule allows only the current WSL client address; it is not a LAN
+listener.
 
-The 2026-08-28 batch-32 canonical V46 attempts demonstrate the intended
-behavior. After the 250/251 W draw stops, the historical 300 W guard allowed a
-10,000-row recipe to reach 71 C / 263.77 W / 8,951 MiB and a
-1,000-row recipe to reach 71 C / 261.33 W / 8,951 MiB. Both process groups
-were stopped safely for core temperature; no optimizer step, bundle,
-validation, TEST access, edge claim, demo or live action resulted. The
-subsequent batch-8/32-row smoke completed four CUDA optimizer steps, validation
-and active episode movement proof under the same guard (65 C / 211.77 W /
-8,751 MiB), then its bundle loader imposed a candidate-only Exit gate on
-smoke. Its next repeat exposed a stale Regime-FiLM metadata requirement;
-commits `57d4ebcb`, `e0cf52ed`, `64d648da` and `c3026c0f` repair and statically
-check the metadata/liveness path. The final repeat published its diagnostic
-bundle at 63 C / 212.37 W / 8,751 MiB. The guarded evaluator can now produce
-the immutable VAL evidence required before the smoke-bundle audit.
+## V9 immutable workload limits
 
-## Historical bridge material
+For every CUDA tier the guard polls the signed host response before allocation
+and once per second while the child process exists. It terminates the complete
+process group when any check is unavailable or when one of these values is
+exceeded:
 
-`scripts/gx1_host_telemetry_bridge_query.sh` and the Windows installer scripts
-remain historical/optional host-sensor tooling. They are not invoked by the
-canonical runner, cannot supply a file-based substitute for native telemetry,
-and must not be used to weaken a GPU guard. The earlier requirements for a
-signed bridge response, a physical 250 W driver cap and numeric VRAM-junction
-telemetry are retired design history, not current execution constraints.
+- GPU core temperature: `65 C`;
+- RTX 3090 GDDR6X memory junction: `80 C`;
+- configured physical power limit: `160 W`;
+- actual draw: `170 W`;
+- resident GPU memory: `12 GiB`.
 
-Any future change to the active safety thresholds requires an explicit operator
-decision, a reviewed source commit, a fresh source-bound recipe and a bounded
-measurement. It does not grant candidate, OOS, demo, paper or live authority.
+The Windows physical driver limit must be set to `160 W` and re-probed after a
+Windows restart, driver reset or power interruption. The bridge installer never
+changes that limit; `Install-GX1-HostTelemetry.ps1 -SetPowerLimitWatts 160`
+does. A signed response at 2026-09-01 18:xx confirmed 47 C core, 52 C memory
+junction, 39.76 W draw, 160 W limit and 403 MiB residency after the recovery.
+
+V9 also binds candidate CPU affinity to `0-7` and all common numerical libraries
+plus PyTorch to eight threads. This reserves eleven of WSL's nineteen logical
+CPUs for the desktop/host. It is an affinity allocation, not an unavailable
+cgroup CPU-rate controller. Memory remains hard-capped at 20 GiB, swap at
+512 MiB, tasks at 128 and every candidate process has a two-hour wall-clock
+limit with durable checkpoint/resume state.
+
+## Admission consequences
+
+V8's partial checkpoint is retained only as incident evidence and cannot be
+resumed: its source closure used the unsafe 16-thread / 210 W / no-junction
+policy. Before a new source-bound V9 candidate session, the exact V9 bounded
+CUDA stability proof must pass. That proof grants no candidate, VAL, TEST,
+paper, shadow, broker or live authority. A later full candidate still requires
+a fresh immutable recipe, launch gate and all normal post-run audits.

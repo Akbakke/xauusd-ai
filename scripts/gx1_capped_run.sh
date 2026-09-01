@@ -20,11 +20,11 @@
 #           old ceiling; host has 31G total, so 20G leaves 11G for everything else.
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
 # The runner also requires >=20G currently available RAM, serializes heavy jobs, binds the
-# job to two CPU cores, lowers its CPU/I/O priority, and constrains common numerical
-# libraries to one thread. Trainer jobs and the one allow-listed CUDA inference
-# producer additionally pass through the fail-closed wall-clock/GPU guard below; an
-# unavailable sensor, excessive configured power limit, thermal breach, or
-# wall-clock expiry terminates the whole process group.
+# job to an explicit CPU set, lowers its CPU/I/O priority, and constrains common
+# numerical libraries. Trainer jobs and the one allow-listed CUDA inference
+# producer additionally pass through the fail-closed wall-clock/GPU guard below;
+# an unavailable signed host sensor, excessive configured power limit, thermal
+# breach, or wall-clock expiry terminates the whole process group.
 # `--attended-smoke` is a deliberately narrower operator-present exception for
 # one CUDA smoke only. It neither creates candidate authority nor relaxes CPU,
 # memory, pids or actual-power protection; see the fixed policy below.
@@ -45,50 +45,28 @@ REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
 
-# Resolve only system-owned, absolute telemetry paths.  WSL exposes the host
-# driver at /usr/lib/wsl/lib/nvidia-smi rather than /usr/bin/nvidia-smi; PATH
-# lookup would allow a caller-controlled replacement, so it is forbidden.  A
-# Windows HTTPS bridge was previously required for canonical CUDA.  It did not
-# provide an operational safety path on this WSL host and blocked all offline
-# research before any GPU allocation.  The guard therefore owns this pinned
-# native-driver path for every CUDA tier.
-resolve_nvidia_smi_path() {
-  local candidate
-  for candidate in /usr/bin/nvidia-smi /usr/lib/wsl/lib/nvidia-smi; do
-    if [[ -f "$candidate" && -x "$candidate" ]]; then
-      printf '%s\n' "$candidate"
-      return 0
-    fi
-  done
-  return 1
-}
-TRAINER_NVIDIA_SMI_PATH="$(resolve_nvidia_smi_path || true)"
-
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
-# not caller-controlled defaults. The V5 fast-candidate measurement (2026-08-30)
-# retains every hardware stop but permits a two-hour bounded run so the full
-# immutable preflight is not repeated every twenty minutes. Any later change
-# still requires a reviewed commit and recipe source binding.
+# not caller-controlled defaults. V9 follows the V8 physical-host incident:
+# canonical CUDA may run only with the signed Windows memory-junction bridge,
+# 160 W physical limit, a separate actual-draw stop, and a narrow CPU set. Any
+# later change requires a reviewed commit and a fresh source-bound recipe.
 TRAINER_EXECUTION_MODE=canonical
 TRAINER_MAX_WALL_SECONDS=7200
 TRAINER_MODEL_MAX_WALL_SECONDS=7200
 TRAINER_ATTENDED_STAGE_REQUIRED=false
 TRAINER_GPU_INDEX=0
-TRAINER_GPU_MAX_CORE_TEMP_C=70
-TRAINER_GPU_MAX_MEMORY_TEMP_C=90
-# The Windows host has been explicitly configured with a physical 210 W cap.
-# Require that cap on every canonical run; a driver reset to 390 W must fail
-# before the trainer is trusted. The one-second draw stop remains a separate
-# telemetry backstop rather than a substitute for the hardware throttle.
-TRAINER_GPU_MAX_POWER_LIMIT_W=210
-# Keep ten watts of reporting tolerance above the physical cap. This avoids a
-# false stop from the 220.52 W transient observed before the hardware cap was
-# installed, while the driver itself prevents sustained operation above 210 W.
-TRAINER_GPU_MAX_POWER_DRAW_W=220
-# WSL exposes no memory-junction temperature, so use the proven 12 GiB
-# residency boundary and poll at one second for every offline CUDA run.
+TRAINER_GPU_MAX_CORE_TEMP_C=65
+TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+TRAINER_GPU_MAX_POWER_LIMIT_W=160
+TRAINER_GPU_MAX_POWER_DRAW_W=170
 TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+TRAINER_HOST_TELEMETRY_QUERY_PATH="$REPO_ROOT/scripts/gx1_host_telemetry_bridge_query.sh"
+TRAINER_HOST_TELEMETRY_URL='http://172.30.224.1:38128/gx1/v1/telemetry/'
+TRAINER_HOST_TELEMETRY_CERT_PATH='/mnt/c/ProgramData/GX1/HostTelemetryBridgeV4/GX1HostTelemetryBridgePublic.pem'
+TRAINER_HOST_TELEMETRY_CERT_SHA256='25c9260c2168db53cf58c5f963f2008d5163d80aa69699c5726e0680ed74eb6e'
+TRAINER_HOST_TELEMETRY_GPU_UUID='GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
+TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS=2
 TRAINER_DEVICE=
 TRAINER_OUT_BUNDLE_DIR=
 CUDA_PRODUCER_GUARD=false
@@ -107,14 +85,14 @@ TASKS_MAX=64
 # prevent the watchdog from spawning its next telemetry probe. Keep the
 # tighter audit cap, while retaining a finite trainer-specific ceiling.
 TRAINER_TASKS_MAX=128
-# WSL exposes nineteen logical CPUs. Keep three available to the host/desktop
-# and bind canonical training to sixteen (0-15). Numerical-library worker
-# limits below use the same source-bound count; DataLoader workers remain
-# disabled by the model's fixed low-memory contract.
-CPU_AFFINITY=0-15
+# V8's 0-15 affinity left only three WSL vCPUs for host/desktop activity during
+# the physical host hang. V9 permanently reserves 11 of WSL's 19 vCPUs and
+# limits the candidate to 0-7 / eight numerical workers. DataLoader workers
+# remain disabled by the model's fixed low-memory contract.
+CPU_AFFINITY=0-7
 # Audit and producer processes retain one numerical worker so the hard
 # TasksMax=64 boundary continues to leave room for their own Python/Arrow
-# helper threads. The canonical trainer receives the measured sixteen-thread
+# helper threads. The canonical trainer receives the bounded eight-thread
 # allowance and bounded 128-task cgroup only after its class has been
 # validated below.
 NUMERICAL_THREAD_COUNT=1
@@ -387,7 +365,7 @@ fi
 validate_target_command "$@"
 
 if [[ "$JOB_CLASS" == trainer ]]; then
-  NUMERICAL_THREAD_COUNT=16
+  NUMERICAL_THREAD_COUNT=8
   TASKS_MAX="$TRAINER_TASKS_MAX"
 fi
 
@@ -396,11 +374,10 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
     echo "FATAL: --attended-smoke requires --class trainer" >&2
     exit 75
   }
-  # This is an operator-present diagnostic exception, not a second training
-  # policy. It permits only WSL's literal `N/A` memory reading and retains all
-  # hard cgroup controls, the one-second 220 W actual-draw stop, 70 C core
-  # stop, and 12 GiB VRAM stop. The former 24-hour research route held nearly
-  # all VRAM under WSL and is disabled.
+  # This is an operator-present diagnostic exception, not a second hardware
+  # policy. It retains the exact V9 signed-memory telemetry and all physical,
+  # cgroup, CPU-affinity, thermal, actual-power and residency stops. The former
+  # 24-hour research route held nearly all VRAM under WSL and is disabled.
   if [[ "$TRAINER_DEVICE" == cpu ]]; then
     TRAINER_EXECUTION_MODE=attended_cpu_smoke
   else
@@ -418,17 +395,6 @@ if [[ "$ATTENDED_SMOKE" == true ]]; then
     TRAINER_MAX_WALL_SECONDS=300
     TRAINER_MODEL_MAX_WALL_SECONDS=300
   fi
-  TRAINER_GPU_MAX_CORE_TEMP_C=70
-  TRAINER_GPU_MAX_POWER_LIMIT_W=390
-  # The physical driver may remain configured at 390 W because WSL cannot set
-  # a lower limit. That does not authorize an attended run to draw 390 W: the
-  # same one-second 220 W actual-draw stop applies to every CUDA route.
-  TRAINER_GPU_MAX_POWER_DRAW_W=220
-  # WSL/DXG previously approached the 24 GiB device ceiling and then lost
-  # residency. Keep a visible 12 GiB stop in addition to the trainer's
-  # allocator-level half-device cap; neither is caller configurable.
-  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
-  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 fi
 if [[ "$CUDA_PRODUCER_GUARD" == true && "$ATTENDED_SMOKE" == true ]]; then
   echo "FATAL: --cuda-producer and --attended-smoke are mutually exclusive" >&2
@@ -540,10 +506,21 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && ! -x "$GP
   echo "FATAL: guarded CUDA safety owner is unavailable: $GPU_GUARD_PATH" >&2
   exit 75
 fi
-if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && "$TRAINER_DEVICE" == cuda \
-  && ! -x "$TRAINER_NVIDIA_SMI_PATH" ]]; then
-  echo "FATAL: required native CUDA telemetry owner is unavailable: $TRAINER_NVIDIA_SMI_PATH" >&2
-  exit 75
+if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && "$TRAINER_DEVICE" == cuda ]]; then
+  [[ -x "$TRAINER_HOST_TELEMETRY_QUERY_PATH" && ! -L "$TRAINER_HOST_TELEMETRY_QUERY_PATH" ]] || {
+    echo "FATAL: signed host telemetry query is unavailable: $TRAINER_HOST_TELEMETRY_QUERY_PATH" >&2
+    exit 75
+  }
+  [[ -f "$TRAINER_HOST_TELEMETRY_CERT_PATH" && ! -L "$TRAINER_HOST_TELEMETRY_CERT_PATH" ]] || {
+    echo "FATAL: signed host telemetry certificate is unavailable: $TRAINER_HOST_TELEMETRY_CERT_PATH" >&2
+    exit 75
+  }
+  [[ "$TRAINER_HOST_TELEMETRY_CERT_SHA256" =~ ^[0-9a-f]{64}$ \
+    && "$TRAINER_HOST_TELEMETRY_GPU_UUID" =~ ^GPU-[0-9a-fA-F-]{36}$ \
+    && "$TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" =~ ^[1-5]$ ]] || {
+    echo "FATAL: signed host telemetry source binding is malformed" >&2
+    exit 75
+  }
 fi
 
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" && -w "$XDG_RUNTIME_DIR" ]]; then
@@ -584,7 +561,7 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && -n "$TRAI
   echo "[capped_run_trainer_stdio_log] path=$TRAINER_STDIO_LOG_PATH" >&2
 fi
 if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
-echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=$TRAINER_NVIDIA_SMI_PATH" >&2
+echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=signed_windows_bridge telemetry_url=$TRAINER_HOST_TELEMETRY_URL" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -637,7 +614,12 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_GPU_MAX_POWER_DRAW_W="$TRAINER_GPU_MAX_POWER_DRAW_W" \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB="$TRAINER_GPU_MAX_MEMORY_USED_MIB" \
   --setenv=GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS="$TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
-  --setenv=GX1_TRAINER_NVIDIA_SMI_PATH="$TRAINER_NVIDIA_SMI_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH="$TRAINER_HOST_TELEMETRY_QUERY_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_URL="$TRAINER_HOST_TELEMETRY_URL" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_PATH="$TRAINER_HOST_TELEMETRY_CERT_PATH" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256="$TRAINER_HOST_TELEMETRY_CERT_SHA256" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_GPU_UUID="$TRAINER_HOST_TELEMETRY_GPU_UUID" \
+  --setenv=GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS="$TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" \
   --setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=MKL_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=OPENBLAS_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
