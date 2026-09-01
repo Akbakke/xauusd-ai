@@ -116,30 +116,34 @@ function Set-BridgeDirectoryAcl {
         [string]$BridgeRoot
     )
 
-    # `/T` is intentional: every persisted service/config/public-key file gets
-    # the same restrictive ACL, rather than merely inheriting a new directory
-    # rule.  Users retain read/execute solely so the Linux verifier can read
-    # the public certificate; only SYSTEM/Administrators can change anything.
-    $icacls = Join-Path $env:WINDIR 'System32\icacls.exe'
-    # Use well-known SID syntax (`*SID`) rather than English local-group names:
-    # on this host the Administrator group is localized to Norwegian.
-    # Retain a direct ACE for the elevated installer identity as well.  A
-    # partially applied legacy ACL on this host demonstrated that relying on
-    # the Administrators alias alone can prevent the installer from reading
-    # its own task diagnostics under UAC.
+    # Use the Windows ACL API instead of an argument-sensitive `icacls` grant
+    # sequence. A historical invocation could leave an empty DACL after
+    # disabling inheritance, which denies every reader including the elevated
+    # installer. The new directory receives its inheritable rules before any
+    # service/config/public-key file is written.
     $installerSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
     if ($installerSid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') {
         throw 'Unable to determine a valid local installer SID for bridge ACLs.'
     }
-    Invoke-NativeChecked -FilePath $icacls -ArgumentList @(
-        $BridgeRoot,
-        '/inheritance:r',
-        '/grant:r', '*S-1-5-18:(OI)(CI)F',
-        '*S-1-5-32-544:(OI)(CI)F',
-        "*$installerSid`:(OI)(CI)F",
-        '*S-1-5-32-545:(OI)(CI)RX',
-        '/T', '/C'
-    ) | Out-Null
+    $inherit = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
+        [Security.AccessControl.InheritanceFlags]::ObjectInherit
+    $none = [Security.AccessControl.PropagationFlags]::None
+    $allow = [Security.AccessControl.AccessControlType]::Allow
+    $full = [Security.AccessControl.FileSystemRights]::FullControl
+    $readExecute = [Security.AccessControl.FileSystemRights]::ReadAndExecute
+    $acl = [Security.AccessControl.DirectorySecurity]::new()
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($sidText in @('S-1-5-18', 'S-1-5-32-544', $installerSid)) {
+        $sid = [Security.Principal.SecurityIdentifier]::new($sidText)
+        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+            $sid, $full, $inherit, $none, $allow
+        )) | Out-Null
+    }
+    $users = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-545')
+    $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+        $users, $readExecute, $inherit, $none, $allow
+    )) | Out-Null
+    Set-Acl -LiteralPath $BridgeRoot -AclObject $acl
 }
 
 function Repair-ExistingBridgeDirectoryAccess {

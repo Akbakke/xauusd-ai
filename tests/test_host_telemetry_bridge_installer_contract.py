@@ -14,11 +14,12 @@ def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() ->
     assert "Cert:\\LocalMachine\\My" in source
     assert "KeyExportPolicy = 'NonExportable'" in source
     assert "-UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest" in source
-    assert "*S-1-5-18:(OI)(CI)F" in source
-    assert "*S-1-5-32-544:(OI)(CI)F" in source
-    assert "*S-1-5-32-545:(OI)(CI)RX" in source
+    assert "DirectorySecurity" in source
+    assert "FileSystemAccessRule" in source
+    assert "S-1-5-18" in source
+    assert "S-1-5-32-544" in source
+    assert "S-1-5-32-545" in source
     assert "WindowsIdentity]::GetCurrent().User.Value" in source
-    assert '"*$installerSid`:(OI)(CI)F"' in source
     assert "'/T', '/C'" in source
     assert "public_certificate_sha256" in source
     assert "public_certificate_wsl_path" in source
