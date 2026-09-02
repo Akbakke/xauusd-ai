@@ -12,14 +12,17 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z_RECIPE.json",
     "recipe_sha256": "3625bf6f28950f7c7d3cf4f5567e0fb4512b050282380b8cc4d25ff036715d41",
     "source_commit": "053647e37b760415e58ee8a18b1d5cc5b06f8be9",
     "source_bindings_sha256": "654faad244494670e9584d18052918d8921de13bb47c4a61faf213348d1adf9c",
     "run_id": "V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z",
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z_BUNDLE"
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z_BUNDLE",
+    "bundle_commit_manifest_sha256": "5d3cdc25ab81484a31071c6dbb700e028f7743f4781297e8e72c66f8269b9271",
+    "bundle_commit_sha256": "0ec1558ae89cc7ff62d5d6b1e739845037bd30cad1d27bc2f7081a9309ac48eb",
+    "bundle_metadata_sha256": "41a39d40257ae1f4e1e90a8bea2c358cfb3c9b191a31024a443ce2477a21a233"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",

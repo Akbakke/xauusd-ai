@@ -465,7 +465,7 @@ def _current_source_technical_recipe_status(
                 "FATAL: current-source technical smoke bundle provenance mismatch"
             )
         closure = (
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__"
             "POSTRUN_AUDIT_PENDING"
         )
         if status == audited_status:
@@ -481,7 +481,7 @@ def _current_source_technical_recipe_status(
                 ):
                     raise SystemExit(f"FATAL: current-source technical {prefix} mismatch")
             closure = (
-                "LIVE_SOURCE_BYTES_MATCH_RECIPE__V5_BUNDLE_COMMIT_VALID__"
+                "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__"
                 "POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
             )
     return (
@@ -787,7 +787,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SAFETY_PREFLIGHT_ONLY"
+echo "train_recipe: HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SMOKE_EXECUTED__POSTRUN_AUDIT_PENDING"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
