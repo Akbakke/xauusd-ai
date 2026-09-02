@@ -12,7 +12,7 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z_RECIPE.json",
     "recipe_sha256": "3625bf6f28950f7c7d3cf4f5567e0fb4512b050282380b8cc4d25ff036715d41",
     "source_commit": "053647e37b760415e58ee8a18b1d5cc5b06f8be9",
@@ -22,7 +22,16 @@
     "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V9_CURRENT_SOURCE_TECHNICAL_SMOKE_20260901T213444Z_BUNDLE",
     "bundle_commit_manifest_sha256": "5d3cdc25ab81484a31071c6dbb700e028f7743f4781297e8e72c66f8269b9271",
     "bundle_commit_sha256": "0ec1558ae89cc7ff62d5d6b1e739845037bd30cad1d27bc2f7081a9309ac48eb",
-    "bundle_metadata_sha256": "41a39d40257ae1f4e1e90a8bea2c358cfb3c9b191a31024a443ce2477a21a233"
+    "bundle_metadata_sha256": "41a39d40257ae1f4e1e90a8bea2c358cfb3c9b191a31024a443ce2477a21a233",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_CURRENT_SOURCE_TECHNICAL_SMOKE_BUNDLE_AUDIT_20260902T055053Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260902T055104652803Z.json",
+    "postrun_bundle_audit_sha256": "2005e1f1cfe7a0007871362126e5b82852aeeb349e77626b5e86b4d4aa243c30",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_CURRENT_SOURCE_CANDIDATE_READINESS_20260902T055053Z/ENTRY_CANDIDATE_READINESS_20260902T055124473492Z.json",
+    "candidate_readiness_sha256": "7651da47e48e608ed7a48533e7d64a26c2c7e1daddb7afdfb77d0f22c1d0734d",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_ONE_EPOCH_CANDIDATE_LAUNCH_GATE_20260902T055053Z/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260902T055125356114Z.json",
+    "candidate_launch_gate_sha256": "612206c176da144d732885d4ee74af767ae2c3e035a597f7c41f65bda83fb094",
+    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",

@@ -345,17 +345,31 @@ def _current_source_technical_recipe_status(
         "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__"
         "CANDIDATE_READINESS_READY__NO_PROMOTION_AUTHORITY"
     )
+    gated_status = (
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__"
+        "CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__"
+        "NO_PROMOTION_AUTHORITY"
+    )
     expected_reference_keys = set(base_reference_keys)
-    if isinstance(reference, dict) and reference.get("status") in {executed_status, audited_status}:
+    if isinstance(reference, dict) and reference.get("status") in {
+        executed_status, audited_status, gated_status,
+    }:
         expected_reference_keys.update({
             "bundle_commit_manifest_sha256", "bundle_commit_sha256",
             "bundle_metadata_sha256",
         })
-    if isinstance(reference, dict) and reference.get("status") == audited_status:
+    if isinstance(reference, dict) and reference.get("status") in {
+        audited_status, gated_status,
+    }:
         expected_reference_keys.update({
             "postrun_bundle_audit_path", "postrun_bundle_audit_sha256",
             "postrun_bundle_audit_decision", "candidate_readiness_path",
             "candidate_readiness_sha256", "candidate_readiness_decision",
+        })
+    if isinstance(reference, dict) and reference.get("status") == gated_status:
+        expected_reference_keys.update({
+            "candidate_launch_gate_path", "candidate_launch_gate_sha256",
+            "candidate_launch_gate_decision",
         })
     if not isinstance(reference, dict) or set(reference) != expected_reference_keys:
         raise SystemExit("FATAL: current-source technical recipe reference is invalid")
@@ -366,6 +380,7 @@ def _current_source_technical_recipe_status(
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
         executed_status,
         audited_status,
+        gated_status,
     }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
@@ -468,7 +483,7 @@ def _current_source_technical_recipe_status(
             "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__"
             "POSTRUN_AUDIT_PENDING"
         )
-        if status == audited_status:
+        if status in {audited_status, gated_status}:
             for prefix, expected_decision in (
                 ("postrun_bundle_audit", "FAIL"),
                 ("candidate_readiness", "READY_FOR_CANDIDATE_TRAINING"),
@@ -483,6 +498,71 @@ def _current_source_technical_recipe_status(
             closure = (
                 "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__"
                 "POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY"
+            )
+        if status == gated_status:
+            gate_path = Path(reference["candidate_launch_gate_path"])
+            gate = _read_regular_json(gate_path, label="candidate launch gate")
+            expected_authority = {
+                "candidate_training": True,
+                "live": False,
+                "paper": False,
+                "promotion": False,
+                "shadow": False,
+                "test": False,
+            }
+            if (
+                _sha256_file(gate_path) != reference["candidate_launch_gate_sha256"]
+                or gate.get("schema_version")
+                != "entry_pretest_candidate_launch_gate_v1"
+                or gate.get("decision")
+                != "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+                or gate.get("failures") != []
+                or gate.get("activation_authority") is not False
+                or gate.get("authority") != expected_authority
+                or gate.get("json_path") != str(gate_path)
+                or reference["candidate_launch_gate_decision"]
+                != "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+            ):
+                raise SystemExit("FATAL: current-source candidate launch gate mismatch")
+            expected_smoke_audit = {
+                "path": reference["postrun_bundle_audit_path"],
+                "sha256": reference["postrun_bundle_audit_sha256"],
+            }
+            expected_readiness = {
+                "path": reference["candidate_readiness_path"],
+                "sha256": reference["candidate_readiness_sha256"],
+            }
+            if (
+                gate.get("smoke_bundle_audit") != expected_smoke_audit
+                or gate.get("candidate_readiness") != expected_readiness
+            ):
+                raise SystemExit("FATAL: current-source candidate gate inputs mismatch")
+            candidate_recipe_binding = gate.get("recipe")
+            if not isinstance(candidate_recipe_binding, dict):
+                raise SystemExit("FATAL: current-source candidate gate recipe is invalid")
+            candidate_recipe_path = Path(str(candidate_recipe_binding.get("path") or ""))
+            candidate_recipe = _read_regular_json(
+                candidate_recipe_path,
+                label="current-source candidate recipe",
+            )
+            if _sha256_file(candidate_recipe_path) != candidate_recipe_binding.get("sha256"):
+                raise SystemExit("FATAL: current-source candidate recipe SHA-256 mismatch")
+            try:
+                require_pretest_technical_recipe_metadata(
+                    candidate_recipe,
+                    expected_profile="candidate",
+                    expected_run_id=str(gate["run_id"]),
+                    expected_dataset_run_id=str(gate["dataset_run_id"]),
+                    expected_out_bundle_dir=str(gate["out_bundle_dir"]),
+                )
+            except (KeyError, RuntimeError) as exc:
+                raise SystemExit(
+                    "FATAL: current-source candidate gate recipe metadata is invalid"
+                ) from exc
+            closure = (
+                "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__"
+                "POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__"
+                "CANDIDATE_GATE_READY"
             )
     return (
         status,
@@ -787,7 +867,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SMOKE_EXECUTED__POSTRUN_AUDIT_PENDING"
+echo "train_recipe: HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SMOKE_AUDITED__CANDIDATE_GATE_READY"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
