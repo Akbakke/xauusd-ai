@@ -157,13 +157,13 @@
   "accepted_via_vedtak": null,
   "active_candidate_training_session": {
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_RECIPE_20260831T064721Z.json",
-    "recipe_audit_sha256": "08458af14020c84f5300256a8eff78622cf7eed191c9726a63d13b1a7259a70a",
-    "run_id": "V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z",
+    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_RECIPE.json",
+    "recipe_audit_sha256": "61f90a5eed4a1b21f87e96770d43fecba7978a42b3e305c57ff064ed645cf9b1",
+    "run_id": "V9_ONE_EPOCH_CANDIDATE_20260901T213444Z",
     "schema_version": "gx1_active_candidate_training_session_reference_v1",
-    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/.gx1-candidate-training-session.ENTRY_V6_RESUME_GATE_B8_W0_CANDIDATE_20260831T064721Z_BUNDLE_20260831T064721Z",
-    "source_bindings_sha256": "be0e86a36eccc985919573f84ff477a3efbd6eee14b08d44aed111698efb5fa4",
-    "source_commit": "faa6c2a7f5b39bc00b3f3be6676dbb549090c8ae"
+    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/.gx1-candidate-training-session.ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE",
+    "source_bindings_sha256": "654faad244494670e9584d18052918d8921de13bb47c4a61faf213348d1adf9c",
+    "source_commit": "053647e37b760415e58ee8a18b1d5cc5b06f8be9"
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",

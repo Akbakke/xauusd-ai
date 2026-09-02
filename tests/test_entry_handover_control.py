@@ -178,15 +178,14 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-            "HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_SMOKE_AUDITED__CANDIDATE_GATE_READY"
+            "HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_CANDIDATE_SESSION_ACTIVE_OR_RESUMABLE__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
-    assert (
-        "candidate_session: "
-        "SESSION_INTACT__checkpoint=913__phase=train__epoch=1__next_batch=18368"
-        in result.stdout
+    assert re.search(
+        r"candidate_session: SESSION_INTACT__checkpoint=\d+__phase=(?:train|validation)__epoch=\d+__next_batch=\d+",
+        result.stdout,
     )
-    assert "candidate_validation: NOT_REACHED" in result.stdout
+    assert re.search(r"candidate_validation: (?:NOT_REACHED|REQUIRES_AUDIT)", result.stdout)
     assert "candidate_session_contract_sha256: " in result.stdout
     assert "candidate_session_state_sha256: " in result.stdout
     assert "candidate_recipe_sha256: " in result.stdout
@@ -351,6 +350,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert candidate_session["schema_version"] == (
         "gx1_active_candidate_training_session_reference_v1"
     )
+    assert candidate_session["run_id"] == "V9_ONE_EPOCH_CANDIDATE_20260901T213444Z"
     assert Path(candidate_session["session_dir"]).is_absolute()
     assert Path(candidate_session["recipe_audit_path"]).is_absolute()
     assert re.fullmatch(r"[0-9a-f]{64}", candidate_session["recipe_audit_sha256"])
@@ -469,7 +469,7 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "unexpected_ignored_path_count: 0" in result.stdout
     assert "prunable_worktree_count:" in result.stdout
     assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
-    assert "candidate_session: SESSION_INTACT__checkpoint=913" in result.stdout
+    assert re.search(r"candidate_session: SESSION_INTACT__checkpoint=\d+", result.stdout)
     assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
