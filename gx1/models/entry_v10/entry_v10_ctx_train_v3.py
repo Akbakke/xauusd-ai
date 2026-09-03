@@ -11401,15 +11401,15 @@ def load_completed_candidate_epoch_for_seal(
         contract=contract,
     )
     state = session.load_checkpoint()
-    if state is None or bool(state.get("complete", False)):
+    if state is None or not bool(state.get("complete", False)):
         raise RuntimeError("[CANDIDATE_EPOCH_SEAL_STATE_INVALID]")
     progress = _require_candidate_training_progress(state["training_progress"])
     selection = dict(progress["checkpoint_selection"])
     if (
         int(selection["last_epoch"]) != int(completed_epoch)
         or int(selection["best_epoch"]) != int(completed_epoch)
-        or int(state["epoch_index"]) < int(completed_epoch)
-        or state.get("phase") != "train"
+        or int(state["epoch_index"]) + 1 != int(completed_epoch)
+        or state.get("phase") != "validation"
         or progress.get("validation_snapshot") is not None
     ):
         raise RuntimeError("[CANDIDATE_EPOCH_SEAL_VAL_NOT_COMPLETE]")

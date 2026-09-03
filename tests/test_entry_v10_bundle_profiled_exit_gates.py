@@ -51,17 +51,34 @@ def test_candidate_bundle_requires_selected_and_full_exit_gate_evidence(
     assert calls == [
         (
             selected,
-            128,
+            64,
             "ENTRY_BUNDLE_SELECTED_CHECKPOINT",
             {"allow_static_feature_gate_provisional": False},
         ),
         (
             full,
-            512,
+            256,
             "ENTRY_BUNDLE_FULL_TRAJECTORY",
             {"allow_static_feature_gate_provisional": False},
         ),
     ]
+
+
+def test_candidate_bundle_rejects_odd_double_sided_population_before_gate_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        bundle,
+        "require_unified_exit_gate_evidence",
+        lambda **_kwargs: pytest.fail("gate evidence must not run"),
+    )
+
+    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_GATE_ROWS_INVALID"):
+        bundle._require_profiled_unified_exit_gate_evidence(
+            training_profile="candidate",
+            exit_validation={"unified_exit_population_rows": 127},
+            full_trajectory_validation={"population_rows": 512},
+        )
 
 
 def test_unknown_profile_fails_closed_before_gate_evidence_can_be_accepted() -> None:

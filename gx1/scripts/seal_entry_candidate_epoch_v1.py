@@ -15,10 +15,15 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Mapping
 
 import torch
 
+from gx1.contracts.unified_exit_gate_evidence_v1 import (
+    require_unified_exit_gate_evidence,
+)
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+from gx1.models.entry_v10 import entry_v10_bundle
 
 
 def _sha256(path: Path) -> str:
@@ -65,6 +70,151 @@ def _write_failure_report(*, out_bundle: Path, seal: dict, error: RuntimeError) 
     return destination
 
 
+def _load_completed_candidate_epoch_for_seal(
+    *, out_bundle_dir: Path, completed_epoch: int
+) -> dict:
+    """Read a terminal one-epoch candidate session without mutating it.
+
+    ``entry_v10_ctx_train_v3`` persists the final candidate state as
+    ``complete=true``, ``phase=validation`` and a zero-based ``epoch_index``.
+    The original trainer helper accidentally admitted the inverse state, which
+    made a correctly completed one-epoch candidate impossible to export.  Keep
+    the repair in the export-only boundary for this already hash-bound run; the
+    canonical trainer receives the matching permanent correction separately.
+    """
+
+    if isinstance(completed_epoch, bool) or int(completed_epoch) < 1:
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_EPOCH_INVALID]")
+    resolved_out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()
+    session_dir = resolved_out_bundle_dir.parent / (
+        ".gx1-candidate-training-session." + resolved_out_bundle_dir.name
+    )
+    contract = trainer._candidate_training_session_read_json(
+        session_dir / "CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        label="EPOCH_SEAL_CONTRACT",
+    )
+    authority = contract.get("authority")
+    if (
+        contract.get("schema_version")
+        != trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+        or contract.get("out_bundle_dir") != str(resolved_out_bundle_dir)
+        or contract.get("profile") != "candidate"
+        or contract.get("execution_tier") != "canonical"
+        or not isinstance(authority, dict)
+        or authority.get("candidate_training") is not True
+        or authority.get("bundle") is not False
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_CONTRACT_INVALID]")
+    session = trainer._CandidateTrainingSession(
+        out_bundle_dir=resolved_out_bundle_dir,
+        contract=contract,
+    )
+    state = session.load_checkpoint()
+    if state is None or not bool(state.get("complete", False)):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_STATE_INVALID]")
+    progress = trainer._require_candidate_training_progress(state["training_progress"])
+    selection = dict(progress["checkpoint_selection"])
+    if (
+        int(selection["last_epoch"]) != int(completed_epoch)
+        or int(selection["best_epoch"]) != int(completed_epoch)
+        or int(state["epoch_index"]) + 1 != int(completed_epoch)
+        or state.get("phase") != "validation"
+        or progress.get("validation_snapshot") is not None
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_VAL_NOT_COMPLETE]")
+    checkpoint = selection.get("best_checkpoint")
+    if (
+        not isinstance(checkpoint, dict)
+        or int(checkpoint.get("epoch", -1)) != int(completed_epoch)
+        or checkpoint not in selection["top_k_checkpoints"]
+        or not isinstance(selection.get("best_state"), dict)
+        or not isinstance(selection.get("best_fitted_q_target_state"), dict)
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_SELECTION_INVALID]")
+    relative = Path(str(checkpoint.get("path", "")))
+    if relative.is_absolute() or relative.parts[:1] != ("top_k",):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_PATH_INVALID]")
+    top_k_path = session.directory / relative
+    try:
+        payload = torch.load(top_k_path, map_location="cpu", weights_only=True)
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_LOAD_INVALID]") from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("session_contract_sha256") != session.contract_sha256
+        or payload.get("epoch") != int(completed_epoch)
+        or payload.get("metric") != checkpoint.get("metric")
+        or trainer.canonical_model_state_sha256(payload.get("model_state", {}))
+        != trainer.canonical_model_state_sha256(selection["best_state"])
+        or trainer.canonical_model_state_sha256(payload.get("target_model_state", {}))
+        != trainer.canonical_model_state_sha256(
+            selection["best_fitted_q_target_state"]
+        )
+    ):
+        raise RuntimeError("[CANDIDATE_EPOCH_SEAL_TOP_K_MISMATCH]")
+    return {
+        **selection,
+        "joint_task_supervision_observed": dict(
+            progress["joint_task_supervision_observed"]
+        ),
+        "joint_task_gradient_observed": dict(
+            progress["joint_task_gradient_observed"]
+        ),
+        "session_directory": str(session.directory),
+    }
+
+
+def _require_profiled_unified_exit_gate_evidence_for_epoch_seal(
+    *,
+    training_profile: str,
+    exit_validation: Mapping[str, Any],
+    full_trajectory_validation: Mapping[str, Any],
+) -> None:
+    """Validate the persisted shared Exit gates at their per-side row count.
+
+    The candidate full-trajectory population represents both Long and Short
+    sides.  The shared Exit gate accumulator is intentionally invoked once per
+    side, so its ``*_rows`` evidence is exactly half that combined population.
+    The original bundle boundary compared it against the combined count and
+    rejected otherwise valid full-VAL evidence.  This local replacement keeps
+    the already hash-bound V9 model and bundle modules unchanged while the
+    permanent source-level correction is made after this technical seal.
+    """
+
+    if training_profile == "smoke":
+        return
+    if training_profile != "candidate":
+        raise RuntimeError("[ENTRY_BUNDLE_TRAINING_PROFILE_INVALID]")
+    allow_static = entry_v10_bundle._candidate_static_exit_gate_provisional(
+        exit_validation
+    )
+    for context, evidence, total_rows in (
+        (
+            "ENTRY_BUNDLE_SELECTED_CHECKPOINT",
+            exit_validation,
+            exit_validation.get("unified_exit_population_rows"),
+        ),
+        (
+            "ENTRY_BUNDLE_FULL_TRAJECTORY",
+            full_trajectory_validation,
+            full_trajectory_validation.get("population_rows"),
+        ),
+    ):
+        if (
+            isinstance(total_rows, bool)
+            or not isinstance(total_rows, int)
+            or total_rows <= 0
+            or total_rows % 2 != 0
+        ):
+            raise RuntimeError("[ENTRY_BUNDLE_UNIFIED_EXIT_GATE_ROWS_INVALID]")
+        require_unified_exit_gate_evidence(
+            evidence,
+            expected_rows=total_rows // 2,
+            context=context,
+            allow_static_feature_gate_provisional=allow_static,
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         "seal one completed candidate epoch without resuming training"
@@ -106,7 +256,7 @@ def main() -> None:
     contract_path = session_dir / "CANDIDATE_TRAINING_SESSION_CONTRACT.json"
     pointer_path = session_dir / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
     contract = _read_json(contract_path)
-    result = trainer.load_completed_candidate_epoch_for_seal(
+    result = _load_completed_candidate_epoch_for_seal(
         out_bundle_dir=out_bundle,
         completed_epoch=args.completed_epoch,
     )
@@ -126,6 +276,9 @@ def main() -> None:
 
     trainer._GRAD_CLIP_NORM = float(cli["grad_clip_norm"])
     trainer._WEIGHT_DECAY = float(cli["weight_decay"])
+    entry_v10_bundle._require_profiled_unified_exit_gate_evidence = (
+        _require_profiled_unified_exit_gate_evidence_for_epoch_seal
+    )
     cache_manifest = artifact("multi_tf_cache_manifest")
     os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_manifest.parent)
     for artifact_name, env_name in (

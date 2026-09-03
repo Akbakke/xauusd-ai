@@ -1352,9 +1352,25 @@ def _require_profiled_unified_exit_gate_evidence(
         return
     if training_profile != "candidate":
         raise RuntimeError("[ENTRY_BUNDLE_TRAINING_PROFILE_INVALID]")
+    selected_population_rows = exit_validation.get("unified_exit_population_rows")
+    full_population_rows = full_trajectory_validation.get("population_rows")
+    if (
+        isinstance(selected_population_rows, bool)
+        or not isinstance(selected_population_rows, int)
+        or selected_population_rows <= 0
+        or selected_population_rows % 2 != 0
+        or isinstance(full_population_rows, bool)
+        or not isinstance(full_population_rows, int)
+        or full_population_rows <= 0
+        or full_population_rows % 2 != 0
+    ):
+        raise RuntimeError("[ENTRY_BUNDLE_UNIFIED_EXIT_GATE_ROWS_INVALID]")
+    # The candidate population contains both Long and Short sides.  Shared
+    # Exit gate evidence is accumulated once per side, so its evidence rows
+    # must equal half of that combined population, not the double-sided total.
     require_unified_exit_gate_evidence(
         exit_validation,
-        expected_rows=int(exit_validation["unified_exit_population_rows"]),
+        expected_rows=selected_population_rows // 2,
         context="ENTRY_BUNDLE_SELECTED_CHECKPOINT",
         allow_static_feature_gate_provisional=(
             _candidate_static_exit_gate_provisional(exit_validation)
@@ -1362,7 +1378,7 @@ def _require_profiled_unified_exit_gate_evidence(
     )
     require_unified_exit_gate_evidence(
         full_trajectory_validation,
-        expected_rows=int(full_trajectory_validation["population_rows"]),
+        expected_rows=full_population_rows // 2,
         context="ENTRY_BUNDLE_FULL_TRAJECTORY",
         allow_static_feature_gate_provisional=(
             _candidate_static_exit_gate_provisional(exit_validation)
