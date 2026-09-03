@@ -18,6 +18,55 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
+### Five-year pre-TEST candidate preparation (2026-09-03)
+
+- A new TRAIN/VAL-only dataset has been materialized under
+  `V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/`
+  `FIVE_YEAR_DATASET_20260903T170055Z`. Its immutable split is:
+  TRAIN `2021-06-01T00:00:00Z` through
+  `2026-05-31T23:50:00Z` (313,399 rows), followed without a missing M5 bar by
+  VAL `2026-05-31T23:55:00Z` through `2026-06-30T23:55:00Z` (5,509 rows).
+  The physical TEST boundary remains `2026-07-01T00:00:00Z` and was not read.
+- The new M1 and M5 shared feature surfaces, cross-surface audit, full-input
+  liveness, foundation feature/target audits, specialist audit, execution
+  causality audit, and both source-reconstruction audits all report `PASS`.
+  The dataset CPU preflight also passed with `test_accessed=false`.
+- The unopened-TEST guard is
+  `ENTRY_MODEL_NATIVE_PRETEST_TEST_GUARD_20260903T173738Z.json`, SHA-256
+  `7d69d20f1ce50538cddfc18c438c4f0965c223d272ba05bae43ec9bc7e85ed0b`.
+  Its control-plane proof reports no TEST dataset/manifest/metric bytes read
+  and no TEST paths resolved or statted.
+- The new offline candidate recipe is
+  `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260903T173911Z_RECIPE.json`, SHA-256
+  `74e2a4c643aa20e02586dc8486c74b99fe43cc8961c9b42ff9535f027e6bf945`.
+  It is `report_only`, has `activation_authority=false`, and binds source
+  commit `6e525ec3`. It specifies batch 8, **at most 30 epochs**, validation
+  every epoch, patience 5, minimum epoch 1, and `save_top_k=1`.
+- `ENTRY_V9_FIVE_YEAR_CANDIDATE_CHECKPOINT_POLICY_PROOF_20260903T174100Z.json`
+  is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
+  non-improvements after epoch 1 stop at epoch 6. This is a policy proof, not
+  a training result.
+
+### Resource and authority boundary for the new recipe
+
+- Observed CPU-only preparation: the actual dataset build completed under the
+  16 GiB cap with approximately 5.2 GiB observed process RSS and produced
+  approximately 7.5 GiB of TRAIN+VAL parquet. At preparation time, 840 GiB of
+  disk was free. These are preparation measurements, not CUDA throughput.
+- The five-year TRAIN set has 313,399 rows: 39,175 optimizer steps per epoch
+  at batch 8, or at most 1,175,250 steps across 30 epochs. Actual CUDA
+  wall-time remains intentionally unestimated: no full five-year CUDA epoch
+  has run, and the historical VAL timing was taken before the present 160 W
+  operating rule.
+- The older candidate-readiness and launch-gate artifacts bind the old dataset
+  and do **not** authorize this five-year recipe. No new five-year candidate
+  gate, candidate run, TEST evaluation, acceptance, promotion, paper, broker
+  or live action has been created.
+- Before any future CUDA request, require a fresh clean-worktree handover,
+  fresh signed 160 W telemetry, explicit operator authorization, and a
+  separately reviewed gate for this exact recipe. This handoff is not that
+  authorization.
+
 - V9 (`V9_ONE_EPOCH_CANDIDATE_20260901T213444Z`) completed one full technical
   epoch: 248,028 TRAIN rows / 31,004 optimizer steps, then 70,880 VAL rows /
   8,860 batches. Its terminal state is `phase=validation`, `complete=true`,

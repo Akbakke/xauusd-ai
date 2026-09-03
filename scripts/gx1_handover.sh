@@ -111,6 +111,9 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     canonical_json_sha256,
     require_pretest_technical_recipe_metadata,
 )
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    checkpoint_policy_metadata,
+)
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH,
     recipe_source_bindings,
@@ -352,6 +355,10 @@ def _current_source_technical_recipe_status(
         "CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__"
         "NO_PROMOTION_AUTHORITY"
     )
+    prepared_candidate_status = (
+        "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__"
+        "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+    )
     expected_reference_keys = set(base_reference_keys)
     if isinstance(reference, dict) and reference.get("status") in {
         executed_status, audited_status, gated_status,
@@ -380,9 +387,7 @@ def _current_source_technical_recipe_status(
     status = str(reference.get("status") or "")
     if status not in {
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
-        executed_status,
-        audited_status,
-        gated_status,
+        executed_status, audited_status, gated_status, prepared_candidate_status,
     }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
@@ -411,7 +416,9 @@ def _current_source_technical_recipe_status(
     try:
         validated = require_pretest_technical_recipe_metadata(
             recipe,
-            expected_profile="smoke",
+            expected_profile=(
+                "candidate" if status == prepared_candidate_status else "smoke"
+            ),
             expected_run_id=reference["run_id"],
             expected_dataset_run_id=reference["dataset_run_id"],
             expected_out_bundle_dir=reference["out_bundle_dir"],
@@ -426,9 +433,23 @@ def _current_source_technical_recipe_status(
         != reference["source_bindings_sha256"]
         or validated["trainer_cli"].get("execution_tier") != "canonical"
         or validated["trainer_cli"].get("device") != "cuda"
-        or validated["trainer_cli"].get("subsample_rows") != 32
     ):
         raise SystemExit("FATAL: current-source technical recipe contract mismatch")
+    if status == prepared_candidate_status:
+        cli = validated["trainer_cli"]
+        policy = checkpoint_policy_metadata()
+        if (
+            cli.get("subsample_rows") != 0
+            or cli.get("epochs") != policy["max_epochs"]
+            or cli.get("early_stop_patience") != policy["early_stop_patience"]
+            or cli.get("minimum_epochs_before_stop")
+            != policy["minimum_epochs_before_stop"]
+            or cli.get("save_top_k") != policy["save_top_k"]
+            or cli.get("early_stop_min_delta") != policy["early_stop_min_delta"]
+        ):
+            raise SystemExit("FATAL: five-year candidate checkpoint policy mismatch")
+    elif validated["trainer_cli"].get("subsample_rows") != 32:
+        raise SystemExit("FATAL: current-source technical smoke geometry mismatch")
     live_bindings = recipe_source_bindings(
         repo=repo,
         wrapper_path=(repo / PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH),
@@ -440,7 +461,14 @@ def _current_source_technical_recipe_status(
     ):
         raise SystemExit("FATAL: current-source technical recipe live source mismatch")
     out_bundle_dir = Path(reference["out_bundle_dir"])
-    if status == "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED":
+    if status == prepared_candidate_status:
+        if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
+            raise SystemExit("FATAL: five-year candidate recipe has executed CUDA")
+        closure = (
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
+            "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        )
+    elif status == "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED":
         if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
             raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
         closure = "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
@@ -784,6 +812,14 @@ for value in current_source_technical_recipe:
 PY
 )
 
+# A fail-closed Python validation exits through a process substitution. Bash
+# does not propagate that exit code to `readarray`, so avoid turning the real
+# diagnostic above into a misleading unbound-variable error below.
+if (( ${#identity[@]} != 34 )); then
+  echo "FATAL: handover identity extraction failed; no authority status was produced" >&2
+  exit 2
+fi
+
 authority_sha256=${identity[0]}
 worktree_sha256=${identity[1]}
 changed_path_count=${identity[2]}
@@ -869,7 +905,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: V9_FULL_TECHNICAL_TRAIN_VAL_FROZEN__CURRENT_SOURCE_32_ROW_TECHNICAL_SMOKE_EXECUTED__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
+echo "train_recipe: FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
@@ -878,7 +914,7 @@ echo "technical_checkpoint_bundle_parity: PASS_TECHNICAL_ONLY_NOT_CANDIDATE"
 echo "technical_checkpoint_bundle_parity_method: CLEAN_CPU_TO_CLEAN_CPU_EXACT__CUDA_HASH_BOUND_NOT_BITWISE_CLAIMED"
 echo "val_decision_journal: PASS_VAL_ONLY_PLUMBING_NOT_EDGE_OR_BACKTEST"
 echo "candidate_static_gate_source_policy: EXIT_ONLY_PROVISIONAL_POSITIVE_OPEN__HASH_BOUND_DIRECT_EXIT_INPUT_REQUIRED__ENTRY_STRICT"
-echo "candidate_static_gate_runtime_evidence: COMPLETE_31004_BATCH_TRAIN_AND_FULL_VAL__TECHNICAL_BUNDLE_ONLY__NO_CANDIDATE_ACCEPTANCE"
+echo "candidate_static_gate_runtime_evidence: FIVE_YEAR_TRAIN_313399_ROWS_VAL_5509_ROWS__CPU_PREFLIGHT_ONLY__NO_CANDIDATE_ACCEPTANCE"
 echo "v9_selected_val_pnl_bps: -0.6577958464622498"
 echo "v9_test_accessed: NO"
 echo "candidate_session: $candidate_session_status"
@@ -931,13 +967,13 @@ echo "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 
 echo "local_cuda: V9_FULL_TECHNICAL_TRAIN_VAL_COMPLETED__NO_CANDIDATE_ACCEPTANCE"
 echo "cuda_speed_history: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__NOT_A_CURRENT_LAUNCH_PERMISSION"
 echo "host_telemetry: POST_RESTART_SIGNED_ENDPOINT_PASS__PHYSICAL_LIMIT_160W_VERIFIED"
-echo "current_cuda_authority: NO_FURTHER_CUDA_AUTHORITY__CANDIDATE_GATE_READY__FRESH_SIGNED_160W_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION_REQUIRED"
+echo "current_cuda_authority: NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY__FRESH_SIGNED_160W_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION_REQUIRED"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
 echo "  1. run this handover and confirm clean source, no competing job and the retained V9 bundle/session identity"
 echo "  2. immediately before any proposed CUDA launch, obtain a fresh signed bridge response proving the physical limit remains 160 W"
-echo "  3. review the negative V9 VAL result and the smoke-audit FAIL; the hash-bound candidate recipe/gate is dry-run only until a fresh preflight and explicit CUDA authorisation exist"
+echo "  3. review the negative V9 VAL result and the smoke-audit FAIL; the five-year hash-bound recipe has no candidate gate and remains CPU-preflight-only until fresh telemetry and explicit CUDA authorisation exist"
 echo "  4. run preregistered untouched-TEST evaluation only after independently accepted candidate/OOS gates, never as a troubleshooting input"
 echo "  5. bind immutable broker costs, financing, gap/terminal treatment and portfolio capital before demo, paper, live or production-net claims"
 echo "forbidden_routes: live, paper, broker, daemon, promotion, drift-adaptation"
