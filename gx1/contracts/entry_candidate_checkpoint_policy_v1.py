@@ -12,12 +12,11 @@ import math
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v2"
-# The external candidate objective is one complete full-TRAIN pass followed by
-# one complete VAL pass. Keeping that terminal boundary in the frozen policy
-# prevents a resumed process from silently spending a second 31,004-batch
-# epoch after the requested candidate result has been produced.
-MAX_EPOCHS = 1
+SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v3"
+# The external candidate is permitted at most thirty complete TRAIN/VAL
+# epochs. This upper bound belongs in the frozen policy so a resumed process
+# cannot silently exceed the hash-bound candidate budget.
+MAX_EPOCHS = 30
 VALIDATION_FREQUENCY_EPOCHS = 1
 EARLY_STOP_PATIENCE = 5
 MINIMUM_EPOCHS_BEFORE_STOP = 1
