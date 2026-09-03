@@ -1,8 +1,23 @@
 # GX1 XAUUSD handover
 
-Updated 2026-08-30. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-09-03. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
+
+> **Current V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
+> TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its
+> technical-only bundle is
+> `ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`; this is not a
+> candidate approval, because the selected VAL policy PnL is
+> `-0.6577958464622498`. The CPU-only seal found and fixed two real control
+> defects: terminal `complete=true` / `phase=validation` state was inverted in
+> the epoch-seal loader, and shared Exit evidence rows were compared with the
+> combined Long+Short population instead of the per-side count. Both are
+> regression-tested at source commit `98cf85b8`. A new current-source technical
+> recipe then passed launcher **dry-run only**; no CUDA work or output bundle
+> was created. **Hard host gate: do not start a new 31,004-step TRAIN until the
+> operator has restarted the physical PC and explicitly reauthorised it.**
+> TEST, promotion, paper and live remain blocked.
 
 The live candidate position is intentionally derived, not recorded as a
 hardcoded checkpoint below: `bash scripts/gx1_handover.sh` verifies the

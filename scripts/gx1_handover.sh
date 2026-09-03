@@ -876,7 +876,7 @@ echo "technical_checkpoint_bundle_parity: PASS_TECHNICAL_ONLY_NOT_CANDIDATE"
 echo "technical_checkpoint_bundle_parity_method: CLEAN_CPU_TO_CLEAN_CPU_EXACT__CUDA_HASH_BOUND_NOT_BITWISE_CLAIMED"
 echo "val_decision_journal: PASS_VAL_ONLY_PLUMBING_NOT_EDGE_OR_BACKTEST"
 echo "candidate_static_gate_source_policy: EXIT_ONLY_PROVISIONAL_POSITIVE_OPEN__HASH_BOUND_DIRECT_EXIT_INPUT_REQUIRED__ENTRY_STRICT"
-echo "candidate_static_gate_runtime_evidence: COMPLETE_31004_BATCH_TRAIN_AND_FULL_VAL__NO_CANDIDATE_BUNDLE"
+echo "candidate_static_gate_runtime_evidence: COMPLETE_31004_BATCH_TRAIN_AND_FULL_VAL__TECHNICAL_BUNDLE_ONLY__NO_CANDIDATE_ACCEPTANCE"
 echo "candidate_session: $candidate_session_status"
 echo "candidate_validation: $candidate_validation_status"
 echo "candidate_session_contract_sha256: $candidate_session_contract_sha256"
@@ -889,6 +889,7 @@ echo "current_source_technical_recipe_sha256: $current_source_technical_recipe_s
 echo "current_source_technical_recipe_bindings_sha256: $current_source_technical_recipe_bindings_sha256"
 echo "current_source_technical_recipe_closure: $current_source_technical_recipe_closure"
 echo "external_full_training: NO_GO_PENDING_EXPLICIT_COST_REVIEW_FROZEN_COMMIT_RECIPE_AND_FULL_CANDIDATE_PLAN"
+echo "fresh_31004_train: BLOCKED_PENDING_HOST_RESTART_AND_EXPLICIT_REAUTHORIZATION"
 echo "exit_contract: LOCAL_M1_PLUS_CAUSAL_M5_M15_H1_H4_D1_REQUIRED"
 # A restated test count goes stale the moment anyone adds a test — and
 # every restated number in this repository has (rule 13/25). State the
