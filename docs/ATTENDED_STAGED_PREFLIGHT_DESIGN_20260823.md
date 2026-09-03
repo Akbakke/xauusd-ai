@@ -1,5 +1,11 @@
 # Attended staged preflight safety contract
 
+> **2026-09-03 re-entry note:** V9 has completed technical TRAIN+VAL; this
+> design does not authorise a repeat. The signed host bridge last returned HTTP
+> 503 after restart. Current authority is
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) plus
+> `scripts/gx1_handover.sh`.
+
 > Runtime-state rule: this safety design has no independent candidate-session
 > authority. Obtain the verified session/recipe/source-closure position from
 > `bash scripts/gx1_handover.sh` before any operator action.

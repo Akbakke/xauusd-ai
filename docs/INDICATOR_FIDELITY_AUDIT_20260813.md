@@ -1,5 +1,9 @@
 # Indicator fidelity audit — 2026-08-13
 
+> **2026-09-03 re-entry note:** historical audit only. V9 completed technical
+> TRAIN+VAL and TEST remains unread; current authority and the host-telemetry
+> block are in [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 > Runtime-state rule: this historical audit owns no live session state.
 > Obtain the selected candidate's verified recipe, source closure, contract and
 > state identity only from `bash scripts/gx1_handover.sh`.

@@ -1,5 +1,9 @@
 # Pre-registered direction test — V34 substrate (aborted; rules retained)
 
+> **2026-09-03 re-entry note:** V9's technical full TRAIN+VAL did not open
+> TEST. This preregistration remains frozen; current status is in
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 > Runtime-state rule: this protocol owns no candidate-session state. Use
 > `bash scripts/gx1_handover.sh` for the verified recipe/source closure,
 > contract and active-state identity; no copied checkpoint can open TEST.

@@ -2,23 +2,21 @@
 
 This file defines the only active project scope.
 
-The current operational checkpoint is
-[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md).
-It is intentionally stricter than historical run notes: background services
-remain stopped and no full training, TEST, demo or live route is authorised
-until the current V46 audit/preflight sequence is complete.
+## Current binding status — 2026-09-03
 
-`bash scripts/gx1_handover.sh` owns the live candidate-session position. It
-must verify the launch-state session reference, recipe/source-closure identity,
-session contract and active checkpoint state at runtime; prose checkpoint
-numbers are historical evidence only.
-Only declared local runtime state and regenerable Python/pytest/ruff caches may
-be ignored; any other ignored path blocks source identity.
+Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
+before historical notes below. `bash scripts/gx1_handover.sh` owns the live
+candidate-session position and source closure. V9 has completed 31,004 TRAIN
+steps and full VAL, but is technical-only because selected VAL PnL is negative;
+TEST, candidate acceptance, promotion, paper and live are blocked. After the
+physical-PC restart, the signed WSL telemetry endpoint last returned HTTP 503.
+Therefore CUDA, including another full TRAIN, is blocked pending a fresh valid
+signed response, fresh proof of the 160 W physical limit, clean exact preflight
+and explicit operator authorisation. Only declared runtime state and
+regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
+source identity.
 
-The checkpoint-640 V4 candidate session is historical, source-bound evidence.
-The separate V5 current-source 32-row technical smoke completed under the
-canonical CUDA guard and has an immutable bundle. Its CPU-only post-run audit
-is pending; it has no candidate, TEST or execution authority.
+## Historical performance and machine-safety context
 
 > **2026-08-30 override:** the technical checkpoint bundle/reload parity and
 > VAL-only label journal are plumbing evidence only.  They do not authorise
@@ -32,7 +30,7 @@ is pending; it has no candidate, TEST or execution authority.
 > full-TRAIN batches precede it).  Consequently it is operational and
 > throughput evidence only — never a candidate, edge or backtest claim.
 
-## Current performance and machine-safety boundary
+### Superseded 2026-08-30 boundary
 
 - The only resumable candidate state is the source/recipe-bound session at
   partial TRAIN batch `640`; it has no VAL, TEST, bundle, PnL or backtest

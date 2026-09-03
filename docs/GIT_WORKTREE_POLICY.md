@@ -1,5 +1,11 @@
 # GX1 working-tree policy
 
+> **2026-09-03 re-entry note:** use
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) for runtime
+> truth. In particular, do not remove a nested worktree or V9 evidence while
+> cleaning caches; current CUDA authority is separately blocked by missing
+> fresh signed host telemetry.
+
 The canonical repository is `/home/andre2/src/GX1_ENGINE`. Verify it with
 `git rev-parse --show-toplevel`; never hard-code an old workstation path.
 

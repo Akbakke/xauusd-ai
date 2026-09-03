@@ -1,5 +1,11 @@
 # Canonical GPU telemetry — V9 signed Windows bridge contract
 
+> **2026-09-03 runtime status:** the bridge contract remains required, but the
+> physical-PC restart invalidated prior probe freshness. The configured WSL
+> endpoint last returned HTTP 503, therefore no signed telemetry response is
+> currently available and CUDA is fail-closed. Read
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) before action.
+
 > Runtime-state rule: GPU telemetry does not identify a resumable candidate.
 > `bash scripts/gx1_handover.sh` verifies the declared recipe/source closure,
 > session contract, pointer and active state. TEST remains unread.

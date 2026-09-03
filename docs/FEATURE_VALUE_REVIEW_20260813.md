@@ -1,5 +1,10 @@
 # Feature value review — 2026-08-13
 
+> **2026-09-03 re-entry note:** historical review only. V9's completed
+> technical TRAIN+VAL and the current host-telemetry block are recorded in
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md); this document
+> cannot add/remove features or authorise a new run.
+
 > Runtime-state rule: this historical review owns no live session state.
 > Obtain the selected candidate's verified recipe, source closure, contract and
 > state identity only from `bash scripts/gx1_handover.sh`.

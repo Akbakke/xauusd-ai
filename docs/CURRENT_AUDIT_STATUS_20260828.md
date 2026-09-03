@@ -1,8 +1,16 @@
-# Current audit status — 2026-08-30
+# Current audit status — historical details, superseded 2026-09-03
 
-This document is the short, current-state override for operational decisions.
-It complements the historical design documents; it does not grant execution
-authority. `scripts/gx1_handover.sh` remains the executable status owner.
+> **Current re-entry status:** Read
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) and run
+> `bash scripts/gx1_handover.sh`. V9 completed 31,004 TRAIN steps plus full
+> VAL as a technical-only result with negative selected VAL PnL; TEST and all
+> execution routes remain blocked. The post-restart signed telemetry endpoint
+> last returned HTTP 503, so no CUDA work is authorised.
+
+This document was the short operational snapshot on 2026-08-30. It is retained
+as historical evidence and does not grant execution authority; the current
+snapshot is `CURRENT_HANDOFF_20260903.md` and the executable status owner is
+`scripts/gx1_handover.sh`.
 
 The selected candidate session is now a runtime-verified launch-state
 reference: the handover verifies its recipe SHA/source-closure identity,
@@ -17,7 +25,7 @@ source resume command. The separate V5 current-source 32-row canonical
 technical smoke completed under the CUDA guard and published an immutable
 technical bundle; its CPU-only post-run audit remains pending.
 
-## Current verdict
+## Historical verdict snapshot — 2026-08-30
 
 The project is offline research only. There is no admitted production model,
 predictive edge, realised PnL, win rate, MAE/MFE result, calibration,

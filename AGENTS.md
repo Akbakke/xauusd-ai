@@ -2,7 +2,18 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Current truth
+## Current re-entry status — 2026-09-03
+
+Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
+next, then run `bash scripts/gx1_handover.sh --check` and
+`bash scripts/gx1_handover.sh`. V9 has completed its full 31,004-step TRAIN
+and 8,860-batch VAL as a technical-only result; it is not an accepted
+candidate. The PC was restarted, but the signed WSL telemetry endpoint last
+returned HTTP 503, so no CUDA work is authorised. A new 31,004-step TRAIN also
+needs a fresh valid signed host response, a re-verified 160 W physical limit,
+a clean exact preflight, and explicit operator authorisation.
+
+## Historical context (superseded as current status)
 
 `bash scripts/gx1_handover.sh` is the only source for the active candidate
 session position. It verifies the launch-state reference, recipe SHA/source

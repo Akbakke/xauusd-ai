@@ -22,6 +22,8 @@ AUTHORITY_PATHS = (
     REPO / "SYSTEM_MAP.md",
     HANDOVER,
     REPO / "docs/CURRENT_AUDIT_STATUS_20260828.md",
+    REPO / "docs/CURRENT_HANDOFF_20260903.md",
+    REPO / "docs/REPO_CLEANUP_CANDIDATES_20260903.md",
     REPO / "docs/OFFLINE_CHAMPION_CHALLENGER_V1.md",
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
@@ -178,7 +180,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-            "HISTORICAL_V6_V8_BLOCKED__CURRENT_SOURCE_V9_CANDIDATE_SESSION_ACTIVE_OR_RESUMABLE__NO_PROMOTION_AUTHORITY"
+            "V9_FULL_TECHNICAL_TRAIN_VAL_FROZEN__CURRENT_SOURCE_CPU_DRY_RUN_ONLY__NO_CUDA_OR_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert re.search(
@@ -202,7 +204,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "fresh_31004_train: "
-        "BLOCKED_PENDING_HOST_RESTART_AND_EXPLICIT_REAUTHORIZATION"
+        "BLOCKED_PENDING_FRESH_SIGNED_HOST_TELEMETRY_AND_EXPLICIT_REAUTHORIZATION"
         in result.stdout
     )
     assert (
@@ -267,7 +269,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "## Resume boundary" in result.stdout
     assert (
         "resume_stage: "
-            "RETAIN_V6_EPOCH_ONE_TECHNICAL_RESULT__V7_SMOKE_PREFLIGHT_MATERIALIZED"
+            "V9_TERMINAL_TECHNICAL_RESULT_RETAINED__NO_RESUME_OR_NEW_CUDA_AUTHORITY"
         in result.stdout
     )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
@@ -283,14 +285,11 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert (
-        "capacity: audits=4G training_max=20G swap=512M cpu=0-1 "
+        "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 "
         "dataloader_workers=0 one_job_at_a_time" in result.stdout
     )
-    assert (
-        "run the CPU-only V5 smoke-bundle audit"
-        in result.stdout
-    )
-    assert "reach first complete TRAIN epoch and full VAL" in result.stdout
+    assert "restore the signed Windows-to-WSL telemetry bridge" in result.stdout
+    assert "review the negative V9 VAL result" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000

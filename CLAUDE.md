@@ -14,24 +14,18 @@ the work state, and `scripts/gx1_handover.sh` is the executable status owner
 that outranks every document. If they disagree, fail closed and repair the
 documentation and the code together.
 
-The current status companion is
-`docs/CURRENT_AUDIT_STATUS_20260828.md`: it makes the active audit/preflight
-hold explicit, including inactive background services and the prohibition on
-automatic full training, TEST, demo and live work. Its 2026-08-30 continuation
-records exact technical checkpoint parity, VAL-journal plumbing, the hash-bound
-candidate Exit-evidence repair, and a fresh-process resume from batch 576 to a
-durable batch-640 checkpoint. Those are not candidate, backtest or execution
-authority; Entry gate failures remain strict.
+## Current re-entry status — 2026-09-03
 
-The candidate-session position is deliberately not duplicated here. Obtain it
-from `bash scripts/gx1_handover.sh`; its runtime check binds the declared
-recipe, source-closure digest, immutable session contract and active state
-pointer before printing it.
-It permits only declared local runtime state and regenerable Python/pytest/ruff
-caches; an unrecognised ignored path is fail-closed.
-The retained V4 checkpoint is historical evidence. The separate V5
-current-source technical smoke completed under the canonical CUDA guard and
-published an immutable bundle; its CPU-only post-run audit remains pending.
+[`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) is the
+short human restart point. V9 completed 31,004 TRAIN steps and full VAL as a
+technical-only bundle; selected VAL PnL is negative, TEST is unread, and all
+candidate/paper/live authority is false. Query the verified session from
+`bash scripts/gx1_handover.sh`, never a prose checkpoint. The host was
+restarted, but its signed WSL telemetry endpoint last returned HTTP 503: do
+not launch CUDA until fresh signed telemetry and the physical 160 W limit are
+verified, then only with a clean preflight and explicit operator approval.
+
+The detailed V4/V5 text below is retained historical context, not status.
 
 ## Scope freeze
 

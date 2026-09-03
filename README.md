@@ -3,21 +3,18 @@
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.
 
-Current operational status is in
-[docs/CURRENT_AUDIT_STATUS_20260828.md](docs/CURRENT_AUDIT_STATUS_20260828.md).
-It overrides older run-history prose for the next action: the V46 feature/data
-audit and bounded CUDA train/resume mechanics are complete, but no full epoch,
-VAL, TEST, demo, live route or background service is authorised automatically.
+## Current re-entry status — 2026-09-03
 
-The current candidate-session position is runtime-derived by
-`bash scripts/gx1_handover.sh`, which validates the declared recipe, source
-closure, session contract and active state pointer. This README never grants a
-resume based on a copied checkpoint number.
-The same handover allows only declared local runtime state and regenerable
-Python/pytest/ruff caches to be ignored; all other ignored paths block it.
-The retained V4 checkpoint is historical evidence; V5 is a separately
-current-source-bound 32-row technical smoke that completed under the CUDA
-guard and published an immutable bundle, pending CPU-only post-run audit.
+Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
+`bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
+V9 completed the full 31,004-step TRAIN epoch and 8,860-batch VAL as technical
+evidence, not candidate acceptance: selected VAL PnL is negative and TEST was
+not read. The PC restart has not restored a valid signed telemetry response
+(the configured WSL endpoint last returned HTTP 503), so CUDA and any new full
+TRAIN are blocked pending fresh host proof, clean exact preflight and explicit
+operator authorisation. Paper, broker and live are blocked.
+
+The V4/V5 status text below is historical background only.
 
 > **30 August 2026 checkpoint:** technical checkpoint-to-bundle CPU parity is
 > exact on its deterministic VAL probe, and a no-TEST VAL decision journal is
@@ -116,7 +113,7 @@ Each Exit output is bound to one full-input envelope containing trade identity,
 side, entry quotes, Entry token/snapshot, path, exact M1 sequence timestamps and
 tensor-byte hashes, and all five MTF window/cache hashes.
 
-## Current status
+## Historical system status (superseded as runtime status)
 
 The source architecture and contracts are substantially connected and tested,
 but the system is not empirically finished:

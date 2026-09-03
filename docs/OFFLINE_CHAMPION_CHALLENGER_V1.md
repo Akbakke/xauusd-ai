@@ -1,5 +1,10 @@
 # Offline champion/challenger v1
 
+> **2026-09-03 re-entry note:** no V9 candidate has been accepted for this
+> review. V9 is technical TRAIN+VAL evidence with negative selected VAL PnL;
+> TEST remains sealed. See
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 This is a review-only contract for comparing two already completed
 walk-forward, out-of-sample candidate results. It is not reinforcement
 learning, not online learning and not a promotion mechanism.

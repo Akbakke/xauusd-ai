@@ -1,18 +1,12 @@
 # GX1 system map
 
-For current execution authority and the audit/preflight checkpoint, read
-[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
-before using this architecture map. The map describes the intended offline
-pipeline; it does not authorise training, TEST, demo or live operation.
+This is an architecture map, not runtime authority. For a lost-chat or reboot
+restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
+`bash scripts/gx1_handover.sh`. V9 is a completed technical TRAIN+VAL result,
+not an accepted candidate. The signed host telemetry endpoint last returned
+HTTP 503 after restart, so no CUDA launch is currently authorised.
 
-The active candidate-session point is not architecture-map data. Query
-`bash scripts/gx1_handover.sh`; it derives and verifies the referenced recipe,
-source closure, contract and active two-slot state at runtime.
-It allows only declared local runtime state and regenerable Python/pytest/ruff
-caches to be ignored; any other ignored content blocks source identity.
-It also distinguishes the retained V4 checkpoint from the V5 current-source
-technical smoke recipe: V5 completed under the CUDA guard and published an
-immutable technical bundle, pending CPU-only post-run audit.
+The older V4/V5 status below is retained as historical architecture context.
 
 > **Operational checkpoint, 2026-08-30:** the map below remains the intended
 > M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has

@@ -1,5 +1,10 @@
 # V8 candidate host-hang incident — 2026-09-01
 
+> **2026-09-03 re-entry note:** V8 remains incident evidence only. V9 later
+> completed a technical TRAIN+VAL result, but after the latest restart the
+> signed bridge query returned HTTP 503. New CUDA remains blocked; see
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 Status: **V8 resume is blocked for host safety.** This is an operational
 incident record, not candidate evidence and not an authority grant. TEST was
 not read; there is no replay, shadow, paper, broker or live activity.

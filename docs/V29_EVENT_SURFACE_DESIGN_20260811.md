@@ -1,5 +1,9 @@
 # V29 EVENT SURFACE — unified design (2026-08-11)
 
+> **2026-09-03 re-entry note:** historical proposal only. It does not affect
+> the completed V9 technical result or authorise new CUDA; current status is
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 > Runtime-state rule: this proposal owns no active candidate session. Use
 > `bash scripts/gx1_handover.sh` for the verified recipe/source closure,
 > contract and active-state identity.

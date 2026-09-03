@@ -1,5 +1,10 @@
 # DRAFT — next immutable recipe decision (awaiting owner approval)
 
+> **2026-09-03 re-entry note:** this remains a historical draft. The V9
+> technical run and source-rebind CPU dry-run are recorded in
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md); neither makes
+> this draft an executable recipe.
+
 > Runtime-state rule: this draft does not own a resumable recipe or session.
 > The active recipe/source closure, immutable contract and pointer are verified
 > at read time by `bash scripts/gx1_handover.sh`.

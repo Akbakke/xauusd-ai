@@ -1,5 +1,10 @@
 # GX1 data contract
 
+> **2026-09-03 re-entry note:** V46 remains the immutable research substrate;
+> V9 completed technical TRAIN+VAL without opening TEST. Runtime and CUDA
+> authority are in [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md)
+> and `scripts/gx1_handover.sh`, not this contract's historical session text.
+
 > Runtime-state rule: the active candidate-session position is owned by
 > `bash scripts/gx1_handover.sh`, which verifies its recipe/source closure,
 > immutable contract and active state. This data contract does not authorise a

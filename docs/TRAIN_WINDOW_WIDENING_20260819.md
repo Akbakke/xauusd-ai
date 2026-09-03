@@ -1,5 +1,10 @@
 # TRAIN window widening — derivation, measurements, and what stays unproved
 
+> **2026-09-03 re-entry note:** historical split derivation only. V9 completed
+> the declared technical TRAIN+VAL path, while TEST remains sealed and fresh
+> CUDA is blocked pending signed host telemetry. See
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
+
 > Runtime-state rule: this derivation owns no active candidate session. Obtain
 > the verified recipe/source closure, contract and state identity from
 > `bash scripts/gx1_handover.sh`, never from a checkpoint number below.

@@ -4,6 +4,11 @@ Updated 2026-09-03. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
+For a context-reset takeover, read
+[`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) first.
+The host restart has been reported, but a subsequent WSL bridge query returned
+HTTP 503; this is not fresh signed telemetry and does not authorise CUDA.
+
 > **Current V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its
 > technical-only bundle is
@@ -15,8 +20,9 @@ binding scope; `CLAUDE.md` is the process constitution.
 > combined Long+Short population instead of the per-side count. Both are
 > regression-tested at source commit `98cf85b8`. A new current-source technical
 > recipe then passed launcher **dry-run only**; no CUDA work or output bundle
-> was created. **Hard host gate: do not start a new 31,004-step TRAIN until the
-> operator has restarted the physical PC and explicitly reauthorised it.**
+> was created. **Hard host gate: do not start a new 31,004-step TRAIN until a
+> fresh signed host-telemetry response and the physical 160 W limit are
+> re-verified, and the operator explicitly reauthorises it.**
 > TEST, promotion, paper and live remain blocked.
 
 The live candidate position is intentionally derived, not recorded as a
@@ -26,6 +32,8 @@ contract, active pointer and state SHA. Any prose value in this handover is
 historical context and cannot authorise a resume.
 The verifier permits only declared local runtime state and regenerable
 Python/pytest/ruff caches; any other ignored path blocks source identity.
+
+## Historical continuation notes
 
 The retained V4 checkpoint-640 candidate session is historical source-bound
 evidence. The separate V5 current-source 32-row canonical technical smoke
@@ -120,7 +128,7 @@ Chronological attempt and repair history was cut; git holds it. **Budget: 2,400
 words** because the chain-binding checklist and split derivation are
 load-bearing. This is a map, not a diary; cut history, never a checklist.
 
-## Current verdict
+## Historical verdict snapshot (2026-08-28)
 
 Launch is `BLOCK` for admission, demo, paper and live operation. There is **no
 admitted dataset, no model, no calibration, no untouched-TEST result, no PnL
