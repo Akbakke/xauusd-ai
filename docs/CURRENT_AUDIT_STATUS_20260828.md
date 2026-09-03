@@ -24,7 +24,9 @@ Python/pytest/ruff caches; any other ignored path is fail-closed.
 The V4 checkpoint-640 session is retained historical evidence, not a current
 source resume command. The separate V5 current-source 32-row canonical
 technical smoke completed under the CUDA guard and published an immutable
-technical bundle; its CPU-only post-run audit remains pending.
+technical bundle. Its later CPU-only post-run audit is `FAIL` on small-sample
+specialist top-rank quality, while its input/hash/pipeline proof supports a
+frozen candidate recipe and gate; neither grants CUDA or execution authority.
 
 ## Historical verdict snapshot — 2026-08-30
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-03T08:48:03Z",
+  "updated_utc": "2026-09-03T10:28:17Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -12,7 +12,7 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_RECIPE.json",
     "recipe_sha256": "570a4baefb999d406f5d39b994bbed9a408244409ce9448e44fbc3e425c40372",
     "source_commit": "98cf85b8bcbe49bd2b561ba763adff5947a66381",
@@ -22,7 +22,16 @@
     "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE",
     "bundle_commit_manifest_sha256": "26113018d79efe3075a9d1e8c1e87dbedb74fa8adb5207aa9c46e0d4c27e2ee9",
     "bundle_commit_sha256": "d5026848d1637363351d821f837ea781cb1235c1ba04929517013c358623e92e",
-    "bundle_metadata_sha256": "0342e86f8b1e7c49c0a1dc4578c3704645e5b606169fa9cf44744e79c25f9d24"
+    "bundle_metadata_sha256": "0342e86f8b1e7c49c0a1dc4578c3704645e5b606169fa9cf44744e79c25f9d24",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_SMOKE_POSTRUN_AUDIT_20260903T102800Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260903T102647715422Z.json",
+    "postrun_bundle_audit_sha256": "812df4844a3dc485ca1d4f562a9de340f92d9c45be2eb98ae32e1805672a6756",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_CANDIDATE_READINESS_20260903T102900Z/ENTRY_CANDIDATE_READINESS_20260903T102711383700Z.json",
+    "candidate_readiness_sha256": "23af524c624a5b97df6de0d48460799ec6334a14a9ec5123e23df2e5c269c42b",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_POSTRUN_CANDIDATE_20260903T102900Z_LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260903T102817399764Z.json",
+    "candidate_launch_gate_sha256": "14d42cc6de1665ab9e18f11c7d750078eab84576cd77d9dbe765257cc02c66e7",
+    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -159,7 +168,7 @@
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
     "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
-    "No admitted dataset or bundle exists. V9 completed exactly 31,004 TRAIN optimizer steps and all 8,860 VAL batches, then published technical-only bundle ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE. Its selected VAL policy PnL is -0.6577958464622498, so this is not candidate acceptance or economic evidence; TEST, promotion, paper and live remain false. The terminal-VAL seal-state inversion and double-sided Exit-gate row-count defect were fixed and regression-tested at source commit 98cf85b8. The original V9 session remains frozen historical evidence. The current-source recipe then passed dry-run and executed exactly one canonical 32-row technical CUDA smoke, producing the hash-bound ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE. Its post-run audit is pending and it grants no candidate, TEST, promotion, paper or live authority. The signed host bridge reported a 160 W configured physical GPU limit immediately before launch; do not start another CUDA run, especially a 31,004-step TRAIN, without a fresh clean preflight, signed 160 W re-probe and new explicit operator authorisation.",
+    "No admitted dataset or bundle exists. V9 completed 31,004 TRAIN steps and 8,860 VAL batches, but selected VAL PnL is -0.6577958464622498; it is not candidate or economic evidence. The original V9 session is frozen. The current-source recipe executed one hash-bound 32-row CUDA smoke. Its CPU-only post-run audit is FAIL because three specialist gates were never top-ranked in the small sample, while its technical pipeline produced READY_FOR_CANDIDATE_TRAINING and a hash-bound candidate gate whose CPU-only dry-run passed. This is not candidate acceptance or CUDA permission: TEST, promotion, paper and live remain false. Do not start CUDA, especially a 31,004-step TRAIN, without fresh clean preflight, signed 160 W re-probe and explicit operator authorisation.",
     "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

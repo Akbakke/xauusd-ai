@@ -9,10 +9,13 @@ Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
 V9 completed the full 31,004-step TRAIN epoch and 8,860-batch VAL as technical
 evidence, not candidate acceptance: selected VAL PnL is negative and TEST was
-not read. The PC restart has restored a valid signed telemetry response and the
-physical GPU limit is freshly verified at 160 W. CUDA and any new full TRAIN
-remain blocked pending clean exact preflight and explicit operator
-authorisation. Paper, broker and live are blocked.
+not read. The current-source 32-row smoke's CPU-only audit is `FAIL` on narrow
+specialist top-rank quality, while its technical pipeline supports a frozen
+candidate recipe/gate that passed CPU-only dry-run. The PC restart has restored
+a valid signed telemetry response and the physical GPU limit is freshly
+verified at 160 W. CUDA and any new full TRAIN remain blocked pending clean
+exact preflight and explicit operator authorisation. Paper, broker and live are
+blocked.
 
 The V4/V5 status text below is historical background only.
 
@@ -152,26 +155,28 @@ but the system is not empirically finished:
   regime. The preregistered selective-edge hypothesis is FAIL. Any candidate
   CUDA work must be predeclared and CPU-preflighted behind the same guard. The
   historical technical candidate-readiness event passed under its then-current
-  contract. A fresh current-source recheck is now
-  `NOT_READY_FOR_CANDIDATE_TRAINING`: that historical diagnostic bundle lacks
-  the now-required, hash-bound `recipe_source_provenance` in both metadata and
-  lock. This is a fail-closed provenance mismatch, not missing feature data or
-  a licence to patch/relabel old evidence. A fresh fully exported bundle must
-  pass before any candidate run. The current source has a hash-bound two-slot
-  candidate-resume protocol for the 20-minute safety window, including exact
-  train/VAL phase state and full-trajectory VAL accumulation. It is
-  regression-tested but not yet accepted by a full candidate CUDA run; it must
-  be recipe-audited and dry-run before such a run. A partial session is never a
-  candidate result;
+  contract. Its historical diagnostic bundle remains
+  `NOT_READY_FOR_CANDIDATE_TRAINING` because it lacks the now-required,
+  hash-bound `recipe_source_provenance` in both metadata and lock. The separate
+  current-source V9 smoke has now completed its CPU-only audit: the narrow
+  quality result is `FAIL`, but the technical training pipeline is proven and
+  yielded `READY_FOR_CANDIDATE_TRAINING`, a hash-bound candidate recipe/gate and
+  a passing CPU-only dry-run. This prepares nothing beyond a future research
+  launch: it does not accept a candidate or authorise CUDA. The current source
+  has a hash-bound two-slot candidate-resume protocol for the 20-minute safety
+  window, including exact train/VAL phase state and full-trajectory VAL
+  accumulation. A partial session is never a candidate result;
 - recipe production rejects a stale smoke run ID from the small immutable
   evidence records before it hashes multi-gigabyte TRAIN/VAL inputs or writes a
   recipe. This avoids a costly, doomed preflight; it is not a CUDA or bundle
   authorization;
 - the current-source CUDA-intended smoke recipe passed dry-run and then executed
   one guarded 32-row technical CUDA smoke. Its immutable bundle is
-  `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`; CPU-only post-run
-  audit remains pending. This is not candidate, backtest or edge evidence and
-  grants no further CUDA, TEST, promotion, paper or live authority;
+  `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`; its CPU-only
+  post-run audit is `FAIL` on three non-top-ranked specialist gates. The
+  subsequent candidate readiness/gate and dry-run prove only reproducible
+  technical launch preparation, not candidate, backtest or edge evidence; they
+  grant no further CUDA, TEST, promotion, paper or live authority;
 - clean documentation-only descendants do not invalidate that recipe: runtime
   still requires a committed ancestor, clean worktree and exact byte bindings
   for every executed source file;

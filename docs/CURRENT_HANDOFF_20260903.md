@@ -42,8 +42,12 @@ run-directory timestamp. Do not start TRAIN from this document.
   canonical 32-row technical CUDA smoke was executed. It published
   `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, bundle-commit
   SHA-256 `d5026848d1637363351d821f837ea781cb1235c1ba04929517013c358623e92e`.
-  Its CPU-only post-run audit is pending; this grants no candidate, TEST,
-  promotion, paper or live authority.
+  Its CPU-only post-run audit is `FAIL`: three specialist gates were never
+  top-ranked in the small smoke sample. The technical pipeline, inputs and
+  hashes remain proven, so immutable candidate readiness is
+  `READY_FOR_CANDIDATE_TRAINING` and a hash-bound candidate launch gate passed
+  CPU-only dry-run. This is preparation only, not candidate acceptance or CUDA,
+  TEST, promotion, paper, broker or live authority.
 
 ## Current host gate
 
@@ -85,6 +89,14 @@ All paths below live under
   `570a4baefb999d406f5d39b994bbed9a408244409ce9448e44fbc3e425c40372`; bundle
   `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, commit-manifest
   SHA-256 `26113018d79efe3075a9d1e8c1e87dbedb74fa8adb5207aa9c46e0d4c27e2ee9`.
+- Post-run audit:
+  `V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_SMOKE_POSTRUN_AUDIT_20260903T102800Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260903T102647715422Z.json`,
+  SHA-256 `812df4844a3dc485ca1d4f562a9de340f92d9c45be2eb98ae32e1805672a6756`.
+- Frozen candidate recipe and launch gate (both unexecuted):
+  `V9_POSTRUN_CANDIDATE_20260903T102900Z_RECIPE.json`, SHA-256
+  `2983d413b2324be4e471461153d5f8ff59a35348281e1baac359cd7ef4153ccc`; gate
+  `V9_POSTRUN_CANDIDATE_20260903T102900Z_LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260903T102817399764Z.json`,
+  SHA-256 `14d42cc6de1665ab9e18f11c7d750078eab84576cd77d9dbe765257cc02c66e7`.
 
 Keep these immutable artifacts. They are evidence, not disposable cache.
 

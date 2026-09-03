@@ -180,7 +180,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-            "V9_FULL_TECHNICAL_TRAIN_VAL_FROZEN__CURRENT_SOURCE_32_ROW_TECHNICAL_SMOKE_EXECUTED__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_OR_PROMOTION_AUTHORITY"
+            "V9_FULL_TECHNICAL_TRAIN_VAL_FROZEN__CURRENT_SOURCE_32_ROW_TECHNICAL_SMOKE_EXECUTED__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert re.search(
@@ -194,12 +194,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_source_bindings_sha256: " in result.stdout
     assert (
         "current_source_technical_recipe: "
-            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY"
         in result.stdout
     )
     assert (
@@ -372,7 +372,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "gx1_current_source_technical_recipe_reference_v1"
     )
     assert current_source_recipe["status"] == (
-        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+        "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
     )
     assert current_source_recipe["run_id"].startswith(
         "V9_POSTRUN_SOURCE_REBIND_"
@@ -384,11 +384,21 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "bundle_commit_manifest_sha256",
         "bundle_commit_sha256",
         "bundle_metadata_sha256",
+        "postrun_bundle_audit_sha256",
+        "candidate_readiness_sha256",
+        "candidate_launch_gate_sha256",
     ):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     for key in ("recipe_sha256", "source_bindings_sha256"):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
+    assert current_source_recipe["postrun_bundle_audit_decision"] == "FAIL"
+    assert current_source_recipe["candidate_readiness_decision"] == (
+        "READY_FOR_CANDIDATE_TRAINING"
+    )
+    assert current_source_recipe["candidate_launch_gate_decision"] == (
+        "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+    )
     blockers = "\n".join(state["blockers"])
     assert "fresh immutable native M1/M5 pair" in blockers
     assert "No admitted dataset" in blockers
@@ -483,12 +493,12 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
         "current_source_technical_recipe: "
-            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_PENDING"
+            "LIVE_SOURCE_BYTES_MATCH_RECIPE__BUNDLE_COMMIT_VALID__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY"
         in result.stdout
     )
     assert "## Host capacity" not in result.stdout
