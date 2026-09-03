@@ -37,8 +37,13 @@ run-directory timestamp. Do not start TRAIN from this document.
 - Two post-run control defects were fixed and tested in `98cf85b8`: terminal
   `complete=true` / `phase=validation` handling in the epoch seal, and the
   comparison of per-side Exit evidence with an incorrectly combined population.
-  A fresh-source CPU-only launch dry-run then passed at `98cf85b8`; it did not
-  execute CUDA or create a new bundle.
+  A fresh-source CPU-only launch dry-run then passed at `98cf85b8`. After a
+  clean handover/preflight and fresh signed 160 W telemetry, exactly one
+  canonical 32-row technical CUDA smoke was executed. It published
+  `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, bundle-commit
+  SHA-256 `d5026848d1637363351d821f837ea781cb1235c1ba04929517013c358623e92e`.
+  Its CPU-only post-run audit is pending; this grants no candidate, TEST,
+  promotion, paper or live authority.
 
 ## Current host gate
 
@@ -46,12 +51,13 @@ The physical PC was restarted after the prior 3090 host hang. The last proven
 Windows sensor setup had a 160 W physical GPU limit and 52 C memory junction,
 but that installation evidence was invalidated by the restart. A fresh signed
 WSL bridge query to `http://172.30.224.1:38128/gx1/v1/telemetry/` now succeeds
-and reports 56 C core, 64 C memory junction, 128.25 W draw, **160 W configured
-physical limit**, and 505 MiB VRAM for the expected GPU UUID. Both host-safety
-telemetry gates now pass; no trainer is active.
+and reported 57 C core, 64 C memory junction, 127.49 W draw, **160 W configured
+physical limit**, and 442 MiB VRAM for the expected GPU UUID immediately before
+the smoke launch. Both host-safety telemetry gates passed, the guarded smoke
+completed with exit code 0, and no trainer is active.
 
-New CUDA work, including another 31,004-step TRAIN, remains blocked until both
-of the following are true:
+No further CUDA work, including another 31,004-step TRAIN, is authorised. It
+remains blocked until both of the following are true:
 
 1. The executable handover and the exact source/recipe preflight pass on a
    clean, reviewed worktree. Re-probe the signed Windows bridge immediately
@@ -74,9 +80,11 @@ All paths below live under
   `.gx1-candidate-training-session.ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`.
 - V9 published bundle:
   `ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`.
-- Current-source CPU dry-run recipe:
+- Current-source recipe and executed 32-row technical-smoke bundle:
   `V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_RECIPE.json`, SHA-256
-  `570a4baefb999d406f5d39b994bbed9a408244409ce9448e44fbc3e425c40372`.
+  `570a4baefb999d406f5d39b994bbed9a408244409ce9448e44fbc3e425c40372`; bundle
+  `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, commit-manifest
+  SHA-256 `26113018d79efe3075a9d1e8c1e87dbedb74fa8adb5207aa9c46e0d4c27e2ee9`.
 
 Keep these immutable artifacts. They are evidence, not disposable cache.
 

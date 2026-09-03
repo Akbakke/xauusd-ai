@@ -167,9 +167,11 @@ but the system is not empirically finished:
   evidence records before it hashes multi-gigabyte TRAIN/VAL inputs or writes a
   recipe. This avoids a costly, doomed preflight; it is not a CUDA or bundle
   authorization;
-- the current-source CUDA-intended smoke recipe and wrapper dry-run pass, but
-  no CUDA export has been executed. Its guarded 32-row technical smoke remains
-  separately authorised work, not candidate, backtest or edge evidence;
+- the current-source CUDA-intended smoke recipe passed dry-run and then executed
+  one guarded 32-row technical CUDA smoke. Its immutable bundle is
+  `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`; CPU-only post-run
+  audit remains pending. This is not candidate, backtest or edge evidence and
+  grants no further CUDA, TEST, promotion, paper or live authority;
 - clean documentation-only descendants do not invalidate that recipe: runtime
   still requires a committed ancestor, clean worktree and exact byte bindings
   for every executed source file;
