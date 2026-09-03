@@ -3,8 +3,9 @@
 This is an architecture map, not runtime authority. For a lost-chat or reboot
 restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
 `bash scripts/gx1_handover.sh`. V9 is a completed technical TRAIN+VAL result,
-not an accepted candidate. The signed host telemetry endpoint last returned
-HTTP 503 after restart, so no CUDA launch is currently authorised.
+not an accepted candidate. The signed host telemetry endpoint responds again
+after restart, but reports a 390 W physical limit rather than the required
+160 W; no CUDA launch is currently authorised.
 
 The older V4/V5 status below is retained as historical architecture context.
 

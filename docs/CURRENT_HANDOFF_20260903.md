@@ -44,22 +44,31 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 The physical PC was restarted after the prior 3090 host hang. The last proven
 Windows sensor setup had a 160 W physical GPU limit and 52 C memory junction,
-but that is historical installation evidence only. After the restart, the WSL
-bridge query to `http://172.30.224.1:38128/gx1/v1/telemetry/` returned HTTP
-503; the old loopback path did not answer. Therefore there is **no fresh signed
-host-telemetry proof** and no active trainer.
+but that installation evidence was invalidated by the restart. A fresh signed
+WSL bridge query to `http://172.30.224.1:38128/gx1/v1/telemetry/` now succeeds
+and reported 56 C core, 64 C memory junction, 127.93 W draw, **390 W configured
+physical limit**, and 409 MiB VRAM for the expected GPU UUID. The bridge is
+therefore healthy, but the 160 W physical limit is not; no trainer is active.
 
 New CUDA work, including another 31,004-step TRAIN, is blocked until all of the
 following are true:
 
-1. The signed Windows bridge returns a fresh valid response from the configured
-   WSL endpoint, including numeric core temperature, memory junction, power and
-   VRAM for the expected RTX 3090 UUID.
-2. The physical 160 W GPU limit is freshly verified after the restart.
+1. The signed Windows bridge continues to return a fresh valid response from
+   the configured WSL endpoint, including numeric core temperature, memory
+   junction, power and VRAM for the expected RTX 3090 UUID.
+2. The physical GPU limit is set to, and freshly verified as, exactly 160 W
+   after the restart. The last signed response reports 390 W, so this gate is
+   currently failing.
 3. The executable handover and the exact source/recipe preflight pass on a
    clean, reviewed worktree.
 4. The operator explicitly authorises a new CUDA launch. This is intentionally
    separate from this technical result and from any old chat instruction.
+
+The physical-limit change must be performed from native elevated Windows
+PowerShell, not from WSL, using the reviewed installer with
+`-Install -SetPowerLimitWatts 160`; immediately follow it with a new signed
+bridge query. That administrative action is a safety-precondition repair, not
+CUDA authorisation.
 
 ## Relevant immutable paths
 

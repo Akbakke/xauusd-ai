@@ -2,9 +2,10 @@
 
 > **2026-09-03 re-entry note:** V9 reached full technical TRAIN+VAL, but this
 > is not candidate acceptance or a TEST release. Its selected VAL PnL is
-> negative, and the post-restart signed host bridge currently returns HTTP 503.
-> Use [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) for the
-> current gate.
+> negative, and the post-restart signed host bridge reports a 390 W physical
+> limit rather than the required 160 W. Use
+> [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) for the current
+> gate.
 
 > Runtime-state rule: this gate does not identify a resumable candidate.
 > `bash scripts/gx1_handover.sh` verifies the declared recipe/source closure,

@@ -5,7 +5,8 @@
 > `bash scripts/gx1_handover.sh`. V9 completed 31,004 TRAIN steps plus full
 > VAL as a technical-only result with negative selected VAL PnL; TEST and all
 > execution routes remain blocked. The post-restart signed telemetry endpoint
-> last returned HTTP 503, so no CUDA work is authorised.
+> responds, but reports a 390 W physical limit rather than the required 160 W,
+> so no CUDA work is authorised.
 
 This document was the short operational snapshot on 2026-08-30. It is retained
 as historical evidence and does not grant execution authority; the current

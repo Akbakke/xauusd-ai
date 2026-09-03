@@ -21,9 +21,9 @@ short human restart point. V9 completed 31,004 TRAIN steps and full VAL as a
 technical-only bundle; selected VAL PnL is negative, TEST is unread, and all
 candidate/paper/live authority is false. Query the verified session from
 `bash scripts/gx1_handover.sh`, never a prose checkpoint. The host was
-restarted, but its signed WSL telemetry endpoint last returned HTTP 503: do
-not launch CUDA until fresh signed telemetry and the physical 160 W limit are
-verified, then only with a clean preflight and explicit operator approval.
+restarted and its signed WSL telemetry endpoint now responds, but reports a
+390 W physical limit: do not launch CUDA until the limit is set and re-verified
+at 160 W, then only with a clean preflight and explicit operator approval.
 
 The detailed V4/V5 text below is retained historical context, not status.
 

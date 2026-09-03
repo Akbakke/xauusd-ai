@@ -9,10 +9,11 @@ before historical notes below. `bash scripts/gx1_handover.sh` owns the live
 candidate-session position and source closure. V9 has completed 31,004 TRAIN
 steps and full VAL, but is technical-only because selected VAL PnL is negative;
 TEST, candidate acceptance, promotion, paper and live are blocked. After the
-physical-PC restart, the signed WSL telemetry endpoint last returned HTTP 503.
-Therefore CUDA, including another full TRAIN, is blocked pending a fresh valid
-signed response, fresh proof of the 160 W physical limit, clean exact preflight
-and explicit operator authorisation. Only declared runtime state and
+physical-PC restart, the signed WSL telemetry endpoint again returned a valid
+signed response, but it reports a 390 W physical limit instead of 160 W.
+Therefore CUDA, including another full TRAIN, is blocked pending an exact
+160 W set-and-reprobe, clean exact preflight and explicit operator
+authorisation. Only declared runtime state and
 regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
 source identity.
 

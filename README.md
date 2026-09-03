@@ -9,10 +9,11 @@ Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
 V9 completed the full 31,004-step TRAIN epoch and 8,860-batch VAL as technical
 evidence, not candidate acceptance: selected VAL PnL is negative and TEST was
-not read. The PC restart has not restored a valid signed telemetry response
-(the configured WSL endpoint last returned HTTP 503), so CUDA and any new full
-TRAIN are blocked pending fresh host proof, clean exact preflight and explicit
-operator authorisation. Paper, broker and live are blocked.
+not read. The PC restart has restored a valid signed telemetry response, but it
+reports a 390 W physical GPU limit rather than the required 160 W. CUDA and any
+new full TRAIN remain blocked pending an exact 160 W set-and-reprobe, clean
+exact preflight and explicit operator authorisation. Paper, broker and live are
+blocked.
 
 The V4/V5 status text below is historical background only.
 

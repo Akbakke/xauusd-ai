@@ -6,8 +6,9 @@ binding scope; `CLAUDE.md` is the process constitution.
 
 For a context-reset takeover, read
 [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) first.
-The host restart has been reported, but a subsequent WSL bridge query returned
-HTTP 503; this is not fresh signed telemetry and does not authorise CUDA.
+The host restart has been reported, and a subsequent WSL bridge query now
+returns valid signed telemetry. It reports a 390 W physical limit, not the
+required 160 W, so it does not authorise CUDA.
 
 > **Current V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its
@@ -21,8 +22,8 @@ HTTP 503; this is not fresh signed telemetry and does not authorise CUDA.
 > regression-tested at source commit `98cf85b8`. A new current-source technical
 > recipe then passed launcher **dry-run only**; no CUDA work or output bundle
 > was created. **Hard host gate: do not start a new 31,004-step TRAIN until a
-> fresh signed host-telemetry response and the physical 160 W limit are
-> re-verified, and the operator explicitly reauthorises it.**
+> 160 W physical limit is set and re-verified, the clean preflight passes, and
+> the operator explicitly reauthorises it.**
 > TEST, promotion, paper and live remain blocked.
 
 The live candidate position is intentionally derived, not recorded as a

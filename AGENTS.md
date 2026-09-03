@@ -8,10 +8,11 @@ Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
 `bash scripts/gx1_handover.sh`. V9 has completed its full 31,004-step TRAIN
 and 8,860-batch VAL as a technical-only result; it is not an accepted
-candidate. The PC was restarted, but the signed WSL telemetry endpoint last
-returned HTTP 503, so no CUDA work is authorised. A new 31,004-step TRAIN also
-needs a fresh valid signed host response, a re-verified 160 W physical limit,
-a clean exact preflight, and explicit operator authorisation.
+candidate. After the PC restart, the signed WSL telemetry endpoint again
+responds, but its fresh response reports a 390 W physical GPU limit rather
+than the required 160 W. No CUDA work is authorised. A new 31,004-step TRAIN
+needs the physical limit set and re-verified at 160 W, a clean exact preflight,
+and explicit operator authorisation.
 
 ## Historical context (superseded as current status)
 

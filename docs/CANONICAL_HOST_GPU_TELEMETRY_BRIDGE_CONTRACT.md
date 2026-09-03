@@ -1,9 +1,10 @@
 # Canonical GPU telemetry — V9 signed Windows bridge contract
 
-> **2026-09-03 runtime status:** the bridge contract remains required, but the
-> physical-PC restart invalidated prior probe freshness. The configured WSL
-> endpoint last returned HTTP 503, therefore no signed telemetry response is
-> currently available and CUDA is fail-closed. Read
+> **2026-09-03 runtime status:** the bridge contract remains required. A fresh
+> configured-WSL-endpoint query now returns valid signed telemetry, but it
+> reports a 390 W configured physical limit rather than 160 W. The signature
+> bridge is healthy; CUDA remains fail-closed until the physical limit is set
+> and re-probed at 160 W. Read
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) before action.
 
 > Runtime-state rule: GPU telemetry does not identify a resumable candidate.
