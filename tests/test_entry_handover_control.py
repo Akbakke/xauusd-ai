@@ -204,12 +204,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "fresh_31004_train: "
-        "BLOCKED_PENDING_160W_PHYSICAL_LIMIT_SET_REPROBE_CLEAN_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION"
+        "BLOCKED_PENDING_CLEAN_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION"
         in result.stdout
     )
     assert (
         "host_telemetry: "
-        "POST_RESTART_SIGNED_ENDPOINT_PASS__CONFIGURED_PHYSICAL_LIMIT_390W__160W_SET_REPROBE_REQUIRED"
+        "POST_RESTART_SIGNED_ENDPOINT_PASS__PHYSICAL_LIMIT_160W_VERIFIED"
         in result.stdout
     )
     assert (
@@ -293,7 +293,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 "
         "dataloader_workers=0 one_job_at_a_time" in result.stdout
     )
-    assert "set the physical limit to 160 W" in result.stdout
+    assert "physical limit remains 160 W" in result.stdout
     assert "review the negative V9 VAL result" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout

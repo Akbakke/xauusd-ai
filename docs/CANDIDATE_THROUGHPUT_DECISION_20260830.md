@@ -2,9 +2,8 @@
 
 > **2026-09-03 re-entry note:** these are historical throughput measurements.
 > V9 later completed one technical full TRAIN+VAL, but did not establish edge.
-> The signed post-restart host bridge responds, but reports a 390 W physical
-> limit rather than the required 160 W, so this document cannot authorise CUDA.
-> See
+> The signed post-restart host bridge now verifies the 160 W physical limit,
+> but this document still cannot authorise CUDA. See
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
 
 This decision is strictly pre-TEST.  It does not create activation, replay,

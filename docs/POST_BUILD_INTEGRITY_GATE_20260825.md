@@ -2,8 +2,8 @@
 
 > **2026-09-03 re-entry note:** V9 reached full technical TRAIN+VAL, but this
 > is not candidate acceptance or a TEST release. Its selected VAL PnL is
-> negative, and the post-restart signed host bridge reports a 390 W physical
-> limit rather than the required 160 W. Use
+> negative. The post-restart signed host bridge now verifies the 160 W physical
+> limit, but this remains no candidate acceptance or CUDA authority. Use
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) for the current
 > gate.
 

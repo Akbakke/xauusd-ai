@@ -2,8 +2,7 @@
 
 > **2026-09-03 re-entry note:** V9 has completed technical TRAIN+VAL; this
 > design does not authorise a repeat. The signed host bridge responds after
-> restart, but reports a 390 W physical limit rather than the required 160 W.
-> Current authority is
+> restart with the physical limit verified at 160 W. Current authority is
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) plus
 > `scripts/gx1_handover.sh`.
 
