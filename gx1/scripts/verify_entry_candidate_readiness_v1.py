@@ -50,6 +50,13 @@ from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     resolve_and_validate_prediction_evidence,
     sha256_file,
 )
+from gx1.scripts.verify_entry_pretest_trainability_readiness_v1 import (
+    READY_DECISION as PRETEST_TRAINABILITY_READY_DECISION,
+    SCHEMA_VERSION as PRETEST_TRAINABILITY_SCHEMA,
+)
+from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+    require_pretest_technical_recipe_metadata,
+)
 
 
 SCHEMA_VERSION = "entry_candidate_readiness_model_native_v1"
@@ -277,9 +284,67 @@ def _prediction_evidence_check(
         return _check("immutable prediction evidence rehashes and is model-native", False, details)
 
 
-def _trainability_contract_check(payload: dict[str, Any]) -> dict[str, Any]:
+def _trainability_contract_check(
+    payload: dict[str, Any],
+    *,
+    expected_candidate_recipe: dict[str, str] | None,
+) -> dict[str, Any]:
     details: dict[str, Any] = {}
     try:
+        if payload.get("schema_version") == PRETEST_TRAINABILITY_SCHEMA:
+            _zero_failure(
+                payload,
+                schema=PRETEST_TRAINABILITY_SCHEMA,
+                decision=PRETEST_TRAINABILITY_READY_DECISION,
+                label="pre-TEST trainability readiness",
+            )
+            if expected_candidate_recipe is None:
+                raise RuntimeError(
+                    "direct pre-TEST trainability requires an exact candidate recipe"
+                )
+            if (
+                payload.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE
+                or int(payload.get("sequence_length") or -1) != MODEL_NATIVE_SEQ_LEN
+                or int(payload.get("expected_signal_dim") or -1)
+                != MODEL_NATIVE_SIGNAL_DIM
+                or tuple(payload.get("required_training_specialists") or ())
+                != tuple(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+                or payload.get("candidate_training_allowed") is not False
+                or payload.get("activation_authority") is not False
+                or payload.get("promotion_shadow_live_allowed") is not False
+            ):
+                raise RuntimeError("direct pre-TEST trainability contract mismatch")
+            bindings = payload.get("input_bindings")
+            if not isinstance(bindings, dict) or set(bindings) != {
+                "candidate_recipe",
+                "smoke_recipe",
+                "pretrain_audit",
+            }:
+                raise RuntimeError("direct pre-TEST trainability input binding set mismatch")
+            if bindings.get("candidate_recipe") != expected_candidate_recipe:
+                raise RuntimeError("direct pre-TEST trainability candidate recipe mismatch")
+            if payload.get("input_bindings_sha256") != _canonical_sha256(bindings):
+                raise RuntimeError("direct pre-TEST trainability binding hash mismatch")
+            candidate_path = Path(expected_candidate_recipe["path"])
+            candidate_recipe = require_pretest_technical_recipe_metadata(
+                _read_json(candidate_path), expected_profile="candidate"
+            )
+            if (
+                candidate_recipe.get("dataset_dir") != payload.get("dataset_dir")
+                or candidate_recipe.get("dataset_run_id")
+                != payload.get("dataset_run_id")
+                or candidate_recipe.get("run_id") != payload.get("candidate_run_id")
+            ):
+                raise RuntimeError("direct pre-TEST trainability recipe identity mismatch")
+            details = {
+                "candidate_recipe": expected_candidate_recipe,
+                "pretrain_audit": bindings["pretrain_audit"],
+            }
+            return _check(
+                "direct pre-TEST trainability binds the exact candidate recipe",
+                True,
+                details,
+            )
         _zero_failure(
             payload,
             schema=TRAINABILITY_SCHEMA,
@@ -450,7 +515,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 _check("immutable prediction evidence rehashes and is model-native", False),
             ]
         )
-    checks.append(_trainability_contract_check(trainability))
+    expected_candidate_recipe: dict[str, str] | None = None
+    if args.candidate_recipe_json is not None or args.candidate_recipe_sha256 is not None:
+        if args.candidate_recipe_json is None or args.candidate_recipe_sha256 is None:
+            raise RuntimeError(
+                "candidate recipe JSON and SHA-256 must be supplied together"
+            )
+        expected_candidate_recipe = _artifact_binding(
+            Path(args.candidate_recipe_json).expanduser()
+        )
+        if expected_candidate_recipe["sha256"] != str(args.candidate_recipe_sha256):
+            raise RuntimeError("candidate recipe SHA-256 mismatch")
+    trainability_check = _trainability_contract_check(
+        trainability, expected_candidate_recipe=expected_candidate_recipe
+    )
+    checks.append(trainability_check)
     checks.append(_specialist_contract_check(specialist))
 
     failures = [
@@ -488,6 +567,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "input_bindings": input_bindings,
         "input_bindings_sha256": _canonical_sha256(input_bindings),
     }
+    if expected_candidate_recipe is not None and (
+        trainability.get("schema_version") == PRETEST_TRAINABILITY_SCHEMA
+    ):
+        report["candidate_recipe"] = expected_candidate_recipe
     _, report = write_immutable_json_event(out_dir, EVENT_PREFIX, report)
     if not args.quiet:
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -502,6 +585,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--specialist-audit-json", required=True)
     parser.add_argument("--trainability-readiness-json", required=True)
     parser.add_argument("--expected-smoke-dataset-dir", required=True)
+    parser.add_argument("--candidate-recipe-json")
+    parser.add_argument("--candidate-recipe-sha256")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--edge-test-scope", choices=("strict",), default="strict")
     parser.add_argument(

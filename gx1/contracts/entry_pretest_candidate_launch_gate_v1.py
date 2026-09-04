@@ -155,6 +155,30 @@ def _candidate_readiness(
         raise PretestCandidateLaunchGateError(
             "candidate readiness does not bind the supplied smoke audit"
         )
+    # Direct V9 pre-TEST readiness is deliberately separate from the legacy
+    # seq513 rebuild-chain lane.  When present it must bind this exact
+    # candidate recipe, so a readiness event from another candidate cannot be
+    # paired with the same smoke audit merely because the dataset matches.
+    direct_recipe = payload.get("candidate_recipe")
+    trainability = bindings.get("trainability_readiness")
+    if isinstance(trainability, Mapping):
+        trainability_path = Path(str(trainability.get("path") or ""))
+        if trainability_path.is_absolute() and trainability_path.is_file():
+            if artifact_binding(trainability_path) != dict(trainability):
+                raise PretestCandidateLaunchGateError(
+                    "candidate readiness trainability binding changed"
+                )
+            trainability_payload = _read_json(
+                trainability_path, label="trainability readiness"
+            )
+            if (
+                trainability_payload.get("schema_version")
+                == "entry_pretest_trainability_readiness_v1"
+            ):
+                if direct_recipe != artifact_binding(Path(str(recipe["path"]))):
+                    raise PretestCandidateLaunchGateError(
+                        "direct candidate readiness does not bind this recipe"
+                    )
 
 
 def _smoke_audit(path: Path, *, recipe: Mapping[str, Any]) -> None:

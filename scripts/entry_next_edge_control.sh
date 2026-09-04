@@ -65,6 +65,7 @@ Model-native seq513 evidence:
   model-native-smoke-manifest
   model-native-smoke-readiness
   model-native-trainability-readiness
+  model-native-pretest-trainability-readiness
   model-native-execution-causality-audit --dataset-dir <dataset-dir> --signal-manifest <json> --train-manifest <json> --val-manifest <json> --train-lifecycle-manifest <json> --val-lifecycle-manifest <json> --output <new-json>
   model-native-sequence-roll-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-sequence-integrity-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
@@ -700,6 +701,24 @@ case "$cmd" in
     done
     # Source/control inspection is report-only and must not reserve producer memory.
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_model_native_seq513_trainability_readiness_v1 "$@"
+    ;;
+
+  model-native-pretest-trainability-readiness)
+    # The direct V9 pre-TEST lane has no legacy rebuild-chain terminal.  This
+    # report binds its exact candidate/smoke recipes, unopened-TEST guard and
+    # current five-year pretrain audit without manufacturing legacy evidence.
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --candidate-recipe-json \
+      --candidate-recipe-sha256 \
+      --smoke-recipe-json \
+      --smoke-recipe-sha256 \
+      --pretrain-audit-json \
+      --repo-dir \
+      --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.verify_entry_pretest_trainability_readiness_v1 "$@"
     ;;
 
   model-native-train-recipe-audit)
