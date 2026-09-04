@@ -102,7 +102,7 @@ def test_smoke_wrapper_rejects_unknown_or_duplicate_arguments() -> None:
     assert "duplicate argument" in duplicate.stderr
 
 
-def test_canonical_wrapper_rejects_missing_wrong_or_duplicate_profile() -> None:
+def test_smoke_wrapper_rejects_missing_wrong_or_duplicate_profile() -> None:
     missing = _run_raw("--dry-run")
     wrong = _run_raw("--profile", "other", "--dry-run")
     duplicate = _run_raw(
@@ -112,31 +112,21 @@ def test_canonical_wrapper_rejects_missing_wrong_or_duplicate_profile() -> None:
     assert missing.returncode == 2
     assert "missing required argument: --profile" in missing.stderr
     assert wrong.returncode == 2
-    assert "--profile must be exactly smoke or candidate" in wrong.stderr
+    assert "--profile must be exactly smoke" in wrong.stderr
     assert duplicate.returncode == 2
     assert "duplicate argument: --profile" in duplicate.stderr
 
 
-@pytest.mark.parametrize(
-    ("profile", "foreign_flag"),
-    (
-        ("smoke", "--candidate-readiness-json"),
-        ("candidate", "--smoke-manifest-json"),
-    ),
-)
-def test_canonical_wrapper_rejects_cross_profile_evidence(
-    tmp_path: Path,
-    profile: str,
-    foreign_flag: str,
-) -> None:
+def test_smoke_wrapper_rejects_candidate_evidence(tmp_path: Path) -> None:
     args, paths = build_wrapper_contract(
         tmp_path,
-        profile=profile,
+        profile="smoke",
         wrapper=WRAPPER,
     )
+    foreign_flag = "--candidate-readiness-json"
     result = _run_raw(
         "--profile",
-        profile,
+        "smoke",
         *args,
         foreign_flag,
         str(paths["recipe_audit_json"]),
@@ -144,7 +134,14 @@ def test_canonical_wrapper_rejects_cross_profile_evidence(
     )
 
     assert result.returncode == 2
-    assert f"{foreign_flag} is invalid for --profile {profile}" in result.stderr
+    assert f"{foreign_flag} is invalid for --profile smoke" in result.stderr
+
+
+def test_legacy_candidate_profile_is_retired_before_evidence_parsing() -> None:
+    result = _run_raw("--profile", "candidate", "--dry-run")
+
+    assert result.returncode == 2
+    assert "legacy candidate profile is retired" in result.stderr
 
 
 def test_smoke_wrapper_validates_exact_contract_without_writes(tmp_path: Path) -> None:
