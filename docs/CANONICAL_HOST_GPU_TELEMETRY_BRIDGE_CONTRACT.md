@@ -54,11 +54,18 @@ exceeded:
 - actual draw: `170 W`;
 - resident GPU memory: `12 GiB`.
 
-The Windows physical driver limit must be set to `160 W` and re-probed after a
-Windows restart, driver reset or power interruption. The bridge installer never
-changes that limit; `Install-GX1-HostTelemetry.ps1 -SetPowerLimitWatts 160`
-does. A signed response at 2026-09-01 18:xx confirmed 47 C core, 52 C memory
-junction, 39.76 W draw, 160 W limit and 403 MiB residency after the recovery.
+Nvidia treats the physical driver limit as runtime state, so it may reset after
+a Windows restart, driver reset or power interruption. Run
+`Install-GX1-HostTelemetry.ps1 -Install -SetPowerLimitWatts 160` once from an
+elevated native Windows PowerShell. Besides applying the cap immediately, it
+installs the `GX1GpuPowerLimit` SYSTEM startup task. That task waits for the
+driver, reapplies the cap and verifies the exact GPU UUID plus a limit at or
+below `160 W`; it then checks/reapplies every 15 minutes to cover a later
+driver reset. It logs its result under `C:\\ProgramData\\GX1\\GpuPowerLimit`.
+The bridge still independently observes and signs the physical state: automatic
+reapplication does not make an old signed response valid after a restart. A
+signed response at 2026-09-01 18:xx confirmed 47 C core, 52 C memory junction,
+39.76 W draw, 160 W limit and 403 MiB residency after the recovery.
 
 V9 also binds candidate CPU affinity to `0-7` and all common numerical libraries
 plus PyTorch to eight threads. This reserves eleven of WSL's nineteen logical

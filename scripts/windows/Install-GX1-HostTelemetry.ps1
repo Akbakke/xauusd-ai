@@ -23,6 +23,10 @@
 
   To set a physical power cap, opt in explicitly after the first sensor proof:
     ... -Install -SetPowerLimitWatts 160
+
+  This also installs the `GX1GpuPowerLimit` SYSTEM startup task.  The task
+  waits for the Nvidia driver, reapplies the requested cap after every Windows
+  restart or driver reset, and verifies the exact GPU UUID before succeeding.
 #>
 
 [CmdletBinding()]
@@ -60,6 +64,153 @@ function Invoke-NativeChecked {
         throw "Native command failed ($LASTEXITCODE): $FilePath $($ArgumentList -join ' ')`n$rendered"
     }
     return @($output | ForEach-Object { $_.ToString() })
+}
+
+function Install-PersistentPowerLimitTask {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NativeSmi,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedGpuName,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedGpuUuid,
+        [Parameter(Mandatory = $true)]
+        [int]$GpuIndex,
+        [Parameter(Mandatory = $true)]
+        [int]$PowerLimitWatts
+    )
+
+    # Nvidia's `-pl` setting is a driver runtime property, not firmware.  It
+    # can reset on a Windows restart, driver reset or power loss.  Keep this
+    # tiny task separate from the signed telemetry bridge: the task changes
+    # the host setting, while the bridge independently observes and signs it.
+    $root = Join-Path $env:ProgramData 'GX1\GpuPowerLimit'
+    $runnerPath = Join-Path $root 'GX1-ApplyGpuPowerLimit.ps1'
+    $configPath = Join-Path $root 'GX1-GpuPowerLimit.config.json'
+    $logPath = Join-Path $root 'GX1-GpuPowerLimit.log'
+    $taskName = 'GX1GpuPowerLimit'
+    $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    if ($null -ne $existingTask -and $existingTask.State -eq 'Running') {
+        Stop-ScheduledTask -TaskName $taskName -ErrorAction Stop
+        foreach ($attempt in 1..25) {
+            Start-Sleep -Milliseconds 200
+            $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+            if ($null -eq $existingTask -or $existingTask.State -ne 'Running') {
+                break
+            }
+        }
+        if ($null -ne $existingTask -and $existingTask.State -eq 'Running') {
+            throw "Existing $taskName task did not stop before its runner was replaced."
+        }
+    }
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+
+    $config = [ordered]@{
+        schema_version = 'gx1_gpu_power_limit_startup_task_v1'
+        native_smi = $NativeSmi
+        expected_gpu_name = $ExpectedGpuName
+        expected_gpu_uuid = $ExpectedGpuUuid
+        gpu_index = $GpuIndex
+        power_limit_w = $PowerLimitWatts
+        initial_retry_count = 90
+        retry_delay_seconds = 2
+        recheck_seconds = 900
+    }
+    [System.IO.File]::WriteAllText(
+        $configPath,
+        ($config | ConvertTo-Json -Compress),
+        [System.Text.UTF8Encoding]::new($false)
+    )
+
+    $runner = @'
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$root = $PSScriptRoot
+$configPath = Join-Path $root 'GX1-GpuPowerLimit.config.json'
+$logPath = Join-Path $root 'GX1-GpuPowerLimit.log'
+$config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+function Write-Gx1PowerLimitLog {
+    param([Parameter(Mandatory = $true)][string]$Message)
+    $line = "$(Get-Date -Format o) $Message"
+    [System.IO.File]::AppendAllText($logPath, "$line`r`n", [System.Text.UTF8Encoding]::new($false))
+}
+
+$gpuIndex = [int]$config.gpu_index
+$targetLimit = [int]$config.power_limit_w
+$firstCheck = $true
+while ($true) {
+    $lastReason = 'Nvidia driver did not become ready.'
+    $verified = $false
+    $attemptLimit = if ($firstCheck) { [int]$config.initial_retry_count } else { 1 }
+    foreach ($attempt in 1..$attemptLimit) {
+        try {
+            if (-not (Test-Path -LiteralPath ([string]$config.native_smi) -PathType Leaf)) {
+                throw 'nvidia-smi.exe is unavailable'
+            }
+            $setOutput = @(& ([string]$config.native_smi) -i "$gpuIndex" -pl "$targetLimit" 2>&1)
+            if ($LASTEXITCODE -ne 0) {
+                throw "nvidia-smi -pl failed: $(($setOutput | Out-String).Trim())"
+            }
+            $raw = @(& ([string]$config.native_smi) -i "$gpuIndex" --query-gpu=name,uuid,power.limit --format=csv,noheader,nounits 2>&1)
+            if ($LASTEXITCODE -ne 0 -or $raw.Count -ne 1) {
+                throw 'nvidia-smi power-limit verification failed'
+            }
+            $fields = @($raw[0].ToString().Split(',') | ForEach-Object { $_.Trim() })
+            $limit = 0.0
+            if ($fields.Count -ne 3 -or
+                $fields[0] -ne [string]$config.expected_gpu_name -or
+                $fields[1] -ne [string]$config.expected_gpu_uuid -or
+                -not [double]::TryParse($fields[2], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$limit) -or
+                $limit -gt [double]$targetLimit) {
+                throw "power-limit verification mismatch: '$($raw[0])'"
+            }
+            $verified = $true
+            if ($firstCheck -or $attempt -gt 1) {
+                Write-Gx1PowerLimitLog "SUCCESS gpu_uuid=$($fields[1]) power_limit_w=$limit attempt=$attempt"
+            }
+            break
+        }
+        catch {
+            $lastReason = $_.Exception.Message
+            if ($attempt -lt $attemptLimit) {
+                Start-Sleep -Seconds ([int]$config.retry_delay_seconds)
+            }
+        }
+    }
+    if (-not $verified) {
+        Write-Gx1PowerLimitLog "FAILURE $lastReason"
+    }
+    $firstCheck = $false
+    Start-Sleep -Seconds ([int]$config.recheck_seconds)
+}
+'@
+    [System.IO.File]::WriteAllText(
+        $runnerPath,
+        $runner,
+        [System.Text.UTF8Encoding]::new($false)
+    )
+
+    $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runnerPath`""
+    $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
+    $trigger = New-ScheduledTaskTrigger -AtStartup
+    $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+    Start-ScheduledTask -TaskName $taskName
+
+    return [ordered]@{
+        task_name = $taskName
+        runner_path = $runnerPath
+        log_path = $logPath
+        configured_power_limit_w = $PowerLimitWatts
+        startup_verification = 'SYSTEM retries for up to 180 seconds at boot, then reapplies and verifies the cap every 15 minutes using the exact GPU name and UUID.'
+    }
 }
 
 function Get-PinnedLibreHardwareMonitorExe {
@@ -228,6 +379,18 @@ if (-not [double]::TryParse($fields[2], [Globalization.NumberStyles]::Float, [Gl
     throw "Native nvidia-smi returned a non-numeric power limit: '$($fields[2])'."
 }
 
+$persistentPowerLimitTask = $null
+if ($SetPowerLimitWatts -gt 0) {
+    $persistentTaskParameters = @{
+        NativeSmi = $nativeSmi
+        ExpectedGpuName = $ExpectedGpuName
+        ExpectedGpuUuid = $fields[1]
+        GpuIndex = $GpuIndex
+        PowerLimitWatts = $SetPowerLimitWatts
+    }
+    $persistentPowerLimitTask = Install-PersistentPowerLimitTask @persistentTaskParameters
+}
+
 $sensor = Get-LhmMemoryJunctionProbe -ExecutablePath $lhmExe -RequiredGpuName $ExpectedGpuName
 $report = [ordered]@{
     schema_version = 'gx1_host_telemetry_sensor_probe_v1'
@@ -237,6 +400,7 @@ $report = [ordered]@{
     memory_junction_c = $sensor.memory_junction_c
     libre_hardware_monitor_exe = $lhmExe
     canonical_ready = ($powerLimit -le 160.0)
+    persistent_power_limit_task = $persistentPowerLimitTask
     note = 'Sensor-installation evidence only; this is not a signed canonical bridge response.'
 }
 

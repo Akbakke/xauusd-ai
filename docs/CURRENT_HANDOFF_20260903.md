@@ -104,9 +104,12 @@ The physical PC was restarted after the prior 3090 host hang. The historical
 Windows sensor setup and signed bridge query proved a 160 W physical GPU limit,
 but that evidence was tied to its moment before the next restart. The latest
 signed bridge probe observed a **390 W configured physical limit** for the
-expected GPU UUID. This is a hard CUDA block: set the physical limit to 160 W
-from elevated native Windows PowerShell and obtain a new signed bridge response
-immediately before any proposed launch. No trainer is active.
+expected GPU UUID. This is a hard CUDA block. One elevated native-Windows
+`Install-GX1-HostTelemetry.ps1 -Install -SetPowerLimitWatts 160` run applies
+the limit now and installs the `GX1GpuPowerLimit` SYSTEM startup task, which
+reapplies and verifies it at boot and every 15 minutes thereafter. Obtain a
+new signed bridge response immediately before any proposed launch; no trainer
+is active.
 
 No further CUDA work, including another 31,004-step TRAIN, is authorised. It
 remains blocked until both of the following are true:

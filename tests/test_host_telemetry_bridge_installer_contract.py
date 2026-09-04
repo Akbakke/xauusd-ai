@@ -99,3 +99,19 @@ def test_sensor_bootstrap_uses_the_same_160_w_limit_as_canonical_cuda() -> None:
     assert "canonical_ready = ($powerLimit -le 160.0)" in source
     assert "at or below 160 W" in source
     assert "SetPowerLimitWatts 250" not in source
+
+
+def test_sensor_bootstrap_registers_a_verified_persistent_160_w_startup_task() -> None:
+    source = SENSOR_INSTALLER.read_text(encoding="utf-8")
+
+    assert "function Install-PersistentPowerLimitTask" in source
+    assert "$taskName = 'GX1GpuPowerLimit'" in source
+    assert "New-ScheduledTaskTrigger -AtStartup" in source
+    assert "-UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest" in source
+    assert "expected_gpu_uuid" in source
+    assert "--query-gpu=name,uuid,power.limit" in source
+    assert "-pl" in source
+    assert "recheck_seconds = 900" in source
+    assert "-ExecutionTimeLimit (New-TimeSpan -Seconds 0)" in source
+    assert "persistent_power_limit_task" in source
+    assert "Install-PersistentPowerLimitTask @persistentTaskParameters" in source
