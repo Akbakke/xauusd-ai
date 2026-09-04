@@ -46,6 +46,21 @@ run-directory timestamp. Do not start TRAIN from this document.
   is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
   non-improvements after epoch 1 stop at epoch 6. This is a policy proof, not
   a training result.
+- The old candidate-readiness and smoke-audit pair was deliberately passed to
+  the five-year gate materializer on 2026-09-04 and rejected as incompatible;
+  it is bound to `PRETEST_DATASET_V4_20260829T224438Z`, not this dataset, and
+  its smoke audit is `FAIL`. No gate output was written. The correct successor
+  is the immutable, exact-data recipe
+  `ENTRY_V9_FIVE_YEAR_GATE_SMOKE_20260904T124806Z_RECIPE.json`, SHA-256
+  `2cab27cd57100553e3a9d0b741310c7726a25d840b9c234ea237b686e1fc057f`.
+  Its guarded launcher dry-run is `PASS`, with `test_accessed=false`; it binds
+  a canonical CUDA smoke of one epoch, batch 8 and 32 deterministic rows.
+  It has not been executed and its output bundle does not exist.
+- Do not substitute `model-native-attended-hardware-smoke`: that route is a
+  synthetic architecture diagnostic with no dataset, bundle or candidate
+  output, and therefore cannot produce the smoke audit required by a
+  candidate gate. The exact-data canonical smoke above needs separate explicit
+  CUDA operator authorisation before `--execute`.
 
 ### Resource and authority boundary for the new recipe
 
