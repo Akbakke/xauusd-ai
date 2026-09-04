@@ -75,7 +75,6 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-selective-edge",
     "model-native-seed-stability",
     "model-native-smoke-train",
-    "model-native-candidate-train",
     "model-native-trade-path-metrics",
 }
 
@@ -209,7 +208,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "host_telemetry: "
-        "POST_RESTART_SIGNED_ENDPOINT_PASS__PHYSICAL_LIMIT_160W_VERIFIED"
+        "FRESH_SIGNED_160W_RESPONSE_REQUIRED_AFTER_EACH_RESTART_OR_DRIVER_RESET"
         in result.stdout
     )
     assert (
@@ -675,7 +674,7 @@ def test_candidate_readiness_route_requires_exact_trainability_event() -> None:
     assert "worktree" not in route.lower()
 
 
-def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_isolated() -> None:
+def test_smoke_routes_use_the_legacy_wrapper_and_candidate_route_is_retired() -> None:
     source = CONTROL.read_text(encoding="utf-8")
     wrapper = "scripts/run_entry_model_native_seq513_train.sh"
     smoke_route = source.split("  model-native-smoke-train)", 1)[1].split(
@@ -709,11 +708,10 @@ def test_train_routes_use_one_profile_explicit_wrapper_and_attended_route_is_iso
     assert "--attended-cpu-smoke" in attended_cpu_smoke_route
     assert "--train-sequence-source-audit-json" in attended_cpu_smoke_route
     assert "--val-sequence-source-audit-json" in attended_cpu_smoke_route
-    assert wrapper in candidate_route
-    assert "--profile candidate" in candidate_route
-    assert "--train-sequence-source-audit-json" in candidate_route
-    assert "--val-sequence-source-audit-json" in candidate_route
-    assert source.count(wrapper) == 4
+    assert wrapper not in candidate_route
+    assert "model-native-candidate-train is retired" in candidate_route
+    assert "immutable candidate launch gate" in candidate_route
+    assert source.count(wrapper) == 3
     assert "--train-wrapper" in trainability_route
 
 

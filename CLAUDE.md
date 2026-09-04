@@ -20,10 +20,10 @@ documentation and the code together.
 short human restart point. V9 completed 31,004 TRAIN steps and full VAL as a
 technical-only bundle; selected VAL PnL is negative, TEST is unread, and all
 candidate/paper/live authority is false. Query the verified session from
-`bash scripts/gx1_handover.sh`, never a prose checkpoint. The host was
-restarted and its signed WSL telemetry endpoint now responds with a freshly
-verified 160 W physical limit: do not launch CUDA without a clean preflight and
-explicit operator approval.
+`bash scripts/gx1_handover.sh`, never a prose checkpoint. A 160 W signed
+telemetry response is valid only for that instant: do not launch CUDA after a
+restart or driver reset without a clean preflight, a fresh signed 160 W
+response, and explicit operator approval.
 
 The detailed V4/V5 text below is retained historical context, not status.
 
@@ -379,7 +379,8 @@ baseline alone is ~10.1G on the repaired V27 substrate, leaving no headroom
 under the old ceiling even before a single training step; host has 31G total
 in the WSL VM, so 20G leaves 11G for everything else), and 4G for
 audits/tests, swap at most 512M, a
-minimum of 20G host-available RAM before launch, CPU affinity 0-1 and one
+minimum of 20G host-available RAM before launch, CPU affinity 0-7 with eight
+canonical-trainer numerical threads, and one
 numerical-library thread. Any request above those limits, missing host state,
 lock contention or a missing cgroup is a hard failure. Never bypass, weaken,
 background or duplicate a heavy job. Partial output after a cap kill, crash or

@@ -1,9 +1,10 @@
 # Canonical GPU telemetry — V9 signed Windows bridge contract
 
-> **2026-09-03 runtime status:** the bridge contract remains required. A fresh
-> configured-WSL-endpoint query returns valid signed telemetry with a 160 W
-> configured physical limit. The signature and physical-limit gates pass; CUDA
-> remains fail-closed pending clean preflight and explicit operator authority.
+> **Runtime-status rule:** the bridge contract remains required. A historical
+> signed 160 W response is evidence only, not a standing host state: reboot,
+> driver reset or a power-policy change invalidates it. CUDA remains fail-closed
+> pending a clean preflight, a new signed response at 160 W, and explicit
+> operator authority.
 > Read
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) before action.
 

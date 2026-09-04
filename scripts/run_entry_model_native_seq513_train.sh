@@ -31,11 +31,11 @@ ENV_BIN=/usr/bin/env
 
 usage() {
   cat <<'EOF'
-Usage: run_entry_model_native_seq513_train.sh --profile smoke|candidate [exact arguments]
+Usage: run_entry_model_native_seq513_train.sh --profile smoke [exact arguments]
        [--attended-smoke|--attended-cpu-smoke] (--dry-run|--execute)
 
 Required identity and immutable evidence:
-  --profile smoke|candidate
+  --profile smoke
   --run-id ID
   --dataset-dir PATH
   --train-manifest-json PATH  --val-manifest-json PATH
@@ -57,8 +57,10 @@ Required identity and immutable evidence:
 Required only for --profile smoke:
   --smoke-manifest-json PATH --smoke-readiness-json PATH
 
-Required only for --profile candidate:
-  --candidate-readiness-json PATH --smoke-bundle-audit-json PATH
+The historical generic candidate profile is permanently retired. The only
+candidate path is the separate V9 pre-TEST launcher
+`gx1.scripts.run_entry_model_native_pretest_technical_train_v1`, which
+requires an immutable candidate launch gate bound to its own recipe.
 
 Required audited execution values (there are no wrapper defaults):
   --device cpu|cuda --seed N --epochs N --batch-size N --learning-rate X
@@ -260,8 +262,11 @@ done
 [[ -x "$ENV_BIN" ]] || die "environment scrubber is not executable: $ENV_BIN"
 [[ -n "$PROFILE" ]] || die "missing required argument: --profile"
 case "$PROFILE" in
-  smoke|candidate) ;;
-  *) die "--profile must be exactly smoke or candidate" ;;
+  smoke) ;;
+  candidate)
+    die "legacy candidate profile is retired; use gx1.scripts.run_entry_model_native_pretest_technical_train_v1 with an immutable candidate launch gate"
+    ;;
+  *) die "--profile must be exactly smoke" ;;
 esac
 if [[ "$ATTENDED_SMOKE" == true && "$ATTENDED_CPU_SMOKE" == true ]]; then
   die "choose at most one of --attended-smoke or --attended-cpu-smoke"

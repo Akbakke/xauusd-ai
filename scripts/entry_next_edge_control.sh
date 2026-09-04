@@ -93,9 +93,6 @@ Immutable run-lineage execution (evidence gates remain authoritative):
     --train-sequence-source-audit-json <immutable-json> \
     --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
   model-native-attended-hardware-smoke --specialist-audit-json <immutable-json> (--dry-run|--execute)
-  model-native-candidate-train --run-id <id> <all other explicit arguments> \
-    --train-sequence-source-audit-json <immutable-json> \
-    --val-sequence-source-audit-json <immutable-json> (--dry-run|--execute)
 
 Every evidence input and output directory must be explicit. Mutable mirrors,
 soft failure flags, feature-mask ablations, alternate contract modes, and
@@ -940,13 +937,7 @@ case "$cmd" in
     ;;
 
   model-native-candidate-train)
-    reject_non_authoritative_args "$@"
-    for flag in \
-      --train-sequence-source-audit-json \
-      --val-sequence-source-audit-json; do
-      require_flag "$cmd" "$flag" "$@"
-    done
-    exec "$REPO/scripts/run_entry_model_native_seq513_train.sh" --profile candidate "$@"
+    die "model-native-candidate-train is retired; use gx1.scripts.run_entry_model_native_pretest_technical_train_v1 with an immutable candidate launch gate"
     ;;
 
   model-native-selective-edge)

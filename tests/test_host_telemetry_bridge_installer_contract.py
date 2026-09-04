@@ -5,6 +5,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 INSTALLER = REPO / "scripts" / "windows" / "Install-GX1-HostTelemetryBridge.ps1"
+SENSOR_INSTALLER = REPO / "scripts" / "windows" / "Install-GX1-HostTelemetry.ps1"
 
 
 def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() -> None:
@@ -89,3 +90,12 @@ def test_host_bridge_installer_never_changes_the_gpu_power_limit() -> None:
 
     assert " -pl " not in source
     assert "SetPowerLimit" not in source
+
+
+def test_sensor_bootstrap_uses_the_same_160_w_limit_as_canonical_cuda() -> None:
+    source = SENSOR_INSTALLER.read_text(encoding="utf-8")
+
+    assert "[ValidateRange(0, 160)]" in source
+    assert "canonical_ready = ($powerLimit -le 160.0)" in source
+    assert "at or below 160 W" in source
+    assert "SetPowerLimitWatts 250" not in source

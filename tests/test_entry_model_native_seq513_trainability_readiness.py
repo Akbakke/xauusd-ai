@@ -141,8 +141,7 @@ def _audited_wrapper_text() -> str:
             "--prefreeze-test-seal-sha256",
             "--trainability-readiness-json",
             "--smoke-manifest-json",
-            "--candidate-readiness-json",
-            "smoke|candidate",
+            "legacy candidate profile is retired",
             "--run-id",
             "--execute",
         )
@@ -255,7 +254,7 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = MODEL_NATIVE_CONTEXT_TA
             "Usage: model-native-smoke-train --run-id <id>\n"
             "case\n"
             "model-native-smoke-train) exec \"$REPO/scripts/run_entry_model_native_seq513_train.sh\" --profile smoke \"$@\" ;;\n"
-            "model-native-candidate-train) exec \"$REPO/scripts/run_entry_model_native_seq513_train.sh\" --profile candidate \"$@\" ;;\n"
+            "model-native-candidate-train) die \"model-native-candidate-train is retired\" ;;\n"
             "model-native-train-recipe-audit) exec recipe ;;\n"
             "model-native-selective-edge) exec prediction ;;\n"
             "model-native-smoke-bundle-audit) exec audit ;;\n"
@@ -311,11 +310,11 @@ def test_smart_trainability_blocks_until_train_surface_exists(tmp_path: Path) ->
     assert report["iql_allowed"] is False
     assert not any(report["side_effects_started"].values())
     assert (
-        "canonical train wrapper exposes both explicit model-native profiles"
+        "canonical train wrapper is smoke-only and explicitly retires the legacy candidate profile"
         in report["blockers"]
     )
     assert (
-        "both model-native profiles use the canonical wrapper in control surface"
+        "control surface retires the legacy candidate route instead of bypassing the V9 launch gate"
         in report["blockers"]
     )
     assert "smart smoke future contract declares direction context slice audit" in report["blockers"]
@@ -359,7 +358,7 @@ def test_trainability_rejects_wrapper_that_restates_contract_mode(
     report = _run_blocked(args)
 
     assert (
-        "canonical train wrapper exposes both explicit model-native profiles"
+        "canonical train wrapper is smoke-only and explicitly retires the legacy candidate profile"
         in report["blockers"]
     )
 

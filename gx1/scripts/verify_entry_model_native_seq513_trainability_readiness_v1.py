@@ -745,15 +745,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             source_metadata_contract,
         ),
         _check(
-            "canonical train wrapper exposes both explicit model-native profiles",
+            "canonical train wrapper is smoke-only and explicitly retires the legacy candidate profile",
             "gx1.contracts.entry_model_native_signal_v1" in train_wrapper_text
             and "MODEL_NATIVE_CONTRACT_MODE" in train_wrapper_text
             and '--specialist-contract-mode "$MODEL_NATIVE_CONTRACT_MODE"'
             in train_wrapper_text
             and "--profile" in train_wrapper_text
-            and "smoke|candidate" in train_wrapper_text
             and "--smoke-manifest-json" in train_wrapper_text
-            and "--candidate-readiness-json" in train_wrapper_text
+            and "legacy candidate profile is retired" in train_wrapper_text
             and "--anchor-gate-init" not in train_wrapper_text,
             _artifact_meta(train_wrapper),
         ),
@@ -763,13 +762,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             train_wrapper_direction_diagnostic_review,
         ),
         _check(
-            "both model-native profiles use the canonical wrapper in control surface",
+            "control surface retires the legacy candidate route instead of bypassing the V9 launch gate",
             "model-native-smoke-train)" in control_text
             and "model-native-candidate-train)" in control_text
             and f'{Path(TRAIN_WRAPPER_RELATIVE_PATH).name}" --profile smoke'
             in control_text
+            and "model-native-candidate-train is retired" in control_text
             and f'{Path(TRAIN_WRAPPER_RELATIVE_PATH).name}" --profile candidate'
-            in control_text,
+            not in control_text,
             _artifact_meta(control_script),
         ),
         _check("smart smoke future contract is implemented in control surface", future_train.get("implemented_in_control_surface") is True, future_train),

@@ -8,10 +8,10 @@ Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
 `bash scripts/gx1_handover.sh`. V9 has completed its full 31,004-step TRAIN
 and 8,860-batch VAL as a technical-only result; it is not an accepted
-candidate. After the PC restart, the signed WSL telemetry endpoint returned a
-fresh valid 160 W physical-limit response. No CUDA work is authorised. A new
-31,004-step TRAIN still needs a clean exact preflight and explicit operator
-authorisation; re-probe the signed bridge immediately before any launch.
+candidate. Historical 160 W telemetry is not current authority: a new PC
+restart can reset the driver limit. No CUDA work is authorised. A new
+31,004-step TRAIN still needs a clean exact preflight, a fresh signed 160 W
+response and explicit operator authorisation.
 
 ## Historical context (superseded as current status)
 
@@ -277,7 +277,8 @@ do not modify or delete it.
 
 Every heavy command uses `scripts/gx1_capped_run.sh`: 4G for audits/tests and
 at most 20G for the canonical trainer (raised from 10G 2026-08-09 on real
-batch=640 RSS measurement, see CLAUDE.md), 512 MiB swap, CPU 0-1, one job at a
+batch=640 RSS measurement, see CLAUDE.md), CPU affinity 0-7 with eight
+numerical threads for the canonical trainer, 512 MiB swap, and one job at a
 time. Communicate before any run lasting more than a minute. Never launch live,
 paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
 pre-existing processes unless the user explicitly authorizes that action.

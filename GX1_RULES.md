@@ -8,11 +8,11 @@ Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 before historical notes below. `bash scripts/gx1_handover.sh` owns the live
 candidate-session position and source closure. V9 has completed 31,004 TRAIN
 steps and full VAL, but is technical-only because selected VAL PnL is negative;
-TEST, candidate acceptance, promotion, paper and live are blocked. After the
-physical-PC restart, the signed WSL telemetry endpoint returned a valid signed
-response with the physical limit re-verified at 160 W. Therefore CUDA,
-including another full TRAIN, remains blocked pending clean exact preflight and
-explicit operator authorisation. Only declared runtime state and
+TEST, candidate acceptance, promotion, paper and live are blocked. Historical
+signed 160 W telemetry was invalidated by the next physical-PC restart, so
+CUDA, including another full TRAIN, remains blocked pending clean exact
+preflight, a fresh signed 160 W response, and explicit operator authorisation.
+Only declared runtime state and
 regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
 source identity.
 
@@ -37,8 +37,9 @@ source identity.
   authority. A new source commit, recipe, output root or data identity must
   never be substituted for that state.
 - Every heavy job enters through `scripts/gx1_capped_run.sh`: one job at a
-  time, cgroup RAM `20G`, swap `512M`, CPU affinity `0-1`, numerical-library
-  threads one and DataLoader workers zero. Adding CPU workers/cores is not an
+  time, cgroup RAM `20G`, swap `512M`, CPU affinity `0-7`, eight numerical
+  threads for the canonical trainer (one for audits/producers), and DataLoader
+  workers zero. Adding CPU workers/cores is not an
   approved speed knob: measured data fetch is small compared with the GPU Exit
   calculation, while extra WSL CPU load increases the freeze/heat risk.
 - CUDA is fail-closed at core `70 C`, actual draw `220 W`, resident VRAM
@@ -205,7 +206,8 @@ Complexity must live in the existing owners; unnecessary code is deleted.
 ## Capacity and cleanup
 
 - Use `scripts/gx1_capped_run.sh` for every heavy producer, audit, train or
-  replay. Run one job at a time on CPU cores 0-1 with 512 MiB swap.
+  replay. Run one job at a time with CPU affinity 0-7 and 512 MiB swap; only
+  the canonical trainer receives its fixed eight numerical threads.
 - Ordinary audits/tests use at most 4G. The heavy offline dataset producers
   run as `--class producer` and may use at most 20G. The canonical trainer may
   use at most 20G (raised from 10G on 2026-08-09 on real batch=640

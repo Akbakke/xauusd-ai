@@ -16,10 +16,13 @@
   Run only from *native Windows PowerShell as Administrator*, not from WSL.
   Example (after opening an elevated Windows PowerShell):
     Set-ExecutionPolicy -Scope Process Bypass -Force
-    & '\\wsl.localhost\Ubuntu\home\andre2\src\GX1_ENGINE\scripts\windows\Install-GX1-HostTelemetry.ps1' -Install
+    $h = (wsl.exe -- sh -lc 'printf %s "$HOME"').Trim()
+    $p = "$h/src/GX1$([char]95)ENGINE/scripts/windows/Install-GX1-HostTelemetry.ps1"
+    $script = (wsl.exe -- wslpath -w $p).Trim()
+    & $script -Install
 
   To set a physical power cap, opt in explicitly after the first sensor proof:
-    ... -Install -SetPowerLimitWatts 250
+    ... -Install -SetPowerLimitWatts 160
 #>
 
 [CmdletBinding()]
@@ -28,7 +31,7 @@ param(
     [string]$ExpectedGpuName = 'NVIDIA GeForce RTX 3090',
     [ValidateRange(0, 31)]
     [int]$GpuIndex = 0,
-    [ValidateRange(0, 1000)]
+    [ValidateRange(0, 160)]
     [int]$SetPowerLimitWatts = 0
 )
 
@@ -233,7 +236,7 @@ $report = [ordered]@{
     power_limit_w = [Math]::Round($powerLimit, 2)
     memory_junction_c = $sensor.memory_junction_c
     libre_hardware_monitor_exe = $lhmExe
-    canonical_ready = ($powerLimit -le 250.0)
+    canonical_ready = ($powerLimit -le 160.0)
     note = 'Sensor-installation evidence only; this is not a signed canonical bridge response.'
 }
 
@@ -241,5 +244,5 @@ Write-Host ''
 Write-Host 'GX1 host sensor probe succeeded:' -ForegroundColor Green
 $report | ConvertTo-Json -Depth 3
 if (-not $report.canonical_ready) {
-    Write-Warning "VRAM telemetry is now available, but the physical limit is $($report.power_limit_w) W. Canonical CUDA remains locked until it is at or below 250 W."
+    Write-Warning "VRAM telemetry is now available, but the physical limit is $($report.power_limit_w) W. Canonical CUDA remains locked until it is at or below 160 W."
 }

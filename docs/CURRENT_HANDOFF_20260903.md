@@ -100,14 +100,13 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current host gate
 
-The physical PC was restarted after the prior 3090 host hang. The last proven
-Windows sensor setup had a 160 W physical GPU limit and 52 C memory junction,
-but that installation evidence was invalidated by the restart. A fresh signed
-WSL bridge query to `http://172.30.224.1:38128/gx1/v1/telemetry/` now succeeds
-and reported 57 C core, 64 C memory junction, 127.49 W draw, **160 W configured
-physical limit**, and 442 MiB VRAM for the expected GPU UUID immediately before
-the smoke launch. Both host-safety telemetry gates passed, the guarded smoke
-completed with exit code 0, and no trainer is active.
+The physical PC was restarted after the prior 3090 host hang. The historical
+Windows sensor setup and signed bridge query proved a 160 W physical GPU limit,
+but that evidence was tied to its moment before the next restart. The latest
+signed bridge probe observed a **390 W configured physical limit** for the
+expected GPU UUID. This is a hard CUDA block: set the physical limit to 160 W
+from elevated native Windows PowerShell and obtain a new signed bridge response
+immediately before any proposed launch. No trainer is active.
 
 No further CUDA work, including another 31,004-step TRAIN, is authorised. It
 remains blocked until both of the following are true:

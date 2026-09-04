@@ -1,9 +1,10 @@
 # V8 candidate host-hang incident — 2026-09-01
 
 > **2026-09-03 re-entry note:** V8 remains incident evidence only. V9 later
-> completed a technical TRAIN+VAL result, and the signed bridge query now
-> works with the physical limit verified at 160 W. New CUDA remains blocked
-> pending its separate preflight and operator gate; see
+> completed a technical TRAIN+VAL result. Historical signed 160 W bridge
+> evidence is not current after a further restart; new CUDA remains blocked
+> pending its separate preflight, a fresh signed 160 W response, and operator
+> gate; see
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).
 
 Status: **V8 resume is blocked for host safety.** This is an operational

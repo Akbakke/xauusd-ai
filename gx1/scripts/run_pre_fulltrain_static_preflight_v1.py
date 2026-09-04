@@ -39,10 +39,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 )
 
 
-SCHEMA_VERSION = "gx1_pre_fulltrain_static_preflight_v1"
+SCHEMA_VERSION = "gx1_pre_fulltrain_static_preflight_v2"
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
 TRAIN_START_UTC = "2021-06-01T00:00:00+00:00"
-TRAIN_END_UTC = "2025-06-01T00:00:00+00:00"
+# The V9 five-year recipe owns this exclusive boundary.  The last emitted
+# TRAIN row is 2026-05-31T23:50Z; VAL begins at the next M5 clock.
+TRAIN_END_UTC = "2026-05-31T23:55:00+00:00"
 VAL_START_UTC = TRAIN_END_UTC
 VAL_END_UTC = TEST_BOUNDARY_UTC
 

@@ -6,9 +6,9 @@ binding scope; `CLAUDE.md` is the process constitution.
 
 For a context-reset takeover, read
 [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) first.
-The host restart has been reported, and a subsequent WSL bridge query now
-returns valid signed telemetry with the physical limit re-verified at 160 W.
-This does not independently authorise CUDA.
+Historical WSL bridge telemetry proved a 160 W physical limit, but a later
+restart can reset that limit. A fresh signed 160 W response is required before
+any proposed CUDA launch; this document does not independently authorise CUDA.
 
 > **Current V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its
@@ -888,7 +888,8 @@ designed to correct. The durable assets are the rules and fail-closed gates.
 ## Machine and process safety
 
 Every heavy producer, audit, train or replay enters through
-`scripts/gx1_capped_run.sh`: one job at a time, CPU affinity 0-1, 512 MiB swap,
+`scripts/gx1_capped_run.sh`: one job at a time, CPU affinity 0-7 with eight
+canonical-trainer numerical threads, 512 MiB swap,
 4G for audits and tests, at most 20G for the heavy dataset producers
 (`--class producer`) and 20G for the canonical trainer — this file said 10G for
 producers until 2026-08-19; `scripts/gx1_capped_run.sh` is the authority. A cap

@@ -8,6 +8,13 @@ from pathlib import Path
 import pytest
 import torch
 
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    EARLY_STOP_MIN_DELTA,
+    EARLY_STOP_PATIENCE,
+    MAX_EPOCHS,
+    MINIMUM_EPOCHS_BEFORE_STOP,
+    SAVE_TOP_K,
+)
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
 
@@ -367,7 +374,7 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
     assert restored_again["entry_policy_realized_pnl_chunks"][0].shape == (1,)
 
 
-def test_candidate_runner_resumes_completed_hash_bound_session(
+def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The candidate coordinator must not retrain after a completed resume."""
@@ -456,13 +463,15 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
             pin_memory=False,
             persistent_workers=False,
             prefetch_factor=None,
-                # Candidate selection is intentionally terminal after its one
-                # full TRAIN epoch and one complete VAL pass.
-                epochs=1,
-                early_stopping_patience=5,
-                early_stopping_min_delta=0.0,
-                minimum_epochs_before_stop=1,
-                save_top_k=1,
+                # The coordinator rejects policy drift before it trains. This
+                # regression must therefore exercise the actual frozen policy,
+                # including the no-improvement early stop after the resumed
+                # first epoch rather than an obsolete one-epoch substitute.
+                epochs=MAX_EPOCHS,
+                early_stopping_patience=EARLY_STOP_PATIENCE,
+                early_stopping_min_delta=EARLY_STOP_MIN_DELTA,
+                minimum_epochs_before_stop=MINIMUM_EPOCHS_BEFORE_STOP,
+                save_top_k=SAVE_TOP_K,
             out_bundle_dir=out_bundle,
             gx1_data_override="",
             run_id="V46_20260825T170935Z_CANDIDATE",
@@ -513,13 +522,25 @@ def test_candidate_runner_resumes_completed_hash_bound_session(
 
     second_model = torch.nn.Linear(3, 2)
     second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))
-    assert calls == {"train": 2, "validation": 1}
-    assert train_offsets == [0, 1]
+    completed_epochs = max(
+        MINIMUM_EPOCHS_BEFORE_STOP,
+        1 + EARLY_STOP_PATIENCE,
+    )
+    assert calls == {
+        "train": 1 + completed_epochs,
+        "validation": completed_epochs,
+    }
+    assert train_offsets == [0, 1, *([0] * (completed_epochs - 1))]
     assert second["best_epoch"] == 1
     assert second["best_policy_pnl"] == 2.0
+    assert second["last_epoch"] == completed_epochs
+    assert second["early_stopped"] is True
     assert not out_bundle.exists()
 
     third_model = torch.nn.Linear(3, 2)
     third = _run(third_model, torch.optim.AdamW(third_model.parameters(), lr=0.001))
-    assert calls == {"train": 2, "validation": 1}
+    assert calls == {
+        "train": 1 + completed_epochs,
+        "validation": completed_epochs,
+    }
     assert third["best_epoch"] == 1

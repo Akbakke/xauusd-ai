@@ -150,7 +150,8 @@ completing, and all ran on the *one-year* window, so this is a lower bound and a
 weak one after a 5.02× TRAIN growth. The heaviest window-scaling stages are the
 TRAIN feature ranker (full candidate matrix over every TRAIN row) and the
 dataset rebuild's TRAIN split. Chains cannot be parallelised:
-`scripts/gx1_capped_run.sh` holds a global one-job lock and pins CPU 0-1.
+`scripts/gx1_capped_run.sh` holds a global one-job lock and pins the current
+V9 canonical trainer to CPU affinity 0-7 with eight numerical threads.
 
 ## 7. Measured: the seven constant D1 fields, and that the new window clears them
 

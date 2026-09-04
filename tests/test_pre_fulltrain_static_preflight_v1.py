@@ -12,6 +12,9 @@ import pytest
 from gx1.scripts.run_pre_fulltrain_static_preflight_v1 import (
     PreflightError,
     TEST_BOUNDARY_UTC,
+    TRAIN_END_UTC,
+    TRAIN_START_UTC,
+    VAL_START_UTC,
     inspect_bundle_normalization_binding,
     inspect_dataset_mtf_cache_binding,
     inspect_mtf_cache_test_boundary,
@@ -37,7 +40,7 @@ def test_allowed_val_scan_proves_bounds_without_test_access(tmp_path: Path) -> N
     _write_split(
         path,
         [
-            datetime(2025, 6, 1, tzinfo=timezone.utc),
+            datetime(2026, 5, 31, 23, 55, tzinfo=timezone.utc),
             datetime(2026, 6, 30, 23, 55, tzinfo=timezone.utc),
         ],
         [12, 96],
@@ -45,7 +48,7 @@ def test_allowed_val_scan_proves_bounds_without_test_access(tmp_path: Path) -> N
     report = scan_allowed_split(
         path,
         label="val",
-        nominal_start_utc="2025-06-01T00:00:00+00:00",
+        nominal_start_utc=VAL_START_UTC,
         nominal_end_utc=TEST_BOUNDARY_UTC,
     )
     assert report["rows"] == 2
@@ -64,7 +67,7 @@ def test_scan_rejects_test_timestamp_and_test_like_path(tmp_path: Path) -> None:
         scan_allowed_split(
             forbidden,
             label="val",
-            nominal_start_utc="2025-06-01T00:00:00+00:00",
+            nominal_start_utc=VAL_START_UTC,
             nominal_end_utc=TEST_BOUNDARY_UTC,
         )
 
@@ -96,9 +99,15 @@ def test_mtf_cache_metadata_detects_test_exposure_without_reading_arrays(
         scan_allowed_split(
             path,
             label="val",
-            nominal_start_utc="2025-06-01T00:00:00+00:00",
+            nominal_start_utc=VAL_START_UTC,
             nominal_end_utc=TEST_BOUNDARY_UTC,
         )
+
+
+def test_static_preflight_uses_the_five_year_recipe_split_boundary() -> None:
+    assert TRAIN_START_UTC == "2021-06-01T00:00:00+00:00"
+    assert TRAIN_END_UTC == "2026-05-31T23:55:00+00:00"
+    assert VAL_START_UTC == TRAIN_END_UTC
 
 
 def test_dataset_manifest_must_bind_exact_inspected_mtf_cache(tmp_path: Path) -> None:
