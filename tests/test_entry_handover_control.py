@@ -68,6 +68,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-manifest",
     "model-native-smoke-readiness",
     "model-native-trainability-readiness",
+    "model-native-pretest-trainability-readiness",
     "model-native-execution-causality-audit",
     "model-native-train-recipe-audit",
     "model-native-smoke-bundle-audit",

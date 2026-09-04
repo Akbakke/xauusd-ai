@@ -37,10 +37,10 @@ run-directory timestamp. Do not start TRAIN from this document.
   Its control-plane proof reports no TEST dataset/manifest/metric bytes read
   and no TEST paths resolved or statted.
 - The active offline candidate recipe is the 2026-09-04 source rebind:
-  `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T050929Z_RECIPE.json`, SHA-256
-  `22a24672bc4df1e6c89bc18155793039c9bd813078782f2f063432515c9a9b6c`.
+  `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z_RECIPE.json`, SHA-256
+  `e660167098c8bbd1bb33261051324341a3da547cb7289f5ac359c635c9905ae5`.
   It is `report_only`, has `activation_authority=false`, and binds source
-  commit `be9f3660`. It specifies batch 8, **at most 30 epochs**, validation
+  commit `b414fc36`. It specifies batch 8, **at most 30 epochs**, validation
   every epoch, patience 5, minimum epoch 1, and `save_top_k=1`.
 - `ENTRY_V9_FIVE_YEAR_CANDIDATE_CHECKPOINT_POLICY_PROOF_20260903T174100Z.json`
   is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
@@ -55,7 +55,22 @@ run-directory timestamp. Do not start TRAIN from this document.
   `2cab27cd57100553e3a9d0b741310c7726a25d840b9c234ea237b686e1fc057f`.
   Its guarded launcher dry-run is `PASS`, with `test_accessed=false`; it binds
   a canonical CUDA smoke of one epoch, batch 8 and 32 deterministic rows.
-  It has not been executed and its output bundle does not exist.
+  It was executed once on 2026-09-04 after fresh signed 160 W telemetry. The
+  immutable bundle is `ENTRY_V9_FIVE_YEAR_GATE_SMOKE_20260904T124806Z_BUNDLE`,
+  with bundle-commit SHA-256
+  `85401bebf8b8571c19db91964aba737636518c8cb3ebf0e3a9a82a28fea4fce8`.
+  The guarded one-epoch run exited 0; it touched TRAIN/VAL only and did not
+  create TEST, candidate, paper or live authority.
+- The current direct V9 readiness is
+  `ENTRY_PRETEST_TRAINABILITY_READINESS_20260904T201527266562Z.json`, SHA-256
+  `7d97f3651fdf2860244dd75a38b6eab9db98183280eec8b4c3c6d93db8cfa6b5`.
+  It rehashes the exact smoke/candidate recipes and all direct TRAIN/VAL
+  bindings against the new zero-failure five-year pretrain audit. It remains
+  non-authorizing (`candidate_training_allowed=false`).
+- A gate still cannot be materialized: the smoke-bundle contract additionally
+  requires immutable VAL-only prediction evidence from this exact bundle. That
+  is one separate guarded CUDA inference pass, not a retraining pass. It needs
+  a separate explicit operator authorization.
 - Do not substitute `model-native-attended-hardware-smoke`: that route is a
   synthetic architecture diagnostic with no dataset, bundle or candidate
   output, and therefore cannot produce the smoke audit required by a
