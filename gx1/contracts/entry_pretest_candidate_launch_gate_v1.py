@@ -229,7 +229,13 @@ def validate_gate_payload(
             )
     _smoke_audit(Path(smoke["path"]), recipe=identity)
     _candidate_readiness(
-        Path(readiness["path"]), recipe=identity, smoke_audit=smoke
+        Path(readiness["path"]),
+        # Direct V9 pre-TEST readiness must rehash and compare the exact
+        # immutable recipe binding.  ``identity`` deliberately holds only
+        # public gate fields, so add the already-validated recipe path solely
+        # for this internal readiness proof.
+        recipe={**identity, "path": recipe["path"]},
+        smoke_audit=smoke,
     )
     return json.loads(json.dumps(dict(value), sort_keys=True, allow_nan=False))
 

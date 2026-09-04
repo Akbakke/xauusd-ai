@@ -50,7 +50,11 @@ def run(args: argparse.Namespace) -> tuple[Path, dict]:
     _smoke_audit(smoke_path, recipe=identity)
     _candidate_readiness(
         readiness_path,
-        recipe=identity,
+        # The direct V9 pre-TEST readiness lane binds the immutable candidate
+        # recipe itself, in addition to its run/dataset identity.  Keep the
+        # on-disk gate schema limited to the stable identity fields below,
+        # but provide the binding path while revalidating that readiness.
+        recipe={**identity, "path": recipe_binding["path"]},
         smoke_audit=smoke_binding,
     )
     payload = {
