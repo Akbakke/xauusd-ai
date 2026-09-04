@@ -36,11 +36,11 @@ run-directory timestamp. Do not start TRAIN from this document.
   `7d69d20f1ce50538cddfc18c438c4f0965c223d272ba05bae43ec9bc7e85ed0b`.
   Its control-plane proof reports no TEST dataset/manifest/metric bytes read
   and no TEST paths resolved or statted.
-- The new offline candidate recipe is
-  `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260903T173911Z_RECIPE.json`, SHA-256
-  `74e2a4c643aa20e02586dc8486c74b99fe43cc8961c9b42ff9535f027e6bf945`.
+- The active offline candidate recipe is the 2026-09-04 source rebind:
+  `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T050929Z_RECIPE.json`, SHA-256
+  `22a24672bc4df1e6c89bc18155793039c9bd813078782f2f063432515c9a9b6c`.
   It is `report_only`, has `activation_authority=false`, and binds source
-  commit `6e525ec3`. It specifies batch 8, **at most 30 epochs**, validation
+  commit `be9f3660`. It specifies batch 8, **at most 30 epochs**, validation
   every epoch, patience 5, minimum epoch 1, and `save_top_k=1`.
 - `ENTRY_V9_FIVE_YEAR_CANDIDATE_CHECKPOINT_POLICY_PROOF_20260903T174100Z.json`
   is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
