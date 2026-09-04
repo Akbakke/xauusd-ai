@@ -180,7 +180,7 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     assert (
         "train_recipe: "
-        "FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CANDIDATE_GATE_READY__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
         in result.stdout
     )
     assert re.search(
@@ -194,12 +194,12 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_source_bindings_sha256: " in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert (
@@ -372,18 +372,20 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "gx1_current_source_technical_recipe_reference_v1"
     )
     assert current_source_recipe["status"] == (
-        "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
     )
-    assert current_source_recipe["run_id"].startswith(
-        "ENTRY_V9_FIVE_YEAR_CANDIDATE_"
-    )
+    assert current_source_recipe["run_id"] == "ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z"
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()
     assert not Path(current_source_recipe["out_bundle_dir"]).exists()
     assert set(current_source_recipe) == {
         "schema_version", "status", "recipe_path", "recipe_sha256",
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
-        "out_bundle_dir",
+        "out_bundle_dir", "postrun_bundle_audit_path",
+        "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
+        "candidate_readiness_path", "candidate_readiness_sha256",
+        "candidate_readiness_decision", "candidate_launch_gate_path",
+        "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
     }
     for key in ("recipe_sha256", "source_bindings_sha256"):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
@@ -482,12 +484,12 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     assert (
         "current_source_technical_recipe: "
-        "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
         in result.stdout
     )
     assert (
         "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
         in result.stdout
     )
     assert "## Host capacity" not in result.stdout

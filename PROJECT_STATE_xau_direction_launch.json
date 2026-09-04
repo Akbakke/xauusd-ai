@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-04T20:15:27Z",
+  "updated_utc": "2026-09-04T20:31:48Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -12,14 +12,23 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY",
+    "status": "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z_RECIPE.json",
     "recipe_sha256": "e660167098c8bbd1bb33261051324341a3da547cb7289f5ac359c635c9905ae5",
     "source_commit": "b414fc36221313a0ff9ae802e58cf26cef1ab953",
     "source_bindings_sha256": "ab564f29328148c7615b47fa0e67a3b8948ccad25262cae3f9b7e54e52954ca9",
     "run_id": "ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z",
     "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z_BUNDLE"
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z_BUNDLE",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_GATE_SMOKE_20260904T124806Z_POSTRUN_AUDIT_20260904T202300Z/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260904T202259363584Z.json",
+    "postrun_bundle_audit_sha256": "b8f55a5084b0ac97a5e3fbe7aa732fdc545a5864ef3ea61265858093f019d708",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_CANDIDATE_READINESS_20260904T203200Z/ENTRY_CANDIDATE_READINESS_20260904T202543050922Z.json",
+    "candidate_readiness_sha256": "a5db7a4ca0c4bb62976b2dc6805db451b70bde47900f53483a6b2375521591a5",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/ENTRY_V9_FIVE_YEAR_CANDIDATE_GATE_20260904T203300Z/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260904T202913201537Z.json",
+    "candidate_launch_gate_sha256": "25d76042cbac9afaa2ec36cc8e71a59db343164a73c17460babb4364bb517ad7",
+    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",

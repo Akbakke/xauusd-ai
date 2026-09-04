@@ -359,6 +359,10 @@ def _current_source_technical_recipe_status(
         "FIVE_YEAR_CANDIDATE_RECIPE_PREPARED__CPU_PREFLIGHT_PASS__"
         "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
     )
+    candidate_gated_status = (
+        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__"
+        "EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+    )
     expected_reference_keys = set(base_reference_keys)
     if isinstance(reference, dict) and reference.get("status") in {
         executed_status, audited_status, gated_status,
@@ -368,14 +372,16 @@ def _current_source_technical_recipe_status(
             "bundle_metadata_sha256",
         })
     if isinstance(reference, dict) and reference.get("status") in {
-        audited_status, gated_status,
+        audited_status, gated_status, candidate_gated_status,
     }:
         expected_reference_keys.update({
             "postrun_bundle_audit_path", "postrun_bundle_audit_sha256",
             "postrun_bundle_audit_decision", "candidate_readiness_path",
             "candidate_readiness_sha256", "candidate_readiness_decision",
         })
-    if isinstance(reference, dict) and reference.get("status") == gated_status:
+    if isinstance(reference, dict) and reference.get("status") in {
+        gated_status, candidate_gated_status,
+    }:
         expected_reference_keys.update({
             "candidate_launch_gate_path", "candidate_launch_gate_sha256",
             "candidate_launch_gate_decision",
@@ -388,6 +394,7 @@ def _current_source_technical_recipe_status(
     if status not in {
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
         executed_status, audited_status, gated_status, prepared_candidate_status,
+        candidate_gated_status,
     }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
@@ -417,7 +424,9 @@ def _current_source_technical_recipe_status(
         validated = require_pretest_technical_recipe_metadata(
             recipe,
             expected_profile=(
-                "candidate" if status == prepared_candidate_status else "smoke"
+                "candidate"
+                if status in {prepared_candidate_status, candidate_gated_status}
+                else "smoke"
             ),
             expected_run_id=reference["run_id"],
             expected_dataset_run_id=reference["dataset_run_id"],
@@ -435,7 +444,7 @@ def _current_source_technical_recipe_status(
         or validated["trainer_cli"].get("device") != "cuda"
     ):
         raise SystemExit("FATAL: current-source technical recipe contract mismatch")
-    if status == prepared_candidate_status:
+    if status in {prepared_candidate_status, candidate_gated_status}:
         cli = validated["trainer_cli"]
         policy = checkpoint_policy_metadata()
         if (
@@ -461,13 +470,74 @@ def _current_source_technical_recipe_status(
     ):
         raise SystemExit("FATAL: current-source technical recipe live source mismatch")
     out_bundle_dir = Path(reference["out_bundle_dir"])
-    if status == prepared_candidate_status:
+    if status in {prepared_candidate_status, candidate_gated_status}:
         if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
             raise SystemExit("FATAL: five-year candidate recipe has executed CUDA")
-        closure = (
-            "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
-            "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
-        )
+        if status == candidate_gated_status:
+            for prefix, expected_decision in (
+                ("postrun_bundle_audit", "FAIL"),
+                ("candidate_readiness", "READY_FOR_CANDIDATE_TRAINING"),
+            ):
+                event_path = Path(reference[f"{prefix}_path"])
+                if (
+                    _sha256_file(event_path) != reference[f"{prefix}_sha256"]
+                    or _read_regular_json(event_path, label=prefix).get("decision")
+                    != expected_decision
+                    or reference[f"{prefix}_decision"] != expected_decision
+                ):
+                    raise SystemExit(f"FATAL: current-source technical {prefix} mismatch")
+            gate_path = Path(reference["candidate_launch_gate_path"])
+            gate = _read_regular_json(gate_path, label="candidate launch gate")
+            expected_authority = {
+                "candidate_training": True,
+                "live": False,
+                "paper": False,
+                "promotion": False,
+                "shadow": False,
+                "test": False,
+            }
+            if (
+                _sha256_file(gate_path) != reference["candidate_launch_gate_sha256"]
+                or gate.get("schema_version")
+                != "entry_pretest_candidate_launch_gate_v1"
+                or gate.get("decision")
+                != "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+                or gate.get("failures") != []
+                or gate.get("activation_authority") is not False
+                or gate.get("authority") != expected_authority
+                or gate.get("json_path") != str(gate_path)
+                or reference["candidate_launch_gate_decision"]
+                != "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+            ):
+                raise SystemExit("FATAL: current-source candidate launch gate mismatch")
+            expected_smoke_audit = {
+                "path": reference["postrun_bundle_audit_path"],
+                "sha256": reference["postrun_bundle_audit_sha256"],
+            }
+            expected_readiness = {
+                "path": reference["candidate_readiness_path"],
+                "sha256": reference["candidate_readiness_sha256"],
+            }
+            if (
+                gate.get("smoke_bundle_audit") != expected_smoke_audit
+                or gate.get("candidate_readiness") != expected_readiness
+            ):
+                raise SystemExit("FATAL: current-source candidate gate inputs mismatch")
+            candidate_recipe_binding = gate.get("recipe")
+            if candidate_recipe_binding != {
+                "path": str(recipe_path),
+                "sha256": str(reference["recipe_sha256"]),
+            }:
+                raise SystemExit("FATAL: current-source candidate gate recipe mismatch")
+            closure = (
+                "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
+                "CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
+            )
+        else:
+            closure = (
+                "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
+                "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+            )
     elif status == "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED":
         if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
             raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
@@ -905,7 +975,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CPU_PREFLIGHT_PASS__NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
+echo "train_recipe: FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CANDIDATE_GATE_READY__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
@@ -967,7 +1037,7 @@ echo "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 
 echo "local_cuda: V9_FULL_TECHNICAL_TRAIN_VAL_COMPLETED__NO_CANDIDATE_ACCEPTANCE"
 echo "cuda_speed_history: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__NOT_A_CURRENT_LAUNCH_PERMISSION"
 echo "host_telemetry: FRESH_SIGNED_160W_RESPONSE_REQUIRED_AFTER_EACH_RESTART_OR_DRIVER_RESET"
-echo "current_cuda_authority: NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_REAUTHORIZATION_REQUIRED"
+echo "current_cuda_authority: CANDIDATE_GATE_READY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
