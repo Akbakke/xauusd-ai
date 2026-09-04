@@ -11,10 +11,12 @@ V9 completed the full 31,004-step TRAIN epoch and 8,860-batch VAL as technical
 evidence, not candidate acceptance: selected VAL PnL is negative and TEST was
 not read. The current-source 32-row smoke's CPU-only audit is `FAIL` on narrow
 specialist top-rank quality, while its technical pipeline supports a frozen
-candidate recipe/gate that passed CPU-only dry-run. Historical 160 W signed
-telemetry is not durable across a PC restart; CUDA and any new full TRAIN
-remain blocked pending clean exact preflight, a fresh signed 160 W response,
-and explicit operator authorisation. Paper, broker and live are blocked.
+candidate recipe/gate that passed CPU-only dry-run. A fresh signed 160 W
+response was re-established on 2026-09-04 and a persistent Windows cap task
+now maintains the physical limit, but it is not a five-year candidate gate.
+CUDA and any new full TRAIN remain blocked pending a dataset-bound gate, clean
+exact preflight, a fresh launch-time signed response and explicit operator
+authorisation. Paper, broker and live are blocked.
 
 The V4/V5 status text below is historical background only.
 

@@ -20,10 +20,11 @@ documentation and the code together.
 short human restart point. V9 completed 31,004 TRAIN steps and full VAL as a
 technical-only bundle; selected VAL PnL is negative, TEST is unread, and all
 candidate/paper/live authority is false. Query the verified session from
-`bash scripts/gx1_handover.sh`, never a prose checkpoint. A 160 W signed
-telemetry response is valid only for that instant: do not launch CUDA after a
-restart or driver reset without a clean preflight, a fresh signed 160 W
-response, and explicit operator approval.
+`bash scripts/gx1_handover.sh`, never a prose checkpoint. A signed 160 W
+response was verified on 2026-09-04 and the host cap is persistent, but every
+response is valid only for its instant: do not launch CUDA after a restart or
+driver reset without a clean preflight, a fresh signed response, a
+dataset-bound candidate gate and explicit operator approval.
 
 The detailed V4/V5 text below is retained historical context, not status.
 

@@ -63,9 +63,11 @@ driver, reapplies the cap and verifies the exact GPU UUID plus a limit at or
 below `160 W`; it then checks/reapplies every 15 minutes to cover a later
 driver reset. It logs its result under `C:\\ProgramData\\GX1\\GpuPowerLimit`.
 The bridge still independently observes and signs the physical state: automatic
-reapplication does not make an old signed response valid after a restart. A
-signed response at 2026-09-01 18:xx confirmed 47 C core, 52 C memory junction,
-39.76 W draw, 160 W limit and 403 MiB residency after the recovery.
+reapplication does not make an old signed response valid after a restart. The
+fresh source-bound query recorded on 2026-09-04 returned 52 C core, 56 C memory
+junction, 39.05 W draw, 160 W limit and 392 MiB residency. It is host-safety
+evidence only; the guarded launcher repeats the signed query immediately before
+any CUDA allocation.
 
 V9 also binds candidate CPU affinity to `0-7` and all common numerical libraries
 plus PyTorch to eight threads. This reserves eleven of WSL's nineteen logical

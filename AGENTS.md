@@ -8,10 +8,12 @@ Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
 `bash scripts/gx1_handover.sh`. V9 has completed its full 31,004-step TRAIN
 and 8,860-batch VAL as a technical-only result; it is not an accepted
-candidate. Historical 160 W telemetry is not current authority: a new PC
-restart can reset the driver limit. No CUDA work is authorised. A new
-31,004-step TRAIN still needs a clean exact preflight, a fresh signed 160 W
-response and explicit operator authorisation.
+candidate. A fresh signed bridge query on 2026-09-04 verified 160 W after the
+restart, while the `GX1GpuPowerLimit` task now reapplies that cap at boot and
+every 15 minutes. That response expires on any later reset and is re-queried
+by the CUDA guard. No CUDA work is authorised: the five-year recipe still has
+no dataset-bound candidate gate, and a new 31,004-step TRAIN also needs a
+clean exact preflight and explicit operator authorisation.
 
 ## Historical context (superseded as current status)
 

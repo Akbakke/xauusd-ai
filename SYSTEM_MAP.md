@@ -3,9 +3,11 @@
 This is an architecture map, not runtime authority. For a lost-chat or reboot
 restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
 `bash scripts/gx1_handover.sh`. V9 is a completed technical TRAIN+VAL result,
-not an accepted candidate. A historical signed 160 W response is not valid
-after a later restart; no CUDA launch is currently authorised without the
-remaining preflight, a fresh signed 160 W response, and the operator gate.
+not an accepted candidate. A fresh signed 160 W response was verified on
+2026-09-04 and is maintained by a persistent host cap task, but it is valid
+only at its observation time. No CUDA launch is currently authorised without
+the remaining dataset-bound gate, clean preflight, a fresh launch-time signed
+response and the operator gate.
 
 The older V4/V5 status below is retained as historical architecture context.
 

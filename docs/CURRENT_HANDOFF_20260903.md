@@ -100,16 +100,16 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current host gate
 
-The physical PC was restarted after the prior 3090 host hang. The historical
-Windows sensor setup and signed bridge query proved a 160 W physical GPU limit,
-but that evidence was tied to its moment before the next restart. The latest
-signed bridge probe observed a **390 W configured physical limit** for the
-expected GPU UUID. This is a hard CUDA block. One elevated native-Windows
-`Install-GX1-HostTelemetry.ps1 -Install -SetPowerLimitWatts 160` run applies
-the limit now and installs the `GX1GpuPowerLimit` SYSTEM startup task, which
-reapplies and verifies it at boot and every 15 minutes thereafter. Obtain a
-new signed bridge response immediately before any proposed launch; no trainer
-is active.
+The physical PC was restarted after the prior 3090 host hang, invalidating the
+old signed 160 W response. The temporary 390 W state was repaired on
+2026-09-04 with elevated native Windows sensor setup: it set 160 W and
+installed the `GX1GpuPowerLimit` SYSTEM task, which reapplies and verifies the
+cap at boot and every 15 minutes. A fresh source-bound nonce/RSA bridge query
+then returned `52,56,39.05,160,392` (core C, memory-junction C, draw W,
+physical limit W, VRAM MiB) for the expected GPU UUID. It proves signed
+telemetry and the 160 W host prerequisite at that instant, but is not a
+candidate gate or CUDA authorisation. Obtain a new signed bridge response
+immediately before any proposed launch; no trainer is active.
 
 No further CUDA work, including another 31,004-step TRAIN, is authorised. It
 remains blocked until both of the following are true:
@@ -120,9 +120,11 @@ remains blocked until both of the following are true:
 2. The operator explicitly authorises a new CUDA launch. This is intentionally
    separate from this technical result and from any old chat instruction.
 
-The physical-limit change was performed from native elevated Windows PowerShell
-and followed by the signed bridge query above. It is a safety-precondition
-repair, not CUDA authorisation.
+The physical-limit change and signed bridge verification are
+safety-precondition repairs, not CUDA authorisation. The next non-CUDA action
+is to materialize a five-year candidate gate only if its exact preflight
+artefacts exist; old smoke/readiness evidence is dataset-bound to a different
+surface and must fail closed.
 
 ## Relevant immutable paths
 

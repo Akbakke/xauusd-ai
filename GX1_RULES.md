@@ -9,9 +9,12 @@ before historical notes below. `bash scripts/gx1_handover.sh` owns the live
 candidate-session position and source closure. V9 has completed 31,004 TRAIN
 steps and full VAL, but is technical-only because selected VAL PnL is negative;
 TEST, candidate acceptance, promotion, paper and live are blocked. Historical
-signed 160 W telemetry was invalidated by the next physical-PC restart, so
-CUDA, including another full TRAIN, remains blocked pending clean exact
-preflight, a fresh signed 160 W response, and explicit operator authorisation.
+signed 160 W telemetry was invalidated by the next physical-PC restart; a
+fresh signed bridge response on 2026-09-04 repaired that host prerequisite and
+the persistent cap task now reapplies it. CUDA, including another full TRAIN,
+remains blocked because the five-year recipe has no dataset-bound candidate
+gate; any later launch still needs clean exact preflight, a fresh response at
+launch time, and explicit operator authorisation.
 Only declared runtime state and
 regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
 source identity.

@@ -4,10 +4,10 @@
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md) and run
 > `bash scripts/gx1_handover.sh`. V9 completed 31,004 TRAIN steps plus full
 > VAL as a technical-only result with negative selected VAL PnL; TEST and all
-> execution routes remain blocked. Historical signed 160 W telemetry is not
-> current authority after a further restart or driver reset, and no CUDA work
-> is authorised without the remaining preflight, a fresh signed 160 W response,
-> and the operator gate.
+> execution routes remain blocked. A fresh signed 160 W response was verified
+> on 2026-09-04 and is maintained by a persistent cap task, but telemetry must
+> still be fresh at launch. No CUDA work is authorised without the remaining
+> dataset-bound gate, preflight and operator gate.
 
 This document was the short operational snapshot on 2026-08-30. It is retained
 as historical evidence and does not grant execution authority; the current
