@@ -572,7 +572,11 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert candidate_session["schema_version"] == (
         "gx1_active_candidate_training_session_reference_v1"
     )
-    assert candidate_session["run_id"] == "V9_ONE_EPOCH_CANDIDATE_20260901T213444Z"
+    session_recipe_bytes = Path(candidate_session["recipe_audit_path"]).read_bytes()
+    assert hashlib.sha256(session_recipe_bytes).hexdigest() == candidate_session["recipe_audit_sha256"]
+    session_recipe = json.loads(session_recipe_bytes)
+    for key in ("run_id", "dataset_run_id", "source_commit", "source_bindings_sha256"):
+        assert candidate_session[key] == session_recipe[key]
     assert Path(candidate_session["session_dir"]).is_absolute()
     assert Path(candidate_session["recipe_audit_path"]).is_absolute()
     assert re.fullmatch(r"[0-9a-f]{64}", candidate_session["recipe_audit_sha256"])
@@ -605,18 +609,53 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         assert recipe["source_commit"] == current_source_recipe["source_commit"]
         assert recipe["source_bindings_sha256"] == current_source_recipe["source_bindings_sha256"]
         executed_status = "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+        gated_status = (
+            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__"
+            "CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
+        )
         assert current_source_recipe["status"] in {
             "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
             "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
             executed_status,
+            gated_status,
         }
-        if current_source_recipe["status"] == executed_status:
+        if current_source_recipe["status"] in {executed_status, gated_status}:
             from gx1.contracts.entry_model_native_bundle_commit_v1 import require_bundle_commit_manifest
             bundle = require_bundle_commit_manifest(Path(current_source_recipe["out_bundle_dir"]))
             assert bundle["commit_sha256"] == current_source_recipe["bundle_commit_sha256"]
             expected_keys.update({
                 "bundle_commit_manifest_sha256", "bundle_commit_sha256", "bundle_metadata_sha256",
             })
+            if current_source_recipe["status"] == gated_status:
+                from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import (
+                    require_pretest_candidate_launch_gate,
+                )
+                gate_path = Path(current_source_recipe["candidate_launch_gate_path"])
+                gate_json = json.loads(gate_path.read_bytes())
+                gate = require_pretest_candidate_launch_gate(
+                    gate_path,
+                    current_source_recipe["candidate_launch_gate_sha256"],
+                    expected_recipe_path=gate_json["recipe"]["path"],
+                    expected_recipe_sha256=gate_json["recipe"]["sha256"],
+                )
+                assert gate["dataset_dir"] == recipe["dataset_dir"]
+                assert gate["dataset_run_id"] == recipe["dataset_run_id"]
+                assert gate["decision"] == current_source_recipe["candidate_launch_gate_decision"]
+                for prefix, gate_key in (
+                    ("postrun_bundle_audit", "smoke_bundle_audit"),
+                    ("candidate_readiness", "candidate_readiness"),
+                ):
+                    assert gate[gate_key] == {
+                        "path": current_source_recipe[f"{prefix}_path"],
+                        "sha256": current_source_recipe[f"{prefix}_sha256"],
+                    }
+                    event = json.loads(Path(gate[gate_key]["path"]).read_bytes())
+                    assert event["decision"] == current_source_recipe[f"{prefix}_decision"]
+                expected_keys.update({
+                    "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
+                    "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
+                    "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
+                })
         else:
             assert not Path(current_source_recipe["out_bundle_dir"]).exists()
     else:
@@ -635,8 +674,8 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
     blockers = "\n".join(state["blockers"])
-    assert "native M1/M5 pair" in blockers
-    assert "review hold supersedes that gate" in blockers
+    # Stage transitions change prose, never the explicit admission fields or
+    # the immutable recipe/gate identities validated above.
     assert "No admitted dataset" in blockers
     assert "Untouched TEST direction edge" in blockers
     assert "remain fail-closed" in blockers

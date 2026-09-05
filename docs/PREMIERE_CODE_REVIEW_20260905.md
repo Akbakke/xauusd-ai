@@ -17,6 +17,41 @@ describe the preceding state, not a requirement to ask again at every step.
 
 ## Completed canonical smoke — 2026-09-05
 
+### Successor VAL and candidate gate completed
+
+- VAL report: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_VAL_PREDICTIONS/ENTRY_CANDIDATE_SELECTIVE_EDGE_20260905T155407025645Z.json`, SHA-256 `168c340687b98df097471229fcd051396b59888f45e31aeb3bbb76a6c5807ebd`.
+- Predictions: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_VAL_PREDICTIONS/selective_edge_predictions_20260905T155407025645Z.parquet`, SHA-256 `5a0dec1133ef11d56fbb86d958c38bdbfb56905c2158b286bed6dd9177146443`; all 5509 VAL rows, no TEST, no trainer started.
+- Post-run audit: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_POSTRUN_AUDIT/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260905T155439237233Z.json`, SHA-256 `15e45ed5a31c711eaf0a4440fe4342f632861a626defc610b9b8cd758e537f58`.
+- Candidate readiness: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_READINESS/ENTRY_CANDIDATE_READINESS_20260905T155504876246Z.json`, SHA-256 `9959edc3941cf49a5c6da7b83415198a5cf4bdbe4c4a01308f2db23f82829fa1`; READY_FOR_CANDIDATE_TRAINING, all six checks PASS.
+- Candidate launch gate: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260905T155520511753Z.json`, SHA-256 `4f9003275f930e3aa2de6eefa0cd0ad656a4d865c03199ed1368fb0c17e16678`; READY_FOR_PRETEST_CANDIDATE_TRAINING, zero failures, TEST/paper/live authority false.
+- VAL guard: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_VAL_PREDICTIONS.guard.GXQh4E5R.log`; trainer output: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_VAL_PREDICTIONS.trainer.hPYy9mu8.log`.
+
+Exactly one guarded VAL pass exited 0. Terminal guard aggregates: 93 signed
+samples, peaks 56 C core, 56 C memory junction, 152.72 W draw, 726 MiB VRAM,
+with the 160 W physical limit enforced. The strict smoke audit has seven
+failures, all never-top-ranked specialists. Every active output is live;
+strict bundle components pass; all eight specialist weights are finite,
+positive and state-varying on full VAL. The existing technical start contract
+therefore passes without changing or waiving any checks. This is not a
+production-quality, model-acceptance or trading-edge result. The selected
+candidate remains the unchanged source `e25a8cb6` recipe already recorded.
+
+The CPU-only evaluator dry-run first rejected `--device cuda` under an audit
+scope before allocation; it then passed with `--device cpu`. The actual CUDA
+pass used the allow-listed producer guard. The first documentation commit
+attempt was blocked because the focused CPU tests still held the exclusive
+job lock; it succeeded after all 68 tests completed. Neither event caused a
+CUDA retry or bypass. No executable source changed in this continuation.
+
+The terminal gate transition initially passed 67/68 focused tests; the one
+failure was the snapshot test still allowing only the pre-VAL statuses. It
+now validates the actual immutable gate and its bound audit/readiness, and the
+active session against its own recipe instead of a historical run-name literal.
+All 68 tests then passed (`/tmp/gx1-candidate-gate-transition-confirm-20260905.xml`).
+This test-only update does not change the recipe-bound executable closure.
+
+### Prior canonical smoke boundary
+
 Exactly one authorized canonical smoke completed with process/watchdog exit 0.
 No automatic retry, separate VAL prediction pass, full candidate, TEST,
 acceptance, paper or live execution occurred. The execution hold is restored.

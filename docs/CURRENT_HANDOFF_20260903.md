@@ -18,6 +18,30 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
+### Current execution stage: five-year candidate launch preparation
+
+The authorized full VAL prediction pass is complete: 5509 rows, process and
+watchdog exit 0; 93 signed samples, peaks 56 C core / 56 C memory, 152.72 W
+draw and 726 MiB VRAM. Post-run audit is FAIL only on seven specialists never
+taking top rank; every active output and all eight positive dynamic specialist
+routes pass the existing technical training-start contract. No threshold or
+model change was made. Technical candidate readiness and the exact candidate
+launch gate are READY with zero failures. The next action is clean candidate
+launch preflight and fresh signed telemetry, then the operator-authorized
+full five-year TRAIN/VAL run, not another smoke or another permission request.
+
+Current runtime bindings are recorded in
+`PROJECT_STATE_xau_direction_launch.json` and the review report. The selected
+source-technical reference remains the completed smoke and its new gate; it
+must not be mislabeled as an unexecuted candidate recipe. The paired full
+candidate recipe remains batch 8, maximum 30 epochs, patience 5 and no TRAIN
+subsampling. The trainer's existing two-slot checkpoint protocol preserves
+progress every 64 TRAIN steps / VAL batches across bounded guard windows.
+An expected wall-clock stop is distinct from a hardware/data/model failure;
+resume only the same verified recipe/session, never restart from zero.
+
+### Completed smoke record and superseded pre-VAL boundary
+
 **Operator-authorized continuation, 2026-09-05:** the operator has now approved
 the complete local sequence without per-step confirmation: guarded VAL from
 the exact completed smoke bundle, post-run audit/readiness, candidate gate,

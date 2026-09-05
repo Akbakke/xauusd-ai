@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T15:51:06Z",
+  "updated_utc": "2026-09-05T15:55:20Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -19,10 +19,19 @@
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
     "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
     "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY",
     "bundle_commit_manifest_sha256": "26e6ba3e61e915ec9cdf299680a7f07ab83453b4ddfce5d42546518201bfb036",
     "bundle_commit_sha256": "8a9b197b805e6c373f0e17a3cf4bf0f7559cd43936431ce03cb325ce3c7bfc5d",
-    "bundle_metadata_sha256": "2372aeb7fd90136811d455b74325a97ddc4c39ddb2ab2ec3ac2716c0d1cfd9df"
+    "bundle_metadata_sha256": "2372aeb7fd90136811d455b74325a97ddc4c39ddb2ab2ec3ac2716c0d1cfd9df",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_POSTRUN_AUDIT/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260905T155439237233Z.json",
+    "postrun_bundle_audit_sha256": "15e45ed5a31c711eaf0a4440fe4342f632861a626defc610b9b8cd758e537f58",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_READINESS/ENTRY_CANDIDATE_READINESS_20260905T155504876246Z.json",
+    "candidate_readiness_sha256": "9959edc3941cf49a5c6da7b83415198a5cf4bdbe4c4a01308f2db23f82829fa1",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260905T155520511753Z.json",
+    "candidate_launch_gate_sha256": "4f9003275f930e3aa2de6eefa0cd0ad656a4d865c03199ed1368fb0c17e16678",
+    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -158,8 +167,8 @@
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The native M1/M5 pair and V46/five-year artifacts are retained historical evidence. Their old short-return target/policy/causality contracts are not valid for new training. A CPU-only TRAIN/VAL successor must use entry-notional short returns; physical TEST remains closed. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
-    "No admitted dataset or bundle exists. V9 completed 31,004 TRAIN steps and 8,860 VAL batches as technical evidence only. The later five-year 32-row smoke and guarded VAL pass supported a historical technical gate; seven specialists were never top-ranked but all eight had dynamic positive weights. The 2026-09-05 review hold supersedes that gate. New data/policy/audits and source-bound readiness are required before clean preflight, signed 160 W telemetry and explicit CUDA authorisation.",
+    "The corrected five-year direct TRAIN/VAL successor and CPU audits are complete. Current source-bound smoke and full VAL evidence support the exact candidate start gate. V46/older short-return reports remain historical; physical TEST is closed.",
+    "No admitted dataset or model exists. Current technical readiness permits only the operator-authorized offline five-year TRAIN/VAL candidate through its exact gate and fresh signed 160 W preflight. Strict smoke quality remains FAIL on seven never-top-ranked specialists; all eight have positive dynamic weights. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
     "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",
