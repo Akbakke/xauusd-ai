@@ -18,7 +18,60 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-### Current execution stage: five-year candidate started, checkpointed TRAIN
+### Safety stop — 2026-09-05T19:57:39Z; no CUDA retry
+
+This overrides the ordinary window-resumption instructions below. The third
+window's guard logged `event=stop reason=guard_exit` at 19:56:32Z, not the
+normal 7200-second boundary. After an interrupted observation session, the
+original tool handle was unavailable, guard PID 601907 was absent, and the
+exact trainer PID/PGID 601955 was still executing, reparented to PID 172.
+The agent sent TERM to that verified owned group at 19:57:39Z; the process
+became defunct and then disappeared. No automatic restart was attempted.
+
+The second window had ended normally at 19:45:50Z with
+`wall_clock_limit_7200s` (exit 75), retaining checkpoint 123 / 7808 steps.
+Its guard sidecar is
+`.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.guard.NJEiF2tz.log`;
+the terminal aggregate has 5646 signed samples, peaks 63 C core / 68 C memory,
+166.5 W draw and 9460 MiB. Window 3 resumed that exact state from clean
+`e7eb39cd`; its log proves checkpoint 124 / 7872 steps at 19:54:47Z and
+checkpoint 125 / 7936 steps at 19:56:32Z. It did not start TRAIN from zero.
+
+The last signed guard heartbeat was 19:56:05Z (60 C core, 68 C memory,
+158.64 W draw, 160 W configured limit). There is no signed guard coverage for
+the interval after the guard died; do not call this a normal or fully guarded
+window. No thermal/power breach was recorded before observation was lost.
+Checkpoint 125 retains 7936 TRAIN steps, epoch index 0, complete=false,
+slot 0 SHA-256 `40f1de6617784fb5519ee849443fe179d0fdbe2f59cca963a3683f90b187a685`.
+The checkpoint and all logs are preserved; integrity is not restart authority.
+
+Exact third-window sidecars under the candidate's artifact root:
+`.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.guard.niwNE1EK.log`
+and `.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.trainer.tmudOA3z.log`.
+The existing launch hold is restored with
+`GUARD_EXIT_ORPHANED_CUDA_NO_RETRY`, which blocks both handover and the official
+launcher. At the incident's frozen source, termination wrote to stderr before
+TERM and logged before KILL. A bounded CPU regression against that exact guard
+reproduced surviving children when the stderr reader closed, both for normal
+TERM handling and a TERM-ignoring child. This proves the failure mechanism;
+the original observation-service interruption itself was not instrumented.
+The repaired guard ignores SIGPIPE so write failures can unwind normally,
+signals before diagnostics, and makes cleanup logging best-effort. Both new
+regressions pass after the repair. No thresholds, model or data were changed.
+The repaired guard changes the executable source binding, so old recipe/session
+identity does not grant restart authority. Do not waive source bindings, patch
+an old recipe/checkpoint or reuse a historical gate to clear this hold.
+The launch/session owners have no applicable source-change recovery route;
+the exact boundary and CPU verification are recorded in the review report.
+
+The repair now passes all 170 affected CPU tests and the complete 2477-test
+CPU suite, with no failures/errors/skips. Only `trainer_safety_guard` differs
+among the historical recipe's 105 bound source files. The hold remains active:
+CPU verification and clean source do not authorize a new source-bound session
+or silently migrate the retained checkpoint. See the review report for exact
+test reports and the remaining recovery decision.
+
+### Historical execution before the safety stop: checkpointed five-year TRAIN
 
 The full candidate started from clean commit `d4376b3c` after clean handover,
 exact official launcher dry-run PASS and a fresh signed `43,48,30.8,160,325`

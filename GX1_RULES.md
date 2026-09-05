@@ -4,11 +4,17 @@ This file defines the only active project scope.
 
 ## Current binding status — 2026-09-05
 
+Safety override, 19:57 UTC: the third window lost its guard and its surviving
+trainer was stopped. The existing `GUARD_EXIT_ORPHANED_CUDA_NO_RETRY` hold
+revokes CUDA continuation. Checkpoint 125 / 7936 steps remains preserved.
+The ordinary time-boundary resumption approval below does not cover this
+failure. Read the current handoff incident before any further action.
+
 Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md).
 The operator authorized the continuous local VAL → audit/readiness → candidate
 gate → unchanged five-year TRAIN/VAL progression without per-step approvals.
-All preparatory runtime gates are now complete and the full candidate has
-started. The review hold was cleared only for that scope; global admission
+Preparatory runtime gates completed before the full candidate started and
+the guard subsequently failed. The review hold was cleared only for that scope; global admission
 remains BLOCK. Do not repeat the completed smoke/VAL or reset the candidate.
 
 The candidate uses the corrected entry-notional data and source-bound

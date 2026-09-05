@@ -231,6 +231,58 @@ def _assert_guard_owned_process_stopped(pid: int) -> None:
     )
 
 
+@pytest.mark.parametrize("ignore_term", [False, True], ids=["term", "kill-fallback"])
+def test_trainer_guard_closed_stderr_still_stops_owned_group(
+    tmp_path: Path, ignore_term: bool,
+) -> None:
+    """Losing the observer pipe must not strand an unguarded child."""
+    identity = tmp_path / "owned-child.txt"
+    child_source = """
+import os
+import signal
+import sys
+import time
+from pathlib import Path
+if sys.argv[2] == 'ignore':
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+Path(sys.argv[1]).write_text(f'{os.getpid()} {os.getpgrp()}')
+time.sleep(60)
+"""
+    env = _guard_env(
+        device="cpu", nvidia_smi_path=Path("/bin/false"), max_wall_seconds=2,
+    )
+    guard = subprocess.Popen(
+        ["bash", str(TRAINER_GUARD), sys.executable, "-c", child_source,
+         str(identity), "ignore" if ignore_term else "term"],
+        cwd=REPO, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+    )
+    try:
+        deadline = time.monotonic() + 5
+        while not identity.exists() and guard.poll() is None:
+            assert time.monotonic() < deadline, "guard child did not become ready"
+            time.sleep(0.01)
+        child_pid, group_id = map(int, identity.read_text().split())
+        assert child_pid == group_id and group_id > 1 and group_id != os.getpgrp()
+        assert guard.stderr is not None
+        guard.stderr.close()
+        guard.wait(timeout=20)
+        assert guard.returncode != 0
+        _assert_guard_owned_process_stopped(child_pid)
+    finally:
+        if identity.exists():
+            child_pid, group_id = map(int, identity.read_text().split())
+            assert child_pid == group_id and group_id > 1 and group_id != os.getpgrp()
+            try:
+                os.killpg(group_id, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if guard.poll() is None:
+            guard.kill()
+        guard.wait(timeout=5)
+        if guard.stderr is not None:
+            guard.stderr.close()
+
+
 @pytest.mark.parametrize("leader_exit", [False, True], ids=["term", "normal-exit"])
 def test_trainer_guard_kills_term_ignoring_descendant_after_leader_exits(
     tmp_path: Path, leader_exit: bool,

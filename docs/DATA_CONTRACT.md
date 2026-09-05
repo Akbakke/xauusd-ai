@@ -1,5 +1,9 @@
 # GX1 data contract
 
+Safety override, 2026-09-05 19:57 UTC: CUDA is held after loss of the third
+window's guard. Data and checkpoints are preserved; this is not a new data
+failure or admission. See the current handoff incident before any resumption.
+
 Latest runtime update, 2026-09-05: successor VAL prediction and the exact
 technical candidate gate are complete. The operator-authorized full five-year
 TRAIN/VAL candidate has started and has durable checkpoints. See

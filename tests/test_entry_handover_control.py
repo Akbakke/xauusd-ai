@@ -258,13 +258,23 @@ def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
     assert "unexpected_ignored_path_count: 0" in result.stdout
 
 
-def test_completed_cpu_successor_hold_still_blocks_all_execution(tmp_path):
+@pytest.mark.parametrize(("reason", "next_action"), [
+    (
+        "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE",
+        "EXPLICIT_SCOPED_CUDA_AUTHORIZATION_AND_FRESH_SIGNED_160W_TELEMETRY_THEN_SUCCESSOR_RUNTIME_EVIDENCE",
+    ),
+    (
+        "GUARD_EXIT_ORPHANED_CUDA_NO_RETRY",
+        "CPU_GUARD_REPAIR_AND_VERIFIED_SOURCE_BOUND_CHECKPOINT_RECOVERY_NO_CUDA_RETRY",
+    ),
+])
+def test_runtime_review_hold_reports_exact_recovery_and_blocks_all_execution(
+    tmp_path, reason, next_action,
+):
     repo = _source_only_repo(tmp_path)
     state_path = repo / "PROJECT_STATE_xau_direction_launch.json"
     state = json.loads(state_path.read_text())
-    state["pretraining_review_hold"]["reason"] = (
-        "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE"
-    )
+    state["pretraining_review_hold"]["reason"] = reason
     state_path.write_text(json.dumps(state))
     result = subprocess.run(
         ["bash", str(repo / "scripts/gx1_handover.sh"), "--check"],
@@ -275,7 +285,8 @@ def test_completed_cpu_successor_hold_still_blocks_all_execution(tmp_path):
     assert "pretraining_review_hold: ACTIVE" in result.stdout
     assert "cuda_authority: NONE" in result.stdout
     assert "test_paper_live_authority: NONE" in result.stdout
-    assert "next_action: EXPLICIT_SCOPED_CUDA_AUTHORIZATION_AND_FRESH_SIGNED_160W_TELEMETRY_THEN_SUCCESSOR_RUNTIME_EVIDENCE" in result.stdout
+    assert f"blocker: {reason}" in result.stdout
+    assert f"next_action: {next_action}" in result.stdout
     assert "next_action: CPU_SUCCESSOR" not in result.stdout
 
 

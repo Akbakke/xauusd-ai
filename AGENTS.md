@@ -4,15 +4,22 @@ Read `GX1_RULES.md` first. It is binding.
 
 ## Current re-entry status — 2026-09-05
 
+Safety override, 19:57 UTC: CUDA is stopped and the existing launch hold is
+restored (`GUARD_EXIT_ORPHANED_CUDA_NO_RETRY`). Window 3 lost its guard while
+the trainer survived; the agent stopped that exact owned process group.
+Checkpoint 125 / 7936 steps is preserved, not new launch authority. Read the
+incident in the current handoff first; do not apply the normal resume sequence
+below or start CUDA automatically after this safety failure.
+
 Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
-The corrected five-year candidate has started: full TRAIN/VAL, batch 8,
+The corrected five-year candidate started and is now held: full TRAIN/VAL, batch 8,
 maximum 30 epochs, early-stop patience 5. Exact progress belongs to the active
 launch-state session and its verified pointer, not a checkpoint copied here.
 
 The operator authorized the continuous local progression, including ordinary
 guarded resumptions of this exact candidate, without new per-step approvals.
-The preparatory hold is cleared for that scope. Canonical smoke, full VAL
+The preparatory hold was cleared before the safety failure. Canonical smoke, full VAL
 prediction, technical readiness and the new candidate gate are complete;
 do not repeat them or restart training from zero. Recipes still bind executable
 source `e25a8cb6`; the clean initial launch checkout was `d4376b3c`.
@@ -334,8 +341,10 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
    artifacts; do not repeat production or relabel historical CUDA evidence.
 2. Canonical smoke, full VAL prediction, post-run audit, technical readiness
    and the new candidate gate are complete. The operator-approved full
-   candidate has started. Do not repeat preparation or restart from zero.
-3. Monitor the exact active session every 15 minutes. Preserve the signed
+   candidate started and is now held. Do not repeat preparation or restart from zero.
+3. Resolve the current guard failure and source-bound recovery before any CUDA
+   resumption. The ordinary sequence below applies only to a valid active run,
+   not to the held session. Monitor that exact session every 15 minutes. Preserve the signed
    watchdog and all limits. On an expected time-boundary stop only, verify
    the final guard log and checkpoint, finish pending status-only verification
    and commit, then resume the same candidate after clean preflight and fresh

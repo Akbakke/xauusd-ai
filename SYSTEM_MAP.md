@@ -1,5 +1,9 @@
 # GX1 system map
 
+Safety override, 2026-09-05 19:57 UTC: training is stopped after window 3 lost
+its guard. The launch hold is restored; no automatic CUDA retry. Read the
+current handoff incident before relying on the earlier launch status below.
+
 Latest runtime update, 2026-09-05: successor VAL prediction and the exact
 technical candidate gate are complete. The operator-authorized full five-year
 TRAIN/VAL candidate has started and has durable checkpoints. See

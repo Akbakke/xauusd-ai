@@ -7,6 +7,11 @@ set -euo pipefail
 # A background child must not already lead a job-control group when setsid
 # starts: setsid would then fork, breaking the owned PID == PGID identity.
 set +m
+# A disconnected observer must become a write error, not an asynchronous
+# SIGPIPE that can interrupt EXIT cleanup before the owned group is stopped.
+# Ordinary failed writes still fail closed under errexit; cleanup diagnostics
+# below are best-effort and must never veto TERM or its KILL fallback.
+trap '' PIPE
 
 guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
 trainer_stdio_log_path="${GX1_TRAINER_STDIO_LOG_PATH:-}"
@@ -329,8 +334,8 @@ terminate_child_group() {
   local reason="$1" group_term_sent=false
   [[ -n "$child_pid" ]] || return 0
   if child_process_exists || child_group_exists; then
-    guard_log "event=stop reason=$reason pid=$child_pid stage=$stage_name"
-    printf '[trainer_safety_stop] reason=%s pid=%s\n' "$reason" "$child_pid" >&2
+    # Signal before any diagnostic I/O: stderr may have lost its reader and
+    # the sidecar may be unwritable. Neither may leave unguarded work alive.
     if child_group_exists; then
       builtin kill -TERM -- "-$child_pid" 2>/dev/null || true
       group_term_sent=true
@@ -339,6 +344,8 @@ terminate_child_group() {
       # process group is still the guard's own group.
       builtin kill -TERM "$child_pid" 2>/dev/null || true
     fi
+    guard_log "event=stop reason=$reason pid=$child_pid stage=$stage_name" || true
+    printf '[trainer_safety_stop] reason=%s pid=%s\n' "$reason" "$child_pid" >&2 || true
     for _ in {1..10}; do
       # A TERM-ignoring startup process may establish the group during grace.
       # Send its group one TERM, never repeatedly interrupt graceful cleanup.
@@ -351,9 +358,9 @@ terminate_child_group() {
       fi
       /bin/sleep 1
     done
-    guard_log "event=kill reason=$reason pgid=$child_pid stage=$stage_name"
     builtin kill -KILL "$child_pid" 2>/dev/null || true
     builtin kill -KILL -- "-$child_pid" 2>/dev/null || true
+    guard_log "event=kill reason=$reason pgid=$child_pid stage=$stage_name" || true
   fi
 }
 

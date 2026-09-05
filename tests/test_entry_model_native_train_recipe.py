@@ -162,7 +162,7 @@ def test_launch_reads_current_m1_feature_surface_schema_from_owner() -> None:
 
 
 def test_candidate_binding_requires_the_refreshed_current_liveness_before_training() -> None:
-    """The reviewed V46 binding must use the current liveness schema and bytes."""
+    """Retained V46 evidence must never replace the current reviewed dataset."""
 
     state = json.loads(
         (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
@@ -181,6 +181,28 @@ def test_candidate_binding_requires_the_refreshed_current_liveness_before_traini
         "dataset_run_id": str(evidence["dataset_run_id"]),
         "artifacts": artifacts,
     }
+    if "current_pretest_trainability_readiness" in state:
+        # The current TRAIN/VAL owner supersedes the retained three-split V46
+        # reports. A safety hold does not turn this back into the earlier
+        # target-correction boundary or make the old dataset current again.
+        current = launch.require_blocked_launch_state_with_current_audited_dataset(state)
+        selected = state["current_source_technical_recipe"]
+        recipe = json.loads(Path(selected["recipe_path"]).read_text(encoding="utf-8"))
+        assert current["dataset_dir"] == recipe["dataset_dir"]
+        assert current["dataset_run_id"] == recipe["dataset_run_id"]
+        assert Path(current["dataset_dir"]) != arguments["dataset_dir"]
+        without_hold = dict(state)
+        without_hold.pop("pretraining_review_hold", None)
+        # CPU evidence selection only; never remove the real launch hold.
+        assert launch.require_blocked_launch_state_with_current_audited_dataset(
+            without_hold,
+        ) == current
+        with pytest.raises(
+            launch.LaunchContractError,
+            match="candidate dataset does not match current audited dataset",
+        ):
+            launch._candidate_current_audited_dataset_binding(**arguments)
+        return
     if "pretraining_review_hold" in state:
         # Valid feature liveness cannot rescue a superseded target/causality
         # contract. Retained V46 evidence must not bind a new candidate.

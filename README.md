@@ -5,10 +5,14 @@ system. It is not currently an admitted or profitable trading bot.
 
 ## Current re-entry status — 2026-09-05
 
-The full five-year TRAIN/VAL candidate has started: 313399 TRAIN rows, 5509 VAL
+Safety update, 19:57 UTC: training is stopped after the third window lost its
+guard. The launch hold is restored; no automatic CUDA retry. Checkpoint 125
+retains 7936 TRAIN steps. See the incident in the current handoff below.
+
+The full five-year TRAIN/VAL candidate started and is now stopped: 313399 TRAIN rows, 5509 VAL
 rows, batch 8, at most 30 epochs and early-stop patience 5. Canonical smoke,
-full VAL prediction, technical readiness and the exact candidate gate are
-complete. This is research training, not an accepted or profitable model.
+full VAL prediction, technical readiness and the exact candidate gate completed
+before the safety failure. This is research training, not an accepted or profitable model.
 
 Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
 `bash scripts/gx1_handover.sh` for exact progress and resume identity.

@@ -16,15 +16,21 @@ documentation and the code together.
 
 ## Current re-entry status — 2026-09-05
 
+Safety override, 19:57 UTC: the trainer is stopped after its guard exited
+without stopping the child. `GUARD_EXIT_ORPHANED_CUDA_NO_RETRY` is active;
+checkpoint 125 / 7936 steps is retained. The ordinary resume instructions below
+do not authorize retry after this failure. Read the current handoff incident.
+
 [The current handoff](docs/CURRENT_HANDOFF_20260903.md) is the restart point.
-The corrected five-year full TRAIN/VAL candidate has started under the
-operator's standing authorization. Its canonical smoke, full VAL predictions,
+The corrected five-year full TRAIN/VAL candidate started under the
+operator's standing authorization and is now held. Its canonical smoke, full VAL predictions,
 technical readiness and exact candidate gate are complete. Do not request
 approval again between ordinary in-scope steps, repeat smoke/VAL, or reset
 training. Resolve the current session through `scripts/gx1_handover.sh`.
 
-The candidate remains batch 8, maximum 30 epochs and patience 5, with
-executable source `e25a8cb6` unchanged. Every launch/resume still requires
+The preserved candidate remains batch 8, maximum 30 epochs and patience 5;
+its recipe binds source `e25a8cb6`. The guard repair changes that executable
+closure and cannot be substituted into the old session. Every launch/resume requires
 clean source, exact recipe/gate/checkpoint identity and fresh signed 160 W
 telemetry. Keep all watchdog limits. A real safety/data/model failure stops
 progression; only a verified expected time-boundary stop may resume normally.

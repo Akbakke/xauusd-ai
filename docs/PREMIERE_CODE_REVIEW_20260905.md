@@ -2,6 +2,104 @@
 
 ## Current operator-approved continuation
 
+### New terminal safety failure — CUDA continuation held
+
+At 2026-09-05T19:56:32Z, window 3 logged `event=stop reason=guard_exit`.
+On recovery from an interrupted observation, tool handle 12222 was missing,
+guard PID 601907 was absent, and exact candidate PID/PGID 601955 was still
+running with PPID 172. This is a real loss of the mandatory guard, not an
+observation timeout or an expected 7200-second boundary. The agent sent TERM
+to the verified owned group at 19:57:39Z; it became defunct, then disappeared.
+No new CUDA run is authorized by that event, and none was started afterward.
+
+Last signed heartbeat: 19:56:05Z, 60 C core / 68 C memory / 158.64 W draw /
+160 W limit. The unguarded interval has no continuous signed evidence.
+Latest preserved checkpoint: 125, 7936 TRAIN optimizer steps, epoch index 0,
+complete=false, slot 0 SHA-256
+`40f1de6617784fb5519ee849443fe179d0fdbe2f59cca963a3683f90b187a685`.
+The active session reference remains unchanged. Exact third-window sidecars
+are recorded in the current handoff; no artifact or log was deleted.
+
+Source at the incident: `terminate_child_group` in `gx1_guarded_trainer_exec.sh`
+recorded its stop event and wrote to stderr before issuing TERM; it also logged
+before KILL. The real unmodified guard was exercised in a bounded 4G CPU test
+with a real closed stderr pipe and owned child process. Both cases left the
+child executing after the guard exited: normal TERM and TERM-ignoring child
+(`/tmp/gx1-guard-closed-stderr-before-20260905.xml`, two expected failures).
+This reproduces the failure mechanism, not the uninstrumented reason that the
+original observation service disconnected.
+
+The same owner now ignores SIGPIPE (ordinary failed writes still unwind under
+errexit), sends TERM before diagnostic I/O, treats cleanup diagnostics as
+best-effort, and sends KILL before its diagnostic. Both exact new regressions
+pass (`/tmp/gx1-guard-closed-stderr-after-20260905.xml`). No thermal/power/memory
+threshold, model, target, dataset or recipe value was changed. The guard's
+source bytes have changed, so the historical recipe's executable closure is
+not current launch authority. Old recipes, gates, checkpoints and logs remain
+untouched; source-safe recovery is a separate unresolved boundary.
+The existing fail-closed hold is restored:
+`GUARD_EXIT_ORPHANED_CUDA_NO_RETRY`. Ordinary resumption instructions below
+are superseded until the guard failure and safe source-bound recovery are resolved.
+
+Recovery boundary, proven from the existing owners: `recipe_source_binding_paths`
+includes `trainer_safety_guard`, and `_validate_source_bindings` requires its
+exact bytes. `_candidate_training_session_contract` includes that recipe's
+source provenance; `_CandidateTrainingSession` rejects a different immutable
+contract. Its legacy bridge only adds previously absent provenance for the
+same certified source; it does not allow a repaired guard or source migration.
+Therefore neither a new recipe alone nor a documentation-only commit can
+resume this checkpoint under the repair. No existing source-change recovery
+route was found in these launch/session owners. A reviewed recovery must
+preserve the original session and certify unchanged learning state and inputs;
+it must also resolve checkpoint 125's overlap with the guard-exit timestamp.
+Do not silently choose the inactive slot or reset TRAIN. This is a real
+provenance/safety decision, not another routine smoke approval.
+
+Focused verification of the repaired source passed all 127 tests with no
+failures, errors or skips in 89.903 seconds
+(`/tmp/gx1-guard-exit-repair-focused-20260905.xml`). The prior 2474-test full
+result below predates the executable guard repair and does not cover it.
+The executable handover's new hold reason originally fell through to the old
+target/data-rebuild instruction. Its existing renderer now names CPU guard
+repair and verified source-bound checkpoint recovery instead, while returning
+the same BLOCK/exit 2 and no CUDA/TEST/paper/live authority. This adds no launch
+or recovery route. The final focused verification also covers this status-only
+branch; the complete suite was already collected when this case was added.
+
+The first repaired-source full suite completed in 725.470 seconds: 2475
+passed, one failed, zero errors/skips
+(`/tmp/gx1-guard-exit-repair-full-20260905.xml`). The failure was the real-state
+integration test in `test_entry_model_native_train_recipe.py`: it treated any
+review hold as the old target-correction boundary and expected the old causality
+error. The current evidence owner instead selects the newer pre-TEST TRAIN/VAL
+recipe and correctly rejects the retained V46 dataset by identity first. The
+test now verifies the current recipe identity with the real CPU evidence owner,
+proves an in-memory hold removal cannot change that selection, and still
+requires exact rejection of the old dataset. No production validator changed;
+the actual hold was never removed.
+
+Final affected verification: all 170 tests passed, zero errors/failures/skips,
+135.009 seconds (`/tmp/gx1-guard-exit-repair-final-focused-20260905.xml`). This
+includes the new handover reason, the corrected real-state assertion, and both
+closed-pipe guard regressions. Shell syntax, capped Python compilation and diff
+whitespace checks passed. Independently hashing all 105 recipe-bound source
+files found exactly one changed binding: `trainer_safety_guard`. The historical
+recipe hash still matches. Model, optimizer/trainer, feature and data-contract
+source bytes are unchanged; this fact alone does not authorize recovery.
+
+Final complete CPU suite: all 2477 tests passed, zero errors/failures/skips,
+725.317 seconds (`/tmp/gx1-guard-exit-repair-final-full-20260905.xml`). The
+existing job survived interrupted observation and was followed by the same
+handle and confirmed OS process; no duplicate suite was started because of
+an observation interruption. This supersedes the first repaired-source suite's
+one failed test assertion, not the CUDA safety failure. The actual handover
+and official candidate dry-run both returned BLOCK/exit 2 under the preserved
+hold. No new CUDA run, checkpoint rewrite, data rebuild or cache deletion was
+performed. The operator-requested root `passord.md` is only a coordination
+marker and grants no execution authority.
+
+### Historical successful launch and first normal boundary
+
 The full five-year candidate started from clean launch commit
 `d4376b3c`, with the existing source `e25a8cb6` recipe and exact new gate below.
 The official dry-run passed with profile=candidate, epochs=30, batch=8,
