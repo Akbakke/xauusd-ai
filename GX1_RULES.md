@@ -185,7 +185,7 @@ immutable OANDA XAU_USD M1 + M5
 - Source, formula, schema, field order, signal-manifest hash, TRAIN-rank state,
   population, run identity and profile must match at every boundary. Any
   mismatch invalidates the full attempt.
-- The only admitted dataset rebuild orchestration is the current-pair chain in
+- The current-pair three-split dataset rebuild orchestration is the chain in
   `scripts/run_seq513_rebuild_chain_v1.sh`. It resolves canonical, BASE28 and
   native M1/M5 from one pair manifest, TRAIN-fits the V29 registry state on
   both lanes over the closed window `[--registry-fit-train-start,
@@ -196,6 +196,13 @@ immutable OANDA XAU_USD M1 + M5
   builds both feature lanes, and passes both feature surfaces to
   preflight/rebuild. The retired event-local
   `canonical_features_v2.parquet`/legacy source-cascade route is forbidden.
+- The explicitly authorised 2026-09-05 target-correction recovery uses
+  `scripts/rebuild_entry_model_native_seq513_dataset.sh --pretest-only` after
+  the existing ranker, signal and equivalent-feature reattestation owners.
+  It preserves the exact pre-TEST pair/source lineage and split boundaries,
+  builds fresh TRAIN/VAL outputs only, and rejects legacy tape/TEST arguments.
+  `gx1_handover.sh --source-only` proves source hygiene independently of
+  training readiness; it cannot authorise CUDA or remove the review hold.
 - `--history-start` must precede `--train-start` by at least the widest per-TF
   receptive field in `PRODUCTION_MTF_PER_TF_WINDOW_BARS` — the D1 lane —
   counted as real closed D1 bars, never as calendar days. The chain enforces

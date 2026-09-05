@@ -1,5 +1,30 @@
 # Pre-training code review — 2026-09-05
 
+## Authorised CPU continuation
+
+The operator authorised completion of the corrected TRAIN/VAL successor on
+2026-09-05. The shared goal is to rebuild its TRAIN-only policy/ranking,
+signal lineage, target data and affected audits, then materialize new
+source-bound recipes and report exactly which launch evidence is still
+missing. No CUDA, physical TEST, candidate acceptance, paper or live work is
+authorised by this continuation. The explicit training hold stays active.
+
+The existing rebuild wrapper now has an explicit `--pretest-only` route;
+it rejects legacy tape/pair-generation/TEST arguments before path access,
+uses source-only hygiene independent of training readiness, retains source
+lineage and split windows, and writes fresh TRAIN/VAL outputs. The existing
+feature reattestation owner may reuse unchanged feature bytes only after its
+full exact-contract and source checks pass. Historical targets and policy
+checkpoints are not reusable under the corrected return contract.
+
+Recovery-route verification: all 2447 tests passed in one full capped CPU run
+(642.560 seconds; zero failures, errors or skips), including the new
+source-only hygiene and pre-TEST argument-isolation regressions. All shell
+syntax checks, capped `compileall`, and `git diff --check` passed. All 11
+installed direct dependency pins match and import as required. Local test
+record: `/tmp/gx1-cpu-successor-source-20260905.xml`. This verifies code and
+orchestration, not yet the replacement dataset or runtime evidence.
+
 ## Verdict
 
 **BLOCKED: do not start the five-year CUDA candidate yet.** The 4 September

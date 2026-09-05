@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -10,6 +11,39 @@ SCRIPT = REPO / "scripts" / "rebuild_entry_model_native_seq513_dataset.sh"
 CAPPED_RUNNER = REPO / "scripts" / "gx1_capped_run.sh"
 CANONICAL_TRAINER = REPO / "gx1" / "models" / "entry_v10" / "entry_v10_ctx_train_v3.py"
 PRE_COMMIT = REPO / ".claude" / "git-hooks" / "pre-commit"
+
+
+@pytest.mark.parametrize("forbidden", [
+    "--test-start", "--test-end", "--tape-root",
+    "--m1-lifecycle-pair-manifest-json", "--m1-lifecycle-pair-generation-root",
+    "--rebuild-terminal-json", "--prefreeze-test-seal-json",
+])
+def test_pretest_rebuild_rejects_mixed_authority_before_source_access(forbidden: str) -> None:
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--pretest-only", forbidden, "/never/open/test"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 2
+    assert "--pretest-only forbids legacy/TEST argument" in result.stderr
+    assert "required argument missing" not in result.stderr
+
+
+def test_pretest_rebuild_requires_new_output_and_explicit_native_bindings() -> None:
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--pretest-only", "--resume-exact-checkpoints"],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 2
+    assert "fresh outputs, not resume" in result.stderr
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert 'bash "$ENG/scripts/gx1_handover.sh" --source-only' in source
+    assert 'BUILD_SPLITS=(train val)' in source
+    assert 'if [[ $PRETEST_ONLY -eq 0 ]]; then BUILD_SPLITS+=(test); fi' in source
+    assert 'BUILD_END=$VAL_END' in source
+    assert 'AUTHORITY_ARGS=(--pretest-only' in source
+    assert '"${AUTHORITY_ARGS[@]}"' in source
+    assert 'FULL_INPUT_LIVENESS_JSON="$OUTPUT_DIR/' in source
+    assert 'pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)' in source
 
 
 def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:
@@ -250,7 +284,8 @@ def test_seq513_rebuild_caps_every_heavy_stage() -> None:
         'CAP=("$ENG/scripts/gx1_capped_run.sh" --class producer '
         '--mem 10G --swap 512M --)'
     ) in source
-    assert '"${CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source
+    assert 'AUDIT_CAP=("$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M --)' in source
+    assert '"${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_xau_direction_repair_pretrain_v1' in source
 
 
 def test_seq513_rebuild_caps_full_source_lineage_gate() -> None:

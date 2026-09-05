@@ -40,10 +40,13 @@ sources=(
 
 usage() {
   cat <<'EOF'
-Usage: scripts/gx1_handover.sh [--check|--verbose]
+Usage: scripts/gx1_handover.sh [--check|--verbose|--source-only]
 
 Default prints compact status. --check prints only deterministic authority and
 worktree identity. --verbose appends the exact handover document.
+--source-only checks source hygiene for CPU rebuild preparation without opening
+historical dataset, recipe or gate artifacts. It grants no training authority;
+dependency readiness is checked separately by the rebuild dependency owner.
 EOF
 }
 
@@ -52,10 +55,174 @@ case "${1:-}" in
   "") ;;
   --check) mode=check ;;
   --verbose) mode=verbose ;;
+  --source-only) mode=source-only ;;
   -h|--help) usage; exit 0 ;;
   *) printf 'FATAL: unsupported argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
 esac
 [[ $# -le 1 ]] || { echo "FATAL: expected at most one argument" >&2; exit 2; }
+
+source_hygiene_identity() {
+  "$PY" - "$REPO" "$LAUNCH_STATE" "$1" <<'PY'
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+repo = Path(sys.argv[1])
+state = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+
+
+def git_bytes(*args: str) -> bytes:
+    return subprocess.run(
+        ["git", *args], cwd=repo, check=True, stdout=subprocess.PIPE
+    ).stdout
+
+
+head = git_bytes("rev-parse", "HEAD")
+worktree = hashlib.sha256()
+worktree.update(b"gx1-worktree-identity-v1\0")
+for label, payload in (
+    (b"head", head),
+    (b"tracked-diff", git_bytes("diff", "--binary", "--no-ext-diff", "HEAD", "--")),
+):
+    worktree.update(len(label).to_bytes(4, "big"))
+    worktree.update(label)
+    worktree.update(len(payload).to_bytes(8, "big"))
+    worktree.update(payload)
+for raw in filter(None, git_bytes("ls-files", "--others", "--exclude-standard", "-z").split(b"\0")):
+    path = repo / os.fsdecode(raw)
+    if path.is_symlink():
+        kind = b"symlink"
+        payload = os.readlink(path).encode("utf-8", errors="surrogateescape")
+    elif path.is_file():
+        kind = b"file"
+        payload = path.read_bytes()
+    else:
+        raise SystemExit(f"FATAL: unsupported untracked entry: {path}")
+    for value in (raw, kind, payload):
+        worktree.update(len(value).to_bytes(8, "big"))
+        worktree.update(value)
+
+status = git_bytes("status", "--porcelain=v1", "-z")
+changed = len(tuple(filter(None, status.split(b"\0"))))
+ignored_status = git_bytes("status", "--ignored", "--porcelain=v1", "-z")
+ignored_paths = tuple(
+    os.fsdecode(entry[3:])
+    for entry in filter(None, ignored_status.split(b"\0"))
+    if entry.startswith(b"!! ")
+)
+ignored = len(ignored_paths)
+worktree_porcelain = git_bytes("worktree", "list", "--porcelain").decode("utf-8")
+prunable_worktrees = sum(
+    1 for line in worktree_porcelain.splitlines() if line.startswith("prunable")
+)
+reviewed_exclusions = state.get("reviewed_local_runtime_exclusions")
+if (
+    not isinstance(reviewed_exclusions, dict)
+    or set(reviewed_exclusions) != {"schema_version", "paths"}
+    or reviewed_exclusions.get("schema_version")
+    != "gx1_reviewed_local_runtime_exclusions_v1"
+    or not isinstance(reviewed_exclusions.get("paths"), list)
+    or any(
+        not isinstance(path, str) for path in reviewed_exclusions["paths"]
+    )
+    or set(reviewed_exclusions["paths"])
+    != {".claude/worktrees/", ".env", ".venv/"}
+    or len(reviewed_exclusions["paths"]) != 3
+):
+    raise SystemExit("FATAL: reviewed local runtime exclusions are invalid")
+environment_file = repo / ".env"
+if environment_file.is_symlink() or (
+    environment_file.exists()
+    and (
+        not environment_file.is_file()
+        or os.stat(environment_file, follow_symlinks=False).st_mode & 0o077
+    )
+):
+    raise SystemExit("FATAL: reviewed local .env exclusion is unsafe")
+venv = repo / ".venv"
+if venv.is_symlink() or (
+    venv.exists()
+    and (
+        not venv.is_dir()
+        or (venv / "pyvenv.cfg").is_symlink()
+        or not (venv / "pyvenv.cfg").is_file()
+    )
+):
+    raise SystemExit("FATAL: reviewed local virtual environment exclusion is invalid")
+worktree_root = repo / ".claude" / "worktrees"
+registered_worktree_paths = {
+    Path(line.removeprefix("worktree ")).resolve()
+    for line in worktree_porcelain.splitlines()
+    if line.startswith("worktree ")
+}
+if worktree_root.is_symlink() or (
+    worktree_root.exists()
+    and (
+        not worktree_root.is_dir()
+        or not any(
+            str(path).startswith(str(worktree_root.resolve()) + os.sep)
+            for path in registered_worktree_paths
+        )
+    )
+):
+    raise SystemExit("FATAL: reviewed local Claude worktree exclusion is invalid")
+declared_exclusion_paths = set(reviewed_exclusions["paths"])
+
+
+def reviewed_ignored_path(path: str) -> bool:
+    """Return whether an ignored path is declared local state or regenerable cache."""
+    return (
+        path in declared_exclusion_paths
+        or path in {".pytest_cache/", ".ruff_cache/"}
+        or path.endswith("/__pycache__/")
+    )
+
+
+reviewed_ignored = sum(reviewed_ignored_path(path) for path in ignored_paths)
+unexpected_ignored = sorted(
+    path for path in ignored_paths if not reviewed_ignored_path(path)
+)
+if prunable_worktrees:
+    source_gate = "BLOCK_PRUNABLE_WORKTREE_REGISTRATION"
+elif changed:
+    source_gate = "BLOCK_DIRTY_WORKTREE"
+elif unexpected_ignored:
+    source_gate = "BLOCK_UNEXPECTED_IGNORED_CONTENT"
+else:
+    source_gate = "READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS"
+identity = {
+    "head_commit": head.decode("utf-8").strip(),
+    "worktree_fingerprint": worktree.hexdigest(),
+    "changed_path_count": changed,
+    "ignored_path_count": ignored,
+    "prunable_worktree_count": prunable_worktrees,
+    "reviewed_ignored_path_count": reviewed_ignored,
+    "unexpected_ignored_path_count": len(unexpected_ignored),
+    "source_identity_gate": source_gate,
+}
+if sys.argv[3] == "source-only":
+    print("mode: source-only")
+    print("decision: " + ("BLOCK" if source_gate.startswith("BLOCK") else "PASS_SOURCE_HYGIENE_ONLY"))
+    for key, value in identity.items():
+        print(f"{key}: {value}")
+    print("historical_artifact_access: NONE")
+    print("dependency_readiness: SEPARATE_REBUILD_DEPENDENCY_PREFLIGHT_REQUIRED")
+    print("training_authority: NONE")
+    print("cuda_authority: NONE")
+    print("test_paper_live_authority: NONE")
+    raise SystemExit(2 if source_gate.startswith("BLOCK") else 0)
+print(json.dumps(identity, sort_keys=True))
+PY
+}
+
+[[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
+if [[ "$mode" == source-only ]]; then
+  source_hygiene_identity source-only
+  exit 0
+fi
 
 for source in "${sources[@]}"; do
   [[ -f "$source" ]] || { echo "FATAL: authority input missing: $source" >&2; exit 2; }
@@ -99,6 +266,7 @@ PY
 then
   exit 2
 fi
+source_hygiene_json=$(source_hygiene_identity json) || exit 2
 CURRENT_PAIR_MANIFEST=$("$PY" - "$LAUNCH_STATE" <<'PY'
 import json
 import sys
@@ -115,14 +283,12 @@ PY
   echo "FATAL: current pair manifest missing/non-regular: $CURRENT_PAIR_MANIFEST" >&2
   exit 2
 }
-[[ -x "$PY" ]] || { echo "FATAL: repository Python is not executable: $PY" >&2; exit 2; }
 cd "$REPO"
 
 readarray -t identity < <("$PY" - "$REPO" "$LAUNCH_STATE" \
-  "$CURRENT_PAIR_MANIFEST" "${sources[@]}" "$CURRENT_PAIR_MANIFEST" <<'PY'
+  "$CURRENT_PAIR_MANIFEST" "$source_hygiene_json" "${sources[@]}" "$CURRENT_PAIR_MANIFEST" <<'PY'
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -173,7 +339,8 @@ from gx1.features.htf_features import (
 repo = Path(sys.argv[1])
 launch_path = Path(sys.argv[2])
 pair_path = Path(sys.argv[3])
-authority_paths = tuple(Path(raw) for raw in sys.argv[4:])
+source_hygiene = json.loads(sys.argv[4])
+authority_paths = tuple(Path(raw) for raw in sys.argv[5:])
 
 state = json.loads(launch_path.read_text(encoding="utf-8"))
 
@@ -768,124 +935,13 @@ for index, path in enumerate(authority_paths):
     authority.update(len(payload).to_bytes(8, "big"))
     authority.update(payload)
 
-def git_bytes(*args: str) -> bytes:
-    return subprocess.run(
-        ["git", *args], cwd=repo, check=True, stdout=subprocess.PIPE
-    ).stdout
-
-worktree = hashlib.sha256()
-worktree.update(b"gx1-worktree-identity-v1\0")
-for label, payload in (
-    (b"head", git_bytes("rev-parse", "HEAD")),
-    (b"tracked-diff", git_bytes("diff", "--binary", "--no-ext-diff", "HEAD", "--")),
-):
-    worktree.update(len(label).to_bytes(4, "big"))
-    worktree.update(label)
-    worktree.update(len(payload).to_bytes(8, "big"))
-    worktree.update(payload)
-for raw in filter(None, git_bytes("ls-files", "--others", "--exclude-standard", "-z").split(b"\0")):
-    path = repo / os.fsdecode(raw)
-    if path.is_symlink():
-        kind = b"symlink"
-        payload = os.readlink(path).encode("utf-8", errors="surrogateescape")
-    elif path.is_file():
-        kind = b"file"
-        payload = path.read_bytes()
-    else:
-        raise SystemExit(f"FATAL: unsupported untracked entry: {path}")
-    for value in (raw, kind, payload):
-        worktree.update(len(value).to_bytes(8, "big"))
-        worktree.update(value)
-
-status = git_bytes("status", "--porcelain=v1", "-z")
-changed = len(tuple(filter(None, status.split(b"\0"))))
-ignored_status = git_bytes("status", "--ignored", "--porcelain=v1", "-z")
-ignored_paths = tuple(
-    os.fsdecode(entry[3:])
-    for entry in filter(None, ignored_status.split(b"\0"))
-    if entry.startswith(b"!! ")
-)
-ignored = len(ignored_paths)
-worktree_porcelain = git_bytes("worktree", "list", "--porcelain").decode("utf-8")
-prunable_worktrees = sum(
-    1 for line in worktree_porcelain.splitlines() if line.startswith("prunable")
-)
-reviewed_exclusions = state.get("reviewed_local_runtime_exclusions")
-if (
-    not isinstance(reviewed_exclusions, dict)
-    or set(reviewed_exclusions) != {"schema_version", "paths"}
-    or reviewed_exclusions.get("schema_version")
-    != "gx1_reviewed_local_runtime_exclusions_v1"
-    or not isinstance(reviewed_exclusions.get("paths"), list)
-    or any(
-        not isinstance(path, str) for path in reviewed_exclusions["paths"]
-    )
-    or set(reviewed_exclusions["paths"])
-    != {".claude/worktrees/", ".env", ".venv/"}
-    or len(reviewed_exclusions["paths"]) != 3
-):
-    raise SystemExit("FATAL: reviewed local runtime exclusions are invalid")
-environment_file = repo / ".env"
-if environment_file.is_symlink() or (
-    environment_file.exists()
-    and (
-        not environment_file.is_file()
-        or os.stat(environment_file, follow_symlinks=False).st_mode & 0o077
-    )
-):
-    raise SystemExit("FATAL: reviewed local .env exclusion is unsafe")
-venv = repo / ".venv"
-if venv.is_symlink() or (
-    venv.exists()
-    and (
-        not venv.is_dir()
-        or (venv / "pyvenv.cfg").is_symlink()
-        or not (venv / "pyvenv.cfg").is_file()
-    )
-):
-    raise SystemExit("FATAL: reviewed local virtual environment exclusion is invalid")
-worktree_root = repo / ".claude" / "worktrees"
-registered_worktree_paths = {
-    Path(line.removeprefix("worktree ")).resolve()
-    for line in worktree_porcelain.splitlines()
-    if line.startswith("worktree ")
-}
-if worktree_root.is_symlink() or (
-    worktree_root.exists()
-    and (
-        not worktree_root.is_dir()
-        or not any(
-            str(path).startswith(str(worktree_root.resolve()) + os.sep)
-            for path in registered_worktree_paths
-        )
-    )
-):
-    raise SystemExit("FATAL: reviewed local Claude worktree exclusion is invalid")
-declared_exclusion_paths = set(reviewed_exclusions["paths"])
-
-
-def reviewed_ignored_path(path: str) -> bool:
-    """Return whether an ignored path is declared local state or regenerable cache."""
-    return (
-        path in declared_exclusion_paths
-        or path in {".pytest_cache/", ".ruff_cache/"}
-        or path.endswith("/__pycache__/")
-    )
-
-
-reviewed_ignored = sum(
-    reviewed_ignored_path(path) for path in ignored_paths
-)
-unexpected_ignored = sorted(
-    path for path in ignored_paths if not reviewed_ignored_path(path)
-)
 print(authority.hexdigest())
-print(worktree.hexdigest())
-print(changed)
-print(ignored)
-print(prunable_worktrees)
-print(reviewed_ignored)
-print(len(unexpected_ignored))
+for key in (
+    "worktree_fingerprint", "changed_path_count", "ignored_path_count",
+    "prunable_worktree_count", "reviewed_ignored_path_count",
+    "unexpected_ignored_path_count",
+):
+    print(source_hygiene[key])
 print(state.get("required_contract_mode", "MISSING"))
 print(state.get("dataset_event_id") or "NONE")
 print(state.get("dataset_admission_stage") or "NONE")
@@ -919,13 +975,15 @@ for value in candidate_session:
     print(value)
 for value in current_source_technical_recipe:
     print(value)
+print(source_hygiene["head_commit"])
+print(source_hygiene["source_identity_gate"])
 PY
 )
 
 # A fail-closed Python validation exits through a process substitution. Bash
 # does not propagate that exit code to `readarray`, so avoid turning the real
 # diagnostic above into a misleading unbound-variable error below.
-if (( ${#identity[@]} != 34 )); then
+if (( ${#identity[@]} != 36 )); then
   echo "FATAL: handover identity extraction failed; no authority status was produced" >&2
   exit 2
 fi
@@ -964,16 +1022,8 @@ current_source_technical_recipe_status=${identity[30]}
 current_source_technical_recipe_sha256=${identity[31]}
 current_source_technical_recipe_bindings_sha256=${identity[32]}
 current_source_technical_recipe_closure=${identity[33]}
-head_commit=$(git rev-parse HEAD)
-if (( prunable_worktree_count > 0 )); then
-  source_identity_gate=BLOCK_PRUNABLE_WORKTREE_REGISTRATION
-elif (( changed_path_count > 0 )); then
-  source_identity_gate=BLOCK_DIRTY_WORKTREE
-elif (( unexpected_ignored_path_count > 0 )); then
-  source_identity_gate=BLOCK_UNEXPECTED_IGNORED_CONTENT
-else
-  source_identity_gate=READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS
-fi
+head_commit=${identity[34]}
+source_identity_gate=${identity[35]}
 
 if [[ "$mode" == check ]]; then
   echo "mode: check"

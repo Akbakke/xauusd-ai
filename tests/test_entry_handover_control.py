@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -126,6 +127,135 @@ def test_handover_hold_checker_distinguishes_absent_from_malformed(tmp_path, sta
         assert result.returncode != 0
         assert "hold is malformed" in result.stderr
     assert result.stdout == ""
+
+
+def _source_only_repo(tmp_path: Path) -> Path:
+    """Build a source-only checkout whose historical evidence cannot be read."""
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "scripts/gx1_handover.sh").write_text(HANDOVER_VIEWER.read_text())
+    # A tracked package file prevents git from collapsing its ignored cache
+    # to `!! gx1/`; the real checkout has tracked sources in this directory.
+    (repo / "gx1").mkdir()
+    (repo / "gx1/__init__.py").write_text("")
+    for authority in AUTHORITY_PATHS:
+        path = repo / authority.relative_to(REPO)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture source authority\n")
+    historical = tmp_path / "UNOPENED_TEST_AND_HISTORY"
+    os.mkfifo(historical)
+    state = {
+        "reviewed_local_runtime_exclusions": {
+            "schema_version": "gx1_reviewed_local_runtime_exclusions_v1",
+            "paths": [".claude/worktrees/", ".env", ".venv/"],
+        },
+        "pretraining_review_hold": {
+            "schema_version": "gx1_pretraining_review_hold_v1",
+            "decision": "BLOCK",
+            "reason": "fixture requires rebuilt targets",
+            "activation_authority": False,
+            "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md",
+        },
+        "current_pair_manifest": str(historical),
+        "active_candidate_training_session": {"session_dir": str(historical)},
+        "current_source_technical_recipe": {"recipe_path": str(historical)},
+    }
+    (repo / LAUNCH_STATE.name).write_text(json.dumps(state, sort_keys=True))
+    (repo / ".gitignore").write_text(
+        ".venv/\n.env\n.claude/worktrees/\n*.ignored\n"
+        "__pycache__/\n.pytest_cache/\n.ruff_cache/\n"
+    )
+    (repo / ".venv/bin").mkdir(parents=True)
+    (repo / ".venv/bin/python").symlink_to(Path(sys.executable).resolve())
+    (repo / ".venv/pyvenv.cfg").write_text(
+        f"home = {Path(sys.executable).resolve().parent}\n"
+        "include-system-site-packages = false\n"
+    )
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+         "-c", "user.name=GX1 fixture", "-c", "user.email=fixture@example.invalid",
+         "-c", "commit.gpgsign=false", "commit", "-qm", "source-only fixture"],
+        check=True,
+    )
+    return repo
+
+
+def _run_source_only(repo: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["bash", str(repo / "scripts/gx1_handover.sh"), "--source-only"],
+        cwd=repo, text=True, capture_output=True, check=False, timeout=15,
+    )
+
+
+def test_source_only_handover_reuses_hygiene_without_opening_held_history(tmp_path):
+    repo = _source_only_repo(tmp_path)
+    result = _run_source_only(repo)
+    assert result.returncode == 0, result.stderr
+    assert "decision: PASS_SOURCE_HYGIENE_ONLY" in result.stdout
+    assert "source_identity_gate: READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS" in result.stdout
+    assert "changed_path_count: 0" in result.stdout
+    assert "unexpected_ignored_path_count: 0" in result.stdout
+    assert "historical_artifact_access: NONE" in result.stdout
+    assert "dependency_readiness: SEPARATE_REBUILD_DEPENDENCY_PREFLIGHT_REQUIRED" in result.stdout
+    for authority in ("training", "cuda", "test_paper_live"):
+        assert f"{authority}_authority: NONE" in result.stdout
+    # A source-only PASS must not lift the existing semantic launch hold.
+    blocked = subprocess.run(
+        ["bash", str(repo / "scripts/gx1_handover.sh"), "--check"],
+        cwd=repo, text=True, capture_output=True, check=False, timeout=15,
+    )
+    assert blocked.returncode == 2
+    assert "pretraining_review_hold: ACTIVE" in blocked.stdout
+    assert "decision: BLOCK" in blocked.stdout
+    assert "pretraining review hold blocks launch" in blocked.stderr
+    source = HANDOVER_VIEWER.read_text()
+    assert source.count("def reviewed_ignored_path(") == 1
+
+
+@pytest.mark.parametrize("pollution", ["dirty", "ignored", "unsafe-env", "unregistered-worktree", "prunable"])
+def test_source_only_handover_fails_closed_on_source_hygiene(tmp_path, pollution):
+    repo = _source_only_repo(tmp_path)
+    if pollution == "dirty":
+        (repo / "README.md").write_text("modified source\n")
+    elif pollution == "ignored":
+        (repo / "unreviewed.ignored").write_text("not an allowed cache\n")
+    elif pollution == "unsafe-env":
+        path = repo / ".env"
+        path.write_text("FIXTURE_ONLY=true\n")
+        path.chmod(0o644)
+    elif pollution == "unregistered-worktree":
+        (repo / ".claude/worktrees/unknown").mkdir(parents=True)
+    else:
+        worktree = tmp_path / "registered-worktree"
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "add", "--detach", str(worktree), "HEAD"],
+            check=True, capture_output=True,
+        )
+        worktree.rename(tmp_path / "moved-worktree")
+    result = _run_source_only(repo)
+    assert result.returncode != 0
+    assert "PASS_SOURCE_HYGIENE_ONLY" not in result.stdout
+    expected = {
+        "dirty": "BLOCK_DIRTY_WORKTREE",
+        "ignored": "BLOCK_UNEXPECTED_IGNORED_CONTENT",
+        "unsafe-env": "local .env exclusion is unsafe",
+        "unregistered-worktree": "Claude worktree exclusion is invalid",
+        "prunable": "BLOCK_PRUNABLE_WORKTREE_REGISTRATION",
+    }[pollution]
+    assert expected in result.stdout + result.stderr
+
+
+def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
+    repo = _source_only_repo(tmp_path)
+    for directory in (".pytest_cache", ".ruff_cache", "gx1/__pycache__"):
+        path = repo / directory
+        path.mkdir(parents=True)
+        (path / "fixture.cache").write_text("regenerable\n")
+    result = _run_source_only(repo)
+    assert result.returncode == 0, result.stderr
+    assert "unexpected_ignored_path_count: 0" in result.stdout
 
 
 def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
