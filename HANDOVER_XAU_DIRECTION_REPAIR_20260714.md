@@ -1,16 +1,20 @@
 # GX1 XAUUSD handover
 
-Updated 2026-09-03. `scripts/gx1_handover.sh` is the executable status owner and
+Updated 2026-09-05. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
 For a context-reset takeover, read
 [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) first.
-Historical WSL bridge telemetry proved a 160 W physical limit, but a later
-restart can reset that limit. A fresh signed 160 W response is required before
-any proposed CUDA launch; this document does not independently authorise CUDA.
+The corrected five-year TRAIN/VAL rebuild, CPU audits, new smoke/candidate
+recipes and CPU readiness are complete. The execution hold remains active:
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+The Windows task maintains the configured 160 W cap, but a fresh signed
+response, clean handover/preflight and new scoped authorization are still
+required for successor CUDA evidence. No successor CUDA or full five-year
+candidate has started. TEST, candidate acceptance, paper and live remain closed.
 
-> **Current V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
+> **Historical V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its
 > technical-only bundle is
 > `ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`; this is not a

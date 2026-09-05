@@ -6,21 +6,22 @@ This file defines the only active project scope.
 
 Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 before historical notes below. `bash scripts/gx1_handover.sh` owns the live
-candidate-session position and source closure. Review status is
-`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The exact five-year
-canonical smoke and guarded VAL prediction pass completed on 2026-09-04;
-candidate readiness and its gate were READY at `55de7b82`. The 2026-09-05
-trainer, lifecycle, gate/source-closure and watchdog repairs change executable
-bytes, so that historical recipe/gate cannot prove current-source readiness.
-The review additionally found an incorrect denominator in short auxiliary
-returns: entry-notional returns require `1 - exit_ask / entry_bid`. The
-corrected causal-M1 return contract invalidates the old fitted policy/target
-data; the five-year TRAIN/VAL target/policy/audit chain needs a controlled CPU
-rebuild. Do not merely rebind source hashes around those old artifacts.
-Complete capped verification, the affected rebuild/audits, new immutable
-recipe/gate bindings and clean handover before the full launch. New CUDA needs fresh
-signed telemetry and explicit operator authorization. TEST, candidate
-acceptance, promotion, paper and live remain blocked.
+candidate-session position and source closure. The corrected five-year
+TRAIN/VAL data, TRAIN-only policy/ranking/sizing, affected CPU audits and new
+smoke/candidate recipes are complete. CPU readiness passes all five checks,
+but explicitly keeps candidate training and activation false. The hold remains
+BLOCK with reason
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+The 2026-09-04 smoke/VAL/gate certify historical bytes only. New source-bound
+recipes use `406c732e`, corrected entry-notional short returns and the new
+313399-row TRAIN / 5509-row VAL dataset; architecture and candidate settings
+(batch 8, at most 30 epochs, patience 5) are unchanged.
+Do not start CUDA from CPU readiness. A successor canonical gate-smoke requires
+new scoped operator authorization, a reviewed hold transition, clean handover,
+exact preflight and fresh signed 160 W telemetry. Successor VAL/runtime
+evidence and a new candidate gate are still required before separately
+authorized full training. TEST, candidate acceptance, promotion, paper and
+live remain blocked.
 
 All eight specialist routes must be finite, positive and state-varying, with
 the required training-connectivity evidence. A top-rank winner quota is a

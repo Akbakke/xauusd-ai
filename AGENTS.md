@@ -6,20 +6,19 @@ Read `GX1_RULES.md` first. It is binding.
 
 Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
-`bash scripts/gx1_handover.sh`. Current review status is
-`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The exact five-year
-canonical smoke and its guarded VAL prediction pass both completed on
-2026-09-04. Their technical readiness and candidate gate were READY at
-`55de7b82`; the 2026-09-05 repairs change trainer RNG/gradient handling,
-lifecycle split binding, nested gate verification/source closure and the
-watchdog. The review also found short auxiliary returns divided by the exit
-ask instead of entry notional. The corrected causal-M1 return contract rejects
-the old fitted policy and target data: the five-year target/policy/audit chain
-requires a controlled CPU rebuild. Source-hash rebinding alone cannot repair
-those bytes. Finish verification, rebuild and audit the affected TRAIN/VAL
-artifacts, then bind the new recipe/gate and obtain clean handover before a
-full candidate launch. No new CUDA, TEST, paper or live action is authorised
-by this review.
+`bash scripts/gx1_handover.sh`. The corrected five-year TRAIN/VAL successor,
+TRAIN-only policy/ranking/sizing, data audits, source-bound smoke/candidate
+recipes and CPU trainability-readiness are complete and PASS. Source is
+`406c732e`; actual populations are 313399 TRAIN and 5509 VAL rows. The candidate
+configuration remains batch 8, at most 30 epochs and early-stop patience 5.
+The active hold reason is
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+CPU readiness does not authorize execution. The 2026-09-04 smoke, VAL pass and
+candidate gate remain historical; their execution cannot certify corrected
+short-return data or repaired trainer/lifecycle/watchdog code. No successor
+CUDA or full five-year candidate has started. TEST, candidate acceptance,
+paper and live remain closed. Exact evidence is in the current handoff and
+[`docs/PREMIERE_CODE_REVIEW_20260905.md`](docs/PREMIERE_CODE_REVIEW_20260905.md).
 
 Technical liveness requires finite, positive, state-varying routes through all
 eight specialists and the contract's training-connectivity evidence. It does
@@ -326,18 +325,19 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 
 ## Next implementation sequence
 
-1. Complete the 2026-09-05 review fixes and their capped CPU verification.
-2. Rebuild and audit the five-year TRAIN/VAL target/policy chain under the
-   corrected short-return contract, using capped CPU work and preserving TEST.
-   Then bind the candidate recipe and required immutable evidence to the new
-   data and reviewed source; verify nested gate artifacts and identities.
-   The completed smoke and VAL pass remain evidence of their original source,
-   not permission to substitute new hashes into those artifacts.
-3. Run the exact CPU launch preflight and clean executable handover. Do not
-   declare the large training ready while either source closure or gate binding
-   remains unresolved; do not automatically repeat CUDA smoke or inference.
-4. A later full candidate launch requires explicit operator authorization and
-   fresh signed 160 W telemetry. Preserve sealed TEST throughout preparation.
+1. CPU review verification, corrected five-year TRAIN/VAL rebuild, all affected
+   audits and both new recipes/readiness are complete. Preserve these immutable
+   artifacts; do not repeat production or relabel historical CUDA evidence.
+2. Next execution requires new explicit scoped operator authorization. Only
+   then transition the hold through the reviewed control path, require clean
+   handover/exact preflight and fresh signed 160 W telemetry, and execute the
+   exact successor canonical gate-smoke. CPU source hygiene can be checked
+   independently with `bash scripts/gx1_handover.sh --source-only`.
+3. Obtain successor guarded VAL/runtime evidence under its own scoped authority
+   and materialize the new candidate gate. The old gate cannot substitute.
+4. Full candidate training requires that successor runtime gate, a clean
+   launch preflight, fresh signed 160 W telemetry and explicit full-candidate
+   authorization. Preserve sealed TEST throughout preparation.
 5. Candidate acceptance, TEST, calibration/replay requiring new authority,
    paper and live remain separate later decisions. Production claims also need
    executable prices, costs, financing, terminal and portfolio evidence.

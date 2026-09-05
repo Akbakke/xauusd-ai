@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T07:37:58Z",
+  "updated_utc": "2026-09-05T14:53:41Z",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
-    "reason": "SHORT_RETURN_ENTRY_NOTIONAL_CORRECTION_REQUIRES_SUCCESSOR_TRAIN_VAL_DATASET",
+    "reason": "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE",
     "activation_authority": false,
     "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
   },

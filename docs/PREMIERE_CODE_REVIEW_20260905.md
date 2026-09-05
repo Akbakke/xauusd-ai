@@ -1,6 +1,107 @@
 # Pre-training code review — 2026-09-05
 
-## Authorised CPU continuation
+## Completed CPU successor — 2026-09-05
+
+The authorized CPU goal is complete: corrected TRAIN-only target policy/ranking
+and sizing, new TRAIN/VAL datasets and lifecycle, all affected CPU audits,
+two new source-bound recipes and direct CPU trainability-readiness.
+The active execution hold remains BLOCK; its reason is now
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+No successor CUDA, full candidate training, physical TEST access, candidate
+acceptance, paper or live activity occurred. The launch state's retained
+`current_source_technical_recipe` and old gate are historical records, not
+authority for this successor.
+
+All paths in the following inventories are relative to:
+
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z`
+
+| Artifact | Relative path | File SHA-256 |
+| --- | --- | --- |
+| TRAIN parquet | `dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet` | `dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af` |
+| TRAIN manifest | `dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json` | `9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6` |
+| VAL parquet | `dataset/entry_dataset__ENTRY_FITTED_Q_val.parquet` | `2de2fac108ec7313307376fa0eed7daad27b9f90f9eaf38cba4b4ab02e8a013e` |
+| VAL manifest | `dataset/entry_dataset__ENTRY_FITTED_Q_val.manifest.json` | `3eb41d343b6a6461f59396ea7c225246aaf5a1a7ae307ff02304909da690c76e` |
+| Unopened TEST guard | `ENTRY_MODEL_NATIVE_PRETEST_TEST_GUARD_20260905T144343Z.json` | `521e6f8315a92822b64ce4114799c899067f2a8031e73ca6486393da50a9a73c` |
+| Canonical smoke recipe | `ENTRY_V9_FIVE_YEAR_ENTRY_NOTIONAL_GATE_SMOKE_20260905T144446Z_RECIPE.json` | `cafabf1f7b87a3feb630b58a1b78ffc53d027129d60d41c7fe88f643b68d4476` |
+| Full candidate recipe | `ENTRY_V9_FIVE_YEAR_ENTRY_NOTIONAL_CANDIDATE_20260905T144446Z_RECIPE.json` | `e1441e9a5fbe693b348a27ff5b13dfb251830c5e72433281d3c2409c87e779e0` |
+| CPU trainability readiness | `ENTRY_V9_FIVE_YEAR_PRETEST_TRAINABILITY_20260905T144558Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T144627440261Z.json` | `c577b80cd2bd15f527640a105e20fceae4b1e8fd660f67b949d0a7811d2c2a86` |
+
+The recipes both bind source `406c732e19369180e94f72702967e52740a3a0cd` and
+identical artifact-bindings SHA-256
+`dd61724a6cb610b373ab38b7f1c3a1fff664b54bc3cecf75f350bc578974a637`.
+They are report-only, with activation false and no execution side effects.
+Neither declared output bundle exists: these are recipes, not executed runs.
+Their complete trainer configurations match the exact rehashed historical
+recipes; no architecture, feature formula, learning objective or early-stop
+change was introduced. Candidate: batch 8, at most 30 epochs, patience 5,
+minimum epoch 1, no row subsample. Canonical gate-smoke: batch 8, one epoch,
+32 deterministic rows. Historical smoke/VAL results cannot be relabelled as
+new-source or new-data execution.
+
+Actual TRAIN population is 313399 rows, observed from 2021-06-01T00:00Z to
+2026-05-29T14:50Z; actual VAL is 5509 rows, observed from
+2026-05-31T23:55Z to 2026-06-30T14:55Z. Declared emission windows remain TRAIN
+2021-06-01T00:00Z through 2026-05-31T23:50Z and VAL
+2026-05-31T23:55Z through 2026-06-30T23:55Z. Physical TEST starts
+2026-07-01T00:00Z and was not opened. A capped parquet rehash/footer/time-column
+check confirmed the actual counts, sorted unique disjoint clocks and matching
+TRAIN-only direction/sizing policy identities. Sizing policy SHA-256:
+`793b305565848827675a421838d8aff0a302c77613b30c3df454ab5e0f59430b`.
+
+The new full-population pretrain audit is
+`dataset_audits/XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_20260905T143350408713Z.json`.
+It reports PASS, verifies large-artifact hashes, covers all 313399 TRAIN and
+5509 VAL rows, and records zero target mismatches/invalid target modes with
+target finite rates of 1. Cross-surface, full-input liveness, foundation
+feature/target, specialist, execution causality and both sequence reconstruction
+audits also PASS. No physical TEST population was loaded.
+
+| Bound audit/proof | Relative path | File SHA-256 |
+| --- | --- | --- |
+| dataset_build_proof | `dataset/DATASET_BUILD_PROOF.json` | `5b4ca02d67dcfe7db857f8c769c8db6b0f4f1d08e6ac25f382278e98055756df` |
+| execution_causality_audit | `dataset/ENTRY_EXECUTION_CAUSALITY_AUDIT_20260905T143732Z.json` | `1844da8718e377ee19e92ed00e3ae0ad68fbd2f3ebd2a7b75a7fc8e3dca02547` |
+| feature_audit | `dataset/AUDIT_FOUNDATION_FEATURES_20260905T143544Z/ENTRY_FEATURE_FOUNDATION_AUDIT_20260905T143626Z.json` | `27b6e15a71d07f63b675b81ba6cde53c463a9c23412724a4cc17816a6ff8a607` |
+| full_input_liveness | `dataset/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20260905T140138802080Z.json` | `70a28b91a69261e87b7bc79a4b6bf9cd6b8b3ea3664f95d4f2a42f48cfbf5108` |
+| specialist_audit | `dataset/AUDIT_SPECIALIST_FEATURES_20260905T143544Z/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20260905T143705Z.json` | `43e63401dd17babc43836f77fc35d364e05d533c89de848eccf27b77eb203b97` |
+| target_audit | `dataset/AUDIT_FOUNDATION_TARGETS_20260905T143544Z/ENTRY_TARGET_FOUNDATION_AUDIT_20260905T143645Z.json` | `50f06a04edb4a7c2616a76a661a323df6ca4948479b08a4b355282c2aae0bb0e` |
+| train_sequence_source_reconstruction | `dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260905T143732Z.json` | `53f836d0bee89409636ad58f988ada44d61633bfd62c10014bef4e5f2f68ef29` |
+| unified_exit_lifecycle_manifest | `dataset/UNIFIED_EXIT_LIFECYCLE/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json` | `3fa95fb054b9e593708533e714189939f2e48fb10270dbb48efb5cc8aefdae52` |
+| val_sequence_source_reconstruction | `dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_VAL_20260905T143732Z.json` | `9536e442bc5840674b1d9efc21edd1257d512bfaeba38d7ad3707f6a3a193523` |
+
+The existing lifecycle consumer loaded and validated the real new corpus
+under the audit cap, including exact Entry parquet/manifest bindings, clocks,
+windows and mapping proofs. TRAIN has 626780 episodes / 320911360 states;
+VAL has 11000 episodes / 5632000 states, with equal long/short state counts.
+Verification log: `lifecycle_verification.log`.
+
+CPU readiness decision is
+`READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`, with all five checks true
+and no failures: exact shared dataset, direct artifact rehashes, full five-year
+pretrain PASS, clean current candidate source closure, and clean current smoke
+source closure. It explicitly records `candidate_training_allowed=false`,
+`activation_authority=false` and `promotion_shadow_live_allowed=false`.
+An individual causality audit's local `training_authorized=true` certifies
+its causal-data contract only; it does not override the hold or grant
+operator/CUDA authority.
+
+Remaining execution work is outside this completed CPU goal: obtain new
+explicit scoped authorization for the successor canonical gate-smoke, record
+the reviewed hold transition, and require clean handover/exact preflight plus
+fresh signed 160 W telemetry before execution. Then obtain separately scoped
+successor guarded VAL/runtime evidence and its new candidate gate. Full
+candidate training requires that gate and explicit full-candidate authority.
+Do not clear the hold or start any of these automatically.
+
+Final handoff/hold and versioned-hook verification passed all 67 cases under
+the 4 GiB / 512 MiB audit cap, with zero failures/errors/skips:
+`/tmp/gx1-cpu-successor-handoff-20260905.xml`. The 15 small JSON artifacts in
+the inventories above were independently rehashed against this document;
+the large parquets had already been rehashed during production/readiness.
+Launch state remains within its 14000-byte limit with the exact five-key
+BLOCK hold; historical recipe/gate records were not rewritten.
+
+## Authorised CPU continuation and verification history
 
 The operator authorised completion of the corrected TRAIN/VAL successor on
 2026-09-05. The shared goal is to rebuild its TRAIN-only policy/ranking,
@@ -23,7 +124,8 @@ source-only hygiene and pre-TEST argument-isolation regressions. All shell
 syntax checks, capped `compileall`, and `git diff --check` passed. All 11
 installed direct dependency pins match and import as required. Local test
 record: `/tmp/gx1-cpu-successor-source-20260905.xml`. This verifies code and
-orchestration, not yet the replacement dataset or runtime evidence.
+orchestration; actual replacement dataset evidence is recorded above. Runtime
+evidence for the successor remains pending.
 
 The corrected TRAIN policy/ranking has now been emitted successfully at
 `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20260905T132535Z.json`
@@ -110,9 +212,9 @@ The retained VAL proof had positive varying weights for all eight; seven were
 never top-ranked. That prevents the stronger quality claim, not the narrower
 technical connectivity claim. Neither proves edge or profitability.
 
-## Dataset consequences and next work
+## Historical dataset diagnosis and completed recovery plan
 
-The retained five-year dataset has 313399 TRAIN rows and 5509 VAL rows.
+The old retained five-year dataset has 313399 TRAIN rows and 5509 VAL rows.
 Its declared emission windows end 2026-05-31T23:50Z and 2026-06-30T23:55Z;
 observed final rows are 2026-05-29T14:50Z and 2026-06-30T14:55Z. Windows are not
 assertions of a continuous, unpurged training population.
@@ -125,7 +227,9 @@ by the corrected policy owner with `ENTRY_CAUSAL_M1_TARGET_POLICY_CONTRACT_INVAL
 
 The dataset proof binds the old `entry_causal_m1_outcomes_v1` policy through
 the frozen policy, ranking and signal lineage. The corrected contract must
-not be attached to those old bytes. Required continuation:
+not be attached to those old bytes. The recorded recovery plan below has now
+completed its CPU steps (1–3 and the recipe/readiness portion of 4); runtime
+evidence and the authorized execution transition remain pending:
 
 1. Finish CPU regression verification of the corrected code.
 2. Fit a new TRAIN-only target policy/ranking and sizing ECDF, and build a
@@ -145,12 +249,11 @@ not be attached to those old bytes. Required continuation:
    authorisation before any CUDA execution. Full candidate remains at most
    30 epochs with existing early-stop policy; no architecture change is implied.
 
-The legacy `run_seq513_rebuild_chain_v1.sh` is not this recovery route: it
-requires TEST windows and successful training handover. Do not remove the hold
-temporarily or run that three-split chain. The successor orchestration must
-use the existing dataset builder's `--pretest-only` mode (which rejects TEST
-arguments), the existing owners above, fresh output identities and capped CPU
-execution. It needs source-hygiene checks independent of old training readiness.
+The successor used the repaired `run_seq513_rebuild_chain_v1.sh` with its
+explicit `--pretest-only` route, source-only hygiene and existing capped CPU
+owners. This route rejects legacy tape/pair-generation/TEST arguments before
+path access. The legacy three-split invocation is not the recovery route and
+must not be used. The review hold was not temporarily removed for production.
 
 ## Coverage and limitations
 
@@ -180,7 +283,7 @@ source-closure checks. They are recoverable from Git. No model, data, audit,
 environment or registered worktree was deleted. Details:
 [`REPO_CLEANUP_CANDIDATES_20260903.md`](REPO_CLEANUP_CANDIDATES_20260903.md).
 
-## Verification record
+## Initial review verification record (before successor production)
 
 Completed under the 4 GiB / 512 MiB audit cap, with heavy jobs serialized:
 
@@ -211,5 +314,6 @@ Local test logs (diagnostics, not training authority):
 `/tmp/gx1-premiere-review-confirm-20260905.xml`.
 
 The early mixed-source baseline was interrupted and is excluded from the
-final verification claim. Code review is complete; corrected TRAIN/VAL data
-and successor execution evidence are still required before large training.
+final verification claim. Code review and corrected TRAIN/VAL production are
+now complete as recorded above; successor execution evidence and scoped
+authorization remain required before large training.

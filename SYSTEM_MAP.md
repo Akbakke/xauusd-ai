@@ -2,17 +2,17 @@
 
 This is an architecture map, not runtime authority. For a lost-chat or reboot
 restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
-`bash scripts/gx1_handover.sh`. Current status is
-`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The five-year canonical
-smoke and guarded VAL inference completed on 2026-09-04, and their technical
-candidate gate was READY at `55de7b82`. The 2026-09-05 trainer, lifecycle,
-gate/source-closure and watchdog repairs change executable bytes. A corrected
-short auxiliary-return denominator also invalidates the old fitted policy and
-targets. Current readiness requires a controlled CPU rebuild/audit of the
-five-year TRAIN/VAL target/policy chain, new immutable recipe/gate bindings and
-clean handover. Merely rebinding source hashes is insufficient. The Windows task is configured for 160 W;
-later CUDA still requires fresh signed telemetry and operator authorization.
-TEST, paper and live remain unauthorized.
+`bash scripts/gx1_handover.sh`. The corrected five-year TRAIN/VAL successor,
+affected CPU audits and new source-bound smoke/candidate recipes are complete.
+CPU readiness passes all five checks, without authorizing training. The hold
+remains BLOCK with reason
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+The September 4 smoke/VAL/gate are historical, not execution evidence for the
+corrected short-return data and repaired code. Architecture, split boundaries
+and candidate settings (batch 8, at most 30 epochs, patience 5) are unchanged.
+Successor runtime evidence is still pending. The Windows task is configured
+for 160 W; later CUDA needs clean handover/preflight, fresh signed telemetry
+and new scoped operator authorization. TEST, paper and live remain unauthorized.
 
 The older V4/V5 status below is retained as historical architecture context.
 
@@ -282,9 +282,12 @@ five-year candidate has not trained and TEST remains sealed.
 The 2026-09-04 smoke audit failed only its strict specialist top-rank quality
 heuristic; its technical contract supported an immutable candidate gate.
 That gate is historical evidence after the 2026-09-05 source and short-return
-contract repairs. The next work is capped CPU verification and the affected
-five-year target/policy/audit rebuild, then new recipe/gate bindings, exact
-preflight and clean handover. A new CUDA probe is not an automatic next step.
+contract repairs. The corrected target/policy/audit rebuild, both new recipes
+and CPU readiness are now complete. A successor canonical gate-smoke and
+guarded VAL/runtime evidence still need new scoped authority, clean
+handover/preflight and fresh signed telemetry. Their new candidate gate is a
+prerequisite for separately authorized full training. CPU readiness does not
+automatically launch a CUDA probe.
 No trading-edge, candidate acceptance or production claim follows.
 
 ## Scope boundary

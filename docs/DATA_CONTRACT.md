@@ -1,7 +1,11 @@
 # GX1 data contract
 
-> **2026-09-03 re-entry note:** V46 remains the immutable research substrate;
-> V9 completed technical TRAIN+VAL without opening TEST. Runtime and CUDA
+> **2026-09-05 re-entry note:** the corrected five-year TRAIN/VAL successor is
+> complete under `entry_causal_m1_outcomes_v2_entry_notional_pnl`, with new
+> TRAIN-only policy/ranking/sizing, 313399 TRAIN / 5509 VAL rows and passing CPU
+> audits/readiness. Original split boundaries and physical TEST sealing are
+> preserved. New source-bound recipes exist, but no successor CUDA has run and
+> the execution hold remains active. Runtime and CUDA
 > authority are in [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md)
 > and `scripts/gx1_handover.sh`, not this contract's historical session text.
 
@@ -10,7 +14,7 @@
 > immutable contract and active state. This data contract does not authorise a
 > resume from any prose checkpoint number.
 
-> Runtime-status note, 2026-08-30: V46 data and feature evidence remains PASS.
+> Historical runtime-status note, 2026-08-30: V46 data and feature evidence remains PASS.
 > The technical checkpoint now has exact clean-CPU bundle/reload parity and a
 > sealed-VAL-only decision journal, with `TEST ACCESSED: NO`. These prove
 > byte-bound data/model/label plumbing only; the journal's smoke metrics are

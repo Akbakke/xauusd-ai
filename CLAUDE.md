@@ -14,17 +14,20 @@ the work state, and `scripts/gx1_handover.sh` is the executable status owner
 that outranks every document. If they disagree, fail closed and repair the
 documentation and the code together.
 
-## Current re-entry status — 2026-09-03
+## Current re-entry status — 2026-09-05
 
 [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) is the
-short human restart point. V9 completed 31,004 TRAIN steps and full VAL as a
-technical-only bundle; selected VAL PnL is negative, TEST is unread, and all
-candidate/paper/live authority is false. Query the verified session from
-`bash scripts/gx1_handover.sh`, never a prose checkpoint. A signed 160 W
-response was verified on 2026-09-04 and the host cap is persistent, but every
-response is valid only for its instant: do not launch CUDA after a restart or
-driver reset without a clean preflight, a fresh signed response, a
-dataset-bound candidate gate and explicit operator approval.
+short human restart point. The corrected five-year TRAIN/VAL data, affected
+CPU audits, new source-bound smoke/candidate recipes and CPU readiness are
+complete. The execution hold remains BLOCK with reason
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+Historical CUDA evidence cannot certify this successor. No successor CUDA or
+full five-year candidate has started; physical TEST remains sealed. Query
+`bash scripts/gx1_handover.sh`, never a prose checkpoint. A successor smoke
+requires new scoped authority, a reviewed hold transition, clean preflight and
+fresh signed 160 W telemetry. A later full candidate also needs successor
+runtime evidence and its dataset-bound candidate gate. CPU readiness alone
+grants none of these execution authorities.
 
 The detailed V4/V5 text below is retained historical context, not status.
 

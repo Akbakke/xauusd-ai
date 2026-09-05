@@ -18,27 +18,54 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-Status: `CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`.
+CPU successor complete; execution remains BLOCK with reason
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 
 The [2026-09-05 review report](PREMIERE_CODE_REVIEW_20260905.md) records the
-repairs and verification: 2432 test cases covered by the fullsuite plus a
-109-case passing confirmation run. The explicit review hold remains active;
-passing code tests is not permission to reuse the old target data.
+repairs, actual production evidence and exact artifact hashes. The corrected
+TRAIN-only policy/ranking/sizing and five-year TRAIN/VAL data have been rebuilt;
+all affected CPU audits pass. Actual populations are 313399 TRAIN and 5509 VAL
+rows, with original split boundaries preserved and physical TEST unopened.
+The contract is `entry_causal_m1_outcomes_v2_entry_notional_pnl`; old fitted
+policy/target bytes were not relabelled. Model architecture, feature formulas
+and candidate configuration remain unchanged.
 
-The exact five-year canonical smoke and its guarded VAL prediction pass both
-completed on 2026-09-04. The immutable candidate readiness and launch gate
-were READY at checkout `55de7b82`. Review on 2026-09-05 repairs trainer resume
-RNG, fail-fast nonfinite gradients, lifecycle split binding, nested gate
-rehashing/source closure and the watchdog. It also found short auxiliary
-returns computed as `(entry_bid / exit_ask - 1) * 1e4`; entry-notional returns
-must use `(1 - exit_ask / entry_bid) * 1e4`, consistent with lifecycle/MFE
-economics. The corrected causal-M1 return contract rejects the old fitted
-policy and target data. The five-year TRAIN/VAL target/policy/audit chain must
-be rebuilt under controlled CPU execution before new recipe/gate bindings and
-clean handover can prove readiness. Merely changing source hashes is not a
-repair. No full five-year candidate has started.
+The successor root is:
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z`.
+Under that root:
 
-### Five-year pre-TEST evidence completed on 2026-09-04
+- Dataset: `dataset/`, with passing full-population pretrain, feature/target,
+  specialist, causality, reconstruction, liveness and lifecycle verification.
+- Canonical smoke recipe:
+  `ENTRY_V9_FIVE_YEAR_ENTRY_NOTIONAL_GATE_SMOKE_20260905T144446Z_RECIPE.json`,
+  SHA-256 `cafabf1f7b87a3feb630b58a1b78ffc53d027129d60d41c7fe88f643b68d4476`.
+- Candidate recipe:
+  `ENTRY_V9_FIVE_YEAR_ENTRY_NOTIONAL_CANDIDATE_20260905T144446Z_RECIPE.json`,
+  SHA-256 `e1441e9a5fbe693b348a27ff5b13dfb251830c5e72433281d3c2409c87e779e0`.
+  It retains batch 8, at most 30 epochs and early-stop patience 5.
+- CPU readiness:
+  `ENTRY_V9_FIVE_YEAR_PRETEST_TRAINABILITY_20260905T144558Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T144627440261Z.json`,
+  SHA-256 `c577b80cd2bd15f527640a105e20fceae4b1e8fd660f67b949d0a7811d2c2a86`.
+  Decision `READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`; all five checks
+  pass, with candidate training and activation explicitly false.
+
+Both recipes bind source `406c732e` and the same new artifact set. Neither
+recipe has executed; no successor CUDA or full five-year candidate has started.
+The exact September 4 smoke, guarded VAL pass and candidate gate remain
+historical. Their old source/data cannot certify this successor.
+
+Verification includes a 2447-case all-green recovery-route fullsuite, then a
+2457-case integration suite with one watchdog timeout and passing focused
+confirmations after repairs. Exact case-identity reconciliation gives 2462
+passing cases and no unresolved failures; the last fullsuite alone was not
+all-green. The report preserves that distinction and its XML records.
+
+Normal handover deliberately exits 2 while the execution hold is active.
+`bash scripts/gx1_handover.sh --source-only` checks source hygiene without
+authorizing training or consulting old runtime evidence. Do not remove the
+hold merely to obtain a green normal handover.
+
+### Historical five-year pre-TEST evidence completed on 2026-09-04
 
 - A new TRAIN/VAL-only dataset has been materialized under
   `V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/`
@@ -66,8 +93,9 @@ repair. No full five-year candidate has started.
   It is `report_only`, has `activation_authority=false`, and binds source
   commit `b414fc36`. It specifies batch 8, **at most 30 epochs**, validation
   every epoch, patience 5, minimum epoch 1, and `save_top_k=1`. Its old source
-  hashes do not match the 2026-09-05 review repairs. A new recipe must bind the
-  rebuilt short-return target/policy chain and its fresh audits.
+  hashes do not match the 2026-09-05 review repairs. The successor recipe above
+  now binds the rebuilt short-return target/policy chain and fresh CPU audits;
+  it does not inherit this old recipe's execution evidence.
 - `ENTRY_V9_FIVE_YEAR_CANDIDATE_CHECKPOINT_POLICY_PROOF_20260903T174100Z.json`
   is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
   non-improvements after epoch 1 stop at epoch 6. This is a policy proof, not
@@ -195,25 +223,25 @@ missing/invalid signed telemetry. The persistent Windows cap and the one-second
 process watchdog serve separate purposes. Historical 70 C / 220 W runs do not
 define current limits.
 
-No further CUDA work, including another 31,004-step TRAIN, is authorised. It
-remains blocked until both of the following are true:
+The corrected CPU target/policy/audit chain and new recipes/readiness are now
+complete. No further CUDA work, including another 31,004-step TRAIN, is
+authorized by that result. Remaining execution sequence:
 
-1. The corrected short-return target/policy/audit chain has been rebuilt and
-   verified on TRAIN/VAL, the repaired source has new recipe/gate bindings,
-   and executable handover plus exact CPU launch preflight pass on a clean,
-   reviewed worktree. Re-probe the signed Windows bridge immediately
-   before the launch and require its physical-limit field to remain 160 W.
-2. The operator explicitly authorises a new CUDA launch. This is intentionally
-   separate from this technical result and from any old chat instruction.
+1. Obtain new explicit scoped authorization for one successor canonical
+   gate-smoke. Record the reviewed hold transition and require clean executable
+   handover/exact launch preflight. Re-probe signed Windows telemetry immediately
+   before launching and require the physical-limit field to remain 160 W.
+2. Obtain successor guarded VAL/runtime evidence under its own scoped authority,
+   then materialize the new candidate gate from that exact source/data/bundle.
+   Do not require the full-candidate gate before its prerequisite smoke, or
+   substitute the historical September 4 gate.
+3. Full candidate launch needs the successor runtime gate, clean launch
+   preflight, fresh signed 160 W telemetry and explicit full-candidate authority.
 
-The physical-limit change and signed bridge verification are
-safety-precondition repairs, not CUDA authorisation. The next non-CUDA work is
-to finish review verification and rebuild/audit the affected five-year
-TRAIN/VAL target/policy chain, then materialize exact source/data recipe and
-gate bindings if all required evidence is admissible. Preserve prior immutable
-artifacts; do not overwrite hashes or relabel old smoke execution as new-source
-execution. Report any missing binding explicitly. TEST, paper and live remain
-unauthorized.
+The hold stays active until an authorized, reviewed execution transition;
+source-only hygiene and CPU readiness do not clear it. Preserve old immutable
+artifacts, and never overwrite hashes or relabel old execution as new-source
+execution. TEST, candidate acceptance, paper and live remain unauthorized.
 
 ## Historical one-epoch immutable paths
 
