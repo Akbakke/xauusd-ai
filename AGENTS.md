@@ -4,37 +4,31 @@ Read `GX1_RULES.md` first. It is binding.
 
 ## Current re-entry status — 2026-09-05
 
-Latest operator instruction authorizes the complete local VAL → post-run
-audit/readiness → candidate gate → unchanged five-year TRAIN/VAL launch
-sequence without new per-step approvals, provided every technical and safety
-gate passes. The hold described below has been transitioned off for that
-scope. Follow the current handoff's continuation record; do not repeat the
-completed smoke. TEST, acceptance, paper/live and external costs remain closed.
+Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
+`bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
+The corrected five-year candidate has started: full TRAIN/VAL, batch 8,
+maximum 30 epochs, early-stop patience 5. Exact progress belongs to the active
+launch-state session and its verified pointer, not a checkpoint copied here.
 
-Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
-next, then run `bash scripts/gx1_handover.sh --check` and
-`bash scripts/gx1_handover.sh`. The corrected five-year TRAIN/VAL successor,
-TRAIN-only policy/ranking/sizing, data audits, source-bound smoke/candidate
-recipes and CPU trainability-readiness are complete and PASS. After the
-handover repair, current recipes bind source `e25a8cb6`; actual populations
-are 313399 TRAIN and 5509 VAL rows. The candidate
-configuration remains batch 8, at most 30 epochs and early-stop patience 5.
-The active hold reason is
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-CPU readiness does not authorize execution. The 2026-09-04 smoke, VAL pass and
-candidate gate remain historical; their execution cannot certify corrected
-short-return data or repaired trainer/lifecycle/watchdog code. Exactly one
-successor canonical smoke completed with exit 0 and a verified bundle. Its
-strict quality warnings remain; guarded VAL prediction and post-run audit are
-pending. No full five-year candidate has started. TEST, candidate acceptance,
-paper and live remain closed. Exact evidence is in the current handoff and
-[`docs/PREMIERE_CODE_REVIEW_20260905.md`](docs/PREMIERE_CODE_REVIEW_20260905.md).
+The operator authorized the continuous local progression, including ordinary
+guarded resumptions of this exact candidate, without new per-step approvals.
+The preparatory hold is cleared for that scope. Canonical smoke, full VAL
+prediction, technical readiness and the new candidate gate are complete;
+do not repeat them or restart training from zero. Recipes still bind executable
+source `e25a8cb6`; the clean initial launch checkout was `d4376b3c`.
 
-Technical liveness requires finite, positive, state-varying routes through all
-eight specialists and the contract's training-connectivity evidence. It does
-not require every specialist to win the largest softmax weight, or prove edge
-before training. The persistent Windows task maintains 160 W; every CUDA
-launch still requires fresh signed telemetry and explicit operator authority.
+Strict smoke quality remains FAIL on seven never-top-ranked specialists,
+although all eight routes are positive and state-varying on full VAL.
+Technical consistency is not candidate acceptance or evidence of trading edge.
+No admitted model exists. TEST, acceptance, paper/live, external spend and
+material model changes remain closed.
+
+Follow the current handoff for 15-minute follow-up and exact resume steps.
+Every launch/resume still requires clean source, exact recipe/gate/checkpoint
+identity and fresh signed 160 W telemetry. Hardware, telemetry, data or model
+failures stop progression; an expected guard time boundary alone is not a
+hardware failure. Never start a second heavy job to verify or commit docs while
+the trainer owns the lock.
 
 ## Historical context (superseded as current status)
 
@@ -338,16 +332,17 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 1. CPU review verification, corrected five-year TRAIN/VAL rebuild, all affected
    audits and both new recipes/readiness are complete. Preserve these immutable
    artifacts; do not repeat production or relabel historical CUDA evidence.
-2. The one authorized successor canonical gate-smoke is complete; do not repeat
-   it. The hold is restored. CPU source hygiene can be checked independently
-   with `bash scripts/gx1_handover.sh --source-only`.
-3. Obtain successor guarded VAL predictions from the exact new bundle only
-   under new scoped operator authority, a reviewed hold transition, clean
-   handover/preflight and fresh signed 160 W telemetry. Then complete its
-   post-run audit/readiness and new candidate gate. The old gate cannot substitute.
-4. Full candidate training requires that successor runtime gate, a clean
-   launch preflight, fresh signed 160 W telemetry and explicit full-candidate
-   authorization. Preserve sealed TEST throughout preparation.
+2. Canonical smoke, full VAL prediction, post-run audit, technical readiness
+   and the new candidate gate are complete. The operator-approved full
+   candidate has started. Do not repeat preparation or restart from zero.
+3. Monitor the exact active session every 15 minutes. Preserve the signed
+   watchdog and all limits. On an expected time-boundary stop only, verify
+   the final guard log and checkpoint, finish pending status-only verification
+   and commit, then resume the same candidate after clean preflight and fresh
+   signed telemetry. Standing authorization covers this ordinary progression.
+4. A safety, telemetry, data, source or model failure stops progression. Diagnose
+   it without blind retries or gate weakening; seek new authority only if a
+   material scope change or external intervention is actually required.
 5. Candidate acceptance, TEST, calibration/replay requiring new authority,
    paper and live remain separate later decisions. Production claims also need
    executable prices, costs, financing, terminal and portfolio evidence.

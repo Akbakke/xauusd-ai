@@ -1,20 +1,25 @@
 # GX1 XAUUSD handover
 
+Latest runtime update, 2026-09-05: successor VAL prediction and the exact
+technical candidate gate are complete. The operator-authorized full five-year
+TRAIN/VAL candidate has started and has durable checkpoints. See
+[docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and the active launch-state session reference.
+Earlier pending-smoke/VAL and per-step authorization text below is history.
+TEST, candidate acceptance, paper/live and external spend remain closed.
+
 Updated 2026-09-05. `scripts/gx1_handover.sh` is the executable status owner and
 outranks this file — run it before relying on anything here. `GX1_RULES.md` is
 binding scope; `CLAUDE.md` is the process constitution.
 
 For a context-reset takeover, read
 [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md) first.
-The corrected five-year TRAIN/VAL rebuild, CPU audits, new smoke/candidate
-recipes and CPU readiness are complete. The execution hold remains active:
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-The Windows task maintains the configured 160 W cap, but a fresh signed
-response, clean handover/preflight and new scoped authorization are still
-required for further successor CUDA work. Exactly one canonical successor smoke
-completed with exit 0 and a verified bundle; guarded VAL predictions and
-post-run audit remain pending. No full five-year candidate has started. TEST,
-candidate acceptance, paper and live remain closed.
+The corrected five-year TRAIN/VAL rebuild, CPU audits, canonical smoke,
+full VAL pass and exact technical candidate gate are complete. The review hold
+was cleared under the operator's standing approval and the full candidate has
+started. Every ordinary resumption still requires its exact recipe/session,
+clean preflight and fresh signed 160 W telemetry; no new per-step approval is
+needed. Strict smoke quality remains unqualified. TEST, candidate acceptance,
+paper and live remain closed.
 
 > **Historical V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its

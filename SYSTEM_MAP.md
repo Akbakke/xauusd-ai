@@ -1,20 +1,21 @@
 # GX1 system map
 
+Latest runtime update, 2026-09-05: successor VAL prediction and the exact
+technical candidate gate are complete. The operator-authorized full five-year
+TRAIN/VAL candidate has started and has durable checkpoints. See
+[docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and the active launch-state session reference.
+Earlier pending-smoke/VAL and per-step authorization text below is history.
+TEST, candidate acceptance, paper/live and external spend remain closed.
+
 This is an architecture map, not runtime authority. For a lost-chat or reboot
 restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
-`bash scripts/gx1_handover.sh`. The corrected five-year TRAIN/VAL successor,
-affected CPU audits and new source-bound smoke/candidate recipes are complete.
-CPU readiness passes all five checks, without authorizing training. The hold
-remains BLOCK with reason
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-The September 4 smoke/VAL/gate are historical, not execution evidence for the
-corrected short-return data and repaired code. Architecture, split boundaries
-and candidate settings (batch 8, at most 30 epochs, patience 5) are unchanged.
-Exactly one successor canonical smoke completed with exit 0 and a verified
-bundle; strict quality warnings, guarded VAL predictions and post-run
-audit/readiness remain to be resolved. The Windows task is configured
-for 160 W; later CUDA needs clean handover/preflight, fresh signed telemetry
-and new scoped operator authorization. TEST, paper and live remain unauthorized.
+`bash scripts/gx1_handover.sh`. The corrected data, canonical smoke, full VAL
+predictions, technical readiness and exact candidate gate are complete. The
+five-year candidate preserves architecture, split boundaries, batch 8,
+maximum 30 epochs and patience 5. Its ordinary verified resumptions are within
+the standing operator approval, but every launch still requires clean
+preflight and fresh signed 160 W telemetry. Strict quality warnings remain;
+technical start readiness is not acceptance or trading-edge evidence.
 
 The older V4/V5 status below is retained as historical architecture context.
 
@@ -279,18 +280,18 @@ were retired with their superseded feature contracts and have no training or
 comparison authority; V39/V40 are also historical. V46 and the later five-year
 TRAIN/VAL preparation are audited research evidence, not admitted production
 data or models. Technical bundles and VAL prediction artifacts exist; the
-five-year candidate has not trained and TEST remains sealed.
+five-year candidate has started with durable checkpoints, not completed or
+accepted, and TEST remains sealed.
 
 The 2026-09-04 smoke audit failed only its strict specialist top-rank quality
 heuristic; its technical contract supported an immutable candidate gate.
 That gate is historical evidence after the 2026-09-05 source and short-return
 contract repairs. The corrected target/policy/audit rebuild, both new recipes
-and CPU readiness are now complete. Exactly one successor canonical gate-smoke
-completed; do not repeat it automatically. Guarded VAL predictions from its
-exact bundle still need new scoped authority, clean handover/preflight and
-fresh signed telemetry. Post-run audit/readiness and a new candidate gate are a
-prerequisite for separately authorized full training. CPU readiness does not
-automatically launch a CUDA probe.
+and CPU readiness are complete. The exact successor smoke and full VAL pass
+have also completed and supported the new technical candidate gate. The
+operator-authorized candidate has started. Do not repeat those prerequisites
+or substitute the historical gate; retain the exact current recipe/session
+through every fresh guarded preflight. CPU readiness alone never grants CUDA.
 No trading-edge, candidate acceptance or production claim follows.
 
 ## Scope boundary

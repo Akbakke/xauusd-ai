@@ -4,43 +4,33 @@ This file defines the only active project scope.
 
 ## Current binding status — 2026-09-05
 
-Latest operator instruction authorizes the complete local VAL → post-run
-audit/readiness → candidate gate → unchanged five-year TRAIN/VAL launch
-sequence without new per-step approvals, provided every technical and safety
-gate passes. The hold described below has been transitioned off for that
-scope. Follow the current handoff's continuation record; do not repeat the
-completed smoke. TEST, acceptance, paper/live and external costs remain closed.
+Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md).
+The operator authorized the continuous local VAL → audit/readiness → candidate
+gate → unchanged five-year TRAIN/VAL progression without per-step approvals.
+All preparatory runtime gates are now complete and the full candidate has
+started. The review hold was cleared only for that scope; global admission
+remains BLOCK. Do not repeat the completed smoke/VAL or reset the candidate.
 
-Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
-before historical notes below. `bash scripts/gx1_handover.sh` owns the live
-candidate-session position and source closure. The corrected five-year
-TRAIN/VAL data, TRAIN-only policy/ranking/sizing, affected CPU audits and new
-smoke/candidate recipes are complete. CPU readiness passes all five checks,
-but explicitly keeps candidate training and activation false. The hold remains
-BLOCK with reason
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-The 2026-09-04 smoke/VAL/gate certify historical bytes only. New source-bound
-recipes use `e25a8cb6`, corrected entry-notional short returns and the new
-313399-row TRAIN / 5509-row VAL dataset; architecture and candidate settings
-(batch 8, at most 30 epochs, patience 5) are unchanged.
-Exactly one successor canonical gate-smoke completed with exit 0 and a verified
-bundle; strict quality warnings remain. Do not repeat it or start CUDA from
-CPU readiness. Successor guarded VAL predictions require new scoped operator
-authorization, a reviewed hold transition, clean handover, exact preflight and
-fresh signed 160 W telemetry. Post-run audit/readiness and a new candidate
-gate are still required before separately
-authorized full training. TEST, candidate acceptance, promotion, paper and
-live remain blocked.
+The candidate uses the corrected entry-notional data and source-bound
+`e25a8cb6` recipe: full TRAIN/VAL, batch 8, maximum 30 epochs, patience 5.
+Every new launch or ordinary guarded resumption requires clean source,
+the exact immutable recipe and gate, verified session state where present,
+and fresh signed 160 W telemetry. Safety/data/model failures stop progression;
+only an expected guard time boundary with intact evidence may resume normally.
+TEST, candidate acceptance, promotion, paper/live, external spend and material
+model changes are not authorized.
 
-All eight specialist routes must be finite, positive and state-varying, with
-the required training-connectivity evidence. A top-rank winner quota is a
-separate quality heuristic, not a technical prerequisite for first training;
-neither metric proves trading edge. The Windows persistent task enforces
-160 W at boot and every 15 minutes; old signed responses are not launch-time
-evidence.
-Only declared runtime state and
-regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
-source identity.
+All eight specialist routes must be finite, positive and state-varying with
+the required training-connectivity evidence. The actual smoke audit retains
+seven never-top-ranked quality failures; its existing technical-start contract
+passes. A top-rank winner quota is not a prerequisite for first training, and
+neither liveness nor consistency proves edge. Keep later quality gates strict.
+
+The persistent Windows task maintains 160 W at boot and every 15 minutes.
+Old signed responses are never launch-time evidence. Only declared runtime
+state and regenerable Python/pytest/ruff caches may be ignored; other ignored
+paths block source identity. The active session/progress is owned by
+`scripts/gx1_handover.sh`, not the historical notes below.
 
 ## Historical performance and machine-safety context
 

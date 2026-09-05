@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T15:55:20Z",
+  "updated_utc": "2026-09-05T16:05:16Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -156,20 +156,20 @@
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
   "active_candidate_training_session": {
-    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_RECIPE.json",
-    "recipe_audit_sha256": "61f90a5eed4a1b21f87e96770d43fecba7978a42b3e305c57ff064ed645cf9b1",
-    "run_id": "V9_ONE_EPOCH_CANDIDATE_20260901T213444Z",
     "schema_version": "gx1_active_candidate_training_session_reference_v1",
-    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/.gx1-candidate-training-session.ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE",
-    "source_bindings_sha256": "654faad244494670e9584d18052918d8921de13bb47c4a61faf213348d1adf9c",
-    "source_commit": "053647e37b760415e58ee8a18b1d5cc5b06f8be9"
+    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
+    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
+    "recipe_audit_sha256": "7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f",
+    "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
+    "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
+    "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z",
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z"
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
     "The corrected five-year direct TRAIN/VAL successor and CPU audits are complete. Current source-bound smoke and full VAL evidence support the exact candidate start gate. V46/older short-return reports remain historical; physical TEST is closed.",
     "No admitted dataset or model exists. Current technical readiness permits only the operator-authorized offline five-year TRAIN/VAL candidate through its exact gate and fresh signed 160 W preflight. Strict smoke quality remains FAIL on seven never-top-ranked specialists; all eight have positive dynamic weights. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
-    "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
+    "Decision authority remains unique raw-bps fitted-Q argmax. Ten task influences use learned homoscedastic weights; streamed Exit gradients match the monolithic objective. Recipe-bound optimizer controls are stability settings, not alternate labels, fixed task weights or action-selection rules.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",
     "Untouched TEST direction edge, calibration, path-quality, utility, closed-M1 Exit parity and cost-aware replay remain empirically unproven. The frozen pre-registered protocol requires a re-derived substrate-specific coin-flip and circular-shift null, selective coverage, at least five seeds, VAL qualification and one untouched TEST evaluation.",

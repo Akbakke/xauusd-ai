@@ -2,6 +2,38 @@
 
 ## Current operator-approved continuation
 
+The full five-year candidate started from clean launch commit
+`d4376b3c`, with the existing source `e25a8cb6` recipe and exact new gate below.
+The official dry-run passed with profile=candidate, epochs=30, batch=8,
+patience=5, subsample_rows=0 and test_accessed=false. A fresh signed launch
+response was `43,48,30.8,160,325`. First optimizer step completed at
+2026-09-05T16:03:38.640Z; checkpoint 2 persisted 64 steps at 16:05:16Z.
+Independent read-only verification matched the 200910446-byte state to SHA-256
+`9565a97575fc3bfbe08a532c86be921b91bc6ae0f385a40912cc3a272969a5ff`
+and session contract `6ff73e8607347049f453977c4f144bfec7d913322e72680f1c345b18bf68002d`.
+The run is not complete and no full-epoch VAL result exists yet.
+
+Exact active session/log paths and the 15-minute follow-up / guarded-window
+resume protocol are recorded in the current handoff. The active launch-state
+session reference is now this candidate; the old V9 session is retained.
+The first guard window ended solely at `wall_clock_limit_7200s` at
+2026-09-05T17:47:06Z, exit 75. All 5646 signed samples remained within policy:
+peaks 62 C core, 68 C memory, 164.5 W draw and 9460 MiB VRAM. There was no
+additional stop/failure or forced KILL, and the exact process group was gone.
+Handover rehashed checkpoint 62 (3904 TRAIN steps, epoch index 0, incomplete),
+slot 1 SHA-256 `8d9f6bbb91feb0b6d67c84510df9a61abfe18936a96baf571d6c7b3339bf7398`.
+This verifies the normal time-boundary prerequisite for same-session resumption;
+it does not prove a fresh-process reload until `resumed=1` and later progress
+are actually observed. The status-only verification/commit belongs between
+windows, without executable changes or a bypass of the capped pre-commit hook.
+
+At the first boundary all 68 handover/current-dataset tests passed in 24.874 s
+with zero failures/errors/skips
+(`/tmp/gx1-first-candidate-window-handover-20260905.xml`). Shell syntax, capped
+Python compilation and `git diff --check` passed. The existing 2474-test full
+regression result below covers the unchanged executable source; this status-only
+change does not repeat it, the completed smoke or the completed VAL pass.
+
 After the completed smoke, the operator explicitly authorized the remaining
 local progression without separate approvals between ordinary steps: exact
 bundle guarded VAL prediction, CPU post-run audit/readiness, candidate launch

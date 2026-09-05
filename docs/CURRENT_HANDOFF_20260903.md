@@ -18,7 +18,65 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-### Current execution stage: five-year candidate launch preparation
+### Current execution stage: five-year candidate started, checkpointed TRAIN
+
+The full candidate started from clean commit `d4376b3c` after clean handover,
+exact official launcher dry-run PASS and a fresh signed `43,48,30.8,160,325`
+telemetry response. It is the existing `ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z`
+recipe, not another smoke. All 313399 TRAIN / 5509 VAL rows are retained;
+batch 8, maximum 30 epochs, patience 5, deterministic FP32.
+
+At 2026-09-05T16:05:16Z, checkpoint 2 records 64 completed optimizer steps in
+epoch index 0, phase TRAIN. The 200910446-byte state was independently
+rehashed and matched the pointer, session contract and exact candidate recipe.
+This proves real training progress, not completion, quality or TEST authority.
+Resolve subsequent progress from `active_candidate_training_session` in the
+launch state, never from this snapshot. The old V9 session remains intact as
+history; the active reference now points to the new five-year candidate.
+
+- Session: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE`.
+- First-window trainer output: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.trainer.6NdFv75I.log`.
+- First-window watchdog: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.guard.nPKw3i46.log`.
+
+The first window ended at 2026-09-05T17:47:06Z solely with
+`wall_clock_limit_7200s` (guard exit 75). Its terminal aggregate records 5646
+signed samples and peaks of 62 C core, 68 C memory, 164.5 W draw and 9460 MiB
+VRAM. No additional safety/telemetry stop, forced KILL or trainer error was
+recorded, and the exact trainer process group was confirmed gone.
+The executable handover rehashed checkpoint 62: phase TRAIN, epoch index 0,
+3904 optimizer steps, complete=false; active slot 1 SHA-256
+`8d9f6bbb91feb0b6d67c84510df9a61abfe18936a96baf571d6c7b3339bf7398`.
+This is an expected resumable time boundary, not completed candidate evidence.
+Resume only this same recipe/session after the checks below. The next process
+must report `resumed=1` and the verified offset before new training progress.
+
+The goal remains active to monitor this same candidate. Routine follow-up is
+every 15 minutes; the automatic signed watchdog remains at one second. The
+per-window guard limit is 7200 seconds. Only an expected wall-clock
+stop with an intact checkpoint and clean safety record may resume the exact
+candidate after fresh preflight/telemetry under the standing authorization.
+No automatic restart after thermal, telemetry, power, memory, data or model
+failure. Do not reset training or repeat completed smoke/VAL work.
+
+Campaign status or a checkpoint does not prove a live process. Verify the exact
+process/session handle, and record each resumed window's own sidecar paths from
+its capped-launch output; never substitute these first-window logs or select a
+log by mtime. Every resumption uses the unchanged official recipe/gate command.
+Before resuming, verify and commit any pending source/status edits, require
+clean handover and the official launcher dry-run, then obtain fresh signed
+160 W telemetry. Reuse valid unchanged tests and preparatory runtime evidence;
+an ordinary window boundary is not a reason to repeat smoke, VAL or broad tests.
+The active trainer owns the exclusive heavy-job lock; the mandatory pre-commit
+hook also starts a capped CPU check. Never bypass that hook, run a second heavy
+job or interrupt training just to commit prose. No executable bytes have changed.
+
+The first-boundary status reference passed all 68 focused handover/current-data
+tests (`/tmp/gx1-first-candidate-window-handover-20260905.xml`, zero failures,
+errors or skips), shell syntax checks, capped Python compilation and diff
+whitespace checks. The existing 2474-test full-suite result is retained for
+the unchanged executable source; no broad rerun or new CUDA probe was needed.
+
+### Completed candidate launch preparation
 
 The authorized full VAL prediction pass is complete: 5509 rows, process and
 watchdog exit 0; 93 signed samples, peaks 56 C core / 56 C memory, 152.72 W
@@ -26,9 +84,9 @@ draw and 726 MiB VRAM. Post-run audit is FAIL only on seven specialists never
 taking top rank; every active output and all eight positive dynamic specialist
 routes pass the existing technical training-start contract. No threshold or
 model change was made. Technical candidate readiness and the exact candidate
-launch gate are READY with zero failures. The next action is clean candidate
-launch preflight and fresh signed telemetry, then the operator-authorized
-full five-year TRAIN/VAL run, not another smoke or another permission request.
+launch gate are READY with zero failures. Those results supported the clean
+candidate preflight and launch recorded above; they do not authorize TEST,
+acceptance or paper/live operation.
 
 Current runtime bindings are recorded in
 `PROJECT_STATE_xau_direction_launch.json` and the review report. The selected
@@ -297,7 +355,8 @@ then returned `52,56,39.05,160,392` (core C, memory-junction C, draw W,
 physical limit W, VRAM MiB) for the expected GPU UUID. It proves signed
 telemetry and the 160 W host prerequisite at that instant, but is not a
 candidate gate or CUDA authorisation. Obtain a new signed bridge response
-immediately before any proposed launch. The review itself starts no trainer.
+immediately before any proposed launch. The initial CPU review started no
+trainer; the later operator-authorized candidate is running as recorded above.
 
 Today's watchdog stops above 65 C core, 80 C memory junction, 160 W configured
 physical limit, 170 W actual draw or 12 GiB resident VRAM, and fails closed on
@@ -305,25 +364,17 @@ missing/invalid signed telemetry. The persistent Windows cap and the one-second
 process watchdog serve separate purposes. Historical 70 C / 220 W runs do not
 define current limits.
 
-The corrected CPU target/policy/audit chain and new recipes/readiness are now
-complete, and the one authorized canonical smoke has completed. No further
-CUDA work is authorized by that result. Remaining execution sequence:
+The corrected CPU chain, canonical smoke, full VAL pass and candidate start
+gate are complete. The operator's standing authorization now covers the
+running five-year candidate and ordinary verified resumptions; no new
+permission is needed between those steps. Monitor and resume only the exact
+active session under the protocol in Current truth above. A fresh signed
+response and clean launch preflight remain mandatory before each resumption.
 
-1. Do not repeat the completed smoke. Obtain new explicit scoped authorization
-   for guarded VAL predictions from its exact bundle. Record the reviewed hold
-   transition and require clean executable handover/exact launch preflight.
-   Re-probe signed Windows telemetry immediately before launching and require
-   the physical-limit field to remain 160 W.
-2. Complete successor post-run audit/readiness and materialize the new candidate
-   gate from that exact source/data/bundle. Do not substitute the historical
-   September 4 gate or treat strict quality warnings as resolved by exit 0.
-3. Full candidate launch needs the successor runtime gate, clean launch
-   preflight, fresh signed 160 W telemetry and explicit full-candidate authority.
-
-The hold stays active until an authorized, reviewed execution transition;
-source-only hygiene and CPU readiness do not clear it. Preserve old immutable
-artifacts, and never overwrite hashes or relabel old execution as new-source
-execution. TEST, candidate acceptance, paper and live remain unauthorized.
+Preserve all immutable artifacts. Never relabel old execution as new-source
+execution, clear a genuine failure merely to obtain a green status, or retry a
+hardware failure automatically. TEST, candidate acceptance, paper and live
+remain unauthorized.
 
 ## Historical one-epoch immutable paths
 

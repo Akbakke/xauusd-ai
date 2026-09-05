@@ -1,12 +1,19 @@
 # GX1 data contract
 
+Latest runtime update, 2026-09-05: successor VAL prediction and the exact
+technical candidate gate are complete. The operator-authorized full five-year
+TRAIN/VAL candidate has started and has durable checkpoints. See
+[CURRENT_HANDOFF_20260903.md](CURRENT_HANDOFF_20260903.md) and the active launch-state session reference.
+Earlier pending-smoke/VAL and per-step authorization text below is history.
+TEST, candidate acceptance, paper/live and external spend remain closed.
+
 > **2026-09-05 re-entry note:** the corrected five-year TRAIN/VAL successor is
 > complete under `entry_causal_m1_outcomes_v2_entry_notional_pnl`, with new
 > TRAIN-only policy/ranking/sizing, 313399 TRAIN / 5509 VAL rows and passing CPU
 > audits/readiness. Original split boundaries and physical TEST sealing are
-> preserved. Exactly one source-bound successor canonical smoke completed;
-> guarded VAL predictions and post-run audit remain pending. The execution
-> hold is restored. Runtime and CUDA
+> preserved. Canonical smoke, full VAL predictions, post-run audit and technical
+> candidate readiness/gate are complete; the standing operator authorization
+> now covers the running full candidate. Runtime and CUDA
 > authority are in [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md)
 > and `scripts/gx1_handover.sh`, not this contract's historical session text.
 

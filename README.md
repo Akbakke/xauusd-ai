@@ -5,39 +5,22 @@ system. It is not currently an admitted or profitable trading bot.
 
 ## Current re-entry status — 2026-09-05
 
-Latest operator instruction authorizes the complete local VAL → post-run
-audit/readiness → candidate gate → unchanged five-year TRAIN/VAL launch
-sequence without new per-step approvals, provided every technical and safety
-gate passes. The hold described below has been transitioned off for that
-scope. Follow the current handoff's continuation record; do not repeat the
-completed smoke. TEST, acceptance, paper/live and external costs remain closed.
+The full five-year TRAIN/VAL candidate has started: 313399 TRAIN rows, 5509 VAL
+rows, batch 8, at most 30 epochs and early-stop patience 5. Canonical smoke,
+full VAL prediction, technical readiness and the exact candidate gate are
+complete. This is research training, not an accepted or profitable model.
 
-Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
-`bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
-The corrected five-year TRAIN/VAL rebuild is complete: 313399 TRAIN rows,
-5509 VAL rows, new TRAIN-only policy/ranking/sizing and passing CPU audits.
-New smoke and candidate recipes bind reviewed source `e25a8cb6` and the exact
-new data. CPU trainability-readiness passes all five checks; candidate settings
-remain batch 8, at most 30 epochs and early-stop patience 5.
-Execution is still held with reason
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-The September 4 smoke, VAL pass and candidate gate are historical evidence;
-they do not certify the corrected short-return data and repaired code. Exactly
-one successor canonical gate-smoke completed with exit 0 and a verified bundle.
-Strict quality checks reported sparse `trendline_event` support and two
-constant Exit gates; this is technical pipeline evidence only. No full five-year
-candidate has started. The next runtime step is guarded VAL prediction from
-that exact bundle, requiring new scoped authorization, clean handover/preflight
-and fresh signed 160 W telemetry. Full training additionally needs successor
-post-run audit/readiness and its new candidate gate.
+Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
+`bash scripts/gx1_handover.sh` for exact progress and resume identity.
+The operator authorized continuous local progression without per-step approval;
+do not repeat smoke/VAL or restart the candidate from zero. All launches and
+resumptions remain subject to clean preflight and fresh signed 160 W telemetry.
 
-All eight specialist gates must be finite, positive and state-varying, with
-the required training-connectivity evidence. The September 4 smoke's seven never-top-ranked
-families failed a separate quality heuristic; that is not evidence that seven
-families are disconnected and does not establish market edge either way.
-The Windows task is configured to maintain the physical 160 W cap. Any future CUDA launch requires
-fresh signed telemetry and explicit operator authorization. TEST, candidate
-acceptance, paper, broker and live remain blocked.
+The completed smoke's full-VAL evaluation found all eight specialist routes
+positive and state-varying; its strict quality audit retains seven
+never-top-ranked specialists. The full candidate has not reached VAL yet.
+Passing the technical start contract does not prove quality or trading edge.
+TEST, candidate acceptance, paper/live and external spend remain closed.
 
 The V4/V5 status text below is historical background only.
 
