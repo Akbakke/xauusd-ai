@@ -144,6 +144,74 @@ def _recipe_compatibility(
         raise RuntimeError("candidate and smoke recipes must use distinct output bundles")
 
 
+def require_pretest_trainability_readiness(
+    path: Path, sha256: str, *, selected_recipe: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Revalidate the small direct evidence chain for executable handover.
+
+    This is not a launch grant or a substitute for the trainer's parquet/source
+    checks. Never manufacture legacy three-split reports for a pre-TEST dataset.
+    """
+    if artifact_binding(path) != {"path": str(path), "sha256": sha256}:
+        raise RuntimeError("pretest handover readiness hash mismatch")
+    require_newest_immutable_event(path, EVENT_PREFIX)
+    report = _read_json(path, label="pretest handover readiness")
+    bindings = report.get("input_bindings")
+    if (
+        report.get("schema_version") != SCHEMA_VERSION
+        or report.get("decision") != READY_DECISION
+        or report.get("failures") != []
+        or report.get("contract_mode") != MODEL_NATIVE_CONTRACT_MODE
+        or report.get("sequence_length") != MODEL_NATIVE_SEQ_LEN
+        or report.get("expected_signal_dim") != MODEL_NATIVE_SIGNAL_DIM
+        or report.get("required_training_specialists") != list(MODEL_NATIVE_REQUIRED_SPECIALISTS)
+        or not isinstance(report.get("checks"), list) or not report["checks"]
+        or any(not isinstance(row, Mapping) or row.get("ok") is not True
+               for row in report["checks"])
+        or any(report.get(key) is not False for key in (
+            "candidate_training_allowed", "activation_authority",
+            "promotion_shadow_live_allowed",
+        ))
+        or not isinstance(bindings, Mapping)
+        or set(bindings) != {"candidate_recipe", "smoke_recipe", "pretrain_audit"}
+        or report.get("input_bindings_sha256") != hashlib.sha256(
+            json.dumps(bindings, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+        ).hexdigest()
+    ):
+        raise RuntimeError("pretest handover readiness contract invalid")
+    for name, binding in bindings.items():
+        if (
+            not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}
+            or artifact_binding(Path(str(binding["path"]))) != dict(binding)
+        ):
+            raise RuntimeError(f"pretest handover nested binding changed: {name}")
+    candidate, _ = _recipe(Path(bindings["candidate_recipe"]["path"]),
+                           bindings["candidate_recipe"]["sha256"],
+                           profile="candidate", label="candidate")
+    smoke, _ = _recipe(Path(bindings["smoke_recipe"]["path"]),
+                       bindings["smoke_recipe"]["sha256"],
+                       profile="smoke", label="smoke")
+    _recipe_compatibility(candidate, smoke)
+    profile = selected_recipe.get("profile")
+    expected_recipe = smoke if profile == "smoke" else candidate
+    if profile not in {"smoke", "candidate"} or dict(selected_recipe) != expected_recipe:
+        raise RuntimeError("pretest handover selected recipe mismatch")
+    if (
+        report.get("dataset_dir") != candidate["dataset_dir"]
+        or report.get("dataset_run_id") != candidate["dataset_run_id"]
+        or report.get("candidate_run_id") != candidate["run_id"]
+        or report.get("smoke_run_id") != smoke["run_id"]
+    ):
+        raise RuntimeError("pretest handover dataset/run identity mismatch")
+    _pretrain(Path(bindings["pretrain_audit"]["path"]),
+              dataset_dir=str(candidate["dataset_dir"]))
+    for name, declared in expected_recipe["artifact_bindings"].items():
+        artifact_path = Path(declared["path"])
+        if artifact_path.suffix == ".json" and artifact_binding(artifact_path) != declared:
+            raise RuntimeError(f"pretest handover audit/manifest changed: {name}")
+    return report
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_path = Path(args.candidate_recipe_json).expanduser().resolve(strict=True)
     smoke_path = Path(args.smoke_recipe_json).expanduser().resolve(strict=True)

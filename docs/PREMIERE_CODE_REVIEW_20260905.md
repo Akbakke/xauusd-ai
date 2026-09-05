@@ -1,5 +1,37 @@
 # Pre-training code review — 2026-09-05
 
+## Authorized handover repair and one canonical smoke
+
+After CPU preparation, the operator authorized one canonical gate-smoke and
+then explicitly authorized repairing its handover linkage. Pre-launch
+inspection reproduced `CURRENT_AUDITED_DATASET_EXECUTION_CAUSALITY_EXPECTATION_INVALID`:
+normal handover still required the historical V46 report collection despite
+the valid direct TRAIN/VAL successor. The earlier CPU completion did not prove
+this execution transition.
+
+The existing current-dataset owner now accepts an explicitly bound
+`current_pretest_trainability_readiness` reference. Its existing readiness
+owner revalidates the immutable report, both nested recipes, exact selected
+recipe/dataset/run identity, zero-failure pretrain proof and small JSON
+audit/manifest hashes. The current entry-notional causality contract is still
+required. Admission fields stay BLOCK/empty; legacy V46 evidence is retained
+as history, not fabricated or upgraded. Missing/malformed direct evidence
+fails closed instead of falling back to V46.
+
+The handover renderer derives the recipe status instead of always claiming a
+candidate gate is ready. Model, feature, target data, trainer settings and
+hardware limits are unchanged. The source change requires newly materialized
+recipes/readiness, but no data rebuild. Twelve mutation/control cases cover
+this route; all 85 focused handover/readiness/current-dataset tests passed.
+The full CPU regression suite passed all 2474 tests in 693.649 seconds, with
+zero failures/errors/skips (`/tmp/gx1-smoke-handover-full-20260905.xml`).
+After adding an explicit dry-run-pending handover status, all 85 affected
+tests passed again (`/tmp/gx1-smoke-handover-final-confirm-20260905.xml`).
+Capped compileall, all shell syntax checks and diff whitespace checks pass.
+This authorization covers exactly one canonical 32-row-per-split smoke;
+separate VAL predictions, full candidate, TEST, acceptance, paper and live
+remain unauthorized.
+
 ## Completed CPU successor — 2026-09-05
 
 The authorized CPU goal is complete: corrected TRAIN-only target policy/ranking
@@ -249,7 +281,7 @@ evidence and the authorized execution transition remain pending:
    authorisation before any CUDA execution. Full candidate remains at most
    30 epochs with existing early-stop policy; no architecture change is implied.
 
-The successor used the repaired `run_seq513_rebuild_chain_v1.sh` with its
+The successor used `rebuild_entry_model_native_seq513_dataset.sh` with its
 explicit `--pretest-only` route, source-only hygiene and existing capped CPU
 owners. This route rejects legacy tape/pair-generation/TEST arguments before
 path access. The legacy three-split invocation is not the recovery route and

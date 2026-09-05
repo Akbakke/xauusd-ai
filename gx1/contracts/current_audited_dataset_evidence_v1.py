@@ -328,6 +328,52 @@ def require_blocked_launch_state_with_current_audited_dataset(
         or state.get("accepted_via_vedtak") is not None
     ):
         raise RuntimeError("[CURRENT_AUDITED_LAUNCH_STATE_NOT_FAIL_CLOSED]")
+    if "current_pretest_trainability_readiness" in state:
+        # The direct TRAIN/VAL lane has no legacy three-split/adoption events.
+        # Retained V46 reports remain history, never substitute current proof.
+        from gx1.scripts.verify_entry_pretest_trainability_readiness_v1 import (
+            require_pretest_trainability_readiness,
+        )
+        from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+            require_pretest_technical_recipe_metadata,
+        )
+
+        binding = state["current_pretest_trainability_readiness"]
+        selected = state.get("current_source_technical_recipe")
+        if (
+            not isinstance(binding, Mapping)
+            or set(binding) != {"path", "sha256"}
+            or not isinstance(selected, Mapping)
+        ):
+            raise RuntimeError("[CURRENT_PRETEST_HANDOVER_REFERENCE_INVALID]")
+        recipe_path = _require_regular_path(
+            selected.get("recipe_path"), label="CURRENT_PRETEST_RECIPE"
+        )
+        if sha256_file(recipe_path) != selected.get("recipe_sha256"):
+            raise RuntimeError("[CURRENT_PRETEST_RECIPE_HASH_MISMATCH]")
+        recipe = require_pretest_technical_recipe_metadata(
+            _read_json(recipe_path, label="CURRENT_PRETEST_RECIPE"),
+            expected_run_id=selected.get("run_id"),
+            expected_dataset_run_id=selected.get("dataset_run_id"),
+            expected_out_bundle_dir=selected.get("out_bundle_dir"),
+        )
+        path = _require_regular_path(binding["path"], label="CURRENT_PRETEST_READINESS")
+        report = require_pretest_trainability_readiness(
+            path, str(binding["sha256"]), selected_recipe=recipe
+        )
+        causality = recipe["artifact_bindings"]["execution_causality_audit"]
+        _require_execution_causality_pass(
+            _read_json(Path(causality["path"]), label="CURRENT_PRETEST_CAUSALITY"),
+            dataset_dir=Path(recipe["dataset_dir"]),
+            dataset_run_id=recipe["dataset_run_id"],
+        )
+        return {
+            "status": CURRENT_AUDITED_DATASET_STATUS,
+            "blocker": CURRENT_AUDITED_DATASET_BLOCKER,
+            "dataset_run_id": report["dataset_run_id"],
+            "dataset_dir": report["dataset_dir"],
+            "report_count": len(report["input_bindings"]) + 1,
+        }
     return require_current_audited_dataset_evidence(
         state.get("current_audited_dataset_evidence")
     )

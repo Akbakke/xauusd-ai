@@ -142,6 +142,105 @@ def test_direct_pretest_trainability_binds_exact_recipes_and_pretrain(
     )["ok"] is False
 
 
+@pytest.mark.parametrize("mutation", [
+    None, "outer-hash", "nested-hash", "open-authority", "wrong-dataset",
+    "selected-recipe", "pretrain-changed", "false-check", "missing-readiness",
+    "admitted-state", "causality-version", "audit-changed",
+])
+def test_direct_pretest_handover_uses_exact_evidence_not_legacy_reports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str | None,
+) -> None:
+    from gx1.contracts.current_audited_dataset_evidence_v1 import (
+        require_blocked_launch_state_with_current_audited_dataset,
+    )
+    from gx1.contracts.entry_execution_causality_v1 import build_entry_execution_causality_audit
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
+    candidate, candidate_sha, smoke, smoke_sha, pretrain = _recipes(tmp_path)
+    seed_recipe = json.loads(smoke.read_text())
+    causality_path = Path(seed_recipe["artifact_bindings"]["execution_causality_audit"]["path"])
+    causality = build_entry_execution_causality_audit(
+        dataset_dir=seed_recipe["dataset_dir"], entry_run_id=seed_recipe["dataset_run_id"],
+        signal_manifest_path=str(tmp_path / "signal.json"), signal_manifest_sha256="d" * 64,
+        ranking_target_contract=causal_m1_target_contract(),
+        split_rows=[{
+            "split": split, "dataset_manifest_path": str(tmp_path / f"{split}.manifest.json"),
+            "dataset_manifest_sha256": "b" * 64,
+            "lifecycle_manifest_path": str(tmp_path / f"{split}.lifecycle.json"),
+            "lifecycle_manifest_sha256": "c" * 64,
+            "entry_fitted_q_m1_fill_lifecycle_bound": True,
+            "active_auxiliary_targets_m1_fill_bound": True,
+        } for split in ("train", "val")],
+    )
+    if mutation == "causality-version":
+        causality["schema_version"] = "entry_execution_causality_audit_v1"
+    causality_path.write_text(json.dumps(causality))
+    for recipe_path in (smoke, candidate):
+        recipe = json.loads(recipe_path.read_text())
+        recipe["artifact_bindings"]["execution_causality_audit"] = artifact_binding(causality_path)
+        recipe["artifact_bindings_sha256"] = canonical_json_sha256(recipe["artifact_bindings"])
+        recipe_path.write_text(json.dumps(recipe))
+    candidate_sha, smoke_sha = _sha(candidate), _sha(smoke)
+    monkeypatch.setattr(readiness, "require_training_recipe_source_provenance",
+                        lambda **_kwargs: {"source_commit": "a" * 40})
+    report = readiness.run(readiness.build_parser().parse_args([
+        "--candidate-recipe-json", str(candidate),
+        "--candidate-recipe-sha256", candidate_sha,
+        "--smoke-recipe-json", str(smoke), "--smoke-recipe-sha256", smoke_sha,
+        "--pretrain-audit-json", str(pretrain), "--repo-dir", str(tmp_path),
+        "--out-dir", str(tmp_path / "readiness"),
+    ]))
+    path = Path(report["json_path"])
+    if mutation == "nested-hash":
+        report["input_bindings"]["smoke_recipe"]["sha256"] = "0" * 64
+        report["input_bindings_sha256"] = canonical_json_sha256(report["input_bindings"])
+    elif mutation == "open-authority":
+        report["candidate_training_allowed"] = True
+    elif mutation == "wrong-dataset":
+        report["dataset_dir"] = str(tmp_path / "wrong-dataset")
+    elif mutation == "false-check":
+        report["checks"][0]["ok"] = False
+    # These mutations exercise the consumer with an intact outer file hash.
+    path.write_text(json.dumps(report, sort_keys=True))
+    selected = json.loads(smoke.read_text())
+    state = {
+        "decision": "BLOCK", "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
+        "latest_terminal_event_decision": "BLOCK", "dataset_event_id": None,
+        "dataset_admission_stage": "NO_ADMITTED_UNIFIED_DATASET",
+        "accepted_dataset_dir": None, "accepted_dataset_terminal_evidence": None,
+        "accepted_bundle_dir": None, "bundle_metadata_sha256": None,
+        "current_smoke_launch_evidence": None, "accepted_via_vedtak": None,
+        # An unreadable legacy reference must not be opened in the direct lane.
+        "current_audited_dataset_evidence": {"reports": "DO_NOT_OPEN_HISTORY_OR_TEST"},
+        "current_pretest_trainability_readiness": artifact_binding(path),
+        "current_source_technical_recipe": {
+            "recipe_path": str(smoke), "recipe_sha256": smoke_sha,
+            "run_id": selected["run_id"], "dataset_run_id": selected["dataset_run_id"],
+            "out_bundle_dir": selected["out_bundle_dir"],
+        },
+    }
+    if mutation == "outer-hash":
+        state["current_pretest_trainability_readiness"]["sha256"] = "0" * 64
+    elif mutation == "selected-recipe":
+        state["current_source_technical_recipe"]["run_id"] = "DIFFERENT_RUN"
+    elif mutation == "pretrain-changed":
+        pretrain.write_text("{}")
+    elif mutation == "missing-readiness":
+        state["current_pretest_trainability_readiness"] = None
+    elif mutation == "admitted-state":
+        state["accepted_bundle_dir"] = str(tmp_path / "not-admitted")
+    elif mutation == "audit-changed":
+        Path(selected["artifact_bindings"]["feature_audit"]["path"]).write_text("{}")
+    if mutation is not None:
+        with pytest.raises(RuntimeError):
+            require_blocked_launch_state_with_current_audited_dataset(state)
+    else:
+        summary = require_blocked_launch_state_with_current_audited_dataset(state)
+        assert summary["dataset_dir"] == selected["dataset_dir"]
+        assert summary["dataset_run_id"] == selected["dataset_run_id"]
+        assert summary["report_count"] == 4
+        assert state["accepted_bundle_dir"] is None
+
+
 @pytest.mark.parametrize("mutation", [None, "smoke-source", "dirty-source"])
 def test_readiness_verifies_both_real_source_closures_without_lifting_hold(
     tmp_path: Path, mutation: str | None,

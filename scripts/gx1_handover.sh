@@ -602,6 +602,7 @@ def _current_source_technical_recipe_status(
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     status = str(reference.get("status") or "")
     if status not in {
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
         executed_status, audited_status, gated_status, prepared_candidate_status,
         candidate_gated_status,
@@ -748,7 +749,10 @@ def _current_source_technical_recipe_status(
                 "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
                 "NO_CANDIDATE_GATE_OR_CUDA_AUTHORITY"
             )
-    elif status == "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED":
+    elif status in {
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    }:
         if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
             raise SystemExit("FATAL: current-source technical recipe has executed CUDA")
         closure = "LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED"
@@ -1068,7 +1072,7 @@ echo "current_audited_dataset_status: $audited_dataset_status"
 echo "current_audited_dataset_run_id: $audited_dataset_run_id"
 echo "current_audited_dataset_report_count: $audited_dataset_report_count"
 echo "dataset_contract: HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
-echo "train_recipe: FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CANDIDATE_GATE_READY__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+echo "train_recipe: $current_source_technical_recipe_status"
 echo "model_contract: NO_ADMITTED_UNIFIED_BUNDLE"
 echo "historical_pnl_winrate: UNPROVEN"
 echo "strict_preflight: PASS_V4_TECHNICAL_PIPELINE_ONLY_NO_EXTERNAL_TRAIN_AUTHORITY"
@@ -1130,13 +1134,13 @@ echo "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 
 echo "local_cuda: V9_FULL_TECHNICAL_TRAIN_VAL_COMPLETED__NO_CANDIDATE_ACCEPTANCE"
 echo "cuda_speed_history: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__NOT_A_CURRENT_LAUNCH_PERMISSION"
 echo "host_telemetry: FRESH_SIGNED_160W_RESPONSE_REQUIRED_AFTER_EACH_RESTART_OR_DRIVER_RESET"
-echo "current_cuda_authority: CANDIDATE_GATE_READY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+echo "current_cuda_authority: EXACT_RECIPE_ONLY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_SCOPED_AUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
 echo "  1. run this handover and confirm clean source, no competing job and the retained V9 bundle/session identity"
 echo "  2. immediately before any proposed CUDA launch, obtain a fresh signed bridge response proving the physical limit remains 160 W"
-echo "  3. verify the current source-bound five-year candidate gate above; technical smoke liveness permits training, not model acceptance, and changed target semantics require rebuilt data/policy evidence before explicitly authorised CUDA"
+echo "  3. execute only the explicitly authorised current-source recipe; smoke needs no candidate gate, while full candidate training requires successor smoke/VAL evidence and its exact candidate gate"
 echo "  4. run preregistered untouched-TEST evaluation only after independently accepted candidate/OOS gates, never as a troubleshooting input"
 echo "  5. bind immutable broker costs, financing, gap/terminal treatment and portfolio capital before demo, paper, live or production-net claims"
 echo "forbidden_routes: live, paper, broker, daemon, promotion, drift-adaptation"

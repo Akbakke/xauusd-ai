@@ -372,18 +372,20 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "dataset_admission_stage: NO_ADMITTED_UNIFIED_DATASET" in result.stdout
     assert "accepted_bundle_dir: NONE" in result.stdout
     assert "current_audited_dataset_status: " in result.stdout
-    assert "current_audited_dataset_run_id: V46_20260825T170935Z" in result.stdout
-    assert "current_audited_dataset_report_count: 12" in result.stdout
+    launch_state = json.loads(LAUNCH_STATE.read_text())
+    from gx1.contracts.current_audited_dataset_evidence_v1 import (
+        require_blocked_launch_state_with_current_audited_dataset,
+    )
+    dataset_summary = require_blocked_launch_state_with_current_audited_dataset(launch_state)
+    assert f"current_audited_dataset_run_id: {dataset_summary['dataset_run_id']}" in result.stdout
+    assert f"current_audited_dataset_report_count: {dataset_summary['report_count']}" in result.stdout
     assert (
         "dataset_contract: "
         "HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
         in result.stdout
     )
-    assert (
-        "train_recipe: "
-        "FIVE_YEAR_PRETEST_CANDIDATE_RECIPE_30_EPOCH__CANDIDATE_GATE_READY__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
-        in result.stdout
-    )
+    reference = launch_state["current_source_technical_recipe"]
+    assert f"train_recipe: {reference['status']}" in result.stdout
     assert re.search(
         r"candidate_session: SESSION_INTACT__checkpoint=\d+__phase=(?:train|validation)__epoch=\d+__next_batch=\d+",
         result.stdout,
@@ -393,16 +395,14 @@ def test_handover_viewer_prints_current_goal() -> None:
     assert "candidate_session_state_sha256: " in result.stdout
     assert "candidate_recipe_sha256: " in result.stdout
     assert "candidate_source_bindings_sha256: " in result.stdout
-    assert (
-        "current_source_technical_recipe: "
-        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
-        in result.stdout
-    )
-    assert (
-        "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
-        in result.stdout
-    )
+    assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
+    assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
+    if reference["status"] in {
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
+        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    }:
+        assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED" in result.stdout
+        assert "CANDIDATE_GATE_READY" not in result.stdout
     assert (
         "fresh_31004_train: "
         "BLOCKED_PENDING_CLEAN_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION"
@@ -549,7 +549,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         require_blocked_launch_state_with_current_audited_dataset,
     )
 
-    if "pretraining_review_hold" in state:
+    if "pretraining_review_hold" in state and "current_pretest_trainability_readiness" not in state:
         # The retained causality audit predates corrected short returns. It
         # must no longer qualify as current evidence, even though its bytes
         # and historical PASS declaration remain intact.
@@ -559,7 +559,12 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         summary = require_blocked_launch_state_with_current_audited_dataset(state)
         assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
         assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-        assert summary["dataset_run_id"] == "V46_20260825T170935Z"
+        expected_run = (
+            state["current_source_technical_recipe"]["dataset_run_id"]
+            if "current_pretest_trainability_readiness" in state
+            else "V46_20260825T170935Z"
+        )
+        assert summary["dataset_run_id"] == expected_run
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None

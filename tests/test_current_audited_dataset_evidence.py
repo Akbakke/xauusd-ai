@@ -24,7 +24,7 @@ def _state() -> dict[str, object]:
 
 def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
     state = _state()
-    if "pretraining_review_hold" in state:
+    if "pretraining_review_hold" in state and "current_pretest_trainability_readiness" not in state:
         # V46's immutable PASS report predates entry-notional short returns.
         # Hash integrity must not be mistaken for current semantic validity.
         with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
@@ -34,8 +34,14 @@ def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
 
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-    assert summary["dataset_run_id"] == "V46_20260825T170935Z"
-    assert summary["report_count"] == 12
+    if "current_pretest_trainability_readiness" in state:
+        assert summary["dataset_run_id"] == state["current_source_technical_recipe"]["dataset_run_id"]
+        assert summary["report_count"] == 4
+        with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
+            require_current_audited_dataset_evidence(state["current_audited_dataset_evidence"])
+    else:
+        assert summary["dataset_run_id"] == "V46_20260825T170935Z"
+        assert summary["report_count"] == 12
 
 
 @pytest.mark.parametrize(
