@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T15:44:29Z",
+  "updated_utc": "2026-09-05T15:51:06Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -169,12 +169,5 @@
   "current_pretest_trainability_readiness": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json",
     "sha256": "8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf"
-  },
-  "pretraining_review_hold": {
-    "schema_version": "gx1_pretraining_review_hold_v1",
-    "decision": "BLOCK",
-    "reason": "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE",
-    "activation_authority": false,
-    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
   }
 }

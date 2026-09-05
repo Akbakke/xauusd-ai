@@ -18,6 +18,18 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
+**Operator-authorized continuation, 2026-09-05:** the operator has now approved
+the complete local sequence without per-step confirmation: guarded VAL from
+the exact completed smoke bundle, post-run audit/readiness, candidate gate,
+then the unchanged five-year full TRAIN/VAL candidate if every technical gate
+passes. The hold below was restored after the smoke and is now transitioned
+off for this scope. Do not repeat the smoke. Fresh signed 160 W telemetry,
+clean preflight and all source/data/runtime checks remain mandatory. Stop on
+real failures; do not waive them or automatically retry hardware failures.
+TEST, candidate acceptance, paper/live, external compute/costs and material
+model changes remain outside authorization. This continuation supersedes the
+per-step approval wording below; exact completion evidence remains unchanged.
+
 Exactly one authorized successor canonical gate-smoke completed on 2026-09-05.
 The process and watchdog exited 0, and the immutable bundle passed strict
 reload/publication and a separate CPU commit/provenance verification. This is

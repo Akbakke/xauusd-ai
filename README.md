@@ -5,6 +5,13 @@ system. It is not currently an admitted or profitable trading bot.
 
 ## Current re-entry status — 2026-09-05
 
+Latest operator instruction authorizes the complete local VAL → post-run
+audit/readiness → candidate gate → unchanged five-year TRAIN/VAL launch
+sequence without new per-step approvals, provided every technical and safety
+gate passes. The hold described below has been transitioned off for that
+scope. Follow the current handoff's continuation record; do not repeat the
+completed smoke. TEST, acceptance, paper/live and external costs remain closed.
+
 Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
 The corrected five-year TRAIN/VAL rebuild is complete: 313399 TRAIN rows,

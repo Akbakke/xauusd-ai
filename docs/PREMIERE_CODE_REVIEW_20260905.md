@@ -1,5 +1,20 @@
 # Pre-training code review — 2026-09-05
 
+## Current operator-approved continuation
+
+After the completed smoke, the operator explicitly authorized the remaining
+local progression without separate approvals between ordinary steps: exact
+bundle guarded VAL prediction, CPU post-run audit/readiness, candidate launch
+gate and, only if those gates pass, the unchanged five-year full TRAIN/VAL
+candidate (batch 8, maximum 30 epochs, patience 5). The review hold is
+transitioned off for that sequence; global admission stays BLOCK. The next
+step is VAL prediction, not another smoke. Existing signed 160 W telemetry,
+source closure and safety limits are unchanged. A genuine safety/data/model
+failure stops progression; hardware failures never receive automatic retries.
+No TEST release, candidate acceptance, paper/live, external spend or material
+model change is authorized. Older per-step approval/hold statements below
+describe the preceding state, not a requirement to ask again at every step.
+
 ## Completed canonical smoke — 2026-09-05
 
 Exactly one authorized canonical smoke completed with process/watchdog exit 0.

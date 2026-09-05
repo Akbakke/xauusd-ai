@@ -4,6 +4,13 @@ This file defines the only active project scope.
 
 ## Current binding status — 2026-09-05
 
+Latest operator instruction authorizes the complete local VAL → post-run
+audit/readiness → candidate gate → unchanged five-year TRAIN/VAL launch
+sequence without new per-step approvals, provided every technical and safety
+gate passes. The hold described below has been transitioned off for that
+scope. Follow the current handoff's continuation record; do not repeat the
+completed smoke. TEST, acceptance, paper/live and external costs remain closed.
+
 Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 before historical notes below. `bash scripts/gx1_handover.sh` owns the live
 candidate-session position and source closure. The corrected five-year
