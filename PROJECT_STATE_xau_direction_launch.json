@@ -1,7 +1,14 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-04T20:31:48Z",
+  "updated_utc": "2026-09-05T07:37:58Z",
+  "pretraining_review_hold": {
+    "schema_version": "gx1_pretraining_review_hold_v1",
+    "decision": "BLOCK",
+    "reason": "SHORT_RETURN_ENTRY_NOTIONAL_CORRECTION_REQUIRES_SUCCESSOR_TRAIN_VAL_DATASET",
+    "activation_authority": false,
+    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
+  },
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -164,8 +171,8 @@
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The fresh immutable native M1/M5 pair 53cba4593471be7532b03a165243506b1add8453886b37a01aca7fb7da4668f7 is published source authority. V46_20260825T170935Z is the current hash-bound research dataset: it repaired all active auxiliary labels to exact M1 decision/fill bid/ask evidence and passed its execution-causality audit. It remains deliberately unadmitted because fitted-Q production economics is unbound; V35/V36/V37/V38/V39 products may not be consumed.",
-    "No admitted dataset or bundle exists. V9 completed 31,004 TRAIN steps and 8,860 VAL batches, but selected VAL PnL is -0.6577958464622498; it is not candidate or economic evidence. The original V9 session is frozen. The current-source recipe executed one hash-bound 32-row CUDA smoke. Its CPU-only post-run audit is FAIL because three specialist gates were never top-ranked in the small sample, while its technical pipeline produced READY_FOR_CANDIDATE_TRAINING and a hash-bound candidate gate whose CPU-only dry-run passed. This is not candidate acceptance or CUDA permission: TEST, promotion, paper and live remain false. Do not start CUDA, especially a 31,004-step TRAIN, without fresh clean preflight, signed 160 W re-probe and explicit operator authorisation.",
+    "The native M1/M5 pair and V46/five-year artifacts are retained historical evidence. Their old short-return target/policy/causality contracts are not valid for new training. A CPU-only TRAIN/VAL successor must use entry-notional short returns; physical TEST remains closed. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
+    "No admitted dataset or bundle exists. V9 completed 31,004 TRAIN steps and 8,860 VAL batches as technical evidence only. The later five-year 32-row smoke and guarded VAL pass supported a historical technical gate; seven specialists were never top-ranked but all eight had dynamic positive weights. The 2026-09-05 review hold supersedes that gate. New data/policy/audits and source-bound readiness are required before clean preflight, signed 160 W telemetry and explicit CUDA authorisation.",
     "The fitted-Q decision objective is audited as raw-bps masked MSE with a unique action-Q argmax authority. All ten supervised task influences use learned homoscedastic log-variance scalarization; the streamed Exit gradient is deterministically tested against the exact monolithic objective, and legacy handwritten rank, gate and target-normalization loss weights are rejected. Recipe-bound optimizer controls (learning rate, schedule, EMA horizon, gradient clip and decay) remain execution-stability settings, never direction authority, labels or relative task weights.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

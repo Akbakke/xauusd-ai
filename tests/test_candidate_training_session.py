@@ -328,15 +328,15 @@ def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(
         session.load_checkpoint()
 
 
-def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> None:
-    snapshot = trainer._candidate_validation_snapshot(
+def _validation_snapshot_fixture(*, rows: int = 1) -> dict[str, object]:
+    return trainer._candidate_validation_snapshot(
         total=1.5,
         entry_q_loss_sum=2.5,
         cooperation_gate_epoch={"gate": {"rows": 1, "sum": torch.ones(2).numpy()}},
         feature_tf_gate_epoch={"rows": 1, "sum": torch.ones((2, 2)).numpy()},
         exit_cooperation_gate_epoch={"gate": {"rows": 1, "sum": torch.ones(2).numpy()}},
         exit_feature_tf_gate_epoch={"rows": 1, "sum": torch.ones((2, 2)).numpy()},
-        rows=1,
+        rows=rows,
         side_mae_loss_sum=0.1,
         trendline_event_loss_sum=0.2,
         trendline_event_rows_sum=1,
@@ -351,7 +351,7 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
         unified_exit_now_rows=1,
         unified_exit_correct=1,
         active_head_epoch={"heads": {"entry_action_q": {"components": {}}}},
-        entry_policy_realized_pnl_chunks=[torch.tensor([1.0]).numpy()],
+        entry_policy_realized_pnl_chunks=[torch.ones(rows).numpy()],
         entry_unique_target_rows=1,
         entry_target_equivalent_rows=0,
         entry_unique_target_agreement_rows=1,
@@ -360,6 +360,10 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
             "learned_realized": [1.0],
         },
     )
+
+
+def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> None:
+    snapshot = _validation_snapshot_fixture()
     assert isinstance(snapshot["cooperation_gate_epoch"]["gate"]["sum"], torch.Tensor)
     restored = trainer._restore_candidate_validation_snapshot(snapshot)
     assert restored["rows"] == 1
@@ -374,10 +378,11 @@ def test_candidate_validation_snapshot_uses_only_weights_only_safe_values() -> N
     assert restored_again["entry_policy_realized_pnl_chunks"][0].shape == (1,)
 
 
+@pytest.mark.parametrize("interrupt_phase", ["train", "validation"])
 def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, interrupt_phase: str,
 ) -> None:
-    """The candidate coordinator must not retrain after a completed resume."""
+    """Actual loader reconstruction preserves updates and future epoch order."""
 
     class _Rows(torch.utils.data.Dataset):
         def __init__(self, rows: int) -> None:
@@ -391,18 +396,36 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
 
     calls = {"train": 0, "validation": 0}
     train_offsets: list[int] = []
+    train_batches: list[list[int]] = []
+    interrupt = False
 
     def _fake_train_epoch(*args, **kwargs):
         calls["train"] += 1
         loader = args[2]
+        model, optimizer = args[0], args[3]
         checkpoint = kwargs["session_checkpoint_hook"]
         train_offsets.append(int(kwargs["session_batch_offset"]))
-        if calls["train"] == 1:
-            checkpoint(
-                next_batch_offset=kwargs["session_batch_offset"] + 1,
-                complete_epoch=False,
+        for batch_i, batch in enumerate(loader, start=1):
+            train_batches.append(batch.tolist())
+            # CPU dropout exercises model RNG as well as the next epoch's
+            # global-RNG randperm. The real coordinator constructs the loaders
+            # and saves/restores model, optimizer and RNG through its two slots.
+            inputs = torch.nn.functional.dropout(
+                batch.float()[:, None].expand(-1, 3), p=0.25, training=True
             )
-            raise RuntimeError("test-interrupt-after-checkpoint")
+            optimizer.zero_grad(set_to_none=True)
+            model(inputs).square().mean().backward()
+            optimizer.step()
+            kwargs["weight_ema"].update(model)
+            if (
+                interrupt and interrupt_phase == "train"
+                and calls["train"] == 1 and batch_i == 1
+            ):
+                checkpoint(
+                    next_batch_offset=kwargs["session_batch_offset"] + batch_i,
+                    complete_epoch=False,
+                )
+                raise RuntimeError("test-interrupt-after-checkpoint")
         checkpoint(
             next_batch_offset=kwargs["session_batch_offset"] + len(loader),
             complete_epoch=True,
@@ -411,6 +434,21 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
 
     def _fake_validate(*args, **kwargs):
         calls["validation"] += 1
+        # Validation iterators consume a seed too, even without workers.
+        snapshot = kwargs["resume_validation_state"]
+        rows = int(snapshot["rows"]) if snapshot is not None else 0
+        for batch_i, batch in enumerate(args[2], start=1):
+            rows += len(batch)
+            if (
+                interrupt and interrupt_phase == "validation"
+                and calls["validation"] == 1 and batch_i == 1
+            ):
+                kwargs["validation_checkpoint_hook"](
+                    next_batch_offset=kwargs["validation_batch_offset"] + batch_i,
+                    validation_snapshot=_validation_snapshot_fixture(rows=rows),
+                )
+                raise RuntimeError("test-interrupt-after-checkpoint")
+        assert rows == len(args[2].dataset)
         return (
             1.0,
             float("nan"),
@@ -448,31 +486,32 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
         *,
         grad_clip_norm: float = 1.0,
         weight_decay: float = 1e-5,
+        output: Path = out_bundle,
     ):
         return trainer._run_resumable_candidate_training(
             model=model,
             optimizer=optimizer,
-            weight_ema=None,
-            lr_scheduler=None,
+            weight_ema=trainer._WeightEma(model, 0.5),
+            lr_scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=MAX_EPOCHS,
+            ),
             device=torch.device("cpu"),
-            train_ds=_Rows(4),
-            val_ds=_Rows(2),
-            effective_train_rows=4,
+            train_ds=_Rows(5),
+            val_ds=_Rows(3),
+            effective_train_rows=5,
             batch_size=2,
             num_workers=0,
             pin_memory=False,
             persistent_workers=False,
             prefetch_factor=None,
-                # The coordinator rejects policy drift before it trains. This
-                # regression must therefore exercise the actual frozen policy,
-                # including the no-improvement early stop after the resumed
-                # first epoch rather than an obsolete one-epoch substitute.
-                epochs=MAX_EPOCHS,
-                early_stopping_patience=EARLY_STOP_PATIENCE,
-                early_stopping_min_delta=EARLY_STOP_MIN_DELTA,
-                minimum_epochs_before_stop=MINIMUM_EPOCHS_BEFORE_STOP,
-                save_top_k=SAVE_TOP_K,
-            out_bundle_dir=out_bundle,
+            # Exercise the frozen policy, including early stop after the
+            # resumed first epoch rather than a one-epoch substitute.
+            epochs=MAX_EPOCHS,
+            early_stopping_patience=EARLY_STOP_PATIENCE,
+            early_stopping_min_delta=EARLY_STOP_MIN_DELTA,
+            minimum_epochs_before_stop=MINIMUM_EPOCHS_BEFORE_STOP,
+            save_top_k=SAVE_TOP_K,
+            out_bundle_dir=output,
             gx1_data_override="",
             run_id="V46_20260825T170935Z_CANDIDATE",
             dataset_run_id="V46_20260825T170935Z",
@@ -506,10 +545,28 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
             ),
         )
 
+    torch.manual_seed(1337)
+    reference_model = torch.nn.Linear(3, 2)
+    reference_optimizer = torch.optim.AdamW(reference_model.parameters(), lr=0.001)
+    reference = _run(
+        reference_model,
+        reference_optimizer,
+        output=tmp_path / "CONTINUOUS_20260828T140000Z",
+    )
+    reference_batches = list(train_batches)
+    reference_rng = torch.get_rng_state().clone()
+    calls.update(train=0, validation=0)
+    train_offsets.clear()
+    train_batches.clear()
+    interrupt = True
+
+    torch.manual_seed(1337)
     first_model = torch.nn.Linear(3, 2)
     with pytest.raises(RuntimeError, match="test-interrupt-after-checkpoint"):
         _run(first_model, torch.optim.AdamW(first_model.parameters(), lr=0.001))
-    assert calls == {"train": 1, "validation": 0}
+    assert calls == {
+        "train": 1, "validation": int(interrupt_phase == "validation"),
+    }
     assert train_offsets == [0]
 
     changed_hyperparameter_model = torch.nn.Linear(3, 2)
@@ -521,16 +578,31 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
         )
 
     second_model = torch.nn.Linear(3, 2)
-    second = _run(second_model, torch.optim.AdamW(second_model.parameters(), lr=0.001))
+    second_optimizer = torch.optim.AdamW(second_model.parameters(), lr=0.001)
+    second = _run(second_model, second_optimizer)
+    assert train_batches == reference_batches
+    assert torch.equal(torch.get_rng_state(), reference_rng)
+    for name, expected in reference_model.state_dict().items():
+        assert torch.equal(expected, second_model.state_dict()[name]), name
+    assert second["best_epoch"] == reference["best_epoch"]
+    for name, expected in reference["best_state"].items():
+        assert torch.equal(expected, second["best_state"][name]), name
+    for key, reference_state in reference_optimizer.state_dict()["state"].items():
+        observed_state = second_optimizer.state_dict()["state"][key]
+        for name, expected in reference_state.items():
+            assert torch.equal(expected, observed_state[name]), name
     completed_epochs = max(
         MINIMUM_EPOCHS_BEFORE_STOP,
         1 + EARLY_STOP_PATIENCE,
     )
     assert calls == {
-        "train": 1 + completed_epochs,
-        "validation": completed_epochs,
+        "train": int(interrupt_phase == "train") + completed_epochs,
+        "validation": int(interrupt_phase == "validation") + completed_epochs,
     }
-    assert train_offsets == [0, 1, *([0] * (completed_epochs - 1))]
+    assert train_offsets == (
+        [0, 1, *([0] * (completed_epochs - 1))]
+        if interrupt_phase == "train" else [0] * completed_epochs
+    )
     assert second["best_epoch"] == 1
     assert second["best_policy_pnl"] == 2.0
     assert second["last_epoch"] == completed_epochs
@@ -540,7 +612,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     third_model = torch.nn.Linear(3, 2)
     third = _run(third_model, torch.optim.AdamW(third_model.parameters(), lr=0.001))
     assert calls == {
-        "train": 1 + completed_epochs,
-        "validation": completed_epochs,
+        "train": int(interrupt_phase == "train") + completed_epochs,
+        "validation": int(interrupt_phase == "validation") + completed_epochs,
     }
     assert third["best_epoch"] == 1

@@ -20,6 +20,7 @@ sources=(
   "$REPO/docs/CURRENT_AUDIT_STATUS_20260828.md"
   "$REPO/docs/CURRENT_HANDOFF_20260903.md"
   "$REPO/docs/REPO_CLEANUP_CANDIDATES_20260903.md"
+  "$REPO/docs/PREMIERE_CODE_REVIEW_20260905.md"
   "$REPO/docs/OFFLINE_CHAMPION_CHALLENGER_V1.md"
   "$REPO/docs/DATA_CONTRACT.md"
   "$REPO/docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md"
@@ -59,6 +60,45 @@ esac
 for source in "${sources[@]}"; do
   [[ -f "$source" ]] || { echo "FATAL: authority input missing: $source" >&2; exit 2; }
 done
+# A reviewed semantic defect revokes readiness without rewriting historical
+# immutable evidence. Fail before resolving any dataset or old launch gate.
+# Removing this explicit hold alone cannot repair old contracts/source hashes;
+# the normal validators below still require a valid successor evidence chain.
+if ! "$PY" - "$LAUNCH_STATE" "$mode" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if "pretraining_review_hold" not in state:
+    raise SystemExit(0)
+hold = state["pretraining_review_hold"]
+if (
+    not isinstance(hold, dict)
+    or set(hold) != {"schema_version", "decision", "reason", "activation_authority", "report_path"}
+    or hold.get("schema_version") != "gx1_pretraining_review_hold_v1"
+    or hold.get("decision") != "BLOCK"
+    or hold.get("activation_authority") is not False
+    or not isinstance(hold.get("reason"), str)
+    or not hold["reason"]
+    or hold.get("report_path") != "docs/PREMIERE_CODE_REVIEW_20260905.md"
+):
+    raise SystemExit("FATAL: pretraining review hold is malformed; launch remains blocked")
+print(f"mode: {sys.argv[2]}")
+print("decision: BLOCK")
+print("pretraining_review_hold: ACTIVE")
+print(f"blocker: {hold['reason']}")
+print(f"review_report: {hold['report_path']}")
+print("historical_recipe_and_gate: RETAINED_NOT_CURRENT_TRAINING_AUTHORITY")
+print("cuda_authority: NONE")
+print("test_paper_live_authority: NONE")
+print("next_action: CPU_SUCCESSOR_TRAIN_VAL_TARGET_POLICY_DATA_AND_AUDITS_THEN_NEW_SOURCE_BOUND_RECIPE")
+print("FATAL: pretraining review hold blocks launch", file=sys.stderr)
+raise SystemExit(2)
+PY
+then
+  exit 2
+fi
 CURRENT_PAIR_MANIFEST=$("$PY" - "$LAUNCH_STATE" <<'PY'
 import json
 import sys
@@ -1043,7 +1083,7 @@ echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"
 echo "  1. run this handover and confirm clean source, no competing job and the retained V9 bundle/session identity"
 echo "  2. immediately before any proposed CUDA launch, obtain a fresh signed bridge response proving the physical limit remains 160 W"
-echo "  3. review the negative V9 VAL result and the smoke-audit FAIL; the five-year hash-bound recipe has no candidate gate and remains CPU-preflight-only until fresh telemetry and explicit CUDA authorisation exist"
+echo "  3. verify the current source-bound five-year candidate gate above; technical smoke liveness permits training, not model acceptance, and changed target semantics require rebuilt data/policy evidence before explicitly authorised CUDA"
 echo "  4. run preregistered untouched-TEST evaluation only after independently accepted candidate/OOS gates, never as a troubleshooting input"
 echo "  5. bind immutable broker costs, financing, gap/terminal treatment and portfolio capital before demo, paper, live or production-net claims"
 echo "forbidden_routes: live, paper, broker, daemon, promotion, drift-adaptation"

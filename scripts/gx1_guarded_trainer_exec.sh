@@ -296,17 +296,25 @@ consume_stage_notifications() {
   return 0
 }
 
+child_group_exists() {
+  # setsid gives the launched child its own process group, identified by $!.
+  # Its leader may already have exited while a descendant still owns CUDA.
+  [[ -n "$child_pid" ]] || return 1
+  /bin/kill -0 -- "-$child_pid" 2>/dev/null
+}
+
 terminate_child_group() {
   local reason="$1"
   [[ -n "$child_pid" ]] || return 0
-  if /bin/kill -0 "$child_pid" 2>/dev/null; then
+  if child_group_exists; then
     guard_log "event=stop reason=$reason pid=$child_pid stage=$stage_name"
     printf '[trainer_safety_stop] reason=%s pid=%s\n' "$reason" "$child_pid" >&2
     /bin/kill -TERM -- "-$child_pid" 2>/dev/null || true
     for _ in {1..10}; do
-      /bin/kill -0 "$child_pid" 2>/dev/null || return 0
+      child_group_exists || return 0
       /bin/sleep 1
     done
+    guard_log "event=kill reason=$reason pgid=$child_pid stage=$stage_name"
     /bin/kill -KILL -- "-$child_pid" 2>/dev/null || true
   fi
 }
@@ -446,6 +454,11 @@ set +e
 wait "$child_pid"
 child_status=$?
 set -e
+if child_group_exists; then
+  terminate_child_group orphaned_descendants_after_leader_exit
+  child_pid=
+  die "trainer exited while its child process group was still active"
+fi
 child_pid=
 if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
   && "$stage_name" == data_preflight ]]; then

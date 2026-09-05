@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     PRETRAIN_AUDIT_SCHEMA,
 )
@@ -743,23 +744,7 @@ def build_wrapper_contract(
             "splits": pretrain_splits,
         },
     )
-    causal_target_contract = {
-        "entry_decision_time": "authoritative_m5_bar_close_available_at",
-        "long_entry_price": (
-            "ask_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "short_entry_price": (
-            "bid_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "long_exit_price": (
-            "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "short_exit_price": (
-            "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
-        "target_affects_feature_availability": False,
-    }
+    causal_target_contract = causal_m1_target_contract()
     causality_rows = []
     for split in ("train", "val"):
         lifecycle_manifest = lifecycle_dir / lifecycle_splits[split][

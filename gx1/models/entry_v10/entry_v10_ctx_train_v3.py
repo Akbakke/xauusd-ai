@@ -5459,6 +5459,23 @@ class _WeightEma:
         self._steps = int(state["steps"])
 
 
+def _optimizer_step_with_finite_gradients(
+    *,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    weight_ema: Optional["_WeightEma"] = None,
+) -> None:
+    """Reject a nonfinite norm before mutating weights, optimizer or EMA."""
+
+    torch.nn.utils.clip_grad_norm_(
+        model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
+    )
+    optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+    if weight_ema is not None:
+        weight_ema.update(model)
+
+
 def _step_partial_gradient_accumulation(
     *,
     model: nn.Module,
@@ -5482,14 +5499,12 @@ def _step_partial_gradient_accumulation(
     for parameter in model.parameters():
         if parameter.grad is not None:
             parameter.grad.mul_(remainder_rescale)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
-    optimizer.step()
-    optimizer.zero_grad(set_to_none=True)
     # The remainder step is a real optimizer step, so the weight EMA must see
     # it too; skipping it here would make the average depend on the batch count
     # modulo the accumulation width.
-    if weight_ema is not None:
-        weight_ema.update(model)
+    _optimizer_step_with_finite_gradients(
+        model=model, optimizer=optimizer, weight_ema=weight_ema
+    )
     return True
 
 
@@ -8160,15 +8175,13 @@ def train_epoch(
             )
         _accum_count += 1
         if _accum_count >= _accum_steps:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
-            optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
             # V30 package 5: the weight EMA advances once per OPTIMIZER step
             # (not per micro-batch), so its decay means the same thing at any
             # accumulation width. None when the recipe decay is the 0.0 OFF
             # sentinel — then nothing here executes at all.
-            if weight_ema is not None:
-                weight_ema.update(model)
+            _optimizer_step_with_finite_gradients(
+                model=model, optimizer=optimizer, weight_ema=weight_ema
+            )
             _accum_count = 0
             _optimizer_steps_this_call += 1
             if _step_log_due:
@@ -11054,6 +11067,10 @@ def _run_resumable_candidate_training(
                 pin_memory=pin_memory,
                 persistent_workers=persistent_workers,
                 prefetch_factor=prefetch_factor,
+                # Even with workers=0, iter(DataLoader) draws a base seed.
+                # Keep it off the checkpointed model/order RNG so rebuilding
+                # this loader on resume cannot alter a later epoch's randperm.
+                generator=torch.Generator().manual_seed(int(seed)),
             )
             if len(train_loader) != expected_train_batches - next_batch_offset:
                 raise RuntimeError("[CANDIDATE_TRAINING_REMAINING_LOADER_INVALID]")
@@ -11116,6 +11133,7 @@ def _run_resumable_candidate_training(
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
             prefetch_factor=prefetch_factor,
+            generator=torch.Generator().manual_seed(int(seed)),
         )
         resume_validation_state = progress["validation_snapshot"]
         if resume_validation_state is not None:
@@ -11756,6 +11774,16 @@ def run_train(
         entry_parquets={
             "train": Path(train_parquet),
             "val": Path(val_parquet),
+        },
+        entry_manifest_bindings={
+            split: {
+                "path": str(path),
+                "sha256": _expected_train_artifact_sha256(f"{split}_manifest"),
+            }
+            for split, path in (
+                ("train", Path(train_manifest_path)),
+                ("val", Path(val_parquet).with_suffix(".manifest.json")),
+            )
         },
         dataset_run_id=str(dataset_run_id),
         splits=("train", "val"),
@@ -12707,6 +12735,7 @@ def run_train(
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
             prefetch_factor=prefetch_factor,
+            generator=torch.Generator().manual_seed(int(seed)),
         )
         if len(attended_train_loader) != _expected_train_batches - attended_start_offset:
             raise RuntimeError("[ATTENDED_RESEARCH_REMAINING_LOADER_INVALID]")
@@ -14489,8 +14518,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
 
     The legacy wrapper already compares its full CLI to a legacy recipe.  The
     strict pre-TEST route enters the same canonical trainer directly, so this
-    local check prevents a caller from swapping its bounded smoke geometry
-    after materialisation and before CUDA is considered.
+    local check prevents a caller from swapping its recipe geometry or
+    bypassing its candidate gate before CUDA is considered.
     """
 
     recipe_path = Path(args.recipe_audit_json).expanduser().resolve(strict=True)
@@ -14498,7 +14527,11 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         payload = json.loads(recipe_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_READ_FAILED]") from exc
+    candidate_gate_path = getattr(args, "candidate_gate_json", None)
+    candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
+        if candidate_gate_path is not None or candidate_gate_sha256 is not None:
+            raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
         return
     try:
         recipe = require_pretest_technical_recipe_metadata(
@@ -14552,6 +14585,29 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     }
     if recipe["trainer_cli"] != observed:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_CLI_MISMATCH]")
+    if str(args.profile) == "candidate":
+        # The public trainer is also callable without the recipe-only wrapper.
+        # Source/CLI identity alone must not bypass the candidate launch gate.
+        if candidate_gate_path is None or candidate_gate_sha256 is None:
+            raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_REQUIRED]")
+        from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import (
+            PretestCandidateLaunchGateError,
+            require_pretest_candidate_launch_gate,
+        )
+
+        try:
+            require_pretest_candidate_launch_gate(
+                candidate_gate_path,
+                str(candidate_gate_sha256),
+                expected_recipe_path=recipe_path,
+                expected_recipe_sha256=str(args.recipe_audit_sha256),
+            )
+        except (PretestCandidateLaunchGateError, OSError, ValueError) as exc:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_REJECTED] {exc}"
+            ) from exc
+    elif candidate_gate_path is not None or candidate_gate_sha256 is not None:
+        raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
 
 
 def main() -> None:
@@ -14584,6 +14640,8 @@ def main() -> None:
     parser.add_argument("--val-sequence-source-audit-json", type=Path, required=True)
     parser.add_argument("--recipe-audit-json", type=Path, required=True)
     parser.add_argument("--recipe-audit-sha256", type=str, required=True)
+    parser.add_argument("--candidate-gate-json", type=Path)
+    parser.add_argument("--candidate-gate-sha256", type=str)
     parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(

@@ -2,12 +2,17 @@
 
 This is an architecture map, not runtime authority. For a lost-chat or reboot
 restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
-`bash scripts/gx1_handover.sh`. V9 is a completed technical TRAIN+VAL result,
-not an accepted candidate. A fresh signed 160 W response was verified on
-2026-09-04 and is maintained by a persistent host cap task, but it is valid
-only at its observation time. No CUDA launch is currently authorised without
-the remaining dataset-bound gate, clean preflight, a fresh launch-time signed
-response and the operator gate.
+`bash scripts/gx1_handover.sh`. Current status is
+`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The five-year canonical
+smoke and guarded VAL inference completed on 2026-09-04, and their technical
+candidate gate was READY at `55de7b82`. The 2026-09-05 trainer, lifecycle,
+gate/source-closure and watchdog repairs change executable bytes. A corrected
+short auxiliary-return denominator also invalidates the old fitted policy and
+targets. Current readiness requires a controlled CPU rebuild/audit of the
+five-year TRAIN/VAL target/policy chain, new immutable recipe/gate bindings and
+clean handover. Merely rebinding source hashes is insufficient. The Windows task is configured for 160 W;
+later CUDA still requires fresh signed telemetry and operator authorization.
+TEST, paper and live remain unauthorized.
 
 The older V4/V5 status below is retained as historical architecture context.
 
@@ -214,12 +219,17 @@ It is frozen once at fill as exact little-endian float32 bytes. Every Exit resul
 and five-TF tensor bytes, their clocks/cache identity, side, quotes, path and
 trade identity in one persisted full-input envelope.
 
-Lifecycle TRAIN/VAL probes are chosen without looking at HOLD/EXIT_NOW labels;
-future outcomes are attached only after state selection. The lifecycle owner
-also exposes a bounded full-trajectory iterator over every non-tied long/short
-state. Epoch selection uses probes for tractable training, then the selected
-candidate checkpoint must pass a streaming evaluation of every non-tied VAL
-state before bundle creation. Smoke runs cannot authorize this gate.
+Lifecycle state construction is independent of HOLD/EXIT_NOW target labels.
+Canonical candidate training uses the full TRAIN population and valid action
+cells from both long/short trajectories, including target ties. Each epoch's
+selection uses full VAL and its complete Exit trajectory evidence. The selected
+online and frozen target states must match that evidence before bundle
+publication. A subsampled smoke cannot establish candidate qualification.
+
+Technical liveness requires finite, positive, state-varying routes through all
+eight specialists and the required training-connectivity evidence. Every family
+need not become the largest softmax weight. Routing liveness and a top-rank
+histogram do not prove predictive or economic value.
 
 The five handwritten regime composites, the handcrafted `tf_agreement`
 auxiliary objective/head and `signed_vol_z_20` are absent from the active
@@ -262,22 +272,20 @@ source pair
  -> recomputable sizing/serve parity evidence
 ```
 
-Failure at any arrow stops the chain. Fresh native and canonical source
-exists. Historical V28/V29J datasets were retired with their superseded
-feature contracts and have no training or comparison authority. V39/V40 are
-historical. V46 is the current audited research artifact: TRAIN/VAL/sealed
-TEST, compact lifecycle, all-field liveness and M1-fill causality pass, but no
-bundle, candidate, calibration, TEST evaluation or trading claim exists. The
-first train==serve parity event is also still missing. The final 220 W
-batch-8/32-row smoke completed full technical execution and published a
-diagnostic bundle at 63 C / 212.37 W / 8.75 GiB. The latest repair (`c3026c0f`)
-binds bounded smoke structure to the already-passing full-population liveness
-proof without weakening candidate checks. Immutable VAL inference has now
-completed through the exact guarded evaluator, and the CPU smoke-bundle audit
-passes all input/output/lineage checks. It blocks only because three specialist
-gates never top-rank after four optimizer steps. The next execution, after
-CPU artifact-schema preflight, may only be a bounded guarded learning-
-validation probe; never a candidate, live route or edge claim.
+Failure at any required arrow stops the chain. Historical V28/V29J datasets
+were retired with their superseded feature contracts and have no training or
+comparison authority; V39/V40 are also historical. V46 and the later five-year
+TRAIN/VAL preparation are audited research evidence, not admitted production
+data or models. Technical bundles and VAL prediction artifacts exist; the
+five-year candidate has not trained and TEST remains sealed.
+
+The 2026-09-04 smoke audit failed only its strict specialist top-rank quality
+heuristic; its technical contract supported an immutable candidate gate.
+That gate is historical evidence after the 2026-09-05 source and short-return
+contract repairs. The next work is capped CPU verification and the affected
+five-year target/policy/audit rebuild, then new recipe/gate bindings, exact
+preflight and clean handover. A new CUDA probe is not an automatic next step.
+No trading-edge, candidate acceptance or production claim follows.
 
 ## Scope boundary
 

@@ -1,9 +1,10 @@
-"""Launch exactly one recipe-bound, TRAIN/VAL-only technical CUDA smoke.
+"""Launch one recipe-bound TRAIN/VAL smoke or separately gated candidate.
 
 This is intentionally a narrow control surface.  It accepts an immutable
 pre-TEST recipe and its digest, derives every trainer argument and permitted
-environment variable from it, and then enters the normal capped trainer.  It
-has no TEST input, no override flag and no candidate/promotion authority.
+environment variable from it, and then enters the normal capped trainer.
+Candidates also require a separate immutable launch gate, revalidated by the
+trainer. It has no TEST input, override flag or promotion authority.
 """
 
 from __future__ import annotations
@@ -233,6 +234,13 @@ def build_pretest_technical_launch(
         "--grad-clip-norm", str(cli["grad_clip_norm"]),
         "--weight-decay", str(cli["weight_decay"]), "--dropout", str(cli["dropout"]),
     ]
+    if candidate_profile:
+        # The trainer independently revalidates this separate immutable gate.
+        # Putting it into the recipe would create a recipe/gate hash cycle.
+        trainer_command.extend((
+            "--candidate-gate-json", str(candidate_gate_path),
+            "--candidate-gate-sha256", str(candidate_gate_sha256),
+        ))
     if isinstance(window, Mapping):
         trainer_command.extend((
             "--train-time-window-start-utc", str(window["start_utc"]),

@@ -23,7 +23,14 @@ def _state() -> dict[str, object]:
 
 
 def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
-    summary = require_blocked_launch_state_with_current_audited_dataset(_state())
+    state = _state()
+    if "pretraining_review_hold" in state:
+        # V46's immutable PASS report predates entry-notional short returns.
+        # Hash integrity must not be mistaken for current semantic validity.
+        with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
+            require_blocked_launch_state_with_current_audited_dataset(state)
+        return
+    summary = require_blocked_launch_state_with_current_audited_dataset(state)
 
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER

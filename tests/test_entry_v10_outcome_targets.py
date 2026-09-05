@@ -1356,9 +1356,11 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
         )
 
 
+@pytest.mark.parametrize("lifecycle_end_extension_minutes", [0, 1])
 def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    lifecycle_end_extension_minutes: int,
 ) -> None:
     entries = pd.DataFrame(
         {
@@ -1396,6 +1398,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     lifecycle_dir.mkdir()
     bindings: dict[str, dict[str, object]] = {}
     entry_paths: dict[str, Path] = {}
+    entry_manifest_bindings: dict[str, dict[str, str]] = {}
     for split in ("train", "val", "test"):
         entry_path = tmp_path / f"entry_{split}_20260101T000000Z.parquet"
         entries.to_parquet(entry_path, index=False)
@@ -1407,6 +1410,43 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
             market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
         )
+        entry_manifest_path = entry_path.with_suffix(".manifest.json")
+        entry_manifest_path.write_text(
+            json.dumps(
+                {
+                    "output_data_path": str(entry_path),
+                    "splits": {split: {
+                        "start": source["time"].iloc[0].isoformat(),
+                        "end": (source["time"].iloc[-1] + pd.Timedelta(minutes=5)).isoformat(),
+                    }},
+                    "extra": {
+                        "entry_run_id": "EXIT_LIFECYCLE_PYTEST_V1",
+                        "rows": len(entries),
+                        "emission_start_utc": source["time"].iloc[0].isoformat(),
+                        "emission_end_utc": proof["split_end_utc"],
+                        "feature_computation_end_utc": proof["split_end_utc"],
+                    },
+                    "ts_min_max_by_split": {split: {
+                        "ts_min": entries["time"].iloc[0].isoformat(),
+                        "ts_max": entries["time"].iloc[-1].isoformat(),
+                    }},
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        entry_manifest_bindings[split] = {
+            "path": str(entry_manifest_path),
+            "sha256": sha256_file(entry_manifest_path),
+        }
+        if lifecycle_end_extension_minutes:
+            # A later Exit end and its fresh hash used to pass because the
+            # loader trusted the lifecycle's own boundary. The Entry bytes
+            # and their independent manifest still declare the original end.
+            proof["split_end_utc"] = (
+                pd.Timestamp(proof["split_end_utc"])
+                + pd.Timedelta(minutes=lifecycle_end_extension_minutes)
+            ).isoformat()
         lifecycle_path = (
             lifecycle_dir / f"{split}_unified_exit_lifecycle.parquet"
         )
@@ -1490,11 +1530,17 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         encoding="utf-8",
     )
 
-    corpus = UnifiedExitLifecycleCorpus(
+    corpus_args = dict(
         root_manifest_path=root_manifest,
         entry_parquets={name: entry_paths[name] for name in ("train", "val")},
+        entry_manifest_bindings={name: entry_manifest_bindings[name] for name in ("train", "val")},
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
+    if lifecycle_end_extension_minutes:
+        with pytest.raises(RuntimeError, match="ENTRY_SPLIT_END_MISMATCH: train"):
+            UnifiedExitLifecycleCorpus(**corpus_args)
+        return
+    corpus = UnifiedExitLifecycleCorpus(**corpus_args)
     with pytest.raises(RuntimeError, match="STATE_SAMPLE_RETIRED"):
         corpus.splits["train"].sample(0)
     episode = corpus.splits["val"].materialize_causal_episode_core(0)
@@ -1527,6 +1573,7 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     # Any TEST path access here would violate the opaque-test contract.
     forbidden_test_paths = {
         entry_paths["test"].resolve(),
+        Path(entry_manifest_bindings["test"]["path"]).resolve(),
         (lifecycle_dir / "test_unified_exit_lifecycle.parquet").resolve(),
         (lifecycle_dir / "test_unified_exit_lifecycle.manifest.json").resolve(),
     }
@@ -1552,9 +1599,51 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     prefreeze_corpus = UnifiedExitLifecycleCorpus(
         root_manifest_path=root_manifest,
         entry_parquets={name: entry_paths[name] for name in ("train", "val")},
+        entry_manifest_bindings={name: entry_manifest_bindings[name] for name in ("train", "val")},
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
     assert set(prefreeze_corpus.splits) == {"train", "val"}
+
+
+@pytest.mark.parametrize("defect", ["hash", "future_emission", "wrong_parquet", "wrong_run"])
+def test_lifecycle_entry_window_rejects_unbound_or_inconsistent_manifest(
+    tmp_path: Path,
+    defect: str,
+) -> None:
+    entry_path = tmp_path / "entry_val.parquet"
+    manifest_path = entry_path.with_suffix(".manifest.json")
+    payload = {
+        "output_data_path": str(entry_path),
+        "splits": {"val": {"start": "2026-06-01T00:00:00Z", "end": "2026-07-01T00:00:00Z"}},
+        "extra": {
+            "entry_run_id": "BOUND_WINDOW_V1",
+            "rows": 2,
+            "emission_start_utc": "2026-06-01T00:00:00Z",
+            "emission_end_utc": "2026-06-30T23:55:00Z",
+            "feature_computation_end_utc": "2026-06-30T23:55:00Z",
+        },
+        "ts_min_max_by_split": {"val": {
+            "ts_min": "2026-06-01T00:00:00Z",
+            "ts_max": "2026-06-30T14:55:00Z",
+        }},
+    }
+    if defect == "future_emission":
+        payload["extra"]["emission_end_utc"] = "2026-07-01T00:00:00Z"
+        payload["extra"]["feature_computation_end_utc"] = "2026-07-01T00:00:00Z"
+    elif defect == "wrong_parquet":
+        payload["output_data_path"] = str(tmp_path / "other_val.parquet")
+    elif defect == "wrong_run":
+        payload["extra"]["entry_run_id"] = "OTHER_WINDOW_V1"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+    expected_hash = "0" * 64 if defect == "hash" else sha256_file(manifest_path)
+    expected_error = "ENTRY_MANIFEST_HASH_MISMATCH" if defect == "hash" else "ENTRY_SPLIT_WINDOW_INVALID"
+    with pytest.raises(RuntimeError, match=expected_error):
+        unified_exit_lifecycle._require_entry_split_window_binding(
+            binding={"path": str(manifest_path), "sha256": expected_hash},
+            entry_path=entry_path,
+            dataset_run_id="BOUND_WINDOW_V1",
+            split="val",
+        )
 
 
 def test_pretest_lifecycle_root_allows_only_train_val_inventory(
@@ -1627,6 +1716,7 @@ def test_pretest_lifecycle_root_allows_only_train_val_inventory(
         UnifiedExitLifecycleCorpus(
             root_manifest_path=root_manifest,
             entry_parquets={"train": tmp_path / "train.parquet", "val": tmp_path / "val.parquet"},
+            entry_manifest_bindings={"train": {}, "val": {}},
             dataset_run_id="EXIT_PRETEST_ROOT_V1",
         )
 

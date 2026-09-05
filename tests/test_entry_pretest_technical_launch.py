@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -47,6 +49,8 @@ def test_pretest_launcher_derives_every_runtime_value_from_recipe(
     ]
     assert "--test-manifest-json" not in command
     assert "--test-parquet" not in command
+    assert "--candidate-gate-json" not in command
+    assert "--candidate-gate-sha256" not in command
     assert "--execution-tier" in command
     assert command[command.index("--execution-tier") + 1] == "attended_only"
     assert command[command.index("--train-time-window-start-utc") + 1] == (
@@ -123,3 +127,110 @@ def test_pretest_candidate_launcher_requires_immutable_launch_gate(
             recipe_path=recipe_path,
             recipe_sha256=recipe_sha,
         )
+
+
+def _candidate_command(tmp_path: Path, monkeypatch):
+    recipe = _recipe(tmp_path)
+    recipe["profile"] = "candidate"
+    recipe["trainer_cli"].update({
+        "execution_tier": "canonical",
+        "train_time_window": None,
+        "epochs": 30,
+        "early_stop_patience": 5,
+        "subsample_rows": 0,
+    })
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(recipe["trainer_cli"])
+    recipe_path = tmp_path / "candidate-recipe.json"
+    recipe_path.write_text(json.dumps(recipe, sort_keys=True), encoding="utf-8")
+    recipe_sha = hashlib.sha256(recipe_path.read_bytes()).hexdigest()
+    gate_path = tmp_path / "candidate-gate.json"
+    gate_path.write_text("{}", encoding="utf-8")
+    gate_sha = hashlib.sha256(gate_path.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        launcher, "require_training_recipe_execution_provenance",
+        lambda **_kwargs: {"source_commit": recipe["source_commit"]},
+    )
+    # Gate-content validation has dedicated contract tests. Here the wrapper
+    # accepts its evidence so the direct trainer boundary can be exercised.
+    monkeypatch.setattr(
+        launcher, "require_pretest_candidate_launch_gate", lambda *_args, **_kwargs: {},
+    )
+    command, _, _ = launcher.build_pretest_technical_launch(
+        recipe_path=recipe_path,
+        recipe_sha256=recipe_sha,
+        candidate_gate_path=gate_path,
+        candidate_gate_sha256=gate_sha,
+    )
+    assert command[command.index("--candidate-gate-json") + 1] == str(gate_path)
+    assert command[command.index("--candidate-gate-sha256") + 1] == gate_sha
+    return command, recipe_path, recipe_sha, gate_path, gate_sha
+
+
+@pytest.mark.parametrize("gate_mode", ["missing", "missing-sha", "changed", "valid"])
+def test_direct_pretest_candidate_trainer_revalidates_gate_before_cuda(
+    tmp_path: Path, monkeypatch, gate_mode: str,
+) -> None:
+    from gx1.contracts import entry_model_native_train_launch_v1 as source_contract
+    from gx1.contracts import entry_pretest_candidate_launch_gate_v1 as gate_contract
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    command, recipe_path, recipe_sha, gate_path, gate_sha = _candidate_command(
+        tmp_path, monkeypatch,
+    )
+    trainer_module = "gx1.models.entry_v10.entry_v10_ctx_train_v3"
+    argv = command[command.index(trainer_module) + 1:]
+    if gate_mode in {"missing", "missing-sha"}:
+        flags = ("--candidate-gate-json", "--candidate-gate-sha256") if gate_mode == "missing" else ("--candidate-gate-sha256",)
+        for flag in flags:
+            position = argv.index(flag)
+            del argv[position:position + 2]
+    elif gate_mode == "changed":
+        gate_path.write_text('{"changed":true}', encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", [trainer_module, *argv])
+    monkeypatch.setattr(trainer, "_require_trainer_cgroup_preflight", lambda: None)
+    monkeypatch.setattr(trainer, "_enforce_canonical_train_env_contract", lambda: None)
+    monkeypatch.setattr(
+        source_contract, "require_training_recipe_execution_provenance",
+        lambda **_kwargs: {},
+    )
+    gate_calls = []
+    if gate_mode == "valid":
+        def valid_gate(path, digest, **kwargs):
+            gate_calls.append((path, digest, kwargs))
+            return {}
+        monkeypatch.setattr(gate_contract, "require_pretest_candidate_launch_gate", valid_gate)
+
+    def cuda_boundary(**_kwargs):
+        raise RuntimeError("TEST_REACHED_CUDA_BOUNDARY_AFTER_GATE")
+
+    def forbidden_compute(*_args, **_kwargs):
+        raise AssertionError("test must never allocate CUDA or train")
+
+    monkeypatch.setattr(trainer, "_require_cuda_trainer_guard_execution", cuda_boundary)
+    monkeypatch.setattr(trainer, "_resolve_device", forbidden_compute)
+    monkeypatch.setattr(trainer, "run_train", forbidden_compute)
+    expected_error = {
+        "missing": "ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_REQUIRED",
+        "missing-sha": "ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_REQUIRED",
+        "changed": "ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_REJECTED.*hash mismatch",
+        "valid": "TEST_REACHED_CUDA_BOUNDARY_AFTER_GATE",
+    }[gate_mode]
+    with pytest.raises(RuntimeError, match=expected_error):
+        trainer.main()
+    if gate_mode == "valid":
+        assert gate_calls == [(
+            gate_path, gate_sha,
+            {"expected_recipe_path": recipe_path, "expected_recipe_sha256": recipe_sha},
+        )]
+
+
+def test_legacy_trainer_recipe_does_not_require_pretest_gate(tmp_path: Path) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    recipe_path = tmp_path / "legacy-recipe.json"
+    recipe_path.write_text(
+        '{"schema_version":"entry_model_native_seq513_train_recipe_audit_v9"}',
+        encoding="utf-8",
+    )
+    args = SimpleNamespace(recipe_audit_json=recipe_path, profile="candidate")
+    trainer._require_pretest_recipe_cli_match(args)

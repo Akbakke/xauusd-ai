@@ -417,12 +417,6 @@ def run(
     if not isinstance(mtf, Mapping):
         raise TechnicalCheckpointExportError("[TECHNICAL_EXPORT_MTF_METADATA_INVALID]")
     per_tf = {tf: int(mtf[f"{tf.lower()}_seq_len"]) for tf in ("M5", "M15", "H1", "H4", "D1")}
-    corpus = UnifiedExitLifecycleCorpus(
-        root_manifest_path=lifecycle_manifest,
-        entry_parquets={"val": val_parquet},
-        dataset_run_id=dataset_run_id,
-        splits=("val",),
-    )
     val_dataset = EntryV10CtxDataset(
         val_parquet,
         seq_len=int(bundle.metadata["seq_len"]),
@@ -430,6 +424,21 @@ def run(
         per_tf_seq_lens=per_tf,
         multi_tf_closed_bar=True,
         sequence_source_audit_json=val_sequence_source_audit,
+    )
+    val_source_proof = val_dataset._sequence_source_audit
+    if not isinstance(val_source_proof, Mapping):
+        raise TechnicalCheckpointExportError("[TECHNICAL_EXPORT_VAL_MANIFEST_BINDING_MISSING]")
+    corpus = UnifiedExitLifecycleCorpus(
+        root_manifest_path=lifecycle_manifest,
+        entry_parquets={"val": val_parquet},
+        entry_manifest_bindings={
+            "val": {
+                "path": val_source_proof["manifest_path"],
+                "sha256": val_source_proof["manifest_sha256"],
+            }
+        },
+        dataset_run_id=dataset_run_id,
+        splits=("val",),
     )
     val_dataset.bind_unified_exit_lifecycle(corpus.splits["val"])
     if len(val_dataset) != int(val_clock["rows"]):

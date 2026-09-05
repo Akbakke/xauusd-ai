@@ -757,12 +757,6 @@ def run(
         "D1": int(mtf["d1_seq_len"]),
     }
     dataset_run_id = str(contract.get("dataset_run_id") or "")
-    corpus = UnifiedExitLifecycleCorpus(
-        root_manifest_path=lifecycle_manifest,
-        entry_parquets={"val": val_parquet},
-        dataset_run_id=dataset_run_id,
-        splits=("val",),
-    )
     val_dataset = EntryV10CtxDataset(
         val_parquet,
         seq_len=int(metadata["seq_len"]),
@@ -770,6 +764,23 @@ def run(
         per_tf_seq_lens=per_tf,
         multi_tf_closed_bar=True,
         sequence_source_audit_json=val_sequence_source_audit,
+    )
+    # The dataset owner has verified this audit against the exact VAL manifest
+    # and parquet. Reuse that binding for both legacy seals and pre-TEST guards.
+    val_source_proof = val_dataset._sequence_source_audit
+    if not isinstance(val_source_proof, Mapping):
+        raise TechnicalValidationError("[TECHNICAL_VAL_MANIFEST_BINDING_MISSING]")
+    corpus = UnifiedExitLifecycleCorpus(
+        root_manifest_path=lifecycle_manifest,
+        entry_parquets={"val": val_parquet},
+        entry_manifest_bindings={
+            "val": {
+                "path": val_source_proof["manifest_path"],
+                "sha256": val_source_proof["manifest_sha256"],
+            }
+        },
+        dataset_run_id=dataset_run_id,
+        splits=("val",),
     )
     val_dataset.bind_unified_exit_lifecycle(corpus.splits["val"])
     if int(len(val_dataset)) != int(val_clock["rows"]):

@@ -14,6 +14,9 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
+from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+    require_smoke_bundle_training_pipeline_contract,
+)
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
     require_newest_immutable_event,
@@ -155,30 +158,54 @@ def _candidate_readiness(
         raise PretestCandidateLaunchGateError(
             "candidate readiness does not bind the supplied smoke audit"
         )
-    # Direct V9 pre-TEST readiness is deliberately separate from the legacy
-    # seq513 rebuild-chain lane.  When present it must bind this exact
-    # candidate recipe, so a readiness event from another candidate cannot be
-    # paired with the same smoke audit merely because the dataset matches.
+    # An intact readiness JSON is insufficient if one of its inputs has gone
+    # missing or changed. Never silently skip a malformed nested binding.
+    for name, binding in bindings.items():
+        _binding(binding, label=f"candidate readiness {name}")
+    smoke_payload = _read_json(Path(smoke_audit["path"]), label="smoke audit")
+    specialist = smoke_payload["input_audits"]["specialist"]
+    if bindings["specialist_audit"] != {
+        "path": specialist["path"], "sha256": specialist["sha256"]
+    }:
+        raise PretestCandidateLaunchGateError("candidate readiness specialist mismatch")
+
+    # Direct V9 readiness must bind the exact candidate in BOTH evidence
+    # layers, not merely repeat its identity in the outer readiness report.
     direct_recipe = payload.get("candidate_recipe")
-    trainability = bindings.get("trainability_readiness")
-    if isinstance(trainability, Mapping):
-        trainability_path = Path(str(trainability.get("path") or ""))
-        if trainability_path.is_absolute() and trainability_path.is_file():
-            if artifact_binding(trainability_path) != dict(trainability):
-                raise PretestCandidateLaunchGateError(
-                    "candidate readiness trainability binding changed"
-                )
-            trainability_payload = _read_json(
-                trainability_path, label="trainability readiness"
+    trainability_payload = _read_json(
+        Path(bindings["trainability_readiness"]["path"]), label="trainability readiness"
+    )
+    schema = trainability_payload.get("schema_version")
+    if schema == "entry_pretest_trainability_readiness_v1":
+        expected = artifact_binding(Path(str(recipe["path"])))
+        if direct_recipe != expected:
+            raise PretestCandidateLaunchGateError(
+                "direct candidate readiness does not bind this recipe"
             )
-            if (
-                trainability_payload.get("schema_version")
-                == "entry_pretest_trainability_readiness_v1"
-            ):
-                if direct_recipe != artifact_binding(Path(str(recipe["path"]))):
-                    raise PretestCandidateLaunchGateError(
-                        "direct candidate readiness does not bind this recipe"
-                    )
+        nested = trainability_payload.get("input_bindings")
+        if not isinstance(nested, Mapping) or set(nested) != {
+            "candidate_recipe", "smoke_recipe", "pretrain_audit"
+        }:
+            raise PretestCandidateLaunchGateError("direct trainability input set is invalid")
+        if (
+            nested["candidate_recipe"] != expected
+            or trainability_payload.get("input_bindings_sha256") != canonical_json_sha256(nested)
+            or trainability_payload.get("decision") != "READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW"
+            or trainability_payload.get("failures") != []
+            or trainability_payload.get("candidate_training_allowed") is not False
+            or trainability_payload.get("activation_authority") is not False
+            or trainability_payload.get("promotion_shadow_live_allowed") is not False
+            or trainability_payload.get("dataset_dir") != dataset_dir
+            or trainability_payload.get("dataset_run_id") != recipe["dataset_run_id"]
+            or trainability_payload.get("candidate_run_id") != recipe["run_id"]
+        ):
+            raise PretestCandidateLaunchGateError("direct trainability evidence mismatch")
+        for name, binding in nested.items():
+            _binding(binding, label=f"direct trainability {name}")
+    else:
+        # The legacy seq513 rebuild-chain readiness does not bind this exact
+        # TRAIN/VAL-only recipe. It cannot substitute for direct pre-TEST proof.
+        raise PretestCandidateLaunchGateError("direct pre-TEST trainability readiness required")
 
 
 def _smoke_audit(path: Path, *, recipe: Mapping[str, Any]) -> None:
@@ -188,6 +215,33 @@ def _smoke_audit(path: Path, *, recipe: Mapping[str, Any]) -> None:
         or payload.get("dataset_dir") != recipe["dataset_dir"]
     ):
         raise PretestCandidateLaunchGateError("smoke bundle audit is incompatible")
+    try:
+        contract = require_smoke_bundle_training_pipeline_contract(
+            payload, context="PRETEST_CANDIDATE_GATE"
+        )
+    except (RuntimeError, ValueError, TypeError, KeyError) as exc:
+        raise PretestCandidateLaunchGateError("smoke training pipeline is not proven") from exc
+    for name, binding in contract["bundle_artifacts"].items():
+        _binding(binding, label=f"smoke bundle {name}")
+    for name, declared in contract["input_audits"].items():
+        binding = _binding(
+            {key: declared[key] for key in _BINDING_KEYS}, label=f"smoke input {name}"
+        )
+        audit = _read_json(Path(binding["path"]), label=f"smoke input {name}")
+        if (
+            audit.get("schema_version") != declared["schema_version"]
+            or audit.get("decision") != "PASS"
+            or audit.get("failures") != []
+        ):
+            raise PretestCandidateLaunchGateError(f"smoke input {name} is not safe")
+    _binding(
+        {key: contract["prediction_evidence"][key] for key in _BINDING_KEYS},
+        label="smoke predictions",
+    )
+    _binding(
+        {"path": contract["prediction_report_json"], "sha256": contract["prediction_report_sha256"]},
+        label="smoke prediction report",
+    )
 
 
 def validate_gate_payload(

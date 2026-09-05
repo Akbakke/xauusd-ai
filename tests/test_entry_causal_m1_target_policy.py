@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    canonical_causal_m1_target_policy_sha256,
     causal_m1_direction_targets_from_policy,
     causal_m1_direction_diagnostic_outcome_contract,
     fit_causal_m1_target_policy,
@@ -63,6 +64,17 @@ def test_fit_is_m1_bound_and_self_validating() -> None:
     assert policy["m1_source_sha256"] == _sha("m1")
     assert policy["fit_population_rows"] > 2
     assert policy["path_threshold_population_rows"] == 2 * policy["fit_population_rows"]
+
+
+def test_old_reciprocal_short_policy_fails_even_with_valid_payload_hash() -> None:
+    policy = _fit()
+    policy["target_contract"]["schema_version"] = "entry_causal_m1_outcomes_v1"
+    policy["target_contract"].pop("long_pnl_bps_formula")
+    policy["target_contract"].pop("short_pnl_bps_formula")
+    policy.pop("policy_sha256")
+    policy["policy_sha256"] = canonical_causal_m1_target_policy_sha256(policy)
+    with pytest.raises(RuntimeError, match="TARGET_POLICY_CONTRACT_INVALID"):
+        require_causal_m1_target_policy(policy)
 
 
 def test_fit_rejects_a_gap_when_it_leaves_no_complete_train_population() -> None:

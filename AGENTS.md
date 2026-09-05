@@ -2,18 +2,30 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Current re-entry status — 2026-09-03
+## Current re-entry status — 2026-09-05
 
 Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
-`bash scripts/gx1_handover.sh`. V9 has completed its full 31,004-step TRAIN
-and 8,860-batch VAL as a technical-only result; it is not an accepted
-candidate. A fresh signed bridge query on 2026-09-04 verified 160 W after the
-restart, while the `GX1GpuPowerLimit` task now reapplies that cap at boot and
-every 15 minutes. That response expires on any later reset and is re-queried
-by the CUDA guard. No CUDA work is authorised: the five-year recipe still has
-no dataset-bound candidate gate, and a new 31,004-step TRAIN also needs a
-clean exact preflight and explicit operator authorisation.
+`bash scripts/gx1_handover.sh`. Current review status is
+`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The exact five-year
+canonical smoke and its guarded VAL prediction pass both completed on
+2026-09-04. Their technical readiness and candidate gate were READY at
+`55de7b82`; the 2026-09-05 repairs change trainer RNG/gradient handling,
+lifecycle split binding, nested gate verification/source closure and the
+watchdog. The review also found short auxiliary returns divided by the exit
+ask instead of entry notional. The corrected causal-M1 return contract rejects
+the old fitted policy and target data: the five-year target/policy/audit chain
+requires a controlled CPU rebuild. Source-hash rebinding alone cannot repair
+those bytes. Finish verification, rebuild and audit the affected TRAIN/VAL
+artifacts, then bind the new recipe/gate and obtain clean handover before a
+full candidate launch. No new CUDA, TEST, paper or live action is authorised
+by this review.
+
+Technical liveness requires finite, positive, state-varying routes through all
+eight specialists and the contract's training-connectivity evidence. It does
+not require every specialist to win the largest softmax weight, or prove edge
+before training. The persistent Windows task maintains 160 W; every CUDA
+launch still requires fresh signed telemetry and explicit operator authority.
 
 ## Historical context (superseded as current status)
 
@@ -26,8 +38,8 @@ regenerable Python/pytest/ruff caches; any other ignored path blocks handover.
 
 **Operational override, 2026-08-30:**
 [`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
-is the short current-state companion to this historical handover. It controls
-the next action: retain V46, keep background services stopped, preserve the
+was the short current-state companion to that historical handover. It controlled
+the then-next action: retain V46, keep background services stopped, preserve the
 checkpoint-640 candidate session, and do not start full training, TEST, demo
 or live automatically.
 The technical checkpoint bundle/reload parity and VAL-only journal are plumbing
@@ -284,11 +296,12 @@ numerical threads for the canonical trainer, 512 MiB swap, and one job at a
 time. Communicate before any run lasting more than a minute. Never launch live,
 paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
 pre-existing processes unless the user explicitly authorizes that action.
-Canonical CUDA additionally stops above 70 C core, 220 W actual draw or 12 GiB
-resident VRAM from pinned native WSL telemetry. The Windows-host driver rejected
-a physical lower power limit from WSL, so 220 W is a one-second process stop,
-not a throttle. The completed V46 batch-8 smoke published a diagnostic bundle;
-the exact VAL evaluator inherits the same guard before its smoke-bundle audit.
+Canonical CUDA uses the signed Windows telemetry bridge and stops above
+65 C core, 80 C memory junction, 160 W configured physical limit, 170 W actual
+draw or 12 GiB resident VRAM. Missing or invalid signed telemetry also stops
+the process. Windows maintains the physical 160 W cap; the one-second guard
+is additional process protection. The guarded VAL evaluator uses these same
+limits. Historical 70 C / 220 W runs below do not define today's policy.
 A remote GPU
 may be prepared only as offline research from the frozen commit and V46 hashes,
 and only after explicit cost approval; it receives no broker credential or live
@@ -302,7 +315,7 @@ packages from `.venv`.
 
 ```bash
 git diff --check
-bash -n scripts/*.sh
+for script in scripts/*.sh; do bash -n "$script" || exit; done
 .venv/bin/python -m compileall -q gx1 tests
 scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   .venv/bin/python -m pytest -q
@@ -313,19 +326,20 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 
 ## Next implementation sequence
 
-1. Verify the audited producer commit with the executable handover.
-2. Preserve V46's sealed TEST. The immutable VAL prediction and CPU audit now
-   exist; repair the remaining smoke learning-evidence gate only with a bounded
-   preflighted learning-validation probe. Train a full research candidate only
-   if that follow-up audit proves safe and valid.
-3. Evaluate the candidate on the historical research path (VAL and then the
-   untouched TEST only where its seal permits it); report that result as
-   research-only, never as a production edge claim.
-4. Separately bind causal executable prices, costs, financing, gap/terminal
-   treatment and portfolio constraints before any production-net claim, demo,
-   paper or live route. Do not rebuild V46 merely to change a report-only
-   consumer.
-5. Fit allowed calibration, freeze the candidate and run the same bundle's
-   unified Exit replay only after the relevant research gates pass.
+1. Complete the 2026-09-05 review fixes and their capped CPU verification.
+2. Rebuild and audit the five-year TRAIN/VAL target/policy chain under the
+   corrected short-return contract, using capped CPU work and preserving TEST.
+   Then bind the candidate recipe and required immutable evidence to the new
+   data and reviewed source; verify nested gate artifacts and identities.
+   The completed smoke and VAL pass remain evidence of their original source,
+   not permission to substitute new hashes into those artifacts.
+3. Run the exact CPU launch preflight and clean executable handover. Do not
+   declare the large training ready while either source closure or gate binding
+   remains unresolved; do not automatically repeat CUDA smoke or inference.
+4. A later full candidate launch requires explicit operator authorization and
+   fresh signed 160 W telemetry. Preserve sealed TEST throughout preparation.
+5. Candidate acceptance, TEST, calibration/replay requiring new authority,
+   paper and live remain separate later decisions. Production claims also need
+   executable prices, costs, financing, terminal and portfolio evidence.
 
 Run `bash scripts/gx1_handover.sh` whenever authority or status changes.

@@ -791,6 +791,9 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
             repo / TRAINER_SAFETY_GUARD_RELATIVE_PATH
         ).resolve(strict=True),
         "capped_runner": (repo / CAPPED_RUNNER_RELATIVE_PATH).resolve(strict=True),
+        "host_telemetry_query": (
+            repo / "scripts/gx1_host_telemetry_bridge_query.sh"
+        ).resolve(strict=True),
     }
     python_roots = [
         (repo / relative).resolve(strict=True)
@@ -812,6 +815,7 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
             SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH,
             SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH,
             SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH,
+            "gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
         )
     ]
     closure = _recipe_local_python_import_closure(repo=repo, roots=python_roots)
@@ -929,6 +933,23 @@ def require_training_recipe_source_provenance_metadata(
     }
 
 
+def _require_training_review_hold_cleared(repo: Path) -> None:
+    """A recorded review hold revokes direct execution, not CPU preparation.
+
+    Presence is fail-closed, including null/malformed values. The handover
+    renders its explanation; deleting the hold never substitutes for recipe,
+    source, data and candidate-gate validation.
+    """
+    state_path = _resolved_explicit_path(
+        repo / "PROJECT_STATE_xau_direction_launch.json", "trainer launch state"
+    )
+    state = _read_json(state_path, "trainer launch state")
+    _require(
+        "pretraining_review_hold" not in state,
+        "trainer pretraining review hold blocks execution",
+    )
+
+
 def require_training_recipe_execution_provenance(
     *,
     recipe_audit_path: Path,
@@ -943,6 +964,7 @@ def require_training_recipe_execution_provenance(
     """Revalidate the audited source closure at the direct trainer boundary."""
 
     repo_root = repo.resolve(strict=True)
+    _require_training_review_hold_cleared(repo_root)
     recipe_path = _resolved_explicit_path(recipe_audit_path, "recipe_audit_json")
     expected_recipe_sha = str(recipe_audit_sha256 or "")
     _require(

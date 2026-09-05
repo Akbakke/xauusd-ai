@@ -3,20 +3,29 @@
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.
 
-## Current re-entry status — 2026-09-03
+## Current re-entry status — 2026-09-05
 
 Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
-V9 completed the full 31,004-step TRAIN epoch and 8,860-batch VAL as technical
-evidence, not candidate acceptance: selected VAL PnL is negative and TEST was
-not read. The current-source 32-row smoke's CPU-only audit is `FAIL` on narrow
-specialist top-rank quality, while its technical pipeline supports a frozen
-candidate recipe/gate that passed CPU-only dry-run. A fresh signed 160 W
-response was re-established on 2026-09-04 and a persistent Windows cap task
-now maintains the physical limit, but it is not a five-year candidate gate.
-CUDA and any new full TRAIN remain blocked pending a dataset-bound gate, clean
-exact preflight, a fresh launch-time signed response and explicit operator
-authorisation. Paper, broker and live are blocked.
+Current status is `CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`.
+The exact five-year canonical smoke and its guarded VAL prediction pass both
+completed on 2026-09-04. Technical readiness and the candidate gate were READY
+at `55de7b82`. Review on 2026-09-05 repairs trainer resume RNG and nonfinite
+gradient handling, lifecycle split binding, nested gate verification/source
+closure and the watchdog. It also found short auxiliary returns using the
+wrong denominator. The corrected contract requires a controlled CPU rebuild
+of the five-year TRAIN/VAL target/policy/audit chain, followed by new
+recipe/gate bindings and clean handover. Updating source hashes alone is
+insufficient. The large training is therefore not ready; no full five-year
+candidate has started.
+
+All eight specialist gates must be finite, positive and state-varying, with
+the required training-connectivity evidence. The smoke's seven never-top-ranked
+families failed a separate quality heuristic; that is not evidence that seven
+families are disconnected and does not establish market edge either way.
+The Windows task is configured to maintain the physical 160 W cap. Any future CUDA launch requires
+fresh signed telemetry and explicit operator authorization. TEST, candidate
+acceptance, paper, broker and live remain blocked.
 
 The V4/V5 status text below is historical background only.
 
@@ -52,7 +61,7 @@ two days. Derive them by executing
 `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`. Exit
 consumes the same definitions and TRAIN normalization on 480 local M1 bars,
 closed M5/M15/H1/H4/D1 context, the frozen Entry-decision token and its causal
-in-trade path. The frozen value is a dedicated learned 128-wide Entry-decision
+in-trade path. The frozen value is a dedicated learned Entry-decision
 token built by a learned projection of the exact ordered six-block pre-argmax
 decision source; the block names and widths are owned by
 `gx1/contracts/entry_decision_token_v1.py`
@@ -248,10 +257,14 @@ runtime and verification surface used by the current Python 3.10.12 checkout.
 
 All heavy work runs through `scripts/gx1_capped_run.sh`, one job at a time.
 Audits/tests are capped at 4G; canonical training is capped at 20G; swap is
-512 MiB and CPU affinity is 0-1. Feature producers use one worker and model
+512 MiB and CPU affinity is 0-7. Feature producers use one worker and model
 DataLoaders use zero subprocess workers. Training has one deterministic FP32
 path; compile, autocast, TF32 and runtime-selected fast modes are forbidden.
 Partial or cap-killed output is not reusable.
+
+CUDA uses fresh signed Windows telemetry with a 160 W physical power cap.
+The watchdog stops above 65 C core, 80 C memory junction, 160 W configured
+limit, 170 W draw or 12 GiB VRAM, and on missing/invalid telemetry.
 
 Live, paper, broker, daemon, promotion and drift/adaptation work are outside
 the frozen scope. See `GX1_RULES.md` for the complete binding rules.

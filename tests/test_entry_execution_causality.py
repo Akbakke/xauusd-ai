@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
 from gx1.contracts.entry_execution_causality_v1 import (
     build_entry_execution_causality_audit,
     legacy_same_close_target_contract_failures,
@@ -41,23 +42,7 @@ def _legacy_target_contract() -> dict[str, object]:
 
 
 def _causal_target_contract() -> dict[str, object]:
-    return {
-        "entry_decision_time": "authoritative_m5_bar_close_available_at",
-        "long_entry_price": (
-            "ask_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "short_entry_price": (
-            "bid_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "long_exit_price": (
-            "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "short_exit_price": (
-            "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
-        "target_affects_feature_availability": False,
-    }
+    return causal_m1_target_contract()
 
 
 def _audit_fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, tuple[Path, Path]]]:
@@ -219,6 +204,12 @@ def test_only_a_hash_bound_causal_split_report_can_authorize_training() -> None:
     assert require_entry_execution_causality_audit(
         report, require_training_authorized=True
     )["training_authorized"] is True
+
+    # Historical reports contain booleans, not the full target contract.
+    # Their own schema must prevent reuse after changing the PnL denominator.
+    old_report = {**report, "schema_version": "entry_execution_causality_audit_v1"}
+    with pytest.raises(RuntimeError, match="ENTRY_EXECUTION_CAUSALITY_AUDIT_VERSION_INVALID"):
+        require_entry_execution_causality_audit(old_report, require_training_authorized=True)
 
     tampered = json.loads(json.dumps(report))
     tampered["splits"][0]["active_auxiliary_targets_m1_fill_bound"] = False

@@ -1,8 +1,24 @@
 # GX1 cleanup candidates — 2026-09-03
 
-This is a deletion plan, not a deletion authorisation. No file was removed
-while producing it. Preserve the V9 evidence and use the retention contract,
-not bulk deletion commands.
+The original 2026-09-03 plan removed nothing. The operator authorised an
+active cleanup on 2026-09-05; the reviewed removals below are now applied.
+Preserve V9 evidence and use the retention contract, not bulk deletion commands.
+
+## Applied cleanup — 2026-09-05
+
+- Removed the empty root file `=3` (stray output, no consumer).
+- Removed `gx1/features/array_utils.py` (`safe_clip`, `safe_mul`) and
+  `gx1/features/rolling_timer.py` (`timed_rolling`). Repository-wide static
+  imports, symbol references, dynamic import callsites and the current recipe
+  source closure had no consumer of either module.
+- Extended `tests/test_retired_zero_reachability_helpers_absence.py` to prevent
+  accidental reintroduction. All three files remain recoverable from Git.
+- No dataset, bundle, checkpoint, audit event, environment, registered
+  worktree or retention-protected artifact was removed.
+
+The retired static Exit modules retained inside the model's `state_dict` are
+not part of this cleanup: removing them changes strict bundle compatibility
+and needs an explicit architecture/migration decision.
 
 ## Safe to regenerate locally
 
@@ -55,5 +71,5 @@ owner after their hashes, consumers and replacement evidence are recorded.
    import/contract tests, and a complete reference search before committing.
 
 No old model/run code is currently classified as deletion-safe merely because
-it has an old version number. The verified cleanup win today is documentation
-consolidation plus optional local cache cleanup, not destructive source edits.
+it has an old version number. The three removals above are the bounded,
+reachability-proven cleanup; broader deletion still needs the checks above.

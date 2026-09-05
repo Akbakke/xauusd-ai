@@ -134,6 +134,52 @@ def test_terminal_outcome_has_same_clock_and_pnl_without_path_windows() -> None:
     )
 
 
+@pytest.mark.parametrize("price_step", [-1.0, 1.0])
+def test_both_materializers_use_entry_notional_for_long_and_short_pnl(
+    price_step: float,
+) -> None:
+    m1 = _m1_frame()
+    bid = 100.0 + price_step * np.arange(len(m1), dtype=np.float64)
+    for prefix, spread in (("bid", 0.0), ("ask", 0.1)):
+        m1[f"{prefix}_open"] = bid + spread
+        m1[f"{prefix}_high"] = bid + spread + 0.4
+        m1[f"{prefix}_low"] = bid + spread - 0.2
+    surface = build_entry_m1_fill_surface(
+        m5_decision_times=m1["time"].iloc[[0]], closed_m1=m1,
+    )
+    full = causal_m1_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=m1, horizon_m5_bars=1,
+    )
+    terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=m1, horizon_m5_bars=1,
+    )
+    entry_bid = float(m1.loc[5, "bid_open"])
+    entry_ask = float(m1.loc[5, "ask_open"])
+    exit_bid = float(m1.loc[10, "bid_open"])
+    exit_ask = float(m1.loc[10, "ask_open"])
+    expected_long = (exit_bid - entry_ask) / entry_ask * 1e4
+    expected_short = (entry_bid - exit_ask) / entry_bid * 1e4
+    for out in (full, terminal):
+        assert bool(out.loc[0, "outcome_valid"])
+        assert out.loc[0, "long_executable_pnl_bps"] == pytest.approx(expected_long)
+        assert out.loc[0, "short_executable_pnl_bps"] == pytest.approx(expected_short)
+        assert out.loc[0, "short_executable_pnl_bps"] != pytest.approx(
+            (entry_bid / exit_ask - 1.0) * 1e4
+        )
+    np.testing.assert_array_equal(
+        full[["long_executable_pnl_bps", "short_executable_pnl_bps"]],
+        terminal[["long_executable_pnl_bps", "short_executable_pnl_bps"]],
+    )
+
+
+def test_causality_gate_rejects_reciprocal_return_contract_v1() -> None:
+    old_contract = causal_m1_target_contract()
+    old_contract["schema_version"] = "entry_causal_m1_outcomes_v1"
+    old_contract.pop("long_pnl_bps_formula")
+    old_contract.pop("short_pnl_bps_formula")
+    assert legacy_same_close_target_contract_failures(old_contract)
+
+
 def test_prepared_m1_source_reuses_the_exact_validated_quotes() -> None:
     m1 = _m1_frame()
     prepared = prepare_causal_m1_quote_source(m1)

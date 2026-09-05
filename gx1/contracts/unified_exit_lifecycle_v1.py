@@ -1858,6 +1858,77 @@ class UnifiedExitLifecycleSplit:
             "exit_episode_lengths": np.full(2, UNIFIED_EXIT_MAX_PATH_BARS, dtype=np.int64),
         }
 
+def _require_entry_split_window_binding(
+    *,
+    binding: Mapping[str, Any],
+    entry_path: Path,
+    dataset_run_id: str,
+    split: str,
+) -> dict[str, Any]:
+    """Read a recipe-bound Entry window, independently of Exit's own proof."""
+
+    if not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}:
+        raise RuntimeError(f"UNIFIED_EXIT_ENTRY_MANIFEST_BINDING_INVALID: {split}")
+    path = Path(str(binding.get("path") or ""))
+    digest = binding.get("sha256")
+    if (
+        not path.is_absolute()
+        or path.resolve() != path
+        or path.is_symlink()
+        or not path.is_file()
+        or path != entry_path.with_suffix(".manifest.json")
+        or not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise RuntimeError(f"UNIFIED_EXIT_ENTRY_MANIFEST_BINDING_INVALID: {split}")
+    encoded = path.read_bytes()
+    if hashlib.sha256(encoded).hexdigest() != digest:
+        raise RuntimeError(f"UNIFIED_EXIT_ENTRY_MANIFEST_HASH_MISMATCH: {split}")
+    try:
+        manifest = json.loads(encoded)
+        extra = manifest["extra"]
+        window = manifest["splits"][split]
+        observed_window = manifest["ts_min_max_by_split"][split]
+        timestamps = {
+            "start": pd.Timestamp(window["start"]).as_unit("ns"),
+            "declared_end": pd.Timestamp(window["end"]).as_unit("ns"),
+            "emission_start": pd.Timestamp(extra["emission_start_utc"]).as_unit("ns"),
+            "end": pd.Timestamp(extra["emission_end_utc"]).as_unit("ns"),
+            "feature_end": pd.Timestamp(extra["feature_computation_end_utc"]).as_unit("ns"),
+            "observed_start": pd.Timestamp(observed_window["ts_min"]).as_unit("ns"),
+            "observed_end": pd.Timestamp(observed_window["ts_max"]).as_unit("ns"),
+        }
+        rows = extra["rows"]
+        valid = (
+            manifest["output_data_path"] == str(entry_path)
+            and extra["entry_run_id"] == dataset_run_id
+            and isinstance(rows, int)
+            and not isinstance(rows, bool)
+            and rows > 0
+            and all(
+                not pd.isna(value)
+                and value.tz is not None
+                and value.utcoffset() == pd.Timedelta(0)
+                for value in timestamps.values()
+            )
+        )
+        if valid:
+            valid = (
+                timestamps["start"] == timestamps["emission_start"]
+                <= timestamps["observed_start"]
+                <= timestamps["observed_end"]
+                <= timestamps["end"] == timestamps["feature_end"]
+                <= timestamps["declared_end"]
+                and (split == "test" or timestamps["end"] < timestamps["declared_end"])
+            )
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise RuntimeError(f"UNIFIED_EXIT_ENTRY_SPLIT_WINDOW_INVALID: {split}") from exc
+    if not valid:
+        raise RuntimeError(f"UNIFIED_EXIT_ENTRY_SPLIT_WINDOW_INVALID: {split}")
+    return {**timestamps, "rows": rows, "manifest_sha256": digest}
+
+
 class UnifiedExitLifecycleCorpus:
     """Load and cryptographically validate one immutable lifecycle directory."""
 
@@ -1866,6 +1937,7 @@ class UnifiedExitLifecycleCorpus:
         *,
         root_manifest_path: Path,
         entry_parquets: Mapping[str, Path],
+        entry_manifest_bindings: Mapping[str, Mapping[str, str]],
         dataset_run_id: str,
         splits: Sequence[str] = ("train", "val"),
     ) -> None:
@@ -1961,6 +2033,12 @@ class UnifiedExitLifecycleCorpus:
             or set(root_manifest["splits"]) != expected_root_splits
         ):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ROOT_CONTRACT_INVALID")
+        if (
+            set(entry_parquets) != set(selected_splits)
+            or not isinstance(entry_manifest_bindings, Mapping)
+            or set(entry_manifest_bindings) != set(selected_splits)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_SET_INVALID")
         require_entry_exit_shared_feature_base_contract(
             root_manifest["shared_feature_base_contract"],
             context="UNIFIED_EXIT_LIFECYCLE_ROOT",
@@ -1999,6 +2077,18 @@ class UnifiedExitLifecycleCorpus:
             )
         if observed_authority != raw_authority:
             raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_REVALIDATION_MISMATCH")
+        # Bind the small Entry manifests before allocating the M1 corpus. Exit
+        # cannot extend its TRAIN window by merely publishing a self-consistent
+        # lifecycle manifest with a later split_end_utc.
+        entry_windows = {
+            split: _require_entry_split_window_binding(
+                binding=entry_manifest_bindings[split],
+                entry_path=Path(entry_parquets[split]).expanduser().absolute(),
+                dataset_run_id=dataset_run_id,
+                split=split,
+            )
+            for split in selected_splits
+        }
         m1_path = Path(root_manifest["m1_source_path"]).expanduser().absolute()
         if (
             m1_path != m1_path_from_authority
@@ -2156,6 +2246,16 @@ class UnifiedExitLifecycleCorpus:
                     f"UNIFIED_EXIT_LIFECYCLE_SPLIT_IDENTITY_INVALID: {split}"
                 )
             split_manifest = _read_exact_json(split_manifest_path)
+            try:
+                lifecycle_end = pd.Timestamp(split_manifest.get("split_end_utc")).as_unit("ns")
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_END_MISMATCH: {split}"
+                ) from exc
+            if lifecycle_end != entry_windows[split]["end"]:
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_END_MISMATCH: {split}"
+                )
             for key, expected in (
                 ("schema_version", UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION),
                 ("decision", "PASS"),
@@ -2202,6 +2302,18 @@ class UnifiedExitLifecycleCorpus:
                     errors="coerce",
                 )
             )
+            window = entry_windows[split]
+            if (
+                len(parsed_entry_times) != window["rows"]
+                or parsed_entry_times.hasnans
+                or not parsed_entry_times.is_unique
+                or not parsed_entry_times.is_monotonic_increasing
+                or parsed_entry_times[0] != window["observed_start"]
+                or parsed_entry_times[-1] != window["observed_end"]
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_ENTRY_SPLIT_CLOCK_MISMATCH: {split}"
+                )
             if (
                 np.any(entry_index < 0)
                 or np.any(entry_index >= len(parsed_entry_times))
@@ -2227,6 +2339,8 @@ class UnifiedExitLifecycleCorpus:
             if split in selected_splits:
                 self.splits[split] = split_contract
             split_evidence[split] = {
+                "entry_manifest_sha256": window["manifest_sha256"],
+                "entry_split_end_utc": window["end"].isoformat(),
                 "entry_dataset_sha256": binding["entry_dataset_sha256"],
                 "lifecycle_parquet_sha256": binding[
                     "lifecycle_parquet_sha256"

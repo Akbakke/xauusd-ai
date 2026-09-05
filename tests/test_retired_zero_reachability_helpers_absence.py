@@ -8,6 +8,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 
 RETIRED_ZERO_REACHABILITY_HELPERS = (
+    # 2026-09-05: no imports, runtime lookup, recipe binding or retained-data
+    # references; remove the unused math/timing helpers and empty shell debris.
+    "=3",
+    "gx1/features/array_utils.py",
+    "gx1/features/rolling_timer.py",
     "gx1/execution/logging_transport_v1.py",
     "gx1/tools/verify_freeze.py",
     "gx1/utils/dt_module.py",
@@ -73,6 +78,8 @@ RETIRED_ZERO_REACHABILITY_HELPERS = (
 )
 
 RETIRED_ZERO_REACHABILITY_MODULES = (
+    "gx1.features.array_utils",
+    "gx1.features.rolling_timer",
     "gx1.execution.logging_transport_v1",
     "gx1.tools.verify_freeze",
     "gx1.utils.dt_module",
@@ -164,4 +171,3 @@ def test_retired_entry_external_tree_sidecar_v13_prune_report_families_remain_ab
     retired = RETIRED_ENTRY_REPORT_FAMILIES + RETIRED_ENTRY_REPORT_FILES
     present = [path for path in retired if (REPO / path).exists()]
     assert present == []
-

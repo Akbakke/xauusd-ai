@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,7 @@ AUTHORITY_PATHS = (
     REPO / "docs/CURRENT_AUDIT_STATUS_20260828.md",
     REPO / "docs/CURRENT_HANDOFF_20260903.md",
     REPO / "docs/REPO_CLEANUP_CANDIDATES_20260903.md",
+    REPO / "docs/PREMIERE_CODE_REVIEW_20260905.md",
     REPO / "docs/OFFLINE_CHAMPION_CHALLENGER_V1.md",
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
@@ -78,6 +80,52 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-smoke-train",
     "model-native-trade-path-metrics",
 }
+
+
+def _assert_explicit_review_hold(result: subprocess.CompletedProcess) -> bool:
+    """Live integration checks must assert a recorded BLOCK, not demand GREEN.
+
+    Keep the normal ready-state rendering checks below for a future successor;
+    during a semantic rebuild hold, any successful handover is a regression.
+    """
+    state = json.loads(LAUNCH_STATE.read_text())
+    if "pretraining_review_hold" not in state:
+        return False
+    hold = state["pretraining_review_hold"]
+    assert hold["decision"] == "BLOCK"
+    assert hold["activation_authority"] is False
+    assert result.returncode == 2
+    assert "decision: BLOCK" in result.stdout
+    assert "pretraining_review_hold: ACTIVE" in result.stdout
+    assert f"blocker: {hold['reason']}" in result.stdout
+    assert "historical_recipe_and_gate: RETAINED_NOT_CURRENT_TRAINING_AUTHORITY" in result.stdout
+    assert "cuda_authority: NONE" in result.stdout
+    assert "test_paper_live_authority: NONE" in result.stdout
+    assert "GATE_READY" not in result.stdout
+    assert "FATAL: pretraining review hold blocks launch" in result.stderr
+    return True
+
+
+@pytest.mark.parametrize("state", [{}, {"pretraining_review_hold": None}, {"pretraining_review_hold": {}}])
+def test_handover_hold_checker_distinguishes_absent_from_malformed(tmp_path, state):
+    # Execute the actual small shell-embedded checker, without resolving any
+    # production dataset or manufacturing a ready training evidence chain.
+    source = HANDOVER_VIEWER.read_text()
+    checker = source.split(
+        'if ! "$PY" - "$LAUNCH_STATE" "$mode" <<\'PY\'\n', 1
+    )[1].split("\nPY\nthen\n", 1)[0]
+    state_path = tmp_path / "launch.json"
+    state_path.write_text(json.dumps(state))
+    result = subprocess.run(
+        [sys.executable, "-c", checker, str(state_path), "check"],
+        text=True, capture_output=True, check=False,
+    )
+    if "pretraining_review_hold" not in state:
+        assert result.returncode == 0
+    else:
+        assert result.returncode != 0
+        assert "hold is malformed" in result.stderr
+    assert result.stdout == ""
 
 
 def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
@@ -149,6 +197,8 @@ def test_handover_viewer_prints_current_goal() -> None:
         check=False,
     )
 
+    if _assert_explicit_review_hold(result):
+        return
     assert result.returncode == 0
     assert "# GX1 XAU Direction Repair Takeover (compact)" in result.stdout
     assert "Build the GX1 trading bot for gold/XAUUSD" in result.stdout
@@ -348,10 +398,17 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         require_blocked_launch_state_with_current_audited_dataset,
     )
 
-    summary = require_blocked_launch_state_with_current_audited_dataset(state)
-    assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
-    assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-    assert summary["dataset_run_id"] == "V46_20260825T170935Z"
+    if "pretraining_review_hold" in state:
+        # The retained causality audit predates corrected short returns. It
+        # must no longer qualify as current evidence, even though its bytes
+        # and historical PASS declaration remain intact.
+        with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
+            require_blocked_launch_state_with_current_audited_dataset(state)
+    else:
+        summary = require_blocked_launch_state_with_current_audited_dataset(state)
+        assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
+        assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
+        assert summary["dataset_run_id"] == "V46_20260825T170935Z"
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None
@@ -391,7 +448,8 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
     blockers = "\n".join(state["blockers"])
-    assert "fresh immutable native M1/M5 pair" in blockers
+    assert "native M1/M5 pair" in blockers
+    assert "review hold supersedes that gate" in blockers
     assert "No admitted dataset" in blockers
     assert "Untouched TEST direction edge" in blockers
     assert "remain fail-closed" in blockers
@@ -419,6 +477,8 @@ def test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover() -> N
         check=False,
     )
 
+    if _assert_explicit_review_hold(result):
+        return
     assert result.returncode == 0
     authoritative_handover = HANDOVER.read_text(encoding="utf-8")
     rendered_handover = result.stdout.split(
@@ -443,6 +503,8 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
         check=False,
     )
 
+    if _assert_explicit_review_hold(result):
+        return
     assert result.returncode == 0
     # The viewer derives its root from its own path through git. Recompute
     # against that worktree root (path bytes are part of the fingerprint).
@@ -508,6 +570,8 @@ def test_control_surface_handover_alias_uses_current_handover_viewer() -> None:
         check=False,
     )
 
+    if _assert_explicit_review_hold(result):
+        return
     assert result.returncode == 0
     assert "# GX1 XAU Direction Repair Takeover (compact)" in result.stdout
     assert "decision: BLOCK" in result.stdout
@@ -525,6 +589,8 @@ def test_control_surface_handover_alias_exposes_minimal_resume_check() -> None:
         check=False,
     )
 
+    if _assert_explicit_review_hold(result):
+        return
     assert result.returncode == 0
     assert "mode: check" in result.stdout
     assert "authority_fingerprint:" in result.stdout

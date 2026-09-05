@@ -25,7 +25,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
 )
 
 
-ENTRY_CAUSAL_M1_OUTCOME_SCHEMA_VERSION = "entry_causal_m1_outcomes_v1"
+ENTRY_CAUSAL_M1_OUTCOME_SCHEMA_VERSION = "entry_causal_m1_outcomes_v2_entry_notional_pnl"
 ENTRY_CAUSAL_M1_DECISION_TIME_SEMANTICS = (
     "authoritative_m5_bar_close_available_at"
 )
@@ -81,6 +81,8 @@ def causal_m1_target_contract() -> dict[str, Any]:
         "long_exit_price": ENTRY_CAUSAL_M1_LONG_EXIT_PRICE,
         "short_exit_price": ENTRY_CAUSAL_M1_SHORT_EXIT_PRICE,
         "entry_fill_binding": ENTRY_CAUSAL_M1_FILL_BINDING,
+        "long_pnl_bps_formula": "(exit_bid-entry_ask)/entry_ask*10000",
+        "short_pnl_bps_formula": "(entry_bid-exit_ask)/entry_bid*10000",
         "path_extrema": "authoritative_m1_bid_ask_ohlc_between_fill_and_exit",
         "missing_or_gapped_m1_path": "label_invalid_not_price_substituted",
         "target_affects_feature_availability": False,
@@ -258,6 +260,27 @@ def _forward_extreme(values: np.ndarray, *, width: int, maximum: bool) -> np.nda
     return rolling.to_numpy(dtype=np.float64)[::-1]
 
 
+def _entry_notional_pnl_bps(
+    *,
+    entry_bid: np.ndarray,
+    entry_ask: np.ndarray,
+    exit_bid: np.ndarray,
+    exit_ask: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Match the Entry-notional return used by the unified Exit rewards.
+
+    A short's notional is fixed at entry. Dividing by its eventual exit quote
+    instead would overstate gains, understate losses and disagree with MFE/MAE.
+    Both materializers share this calculation so policy fitting and emitted
+    auxiliary outcomes cannot use different definitions.
+    """
+
+    return (
+        (exit_bid - entry_ask) / entry_ask * 1e4,
+        (entry_bid - exit_ask) / entry_bid * 1e4,
+    )
+
+
 def causal_m1_outcomes_at_horizon(
     *,
     fill_surface: pd.DataFrame,
@@ -312,8 +335,10 @@ def causal_m1_outcomes_at_horizon(
     long_mae = np.full(size, np.nan, dtype=np.float64)
     short_mfe = np.full(size, np.nan, dtype=np.float64)
     short_mae = np.full(size, np.nan, dtype=np.float64)
-    long_pnl[valid] = (exit_bid[valid] / entry_ask[valid] - 1.0) * 1e4
-    short_pnl[valid] = (entry_bid[valid] / exit_ask[valid] - 1.0) * 1e4
+    long_pnl[valid], short_pnl[valid] = _entry_notional_pnl_bps(
+        entry_bid=entry_bid[valid], entry_ask=entry_ask[valid],
+        exit_bid=exit_bid[valid], exit_ask=exit_ask[valid],
+    )
     long_mfe[valid] = (max_bid[start[valid]] / entry_ask[valid] - 1.0) * 1e4
     long_mae[valid] = (1.0 - min_bid[start[valid]] / entry_ask[valid]) * 1e4
     short_mfe[valid] = (1.0 - min_ask[start[valid]] / entry_bid[valid]) * 1e4
@@ -392,8 +417,10 @@ def causal_m1_terminal_outcomes_at_horizon(
     entry_ask = surface["entry_ask"].to_numpy(dtype=np.float64)
     long_pnl = np.full(size, np.nan, dtype=np.float64)
     short_pnl = np.full(size, np.nan, dtype=np.float64)
-    long_pnl[valid] = (exit_bid[valid] / entry_ask[valid] - 1.0) * 1e4
-    short_pnl[valid] = (entry_bid[valid] / exit_ask[valid] - 1.0) * 1e4
+    long_pnl[valid], short_pnl[valid] = _entry_notional_pnl_bps(
+        entry_bid=entry_bid[valid], entry_ask=entry_ask[valid],
+        exit_bid=exit_bid[valid], exit_ask=exit_ask[valid],
+    )
     if not np.isfinite(long_pnl[valid]).all() or not np.isfinite(short_pnl[valid]).all():
         raise RuntimeError("ENTRY_CAUSAL_M1_TERMINAL_OUTCOME_VALUES_INVALID")
     exit_time = pd.Series(pd.NaT, index=np.arange(size), dtype="datetime64[ns, UTC]")

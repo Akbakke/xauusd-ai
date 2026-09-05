@@ -5,6 +5,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -211,6 +212,93 @@ def test_trainer_guard_wall_clock_kills_cpu_process_group() -> None:
     assert result.returncode == 75
     assert "wall-clock limit reached" in result.stderr
     assert "reason=wall_clock_limit_1s" in result.stderr
+
+
+@pytest.mark.parametrize("leader_exit", [False, True], ids=["term", "normal-exit"])
+def test_trainer_guard_kills_term_ignoring_descendant_after_leader_exits(
+    tmp_path: Path, leader_exit: bool,
+) -> None:
+    """Stopping/reaping the leader must never leave its child running."""
+    descendant_file = tmp_path / "descendant.txt"
+    child_source = """
+import os
+import signal
+import sys
+import time
+from pathlib import Path
+
+ready_read, ready_write = os.pipe()
+descendant = os.fork()
+if descendant == 0:
+    os.close(ready_read)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    with open(os.devnull, 'w') as sink:
+        os.dup2(sink.fileno(), 1)
+        os.dup2(sink.fileno(), 2)
+    Path(sys.argv[1]).write_text(f'{os.getpid()} {os.getpgrp()}')
+    os.write(ready_write, b'1')
+    os.close(ready_write)
+    while True:
+        time.sleep(60)
+os.close(ready_write)
+assert os.read(ready_read, 1) == b'1'
+os.close(ready_read)
+if sys.argv[2] == 'exit':
+    sys.exit(0)
+while True:
+    time.sleep(60)
+"""
+    env = _guard_env(
+        device="cpu",
+        nvidia_smi_path=Path("/bin/false"),
+        max_wall_seconds=30 if leader_exit else 2,
+    )
+    guard = subprocess.Popen(
+        [
+            "bash", str(TRAINER_GUARD), sys.executable, "-c", child_source,
+            str(descendant_file), "exit" if leader_exit else "wait",
+        ],
+        cwd=REPO,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        _stdout, stderr = guard.communicate(timeout=30)
+        assert guard.returncode == 75, stderr
+        reason = (
+            "orphaned_descendants_after_leader_exit"
+            if leader_exit else "wall_clock_limit_2s"
+        )
+        assert f"reason={reason}" in stderr
+        descendant_pid, group_id = map(int, descendant_file.read_text().split())
+        assert group_id > 1 and group_id != os.getpgrp()
+        stat_path = Path(f"/proc/{descendant_pid}/stat")
+        # A killed orphan can briefly await init's reap, but must not execute.
+        process_state = None
+        for _ in range(100):
+            try:
+                process_state = stat_path.read_text().rsplit(")", 1)[1].split()[0]
+            except FileNotFoundError:
+                process_state = None
+            if process_state in (None, "Z", "X"):
+                break
+            time.sleep(0.01)
+        assert process_state in (None, "Z", "X"), (
+            f"descendant {descendant_pid} survived guard exit: {process_state}"
+        )
+    finally:
+        if descendant_file.exists():
+            _descendant_pid, group_id = map(int, descendant_file.read_text().split())
+            assert group_id > 1 and group_id != os.getpgrp()
+            try:
+                os.killpg(group_id, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if guard.poll() is None:
+            guard.kill()
+        guard.communicate(timeout=5)
 
 
 def test_attended_smoke_sigterm_unwinds_python_for_temp_scratch_cleanup(
@@ -721,19 +809,25 @@ def test_trainer_guard_kills_running_group_when_telemetry_disappears(
         later_exit_code=1,
     )
     result = subprocess.run(
-        ["bash", str(TRAINER_GUARD), "/bin/sleep", "30"],
+        ["bash", str(TRAINER_GUARD), "/bin/sleep", "60"],
         cwd=REPO,
-        env=_guard_env(device="cuda", nvidia_smi_path=nvidia_smi),
+        # This exercises loss of the second mock sample, not the wall-clock
+        # stop. The five-second fixture default can win that race under the
+        # audit CPU cap before the running-child sample gets scheduled.
+        env=_guard_env(
+            device="cuda", nvidia_smi_path=nvidia_smi, max_wall_seconds=30,
+        ),
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=15,
+        timeout=45,
         check=False,
     )
 
     assert result.returncode == 75
     assert "reason=telemetry_unavailable" in result.stderr
     assert "CUDA telemetry became unavailable" in result.stderr
+    assert (tmp_path / "telemetry-call-count").read_text() == "2"
 
 
 def test_trainer_guard_kills_running_group_on_thermal_breach(
@@ -744,19 +838,24 @@ def test_trainer_guard_kills_running_group_on_thermal_breach(
         later_output="50, 91, 100, 250, 1000",
     )
     result = subprocess.run(
-        ["bash", str(TRAINER_GUARD), "/bin/sleep", "30"],
+        ["bash", str(TRAINER_GUARD), "/bin/sleep", "60"],
         cwd=REPO,
-        env=_guard_env(device="cuda", nvidia_smi_path=nvidia_smi),
+        # Leave the thermal mock time to supply its second sample, with no
+        # competing short fixture wall-clock limit.
+        env=_guard_env(
+            device="cuda", nvidia_smi_path=nvidia_smi, max_wall_seconds=30,
+        ),
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=15,
+        timeout=45,
         check=False,
     )
 
     assert result.returncode == 75
     assert "reason=memory_temperature" in result.stderr
     assert "GPU safety threshold breached" in result.stderr
+    assert (tmp_path / "telemetry-call-count").read_text() == "2"
 
 
 def test_trainer_guard_persists_child_stdio_when_path_is_precreated(

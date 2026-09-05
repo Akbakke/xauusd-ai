@@ -14,9 +14,11 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
+
 
 ENTRY_EXECUTION_CAUSALITY_AUDIT_SCHEMA_VERSION = (
-    "entry_execution_causality_audit_v1"
+    "entry_execution_causality_audit_v2_entry_notional_pnl"
 )
 ENTRY_EXECUTION_CAUSALITY_AUDIT_DECISION_PASS = "PASS"
 ENTRY_EXECUTION_CAUSALITY_AUDIT_DECISION_BLOCK = "BLOCK"
@@ -73,23 +75,7 @@ def legacy_same_close_target_contract_failures(value: Any) -> list[str]:
         failures.append("ENTRY_EXECUTION_CAUSALITY_LONG_SAME_CLOSE_ENTRY")
     if value.get("short_entry_price") == "bid_close_t0":
         failures.append("ENTRY_EXECUTION_CAUSALITY_SHORT_SAME_CLOSE_ENTRY")
-    required = {
-        "entry_decision_time": "authoritative_m5_bar_close_available_at",
-        "long_entry_price": (
-            "ask_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "short_entry_price": (
-            "bid_open_first_authoritative_m1_at_or_after_entry_decision"
-        ),
-        "long_exit_price": (
-            "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "short_exit_price": (
-            "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision"
-        ),
-        "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
-        "target_affects_feature_availability": False,
-    }
+    required = causal_m1_target_contract()
     missing_or_wrong = [
         key for key, expected in required.items() if value.get(key) != expected
     ]

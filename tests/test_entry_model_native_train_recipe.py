@@ -175,12 +175,19 @@ def test_candidate_binding_requires_the_refreshed_current_liveness_before_traini
         artifact_key: Path(reports[report_name]["path"])
         for artifact_key, report_name in launch._CURRENT_AUDITED_CANDIDATE_REPORTS.items()
     }
-    binding = launch._candidate_current_audited_dataset_binding(
-        repo=REPO,
-        dataset_dir=Path(evidence["dataset_dir"]),
-        dataset_run_id=str(evidence["dataset_run_id"]),
-        artifacts=artifacts,
-    )
+    arguments = {
+        "repo": REPO,
+        "dataset_dir": Path(evidence["dataset_dir"]),
+        "dataset_run_id": str(evidence["dataset_run_id"]),
+        "artifacts": artifacts,
+    }
+    if "pretraining_review_hold" in state:
+        # Valid feature liveness cannot rescue a superseded target/causality
+        # contract. Retained V46 evidence must not bind a new candidate.
+        with pytest.raises(launch.LaunchContractError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
+            launch._candidate_current_audited_dataset_binding(**arguments)
+        return
+    binding = launch._candidate_current_audited_dataset_binding(**arguments)
     assert binding["reports"]["full_input_liveness_audit_json"] == {
         "path": str(reports["full_input_liveness"]["path"]),
         "sha256": str(reports["full_input_liveness"]["sha256"]),
@@ -262,6 +269,7 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "wrapper",
         "trainer_safety_guard",
         "capped_runner",
+        "host_telemetry_query",
     }.issubset(bindings)
     python_bindings = {
         key for key in bindings if key.startswith("python:gx1/")
@@ -271,6 +279,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "python:gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
         "python:gx1/models/entry_v10/entry_v10_bundle.py",
         "python:gx1/models/entry_v10/entry_v10_input_normalization.py",
+        "python:gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
+        "python:gx1/contracts/entry_pretest_candidate_launch_gate_v1.py",
         "python:gx1/contracts/entry_model_native_training_objective_v1.py",
         "python:gx1/contracts/entry_model_native_joint_task_weighting_v1.py",
         # Every package initializer is executable before the corresponding
@@ -351,6 +361,22 @@ def test_recipe_producer_rejects_smoke_run_lineage_before_large_rehash(
     assert not out_dir.exists()
 
 
+@pytest.mark.parametrize("hold", [None, {}, {"decision": "BLOCK"}, {"decision": "PASS"}])
+def test_direct_execution_rejects_any_present_review_hold(tmp_path: Path, hold) -> None:
+    (tmp_path / "PROJECT_STATE_xau_direction_launch.json").write_text(
+        json.dumps({"pretraining_review_hold": hold}), encoding="utf-8"
+    )
+    with pytest.raises(launch.LaunchContractError, match="review hold blocks execution"):
+        launch._require_training_review_hold_cleared(tmp_path)
+
+
+def test_direct_execution_review_hold_requires_readable_state(tmp_path: Path) -> None:
+    with pytest.raises(launch.LaunchContractError):
+        launch._require_training_review_hold_cleared(tmp_path)
+    (tmp_path / "PROJECT_STATE_xau_direction_launch.json").write_text("{}", encoding="utf-8")
+    launch._require_training_review_hold_cleared(tmp_path)
+
+
 def test_execution_provenance_accepts_clean_descendant_with_exact_source_bindings(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -388,6 +414,9 @@ def test_execution_provenance_accepts_clean_descendant_with_exact_source_binding
         return ""
 
     monkeypatch.setattr(launch.subprocess, "run", fake_run)
+    # This isolated test models an operator-cleared state, not the current
+    # worktree's deliberate semantic-rebuild hold (tested separately below).
+    monkeypatch.setattr(launch, "_require_training_review_hold_cleared", lambda _repo: None)
     monkeypatch.setattr(launch.subprocess, "check_output", fake_check_output)
     monkeypatch.setattr(launch, "_validate_source_bindings", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(

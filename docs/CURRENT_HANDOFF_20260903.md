@@ -1,4 +1,4 @@
-# GX1 current re-entry — 2026-09-03
+# GX1 current re-entry — updated 2026-09-05
 
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is
@@ -18,14 +18,38 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-### Five-year pre-TEST candidate preparation (2026-09-03)
+Status: `CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`.
+
+The [2026-09-05 review report](PREMIERE_CODE_REVIEW_20260905.md) records the
+repairs and verification: 2432 test cases covered by the fullsuite plus a
+109-case passing confirmation run. The explicit review hold remains active;
+passing code tests is not permission to reuse the old target data.
+
+The exact five-year canonical smoke and its guarded VAL prediction pass both
+completed on 2026-09-04. The immutable candidate readiness and launch gate
+were READY at checkout `55de7b82`. Review on 2026-09-05 repairs trainer resume
+RNG, fail-fast nonfinite gradients, lifecycle split binding, nested gate
+rehashing/source closure and the watchdog. It also found short auxiliary
+returns computed as `(entry_bid / exit_ask - 1) * 1e4`; entry-notional returns
+must use `(1 - exit_ask / entry_bid) * 1e4`, consistent with lifecycle/MFE
+economics. The corrected causal-M1 return contract rejects the old fitted
+policy and target data. The five-year TRAIN/VAL target/policy/audit chain must
+be rebuilt under controlled CPU execution before new recipe/gate bindings and
+clean handover can prove readiness. Merely changing source hashes is not a
+repair. No full five-year candidate has started.
+
+### Five-year pre-TEST evidence completed on 2026-09-04
 
 - A new TRAIN/VAL-only dataset has been materialized under
   `V9_FIVE_YEAR_PRETEST_BOUNDARYFIX_20260903T155921Z/`
-  `FIVE_YEAR_DATASET_20260903T170055Z`. Its immutable split is:
-  TRAIN `2021-06-01T00:00:00Z` through
-  `2026-05-31T23:50:00Z` (313,399 rows), followed without a missing M5 bar by
-  VAL `2026-05-31T23:55:00Z` through `2026-06-30T23:55:00Z` (5,509 rows).
+  `FIVE_YEAR_DATASET_20260903T170055Z`. Its declared emission windows are
+  TRAIN `2021-06-01T00:00:00Z` through `2026-05-31T23:50:00Z` and VAL
+  `2026-05-31T23:55:00Z` through `2026-06-30T23:55:00Z`. These are window
+  bounds, not the first/last timestamps actually emitted. TRAIN has 313,399
+  rows with observed maximum `2026-05-29T14:50:00Z`; VAL has 5,509 rows with
+  observed maximum `2026-06-30T14:55:00Z`. Do not infer a gap-free population
+  from adjacent declared windows; market closures and target-completeness
+  rules affect the emitted rows.
   The physical TEST boundary remains `2026-07-01T00:00:00Z` and was not read.
 - The new M1 and M5 shared feature surfaces, cross-surface audit, full-input
   liveness, foundation feature/target audits, specialist audit, execution
@@ -36,12 +60,14 @@ run-directory timestamp. Do not start TRAIN from this document.
   `7d69d20f1ce50538cddfc18c438c4f0965c223d272ba05bae43ec9bc7e85ed0b`.
   Its control-plane proof reports no TEST dataset/manifest/metric bytes read
   and no TEST paths resolved or statted.
-- The active offline candidate recipe is the 2026-09-04 source rebind:
+- The historical offline candidate recipe validated on 2026-09-04 is:
   `ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z_RECIPE.json`, SHA-256
   `e660167098c8bbd1bb33261051324341a3da547cb7289f5ac359c635c9905ae5`.
   It is `report_only`, has `activation_authority=false`, and binds source
   commit `b414fc36`. It specifies batch 8, **at most 30 epochs**, validation
-  every epoch, patience 5, minimum epoch 1, and `save_top_k=1`.
+  every epoch, patience 5, minimum epoch 1, and `save_top_k=1`. Its old source
+  hashes do not match the 2026-09-05 review repairs. A new recipe must bind the
+  rebuilt short-return target/policy chain and its fresh audits.
 - `ENTRY_V9_FIVE_YEAR_CANDIDATE_CHECKPOINT_POLICY_PROOF_20260903T174100Z.json`
   is `PASS`: an improving synthetic run reaches epoch 30; five consecutive
   non-improvements after epoch 1 stop at epoch 6. This is a policy proof, not
@@ -61,21 +87,40 @@ run-directory timestamp. Do not start TRAIN from this document.
   `85401bebf8b8571c19db91964aba737636518c8cb3ebf0e3a9a82a28fea4fce8`.
   The guarded one-epoch run exited 0; it touched TRAIN/VAL only and did not
   create TEST, candidate, paper or live authority.
-- The current direct V9 readiness is
+- The 2026-09-04 direct V9 trainability readiness is
   `ENTRY_PRETEST_TRAINABILITY_READINESS_20260904T201527266562Z.json`, SHA-256
   `7d97f3651fdf2860244dd75a38b6eab9db98183280eec8b4c3c6d93db8cfa6b5`.
   It rehashes the exact smoke/candidate recipes and all direct TRAIN/VAL
   bindings against the new zero-failure five-year pretrain audit. It remains
   non-authorizing (`candidate_training_allowed=false`).
-- A gate still cannot be materialized: the smoke-bundle contract additionally
-  requires immutable VAL-only prediction evidence from this exact bundle. That
-  is one separate guarded CUDA inference pass, not a retraining pass. It needs
-  a separate explicit operator authorization.
+- One separately authorized guarded CUDA VAL prediction pass completed from
+  that exact bundle on 2026-09-04 with exit 0. It wrote
+  `ENTRY_V9_FIVE_YEAR_GATE_SMOKE_20260904T124806Z_VAL_PREDICTIONS/`
+  `ENTRY_CANDIDATE_SELECTIVE_EDGE_20260904T202209781302Z.json`, reporting
+  `PASS`. The signed watchdog recorded 63 samples, at most 60 C core,
+  66 C memory junction, 161.17 W draw and approximately 1.05 GiB VRAM.
+- Its immutable post-run smoke audit remains `FAIL` on seven families never
+  taking the largest specialist gate weight. This is the strict top-rank
+  quality heuristic. Technical liveness requires finite, positive,
+  state-varying routes through all eight specialists and the contract's
+  training-connectivity evidence; it does not require all eight to win top
+  rank. Calling that failure a proven dead model path was incorrect. Neither
+  liveness nor the top-rank histogram proves economic edge.
+- Technical candidate readiness was materialized as
+  `ENTRY_CANDIDATE_READINESS_20260904T202543050922Z.json`, SHA-256
+  `a5db7a4ca0c4bb62976b2dc6805db451b70bde47900f53483a6b2375521591a5`.
+  The launch gate
+  `ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260904T202913201537Z.json`, SHA-256
+  `25d76042cbac9afaa2ec36cc8e71a59db343164a73c17460babb4364bb517ad7`,
+  was READY and passed CPU dry-run at `55de7b82`. These historical artifacts
+  remain immutable; their readiness must not be carried across the current
+  source changes or the corrected short-return contract without the affected
+  dataset rebuild, new bindings and verification.
 - Do not substitute `model-native-attended-hardware-smoke`: that route is a
   synthetic architecture diagnostic with no dataset, bundle or candidate
   output, and therefore cannot produce the smoke audit required by a
-  candidate gate. The exact-data canonical smoke above needs separate explicit
-  CUDA operator authorisation before `--execute`.
+  candidate gate. The exact-data canonical smoke and VAL pass above have
+  already run; do not automatically repeat either during this CPU review.
 
 ### Resource and authority boundary for the new recipe
 
@@ -88,14 +133,17 @@ run-directory timestamp. Do not start TRAIN from this document.
   wall-time remains intentionally unestimated: no full five-year CUDA epoch
   has run, and the historical VAL timing was taken before the present 160 W
   operating rule.
-- The older candidate-readiness and launch-gate artifacts bind the old dataset
-  and do **not** authorize this five-year recipe. No new five-year candidate
-  gate, candidate run, TEST evaluation, acceptance, promotion, paper, broker
-  or live action has been created.
+- The older pre-five-year readiness and gate bind a different dataset and
+  cannot substitute for the five-year evidence. A five-year gate now exists,
+  but its recipe/source binding predates the 2026-09-05 repairs. No full
+  five-year candidate, TEST evaluation, acceptance, promotion, paper, broker
+  or live action has been started by this preparation.
 - Before any future CUDA request, require a fresh clean-worktree handover,
   fresh signed 160 W telemetry, explicit operator authorization, and a
   separately reviewed gate for this exact recipe. This handoff is not that
   authorization.
+
+### Historical V9 one-epoch technical result
 
 - V9 (`V9_ONE_EPOCH_CANDIDATE_20260901T213444Z`) completed one full technical
   epoch: 248,028 TRAIN rows / 31,004 optimizer steps, then 70,880 VAL rows /
@@ -121,11 +169,11 @@ run-directory timestamp. Do not start TRAIN from this document.
   canonical 32-row technical CUDA smoke was executed. It published
   `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, bundle-commit
   SHA-256 `d5026848d1637363351d821f837ea781cb1235c1ba04929517013c358623e92e`.
-  Its CPU-only post-run audit is `FAIL`: three specialist gates were never
+  Its CPU-only post-run audit was `FAIL`: three specialist gates were never
   top-ranked in the small smoke sample. The technical pipeline, inputs and
-  hashes remain proven, so immutable candidate readiness is
+  hashes passed the then-current technical contract, so candidate readiness was
   `READY_FOR_CANDIDATE_TRAINING` and a hash-bound candidate launch gate passed
-  CPU-only dry-run. This is preparation only, not candidate acceptance or CUDA,
+  CPU-only dry-run for that historical recipe. This is preparation only, not candidate acceptance or CUDA,
   TEST, promotion, paper, broker or live authority.
 
 ## Current host gate
@@ -139,24 +187,35 @@ then returned `52,56,39.05,160,392` (core C, memory-junction C, draw W,
 physical limit W, VRAM MiB) for the expected GPU UUID. It proves signed
 telemetry and the 160 W host prerequisite at that instant, but is not a
 candidate gate or CUDA authorisation. Obtain a new signed bridge response
-immediately before any proposed launch; no trainer is active.
+immediately before any proposed launch. The review itself starts no trainer.
+
+Today's watchdog stops above 65 C core, 80 C memory junction, 160 W configured
+physical limit, 170 W actual draw or 12 GiB resident VRAM, and fails closed on
+missing/invalid signed telemetry. The persistent Windows cap and the one-second
+process watchdog serve separate purposes. Historical 70 C / 220 W runs do not
+define current limits.
 
 No further CUDA work, including another 31,004-step TRAIN, is authorised. It
 remains blocked until both of the following are true:
 
-1. The executable handover and the exact source/recipe preflight pass on a
-   clean, reviewed worktree. Re-probe the signed Windows bridge immediately
+1. The corrected short-return target/policy/audit chain has been rebuilt and
+   verified on TRAIN/VAL, the repaired source has new recipe/gate bindings,
+   and executable handover plus exact CPU launch preflight pass on a clean,
+   reviewed worktree. Re-probe the signed Windows bridge immediately
    before the launch and require its physical-limit field to remain 160 W.
 2. The operator explicitly authorises a new CUDA launch. This is intentionally
    separate from this technical result and from any old chat instruction.
 
 The physical-limit change and signed bridge verification are
-safety-precondition repairs, not CUDA authorisation. The next non-CUDA action
-is to materialize a five-year candidate gate only if its exact preflight
-artefacts exist; old smoke/readiness evidence is dataset-bound to a different
-surface and must fail closed.
+safety-precondition repairs, not CUDA authorisation. The next non-CUDA work is
+to finish review verification and rebuild/audit the affected five-year
+TRAIN/VAL target/policy chain, then materialize exact source/data recipe and
+gate bindings if all required evidence is admissible. Preserve prior immutable
+artifacts; do not overwrite hashes or relabel old smoke execution as new-source
+execution. Report any missing binding explicitly. TEST, paper and live remain
+unauthorized.
 
-## Relevant immutable paths
+## Historical one-epoch immutable paths
 
 All paths below live under
 `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/`:
@@ -167,7 +226,7 @@ All paths below live under
   `.gx1-candidate-training-session.ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`.
 - V9 published bundle:
   `ENTRY_V9_ONE_EPOCH_CANDIDATE_20260901T213444Z_BUNDLE`.
-- Current-source recipe and executed 32-row technical-smoke bundle:
+- Historical source recipe and executed 32-row technical-smoke bundle:
   `V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_RECIPE.json`, SHA-256
   `570a4baefb999d406f5d39b994bbed9a408244409ce9448e44fbc3e425c40372`; bundle
   `ENTRY_V9_POSTRUN_SOURCE_REBIND_20260903T013249Z_BUNDLE`, commit-manifest

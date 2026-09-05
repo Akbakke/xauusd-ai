@@ -25,6 +25,64 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+@pytest.mark.parametrize("partial_accumulation", [False, True])
+@pytest.mark.parametrize("bad_gradient", [float("nan"), float("inf"), 1e30])
+def test_optimizer_rejects_bad_backbone_norm_before_state_mutation(
+    partial_accumulation: bool, bad_gradient: float,
+) -> None:
+    model = torch.nn.Linear(2, 1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    ema = trainer._WeightEma(model, 0.5)
+    initial = copy.deepcopy(model.state_dict())
+    # 1e30 is finite in FP32, but its sum-of-squares norm overflows. A
+    # fail-open clip would scale all finite gradients to zero in that case.
+    model.weight.grad = torch.full_like(model.weight, bad_gradient)
+    model.bias.grad = torch.ones_like(model.bias)
+    with pytest.raises(RuntimeError, match="non-finite"):
+        if partial_accumulation:
+            trainer._step_partial_gradient_accumulation(
+                model=model, optimizer=optimizer, configured_steps=2,
+                observed_steps=1, weight_ema=ema,
+            )
+        else:
+            trainer._optimizer_step_with_finite_gradients(
+                model=model, optimizer=optimizer, weight_ema=ema,
+            )
+    assert not optimizer.state
+    assert ema.steps == 0
+    for name, expected in initial.items():
+        assert torch.equal(model.state_dict()[name], expected)
+        assert torch.equal(ema.state_dict_clone()[name], expected)
+
+
+@pytest.mark.parametrize("partial_accumulation", [False, True])
+def test_finite_optimizer_step_advances_weights_optimizer_and_ema_once(
+    partial_accumulation: bool,
+) -> None:
+    model = torch.nn.Linear(2, 1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    ema = trainer._WeightEma(model, 0.5)
+    initial = copy.deepcopy(model.state_dict())
+    for parameter in model.parameters():
+        parameter.grad = torch.ones_like(parameter)
+    if partial_accumulation:
+        assert trainer._step_partial_gradient_accumulation(
+            model=model, optimizer=optimizer, configured_steps=2,
+            observed_steps=1, weight_ema=ema,
+        )
+    else:
+        trainer._optimizer_step_with_finite_gradients(
+            model=model, optimizer=optimizer, weight_ema=ema,
+        )
+    assert ema.steps == 1
+    assert all(int(state["step"]) == 1 for state in optimizer.state.values())
+    assert all(parameter.grad is None for parameter in model.parameters())
+    assert any(
+        not torch.equal(initial[name], observed)
+        for name, observed in model.state_dict().items()
+    )
+
 # One episode, two sides, two Exit states, two actions (HOLD, EXIT_NOW).
 # The final state is the forced terminal one: only EXIT_NOW is executable
 # there, which is exactly what the fitted-Q policy replay owner requires.

@@ -2,19 +2,32 @@
 
 This file defines the only active project scope.
 
-## Current binding status — 2026-09-03
+## Current binding status — 2026-09-05
 
 Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 before historical notes below. `bash scripts/gx1_handover.sh` owns the live
-candidate-session position and source closure. V9 has completed 31,004 TRAIN
-steps and full VAL, but is technical-only because selected VAL PnL is negative;
-TEST, candidate acceptance, promotion, paper and live are blocked. Historical
-signed 160 W telemetry was invalidated by the next physical-PC restart; a
-fresh signed bridge response on 2026-09-04 repaired that host prerequisite and
-the persistent cap task now reapplies it. CUDA, including another full TRAIN,
-remains blocked because the five-year recipe has no dataset-bound candidate
-gate; any later launch still needs clean exact preflight, a fresh response at
-launch time, and explicit operator authorisation.
+candidate-session position and source closure. Review status is
+`CODE_REVIEW_VERIFIED__TRAIN_VAL_TARGET_REBUILD_REQUIRED`. The exact five-year
+canonical smoke and guarded VAL prediction pass completed on 2026-09-04;
+candidate readiness and its gate were READY at `55de7b82`. The 2026-09-05
+trainer, lifecycle, gate/source-closure and watchdog repairs change executable
+bytes, so that historical recipe/gate cannot prove current-source readiness.
+The review additionally found an incorrect denominator in short auxiliary
+returns: entry-notional returns require `1 - exit_ask / entry_bid`. The
+corrected causal-M1 return contract invalidates the old fitted policy/target
+data; the five-year TRAIN/VAL target/policy/audit chain needs a controlled CPU
+rebuild. Do not merely rebind source hashes around those old artifacts.
+Complete capped verification, the affected rebuild/audits, new immutable
+recipe/gate bindings and clean handover before the full launch. New CUDA needs fresh
+signed telemetry and explicit operator authorization. TEST, candidate
+acceptance, promotion, paper and live remain blocked.
+
+All eight specialist routes must be finite, positive and state-varying, with
+the required training-connectivity evidence. A top-rank winner quota is a
+separate quality heuristic, not a technical prerequisite for first training;
+neither metric proves trading edge. The Windows persistent task enforces
+160 W at boot and every 15 minutes; old signed responses are not launch-time
+evidence.
 Only declared runtime state and
 regenerable Python/pytest/ruff caches may be ignored; other ignored paths block
 source identity.
@@ -229,10 +242,13 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   retry.
 - Delete generated runs only through the retention owner after reachability and
   active-process checks. Never delete unknown worktrees or user changes.
-- Canonical CUDA's native guard stops above 70 C core, 220 W actual draw or
-  12 GiB residency. WSL cannot set the host driver's physical lower power limit
-  (the driver returns `Insufficient Permissions`), so 220 W is a one-second
-  process stop, not a throttle. The two 2026-08-28 batch-32 V46 attempts reached
+- Canonical CUDA's signed Windows bridge guard stops above 65 C core, 80 C
+  memory junction, 160 W physical power limit, 170 W actual draw or 12 GiB
+  residency, and fails closed on missing/invalid signed telemetry. Windows
+  enforces the physical 160 W cap; the one-second watchdog stops the process.
+  These are the current limits for both training and admitted CUDA evidence
+  producers. Historical 70 C / 220 W limits are not current launch authority.
+- Historical 2026-08-28 evidence: the two batch-32 V46 attempts reached
   71 C before a bundle. The repaired batch-8 32/32 smoke then completed four
   optimizer steps and validation within 65 C / 211.77 W / 8,751 MiB. Its active
   episode movement proof passed, but the bundle loader imposed a candidate-only
@@ -243,11 +259,10 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   bundle at 63 C / 212.37 W / 8,751 MiB. The exact guarded evaluator then
   completed frozen VAL predictions at 55 C / 156.03 W / 715 MiB. The repaired
   CPU smoke-bundle audit passes all data, feature, target, lineage and output
-  checks, but blocks because three specialist gates never top-rank after four
-  optimizer steps. Before any further CUDA step, the source tests and
-  prediction-artifact/audit preflight must pass. Only a predeclared bounded
-  learning-validation probe may follow; candidate admission remains strict and
-  no other producer gets CUDA permission.
+  checks, but its strict quality audit failed because three specialist gates
+  never top-ranked after four optimizer steps. That historical next-step
+  restriction was superseded by the completed five-year smoke/VAL preparation
+  and the 2026-09-05 review status above; it must not trigger another probe.
 - An ephemeral remote GPU is permitted only for the same offline research
   scope, exact frozen commit and hash-bound V46 artifacts, after explicit
   operator cost approval. It must have automatic time/cost termination and no

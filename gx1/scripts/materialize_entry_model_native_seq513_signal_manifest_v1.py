@@ -51,6 +51,7 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     require_causal_m1_target_policy,
 )
@@ -65,31 +66,25 @@ from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
 )
 
 
-SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v15"
+SIGNAL_MANIFEST_SCHEMA_VERSION = "entry_model_native_seq513_signal_manifest_v16"
 SIGNAL_MANIFEST_PRODUCER = (
     "gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1"
 )
-SIGNAL_MANIFEST_PRODUCER_VERSION = "v15"
+SIGNAL_MANIFEST_PRODUCER_VERSION = "v16"
 SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
-TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v12"
+TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v13"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
-TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v12"
+TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v13"
 TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
+    **causal_m1_target_contract(),
     "target": "train_fitted_exact_m1_executable_pnl_side_margin_bps",
     "horizon_source": (
         "entry_direction_target_policy.selected_direction_horizon_bars"
     ),
-    "entry_decision_time": "authoritative_m5_bar_close_available_at",
-    "long_entry_price": "ask_open_first_authoritative_m1_at_or_after_entry_decision",
-    "long_exit_price": "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
-    "short_entry_price": "bid_open_first_authoritative_m1_at_or_after_entry_decision",
-    "short_exit_price": "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
-    "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
     "ranking_target_formula": (
         "long_executable_pnl_bps-short_executable_pnl_bps"
     ),
     "handwritten_mfe_mae_path_weights": False,
-    "target_affects_feature_availability": False,
     "fit_scope": "train_only_full_horizons",
 }
 TRAIN_FEATURE_RANKING_ORDER = {
