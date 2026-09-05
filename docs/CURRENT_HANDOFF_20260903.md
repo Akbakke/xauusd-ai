@@ -20,7 +20,8 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 The operator has authorized exactly one successor canonical gate-smoke and
 the handover-linkage repair. The review hold is cleared solely for this scoped
-transition; the current recipe is dry-run PENDING, not yet executed. Full
+transition; clean handover and exact launcher dry-run now PASS. The smoke is
+not yet executed. Full
 candidate, separate VAL prediction, TEST, acceptance, paper and live remain
 unauthorized. The admission verdict remains BLOCK.
 

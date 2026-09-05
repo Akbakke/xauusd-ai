@@ -19,7 +19,7 @@
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
     "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
     "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
-    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED"
+    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",

@@ -11,7 +11,9 @@ The paired, unexecuted candidate recipe SHA-256 is
 SHA-256 `8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf` (all five checks PASS).
 Actual direct-dataset handover validation passed on these files while the
 old execution hold was still present. The hold is now cleared only for the
-operator's one smoke; the selected recipe is explicitly dry-run PENDING.
+operator's one smoke. Both normal handover modes pass from clean commit
+`dea9246a`, and the exact official launcher dry-run passes: canonical smoke,
+batch 8, one epoch, 32 rows per split, no candidate gate and TEST unopened.
 All admission fields remain BLOCK/empty. No CUDA attempt has started yet.
 All 68 real handover/current-dataset transition tests now pass
 (`/tmp/gx1-smoke-real-handover-transition-confirm-20260905.xml`), after
