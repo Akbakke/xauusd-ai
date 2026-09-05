@@ -4,6 +4,9 @@
 # gx1_capped_run.sh after that runner has validated the target and proved the
 # enclosing cgroup limits.
 set -euo pipefail
+# A background child must not already lead a job-control group when setsid
+# starts: setsid would then fork, breaking the owned PID == PGID identity.
+set +m
 
 guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
 trainer_stdio_log_path="${GX1_TRAINER_STDIO_LOG_PATH:-}"
@@ -40,6 +43,18 @@ require_uint() {
   local name="$1" value="$2"
   [[ "$value" =~ ^[1-9][0-9]*$ ]] \
     || die "$name must be a positive integer"
+}
+
+guard_uptime_seconds=
+read_guard_uptime() {
+  local uptime idle
+  # Linux uptime includes suspend but cannot step backwards with Windows/NTP
+  # wall-clock corrections. Builtin read also needs no timer subprocess.
+  IFS=' ' read -r uptime idle </proc/uptime \
+    || die "monotonic guard clock unavailable"
+  [[ "$uptime" =~ ^[0-9]+([.][0-9]+)?$ ]] \
+    || die "monotonic guard clock invalid"
+  guard_uptime_seconds=$((10#${uptime%%.*}))
 }
 
 for variable in \
@@ -142,7 +157,7 @@ cgroup_directory="/sys/fs/cgroup${cgroup_relative}"
   && "$(<"$cgroup_directory/pids.max")" == "$GX1_CAPPED_TASKS_MAX" ]] \
   || die "trainer cgroup proof does not match protected environment"
 
-for helper in /usr/bin/setsid /usr/bin/timeout /bin/kill /bin/date /bin/sleep /usr/bin/mktemp /usr/bin/mkfifo /usr/bin/od /usr/bin/tr /bin/rm /bin/rmdir; do
+for helper in /usr/bin/setsid /usr/bin/timeout /bin/date /bin/sleep /usr/bin/mktemp /usr/bin/mkfifo /usr/bin/od /usr/bin/tr /bin/rm /bin/rmdir; do
   [[ -x "$helper" ]] || die "required helper is unavailable: $helper"
 done
 
@@ -242,7 +257,7 @@ stage_fifo=
 stage_fd=
 stage_token=
 stage_name=canonical
-stage_start_epoch=
+stage_start_uptime=
 
 cleanup_stage_notification() {
   if [[ -n "$stage_fd" ]]; then
@@ -283,10 +298,11 @@ consume_stage_notifications() {
     if [[ "$stage_name" == data_preflight \
       && "$message" == "gx1_attended_preflight_ready_v1:$stage_token" ]]; then
       stage_name=model_smoke
-      stage_start_epoch=$(/bin/date +%s)
-      guard_log "event=stage_transition from=data_preflight to=model_smoke preflight_elapsed_seconds=$((stage_start_epoch - start_epoch))"
+      read_guard_uptime
+      stage_start_uptime=$guard_uptime_seconds
+      guard_log "event=stage_transition from=data_preflight to=model_smoke preflight_elapsed_seconds=$((stage_start_uptime - start_uptime))"
       printf '[trainer_safety_stage_transition] from=data_preflight to=model_smoke preflight_elapsed_seconds=%s model_max_wall_seconds=%s\n' \
-        "$((stage_start_epoch - start_epoch))" \
+        "$((stage_start_uptime - start_uptime))" \
         "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" >&2
       continue
     fi
@@ -296,26 +312,48 @@ consume_stage_notifications() {
   return 0
 }
 
+child_process_exists() {
+  [[ -n "$child_pid" ]] || return 1
+  # Probing and signalling must not need another task inside the capped scope.
+  builtin kill -0 "$child_pid" 2>/dev/null
+}
+
 child_group_exists() {
   # setsid gives the launched child its own process group, identified by $!.
   # Its leader may already have exited while a descendant still owns CUDA.
   [[ -n "$child_pid" ]] || return 1
-  /bin/kill -0 -- "-$child_pid" 2>/dev/null
+  builtin kill -0 -- "-$child_pid" 2>/dev/null
 }
 
 terminate_child_group() {
-  local reason="$1"
+  local reason="$1" group_term_sent=false
   [[ -n "$child_pid" ]] || return 0
-  if child_group_exists; then
+  if child_process_exists || child_group_exists; then
     guard_log "event=stop reason=$reason pid=$child_pid stage=$stage_name"
     printf '[trainer_safety_stop] reason=%s pid=%s\n' "$reason" "$child_pid" >&2
-    /bin/kill -TERM -- "-$child_pid" 2>/dev/null || true
+    if child_group_exists; then
+      builtin kill -TERM -- "-$child_pid" 2>/dev/null || true
+      group_term_sent=true
+    else
+      # Before setsid, only this exact owned PID may be signalled; its old
+      # process group is still the guard's own group.
+      builtin kill -TERM "$child_pid" 2>/dev/null || true
+    fi
     for _ in {1..10}; do
-      child_group_exists || return 0
+      # A TERM-ignoring startup process may establish the group during grace.
+      # Send its group one TERM, never repeatedly interrupt graceful cleanup.
+      if [[ "$group_term_sent" == false ]] && child_group_exists; then
+        builtin kill -TERM -- "-$child_pid" 2>/dev/null || true
+        group_term_sent=true
+      fi
+      if ! child_process_exists && ! child_group_exists; then
+        return 0
+      fi
       /bin/sleep 1
     done
     guard_log "event=kill reason=$reason pgid=$child_pid stage=$stage_name"
-    /bin/kill -KILL -- "-$child_pid" 2>/dev/null || true
+    builtin kill -KILL "$child_pid" 2>/dev/null || true
+    builtin kill -KILL -- "-$child_pid" 2>/dev/null || true
   fi
 }
 
@@ -346,8 +384,9 @@ elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_cpu_smoke ]]; then
   printf '[trainer_safety_attended_cpu_only] no CUDA allocation; this run has no candidate, TEST, promotion, or live authority\n' >&2
 fi
 
-start_epoch=$(/bin/date +%s)
-stage_start_epoch=$start_epoch
+read_guard_uptime
+start_uptime=$guard_uptime_seconds
+stage_start_uptime=$start_uptime
 if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
   stage_name=data_preflight
   create_stage_notification
@@ -368,12 +407,13 @@ else
   /usr/bin/setsid "$@" &
 fi
 child_pid=$!
-last_heartbeat_epoch=$start_epoch
+last_heartbeat_uptime=$start_uptime
 
-while /bin/kill -0 "$child_pid" 2>/dev/null; do
+while child_process_exists; do
   /bin/sleep "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS"
-  now_epoch=$(/bin/date +%s)
-  stage_elapsed=$((now_epoch - stage_start_epoch))
+  read_guard_uptime
+  now_uptime=$guard_uptime_seconds
+  stage_elapsed=$((now_uptime - stage_start_uptime))
   if [[ "$stage_name" == model_smoke ]]; then
     stage_limit=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS
   else
@@ -386,23 +426,22 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
       stop_reason="wall_clock_limit_${stage_limit}s"
     fi
     terminate_child_group "$stop_reason"
-    wait "$child_pid" 2>/dev/null || true
+    # Forced-stop status is already fixed. Never follow bounded termination
+    # with an unbounded wait, including a leader stuck in uninterruptible I/O.
     child_pid=
     die "wall-clock limit reached during stage=$stage_name"
   fi
   if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
     if ! consume_stage_notifications; then
       terminate_child_group "$stage_notification_error"
-      wait "$child_pid" 2>/dev/null || true
       child_pid=
       die "invalid attended-stage notification"
     fi
   fi
-  /bin/kill -0 "$child_pid" 2>/dev/null || break
+  child_process_exists || break
   if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
     if ! read_gpu_telemetry; then
       terminate_child_group telemetry_unavailable
-      wait "$child_pid" 2>/dev/null || true
       child_pid=
       die "CUDA telemetry became unavailable"
     fi
@@ -424,12 +463,11 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
     fi
     if [[ -n "$breach" ]]; then
       terminate_child_group "$breach"
-      wait "$child_pid" 2>/dev/null || true
       child_pid=
       die "GPU safety threshold breached: $breach"
     fi
   fi
-  if (( now_epoch - last_heartbeat_epoch >= 30 )); then
+  if (( now_uptime - last_heartbeat_uptime >= 30 )); then
     if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s memory_used_mib=%s\n' \
         "$stage_name" "$stage_elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" "$memory_used" >&2
@@ -437,14 +475,13 @@ while /bin/kill -0 "$child_pid" 2>/dev/null; do
     else
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s device=cpu\n' "$stage_name" "$stage_elapsed" >&2
     fi
-    last_heartbeat_epoch=$now_epoch
+    last_heartbeat_uptime=$now_uptime
   fi
 done
 
 if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true ]]; then
   if ! consume_stage_notifications; then
     terminate_child_group "$stage_notification_error"
-    wait "$child_pid" 2>/dev/null || true
     child_pid=
     die "invalid attended-stage notification"
   fi

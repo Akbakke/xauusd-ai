@@ -961,10 +961,42 @@ def require_training_recipe_execution_provenance(
     dataset_dir: Path,
     out_bundle_dir: Path,
 ) -> dict[str, Any]:
-    """Revalidate the audited source closure at the direct trainer boundary."""
+    """Require a cleared review hold, then the complete audited source closure."""
 
     repo_root = repo.resolve(strict=True)
     _require_training_review_hold_cleared(repo_root)
+    return require_training_recipe_source_provenance(
+        recipe_audit_path=recipe_audit_path,
+        recipe_audit_sha256=recipe_audit_sha256,
+        repo=repo_root,
+        profile=profile,
+        run_id=run_id,
+        dataset_run_id=dataset_run_id,
+        dataset_dir=dataset_dir,
+        out_bundle_dir=out_bundle_dir,
+    )
+
+
+def require_training_recipe_source_provenance(
+    *,
+    recipe_audit_path: Path,
+    recipe_audit_sha256: str,
+    repo: Path,
+    profile: str,
+    run_id: str,
+    dataset_run_id: str,
+    dataset_dir: Path,
+    out_bundle_dir: Path,
+) -> dict[str, Any]:
+    """Read-only recipe/source verification for preparation, never permission.
+
+    This shares every recipe hash, identity, committed-lineage, clean-worktree
+    and exact source-closure check with the execution boundary. A review hold
+    can remain active while CPU evidence is prepared; callers that execute a
+    trainer must use ``require_training_recipe_execution_provenance`` instead.
+    """
+
+    repo_root = repo.resolve(strict=True)
     recipe_path = _resolved_explicit_path(recipe_audit_path, "recipe_audit_json")
     expected_recipe_sha = str(recipe_audit_sha256 or "")
     _require(

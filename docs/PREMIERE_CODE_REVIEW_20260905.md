@@ -25,6 +25,52 @@ installed direct dependency pins match and import as required. Local test
 record: `/tmp/gx1-cpu-successor-source-20260905.xml`. This verifies code and
 orchestration, not yet the replacement dataset or runtime evidence.
 
+The corrected TRAIN policy/ranking has now been emitted successfully at
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20260905T132535Z.json`
+(file SHA-256 `147d70cc79cddf35b8a3b95968f6092d0a998f98967e3acf23185e0dec1efe92`).
+Its target contract is `entry_causal_m1_outcomes_v2_entry_notional_pnl`;
+the new policy SHA-256 is
+`208fa387f4054594aa3a38f4f538f828dcfa9d005e5fb158eb0c047d6a77f8a2`.
+Feature availability is fitted on 354569 TRAIN rows, excluding 93922 history
+rows; all 67 candidate fields remain available. The target ranking contains
+313475 complete target rows. These are source/fit populations, not the final
+emitted sequence-dataset row counts. VAL, TEST and future rows were not used
+for fitting. The selected diagnostic horizon remains 19 M5 bars.
+
+A preparation-only integration defect was also repaired: direct CPU
+trainability-readiness used the execution-provenance API, so the review hold
+prevented even a non-authorizing source report. The existing owner now shares
+all recipe/hash/ancestry/clean-source checks through a read-only source API;
+the execution API still checks the hold first. Readiness verifies both smoke
+and candidate source closures and keeps every training/activation authority
+false. The live numerical ranker/policy code was unchanged during this repair.
+
+The subsequent full CPU suite completed 2457 cases: 2456 passed and the
+TERM-ignoring-descendant watchdog case timed out. Its isolated three-case
+rerun passed, which does not establish the original timeout's cause. Source
+inspection exposed three independently reproduced hazards: waiting
+indefinitely when the child exists before its process group, measuring elapsed
+time with a realtime clock that can move backwards, and relying on an external
+process for PID/group checks and signals. The guard now checks both the owned
+PID and group, never waits indefinitely after forced termination, measures
+deadlines with Linux uptime and uses Bash's explicit `builtin kill`. Job
+control is disabled before `setsid`, and an established group gets one TERM
+before the existing grace/KILL. No power, thermal, memory or stop-grace limit
+was changed. Regression fixtures demonstrate the hazards independently of
+market data; they do not prove a cure for the physical host hang.
+Diagnostic records: `/tmp/gx1-cpu-successor-readiness-20260905.xml` and
+`/tmp/gx1-watchdog-repro-20260905.xml`.
+
+The complete watchdog confirmation passed 54 cases. After the final builtin
+change, all 35 watchdog/attended cases and the one affected static source case
+passed again. Exact XML case-identity reconciliation against the 2457-case
+fullsuite gives **2462 passing cases, zero unresolved failures/errors/skips**;
+this is not a claim that the last fullsuite alone was all-green. Final records:
+`/tmp/gx1_watchdog_complete_final_20260905.xml`,
+`/tmp/gx1_watchdog_builtin_final_20260905.xml`, and
+`/tmp/gx1_watchdog_builtin_static_final_20260905.xml`.
+Capped `compileall`, shell syntax and diff whitespace checks also pass.
+
 ## Verdict
 
 **BLOCKED: do not start the five-year CUDA candidate yet.** The 4 September

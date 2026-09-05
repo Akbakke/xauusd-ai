@@ -259,7 +259,10 @@ print(f"review_report: {hold['report_path']}")
 print("historical_recipe_and_gate: RETAINED_NOT_CURRENT_TRAINING_AUTHORITY")
 print("cuda_authority: NONE")
 print("test_paper_live_authority: NONE")
-print("next_action: CPU_SUCCESSOR_TRAIN_VAL_TARGET_POLICY_DATA_AND_AUDITS_THEN_NEW_SOURCE_BOUND_RECIPE")
+if hold["reason"] == "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE":
+    print("next_action: EXPLICIT_SCOPED_CUDA_AUTHORIZATION_AND_FRESH_SIGNED_160W_TELEMETRY_THEN_SUCCESSOR_RUNTIME_EVIDENCE")
+else:
+    print("next_action: CPU_SUCCESSOR_TRAIN_VAL_TARGET_POLICY_DATA_AND_AUDITS_THEN_NEW_SOURCE_BOUND_RECIPE")
 print("FATAL: pretraining review hold blocks launch", file=sys.stderr)
 raise SystemExit(2)
 PY

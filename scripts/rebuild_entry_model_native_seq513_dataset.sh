@@ -440,8 +440,7 @@ fi
   "${PRETRAIN_ARGS[@]}" \
   --dataset-dir "$OUTPUT_DIR" \
   --stem "$OUTPUT_STEM" \
-  --out-dir "$AUDIT_OUT_DIR" \
-  --quiet
+  --out-dir "$AUDIT_OUT_DIR"
 
 printf '[PASS] combined Entry/lifecycle dataset materialized and pretrain-audited; cross-surface=%s full-input-liveness=%s exit-lifecycle=%s; no training was run. run_id=%s output=%s\n' \
   "$CROSS_SURFACE_JSON" "$FULL_INPUT_LIVENESS_JSON" "$EXIT_LIFECYCLE_DIR" "$RUN_ID" "$OUTPUT_DIR"

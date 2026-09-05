@@ -258,6 +258,27 @@ def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
     assert "unexpected_ignored_path_count: 0" in result.stdout
 
 
+def test_completed_cpu_successor_hold_still_blocks_all_execution(tmp_path):
+    repo = _source_only_repo(tmp_path)
+    state_path = repo / "PROJECT_STATE_xau_direction_launch.json"
+    state = json.loads(state_path.read_text())
+    state["pretraining_review_hold"]["reason"] = (
+        "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE"
+    )
+    state_path.write_text(json.dumps(state))
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/gx1_handover.sh"), "--check"],
+        cwd=repo, text=True, capture_output=True, check=False, timeout=15,
+    )
+    assert result.returncode == 2
+    assert "decision: BLOCK" in result.stdout
+    assert "pretraining_review_hold: ACTIVE" in result.stdout
+    assert "cuda_authority: NONE" in result.stdout
+    assert "test_paper_live_authority: NONE" in result.stdout
+    assert "next_action: EXPLICIT_SCOPED_CUDA_AUTHORIZATION_AND_FRESH_SIGNED_160W_TELEMETRY_THEN_SUCCESSOR_RUNTIME_EVIDENCE" in result.stdout
+    assert "next_action: CPU_SUCCESSOR" not in result.stdout
+
+
 def test_handover_viewer_points_to_current_xau_direction_repair_truth() -> None:
     text = HANDOVER_VIEWER.read_text(encoding="utf-8")
 

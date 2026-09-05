@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,7 +16,9 @@ from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_even
 from gx1.scripts import verify_entry_pretest_trainability_readiness_v1 as readiness
 from gx1.scripts import verify_entry_candidate_readiness_v1 as candidate_readiness
 from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import artifact_binding
+from gx1.contracts import entry_model_native_train_launch_v1 as launch
 from tests.test_entry_model_native_pretest_technical_recipe import _recipe
+from tests.test_entry_model_native_train_recipe import _held_source_repo
 
 
 def _sha(path: Path) -> str:
@@ -107,7 +110,7 @@ def test_direct_pretest_trainability_binds_exact_recipes_and_pretrain(
     candidate, candidate_sha, smoke, smoke_sha, pretrain = _recipes(tmp_path)
     monkeypatch.setattr(
         readiness,
-        "require_training_recipe_execution_provenance",
+        "require_training_recipe_source_provenance",
         lambda **_kwargs: {"source_commit": "a" * 40},
     )
 
@@ -137,6 +140,81 @@ def test_direct_pretest_trainability_binds_exact_recipes_and_pretrain(
         report,
         expected_candidate_recipe=artifact_binding(smoke),
     )["ok"] is False
+
+
+@pytest.mark.parametrize("mutation", [None, "smoke-source", "dirty-source"])
+def test_readiness_verifies_both_real_source_closures_without_lifting_hold(
+    tmp_path: Path, mutation: str | None,
+) -> None:
+    candidate, _candidate_sha, smoke, _smoke_sha, pretrain = _recipes(tmp_path)
+    repo = _held_source_repo(tmp_path)
+    source_commit = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    bindings = launch.recipe_source_bindings(
+        repo=repo,
+        wrapper_path=repo / launch.PRETEST_TECHNICAL_TRAIN_WRAPPER_RELATIVE_PATH,
+    )
+    for path in (candidate, smoke):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["source_commit"] = source_commit
+        payload["source_bindings"] = copy.deepcopy(bindings)
+        if mutation == "smoke-source" and path == smoke:
+            key = next(iter(payload["source_bindings"]))
+            payload["source_bindings"][key]["sha256"] = "0" * 64
+        payload["source_bindings_sha256"] = canonical_json_sha256(payload["source_bindings"])
+        _write_recipe(path, payload)
+    if mutation == "dirty-source":
+        (repo / launch.TRAINER_RELATIVE_PATH).write_text("# dirty source\n", encoding="utf-8")
+
+    out = tmp_path / "readiness-out"
+    args = readiness.build_parser().parse_args([
+        "--candidate-recipe-json", str(candidate),
+        "--candidate-recipe-sha256", _sha(candidate),
+        "--smoke-recipe-json", str(smoke),
+        "--smoke-recipe-sha256", _sha(smoke),
+        "--pretrain-audit-json", str(pretrain),
+        "--repo-dir", str(repo),
+        "--out-dir", str(out),
+    ])
+    if mutation is None:
+        report = readiness.run(args)
+        assert report["decision"] == readiness.READY_DECISION
+        assert report["failures"] == []
+    else:
+        with pytest.raises(SystemExit, match="1"):
+            readiness.run(args)
+        reports = list(out.glob(f"{readiness.EVENT_PREFIX}_*.json"))
+        assert len(reports) == 1
+        report = json.loads(reports[0].read_text(encoding="utf-8"))
+        assert report["decision"] == readiness.BLOCKED_DECISION
+        failures = {item["check"]: item["details"] for item in report["failures"]}
+        smoke_check = "smoke recipe source closure is current and worktree-clean"
+        assert smoke_check in failures
+        if mutation == "smoke-source":
+            assert len(failures) == 1
+            assert "recipe source binding mismatch" in failures[smoke_check]["error"]
+        else:
+            assert len(failures) == 2
+            assert "worktree must be clean" in failures[smoke_check]["error"]
+    assert report["candidate_training_allowed"] is False
+    assert report["activation_authority"] is False
+    assert report["promotion_shadow_live_allowed"] is False
+    assert json.loads((repo / "PROJECT_STATE_xau_direction_launch.json").read_text())[
+        "pretraining_review_hold"
+    ]["decision"] == "BLOCK"
+    payload = json.loads(candidate.read_text(encoding="utf-8"))
+    with pytest.raises(launch.LaunchContractError, match="review hold blocks execution"):
+        launch.require_training_recipe_execution_provenance(
+            recipe_audit_path=candidate,
+            recipe_audit_sha256=_sha(candidate),
+            repo=repo,
+            profile="candidate",
+            run_id=payload["run_id"],
+            dataset_run_id=payload["dataset_run_id"],
+            dataset_dir=Path(payload["dataset_dir"]),
+            out_bundle_dir=Path(payload["out_bundle_dir"]),
+        )
 
 
 def test_direct_pretest_trainability_rejects_recipe_dataset_mismatch(tmp_path: Path) -> None:

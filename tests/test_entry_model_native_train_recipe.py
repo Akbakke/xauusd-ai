@@ -377,6 +377,137 @@ def test_direct_execution_review_hold_requires_readable_state(tmp_path: Path) ->
     launch._require_training_review_hold_cleared(tmp_path)
 
 
+def _commit_source_fixture(repo: Path) -> str:
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(repo), "-c", "core.hooksPath=/dev/null",
+            "-c", "user.name=GX1 fixture",
+            "-c", "user.email=fixture@example.invalid",
+            "-c", "commit.gpgsign=false", "commit", "-qm", "source fixture",
+        ],
+        check=True,
+    )
+    return subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+
+
+def _held_source_repo(tmp_path: Path) -> Path:
+    """Real clean Git/source-binding fixture; no provenance checks are mocked."""
+    repo = tmp_path / "source-repo"
+    repo.mkdir()
+    # Derive all required roots/package initializers from the current owner.
+    # The fixture modules deliberately import nothing and execute no GX1 work.
+    for path in launch.recipe_source_binding_paths(repo=REPO, wrapper_path=WRAPPER).values():
+        target = repo / path.relative_to(REPO)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("# immutable source fixture\n", encoding="utf-8")
+    (repo / "PROJECT_STATE_xau_direction_launch.json").write_text(
+        json.dumps({"pretraining_review_hold": {
+            "schema_version": "gx1_pretraining_review_hold_v1",
+            "decision": "BLOCK",
+            "reason": "successor dataset review is pending",
+            "activation_authority": False,
+            "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md",
+        }}),
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    _commit_source_fixture(repo)
+    return repo
+
+
+def _held_source_provenance_fixture(tmp_path: Path) -> tuple[dict, Path]:
+    repo = _held_source_repo(tmp_path)
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    bundle = tmp_path / "bundle"
+    bindings = launch.recipe_source_bindings(
+        repo=repo, wrapper_path=repo / launch.TRAIN_WRAPPER_RELATIVE_PATH
+    )
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(json.dumps({
+        "schema_version": launch.RECIPE_AUDIT_SCHEMA,
+        "decision": "PASS",
+        "failures": [],
+        "profile": "smoke",
+        "run_id": "SOURCE_REVIEW_SMOKE_V1",
+        "dataset_run_id": "SOURCE_REVIEW_DATASET_V1",
+        "dataset_dir": str(dataset),
+        "out_bundle_dir": str(bundle),
+        "source_commit": subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+        ).strip(),
+        "source_bindings": bindings,
+        "source_bindings_sha256": launch.canonical_json_sha256(bindings),
+    }), encoding="utf-8")
+    return {
+        "recipe_audit_path": recipe_path,
+        "recipe_audit_sha256": launch.sha256_file(recipe_path),
+        "repo": repo,
+        "profile": "smoke",
+        "run_id": "SOURCE_REVIEW_SMOKE_V1",
+        "dataset_run_id": "SOURCE_REVIEW_DATASET_V1",
+        "dataset_dir": dataset,
+        "out_bundle_dir": bundle,
+    }, repo / launch.TRAINER_RELATIVE_PATH
+
+
+def test_read_only_source_provenance_passes_under_hold_but_execution_does_not(
+    tmp_path: Path,
+) -> None:
+    kwargs, _trainer = _held_source_provenance_fixture(tmp_path)
+    state = kwargs["repo"] / "PROJECT_STATE_xau_direction_launch.json"
+    original_state = state.read_bytes()
+    result = launch.require_training_recipe_source_provenance(**kwargs)
+    assert result["recipe_audit_sha256"] == kwargs["recipe_audit_sha256"]
+    assert state.read_bytes() == original_state
+    with pytest.raises(launch.LaunchContractError, match="review hold blocks execution"):
+        launch.require_training_recipe_execution_provenance(**kwargs)
+
+    # Execution must check the hold before even reading the recipe.
+    kwargs["recipe_audit_path"] = tmp_path / "missing-recipe.json"
+    with pytest.raises(launch.LaunchContractError, match="review hold blocks execution"):
+        launch.require_training_recipe_execution_provenance(**kwargs)
+
+
+@pytest.mark.parametrize("mutation", ["dirty", "untracked", "committed-source", "recipe-bytes"])
+def test_read_only_source_provenance_retains_all_freshness_checks_under_hold(
+    tmp_path: Path, mutation: str,
+) -> None:
+    kwargs, trainer = _held_source_provenance_fixture(tmp_path)
+    if mutation in {"dirty", "committed-source"}:
+        trainer.write_text("# modified source fixture\n", encoding="utf-8")
+        if mutation == "committed-source":
+            _commit_source_fixture(kwargs["repo"])
+            expected = "recipe source binding mismatch"
+        else:
+            expected = "trainer source worktree must be clean"
+    elif mutation == "untracked":
+        (kwargs["repo"] / "unreviewed.py").write_text("# unknown source\n", encoding="utf-8")
+        expected = "trainer source worktree must be clean"
+    else:
+        recipe = kwargs["recipe_audit_path"]
+        recipe.write_bytes(recipe.read_bytes() + b"\n")
+        expected = "trainer recipe audit bytes do not match declared sha256"
+    with pytest.raises(launch.LaunchContractError, match=expected):
+        launch.require_training_recipe_source_provenance(**kwargs)
+
+
+def test_cleared_execution_and_read_only_check_share_identical_source_proof(
+    tmp_path: Path,
+) -> None:
+    kwargs, _trainer = _held_source_provenance_fixture(tmp_path)
+    (kwargs["repo"] / "PROJECT_STATE_xau_direction_launch.json").write_text(
+        "{}", encoding="utf-8"
+    )
+    _commit_source_fixture(kwargs["repo"])
+    assert launch.require_training_recipe_execution_provenance(**kwargs) == (
+        launch.require_training_recipe_source_provenance(**kwargs)
+    )
+
+
 def test_execution_provenance_accepts_clean_descendant_with_exact_source_bindings(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

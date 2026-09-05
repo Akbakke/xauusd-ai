@@ -214,6 +214,23 @@ def test_trainer_guard_wall_clock_kills_cpu_process_group() -> None:
     assert "reason=wall_clock_limit_1s" in result.stderr
 
 
+def _assert_guard_owned_process_stopped(pid: int) -> None:
+    # A killed orphan can briefly await init's reap, but must not execute.
+    stat_path = Path(f"/proc/{pid}/stat")
+    process_state = None
+    for _ in range(100):
+        try:
+            process_state = stat_path.read_text().rsplit(")", 1)[1].split()[0]
+        except FileNotFoundError:
+            process_state = None
+        if process_state in (None, "Z", "X"):
+            break
+        time.sleep(0.01)
+    assert process_state in (None, "Z", "X"), (
+        f"owned process {pid} survived guard exit: {process_state}"
+    )
+
+
 @pytest.mark.parametrize("leader_exit", [False, True], ids=["term", "normal-exit"])
 def test_trainer_guard_kills_term_ignoring_descendant_after_leader_exits(
     tmp_path: Path, leader_exit: bool,
@@ -274,20 +291,7 @@ while True:
         assert f"reason={reason}" in stderr
         descendant_pid, group_id = map(int, descendant_file.read_text().split())
         assert group_id > 1 and group_id != os.getpgrp()
-        stat_path = Path(f"/proc/{descendant_pid}/stat")
-        # A killed orphan can briefly await init's reap, but must not execute.
-        process_state = None
-        for _ in range(100):
-            try:
-                process_state = stat_path.read_text().rsplit(")", 1)[1].split()[0]
-            except FileNotFoundError:
-                process_state = None
-            if process_state in (None, "Z", "X"):
-                break
-            time.sleep(0.01)
-        assert process_state in (None, "Z", "X"), (
-            f"descendant {descendant_pid} survived guard exit: {process_state}"
-        )
+        _assert_guard_owned_process_stopped(descendant_pid)
     finally:
         if descendant_file.exists():
             _descendant_pid, group_id = map(int, descendant_file.read_text().split())
@@ -298,6 +302,117 @@ while True:
                 pass
         if guard.poll() is None:
             guard.kill()
+        guard.communicate(timeout=5)
+
+
+@pytest.mark.parametrize("hazard", ["delayed-process-group", "wall-clock-rollback", "job-control", "graceful-cleanup", "external-kill-unavailable"])
+def test_trainer_guard_deadline_survives_startup_and_clock_hazards(
+    tmp_path: Path, hazard: str,
+) -> None:
+    """Adversarial helpers exist only in a private test copy of the guard."""
+    source = TRAINER_GUARD.read_text(encoding="utf-8")
+    owned_pid = tmp_path / "owned-child.pid"
+    clock_calls = tmp_path / "clock.calls"
+    term_count = tmp_path / "term.count"
+    guard_log = tmp_path / "guard.log"
+    guard_log.write_text("", encoding="utf-8")
+    if hazard == "delayed-process-group":
+        helper = tmp_path / "slow-setsid"
+        helper.write_text(
+            f"#!{sys.executable}\n"
+            "import os, signal, sys, time\n"
+            "from pathlib import Path\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            f"Path({str(owned_pid)!r}).write_text(str(os.getpid()))\n"
+            "time.sleep(60)\n"
+            "os.execv('/usr/bin/setsid', ['/usr/bin/setsid', *sys.argv[1:]])\n",
+            encoding="utf-8",
+        )
+        helper.chmod(0o755)
+        source = source.replace("/usr/bin/setsid", str(helper))
+    elif hazard == "wall-clock-rollback":
+        helper = tmp_path / "rollback-date"
+        helper.write_text(
+            f"#!{sys.executable}\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            f"counter = Path({str(clock_calls)!r})\n"
+            "count = int(counter.read_text()) + 1 if counter.exists() else 1\n"
+            "counter.write_text(str(count))\n"
+            "if sys.argv[1:] == ['+%s']:\n"
+            "    print(200 - count * 100)\n"
+            "else:\n"
+            "    print('2026-09-05T12:00:00Z' if count == 1 else '2020-01-01T00:00:00Z')\n",
+            encoding="utf-8",
+        )
+        helper.chmod(0o755)
+        source = source.replace("/bin/date", str(helper))
+    elif hazard == "external-kill-unavailable":
+        helper = tmp_path / "unavailable-external-kill"
+        helper.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        helper.chmod(0o755)
+        source = source.replace("/bin/kill", str(helper))
+    fixture_guard = tmp_path / "guard-fixture.sh"
+    fixture_guard.write_text(source, encoding="utf-8")
+    child = (
+        "import os, time; from pathlib import Path; "
+        f"Path({str(owned_pid)!r}).write_text(str(os.getpid())); time.sleep(60)"
+    )
+    if hazard == "graceful-cleanup":
+        child = (
+            "import os, signal, sys, time\n"
+            "from pathlib import Path\n"
+            f"counter = Path({str(term_count)!r})\n"
+            "def graceful_stop(_signum, _frame):\n"
+            "    count = int(counter.read_text()) + 1 if counter.exists() else 1\n"
+            "    counter.write_text(str(count))\n"
+            "    time.sleep(3)\n"
+            "    sys.exit(0)\n"
+            "signal.signal(signal.SIGTERM, graceful_stop)\n"
+            f"Path({str(owned_pid)!r}).write_text(str(os.getpid()))\n"
+            "while True: time.sleep(60)\n"
+        )
+    env = _guard_env(device="cpu", nvidia_smi_path=Path("/bin/false"), max_wall_seconds=2)
+    env["GX1_TRAINER_GUARD_LOG_PATH"] = str(guard_log)
+    command = ["bash"]
+    if hazard == "job-control":
+        command.append("-m")
+    guard = subprocess.Popen(
+        [*command, str(fixture_guard), sys.executable, "-c", child],
+        cwd=REPO, env=env, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    try:
+        _stdout, stderr = guard.communicate(timeout=20)
+        assert guard.returncode == 75, stderr
+        assert "reason=wall_clock_limit_2s" in stderr
+        assert "wall-clock limit reached" in stderr
+        # Assert before cleanup: the finally safety net must not hide a leak.
+        _assert_guard_owned_process_stopped(int(owned_pid.read_text()))
+        if hazard == "delayed-process-group":
+            assert "event=kill" in guard_log.read_text(encoding="utf-8")
+        if hazard == "wall-clock-rollback":
+            log = guard_log.read_text(encoding="utf-8")
+            assert log.startswith("2026-09-05T12:00:00Z")
+            assert "2020-01-01T00:00:00Z event=stop" in log
+            assert int(clock_calls.read_text()) >= 2
+        if hazard == "graceful-cleanup":
+            assert term_count.read_text() == "1"
+    finally:
+        if owned_pid.exists():
+            pid = int(owned_pid.read_text())
+            assert pid > 1 and pid not in (os.getpid(), os.getpgrp())
+            for target in (pid, -pid):
+                try:
+                    os.kill(target, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        # The private guard session also contains a not-yet-setsid child.
+        try:
+            os.killpg(guard.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         guard.communicate(timeout=5)
 
 
@@ -1061,8 +1176,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "event=heartbeat" in guard_source
     assert "event=exit child_status=$child_status" in guard_source
     assert '"$memory_temp" =~ ^[0-9]+' in guard_source
-    assert '/bin/kill -TERM -- "-$child_pid"' in guard_source
-    assert '/bin/kill -KILL -- "-$child_pid"' in guard_source
+    assert 'builtin kill -TERM -- "-$child_pid"' in guard_source
+    assert 'builtin kill -KILL -- "-$child_pid"' in guard_source
+    assert 'builtin kill -0 "$child_pid"' in guard_source
+    assert "/bin/kill" not in guard_source
     assert "stage_elapsed >= stage_limit" in guard_source
     assert "gx1_attended_preflight_ready_v1" in guard_source
     validation_call = source.index('\nvalidate_target_command "$@"\n')

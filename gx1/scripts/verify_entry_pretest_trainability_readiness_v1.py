@@ -30,7 +30,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
 )
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     LaunchContractError,
-    require_training_recipe_execution_provenance,
+    require_training_recipe_source_provenance,
 )
 from gx1.contracts.immutable_event_authority_v1 import (
     require_newest_immutable_event,
@@ -186,20 +186,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     except RuntimeError as exc:
         pretrain_binding = artifact_binding(pretrain_path)
         checks.append(_check("direct pretrain audit is a five-year zero-failure PASS", False, {"error": str(exc)}))
-    try:
-        require_training_recipe_execution_provenance(
-            recipe_audit_path=candidate_path,
-            recipe_audit_sha256=candidate_binding["sha256"],
-            repo=repo,
-            profile="candidate",
-            run_id=str(candidate["run_id"]),
-            dataset_run_id=str(candidate["dataset_run_id"]),
-            dataset_dir=Path(str(candidate["dataset_dir"])),
-            out_bundle_dir=Path(str(candidate["out_bundle_dir"])),
-        )
-        checks.append(_check("candidate recipe source closure is current and worktree-clean", True))
-    except (LaunchContractError, OSError, RuntimeError, ValueError) as exc:
-        checks.append(_check("candidate recipe source closure is current and worktree-clean", False, {"error": str(exc)}))
+    # Dataset compatibility does not imply identical recipe source closures.
+    # Revalidate both independently without lifting a runtime review hold.
+    for profile, recipe, path, binding in (
+        ("candidate", candidate, candidate_path, candidate_binding),
+        ("smoke", smoke, smoke_path, smoke_binding),
+    ):
+        check_name = f"{profile} recipe source closure is current and worktree-clean"
+        try:
+            require_training_recipe_source_provenance(
+                recipe_audit_path=path,
+                recipe_audit_sha256=binding["sha256"],
+                repo=repo,
+                profile=profile,
+                run_id=str(recipe["run_id"]),
+                dataset_run_id=str(recipe["dataset_run_id"]),
+                dataset_dir=Path(str(recipe["dataset_dir"])),
+                out_bundle_dir=Path(str(recipe["out_bundle_dir"])),
+            )
+            checks.append(_check(check_name, True))
+        except (LaunchContractError, OSError, RuntimeError, ValueError) as exc:
+            checks.append(_check(check_name, False, {"error": str(exc)}))
 
     failures = [
         {"check": row["name"], "details": row["details"]}
