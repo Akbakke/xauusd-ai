@@ -18,8 +18,26 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-CPU successor complete; execution remains BLOCK with reason
-`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+The operator has authorized exactly one successor canonical gate-smoke and
+the handover-linkage repair. The review hold is cleared solely for this scoped
+transition; the current recipe is dry-run PENDING, not yet executed. Full
+candidate, separate VAL prediction, TEST, acceptance, paper and live remain
+unauthorized. The admission verdict remains BLOCK.
+
+Current smoke: `ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
+SHA-256 `cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7`, source `e25a8cb6377eec496d1863c667c0d6cff785d86a`.
+Current candidate recipe (not authorized to execute):
+`ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json`,
+SHA-256 `7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f`.
+Both retain the exact CPU successor data and trainer configurations.
+The fresh readiness decision is `READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`,
+with all five checks passing and training/activation authority false:
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json`,
+SHA-256 `8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf`.
+Normal handover now validates this direct TRAIN/VAL chain rather than treating
+the retained V46 reports as current. See the review report for repair evidence.
+
+### Completed CPU preparation before handover rebind
 
 The [2026-09-05 review report](PREMIERE_CODE_REVIEW_20260905.md) records the
 repairs, actual production evidence and exact artifact hashes. The corrected
@@ -60,7 +78,9 @@ confirmations after repairs. Exact case-identity reconciliation gives 2462
 passing cases and no unresolved failures; the last fullsuite alone was not
 all-green. The report preserves that distinction and its XML records.
 
-Normal handover deliberately exits 2 while the execution hold is active.
+During the completed CPU phase, normal handover deliberately exited 2 while
+the execution hold was active. That hold has now been cleared for the one
+explicitly authorized smoke, not for full candidate or separate VAL execution.
 `bash scripts/gx1_handover.sh --source-only` checks source hygiene without
 authorizing training or consulting old runtime evidence. Do not remove the
 hold merely to obtain a green normal handover.

@@ -495,7 +495,7 @@ def test_handover_viewer_prints_current_goal() -> None:
         "dataloader_workers=0 one_job_at_a_time" in result.stdout
     )
     assert "physical limit remains 160 W" in result.stdout
-    assert "review the negative V9 VAL result" in result.stdout
+    assert "execute only the explicitly authorised current-source recipe" in result.stdout
     assert "production-net claims" in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout
     assert len(result.stdout.encode("utf-8")) < 10_000
@@ -584,22 +584,53 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert current_source_recipe["schema_version"] == (
         "gx1_current_source_technical_recipe_reference_v1"
     )
-    assert current_source_recipe["status"] == (
-        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
-    )
-    assert current_source_recipe["run_id"] == "ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z"
     assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
     assert Path(current_source_recipe["recipe_path"]).is_file()
-    assert not Path(current_source_recipe["out_bundle_dir"]).exists()
-    assert set(current_source_recipe) == {
+    expected_keys = {
         "schema_version", "status", "recipe_path", "recipe_sha256",
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
-        "out_bundle_dir", "postrun_bundle_audit_path",
-        "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
-        "candidate_readiness_path", "candidate_readiness_sha256",
-        "candidate_readiness_decision", "candidate_launch_gate_path",
-        "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
+        "out_bundle_dir",
     }
+    if "current_pretest_trainability_readiness" in state:
+        from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+            require_pretest_technical_recipe_metadata,
+        )
+        raw = Path(current_source_recipe["recipe_path"]).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == current_source_recipe["recipe_sha256"]
+        recipe = require_pretest_technical_recipe_metadata(
+            json.loads(raw), expected_profile="smoke",
+            expected_run_id=current_source_recipe["run_id"],
+            expected_out_bundle_dir=current_source_recipe["out_bundle_dir"],
+        )
+        assert recipe["source_commit"] == current_source_recipe["source_commit"]
+        assert recipe["source_bindings_sha256"] == current_source_recipe["source_bindings_sha256"]
+        executed_status = "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
+        assert current_source_recipe["status"] in {
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+            executed_status,
+        }
+        if current_source_recipe["status"] == executed_status:
+            from gx1.contracts.entry_model_native_bundle_commit_v1 import require_bundle_commit_manifest
+            bundle = require_bundle_commit_manifest(Path(current_source_recipe["out_bundle_dir"]))
+            assert bundle["commit_sha256"] == current_source_recipe["bundle_commit_sha256"]
+            expected_keys.update({
+                "bundle_commit_manifest_sha256", "bundle_commit_sha256", "bundle_metadata_sha256",
+            })
+        else:
+            assert not Path(current_source_recipe["out_bundle_dir"]).exists()
+    else:
+        assert current_source_recipe["status"] == (
+            "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+        )
+        assert current_source_recipe["run_id"] == "ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z"
+        assert not Path(current_source_recipe["out_bundle_dir"]).exists()
+        expected_keys.update({
+            "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
+            "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
+            "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
+        })
+    assert set(current_source_recipe) == expected_keys
     for key in ("recipe_sha256", "source_bindings_sha256"):
         assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
     assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
@@ -700,16 +731,9 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert re.search(r"candidate_session: SESSION_INTACT__checkpoint=\d+", result.stdout)
     assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
     assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
-    assert (
-        "current_source_technical_recipe: "
-        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
-        in result.stdout
-    )
-    assert (
-        "current_source_technical_recipe_closure: "
-        "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
-        in result.stdout
-    )
+    reference = launch_state["current_source_technical_recipe"]
+    assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
+    assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
     assert "## Host capacity" not in result.stdout
     assert "## Active GX1 process groups" not in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout

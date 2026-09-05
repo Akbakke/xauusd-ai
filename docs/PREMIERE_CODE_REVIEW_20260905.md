@@ -2,6 +2,23 @@
 
 ## Authorized handover repair and one canonical smoke
 
+Source repair is committed as `e25a8cb6`. Its new canonical smoke recipe is
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
+SHA-256 `cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7`.
+The paired, unexecuted candidate recipe SHA-256 is
+`7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f`; new CPU readiness is
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json`,
+SHA-256 `8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf` (all five checks PASS).
+Actual direct-dataset handover validation passed on these files while the
+old execution hold was still present. The hold is now cleared only for the
+operator's one smoke; the selected recipe is explicitly dry-run PENDING.
+All admission fields remain BLOCK/empty. No CUDA attempt has started yet.
+All 68 real handover/current-dataset transition tests now pass
+(`/tmp/gx1-smoke-real-handover-transition-confirm-20260905.xml`), after
+updating two stale historical status-text expectations. No production check
+was weakened. The current smoke reference is checked against its actual
+immutable recipe; executed references also require the real bundle commit.
+
 After CPU preparation, the operator authorized one canonical gate-smoke and
 then explicitly authorized repairing its handover linkage. Pre-launch
 inspection reproduced `CURRENT_AUDITED_DATASET_EXECUTION_CAUSALITY_EXPECTATION_INVALID`:
