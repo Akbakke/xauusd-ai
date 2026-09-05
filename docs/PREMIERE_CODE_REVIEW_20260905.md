@@ -1,6 +1,57 @@
 # Pre-training code review — 2026-09-05
 
-## Authorized handover repair and one canonical smoke
+## Completed canonical smoke — 2026-09-05
+
+Exactly one authorized canonical smoke completed with process/watchdog exit 0.
+No automatic retry, separate VAL prediction pass, full candidate, TEST,
+acceptance, paper or live execution occurred. The execution hold is restored.
+
+- Recipe: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
+  SHA-256 `cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7`.
+- Source: `e25a8cb6377eec496d1863c667c0d6cff785d86a`; clean launch checkout `8c3760b0`.
+- Bundle: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_BUNDLE`.
+- Commit-manifest file SHA-256: `26e6ba3e61e915ec9cdf299680a7f07ab83453b4ddfce5d42546518201bfb036`.
+- Bundle commit SHA-256: `8a9b197b805e6c373f0e17a3cf4bf0f7559cd43936431ce03cb325ce3c7bfc5d`.
+- Bundle metadata SHA-256: `2372aeb7fd90136811d455b74325a97ddc4c39ddb2ab2ec3ac2716c0d1cfd9df`.
+- Watchdog: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_BUNDLE.guard.y5LogBp8.log`.
+- Trainer output: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_BUNDLE.trainer.7fNwucFq.log`.
+
+The trainer completed epoch 1 with batch 8 and 32 TRAIN / 32 VAL rows,
+strictly reloaded its staged bundle and atomically published it. Independent
+CPU verification rehashed the bundle commit and matched recipe/source
+provenance in metadata and lock. Both normal handover modes then verified the
+executed reference and bundle before the hold was restored.
+
+Measured watchdog terminal aggregates: 311 samples; peaks 61 C core, 60 C
+memory junction, 158.56 W draw, 9458 MiB VRAM. Published power-limit samples
+were 160 W and the guard enforced that ceiling throughout. No stop, kill or
+fatal event occurred. Use the terminal aggregate, not the initial
+`event=telemetry` row or sparse heartbeats, for these maxima.
+
+All ten joint tasks were supervised, received gradients and moved from
+neutral; Entry fitted-Q and Exit component movement passed. Technical smoke
+admission was `strict_ok=0 technical_ok=1` under the existing smoke policy.
+Strict warnings were `trendline_event` diagnostic support
+`rows_by_column=[3,12,32,32]` and constant/dead Exit cooperation-gate indices
+`[166,175]`. These are not all-clear candidate-quality evidence and were not
+waived or repaired during this run. Selected smoke VAL PnL was
+`-15.70416259765625` bps; the tiny trained sample establishes no trading edge.
+Full-population normalization used 313399 Entry TRAIN decisions and zero
+VAL/TEST fit rows.
+
+Next execution requires new scoped authority for guarded VAL predictions from
+this exact bundle, then post-run audit/readiness and an exact candidate gate.
+Full candidate training and every admission/TEST/paper/live route stay closed.
+
+After recording the executed bundle and restoring the hold, all 68 focused
+handover/current-dataset tests passed with zero failures/errors/skips
+(`/tmp/gx1-smoke-terminal-handoff-20260905.xml`). No executable source changed
+after the smoke; the terminal update contains status and documentation only.
+
+## Handover repair and pre-launch record
+
+The paragraphs below record the preparation states before the completed run;
+they are retained history, not a new permission to execute.
 
 Source repair is committed as `e25a8cb6`. Its new canonical smoke recipe is
 `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
@@ -10,11 +61,12 @@ The paired, unexecuted candidate recipe SHA-256 is
 `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json`,
 SHA-256 `8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf` (all five checks PASS).
 Actual direct-dataset handover validation passed on these files while the
-old execution hold was still present. The hold is now cleared only for the
-operator's one smoke. Both normal handover modes pass from clean commit
-`dea9246a`, and the exact official launcher dry-run passes: canonical smoke,
+old execution hold was still present. The hold was then cleared only for the
+operator's one smoke. Both normal handover modes passed from clean commit
+`dea9246a`, and the exact official launcher dry-run passed: canonical smoke,
 batch 8, one epoch, 32 rows per split, no candidate gate and TEST unopened.
-All admission fields remain BLOCK/empty. No CUDA attempt has started yet.
+All admission fields remained BLOCK/empty. No CUDA attempt had started at
+that pre-launch checkpoint.
 All 68 real handover/current-dataset transition tests now pass
 (`/tmp/gx1-smoke-real-handover-transition-confirm-20260905.xml`), after
 updating two stale historical status-text expectations. No production check
@@ -51,7 +103,7 @@ This authorization covers exactly one canonical 32-row-per-split smoke;
 separate VAL predictions, full candidate, TEST, acceptance, paper and live
 remain unauthorized.
 
-## Completed CPU successor — 2026-09-05
+## Historical CPU successor completion — 2026-09-05
 
 The authorized CPU goal is complete: corrected TRAIN-only target policy/ranking
 and sizing, new TRAIN/VAL datasets and lifecycle, all affected CPU audits,
@@ -59,9 +111,9 @@ two new source-bound recipes and direct CPU trainability-readiness.
 The active execution hold remains BLOCK; its reason is now
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 No successor CUDA, full candidate training, physical TEST access, candidate
-acceptance, paper or live activity occurred. The launch state's retained
-`current_source_technical_recipe` and old gate are historical records, not
-authority for this successor.
+acceptance, paper or live activity occurred during that CPU phase. The launch
+state's then-retained `current_source_technical_recipe` and old gate were
+historical records, not authority for this successor.
 
 All paths in the following inventories are relative to:
 

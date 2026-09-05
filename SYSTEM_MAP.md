@@ -10,7 +10,9 @@ remains BLOCK with reason
 The September 4 smoke/VAL/gate are historical, not execution evidence for the
 corrected short-return data and repaired code. Architecture, split boundaries
 and candidate settings (batch 8, at most 30 epochs, patience 5) are unchanged.
-Successor runtime evidence is still pending. The Windows task is configured
+Exactly one successor canonical smoke completed with exit 0 and a verified
+bundle; strict quality warnings, guarded VAL predictions and post-run
+audit/readiness remain to be resolved. The Windows task is configured
 for 160 W; later CUDA needs clean handover/preflight, fresh signed telemetry
 and new scoped operator authorization. TEST, paper and live remain unauthorized.
 
@@ -283,9 +285,10 @@ The 2026-09-04 smoke audit failed only its strict specialist top-rank quality
 heuristic; its technical contract supported an immutable candidate gate.
 That gate is historical evidence after the 2026-09-05 source and short-return
 contract repairs. The corrected target/policy/audit rebuild, both new recipes
-and CPU readiness are now complete. A successor canonical gate-smoke and
-guarded VAL/runtime evidence still need new scoped authority, clean
-handover/preflight and fresh signed telemetry. Their new candidate gate is a
+and CPU readiness are now complete. Exactly one successor canonical gate-smoke
+completed; do not repeat it automatically. Guarded VAL predictions from its
+exact bundle still need new scoped authority, clean handover/preflight and
+fresh signed telemetry. Post-run audit/readiness and a new candidate gate are a
 prerequisite for separately authorized full training. CPU readiness does not
 automatically launch a CUDA probe.
 No trading-edge, candidate acceptance or production claim follows.

@@ -4,8 +4,9 @@
 > complete under `entry_causal_m1_outcomes_v2_entry_notional_pnl`, with new
 > TRAIN-only policy/ranking/sizing, 313399 TRAIN / 5509 VAL rows and passing CPU
 > audits/readiness. Original split boundaries and physical TEST sealing are
-> preserved. New source-bound recipes exist, but no successor CUDA has run and
-> the execution hold remains active. Runtime and CUDA
+> preserved. Exactly one source-bound successor canonical smoke completed;
+> guarded VAL predictions and post-run audit remain pending. The execution
+> hold is restored. Runtime and CUDA
 > authority are in [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md)
 > and `scripts/gx1_handover.sh`, not this contract's historical session text.
 

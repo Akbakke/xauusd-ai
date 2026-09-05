@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T15:33:00Z",
+  "updated_utc": "2026-09-05T15:44:29Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -19,7 +19,10 @@
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
     "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
     "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
-    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED"
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "bundle_commit_manifest_sha256": "26e6ba3e61e915ec9cdf299680a7f07ab83453b4ddfce5d42546518201bfb036",
+    "bundle_commit_sha256": "8a9b197b805e6c373f0e17a3cf4bf0f7559cd43936431ce03cb325ce3c7bfc5d",
+    "bundle_metadata_sha256": "2372aeb7fd90136811d455b74325a97ddc4c39ddb2ab2ec3ac2716c0d1cfd9df"
   },
   "decision": "BLOCK",
   "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -166,5 +169,12 @@
   "current_pretest_trainability_readiness": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json",
     "sha256": "8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf"
+  },
+  "pretraining_review_hold": {
+    "schema_version": "gx1_pretraining_review_hold_v1",
+    "decision": "BLOCK",
+    "reason": "SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE",
+    "activation_authority": false,
+    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
   }
 }

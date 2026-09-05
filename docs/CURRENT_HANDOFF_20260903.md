@@ -18,25 +18,48 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-The operator has authorized exactly one successor canonical gate-smoke and
-the handover-linkage repair. The review hold is cleared solely for this scoped
-transition; clean handover and exact launcher dry-run now PASS. The smoke is
-not yet executed. Full
-candidate, separate VAL prediction, TEST, acceptance, paper and live remain
-unauthorized. The admission verdict remains BLOCK.
+Exactly one authorized successor canonical gate-smoke completed on 2026-09-05.
+The process and watchdog exited 0, and the immutable bundle passed strict
+reload/publication and a separate CPU commit/provenance verification. This is
+technical smoke evidence only, not candidate acceptance or an edge result.
 
-Current smoke: `ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
-SHA-256 `cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7`, source `e25a8cb6377eec496d1863c667c0d6cff785d86a`.
-Current candidate recipe (not authorized to execute):
-`ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json`,
-SHA-256 `7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f`.
-Both retain the exact CPU successor data and trainer configurations.
-The fresh readiness decision is `READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`,
-with all five checks passing and training/activation authority false:
+The run used batch 8, one epoch and 32 deterministic TRAIN / 32 VAL rows from
+the unchanged five-year dataset. All ten joint tasks had supervision,
+gradients and parameter movement. The existing technical smoke admission
+passed; strict candidate-quality checks did not all pass: sparse
+`trendline_event` support and two constant Exit cooperation-gate indices
+(166, 175) were reported. Small-sample selected VAL PnL was
+`-15.70416259765625` bps, not a backtest or production result.
+
+Current smoke recipe: `ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json`,
+SHA-256 `cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7`.
+Source: `e25a8cb6377eec496d1863c667c0d6cff785d86a`.
+Bundle: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_BUNDLE`.
+Bundle commit SHA-256: `8a9b197b805e6c373f0e17a3cf4bf0f7559cd43936431ce03cb325ce3c7bfc5d`.
+Exact sidecar paths and remaining bindings are in
+[the review/execution report](PREMIERE_CODE_REVIEW_20260905.md).
+
+The watchdog's terminal aggregate records 311 verified samples, no stop/fatal
+event, and peaks of 61 C core, 60 C memory junction, 158.56 W draw and 9458 MiB
+VRAM; the physical limit was 160 W. These are the full-run guard aggregates,
+not just the less frequent heartbeat snapshots.
+
+The execution hold is restored:
+`SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
+The selected recipe status is
+`EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY`.
+Do not repeat this smoke or launch full training automatically. The next
+separately authorized runtime step is guarded VAL prediction from this exact
+bundle, followed by its post-run audit/readiness and candidate gate. TEST,
+candidate acceptance, paper and live remain unauthorized.
+
+New CPU readiness remains report-only, with all five checks passing:
 `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json`,
 SHA-256 `8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf`.
-Normal handover now validates this direct TRAIN/VAL chain rather than treating
-the retained V46 reports as current. See the review report for repair evidence.
+The paired candidate recipe is unexecuted:
+`/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json`,
+SHA-256 `7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f`.
+Both recipes bind the unchanged successor TRAIN/VAL artifact set.
 
 ### Completed CPU preparation before handover rebind
 
@@ -68,8 +91,9 @@ Under that root:
   Decision `READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`; all five checks
   pass, with candidate training and activation explicitly false.
 
-Both recipes bind source `406c732e` and the same new artifact set. Neither
-recipe has executed; no successor CUDA or full five-year candidate has started.
+These two preparation recipes bind source `406c732e` and the same new artifact
+set. Neither executed; both were superseded by the `e25a8cb6` handover rebind
+above. No full five-year candidate has started.
 The exact September 4 smoke, guarded VAL pass and candidate gate remain
 historical. Their old source/data cannot certify this successor.
 
@@ -80,8 +104,9 @@ passing cases and no unresolved failures; the last fullsuite alone was not
 all-green. The report preserves that distinction and its XML records.
 
 During the completed CPU phase, normal handover deliberately exited 2 while
-the execution hold was active. That hold has now been cleared for the one
-explicitly authorized smoke, not for full candidate or separate VAL execution.
+the execution hold was active. That hold was cleared only for the one
+explicitly authorized smoke and has now been restored. It never authorized
+full candidate or separate VAL execution.
 `bash scripts/gx1_handover.sh --source-only` checks source hygiene without
 authorizing training or consulting old runtime evidence. Do not remove the
 hold merely to obtain a green normal handover.
@@ -245,17 +270,17 @@ process watchdog serve separate purposes. Historical 70 C / 220 W runs do not
 define current limits.
 
 The corrected CPU target/policy/audit chain and new recipes/readiness are now
-complete. No further CUDA work, including another 31,004-step TRAIN, is
-authorized by that result. Remaining execution sequence:
+complete, and the one authorized canonical smoke has completed. No further
+CUDA work is authorized by that result. Remaining execution sequence:
 
-1. Obtain new explicit scoped authorization for one successor canonical
-   gate-smoke. Record the reviewed hold transition and require clean executable
-   handover/exact launch preflight. Re-probe signed Windows telemetry immediately
-   before launching and require the physical-limit field to remain 160 W.
-2. Obtain successor guarded VAL/runtime evidence under its own scoped authority,
-   then materialize the new candidate gate from that exact source/data/bundle.
-   Do not require the full-candidate gate before its prerequisite smoke, or
-   substitute the historical September 4 gate.
+1. Do not repeat the completed smoke. Obtain new explicit scoped authorization
+   for guarded VAL predictions from its exact bundle. Record the reviewed hold
+   transition and require clean executable handover/exact launch preflight.
+   Re-probe signed Windows telemetry immediately before launching and require
+   the physical-limit field to remain 160 W.
+2. Complete successor post-run audit/readiness and materialize the new candidate
+   gate from that exact source/data/bundle. Do not substitute the historical
+   September 4 gate or treat strict quality warnings as resolved by exit 0.
 3. Full candidate launch needs the successor runtime gate, clean launch
    preflight, fresh signed 160 W telemetry and explicit full-candidate authority.
 

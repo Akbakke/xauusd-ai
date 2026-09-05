@@ -8,15 +8,18 @@ Read [`docs/CURRENT_HANDOFF_20260903.md`](docs/CURRENT_HANDOFF_20260903.md)
 next, then run `bash scripts/gx1_handover.sh --check` and
 `bash scripts/gx1_handover.sh`. The corrected five-year TRAIN/VAL successor,
 TRAIN-only policy/ranking/sizing, data audits, source-bound smoke/candidate
-recipes and CPU trainability-readiness are complete and PASS. Source is
-`406c732e`; actual populations are 313399 TRAIN and 5509 VAL rows. The candidate
+recipes and CPU trainability-readiness are complete and PASS. After the
+handover repair, current recipes bind source `e25a8cb6`; actual populations
+are 313399 TRAIN and 5509 VAL rows. The candidate
 configuration remains batch 8, at most 30 epochs and early-stop patience 5.
 The active hold reason is
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 CPU readiness does not authorize execution. The 2026-09-04 smoke, VAL pass and
 candidate gate remain historical; their execution cannot certify corrected
-short-return data or repaired trainer/lifecycle/watchdog code. No successor
-CUDA or full five-year candidate has started. TEST, candidate acceptance,
+short-return data or repaired trainer/lifecycle/watchdog code. Exactly one
+successor canonical smoke completed with exit 0 and a verified bundle. Its
+strict quality warnings remain; guarded VAL prediction and post-run audit are
+pending. No full five-year candidate has started. TEST, candidate acceptance,
 paper and live remain closed. Exact evidence is in the current handoff and
 [`docs/PREMIERE_CODE_REVIEW_20260905.md`](docs/PREMIERE_CODE_REVIEW_20260905.md).
 
@@ -328,13 +331,13 @@ commands. Generated-run cleanup must use the retention contract, not `rm`.
 1. CPU review verification, corrected five-year TRAIN/VAL rebuild, all affected
    audits and both new recipes/readiness are complete. Preserve these immutable
    artifacts; do not repeat production or relabel historical CUDA evidence.
-2. Next execution requires new explicit scoped operator authorization. Only
-   then transition the hold through the reviewed control path, require clean
-   handover/exact preflight and fresh signed 160 W telemetry, and execute the
-   exact successor canonical gate-smoke. CPU source hygiene can be checked
-   independently with `bash scripts/gx1_handover.sh --source-only`.
-3. Obtain successor guarded VAL/runtime evidence under its own scoped authority
-   and materialize the new candidate gate. The old gate cannot substitute.
+2. The one authorized successor canonical gate-smoke is complete; do not repeat
+   it. The hold is restored. CPU source hygiene can be checked independently
+   with `bash scripts/gx1_handover.sh --source-only`.
+3. Obtain successor guarded VAL predictions from the exact new bundle only
+   under new scoped operator authority, a reviewed hold transition, clean
+   handover/preflight and fresh signed 160 W telemetry. Then complete its
+   post-run audit/readiness and new candidate gate. The old gate cannot substitute.
 4. Full candidate training requires that successor runtime gate, a clean
    launch preflight, fresh signed 160 W telemetry and explicit full-candidate
    authorization. Preserve sealed TEST throughout preparation.

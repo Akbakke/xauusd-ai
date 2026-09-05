@@ -21,12 +21,14 @@ short human restart point. The corrected five-year TRAIN/VAL data, affected
 CPU audits, new source-bound smoke/candidate recipes and CPU readiness are
 complete. The execution hold remains BLOCK with reason
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
-Historical CUDA evidence cannot certify this successor. No successor CUDA or
-full five-year candidate has started; physical TEST remains sealed. Query
-`bash scripts/gx1_handover.sh`, never a prose checkpoint. A successor smoke
-requires new scoped authority, a reviewed hold transition, clean preflight and
-fresh signed 160 W telemetry. A later full candidate also needs successor
-runtime evidence and its dataset-bound candidate gate. CPU readiness alone
+Historical CUDA evidence cannot certify this successor. Exactly one successor
+canonical smoke completed with exit 0 and a verified bundle; strict quality
+warnings remain. No full five-year candidate has started; physical TEST remains
+sealed. Query `bash scripts/gx1_handover.sh`, never a prose checkpoint. Do not
+repeat the smoke. Next guarded VAL predictions require new scoped authority,
+a reviewed hold transition, clean preflight and fresh signed 160 W telemetry.
+A later full candidate also needs successor post-run audit/readiness and its
+dataset-bound candidate gate. CPU readiness alone
 grants none of these execution authorities.
 
 The detailed V4/V5 text below is retained historical context, not status.

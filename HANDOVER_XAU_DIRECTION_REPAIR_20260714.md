@@ -11,8 +11,10 @@ recipes and CPU readiness are complete. The execution hold remains active:
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 The Windows task maintains the configured 160 W cap, but a fresh signed
 response, clean handover/preflight and new scoped authorization are still
-required for successor CUDA evidence. No successor CUDA or full five-year
-candidate has started. TEST, candidate acceptance, paper and live remain closed.
+required for further successor CUDA work. Exactly one canonical successor smoke
+completed with exit 0 and a verified bundle; guarded VAL predictions and
+post-run audit remain pending. No full five-year candidate has started. TEST,
+candidate acceptance, paper and live remain closed.
 
 > **Historical V9 terminal status — 2026-09-03:** V9 completed exactly **31,004
 > TRAIN optimizer steps** and the full **8,860-batch VAL** pass. Its

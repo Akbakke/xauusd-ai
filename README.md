@@ -9,20 +9,23 @@ Start with [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
 `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
 The corrected five-year TRAIN/VAL rebuild is complete: 313399 TRAIN rows,
 5509 VAL rows, new TRAIN-only policy/ranking/sizing and passing CPU audits.
-New smoke and candidate recipes bind reviewed source `406c732e` and the exact
+New smoke and candidate recipes bind reviewed source `e25a8cb6` and the exact
 new data. CPU trainability-readiness passes all five checks; candidate settings
 remain batch 8, at most 30 epochs and early-stop patience 5.
 Execution is still held with reason
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 The September 4 smoke, VAL pass and candidate gate are historical evidence;
-they do not certify the corrected short-return data and repaired code. No
-successor CUDA or full five-year candidate has started. The next execution is
-the successor canonical gate-smoke only after new scoped authorization, clean
-handover/preflight and fresh signed 160 W telemetry. Full training additionally
-needs successor VAL/runtime evidence and its new candidate gate.
+they do not certify the corrected short-return data and repaired code. Exactly
+one successor canonical gate-smoke completed with exit 0 and a verified bundle.
+Strict quality checks reported sparse `trendline_event` support and two
+constant Exit gates; this is technical pipeline evidence only. No full five-year
+candidate has started. The next runtime step is guarded VAL prediction from
+that exact bundle, requiring new scoped authorization, clean handover/preflight
+and fresh signed 160 W telemetry. Full training additionally needs successor
+post-run audit/readiness and its new candidate gate.
 
 All eight specialist gates must be finite, positive and state-varying, with
-the required training-connectivity evidence. The smoke's seven never-top-ranked
+the required training-connectivity evidence. The September 4 smoke's seven never-top-ranked
 families failed a separate quality heuristic; that is not evidence that seven
 families are disconnected and does not establish market edge either way.
 The Windows task is configured to maintain the physical 160 W cap. Any future CUDA launch requires

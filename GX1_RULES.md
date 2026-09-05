@@ -13,13 +13,15 @@ but explicitly keeps candidate training and activation false. The hold remains
 BLOCK with reason
 `SUCCESSOR_CPU_READY_REQUIRES_SCOPED_CUDA_AUTHORIZATION_AND_RUNTIME_EVIDENCE`.
 The 2026-09-04 smoke/VAL/gate certify historical bytes only. New source-bound
-recipes use `406c732e`, corrected entry-notional short returns and the new
+recipes use `e25a8cb6`, corrected entry-notional short returns and the new
 313399-row TRAIN / 5509-row VAL dataset; architecture and candidate settings
 (batch 8, at most 30 epochs, patience 5) are unchanged.
-Do not start CUDA from CPU readiness. A successor canonical gate-smoke requires
-new scoped operator authorization, a reviewed hold transition, clean handover,
-exact preflight and fresh signed 160 W telemetry. Successor VAL/runtime
-evidence and a new candidate gate are still required before separately
+Exactly one successor canonical gate-smoke completed with exit 0 and a verified
+bundle; strict quality warnings remain. Do not repeat it or start CUDA from
+CPU readiness. Successor guarded VAL predictions require new scoped operator
+authorization, a reviewed hold transition, clean handover, exact preflight and
+fresh signed 160 W telemetry. Post-run audit/readiness and a new candidate
+gate are still required before separately
 authorized full training. TEST, candidate acceptance, promotion, paper and
 live remain blocked.
 
