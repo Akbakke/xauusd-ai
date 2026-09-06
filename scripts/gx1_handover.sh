@@ -16,6 +16,7 @@ sources=(
   "$REPO/GX1_RULES.md"
   "$REPO/README.md"
   "$REPO/SYSTEM_MAP.md"
+  "$REPO/passord.md"
   "$HANDOVER"
   "$REPO/docs/CURRENT_AUDIT_STATUS_20260828.md"
   "$REPO/docs/CURRENT_HANDOFF_20260903.md"
@@ -487,6 +488,43 @@ def _active_candidate_session_status(launch_state: dict) -> tuple[str, ...]:
         raise SystemExit("FATAL: active candidate contract identity mismatch")
     contract_sha256 = _canonical_session_json_sha256(contract)
 
+    recovery_reference = launch_state.get("candidate_guard_recovery")
+    if recovery_reference is not None:
+        if not isinstance(recovery_reference, dict) or set(recovery_reference) != {"path", "sha256"}:
+            raise SystemExit("FATAL: candidate guard recovery reference is invalid")
+        recovery_path = Path(str(recovery_reference["path"]))
+        if not recovery_path.is_absolute() or recovery_path.resolve() != recovery_path:
+            raise SystemExit("FATAL: candidate guard recovery path is invalid")
+        recovery = _read_regular_json(recovery_path, label="guard recovery")
+        if (
+            _sha256_file(recovery_path) != recovery_reference["sha256"]
+            or recovery.get("schema_version") != "gx1_candidate_guard_recovery_v1"
+            or recovery.get("decision") != "PASS_EXACT_STATE_TRANSFER_NOT_CUDA_AUTHORITY"
+            or recovery.get("activation_authority") is not False
+            or recovery.get("test_accessed") is not False
+            or recovery.get("original_session_preserved") is not True
+            or recovery.get("successor_recipe") != {
+                "path": str(recipe_path), "sha256": reference["recipe_audit_sha256"]
+            }
+            or recovery.get("successor_session_dir") != str(session_dir)
+            or recovery.get("successor_contract_sha256") != contract_sha256
+            or recovery.get("changed_recipe_source_bindings") != ["trainer_safety_guard"]
+            or recovery.get("incident_timing", {}).get("saved_update_precedes_guard_exit") is not True
+            or _read_regular_json(session_dir / "CANDIDATE_GUARD_RECOVERY_ORIGIN.json", label="guard recovery origin") != recovery_reference
+        ):
+            raise SystemExit("FATAL: candidate guard recovery identity mismatch")
+        for name in ("original_recipe", "original_contract", "original_pointer", "original_state", "incident_guard_log", "incident_trainer_log"):
+            binding = recovery.get(name)
+            if not isinstance(binding, dict) or set(binding) != {"path", "sha256"}:
+                raise SystemExit("FATAL: candidate guard recovery preserved binding invalid")
+            preserved_path = Path(binding["path"])
+            if (
+                not preserved_path.is_absolute() or preserved_path.is_symlink()
+                or not preserved_path.is_file() or preserved_path.resolve() != preserved_path
+                or _sha256_file(preserved_path) != binding["sha256"]
+            ):
+                raise SystemExit(f"FATAL: candidate guard recovery preserved input changed: {name}")
+
     pointer = _read_regular_json(
         session_dir / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json", label="pointer"
     )
@@ -575,6 +613,10 @@ def _current_source_technical_recipe_status(
         "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__"
         "EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
     )
+    candidate_recovery_status = (
+        "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__"
+        "CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY"
+    )
     expected_reference_keys = set(base_reference_keys)
     if isinstance(reference, dict) and reference.get("status") in {
         executed_status, audited_status, gated_status,
@@ -584,7 +626,7 @@ def _current_source_technical_recipe_status(
             "bundle_metadata_sha256",
         })
     if isinstance(reference, dict) and reference.get("status") in {
-        audited_status, gated_status, candidate_gated_status,
+        audited_status, gated_status, candidate_gated_status, candidate_recovery_status,
     }:
         expected_reference_keys.update({
             "postrun_bundle_audit_path", "postrun_bundle_audit_sha256",
@@ -592,7 +634,7 @@ def _current_source_technical_recipe_status(
             "candidate_readiness_sha256", "candidate_readiness_decision",
         })
     if isinstance(reference, dict) and reference.get("status") in {
-        gated_status, candidate_gated_status,
+        gated_status, candidate_gated_status, candidate_recovery_status,
     }:
         expected_reference_keys.update({
             "candidate_launch_gate_path", "candidate_launch_gate_sha256",
@@ -607,7 +649,7 @@ def _current_source_technical_recipe_status(
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
         "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
         executed_status, audited_status, gated_status, prepared_candidate_status,
-        candidate_gated_status,
+        candidate_gated_status, candidate_recovery_status,
     }:
         raise SystemExit("FATAL: current-source technical recipe status is invalid")
     for key in ("recipe_path", "out_bundle_dir"):
@@ -638,7 +680,7 @@ def _current_source_technical_recipe_status(
             recipe,
             expected_profile=(
                 "candidate"
-                if status in {prepared_candidate_status, candidate_gated_status}
+                if status in {prepared_candidate_status, candidate_gated_status, candidate_recovery_status}
                 else "smoke"
             ),
             expected_run_id=reference["run_id"],
@@ -657,7 +699,7 @@ def _current_source_technical_recipe_status(
         or validated["trainer_cli"].get("device") != "cuda"
     ):
         raise SystemExit("FATAL: current-source technical recipe contract mismatch")
-    if status in {prepared_candidate_status, candidate_gated_status}:
+    if status in {prepared_candidate_status, candidate_gated_status, candidate_recovery_status}:
         cli = validated["trainer_cli"]
         policy = checkpoint_policy_metadata()
         if (
@@ -683,10 +725,12 @@ def _current_source_technical_recipe_status(
     ):
         raise SystemExit("FATAL: current-source technical recipe live source mismatch")
     out_bundle_dir = Path(reference["out_bundle_dir"])
-    if status in {prepared_candidate_status, candidate_gated_status}:
+    if status in {prepared_candidate_status, candidate_gated_status, candidate_recovery_status}:
         if out_bundle_dir.exists() or out_bundle_dir.is_symlink():
             raise SystemExit("FATAL: five-year candidate recipe has executed CUDA")
-        if status == candidate_gated_status:
+        if status == candidate_recovery_status and launch_state.get("candidate_guard_recovery") is None:
+            raise SystemExit("FATAL: candidate guard recovery authority is missing")
+        if status in {candidate_gated_status, candidate_recovery_status}:
             for prefix, expected_decision in (
                 ("postrun_bundle_audit", "FAIL"),
                 ("candidate_readiness", "READY_FOR_CANDIDATE_TRAINING"),
@@ -746,6 +790,11 @@ def _current_source_technical_recipe_status(
                 "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
                 "CANDIDATE_GATE_READY__CUDA_NOT_EXECUTED"
             )
+            if status == candidate_recovery_status:
+                closure = (
+                    "LIVE_SOURCE_BYTES_MATCH_RECIPE__GUARD_RECOVERY_VERIFIED__"
+                    "CANDIDATE_GATE_READY__PUBLISHED_BUNDLE_ABSENT"
+                )
         else:
             closure = (
                 "LIVE_SOURCE_BYTES_MATCH_RECIPE__CPU_PREFLIGHT_PASS__"
@@ -1129,14 +1178,22 @@ echo
 echo "## Resume boundary"
 echo "scope: OFFLINE_SHARED_FEATUREBASE_ONLY"
 echo "source_identity_gate: $source_identity_gate"
-echo "resume_stage: V9_TERMINAL_TECHNICAL_RESULT_RETAINED__NO_RESUME_OR_NEW_CUDA_AUTHORITY"
+if [[ "$current_source_technical_recipe_status" == *"__VERIFIED_GUARD_RECOVERY__"* ]]; then
+  echo "resume_stage: VERIFIED_GUARD_RECOVERY__CONTINUE_EXACT_CURRENT_SESSION__DO_NOT_RESET_TRAIN"
+else
+  echo "resume_stage: V9_TERMINAL_TECHNICAL_RESULT_RETAINED__NO_RESUME_OR_NEW_CUDA_AUTHORITY"
+fi
 echo "dataset_rebuild: NOT_REQUIRED_FOR_OFFLINE_RESEARCH; PRODUCTION_ECONOMICS_REVIEW_MAY_REQUIRE_A_SUCCESSOR"
 echo "production_economics_blocker: $audited_dataset_blocker"
 echo "capacity: audits=4G training_max=20G swap=512M candidate_cpu_affinity=0-7 dataloader_workers=0 one_job_at_a_time"
 echo "local_cuda: V9_FULL_TECHNICAL_TRAIN_VAL_COMPLETED__NO_CANDIDATE_ACCEPTANCE"
 echo "cuda_speed_history: CUDA_ACTIVATION_RETENTION_0_45_ALLOCATOR_FENCE_FP32_ONLY__64_BATCHES_101_889S_TO_86_863S__NOT_A_CURRENT_LAUNCH_PERMISSION"
 echo "host_telemetry: FRESH_SIGNED_160W_RESPONSE_REQUIRED_AFTER_EACH_RESTART_OR_DRIVER_RESET"
-echo "current_cuda_authority: EXACT_RECIPE_ONLY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_SCOPED_AUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+if [[ "$current_source_technical_recipe_status" == *"__VERIFIED_GUARD_RECOVERY__"* ]]; then
+  echo "current_cuda_authority: OPERATOR_APPROVED_EXACT_SESSION_CONTINUATION__CLEAN_PREFLIGHT_AND_FRESH_SIGNED_160W_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+else
+  echo "current_cuda_authority: EXACT_RECIPE_ONLY__CLEAN_PREFLIGHT_FRESH_SIGNED_160W_AND_EXPLICIT_SCOPED_AUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
+fi
 echo "remote_compute: PREPARE_ONLY_UNTIL_EXPLICIT_COST_APPROVAL_FROZEN_COMMIT_AND_V46_HASHES_REQUIRED"
 echo "environment: CPYTHON_3.10.12 PINNED_DIRECT_REQUIREMENTS"
 echo "ordered_control_routes:"

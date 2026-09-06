@@ -2,6 +2,50 @@
 
 ## Current operator-approved continuation
 
+2026-09-06: the operator has approved controlled checkpoint recovery after the
+guard incident, retaining all existing limits. CPU preparation is in progress;
+the launch hold is not yet cleared. The selected design preserves the original
+session and uses a new standard recipe/session with byte-identical learning
+state. Only the reviewed guard may differ in the recipe's executable closure.
+No production trainer, model, source validator, session protocol or runtime
+compatibility lane is being changed. See the current handoff for the plan;
+real checkpoint transfer is still pending; CPU implementation verification is complete.
+
+Recovery preparation evidence, 2026-09-06:
+
+- Source proof: rehashing all 105 historical recipe bindings still finds only
+  `trainer_safety_guard` changed. The new recovery utility and handover renderer
+  are outside that unchanged learning closure. No source-check exception was
+  added to the canonical launcher or session owner.
+- Measured on the real preserved checkpoint: strict CPU session loading passes
+  at checkpoint 125 / 7936 steps; the epoch order has all 313399 TRAIN rows;
+  online, target, optimizer and EMA tensors are finite. The pointer file SHA is
+  `645cd547316bf43f6b84a09d4b83ee98cc282771bece658a5efdc76dc52a4a51`.
+- Exact incident logs: optimizer/EMA step 7936 completed at
+  `2026-09-05T19:56:30.184Z`, guard exit logged at `19:56:32Z`, and checkpoint
+  serialization completed at `19:56:32.468Z`. The unchanged `train_epoch`
+  executes optimizer plus EMA before `step_done`, then synchronously calls the
+  checkpoint hook before another batch. The saved update predates guard exit;
+  this does not prove continuous signed telemetry after guard exit.
+- Mechanical CPU tests: 29 checkpoint/transfer tests passed, including a real
+  two-slot atomic transfer with mocked recipe/Git gates. This proves the
+  transfer mechanics, not market-data or CUDA behavior. Negative cases reject
+  learning/data/run/path changes, late/ambiguous updates, nonfinite tensors,
+  existing successor directories and mixed CLI modes.
+- Affected verification: 93 tests passed
+  (`/tmp/gx1-guard-recovery-focused-fixed-20260906.xml`). The first affected
+  run found the newly requested `passord.md` missing from the handover
+  fingerprint inventory. Both the real inventory and its assertion now
+  include it; the marker's content was not changed. The previously reported
+  2477-test run predated that marker addition and was not a complete check of
+  the final previous commit.
+- All shell syntax, capped Python compilation and diff whitespace checks pass.
+- Complete CPU regression: all 2496 tests passed, zero failures/errors/skips,
+  659.532 seconds (`/tmp/gx1-guard-recovery-full-20260906.xml`), under the existing
+  4G audit cap. Handover's marker inventory was aligned with the test's explicit
+  path order; the subsequent real-state handover must also prove this after
+  the hold is cleared. No CUDA has started during this preparation.
+
 ### New terminal safety failure — CUDA continuation held
 
 At 2026-09-05T19:56:32Z, window 3 logged `event=stop reason=guard_exit`.

@@ -22,6 +22,7 @@ AUTHORITY_PATHS = (
     REPO / "GX1_RULES.md",
     REPO / "README.md",
     REPO / "SYSTEM_MAP.md",
+    REPO / "passord.md",
     HANDOVER,
     REPO / "docs/CURRENT_AUDIT_STATUS_20260828.md",
     REPO / "docs/CURRENT_HANDOFF_20260903.md",
@@ -484,11 +485,14 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "## Resume boundary" in result.stdout
-    assert (
-        "resume_stage: "
+    if "candidate_guard_recovery" in json.loads(LAUNCH_STATE.read_text()):
+        assert "resume_stage: VERIFIED_GUARD_RECOVERY__CONTINUE_EXACT_CURRENT_SESSION__DO_NOT_RESET_TRAIN" in result.stdout
+    else:
+        assert (
+            "resume_stage: "
             "V9_TERMINAL_TECHNICAL_RESULT_RETAINED__NO_RESUME_OR_NEW_CUDA_AUTHORITY"
-        in result.stdout
-    )
+            in result.stdout
+        )
     assert re.search(r"source_identity_gate: [A-Z_]+", result.stdout)
     assert (
         "dataset_rebuild: "
@@ -606,7 +610,32 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
         "out_bundle_dir",
     }
-    if "current_pretest_trainability_readiness" in state:
+    if "candidate_guard_recovery" in state:
+        from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import require_pretest_candidate_launch_gate
+        recovery_binding = state["candidate_guard_recovery"]
+        recovery_bytes = Path(recovery_binding["path"]).read_bytes()
+        assert hashlib.sha256(recovery_bytes).hexdigest() == recovery_binding["sha256"]
+        recovery = json.loads(recovery_bytes)
+        assert recovery["decision"] == "PASS_EXACT_STATE_TRANSFER_NOT_CUDA_AUTHORITY"
+        assert recovery["successor_recipe"] == {"path": candidate_session["recipe_audit_path"], "sha256": candidate_session["recipe_audit_sha256"]}
+        assert recovery["successor_session_dir"] == candidate_session["session_dir"]
+        assert current_source_recipe["status"] == "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY"
+        assert current_source_recipe["recipe_path"] == candidate_session["recipe_audit_path"]
+        assert current_source_recipe["recipe_sha256"] == candidate_session["recipe_audit_sha256"]
+        gate = require_pretest_candidate_launch_gate(
+            current_source_recipe["candidate_launch_gate_path"], current_source_recipe["candidate_launch_gate_sha256"],
+            expected_recipe_path=candidate_session["recipe_audit_path"], expected_recipe_sha256=candidate_session["recipe_audit_sha256"],
+        )
+        assert gate["run_id"] == candidate_session["run_id"]
+        for name in ("original_recipe", "original_contract", "original_pointer", "original_state"):
+            binding = recovery[name]
+            assert hashlib.sha256(Path(binding["path"]).read_bytes()).hexdigest() == binding["sha256"]
+        expected_keys.update({
+            "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
+            "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
+            "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
+        })
+    elif "current_pretest_trainability_readiness" in state:
         from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
             require_pretest_technical_recipe_metadata,
         )

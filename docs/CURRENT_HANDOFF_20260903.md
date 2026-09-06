@@ -18,6 +18,37 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
+### Operator-approved guard recovery — 2026-09-06, preparation in progress
+
+The operator explicitly approved the controlled recovery and continuation
+after the guard incident was explained. Do not request new approvals between
+ordinary recovery/preflight/resume steps. The actual launch hold stays active
+until the CPU state transfer, exact current-source recipe, candidate gate and
+clean handover are verified. Fresh signed 160 W telemetry remains mandatory.
+
+Implementation plan: extend the existing checkpoint verifier with a CPU-only
+guard-repair transfer. Require all recipe-bound learning/source bytes to be
+identical except the reviewed `trainer_safety_guard`; preserve all recipe
+learning/data/run-ID fields. Publish a new standard session beside a new output
+location, changing only its output/source provenance and the checkpoint's
+contract digest. Prove every other typed checkpoint component bit-identical.
+Keep the original session, recipes, active checkpoint and incident logs
+untouched. No runtime source-mismatch waiver or trainer/model change is needed.
+The transfer must resolve the checkpoint/guard-exit ordering from exact logs;
+it cannot manufacture continuous telemetry after the guard exited.
+
+CPU implementation verification now passes: 93 affected tests and the complete
+2496-test suite, with zero failures/errors/skips. The preserved real checkpoint
+strictly loads at 7936 steps with all 313399 epoch-order rows and finite learning
+tensors. Its logged optimizer/EMA update precedes guard exit; only checkpoint
+serialization overlaps it. Actual transfer and current-source recipe/gate
+materialization are next; CUDA is still held at this checkpoint in the work.
+
+CPU recipe/readiness rebinding is not another CUDA smoke. Reuse the completed
+smoke/VAL evidence only with the measured guard-only source-difference proof.
+Do not reset TRAIN, rebuild data, access TEST, accept a candidate, or start
+paper/live. The historical stop below remains valid incident evidence.
+
 ### Safety stop — 2026-09-05T19:57:39Z; no CUDA retry
 
 This overrides the ordinary window-resumption instructions below. The third
