@@ -3,13 +3,15 @@
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.
 
-## Current re-entry status — 2026-09-05
+## Current re-entry status — 2026-09-06
 
-Safety update, 19:57 UTC: training is stopped after the third window lost its
-guard. The launch hold is restored; no automatic CUDA retry. Checkpoint 125
-retains 7936 TRAIN steps. See the incident in the current handoff below.
+The operator approved recovery from the guard incident. A new standard session
+preserves all 7936 TRAIN steps and every learning-state component; the original
+session is untouched. The guard repair, CPU transfer, current-source recipes
+and new candidate gate are verified. Continuation of this exact session is
+authorized subject to clean preflight and fresh signed 160 W telemetry.
 
-The full five-year TRAIN/VAL candidate started and is now stopped: 313399 TRAIN rows, 5509 VAL
+The full five-year TRAIN/VAL configuration is unchanged: 313399 TRAIN rows, 5509 VAL
 rows, batch 8, at most 30 epochs and early-stop patience 5. Canonical smoke,
 full VAL prediction, technical readiness and the exact candidate gate completed
 before the safety failure. This is research training, not an accepted or profitable model.

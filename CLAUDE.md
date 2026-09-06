@@ -14,23 +14,25 @@ the work state, and `scripts/gx1_handover.sh` is the executable status owner
 that outranks every document. If they disagree, fail closed and repair the
 documentation and the code together.
 
-## Current re-entry status — 2026-09-05
+## Current re-entry status — 2026-09-06
 
-Safety override, 19:57 UTC: the trainer is stopped after its guard exited
-without stopping the child. `GUARD_EXIT_ORPHANED_CUDA_NO_RETRY` is active;
-checkpoint 125 / 7936 steps is retained. The ordinary resume instructions below
-do not authorize retry after this failure. Read the current handoff incident.
+The operator approved recovery after the guard incident. A CPU-verified transfer
+preserves every learning/progress component at checkpoint 125 / 7936 steps in a
+new standard session, leaving the original untouched. Current-source recipes,
+readiness and the new candidate gate pass; the incident hold is cleared only
+for that exact continuation. Read its immutable recovery report through launch
+state and the current handoff before any resumption.
 
 [The current handoff](docs/CURRENT_HANDOFF_20260903.md) is the restart point.
 The corrected five-year full TRAIN/VAL candidate started under the
-operator's standing authorization and is now held. Its canonical smoke, full VAL predictions,
+operator's standing authorization and now has a verified recovery session. Its canonical smoke, full VAL predictions,
 technical readiness and exact candidate gate are complete. Do not request
 approval again between ordinary in-scope steps, repeat smoke/VAL, or reset
 training. Resolve the current session through `scripts/gx1_handover.sh`.
 
 The preserved candidate remains batch 8, maximum 30 epochs and patience 5;
-its recipe binds source `e25a8cb6`. The guard repair changes that executable
-closure and cannot be substituted into the old session. Every launch/resume requires
+its active recipe binds the repaired guard. All learning-source bytes are
+unchanged; never substitute that recipe into the original session. Every launch/resume requires
 clean source, exact recipe/gate/checkpoint identity and fresh signed 160 W
 telemetry. Keep all watchdog limits. A real safety/data/model failure stops
 progression; only a verified expected time-boundary stop may resume normally.

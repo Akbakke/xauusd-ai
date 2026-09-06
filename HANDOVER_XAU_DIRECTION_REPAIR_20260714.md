@@ -1,8 +1,12 @@
 # GX1 XAUUSD handover
 
-Safety override, 2026-09-05 19:57 UTC: training is stopped after window 3 lost
-its guard. The launch hold is restored; no automatic CUDA retry. Checkpoint
-125 / 7936 steps is retained. Read the current handoff incident first.
+Current recovery, 2026-09-06: the operator-approved guard repair and exact CPU
+transfer are verified. A new standard session preserves checkpoint 125 / 7936
+steps and all learning/progress state; the original session is untouched.
+Fresh recipes/readiness and the new candidate gate pass. Resume only the active
+launch-state session after clean preflight and fresh signed 160 W telemetry;
+no new approval is needed between ordinary steps. The current handoff binds
+the recovery proof and supersedes the historical stopped-session paths below.
 
 Latest runtime update, 2026-09-05: successor VAL prediction and the exact
 technical candidate gate are complete. The operator-authorized full five-year

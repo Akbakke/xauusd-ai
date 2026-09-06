@@ -2,23 +2,25 @@
 
 This file defines the only active project scope.
 
-## Current binding status — 2026-09-05
+## Current binding status — 2026-09-06
 
-Safety override, 19:57 UTC: the third window lost its guard and its surviving
-trainer was stopped. The existing `GUARD_EXIT_ORPHANED_CUDA_NO_RETRY` hold
-revokes CUDA continuation. Checkpoint 125 / 7936 steps remains preserved.
-The ordinary time-boundary resumption approval below does not cover this
-failure. Read the current handoff incident before any further action.
+The operator explicitly approved controlled guard-only recovery and continued
+training. The exact CPU transfer, current-source recipes/readiness and new
+candidate gate have passed. The incident hold is cleared for the new standard
+session referenced by launch state. Its original 7936-step session, checkpoint
+and incident logs remain untouched. This is not a general source-mismatch
+exception: every learning-source byte, data input and training setting remains
+identical, and ordinary source/session validation is unchanged.
 
 Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md).
 The operator authorized the continuous local VAL → audit/readiness → candidate
 gate → unchanged five-year TRAIN/VAL progression without per-step approvals.
 Preparatory runtime gates completed before the full candidate started and
-the guard subsequently failed. The review hold was cleared only for that scope; global admission
+the guard subsequently failed. The reviewed recovery now permits that exact continuation; global admission
 remains BLOCK. Do not repeat the completed smoke/VAL or reset the candidate.
 
-The candidate uses the corrected entry-notional data and source-bound
-`e25a8cb6` recipe: full TRAIN/VAL, batch 8, maximum 30 epochs, patience 5.
+The candidate uses the same corrected entry-notional data and the new
+source-bound recovery recipe: full TRAIN/VAL, batch 8, maximum 30 epochs, patience 5.
 Every new launch or ordinary guarded resumption requires clean source,
 the exact immutable recipe and gate, verified session state where present,
 and fresh signed 160 W telemetry. Safety/data/model failures stop progression;

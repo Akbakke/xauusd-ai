@@ -1,4 +1,4 @@
-# GX1 current re-entry — updated 2026-09-05
+# GX1 current re-entry — updated 2026-09-06
 
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is
@@ -18,40 +18,75 @@ run-directory timestamp. Do not start TRAIN from this document.
 
 ## Current truth
 
-### Operator-approved guard recovery — 2026-09-06, preparation in progress
+### Verified, operator-approved guard recovery — 2026-09-06
 
-The operator explicitly approved the controlled recovery and continuation
-after the guard incident was explained. Do not request new approvals between
-ordinary recovery/preflight/resume steps. The actual launch hold stays active
-until the CPU state transfer, exact current-source recipe, candidate gate and
-clean handover are verified. Fresh signed 160 W telemetry remains mandatory.
+The operator explicitly approved controlled recovery and continued training.
+The CPU transfer, fresh source-bound recipes, readiness and new candidate gate
+have all passed. The incident hold is cleared only for this exact recovered
+continuation. Do not request new approvals between ordinary preflight/resume
+steps. Every launch still requires clean source and fresh signed 160 W telemetry.
 
-Implementation plan: extend the existing checkpoint verifier with a CPU-only
-guard-repair transfer. Require all recipe-bound learning/source bytes to be
-identical except the reviewed `trainer_safety_guard`; preserve all recipe
-learning/data/run-ID fields. Publish a new standard session beside a new output
-location, changing only its output/source provenance and the checkpoint's
-contract digest. Prove every other typed checkpoint component bit-identical.
-Keep the original session, recipes, active checkpoint and incident logs
-untouched. No runtime source-mismatch waiver or trainer/model change is needed.
-The transfer must resolve the checkpoint/guard-exit ordering from exact logs;
-it cannot manufacture continuous telemetry after the guard exited.
+Implementation commit `7b1ccdaa` extends the existing checkpoint verifier, not
+the trainer or its runtime session/source validators. All 105 original recipe
+source bindings were checked: only the reviewed guard differs. New recipes
+bind the repaired guard; all learning/data/run-ID and optimizer settings are
+unchanged. The original session, checkpoint 125 / 7936 steps and incident logs
+remain untouched. A new standard session has the same 15 typed checkpoint
+components, with only the immutable session-contract digest changed. This was
+verified after atomic publication by loading the real new session again.
 
-CPU implementation verification now passes: 93 affected tests and the complete
-2496-test suite, with zero failures/errors/skips. The preserved real checkpoint
-strictly loads at 7936 steps with all 313399 epoch-order rows and finite learning
-tensors. Its logged optimizer/EMA update precedes guard exit; only checkpoint
-serialization overlaps it. Actual transfer and current-source recipe/gate
-materialization are next; CUDA is still held at this checkpoint in the work.
+Resolve the exact artifacts through `PROJECT_STATE_xau_direction_launch.json`:
 
-CPU recipe/readiness rebinding is not another CUDA smoke. Reuse the completed
-smoke/VAL evidence only with the measured guard-only source-difference proof.
-Do not reset TRAIN, rebuild data, access TEST, accept a candidate, or start
-paper/live. The historical stop below remains valid incident evidence.
+- `candidate_guard_recovery`: immutable transfer proof, including all 15
+  original/successor component hashes, incident ordering and original artifacts.
+- `active_candidate_training_session`: the new session and new candidate recipe.
+- `current_source_technical_recipe`: the candidate recipe, new readiness/gate,
+  and retained completed smoke/VAL audit. It is no longer a request for a smoke.
+- `current_pretest_trainability_readiness`: the fresh direct TRAIN/VAL proof.
 
-### Safety stop — 2026-09-05T19:57:39Z; no CUDA retry
+The new root is the original candidate artifact root's child
+`GUARD_RECOVERY_20260906T061447Z`. The recovery report is
+`RECOVERY_PROOF/CANDIDATE_GUARD_RECOVERY_20260906T062738799702Z.json`, SHA-256
+`38b5a5d730acd6de00a5220b7c6938aad544ff2a42f79923644670438d3d5ec4`.
+Initial transferred state: checkpoint 125, epoch 0, TRAIN offset 7936,
+contract `333ef6bcef013f39d317ecc28bdc093b7ab75af04c688fb6ab2c694d494767cf`,
+state `5472a2f98bcb1a6571325f046f50adf3a16fc7f40574f8f89fda391d0b1c1317`.
+These initial values are history once training advances; handover verifies the
+actual pointer. They are not instructions to reset a later checkpoint.
 
-This overrides the ordinary window-resumption instructions below. The third
+The source repair passes 93 affected tests and all 2496 complete CPU tests.
+After switching the status references, all 173 affected current-state controls
+passed (`/tmp/gx1-guard-recovery-current-state-20260906.xml`, zero failures,
+errors or skips). The full-suite result covers the unchanged executable code;
+the later changes only update launch state and documentation.
+The real original checkpoint has all 313399 epoch-order rows and finite
+learning tensors. Its logged optimizer/EMA update precedes guard exit, while
+serialization overlaps it; no telemetry after guard exit is claimed.
+CPU recipe/readiness rebinding did not execute another CUDA smoke or VAL pass.
+No data was rebuilt and no original evidence or cache was deleted.
+
+Runtime truth is the active pointer plus the exact owned process/guard logs,
+not this document. Launch the exact new recipe through
+`gx1.scripts.run_entry_model_native_pretest_technical_train_v1` with its
+launch-state recipe SHA and candidate-gate path/SHA. Use a persistent `tmux`
+session and file-backed launcher output; do not tie training's stderr to an
+ephemeral observer. Keep one heavy job, 15-minute operator follow-up and the
+one-second automatic guard. An expected, safely completed 7200-second boundary
+may resume the same session after checks; a new real safety failure must stop.
+TEST, candidate acceptance, paper/live and external spend remain closed.
+
+The first recovery window is assigned tmux session
+`gx1-v9-recovery-20260906-w01` and `WINDOW_01_LAUNCHER.log` under the recovery
+root above. These are launch targets, not evidence that a process is running.
+Check with `tmux list-panes -t gx1-v9-recovery-20260906-w01 -F
+'#{pane_pid} #{pane_dead} #{pane_dead_status}'`; read the exact guard/trainer
+sidecar paths from that launcher log. Keep the pane after exit so its status is
+retained. Logs and the active checkpoint, not an attached IDE, own runtime truth.
+
+### Historical safety stop — 2026-09-05T19:57:39Z
+
+This records the original stopped session; the verified recovery above is the
+current continuation authority. At the incident, the third
 window's guard logged `event=stop reason=guard_exit` at 19:56:32Z, not the
 normal 7200-second boundary. After an interrupted observation session, the
 original tool handle was unavailable, guard PID 601907 was absent, and the
@@ -79,7 +114,7 @@ The checkpoint and all logs are preserved; integrity is not restart authority.
 Exact third-window sidecars under the candidate's artifact root:
 `.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.guard.niwNE1EK.log`
 and `.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE.trainer.tmudOA3z.log`.
-The existing launch hold is restored with
+At that incident the existing launch hold was restored with
 `GUARD_EXIT_ORPHANED_CUDA_NO_RETRY`, which blocks both handover and the official
 launcher. At the incident's frozen source, termination wrote to stderr before
 TERM and logged before KILL. A bounded CPU regression against that exact guard
@@ -92,15 +127,17 @@ regressions pass after the repair. No thresholds, model or data were changed.
 The repaired guard changes the executable source binding, so old recipe/session
 identity does not grant restart authority. Do not waive source bindings, patch
 an old recipe/checkpoint or reuse a historical gate to clear this hold.
-The launch/session owners have no applicable source-change recovery route;
-the exact boundary and CPU verification are recorded in the review report.
+At that point the launch/session owners had no applicable source-change recovery
+route; the later verified CPU transfer above resolves that boundary without
+changing those runtime owners.
 
-The repair now passes all 170 affected CPU tests and the complete 2477-test
-CPU suite, with no failures/errors/skips. Only `trainer_safety_guard` differs
-among the historical recipe's 105 bound source files. The hold remains active:
-CPU verification and clean source do not authorize a new source-bound session
-or silently migrate the retained checkpoint. See the review report for exact
-test reports and the remaining recovery decision.
+The repair then passed 170 affected CPU tests and a 2477-test CPU suite before
+the later coordination-marker change; that was not verification of the complete
+final incident commit. The subsequent 2496-test result and 173 current-state
+controls above supersede it. Only `trainer_safety_guard` differs among the
+historical recipe's 105 bound source files. The hold remained active until the
+explicitly approved, verified transfer and new gates described above; CPU tests
+alone never authorized relabelling the original recipe or checkpoint.
 
 ### Historical execution before the safety stop: checkpointed five-year TRAIN
 

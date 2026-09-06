@@ -1,8 +1,11 @@
 # GX1 system map
 
-Safety override, 2026-09-05 19:57 UTC: training is stopped after window 3 lost
-its guard. The launch hold is restored; no automatic CUDA retry. Read the
-current handoff incident before relying on the earlier launch status below.
+Current recovery, 2026-09-06: the operator-approved guard repair and exact CPU
+checkpoint transfer are verified. The new standard session and current-source
+candidate gate permit the same five-year continuation after clean preflight
+and fresh signed 160 W telemetry. The original session is preserved; model,
+training and data bytes are unchanged. Read the current handoff and launch-state
+recovery reference for the active session, never the historical paths below.
 
 Latest runtime update, 2026-09-05: successor VAL prediction and the exact
 technical candidate gate are complete. The operator-authorized full five-year

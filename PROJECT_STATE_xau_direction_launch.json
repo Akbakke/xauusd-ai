@@ -1,14 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-05T19:57:39Z",
-  "pretraining_review_hold": {
-    "schema_version": "gx1_pretraining_review_hold_v1",
-    "decision": "BLOCK",
-    "reason": "GUARD_EXIT_ORPHANED_CUDA_NO_RETRY",
-    "activation_authority": false,
-    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
-  },
+  "updated_utc": "2026-09-06T06:30:41Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -18,26 +11,23 @@
     "schema_version": "gx1_reviewed_local_runtime_exclusions_v1"
   },
   "current_source_technical_recipe": {
-    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_BUNDLE",
-    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_RECIPE.json",
-    "recipe_sha256": "cd4c65c68547e1d985b0864eaa53c51a86c9ddeb5ca07769006620b363e12de7",
-    "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z",
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
-    "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
-    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY",
-    "bundle_commit_manifest_sha256": "26e6ba3e61e915ec9cdf299680a7f07ab83453b4ddfce5d42546518201bfb036",
-    "bundle_commit_sha256": "8a9b197b805e6c373f0e17a3cf4bf0f7559cd43936431ce03cb325ce3c7bfc5d",
-    "bundle_metadata_sha256": "2372aeb7fd90136811d455b74325a97ddc4c39ddb2ab2ec3ac2716c0d1cfd9df",
+    "status": "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY",
+    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
+    "recipe_sha256": "d22ece49d589bf4387e2df566bf3a9d802238b20e9815c88c8456de8c8dd3d52",
+    "source_commit": "7b1ccdaae6a7c5ef8a2d25e6b65f11146929936e",
+    "source_bindings_sha256": "59742fcfdf98e338e39ed1ba0ec4315da72e6ae0284dc4aa1c8ae5e37bf4e136",
+    "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z",
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
     "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_POSTRUN_AUDIT/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260905T155439237233Z.json",
     "postrun_bundle_audit_sha256": "15e45ed5a31c711eaf0a4440fe4342f632861a626defc610b9b8cd758e537f58",
     "postrun_bundle_audit_decision": "FAIL",
-    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_READINESS/ENTRY_CANDIDATE_READINESS_20260905T155504876246Z.json",
-    "candidate_readiness_sha256": "9959edc3941cf49a5c6da7b83415198a5cf4bdbe4c4a01308f2db23f82829fa1",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/CANDIDATE_READINESS/ENTRY_CANDIDATE_READINESS_20260906T062943428108Z.json",
+    "candidate_readiness_sha256": "d07c8e31d57d56fe7fd09b92ee4e4990b2697b26ea869a3d51e61cb99fa9afa6",
     "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
-    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260905T155520511753Z.json",
-    "candidate_launch_gate_sha256": "4f9003275f930e3aa2de6eefa0cd0ad656a4d865c03199ed1368fb0c17e16678",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260906T063105728686Z.json",
+    "candidate_launch_gate_sha256": "e10ce617e4ba02e96218f674d50aec21a1989c49189005a9fb5dc66e891d3ed7",
     "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
   },
   "decision": "BLOCK",
@@ -164,11 +154,11 @@
   "accepted_via_vedtak": null,
   "active_candidate_training_session": {
     "schema_version": "gx1_active_candidate_training_session_reference_v1",
-    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
-    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
-    "recipe_audit_sha256": "7923b9ea638de50ffb06a82a7f601bec96f86f96a8f5f4ab89122cbccc4f094f",
-    "source_commit": "e25a8cb6377eec496d1863c667c0d6cff785d86a",
-    "source_bindings_sha256": "5775aa2dd6b4ff72655b6dbec8e9ddc092b5d5a5c1291f90c6ca661219cfc60d",
+    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
+    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
+    "recipe_audit_sha256": "d22ece49d589bf4387e2df566bf3a9d802238b20e9815c88c8456de8c8dd3d52",
+    "source_commit": "7b1ccdaae6a7c5ef8a2d25e6b65f11146929936e",
+    "source_bindings_sha256": "59742fcfdf98e338e39ed1ba0ec4315da72e6ae0284dc4aa1c8ae5e37bf4e136",
     "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z",
     "dataset_run_id": "PRETEST_V3_20260829T173000Z"
   },
@@ -183,7 +173,11 @@
     "Paper, demo, live, promotion and external direction routes remain fail-closed."
   ],
   "current_pretest_trainability_readiness": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_TRAINABILITY_20260905T153048Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260905T153150593398Z.json",
-    "sha256": "8489d179562a3cd2d04b8bf4f864fbfe5f3fecad0551ace81b6e5f5d0269bbaf"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/TRAINABILITY/ENTRY_PRETEST_TRAINABILITY_READINESS_20260906T062904212387Z.json",
+    "sha256": "46269bc5fbf266b4e6d25771c30a374a338315897330168f3749a3721d88d390"
+  },
+  "candidate_guard_recovery": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/RECOVERY_PROOF/CANDIDATE_GUARD_RECOVERY_20260906T062738799702Z.json",
+    "sha256": "38b5a5d730acd6de00a5220b7c6938aad544ff2a42f79923644670438d3d5ec4"
   }
 }

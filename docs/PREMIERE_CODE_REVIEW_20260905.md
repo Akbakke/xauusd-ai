@@ -2,14 +2,14 @@
 
 ## Current operator-approved continuation
 
-2026-09-06: the operator has approved controlled checkpoint recovery after the
-guard incident, retaining all existing limits. CPU preparation is in progress;
-the launch hold is not yet cleared. The selected design preserves the original
-session and uses a new standard recipe/session with byte-identical learning
-state. Only the reviewed guard may differ in the recipe's executable closure.
-No production trainer, model, source validator, session protocol or runtime
-compatibility lane is being changed. See the current handoff for the plan;
-real checkpoint transfer is still pending; CPU implementation verification is complete.
+2026-09-06: the operator approved controlled checkpoint recovery and continued
+training, retaining all limits. The real CPU transfer, current-source recipes,
+readiness and new candidate gate have passed. The launch hold is cleared only
+for that exact recovered continuation; clean source and fresh signed 160 W
+telemetry are still required. The original session is untouched. The new
+standard recipe/session has bit-identical learning state; only the reviewed
+guard differs in the 105-file recipe source closure. No production trainer,
+model, source validator, session protocol or runtime compatibility lane changed.
 
 Recovery preparation evidence, 2026-09-06:
 
@@ -46,7 +46,47 @@ Recovery preparation evidence, 2026-09-06:
   path order; the subsequent real-state handover must also prove this after
   the hold is cleared. No CUDA has started during this preparation.
 
-### New terminal safety failure — CUDA continuation held
+
+### Real guard-recovery transfer and CPU gates — 2026-09-06
+
+The committed verifier transferred the real state through the unchanged
+canonical session owner. It checked the original recipe against its frozen Git
+bytes, required the reviewed guard commit, proved the new recipe's current
+clean source, reconstructed both real session contracts with the trainer's own
+builder, and rehashed every typed checkpoint component after atomic publication.
+All 15 non-contract components are identical, including online/target weights,
+optimizer, EMA, scheduler, RNG, epoch order, progress and selection state.
+Original checkpoint/contract/pointer and incident-log hashes were rechecked and
+remain unchanged. No CUDA ran during transfer.
+
+- Transfer: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/RECOVERY_PROOF/CANDIDATE_GUARD_RECOVERY_20260906T062738799702Z.json`
+  SHA-256 `38b5a5d730acd6de00a5220b7c6938aad544ff2a42f79923644670438d3d5ec4`.
+- New session contract: `333ef6bcef013f39d317ecc28bdc093b7ab75af04c688fb6ab2c694d494767cf`.
+- Initial transferred state: `5472a2f98bcb1a6571325f046f50adf3a16fc7f40574f8f89fda391d0b1c1317`,
+  checkpoint 125, TRAIN epoch 0, offset/global step 7936, complete=false.
+- Trainability: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/TRAINABILITY/ENTRY_PRETEST_TRAINABILITY_READINESS_20260906T062904212387Z.json`,
+  `READY_FOR_PRETEST_CANDIDATE_TRAINABILITY_REVIEW`, zero failures.
+- Candidate readiness: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/CANDIDATE_READINESS/ENTRY_CANDIDATE_READINESS_20260906T062943428108Z.json`,
+  SHA-256 `d07c8e31d57d56fe7fd09b92ee4e4990b2697b26ea869a3d51e61cb99fa9afa6`,
+  `READY_FOR_CANDIDATE_TRAINING`, zero failures.
+- New gate: `/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260906T063105728686Z.json`,
+  SHA-256 `e10ce617e4ba02e96218f674d50aec21a1989c49189005a9fb5dc66e891d3ed7`,
+  `READY_FOR_PRETEST_CANDIDATE_TRAINING`, zero failures; independently reloaded
+  through the normal gate validator.
+
+The original completed smoke/VAL audit is retained as evidence for unchanged
+learning code and data. A CPU-only smoke recipe rebind supplies the current
+source half of the static trainability contract; it was not executed and is
+not represented as a new bundle. The current-source status now selects the
+candidate recipe, not that unused smoke output. No source freshness check was
+waived, no original recipe/checkpoint was relabelled, and no training started
+from zero. All 173 affected current-state controls subsequently passed, with
+zero failures/errors/skips in 70.611 seconds:
+`/tmp/gx1-guard-recovery-current-state-20260906.xml`. The 2496-test full-suite
+result remains applicable to unchanged executable code; this final wave changes
+only state references and documentation. Clean commit/preflight precede CUDA.
+
+### Historical terminal safety failure — 2026-09-05
 
 At 2026-09-05T19:56:32Z, window 3 logged `event=stop reason=guard_exit`.
 On recovery from an interrupted observation, tool handle 12222 was missing,
@@ -54,7 +94,8 @@ guard PID 601907 was absent, and exact candidate PID/PGID 601955 was still
 running with PPID 172. This is a real loss of the mandatory guard, not an
 observation timeout or an expected 7200-second boundary. The agent sent TERM
 to the verified owned group at 19:57:39Z; it became defunct, then disappeared.
-No new CUDA run is authorized by that event, and none was started afterward.
+That event did not authorize a retry. The later, explicitly approved and
+verified recovery above is the separate continuation authority.
 
 Last signed heartbeat: 19:56:05Z, 60 C core / 68 C memory / 158.64 W draw /
 160 W limit. The unguarded interval has no continuous signed evidence.
