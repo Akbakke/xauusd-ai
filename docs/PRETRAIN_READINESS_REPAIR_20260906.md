@@ -3,11 +3,13 @@
 ## Authority and objective
 
 **Approved implementation items 1/2/3/5, the measured retention-reference
-repair, exact active-candidate transfer closure and the bounded source/state
-successor route are deployed. Complete canonical CPU regression passes all
-4,062 tests, with actual pre-TEST native and downstream TRAIN/VAL owners also
-verified. Item 4 remains deferred. Large-training readiness is not established;
-no training, cloud purchase, TEST or promotion authority is granted.**
+repair, exact active-candidate transfer closure, committed source/state
+successor, actual CPU next-batch equivalence and self-contained Git/transfer
+package are complete. Complete canonical CPU regression is green, with actual
+pre-TEST native and downstream TRAIN/VAL owners verified. Item 4 remains
+deferred pending usefulness evidence. Local pre-cloud preparation is complete;
+external-host qualification and a fresh gate remain deliberately absent. No
+training, cloud purchase, TEST or promotion authority is granted.**
 The operator requested the known defects fixed and an independent review of
 architecture, all eight families, models, missing essentials and unnecessary
 complexity before considering paid compute. The current launch-state
@@ -727,7 +729,7 @@ audit nor its resource measurement becomes a circular first-training gate.
 | Windows clock | Windows Time changed from stopped/manual to running/automatic; NTP synchronization succeeded. Later status remains running with no leap warning. Long-run stability is not established by a short sample. |
 | WSL lifecycle | `general.instanceIdleTimeout=-1` is activated and a 90-second no-client idle probe passes with identical PID-1 start time. Activation occurred only after Windows reported zero running distributions; no pre-existing distribution or user job was stopped. This is a bounded lifetime check, not a multi-day training proof. |
 | Heavy-job serialization | One canonical per-UID lock and actual ancestor/descriptor/scope proof are deployed. All 482 integrated cases pass, including real closed-FD, changed-cwd and XDG boundaries. This is a launch-boundary proof, not a new continuous supervisor or generic-host qualification. |
-| Full-suite/source readiness | Complete canonical CPU regression passes all 4,034 tests in 1,082.165 seconds, zero failures/errors/skips, including the native/public, lock and retention-reference repairs. Source remains uncommitted: 15 changed existing recipe byte bindings and four added roles. The old recipe/gate/checkpoint identity does not authorize changed source or dropped registrations. |
+| Full-suite/source readiness | Final canonical CPU regression is green. Source is explicitly committed; a fresh recipe binds the final commit and 109-role closure. The checkpoint is CPU-migrated into a no-replace successor session and actual production-path next-batch parity passes. The old recipe/gate remains historical and no fresh external-host launch gate is issued. |
 
 First-wave full-suite evidence is
 `/var/tmp/gx1-readiness-full-final-20260906.xml`, started at 11:41:41 UTC on
@@ -1348,3 +1350,34 @@ are distinguished in both reports. No agent measured current full-candidate
 feature utility, same-bundle live parity or profitability. No artifact cleanup,
 GPU inference, large training, TEST evaluation, purchase or model replacement
 is part of this repair wave.
+
+## Final local pre-cloud completion — 2026-09-07
+
+The repair source is explicitly committed and clean. A new immutable recipe
+binds the final commit and exact 109-role source closure while preserving the
+TRAIN/VAL data, objective and trainer CLI. The historical checkpoint is
+migrated on CPU into a no-replace successor session with model, teacher,
+optimizer, EMA, scheduler, deterministic order, progress and RNG preserved.
+The original session remains byte/stat unchanged.
+
+Actual production-path next-batch verification runs historical and successor
+source in separate sequential CPU processes. Both strict-restore the real
+state, select the same eight indices and execute one real `train_epoch` step.
+Batch inputs, forwards, Exit targets/masks, task losses, Entry-representation
+gradients, model/teacher/EMA/scheduler and RNG are exact; numerical tolerance is
+limited to the five hoisted `tf_input_scale_*` parameters and their derived
+gradient/AdamW state. No checkpoint/session file is mutated.
+
+The post-commit transfer package contains the prior 1,434-file non-TEST closure,
+the successor recipe/session, migration/parity/readiness evidence and a complete
+Git bundle for the exact source commit. Its immutable manifest and completion
+supplement are created only after this status commit beneath
+`SOURCE_STATE_SUCCESSOR_20260907T164247Z`; those files own exact hashes. The
+destination must rehash every payload file and verify the bundle.
+
+This completes local pre-cloud preparation, not launch authorization. Remaining
+external work is: select a host, transfer and rehash, install/verify equivalent
+runtime and fail-closed capacity/telemetry controls, run the source-current
+guarded smoke, then publish fresh trainability readiness and an exact
+recipe-bound candidate gate. No local training, CUDA, TEST or cloud purchase is
+authorized by this record.

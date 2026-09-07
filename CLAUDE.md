@@ -1,13 +1,15 @@
 # GX1 operating rules
 
-## Operator override — readiness repair, 2026-09-06
+## Operator override — local pre-cloud package complete, 2026-09-07
 
-The operator has superseded continuous training with source repair and an
-independent architecture/data review. The launch-state review hold is active;
-no training, new GPU evaluation, TEST access or cloud purchase is authorized
-during this work. Preserve current checkpoints and source lineage. See the
-current `docs/PRETRAIN_READINESS_REPAIR_20260906.md`. The older recovery
-and continuation instructions below remain historical evidence only.
+The source repair, independent review, committed successor source, CPU
+checkpoint migration and actual next-batch equivalence are complete. The
+launch-state review hold remains active for the unselected external host and
+its still-missing destination rehash, guarded smoke and fresh launch gate. No
+training, new GPU evaluation, TEST access or cloud purchase is authorized.
+Preserve both sessions and source lineage. See
+`docs/PRETRAIN_READINESS_REPAIR_20260906.md`; older recovery and continuation
+instructions remain historical evidence only.
 
 This file is the target of the `/home/andre2/CLAUDE.md` root loader, so it
 governs sessions launched from the home directory as well as from this repo.

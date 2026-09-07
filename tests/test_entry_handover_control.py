@@ -276,6 +276,10 @@ def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
         "PRETRAIN_READINESS_REPAIR_REQUIRED__NO_TRAINING_OR_CLOUD_AUTHORITY",
         "COMPLETE_CPU_REPAIRS_AND_REVIEW_PRESERVE_CHECKPOINT_THEN_VERIFY_SOURCE_LINEAGE_NO_TRAINING_OR_PURCHASE",
     ),
+    (
+        "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
+        "PRESERVE_PACKAGE_NO_TRAINING__LATER_SELECT_HOST_TRANSFER_REHASH_GUARDED_SMOKE_AND_FRESH_GATE",
+    ),
 ])
 def test_runtime_review_hold_reports_exact_recovery_and_blocks_all_execution(
     tmp_path, reason, next_action,

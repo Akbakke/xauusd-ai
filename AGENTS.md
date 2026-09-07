@@ -2,15 +2,17 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Operator override — readiness repair, 2026-09-06
+## Operator override — local pre-cloud package complete, 2026-09-07
 
-Source fixes and independent architecture/data review now precede further
-training. The launch-state `pretraining_review_hold` is active. Do not resume
-the candidate, repeat GPU smoke/VAL, open TEST or purchase compute. Preserve
-all candidate checkpoints and unrelated agent work. The current repair record
-is `docs/PRETRAIN_READINESS_REPAIR_20260906.md`; the continuation text below is
-historical and does not override this hold. Source changes require fresh
-validation; unchanged model math does not waive source/recipe identity.
+The CPU repair/review, explicit source commit, source-bound successor recipe,
+checkpoint migration and actual next-batch equivalence are complete. The
+launch-state `pretraining_review_hold` remains active because no external host
+has been qualified and no fresh source-current cloud smoke/readiness/gate has
+been issued. Do not resume locally, repeat GPU smoke/VAL, open TEST or purchase
+compute. Preserve both candidate sessions and unrelated agent work. The exact
+post-commit recipe/session/transfer hashes live in the immutable external
+pre-cloud evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T164247Z`; prose is
+not launch authority. The continuation text below is historical.
 
 ## Historical re-entry status — superseded by the review hold
 

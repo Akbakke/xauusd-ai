@@ -2,15 +2,18 @@
 
 This file defines the only active project scope.
 
-## Operator override — readiness repair, 2026-09-06
+## Operator override — local pre-cloud package complete, 2026-09-07
 
-The operator requests the identified source fixes and an architecture/data
-review before further large training; cloud execution is deferred. The existing
-launch-state review hold is active and outranks older continuation instructions
-below. Preserve checkpoints and TEST. Repair and test existing owners without
-launching training, removing genuine feature families, changing decision
-authority or purchasing compute. Record evidence and remaining gaps in
-`docs/PREMIERE_CODE_REVIEW_20260905.md` before claiming readiness.
+The identified CPU source repairs, independent architecture/data review,
+explicit commit, source-bound successor recipe, checkpoint migration and actual
+next-batch equivalence are complete. Cloud execution remains deferred. The
+launch-state review hold stays active and outranks older continuation text
+because a selected destination must rehash the exact transfer closure, verify
+the bundled commit, pass a source-current guarded smoke and publish fresh
+recipe-bound readiness/gate evidence. Preserve both sessions and TEST. Do not
+launch training, remove genuine feature families, change decision authority or
+purchase compute. The external post-commit evidence beneath
+`SOURCE_STATE_SUCCESSOR_20260907T164247Z` owns exact paths and hashes.
 
 ## Historical binding status — superseded by the review hold
 

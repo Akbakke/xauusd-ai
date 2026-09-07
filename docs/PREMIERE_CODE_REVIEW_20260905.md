@@ -2,12 +2,24 @@
 
 ## Current operator override — readiness repair, 2026-09-06
 
-The operator now requests source repairs and a multi-agent architecture/data
-review before any more large training. Sky execution and purchasing are deferred.
-The existing `pretraining_review_hold` is active with no activation authority.
-This supersedes the older standing continuation instructions below. Preserve the
-current candidate, original recovery evidence and TEST seal; do not resume,
-restart from zero, redesign active model architecture or buy compute during repair.
+Final local disposition, 2026-09-07: the requested source repairs and
+multi-agent architecture/data review are complete. The repaired source is
+explicitly committed; a fresh source-bound successor recipe and CPU-migrated
+session preserve the checkpoint, and production-path next-batch equivalence
+passes between historical and successor source. The full CPU suite is green.
+Both sessions and TEST remain preserved; no CUDA, training or cloud purchase
+was performed by the completion work.
+
+The `pretraining_review_hold` remains active with no activation authority, but
+its reason is now external qualification rather than unfinished CPU repair. A
+selected destination must receive and rehash the exact non-TEST closure, verify
+the complete Git bundle, run a guarded source-current smoke and publish fresh
+trainability/readiness plus an exact recipe-bound gate. The immutable external
+evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T164247Z`, created after the
+final clean commit, owns exact paths and hashes. This document does not grant
+launch authority. Preserve the candidate, original recovery evidence and TEST;
+do not resume, restart from zero, redesign the active architecture or buy
+compute from this review.
 
 The subsequent operator decision explicitly approves efficiency items 1, 2, 3
 and 5: eliminate repeated timeframe-scale computation, batch diagnostic CPU
@@ -845,10 +857,12 @@ Capped `compileall`, shell syntax and diff whitespace checks also pass.
 
 ## Verdict
 
-**BLOCKED: do not start the five-year CUDA candidate yet.** The 4 September
-smoke, guarded VAL inference, technical readiness and candidate gate remain
-historical evidence. They do not certify the corrected code and target semantics.
-`PROJECT_STATE_xau_direction_launch.json` records an explicit review hold;
+**LOCAL PRE-CLOUD PACKAGE COMPLETE; EXECUTION REMAINS BLOCKED.** The corrected
+code/data/state continuation is committed, source-bound, CPU-migrated and
+next-batch equivalent. The 4 September smoke, guarded VAL inference, technical
+readiness and candidate gate remain historical evidence and cannot authorize
+the successor source. `PROJECT_STATE_xau_direction_launch.json` records an
+explicit external-qualification hold;
 `scripts/gx1_handover.sh` returns nonzero and explains the hold before resolving
 any dataset. Shared execution-provenance validation also rejects any present
 hold, including null/malformed values, before direct trainer execution. TEST,

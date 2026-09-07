@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-06T10:22:00Z",
+  "updated_utc": "2026-09-07T16:42:47Z",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
-    "reason": "PRETRAIN_READINESS_REPAIR_REQUIRED__NO_TRAINING_OR_CLOUD_AUTHORITY",
+    "reason": "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
     "activation_authority": false,
     "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
   },

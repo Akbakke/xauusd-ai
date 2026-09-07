@@ -1,10 +1,13 @@
-# GX1 current re-entry — updated 2026-09-06
+# GX1 current re-entry — updated 2026-09-07
 
-**Operator override: repair and review before more training.** The launch-state
-review hold supersedes the older continuation instructions below. Preserve the
-candidate and TEST seal; no training restart or cloud purchase is authorized
-during this repair wave. Current findings, implemented fixes and verification
-are recorded in `docs/PREMIERE_CODE_REVIEW_20260905.md`.
+**Operator override: local pre-cloud package complete, external qualification
+pending.** CPU repairs/review, explicit source commit, source-bound recipe,
+checkpoint migration and actual next-batch equivalence are complete. The
+launch-state hold supersedes older continuation instructions and remains
+fail-closed until a selected host rehashes the transfer closure, verifies the
+bundled commit, passes a guarded source-current smoke and receives a fresh
+recipe-bound gate. Preserve both sessions and TEST; do not restart training or
+purchase cloud capacity from this handoff.
 
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is

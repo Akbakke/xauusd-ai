@@ -1,28 +1,18 @@
 # GX1 system map
 
-Current recovery, 2026-09-06: the operator-approved guard repair and exact CPU
-checkpoint transfer are verified. The new standard session and current-source
-candidate gate permit the same five-year continuation after clean preflight
-and fresh signed 160 W telemetry. The original session is preserved; model,
-training and data bytes are unchanged. Read the current handoff and launch-state
-recovery reference for the active session, never the historical paths below.
+Current boundary, 2026-09-07: the local CPU repair/review, committed source,
+source-bound successor recipe, checkpoint migration and actual next-batch
+equivalence are complete. Both original and successor sessions are preserved.
+The review hold remains active: no destination host has rehashed the transfer
+closure or passed its guarded source-current smoke, and no fresh recipe-bound
+cloud launch gate exists. No local continuation, TEST, candidate acceptance,
+paper/live or external spend is authorized.
 
-Latest runtime update, 2026-09-05: successor VAL prediction and the exact
-technical candidate gate are complete. The operator-authorized full five-year
-TRAIN/VAL candidate has started and has durable checkpoints. See
-[docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and the active launch-state session reference.
-Earlier pending-smoke/VAL and per-step authorization text below is history.
-TEST, candidate acceptance, paper/live and external spend remain closed.
-
-This is an architecture map, not runtime authority. For a lost-chat or reboot
-restart, read [the current handoff](docs/CURRENT_HANDOFF_20260903.md) and run
-`bash scripts/gx1_handover.sh`. The corrected data, canonical smoke, full VAL
-predictions, technical readiness and exact candidate gate are complete. The
-five-year candidate preserves architecture, split boundaries, batch 8,
-maximum 30 epochs and patience 5. Its ordinary verified resumptions are within
-the standing operator approval, but every launch still requires clean
-preflight and fresh signed 160 W telemetry. Strict quality warnings remain;
-technical start readiness is not acceptance or trading-edge evidence.
+This file maps architecture; it is not runtime authority. Read
+[docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run
+`bash scripts/gx1_handover.sh`. Exact post-commit recipe, migration, parity and
+transfer identities are immutable external evidence beneath
+`SOURCE_STATE_SUCCESSOR_20260907T164247Z`, not values copied into prose.
 
 The older V4/V5 status below is retained as historical architecture context.
 
