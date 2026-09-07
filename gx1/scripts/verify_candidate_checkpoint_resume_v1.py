@@ -1281,8 +1281,16 @@ def _run_actual_next_batch_child(args: argparse.Namespace) -> int:
         device = call["device"]
         train_dataset = call["train_ds"]
         target_model = copy.deepcopy(model).to(device)
+        restore_state = dict(state)
+        restore_rng_state = dict(state["rng_state"])
+        checkpoint_cuda_rng = restore_rng_state.pop("torch_cuda", None)
+        if not isinstance(checkpoint_cuda_rng, list) or not checkpoint_cuda_rng:
+            raise RuntimeError(
+                "[SOURCE_STATE_NEXT_BATCH_CHECKPOINT_CUDA_RNG_MISSING]"
+            )
+        restore_state["rng_state"] = restore_rng_state
         restored = target_trainer._restore_candidate_training_checkpoint(
-            state,
+            restore_state,
             session=session,
             model=model,
             target_model=target_model,
@@ -1464,6 +1472,9 @@ def _run_actual_next_batch_child(args: argparse.Namespace) -> int:
                 "next_batch_offset_before": batch_offset,
                 "next_batch_indices": active_indices.tolist(),
                 "batch_manifest": _value_manifest(batch),
+                "checkpoint_cuda_rng_manifest": _value_manifest(
+                    checkpoint_cuda_rng
+                ),
                 "entry_forwards": entry_forwards,
                 "exit": exit_capture,
                 "joint": joint_capture,
@@ -1637,6 +1648,7 @@ def _require_actual_next_batch_equivalence(
         "next_batch_offset_before",
         "next_batch_indices",
         "batch_manifest",
+        "checkpoint_cuda_rng_manifest",
         "task_supervision_observed",
         "task_gradient_observed",
         "rng_state_after_manifest",

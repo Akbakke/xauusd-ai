@@ -355,6 +355,7 @@ def _actual_next_batch_payload() -> dict:
         "next_batch_offset_before": 9664,
         "next_batch_indices": [1, 2, 3, 4, 5, 6, 7, 8],
         "batch_manifest": {"seq_x": {"sha256": "a" * 64}},
+        "checkpoint_cuda_rng_manifest": {"sha256": "c" * 64},
         "entry_forwards": [
             {"entry_action_q_bps": torch.tensor([[1.0, 2.0, 3.0]])},
             {"entry_action_q_bps": torch.tensor([[1.5, 2.5, 3.5]])},
