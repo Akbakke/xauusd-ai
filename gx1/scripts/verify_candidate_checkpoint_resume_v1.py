@@ -1761,7 +1761,8 @@ def _run_actual_next_batch_process(
 ) -> None:
     command = [
         sys.executable,
-        str(Path(__file__).resolve()),
+        "-m",
+        "gx1.scripts.verify_candidate_checkpoint_resume_v1",
         "--actual-next-batch-child",
         "--source-root",
         str(source_root),
@@ -1776,7 +1777,11 @@ def _run_actual_next_batch_process(
         "--child-out",
         str(child_out),
     ]
-    completed = subprocess.run(command, check=False)
+    completed = subprocess.run(
+        command,
+        check=False,
+        cwd=Path(__file__).resolve().parents[2],
+    )
     if completed.returncode != 0 or not child_out.is_file():
         raise RuntimeError(
             "[SOURCE_STATE_NEXT_BATCH_CHILD_FAILED] "
