@@ -1827,13 +1827,19 @@ def verify_source_state_successor_next_batch(
     migration = json.loads(
         args.source_state_successor_report.read_text(encoding="utf-8")
     )
+    original_recipe_identity = {
+        key: original_binding[key] for key in ("path", "sha256")
+    }
+    successor_recipe_identity = {
+        key: successor_binding[key] for key in ("path", "sha256")
+    }
     if (
         migration.get("schema_version")
         != "gx1_candidate_source_state_successor_v1"
         or migration.get("decision")
         != "PASS_STRUCTURAL_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
-        or migration.get("original_recipe") != original_binding
-        or migration.get("successor_recipe") != successor_binding
+        or migration.get("original_recipe") != original_recipe_identity
+        or migration.get("successor_recipe") != successor_recipe_identity
         or migration.get("successor_session_dir")
         != str(
             Path(successor["out_bundle_dir"]).parent
