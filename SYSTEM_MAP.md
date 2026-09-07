@@ -12,7 +12,7 @@ This file maps architecture; it is not runtime authority. Read
 [docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run
 `bash scripts/gx1_handover.sh`. Exact post-commit recipe, migration, parity and
 transfer identities are immutable external evidence beneath
-`SOURCE_STATE_SUCCESSOR_20260907T164247Z`, not values copied into prose.
+`SOURCE_STATE_SUCCESSOR_20260907T213749Z`, not values copied into prose.
 
 The older V4/V5 status below is retained as historical architecture context.
 

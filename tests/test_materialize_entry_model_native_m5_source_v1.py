@@ -1,3 +1,8 @@
+import hashlib
+import json
+
+import pytest
+
 from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
@@ -73,7 +78,3 @@ def test_m5_source_requires_sealed_pretest_pair_shape() -> None:
             payload,
             pair_generation_id="a" * 64,
         )
-import hashlib
-import json
-
-import pytest

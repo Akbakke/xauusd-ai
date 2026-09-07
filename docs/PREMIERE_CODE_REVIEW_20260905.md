@@ -15,11 +15,22 @@ its reason is now external qualification rather than unfinished CPU repair. A
 selected destination must receive and rehash the exact non-TEST closure, verify
 the complete Git bundle, run a guarded source-current smoke and publish fresh
 trainability/readiness plus an exact recipe-bound gate. The immutable external
-evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T164247Z`, created after the
+evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T213749Z`, created after the
 final clean commit, owns exact paths and hashes. This document does not grant
 launch authority. Preserve the candidate, original recovery evidence and TEST;
 do not resume, restart from zero, redesign the active architecture or buy
 compute from this review.
+
+The final independent repository-wide lint gate found one real audit defect:
+the sequence-source reconstruction audit referenced the prior timestamp before
+initialization when a split crossed an Arrow batch boundary. The repair
+initializes that boundary state explicitly and a forced two-batch regression
+proves the production loop. Twelve additional unused-import/local diagnostics
+were removed without changing behavior. Repository-wide Ruff and compileall
+are clean; all 4,069 tests pass in 1,075.888 seconds with zero failures, errors
+or skips under the canonical 4G/512M CPU audit cap. The immutable JUnit report
+is `/var/tmp/gx1-authoritative-lint-repair-full-20260907.xml`, SHA-256
+`da6d1aab2d0ad6dc36ec9ac4a1c36733bfc245a8d66c0c44bac6014984c32e14`.
 
 The subsequent operator decision explicitly approves efficiency items 1, 2, 3
 and 5: eliminate repeated timeframe-scale computation, batch diagnostic CPU

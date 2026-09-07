@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import copy
 from datetime import datetime, timezone
-import hashlib
 import json
 import math
 import os
@@ -52,7 +51,6 @@ from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
 from gx1.scripts.validate_entry_model_native_technical_checkpoint_v1 import (
     TEST_BOUNDARY_UTC,
-    TechnicalValidationError,
     _attended_checkpoint_pair,
     _model_state_sha256,
     _reference_predictions,

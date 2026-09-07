@@ -13,7 +13,7 @@ the bundled commit, pass a source-current guarded smoke and publish fresh
 recipe-bound readiness/gate evidence. Preserve both sessions and TEST. Do not
 launch training, remove genuine feature families, change decision authority or
 purchase compute. The external post-commit evidence beneath
-`SOURCE_STATE_SUCCESSOR_20260907T164247Z` owns exact paths and hashes.
+`SOURCE_STATE_SUCCESSOR_20260907T213749Z` owns exact paths and hashes.
 
 ## Historical binding status — superseded by the review hold
 

@@ -11,7 +11,7 @@ has been qualified and no fresh source-current cloud smoke/readiness/gate has
 been issued. Do not resume locally, repeat GPU smoke/VAL, open TEST or purchase
 compute. Preserve both candidate sessions and unrelated agent work. The exact
 post-commit recipe/session/transfer hashes live in the immutable external
-pre-cloud evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T164247Z`; prose is
+pre-cloud evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T213749Z`; prose is
 not launch authority. The continuation text below is historical.
 
 ## Historical re-entry status — superseded by the review hold

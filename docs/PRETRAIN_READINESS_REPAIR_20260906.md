@@ -1360,6 +1360,17 @@ migrated on CPU into a no-replace successor session with model, teacher,
 optimizer, EMA, scheduler, deterministic order, progress and RNG preserved.
 The original session remains byte/stat unchanged.
 
+A final independent global Ruff pass exposed an uninitialized prior-timestamp
+read in the sequence-source reconstruction audit whenever a split crossed an
+Arrow batch boundary. The repaired audit now carries explicit optional
+boundary state, and a forced two-batch regression exercises that exact path.
+The remaining twelve Ruff diagnostics were behavior-neutral dead imports or
+locals. Repository-wide Ruff, compileall, tracked shell syntax and tracked JSON
+parsing pass. The complete canonical suite passes all 4,069 tests in 1,075.888
+seconds with zero failures, errors or skips under the 4G/512M CPU audit cap:
+`/var/tmp/gx1-authoritative-lint-repair-full-20260907.xml`, SHA-256
+`da6d1aab2d0ad6dc36ec9ac4a1c36733bfc245a8d66c0c44bac6014984c32e14`.
+
 Actual production-path next-batch verification runs historical and successor
 source in separate sequential CPU processes. Both strict-restore the real
 state, select the same eight indices and execute one real `train_epoch` step.
@@ -1372,7 +1383,7 @@ The post-commit transfer package contains the prior 1,434-file non-TEST closure,
 the successor recipe/session, migration/parity/readiness evidence and a complete
 Git bundle for the exact source commit. Its immutable manifest and completion
 supplement are created only after this status commit beneath
-`SOURCE_STATE_SUCCESSOR_20260907T164247Z`; those files own exact hashes. The
+`SOURCE_STATE_SUCCESSOR_20260907T213749Z`; those files own exact hashes. The
 destination must rehash every payload file and verify the bundle.
 
 This completes local pre-cloud preparation, not launch authorization. Remaining

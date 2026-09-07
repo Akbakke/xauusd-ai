@@ -14,7 +14,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import sys
 from typing import Any, Mapping
 
 from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (

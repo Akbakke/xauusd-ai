@@ -685,7 +685,7 @@ def run(
     if not isinstance(dataset_run_id_preview, str) or not dataset_run_id_preview:
         raise TechnicalValidationError("[TECHNICAL_SESSION_DATASET_RUN_ID_INVALID]")
     val_clock = _require_no_test_rows(val_parquet)
-    guard = _require_pretest_guard(
+    _require_pretest_guard(
         guard_json=test_guard_json,
         guard_sha256=test_guard_sha256,
         dataset_run_id=dataset_run_id_preview,

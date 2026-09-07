@@ -2097,9 +2097,6 @@ def test_pretest_lifecycle_root_allows_only_train_val_inventory(
     # Reuse the fully validated legacy fixture, then change only the root
     # inventory and authority mode.  The constructor must fail at the exact
     # next authority check rather than rejecting the legal two-split shape.
-    entries = pd.DataFrame(
-        {"time": pd.to_datetime(["2026-01-01T08:00:00Z"], utc=True)}
-    )
     generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
         tmp_path,
         successor_end="2026-01-02T06:00:00Z",

@@ -67,7 +67,10 @@ _SOURCE_SUCCESSOR_EXPECTED_CHANGED_ROLES = frozenset(
         "python:gx1/models/entry_v10/direction_decision_contract.py",
         "python:gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
         "python:gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "python:gx1/scripts/audit_entry_sequence_source_reconstruction_v1.py",
         "python:gx1/scripts/augment_forward_outcome_v2.py",
+        "python:gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
+        "wrapper",
     }
 )
 _SOURCE_SUCCESSOR_EXPECTED_ADDED_ROLES = frozenset(

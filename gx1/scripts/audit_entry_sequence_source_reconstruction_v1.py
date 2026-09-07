@@ -216,6 +216,7 @@ def audit_sequence_source_reconstruction(
         np.asarray([rows, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM], dtype="<i8").tobytes()
     )
     observed = 0
+    previous_time: int | None = None
     history_offsets = np.arange(MODEL_NATIVE_SEQ_LEN, dtype=np.int64) - (
         MODEL_NATIVE_SEQ_LEN - 1
     )
@@ -231,7 +232,7 @@ def audit_sequence_source_reconstruction(
             np.any(positions < MODEL_NATIVE_SEQ_LEN - 1)
             or np.any(positions >= len(source_time_ns))
             or not np.array_equal(source_time_ns[positions], times)
-            or (observed > 0 and int(times[0]) <= previous_time)
+            or (previous_time is not None and int(times[0]) <= previous_time)
             or (count > 1 and np.any(np.diff(times) <= 0))
         ):
             raise RuntimeError(

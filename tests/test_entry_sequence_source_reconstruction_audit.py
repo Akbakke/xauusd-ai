@@ -15,6 +15,7 @@ from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
     REQUIRED_CHECKS,
     require_sequence_source_reconstruction_audit,
 )
+from gx1.scripts import audit_entry_sequence_source_reconstruction_v1 as sequence_audit
 from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import (
     audit_sequence_source_reconstruction,
 )
@@ -25,7 +26,7 @@ def _sha256(path: Path) -> str:
 
 
 def _write_fixture(tmp_path: Path, *, break_sequence: bool = False) -> tuple[Path, Path]:
-    width, seq_len, rows = 238, 96, 4
+    width, seq_len = 238, 96
     source = np.arange((seq_len + 8) * width, dtype=np.float32).reshape(seq_len + 8, width)
     source_times = pd.Timestamp("2025-01-05T16:05:00Z") + pd.to_timedelta(
         np.arange(len(source)) * 5, unit="min"
@@ -102,8 +103,12 @@ def _write_fixture(tmp_path: Path, *, break_sequence: bool = False) -> tuple[Pat
     return split, manifest
 
 
-def test_source_reconstruction_audit_proves_filtered_windows(tmp_path: Path) -> None:
+def test_source_reconstruction_audit_proves_filtered_windows_across_batches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     split, manifest = _write_fixture(tmp_path)
+    monkeypatch.setattr(sequence_audit, "_ARROW_BATCH_ROWS", 2)
 
     report = audit_sequence_source_reconstruction(
         parquet_path=split.resolve(), manifest_path=manifest.resolve()
