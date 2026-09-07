@@ -439,8 +439,10 @@ V43, V44 and V45 chain roots were already removed by the exact approved
 inventory manifests; every declared hash was rechecked and every target is
 absent. The removal accounts for 19,971,864,338 bytes. This is evidence only
 for those three enumerated roots — it is **not** a general permission to delete
-other data. The generic data-to-data lineage walker remains incomplete, so any
-future cleanup still needs a fresh exact retention plan and reachability proof.
+other data. The generic data-to-data lineage walker was incomplete at that
+audit date. Its bounded 2026-09-06 implementation does not establish a real
+deletion-safe closure; every future cleanup still requires a fresh exact
+retention plan and successful owner-verified reachability proof.
 
 **Active CUDA safety truth:** `scripts/gx1_capped_run.sh` and
 `scripts/gx1_guarded_trainer_exec.sh` are authoritative. They use the pinned
@@ -766,8 +768,10 @@ an afterthought.
   and the `_atr` spellings are present. Its `base28.parquet` is bit-identical to
   the previous generation's — only the derived surface moved. The previous
   generation `1f9424d8…` is still on disk and is the parent of the V31/V32
-  chains; do not reclaim either without a hand-built parent-pointer proof
-  (rule 9 — the retention owner cannot do it, see below).
+  chains; do not reclaim either without a fresh parent-pointer/reachability
+  proof through the retention owner. The historical lack of a transitive
+  implementation is superseded by the bounded 2026-09-06 source repair, not by
+  a new deletion authorization (CLAUDE.md rule 9).
 - **Retired, no authority**: the V28 (513) and V29J (592) datasets, and every
   V31/V32 chain root. Nothing was ever trained on any of them.
 - **Seed variance flips collapse direction.** Single-seed judging is invalid: one

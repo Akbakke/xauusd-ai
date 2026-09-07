@@ -77,6 +77,16 @@ if SPECIALIST_FUSION_BLOCKED_HEADS != MODEL_NATIVE_BLOCKED_HEADS:
     raise RuntimeError("MODEL_NATIVE_SPECIALIST_BLOCKED_HEAD_SPLIT_BRAIN")
 
 
+def model_native_blocked_head_reasons() -> dict[str, str]:
+    return {
+        head: (
+            "retired by the exact model-native readiness contract; serialized "
+            "diagnostic liveness cannot reactivate a blocked head"
+        )
+        for head in MODEL_NATIVE_BLOCKED_HEADS
+    }
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(
         value,

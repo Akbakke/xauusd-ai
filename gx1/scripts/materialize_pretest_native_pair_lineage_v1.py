@@ -46,7 +46,13 @@ def _canonical_sha256(value: dict[str, Any]) -> str:
     ).hexdigest()
 
 
-def _read_direct_source(path: Path, *, timeframe: str) -> dict[str, Any]:
+def require_direct_pretest_source_manifest(
+    path: Path,
+    *,
+    timeframe: str,
+) -> dict[str, Any]:
+    """Validate one direct pre-TEST source and return its exact binding."""
+
     artifact = path.expanduser()
     if (
         not artifact.is_absolute()
@@ -132,8 +138,8 @@ def materialize_pretest_native_pair_lineage(
     """Create a no-replace M1/M5 binding used only by pre-TEST producers."""
 
     require_offline_scope("featurebase_build")
-    m1 = _read_direct_source(m1_source_manifest, timeframe="M1")
-    m5 = _read_direct_source(m5_source_manifest, timeframe="M5")
+    m1 = require_direct_pretest_source_manifest(m1_source_manifest, timeframe="M1")
+    m5 = require_direct_pretest_source_manifest(m5_source_manifest, timeframe="M5")
     destination = output_json.expanduser()
     if (
         not destination.is_absolute()

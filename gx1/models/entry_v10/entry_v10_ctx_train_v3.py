@@ -351,7 +351,7 @@ def _joint_task_loss(
     if not task_losses:
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_EMPTY_BATCH]")
     total: Optional[torch.Tensor] = None
-    stats: dict[str, float] = {}
+    diagnostic_tensors: dict[str, torch.Tensor] = {}
     for task_name in JOINT_TASK_NAMES:
         if task_name not in task_losses:
             continue
@@ -367,17 +367,13 @@ def _joint_task_loss(
         log_variance = log_variances[task_name]
         weighted = torch.exp(-log_variance) * raw_loss + log_variance
         total = weighted if total is None else total + weighted
-        stats[f"joint_task_raw_loss_{task_name}"] = float(
-            raw_loss.detach().cpu().item()
-        )
-        stats[f"joint_task_log_variance_{task_name}"] = float(
-            log_variance.detach().cpu().item()
-        )
-        stats[f"joint_task_effective_precision_{task_name}"] = float(
-            torch.exp(-log_variance.detach()).cpu().item()
-        )
+        diagnostic_tensors[f"joint_task_raw_loss_{task_name}"] = raw_loss.detach().reshape(())
+        diagnostic_tensors[f"joint_task_log_variance_{task_name}"] = log_variance.detach().reshape(())
+        diagnostic_tensors[f"joint_task_effective_precision_{task_name}"] = torch.exp(-log_variance.detach()).reshape(())
     if total is None:
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_NO_ACTIVE_TASK]")
+    values = torch.stack(tuple(diagnostic_tensors.values())).cpu().tolist()
+    stats = {name: float(value) for name, value in zip(diagnostic_tensors, values)}
     return total, stats
 
 
@@ -1828,15 +1824,38 @@ class _CandidateTrainingSession:
     EMA, scheduler and all deterministic RNG sources.
     """
 
-    def __init__(self, *, out_bundle_dir: Path, contract: Mapping[str, Any]) -> None:
-        output = Path(out_bundle_dir).expanduser().resolve()
-        if output.exists() or output.is_symlink() or output.parent.is_symlink():
+    def __init__(
+        self,
+        *,
+        out_bundle_dir: Path,
+        contract: Mapping[str, Any],
+        read_only: bool = False,
+    ) -> None:
+        """Open exact existing evidence without publication/resume authority.
+
+        Readers may open a published output, but cannot create a session or
+        accept a legacy-contract substitution. Writer/resume behavior is
+        unchanged. The mode is in-memory only, never serialized into evidence.
+        """
+
+        if not isinstance(read_only, bool):
+            raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_MODE_INVALID]")
+        self._read_only = read_only
+        supplied_output = Path(out_bundle_dir).expanduser()
+        self._require_read_path(supplied_output)
+        output = supplied_output.resolve()
+        if (
+            (output.exists() and (not self._read_only or not output.is_dir()))
+            or output.is_symlink()
+            or output.parent.is_symlink()
+        ):
             raise RuntimeError("[CANDIDATE_TRAINING_OUTPUT_PATH_INVALID]")
         if not output.parent.is_dir():
             raise RuntimeError("[CANDIDATE_TRAINING_OUTPUT_PARENT_INVALID]")
         self._directory = output.parent / (
             _CANDIDATE_TRAINING_SESSION_DIR_PREFIX + output.name
         )
+        self._require_read_path(self._directory)
         requested_contract = dict(contract)
         self._active_path = self._directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
         self._contract_path = self._directory / _CANDIDATE_TRAINING_CONTRACT_FILENAME
@@ -1854,7 +1873,7 @@ class _CandidateTrainingSession:
             )
             if on_disk == requested_contract:
                 resolved_contract = requested_contract
-            elif _candidate_training_session_legacy_contract_matches(
+            elif not self._read_only and _candidate_training_session_legacy_contract_matches(
                 on_disk=on_disk,
                 requested_contract=requested_contract,
             ):
@@ -1866,6 +1885,8 @@ class _CandidateTrainingSession:
             else:
                 raise RuntimeError("[CANDIDATE_TRAINING_SESSION_CONTRACT_MISMATCH]")
         else:
+            if self._read_only:
+                raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_SESSION_MISSING]")
             resolved_contract = requested_contract
             self._directory.mkdir(mode=0o700)
             try:
@@ -1889,6 +1910,14 @@ class _CandidateTrainingSession:
         self._contract_bytes = _candidate_training_session_json_bytes(self._contract)
         self._contract_sha256 = hashlib.sha256(self._contract_bytes).hexdigest()
 
+    def _require_read_path(self, path: Path) -> None:
+        if self._read_only and (
+            not path.is_absolute()
+            or ".." in path.parts
+            or any(component.is_symlink() for component in (path, *path.parents))
+        ):
+            raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_PATH_INVALID]")
+
     @property
     def directory(self) -> Path:
         return self._directory
@@ -1903,6 +1932,7 @@ class _CandidateTrainingSession:
         return self._directory / _CANDIDATE_TRAINING_STATE_FILENAMES[slot]
 
     def load_checkpoint(self) -> Optional[dict[str, Any]]:
+        self._require_read_path(self._active_path)
         if self._active_path.is_symlink():
             raise RuntimeError("[CANDIDATE_TRAINING_SESSION_ACTIVE_PATH_INVALID]")
         if not self._active_path.exists():
@@ -1945,6 +1975,7 @@ class _CandidateTrainingSession:
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_ACTIVE_POINTER_INVALID]")
         state_path = self._slot_path(int(active["slot"]))
+        self._require_read_path(state_path)
         if state_path.is_symlink() or not state_path.is_file():
             raise RuntimeError("[CANDIDATE_TRAINING_STATE_PATH_INVALID]")
         if _sha256_file(state_path) != active["state_sha256"]:
@@ -1987,6 +2018,8 @@ class _CandidateTrainingSession:
         return state
 
     def save_checkpoint(self, state: Mapping[str, Any]) -> None:
+        if self._read_only:
+            raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_WRITE_FORBIDDEN]")
         value = dict(state)
         if set(value) != _CANDIDATE_TRAINING_STATE_KEYS:
             raise RuntimeError("[CANDIDATE_TRAINING_STATE_SCHEMA_INVALID]")
@@ -2070,6 +2103,8 @@ class _CandidateTrainingSession:
         evidence, never a publishable bundle or inference artifact.
         """
 
+        if self._read_only:
+            raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_WRITE_FORBIDDEN]")
         if (
             isinstance(epoch, bool)
             or int(epoch) < 1
@@ -2165,6 +2200,7 @@ class _CandidateTrainingSession:
             ):
                 raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_PATH_INVALID]")
             path = self._directory / relative
+            self._require_read_path(path)
             if path.is_symlink() or not path.is_file():
                 raise RuntimeError("[CANDIDATE_TRAINING_TOP_K_PATH_INVALID]")
             if _sha256_file(path) != record["sha256"]:
@@ -5508,14 +5544,6 @@ def _step_partial_gradient_accumulation(
     return True
 
 
-# This proof follows the exact execution path of
-# ``forward_exit_episode``/``forward_exit_incremental_prefix``.  The model
-# state still contains an older static Exit branch (``exit_path_encoder``,
-# ``exit_entry_path_attention``, ``exit_entry_query_norm`` and ``exit_fuse``),
-# but neither public Exit forward method calls it.  Treating that retired
-# branch as trainable evidence made a valid episode-native checkpoint fail even
-# after the real Exit objective had back-propagated.  Do not weaken the proof:
-# bind it instead to every active episode-native component group below.
 _UNIFIED_EXIT_MOVEMENT_PREFIXES: Dict[str, Tuple[str, ...]] = {
     "m5_mtf_route": (
         "tf_input_scale_m5",
@@ -5971,22 +5999,22 @@ def _episode_stats_update(
     masked_q = flat_q.masked_fill(~flat_valid, -torch.inf)
     predicted_tie = flat_valid.all(dim=1) & (flat_q[:, 0] == flat_q[:, 1])
     predictions = torch.argmax(masked_q, dim=1)
-    stats["population_rows"] += int(flat_q.shape[0])
-    stats["q_valid_cells"] += int(flat_valid.sum().item())
-    stats["target_equivalent_action_rows"] += int(target_equivalent.sum().item())
-    stats["predicted_tied_rows"] += int(predicted_tie.sum().item())
-    stats["target_tied_prediction_unique_rows"] += int(
-        (target_equivalent & ~predicted_tie).sum().item()
-    )
-    stats["unique_target_action_agreement_rows"] += int(
-        (
+    counts = {
+        "q_valid_cells": flat_valid.sum(),
+        "target_equivalent_action_rows": target_equivalent.sum(),
+        "predicted_tied_rows": predicted_tie.sum(),
+        "target_tied_prediction_unique_rows": (target_equivalent & ~predicted_tie).sum(),
+        "unique_target_action_agreement_rows": (
             flat_equivalence.gather(1, predictions[:, None]).squeeze(1)
-            & ~predicted_tie
-            & ~target_equivalent
-        ).sum().item()
-    )
-    stats["hold_target_greedy_rows"] += int(flat_equivalence[:, 0].sum().item())
-    stats["exit_now_target_greedy_rows"] += int(flat_equivalence[:, 1].sum().item())
+            & ~predicted_tie & ~target_equivalent
+        ).sum(),
+        "hold_target_greedy_rows": flat_equivalence[:, 0].sum(),
+        "exit_now_target_greedy_rows": flat_equivalence[:, 1].sum(),
+    }
+    values = torch.stack(tuple(counts.values())).cpu().tolist()
+    stats["population_rows"] += int(flat_q.shape[0])
+    for name, value in zip(counts, values):
+        stats[name] += int(value)
 
 
 def _empty_exit_stats() -> dict[str, int]:

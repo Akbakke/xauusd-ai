@@ -227,8 +227,13 @@ def test_seq513_rebuild_seals_test_before_prefreeze_audits() -> None:
 
 def test_capped_runner_serializes_every_heavy_job() -> None:
     source = CAPPED_RUNNER.read_text(encoding="utf-8")
+    owner = (CAPPED_RUNNER.parents[1] / "gx1/contracts/gx1_capped_execution_v1.py").read_text(encoding="utf-8")
 
-    assert "gx1-heavy-job.lock" in source
+    assert 'CAPPED_EXECUTION_OWNER="$REPO_ROOT/gx1/contracts/gx1_capped_execution_v1.py"' in source
+    assert '"$CAPPED_EXECUTION_OWNER" --lock-path' in source
+    assert 'runtime = Path(f"/run/user/{user_id}")' in owner
+    assert 'runtime / "gx1-heavy-job.lock"' in owner
+    assert "--verify-lock-ancestry" in source
     assert "flock -n 9" in source
     assert "another GX1 heavy job owns the exclusive lock" in source
     assert "exit 75" in source

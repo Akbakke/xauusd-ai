@@ -399,6 +399,169 @@ def test_direction_executable_pnl_margin_target_matches_policy_formula() -> None
     assert target[0] == pytest.approx(expected["side_margin_bps"][0], rel=1e-12)
 
 
+@pytest.mark.parametrize("boundary_offset_minutes", [-1, 0, 1])
+def test_direction_target_contains_terminal_exit_at_train_boundary(
+    boundary_offset_minutes: int,
+) -> None:
+    policy = causal_m1_target_policy_fixture()
+    horizon = int(policy["selected_direction_horizon_bars"])
+    rows = horizon + 40
+    source_times = pd.date_range(
+        "2026-01-01", periods=rows + horizon + 1, freq="5min", tz="UTC"
+    )
+    times = source_times[:rows]
+    frame = pd.DataFrame({"time": times})
+    closed_m1 = _closed_m1_for_m5(
+        source_times, bid=100.0 + np.linspace(0.0, 2.0, len(source_times))
+    )
+    surface = build_entry_m1_fill_surface(
+        m5_decision_times=times, closed_m1=closed_m1
+    )
+    terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=closed_m1, horizon_m5_bars=horizon
+    )
+    assert terminal["outcome_valid"].all()
+    train_start = times[5]
+    train_end = terminal.loc[20, "exit_decision_at"] + pd.Timedelta(
+        minutes=boundary_offset_minutes
+    )
+    expected = causal_m1_direction_targets_from_policy(
+        policy=policy,
+        long_executable_pnl_bps=terminal["long_executable_pnl_bps"].to_numpy(),
+        short_executable_pnl_bps=terminal["short_executable_pnl_bps"].to_numpy(),
+    )["side_margin_bps"].copy()
+    retained = (
+        (frame["time"] >= train_start)
+        & (frame["time"] <= train_end)
+        & (terminal["exit_decision_at"] <= train_end)
+    ).to_numpy(dtype=bool)
+    expected[~retained] = np.nan
+
+    out_times, target = ranker._direction_executable_pnl_margin_target(
+        frame,
+        train_start=train_start,
+        train_end=train_end,
+        entry_direction_target_policy=policy,
+        closed_m1=closed_m1,
+    )
+
+    assert retained.sum() > 1
+    assert (terminal["exit_decision_at"] > train_end).any()
+    assert np.isfinite(target[20]) == (boundary_offset_minutes >= 0)
+    np.testing.assert_array_equal(out_times, frame["time"].to_numpy())
+    np.testing.assert_array_equal(target, expected)
+    assert target[retained].tobytes() == expected[retained].astype(np.float64).tobytes()
+
+
+def test_direction_target_and_feature_selection_ignore_future_m1_suffix() -> None:
+    policy = causal_m1_target_policy_fixture()
+    horizon = int(policy["selected_direction_horizon_bars"])
+    rows = horizon + 40
+    source_times = pd.date_range(
+        "2026-01-01", periods=rows + horizon + 1, freq="5min", tz="UTC"
+    )
+    times = source_times[:rows]
+    frame = pd.DataFrame({"time": times})
+    train_start = times[5]
+    train_end = times[-1]
+    closed_m1 = _closed_m1_for_m5(
+        source_times, bid=100.0 + np.linspace(0.0, 2.0, len(source_times))
+    )
+    suffix_mask = closed_m1["time"] > train_end
+    assert suffix_mask.any()
+    truncated_m1 = closed_m1.loc[~suffix_mask].copy()
+    mutated_m1 = closed_m1.copy()
+    quote_columns = [column for column in closed_m1.columns if column != "time"]
+    mutated_m1.loc[suffix_mask, quote_columns] += 50.0
+    pd.testing.assert_frame_equal(mutated_m1.loc[~suffix_mask], truncated_m1)
+    surface = build_entry_m1_fill_surface(
+        m5_decision_times=times, closed_m1=closed_m1
+    )
+    terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=surface, closed_m1=closed_m1, horizon_m5_bars=horizon
+    )
+    mutated_surface = build_entry_m1_fill_surface(
+        m5_decision_times=times, closed_m1=mutated_m1
+    )
+    mutated_terminal = causal_m1_terminal_outcomes_at_horizon(
+        fill_surface=mutated_surface,
+        closed_m1=mutated_m1,
+        horizon_m5_bars=horizon,
+    )
+    assert terminal["outcome_valid"].all()
+    assert mutated_terminal["outcome_valid"].all()
+    crossing = (
+        (terminal["entry_decision_at"] <= train_end)
+        & (terminal["exit_decision_at"] > train_end)
+    )
+    assert crossing.any()
+    assert not np.array_equal(
+        terminal.loc[crossing, "long_executable_pnl_bps"].to_numpy(),
+        mutated_terminal.loc[crossing, "long_executable_pnl_bps"].to_numpy(),
+    )
+    unpurged_target = causal_m1_direction_targets_from_policy(
+        policy=policy,
+        long_executable_pnl_bps=terminal["long_executable_pnl_bps"].to_numpy(),
+        short_executable_pnl_bps=terminal["short_executable_pnl_bps"].to_numpy(),
+    )["side_margin_bps"].copy()
+    unpurged_target[times < train_start] = np.nan
+    names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    phase = np.arange(rows, dtype=np.float32)
+    matrix = np.column_stack(
+        [
+            phase * np.float32(index + 1) + np.float32(index * index + 0.125)
+            for index in range(len(names))
+        ]
+    ).astype(np.float32)
+    unpurged_availability = ranker.fit_feature_availability_contract(
+        matrix=matrix,
+        names=names,
+        times=times,
+        train_start=train_start,
+        train_end=train_end,
+        diagnostic_target=unpurged_target,
+    )
+    targets = []
+    availability_contracts = []
+    for quote_source in (truncated_m1, closed_m1, mutated_m1):
+        out_times, target = ranker._direction_executable_pnl_margin_target(
+            frame,
+            train_start=train_start,
+            train_end=train_end,
+            entry_direction_target_policy=policy,
+            closed_m1=quote_source,
+        )
+        np.testing.assert_array_equal(out_times, frame["time"].to_numpy())
+        assert np.isfinite(target).sum() > 1
+        assert np.isnan(target[crossing.to_numpy()]).all()
+        targets.append(target)
+        availability = ranker.fit_feature_availability_contract(
+            matrix=matrix,
+            names=names,
+            times=out_times,
+            train_start=train_start,
+            train_end=train_end,
+            diagnostic_target=target,
+        )
+        assert availability["available_features"] == names
+        assert availability["selection_sha256"] == (
+            unpurged_availability["selection_sha256"]
+        )
+        assert availability["train_matrix_sha256"] == (
+            unpurged_availability["train_matrix_sha256"]
+        )
+        assert availability["diagnostic_target_sha256"] != (
+            unpurged_availability["diagnostic_target_sha256"]
+        )
+        assert availability["diagnostic_target_affects_selection"] is False
+        availability_contracts.append(availability)
+    for target in targets[1:]:
+        np.testing.assert_array_equal(target, targets[0])
+        assert target.tobytes() == targets[0].tobytes()
+    assert availability_contracts[0] == availability_contracts[1]
+    assert availability_contracts[0] == availability_contracts[2]
+
+
 def test_candidate_matrix_reads_ranked_common_history_close_and_atr(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -608,7 +771,9 @@ def test_emit_ranking_orders_by_score_then_name(tmp_path: Path) -> None:
     )
 
 
-def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
+def test_ranker_checkpoint_key_binds_run_source_cache_and_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     base = {
         "run_id": RUN_ID,
         "source_sha256": "1" * 64,
@@ -632,6 +797,12 @@ def test_ranker_checkpoint_key_binds_run_source_cache_and_window() -> None:
         variant = dict(base)
         variant[field] = changed
         assert ranker._ranker_checkpoint_key(**variant) != expected
+    monkeypatch.setattr(
+        ranker,
+        "RANKER_CHECKPOINT_SCHEMA_VERSION",
+        "entry_model_native_train_feature_ranker_checkpoint_v10",
+    )
+    assert ranker._ranker_checkpoint_key(**base) != expected
 
 
 def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path) -> None:

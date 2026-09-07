@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,6 +9,12 @@ import pandas as pd
 import pytest
 
 from gx1.scripts import augment_forward_outcome_v2 as owner
+
+
+def _canonical_json_bytes(payload: dict) -> bytes:
+    return (
+        json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    ).encode("utf-8")
 
 
 def _frame() -> pd.DataFrame:
@@ -63,6 +70,51 @@ def _install_exact_fake_math(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int,
     monkeypatch.setattr(owner, "compute_attach_rows", serial)
     monkeypatch.setattr(owner, "finalize_attach_columns", finalize)
     return calls
+
+
+def _materialize_checkpoint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[Path, Path]:
+    _install_exact_fake_math(monkeypatch)
+    checkpoint_dir = tmp_path / "checkpoint"
+    result = owner.attach_group_a_ctx_columns_parallel(
+        _frame(),
+        multi_tf=_multi_tf(),
+        workers=1,
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_key="d" * 64,
+        checkpoint_chunk_rows=2,
+    )
+    return checkpoint_dir, Path(result.attrs["group_a_checkpoint_complete_path"])
+
+
+def _read_complete(complete_path: Path) -> dict:
+    return json.loads(complete_path.read_text(encoding="utf-8"))
+
+
+def _rewrite_complete(complete_path: Path, payload: dict) -> None:
+    complete_path.write_bytes(_canonical_json_bytes(payload))
+
+
+def _rewrite_chunk(
+    complete_path: Path,
+    *,
+    chunk_index: int,
+    mutate,
+) -> None:
+    complete = _read_complete(complete_path)
+    chunk_record = complete["chunks"][chunk_index]
+    chunk_path = Path(chunk_record["path"])
+    with np.load(chunk_path, allow_pickle=False) as payload:
+        arrays = {name: payload[name].copy() for name in payload.files}
+    mutate(arrays)
+    with chunk_path.open("wb") as handle:
+        np.savez(handle, **arrays)
+    encoded = chunk_path.read_bytes()
+    chunk_record["sha256"] = hashlib.sha256(encoded).hexdigest()
+    chunk_record["size_bytes"] = len(encoded)
+    _rewrite_complete(complete_path, complete)
 
 
 def test_group_a_checkpoint_resumes_exact_chunks_without_recomputation(
@@ -127,3 +179,166 @@ def test_group_a_checkpoint_rejects_changed_identity_and_corrupt_chunk(
     chunk.write_bytes(b"corrupt")
     with pytest.raises(RuntimeError, match="invalid chunk"):
         owner.attach_group_a_ctx_columns_parallel(_frame(), **kwargs)
+
+
+def test_group_a_checkpoint_validator_is_read_only_and_accepts_expected_hash(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpoint_dir, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    before = {
+        path.name: path.read_bytes()
+        for path in sorted(checkpoint_dir.iterdir())
+    }
+    expected_sha256 = hashlib.sha256(complete_path.read_bytes()).hexdigest()
+
+    complete = owner.require_group_a_checkpoint_complete(
+        complete_path,
+        expected_sha256=expected_sha256,
+    )
+
+    assert complete == _read_complete(complete_path)
+    assert before == {
+        path.name: path.read_bytes()
+        for path in sorted(checkpoint_dir.iterdir())
+    }
+
+
+def test_group_a_checkpoint_validator_rejects_hash_mismatches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    original_complete = complete_path.read_bytes()
+    with pytest.raises(RuntimeError, match="completion SHA-256 mismatch"):
+        owner.require_group_a_checkpoint_complete(
+            complete_path,
+            expected_sha256="0" * 64,
+        )
+
+    complete = _read_complete(complete_path)
+    complete["checkpoint_manifest_sha256"] = "0" * 64
+    _rewrite_complete(complete_path, complete)
+    with pytest.raises(RuntimeError, match="canonical manifest SHA-256 mismatch"):
+        owner.require_group_a_checkpoint_complete(complete_path)
+
+    complete_path.write_bytes(original_complete)
+    complete = _read_complete(complete_path)
+    complete["chunks"][0]["sha256"] = "0" * 64
+    _rewrite_complete(complete_path, complete)
+    with pytest.raises(RuntimeError, match="chunk SHA-256 mismatch"):
+        owner.require_group_a_checkpoint_complete(complete_path)
+
+
+@pytest.mark.parametrize("entry_case", ["missing", "extra"])
+def test_group_a_checkpoint_validator_rejects_missing_and_extra_entries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    entry_case: str,
+) -> None:
+    checkpoint_dir, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    if entry_case == "missing":
+        Path(_read_complete(complete_path)["chunks"][0]["path"]).unlink()
+    else:
+        (checkpoint_dir / "unexpected.bin").write_bytes(b"unexpected")
+
+    with pytest.raises(RuntimeError, match="directory entry set mismatch"):
+        owner.require_group_a_checkpoint_complete(complete_path)
+
+
+def test_group_a_checkpoint_validator_rejects_symlink_chunk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    chunk_path = Path(_read_complete(complete_path)["chunks"][0]["path"])
+    external_chunk = tmp_path / "external.npz"
+    chunk_path.replace(external_chunk)
+    chunk_path.symlink_to(external_chunk)
+
+    with pytest.raises(RuntimeError, match="canonical and symlink-free"):
+        owner.require_group_a_checkpoint_complete(complete_path)
+
+
+def test_group_a_checkpoint_validator_rejects_rehashed_corrupt_npz(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    complete = _read_complete(complete_path)
+    chunk_record = complete["chunks"][0]
+    chunk_path = Path(chunk_record["path"])
+    chunk_path.write_bytes(b"not-an-npz")
+    chunk_record["sha256"] = hashlib.sha256(chunk_path.read_bytes()).hexdigest()
+    chunk_record["size_bytes"] = chunk_path.stat().st_size
+    _rewrite_complete(complete_path, complete)
+
+    with pytest.raises(RuntimeError, match="corrupt chunk NPZ"):
+        owner.require_group_a_checkpoint_complete(complete_path)
+
+
+@pytest.mark.parametrize(
+    ("metadata_case", "message"),
+    [
+        ("completion_schema", "completion schema mismatch"),
+        ("manifest_schema", "manifest schema version mismatch"),
+        ("chunk_order", "chunk path/order mismatch"),
+        ("npz_identity", "chunk NPZ string metadata mismatch"),
+        ("npz_time_dtype", "chunk NPZ time shape/dtype mismatch"),
+        ("npz_value_dtype", "chunk NPZ value shape/dtype mismatch"),
+    ],
+)
+def test_group_a_checkpoint_validator_rejects_wrong_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    metadata_case: str,
+    message: str,
+) -> None:
+    checkpoint_dir, complete_path = _materialize_checkpoint(tmp_path, monkeypatch)
+    complete = _read_complete(complete_path)
+    if metadata_case == "completion_schema":
+        complete["unexpected"] = True
+        _rewrite_complete(complete_path, complete)
+    elif metadata_case == "manifest_schema":
+        manifest_path = checkpoint_dir / "CHECKPOINT_MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["schema_version"] = "wrong"
+        manifest_encoded = _canonical_json_bytes(manifest)
+        manifest_path.write_bytes(manifest_encoded)
+        complete["checkpoint_manifest_sha256"] = hashlib.sha256(
+            manifest_encoded
+        ).hexdigest()
+        _rewrite_complete(complete_path, complete)
+    elif metadata_case == "chunk_order":
+        complete["chunks"][0], complete["chunks"][1] = (
+            complete["chunks"][1],
+            complete["chunks"][0],
+        )
+        _rewrite_complete(complete_path, complete)
+    elif metadata_case == "npz_identity":
+        _rewrite_chunk(
+            complete_path,
+            chunk_index=0,
+            mutate=lambda arrays: arrays.__setitem__(
+                "checkpoint_key", np.array("e" * 64)
+            ),
+        )
+    elif metadata_case == "npz_time_dtype":
+        _rewrite_chunk(
+            complete_path,
+            chunk_index=0,
+            mutate=lambda arrays: arrays.__setitem__(
+                "times_ns", arrays["times_ns"].astype(np.float64)
+            ),
+        )
+    else:
+        _rewrite_chunk(
+            complete_path,
+            chunk_index=0,
+            mutate=lambda arrays: arrays.__setitem__(
+                "values", arrays["values"].astype(np.float64)
+            ),
+        )
+
+    with pytest.raises(RuntimeError, match=message):
+        owner.require_group_a_checkpoint_complete(complete_path)

@@ -475,6 +475,10 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     assert report["selected_feature_count"] == MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT
     assert report["required_training_specialists"] == list(MODEL_NATIVE_TRAINING_SPECIALISTS)
     assert report["specialist_model_contract"] == MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
+    published = json.loads(Path(report["json_path"]).read_text())
+    assert published["specialist_model_contract"] == json.loads(
+        json.dumps(MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT)
+    )
     assert report["specialist_model_contract_valid"] is True
     assert report["training_allowed"] is False
     assert report["contract_training_surface"] == {

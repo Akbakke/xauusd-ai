@@ -2,7 +2,17 @@
 
 This file defines the only active project scope.
 
-## Current binding status — 2026-09-06
+## Operator override — readiness repair, 2026-09-06
+
+The operator requests the identified source fixes and an architecture/data
+review before further large training; cloud execution is deferred. The existing
+launch-state review hold is active and outranks older continuation instructions
+below. Preserve checkpoints and TEST. Repair and test existing owners without
+launching training, removing genuine feature families, changing decision
+authority or purchasing compute. Record evidence and remaining gaps in
+`docs/PREMIERE_CODE_REVIEW_20260905.md` before claiming readiness.
+
+## Historical binding status — superseded by the review hold
 
 The operator explicitly approved controlled guard-only recovery and continued
 training. The exact CPU transfer, current-source recipes/readiness and new
@@ -98,11 +108,11 @@ immutable OANDA XAU_USD M1 + M5
   local M5 sequence plus M15/H1/H4/D1 context. Exit uses a local M1 sequence
   plus M5/M15/H1/H4/D1 context. Resampling already computed M1 indicators into
   a higher timeframe is forbidden.
-- One TRAIN-rank reference is fitted only from the immutable pair's canonical
-  M5 `time/high/low/close/bid_close/ask_close` fields. The final Entry M5 model
-  source must match those market values exactly from common-history start
-  through TRAIN end. M1 and M5 consumers bind that same NPZ; fitting a second
-  rank state or fitting from the downstream model source is forbidden.
+- The ATR/spread TRAIN-rank reference and its NPZ fields are retired by
+  `entry_model_native_state_v2`; do not restore them. Candidate availability
+  diagnostics, TRAIN-only median/IQR/asinh input normalization, and the
+  TRAIN-fit sizing ECDF are separate current owners, not rank-state aliases.
+  Preserve exact canonical-pair, native-source and signal-manifest bindings.
 - Both native surfaces use the same ordered signal fields, continuous context
   and categorical context. **The composition is the owner tuples in
   `gx1/contracts/entry_model_native_signal_v1.py` and nothing here restates a
@@ -256,7 +266,16 @@ Complexity must live in the existing owners; unnecessary code is deleted.
   `child_status` is insufficient failure evidence and does not authorize a
   retry.
 - Delete generated runs only through the retention owner after reachability and
-  active-process checks. Never delete unknown worktrees or user changes.
+  active-process checks, with exact hash-bound per-file inventories and explicit
+  plan → approve → execute authority. The source now follows transitive declared
+  metadata and validated event-history/witness scopes under explicit bounded
+  limits; unproven closure fails closed (CLAUDE.md rule 9). Unknown authority,
+  opaque directories, missing metadata, exhausted limits and sealed TEST scope
+  block cleanup. The mechanical test passes recorded in
+  `docs/PRETRAIN_READINESS_REPAIR_20260906.md` are not real `GX1_DATA` closure
+  evidence or deletion approval; no real artifact cleanup ran in this repair
+  wave, and the review hold remains active. Never delete unknown worktrees or
+  user changes.
 - Canonical CUDA's signed Windows bridge guard stops above 65 C core, 80 C
   memory junction, 160 W physical power limit, 170 W actual draw or 12 GiB
   residency, and fails closed on missing/invalid signed telemetry. Windows

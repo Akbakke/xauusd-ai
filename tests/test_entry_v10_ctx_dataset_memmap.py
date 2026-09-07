@@ -410,6 +410,17 @@ def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
         ds.sequence_for_full_row(1),
         source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
     )
+    first_window = ds.sequence_for_full_row(0)
+    second_window = ds.sequence_for_full_row(1)
+    assert np.shares_memory(first_window, ds._sequence_source_signal)
+    assert np.shares_memory(second_window, ds._sequence_source_signal)
+    assert np.shares_memory(first_window, second_window)
+    sample_window = ds[1]["seq_x"].numpy()
+    assert not np.shares_memory(sample_window, ds._sequence_source_signal)
+    sample_window[0, 0] += np.float32(1.0)
+    np.testing.assert_array_equal(
+        second_window, source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
+    )
     original_mtf_window = ds._get_multi_tf_window
 
     def _readonly_mtf_window(*args, **kwargs):

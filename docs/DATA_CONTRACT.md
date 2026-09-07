@@ -119,7 +119,7 @@ row is corruption.
 
 The M1 Exit surface must bind the exact immutable signal-manifest path/hash,
 the same ordered field list at `MODEL_NATIVE_SIGNAL_DIM` width, and the
-TRAIN-rank reference hash used by the M5 Entry build.
+native-source lineage required by `entry_model_native_state_v2`.
 Any disagreement fails before dataset construction.
 
 The V29 registry layers (level and trendline registries and their event
@@ -196,13 +196,12 @@ Feature bytes cannot depend on ambient flags. The active ATR regime transform
 uses direct integer indexing and must be non-constant on the complete declared
 population. Any dead required field fails liveness.
 
-The single TRAIN-rank artifact is fitted from the pair generation's canonical
-M5 `time/high/low/close/bid_close/ask_close` fields. The downstream M5 model
-source may contain a different feature schema, but those six fields must align
-exactly for every model timestamp from common-history start through TRAIN end.
-Its rank sidecar therefore binds canonical bytes, while ranking and labels bind
-the final M5 source bytes. This is one explicit identity proof, not a fallback
-or a second feature route.
+The ATR/spread TRAIN-rank artifact is retired; `entry_model_native_state_v2`
+rejects its old fields. Do not recreate a rank sidecar. Current candidate
+availability diagnostics bind the final M5 source, input normalization uses
+its own TRAIN-only median/IQR/asinh contract, and sizing retains its distinct
+TRAIN-fit ECDF. These are not interchangeable authorities. Canonical pair,
+native source, signal-manifest and normalization bindings remain mandatory.
 
 ## Split and fit boundaries
 
@@ -301,16 +300,24 @@ dropped row. Neither serving nor offline replay forces EXIT_NOW at row 512.
 
 ## Targets and replay
 
-Future outcomes are supervision only and are never model inputs. **Direction's
-horizon is not a constant and is not restated here**: it is TRAIN-fitted per
-build by the maximum-chord knee of the cumulative material-profit discovery
-curve over candidates `1..ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS`
-(`gx1/contracts/entry_direction_target_policy_v1.py`), and each build freezes
-the selected value into its own `DATASET_BUILD_PROOF.json` as
-`diagnostic_outcome_horizon_bars`. This paragraph claimed a fixed 24 M5 bars
-until 2026-08-19; there is no 24 in the owner. The horizon is always M5 bars —
-when higher-resolution M1 prices are used, replay resolves the target M5 bucket
-and then its last observed M1 row, and may never count M1 rows as M5 bars.
+Future outcomes are supervision only and are never model inputs. The current
+causal diagnostic policy is TRAIN-fitted by
+`gx1/contracts/entry_causal_m1_target_policy_v1.py`; its bound build proof owns
+`diagnostic_outcome_horizon_bars`, not a copied constant in this document.
+`entry_causal_m1_outcomes_v1` requires the exact M1 open at Entry T+5 and a
+complete M1 path to the exact elapsed endpoint, five minutes per horizon M5
+bar. Missing entry minutes, internal missing minutes and closures invalidate
+that diagnostic outcome; it does not advance through a gap to a later quote.
+This supersedes the historical M5-close policy and target-bucket/last-M1 wording.
+
+Do not interchange that wall-clock-complete diagnostic path with native feature
+rows, auxiliary M5 row-count horizons, or the observed-row Exit episode clock.
+Exit split containment checks actual state-close availability. The current
+research episode pack forces a terminal at its capacity boundary; the uncapped
+runtime description above is not proof of economically equivalent training.
+Executable Exit quotes, net costs/financing, noncapacity economic termination
+and shared-capital replay remain blocked by `entry_fitted_q_v1`. A change to
+those targets is a separately bound successor, never an unchanged resume.
 
 The accepted final evidence route freezes one candidate, evaluates untouched
 TEST and replays that same bundle's Exit head from exact T+5 fills. Caller-made
@@ -333,17 +340,22 @@ environment controls stop closed.
 Large producers and all model runs use `scripts/gx1_capped_run.sh`, one at a
 time. Tests/audits are capped at 4G; the heavy dataset producers and the
 canonical trainer at 20G (raised from 10G on 2026-08-09 on real batch-640
-RSS measurement; see CLAUDE.md); swap at 512 MiB and CPU at 0-1. Feature production uses one worker; model DataLoaders use zero
+RSS measurement; see CLAUDE.md); swap at 512 MiB. The capped runner owns current
+CPU affinity and numerical-thread limits. Feature production uses one worker; model DataLoaders use zero
 subprocess workers. Training is deterministic FP32 without compile, autocast or
 TF32. Memmap scheduling is fixed in source, not environment-tunable. Generated
-evidence is deleted only after retention/reachability proof. **That proof is
-partly UNIMPLEMENTED** (CLAUDE.md rule 9): `authority_protected_paths` in
-`gx1/contracts/evidence_retention_v1.py` harvests absolute path strings from
-three repo-root `PROJECT_STATE_*.json` files and never opens a manifest under
-`GX1_DATA`, so no successor parent pointer and no lineage binding is ever
-followed. Measured 2026-08-19 by executing that function: 3 protected paths,
-one of them already gone, over a 34 GB tree. Data-to-data reachability must be
-proven by hand until the owner covers it.
+evidence is deleted only after retention/reachability proof. As of 2026-09-06,
+`authority_protected_paths` in `gx1/contracts/evidence_retention_v1.py`
+implements bounded transitive declared metadata, parent/lineage references and
+validated event-history/witness protection. It protects binary dependencies
+without reading their payloads; unknown or missing metadata, opaque directories,
+changed hashes/scopes, exhausted limits and sealed TEST references block closure.
+Plan validation recomputes that proof. The 2026-08-19 measurement of only three
+protected paths over a 34 GB tree describes the old implementation, not today's
+closure. Current mechanical tests do not prove a real deletion-safe target;
+no real cleanup was run in this repair wave. Fresh successful owner checks and
+the exact plan → approve → execute route remain required (CLAUDE.md rule 9).
+A hand-built proof cannot override an owner refusal.
 
 ## Retired ancestors
 

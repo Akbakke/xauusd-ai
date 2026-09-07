@@ -51,9 +51,9 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
-from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     require_causal_m1_target_policy,
+    train_feature_ranking_target_contract,
 )
 from gx1.contracts.entry_model_native_feature_availability_v1 import (
     require_feature_availability_contract,
@@ -75,18 +75,7 @@ SIGNAL_MANIFEST_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST"
 TRAIN_FEATURE_RANKING_SCHEMA_VERSION = "entry_model_native_train_feature_ranking_v13"
 TRAIN_FEATURE_RANKING_PRODUCER = "entry_model_native_train_feature_ranker"
 TRAIN_FEATURE_RANKING_PRODUCER_VERSION = "v13"
-TRAIN_FEATURE_RANKING_TARGET_CONTRACT = {
-    **causal_m1_target_contract(),
-    "target": "train_fitted_exact_m1_executable_pnl_side_margin_bps",
-    "horizon_source": (
-        "entry_direction_target_policy.selected_direction_horizon_bars"
-    ),
-    "ranking_target_formula": (
-        "long_executable_pnl_bps-short_executable_pnl_bps"
-    ),
-    "handwritten_mfe_mae_path_weights": False,
-    "fit_scope": "train_only_full_horizons",
-}
+TRAIN_FEATURE_RANKING_TARGET_CONTRACT = train_feature_ranking_target_contract()
 TRAIN_FEATURE_RANKING_ORDER = {
     "primary": "diagnostic_abs_spearman_descending",
     "tie_break": "feature_name_ascending",

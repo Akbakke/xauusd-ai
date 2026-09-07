@@ -57,9 +57,10 @@ def make_volatility_squeeze_artifact_set(
     frames_by_clock: Mapping[str, pd.DataFrame] | None = None,
     declared_train_window_start: pd.Timestamp | None = None,
     declared_train_window_end: pd.Timestamp | None = None,
+    source_provenance_path: Path | None = None,
 ):
     tmp_path.mkdir(parents=True, exist_ok=True)
-    bound = Path(__file__).resolve(strict=True)
+    bound = Path(__file__ if source_provenance_path is None else source_provenance_path).resolve(strict=True)
     bound_sha = hashlib.sha256(bound.read_bytes()).hexdigest()
     frames = (
         {

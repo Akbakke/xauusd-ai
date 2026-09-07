@@ -1,6 +1,308 @@
 # Pre-training code review — 2026-09-05
 
-## Current operator-approved continuation
+## Current operator override — readiness repair, 2026-09-06
+
+The operator now requests source repairs and a multi-agent architecture/data
+review before any more large training. Sky execution and purchasing are deferred.
+The existing `pretraining_review_hold` is active with no activation authority.
+This supersedes the older standing continuation instructions below. Preserve the
+current candidate, original recovery evidence and TEST seal; do not resume,
+restart from zero, redesign active model architecture or buy compute during repair.
+
+The subsequent operator decision explicitly approves efficiency items 1, 2, 3
+and 5: eliminate repeated timeframe-scale computation, batch diagnostic CPU
+transfers, retain compact shared data histories, and remove genuinely unused
+static Exit registration. Active fusion/encoder simplification (item 4) waits
+for feature-effect evidence. Items 1, 2 and 5 and the existing Dataset reuse
+regression are implemented canonically after staged CPU verification; the new
+native usefulness orchestration is now integrated through the CPU-only public
+route described below.
+The combined verification covers 652 unique cases across a 650-pass/2-fail
+run and a ten-pass confirmation of the corrected error-prefix expectations.
+No production check is weakened. The subsequent canonical full suite passes
+all 3,200 tests in 751.030 seconds, zero failures/errors/skips, under the CPU
+audit cap (`/var/tmp/gx1-readiness-efficiency-canonical-full-20260906.xml`,
+SHA-256 `ee6cc38d27b877cb4ee6d68ba7b5eb71dccb0c2573c003ebec1242348fac706b`).
+That older complete suite excludes the five then-staged native usefulness files.
+No feature family or checkpoint bytes are removed. Constructor RNG/state keys
+and source identities change, so neither a same-seed claim nor silent legacy
+key dropping may authorize continuation. See the repair record's efficiency
+follow-up for exact scope and remaining migration/performance evidence.
+
+The next staged repair closes the VAL-input file-stability gap through the
+existing lifecycle and cold V4 cache admission owners, without reconstructing
+the Dataset/M1 corpus or opening unselected TRAIN/TEST files. It pins opening
+manifests, direct inputs, NPY bytes, squeeze/native-source dependencies and
+original clock/index/evidence identities before and after consumption. The
+latest affected run passes 819 tests in 331.759 seconds, with 23 unchanged
+native baseline/intervention cases retained from the preceding run. XML
+reconciliation proves 842 unique passing synthetic cases; it is not one
+all-green 842-case run. Initial failures were frozen-snapshot inventory and
+private-provenance fixture defects, not waived production checks. Details and
+exact hashes are in the repair record's consumed-input stability section.
+At that checkpoint all nine related changes were staged. They are now deployed
+through the public integration below, but real full-producer resource evidence
+remains open. The older canonical 3,200-test result does not cover these changes.
+The actual 5,509-row VAL Dataset/corpus plus one full file re-admission completes
+in 295.717 seconds at 3.296 GiB process peak RSS under the unchanged 4G cap.
+The recheck takes 145.782 seconds without exceeding opening-time peak RSS;
+same owner/scratch identities, source clocks and state population are preserved.
+No model, baseline prediction population or real forward is included.
+
+The subsequent public integration is now deployed: exact CPU-only dispatch,
+actual capped-process/affinity proof, one-thread deterministic FP32 without CUDA
+queries, clean exact source closure, full committed-bundle checks and atomic
+publication only after input scratch closes. The actual single-record top-k
+policy rules out the suspected additional retained-file gap; an adversarial
+state/pointer test proves the refusal. No general compatibility map is added.
+All 329 focused public-boundary tests pass. The subsequent 1,166-case staged
+run has 25 environment-only failures (no snapshot Git or `.venv`); all 377
+canonical source/recipe/launcher/control/capped tests then pass, including those
+25 unchanged cases. The complete canonical CPU suite now passes all **3,831
+tests**, zero failures/errors/skips, in **1,068.264 seconds**, under the unchanged
+4G/512M cap: `/var/tmp/gx1-readiness-native-public-canonical-full-20260906.xml`,
+SHA-256 `6c5692438f411025d7f490248957e3c7b0dca8181a1d460f784287cacbe65902`.
+Approved implementation items 1/2/3/5 are complete; item 4 remains deferred.
+Full-candidate loading, exhaustive audit runtime, GPU speedup and integrated
+resource headroom remain unmeasured. Old-checkpoint continuation and large
+training remain unauthorized; no active feature family is removed.
+
+The subsequent serialization repair is deployed through the existing runner
+and capped-execution owner. One canonical per-UID runtime lock replaces ambient
+XDG/fallback selection; real kernel ancestry/FD9/FLOCK evidence now precedes
+target dispatch in new and nested scopes. Closed child descriptors remain supported. A narrow
+actual-FD255 check handles cwd-changed upstream wrappers without accepting
+unresolved runner aliases. Existing caps, numerical settings, target validation
+and GPU guards are unchanged. All 248 final unit/static cases and 482 canonical
+integration cases pass. Complete canonical CPU regression of this additional
+source now passes **3,912 tests** in **1,030.030 seconds**, zero failures/errors/
+skips: `/var/tmp/gx1-readiness-canonical-lock-full-20260906.xml`, SHA-256
+`f136d5243ec5d11f68d033a8f73f708be61c8db76d873295897116c38f7d1068`.
+The preceding 3,831-test result remains the older source baseline.
+Exact evidence and boundary limitations are in the repair record.
+
+The subsequent actual checkpoint schema audit proves that unchanged resume is
+incompatible: online, target and EMA each retain 36 removed static-Exit tensors.
+All checkpoint bytes and stat identities are preserved. Its 36 optimizer IDs
+without populated state cannot be assumed to identify those tensors; no name
+mapping, model loading or migration is performed. All 105 historical source
+blobs are nevertheless available exactly at the declared recipe commit.
+Guard-only recovery cannot admit the changed role set or learning source.
+Exact evidence and the source-change disposition are in the repair record.
+
+The subsequent read-only ordering witness now preserves complete original
+online/target/EMA key order and both optimizer ID arrays. Installed Torch
+enumeration/serialization source hashes match RECORD. It confirms the positional
+optimizer-loading boundary and ordinary-mapping `ParameterDict` sorting, but
+does not yet map saved IDs to source-proven parameter names. Buffer/alias/hook
+and construction-order reconciliation remains necessary; no actual model or
+optimizer is loaded and checkpoint bytes are unchanged.
+
+The subsequent 2026-09-07 source-derived correspondence now reconciles all 758
+original parameter names/IDs after identifying the separate 36 persistent
+buffers. All 722 populated AdamW states pass moment shape/dtype/finite checks
+and float32 CPU counter checks; every counter is 9,664. The 36 retired parameter
+names map exactly to stateless IDs, while the retained side embedding at ID 603
+has populated state. Current constructor AST equals historical construction
+minus the four approved registrations. Independent review finds no conflicting
+alias, hook, registration or group rewrite in those exact project owners.
+This is conditional source/runtime correspondence, not actual model enumeration,
+numerical continuation or migration authority. Full exact source binding still
+rejects the old recipe: 12 changed existing roles and four additions. The repair
+record binds the reviewed evidence and its explicit limits; all checkpoint bytes
+remain preserved.
+
+The exact persisted normalization metadata is now located and validated through
+the existing owners: the gate-bound smoke metadata/lock contract hash equals
+the retained candidate session hash, with matching recipe input lineage and
+timeframe lengths. No TRAIN refit or dataset reconstruction is needed merely to
+recover this metadata. Its immutable witness and limits are in the repair record.
+This is not current bundle admission, model restoration or migration authority;
+the source/state successor and numerical disposition remain outstanding.
+
+The subsequent bounded CPU measurement executes the actual current constructor
+and parameter-grouping code with those exact inputs. Its 722 freshly initialized
+parameters, 712 + 10 groups and 758 persistent state entries match the retained
+historical names/order/shapes/dtypes. This closes actual structural enumeration,
+not weight restoration or numerical parity. No optimizer, forward, gradient,
+checkpoint deserialization or state conversion runs; preserved session bytes
+remain unchanged. The repair record binds the measurement and its limits.
+
+The subsequent 2026-09-07 first-hop inspection identifies and repairs real
+retention reference-type mismatches in existing owners: exact descriptive
+metadata, native API labels and native producer snapshot bindings. Strict
+unknown/extra/list/TEST handling and native byte/hash checks remain intact.
+All 289 focused synthetic tests and Ruff pass; both actual pre-TEST native
+owner descriptors remain identical after deployment (2,628,372 M1 and 531,190
+M5 closed rows). Checkpoint bytes and 1,185 input stat identities are preserved.
+Full canonical regression of this new source passes all **4,034 tests** in
+**1,082.165 seconds**, zero failures/errors/skips; the 3,912-case result is the
+preceding baseline. At that checkpoint, current source had 15 changed existing
+recipe byte bindings and four additional roles; public source preparation still rejects
+the dirty worktree. No remaining transitive closure, migration or training
+authority is implied. Exact immutable evidence and limits are in the repair
+record's measured retention-reference section.
+
+The final follow-up removes the retention layer's accidental materializer-script
+dependency and restores the intended 109-role source closure. The current exact
+delta is 17 changed existing roles plus four additions and no removals. Existing
+owners plus a new read-only Group-A completion owner close the active candidate's
+non-TEST transfer inventory at 1,434 files / 12,146,382,873 bytes; the broad V46
+cleanup root remains opaque and protected. TRAIN's 114 and VAL's 115 Group-A
+chunks pass exact manifest/hash/NPZ/time-grid validation. The separate
+`--prepare-source-state-successor` route is locked to this source delta and the
+36 source-proven stateless Exit parameters. It preserves ID 603 as 579 and all
+722 populated AdamW states, with no ordinary-restore or guard-only exception.
+No actual checkpoint migration is run. The complete executable CPU suite passes
+all **4,062 tests** in **1,074.934 seconds**, zero failures/errors/skips:
+`/var/tmp/gx1-readiness-final-canonical-full-20260907.xml`, SHA-256
+`3f2ce3e974fe66364fa1cadd127e6b9f366c78945ef92840d85b9d1099df1aa5`.
+Transfer and successor evidence, exact hashes and remaining clean-commit/new-
+recipe/actual-equivalence/destination-host blockers are in the repair record.
+Item 4 remains deferred; no family, TEST seal, checkpoint or safety owner is
+removed and no training/cloud authority is granted.
+
+The broad V46 retention root remains deliberately BLOCK: none of its six
+recognized direct manifests exists. Its hash-bound rebuild and post-rebuild
+JSON reports are readable under the existing owner limits, but they do not
+certify every later descendant. No filename alias, synthetic manifest, TEST
+traversal, dataset rebuild or cleanup is used to hide that missing closure.
+
+The subsequent explicit non-TEST input inventory hashes 59 distinct files,
+10,515,905,851 bytes, under the unchanged capped/locked CPU audit. Every hash
+matches its declared role; previous VAL direct-file and checkpoint/session stat
+identities remain unchanged. It covers direct recipe/reader inputs and named
+lifecycle/cache/squeeze/ECDF/signal/native metadata additions, not complete
+transitive provenance or a cloud upload authorization. Native chunks, deeper
+generation/evidence dependencies, source/state transition and actual destination
+qualification remain outstanding. No feature/data rebuild or TEST access occurs.
+Exact scope and immutable evidence are in the repair record's transfer section.
+The subsequent existing native owner fully verifies the two exact pre-TEST
+M1/M5 bundles, including 1,096 response chunks, producer snapshots and yearly
+parquets. Their union with the selected input inventory is 1,185 files /
+10,795,866,746 bytes. This closes those two native components, not all downstream
+generation/report/event-history references or the source/state transition.
+
+Implemented and verified in this repair wave:
+
+- Selective-edge HAC receives chronological selected trades, not score-ranked
+  trades. Preregistered schema v2 explicitly binds that order and rejects legacy
+  VAL references. All 26 focused evaluator tests pass under the 4G CPU cap.
+- Real, hash-verified retained smoke VAL predictions reproduce the consequence:
+  the former 1%-coverage primary PASS becomes FAIL. On its 55 trades, HAC SE is
+  21.9185822268 bps, versus 13.9014462920 in the old score-order calculation.
+  None of the preregistered coverages qualifies. This is the smoke model, not
+  evaluation of the partial full candidate; no GPU inference or TEST was run.
+- All 42 existing model-shape/connectivity tests pass under the CPU cap,
+  including all-eight-family gradient reachability and incremental Exit carry.
+  These mechanical fixtures prove tested connectivity, not market utility.
+- Windows Time was stopped/manual; it is now running/automatic and reports a
+  successful NTP synchronization. Repeated Windows/WSL clock disagreement was
+  observed before repair. The subsequent bounded checks pass; multi-day clock
+  stability remains unproven.
+- The WSL host config now declares `general.instanceIdleTimeout=-1`, with an
+  exact backup retained and existing VM/RAM/CPU/swap limits unchanged. This is
+  the distribution idle setting, distinct from the existing VM idle timeout.
+  After Windows reported zero running distributions, the empty VM was shut
+  down to activate the config. A 90-second no-client idle probe now preserves
+  PID-1 start identity; Windows/WSL clocks align. No active distribution or
+  user job was stopped. Long-run stability and the old initiator remain unproven.
+
+Current integrated status and independent reviews are in
+[`PRETRAIN_READINESS_REPAIR_20260906.md`](PRETRAIN_READINESS_REPAIR_20260906.md).
+
+Seed identity, witnessed publication chronology and transitive retention repairs
+are implemented and tested, together with TRAIN diagnostic containment, spread
+alias consistency, passive static preflight and explicit usefulness-uncertainty
+scope. Six subagents contributed implementation or independent architecture,
+feature/data, baseline and simplification review; their findings are recorded
+in the linked repair and companion reports.
+
+First-wave complete CPU regression passes all 2,929 tests, zero failures/errors/skips,
+in 698.050 seconds: `/var/tmp/gx1-readiness-full-final-20260906.xml`. All 28
+changed Python files parse; Ruff introduces no diagnostics relative to HEAD.
+Shell syntax and diff whitespace checks pass. This validates the repair wave,
+not profitability, checkpoint qualification or large-training readiness.
+
+The follow-up adds atomic usefulness-report publication and schema-v7 clock/
+episode-origin checks. Its 200 affected tests and subsequent complete 2,953-test
+suite pass, with zero failures/errors/skips; the full suite takes 694.498 seconds
+(`/var/tmp/gx1-readiness-followup-full-20260906.xml`). A real native-quote scan preserves exact
+spread output bytes on all 470,558 M5 and 2,628,372 M1 rows. A real retention
+attempt remains BLOCK on an unrecognized directory-manifest boundary. The
+complete usefulness adapter needs compact native-episode streaming and streamed
+paired statistics; it is not implemented merely by passing these core checks.
+
+The next repair replaces population-sized component-vector retention with
+batchwise paired-summary/effect/synergy accumulation in the existing core.
+Report v8/donor-plan v2 also bind native-MTF geometry: the actual 5,500 VAL entry
+episode pairs form 131 compatible groups with no singletons, whereas adjacent-
+entry rotation matches none. The first combined streaming/geometry/handover
+regression passes 288 tests. A compact adapter passes 39 separate CPU staging
+tests, including real native-model arithmetic on synthetic inputs, but is not
+deployed or production-wired. File-backed online/teacher/population identity and
+the full producer remain open; do not describe F2 or pretraining readiness as
+complete. Exact evidence and final integrated status belong to the repair record.
+The deployed streaming/geometry code subsequently passes the complete 3,143-test
+CPU suite in 712.501 seconds, with zero failures/errors/skips, in
+`/var/tmp/gx1-readiness-streaming-integrated-full-20260906.xml`. Pending compact
+plan/native producer/read-only session work is not included in this result.
+
+Subsequently the compact structural-plan owner is deployed and exercised on all
+5,500 real VAL episode pairs / 5,632,000 states, with 131 compatible groups and
+no omitted donors. An explicit read-only opener in the existing session owner
+also reads the actual checkpoint 152 / 9,664 steps without changing any session
+file bytes, modes or mtimes; both writers reject. The 332 affected canonical
+tests pass in 28.092 seconds. The staged native adapter/selected-pair reader
+passes 87 separate mechanical tests, but remains undeployed and not production-
+wired. Exact evidence and limitations are in the repair record's native-plan/
+read-only section. None of this creates a new dataset or selected candidate.
+The subsequent full deployed suite passes all 3,172 tests, zero failures/errors/
+skips, in 714.228 seconds (`/var/tmp/gx1-readiness-native-reader-full-20260906.xml`).
+Staged native producer/reader and subsequent normalization-binding work is not
+included; handover retains the review-hold BLOCK and no CUDA authority.
+
+A subsequent read-only construction through the real VAL Dataset/lifecycle
+owners confirms all 5,509 immutable Entry indices/source clocks and 5,632,000
+Exit state rows, without a model forward or new dataset. Its 152.437-second,
+3,252,120-KiB peak-RSS result is data-reader evidence only, not integrated model
+headroom. The native input-reader and normalization-identity repairs remain
+staging-only: their combined 359-test regression and final 103-test affected
+core rerun pass. A runtime fill snapshot must not be fabricated for the two-
+sided research population. The subsequent staged v9 report contract replaces
+those runtime-fill fields with native episode/token-population and selected-
+teacher identity, and binds normalization to embedded bundle metadata. The
+selected loader preserves six explicit artifact roles and repeats its strict
+source check after loading. All 399 combined affected staging tests pass in
+80.057 seconds, zero failures/errors/skips, in
+`/var/tmp/gx1-readiness-native-report-identity-corrected-20260906.xml`.
+The following staged collector now builds the complete native baseline through
+the existing Entry/Exit/teacher/target owners, retaining every Entry row and
+separate frozen tokens with exact compact pack/donor identity. A boundary check
+rehashes selected-state artifacts, actual model states and source provenance
+without reselection or model mutation. All 472 affected staging tests pass in
+310.393 seconds in `/var/tmp/gx1-readiness-native-baseline-corrected-20260906.xml`,
+including native arithmetic on synthetic full-dimension input. Source-derived
+baseline ndarray payload is 146,694,486 bytes for the earlier real population
+counts, not a measured integrated memory requirement.
+This remains mechanical verification, not an actual candidate usefulness result.
+The complete intervention/report producer, full consumed-input stability proof
+and public control wiring remain unfinished; all five pending native files
+remain undeployed. The canonical 3,172-test result does not include them.
+Exact evidence and limitations are in the repair record.
+
+The recipe, session contract, resume pointer and active checkpoint-152 bytes
+remain unchanged and hash-verified. Five of the recipe's 105 source bindings
+now differ: retention, immutable event authority, basic features, native
+market context and the trainer's read-only session owner. Source remains
+uncommitted. Shared contract changes invalidate
+the old source closure even without altering learned mathematics; no old
+source-bound gate is permission to run modified source. Future sky work
+still requires a reviewed native host/telemetry profile, complete dependency
+inventory, explicit checkpoint lineage, a measured one-GPU pilot and cost
+approval. Do not invent hardware thresholds before selecting a real host.
+
+## Historical operator-approved continuation (superseded)
 
 2026-09-06: the operator approved controlled checkpoint recovery and continued
 training, retaining all limits. The real CPU transfer, current-source recipes,

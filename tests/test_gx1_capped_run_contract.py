@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -1173,6 +1174,13 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "SAFE_JOB_SWAP_KIB=$((512 * 1024))" in source
     assert "exec 9>>\"$LOCK_PATH\"" in source
     assert "flock -n 9" in source
+    assert 'LOCK_PATH="$("$CANONICAL_TRAINER_PYTHON" -I -B "$CAPPED_EXECUTION_OWNER" --lock-path)"' in source
+    assert "XDG_RUNTIME_DIR" not in source
+    assert "/tmp/gx1-heavy-job" not in source
+    assert "umask 077" in source
+    assert 'umask "$LOCK_UMASK"' in source
+    assert 'CAPPED_EXECUTION_OWNER="$REPO_ROOT/gx1/contracts/gx1_capped_execution_v1.py"' in source
+    assert source.count("--verify-lock-ancestry") == 2
     assert '-p MemoryMax="$MEM" -p MemoryHigh="$MEM" -p MemorySwapMax="$SWAP"' in source
     assert '--setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))"' in source
     assert '--setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX"' in source
@@ -1237,6 +1245,16 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     validation_call = source.index('\nvalidate_target_command "$@"\n')
     nested_fast_path = source.index('\nif [[ -n "${GX1_CAPPED_CLASS:-}"')
     assert validation_call < nested_fast_path
+    host_preflight = source.index("\nhost_total_kib=")
+    lock_acquisition = source.index('\nexec 9>>"$LOCK_PATH"')
+    nested_proof = source.index("--verify-lock-ancestry")
+    assert nested_fast_path < nested_proof < host_preflight < lock_acquisition
+    assert source.index("nested capped job parent scope proof failed") < nested_proof
+    assert source.index("nested guarded CUDA device differs") < nested_proof
+    scope_guard = source.split("SCOPE_GUARD='", 1)[1]
+    assert scope_guard.index("pids.max scope proof failed") < scope_guard.index("--verify-lock-ancestry")
+    assert scope_guard.index("--verify-lock-ancestry") < scope_guard.index("exec /usr/bin/taskset")
+    assert 'gx1-capped-scope "$CANONICAL_TRAINER_PYTHON" "$CAPPED_EXECUTION_OWNER" "$@"' in source
 
 
 def test_capped_runner_source_binds_the_signed_windows_bridge() -> None:
@@ -1249,7 +1267,7 @@ def test_capped_runner_source_binds_the_signed_windows_bridge() -> None:
     assert "command -v nvidia-smi" not in source
 
 
-def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:
+def _require_canonical_audit_integration() -> None:
     required = {
         "GX1_CAPPED_CLASS": "audit",
         "GX1_CAPPED_MEMORY_BYTES": str(4 * 1024**3),
@@ -1259,6 +1277,17 @@ def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:
     if any(os.environ.get(key) != value for key, value in required.items()):
         pytest.skip("requires the canonical 4G/512M capped audit scope")
 
+
+@pytest.mark.parametrize("runtime", ["inherited", "unset", "alternate"])
+def test_matching_nested_audit_scope_can_execute_a_nontrainer_target(tmp_path: Path, runtime: str) -> None:
+    _require_canonical_audit_integration()
+    env = os.environ.copy()
+    alternate = tmp_path / "alternate-runtime"
+    alternate.mkdir(mode=0o700)
+    if runtime == "unset":
+        env.pop("XDG_RUNTIME_DIR", None)
+    elif runtime == "alternate":
+        env["XDG_RUNTIME_DIR"] = str(alternate)
     result = subprocess.run(
         [
             "bash",
@@ -1270,9 +1299,15 @@ def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:
             "--swap",
             "512M",
             "--",
-            "/bin/true",
+            sys.executable,
+            "-I",
+            "-B",
+            "-c",
+            "import os; assert not os.path.exists('/proc/self/fd/9'); print('closed-fd-target')",
         ],
         cwd=REPO,
+        env=env,
+        close_fds=True,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1280,3 +1315,64 @@ def test_matching_nested_audit_scope_can_execute_a_nontrainer_target() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+    assert result.stdout == "closed-fd-target\n"
+    assert not (alternate / "gx1-heavy-job.lock").exists()
+
+
+def test_cwd_changed_wrapper_preserves_actual_outer_capped_lock_owner(tmp_path: Path) -> None:
+    _require_canonical_audit_integration()
+    wrapper = tmp_path / "gx1-cwd-lock-fixture-wrapper.sh"
+    assert not (REPO / wrapper.name).exists()
+    wrapper.write_text(
+        "#!/bin/bash\nset -eu\n"
+        f"cd {shlex.quote(str(REPO))}\n"
+        f"bash {shlex.quote(str(RUNNER))} --class audit --mem 4G --swap 512M -- /bin/true\n"
+        "printf 'wrapper-done\\n'\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["bash", wrapper.name], cwd=tmp_path, close_fds=True,
+        text=True, capture_output=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "wrapper-done\n"
+
+
+def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> None:
+    _require_canonical_audit_integration()
+    alternate = tmp_path / "alternate-runtime"
+    alternate.mkdir(mode=0o700)
+    forbidden_dispatch = tmp_path / "systemd-run"
+    forbidden_dispatch.write_text(
+        "#!/bin/sh\nprintf 'UNEXPECTED_SCOPE_DISPATCH\\n' >&2\nexit 99\n",
+        encoding="utf-8",
+    )
+    forbidden_dispatch.chmod(0o700)
+    env = os.environ.copy()
+    for name in (
+        "GX1_CAPPED_CLASS", "GX1_CAPPED_MEMORY_BYTES",
+        "GX1_CAPPED_SWAP_BYTES", "GX1_CAPPED_TASKS_MAX",
+    ):
+        env.pop(name, None)
+    env["XDG_RUNTIME_DIR"] = str(alternate)
+    env["PATH"] = f"{tmp_path}{os.pathsep}{env['PATH']}"
+    result = subprocess.run(
+        [
+            "bash", str(RUNNER), "--class", "audit", "--mem", "4G",
+            "--swap", "512M", "--", "/bin/true",
+        ],
+        cwd=REPO,
+        env=env,
+        close_fds=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert result.returncode == 75, result.stderr
+    assert (
+        f"another GX1 heavy job owns the exclusive lock: /run/user/{os.getuid()}/gx1-heavy-job.lock"
+        in result.stderr
+    )
+    assert "UNEXPECTED_SCOPE_DISPATCH" not in result.stderr
+    assert not (alternate / "gx1-heavy-job.lock").exists()

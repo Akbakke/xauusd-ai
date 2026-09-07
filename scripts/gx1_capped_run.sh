@@ -43,6 +43,7 @@ TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_tec
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
+CAPPED_EXECUTION_OWNER="$REPO_ROOT/gx1/contracts/gx1_capped_execution_v1.py"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
 
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
@@ -440,6 +441,12 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
       echo "FATAL: canonical trainer safety guard is unavailable" >&2
       exit 75
     }
+  fi
+  "$CANONICAL_TRAINER_PYTHON" -I -B "$CAPPED_EXECUTION_OWNER" --verify-lock-ancestry || {
+    echo "FATAL: nested capped job canonical lock ancestry proof failed" >&2
+    exit 75
+  }
+  if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
     exec "$GPU_GUARD_PATH" "$@"
   fi
   exec "$@"
@@ -523,13 +530,15 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && "$TRAINER
   }
 fi
 
-if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" && -w "$XDG_RUNTIME_DIR" ]]; then
-  LOCK_PATH="$XDG_RUNTIME_DIR/gx1-heavy-job.lock"
-else
-  LOCK_PATH="/tmp/gx1-heavy-job-$(id -u).lock"
-fi
-[[ -d ${LOCK_PATH%/*} && -w ${LOCK_PATH%/*} ]] || { echo "FATAL: heavy-job lock directory is unavailable: ${LOCK_PATH%/*}"; exit 2; }
+[[ -x "$CANONICAL_TRAINER_PYTHON" && -f "$CAPPED_EXECUTION_OWNER" ]] || {
+  echo "FATAL: canonical heavy-job lock owner is unavailable" >&2
+  exit 75
+}
+LOCK_PATH="$("$CANONICAL_TRAINER_PYTHON" -I -B "$CAPPED_EXECUTION_OWNER" --lock-path)" || exit 2
+LOCK_UMASK=$(umask)
+umask 077
 exec 9>>"$LOCK_PATH"
+umask "$LOCK_UMASK"
 if ! flock -n 9; then
   echo "FATAL: another GX1 heavy job owns the exclusive lock: $LOCK_PATH" >&2
   exit 75
@@ -578,6 +587,8 @@ cg_dir="/sys/fs/cgroup${cg_rel}"
 [[ "$(cat "$cg_dir/memory.high")" == "$GX1_EXPECTED_MEMORY_BYTES" ]] || { echo "FATAL: memory.high scope proof failed" >&2; exit 75; }
 [[ "$(cat "$cg_dir/memory.swap.max")" == "$GX1_EXPECTED_SWAP_BYTES" ]] || { echo "FATAL: memory.swap.max scope proof failed" >&2; exit 75; }
 [[ "$(cat "$cg_dir/pids.max")" == "$GX1_EXPECTED_TASKS" ]] || { echo "FATAL: pids.max scope proof failed" >&2; exit 75; }
+"$1" -I -B "$2" --verify-lock-ancestry || { echo "FATAL: scope canonical lock ancestry proof failed" >&2; exit 75; }
+shift 2
 echo "[capped_run_scope_verified] memory.max=$GX1_EXPECTED_MEMORY_BYTES memory.high=$GX1_EXPECTED_MEMORY_BYTES memory.swap.max=$GX1_EXPECTED_SWAP_BYTES pids.max=$GX1_EXPECTED_TASKS" >&2
 verified_cpu_affinity="$GX1_CPU_AFFINITY"
 unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES GX1_EXPECTED_TASKS GX1_CPU_AFFINITY
@@ -629,7 +640,7 @@ systemd-run --user --scope --quiet \
   --setenv=ARROW_NUM_THREADS=1 \
   --setenv=POLARS_MAX_THREADS=1 \
   --setenv=MALLOC_ARENA_MAX=2 \
-  -- /bin/bash -c "$SCOPE_GUARD" gx1-capped-scope "$@"
+  -- /bin/bash -c "$SCOPE_GUARD" gx1-capped-scope "$CANONICAL_TRAINER_PYTHON" "$CAPPED_EXECUTION_OWNER" "$@"
 exit_code=$?
 flock -u 9
 exit "$exit_code"

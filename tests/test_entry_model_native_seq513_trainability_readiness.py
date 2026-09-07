@@ -338,7 +338,9 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
     assert len(report["evidence_binding_sha256"]) == 64
     event_path = Path(report["json_path"])
     assert event_path.is_file()
-    assert list((tmp_path / "reports").iterdir()) == [event_path]
+    assert set((tmp_path / "reports").iterdir()) == {
+        event_path, event_path.with_name(f".{event_path.name}.order"),
+    }
 
 
 def test_trainability_rejects_wrapper_that_restates_contract_mode(

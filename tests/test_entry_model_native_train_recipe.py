@@ -30,6 +30,31 @@ REPO = Path(__file__).resolve().parents[1]
 WRAPPER = REPO / "scripts/run_entry_model_native_seq513_train.sh"
 
 
+def test_recipe_source_closure_binds_feature_usefulness_native_and_capped_owners(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roots_seen: list[Path] = []
+    import_closure = launch._recipe_local_python_import_closure
+
+    def capture_roots(*, repo, roots):
+        roots_seen.extend(roots)
+        return import_closure(repo=repo, roots=roots)
+
+    monkeypatch.setattr(launch, "_recipe_local_python_import_closure", capture_roots)
+    bindings = launch.recipe_source_binding_paths(repo=REPO, wrapper_path=WRAPPER)
+    audit = REPO / "gx1/scripts/audit_entry_exit_feature_usefulness_v1.py"
+    native = REPO / "gx1/scripts/entry_exit_feature_usefulness_native_v1.py"
+    capped = REPO / "gx1/contracts/gx1_capped_execution_v1.py"
+
+    assert audit in roots_seen
+    assert native not in roots_seen
+    assert capped not in roots_seen
+    for path in (audit, native, capped):
+        assert bindings[f"python:{path.relative_to(REPO).as_posix()}"] == path
+    assert bindings["control_surface"] == REPO / "scripts/entry_next_edge_control.sh"
+    assert bindings["capped_runner"] == REPO / "scripts/gx1_capped_run.sh"
+
+
 def test_launch_artifact_binding_rehashes_same_stat_byte_mutation(
     tmp_path: Path,
 ) -> None:

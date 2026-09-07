@@ -35,6 +35,7 @@ CANONICAL_NATIVE_SUCCESSOR_MODE = "successor"
 CANONICAL_NATIVE_PRODUCER_OWNER = (
     "gx1.scripts.backfill_xauusd_m5_from_oanda.materialize_native_xau_snapshot"
 )
+CANONICAL_NATIVE_SOURCE_ENDPOINT = "/instruments/XAU_USD/candles"
 CANONICAL_NATIVE_CLOSURE_CONTRACT = (
     "oanda_complete_true_source_absence_no_synthesis_v1"
 )
@@ -606,6 +607,100 @@ def _require_sha256(
             f"XAU_CANONICAL_{normalized}_{label}_SHA256_INVALID"
         )
     return value
+
+
+def require_native_producer_source_inventory_metadata(
+    manifest: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Validate native source inventory metadata without reading snapshot files."""
+
+    if not isinstance(manifest, Mapping):
+        raise RuntimeError("XAU_CANONICAL_NATIVE_MANIFEST_SCHEMA_INVALID")
+    if manifest.get("schema_version") not in (
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    ):
+        raise RuntimeError("XAU_CANONICAL_NATIVE_MANIFEST_SCHEMA_INVALID")
+    if manifest.get("producer_owner") != CANONICAL_NATIVE_PRODUCER_OWNER:
+        raise RuntimeError("XAU_CANONICAL_NATIVE_PRODUCER_OWNER_MISMATCH")
+    normalized, _policy = native_timeframe_policy(manifest.get("timeframe"))
+    if (
+        manifest.get("instrument") != XAU_INSTRUMENT
+        or manifest.get("timeframe") != normalized
+    ):
+        raise RuntimeError(f"XAU_CANONICAL_{normalized}_IDENTITY_MISMATCH")
+    prefix = f"XAU_CANONICAL_{normalized}"
+    if manifest.get("source_endpoint") != CANONICAL_NATIVE_SOURCE_ENDPOINT:
+        raise RuntimeError(f"{prefix}_SOURCE_ENDPOINT_MISMATCH")
+    source_inventory = manifest.get("producer_source_files")
+    if not isinstance(source_inventory, list):
+        raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_INVENTORY_INVALID")
+    expected_source_paths = list(CANONICAL_NATIVE_PRODUCER_SOURCE_FILES)
+    if len(source_inventory) != len(expected_source_paths):
+        raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_SET_MISMATCH")
+    observed_source_paths: list[str] = []
+    validated_inventory: list[dict[str, Any]] = []
+    for item in source_inventory:
+        if not isinstance(item, dict) or set(item) != {
+            "repo_relative_path",
+            "snapshot_relative_path",
+            "sha256",
+            "size_bytes",
+        }:
+            raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_ITEM_INVALID")
+        for key, label in (
+            ("repo_relative_path", "PRODUCER_REPO_SOURCE"),
+            ("snapshot_relative_path", "PRODUCER_SNAPSHOT_SOURCE"),
+        ):
+            if not isinstance(item[key], str):
+                raise RuntimeError(f"{prefix}_{label}_PATH_INVALID")
+        repo_relative = str(
+            _safe_relative_path(
+                item["repo_relative_path"],
+                timeframe=normalized,
+                label="PRODUCER_REPO_SOURCE",
+            )
+        )
+        snapshot_relative = _safe_relative_path(
+            item["snapshot_relative_path"],
+            timeframe=normalized,
+            label="PRODUCER_SNAPSHOT_SOURCE",
+        )
+        if snapshot_relative != Path("producer_source") / repo_relative:
+            raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_PATH_MISMATCH")
+        digest = item["sha256"]
+        if (
+            not isinstance(digest, str)
+            or _require_sha256(
+                digest,
+                timeframe=normalized,
+                label="PRODUCER_SOURCE",
+            ) != digest
+        ):
+            raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_SHA256_INVALID")
+        size = item["size_bytes"]
+        if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+            raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_BINDING_MISMATCH")
+        observed_source_paths.append(repo_relative)
+        validated_inventory.append(dict(item))
+    if observed_source_paths != expected_source_paths:
+        raise RuntimeError(
+            f"{prefix}_PRODUCER_SOURCE_SET_MISMATCH: "
+            f"expected={expected_source_paths} observed={observed_source_paths}"
+        )
+    inventory_digest = manifest.get("producer_source_inventory_sha256")
+    if (
+        not isinstance(inventory_digest, str)
+        or _require_sha256(
+            inventory_digest,
+            timeframe=normalized,
+            label="PRODUCER_SOURCE_INVENTORY",
+        ) != inventory_digest
+    ):
+        raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_INVENTORY_SHA256_INVALID")
+    if inventory_digest != canonical_json_sha256(source_inventory):
+        raise RuntimeError(f"{prefix}_PRODUCER_SOURCE_INVENTORY_HASH_MISMATCH")
+    return validated_inventory
 
 
 def _decode_source_chunk(
@@ -1244,7 +1339,7 @@ def _validate_canonical_native_source_contract_impl(
         "schema_version": schema_version,
         "producer_owner": CANONICAL_NATIVE_PRODUCER_OWNER,
         "source_kind": "oanda_native_mba_candles",
-        "source_endpoint": "/instruments/XAU_USD/candles",
+        "source_endpoint": CANONICAL_NATIVE_SOURCE_ENDPOINT,
         "source_granularity": normalized,
         "prices": "MBA",
         "timestamp_semantics": "bar_start_utc",
@@ -1397,58 +1492,19 @@ def _validate_canonical_native_source_contract_impl(
             raise RuntimeError(f"XAU_CANONICAL_M5_{label}_INVALID")
     if any(path.is_symlink() for path in producer_source_root.rglob("*")):
         raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_SYMLINK_FORBIDDEN")
-    source_inventory = manifest.get("producer_source_files")
-    if not isinstance(source_inventory, list):
-        raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_INVENTORY_INVALID")
+    source_inventory = require_native_producer_source_inventory_metadata(manifest)
     expected_source_paths = list(CANONICAL_NATIVE_PRODUCER_SOURCE_FILES)
-    observed_source_paths: list[str] = []
     for item in source_inventory:
-        if not isinstance(item, dict) or set(item) != {
-            "repo_relative_path",
-            "snapshot_relative_path",
-            "sha256",
-            "size_bytes",
-        }:
-            raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_ITEM_INVALID")
-        repo_relative = str(
-            _safe_relative_path(
-                item.get("repo_relative_path"),
-                timeframe=normalized,
-                label="PRODUCER_REPO_SOURCE",
-            )
-        )
-        snapshot_relative = _safe_relative_path(
-            item.get("snapshot_relative_path"),
-            timeframe=normalized,
-            label="PRODUCER_SNAPSHOT_SOURCE",
-        )
-        if snapshot_relative != Path("producer_source") / repo_relative:
-            raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_PATH_MISMATCH")
-        source_path = root / snapshot_relative
+        source_path = root / item["snapshot_relative_path"]
         if source_path.is_symlink() or not source_path.is_file():
             raise RuntimeError(
                 f"XAU_CANONICAL_M5_PRODUCER_SOURCE_MISSING: {source_path}"
             )
-        digest = _require_sha256(
-            item.get("sha256"),
-            timeframe=normalized,
-            label="PRODUCER_SOURCE",
-        )
-        size = item.get("size_bytes")
         if (
-            isinstance(size, bool)
-            or not isinstance(size, int)
-            or size <= 0
-            or source_path.stat().st_size != size
-            or sha256_file(source_path) != digest
+            source_path.stat().st_size != item["size_bytes"]
+            or sha256_file(source_path) != item["sha256"]
         ):
             raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_BINDING_MISMATCH")
-        observed_source_paths.append(repo_relative)
-    if observed_source_paths != expected_source_paths:
-        raise RuntimeError(
-            "XAU_CANONICAL_M5_PRODUCER_SOURCE_SET_MISMATCH: "
-            f"expected={expected_source_paths} observed={observed_source_paths}"
-        )
     actual_source_files = sorted(
         str(path.relative_to(root / "producer_source"))
         for path in producer_source_root.rglob("*")
@@ -1456,16 +1512,6 @@ def _validate_canonical_native_source_contract_impl(
     )
     if actual_source_files != expected_source_paths:
         raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_FILESYSTEM_MISMATCH")
-    if (
-        _require_sha256(
-            manifest.get("producer_source_inventory_sha256"),
-            timeframe=normalized,
-            label="PRODUCER_SOURCE_INVENTORY",
-        )
-        != canonical_json_sha256(source_inventory)
-    ):
-        raise RuntimeError("XAU_CANONICAL_M5_PRODUCER_SOURCE_INVENTORY_HASH_MISMATCH")
-
     source_chunks = manifest.get("source_chunks")
     if not isinstance(source_chunks, list) or not source_chunks:
         raise RuntimeError("XAU_CANONICAL_M5_SOURCE_CHUNKS_MISSING")

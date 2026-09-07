@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
     PRETRAIN_AUDIT_SCHEMA,
 )
@@ -928,7 +929,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     # separate clock reads can differ by microseconds and make a technically
     # valid audit unusable by the immutable-event authority.
     created = datetime.now(timezone.utc)
-    timestamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     report = {
         "schema_version": PRETRAIN_AUDIT_SCHEMA,
         "created_utc": created.isoformat(),
@@ -985,10 +985,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "splits": split_reports,
         "failures": failures,
     }
-    json_path = out_dir / f"XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT_{timestamp}.json"
-    report["json_path"] = str(json_path)
-    with json_path.open("x", encoding="utf-8") as handle:
-        handle.write(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n")
+    json_path, published_report = write_immutable_json_event(
+        out_dir,
+        "XAU_DIRECTION_REPAIR_PRETRAIN_AUDIT",
+        json.loads(json.dumps(report, default=_json_default, allow_nan=False)),
+    )
+    report["json_path"] = published_report["json_path"]
 
     if not args.quiet:
         print(

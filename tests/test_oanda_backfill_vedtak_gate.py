@@ -291,6 +291,273 @@ def test_m1_downsample_cannot_write_canonical_m5_root() -> None:
         m1_downsample.main()
 
 
+@pytest.fixture
+def native_producer_source_metadata() -> dict[str, Any]:
+    inventory = [
+        {
+            "repo_relative_path": relative,
+            "snapshot_relative_path": f"producer_source/{relative}",
+            "sha256": "a" * 64,
+            "size_bytes": 1,
+        }
+        for relative in tape_contract.CANONICAL_NATIVE_PRODUCER_SOURCE_FILES
+    ]
+    return {
+        "schema_version": tape_contract.CANONICAL_NATIVE_SOURCE_SCHEMA,
+        "producer_owner": tape_contract.CANONICAL_NATIVE_PRODUCER_OWNER,
+        "source_endpoint": tape_contract.CANONICAL_NATIVE_SOURCE_ENDPOINT,
+        "instrument": tape_contract.XAU_INSTRUMENT,
+        "timeframe": "M5",
+        "producer_source_files": inventory,
+        "producer_source_inventory_sha256": canonical_json_sha256(inventory),
+    }
+
+
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+@pytest.mark.parametrize("schema", [
+    tape_contract.CANONICAL_NATIVE_SOURCE_SCHEMA,
+    tape_contract.CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+])
+def test_native_producer_source_metadata_is_copied_without_filesystem_access(
+    native_producer_source_metadata: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    timeframe: str,
+    schema: str,
+) -> None:
+    manifest = native_producer_source_metadata
+    manifest.update(timeframe=timeframe, schema_version=schema)
+    original = json.loads(json.dumps(manifest))
+
+    def forbidden_access(*_args: Any, **_kwargs: Any) -> None:
+        pytest.fail("metadata validation accessed the filesystem")
+
+    with monkeypatch.context() as filesystem_guard:
+        filesystem_guard.setattr("builtins.open", forbidden_access)
+        filesystem_guard.setattr(tape_contract, "sha256_file", forbidden_access)
+        for method in (
+            "open", "read_bytes", "read_text", "stat", "lstat",
+            "iterdir", "rglob", "resolve",
+        ):
+            filesystem_guard.setattr(Path, method, forbidden_access)
+        observed = tape_contract.require_native_producer_source_inventory_metadata(
+            manifest
+        )
+
+    assert manifest == original
+    assert observed == manifest["producer_source_files"]
+    assert observed is not manifest["producer_source_files"]
+    assert all(
+        actual is not expected
+        for actual, expected in zip(observed, manifest["producer_source_files"])
+    )
+    observed[0]["size_bytes"] = 2
+    assert manifest == original
+
+
+@pytest.mark.parametrize("manifest", [None, [], "native", 1])
+def test_native_producer_source_metadata_requires_an_object(manifest: Any) -> None:
+    with pytest.raises(RuntimeError, match="MANIFEST_SCHEMA_INVALID"):
+        tape_contract.require_native_producer_source_inventory_metadata(manifest)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("schema_version", "xau_canonical_native_source_v2"),
+    ("schema_version", None),
+    ("schema_version", []),
+    ("producer_owner", "another.producer"),
+    ("producer_owner", None),
+    ("instrument", "EUR_USD"),
+    ("instrument", None),
+    ("timeframe", "m5"),
+    ("timeframe", " M5"),
+    ("timeframe", "M15"),
+    ("timeframe", None),
+])
+def test_native_producer_source_metadata_rejects_foreign_identity(
+    native_producer_source_metadata: dict[str, Any], field: str, value: Any,
+) -> None:
+    native_producer_source_metadata[field] = value
+    with pytest.raises(RuntimeError, match="XAU_CANONICAL"):
+        tape_contract.require_native_producer_source_inventory_metadata(
+            native_producer_source_metadata
+        )
+
+
+@pytest.mark.parametrize(("present", "endpoint"), [
+    (False, None),
+    (True, None),
+    (True, 1),
+    (True, {}),
+    (True, ""),
+    (True, "/home/andre2/payload.bin"),
+    (True, "/instruments/EUR_USD/candles"),
+    (True, "/instruments/XAU_USD/candles/"),
+    (True, " /instruments/XAU_USD/candles"),
+    (True, "https://api-fxpractice.oanda.com/v3/instruments/XAU_USD/candles"),
+])
+def test_native_producer_source_metadata_requires_exact_source_endpoint(
+    native_producer_source_metadata: dict[str, Any], present: bool, endpoint: Any,
+) -> None:
+    manifest = native_producer_source_metadata
+    if present:
+        manifest["source_endpoint"] = endpoint
+    else:
+        manifest.pop("source_endpoint")
+    with pytest.raises(RuntimeError, match="SOURCE_ENDPOINT_MISMATCH"):
+        tape_contract.require_native_producer_source_inventory_metadata(manifest)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("repo_relative_path", None),
+    ("repo_relative_path", 1),
+    ("repo_relative_path", "/gx1/owner.py"),
+    ("repo_relative_path", "../gx1/owner.py"),
+    ("repo_relative_path", "gx1/./owner.py"),
+    ("snapshot_relative_path", None),
+    ("snapshot_relative_path", ["producer_source/owner.py"]),
+    ("snapshot_relative_path", "/producer_source/owner.py"),
+    ("snapshot_relative_path", "producer_source/../owner.py"),
+    ("snapshot_relative_path", "producer_source//owner.py"),
+    ("snapshot_relative_path", "producer_source/wrong.py"),
+    ("sha256", None),
+    ("sha256", 1),
+    ("sha256", "A" * 64),
+    ("sha256", "a" * 63),
+    ("sha256", "g" * 64),
+    ("sha256", " " + "a" * 64),
+    ("size_bytes", None),
+    ("size_bytes", True),
+    ("size_bytes", False),
+    ("size_bytes", 0),
+    ("size_bytes", -1),
+    ("size_bytes", 1.0),
+    ("size_bytes", "1"),
+])
+def test_native_producer_source_metadata_rejects_invalid_rows(
+    native_producer_source_metadata: dict[str, Any], field: str, value: Any,
+) -> None:
+    manifest = native_producer_source_metadata
+    manifest["producer_source_files"][0][field] = value
+    manifest["producer_source_inventory_sha256"] = canonical_json_sha256(
+        manifest["producer_source_files"]
+    )
+    with pytest.raises(RuntimeError, match="PRODUCER_"):
+        tape_contract.require_native_producer_source_inventory_metadata(manifest)
+
+
+@pytest.mark.parametrize("mutation", [
+    "not_list", "empty", "missing", "duplicate", "reordered",
+    "unknown_source", "not_object", "extra_field", "missing_field",
+])
+def test_native_producer_source_metadata_requires_exact_ordered_inventory(
+    native_producer_source_metadata: dict[str, Any], mutation: str,
+) -> None:
+    manifest = native_producer_source_metadata
+    inventory = manifest["producer_source_files"]
+    if mutation == "not_list":
+        manifest["producer_source_files"] = tuple(inventory)
+    elif mutation == "empty":
+        inventory.clear()
+    elif mutation == "missing":
+        inventory.pop()
+    elif mutation == "duplicate":
+        inventory[-1] = dict(inventory[0])
+    elif mutation == "reordered":
+        inventory.reverse()
+    elif mutation == "unknown_source":
+        inventory[0].update(
+            repo_relative_path="gx1/unknown.py",
+            snapshot_relative_path="producer_source/gx1/unknown.py",
+        )
+    elif mutation == "not_object":
+        inventory[0] = None
+    elif mutation == "extra_field":
+        inventory[0]["extra_path"] = "payload.bin"
+    elif mutation == "missing_field":
+        inventory[0].pop("sha256")
+    manifest["producer_source_inventory_sha256"] = canonical_json_sha256(
+        manifest["producer_source_files"]
+    )
+    with pytest.raises(RuntimeError, match="PRODUCER_SOURCE_"):
+        tape_contract.require_native_producer_source_inventory_metadata(manifest)
+
+
+@pytest.mark.parametrize("digest", [None, 1, "A" * 64, "a" * 63, "g" * 64, "0" * 64])
+def test_native_producer_source_metadata_requires_exact_inventory_digest(
+    native_producer_source_metadata: dict[str, Any], digest: Any,
+) -> None:
+    native_producer_source_metadata["producer_source_inventory_sha256"] = digest
+    with pytest.raises(RuntimeError, match="PRODUCER_SOURCE_INVENTORY_"):
+        tape_contract.require_native_producer_source_inventory_metadata(
+            native_producer_source_metadata
+        )
+
+
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+@pytest.mark.parametrize("reject", [False, True])
+def test_native_full_validator_uses_source_inventory_metadata_owner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, timeframe: str, reject: bool,
+) -> None:
+    output = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(output, timeframe=timeframe)
+    owner = tape_contract.require_native_producer_source_inventory_metadata
+    calls: list[dict[str, Any]] = []
+
+    def checked_owner(payload: dict[str, Any]) -> list[dict[str, Any]]:
+        calls.append(payload)
+        if reject:
+            raise RuntimeError("PRODUCER_SOURCE_METADATA_REJECTED")
+        return owner(payload)
+
+    monkeypatch.setattr(
+        tape_contract, "require_native_producer_source_inventory_metadata", checked_owner
+    )
+    if reject:
+        with pytest.raises(RuntimeError, match="PRODUCER_SOURCE_METADATA_REJECTED"):
+            canonical_xau_source_descriptor_v1(output, timeframe=timeframe)
+    else:
+        descriptor = canonical_xau_source_descriptor_v1(output, timeframe=timeframe)
+        assert descriptor["producer_source_inventory_sha256"] == (
+            manifest["producer_source_inventory_sha256"]
+        )
+    assert calls == [manifest]
+
+
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+@pytest.mark.parametrize(("mutation", "error"), [
+    ("same_size_tamper", "PRODUCER_SOURCE_BINDING_MISMATCH"),
+    ("size_tamper", "PRODUCER_SOURCE_BINDING_MISMATCH"),
+    ("missing", "PRODUCER_SOURCE_MISSING"),
+    ("symlink", "PRODUCER_SOURCE_SYMLINK_FORBIDDEN"),
+    ("extra_source", "PRODUCER_SOURCE_FILESYSTEM_MISMATCH"),
+    ("extra_root", "FILESYSTEM_SURFACE_INVALID"),
+])
+def test_native_full_validator_preserves_source_filesystem_checks(
+    tmp_path: Path, timeframe: str, mutation: str, error: str,
+) -> None:
+    output = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(output, timeframe=timeframe)
+    inventory = manifest["producer_source_files"]
+    snapshot = output / inventory[0]["snapshot_relative_path"]
+    if mutation == "same_size_tamper":
+        raw = snapshot.read_bytes()
+        snapshot.write_bytes(bytes([raw[0] ^ 1]) + raw[1:])
+    elif mutation == "size_tamper":
+        snapshot.write_bytes(snapshot.read_bytes() + b"tamper")
+    elif mutation == "missing":
+        snapshot.unlink()
+    elif mutation == "symlink":
+        snapshot.unlink()
+        snapshot.symlink_to(output / inventory[1]["snapshot_relative_path"])
+    elif mutation == "extra_source":
+        (output / "producer_source" / "unexpected.py").write_bytes(b"extra")
+    elif mutation == "extra_root":
+        (output / "unexpected.bin").write_bytes(b"extra")
+    assert tape_contract.require_native_producer_source_inventory_metadata(manifest) == inventory
+    with pytest.raises(RuntimeError, match=error):
+        canonical_xau_source_descriptor_v1(output, timeframe=timeframe)
+
+
 @pytest.mark.parametrize("timeframe", ["M1", "M5"])
 def test_native_materialization_is_source_bound_and_atomic(
     tmp_path: Path,

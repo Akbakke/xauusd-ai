@@ -328,6 +328,198 @@ def test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering(
         session.load_checkpoint()
 
 
+def _read_only_session_fixture(tmp_path: Path):
+    output = tmp_path.resolve() / "PUBLISHED_BUNDLE"
+    contract = _contract()
+    session = trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
+    weights = {"weight": torch.ones(1)}
+    checkpoint = session.save_top_k_checkpoint(
+        epoch=1, metric=1.0, model_state=weights, target_model_state=weights
+    )
+    progress = trainer._new_candidate_training_progress()
+    progress["checkpoint_selection"].update(
+        best_checkpoint=checkpoint, top_k_checkpoints=[checkpoint],
+        best_epoch=1, last_epoch=1, best_state=weights,
+        best_fitted_q_target_state=weights,
+    )
+    state = {
+        "schema_version": trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+        "session_contract_sha256": session.contract_sha256,
+        "checkpoint_index": 1,
+        "phase": "validation",
+        "epoch_index": 0,
+        "next_batch_offset": 1,
+        "global_optimizer_steps": 1,
+        "epoch_order": torch.arange(1, dtype=torch.int64),
+        "model_state": weights,
+        "target_model_state": weights,
+        "optimizer_state": {},
+        "weight_ema_state": None,
+        "lr_scheduler_state": None,
+        "rng_state": {},
+        "training_progress": progress,
+        "complete": True,
+    }
+    session.save_checkpoint(state)
+    output.mkdir()
+    (output / "bundle_metadata.json").write_text('{"fixture":"not_a_real_bundle"}')
+    return output, contract, session, state
+
+
+def _read_only_tree_snapshot(root: Path):
+    result = {}
+    for path in (root, *sorted(root.rglob("*"))):
+        metadata = path.lstat()
+        result[str(path.relative_to(root))] = (
+            metadata.st_mode, metadata.st_ino, metadata.st_mtime_ns,
+            path.read_bytes() if path.is_file() and not path.is_symlink() else None,
+            str(path.readlink()) if path.is_symlink() else None,
+        )
+    return result
+
+
+def test_candidate_read_only_published_destination_preserves_all_bytes(tmp_path: Path):
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+    before = _read_only_tree_snapshot(tmp_path)
+    trainer_bytes = Path(trainer.__file__).read_bytes()
+    with pytest.raises(RuntimeError, match="OUTPUT_PATH_INVALID"):
+        trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
+    reader = trainer._CandidateTrainingSession(
+        out_bundle_dir=output, contract=contract, read_only=True
+    )
+    restored = reader.load_checkpoint()
+    assert reader.contract_sha256 == writer.contract_sha256
+    assert restored["complete"] is True
+    assert restored["training_progress"]["checkpoint_selection"]["best_epoch"] == 1
+    assert torch.equal(restored["model_state"]["weight"], state["model_state"]["weight"])
+    assert _read_only_tree_snapshot(tmp_path) == before
+    assert Path(trainer.__file__).read_bytes() == trainer_bytes
+
+
+@pytest.mark.parametrize("published", (False, True))
+def test_candidate_read_only_missing_session_creates_nothing(tmp_path: Path, published: bool):
+    output = tmp_path.resolve() / "NO_SESSION"
+    if published:
+        output.mkdir()
+    before = _read_only_tree_snapshot(tmp_path)
+    with pytest.raises(RuntimeError, match="READ_ONLY_SESSION_MISSING"):
+        trainer._CandidateTrainingSession(
+            out_bundle_dir=output, contract=_contract(), read_only=True
+        )
+    assert _read_only_tree_snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("invalid", (False, True))
+def test_candidate_read_only_writers_reject_before_arguments_or_io(tmp_path: Path, invalid: bool):
+    output, contract, _writer, state = _read_only_session_fixture(tmp_path)
+    reader = trainer._CandidateTrainingSession(
+        out_bundle_dir=output, contract=contract, read_only=True
+    )
+    before = _read_only_tree_snapshot(tmp_path)
+    with pytest.raises(RuntimeError, match="READ_ONLY_WRITE_FORBIDDEN"):
+        reader.save_checkpoint(None if invalid else state)
+    with pytest.raises(RuntimeError, match="READ_ONLY_WRITE_FORBIDDEN"):
+        reader.save_top_k_checkpoint(
+            epoch=None if invalid else 2, metric=None if invalid else 2.0,
+            model_state=None if invalid else state["model_state"],
+            target_model_state=None if invalid else state["target_model_state"],
+        )
+    assert _read_only_tree_snapshot(tmp_path) == before
+
+
+def test_candidate_read_only_requires_exact_contract_without_legacy_substitution(tmp_path: Path):
+    output = tmp_path.resolve() / "LEGACY"
+    contract = {**_contract(), "source_commit": "1" * 40}
+    writer = trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
+    requested = {
+        **contract,
+        "recipe_source_provenance": _recipe_source_provenance(source_commit="1" * 40),
+    }
+    before = _read_only_tree_snapshot(tmp_path)
+    for mismatch in (requested, {**contract, "nonce": "changed"}):
+        with pytest.raises(RuntimeError, match="CONTRACT_MISMATCH"):
+            trainer._CandidateTrainingSession(
+                out_bundle_dir=output, contract=mismatch, read_only=True
+            )
+    reader = trainer._CandidateTrainingSession(
+        out_bundle_dir=output, contract=contract, read_only=True
+    )
+    assert reader.contract_sha256 == writer.contract_sha256
+    assert reader.load_checkpoint() is None
+    assert _read_only_tree_snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("location", ("ancestor", "output", "session", "top_k", "state", "active", "contract"))
+def test_candidate_read_only_refuses_symlink_traversal(tmp_path: Path, location: str):
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+    requested_output = output
+    if location == "ancestor":
+        link = tmp_path.resolve() / "linked_parent"
+        link.symlink_to(tmp_path.resolve(), target_is_directory=True)
+        requested_output = link / output.name
+    else:
+        target = {
+            "output": output,
+            "session": writer.directory,
+            "top_k": writer.directory / "top_k",
+            "state": writer._slot_path(0),
+            "active": writer.directory / trainer._CANDIDATE_TRAINING_ACTIVE_FILENAME,
+            "contract": writer.directory / trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME,
+        }[location]
+        moved = target.with_name(target.name + ".retained")
+        target.rename(moved)
+        target.symlink_to(moved, target_is_directory=moved.is_dir())
+    with pytest.raises(RuntimeError, match="PATH_INVALID"):
+        reader = trainer._CandidateTrainingSession(
+            out_bundle_dir=requested_output, contract=contract, read_only=True
+        )
+        reader.load_checkpoint()
+
+
+@pytest.mark.parametrize("location", ("state", "top_k", "pointer"))
+def test_candidate_read_only_keeps_existing_tamper_checks(tmp_path: Path, location: str):
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+    if location == "pointer":
+        path = writer.directory / trainer._CANDIDATE_TRAINING_ACTIVE_FILENAME
+        active = json.loads(path.read_text())
+        active["checkpoint_index"] += 1
+        path.write_text(json.dumps(active))
+        expected = "STATE_POINTER_MISMATCH"
+    else:
+        path = writer._slot_path(0) if location == "state" else (
+            writer.directory / state["training_progress"]["checkpoint_selection"]["best_checkpoint"]["path"]
+        )
+        path.write_bytes(path.read_bytes() + b"tamper")
+        expected = "STATE_SHA256_MISMATCH" if location == "state" else "TOP_K_SHA256_MISMATCH"
+    before = _read_only_tree_snapshot(tmp_path)
+    reader = trainer._CandidateTrainingSession(
+        out_bundle_dir=output, contract=contract, read_only=True
+    )
+    with pytest.raises(RuntimeError, match=expected):
+        reader.load_checkpoint()
+    assert _read_only_tree_snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("fault", ("permissions", "owner", "output_file", "invalid_mode"))
+def test_candidate_read_only_requires_private_real_paths(tmp_path: Path, monkeypatch, fault: str):
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+    if fault == "permissions":
+        writer.directory.chmod(0o755)
+    elif fault == "owner":
+        real_uid = trainer.os.getuid()
+        monkeypatch.setattr(trainer.os, "getuid", lambda: real_uid + 1)
+    elif fault == "output_file":
+        output.rename(output.with_name("RETAINED_BUNDLE"))
+        output.write_text("not a directory")
+    before = _read_only_tree_snapshot(tmp_path)
+    with pytest.raises(RuntimeError, match="INVALID"):
+        trainer._CandidateTrainingSession(
+            out_bundle_dir=output, contract=contract,
+            read_only="true" if fault == "invalid_mode" else True,
+        )
+    assert _read_only_tree_snapshot(tmp_path) == before
+
+
 def _validation_snapshot_fixture(*, rows: int = 1) -> dict[str, object]:
     return trainer._candidate_validation_snapshot(
         total=1.5,

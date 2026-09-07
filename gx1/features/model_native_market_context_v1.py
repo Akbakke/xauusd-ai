@@ -44,33 +44,96 @@ def _finite_or_fail(values: np.ndarray, *, label: str) -> None:
         )
 
 
+def _require_spread_alias_match(
+    source: pd.Series,
+    expected_values: tuple[np.ndarray, ...],
+    *,
+    label: str,
+) -> None:
+    """Accept exact float64 or stored float32 bytes, including float64 widening."""
+
+    observed = source.to_numpy(dtype=np.float64)
+    matches = np.zeros(observed.shape, dtype=np.bool_)
+    for expected in expected_values:
+        expected = np.asarray(expected, dtype=np.float64)
+        matches |= observed == expected
+        if matches.all():
+            return
+        with np.errstate(over="ignore", under="ignore"):
+            stored = expected.astype(np.float32).astype(np.float64)
+        matches |= observed == stored
+    if not matches.all():
+        raise RuntimeError(
+            f"[MODEL_NATIVE_CONTEXT_SPREAD_ALIAS_MISMATCH] {label}: "
+            f"count={int(np.count_nonzero(~matches))}"
+        )
+
+
+def validate_observed_spread_aliases(frame: pd.DataFrame) -> np.ndarray | None:
+    """Validate present quotes and their aliases without requiring a quote pair."""
+
+    quotes = {}
+    for name in ("bid_close", "ask_close"):
+        if name in frame.columns:
+            values = frame[name].to_numpy(dtype=np.float64)
+            _finite_or_fail(values, label=name)
+            if np.any(values <= 0.0):
+                raise RuntimeError(
+                    f"[MODEL_NATIVE_CONTEXT_INVALID] nonpositive {name}: "
+                    f"count={int(np.count_nonzero(values <= 0.0))}"
+                )
+            quotes[name] = values
+
+    quote_spread_bps = None
+    if len(quotes) == 2:
+        bid = quotes["bid_close"]
+        ask = quotes["ask_close"]
+        if np.any(ask < bid):
+            raise RuntimeError(
+                "[MODEL_NATIVE_CONTEXT_INVALID] invalid bid/ask spread rows: "
+                f"count={int(np.count_nonzero(ask < bid))}"
+            )
+        quote_spread_bps = (ask - bid) / bid * 1e4
+        _finite_or_fail(quote_spread_bps, label="spread_bps_from_bid_ask")
+
+    aliases = {}
+    for name in ("spread_bps", "spread_pct"):
+        if name in frame.columns:
+            values = frame[name].to_numpy(dtype=np.float64)
+            _finite_or_fail(values, label=name)
+            if np.any(values < 0.0):
+                raise RuntimeError(
+                    f"[MODEL_NATIVE_CONTEXT_INVALID] {name} contains negative values: "
+                    f"count={int(np.count_nonzero(values < 0.0))}"
+                )
+            aliases[name] = values
+
+    if quote_spread_bps is not None and "spread_bps" in aliases:
+        _require_spread_alias_match(
+            frame["spread_bps"], (quote_spread_bps,), label="spread_bps"
+        )
+    if "spread_pct" in aliases:
+        expected_pct = []
+        if quote_spread_bps is not None:
+            expected_pct.append(quote_spread_bps / 1e4)
+        if "spread_bps" in aliases:
+            expected_pct.append(aliases["spread_bps"] / 1e4)
+        if expected_pct:
+            _require_spread_alias_match(
+                frame["spread_pct"], tuple(expected_pct), label="spread_pct"
+            )
+    return quote_spread_bps
+
+
 def derive_observed_spread_bps(frame: pd.DataFrame) -> np.ndarray:
     """Return causal spread bps without defaults, clipping or zero fill."""
 
+    quote_spread_bps = validate_observed_spread_aliases(frame)
     if "spread_bps" in frame.columns:
-        spread_bps = frame["spread_bps"].to_numpy(dtype=np.float64)
-        _finite_or_fail(spread_bps, label="spread_bps")
-        if np.any(spread_bps < 0.0):
-            raise RuntimeError(
-                "[MODEL_NATIVE_CONTEXT_INVALID] spread_bps contains negative values: "
-                f"count={int(np.count_nonzero(spread_bps < 0.0))}"
-            )
-        return spread_bps
+        return frame["spread_bps"].to_numpy(dtype=np.float64)
 
-    if {"bid_close", "ask_close"}.issubset(frame.columns):
-        bid = frame["bid_close"].to_numpy(dtype=np.float64)
-        ask = frame["ask_close"].to_numpy(dtype=np.float64)
-        _finite_or_fail(bid, label="bid_close")
-        _finite_or_fail(ask, label="ask_close")
-        invalid = (bid <= 0.0) | (ask < bid)
-        if np.any(invalid):
-            raise RuntimeError(
-                "[MODEL_NATIVE_CONTEXT_INVALID] invalid bid/ask spread rows: "
-                f"count={int(np.count_nonzero(invalid))}"
-            )
-        spread_bps = (ask - bid) / bid * 1e4
-        _finite_or_fail(spread_bps, label="spread_bps_from_bid_ask")
-        return spread_bps
+    if quote_spread_bps is not None:
+        return quote_spread_bps
 
     if {"spread", "close"}.issubset(frame.columns):
         spread = frame["spread"].to_numpy(dtype=np.float64)

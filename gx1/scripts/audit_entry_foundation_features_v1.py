@@ -13,6 +13,8 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import atomic_write_text
 from gx1.utils.nested_array_columns_v1 import (
     stack_nested_array_column as _stack_list_column,
 )
@@ -895,7 +897,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
             f"- `{row['split']}` `{row['feature']}`: mean_shift={row['mean_shift_abs']:.6f} "
             f"std_ratio={row['std_ratio_vs_train']:.6f}"
         )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    atomic_write_text(path, "\n".join(lines) + "\n")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -1128,11 +1130,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures.extend(source_liveness_failures)
 
     drift = _drift_rows(stats)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    created = datetime.now(timezone.utc)
+    timestamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     decision = "PASS" if not failures else "FAIL"
     report = {
         "schema_version": "entry_feature_foundation_audit_v1",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": created.isoformat(),
         "decision": decision,
         **foundation_audit_policy_binding(),
         "foundation_audit_policy_enforcement": (
@@ -1193,7 +1196,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    json_path, published_report = write_immutable_json_event(
+        out_dir,
+        "ENTRY_FEATURE_FOUNDATION_AUDIT",
+        json.loads(json.dumps(report, default=_json_default, allow_nan=False)),
+    )
+    report["json_path"] = published_report["json_path"]
     _write_markdown(md_path, report)
 
     if not args.quiet:

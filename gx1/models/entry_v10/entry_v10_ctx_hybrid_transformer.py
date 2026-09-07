@@ -64,7 +64,6 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     UNIFIED_EXIT_MAX_PATH_BARS,
-    UNIFIED_EXIT_PATH_ENCODER_LAYERS,
     UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
 
@@ -1253,25 +1252,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # literal causal M1 prefix in this same model.  The path encoder adds
         # post-entry evidence, but cannot replace or bypass the Entry state.
         self.exit_path_proj = nn.Linear(UNIFIED_EXIT_PATH_FEATURE_DIM, d_model)
-        self.exit_path_encoder = _mk_encoder(
-            UNIFIED_EXIT_PATH_ENCODER_LAYERS
-        )
         self.exit_side_embedding = nn.Embedding(2, d_model)
-        self.exit_entry_query_norm = nn.LayerNorm(d_model)
-        self.exit_entry_path_attention = nn.MultiheadAttention(
-            d_model,
-            n_heads,
-            dropout=dropout,
-            batch_first=True,
-        )
-        self.exit_fuse = nn.Sequential(
-            nn.LayerNorm(5 * d_model),
-            nn.Linear(5 * d_model, d_model),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_model, d_model),
-            nn.GELU(),
-        )
         self.head_exit_action = nn.Linear(d_model, 2)
 
         # Episode-native Exit. Entry retains its transformer semantics above;
@@ -2361,6 +2342,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 dtype=numeric.dtype,
                 device=numeric.device,
             )
+            effective_tf_scale = self._effective_tf_input_scale(tf_name)
             for name in self._specialist_names:
                 indices = getattr(
                     self, f"multi_tf_specialist_idx_{name}"
@@ -2376,9 +2358,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     ](history[..., global_index].long())
                 encoded, _ = self.exit_episode_mtf_family_gru[name](
                     projected
-                    * self._effective_tf_input_scale(tf_name).to(
-                        projected.dtype
-                    )
+                    * effective_tf_scale.to(projected.dtype)
                 )
                 gather_index = gather.unsqueeze(-1).expand(-1, -1, d_model)
                 gathered_state = encoded.gather(1, gather_index)
@@ -2400,9 +2380,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 current_residual = self.mtf_family_proj[name](
                     current_owned_numeric
                     * feature_gate
-                    * self._effective_tf_input_scale(tf_name).to(
-                        current_owned_numeric.dtype
-                    )
+                    * effective_tf_scale.to(current_owned_numeric.dtype)
                 )
                 for local_position, global_index in (
                     self._multi_tf_specialist_categorical_positions[name]
@@ -2932,6 +2910,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 numeric_new = normalized_new.masked_fill(
                     mtf_cat_mask.view(1, 1, -1), 0.0
                 )
+            effective_tf_scale = self._effective_tf_input_scale(tf_name)
             for family_name in self._specialist_names:
                 indices = getattr(
                     self, f"multi_tf_specialist_idx_{family_name}"
@@ -2957,9 +2936,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         family_name
                     ](
                         projected
-                        * self._effective_tf_input_scale(tf_name).to(
-                            projected.dtype
-                        ),
+                        * effective_tf_scale.to(projected.dtype),
                         prior,
                     )
                     gathered_state = encoded[:, -1:, :]
@@ -2982,9 +2959,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 current_residual = self.mtf_family_proj[family_name](
                     current_tf_numeric.index_select(1, indices).unsqueeze(1)
                     * feature_gate
-                    * self._effective_tf_input_scale(tf_name).to(
-                        current_tf_n.dtype
-                    )
+                    * effective_tf_scale.to(current_tf_n.dtype)
                 )
                 for local_position, global_index in (
                     self._multi_tf_specialist_categorical_positions[family_name]

@@ -98,7 +98,6 @@ UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256 = hashlib.sha256(
     UNIFIED_EXIT_PATH_CHAIN_SCHEMA_VERSION.encode("ascii")
 ).hexdigest()
 UNIFIED_EXIT_MAX_PATH_BARS = 512
-UNIFIED_EXIT_PATH_ENCODER_LAYERS = 2
 UNIFIED_EXIT_PATH_PRICE_FIELDS = (
     "bid_open",
     "bid_high",
@@ -807,7 +806,6 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
         "exit_input_envelope_fields": sorted(
             UNIFIED_EXIT_INPUT_ENVELOPE_FIELDS
         ),
-        "exit_path_encoder_layers": UNIFIED_EXIT_PATH_ENCODER_LAYERS,
         "exit_path_transform": (
             "12 literal prices in bps from executable entry midpoint;"
             "log1p(volume);log1p(all-time elapsed bar index);entry spread bps"

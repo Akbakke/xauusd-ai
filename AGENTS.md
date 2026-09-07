@@ -2,7 +2,17 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Current re-entry status — 2026-09-06
+## Operator override — readiness repair, 2026-09-06
+
+Source fixes and independent architecture/data review now precede further
+training. The launch-state `pretraining_review_hold` is active. Do not resume
+the candidate, repeat GPU smoke/VAL, open TEST or purchase compute. Preserve
+all candidate checkpoints and unrelated agent work. The current repair record
+is `docs/PRETRAIN_READINESS_REPAIR_20260906.md`; the continuation text below is
+historical and does not override this hold. Source changes require fresh
+validation; unchanged model math does not waive source/recipe identity.
+
+## Historical re-entry status — superseded by the review hold
 
 The operator approved controlled guard recovery and continued local training.
 The guard-only source repair and CPU transfer have passed: a new standard
@@ -273,12 +283,13 @@ do not modify or delete it.
 ## Implementation discipline
 
 - Extend an existing owner instead of adding another implementation.
-- One formula, one ordered field contract and one normalization state must serve
-  native M5 and native M1. The exact Entry signal-manifest hash and TRAIN-rank
-  state must bind the Exit surface. Resolution-specific values stay separate.
-- Fit that rank state from the pair-bound canonical M5 market fields, then
-  require exact canonical-to-final-M5 market identity through TRAIN. Never
-  revive the circular rank-from-downstream-source path.
+- One formula, one ordered field contract and the shared normalization owner
+  serve native M5 and native M1. Exact Entry signal-manifest and native-source
+  lineage bind Exit; resolution-specific values stay separate.
+- ATR/spread TRAIN-rank state is retired by `entry_model_native_state_v2`.
+  Do not restore its NPZ, producer or fields. Current availability diagnostics,
+  TRAIN-only median/IQR/asinh input normalization and TRAIN-fit sizing ECDF
+  are distinct owners, not replacements for a missing rank sidecar.
 - No ambient environment flag may change feature bytes, dimensions, sampling,
   objectives or model decisions. Recipe-owned values are exact and audited.
 - There is one deterministic FP32 trainer path. Feature producers use one
@@ -336,7 +347,7 @@ scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
 Inspect the exact diff and preserve unrelated user changes. No destructive Git
 commands. Generated-run cleanup must use the retention contract, not `rm`.
 
-## Next implementation sequence
+## Historical implementation sequence — superseded by the review hold
 
 1. CPU review verification, corrected five-year TRAIN/VAL rebuild, all affected
    audits and both new recipes/readiness are complete. Preserve these immutable

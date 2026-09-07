@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import atomic_write_text
 from gx1.contracts.entry_foundation_audit_policy_v1 import (
     FOUNDATION_AUDIT_DATA_SPLITS,
     FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
@@ -41,6 +43,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BASE_ACTIVE_HEADS,
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_EXTRA_ACTIVE_HEADS,
+    model_native_blocked_head_reasons,
 )
 from gx1.contracts.entry_causal_m1_position_size_target_policy_v1 import (
     causal_m1_position_size_targets_from_policy,
@@ -525,13 +528,7 @@ def _head_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
     head_liveness = _head_liveness(frames)
     expected_active = list(BASE_ACTIVE_TRAINING_HEADS)
     expected_blocked = list(EXPECTED_BLOCKED_TARGET_HEADS)
-    blocked_reasons = {
-        head: (
-            "retired by the exact model-native readiness contract; serialized "
-            "diagnostic liveness cannot reactivate a blocked head"
-        )
-        for head in expected_blocked
-    }
+    blocked_reasons = model_native_blocked_head_reasons()
     return {
         "base_active_heads": list(BASE_ACTIVE_TRAINING_HEADS),
         "entry_action_q_target_source": (
@@ -930,7 +927,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"bad_path={row['y_bad_path_rate']} path_mean={row['path_quality_mean_bps']} "
                 f"bad_path_corr={row['bad_path_vs_path_quality_spearman']}"
             )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    atomic_write_text(path, "\n".join(lines) + "\n")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -1132,7 +1129,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             failures.append(f"expected blocked optional head missing from blocked_heads: {head}")
 
     drift = _drift(metrics)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    created = datetime.now(timezone.utc)
+    timestamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     target_contract = {
         "direction_target": (
             "frozen fitted-Q Exit teacher materialized at train time; serialized "
@@ -1171,7 +1169,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
     report = {
         "schema_version": FOUNDATION_TARGET_AUDIT_SCHEMA_VERSION,
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": created.isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         **foundation_audit_policy_binding(),
         "foundation_audit_policy_enforcement": (
@@ -1210,7 +1208,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    json_path, published_report = write_immutable_json_event(
+        out_dir,
+        "ENTRY_TARGET_FOUNDATION_AUDIT",
+        json.loads(json.dumps(report, default=_json_default, allow_nan=False)),
+    )
+    report["json_path"] = published_report["json_path"]
     _write_markdown(md_path, report)
     if not args.quiet:
         print(json.dumps({k: report[k] for k in ["decision", "failures", "json_path", "md_path"]}, indent=2, default=_json_default))

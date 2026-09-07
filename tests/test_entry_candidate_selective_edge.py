@@ -22,8 +22,12 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
 import torch
 
 from gx1.models.entry_v10.direction_decision_contract import (
+    MODEL_DIRECTION_FLAT_INDEX,
+    MODEL_DIRECTION_LONG_INDEX,
+    MODEL_DIRECTION_SHORT_INDEX,
     MODEL_DIRECTION_SELECTION_MODE,
 )
+import gx1.scripts.evaluate_entry_candidate_selective_edge_v1 as selective_edge
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     EVALUATION_COVERAGES,
     _EXTRA_VECTOR_HEADS,
@@ -534,6 +538,99 @@ def test_preregistered_metrics_use_fixed_grid_and_autocorrelation_null() -> None
     )
     assert hypothesis["decision"] == "PASS"
     assert 0.25 in hypothesis["qualifying_coverages"]
+
+
+def _metric_order_contract_frame() -> pd.DataFrame:
+    rows = selective_edge.CIRCULAR_SHIFT_NULL_DRAWS * 2
+    positions = np.arange(rows)
+    directions = np.where(
+        positions % 3 == 0,
+        MODEL_DIRECTION_FLAT_INDEX,
+        np.where(positions % 2 == 0, MODEL_DIRECTION_LONG_INDEX, MODEL_DIRECTION_SHORT_INDEX),
+    )
+    return pd.DataFrame(
+        {
+            "split": "val",
+            "model": "candidate",
+            "time": pd.date_range("2025-06-01", periods=rows, freq="5min", tz="UTC"),
+            "pred_direction": directions,
+            "selection_score": positions.astype(float),
+            "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
+            "edge_score": np.ones(rows),
+            selective_edge.RESEARCH_LONG_OUTCOME_COLUMN: positions.astype(float),
+            selective_edge.RESEARCH_SHORT_OUTCOME_COLUMN: -positions.astype(float),
+        }
+    )
+
+
+@pytest.mark.parametrize("coverage", [1.0, 0.5, 0.25])
+def test_hac_receives_selected_trade_advantages_in_time_order(
+    monkeypatch: pytest.MonkeyPatch,
+    coverage: float,
+) -> None:
+    frame = _metric_order_contract_frame()
+    observed: list[np.ndarray] = []
+    original = selective_edge._newey_west_mean_se
+
+    def record_advantage(values: np.ndarray):
+        observed.append(values.copy())
+        return original(values)
+
+    monkeypatch.setattr(selective_edge, "_newey_west_mean_se", record_advantage)
+    metrics = build_metric_rows(frame, top_fracs=list(EVALUATION_COVERAGES))
+    coverage_index = EVALUATION_COVERAGES.index(coverage)
+    selected_rows = int(np.ceil(len(frame) * coverage))
+    selected = frame.iloc[-selected_rows:]
+    traded = selected.loc[selected["pred_direction"] != MODEL_DIRECTION_FLAT_INDEX]
+    expected = np.where(
+        traded["pred_direction"] == MODEL_DIRECTION_LONG_INDEX,
+        traded[selective_edge.RESEARCH_LONG_OUTCOME_COLUMN],
+        traded[selective_edge.RESEARCH_SHORT_OUTCOME_COLUMN],
+    )
+    np.testing.assert_array_equal(observed[coverage_index], expected)
+    assert metrics[coverage_index]["selected_decision_rows"] == selected_rows
+    assert metrics[coverage_index]["n"] == len(traded)
+    assert metrics[coverage_index]["model_flat_rows"] == selected_rows - len(traded)
+
+
+def test_full_coverage_uncertainty_does_not_depend_on_score_ranking() -> None:
+    frame = _metric_order_contract_frame()
+    reversed_scores = frame.copy()
+    reversed_scores["selection_score"] = -reversed_scores["selection_score"]
+    first = build_metric_rows(frame, top_fracs=list(EVALUATION_COVERAGES))[0]
+    second = build_metric_rows(reversed_scores, top_fracs=list(EVALUATION_COVERAGES))[0]
+    assert first == second
+
+
+def test_metric_order_is_invariant_to_input_row_order() -> None:
+    frame = _metric_order_contract_frame()
+    first = build_metric_rows(frame, top_fracs=list(EVALUATION_COVERAGES))
+    second = build_metric_rows(frame.iloc[::-1], top_fracs=list(EVALUATION_COVERAGES))
+    assert first == second
+
+
+def test_preregistered_hypothesis_rejects_unversioned_order() -> None:
+    metrics = pd.DataFrame(
+        build_metric_rows(_metric_order_contract_frame(), top_fracs=list(EVALUATION_COVERAGES))
+    ).drop(columns="standard_error_observation_order")
+    with pytest.raises(RuntimeError, match="HAC_OBSERVATION_ORDER_INVALID"):
+        _preregistered_hypothesis(metrics, evidence_stage="pre_calibration", val_reference=None)
+
+
+def test_preregistered_hypothesis_rejects_legacy_val_reference() -> None:
+    metrics = pd.DataFrame(
+        build_metric_rows(_metric_order_contract_frame(), top_fracs=list(EVALUATION_COVERAGES))
+    )
+    reference = _preregistered_hypothesis(
+        metrics, evidence_stage="pre_calibration", val_reference=None
+    )
+    reference["schema_version"] = "xau_selective_edge_preregistered_v1"
+    with pytest.raises(RuntimeError, match="VAL_REFERENCE_PREREGISTRATION_INVALID"):
+        _preregistered_hypothesis(
+            metrics,
+            evidence_stage="runtime_authoritative",
+            val_reference={"preregistered_selective_edge": reference},
+        )
 
 
 def test_summary_uses_emitted_preregistered_scope_and_preserves_booleans() -> None:

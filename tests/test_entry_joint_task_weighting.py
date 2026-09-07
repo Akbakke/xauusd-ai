@@ -566,6 +566,77 @@ def test_joint_task_metadata_fails_closed_on_missing_train_proof(
         require_joint_task_weighting_metadata(bad, context="TEST")
 
 
+def test_batched_joint_diagnostics_preserve_exact_loss_gradients_and_statistics(monkeypatch) -> None:
+    model = _TaskWeights()
+    with torch.no_grad():
+        for index, name in enumerate(JOINT_TASK_NAMES):
+            model.task_log_variances[name].fill_(0.03125 * index)
+    reference = copy.deepcopy(model)
+    losses = {name: torch.tensor(0.125 * (index + 1), requires_grad=True) for index, name in enumerate(JOINT_TASK_NAMES)}
+    reference_losses = {name: value.detach().clone().requires_grad_(True) for name, value in losses.items()}
+    expected_total = None
+    expected_stats = {}
+    for name in JOINT_TASK_NAMES:
+        raw = reference_losses[name]
+        weight = reference.task_log_variances[name]
+        weighted = torch.exp(-weight) * raw + weight
+        expected_total = weighted if expected_total is None else expected_total + weighted
+        expected_stats[f"joint_task_raw_loss_{name}"] = float(raw.detach().cpu().item())
+        expected_stats[f"joint_task_log_variance_{name}"] = float(weight.detach().cpu().item())
+        expected_stats[f"joint_task_effective_precision_{name}"] = float(torch.exp(-weight.detach()).cpu().item())
+    host_copies = []
+    original_cpu = torch.Tensor.cpu
+    def observe_cpu(tensor, *arguments, **keywords):
+        host_copies.append(tuple(tensor.shape))
+        return original_cpu(tensor, *arguments, **keywords)
+    monkeypatch.setattr(torch.Tensor, "cpu", observe_cpu)
+    total, stats = trainer._joint_task_loss(model, losses)
+    assert host_copies == [(3 * len(JOINT_TASK_NAMES),)]
+    assert stats == expected_stats and torch.equal(total, expected_total)
+    total.backward()
+    expected_total.backward()
+    for name in JOINT_TASK_NAMES:
+        assert torch.equal(losses[name].grad, reference_losses[name].grad)
+        assert torch.equal(model.task_log_variances[name].grad, reference.task_log_variances[name].grad)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+def test_batched_joint_diagnostics_keep_loss_finiteness_guards(bad) -> None:
+    model = _TaskWeights()
+    losses = {name: torch.tensor(1.0) for name in JOINT_TASK_NAMES}
+    losses[JOINT_TASK_NAMES[-1]] = torch.tensor(bad)
+    with pytest.raises(RuntimeError, match=f"ENTRY_JOINT_TASK_LOSS_NONFINITE.*{JOINT_TASK_NAMES[-1]}"):
+        trainer._joint_task_loss(model, losses)
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+def test_batched_exit_counts_preserve_ties_terminals_and_integer_accumulation(monkeypatch) -> None:
+    q_values = torch.tensor([[1., 2.], [3., 3.], [4., 0.], [0., 9.]])
+    targets = torch.tensor([[2., 2.], [5., 1.], [3., 0.], [0., 7.]])
+    valid = torch.tensor([[True, True], [True, True], [True, True], [False, True]])
+    snapshots = tuple(tensor.clone() for tensor in (q_values, targets, valid))
+    expected = {
+        "population_rows": 4, "q_valid_cells": 7,
+        "target_equivalent_action_rows": 1, "predicted_tied_rows": 1,
+        "target_tied_prediction_unique_rows": 1,
+        "unique_target_action_agreement_rows": 2,
+        "hold_target_greedy_rows": 3, "exit_now_target_greedy_rows": 2,
+        "eligible_entry_rows": 0,
+    }
+    stats = trainer._empty_exit_stats()
+    host_copies = []
+    original_cpu = torch.Tensor.cpu
+    def observe_cpu(tensor, *arguments, **keywords):
+        host_copies.append((tuple(tensor.shape), tensor.dtype))
+        return original_cpu(tensor, *arguments, **keywords)
+    monkeypatch.setattr(torch.Tensor, "cpu", observe_cpu)
+    for count in (1, 2):
+        trainer._episode_stats_update(stats, q_values=q_values, targets=targets, valid=valid)
+        assert stats == {name: count * value for name, value in expected.items()}
+    assert host_copies == [((7,), torch.int64), ((7,), torch.int64)]
+    assert all(torch.equal(value, snapshot) for value, snapshot in zip((q_values, targets, valid), snapshots))
+
+
 def test_trainer_ast_contains_the_exact_learned_formula() -> None:
     tree = ast.parse(
         textwrap.dedent(inspect.getsource(trainer._joint_task_loss))

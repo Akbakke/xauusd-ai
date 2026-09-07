@@ -72,6 +72,7 @@ Model-native seq513 evidence:
   model-native-sequence-source-reconstruction-audit --parquet <split-parquet> --manifest-json <split-manifest> --out-json <new-json>
   model-native-train-recipe-audit
   model-native-smoke-bundle-audit
+  model-native-feature-usefulness --execute --device cpu --bundle-dir <immutable-dir> --bundle-metadata-sha256 <sha256> --session-contract-sha256 <sha256> --active-pointer-sha256 <sha256> --selected-checkpoint-sha256 <sha256> --recipe-audit-json <immutable-json> --recipe-audit-sha256 <sha256> --batch-size <n> --max-baseline-bytes <n> --max-episode-bytes <n> --max-forward-calls <n> --out-json <new-json>
   model-native-candidate-readiness
   model-native-selective-edge
   model-native-seed-stability
@@ -938,6 +939,51 @@ case "$cmd" in
     [[ "$smoke_bundle_device" == cpu ]] \
       || die "$cmd is a CPU-only immutable proof audit; --device must be cpu"
     exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
+    ;;
+
+  model-native-feature-usefulness)
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --execute \
+      --device \
+      --bundle-dir \
+      --bundle-metadata-sha256 \
+      --session-contract-sha256 \
+      --active-pointer-sha256 \
+      --selected-checkpoint-sha256 \
+      --recipe-audit-json \
+      --recipe-audit-sha256 \
+      --batch-size \
+      --max-baseline-bytes \
+      --max-episode-bytes \
+      --max-forward-calls \
+      --out-json; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    while [[ $# -gt 0 ]]; do
+      flag="${1%%=*}"
+      case "$flag" in
+        --execute)
+          [[ "$1" == --execute ]] || die "$cmd requires bare --execute"
+          shift
+          ;;
+        --device|--bundle-dir|--bundle-metadata-sha256|--session-contract-sha256|--active-pointer-sha256|--selected-checkpoint-sha256|--recipe-audit-json|--recipe-audit-sha256|--batch-size|--max-baseline-bytes|--max-episode-bytes|--max-forward-calls|--out-json)
+          value="$(exact_flag_value "$cmd" "$flag" "$@")"
+          [[ "$value" != -* ]] || die "$cmd $flag requires a value"
+          if [[ "$flag" == --device && "$value" != cpu ]]; then
+            die "$cmd --device must be exactly cpu"
+          fi
+          if [[ "$1" == "$flag" ]]; then
+            shift 2
+          else
+            shift
+          fi
+          ;;
+        *) die "$cmd rejects unknown argument: $1" ;;
+      esac
+    done
+    require_handover_source_hygiene
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.audit_entry_exit_feature_usefulness_v1 "${COMMAND_ARGS[@]}"
     ;;
 
   model-native-candidate-readiness)

@@ -13,6 +13,8 @@ from typing import Any, Mapping
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.scripts.entry_candidate_prediction_evidence_v1 import atomic_write_text
 from gx1.utils.nested_array_columns_v1 import (
     stack_nested_array_column as _stack_list_column,
 )
@@ -57,13 +59,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_SMART_FAMILY_CONTRACT,
     MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
-    SPECIALIST_FUSION_ACTIVE_HEADS,
-    SPECIALIST_FUSION_BLOCKED_HEADS,
     SPECIALIST_SHARED_REACHABLE_HEADS,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     group_features_by_specialist,
     model_native_context_temporal_alias_policy,
+    model_native_recommended_fusion_metadata,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
 
@@ -804,21 +805,7 @@ def _architecture(signal_fields: list[str]) -> dict[str, Any]:
         "seq_len": 96,
         "specialist_input_indices": by_group,
         "context_specialist_routing": routing,
-        "recommended_fusion": {
-            "type": "cross_attended_dynamic_gated_specialists_plus_five_tf_cooperation",
-            "gate_context": list(MODEL_NATIVE_CTX_CAT_FIELDS),
-            "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
-            "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
-            "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
-            "direction_path": (
-                "family context -> pre-cross specialist token -> specialist "
-                "cross-attention -> dynamic specialist gate -> specialist+five-TF "
-                "cross-attention -> 96-value learned evidence fusion -> fitted-Q "
-                "LONG/SHORT/FLAT action-value head"
-            ),
-            "independent_timeframe_only_head": None,
-            "independent_timeframe_only_head_allowed": False,
-        },
+        "recommended_fusion": model_native_recommended_fusion_metadata(),
     }
 
 
@@ -979,7 +966,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     )
     if context_unmapped:
         lines.append(f"- Fields: `{', '.join(context_unmapped[:40])}`")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    atomic_write_text(path, "\n".join(lines) + "\n")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -1160,10 +1147,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     failures.extend(architecture_contract_failures)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    created = datetime.now(timezone.utc)
+    timestamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     report = {
         "schema_version": "entry_specialist_feature_group_audit_v1",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": created.isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         **foundation_audit_policy_binding(),
         "foundation_audit_policy_enforcement": (
@@ -1269,7 +1257,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     report["json_path"] = str(json_path)
     report["md_path"] = str(md_path)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    json_path, published_report = write_immutable_json_event(
+        out_dir,
+        "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT",
+        json.loads(json.dumps(report, default=_json_default, allow_nan=False)),
+    )
+    report["json_path"] = published_report["json_path"]
     _write_markdown(md_path, report)
     if not args.quiet:
         print(

@@ -1,7 +1,14 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-06T06:30:41Z",
+  "updated_utc": "2026-09-06T10:22:00Z",
+  "pretraining_review_hold": {
+    "schema_version": "gx1_pretraining_review_hold_v1",
+    "decision": "BLOCK",
+    "reason": "PRETRAIN_READINESS_REPAIR_REQUIRED__NO_TRAINING_OR_CLOUD_AUTHORITY",
+    "activation_authority": false,
+    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
+  },
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -164,8 +171,8 @@
   },
   "blockers": [
     "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "The corrected five-year direct TRAIN/VAL successor and CPU audits are complete. Current source-bound smoke and full VAL evidence support the exact candidate start gate. V46/older short-return reports remain historical; physical TEST is closed.",
-    "No admitted dataset or model exists. Current technical readiness permits only the operator-authorized offline five-year TRAIN/VAL candidate through its exact gate and fresh signed 160 W preflight. Strict smoke quality remains FAIL on seven never-top-ranked specialists; all eight have positive dynamic weights. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
+    "Historical candidate gates do not override the current pretraining review hold. Chronological HAC rejects the retained smoke VAL hypothesis; physical TEST stays closed.",
+    "No admitted dataset or model exists. Repairs and source-lineage review are required before any continuation. Preserve the private checkpoint; no training or cloud authority. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
     "Decision authority remains unique raw-bps fitted-Q argmax. Ten task influences use learned homoscedastic weights; streamed Exit gradients match the monolithic objective. Recipe-bound optimizer controls are stability settings, not alternate labels, fixed task weights or action-selection rules.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

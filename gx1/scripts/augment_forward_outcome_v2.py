@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import gc
 import hashlib
+import io
 import json
 import os
 import sys
@@ -732,6 +733,47 @@ _PARALLEL_ATTACH_SHARED: tuple = ()
 
 _GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v4"
 _GROUP_A_CHECKPOINT_CHUNK_ROWS = 4096
+_GROUP_A_CHECKPOINT_COMPLETE_KEYS = frozenset(
+    {
+        "schema_version",
+        "checkpoint_key",
+        "checkpoint_manifest_path",
+        "checkpoint_manifest_sha256",
+        "row_count",
+        "chunk_count",
+        "chunks",
+    }
+)
+_GROUP_A_CHECKPOINT_MANIFEST_KEYS = frozenset(
+    {
+        "schema_version",
+        "checkpoint_key",
+        "row_count",
+        "frame_sha256",
+        "context_m5_sha256",
+        "context_m5_rows",
+        "context_m5_time_min_utc",
+        "context_m5_time_max_utc",
+        "multi_tf_sha256",
+        "extract",
+        "extract_sha256",
+        "decision_bar_duration_ns",
+        "chunk_rows",
+        "bounds",
+    }
+)
+_GROUP_A_CHECKPOINT_CHUNK_RECORD_KEYS = frozenset(
+    {"path", "sha256", "size_bytes"}
+)
+_GROUP_A_CHECKPOINT_NPZ_KEYS = (
+    "schema_version",
+    "manifest_sha256",
+    "checkpoint_key",
+    "lo",
+    "hi",
+    "times_ns",
+    "values",
+)
 
 
 def _sha256_bytes_iter(parts) -> str:
@@ -878,6 +920,415 @@ def _initialize_group_a_checkpoint(
 
 def _group_a_chunk_path(checkpoint_dir: Path, lo: int, hi: int) -> Path:
     return checkpoint_dir / f"chunk_{lo:09d}_{hi:09d}.npz"
+
+
+def _require_group_a_checkpoint_path(
+    path: Path,
+    *,
+    directory: bool,
+    label: str,
+) -> None:
+    if not path.is_absolute():
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] {label} path must be absolute")
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] {label} path is missing/unresolvable: {path}"
+        ) from exc
+    if resolved != path or path.is_symlink():
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] "
+            f"{label} path must be canonical and symlink-free: {path}"
+        )
+    valid_type = path.is_dir() if directory else path.is_file()
+    if not valid_type:
+        expected_type = "directory" if directory else "regular file"
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] {label} path is not a {expected_type}: {path}"
+        )
+
+
+def _read_stable_group_a_checkpoint_file(path: Path, *, label: str) -> bytes:
+    _require_group_a_checkpoint_path(path, directory=False, label=label)
+    before = path.stat()
+    encoded = path.read_bytes()
+    after = path.stat()
+    before_identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+    )
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+    )
+    if before_identity != after_identity or len(encoded) != after.st_size:
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] {label} changed while being read: {path}"
+        )
+    return encoded
+
+
+def _load_canonical_group_a_checkpoint_json(
+    encoded: bytes,
+    *,
+    label: str,
+) -> dict:
+    try:
+        payload = json.loads(encoded.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] invalid {label} JSON") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] {label} must be a JSON object")
+    try:
+        canonical = _canonical_json_bytes(payload)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] invalid {label} JSON values"
+        ) from exc
+    if encoded != canonical:
+        raise RuntimeError(f"[CTX_CONT_CHECKPOINT] non-canonical {label} JSON")
+    return payload
+
+
+def _require_group_a_checkpoint_sha256(value: object, *, label: str) -> str:
+    if not isinstance(value, str) or len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] {label} must be lowercase SHA-256"
+        )
+    return value
+
+
+def _require_group_a_checkpoint_positive_int(value: object, *, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise RuntimeError(
+            f"[CTX_CONT_CHECKPOINT] {label} must be a positive integer"
+        )
+    return value
+
+
+def require_group_a_checkpoint_complete(
+    complete_path: Path | str,
+    *,
+    expected_sha256: str | None = None,
+) -> dict:
+    """Validate an existing Group-A checkpoint completion without modifying it."""
+    completion_path = Path(complete_path).expanduser()
+    if completion_path.name != "CHECKPOINT_COMPLETE.json":
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] completion path must name CHECKPOINT_COMPLETE.json"
+        )
+    _require_group_a_checkpoint_path(
+        completion_path.parent,
+        directory=True,
+        label="checkpoint directory",
+    )
+    complete_encoded = _read_stable_group_a_checkpoint_file(
+        completion_path,
+        label="completion",
+    )
+    complete_sha256 = hashlib.sha256(complete_encoded).hexdigest()
+    if expected_sha256 is not None:
+        required_sha256 = _require_group_a_checkpoint_sha256(
+            expected_sha256,
+            label="expected completion SHA-256",
+        )
+        if complete_sha256 != required_sha256:
+            raise RuntimeError(
+                "[CTX_CONT_CHECKPOINT] completion SHA-256 mismatch: "
+                f"expected={required_sha256} observed={complete_sha256}"
+            )
+
+    complete = _load_canonical_group_a_checkpoint_json(
+        complete_encoded,
+        label="completion",
+    )
+    if set(complete) != _GROUP_A_CHECKPOINT_COMPLETE_KEYS:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] completion schema mismatch")
+    if complete["schema_version"] != _GROUP_A_CHECKPOINT_SCHEMA_VERSION:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] completion schema version mismatch")
+    checkpoint_key = _require_group_a_checkpoint_sha256(
+        complete["checkpoint_key"],
+        label="checkpoint key",
+    )
+    row_count = _require_group_a_checkpoint_positive_int(
+        complete["row_count"],
+        label="completion row_count",
+    )
+    chunk_count = _require_group_a_checkpoint_positive_int(
+        complete["chunk_count"],
+        label="completion chunk_count",
+    )
+    chunk_records = complete["chunks"]
+    if not isinstance(chunk_records, list) or len(chunk_records) != chunk_count:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] completion chunk_count mismatch")
+
+    manifest_path = completion_path.parent / "CHECKPOINT_MANIFEST.json"
+    if complete["checkpoint_manifest_path"] != str(manifest_path):
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] completion manifest path mismatch")
+    declared_manifest_sha256 = _require_group_a_checkpoint_sha256(
+        complete["checkpoint_manifest_sha256"],
+        label="manifest SHA-256",
+    )
+    manifest_encoded = _read_stable_group_a_checkpoint_file(
+        manifest_path,
+        label="manifest",
+    )
+    observed_manifest_sha256 = hashlib.sha256(manifest_encoded).hexdigest()
+    if observed_manifest_sha256 != declared_manifest_sha256:
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] canonical manifest SHA-256 mismatch"
+        )
+    manifest = _load_canonical_group_a_checkpoint_json(
+        manifest_encoded,
+        label="manifest",
+    )
+    if set(manifest) != _GROUP_A_CHECKPOINT_MANIFEST_KEYS:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest schema mismatch")
+    if manifest["schema_version"] != _GROUP_A_CHECKPOINT_SCHEMA_VERSION:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest schema version mismatch")
+    if manifest["checkpoint_key"] != checkpoint_key:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest checkpoint key mismatch")
+    manifest_row_count = _require_group_a_checkpoint_positive_int(
+        manifest["row_count"],
+        label="manifest row_count",
+    )
+    if manifest_row_count != row_count:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest row_count mismatch")
+    for hash_name in ("frame_sha256", "context_m5_sha256", "multi_tf_sha256"):
+        _require_group_a_checkpoint_sha256(manifest[hash_name], label=hash_name)
+
+    _require_group_a_checkpoint_positive_int(
+        manifest["context_m5_rows"],
+        label="manifest context_m5_rows",
+    )
+    context_times = []
+    for time_name in ("context_m5_time_min_utc", "context_m5_time_max_utc"):
+        raw_time = manifest[time_name]
+        if not isinstance(raw_time, str):
+            raise RuntimeError(f"[CTX_CONT_CHECKPOINT] invalid manifest {time_name}")
+        try:
+            timestamp = pd.Timestamp(raw_time)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] invalid manifest {time_name}"
+            ) from exc
+        if (
+            pd.isna(timestamp)
+            or timestamp.tzinfo is None
+            or timestamp.utcoffset() is None
+            or timestamp.utcoffset().total_seconds() != 0
+            or timestamp.isoformat() != raw_time
+        ):
+            raise RuntimeError(f"[CTX_CONT_CHECKPOINT] invalid manifest {time_name}")
+        context_times.append(timestamp)
+    if context_times[0] > context_times[1]:
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] manifest context time bounds mismatch"
+        )
+
+    extract = manifest["extract"]
+    if (
+        not isinstance(extract, list)
+        or not extract
+        or any(not isinstance(name, str) or not name for name in extract)
+        or len(set(extract)) != len(extract)
+    ):
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest extract mismatch")
+    extract_sha256 = _require_group_a_checkpoint_sha256(
+        manifest["extract_sha256"],
+        label="extract SHA-256",
+    )
+    observed_extract_sha256 = _sha256_bytes_iter(
+        [b"group_a_extract_v1\0", "\n".join(extract).encode("utf-8")]
+    )
+    if extract_sha256 != observed_extract_sha256:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest extract SHA-256 mismatch")
+    decision_bar_duration_ns = _require_group_a_checkpoint_positive_int(
+        manifest["decision_bar_duration_ns"],
+        label="manifest decision_bar_duration_ns",
+    )
+    chunk_rows = _require_group_a_checkpoint_positive_int(
+        manifest["chunk_rows"],
+        label="manifest chunk_rows",
+    )
+    expected_bounds = [
+        [lower, min(lower + chunk_rows, row_count)]
+        for lower in range(0, row_count, chunk_rows)
+    ]
+    manifest_bounds = manifest["bounds"]
+    valid_bound_types = isinstance(manifest_bounds, list) and all(
+        isinstance(bound, list)
+        and len(bound) == 2
+        and all(
+            not isinstance(value, bool) and isinstance(value, int)
+            for value in bound
+        )
+        for bound in manifest_bounds
+    )
+    if (
+        not valid_bound_types
+        or manifest_bounds != expected_bounds
+        or len(expected_bounds) != chunk_count
+    ):
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] manifest bounds mismatch")
+
+    expected_chunk_paths = [
+        _group_a_chunk_path(completion_path.parent, lower, upper)
+        for lower, upper in expected_bounds
+    ]
+    expected_entry_names = {
+        completion_path.name,
+        manifest_path.name,
+        *(path.name for path in expected_chunk_paths),
+    }
+    observed_entry_names = {path.name for path in completion_path.parent.iterdir()}
+    if observed_entry_names != expected_entry_names:
+        missing = sorted(expected_entry_names - observed_entry_names)
+        extra = sorted(observed_entry_names - expected_entry_names)
+        raise RuntimeError(
+            "[CTX_CONT_CHECKPOINT] checkpoint directory entry set mismatch: "
+            f"missing={missing} extra={extra}"
+        )
+
+    previous_time_ns = None
+    first_time_ns = None
+    last_time_ns = None
+    for chunk_index, ((lower, upper), chunk_path, chunk_record) in enumerate(
+        zip(expected_bounds, expected_chunk_paths, chunk_records, strict=True)
+    ):
+        if not isinstance(chunk_record, dict) or set(chunk_record) != (
+            _GROUP_A_CHECKPOINT_CHUNK_RECORD_KEYS
+        ):
+            raise RuntimeError(
+                "[CTX_CONT_CHECKPOINT] "
+                f"chunk record schema mismatch: index={chunk_index}"
+            )
+        if chunk_record["path"] != str(chunk_path):
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] chunk path/order mismatch: index={chunk_index}"
+            )
+        declared_chunk_sha256 = _require_group_a_checkpoint_sha256(
+            chunk_record["sha256"],
+            label=f"chunk[{chunk_index}] SHA-256",
+        )
+        declared_size = _require_group_a_checkpoint_positive_int(
+            chunk_record["size_bytes"],
+            label=f"chunk[{chunk_index}] size_bytes",
+        )
+        chunk_encoded = _read_stable_group_a_checkpoint_file(
+            chunk_path,
+            label=f"chunk[{chunk_index}]",
+        )
+        if len(chunk_encoded) != declared_size:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] chunk size mismatch: index={chunk_index}"
+            )
+        if hashlib.sha256(chunk_encoded).hexdigest() != declared_chunk_sha256:
+            raise RuntimeError(
+                f"[CTX_CONT_CHECKPOINT] chunk SHA-256 mismatch: index={chunk_index}"
+            )
+
+        try:
+            with np.load(io.BytesIO(chunk_encoded), allow_pickle=False) as payload:
+                if payload.files != list(_GROUP_A_CHECKPOINT_NPZ_KEYS):
+                    raise RuntimeError(
+                        "[CTX_CONT_CHECKPOINT] "
+                        f"chunk NPZ key/order mismatch: index={chunk_index}"
+                    )
+                scalar_text = {}
+                for name, expected_value in (
+                    ("schema_version", _GROUP_A_CHECKPOINT_SCHEMA_VERSION),
+                    ("manifest_sha256", declared_manifest_sha256),
+                    ("checkpoint_key", checkpoint_key),
+                ):
+                    value = payload[name]
+                    expected_array = np.array(expected_value)
+                    if (
+                        value.shape != ()
+                        or value.dtype != expected_array.dtype
+                        or value.item() != expected_value
+                    ):
+                        raise RuntimeError(
+                            "[CTX_CONT_CHECKPOINT] chunk NPZ string metadata mismatch: "
+                            f"index={chunk_index} key={name}"
+                        )
+                    scalar_text[name] = value.item()
+                if scalar_text["schema_version"] != manifest["schema_version"]:
+                    raise RuntimeError(
+                        "[CTX_CONT_CHECKPOINT] "
+                        f"chunk NPZ schema mismatch: index={chunk_index}"
+                    )
+                for name, expected_value in (("lo", lower), ("hi", upper)):
+                    value = payload[name]
+                    if (
+                        value.shape != ()
+                        or value.dtype != np.dtype(np.int64)
+                        or int(value.item()) != expected_value
+                    ):
+                        raise RuntimeError(
+                            "[CTX_CONT_CHECKPOINT] chunk NPZ bounds mismatch: "
+                            f"index={chunk_index} key={name}"
+                        )
+                times_ns = payload["times_ns"]
+                values = payload["values"]
+                expected_rows = upper - lower
+                if (
+                    times_ns.shape != (expected_rows,)
+                    or times_ns.dtype != np.dtype(np.int64)
+                ):
+                    raise RuntimeError(
+                        "[CTX_CONT_CHECKPOINT] chunk NPZ time shape/dtype mismatch: "
+                        f"index={chunk_index}"
+                    )
+                if (
+                    values.shape != (expected_rows, len(extract))
+                    or values.dtype != np.dtype(np.float32)
+                ):
+                    raise RuntimeError(
+                        "[CTX_CONT_CHECKPOINT] chunk NPZ value shape/dtype mismatch: "
+                        f"index={chunk_index}"
+                    )
+                if expected_rows:
+                    differences = np.diff(times_ns)
+                    if np.any(differences <= 0) or np.any(
+                        differences % decision_bar_duration_ns != 0
+                    ):
+                        raise RuntimeError(
+                            "[CTX_CONT_CHECKPOINT] chunk NPZ time order/grid mismatch: "
+                            f"index={chunk_index}"
+                        )
+                    if previous_time_ns is not None:
+                        cross_difference = int(times_ns[0]) - previous_time_ns
+                        if (
+                            cross_difference <= 0
+                            or cross_difference % decision_bar_duration_ns != 0
+                        ):
+                            raise RuntimeError(
+                                "[CTX_CONT_CHECKPOINT] chunk NPZ cross-chunk time order/grid mismatch: "
+                                f"index={chunk_index}"
+                            )
+                    if first_time_ns is None:
+                        first_time_ns = int(times_ns[0])
+                    previous_time_ns = int(times_ns[-1])
+                    last_time_ns = previous_time_ns
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(
+                "[CTX_CONT_CHECKPOINT] corrupt chunk NPZ: "
+                f"index={chunk_index} path={chunk_path}"
+            ) from exc
+
+    if first_time_ns is None or last_time_ns is None:
+        raise RuntimeError("[CTX_CONT_CHECKPOINT] chunk time coverage mismatch")
+    return complete
 
 
 def _write_group_a_chunk(

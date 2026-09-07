@@ -3,7 +3,13 @@
 
 from __future__ import annotations
 
+import ast
+from collections import Counter
+from copy import deepcopy
 import inspect
+from pathlib import Path
+from textwrap import dedent
+from types import MethodType
 
 import pytest
 import torch
@@ -25,6 +31,7 @@ from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     build_tf_input_scale_contract,
     require_tf_input_scale_state,
 )
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_incremental_carry_v1 import (
     UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
     build_unified_exit_incremental_carry_envelope,
@@ -1214,3 +1221,305 @@ def test_exit_token_axis_transport_chunk_preserves_outputs_and_gradients() -> No
             atol=1e-5,
             rtol=0.0,
         )
+
+
+_RETIRED_STATIC_EXIT_MODULES = (
+    "exit_path_encoder",
+    "exit_entry_query_norm",
+    "exit_entry_path_attention",
+    "exit_fuse",
+)
+
+
+def _restore_repeated_exit_scale_formulation(model, method_name):
+    """Test-only pre-hoist arithmetic, not a checkpoint compatibility loader.
+
+    Restore both original per-family scale evaluations in the real forward
+    body. All other operations and the already identical active state stay
+    untouched; no same-seed equivalence across constructor changes is assumed.
+    """
+
+    class RestoreScaleCalls(ast.NodeTransformer):
+        def __init__(self):
+            self.original_call = None
+            self.assignment_count = 0
+            self.use_count = 0
+
+        def visit_Assign(self, node):
+            if any(
+                isinstance(target, ast.Name) and target.id == "effective_tf_scale"
+                for target in node.targets
+            ):
+                assert isinstance(node.value, ast.Call)
+                assert isinstance(node.value.func, ast.Attribute)
+                assert node.value.func.attr == "_effective_tf_input_scale"
+                assert len(node.value.args) == 1
+                assert isinstance(node.value.args[0], ast.Name)
+                assert node.value.args[0].id == "tf_name"
+                self.original_call = node.value
+                self.assignment_count += 1
+                return None
+            return self.generic_visit(node)
+
+        def visit_Name(self, node):
+            if node.id == "effective_tf_scale" and isinstance(node.ctx, ast.Load):
+                assert self.original_call is not None
+                self.use_count += 1
+                return ast.copy_location(deepcopy(self.original_call), node)
+            return node
+
+    method = getattr(EntryV10CtxHybridTransformer, method_name)
+    tree = ast.parse(dedent(inspect.getsource(method)))
+    restore = RestoreScaleCalls()
+    tree = ast.fix_missing_locations(restore.visit(tree))
+    assert restore.assignment_count == 1 and restore.use_count == 2
+    namespace = {}
+    exec(
+        compile(tree, f"<pre-hoist-reference:{method_name}>", "exec"),
+        vars(model_module), namespace,
+    )
+    setattr(model, method_name, MethodType(namespace[method_name], model))
+
+
+def _exit_scale_step(model, inputs, *, state, carry=None, append_mtf=True):
+    local_start = 0 if state == 0 else EXIT_FEATURE_SEQUENCE_BARS - 1 + state
+    mtf_start = 0 if state == 0 else SEQ_LEN - 1 + state
+    return model.forward_exit_incremental_step(
+        entry_decision_representation=inputs["entry_decision_representation"],
+        exit_local_rows_x=inputs["exit_local_history_x"][
+            :, local_start : EXIT_FEATURE_SEQUENCE_BARS + state
+        ],
+        exit_state_ctx_cat=inputs["exit_state_ctx_cat"][:, state],
+        exit_state_ctx_cont=inputs["exit_state_ctx_cont"][:, state],
+        exit_path_row_x=inputs["exit_path_x"][:, :, state],
+        exit_mtf_new_rows={
+            name: history[:, mtf_start : SEQ_LEN + state] if append_mtf else history[:, :0]
+            for name, history in inputs["exit_mtf_histories"].items()
+        },
+        carry=carry,
+    )
+
+
+def _exit_scale_route(model, inputs, route):
+    if route == "episode":
+        return model.forward_exit_episode(**inputs)
+    if route == "prefix":
+        return model.forward_exit_incremental_prefix(**inputs)
+    assert route in {"step_append", "step_no_append"}
+    first, carry = _exit_scale_step(model, inputs, state=0)
+    second, carry = _exit_scale_step(
+        model, inputs, state=1, carry=carry, append_mtf=route == "step_append"
+    )
+    return {
+        **{f"first/{name}": value for name, value in first.items()},
+        **{f"second/{name}": value for name, value in second.items()},
+        **{
+            f"carry/{name}": value
+            for name, value in model.export_exit_incremental_carry_tensor_state(carry).items()
+        },
+    }
+
+
+def _exit_scale_input_leaves(inputs):
+    return {
+        **{
+            name: value for name, value in inputs.items()
+            if isinstance(value, torch.Tensor) and value.is_floating_point()
+        },
+        **{
+            f"mtf/{name}": value for name, value in inputs["exit_mtf_histories"].items()
+        },
+    }
+
+
+@pytest.mark.parametrize("route", ("episode", "prefix", "step"))
+def test_exit_effective_tf_scale_is_evaluated_once_per_forward(monkeypatch, route):
+    model = _make_model(dropout=0.0).eval()
+    inputs = _make_exit_episode_inputs(
+        state_count=UNIFIED_EXIT_MAX_PATH_BARS if route == "episode" else 3
+    )
+    owner = model._effective_tf_input_scale
+    calls = []
+    def counted_scale(name):
+        result = owner(name)
+        calls.append((name, float(result.detach().item())))
+        return result
+    monkeypatch.setattr(model, "_effective_tf_input_scale", counted_scale)
+    expected_names = [name.lower() for name in EXIT_MTF_CONTEXT_TIMEFRAMES]
+    carry = None
+    prior_values = None
+    with torch.no_grad():
+        for boundary in range(3):
+            calls.clear()
+            if route == "step":
+                _output, carry = _exit_scale_step(
+                    model, inputs, state=boundary, carry=carry, append_mtf=boundary != 1
+                )
+            else:
+                _exit_scale_route(model, inputs, route)
+            assert [name for name, _value in calls] == expected_names
+            values = [value for _name, value in calls]
+            if prior_values is not None:
+                assert all(current > previous for current, previous in zip(values, prior_values))
+            prior_values = values
+            for name in expected_names:
+                getattr(model, f"tf_input_scale_{name}").add_(0.1)
+
+
+def test_exit_full_episode_scale_hoist_preserves_every_output_at_identical_state(monkeypatch):
+    torch.manual_seed(20260907)
+    model = _make_model(dropout=0.0).eval()
+    reference = deepcopy(model)
+    _restore_repeated_exit_scale_formulation(reference, "_forward_exit_causal_episode")
+    assert canonical_model_state_sha256(model.state_dict()) == canonical_model_state_sha256(reference.state_dict())
+    inputs = _make_exit_episode_inputs()
+    calls = Counter()
+    owner = reference._effective_tf_input_scale
+    def counted_scale(name):
+        calls[name] += 1
+        return owner(name)
+    monkeypatch.setattr(reference, "_effective_tf_input_scale", counted_scale)
+    with torch.no_grad():
+        actual = model.forward_exit_episode(**inputs)
+        expected = reference.forward_exit_episode(**inputs)
+    assert actual.keys() == expected.keys()
+    for name in actual:
+        assert torch.equal(actual[name], expected[name]), name
+    assert calls == Counter({
+        timeframe.lower(): 2 * len(EXACT_SPECIALIST_NAMES)
+        for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
+    })
+
+
+@pytest.mark.parametrize("route,training", (
+    ("prefix", False), ("prefix", True),
+    ("step_append", False), ("step_no_append", False),
+))
+def test_exit_scale_hoist_preserves_active_and_input_gradients_at_identical_state(route, training):
+    """Small-shape arithmetic parity, not trained-candidate or full-horizon gradient evidence."""
+
+    torch.manual_seed(20260908)
+    model = _make_model(dropout=0.0).train(training)
+    reference = deepcopy(model)
+    method_name = "_forward_exit_causal_episode" if route == "prefix" else "forward_exit_incremental_step"
+    _restore_repeated_exit_scale_formulation(reference, method_name)
+    assert canonical_model_state_sha256(model.state_dict()) == canonical_model_state_sha256(reference.state_dict())
+    inputs = _make_exit_episode_inputs(state_count=3)
+    reference_inputs = deepcopy(inputs)
+    for collection in (inputs, reference_inputs):
+        for value in _exit_scale_input_leaves(collection).values():
+            value.requires_grad_(True)
+    actual = _exit_scale_route(model, inputs, route)
+    actual_values = {name: value.detach().clone() for name, value in actual.items()}
+    loss = sum(value.square().mean() for name, value in actual.items() if name.endswith("exit_action_q_bps"))
+    loss.backward()
+    del actual, loss
+    expected = _exit_scale_route(reference, reference_inputs, route)
+    expected_loss = sum(value.square().mean() for name, value in expected.items() if name.endswith("exit_action_q_bps"))
+    expected_loss.backward()
+    assert actual_values.keys() == expected.keys()
+    for name, value in expected.items():
+        assert torch.equal(actual_values[name], value.detach()), name
+    reference_parameters = dict(reference.named_parameters())
+    for name, parameter in model.named_parameters():
+        expected_gradient = reference_parameters[name].grad
+        assert (parameter.grad is None) == (expected_gradient is None), name
+        if parameter.grad is not None:
+            assert torch.isfinite(parameter.grad).all(), name
+            assert torch.isfinite(expected_gradient).all(), name
+            torch.testing.assert_close(parameter.grad, expected_gradient, atol=1e-6, rtol=1e-5, msg=name)
+    for name, value in _exit_scale_input_leaves(inputs).items():
+        expected_gradient = _exit_scale_input_leaves(reference_inputs)[name].grad
+        assert (value.grad is None) == (expected_gradient is None), name
+        if value.grad is not None:
+            assert torch.isfinite(value.grad).all(), name
+            torch.testing.assert_close(value.grad, expected_gradient, atol=1e-6, rtol=1e-5, msg=name)
+    for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES:
+        gradient = getattr(model, f"tf_input_scale_{timeframe.lower()}").grad
+        assert gradient is not None and gradient.abs().sum().item() > 0.0
+    assert tuple(model.exit_episode_mtf_family_gru) == EXACT_SPECIALIST_NAMES
+    for family in EXACT_SPECIALIST_NAMES:
+        for parameter in (
+            model.exit_episode_family_gru[family].weight_ih_l0,
+            model.exit_episode_mtf_family_gru[family].weight_ih_l0,
+        ):
+            assert parameter.grad is not None and parameter.grad.abs().sum().item() > 0.0
+
+
+@pytest.mark.parametrize("route", ("episode", "prefix", "step_no_append"))
+@pytest.mark.parametrize("invalid_scale", (float("nan"), float("inf")))
+def test_exit_scale_nonfinite_guard_survives_hoist(route, invalid_scale):
+    model = _make_model(dropout=0.0).eval()
+    inputs = _make_exit_episode_inputs(
+        state_count=UNIFIED_EXIT_MAX_PATH_BARS if route == "episode" else 3
+    )
+    with torch.no_grad():
+        if route == "step_no_append":
+            _output, carry = _exit_scale_step(model, inputs, state=0)
+        model.tf_input_scale_h1.fill_(invalid_scale)
+        with pytest.raises(RuntimeError, match="NONFINITE: tf_input_scale_effective_h1"):
+            if route == "step_no_append":
+                _exit_scale_step(model, inputs, state=1, carry=carry, append_mtf=False)
+            else:
+                _exit_scale_route(model, inputs, route)
+
+
+@pytest.mark.parametrize("route", ("prefix", "step_append"))
+def test_exit_scale_nonfinite_gradient_still_blocks_existing_optimizer_owner(monkeypatch, route):
+    model = _make_model(dropout=0.0).eval()
+    output = _exit_scale_route(model, _make_exit_episode_inputs(state_count=3), route)
+    sum(value.square().mean() for name, value in output.items() if name.endswith("exit_action_q_bps")).backward()
+    gradient = model.tf_input_scale_h1.grad
+    assert gradient is not None and torch.isfinite(gradient).all()
+    gradient.fill_(float("nan"))
+    before = canonical_model_state_sha256(model.state_dict())
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    def forbidden_step(*arguments, **keywords):
+        pytest.fail("Nonfinite gradients must fail before optimizer mutation")
+    monkeypatch.setattr(optimizer, "step", forbidden_step)
+    with pytest.raises(RuntimeError, match="non-finite"):
+        trainer._optimizer_step_with_finite_gradients(model=model, optimizer=optimizer)
+    assert canonical_model_state_sha256(model.state_dict()) == before
+    assert not optimizer.state
+
+
+def test_only_retired_static_exit_registrations_are_absent():
+    model = _make_model(dropout=0.0)
+    names = set(dict(model.named_modules())) | set(model.state_dict())
+    for retired in _RETIRED_STATIC_EXIT_MODULES:
+        assert not hasattr(model, retired)
+        assert not any(name == retired or name.startswith(f"{retired}.") for name in names)
+    for active in (
+        "exit_path_proj", "exit_side_embedding", "head_exit_action",
+        "exit_episode_global_gru", "exit_episode_path_gru", "exit_episode_fuse",
+        "exit_episode_family_axis_attn", "exit_episode_timeframe_axis_attn",
+    ):
+        assert active in dict(model.named_modules())
+    for container in (model.specialist_proj, model.exit_episode_family_gru, model.exit_episode_mtf_family_gru):
+        assert tuple(container) == EXACT_SPECIALIST_NAMES
+
+
+def test_retired_static_exit_modules_have_no_production_attribute_callsites():
+    root = Path(model_module.__file__).resolve().parents[2]
+    for path in root.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                assert node.attr not in _RETIRED_STATIC_EXIT_MODULES, (path, node.lineno)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in {"getattr", "setattr", "hasattr"}
+                and len(node.args) >= 2
+                and isinstance(node.args[1], ast.Constant)
+            ):
+                assert node.args[1].value not in _RETIRED_STATIC_EXIT_MODULES, (path, node.lineno)
+
+
+@pytest.mark.parametrize("retired", _RETIRED_STATIC_EXIT_MODULES)
+def test_strict_state_loading_does_not_silently_drop_retired_exit_keys(retired):
+    model = _make_model(dropout=0.0)
+    legacy_shaped_state = dict(model.state_dict())
+    legacy_shaped_state[f"{retired}.legacy_weight"] = torch.zeros(1)
+    with pytest.raises(RuntimeError, match="Unexpected key"):
+        model.load_state_dict(legacy_shaped_state, strict=True)

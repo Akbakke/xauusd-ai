@@ -13,8 +13,15 @@ from gx1.scripts import verify_candidate_checkpoint_resume_v1 as recovery
 
 from gx1.scripts.verify_candidate_checkpoint_resume_v1 import (
     _guard_recovery_timing,
+    _migrate_source_state_successor_checkpoint,
     _require_guard_only_recipe_transition,
     _require_finite_recovery_tensors,
+    _require_source_state_successor_recipe_transition,
+    _SOURCE_SUCCESSOR_EXPECTED_ADDED_ROLES,
+    _SOURCE_SUCCESSOR_EXPECTED_CHANGED_ROLES,
+    _SOURCE_SUCCESSOR_OLD_GROUP_IDS,
+    _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS,
+    _SOURCE_SUCCESSOR_RETIRED_STATE_KEYS,
     _state_component_sha256,
     main,
     run_equivalence,
@@ -98,6 +105,349 @@ def test_guard_recovery_rejects_nonfinite_learning_tensors() -> None:
             _require_finite_recovery_tensors({"optimizer": {0: {"exp_avg": torch.tensor([invalid])}}})
 
 
+def _source_state_successor_checkpoint() -> dict:
+    model_state = {
+        "active_before.weight": torch.tensor([1.0], dtype=torch.float32),
+        "exit_side_embedding.weight": torch.arange(
+            256,
+            dtype=torch.float32,
+        ).reshape(2, 128),
+        "active_after.weight": torch.tensor([2.0], dtype=torch.float32),
+        **{
+            name: torch.tensor([float(index)], dtype=torch.float32)
+            for index, name in enumerate(sorted(_SOURCE_SUCCESSOR_RETIRED_STATE_KEYS))
+        },
+    }
+    active_parameter_ids = [
+        parameter_id
+        for group in _SOURCE_SUCCESSOR_OLD_GROUP_IDS
+        for parameter_id in group
+        if parameter_id not in _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS
+    ]
+    optimizer_state = {}
+    for parameter_id in active_parameter_ids:
+        shape = (2, 128) if parameter_id == 603 else ()
+        optimizer_state[parameter_id] = {
+            "step": torch.tensor(9664.0, dtype=torch.float32),
+            "exp_avg": torch.full(shape, parameter_id / 1000, dtype=torch.float32),
+            "exp_avg_sq": torch.full(shape, parameter_id / 10000, dtype=torch.float32),
+        }
+    return {
+        "schema_version": "candidate_training_session_v1",
+        "session_contract_sha256": "a" * 64,
+        "checkpoint_index": 152,
+        "phase": "train",
+        "epoch_index": 0,
+        "next_batch_offset": 9664,
+        "global_optimizer_steps": 9664,
+        "epoch_order": torch.arange(16, dtype=torch.int64),
+        "model_state": model_state,
+        "target_model_state": copy.deepcopy(model_state),
+        "optimizer_state": {
+            "state": optimizer_state,
+            "param_groups": [
+                {"params": list(group), "lr": 1e-4}
+                for group in _SOURCE_SUCCESSOR_OLD_GROUP_IDS
+            ],
+        },
+        "weight_ema_state": {
+            "decay": 0.999,
+            "steps": 9664,
+            "shadow": copy.deepcopy(model_state),
+        },
+        "lr_scheduler_state": {"last_epoch": 0},
+        "rng_state": {"torch_cpu": torch.arange(4, dtype=torch.uint8)},
+        "training_progress": {"best": None},
+        "complete": False,
+    }
+
+
+def test_source_state_successor_preserves_active_state_and_remaps_ids() -> None:
+    original = _source_state_successor_checkpoint()
+    original_sha256 = _state_component_sha256(original)
+
+    migrated = _migrate_source_state_successor_checkpoint(
+        original,
+        successor_contract_sha256="b" * 64,
+    )
+
+    assert _state_component_sha256(original) == original_sha256
+    assert migrated["session_contract_sha256"] == "b" * 64
+    assert not (_SOURCE_SUCCESSOR_RETIRED_STATE_KEYS & set(migrated["model_state"]))
+    assert not (
+        _SOURCE_SUCCESSOR_RETIRED_STATE_KEYS
+        & set(migrated["target_model_state"])
+    )
+    assert not (
+        _SOURCE_SUCCESSOR_RETIRED_STATE_KEYS
+        & set(migrated["weight_ema_state"]["shadow"])
+    )
+    assert set(migrated["optimizer_state"]["state"]) == set(range(722))
+    assert migrated["optimizer_state"]["param_groups"][0]["params"] == list(
+        range(712)
+    )
+    assert migrated["optimizer_state"]["param_groups"][1]["params"] == list(
+        range(712, 722)
+    )
+    assert torch.equal(
+        migrated["optimizer_state"]["state"][579]["exp_avg"],
+        original["optimizer_state"]["state"][603]["exp_avg"],
+    )
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["retired_model_key_missing", "retired_optimizer_state", "side_moment_shape"],
+)
+def test_source_state_successor_rejects_ambiguous_mapping(corruption: str) -> None:
+    state = _source_state_successor_checkpoint()
+    if corruption == "retired_model_key_missing":
+        state["model_state"].pop(next(iter(_SOURCE_SUCCESSOR_RETIRED_STATE_KEYS)))
+    elif corruption == "retired_optimizer_state":
+        state["optimizer_state"]["state"][579] = copy.deepcopy(
+            state["optimizer_state"]["state"][578]
+        )
+    else:
+        state["optimizer_state"]["state"][603]["exp_avg"] = torch.zeros(1)
+        state["optimizer_state"]["state"][603]["exp_avg_sq"] = torch.zeros(1)
+    with pytest.raises(RuntimeError, match="SOURCE_STATE_SUCCESSOR"):
+        _migrate_source_state_successor_checkpoint(
+            state,
+            successor_contract_sha256="b" * 64,
+        )
+
+
+def test_source_state_successor_recipe_changes_only_run_and_source_identity() -> None:
+    original, successor = _transition()
+    successor["run_id"] = "successor-run"
+    original["source_bindings"] = {
+        role: {
+            "path": f"/repo/{index}",
+            "sha256": "a" * 64,
+            "size_bytes": 1,
+        }
+        for index, role in enumerate(
+            sorted(_SOURCE_SUCCESSOR_EXPECTED_CHANGED_ROLES | {"stable"})
+        )
+    }
+    successor["source_bindings"] = copy.deepcopy(original["source_bindings"])
+    for role in _SOURCE_SUCCESSOR_EXPECTED_CHANGED_ROLES:
+        successor["source_bindings"][role]["sha256"] = "b" * 64
+    successor["source_bindings"].update(
+        {
+            role: {
+                "path": f"/repo/added/{index}",
+                "sha256": "c" * 64,
+                "size_bytes": 1,
+            }
+            for index, role in enumerate(
+                sorted(_SOURCE_SUCCESSOR_EXPECTED_ADDED_ROLES)
+            )
+        }
+    )
+
+    _require_source_state_successor_recipe_transition(original, successor)
+
+    wrong_delta = copy.deepcopy(successor)
+    wrong_delta["source_bindings"]["stable"]["sha256"] = "d" * 64
+    with pytest.raises(RuntimeError, match="SOURCE_STATE_SUCCESSOR_SOURCE_DELTA"):
+        _require_source_state_successor_recipe_transition(original, wrong_delta)
+
+    successor["artifact_bindings"]["train"]["sha256"] = "changed"
+    with pytest.raises(RuntimeError, match="SOURCE_STATE_SUCCESSOR"):
+        _require_source_state_successor_recipe_transition(original, successor)
+
+
+def test_source_state_successor_adamw_one_step_parity() -> None:
+    old_parameters = [
+        torch.nn.Parameter(
+            torch.linspace(-0.5, 0.5, 256, dtype=torch.float32).reshape(2, 128)
+            if parameter_id == 603
+            else torch.tensor(parameter_id / 1000, dtype=torch.float32)
+        )
+        for parameter_id in range(758)
+    ]
+    old_optimizer = torch.optim.AdamW(
+        [
+            {"params": old_parameters[:748], "weight_decay": 0.01},
+            {"params": old_parameters[748:], "weight_decay": 0.0},
+        ],
+        lr=1e-4,
+    )
+    active_old_parameters = [
+        parameter
+        for parameter_id, parameter in enumerate(old_parameters)
+        if parameter_id not in _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS
+    ]
+    for ordinal, parameter in enumerate(active_old_parameters):
+        parameter.grad = torch.full_like(parameter, (ordinal + 1) / 10000)
+    old_optimizer.step()
+    old_optimizer.zero_grad(set_to_none=True)
+
+    checkpoint = _source_state_successor_checkpoint()
+    checkpoint["optimizer_state"] = old_optimizer.state_dict()
+    migrated = _migrate_source_state_successor_checkpoint(
+        checkpoint,
+        successor_contract_sha256="b" * 64,
+    )
+    new_parameters = [
+        torch.nn.Parameter(parameter.detach().clone())
+        for parameter in active_old_parameters
+    ]
+    new_optimizer = torch.optim.AdamW(
+        [
+            {"params": new_parameters[:712], "weight_decay": 0.01},
+            {"params": new_parameters[712:], "weight_decay": 0.0},
+        ],
+        lr=1e-4,
+    )
+    new_optimizer.load_state_dict(migrated["optimizer_state"])
+
+    old_loss = torch.stack(
+        [parameter.square().mean() for parameter in active_old_parameters]
+    ).sum()
+    new_loss = torch.stack(
+        [parameter.square().mean() for parameter in new_parameters]
+    ).sum()
+    assert torch.equal(old_loss, new_loss)
+    old_loss.backward()
+    new_loss.backward()
+    for old_parameter, new_parameter in zip(
+        active_old_parameters,
+        new_parameters,
+        strict=True,
+    ):
+        assert torch.equal(old_parameter.grad, new_parameter.grad)
+    old_optimizer.step()
+    new_optimizer.step()
+    for old_parameter, new_parameter in zip(
+        active_old_parameters,
+        new_parameters,
+        strict=True,
+    ):
+        assert torch.equal(old_parameter, new_parameter)
+
+
+def _actual_next_batch_payload() -> dict:
+    scales = {
+        f"tf_input_scale_{timeframe}": torch.tensor(1.0)
+        for timeframe in ("d1", "h1", "h4", "m15", "m5")
+    }
+    gradients = {"active.weight": torch.tensor([0.25]), **scales}
+    model_state = {"active.weight": torch.tensor([2.0]), **scales}
+    optimizer_state = {
+        name: {
+            "step": torch.tensor(9665.0),
+            "exp_avg": value.clone(),
+            "exp_avg_sq": value.square(),
+        }
+        for name, value in model_state.items()
+    }
+    return {
+        "schema_version": recovery._ACTUAL_NEXT_BATCH_CHILD_SCHEMA,
+        "source_commit": "old",
+        "recipe": {},
+        "contract": {},
+        "pointer": {},
+        "state": {},
+        "checkpoint_index": 152,
+        "global_optimizer_steps_before": 9664,
+        "next_batch_offset_before": 9664,
+        "next_batch_indices": [1, 2, 3, 4, 5, 6, 7, 8],
+        "batch_manifest": {"seq_x": {"sha256": "a" * 64}},
+        "entry_forwards": [
+            {"entry_action_q_bps": torch.tensor([[1.0, 2.0, 3.0]])},
+            {"entry_action_q_bps": torch.tensor([[1.5, 2.5, 3.5]])},
+        ],
+        "exit": {
+            "entry_representation_gradients": torch.tensor([[0.5]]),
+            "stats": {"raw_loss": 1.0},
+            "entry_action_q_targets": torch.tensor([[1.0, 2.0, 0.0]]),
+            "entry_action_q_valid": torch.tensor([[True, True, True]]),
+        },
+        "joint": {
+            "task_losses": {"entry_action_q": torch.tensor(0.75)},
+            "joint_loss": torch.tensor(0.75),
+            "stats": {"active": True},
+        },
+        "raw_gradients": copy.deepcopy(gradients),
+        "clipped_gradients": copy.deepcopy(gradients),
+        "model_state_after": copy.deepcopy(model_state),
+        "target_model_state_after": copy.deepcopy(model_state),
+        "optimizer_state_after": optimizer_state,
+        "optimizer_groups_after": [
+            {
+                "lr": 0.0003,
+                "weight_decay": 1e-5,
+                "parameter_names": list(model_state),
+            }
+        ],
+        "weight_ema_state_after": {
+            "decay": 0.99,
+            "steps": 9665,
+            "shadow": copy.deepcopy(model_state),
+        },
+        "lr_scheduler_state_after": {"last_epoch": 0},
+        "task_supervision_observed": {"entry_action_q": True},
+        "task_gradient_observed": {"entry_action_q": True},
+        "rng_state_after_manifest": {"torch": {"sha256": "b" * 64}},
+        "cuda_started": False,
+        "test_accessed": False,
+    }
+
+
+def test_actual_next_batch_comparison_excludes_only_reviewed_retired_state() -> None:
+    original = _actual_next_batch_payload()
+    successor = copy.deepcopy(original)
+    original["model_state_after"]["exit_fuse.0.weight"] = torch.ones(2, 2)
+    original["target_model_state_after"]["exit_fuse.0.weight"] = torch.ones(2, 2)
+    original["weight_ema_state_after"]["shadow"]["exit_fuse.0.weight"] = torch.ones(2, 2)
+    original["optimizer_groups_after"][0]["parameter_names"].insert(
+        0, "exit_fuse.0.weight"
+    )
+    report = recovery._require_actual_next_batch_equivalence(original, successor)
+    assert report["raw_gradients"]["tolerance_limited_to_tf_input_scales"] == [
+        "tf_input_scale_d1",
+        "tf_input_scale_h1",
+        "tf_input_scale_h4",
+        "tf_input_scale_m15",
+        "tf_input_scale_m5",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("surface", "name"),
+    [
+        ("entry", "entry output"),
+        ("ordinary_gradient", "ordinary gradient"),
+        ("scale_gradient", "scale gradient beyond tolerance"),
+        ("retired_optimizer", "retired optimizer state"),
+        ("batch", "next batch identity"),
+    ],
+)
+def test_actual_next_batch_comparison_fails_closed(
+    surface: str, name: str
+) -> None:
+    original = _actual_next_batch_payload()
+    successor = copy.deepcopy(original)
+    if surface == "entry":
+        successor["entry_forwards"][0]["entry_action_q_bps"][0, 0] += 1e-7
+    elif surface == "ordinary_gradient":
+        successor["raw_gradients"]["active.weight"] += 1e-7
+    elif surface == "scale_gradient":
+        successor["raw_gradients"]["tf_input_scale_m5"] += 1e-3
+    elif surface == "retired_optimizer":
+        original["optimizer_state_after"]["exit_fuse.0.weight"] = {
+            "step": torch.tensor(9665.0),
+            "exp_avg": torch.tensor(0.0),
+            "exp_avg_sq": torch.tensor(0.0),
+        }
+    else:
+        successor["next_batch_indices"][0] = 9
+    with pytest.raises((RuntimeError, AssertionError), match="SOURCE_STATE|Tensor"):
+        recovery._require_actual_next_batch_equivalence(original, successor)
+
+
 def _incident_logs(tmp_path: Path, *, step_time: str = "19:56:30,184") -> tuple[Path, Path, dict]:
     guard = tmp_path / "guard.log"
     child = tmp_path / "trainer.log"
@@ -133,6 +483,12 @@ def test_guard_recovery_rejects_unproven_incident_state(tmp_path: Path, change: 
 def test_guard_recovery_cli_rejects_incomplete_or_mixed_modes() -> None:
     with pytest.raises(SystemExit) as error:
         main(["--prepare-guard-recovery"])
+    assert error.value.code == 2
+    with pytest.raises(SystemExit) as error:
+        main(["--prepare-source-state-successor"])
+    assert error.value.code == 2
+    with pytest.raises(SystemExit) as error:
+        main(["--prepare-guard-recovery", "--prepare-source-state-successor"])
     assert error.value.code == 2
     with pytest.raises(SystemExit) as error:
         main(["--original-pointer-sha256", "a" * 64, "--out-json", "/unused"])

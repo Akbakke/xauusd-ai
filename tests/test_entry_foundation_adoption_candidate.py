@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
+    require_newest_immutable_event,
     write_immutable_json_event,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -134,6 +136,21 @@ def _event(
         {"created_utc": created, **payload},
     )
     return path
+
+
+def _successor(path: Path, prefix: str, payload: dict) -> Path:
+    witness = path.with_name(f".{path.name}.order")
+    previous = {document: document.read_bytes() for document in (path, witness)}
+    created = datetime.fromisoformat(payload["created_utc"]) + timedelta(microseconds=1)
+    successor, _ = write_immutable_json_event(
+        path.parent,
+        prefix,
+        {**payload, "created_utc": created.isoformat()},
+    )
+    assert successor != path
+    assert {document: document.read_bytes() for document in previous} == previous
+    assert require_newest_immutable_event(successor, prefix) == successor
+    return successor
 
 
 def _audits(root: Path, dataset: Path) -> dict[str, Path]:
@@ -434,7 +451,11 @@ def test_model_native_adoption_is_blocked_only_by_entry_q_production_economics(
     )
     event = Path(report["json_path"])
     assert event.name.startswith(f"{EVENT_PREFIX}_")
-    assert list((tmp_path / "reports").iterdir()) == [event]
+    assert set((tmp_path / "reports").iterdir()) == {
+        event,
+        event.with_name(f".{event.name}.order"),
+    }
+    assert require_newest_immutable_event(event, EVENT_PREFIX) == event
 
 
 def test_adoption_uses_smoke_bound_split_identity_not_directory_inventory(
@@ -465,7 +486,9 @@ def test_adoption_rejects_smoke_bound_split_hash_mismatch(tmp_path: Path) -> Non
     smoke = _smoke_event(tmp_path, dataset, rows)
     payload = json.loads(smoke.read_text(encoding="utf-8"))
     payload["smoke_manifest"]["splits"]["val"]["out_parquet_sha256"] = "0" * 64
-    smoke.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    payload["split_artifacts"]["val"]["parquet_sha256"] = "0" * 64
+    payload["manifest_sha256"] = _sha_json(payload["smoke_manifest"])
+    smoke = _successor(smoke, SMOKE_EVENT_PREFIX, payload)
 
     with pytest.raises(RuntimeError, match="ARTIFACT_HASH_MISMATCH"):
         run(_args(tmp_path, dataset, audits, smoke))
@@ -478,9 +501,8 @@ def test_adoption_fails_closed_on_audit_dataset_mismatch(tmp_path: Path) -> None
     audits = _audits(tmp_path, dataset)
     feature = json.loads(audits["feature_audit"].read_text(encoding="utf-8"))
     feature["dataset_dir"] = str(tmp_path / "other_dataset")
-    audits["feature_audit"].write_text(
-        json.dumps(feature, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    audits["feature_audit"] = _successor(
+        audits["feature_audit"], AUDIT_EVENT_PREFIXES["feature_audit"], feature,
     )
     smoke = _smoke_event(tmp_path, dataset, rows)
 
@@ -503,9 +525,8 @@ def test_adoption_rejects_stale_audit_split_artifact_binding(
     audits = _audits(tmp_path, dataset)
     target = json.loads(audits["target_audit"].read_text(encoding="utf-8"))
     target["split_artifacts"]["val"]["parquet_sha256"] = "0" * 64
-    audits["target_audit"].write_text(
-        json.dumps(target, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    audits["target_audit"] = _successor(
+        audits["target_audit"], AUDIT_EVENT_PREFIXES["target_audit"], target,
     )
     smoke = _smoke_event(tmp_path, dataset, rows)
 
@@ -535,9 +556,8 @@ def test_adoption_rejects_swapped_mandatory_signal_prefix(tmp_path: Path) -> Non
         contract["fields"][MODEL_NATIVE_BASE_SIGNAL_DIM + 1],
         contract["fields"][MODEL_NATIVE_BASE_SIGNAL_DIM],
     )
-    audits["feature_audit"].write_text(
-        json.dumps(feature, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    audits["feature_audit"] = _successor(
+        audits["feature_audit"], AUDIT_EVENT_PREFIXES["feature_audit"], feature,
     )
     smoke = _smoke_event(tmp_path, dataset, rows)
 
@@ -568,9 +588,8 @@ def test_adoption_rejects_stale_partition_count(tmp_path: Path) -> None:
     feature["mandatory_selected_feature_count"] = (
         MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT - 1
     )
-    audits["feature_audit"].write_text(
-        json.dumps(feature, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    audits["feature_audit"] = _successor(
+        audits["feature_audit"], AUDIT_EVENT_PREFIXES["feature_audit"], feature,
     )
     smoke = _smoke_event(tmp_path, dataset, rows)
 
@@ -616,9 +635,8 @@ def test_adoption_fails_closed_on_forged_foundation_audit_policy(
     target["foundation_audit_policy"]["target_quality"][
         "max_majority_rate"
     ] = 1.0
-    audits["target_audit"].write_text(
-        json.dumps(target, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    audits["target_audit"] = _successor(
+        audits["target_audit"], AUDIT_EVENT_PREFIXES["target_audit"], target,
     )
     smoke = _smoke_event(tmp_path, dataset, rows)
 
@@ -631,6 +649,27 @@ def test_adoption_fails_closed_on_forged_foundation_audit_policy(
         == "foundation audit policy identity and full payload are exact"
         for row in report["failures"]
     )
+
+
+@pytest.mark.parametrize("evidence", ["feature_audit", "smoke_manifest"])
+def test_adoption_rejects_tampered_published_event_before_semantic_checks(
+    tmp_path: Path, evidence: str,
+) -> None:
+    dataset, rows = _dataset(tmp_path)
+    audits = _audits(tmp_path, dataset)
+    smoke = _smoke_event(tmp_path, dataset, rows)
+    path = smoke if evidence == "smoke_manifest" else audits[evidence]
+    witness = path.with_name(f".{path.name}.order")
+    original_witness = witness.read_bytes()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["decision"] = "tampered_after_publication"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    with pytest.raises(ImmutableEventAuthorityError, match="publication order event hash mismatch"):
+        run(_args(tmp_path, dataset, audits, smoke))
+
+    assert witness.read_bytes() == original_witness
+    assert not (tmp_path / "reports").exists()
 
 
 def test_parser_requires_explicit_smoke_event_and_output() -> None:

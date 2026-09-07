@@ -28,6 +28,9 @@ AUTHORITY_PATHS = (
     REPO / "docs/CURRENT_HANDOFF_20260903.md",
     REPO / "docs/REPO_CLEANUP_CANDIDATES_20260903.md",
     REPO / "docs/PREMIERE_CODE_REVIEW_20260905.md",
+    REPO / "docs/PRETRAIN_READINESS_REPAIR_20260906.md",
+    REPO / "docs/PRETRAIN_ARCHITECTURE_REVIEW_20260906.md",
+    REPO / "docs/PRETRAIN_DATA_REVIEW_20260906.md",
     REPO / "docs/OFFLINE_CHAMPION_CHALLENGER_V1.md",
     REPO / "docs/DATA_CONTRACT.md",
     REPO / "docs/ATTENDED_STAGED_PREFLIGHT_DESIGN_20260823.md",
@@ -76,6 +79,7 @@ RETAINED_CONTROL_ROUTES = {
     "model-native-execution-causality-audit",
     "model-native-train-recipe-audit",
     "model-native-smoke-bundle-audit",
+    "model-native-feature-usefulness",
     "model-native-candidate-readiness",
     "model-native-selective-edge",
     "model-native-seed-stability",
@@ -267,6 +271,10 @@ def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
     (
         "GUARD_EXIT_ORPHANED_CUDA_NO_RETRY",
         "CPU_GUARD_REPAIR_AND_VERIFIED_SOURCE_BOUND_CHECKPOINT_RECOVERY_NO_CUDA_RETRY",
+    ),
+    (
+        "PRETRAIN_READINESS_REPAIR_REQUIRED__NO_TRAINING_OR_CLOUD_AUTHORITY",
+        "COMPLETE_CPU_REPAIRS_AND_REVIEW_PRESERVE_CHECKPOINT_THEN_VERIFY_SOURCE_LINEAGE_NO_TRAINING_OR_PURCHASE",
     ),
 ])
 def test_runtime_review_hold_reports_exact_recovery_and_blocks_all_execution(
@@ -1313,6 +1321,240 @@ def test_control_rejects_duplicate_required_flag_before_dispatch() -> None:
         "requires exactly one explicit --output-parquet (observed=2)"
         in result.stderr
     )
+
+
+FEATURE_USEFULNESS_ARGUMENTS = {
+    "--execute": None,
+    "--device": "cpu",
+    "--bundle-dir": "/tmp/immutable-bundle",
+    "--bundle-metadata-sha256": "1" * 64,
+    "--session-contract-sha256": "2" * 64,
+    "--active-pointer-sha256": "3" * 64,
+    "--selected-checkpoint-sha256": "4" * 64,
+    "--recipe-audit-json": "/tmp/immutable-recipe.json",
+    "--recipe-audit-sha256": "5" * 64,
+    "--batch-size": "1",
+    "--max-baseline-bytes": "1024",
+    "--max-episode-bytes": "2048",
+    "--max-forward-calls": "16",
+    "--out-json": "/tmp/new-usefulness.json",
+}
+
+
+def _feature_usefulness_arguments(*, omitted=None, equals_form=False) -> list[str]:
+    arguments = []
+    for flag, value in FEATURE_USEFULNESS_ARGUMENTS.items():
+        if flag == omitted:
+            continue
+        if value is None:
+            arguments.append(flag)
+        elif equals_form:
+            arguments.append(f"{flag}={value}")
+        else:
+            arguments.extend((flag, value))
+    return arguments
+
+
+@pytest.fixture
+def feature_usefulness_control(tmp_path: Path):
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    control = scripts / CONTROL.name
+    control.write_text(CONTROL.read_text(encoding="utf-8"), encoding="utf-8")
+    python = tmp_path / ".venv/bin/python"
+    python.parent.mkdir(parents=True)
+    python.write_text("#!/usr/bin/env bash\nexit 99\n", encoding="utf-8")
+    python.chmod(0o755)
+    capped = scripts / "gx1_capped_run.sh"
+    capped.write_text(
+        "#!/usr/bin/env bash\nprintf 'CAPPED_STUB\\n'\nprintf '%s\\n' \"$@\"\n",
+        encoding="utf-8",
+    )
+    capped.chmod(0o755)
+
+    def run(
+        arguments,
+        *,
+        handover_output=(
+            "unexpected_ignored_path_count: 0\nprunable_worktree_count: 0\n"
+        ),
+        handover_status=0,
+    ):
+        handover = scripts / "gx1_handover.sh"
+        handover.write_text(
+            "#!/usr/bin/env bash\n"
+            "printf 'HANDOVER_STUB:%s\\n' \"$*\" >&2\n"
+            f"cat <<'EOF'\n{handover_output}EOF\nexit {handover_status}\n",
+            encoding="utf-8",
+        )
+        handover.chmod(0o755)
+        return subprocess.run(
+            ["bash", str(control), "model-native-feature-usefulness", *arguments],
+            cwd=tmp_path,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    return run
+
+
+@pytest.mark.parametrize("equals_form", [False, True])
+def test_feature_usefulness_dispatches_exact_cpu_audit_cap(
+    tmp_path: Path, feature_usefulness_control, equals_form: bool,
+) -> None:
+    arguments = _feature_usefulness_arguments(equals_form=equals_form)
+    result = feature_usefulness_control(arguments)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == "HANDOVER_STUB:--check\n"
+    assert result.stdout.splitlines() == [
+        "CAPPED_STUB",
+        "--class", "audit", "--mem", "4G", "--swap", "512M", "--",
+        str(tmp_path / ".venv/bin/python"),
+        "-m", "gx1.scripts.audit_entry_exit_feature_usefulness_v1",
+        *arguments,
+    ]
+
+
+@pytest.mark.parametrize("flag", FEATURE_USEFULNESS_ARGUMENTS)
+def test_feature_usefulness_requires_each_exact_flag_before_dispatch(
+    feature_usefulness_control, flag: str,
+) -> None:
+    result = feature_usefulness_control(_feature_usefulness_arguments(omitted=flag))
+
+    assert result.returncode == 2
+    assert f"requires exactly one explicit {flag} (observed=0)" in result.stderr
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize("flag", FEATURE_USEFULNESS_ARGUMENTS)
+@pytest.mark.parametrize("equals_form", [False, True])
+def test_feature_usefulness_rejects_duplicate_flags_before_dispatch(
+    feature_usefulness_control, flag: str, equals_form: bool,
+) -> None:
+    arguments = _feature_usefulness_arguments()
+    value = FEATURE_USEFULNESS_ARGUMENTS[flag]
+    if equals_form:
+        arguments.append(f"{flag}={value if value is not None else 'true'}")
+    else:
+        arguments.append(flag)
+        if value is not None:
+            arguments.append(value)
+    result = feature_usefulness_control(arguments)
+
+    assert result.returncode == 2
+    assert f"requires exactly one explicit {flag} (observed=2)" in result.stderr
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize("flag", list(FEATURE_USEFULNESS_ARGUMENTS)[1:])
+@pytest.mark.parametrize("value", [None, ""])
+def test_feature_usefulness_rejects_missing_and_empty_values_before_dispatch(
+    feature_usefulness_control, flag: str, value,
+) -> None:
+    arguments = _feature_usefulness_arguments()
+    position = arguments.index(flag) + 1
+    if value is None:
+        del arguments[position]
+    else:
+        arguments[position] = value
+    result = feature_usefulness_control(arguments)
+
+    assert result.returncode == 2
+    assert flag in result.stderr
+    assert "requires" in result.stderr
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize("device", ["auto", "cuda", "cuda:0", "CPU"])
+@pytest.mark.parametrize("equals_form", [False, True])
+def test_feature_usefulness_rejects_non_cpu_devices_before_dispatch(
+    feature_usefulness_control, device: str, equals_form: bool,
+) -> None:
+    arguments = _feature_usefulness_arguments(omitted="--device")
+    arguments.extend([f"--device={device}"] if equals_form else ["--device", device])
+    result = feature_usefulness_control(arguments)
+
+    assert result.returncode == 2
+    assert "--device must be exactly cpu" in result.stderr
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize(
+    "execute_arguments",
+    [["--execute=true"], ["--execute=false"], ["--execute="], ["--execute", "true"]],
+)
+def test_feature_usefulness_requires_bare_execute(
+    feature_usefulness_control, execute_arguments: list[str],
+) -> None:
+    result = feature_usefulness_control(
+        [*execute_arguments, *_feature_usefulness_arguments(omitted="--execute")]
+    )
+
+    assert result.returncode == 2
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "--validate-json=/tmp/report.json", "--dry-run", "--allow-dirty-source",
+        "--skip-source-check", "--source-only", "--repo=/tmp/other",
+        "--sample-size=1", "--max-samples=1", "--max-rows=1", "--groups=trend",
+        "--feature-mask-json=/tmp/mask.json", "--contract-mode=other",
+        "--splits=train", "--dataset-dir=/tmp/other", "--device-auto",
+        "--memory-cap=20G", "--swap-cap=1G", "--mem=20G", "--swap=1G",
+        "--class=producer", "--workers=2", "--out=/tmp/abbreviated.json",
+    ],
+)
+def test_feature_usefulness_rejects_nonproduction_flags_before_dispatch(
+    feature_usefulness_control, extra: str,
+) -> None:
+    result = feature_usefulness_control([*_feature_usefulness_arguments(), extra])
+
+    assert result.returncode == 2
+    assert "HANDOVER_STUB" not in result.stderr
+    assert result.stdout == ""
+
+
+@pytest.mark.parametrize(
+    ("handover_output", "handover_status", "expected"),
+    [
+        (
+            "pretraining_review_hold: ACTIVE\n"
+            "unexpected_ignored_path_count: 0\nprunable_worktree_count: 0\n",
+            2, "canonical handover source-identity verification failed",
+        ),
+        (
+            "unexpected_ignored_path_count: 1\nprunable_worktree_count: 0\n",
+            0, "--execute rejects unexpected ignored content",
+        ),
+        (
+            "unexpected_ignored_path_count: 0\nprunable_worktree_count: 1\n",
+            0, "--execute rejects prunable worktree registration",
+        ),
+        ("", 0, "--execute rejects unexpected ignored content"),
+    ],
+)
+def test_feature_usefulness_handover_hold_and_source_hygiene_block_dispatch(
+    feature_usefulness_control, handover_output: str, handover_status: int,
+    expected: str,
+) -> None:
+    result = feature_usefulness_control(
+        _feature_usefulness_arguments(), handover_output=handover_output,
+        handover_status=handover_status,
+    )
+
+    assert result.returncode == 2
+    assert "HANDOVER_STUB:--check" in result.stderr
+    assert expected in result.stderr
+    assert result.stdout == ""
 
 
 @pytest.mark.parametrize(

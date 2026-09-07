@@ -68,6 +68,22 @@ def test_binds_exact_direct_pretest_m1_and_m5(tmp_path: Path) -> None:
     assert output.is_file()
 
 
+def test_public_direct_source_owner_returns_exact_binding(tmp_path: Path) -> None:
+    source_manifest = _source_manifest(tmp_path, timeframe="M1")
+
+    binding = producer.require_direct_pretest_source_manifest(
+        source_manifest,
+        timeframe="M1",
+    )
+
+    assert binding["source_manifest_path"] == str(source_manifest)
+    assert binding["source_manifest_sha256"] == hashlib.sha256(
+        source_manifest.read_bytes()
+    ).hexdigest()
+    assert binding["source_parquet"] == str(tmp_path / "m1_ohlcv.parquet")
+    assert binding["native_source"]["root"] == str(tmp_path / "native_m1")
+
+
 def test_rejects_a_source_that_claims_test_access(tmp_path: Path) -> None:
     m1 = _source_manifest(tmp_path, timeframe="M1", test_accessed=True)
     m5 = _source_manifest(tmp_path, timeframe="M5")

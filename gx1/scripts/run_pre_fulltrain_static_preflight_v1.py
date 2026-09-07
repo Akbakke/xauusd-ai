@@ -2,9 +2,11 @@
 """Fail-closed static preflight for the Entry external-training candidate.
 
 This command deliberately accepts only TRAIN and VAL dataset paths.  It never
-discovers split files by glob and it treats a TEST-like path, or any timestamp
-at/after the TEST boundary, as a hard failure.  The output is technical
-evidence only: it does not train, tune, evaluate, or select a model.
+discovers split files by glob and it treats a TEST-like path, or any row timestamp
+at/after the TEST boundary, as a hard failure.  Row timestamps and declared
+horizon domains do not prove outcome containment.  The output is static
+technical evidence only: it does not probe accelerators, establish hardware
+readiness, or authorize training or evaluation.
 """
 from __future__ import annotations
 
@@ -23,27 +25,25 @@ import numpy as np
 import pyarrow.parquet as pq
 import torch
 
+from gx1.contracts.entry_exit_production_architecture_v1 import (
+    current_entry_exit_architecture_observation,
+    require_entry_exit_production_architecture,
+)
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
-    JOINT_TASK_NAMES,
     require_joint_task_weighting_metadata,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     model_native_mandatory_full_stack_metadata,
 )
-from gx1.features.entry_specialist_feature_groups_v1 import (
-    MODEL_NATIVE_TRAINING_SPECIALISTS,
-)
 
 
-SCHEMA_VERSION = "gx1_pre_fulltrain_static_preflight_v2"
+SCHEMA_VERSION = "gx1_pre_fulltrain_static_preflight_v3"
 TEST_BOUNDARY_UTC = "2026-07-01T00:00:00+00:00"
 TRAIN_START_UTC = "2021-06-01T00:00:00+00:00"
-# The V9 five-year recipe owns this exclusive boundary.  The last emitted
-# TRAIN row is 2026-05-31T23:50Z; VAL begins at the next M5 clock.
 TRAIN_END_UTC = "2026-05-31T23:55:00+00:00"
 VAL_START_UTC = TRAIN_END_UTC
 VAL_END_UTC = TEST_BOUNDARY_UTC
@@ -120,7 +120,7 @@ def scan_allowed_split(
     nominal_end_utc: str,
     test_boundary_utc: str = TEST_BOUNDARY_UTC,
 ) -> dict[str, Any]:
-    """Read only an explicit TRAIN/VAL parquet and prove its time boundary."""
+    """Check row timestamps and declared horizon domains, not outcome endpoints."""
 
     _reject_test_like_path(path, label=label)
     if label not in {"train", "val"}:
@@ -163,10 +163,15 @@ def scan_allowed_split(
             previous = current
             first = current if first is None else first
             last = current
-            try:
-                horizon = int(raw_horizon)
-            except (TypeError, ValueError) as exc:
-                raise PreflightError(f"[PREFLIGHT_HORIZON_INVALID] label={label}") from exc
+            if (
+                isinstance(raw_horizon, (bool, np.bool_))
+                or not isinstance(raw_horizon, (int, float, np.integer, np.floating))
+                or not np.isfinite(raw_horizon)
+            ):
+                raise PreflightError(f"[PREFLIGHT_HORIZON_INVALID] label={label}")
+            horizon = int(raw_horizon)
+            if raw_horizon != horizon:
+                raise PreflightError(f"[PREFLIGHT_HORIZON_INVALID] label={label}")
             max_horizon = max(max_horizon, horizon)
             if horizon < 0 or horizon > MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS:
                 horizon_violations += 1
@@ -187,6 +192,9 @@ def scan_allowed_split(
         )
     return {
         "label": label,
+        "scope": "row_timestamps_and_declared_horizon_domain_only",
+        "outcome_containment": "UNPROVEN_NOT_INSPECTED",
+        "target_values_inspected": False,
         "path": str(path.resolve()),
         "sha256": _sha256_file(path),
         "rows": rows,
@@ -213,14 +221,13 @@ def _git_value(*args: str) -> str | None:
 
 
 def _environment_metadata() -> dict[str, Any]:
-    cuda_available = bool(torch.cuda.is_available())
+    """Read passive version metadata without accelerator or cuDNN API probes."""
+
     return {
         "python": sys.version,
         "pytorch": torch.__version__,
-        "cuda_runtime": torch.version.cuda,
-        "cudnn": int(torch.backends.cudnn.version() or 0),
-        "cuda_available": cuda_available,
-        "gpu_name": torch.cuda.get_device_name(0) if cuda_available else None,
+        "pytorch_cuda_build": torch.version.cuda,
+        "hardware_readiness": "UNPROVEN_NOT_PROBED",
         "operating_system": platform.platform(),
         "git_commit": _git_value("rev-parse", "HEAD"),
         "git_branch": _git_value("branch", "--show-current"),
@@ -230,12 +237,24 @@ def _environment_metadata() -> dict[str, Any]:
     }
 
 
+def _require_static_architecture() -> dict[str, Any]:
+    """Validate current owner metadata against the frozen production policy."""
+
+    try:
+        return require_entry_exit_production_architecture(
+            current_entry_exit_architecture_observation(), context="PREFLIGHT"
+        )
+    except RuntimeError as exc:
+        raise PreflightError("[PREFLIGHT_PRODUCTION_ARCHITECTURE_INVALID]") from exc
+
+
 def inspect_mtf_cache_test_boundary(cache_manifest: Path) -> dict[str, Any]:
     """Inspect only cache metadata; never map, hash, or read cache arrays."""
 
+    architecture = _require_static_architecture()
     manifest = _read_json(cache_manifest, label="multi_tf_cache_manifest")
     frames = manifest.get("tfs")
-    expected_frames = {"M5", "M15", "H1", "H4", "D1"}
+    expected_frames = set(architecture["mtf"]["cache_timeframes"])
     if not isinstance(frames, Mapping) or set(frames) != expected_frames:
         raise PreflightError("[PREFLIGHT_MTF_CACHE_TIMEFRAME_MANIFEST_INVALID]")
     boundary_ns = int(_parse_utc(TEST_BOUNDARY_UTC).timestamp() * 1_000_000_000)
@@ -256,6 +275,7 @@ def inspect_mtf_cache_test_boundary(cache_manifest: Path) -> dict[str, Any]:
             exposed.append(timeframe)
     return {
         "manifest": _artifact_binding(cache_manifest, label="multi_tf_cache_manifest"),
+        "scope": "declared_cache_last_timestamps_only_no_array_validation",
         "array_bytes_read": 0,
         "timeframes": rows,
         "test_boundary_utc": TEST_BOUNDARY_UTC,
@@ -264,7 +284,7 @@ def inspect_mtf_cache_test_boundary(cache_manifest: Path) -> dict[str, Any]:
         "required_remediation": (
             None
             if not exposed
-            else "provide a separately immutable M5/M15/H1/H4/D1 cache whose declared last timestamps are strictly before the TEST boundary; do not slice or hash the current full-history cache during preflight"
+            else "provide a separately immutable cache for the production-owned timeframes whose declared last timestamps are strictly before the TEST boundary; do not slice or hash the current full-history cache during preflight"
         ),
     }
 
@@ -383,8 +403,14 @@ def build_static_preflight(
     bundle_metadata: Path,
     multi_tf_cache_manifest: Path,
 ) -> dict[str, Any]:
-    """Perform every no-model, no-TEST control needed before full VAL."""
+    """Check static metadata and row bounds without proving outcome containment.
 
+    Outcome containment belongs to the target builders and their exact bound
+    evidence.  Source-audit PASS fields and file hashes are recorded here, but
+    their target/population bindings are not validated by this preflight.
+    """
+
+    architecture = _require_static_architecture()
     train = scan_allowed_split(
         train_parquet,
         label="train",
@@ -457,27 +483,21 @@ def build_static_preflight(
     )
 
     local_feature_layers = model_native_mandatory_full_stack_metadata()
-    # The local physical feature registry intentionally has ten implementation
-    # layers.  They route into these eight semantic specialist families; the
-    # MTF V4 matrix applies the same eight owners across the five clocks.
-    if len(MODEL_NATIVE_TRAINING_SPECIALISTS) != 8:
-        raise PreflightError("[PREFLIGHT_EIGHT_FAMILY_CONTRACT_INVALID]")
     mtf = bundle.get("multi_tf")
     expected_tf_tokens = [
-        f"{timeframe}:{family}"
-        for timeframe in ("m15", "h1", "h4", "d1")
-        for family in MODEL_NATIVE_TRAINING_SPECIALISTS
+        f"{timeframe.lower()}:{family}"
+        for timeframe in architecture["entry"]["mtf_route"]
+        for family in architecture["mtf_specialists"]
     ]
     if (
         not isinstance(mtf, Mapping)
-        or mtf.get("matrix_contract") != "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20"
+        or mtf.get("matrix_contract") != architecture["schemas"]["mtf_matrix"]
         or mtf.get("closed_bar_target_availability") is not True
         or mtf.get("entry_family_tf_token_order") != expected_tf_tokens
-        or int(mtf.get("entry_family_tf_gate_width", 0)) != 32
+        or type(mtf.get("entry_family_tf_gate_width")) is not int
+        or mtf.get("entry_family_tf_gate_width") != len(expected_tf_tokens)
     ):
         raise PreflightError("[PREFLIGHT_MTF_EIGHT_FAMILY_CONTRACT_INVALID]")
-    if len(JOINT_TASK_NAMES) != 10:
-        raise PreflightError("[PREFLIGHT_TEN_TASK_CONTRACT_INVALID]")
     observed_task_weights = bundle.get("model_native_joint_task_weighting")
     if not isinstance(observed_task_weights, Mapping):
         raise PreflightError("[PREFLIGHT_TASK_WEIGHTING_MISSING]")
@@ -518,39 +538,46 @@ def build_static_preflight(
         ),
         "test_accessed": False,
         "test_accessed_confirmation": "NO",
+        "evidence_scope": {
+            "pass_meaning": "static_row_boundary_and_metadata_checks_only",
+            "training_or_evaluation_authority": False,
+            "outcome_containment": "UNPROVEN_NOT_INSPECTED",
+            "source_audit_population_bindings": "UNPROVEN_NOT_VALIDATED",
+        },
         "environment": _environment_metadata(),
         "artifact_bindings": bindings,
         "data_split_audit": {
             "test_boundary_utc": TEST_BOUNDARY_UTC,
             "train": train,
             "val": val,
-            "max_forward_horizon_bars": MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
-            "purge_embargo": {
-                "required_future_label_purge_bars": MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
-                "effective_train_tail_excluded_by_dataset": (
-                    TRAIN_END_UTC + " is exclusive; emitted TRAIN ends before it"
-                ),
-                "val_test_guard": "timestamp must be strictly earlier than TEST boundary",
+            "declared_max_aux_future_horizon_bars": MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+            "row_boundary_scope": {
+                "train_row_end_exclusive": TRAIN_END_UTC,
+                "val_row_end_exclusive": VAL_END_UTC,
+                "outcome_containment": "UNPROVEN_NOT_INSPECTED",
+                "purge_embargo_measurement": "NOT_PERFORMED",
             },
         },
         "feature_audit": {
-            "semantic_eight_families": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
+            "semantic_eight_families": architecture["local_specialists"],
             "local_physical_feature_layers": local_feature_layers,
             "mtf_v4": {
                 "matrix_contract": mtf["matrix_contract"],
                 "closed_bar_target_availability": mtf["closed_bar_target_availability"],
                 "entry_family_tf_token_order": mtf["entry_family_tf_token_order"],
+                "entry_family_tf_gate_width": mtf["entry_family_tf_gate_width"],
+                "entry_timeframes": architecture["entry"]["mtf_route"],
             },
             "mtf_cache_test_boundary": mtf_cache,
             "dataset_mtf_cache_binding": dataset_cache_bindings,
-            "five_timeframes": ["M5", "M15", "H1", "H4", "D1"],
+            "five_timeframes": architecture["mtf"]["cache_timeframes"],
             "source_audits": {
                 name: {"decision": payload["decision"], "sha256": bindings[f"{name}_audit"]["sha256"]}
                 for name, payload in source_audits.items()
                 if f"{name}_audit" in bindings
             },
         },
-        "tasks": {"names": list(JOINT_TASK_NAMES), "weighting": task_weights},
+        "tasks": {"names": task_weights["task_names"], "weighting": task_weights},
         "label_contract": aux_contract,
         "normalization": {
             "fit_scope": normalization["fit_scope"],

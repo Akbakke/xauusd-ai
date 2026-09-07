@@ -6,6 +6,7 @@ import inspect
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -244,6 +245,78 @@ def test_registry_resolver_accepts_only_the_authoritative_cache_manifest(
     )
     with pytest.raises(RuntimeError, match="CONTAINER_REQUIRED"):
         htf.load_v29_registry_constants_manifest(bare_payload)
+
+
+@pytest.mark.parametrize("fault", [None, *_all_array_names(), "source", "inventory", "squeeze_params", "squeeze_source"])
+def test_native_val_postcheck_revalidates_loaded_cache_bytes_and_dependencies(tmp_path, monkeypatch, fault):
+    """Real file/cache owners on synthetic bytes; lifecycle/model IO is absent."""
+
+    from gx1.scripts import audit_entry_exit_feature_usefulness_v1 as audit
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    source_provenance = tmp_path / "owned-source-provenance.py"
+    with source_provenance.open("xb") as handle:
+        handle.write(Path(__file__).read_bytes())
+    artifacts = make_volatility_squeeze_artifact_set(
+        tmp_path / "private_squeeze", source_provenance_path=source_provenance,
+    )
+    monkeypatch.setattr(sys.modules[__name__], "_SQUEEZE_TEST_ARTIFACTS", artifacts)
+    cache_dir = _publish(tmp_path / "input")
+    manifest = _manifest(cache_dir)
+    cached = htf.load_multi_tf_v4_cache(cache_dir)
+    cache_binding = {
+        "cache_dir": str(cache_dir), "manifest_path": str(cache_dir / "manifest.json"),
+        "manifest_sha256": _sha256(cache_dir / "manifest.json"),
+        **{key: manifest[key] for key in (
+            "cache_identity_sha256", "m5_prebuilt_source", "m5_prebuilt_source_sha256",
+            "v29_registry_constants", "volatility_squeeze_artifact_set",
+        )},
+    }
+    val_manifest = tmp_path / "val.manifest.json"
+    val_manifest.write_text(json.dumps({"extra": {"entry_run_id": "synthetic", "multi_tf_cache_binding": cache_binding}}))
+    times = np.arange(2, dtype=np.int64)
+    provenance = {
+        "files": {str(val_manifest): _sha256(val_manifest), str(cache_dir / "manifest.json"): cache_binding["manifest_sha256"]},
+        "lifecycle": {}, "source_feature_surface": {"dataset_run_id": "synthetic"},
+        "dataset_contract": {"splits": {"val": {"manifest_path": str(val_manifest), "manifest_sha256": _sha256(val_manifest)}}},
+        "mtf_source_provenance": {"cache_binding": cache_binding},
+    }
+    for key, domain in (
+        ("entry_indices_sha256", b"native_val_entry_indices"),
+        ("entry_bar_open_time_ns_sha256", b"native_val_entry_bar_open"),
+        ("entry_decision_time_ns_sha256", b"native_val_entry_decision"),
+    ):
+        provenance[key] = audit._array_sha256(times, domain=domain)
+    lifecycle_checks = []
+    inputs = audit.NativeVALInputs(
+        dataset=SimpleNamespace(indices=times, _multi_tf_feats=cached),
+        corpus=SimpleNamespace(evidence={}, require_files_unchanged=lambda: lifecycle_checks.append(True)),
+        entry_bar_open_time_ns=times, entry_decision_time_ns=times, provenance=provenance,
+    )
+    def forbidden_cache_shortcut(*_arguments, **_keywords):
+        pytest.fail("Postcheck must not take the trainer's already-loaded cache shortcut")
+    monkeypatch.setattr(trainer, "_prebuild_multi_tf_features_once", forbidden_cache_shortcut)
+    if fault is None:
+        audit.require_native_val_inputs_unchanged(inputs)
+        assert inputs.dataset._multi_tf_feats is cached and lifecycle_checks == [True]
+        return
+    if fault == "inventory":
+        (cache_dir / "unmanifested.npy").write_bytes(b"not admitted")
+    else:
+        if fault == "source":
+            path = Path(manifest["m5_prebuilt_source"])
+        elif fault in {"squeeze_params", "squeeze_source"}:
+            squeeze = json.loads(artifacts.manifest_path.read_text())
+            role = "params_artifact" if fault == "squeeze_params" else "source_artifact"
+            path = Path(squeeze["artifacts"]["M1"][role])
+        else:
+            path = cache_dir / fault
+        contents = bytearray(path.read_bytes())
+        contents[-1] ^= 1
+        path.write_bytes(contents)
+    with pytest.raises(RuntimeError, match="HTF_V4_CACHE_|VOLATILITY_SQUEEZE_"):
+        audit.require_native_val_inputs_unchanged(inputs)
+    assert inputs.dataset._multi_tf_feats is cached and lifecycle_checks == [True]
 
 
 def test_registry_resolver_rejects_cache_source_bytes_mismatch(

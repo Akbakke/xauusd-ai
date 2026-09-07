@@ -265,7 +265,9 @@ def test_materializes_one_hash_bound_immutable_manifest_event(tmp_path: Path) ->
     event_path = Path(report["json_path"])
     assert event_path.name.startswith(f"{gate.EVENT_PREFIX}_")
     assert event_path.is_file()
-    assert list((tmp_path / "reports").iterdir()) == [event_path]
+    assert set((tmp_path / "reports").iterdir()) == {
+        event_path, event_path.with_name(f".{event_path.name}.order"),
+    }
     assert not list((tmp_path / "reports").glob("*.md"))
 
     manifest = report["smoke_manifest"]

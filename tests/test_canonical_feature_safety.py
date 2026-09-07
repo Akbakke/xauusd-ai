@@ -65,7 +65,7 @@ def test_add_ctx_rejects_invalid_bid_ask_instead_of_zero_fill(
         )
 
 
-def test_add_ctx_existing_spread_bps_wins_over_bid_ask() -> None:
+def test_add_ctx_rejects_existing_spread_bps_that_contradicts_bid_ask() -> None:
     df = pd.DataFrame(
         {
             "spread_bps": [1.25, 1.5],
@@ -74,7 +74,235 @@ def test_add_ctx_existing_spread_bps_wins_over_bid_ask() -> None:
         }
     )
 
-    np.testing.assert_allclose(derive_observed_spread_bps(df), [1.25, 1.5])
+    with pytest.raises(RuntimeError, match="SPREAD_ALIAS_MISMATCH.*spread_bps"):
+        derive_observed_spread_bps(df)
+
+
+def _spread_alias_frame(quote_dtype=np.float64) -> tuple[pd.DataFrame, np.ndarray]:
+    frame = pd.DataFrame(
+        {
+            "bid_close": np.asarray([100.03, 200.17, 2500.29], dtype=quote_dtype),
+            "ask_close": np.asarray([100.19, 200.53, 2500.81], dtype=quote_dtype),
+        },
+        index=pd.Index([4, 8, 12]),
+    )
+    bid = frame["bid_close"].to_numpy(dtype=np.float64)
+    ask = frame["ask_close"].to_numpy(dtype=np.float64)
+    return frame, (ask - bid) / bid * 1e4
+
+
+@pytest.mark.parametrize("quote_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("bps_dtype", [None, np.float32, np.float64])
+@pytest.mark.parametrize("pct_dtype", [None, np.float32, np.float64])
+def test_spread_owners_preserve_valid_quote_and_alias_bytes(
+    quote_dtype, bps_dtype, pct_dtype
+) -> None:
+    frame, quote_bps = _spread_alias_frame(quote_dtype)
+    if bps_dtype is not None:
+        frame["spread_bps"] = quote_bps.astype(bps_dtype)
+    if pct_dtype is not None:
+        frame["spread_pct"] = (quote_bps / 1e4).astype(pct_dtype)
+    before = frame.copy(deep=True)
+    expected_bps = (
+        quote_bps
+        if bps_dtype is None
+        else frame["spread_bps"].to_numpy(dtype=np.float64)
+    )
+    expected_pct = (
+        expected_bps / 1e4
+        if pct_dtype is None
+        else frame["spread_pct"].to_numpy(dtype=np.float64)
+    )
+
+    observed_bps = derive_observed_spread_bps(frame)
+
+    assert observed_bps.dtype == np.dtype(np.float64)
+    assert observed_bps.tobytes() == expected_bps.tobytes()
+    pd.testing.assert_frame_equal(frame, before)
+    for _ in range(2):
+        _require_observed_spread_input(frame)
+        assert frame["spread_pct"].dtype == np.dtype(np.float64)
+        assert frame["spread_pct"].to_numpy().tobytes() == expected_pct.tobytes()
+        assert derive_observed_spread_bps(frame).tobytes() == expected_bps.tobytes()
+    pd.testing.assert_frame_equal(
+        frame[before.columns],
+        before.astype({"spread_pct": np.float64} if pct_dtype is not None else {}),
+    )
+
+
+@pytest.mark.parametrize("alias", ["spread_bps", "spread_pct"])
+def test_spread_owners_accept_exact_float32_alias_widening(alias: str) -> None:
+    frame, quote_bps = _spread_alias_frame()
+    expected = quote_bps if alias == "spread_bps" else quote_bps / 1e4
+    frame[alias] = expected.astype(np.float32).astype(np.float64)
+    before = frame[alias].to_numpy().copy()
+
+    derive_observed_spread_bps(frame)
+    _require_observed_spread_input(frame)
+
+    assert frame[alias].to_numpy().tobytes() == before.tobytes()
+
+
+@pytest.mark.parametrize(
+    "owner", [derive_observed_spread_bps, _require_observed_spread_input]
+)
+@pytest.mark.parametrize(
+    "aliases", [("spread_bps",), ("spread_pct",), ("spread_bps", "spread_pct")]
+)
+@pytest.mark.parametrize(
+    ("bid", "ask"),
+    [
+        (0.0, 100.0),
+        (-1.0, 100.0),
+        (100.0, 99.0),
+        (100.0, 0.0),
+        (np.nan, 100.0),
+        (100.0, np.nan),
+        (np.inf, np.inf),
+        (100.0, np.inf),
+    ],
+)
+def test_spread_aliases_never_hide_invalid_raw_quotes(
+    owner, aliases, bid: float, ask: float
+) -> None:
+    frame, quote_bps = _spread_alias_frame()
+    for alias in aliases:
+        frame[alias] = quote_bps if alias == "spread_bps" else quote_bps / 1e4
+    frame.loc[8, ["bid_close", "ask_close"]] = [bid, ask]
+
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_CONTEXT_(INVALID|NONFINITE)"):
+        owner(frame)
+
+
+@pytest.mark.parametrize(
+    "owner", [derive_observed_spread_bps, _require_observed_spread_input]
+)
+@pytest.mark.parametrize("alias", ["spread_bps", "spread_pct"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_spread_aliases_reject_one_representation_step_contradictions(
+    owner, alias: str, dtype
+) -> None:
+    frame, quote_bps = _spread_alias_frame()
+    frame["spread_bps"] = quote_bps
+    frame["spread_pct"] = quote_bps / 1e4
+    changed = frame[alias].to_numpy(dtype=dtype).copy()
+    changed[1] = np.nextafter(changed[1], dtype(np.inf))
+    frame[alias] = changed
+
+    with pytest.raises(RuntimeError, match=f"SPREAD_ALIAS_MISMATCH.*{alias}"):
+        owner(frame)
+
+
+@pytest.mark.parametrize(
+    "owner", [derive_observed_spread_bps, _require_observed_spread_input]
+)
+@pytest.mark.parametrize("alias", ["spread_bps", "spread_pct"])
+@pytest.mark.parametrize("invalid", [-1.0, np.nan, np.inf])
+def test_spread_owners_validate_both_aliases_even_when_one_would_win(
+    owner, alias: str, invalid: float
+) -> None:
+    frame, quote_bps = _spread_alias_frame()
+    frame["spread_bps"] = quote_bps
+    frame["spread_pct"] = quote_bps / 1e4
+    frame.loc[8, alias] = invalid
+
+    with pytest.raises(
+        RuntimeError,
+        match="MODEL_NATIVE_CONTEXT_(INVALID|NONFINITE)|BASIC_V1_SPREAD_SOURCE_INVALID",
+    ):
+        owner(frame)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("quote_name", [None, "bid_close", "ask_close"])
+def test_spread_owners_preserve_declared_rawless_alias_apis(dtype, quote_name) -> None:
+    bps_frame = pd.DataFrame({"spread_bps": np.asarray([1.25, 1.5], dtype=dtype)})
+    pct_frame = pd.DataFrame({"spread_pct": np.asarray([0.000125, 0.00015], dtype=dtype)})
+    if quote_name is not None:
+        bps_frame[quote_name] = [100.0, 200.0]
+        pct_frame[quote_name] = [100.0, 200.0]
+    expected_bps = bps_frame["spread_bps"].to_numpy(dtype=np.float64).copy()
+    expected_pct = pct_frame["spread_pct"].to_numpy(dtype=np.float64).copy()
+
+    assert derive_observed_spread_bps(bps_frame).tobytes() == expected_bps.tobytes()
+    _require_observed_spread_input(pct_frame)
+    assert pct_frame["spread_pct"].to_numpy().tobytes() == expected_pct.tobytes()
+
+
+@pytest.mark.parametrize(
+    "owner", [derive_observed_spread_bps, _require_observed_spread_input]
+)
+@pytest.mark.parametrize("quote_name", ["bid_close", "ask_close"])
+@pytest.mark.parametrize("invalid", [0.0, -1.0, np.nan, np.inf])
+def test_rawless_alias_does_not_hide_an_invalid_partial_quote(
+    owner, quote_name: str, invalid: float
+) -> None:
+    frame = pd.DataFrame({"spread_bps": [1.25], "spread_pct": [0.000125]})
+    frame[quote_name] = invalid
+
+    with pytest.raises(RuntimeError, match="MODEL_NATIVE_CONTEXT_(INVALID|NONFINITE)"):
+        owner(frame)
+
+
+@pytest.mark.parametrize(
+    "owner", [derive_observed_spread_bps, _require_observed_spread_input]
+)
+@pytest.mark.parametrize("bps_dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("pct_dtype", [np.float32, np.float64])
+def test_rawless_bps_and_pct_aliases_must_agree(owner, bps_dtype, pct_dtype) -> None:
+    frame = pd.DataFrame({"spread_bps": np.asarray([1.27, 1.51], dtype=bps_dtype)})
+    frame["spread_pct"] = (
+        frame["spread_bps"].to_numpy(dtype=np.float64) / 1e4
+    ).astype(pct_dtype)
+    owner(frame.copy())
+    frame.loc[1, "spread_pct"] *= 2.0
+
+    with pytest.raises(RuntimeError, match="SPREAD_ALIAS_MISMATCH.*spread_pct"):
+        owner(frame)
+
+
+def test_spread_close_proxy_is_not_an_alias_of_quoted_spread() -> None:
+    frame, quote_bps = _spread_alias_frame()
+    frame["spread_bps"] = quote_bps
+    frame["spread_pct"] = quote_bps / 1e4
+    frame["spread"] = [3.0, 4.0, 5.0]
+    frame["close"] = [100.0, 200.0, 2500.0]
+    proxy_bps = frame["spread"].to_numpy() / frame["close"].to_numpy() * 1e4
+    assert np.all(proxy_bps != quote_bps)
+
+    assert derive_observed_spread_bps(frame).tobytes() == quote_bps.tobytes()
+    _require_observed_spread_input(frame)
+    assert frame["spread_pct"].to_numpy().tobytes() == (quote_bps / 1e4).tobytes()
+    assert derive_observed_spread_bps(
+        frame.drop(columns=["spread_bps", "spread_pct"])
+    ).tobytes() == quote_bps.tobytes()
+
+
+def test_basic_v1_preserves_rawless_pct_with_distinct_spread_close_proxy() -> None:
+    frame = pd.DataFrame({"spread_pct": [0.000125], "spread": [1.0], "close": [100.0]})
+    expected = frame["spread_pct"].to_numpy().copy()
+
+    _require_observed_spread_input(frame)
+
+    assert frame["spread_pct"].to_numpy().tobytes() == expected.tobytes()
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_spread_owners_preserve_valid_zero_spread_alias_bytes(dtype) -> None:
+    frame = pd.DataFrame(
+        {
+            "bid_close": [100.0, 200.0],
+            "ask_close": [100.0, 200.0],
+            "spread_bps": np.asarray([0.0, -0.0], dtype=dtype),
+            "spread_pct": np.asarray([-0.0, 0.0], dtype=dtype),
+        }
+    )
+    expected_bps = frame["spread_bps"].to_numpy(dtype=np.float64).copy()
+    expected_pct = frame["spread_pct"].to_numpy(dtype=np.float64).copy()
+
+    assert derive_observed_spread_bps(frame).tobytes() == expected_bps.tobytes()
+    _require_observed_spread_input(frame)
+    assert frame["spread_pct"].to_numpy().tobytes() == expected_pct.tobytes()
 
 
 def test_add_ctx_rejects_negative_existing_spread() -> None:
@@ -82,10 +310,23 @@ def test_add_ctx_rejects_negative_existing_spread() -> None:
         derive_observed_spread_bps(pd.DataFrame({"spread_bps": [-2.0]}))
 
 
-def test_add_ctx_spread_close_fallback_when_bid_ask_missing() -> None:
-    df = pd.DataFrame({"spread": [0.05, 0.10], "close": [100.0, 200.0]})
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_add_ctx_spread_close_fallback_when_bid_ask_missing(dtype) -> None:
+    df = pd.DataFrame(
+        {
+            "spread": np.asarray([0.05, 0.10], dtype=dtype),
+            "close": np.asarray([100.0, 200.0], dtype=dtype),
+        }
+    )
+    expected = (
+        df["spread"].to_numpy(dtype=np.float64)
+        / df["close"].to_numpy(dtype=np.float64)
+        * 1e4
+    )
 
-    np.testing.assert_allclose(derive_observed_spread_bps(df), [5.0, 5.0])
+    assert derive_observed_spread_bps(df).tobytes() == expected.tobytes()
+    _require_observed_spread_input(df)
+    assert df["spread_pct"].to_numpy().tobytes() == (expected / 1e4).tobytes()
 
 
 def test_add_ctx_rejects_missing_spread_source() -> None:

@@ -39,6 +39,18 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     )
 
 
+@pytest.fixture(autouse=True)
+def _isolated_delete_incident(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    incident = tmp_path / "incident.json"
+    _write_json(incident, {
+        "schema_version": "gx1_entry_iql_delete_incident_v1",
+        "project": "XAUUSD",
+    })
+    monkeypatch.setattr(retention_contract, "CANONICAL_DELETE_INCIDENT", incident)
+
+
 def _authority_files(
     tmp_path: Path,
     *,
@@ -874,7 +886,10 @@ def test_resume_finishes_a_payload_the_interrupted_run_died_inside(
     assert not quarantine.exists()
     assert not Path(state["stage_plan"][0]["quarantine_wrapper"]).exists()
     assert not state["targets"][0].exists()
-    execution_path = max((tmp_path / "reports").glob(f"{EXECUTION_PREFIX}_*.json"))
+    execution_path = retention_contract.immutable_events.select_latest_immutable_event(
+        tmp_path / "reports", EXECUTION_PREFIX,
+    )
+    assert execution_path is not None
     execution = json.loads(execution_path.read_text(encoding="utf-8"))
     assert execution["decision"] == "DELETE_COMPLETE"
     assert execution["failure"] is None
@@ -968,7 +983,10 @@ def test_resume_finishes_a_delete_loop_interrupted_after_staging(
 
     assert all(not target.exists() for target in state["targets"])
     assert not Path(stage_plan[1]["quarantine_wrapper"]).exists()
-    execution_path = max((tmp_path / "reports").glob(f"{EXECUTION_PREFIX}_*.json"))
+    execution_path = retention_contract.immutable_events.select_latest_immutable_event(
+        tmp_path / "reports", EXECUTION_PREFIX,
+    )
+    assert execution_path is not None
     execution = json.loads(execution_path.read_text(encoding="utf-8"))
     assert execution["decision"] == "DELETE_COMPLETE"
     assert execution["failure"] is None
@@ -1189,3 +1207,896 @@ def test_mount_boundary_inventory_fails_closed(
             created_utc=CREATED_UTC,
             allowed_roots=(tmp_path,),
         )
+
+
+def _graph_paths(tmp_path: Path, **authority: object) -> tuple[Path, ...]:
+    registry, launch = _authority_files(tmp_path, **authority)
+    incident = retention_contract.CANONICAL_DELETE_INCIDENT
+    return retention_contract.authority_protected_paths(
+        json.loads(registry.read_text(encoding="utf-8")),
+        json.loads(launch.read_text(encoding="utf-8")),
+        json.loads(incident.read_text(encoding="utf-8")),
+        artifact_registry_json=registry,
+        launch_contract_json=launch,
+        delete_incident_json=incident,
+    )
+
+
+@pytest.mark.parametrize("owner", ["active", "retired", "history", "launch", "incident"])
+def test_authority_graph_follows_parent_lineage_and_relative_cache_files(
+    tmp_path: Path, owner: str,
+) -> None:
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    array = cache / "m1_feats.npy"
+    array.write_bytes(b"mechanical fixture, not financial data")
+    ancestor = tmp_path / "ancestor.json"
+    _write_json(ancestor, {"tfs": {"m1": {"feats_npy": "cache/m1_feats.npy"}}})
+    manifest = cache / "manifest.json"
+    _write_json(manifest, {"parent_source": {
+        "manifest_path": "../ancestor.json",
+        "manifest_sha256": sha256_file(ancestor),
+    }})
+    binding = {"manifest_path": "cache/manifest.json", "manifest_sha256": sha256_file(manifest)}
+    authority: dict[str, object] = {}
+    if owner == "incident":
+        incident = retention_contract.CANONICAL_DELETE_INCIDENT
+        payload = json.loads(incident.read_text(encoding="utf-8"))
+        payload["lineage"] = binding
+        _write_json(incident, payload)
+    elif owner == "launch":
+        authority["launch_extra"] = {"lineage": binding}
+    elif owner == "history":
+        authority[owner] = [binding]
+    else:
+        authority[owner] = {"lineage": binding}
+    assert set(_graph_paths(tmp_path, **authority)) == {manifest, ancestor, array}
+
+
+def _semantic_metadata_fixture(kind: str) -> tuple[str, dict[str, object], str]:
+    if kind == "causal_target":
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
+
+        return "target_contract", causal_m1_target_contract(), "missing_or_gapped_m1_path"
+    if kind == "ranking_target":
+        from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+            train_feature_ranking_target_contract,
+        )
+
+        return (
+            "target_contract",
+            train_feature_ranking_target_contract(),
+            "missing_or_gapped_m1_path",
+        )
+    if kind == "blocked_heads":
+        from gx1.contracts.entry_model_native_readiness_v1 import model_native_blocked_head_reasons
+
+        return "blocked_head_reasons", model_native_blocked_head_reasons(), "bad_path"
+    from gx1.features.entry_specialist_feature_groups_v1 import model_native_recommended_fusion_metadata
+
+    assert kind == "fusion"
+    return "recommended_fusion", model_native_recommended_fusion_metadata(), "direction_path"
+
+
+@pytest.mark.parametrize("kind", ["causal_target", "ranking_target", "blocked_heads", "fusion"])
+def test_authority_graph_exact_semantic_objects_do_not_invent_file_dependencies(
+    tmp_path: Path, kind: str,
+) -> None:
+    key, semantic, _field = _semantic_metadata_fixture(kind)
+    upstream = tmp_path / "upstream.bin"
+    upstream.write_bytes(b"mechanical fixture")
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {key: semantic, "upstream_path": str(upstream)})
+    assert set(_graph_paths(tmp_path, active={"manifest_path": str(manifest)})) == {
+        manifest, upstream,
+    }
+
+
+@pytest.mark.parametrize("kind", ["causal_target", "ranking_target", "blocked_heads", "fusion"])
+def test_authority_graph_semantic_looking_field_cannot_hide_a_real_path(
+    tmp_path: Path, kind: str,
+) -> None:
+    key, semantic, field = _semantic_metadata_fixture(kind)
+    upstream = tmp_path / "upstream.bin"
+    upstream.write_bytes(b"mechanical fixture")
+    semantic[field] = str(upstream)
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {key: semantic})
+    assert set(_graph_paths(tmp_path, active={"manifest_path": str(manifest)})) == {
+        manifest, upstream,
+    }
+
+
+@pytest.mark.parametrize("kind", ["causal_target", "ranking_target", "blocked_heads", "fusion"])
+@pytest.mark.parametrize("mutation", ["extra_reference", "incomplete", "wrong_container", "list", "nested_list"])
+def test_authority_graph_semantic_exemption_requires_the_complete_owned_object(
+    tmp_path: Path, kind: str, mutation: str,
+) -> None:
+    key, semantic, field = _semantic_metadata_fixture(kind)
+    upstream = tmp_path / "upstream.bin"
+    upstream.write_bytes(b"mechanical fixture")
+    if mutation == "extra_reference":
+        semantic["upstream_path"] = str(upstream)
+    elif mutation == "incomplete":
+        del semantic[next(name for name in semantic if name != field)]
+    elif mutation == "list":
+        semantic = [semantic]
+    elif mutation == "nested_list":
+        semantic = [[semantic]]
+    else:
+        key = "unrecognized_" + key
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {key: semantic})
+    with pytest.raises(EvidenceRetentionError, match="unresolved authority reference"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest)})
+    assert upstream.read_bytes() == b"mechanical fixture"
+
+
+@pytest.mark.parametrize("kind", ["causal_target", "ranking_target", "fusion"])
+def test_authority_graph_semantic_exemption_preserves_json_boolean_types(
+    tmp_path: Path, kind: str,
+) -> None:
+    key, semantic, _field = _semantic_metadata_fixture(kind)
+    boolean_field = next(name for name, value in semantic.items() if value is False)
+    semantic[boolean_field] = 0
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {key: semantic})
+    with pytest.raises(EvidenceRetentionError, match="unresolved authority reference"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest)})
+
+
+@pytest.mark.parametrize("kind", ["causal_target", "ranking_target", "blocked_heads", "fusion"])
+def test_authority_graph_semantic_exemption_never_bypasses_inherited_test_seal(
+    tmp_path: Path, kind: str,
+) -> None:
+    key, semantic, _field = _semantic_metadata_fixture(kind)
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {"test": {key: semantic}})
+    with pytest.raises(EvidenceRetentionError, match="sealed TEST reachability"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest)})
+
+
+def test_audit_semantic_metadata_uses_the_shared_owners(monkeypatch: pytest.MonkeyPatch) -> None:
+    from gx1.contracts.entry_model_native_signal_v1 import model_native_signal_contract_metadata
+    from gx1.scripts import audit_entry_foundation_targets_v1 as target_audit
+    from gx1.scripts import audit_entry_specialist_feature_groups_v1 as specialist_audit
+    from tests.model_native_signal_support import canonical_model_native_selected_fields
+
+    target_owner = target_audit.model_native_blocked_head_reasons
+    fusion_owner = specialist_audit.model_native_recommended_fusion_metadata
+    calls: list[str] = []
+
+    def target_metadata():
+        calls.append("target")
+        return target_owner()
+
+    def fusion_metadata():
+        calls.append("fusion")
+        return fusion_owner()
+
+    monkeypatch.setattr(target_audit, "model_native_blocked_head_reasons", target_metadata)
+    monkeypatch.setattr(specialist_audit, "model_native_recommended_fusion_metadata", fusion_metadata)
+    contract = model_native_signal_contract_metadata(canonical_model_native_selected_fields())
+    assert target_audit._head_contract([])["blocked_head_reasons"] == target_owner()
+    assert specialist_audit._architecture(contract["fields"])["recommended_fusion"] == fusion_owner()
+    assert calls == ["target", "fusion"]
+
+
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+def test_authority_graph_native_source_labels_keep_exact_snapshot_dependencies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, timeframe: str,
+) -> None:
+    from tests.test_oanda_backfill_vedtak_gate import materialize_native_xau_test_bundle
+
+    native_root = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(native_root, timeframe=timeframe)
+    manifest_path = native_root / "MANIFEST.json"
+    recorded_bindings: dict[str, str | None] = {}
+    hash_owner = retention_contract._reference_hash
+
+    def record_hash(payload, key):
+        digest = hash_owner(payload, key)
+        if key == "path" and isinstance(payload.get(key), str) and payload[key].endswith(".py"):
+            recorded_bindings[payload[key]] = digest
+        return digest
+
+    monkeypatch.setattr(retention_contract, "_reference_hash", record_hash)
+    protected = set(_graph_paths(tmp_path, active={"manifest_path": str(manifest_path)}))
+    assert native_root in protected and manifest_path in protected
+    for entry in manifest["producer_source_files"]:
+        assert native_root / entry["snapshot_relative_path"] in protected
+        assert native_root / entry["repo_relative_path"] not in protected
+        assert recorded_bindings[entry["snapshot_relative_path"]] == entry["sha256"]
+    assert Path(manifest["source_endpoint"]) not in protected
+
+
+@pytest.mark.parametrize("mutation", ["owner", "endpoint", "inventory_hash", "snapshot_relationship"])
+def test_authority_graph_native_source_label_adapter_rejects_unowned_metadata(
+    tmp_path: Path, mutation: str,
+) -> None:
+    from gx1.contracts.xau_tape_provenance_v1 import canonical_json_sha256
+    from tests.test_oanda_backfill_vedtak_gate import materialize_native_xau_test_bundle
+
+    native_root = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(native_root)
+    if mutation == "owner":
+        manifest["producer_owner"] = "unrecognized.owner"
+    elif mutation == "endpoint":
+        manifest["source_endpoint"] = str(tmp_path / "not-an-api-label.bin")
+    elif mutation == "inventory_hash":
+        manifest["producer_source_inventory_sha256"] = "0" * 64
+    else:
+        manifest["producer_source_files"][0]["snapshot_relative_path"] = "another.bin"
+        manifest["producer_source_inventory_sha256"] = canonical_json_sha256(manifest["producer_source_files"])
+    manifest_path = native_root / "MANIFEST.json"
+    _write_json(manifest_path, manifest)
+    with pytest.raises(EvidenceRetentionError, match="native producer source metadata invalid"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest_path)})
+
+
+@pytest.mark.parametrize("mutation", ["unknown_schema", "nested_lookalike"])
+def test_authority_graph_native_source_label_adapter_is_top_level_and_schema_scoped(
+    tmp_path: Path, mutation: str,
+) -> None:
+    from tests.test_oanda_backfill_vedtak_gate import materialize_native_xau_test_bundle
+
+    native_root = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(native_root)
+    manifest_path = native_root / "MANIFEST.json"
+    if mutation == "unknown_schema":
+        manifest["schema_version"] = "unknown_native_source"
+    else:
+        manifest = {"nested_metadata": manifest}
+    _write_json(manifest_path, manifest)
+    with pytest.raises(EvidenceRetentionError, match="unresolved authority reference"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest_path)})
+
+
+@pytest.mark.parametrize("mutation", ["missing", "symlink"])
+def test_authority_graph_native_source_snapshots_remain_required(
+    tmp_path: Path, mutation: str,
+) -> None:
+    from tests.test_oanda_backfill_vedtak_gate import materialize_native_xau_test_bundle
+
+    native_root = tmp_path / "native"
+    manifest = materialize_native_xau_test_bundle(native_root)
+    source = native_root / manifest["producer_source_files"][0]["snapshot_relative_path"]
+    source.unlink()
+    if mutation == "symlink":
+        alternate = tmp_path / "alternate.bin"
+        alternate.write_bytes(b"mechanical fixture")
+        source.symlink_to(alternate)
+    with pytest.raises(EvidenceRetentionError, match="unresolved|symlink"):
+        _graph_paths(tmp_path, active={"manifest_path": str(native_root / "MANIFEST.json")})
+
+
+def test_authority_graph_native_source_adapter_does_not_open_sealed_test_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.test_oanda_backfill_vedtak_gate import materialize_native_xau_test_bundle
+
+    native_root = tmp_path / "native"
+    materialize_native_xau_test_bundle(native_root)
+    manifest_path = native_root / "MANIFEST.json"
+
+    def reject_read(*args, **kwargs):
+        raise AssertionError("sealed native metadata must not be opened")
+
+    monkeypatch.setattr(retention_contract, "_authority_json", reject_read)
+    with pytest.raises(EvidenceRetentionError, match="sealed TEST reachability"):
+        _graph_paths(tmp_path, active={"test": {"manifest_path": str(manifest_path)}})
+
+
+def test_authority_graph_cycles_and_diamonds_read_each_json_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    shared = tmp_path / "shared.json"
+    _write_json(shared, {"parent_manifest": "first.json"})
+    _write_json(second, {"manifest_path": "shared.json"})
+    _write_json(first, {"paths": ["second.json", "shared.json"]})
+    reads: list[Path] = []
+    reader = retention_contract._authority_json
+
+    def counted_reader(path: Path, **kwargs: int):
+        reads.append(path)
+        return reader(path, **kwargs)
+
+    monkeypatch.setattr(retention_contract, "_authority_json", counted_reader)
+    assert set(_graph_paths(tmp_path, active={"manifest_path": str(first)})) == {
+        first, second, shared,
+    }
+    assert sorted(reads) == sorted([first, second, shared])
+
+
+def test_authority_graph_directory_manifest_protects_descendants_not_siblings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    directory = tmp_path / "cache"
+    directory.mkdir()
+    manifest = directory / "manifest.json"
+    upstream = tmp_path / "upstream.bin"
+    upstream.write_bytes(b"mechanical dependency")
+    _write_json(manifest, {"source_path": str(upstream)})
+    (tmp_path / "unreachable.json").write_text("malformed and not reachable", encoding="utf-8")
+    monkeypatch.setattr(
+        retention_contract.os, "scandir",
+        lambda *_args, **_kwargs: pytest.fail("data-tree enumeration"),
+    )
+    protected = _graph_paths(tmp_path, active={"cache_dir": str(directory)})
+    assert set(protected) == {directory, manifest, upstream}
+    overlap = retention_contract._paths_overlap
+    assert any(overlap(directory / "nested" / "payload.bin", path) for path in protected)
+    assert any(overlap(tmp_path, path) for path in protected)
+    assert not any(overlap(tmp_path / "cache-sibling", path) for path in protected)
+
+
+@pytest.mark.parametrize("reference", ["missing.json", "missing.npy", "opaque-directory"])
+def test_authority_graph_unresolved_references_fail_closed(tmp_path: Path, reference: str) -> None:
+    if reference == "opaque-directory":
+        (tmp_path / reference).mkdir()
+    with pytest.raises(EvidenceRetentionError, match="authority"):
+        _graph_paths(tmp_path, active={"path": reference})
+
+
+@pytest.mark.parametrize("encoded", [
+    "[]", "{", '{"path":"first.npy","path":"second.npy"}',
+    '{"value":NaN}', '{"value":Infinity}', '{"value":1e999}',
+    '{"path":17}', '{"path":{}}',
+    '{"path":[]}', '{"paths":17}', '{"manifest_path":""}',
+    '{"manifest_path":null,"manifest_sha256":"' + "a" * 64 + '"}',
+])
+def test_authority_graph_malformed_metadata_fails_closed(tmp_path: Path, encoded: str) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(encoded, encoding="utf-8")
+    with pytest.raises(EvidenceRetentionError, match="authority"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest)})
+
+
+@pytest.mark.parametrize("digest", ["0" * 64, "not-an-exact-hash"])
+def test_authority_graph_checks_declared_manifest_hashes(tmp_path: Path, digest: str) -> None:
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {})
+    with pytest.raises(EvidenceRetentionError, match="SHA-256"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest), "manifest_sha256": digest})
+
+
+def test_authority_graph_checks_hash_on_already_visited_json(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {})
+    with pytest.raises(EvidenceRetentionError, match="SHA-256"):
+        _graph_paths(tmp_path, history=[
+            {"manifest_path": str(manifest), "manifest_sha256": "0" * 64},
+            {"manifest_path": str(manifest), "manifest_sha256": sha256_file(manifest)},
+        ])
+
+
+@pytest.mark.parametrize("directory_link", [False, True])
+def test_authority_graph_rejects_symlinks_before_opening_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, directory_link: bool,
+) -> None:
+    directory = tmp_path / "real"
+    directory.mkdir()
+    manifest = directory / "manifest.json"
+    _write_json(manifest, {})
+    link = tmp_path / "link"
+    link.symlink_to(directory if directory_link else manifest)
+    reference = link / "manifest.json" if directory_link else link
+    monkeypatch.setattr(
+        retention_contract, "_authority_json",
+        lambda *_args, **_kwargs: pytest.fail("opened symlink"),
+    )
+    with pytest.raises(EvidenceRetentionError, match="symlink"):
+        _graph_paths(tmp_path, active={"manifest_path": str(reference)})
+
+
+def test_authority_graph_refuses_sealed_test_without_path_access(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference = tmp_path / "sealed" / "test_unified_exit_lifecycle.manifest.json"
+    monkeypatch.setattr(
+        retention_contract, "_canonical_path",
+        lambda *_args, **_kwargs: pytest.fail("resolved a TEST path"),
+    )
+    monkeypatch.setattr(
+        retention_contract, "_authority_json",
+        lambda *_args, **_kwargs: pytest.fail("opened TEST metadata"),
+    )
+    with pytest.raises(EvidenceRetentionError, match="sealed TEST"):
+        _graph_paths(tmp_path, active={"splits": {"test": {"lifecycle_manifest": str(reference)}}})
+
+
+@pytest.mark.parametrize("limit", [
+    "MAX_AUTHORITY_JSON_BYTES", "MAX_AUTHORITY_TOTAL_JSON_BYTES",
+    "MAX_AUTHORITY_JSON_FILES", "MAX_AUTHORITY_VALUES", "MAX_AUTHORITY_DEPTH",
+])
+def test_authority_graph_limits_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, limit: str,
+) -> None:
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {"nested": {"value": "metadata"}})
+    monkeypatch.setattr(retention_contract, limit, 1)
+    if limit == "MAX_AUTHORITY_JSON_FILES":
+        second = tmp_path / "second.json"
+        _write_json(second, {})
+        _write_json(manifest, {"manifest_path": str(second)})
+    with pytest.raises(EvidenceRetentionError, match="limit exceeded"):
+        _graph_paths(tmp_path, active={"manifest_path": str(manifest)})
+
+
+def test_authority_graph_binary_dependencies_are_not_read_or_hashed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = tmp_path / "physical.npy"
+    payload.write_bytes(b"mechanical fixture")
+    monkeypatch.setattr(
+        retention_contract, "sha256_file", lambda *_args: pytest.fail("hashed data"),
+    )
+    monkeypatch.setattr(
+        retention_contract, "_authority_json",
+        lambda *_args, **_kwargs: pytest.fail("opened data"),
+    )
+    assert _graph_paths(tmp_path, active={
+        "feats_npy": str(payload), "feats_npy_sha256": "a" * 64,
+    }) == (payload,)
+
+
+def test_authority_graph_blocks_transitive_plan_before_inventory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "keep.bin"
+    target.write_bytes(b"mechanical dependency")
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {"source_path": str(target)})
+    registry, launch = _authority_files(tmp_path, active={"manifest_path": "manifest.json"})
+    monkeypatch.setattr(
+        retention_contract, "write_inventory_manifest",
+        lambda *_args, **_kwargs: pytest.fail("inventoried protected target"),
+    )
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+    assert target.read_bytes() == b"mechanical dependency"
+    assert not (tmp_path / "plans").exists()
+
+
+def test_authority_graph_is_recomputed_when_validating_a_plan(tmp_path: Path) -> None:
+    target = tmp_path / "newly-protected.bin"
+    target.write_bytes(b"mechanical dependency")
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {})
+    registry, launch = _authority_files(tmp_path, active={"manifest_path": str(manifest)})
+    plan_path, plan_sha = _published_plan(
+        tmp_path, target=target, registry=registry, launch=launch,
+    )
+    _write_json(manifest, {"source_path": str(target)})
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        validate_cleanup_plan(
+            plan_path, plan_sha, vedtak=VEDTAK, allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert target.exists()
+
+
+@pytest.mark.parametrize("size_bytes", [34_085_492, 91_059_197])
+def test_authority_graph_accepts_reported_metadata_sizes(
+    tmp_path: Path, size_bytes: int,
+) -> None:
+    manifest = tmp_path / "manifest.json"
+    encoded = b'{"schema_version":"mechanical-size-check"}'
+    manifest.write_bytes(encoded + b" " * (size_bytes - len(encoded)))
+    assert _graph_paths(tmp_path, active={"manifest_path": str(manifest)}) == (manifest,)
+
+
+def test_authority_graph_lifecycle_relative_split_manifest(tmp_path: Path) -> None:
+    root = tmp_path / "lifecycle"
+    root.mkdir()
+    binary = root / "train_unified_exit_lifecycle.parquet"
+    binary.write_bytes(b"mechanical fixture")
+    split_manifest = root / "train_unified_exit_lifecycle.manifest.json"
+    _write_json(split_manifest, {"lifecycle_parquet": binary.name})
+    manifest = root / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    _write_json(manifest, {"splits": {"train": {
+        "lifecycle_manifest": split_manifest.name,
+        "lifecycle_manifest_sha256": sha256_file(split_manifest),
+    }}})
+    assert set(_graph_paths(tmp_path, active={"manifest_path": str(manifest)})) == {
+        manifest, split_manifest, binary,
+    }
+
+
+@pytest.mark.parametrize("reference", [
+    ".../manifest.json", "nested/../manifest.json", "~/manifest.json",
+    "https://example.invalid/manifest.json", " manifest.json", "manifest.json\x00",
+])
+def test_authority_graph_ambiguous_references_fail_closed(
+    tmp_path: Path, reference: str,
+) -> None:
+    with pytest.raises(EvidenceRetentionError, match="authority"):
+        _graph_paths(tmp_path, active={"manifest_path": reference})
+
+
+def test_authority_graph_reader_itself_rejects_a_symlink(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {})
+    link = tmp_path / "link.json"
+    link.symlink_to(manifest)
+    with pytest.raises(EvidenceRetentionError, match="authority JSON"):
+        retention_contract._authority_json(link, byte_limit=1024)
+
+
+def test_authority_graph_bounds_transitive_depth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_DEPTH", 5)
+    for index in range(8):
+        _write_json(tmp_path / f"manifest-{index}.json", {
+            "manifest_path": f"manifest-{index + 1}.json",
+        })
+    with pytest.raises(EvidenceRetentionError, match="graph depth limit exceeded"):
+        _graph_paths(tmp_path, active={"manifest_path": "manifest-0.json"})
+
+
+def test_authority_graph_existing_output_directory_is_not_an_opaque_leaf(tmp_path: Path) -> None:
+    root = tmp_path / "output"
+    root.mkdir()
+    manifest = root / "manifest.json"
+    dependency = tmp_path / "dependency.npy"
+    dependency.write_bytes(b"mechanical fixture")
+    _write_json(manifest, {"feats_npy": str(dependency)})
+    assert set(_graph_paths(tmp_path, active={"out_dir": str(root)})) == {
+        root, manifest, dependency,
+    }
+
+
+def test_authority_graph_event_history_fails_closed_on_missing_outbound_reference(
+    tmp_path: Path,
+) -> None:
+    history = tmp_path / "events"
+    earlier, _ = write_immutable_json_event(history, "RETAIN", {
+        "created_utc": "2026-09-06T10:00:00+00:00", "decision": "PASS",
+        "source_path": str(tmp_path / "unresolved-upstream.bin"),
+    })
+    current, _ = write_immutable_json_event(history, "RETAIN", {
+        "created_utc": "2026-09-06T09:59:00+00:00", "decision": "FAIL",
+    })
+    witness = retention_contract.immutable_events._order_path(earlier)
+    assert retention_contract._authority_event_prefix(current) == "RETAIN"
+    with pytest.raises(EvidenceRetentionError, match="unresolved authority reference"):
+        _graph_paths(tmp_path, active={"event_path": str(current)})
+    assert earlier.exists() and current.exists() and witness.exists()
+
+
+def test_authority_graph_does_not_parse_order_witness_as_generic_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    event, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC, "decision": "PASS",
+    })
+    witness = retention_contract.immutable_events._order_path(event)
+    monkeypatch.setattr(
+        retention_contract, "_authority_json",
+        lambda *_args, **_kwargs: pytest.fail("generic witness JSON parse"),
+    )
+    with pytest.raises(EvidenceRetentionError, match="publication-order witnesses"):
+        _graph_paths(tmp_path, active={"path": str(witness)})
+
+
+def test_authority_graph_directory_manifest_cannot_hide_event_history(tmp_path: Path) -> None:
+    history = tmp_path / "events"
+    event, _ = write_immutable_json_event(history, "RETAIN", {
+        "created_utc": CREATED_UTC, "decision": "PASS",
+    })
+    _write_json(history / "manifest.json", {"event_path": str(event)})
+    protected = _graph_paths(tmp_path, active={"root": str(history)})
+    assert set(protected) == {
+        history, event, history / "manifest.json",
+        retention_contract.immutable_events._order_path(event),
+    }
+
+
+def test_plan_directory_protects_its_publication_witness(tmp_path: Path) -> None:
+    target = tmp_path / "ordinary.bin"
+    target.write_bytes(b"mechanical fixture")
+    registry, launch = _authority_files(tmp_path)
+    plan_path, _ = _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+    witness = retention_contract.immutable_events._order_path(plan_path)
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    payload["targets"][0]["path"] = str(witness)
+    payload["created_utc"] = "2026-07-20T10:00:01+00:00"
+    successor, _ = write_immutable_json_event(plan_path.parent, PLAN_EVENT_PREFIX, payload)
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        validate_cleanup_plan(
+            successor, sha256_file(successor), vedtak=VEDTAK,
+            allowed_roots=(tmp_path,), required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert witness.exists() and plan_path.exists()
+
+
+def test_authority_graph_retains_scoped_cross_run_history_and_outbound_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scope = tmp_path / "history"
+    dependency = tmp_path / "outside-scope.npy"
+    dependency.write_bytes(b"mechanical fixture")
+    manifest = tmp_path / "upstream.json"
+    _write_json(manifest, {"feats_npy": dependency.name})
+    earlier, _ = write_immutable_json_event(scope / "run_one", "RETAIN", {
+        "created_utc": "2026-09-06T10:00:00+00:00", "decision": "PASS",
+        "manifest_path": str(manifest), "manifest_sha256": sha256_file(manifest),
+    }, authority_root=scope, scope_dir_glob="run_*")
+    current, _ = write_immutable_json_event(scope / "run_two", "RETAIN", {
+        "created_utc": "2026-09-06T09:59:00+00:00", "decision": "FAIL",
+    }, authority_root=scope, scope_dir_glob="run_*")
+    reader = retention_contract._authority_json
+    reads: list[Path] = []
+
+    def metadata_reader(path: Path, **kwargs: int):
+        assert path.suffix == ".json"
+        reads.append(path)
+        return reader(path, **kwargs)
+
+    monkeypatch.setattr(retention_contract, "_authority_json", metadata_reader)
+    protected = _graph_paths(tmp_path, active={"event_path": str(current)})
+    assert set(protected) == {
+        scope, earlier, current, manifest, dependency,
+        retention_contract.immutable_events._order_path(earlier),
+        retention_contract.immutable_events._order_path(current),
+    }
+    assert set(reads) == {earlier, current, manifest}
+    assert len(reads) == 3
+    assert retention_contract._paths_overlap(scope / "run_other" / "future.order", scope)
+
+
+def test_authority_graph_rejects_orphan_publication_witness(tmp_path: Path) -> None:
+    root = tmp_path / "history"
+    event, _ = write_immutable_json_event(root, "RETAIN", {
+        "created_utc": CREATED_UTC, "decision": "PASS",
+    })
+    witness = retention_contract.immutable_events._order_path(event)
+    order = json.loads(witness.read_text(encoding="utf-8"))
+    missing = root / "RETAIN_20260720T100001000000Z.json"
+    order["json_path"] = str(missing)
+    orphan = retention_contract.immutable_events._order_path(missing)
+    _write_json(orphan, order)
+    with pytest.raises(EvidenceRetentionError, match="witness has no event"):
+        _graph_paths(tmp_path, active={"event_path": str(event)})
+    assert witness.exists() and orphan.exists() and event.exists()
+
+
+def test_authority_graph_rejects_legacy_event_without_declared_scope(tmp_path: Path) -> None:
+    event = tmp_path / "RETAIN_20260720T100000000000Z.json"
+    _write_json(event, {"created_utc": CREATED_UTC, "json_path": str(event)})
+    with pytest.raises(
+        EvidenceRetentionError, match="legacy event has no declared authority scope",
+    ):
+        _graph_paths(tmp_path, active={"event_path": str(event)})
+
+
+def test_plan_validation_rechecks_the_complete_publication_history(tmp_path: Path) -> None:
+    target = tmp_path / "ordinary.bin"
+    target.write_bytes(b"mechanical fixture")
+    registry, launch = _authority_files(tmp_path)
+    earlier, _ = _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+    payload = json.loads(earlier.read_text(encoding="utf-8"))
+    payload["created_utc"] = "2026-07-20T10:00:01+00:00"
+    current, _ = write_immutable_json_event(earlier.parent, PLAN_EVENT_PREFIX, payload)
+    historical = json.loads(earlier.read_text(encoding="utf-8"))
+    historical["vedtak"] = "GX1-CLEANUP-TAMPERED"
+    _write_json(earlier, historical)
+    with pytest.raises(EvidenceRetentionError, match="immutable authority"):
+        validate_cleanup_plan(
+            current, sha256_file(current), vedtak=VEDTAK,
+            allowed_roots=(tmp_path,), required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert target.exists()
+
+
+def test_authority_graph_event_self_reference_is_not_a_payload_sha_binding(tmp_path: Path) -> None:
+    root = tmp_path / "events"
+    event, _ = write_immutable_json_event(root, "RETAIN", {
+        "created_utc": CREATED_UTC, "sha256": "a" * 64,
+    })
+    assert set(_graph_paths(tmp_path, active={"event_path": str(event)})) == {
+        root, event, retention_contract.immutable_events._order_path(event),
+    }
+
+
+def test_authority_graph_rejects_event_hash_before_discovering_its_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    event, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC,
+    })
+    monkeypatch.setattr(
+        retention_contract.immutable_events, "validated_immutable_event_authority_inventory",
+        lambda *_args, **_kwargs: pytest.fail("followed an unverified event scope"),
+    )
+    with pytest.raises(EvidenceRetentionError, match="SHA-256 mismatch"):
+        _graph_paths(tmp_path, active={"path": str(event), "sha256": "0" * 64})
+
+
+@pytest.mark.parametrize("limit", ["event_bytes", "witness_bytes", "total_bytes", "events"])
+def test_authority_graph_inventory_limits_precede_historical_decode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, limit: str,
+) -> None:
+    owner = retention_contract.immutable_events
+    earlier, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC, "padding": "mechanical" * 1024,
+    })
+    current, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": "2026-07-20T10:00:01+00:00",
+    })
+    earlier_witness = owner._order_path(earlier)
+    current_witness = owner._order_path(current)
+    documents = (earlier, current, earlier_witness, current_witness)
+    if limit == "event_bytes":
+        ceiling = max(path.stat().st_size for path in documents if path != earlier)
+        monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_JSON_BYTES", ceiling)
+        expected = "max_document_bytes"
+    elif limit == "witness_bytes":
+        ceiling = max(path.stat().st_size for path in documents)
+        earlier_witness.write_bytes(earlier_witness.read_bytes() + b" " * ceiling)
+        monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_JSON_BYTES", ceiling)
+        expected = "max_document_bytes"
+    elif limit == "total_bytes":
+        ceiling = sum(path.stat().st_size for path in documents) - 1
+        monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_TOTAL_JSON_BYTES", ceiling)
+        expected = "max_total_bytes"
+    else:
+        monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_JSON_FILES", 1)
+        expected = "max_events"
+    reader = owner._read_json_object
+    reads: list[Path] = []
+
+    def bounded_bootstrap(path: Path, *, max_bytes: int | None = None):
+        assert path == current_witness
+        assert max_bytes == current_witness.stat().st_size
+        reads.append(path)
+        return reader(path, max_bytes=max_bytes)
+
+    monkeypatch.setattr(owner, "_read_json_object", bounded_bootstrap)
+    with pytest.raises(EvidenceRetentionError, match=expected):
+        _graph_paths(tmp_path, active={"event_path": str(current)})
+    assert reads == [current_witness]
+    assert all(path.exists() for path in documents)
+
+
+def test_authority_graph_passes_remaining_inventory_budgets_and_rechecks_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner = retention_contract.immutable_events
+    upstream = tmp_path / "upstream.json"
+    consumed = tmp_path / "consumed.json"
+    leading = tmp_path / "leading.json"
+    _write_json(upstream, {})
+    _write_json(consumed, {"value": "mechanical metadata"})
+    earlier, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC, "manifest_path": str(upstream),
+    })
+    current, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": "2026-07-20T10:00:01+00:00",
+    })
+    _write_json(leading, {"paths": [str(consumed), str(current)]})
+    witnesses = (owner._order_path(earlier), owner._order_path(current))
+    scope_bytes = sum(path.stat().st_size for path in (earlier, current, *witnesses))
+    budget = scope_bytes + sum(path.stat().st_size for path in (leading, consumed, upstream))
+    monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_TOTAL_JSON_BYTES", budget)
+    monkeypatch.setattr(retention_contract, "MAX_AUTHORITY_JSON_FILES", 5)
+    inventory_reader = owner.validated_immutable_event_authority_inventory
+    calls: list[dict[str, object]] = []
+
+    def bounded_inventory(path: Path, prefix: str, **kwargs: object):
+        calls.append(kwargs)
+        return inventory_reader(path, prefix, **kwargs)
+
+    monkeypatch.setattr(owner, "validated_immutable_event_authority_inventory", bounded_inventory)
+    protected = _graph_paths(tmp_path, active={"manifest_path": str(leading)})
+    assert set(protected) == {
+        leading, consumed, upstream, earlier, current, *witnesses, current.parent,
+    }
+    assert len(calls) == 2
+    assert calls[0]["max_total_bytes"] == scope_bytes + upstream.stat().st_size
+    assert calls[0]["max_events"] == 3
+    assert calls[1]["max_total_bytes"] == scope_bytes
+    assert calls[1]["max_events"] == 2
+    assert calls[1]["authority_root"] == current.parent
+    assert all(call["max_document_bytes"] == 128 * 1024 * 1024 for call in calls)
+
+
+def test_authority_graph_owner_rejects_history_growth_after_preflight(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner = retention_contract.immutable_events
+    earlier, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC,
+    })
+    current, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": "2026-07-20T10:00:01+00:00",
+    })
+    original_size = earlier.stat().st_size
+    reader = owner._read_json_object
+
+    def grow_before_read(path: Path, *, max_bytes: int | None = None):
+        assert max_bytes is not None
+        if path == earlier:
+            assert max_bytes == original_size
+            path.write_bytes(path.read_bytes() + b" ")
+        return reader(path, max_bytes=max_bytes)
+
+    monkeypatch.setattr(owner, "_read_json_object", grow_before_read)
+    with pytest.raises(EvidenceRetentionError, match="bounded read"):
+        _graph_paths(tmp_path, active={"event_path": str(current)})
+    assert earlier.exists() and current.exists()
+
+
+def test_plan_history_is_bounded_and_reserves_graph_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "ordinary.bin"
+    target.write_bytes(b"mechanical fixture")
+    manifest = tmp_path / "manifest.json"
+    _write_json(manifest, {"value": "mechanical metadata"})
+    registry, launch = _authority_files(tmp_path, active={"manifest_path": str(manifest)})
+    plan, plan_sha = _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+    owner = retention_contract.immutable_events
+    scope_bytes = plan.stat().st_size + owner._order_path(plan).stat().st_size
+    monkeypatch.setattr(
+        retention_contract, "MAX_AUTHORITY_TOTAL_JSON_BYTES",
+        scope_bytes + manifest.stat().st_size - 1,
+    )
+    reader = owner._read_json_object
+    reads: list[Path] = []
+
+    def bounded_plan_reader(path: Path, *, max_bytes: int | None = None):
+        assert max_bytes is not None
+        reads.append(path)
+        return reader(path, max_bytes=max_bytes)
+
+    monkeypatch.setattr(owner, "_read_json_object", bounded_plan_reader)
+    with pytest.raises(EvidenceRetentionError, match="authority JSON byte limit exceeded"):
+        validate_cleanup_plan(
+            plan, plan_sha, vedtak=VEDTAK, allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert set(reads) == {plan, owner._order_path(plan)}
+    assert target.exists()
+
+
+def test_plan_requires_bounded_owner_selected_publication(tmp_path: Path) -> None:
+    target = tmp_path / "ordinary.bin"
+    target.write_bytes(b"mechanical fixture")
+    registry, launch = _authority_files(tmp_path)
+    earlier, earlier_sha = _published_plan(
+        tmp_path, target=target, registry=registry, launch=launch,
+    )
+    payload = json.loads(earlier.read_text(encoding="utf-8"))
+    payload["created_utc"] = "2026-07-20T09:59:00+00:00"
+    current, _ = write_immutable_json_event(earlier.parent, PLAN_EVENT_PREFIX, payload)
+    with pytest.raises(EvidenceRetentionError, match="not newest immutable authority"):
+        validate_cleanup_plan(
+            earlier, earlier_sha, vedtak=VEDTAK, allowed_roots=(tmp_path,),
+            required_artifact_registry_json=registry,
+            required_launch_contract_json=launch,
+        )
+    assert current.exists() and target.exists()
+
+
+@pytest.mark.parametrize("limit", ["max_total_bytes", "max_events"])
+def test_publication_inventory_zero_remaining_budget_never_decodes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, limit: str,
+) -> None:
+    owner = retention_contract.immutable_events
+    event, _ = write_immutable_json_event(tmp_path / "events", "RETAIN", {
+        "created_utc": CREATED_UTC,
+    })
+    monkeypatch.setattr(
+        owner, "_read_json_object",
+        lambda *_args, **_kwargs: pytest.fail("decoded with exhausted budget"),
+    )
+    with pytest.raises(EvidenceRetentionError, match=limit):
+        retention_contract._authority_event_inventory(event, "RETAIN", **{limit: 0})

@@ -88,6 +88,7 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     MANIFEST_NAME as BUNDLE_COMMIT_MANIFEST_NAME,
     require_bundle_commit_manifest,
 )
+from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
 from gx1.scripts.entry_candidate_prediction_evidence_v1 import (
     MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS,
     PREDICTION_EVIDENCE_STAGE_SPLITS,
@@ -129,7 +130,8 @@ EVALUATION_COVERAGES = (1.00, 0.50, 0.25, 0.10, 0.05, 0.02, 0.01)
 EVALUATION_TOP_FRACS = EVALUATION_COVERAGES
 EVALUATION_MODEL_NAME = "candidate"
 SELECTIVE_EDGE_MAX_STREAM_CHUNK_ROWS = 4096
-PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION = "xau_selective_edge_preregistered_v1"
+PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION = "xau_selective_edge_preregistered_v2"
+HAC_OBSERVATION_ORDER = "chronological_model_trade_rows"
 RESEARCH_LONG_OUTCOME_COLUMN = "y_long_final_pnl_at_direction_horizon_bps"
 RESEARCH_SHORT_OUTCOME_COLUMN = "y_short_final_pnl_at_direction_horizon_bps"
 RESEARCH_OUTCOME_ECONOMICS = "gross_spread_inclusive_research_only"
@@ -606,7 +608,7 @@ def build_metric_rows(
         )
         for top_frac in top_fracs:
             n_budget = max(1, int(math.ceil(len(ordered) * float(top_frac))))
-            selected = ranked.head(n_budget).copy()
+            selected = ranked.head(n_budget).sort_values("time", kind="mergesort").copy()
             directions = pd.to_numeric(
                 selected["pred_direction"], errors="coerce"
             ).to_numpy(dtype=np.float64)
@@ -633,6 +635,7 @@ def build_metric_rows(
                 "outcome_economics": RESEARCH_OUTCOME_ECONOMICS,
                 "coin_flip_null_method": "exact_uniform_long_short_expectation",
                 "standard_error_method": "newey_west_hac_mean_advantage",
+                "standard_error_observation_order": HAC_OBSERVATION_ORDER,
                 "circular_shift_draws": CIRCULAR_SHIFT_NULL_DRAWS,
                 "circular_shift_seed": CIRCULAR_SHIFT_NULL_SEED,
                 "minimum_trade_rows": MIN_PREREGISTERED_TRADE_ROWS,
@@ -775,6 +778,11 @@ def _preregistered_hypothesis(
             "SELECTIVE_EDGE_PREREGISTERED_METRIC_ROWS_INVALID: expected one "
             "ALL row per fixed coverage"
         )
+    if (
+        "standard_error_observation_order" not in scope
+        or not scope["standard_error_observation_order"].eq(HAC_OBSERVATION_ORDER).all()
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_HAC_OBSERVATION_ORDER_INVALID")
     qualifying = sorted(
         float(row["coverage_fraction"])
         for _, row in scope.iterrows()
@@ -790,6 +798,7 @@ def _preregistered_hypothesis(
             "and model_mean_gt_circular_shift_p95"
         ),
         "outcome_economics": RESEARCH_OUTCOME_ECONOMICS,
+        "standard_error_observation_order": HAC_OBSERVATION_ORDER,
         "production_authority_ready": False,
         "edge_claim_allowed": False,
         "qualifying_coverages": qualifying,
@@ -810,6 +819,11 @@ def _preregistered_hypothesis(
     reference = val_reference.get("preregistered_selective_edge")
     if not isinstance(reference, Mapping):
         raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PREREGISTRATION_MISSING")
+    if (
+        reference.get("schema_version") != PREREGISTERED_SELECTIVE_EDGE_SCHEMA_VERSION
+        or reference.get("standard_error_observation_order") != HAC_OBSERVATION_ORDER
+    ):
+        raise RuntimeError("SELECTIVE_EDGE_VAL_REFERENCE_PREREGISTRATION_INVALID")
     reference_qualifying = sorted(
         float(value) for value in reference.get("qualifying_coverages") or []
     )
@@ -2029,7 +2043,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
             f"top5={row['top5_all_mean_pnl_bps']} "
             f"top10={row['top10_all_mean_pnl_bps']}"
         )
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    atomic_write_text(path, "\n".join(lines) + "\n")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -2238,7 +2252,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     predictions_path = out_dir / f"selective_edge_predictions_{timestamp}.parquet"
     metrics_path = out_dir / f"selective_edge_metrics_{timestamp}.csv"
-    summary_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_SUMMARY_{timestamp}.json"
+    summary_path = out_dir / f"selective_edge_summary_{timestamp}.json"
     report_json_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{timestamp}.json"
     report_md_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{timestamp}.md"
     prediction_evidence: dict[str, Any] = {}
@@ -2344,19 +2358,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         summary_path,
         json.dumps(summary_payload, indent=2, sort_keys=True, default=_json_default) + "\n",
     )
-    atomic_write_text(
-        report_json_path,
-        json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n",
+    report_json_path, published_report = write_immutable_json_event(
+        out_dir,
+        "ENTRY_CANDIDATE_SELECTIVE_EDGE",
+        json.loads(json.dumps(report, default=_json_default, allow_nan=False)),
     )
-    markdown_tmp = out_dir / f".{report_md_path.name}.render"
-    _write_markdown(markdown_tmp, report)
-    try:
-        atomic_write_text(
-            report_md_path,
-            markdown_tmp.read_text(encoding="utf-8"),
-        )
-    finally:
-        markdown_tmp.unlink(missing_ok=True)
+    report["json_path"] = published_report["json_path"]
+    _write_markdown(report_md_path, report)
     if not args.quiet:
         print(
             json.dumps(

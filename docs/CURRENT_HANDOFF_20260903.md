@@ -1,5 +1,11 @@
 # GX1 current re-entry — updated 2026-09-06
 
+**Operator override: repair and review before more training.** The launch-state
+review hold supersedes the older continuation instructions below. Preserve the
+candidate and TEST seal; no training restart or cloud purchase is authorized
+during this repair wave. Current findings, implemented fixes and verification
+are recorded in `docs/PREMIERE_CODE_REVIEW_20260905.md`.
+
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is
 `bash scripts/gx1_handover.sh`; `GX1_RULES.md` remains binding.
@@ -16,7 +22,7 @@ bash scripts/gx1_handover.sh
 Do not infer authority from an old checkpoint, a terminal scrollback, or a
 run-directory timestamp. Do not start TRAIN from this document.
 
-## Current truth
+## Historical continuation state — superseded by the review hold
 
 ### Verified, operator-approved guard recovery — 2026-09-06
 
@@ -465,7 +471,7 @@ hold merely to obtain a green normal handover.
   CPU-only dry-run for that historical recipe. This is preparation only, not candidate acceptance or CUDA,
   TEST, promotion, paper, broker or live authority.
 
-## Current host gate
+## Historical host gate — not current launch authority
 
 The physical PC was restarted after the prior 3090 host hang, invalidating the
 old signed 160 W response. The temporary 390 W state was repaired on

@@ -756,6 +756,24 @@ def specialist_contract_training_allowed_for_mode(mode: str) -> bool:
     return True
 
 
+def model_native_recommended_fusion_metadata() -> dict[str, object]:
+    return {
+        "type": "cross_attended_dynamic_gated_specialists_plus_five_tf_cooperation",
+        "gate_context": list(MODEL_NATIVE_CTX_CAT_FIELDS),
+        "heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
+        "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
+        "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
+        "direction_path": (
+            "family context -> pre-cross specialist token -> specialist "
+            "cross-attention -> dynamic specialist gate -> specialist+five-TF "
+            "cross-attention -> 96-value learned evidence fusion -> fitted-Q "
+            "LONG/SHORT/FLAT action-value head"
+        ),
+        "independent_timeframe_only_head": None,
+        "independent_timeframe_only_head_allowed": False,
+    }
+
+
 def _norm(name: str) -> str:
     return str(name or "").strip().lower()
 

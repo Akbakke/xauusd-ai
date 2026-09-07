@@ -12,9 +12,13 @@ import hashlib
 import json
 import math
 import re
-from itertools import combinations
-from collections.abc import Mapping, Sequence
+from pathlib import PurePosixPath
+from copy import copy
+from itertools import chain, combinations
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
+
+import numpy as np
 
 from gx1.contracts.entry_decision_token_v1 import (
     entry_decision_token_projection_metadata,
@@ -45,8 +49,10 @@ from gx1.contracts.model_native_serve_gate_v1 import (
 from gx1.contracts.unified_exit_input_influence_v1 import (
     unified_exit_input_influence_layout,
 )
-from gx1.contracts.unified_exit_input_v1 import (
-    UNIFIED_EXIT_INPUT_ENVELOPE_SCHEMA_VERSION,
+from gx1.contracts.unified_exit_episode_pack_v1 import (
+    UNIFIED_EXIT_EPISODE_SIDE_COUNT,
+    UNIFIED_EXIT_EPISODE_STATE_COUNT,
+    unified_exit_episode_pack_contract,
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION,
@@ -60,9 +66,10 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
 
 
-SCHEMA_VERSION = "gx1_entry_exit_feature_usefulness_v5"
+SCHEMA_VERSION = "gx1_entry_exit_feature_usefulness_v9"
+STANDARD_ERROR_METHOD = "iid_rows_descriptive_not_dependence_adjusted"
 LAYOUT_SCHEMA_VERSION = "gx1_entry_exit_feature_usefulness_layout_v4"
-DONOR_PLAN_SCHEMA_VERSION = "gx1_structure_preserving_val_block_swap_v1"
+DONOR_PLAN_SCHEMA_VERSION = "gx1_structure_preserving_val_block_swap_v2"
 SIDE_PAIR_PLAN_SCHEMA_VERSION = "gx1_exit_same_state_opposite_side_pair_v1"
 SPLIT = "val"
 DECISION = "VAL_DIAGNOSTIC_COMPLETE_NO_SELECTION_AUTHORITY"
@@ -78,7 +85,13 @@ POLICY = {
     "retirement_authority": False,
     "diagnostic_split": SPLIT,
     "diagnostic_population": "complete_immutable_val_population_no_sampling",
+    "entry_row_clock": "finite_strictly_increasing",
+    "exit_state_population_order": "contiguous_from_episode_origin_for_each_side",
+    "exit_row_clock": "finite_strictly_increasing_within_episode_side",
+    "exit_side_pair_clock": "same_observed_m1_time",
     "test_rows_read": False,
+    "native_population_is_executed_trade_evidence": False,
+    "entry_tokens": "separate_online_and_frozen_teacher_fp32_streams_all_entry_rows",
     "test_rows_tune_or_select": False,
     "zero_or_negative_usefulness_is_valid_evidence": True,
     "automatic_importance_threshold": None,
@@ -123,14 +136,279 @@ _IDENTITY_KEYS = {
     "normalization_path",
     "normalization_file_sha256",
     "normalization_contract_sha256",
-    "entry_decision_token_snapshot_set_sha256",
-    "unified_exit_input_envelope_set_sha256",
+    "online_entry_token_stream_sha256",
+    "target_entry_token_stream_sha256",
+    "entry_row_indices_sha256",
+    "native_episode_pack_set_sha256",
+    "native_episode_entry_indices_sha256",
+    "native_episode_pair_count",
+    "native_mtf_geometry_sha256",
+    "native_episode_pack_contract",
+    "target_model_state_sha256",
+    "selected_epoch",
+    "last_epoch",
+    "train_split_sha256",
+    "lifecycle_manifest_path",
+    "lifecycle_manifest_sha256",
+    "selection_artifacts",
+    "recipe_source_provenance",
     "contract_mode",
     "signal_schema_version",
     "signal_static_contract_sha256",
     "entry_decision_token_projection",
-    "unified_exit_input_envelope_schema_version",
 }
+
+_SELECTION_ARTIFACT_ROLES = (
+    "session_contract", "active_pointer", "active_state", "selected_checkpoint",
+    "bundle_metadata", "recipe_audit",
+)
+
+
+_STREAM_BUFFER_BYTES = 64 * 1024
+_STREAM_FLOAT_DTYPE = np.dtype("<f8")
+_STREAM_MAX_BYTES = min(np.iinfo(np.int64).max, np.iinfo(np.intp).max)
+
+
+def _require_stream_dtype(dtype: Any) -> np.dtype:
+    if dtype is None:
+        raise RuntimeError("FEATURE_USEFULNESS_STREAM_DTYPE_INVALID")
+    try:
+        result = np.dtype(dtype)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("FEATURE_USEFULNESS_STREAM_DTYPE_INVALID") from exc
+    if (
+        result.kind not in "biuf"
+        or result.itemsize not in (1, 2, 4, 8)
+        or result.fields is not None
+        or result.subdtype is not None
+        or result.metadata is not None
+    ):
+        raise RuntimeError("FEATURE_USEFULNESS_STREAM_DTYPE_INVALID")
+    return result
+
+
+def _require_stream_array(chunk: Any) -> None:
+    if not isinstance(chunk, np.ndarray) or np.ma.isMaskedArray(chunk):
+        raise RuntimeError("FEATURE_USEFULNESS_STREAM_ARRAY_TYPE_INVALID")
+    _require_stream_dtype(chunk.dtype)
+    if chunk.ndim < 1 or chunk.size < 1:
+        raise RuntimeError("FEATURE_USEFULNESS_STREAM_CHUNK_SHAPE_INVALID")
+
+
+def _stream_array_blocks(
+    chunk: np.ndarray, *, dtype: np.dtype
+) -> Iterator[np.ndarray]:
+    with np.nditer(
+        chunk,
+        flags=["external_loop", "buffered"],
+        op_flags=["readonly"],
+        op_dtypes=[dtype],
+        casting="unsafe",
+        order="C",
+        buffersize=_STREAM_BUFFER_BYTES // dtype.itemsize,
+    ) as iterator:
+        for block in iterator:
+            yield np.ascontiguousarray(block)
+
+
+class StreamingArrayDigest:
+    """Hash declared leading-axis chunks without retaining their payloads.
+
+    The header and C-order bytes exactly match the audit's whole-array hash,
+    including dtype spelling, byte order and native-int64 shape encoding.
+    Shape dimensions must be positive integers; total bytes must fit int64
+    and np.intp. Only plain bool/integer/real dtypes up to eight bytes are
+    supported. Updates require matching ndarray dtype/rank/trailing shape;
+    floating payloads must be finite. Conversion is never implicit.
+
+    Scratch storage is O(64 KiB), independent of chunk/population size, plus
+    O(rank) shape metadata. Failed updates leave the digest unchanged. An
+    incomplete finalize fails without sealing; successful finalize is
+    idempotent and forbids further updates.
+    """
+
+    def __init__(self, shape: Sequence[int], dtype: Any, domain: bytes):
+        self._dtype = _require_stream_dtype(dtype)
+        if not isinstance(domain, bytes):
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_DOMAIN_INVALID")
+        if not isinstance(shape, (tuple, list)) or not shape:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_SHAPE_INVALID")
+        byte_count = self._dtype.itemsize
+        for dimension in shape:
+            if (
+                isinstance(dimension, (bool, np.bool_))
+                or not isinstance(dimension, (int, np.integer))
+                or dimension < 1
+            ):
+                raise RuntimeError("FEATURE_USEFULNESS_STREAM_SHAPE_INVALID")
+            byte_count *= int(dimension)
+            if byte_count > _STREAM_MAX_BYTES:
+                raise RuntimeError("FEATURE_USEFULNESS_STREAM_SHAPE_OVERFLOW")
+        self._shape = tuple(int(dimension) for dimension in shape)
+        self._count = 0
+        self._finalized = False
+        self._digest = hashlib.sha256()
+        self._digest.update(domain)
+        self._digest.update(str(self._dtype).encode("ascii"))
+        self._digest.update(b"\0")
+        self._digest.update(np.asarray(self._shape, dtype=np.int64).tobytes())
+
+    def update(self, chunk: np.ndarray) -> None:
+        if self._finalized:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_ALREADY_FINALIZED")
+        _require_stream_array(chunk)
+        if chunk.dtype != self._dtype:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_CHUNK_DTYPE_INVALID")
+        if chunk.ndim != len(self._shape) or chunk.shape[1:] != self._shape[1:]:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_CHUNK_SHAPE_INVALID")
+        count = self._count + int(chunk.shape[0])
+        if count > self._shape[0]:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_COUNT_OVERFLOW")
+        digest = self._digest.copy()
+        for block in _stream_array_blocks(chunk, dtype=self._dtype):
+            if not np.isfinite(block).all():
+                raise RuntimeError("FEATURE_USEFULNESS_STREAM_NONFINITE")
+            digest.update(memoryview(block).cast("B"))
+        self._digest = digest
+        self._count = count
+
+    def finalize(self) -> str:
+        if self._count != self._shape[0]:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_COUNT_INCOMPLETE")
+        self._finalized = True
+        return self._digest.hexdigest()
+
+
+class StreamingPairedSummary:
+    """Reduce a declared nonempty vector to the existing paired-summary schema.
+
+    Real numeric/bool ndarray vectors are converted in bounded buffers to the
+    same little-endian float64 canonical bytes as the whole-array summary.
+    Hashes and sign counts are exact and independent of update boundaries.
+    Moments use two-pass blocks and Chan combination after subtracting the
+    first observation; sums use block fsum with recovered rounding residuals
+    and Neumaier compensation. Floating statistics may round differently from
+    NumPy or another partition: only the canonical vector hash has a
+    byte-parity guarantee.
+
+    No epsilon or zero clipping is applied. Nonfinite input, conversion or
+    reduction overflow fails, including overflowing intermediate sums,
+    shifted differences and unnormalized M2 even if a final mean/variance
+    could fit. Float64 underflow follows IEEE arithmetic. Singleton variance
+    is exactly zero. IID standard error retains its descriptive-only meaning.
+
+    Retained state is O(1); scratch uses a fixed number of 64-KiB buffers,
+    never a population-sized array. Updates are transactional. Incomplete
+    finalize fails without sealing; successful finalize is idempotent and
+    returns a fresh dictionary, and subsequent updates fail.
+    """
+
+    def __init__(self, expected_count: int, domain: bytes):
+        self._digest = StreamingArrayDigest(
+            (expected_count,), _STREAM_FLOAT_DTYPE, domain
+        )
+        self._expected_count = int(expected_count)
+        self._finalized = False
+        self._state = (0, 0.0, 0.0, 0.0, 0.0, 0.0, math.inf, -math.inf, 0, 0, 0)
+
+    def update(self, chunk: np.ndarray) -> None:
+        if self._finalized:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_ALREADY_FINALIZED")
+        _require_stream_array(chunk)
+        if chunk.ndim != 1:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_CHUNK_SHAPE_INVALID")
+        if self._state[0] + chunk.size > self._expected_count:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_COUNT_OVERFLOW")
+        digest = copy(self._digest)
+        (
+            count, origin, mean, moment, total, correction,
+            minimum, maximum, positive, zero, negative,
+        ) = self._state
+        try:
+            with np.errstate(
+                over="raise", invalid="raise", divide="raise", under="ignore"
+            ):
+                for raw in _stream_array_blocks(chunk, dtype=_STREAM_FLOAT_DTYPE):
+                    digest.update(raw)
+                    block_count = int(raw.size)
+                    if count == 0:
+                        origin = float(raw[0])
+                    shifted = raw - origin
+                    block_mean = math.fsum(shifted) / block_count
+                    centered = shifted - block_mean
+                    block_moment = float(
+                        np.sum(centered * centered, dtype=np.float64)
+                    )
+                    block_sum = math.fsum(raw)
+                    block_residual = math.fsum(chain(raw, (-block_sum,)))
+                    next_total = total + block_sum
+                    if abs(total) >= abs(block_sum):
+                        sum_error = (total - next_total) + block_sum
+                    else:
+                        sum_error = (block_sum - next_total) + total
+                    correction = math.fsum((correction, sum_error, block_residual))
+                    total = next_total
+                    next_count = count + block_count
+                    delta = block_mean - mean
+                    if count:
+                        mean += delta * (block_count / next_count)
+                        cross_moment = (
+                            delta * (delta * (count / next_count)) * block_count
+                        )
+                        moment = math.fsum((moment, block_moment, cross_moment))
+                    else:
+                        mean = block_mean
+                        moment = block_moment
+                    if not all(
+                        math.isfinite(value)
+                        for value in (
+                            mean, moment, total, correction,
+                            math.fsum((total, correction)),
+                        )
+                    ):
+                        raise OverflowError("nonfinite streaming reduction")
+                    if moment < 0.0:
+                        raise RuntimeError("FEATURE_USEFULNESS_STREAM_VARIANCE_INVALID")
+                    count = next_count
+                    minimum = min(minimum, float(raw.min()))
+                    maximum = max(maximum, float(raw.max()))
+                    positive += int(np.count_nonzero(raw > 0.0))
+                    zero += int(np.count_nonzero(raw == 0.0))
+                    negative += int(np.count_nonzero(raw < 0.0))
+        except (FloatingPointError, OverflowError, ValueError) as exc:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_REDUCTION_OVERFLOW") from exc
+        self._state = (
+            count, origin, mean, moment, total, correction,
+            minimum, maximum, positive, zero, negative,
+        )
+        self._digest = digest
+
+    def finalize(self) -> dict[str, Any]:
+        (
+            count, _, _, moment, total, correction,
+            minimum, maximum, positive, zero, negative,
+        ) = self._state
+        if count != self._expected_count:
+            raise RuntimeError("FEATURE_USEFULNESS_STREAM_COUNT_INCOMPLETE")
+        total = math.fsum((total, correction))
+        variance = moment / (count - 1) if count > 1 else 0.0
+        result = {
+            "count": count,
+            "sum": total,
+            "mean": total / count,
+            "sample_variance": variance,
+            "standard_error": math.sqrt(variance / count),
+            "standard_error_method": STANDARD_ERROR_METHOD,
+            "minimum": minimum,
+            "maximum": maximum,
+            "positive_count": positive,
+            "zero_count": zero,
+            "negative_count": negative,
+            "paired_vector_sha256": self._digest.finalize(),
+        }
+        _require_summary(result, count=self._expected_count, label="STREAMING")
+        self._finalized = True
+        return result
 
 
 def canonical_json_sha256(value: Any) -> str:
@@ -577,9 +855,13 @@ def require_feature_usefulness_identity(value: Mapping[str, Any]) -> dict[str, A
         "val_manifest_path",
         "val_data_path",
         "normalization_path",
+        "lifecycle_manifest_path",
     ):
         raw = result.get(field)
-        if not isinstance(raw, str) or not raw.startswith("/") or "\x00" in raw:
+        if (
+            not isinstance(raw, str) or not raw.startswith("/") or "\x00" in raw
+            or str(PurePosixPath(raw)) != raw or ".." in PurePosixPath(raw).parts
+        ):
             raise RuntimeError(f"FEATURE_USEFULNESS_IDENTITY_{field.upper()}_INVALID")
     for field in (
         "bundle_metadata_sha256",
@@ -588,8 +870,15 @@ def require_feature_usefulness_identity(value: Mapping[str, Any]) -> dict[str, A
         "val_data_sha256",
         "normalization_file_sha256",
         "normalization_contract_sha256",
-        "entry_decision_token_snapshot_set_sha256",
-        "unified_exit_input_envelope_set_sha256",
+        "online_entry_token_stream_sha256",
+        "target_entry_token_stream_sha256",
+        "entry_row_indices_sha256",
+        "native_episode_pack_set_sha256",
+        "native_episode_entry_indices_sha256",
+        "native_mtf_geometry_sha256",
+        "target_model_state_sha256",
+        "train_split_sha256",
+        "lifecycle_manifest_sha256",
         "signal_static_contract_sha256",
     ):
         if not isinstance(result.get(field), str) or not _SHA256_RE.fullmatch(
@@ -603,20 +892,66 @@ def require_feature_usefulness_identity(value: Mapping[str, Any]) -> dict[str, A
         != MODEL_NATIVE_STATIC_CONTRACT_SHA256
         or result.get("entry_decision_token_projection")
         != entry_decision_token_projection_metadata()
-        or result.get("unified_exit_input_envelope_schema_version")
-        != UNIFIED_EXIT_INPUT_ENVELOPE_SCHEMA_VERSION
+        or result.get("native_episode_pack_contract")
+        != unified_exit_episode_pack_contract()
     ):
         raise RuntimeError("FEATURE_USEFULNESS_IDENTITY_CONTRACT_INVALID")
     if not isinstance(result.get("dataset_run_id"), str) or not result["dataset_run_id"]:
         raise RuntimeError("FEATURE_USEFULNESS_IDENTITY_DATASET_RUN_ID_INVALID")
     for field in (
-        "entry_val_population_row_count", "exit_val_population_row_count"
+        "entry_val_population_row_count", "exit_val_population_row_count",
+        "native_episode_pair_count",
     ):
         count = result.get(field)
         if isinstance(count, bool) or not isinstance(count, int) or count < 2:
             raise RuntimeError(
                 f"FEATURE_USEFULNESS_IDENTITY_{field.upper()}_INVALID"
             )
+    if result["native_episode_pair_count"] > result["entry_val_population_row_count"]:
+        raise RuntimeError("FEATURE_USEFULNESS_NATIVE_PAIR_POPULATION_INVALID")
+    for field in ("selected_epoch", "last_epoch"):
+        epoch = result[field]
+        if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 1:
+            raise RuntimeError("FEATURE_USEFULNESS_SELECTED_EPOCH_INVALID")
+    if result["selected_epoch"] > result["last_epoch"]:
+        raise RuntimeError("FEATURE_USEFULNESS_SELECTED_EPOCH_INVALID")
+    from gx1.contracts.entry_model_native_train_launch_v1 import (
+        require_training_recipe_source_provenance_metadata,
+    )
+
+    provenance = require_training_recipe_source_provenance_metadata(
+        result["recipe_source_provenance"], context="FEATURE_USEFULNESS",
+    )
+    artifacts = result["selection_artifacts"]
+    if not isinstance(artifacts, Mapping) or set(artifacts) != set(_SELECTION_ARTIFACT_ROLES):
+        raise RuntimeError("FEATURE_USEFULNESS_SELECTION_ARTIFACTS_INVALID")
+    for role in _SELECTION_ARTIFACT_ROLES:
+        binding = artifacts[role]
+        if not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}:
+            raise RuntimeError("FEATURE_USEFULNESS_SELECTION_ARTIFACTS_INVALID")
+        path = binding["path"]
+        if (
+            not isinstance(path, str) or not path.startswith("/") or "\x00" in path
+            or str(PurePosixPath(path)) != path or ".." in PurePosixPath(path).parts
+            or not isinstance(binding["sha256"], str)
+            or not _SHA256_RE.fullmatch(binding["sha256"])
+        ):
+            raise RuntimeError("FEATURE_USEFULNESS_SELECTION_ARTIFACTS_INVALID")
+    if len({binding["path"] for binding in artifacts.values()}) != len(artifacts):
+        raise RuntimeError("FEATURE_USEFULNESS_SELECTION_ARTIFACT_ROLES_COLLAPSED")
+    if artifacts["recipe_audit"] != {
+        "path": provenance["recipe_audit_path"],
+        "sha256": provenance["recipe_audit_sha256"],
+    } or artifacts["bundle_metadata"] != {
+        "path": str(PurePosixPath(result["bundle_dir"]) / "bundle_metadata.json"),
+        "sha256": result["bundle_metadata_sha256"],
+    }:
+        raise RuntimeError("FEATURE_USEFULNESS_SELECTION_ARTIFACT_BINDING_MISMATCH")
+    if artifacts["bundle_metadata"] != {
+        "path": result["normalization_path"],
+        "sha256": result["normalization_file_sha256"],
+    }:
+        raise RuntimeError("FEATURE_USEFULNESS_EMBEDDED_NORMALIZATION_BINDING_MISMATCH")
     try:
         import pandas as pd
 
@@ -635,6 +970,22 @@ def require_feature_usefulness_identity(value: Mapping[str, Any]) -> dict[str, A
     return result
 
 
+def require_feature_usefulness_teacher_identity(
+    identity: Mapping[str, Any], iteration: Mapping[str, Any],
+) -> None:
+    """Bind the selected frozen teacher, not the online model, to supervision."""
+
+    if iteration["normalization_sha256"] != identity["normalization_contract_sha256"]:
+        raise RuntimeError("FEATURE_USEFULNESS_NORMALIZATION_IDENTITY_MISMATCH")
+    if (
+        iteration["target_model_state_sha256"] != identity["target_model_state_sha256"]
+        or iteration["iteration_index"] + 1 != identity["selected_epoch"]
+        or iteration["train_split_sha256"] != identity["train_split_sha256"]
+        or iteration["source_lineage_sha256"] != identity["lifecycle_manifest_sha256"]
+    ):
+        raise RuntimeError("FEATURE_USEFULNESS_SELECTED_TEACHER_IDENTITY_MISMATCH")
+
+
 def _require_summary(value: Any, *, count: int, label: str) -> None:
     keys = {
         "count",
@@ -642,6 +993,7 @@ def _require_summary(value: Any, *, count: int, label: str) -> None:
         "mean",
         "sample_variance",
         "standard_error",
+        "standard_error_method",
         "minimum",
         "maximum",
         "positive_count",
@@ -653,6 +1005,8 @@ def _require_summary(value: Any, *, count: int, label: str) -> None:
         raise RuntimeError(f"FEATURE_USEFULNESS_{label}_SUMMARY_SURFACE_INVALID")
     if value.get("count") != count or count < 1:
         raise RuntimeError(f"FEATURE_USEFULNESS_{label}_SUMMARY_COUNT_INVALID")
+    if value.get("standard_error_method") != STANDARD_ERROR_METHOD:
+        raise RuntimeError(f"FEATURE_USEFULNESS_{label}_STANDARD_ERROR_METHOD_INVALID")
     for field in (
         "sum",
         "mean",
@@ -769,7 +1123,6 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
             "row_times_sha256",
             "supervision",
             "baseline_outputs_sha256",
-            "frozen_entry_decision_token_sha256",
             "donor_plan",
             "side_pair_plan",
             "forward_variant_count",
@@ -838,7 +1191,6 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
                 != ENTRY_FITTED_Q_SCHEMA_VERSION
                 or supervision.get("fitted_q_contract")
                 != entry_fitted_q_contract()
-                or row.get("frozen_entry_decision_token_sha256") is not None
                 or row.get("side_pair_plan") is not None
             ):
                 raise RuntimeError("FEATURE_USEFULNESS_ENTRY_SUPERVISION_INVALID")
@@ -880,8 +1232,6 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
                 != UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION
                 or supervision.get("fitted_q_contract")
                 != unified_exit_fitted_q_contract()
-                or not isinstance(row.get("frozen_entry_decision_token_sha256"), str)
-                or not _SHA256_RE.fullmatch(row["frozen_entry_decision_token_sha256"])
             ):
                 raise RuntimeError("FEATURE_USEFULNESS_EXIT_SUPERVISION_INVALID")
             exit_iteration = require_unified_exit_fitted_q_iteration_state(
@@ -946,7 +1296,7 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
             "block_ids_sha256", "within_block_positions_sha256",
             "donor_indices_sha256", "all_rows_deranged",
             "whole_equal_geometry_blocks_preserved", "block_mapping_sha256",
-            "plan_sha256",
+            "plan_sha256", "native_mtf_geometry_sha256",
         }
         if (
             not isinstance(plan, Mapping)
@@ -958,10 +1308,18 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
             or not isinstance(plan.get("signature_group_count"), int)
             or plan["signature_group_count"] < 1
             or plan.get("label_independent") is not True
-            or plan.get("source_fields")
-            != ["structure_block_id", "within_block_position"]
             or plan.get("all_rows_deranged") is not True
             or plan.get("whole_equal_geometry_blocks_preserved") is not True
+        ):
+            raise RuntimeError(f"FEATURE_USEFULNESS_{task.upper()}_DONOR_PLAN_INVALID")
+        native_geometry_sha = plan.get("native_mtf_geometry_sha256")
+        if native_geometry_sha is not None and (
+            task != "exit" or not isinstance(native_geometry_sha, str)
+            or not _SHA256_RE.fullmatch(native_geometry_sha)
+        ):
+            raise RuntimeError("FEATURE_USEFULNESS_DONOR_NATIVE_MTF_GEOMETRY_INVALID")
+        if plan.get("source_fields") != ["structure_block_id", "within_block_position"] + (
+            [] if native_geometry_sha is None else ["native_mtf_geometry"]
         ):
             raise RuntimeError(f"FEATURE_USEFULNESS_{task.upper()}_DONOR_PLAN_INVALID")
         for field in (
@@ -1138,6 +1496,20 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
         raise RuntimeError(
             "FEATURE_USEFULNESS_ENTRY_EXIT_ITERATION_SPLIT_BRAIN"
         )
+    iteration = tasks["exit"]["supervision"]["fitted_q_iteration_state"]
+    require_feature_usefulness_teacher_identity(identity, iteration)
+    exit_task = tasks["exit"]
+    pair_count = identity["native_episode_pair_count"]
+    if (
+        exit_task["row_count"]
+        != pair_count * UNIFIED_EXIT_EPISODE_SIDE_COUNT * UNIFIED_EXIT_EPISODE_STATE_COUNT
+        or exit_task["donor_plan"]["block_count"] != pair_count
+        or exit_task["donor_plan"]["native_mtf_geometry_sha256"]
+        != identity["native_mtf_geometry_sha256"]
+        or exit_task["supervision"]["terminal_row_count"]
+        != pair_count * UNIFIED_EXIT_EPISODE_SIDE_COUNT
+    ):
+        raise RuntimeError("FEATURE_USEFULNESS_NATIVE_EPISODE_POPULATION_MISMATCH")
     unsigned = dict(value)
     report_sha = unsigned.pop("report_sha256")
     if report_sha != canonical_json_sha256(unsigned):
@@ -1146,6 +1518,9 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
 
 
 __all__ = [
+    "StreamingArrayDigest",
+    "StreamingPairedSummary",
+    "STANDARD_ERROR_METHOD",
     "DECISION",
     "DONOR_PLAN_SCHEMA_VERSION",
     "LAYOUT_SCHEMA_VERSION",
@@ -1158,5 +1533,6 @@ __all__ = [
     "canonical_json_sha256",
     "feature_usefulness_layout",
     "require_feature_usefulness_identity",
+    "require_feature_usefulness_teacher_identity",
     "require_feature_usefulness_report",
 ]

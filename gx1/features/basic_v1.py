@@ -12,7 +12,10 @@ import numpy as np
 import pandas as pd
 from numba import njit
 
-from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
+from gx1.features.model_native_market_context_v1 import (
+    derive_observed_spread_bps,
+    validate_observed_spread_aliases,
+)
 from gx1.features.technical_indicators_v1 import wilder_atr
 
 M5_DECISION_DELAY_SECONDS = 5 * 60
@@ -189,6 +192,7 @@ def _require_observed_spread_input(df: pd.DataFrame) -> None:
                 "[BASIC_V1_SPREAD_SOURCE_INVALID] spread_pct must be finite and "
                 "non-negative on every row"
             )
+        validate_observed_spread_aliases(df)
     else:
         spread_pct = derive_observed_spread_bps(df) / 1e4
     df["spread_pct"] = spread_pct

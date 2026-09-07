@@ -1,5 +1,13 @@
 # Pre-registered direction test — V34 substrate (aborted; rules retained)
 
+> **2026-09-06 scope correction, not a protocol revision:** the historical
+> 13-month VAL power statement below does not describe the current five-year
+> TRAIN candidate's June-2026 VAL window (5,509 emitted smoke predictions).
+> Do not carry its independent-window count or resolution into this candidate.
+> Actual overlap-aware support and a prospective qualification statement are
+> still required. Grid, nulls, seed count and untouched-TEST rules remain frozen;
+> no threshold is relaxed and no TEST data is opened by this note.
+
 > **2026-09-03 re-entry note:** V9's technical full TRAIN+VAL did not open
 > TEST. This preregistration remains frozen; current status is in
 > [`CURRENT_HANDOFF_20260903.md`](CURRENT_HANDOFF_20260903.md).

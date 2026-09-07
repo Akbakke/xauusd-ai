@@ -11,16 +11,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import stat
+from collections import deque
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
+import gx1.contracts.immutable_event_authority_v1 as immutable_events
 from gx1.contracts.immutable_event_authority_v1 import (
     ImmutableEventAuthorityError,
-    require_newest_immutable_event,
 )
 
 
@@ -35,6 +37,24 @@ CANONICAL_LAUNCH_CONTRACT = REPO_ROOT / "PROJECT_STATE_xau_direction_launch.json
 CANONICAL_DELETE_INCIDENT = REPO_ROOT / "PROJECT_STATE_entry_iql_delete_incident.json"
 _VEDTAK_RE = re.compile(r"[A-Z0-9][A-Z0-9_.:-]{7,127}")
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
+MAX_AUTHORITY_JSON_BYTES = 128 * 1024 * 1024
+MAX_AUTHORITY_TOTAL_JSON_BYTES = 1024 * 1024 * 1024
+MAX_AUTHORITY_JSON_FILES = 4096
+MAX_AUTHORITY_VALUES = MAX_AUTHORITY_TOTAL_JSON_BYTES // 2
+MAX_AUTHORITY_DEPTH = 64
+_REFERENCE_SUFFIXES = (
+    "_path", "_json", "_manifest", "_artifact", "_file", "_filename",
+    "_parquet", "_npy", "_npz", "_dir", "_root",
+)
+_REFERENCE_KEYS = frozenset({
+    "path", "json_path", "file", "filename", "manifest", "artifact",
+    "parquet", "npy", "npz", "directory", "root", "dir",
+})
+_DIRECTORY_MANIFEST_NAMES = (
+    "manifest.json", "MANIFEST.json", "PAIR_MANIFEST.json",
+    "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json", "REPAIR_MANIFEST.json",
+    "DATASET_BUILD_PROOF.json",
+)
 _PLAN_KEYS = {
     "schema_version",
     "created_utc",
@@ -123,24 +143,11 @@ def _strict_json(path: Path, expected_sha256: str, *, context: str) -> dict[str,
     if not canonical.is_file():
         raise EvidenceRetentionError(f"{context}: expected a regular JSON file")
     expected = _exact_sha256(expected_sha256, context=f"{context} hash")
-    observed = sha256_file(canonical)
+    payload, observed, _ = _authority_json(canonical, byte_limit=MAX_AUTHORITY_JSON_BYTES)
     if observed != expected:
         raise EvidenceRetentionError(
             f"{context}: SHA-256 mismatch expected={expected} observed={observed}"
         )
-    try:
-        payload = json.loads(
-            canonical.read_text(encoding="utf-8"),
-            parse_constant=lambda token: (_ for _ in ()).throw(
-                ValueError(f"non-finite JSON token {token}")
-            ),
-        )
-    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
-        raise EvidenceRetentionError(f"{context}: invalid strict JSON: {exc}") from exc
-    if not isinstance(payload, dict):
-        raise EvidenceRetentionError(f"{context}: JSON root must be an object")
-    if sha256_file(canonical) != expected:
-        raise EvidenceRetentionError(f"{context}: bytes changed during validation")
     return payload
 
 
@@ -354,28 +361,264 @@ def write_inventory_manifest(target: Path, manifest_jsonl: Path) -> dict[str, An
     }
 
 
-def _absolute_strings(value: object) -> Iterable[Path]:
-    if isinstance(value, Mapping):
-        for child in value.values():
-            yield from _absolute_strings(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _absolute_strings(child)
-    elif isinstance(value, str) and value.startswith("/"):
-        yield _canonical_path(
-            value,
-            context="authority-protected path",
-            must_exist=False,
+def _authority_json(path: Path, *, byte_limit: int) -> tuple[dict[str, Any], str, int]:
+    """Read bounded metadata through symlink-free directory descriptors only."""
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    def finite_float(token: str) -> float:
+        value = float(token)
+        if not math.isfinite(value):
+            raise ValueError(f"non-finite JSON number {token}")
+        return value
+
+    descriptor = None
+    try:
+        descriptor = os.open(path.anchor, os.O_RDONLY | os.O_DIRECTORY)
+        for part in path.parts[1:-1]:
+            child = os.open(
+                part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=descriptor,
+            )
+            os.close(descriptor)
+            descriptor = child
+        child = os.open(
+            path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+            dir_fd=descriptor,
         )
+        os.close(descriptor)
+        descriptor = child
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise EvidenceRetentionError(f"authority JSON is not a regular file: {path}")
+        if before.st_size > byte_limit:
+            raise EvidenceRetentionError(f"authority JSON byte limit exceeded: {path}")
+        with os.fdopen(descriptor, "rb") as handle:
+            descriptor = None
+            encoded = handle.read(byte_limit + 1)
+            after = os.fstat(handle.fileno())
+        if len(encoded) > byte_limit:
+            raise EvidenceRetentionError(f"authority JSON byte limit exceeded: {path}")
+        def identity(entry: os.stat_result) -> tuple[int, ...]:
+            return (
+                entry.st_dev, entry.st_ino, entry.st_size,
+                entry.st_mtime_ns, entry.st_ctime_ns,
+            )
+        if identity(before) != identity(after) or identity(after) != identity(path.lstat()):
+            raise EvidenceRetentionError(f"authority JSON changed during read: {path}")
+        _canonical_path(path, context="authority JSON", must_exist=True)
+        payload = json.loads(
+            encoded.decode("utf-8"), object_pairs_hook=unique_object,
+            parse_float=finite_float,
+            parse_constant=lambda token: (_ for _ in ()).throw(
+                ValueError(f"non-finite JSON token {token}")
+            ),
+        )
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+        raise EvidenceRetentionError(f"invalid authority JSON: {path}: {exc}") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    if not isinstance(payload, dict):
+        raise EvidenceRetentionError(f"authority JSON root must be an object: {path}")
+    return payload, hashlib.sha256(encoded).hexdigest(), len(encoded)
+
+
+def _reference_hash(payload: Mapping[str, Any], key: str) -> str | None:
+    candidates = [key + "_sha256"]
+    for suffix in ("_path", "_json", "_artifact", "_file", "_filename"):
+        if key.endswith(suffix):
+            candidates.append(key[:-len(suffix)] + "_sha256")
+    if key in _REFERENCE_KEYS:
+        candidates.append("sha256")
+    for name in candidates:
+        if name in payload and not isinstance(payload[name], str):
+            if payload[name] is not None or payload.get(key) is not None:
+                raise EvidenceRetentionError(f"authority {key} hash: expected exact SHA-256")
+    hashes = {
+        _exact_sha256(payload[name], context=f"authority {key} hash")
+        for name in candidates if name in payload and payload[name] is not None
+    }
+    if len(hashes) > 1:
+        raise EvidenceRetentionError(f"conflicting authority hashes for {key}")
+    return next(iter(hashes), None)
+
+
+def _authority_reference_path(raw: str, *, manifest: Path) -> Path:
+    if not raw or raw != raw.strip() or "\x00" in raw or "://" in raw or raw.startswith("~"):
+        raise EvidenceRetentionError(f"invalid authority reference: {raw!r}")
+    reference = Path(raw)
+    if not reference.is_absolute():
+        base = manifest.parent
+        parts = list(reference.parts)
+        while parts and parts[0] == "..":
+            base = base.parent
+            parts.pop(0)
+        reference = base.joinpath(*parts)
+    return _canonical_path(reference, context="authority-protected path", must_exist=False)
+
+
+def _semantic_authority_mapping(value: Mapping[str, Any], *, key: str) -> bool:
+    if key == "target_contract":
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_target_contract
+        from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+            train_feature_ranking_target_contract,
+        )
+
+        expected = causal_m1_target_contract()
+        if value != expected:
+            expected = train_feature_ranking_target_contract()
+    elif key == "blocked_head_reasons":
+        from gx1.contracts.entry_model_native_readiness_v1 import model_native_blocked_head_reasons
+
+        expected = model_native_blocked_head_reasons()
+    elif key == "recommended_fusion":
+        from gx1.features.entry_specialist_feature_groups_v1 import model_native_recommended_fusion_metadata
+
+        expected = model_native_recommended_fusion_metadata()
+    else:
+        return False
+    return value == expected and json.dumps(
+        value, sort_keys=True, allow_nan=False,
+    ) == json.dumps(expected, sort_keys=True, allow_nan=False)
+
+
+def _native_authority_reference_payload(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    if "producer_source_files" not in payload:
+        return payload
+    from gx1.contracts.xau_tape_provenance_v1 import (
+        CANONICAL_NATIVE_SOURCE_SCHEMA,
+        CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+        require_native_producer_source_inventory_metadata,
+    )
+
+    if payload.get("schema_version") not in (
+        CANONICAL_NATIVE_SOURCE_SCHEMA, CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
+    ):
+        return payload
+    try:
+        inventory = require_native_producer_source_inventory_metadata(payload)
+    except (RuntimeError, ValueError) as exc:
+        raise EvidenceRetentionError(f"native producer source metadata invalid: {exc}") from exc
+    observed = dict(payload)
+    del observed["source_endpoint"]
+    observed["producer_source_files"] = [
+        {
+            "path": record["snapshot_relative_path"],
+            "sha256": record["sha256"],
+            "size_bytes": record["size_bytes"],
+        }
+        for record in inventory
+    ]
+    return observed
+
+
+def _authority_event_prefix(path: Path) -> str | None:
+    """Recognize events with the owner's grammar without inferring scope roots."""
+
+    if path.suffix.lower() != ".json":
+        return None
+    try:
+        prefix, _ = path.stem.rsplit("_", 1)
+        immutable_events._require_event_prefix(prefix)
+        immutable_events._event_time_from_name(path, event_prefix=prefix)
+    except (ValueError, ImmutableEventAuthorityError) as exc:
+        witness = immutable_events._order_path(path)
+        if witness.exists() or witness.is_symlink():
+            raise EvidenceRetentionError(
+                f"publication witness has an invalid event filename: {path}"
+            ) from exc
+        return None
+    return prefix
+
+
+def _authority_event_inventory(
+    path: Path,
+    prefix: str,
+    *,
+    authority_root: Path | None = None,
+    scope_dir_glob: str | None = None,
+    max_total_bytes: int | None = None,
+    max_events: int | None = None,
+    usage: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    byte_budget = MAX_AUTHORITY_TOTAL_JSON_BYTES if max_total_bytes is None else max_total_bytes
+    event_budget = MAX_AUTHORITY_JSON_FILES if max_events is None else max_events
+    current = _canonical_path(path, context="publication authority", must_exist=True)
+    if current.stat(follow_symlinks=False).st_size > MAX_AUTHORITY_JSON_BYTES:
+        raise EvidenceRetentionError("publication authority JSON byte limit exceeded")
+    try:
+        inventory = immutable_events.validated_immutable_event_authority_inventory(
+            path, prefix, authority_root=authority_root, scope_dir_glob=scope_dir_glob,
+            max_document_bytes=MAX_AUTHORITY_JSON_BYTES,
+            max_total_bytes=byte_budget, max_events=event_budget,
+        )
+    except (ImmutableEventAuthorityError, OSError, ValueError, RecursionError) as exc:
+        raise EvidenceRetentionError(f"invalid publication authority: {path}: {exc}") from exc
+    if inventory.get("schema_version") != immutable_events.INVENTORY_SCHEMA_VERSION:
+        raise EvidenceRetentionError("publication authority inventory schema is invalid")
+    event_paths = inventory["event_paths"]
+    witness_paths = inventory["witness_paths"]
+    if (
+        len(event_paths) > event_budget
+        or len(witness_paths) > event_budget
+    ):
+        raise EvidenceRetentionError("publication authority file limit exceeded")
+    total_bytes = 0
+    for raw_path in (inventory["authority_root"], *event_paths, *witness_paths):
+        observed = _canonical_path(raw_path, context="publication authority", must_exist=True)
+        if raw_path == inventory["authority_root"]:
+            continue
+        size = observed.stat(follow_symlinks=False).st_size
+        if size > MAX_AUTHORITY_JSON_BYTES:
+            raise EvidenceRetentionError("publication authority JSON byte limit exceeded")
+        total_bytes += size
+        if total_bytes > byte_budget:
+            raise EvidenceRetentionError("publication authority total byte limit exceeded")
+    if usage is not None:
+        usage.update(total_bytes=total_bytes, json_files=len(event_paths))
+    return inventory
 
 
 def authority_protected_paths(
     artifact_registry: Mapping[str, Any],
     launch_contract: Mapping[str, Any],
     delete_incident: Mapping[str, Any],
+    *,
+    artifact_registry_json: Path = CANONICAL_ARTIFACT_REGISTRY,
+    launch_contract_json: Path = CANONICAL_LAUNCH_CONTRACT,
+    delete_incident_json: Path | None = None,
+    _reserved_bytes: int = 0,
+    _reserved_json_files: int = 0,
 ) -> tuple[Path, ...]:
-    """Derive every absolute path protected by registry or launch authority."""
+    """Follow declared JSON references, never recursively enumerate data trees.
 
+    Relative artifact filenames use their declaring manifest's directory.
+    Directories protect their entire subtree and must expose a known direct
+    manifest; opaque directories, sealed TEST references and missing metadata
+    block cleanup rather than pretend to prove their outbound dependencies.
+    Binary payloads are protected, not read or hashed. One metadata document
+    is decoded at a time; the per-file bound accommodates the operator-reported
+    91,059,197-byte selective-edge JSON and 34,085,492-byte MTF manifest.
+    The publication owner validates event scopes; their roots and witnesses
+    are protected and all history events enter the metadata queue. Witnesses
+    are never parsed as ordinary metadata. The scope snapshot is revalidated
+    after traversal. Remaining byte/event budgets enter the publication owner
+    before historical decoding, including witness bootstrap and growth checks.
+    Limits are resource policy, not
+    model/data-quality thresholds or proof that a real closure fits them.
+    """
+
+    if not all(isinstance(root, Mapping) for root in (
+        artifact_registry, launch_contract, delete_incident,
+    )):
+        raise EvidenceRetentionError("authority roots must be objects")
     if artifact_registry.get("schema_version") != "gx1_artifact_selection_v2":
         raise EvidenceRetentionError("artifact registry schema_version is invalid")
     if artifact_registry.get("project") != "XAUUSD":
@@ -393,11 +636,214 @@ def authority_protected_paths(
         raise EvidenceRetentionError("delete incident schema_version is invalid")
     if delete_incident.get("project") != "XAUUSD":
         raise EvidenceRetentionError("delete incident project is not XAUUSD")
-    protected = set()
-    for section in ("active", "retired", "history"):
-        protected.update(_absolute_strings(artifact_registry[section]))
-    protected.update(_absolute_strings(launch_contract))
-    protected.update(_absolute_strings(delete_incident))
+    roots = (
+        (artifact_registry, artifact_registry_json),
+        (
+            {key: value for key, value in launch_contract.items()
+             if key != "reviewed_local_runtime_exclusions"},
+            launch_contract_json,
+        ),
+        (delete_incident, delete_incident_json or CANONICAL_DELETE_INCIDENT),
+    )
+    pending = deque((payload, Path(path), 0) for payload, path in roots)
+    protected: set[Path] = set()
+    visited: dict[Path, str] = {}
+    bindings: dict[Path, str | None] = {}
+    directories: set[Path] = set()
+    event_scopes: dict[Path, dict[str, Any]] = {}
+    scoped_events: set[Path] = set()
+    scoped_roots: set[Path] = set()
+    scoped_witnesses: set[Path] = set()
+    document_sizes: dict[Path, int] = {}
+    byte_budget = MAX_AUTHORITY_TOTAL_JSON_BYTES - _reserved_bytes
+    file_budget = MAX_AUTHORITY_JSON_FILES - _reserved_json_files
+    if byte_budget < 0 or file_budget < 0:
+        raise EvidenceRetentionError("authority JSON reserved resource limit exceeded")
+    total_bytes = 0
+    values = 0
+    while pending:
+        payload, manifest, graph_depth = pending.popleft()
+        if graph_depth > MAX_AUTHORITY_DEPTH:
+            raise EvidenceRetentionError("authority graph depth limit exceeded")
+        if payload is None:
+            payload, observed_hash, size = _authority_json(
+                manifest,
+                byte_limit=min(
+                    MAX_AUTHORITY_JSON_BYTES,
+                    byte_budget - total_bytes,
+                ),
+            )
+            expected_hash = bindings[manifest]
+            if expected_hash is not None and observed_hash != expected_hash:
+                raise EvidenceRetentionError(
+                    f"authority JSON SHA-256 mismatch: {manifest}"
+                )
+            total_bytes += size
+            document_sizes[manifest] = size
+            visited[manifest] = observed_hash
+            event_prefix = _authority_event_prefix(manifest)
+            if event_prefix is not None and manifest not in scoped_events:
+                inventory = _authority_event_inventory(
+                    manifest, event_prefix,
+                    max_total_bytes=byte_budget - total_bytes + size,
+                    max_events=file_budget - len(visited) + 1,
+                )
+                event_scopes[manifest] = inventory
+                scope_events = {Path(path) for path in inventory["event_paths"]}
+                scoped_events.update(scope_events)
+                protected.update(scope_events)
+                scope_root = Path(inventory["authority_root"])
+                scoped_roots.add(scope_root)
+                protected.add(scope_root)
+                for raw_witness in inventory["witness_paths"]:
+                    witness = Path(raw_witness)
+                    protected.add(witness)
+                    if witness not in scoped_witnesses:
+                        document_sizes[witness] = witness.stat(follow_symlinks=False).st_size
+                        total_bytes += document_sizes[witness]
+                        scoped_witnesses.add(witness)
+                if total_bytes > byte_budget:
+                    raise EvidenceRetentionError("authority JSON total byte limit exceeded")
+                if len(scoped_events) > file_budget:
+                    raise EvidenceRetentionError("authority JSON file limit exceeded")
+                pending.append((
+                    {"paths": inventory["event_paths"]}, manifest, graph_depth + 1,
+                ))
+        traversal_payload = _native_authority_reference_payload(payload)
+        stack = [(iter((("", traversal_payload),)), {}, None, 0, False)]
+        while stack:
+            iterator, siblings, fixed_key, depth, inherited_seal = stack[-1]
+            try:
+                raw_key, value = next(iterator)
+            except StopIteration:
+                stack.pop()
+                continue
+            if fixed_key is None and not isinstance(raw_key, str):
+                raise EvidenceRetentionError("authority JSON keys must be strings")
+            key = raw_key if fixed_key is None else fixed_key
+            sealed = inherited_seal or str(raw_key).lower() == "test"
+            values += 1
+            if values > MAX_AUTHORITY_VALUES or depth > MAX_AUTHORITY_DEPTH:
+                raise EvidenceRetentionError("authority JSON value/depth limit exceeded")
+            declared = key in _REFERENCE_KEYS or key.endswith(_REFERENCE_SUFFIXES)
+            multiple = key == "paths" or key.endswith("_paths")
+            if (
+                declared and key not in {"manifest", "artifact"}
+                and isinstance(value, (Mapping, list))
+            ):
+                raise EvidenceRetentionError(
+                    f"authority reference {key} must be a path string"
+                )
+            if multiple and not isinstance(value, (Mapping, list)):
+                raise EvidenceRetentionError(f"authority reference {key} must be a path inventory")
+            if isinstance(value, Mapping):
+                if fixed_key is None and not sealed and _semantic_authority_mapping(value, key=key):
+                    continue
+                stack.append((
+                    iter(value.items()), value, "path" if multiple else None,
+                    depth + 1, sealed,
+                ))
+                continue
+            if isinstance(value, list):
+                stack.append((
+                    enumerate(value), {}, "path" if multiple else key,
+                    depth + 1, sealed,
+                ))
+                continue
+            absolute = isinstance(value, str) and value.startswith("/")
+            if not declared and not absolute:
+                continue
+            expected_hash = (
+                None if key == "json_path" and value == str(manifest)
+                else _reference_hash(siblings, key)
+            )
+            if value is None and expected_hash is None:
+                continue
+            if not isinstance(value, str):
+                raise EvidenceRetentionError(f"authority reference {key} must be a path string")
+            lexical = Path(value)
+            if (
+                sealed or key.lower().startswith("test_")
+                or any(part.lower() == "test" for part in lexical.parts)
+                or re.match(r"test[_.-]", lexical.name, re.IGNORECASE)
+            ):
+                raise EvidenceRetentionError(
+                    "sealed TEST reachability requires separate authority; "
+                    "no TEST path was opened"
+                )
+            reference = _authority_reference_path(value, manifest=manifest)
+            protected.add(reference)
+            if reference.suffix.lower() == ".order":
+                raise EvidenceRetentionError(
+                    "publication-order witnesses require explicit authority-scope "
+                    f"retention and bounded history dependency proof: {reference}"
+                )
+            metadata = (
+                reference.suffix.lower() == ".json"
+                or "manifest" in key.split("_") or "json" in key.split("_")
+            )
+            if reference.suffix.lower() == ".jsonl":
+                raise EvidenceRetentionError(
+                    f"unresolved authority JSONL dependencies: {reference}"
+                )
+            if not metadata:
+                if reference in scoped_roots:
+                    continue
+                if key.startswith(("out_", "deleted_")) and not reference.exists():
+                    continue
+                if not reference.exists():
+                    raise EvidenceRetentionError(f"unresolved authority reference: {reference}")
+                if not reference.is_file() and not reference.is_dir():
+                    raise EvidenceRetentionError(f"unsupported authority reference: {reference}")
+                if reference.is_dir() and reference not in directories:
+                    directories.add(reference)
+                    found = []
+                    for name in _DIRECTORY_MANIFEST_NAMES:
+                        candidate = reference / name
+                        if candidate.exists() or candidate.is_symlink():
+                            found.append(str(candidate))
+                    if not found:
+                        raise EvidenceRetentionError(
+                            f"unresolved authority directory manifest: {reference}"
+                        )
+                    pending.append(({"paths": found}, manifest, graph_depth + 1))
+                continue
+            if reference in visited:
+                if expected_hash is not None and visited[reference] != expected_hash:
+                    raise EvidenceRetentionError(
+                        f"authority JSON SHA-256 mismatch: {reference}"
+                    )
+                continue
+            if reference in bindings:
+                if expected_hash is not None:
+                    if bindings[reference] not in (None, expected_hash):
+                        raise EvidenceRetentionError(
+                            f"authority JSON SHA-256 mismatch: {reference}"
+                        )
+                    bindings[reference] = expected_hash
+                continue
+            if len(bindings) >= file_budget:
+                raise EvidenceRetentionError("authority JSON file limit exceeded")
+            bindings[reference] = expected_hash
+            pending.append((None, reference, graph_depth + 1))
+        payload = None
+        traversal_payload = None
+        value = None
+        siblings = None
+    for event, expected in event_scopes.items():
+        scope_bytes = sum(
+            document_sizes[Path(path)]
+            for path in (*expected["event_paths"], *expected["witness_paths"])
+        )
+        observed = _authority_event_inventory(
+            event, expected["event_prefix"],
+            authority_root=Path(expected["authority_root"]),
+            scope_dir_glob=expected["scope_dir_glob"],
+            max_total_bytes=byte_budget - total_bytes + scope_bytes,
+            max_events=file_budget - len(visited) + len(expected["event_paths"]),
+        )
+        if observed != expected:
+            raise EvidenceRetentionError("publication authority changed during traversal")
     return tuple(sorted(protected, key=lambda item: item.as_posix()))
 
 
@@ -434,7 +880,7 @@ def build_cleanup_plan_payload(
     vedtak: str,
     artifact_registry_json: Path,
     launch_contract_json: Path,
-    delete_incident_json: Path = CANONICAL_DELETE_INCIDENT,
+    delete_incident_json: Path | None = None,
     inventory_dir: Path,
     created_utc: str,
     allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
@@ -461,35 +907,29 @@ def build_cleanup_plan_payload(
         must_exist=True,
     )
     incident = _canonical_path(
-        delete_incident_json,
+        delete_incident_json or CANONICAL_DELETE_INCIDENT,
         context="delete incident",
         must_exist=True,
     )
     if not targets:
         raise EvidenceRetentionError("cleanup plan has no targets")
-    registry_sha = sha256_file(registry)
-    launch_sha = sha256_file(launch)
-    incident_sha = sha256_file(incident)
-    registry_payload = _strict_json(
-        registry,
-        registry_sha,
-        context="artifact registry",
+    registry_payload, registry_sha, _ = _authority_json(
+        registry, byte_limit=MAX_AUTHORITY_JSON_BYTES,
     )
-    launch_payload = _strict_json(
-        launch,
-        launch_sha,
-        context="launch contract",
+    launch_payload, launch_sha, _ = _authority_json(
+        launch, byte_limit=MAX_AUTHORITY_JSON_BYTES,
     )
-    incident_payload = _strict_json(
-        incident,
-        incident_sha,
-        context="delete incident",
+    incident_payload, incident_sha, _ = _authority_json(
+        incident, byte_limit=MAX_AUTHORITY_JSON_BYTES,
     )
     protected = set(
         authority_protected_paths(
             registry_payload,
             launch_payload,
             incident_payload,
+            artifact_registry_json=registry,
+            launch_contract_json=launch,
+            delete_incident_json=incident,
         )
     )
     protected.update((registry, launch, incident))
@@ -574,7 +1014,7 @@ def validate_cleanup_plan(
     allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
     required_artifact_registry_json: Path = CANONICAL_ARTIFACT_REGISTRY,
     required_launch_contract_json: Path = CANONICAL_LAUNCH_CONTRACT,
-    required_delete_incident_json: Path = CANONICAL_DELETE_INCIDENT,
+    required_delete_incident_json: Path | None = None,
     verify_target_bytes: bool = True,
     require_targets_exist: bool = True,
 ) -> dict[str, Any]:
@@ -583,9 +1023,15 @@ def validate_cleanup_plan(
     plan_path = _canonical_path(plan_json, context="cleanup plan", must_exist=True)
     plan_hash = _exact_sha256(plan_sha256, context="cleanup plan hash")
     plan = _strict_json(plan_path, plan_hash, context="cleanup plan")
+    plan_usage: dict[str, int] = {}
     try:
-        require_newest_immutable_event(plan_path, PLAN_EVENT_PREFIX)
-    except ImmutableEventAuthorityError as exc:
+        plan_scope = _authority_event_inventory(
+            plan_path, PLAN_EVENT_PREFIX, authority_root=plan_path.parent,
+            usage=plan_usage,
+        )
+        if plan_scope["selected_event_path"] != str(plan_path):
+            raise EvidenceRetentionError("requested cleanup plan is not the selected publication")
+    except EvidenceRetentionError as exc:
         raise EvidenceRetentionError(
             f"cleanup plan is not newest immutable authority: {exc}"
         ) from exc
@@ -632,7 +1078,7 @@ def validate_cleanup_plan(
         must_exist=True,
     )
     required_incident = _canonical_path(
-        required_delete_incident_json,
+        required_delete_incident_json or CANONICAL_DELETE_INCIDENT,
         context="required delete incident",
         must_exist=True,
     )
@@ -659,7 +1105,23 @@ def validate_cleanup_plan(
     registry = _strict_json(registry_path, registry_sha, context="artifact registry")
     launch = _strict_json(launch_path, launch_sha, context="launch contract")
     incident = _strict_json(incident_path, incident_sha, context="delete incident")
-    protected = set(authority_protected_paths(registry, launch, incident))
+    protected = set(authority_protected_paths(
+        registry, launch, incident,
+        artifact_registry_json=registry_path,
+        launch_contract_json=launch_path,
+        delete_incident_json=incident_path,
+        _reserved_bytes=plan_usage["total_bytes"],
+        _reserved_json_files=plan_usage["json_files"],
+    ))
+    revalidated_plan_scope = _authority_event_inventory(
+        plan_path, PLAN_EVENT_PREFIX, authority_root=plan_path.parent,
+        max_total_bytes=plan_usage["total_bytes"], max_events=plan_usage["json_files"],
+    )
+    if revalidated_plan_scope != plan_scope:
+        raise EvidenceRetentionError("cleanup plan publication authority changed during traversal")
+    protected.add(Path(plan_scope["authority_root"]))
+    protected.update(Path(path) for path in plan_scope["event_paths"])
+    protected.update(Path(path) for path in plan_scope["witness_paths"])
     protected.update((plan_path, registry_path, launch_path, incident_path))
 
     target_values = plan.get("targets")

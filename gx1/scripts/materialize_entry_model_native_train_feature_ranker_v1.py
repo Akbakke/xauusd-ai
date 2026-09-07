@@ -98,7 +98,7 @@ from gx1.scripts.materialize_current_pair_source_cascade_proof_v1 import (
 
 
 RANKING_EVENT_PREFIX = "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING"
-RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v10"
+RANKER_CHECKPOINT_SCHEMA_VERSION = "entry_model_native_train_feature_ranker_checkpoint_v11"
 _RANKING_OUTPUT_RE = re.compile(
     rf"^{RANKING_EVENT_PREFIX}_(\d{{8}}T\d{{6}}(?:\d{{6}})?Z)\.json$"
 )
@@ -549,7 +549,11 @@ def _direction_executable_pnl_margin_target(
         fill_surface=surface, closed_m1=prepared_m1, horizon_m5_bars=horizon_bars
     )
     target = np.full(len(frame), np.nan, dtype=np.float64)
-    valid = terminal["outcome_valid"].to_numpy(dtype=bool)
+    valid = (
+        terminal["outcome_valid"]
+        & terminal["exit_decision_at"].notna()
+        & (terminal["exit_decision_at"] <= train_end)
+    ).to_numpy(dtype=bool)
     valid_rows = np.flatnonzero(valid)
     targets = causal_m1_direction_targets_from_policy(
         policy=policy,

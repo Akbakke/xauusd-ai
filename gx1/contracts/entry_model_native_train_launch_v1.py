@@ -815,6 +815,7 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
             SEQUENCE_INTEGRITY_AUDIT_RELATIVE_PATH,
             SEQUENCE_SOURCE_RECONSTRUCTION_CONTRACT_RELATIVE_PATH,
             SEQUENCE_SOURCE_RECONSTRUCTION_AUDIT_RELATIVE_PATH,
+            "gx1/scripts/audit_entry_exit_feature_usefulness_v1.py",
             "gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
         )
     ]

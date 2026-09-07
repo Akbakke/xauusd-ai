@@ -12,7 +12,12 @@ import pytest
 from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
     canonical_json_sha256,
 )
-from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+from gx1.contracts.immutable_event_authority_v1 import (
+    ImmutableEventAuthorityError,
+    next_immutable_event_created_utc,
+    require_newest_immutable_event,
+    write_immutable_json_event,
+)
 from gx1.scripts import verify_entry_pretest_trainability_readiness_v1 as readiness
 from gx1.scripts import verify_entry_candidate_readiness_v1 as candidate_readiness
 from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import artifact_binding
@@ -190,6 +195,14 @@ def test_direct_pretest_handover_uses_exact_evidence_not_legacy_reports(
         "--out-dir", str(tmp_path / "readiness"),
     ]))
     path = Path(report["json_path"])
+    original_path = path
+    original_bytes = path.read_bytes()
+    semantic_mutation_errors = {
+        "nested-hash": "pretest handover nested binding changed: smoke_recipe",
+        "open-authority": "pretest handover readiness contract invalid",
+        "wrong-dataset": "pretest handover dataset/run identity mismatch",
+        "false-check": "pretest handover readiness contract invalid",
+    }
     if mutation == "nested-hash":
         report["input_bindings"]["smoke_recipe"]["sha256"] = "0" * 64
         report["input_bindings_sha256"] = canonical_json_sha256(report["input_bindings"])
@@ -199,8 +212,17 @@ def test_direct_pretest_handover_uses_exact_evidence_not_legacy_reports(
         report["dataset_dir"] = str(tmp_path / "wrong-dataset")
     elif mutation == "false-check":
         report["checks"][0]["ok"] = False
-    # These mutations exercise the consumer with an intact outer file hash.
-    path.write_text(json.dumps(report, sort_keys=True))
+    if mutation in semantic_mutation_errors:
+        report["created_utc"] = next_immutable_event_created_utc(
+            path.parent, readiness.EVENT_PREFIX
+        ).isoformat()
+        path, report = write_immutable_json_event(
+            path.parent, readiness.EVENT_PREFIX, report
+        )
+        assert path != original_path
+    assert original_path.read_bytes() == original_bytes
+    assert require_newest_immutable_event(path, readiness.EVENT_PREFIX) == path
+    assert json.loads(path.read_text()) == report
     selected = json.loads(smoke.read_text())
     state = {
         "decision": "BLOCK", "latest_terminal_event_id": "NO_CURRENT_ADMITTED_EVENT",
@@ -231,7 +253,7 @@ def test_direct_pretest_handover_uses_exact_evidence_not_legacy_reports(
     elif mutation == "audit-changed":
         Path(selected["artifact_bindings"]["feature_audit"]["path"]).write_text("{}")
     if mutation is not None:
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match=semantic_mutation_errors.get(mutation)):
             require_blocked_launch_state_with_current_audited_dataset(state)
     else:
         summary = require_blocked_launch_state_with_current_audited_dataset(state)
@@ -239,6 +261,42 @@ def test_direct_pretest_handover_uses_exact_evidence_not_legacy_reports(
         assert summary["dataset_run_id"] == selected["dataset_run_id"]
         assert summary["report_count"] == 4
         assert state["accepted_bundle_dir"] is None
+
+
+@pytest.mark.parametrize("mutation", ["serialization", "open-authority"])
+def test_published_pretest_readiness_tamper_is_rejected_with_refreshed_reference(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str,
+) -> None:
+    candidate, candidate_sha, smoke, smoke_sha, pretrain = _recipes(tmp_path)
+    monkeypatch.setattr(
+        readiness, "require_training_recipe_source_provenance",
+        lambda **_kwargs: {"source_commit": "a" * 40},
+    )
+    report = readiness.run(readiness.build_parser().parse_args([
+        "--candidate-recipe-json", str(candidate),
+        "--candidate-recipe-sha256", candidate_sha,
+        "--smoke-recipe-json", str(smoke), "--smoke-recipe-sha256", smoke_sha,
+        "--pretrain-audit-json", str(pretrain), "--repo-dir", str(tmp_path),
+        "--out-dir", str(tmp_path / "readiness"),
+    ]))
+    path = Path(report["json_path"])
+    witness = path.with_name(f".{path.name}.order")
+    witness_bytes = witness.read_bytes()
+    original_sha = _sha(path)
+    assert require_newest_immutable_event(path, readiness.EVENT_PREFIX) == path
+    if mutation == "serialization":
+        path.write_bytes(path.read_bytes() + b"\n")
+        assert json.loads(path.read_text()) == report
+    else:
+        report["candidate_training_allowed"] = True
+        path.write_text(json.dumps(report, sort_keys=True), encoding="utf-8")
+    observed = artifact_binding(path)
+    assert observed["sha256"] != original_sha
+    with pytest.raises(ImmutableEventAuthorityError, match="publication order event hash mismatch"):
+        readiness.require_pretest_trainability_readiness(
+            path, observed["sha256"], selected_recipe=json.loads(smoke.read_text())
+        )
+    assert witness.read_bytes() == witness_bytes
 
 
 @pytest.mark.parametrize("mutation", [None, "smoke-source", "dirty-source"])

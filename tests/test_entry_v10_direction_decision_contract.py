@@ -25,6 +25,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     model_direction_decision_contract_metadata,
     require_model_direction_decision_contract,
     require_model_direction_operating_point,
+    require_unified_entry_exit_contract,
     require_unified_exit_output,
     require_unified_exit_path_envelope,
     unified_exit_path_tensor,
@@ -34,6 +35,15 @@ from tests.unified_exit_input_support import (
     unified_exit_carry_fixture,
     unified_exit_input_fixture,
 )
+
+
+def test_unified_contract_rejects_retired_static_path_encoder_metadata() -> None:
+    contract = unified_entry_exit_contract_metadata()
+    assert "exit_path_encoder_layers" not in contract
+    assert require_unified_entry_exit_contract({"unified_entry_exit_contract": contract}, context="TEST") == contract
+    stale = {**contract, "exit_path_encoder_layers": 2}
+    with pytest.raises(RuntimeError, match="unexpected=.*exit_path_encoder_layers"):
+        require_unified_entry_exit_contract({"unified_entry_exit_contract": stale}, context="TEST")
 
 
 def test_model_direction_decision_contract_is_exact_and_rule_free() -> None:

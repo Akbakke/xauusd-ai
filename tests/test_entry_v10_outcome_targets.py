@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
+from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 
@@ -608,11 +610,14 @@ def _strict_native_pair_fixture(
 
 def _strict_pretest_quote_authority_fixture(
     tmp_path: Path,
+    *,
+    successor_end: str = "2026-01-01T09:25:00Z",
 ) -> tuple[Path, Path, Path]:
     """Build a V3 pre-TEST pair plus a quote-complete M1 source fixture."""
 
     generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
         tmp_path,
+        successor_end=successor_end,
     )
     binding = incremental.read_prebuilt_pair_manifest(
         generation_manifest,
@@ -838,7 +843,12 @@ def _write_exact_m1_feature_surface_fixture(
     )
     surface_manifest = Path(f"{surface}.manifest.json")
     registry_artifact = enriched_manifest
-    squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
+    squeeze_source = tmp_path / "owned-squeeze-source.py"
+    with squeeze_source.open("xb") as handle:
+        handle.write(Path(__file__).read_bytes())
+    squeeze_artifacts = make_volatility_squeeze_artifact_set(
+        tmp_path, source_provenance_path=squeeze_source,
+    )
     manifest = build_entry_exit_feature_surface_manifest(
         timeframe="M1",
         dataset_run_id=dataset_run_id,
@@ -1356,12 +1366,13 @@ def test_unified_exit_lifecycle_rejects_price_scale_corruption() -> None:
         )
 
 
-@pytest.mark.parametrize("lifecycle_end_extension_minutes", [0, 1])
-def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
+def _lifecycle_corpus_fixture(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    lifecycle_end_extension_minutes: int,
-) -> None:
+    *,
+    lifecycle_end_extension_minutes: int = 0,
+    pretest_authority: bool = False,
+    selected_splits: tuple[str, ...] = ("train", "val"),
+) -> SimpleNamespace:
     entries = pd.DataFrame(
         {
             "time": pd.to_datetime(
@@ -1373,15 +1384,29 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
             )
         }
     )
-    generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
-        tmp_path,
-        successor_end="2026-01-02T06:00:00Z",
-        trend_prices=True,
-    )
-    m1_source, m1_authority = require_unified_exit_m1_pair_authority(
-        pair_manifest_path=generation_manifest,
-        pair_generation_root=generation_root,
-    )
+    if pretest_authority:
+        pair_path, quote_manifest, _quote_parquet = (
+            _strict_pretest_quote_authority_fixture(
+                tmp_path,
+                successor_end="2026-01-02T06:00:00Z",
+            )
+        )
+        m1_source, m1_authority = (
+            unified_exit_lifecycle.require_unified_exit_pretest_m1_quote_authority(
+                pair_lineage_path=pair_path,
+                quote_source_manifest_path=quote_manifest,
+            )
+        )
+    else:
+        generation_manifest, generation_root, _pointer = _strict_native_pair_fixture(
+            tmp_path,
+            successor_end="2026-01-02T06:00:00Z",
+            trend_prices=True,
+        )
+        m1_source, m1_authority = require_unified_exit_m1_pair_authority(
+            pair_manifest_path=generation_manifest,
+            pair_generation_root=generation_root,
+        )
     source = pd.read_parquet(m1_source)
     assert len(source) == m1_authority["m1_source_rows"] == 1800
     m1_feature_base, m1_feature_manifest = (
@@ -1399,7 +1424,8 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
     bindings: dict[str, dict[str, object]] = {}
     entry_paths: dict[str, Path] = {}
     entry_manifest_bindings: dict[str, dict[str, str]] = {}
-    for split in ("train", "val", "test"):
+    physical_splits = ("train", "val") if pretest_authority else ("train", "val", "test")
+    for split in physical_splits:
         entry_path = tmp_path / f"entry_{split}_20260101T000000Z.parquet"
         entries.to_parquet(entry_path, index=False)
         entry_paths[split] = entry_path
@@ -1532,10 +1558,36 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
 
     corpus_args = dict(
         root_manifest_path=root_manifest,
-        entry_parquets={name: entry_paths[name] for name in ("train", "val")},
-        entry_manifest_bindings={name: entry_manifest_bindings[name] for name in ("train", "val")},
+        entry_parquets={name: entry_paths[name] for name in selected_splits},
+        entry_manifest_bindings={name: entry_manifest_bindings[name] for name in selected_splits},
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
+        splits=selected_splits,
     )
+    return SimpleNamespace(
+        arguments=corpus_args,
+        entry_paths=entry_paths,
+        entry_manifest_bindings=entry_manifest_bindings,
+        lifecycle_dir=lifecycle_dir,
+        episodes=episodes,
+    )
+
+
+@pytest.mark.parametrize("lifecycle_end_extension_minutes", [0, 1])
+def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    lifecycle_end_extension_minutes: int,
+) -> None:
+    fixture = _lifecycle_corpus_fixture(
+        tmp_path,
+        lifecycle_end_extension_minutes=lifecycle_end_extension_minutes,
+    )
+    corpus_args = fixture.arguments
+    entry_paths = fixture.entry_paths
+    entry_manifest_bindings = fixture.entry_manifest_bindings
+    lifecycle_dir = fixture.lifecycle_dir
+    root_manifest = corpus_args["root_manifest_path"]
+    episodes = fixture.episodes
     if lifecycle_end_extension_minutes:
         with pytest.raises(RuntimeError, match="ENTRY_SPLIT_END_MISMATCH: train"):
             UnifiedExitLifecycleCorpus(**corpus_args)
@@ -1603,6 +1655,396 @@ def test_unified_exit_lifecycle_corpus_replays_only_causal_prefixes(
         dataset_run_id="EXIT_LIFECYCLE_PYTEST_V1",
     )
     assert set(prefreeze_corpus.splits) == {"train", "val"}
+
+
+@pytest.fixture(scope="module", params=[False, True], ids=["legacy", "pretest"])
+def lifecycle_file_readmission_fixture(
+    tmp_path_factory: pytest.TempPathFactory,
+    request: pytest.FixtureRequest,
+):
+    """Synthetic file-backed owner checks, not real-data or inference proof."""
+
+    fixture = _lifecycle_corpus_fixture(
+        tmp_path_factory.mktemp("lifecycle-readmission"),
+        pretest_authority=request.param,
+        selected_splits=("val",),
+    )
+    fixture.pretest_authority = request.param
+    fixture.corpus = UnifiedExitLifecycleCorpus(**fixture.arguments)
+    try:
+        yield fixture
+    finally:
+        fixture.corpus._m1_feature_tempdir.cleanup()
+
+
+def _require_lifecycle_fixture_owned_path(
+    fixture: SimpleNamespace,
+    path: Path,
+) -> Path:
+    resolved = path.resolve()
+    assert resolved.is_relative_to(fixture.lifecycle_dir.parent.resolve(strict=True))
+    return resolved
+
+
+def _lifecycle_file_readmission_paths(fixture: SimpleNamespace) -> dict[str, Path]:
+    evidence = fixture.corpus.evidence
+    authority = evidence["m1_authority"]
+    feature_manifest = Path(evidence["m1_feature_base_manifest_path"])
+    feature = json.loads(feature_manifest.read_text(encoding="utf-8"))
+    squeeze_manifest = Path(
+        feature["volatility_squeeze_artifact_set"]["manifest_path"]
+    )
+    squeeze = json.loads(squeeze_manifest.read_text(encoding="utf-8"))
+    native_manifest = Path(authority["native_m1_manifest_path"])
+    native = json.loads(native_manifest.read_text(encoding="utf-8"))
+    native_root = Path(authority["native_m1_root"])
+    paths = {
+        "root": fixture.arguments["root_manifest_path"],
+        "entry_manifest": Path(fixture.entry_manifest_bindings["val"]["path"]),
+        "lifecycle_manifest": (
+            fixture.lifecycle_dir / "val_unified_exit_lifecycle.manifest.json"
+        ),
+        "feature_manifest": feature_manifest,
+        "authority_manifest": Path(
+            authority["m1_source_manifest_path"]
+            if fixture.pretest_authority
+            else authority["pair_manifest_path"]
+        ),
+        "pair_manifest": Path(authority["pair_manifest_path"]),
+        "native_manifest": native_manifest,
+        "entry_parquet": fixture.entry_paths["val"],
+        "lifecycle_parquet": (
+            fixture.lifecycle_dir / "val_unified_exit_lifecycle.parquet"
+        ),
+        "m1_source": Path(evidence["m1_source_path"]),
+        "m1_features": Path(evidence["m1_feature_base_path"]),
+        "enriched_source": Path(feature["source_parquet"]),
+        "registry_manifest": Path(feature["registry_fit_binding"]["artifact_path"]),
+        "signal_manifest": Path(feature["seq_structure_manifest"]),
+        "squeeze_manifest": squeeze_manifest,
+        "squeeze_params": Path(squeeze["artifacts"]["M1"]["params_artifact"]),
+        "squeeze_source": Path(squeeze["artifacts"]["M1"]["source_artifact"]),
+        "native_chunk": native_root / native["source_chunks"][0]["relative_path"],
+        "native_year": native_root / "year=2026" / "part-000.parquet",
+        "native_parent_manifest": (
+            fixture.lifecycle_dir.parent / "native-m1-parent" / "MANIFEST.json"
+        ),
+        "native_parent_year": (
+            fixture.lifecycle_dir.parent
+            / "native-m1-parent"
+            / "year=2026"
+            / "part-000.parquet"
+        ),
+    }
+    return {
+        role: _require_lifecycle_fixture_owned_path(fixture, path)
+        for role, path in paths.items()
+    }
+
+
+def test_lifecycle_file_readmission_reuses_full_owners_without_corpus_reconstruction(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    corpus = fixture.corpus
+    evidence = deepcopy(corpus.evidence)
+    split_contract = corpus.splits["val"]
+    arrays = {
+        **{f"quotes.{name}": values for name, values in split_contract._m1.items()},
+        **{
+            f"features.{name}": values
+            for name, values in split_contract._m1_features.items()
+        },
+    }
+    array_state = {
+        name: (id(values), values.tobytes()) for name, values in arrays.items()
+    }
+    scratch = Path(corpus._m1_feature_tempdir.name)
+    scratch_state = {
+        path.name: (sha256_file(path), path.stat().st_mode, path.stat().st_mtime_ns)
+        for path in scratch.iterdir()
+    }
+    forbidden_split_paths = {
+        path.absolute()
+        for split in ("train", "test")
+        for path in (
+            fixture.lifecycle_dir.parent / f"entry_{split}_20260101T000000Z.parquet",
+            fixture.lifecycle_dir.parent / f"entry_{split}_20260101T000000Z.manifest.json",
+            fixture.lifecycle_dir / f"{split}_unified_exit_lifecycle.parquet",
+            fixture.lifecycle_dir / f"{split}_unified_exit_lifecycle.manifest.json",
+        )
+    }
+    forbidden_row_reads = forbidden_split_paths | {
+        fixture.entry_paths["val"].absolute(),
+        (fixture.lifecycle_dir / "val_unified_exit_lifecycle.parquet").absolute(),
+    }
+    original_stat = Path.stat
+    original_open = Path.open
+    original_read_parquet = pd.read_parquet
+
+    def deny_unselected_stat(path: Path, *args: object, **kwargs: object):
+        assert path.absolute() not in forbidden_split_paths, str(path)
+        return original_stat(path, *args, **kwargs)
+
+    def deny_unselected_open(path: Path, *args: object, **kwargs: object):
+        assert path.absolute() not in forbidden_split_paths, str(path)
+        return original_open(path, *args, **kwargs)
+
+    def deny_corpus_row_reads(path: Path, *args: object, **kwargs: object):
+        assert Path(path).absolute() not in forbidden_row_reads, str(path)
+        return original_read_parquet(path, *args, **kwargs)
+
+    def deny_reconstruction(*args: object, **kwargs: object):
+        raise AssertionError("file readmission reconstructed corpus storage")
+
+    authority_name = (
+        "require_unified_exit_pretest_m1_quote_authority"
+        if fixture.pretest_authority
+        else "require_unified_exit_m1_pair_authority"
+    )
+    authority = mock.Mock(wraps=getattr(unified_exit_lifecycle, authority_name))
+    surface = mock.Mock(
+        wraps=unified_exit_lifecycle.require_exact_m1_feature_surface_manifest
+    )
+    monkeypatch.setattr(unified_exit_lifecycle, authority_name, authority)
+    monkeypatch.setattr(
+        unified_exit_lifecycle, "require_exact_m1_feature_surface_manifest", surface
+    )
+    monkeypatch.setattr(Path, "stat", deny_unselected_stat)
+    monkeypatch.setattr(Path, "open", deny_unselected_open)
+    monkeypatch.setattr(pd, "read_parquet", deny_corpus_row_reads)
+    monkeypatch.setattr(UnifiedExitLifecycleCorpus, "__init__", deny_reconstruction)
+    monkeypatch.setattr(UnifiedExitLifecycleSplit, "__init__", deny_reconstruction)
+    monkeypatch.setattr(unified_exit_lifecycle, "_validated_m1_arrays", deny_reconstruction)
+    monkeypatch.setattr(unified_exit_lifecycle, "load_m1_feature_surface", deny_reconstruction)
+    monkeypatch.setattr(
+        unified_exit_lifecycle.tempfile, "TemporaryDirectory", deny_reconstruction
+    )
+
+    assert corpus.require_files_unchanged() is None
+
+    authority.assert_called_once()
+    surface.assert_called_once()
+    assert set(corpus.splits) == {"val"}
+    assert corpus.splits["val"] is split_contract
+    assert corpus.evidence == evidence
+    assert array_state == {
+        name: (id(values), values.tobytes()) for name, values in arrays.items()
+    }
+    assert scratch_state == {
+        path.name: (sha256_file(path), path.stat().st_mode, path.stat().st_mtime_ns)
+        for path in scratch.iterdir()
+    }
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        "root",
+        "entry_manifest",
+        "lifecycle_manifest",
+        "feature_manifest",
+        "authority_manifest",
+        "pair_manifest",
+        "native_manifest",
+    ],
+)
+def test_lifecycle_file_readmission_pins_original_manifest_bytes_before_new_refs(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    role: str,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    path = _lifecycle_file_readmission_paths(fixture)[role]
+    original = path.read_bytes()
+    parser = mock.Mock(side_effect=AssertionError("changed manifest was parsed"))
+    monkeypatch.setattr(unified_exit_lifecycle, "_read_exact_json", parser)
+    path.write_bytes(original + b"\n")
+    try:
+        with pytest.raises(RuntimeError, match="MANIFEST_CHANGED"):
+            fixture.corpus.require_files_unchanged()
+        parser.assert_not_called()
+    finally:
+        path.write_bytes(original)
+
+
+def test_lifecycle_file_readmission_rejects_replaced_root_before_following_redirect(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    path = _require_lifecycle_fixture_owned_path(
+        fixture, fixture.arguments["root_manifest_path"]
+    )
+    original = path.read_bytes()
+    root = json.loads(original)
+    root["m1_authority"]["pair_manifest_path"] = str(
+        fixture.lifecycle_dir.parent / "unadmitted-pair.json"
+    )
+    root["m1_authority_sha256"] = canonical_json_sha256(root["m1_authority"])
+    authority = mock.Mock(side_effect=AssertionError("followed replacement root"))
+    monkeypatch.setattr(
+        unified_exit_lifecycle, "require_unified_exit_m1_pair_authority", authority
+    )
+    monkeypatch.setattr(
+        unified_exit_lifecycle, "require_unified_exit_pretest_m1_quote_authority", authority
+    )
+    path.write_text(json.dumps(root, sort_keys=True), encoding="utf-8")
+    try:
+        with pytest.raises(RuntimeError, match="ROOT_MANIFEST_CHANGED"):
+            fixture.corpus.require_files_unchanged()
+        authority.assert_not_called()
+    finally:
+        path.write_bytes(original)
+
+
+@pytest.mark.parametrize(
+    "role",
+    [
+        "entry_parquet",
+        "lifecycle_parquet",
+        "m1_source",
+        "m1_features",
+        "enriched_source",
+        "registry_manifest",
+        "signal_manifest",
+        "squeeze_manifest",
+        "squeeze_params",
+        "squeeze_source",
+        "native_chunk",
+        "native_year",
+        "native_parent_manifest",
+        "native_parent_year",
+    ],
+)
+def test_lifecycle_file_readmission_rejects_file_and_transitive_source_tamper(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    role: str,
+) -> None:
+    """Real owner rejection of synthetic artifact bytes, without admission mocks."""
+
+    fixture = lifecycle_file_readmission_fixture
+    path = _lifecycle_file_readmission_paths(fixture)[role]
+    original = path.read_bytes()
+    admission = deepcopy(fixture.corpus._file_admission)
+    path.write_bytes(original + b"\n")
+    try:
+        with pytest.raises(RuntimeError):
+            fixture.corpus.require_files_unchanged()
+        assert fixture.corpus._file_admission == admission
+    finally:
+        path.write_bytes(original)
+
+
+def test_lifecycle_file_readmission_rechecks_native_directory_inventory(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    native_root = Path(fixture.corpus.evidence["m1_authority"]["native_m1_root"])
+    extra_chunk = _require_lifecycle_fixture_owned_path(
+        fixture, native_root / "source_chunks" / "chunk-999999.json.gz"
+    )
+    with extra_chunk.open("xb") as handle:
+        handle.write(b"unadmitted synthetic chunk")
+    try:
+        with pytest.raises(RuntimeError, match="SOURCE_CHUNK"):
+            fixture.corpus.require_files_unchanged()
+    finally:
+        extra_chunk.unlink()
+
+
+def test_lifecycle_file_readmission_rechecks_root_after_full_authority(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    path = _require_lifecycle_fixture_owned_path(
+        fixture, fixture.arguments["root_manifest_path"]
+    )
+    original = path.read_bytes()
+    authority_name = (
+        "require_unified_exit_pretest_m1_quote_authority"
+        if fixture.pretest_authority
+        else "require_unified_exit_m1_pair_authority"
+    )
+    original_authority = getattr(unified_exit_lifecycle, authority_name)
+
+    def mutate_root_after_authority(**kwargs: object):
+        result = original_authority(**kwargs)
+        path.write_bytes(original + b"\n")
+        return result
+
+    monkeypatch.setattr(
+        unified_exit_lifecycle, authority_name, mutate_root_after_authority
+    )
+    try:
+        with pytest.raises(RuntimeError, match="MANIFEST_CHANGED"):
+            fixture.corpus.require_files_unchanged()
+    finally:
+        path.write_bytes(original)
+
+
+def test_lifecycle_file_readmission_retains_detached_opening_arguments(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    monkeypatch.setitem(
+        fixture.arguments["entry_parquets"],
+        "val",
+        fixture.lifecycle_dir.parent / "unadmitted-entry.parquet",
+    )
+    monkeypatch.setitem(
+        fixture.arguments["entry_manifest_bindings"]["val"], "sha256", "0" * 64
+    )
+    assert fixture.corpus.require_files_unchanged() is None
+
+
+def test_lifecycle_file_readmission_compares_admitted_metadata(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mechanical return-value drift test; byte tamper coverage uses real owners."""
+
+    original_owner = unified_exit_lifecycle.require_exact_m1_feature_surface_manifest
+
+    def changed_metadata(**kwargs: object):
+        result = deepcopy(original_owner(**kwargs))
+        result["materialization"]["batch_rows"] += 1
+        return result
+
+    monkeypatch.setattr(
+        unified_exit_lifecycle,
+        "require_exact_m1_feature_surface_manifest",
+        changed_metadata,
+    )
+    with pytest.raises(RuntimeError, match="FILE_ADMISSION_CHANGED"):
+        lifecycle_file_readmission_fixture.corpus.require_files_unchanged()
+
+
+@pytest.mark.parametrize("role", ["entry_parquet", "lifecycle_parquet"])
+def test_lifecycle_constructor_admits_selected_files_before_m1_allocation(
+    lifecycle_file_readmission_fixture: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    role: str,
+) -> None:
+    fixture = lifecycle_file_readmission_fixture
+    path = _lifecycle_file_readmission_paths(fixture)[role]
+    original = path.read_bytes()
+    allocation = mock.Mock(side_effect=AssertionError("allocated before file admission"))
+    monkeypatch.setattr(unified_exit_lifecycle, "_validated_m1_arrays", allocation)
+    monkeypatch.setattr(unified_exit_lifecycle, "load_m1_feature_surface", allocation)
+    monkeypatch.setattr(
+        unified_exit_lifecycle.tempfile, "TemporaryDirectory", allocation
+    )
+    path.write_bytes(original + b"\n")
+    try:
+        with pytest.raises(RuntimeError, match="IDENTITY_INVALID: val"):
+            UnifiedExitLifecycleCorpus(**fixture.arguments)
+        allocation.assert_not_called()
+    finally:
+        path.write_bytes(original)
 
 
 @pytest.mark.parametrize("defect", ["hash", "future_emission", "wrong_parquet", "wrong_run"])

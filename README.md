@@ -1,9 +1,16 @@
 # GX1 Engine
 
+**Current operator boundary, 2026-09-06:** source repairs and architecture/data
+review precede further large training. The launch-state review hold is active;
+older continuation instructions below are superseded. No cloud purchase,
+training restart or TEST access is part of this repair wave. See
+`docs/PRETRAIN_READINESS_REPAIR_20260906.md` for measured repair results,
+independent architecture/data reviews and prioritized build/remove decisions.
+
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.
 
-## Current re-entry status — 2026-09-06
+## Historical re-entry status — superseded by the review hold
 
 The operator approved recovery from the guard incident. A new standard session
 preserves all 7936 TRAIN steps and every learning-state component; the original

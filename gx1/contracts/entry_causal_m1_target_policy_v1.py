@@ -98,6 +98,21 @@ def canonical_causal_m1_target_policy_sha256(value: Any) -> str:
     ).hexdigest()
 
 
+def train_feature_ranking_target_contract() -> dict[str, Any]:
+    return {
+        **causal_m1_target_contract(),
+        "target": "train_fitted_exact_m1_executable_pnl_side_margin_bps",
+        "horizon_source": (
+            "entry_direction_target_policy.selected_direction_horizon_bars"
+        ),
+        "ranking_target_formula": (
+            "long_executable_pnl_bps-short_executable_pnl_bps"
+        ),
+        "handwritten_mfe_mae_path_weights": False,
+        "fit_scope": "train_only_full_horizons",
+    }
+
+
 def _selected_chord_knee(discovery_counts: np.ndarray) -> tuple[int, int]:
     counts = np.asarray(discovery_counts, dtype=np.int64)
     horizon = ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS

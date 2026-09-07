@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -1932,15 +1933,26 @@ def _require_entry_split_window_binding(
 class UnifiedExitLifecycleCorpus:
     """Load and cryptographically validate one immutable lifecycle directory."""
 
-    def __init__(
-        self,
+    @staticmethod
+    def _require_manifest_files_unchanged(
+        manifest_files: Sequence[tuple[str, str]],
+    ) -> None:
+        for path, expected_sha256 in manifest_files:
+            if sha256_file(Path(path)) != expected_sha256:
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_LIFECYCLE_MANIFEST_CHANGED: {path}"
+                )
+
+    @staticmethod
+    def _require_file_admission(
         *,
         root_manifest_path: Path,
         entry_parquets: Mapping[str, Path],
         entry_manifest_bindings: Mapping[str, Mapping[str, str]],
         dataset_run_id: str,
-        splits: Sequence[str] = ("train", "val"),
-    ) -> None:
+        splits: Sequence[str],
+        expected_admission: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
         architecture = current_entry_exit_architecture_observation()
         architecture["exit"]["max_path_bars"] = UNIFIED_EXIT_MAX_PATH_BARS
         require_entry_exit_production_architecture(
@@ -1966,6 +1978,16 @@ class UnifiedExitLifecycleCorpus:
         ):
             raise RuntimeError(
                 "UNIFIED_EXIT_LIFECYCLE_ROOT_MANIFEST_INVALID"
+            )
+        root_manifest_sha256 = sha256_file(manifest_path)
+        if expected_admission is not None:
+            if (
+                manifest_path != expected_admission["root_manifest_path"]
+                or root_manifest_sha256 != expected_admission["root_manifest_sha256"]
+            ):
+                raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ROOT_MANIFEST_CHANGED")
+            UnifiedExitLifecycleCorpus._require_manifest_files_unchanged(
+                expected_admission["manifest_files"]
             )
         root = manifest_path.parent
         # A pre-freeze TRAIN/VAL consumer must not enumerate, stat, hash or
@@ -2130,7 +2152,7 @@ class UnifiedExitLifecycleCorpus:
             or authority_m1_source_rows <= 0
         ):
             raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_SURFACE_BINDING_INVALID")
-        require_exact_m1_feature_surface_manifest(
+        m1_feature_manifest = require_exact_m1_feature_surface_manifest(
             manifest_path=m1_feature_manifest_path,
             expected_manifest_sha256=root_manifest[
                 "m1_feature_base_manifest_sha256"
@@ -2153,46 +2175,36 @@ class UnifiedExitLifecycleCorpus:
             context="UNIFIED_EXIT_M1_FEATURE_BASE_MANIFEST",
         )
 
-        # No source or feature matrix is allocated before every immutable
-        # feature-surface binding above has passed exactly.
-        m1_times, m1_arrays = _validated_m1_arrays(m1_path)
-        m1_feature_tempdir = tempfile.TemporaryDirectory(
-            prefix="gx1_m1_feature_surface_"
-        )
-        try:
-            m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
-                m1_feature_path,
-                context="UNIFIED_EXIT_LIFECYCLE",
-                storage_dir=Path(m1_feature_tempdir.name),
+        manifest_files = [
+            (str(manifest_path), root_manifest_sha256),
+            (
+                str(m1_feature_manifest_path),
+                root_manifest["m1_feature_base_manifest_sha256"],
+            ),
+            (
+                observed_authority["pair_manifest_path"],
+                observed_authority["pair_manifest_sha256"],
+            ),
+            (
+                observed_authority["native_m1_manifest_path"],
+                observed_authority["native_m1_manifest_sha256"],
+            ),
+        ]
+        if pretest_authority:
+            manifest_files.append(
+                (
+                    observed_authority["m1_source_manifest_path"],
+                    observed_authority["m1_source_manifest_sha256"],
+                )
             )
-        except Exception:
-            m1_feature_tempdir.cleanup()
-            raise
-        self._m1_feature_tempdir = m1_feature_tempdir
-        # Authority rows before the surface begins cannot be produced with valid
-        # features at all. Every authority row from the surface start onward must
-        # be present, and a gap inside that window is still a hard failure.
-        covered_offset = (
-            int(np.searchsorted(m1_times.asi8, m1_feature_times.asi8[0], "left"))
-            if len(m1_feature_times)
-            else len(m1_times)
-        )
-        m1_covered_times = m1_times[covered_offset:]
-        if len(m1_covered_times) == 0 or not m1_feature_times.equals(
-            m1_covered_times
-        ):
-            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
-        # The source clock is NOT advanced. Episode pointers are absolute rows
-        # written against it and sealed into the population streams, so moving it
-        # would invalidate immutable evidence. The offset is carried instead and
-        # applied wherever the feature surface is indexed.
-
-        if set(entry_parquets) != set(selected_splits):
-            raise RuntimeError(
-                "UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_SET_INVALID"
+        manifest_files.extend(
+            (
+                entry_manifest_bindings[split]["path"],
+                entry_windows[split]["manifest_sha256"],
             )
-        self.splits: dict[str, UnifiedExitLifecycleSplit] = {}
-        split_evidence: dict[str, Any] = {}
+            for split in selected_splits
+        )
+        admitted_splits: dict[str, Any] = {}
         # Validate exactly the splits this consumer is authorised to
         # materialise.  TEST semantic validation belongs to the immutable
         # build/seal step; the pre-freeze trainer has only metadata-only TEST
@@ -2284,6 +2296,109 @@ class UnifiedExitLifecycleCorpus:
                         f"UNIFIED_EXIT_LIFECYCLE_SPLIT_MANIFEST_MISMATCH: "
                         f"{split}.{key}"
                     )
+            manifest_files.append(
+                (str(split_manifest_path), binding["lifecycle_manifest_sha256"])
+            )
+            admitted_splits[split] = {
+                "entry_path": entry_path,
+                "lifecycle_path": lifecycle_path,
+                "manifest": split_manifest,
+            }
+        UnifiedExitLifecycleCorpus._require_manifest_files_unchanged(manifest_files)
+        admission = {
+            "root_manifest_path": manifest_path,
+            "root_manifest_sha256": root_manifest_sha256,
+            "root_manifest": root_manifest,
+            "m1_path": m1_path,
+            "m1_feature_path": m1_feature_path,
+            "m1_feature_manifest_path": m1_feature_manifest_path,
+            "m1_feature_manifest": m1_feature_manifest,
+            "entry_windows": entry_windows,
+            "splits": admitted_splits,
+            "manifest_files": manifest_files,
+        }
+        if expected_admission is not None and admission != expected_admission:
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_FILE_ADMISSION_CHANGED")
+        return admission
+
+    def __init__(
+        self,
+        *,
+        root_manifest_path: Path,
+        entry_parquets: Mapping[str, Path],
+        entry_manifest_bindings: Mapping[str, Mapping[str, str]],
+        dataset_run_id: str,
+        splits: Sequence[str] = ("train", "val"),
+    ) -> None:
+        selected_splits = tuple(splits)
+        opening_arguments = {
+            "root_manifest_path": Path(root_manifest_path).expanduser().absolute(),
+            "entry_parquets": deepcopy(entry_parquets),
+            "entry_manifest_bindings": deepcopy(entry_manifest_bindings),
+            "dataset_run_id": dataset_run_id,
+            "splits": selected_splits,
+        }
+        admission = self._require_file_admission(**opening_arguments)
+        opening_arguments["entry_parquets"] = {
+            split: admission["splits"][split]["entry_path"]
+            for split in selected_splits
+        }
+        self._file_admission_arguments = opening_arguments
+        self._file_admission = deepcopy(admission)
+        manifest_path = admission["root_manifest_path"]
+        root_manifest = admission["root_manifest"]
+        raw_authority = root_manifest["m1_authority"]
+        m1_path = admission["m1_path"]
+        m1_feature_path = admission["m1_feature_path"]
+        m1_feature_manifest_path = admission["m1_feature_manifest_path"]
+        entry_windows = admission["entry_windows"]
+
+        # No source or feature matrix is allocated before every immutable
+        # feature-surface binding above has passed exactly.
+        m1_times, m1_arrays = _validated_m1_arrays(m1_path)
+        m1_feature_tempdir = tempfile.TemporaryDirectory(
+            prefix="gx1_m1_feature_surface_"
+        )
+        try:
+            m1_feature_times, m1_feature_arrays = load_m1_feature_surface(
+                m1_feature_path,
+                context="UNIFIED_EXIT_LIFECYCLE",
+                storage_dir=Path(m1_feature_tempdir.name),
+            )
+        except Exception:
+            m1_feature_tempdir.cleanup()
+            raise
+        self._m1_feature_tempdir = m1_feature_tempdir
+        # Authority rows before the surface begins cannot be produced with valid
+        # features at all. Every authority row from the surface start onward must
+        # be present, and a gap inside that window is still a hard failure.
+        covered_offset = (
+            int(np.searchsorted(m1_times.asi8, m1_feature_times.asi8[0], "left"))
+            if len(m1_feature_times)
+            else len(m1_times)
+        )
+        m1_covered_times = m1_times[covered_offset:]
+        if len(m1_covered_times) == 0 or not m1_feature_times.equals(
+            m1_covered_times
+        ):
+            raise RuntimeError("UNIFIED_EXIT_M1_FEATURE_BASE_TIME_MISMATCH")
+        # The source clock is NOT advanced. Episode pointers are absolute rows
+        # written against it and sealed into the population streams, so moving it
+        # would invalidate immutable evidence. The offset is carried instead and
+        # applied wherever the feature surface is indexed.
+
+        if set(entry_parquets) != set(selected_splits):
+            raise RuntimeError(
+                "UNIFIED_EXIT_LIFECYCLE_ENTRY_SPLIT_SET_INVALID"
+            )
+        self.splits: dict[str, UnifiedExitLifecycleSplit] = {}
+        split_evidence: dict[str, Any] = {}
+        for split in selected_splits:
+            binding = root_manifest["splits"][split]
+            admitted_split = admission["splits"][split]
+            entry_path = admitted_split["entry_path"]
+            lifecycle_path = admitted_split["lifecycle_path"]
+            split_manifest = admitted_split["manifest"]
             entry_times = pd.read_parquet(entry_path, columns=["time"])
             episodes = pd.read_parquet(lifecycle_path)
             parsed_episode_entry_times = pd.to_datetime(
@@ -2353,10 +2468,11 @@ class UnifiedExitLifecycleCorpus:
                 "state_population_sha256": split_contract.state_population_sha256,
                 "state_side_counts": dict(split_contract.state_side_counts),
             }
+        self._require_manifest_files_unchanged(admission["manifest_files"])
         self.evidence = {
             "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
             "root_manifest_path": str(manifest_path),
-            "root_manifest_sha256": sha256_file(manifest_path),
+            "root_manifest_sha256": admission["root_manifest_sha256"],
             "entry_run_id": dataset_run_id,
             "m1_source_path": str(m1_path),
             "m1_source_sha256": root_manifest["m1_source_sha256"],
@@ -2392,3 +2508,16 @@ class UnifiedExitLifecycleCorpus:
             "future_outcomes_used_as_model_inputs": False,
             "splits": split_evidence,
         }
+
+    def require_files_unchanged(self) -> None:
+        """Repeat full file admission without rebuilding corpus arrays or scratch.
+
+        Native authority validation still reads its original source DataFrames.
+        Only the opening splits are admitted; unchanged bytes retain the row
+        validation already performed by construction.
+        """
+
+        self._require_file_admission(
+            **self._file_admission_arguments,
+            expected_admission=self._file_admission,
+        )

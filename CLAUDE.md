@@ -1,5 +1,14 @@
 # GX1 operating rules
 
+## Operator override — readiness repair, 2026-09-06
+
+The operator has superseded continuous training with source repair and an
+independent architecture/data review. The launch-state review hold is active;
+no training, new GPU evaluation, TEST access or cloud purchase is authorized
+during this work. Preserve current checkpoints and source lineage. See the
+current `docs/PRETRAIN_READINESS_REPAIR_20260906.md`. The older recovery
+and continuation instructions below remain historical evidence only.
+
 This file is the target of the `/home/andre2/CLAUDE.md` root loader, so it
 governs sessions launched from the home directory as well as from this repo.
 It was deleted by the documentation compaction in `d23e840b`, which left the
@@ -14,7 +23,7 @@ the work state, and `scripts/gx1_handover.sh` is the executable status owner
 that outranks every document. If they disagree, fail closed and repair the
 documentation and the code together.
 
-## Current re-entry status — 2026-09-06
+## Historical re-entry status — superseded by the review hold
 
 The operator approved recovery after the guard incident. A CPU-verified transfer
 preserves every learning/progress component at checkpoint 125 / 7936 steps in a
@@ -233,18 +242,42 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
    (learned 2026-08-11: retiring superseded tape generations broke the
    successor ancestor chain; repaired by the retention-attestation route in
    the provenance owner, see docs/DATA_CONTRACT.md "Retired ancestors").
-   **That requirement is UNIMPLEMENTED and this rule claimed otherwise until
-   2026-08-19.** What `authority_protected_paths` in
-   `gx1/contracts/evidence_retention_v1.py` actually enforces, proven from
-   source: it harvests absolute path strings out of three repo-root JSON files
-   (`PROJECT_STATE_artifacts.json`, `PROJECT_STATE_xau_direction_launch.json`,
-   `PROJECT_STATE_entry_iql_delete_incident.json`). It never opens a manifest
-   under `GX1_DATA`, never follows a successor parent pointer and never
-   resolves a lineage binding. Measured 2026-08-19 by executing that function:
-   the protected set is **3 paths**, one of which no longer exists, guarding a
-   34 GB tree. Until the owner covers data-to-data references, every
-   reclamation owes a hand-built parent-pointer proof and may not lean on the
-   protected set. Preserve valid active collectors and unrelated dashboards;
+   **Implemented in source, 2026-09-06; real closure remains unproven.**
+   `authority_protected_paths` in `gx1/contracts/evidence_retention_v1.py`
+   starts from the validated registry, launch and incident authorities and
+   follows declared JSON metadata transitively, including parent/lineage
+   bindings and manifest-relative references, checking declared metadata hashes.
+   Referenced directories protect their subtrees and require known direct
+   manifests; binary dependencies are protected without reading or hashing
+   their payloads. The shared immutable-event owner validates publication
+   scopes: their roots, complete event histories and adjacent `.order`
+   witnesses are protected, and historical event metadata enters the graph.
+   Witnesses are not decoded as ordinary metadata. Publication scopes are
+   rechecked after traversal, and plan validation recomputes the graph.
+   The owner's explicit per-file/total-byte, document/event-count, value and
+   depth limits bound the work; remaining byte/count budgets reach the shared
+   event owner before historical decoding. These are resource limits, not
+   evidence that the real closure fits. Unknown authority, opaque directories,
+   missing or malformed metadata, changed hashes/scopes, exhausted limits and
+   sealed TEST references fail closed; TEST is not opened to complete a proof.
+
+   **Mechanical evidence, not deletion authority:**
+   `docs/PRETRAIN_READINESS_REPAIR_20260906.md` records 96 focused retention
+   tests and the first-wave 2,929-test CPU regression passing. Those fixtures do not
+   prove the current `GX1_DATA` closure or a deletion-safe target. No real
+   artifact cleanup was run in this repair wave; this correction authorizes
+   none. Any later reclamation still needs fresh successful reachability and
+   active-process checks, exact hash-bound per-file inventories and the explicit
+   plan → approve → execute route below. A hand-built proof cannot bypass an
+   owner refusal, and the standing reclamation duty does not waive these limits
+   or the current review hold.
+
+   **Historical measurement, 2026-08-19:** the then-owner only harvested
+   absolute paths from three repo-root JSON files and opened no data manifests
+   or parent/lineage bindings. Its measured protected set was **3 paths**, one
+   already absent, over a 34 GB tree; that audit corrected this rule's earlier
+   unsupported reachability claim. It is not a measurement of today's source
+   or protected set. Preserve valid active collectors and unrelated dashboards;
    never restart a retired daemon merely because its name still exists.
 
    a. **Reclamation is a standing duty, not an occasional errand** (operator
