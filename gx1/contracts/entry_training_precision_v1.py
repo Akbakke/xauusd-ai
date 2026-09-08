@@ -11,11 +11,12 @@ EXPERIMENTAL_BF16_3090 = "experimental_bf16_3090"
 EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH = "experimental_fp32_3090_full_exit_batch"
 EXPERIMENTAL_FP32_3090_FINITE_SINGLE = "experimental_fp32_3090_finite_single"
 EXPERIMENTAL_FP32_3090_FINITE_GROUPED = "experimental_fp32_3090_finite_grouped"
+EXPERIMENTAL_FP32_3090_KERNEL_PROFILE = "experimental_fp32_3090_kernel_profile"
 _LOCAL_FINITE_CHECK_POLICIES = frozenset({
     EXPERIMENTAL_FP32_3090_FINITE_SINGLE, EXPERIMENTAL_FP32_3090_FINITE_GROUPED,
 })
 TRAINING_PRECISION_POLICIES = frozenset(
-    {DETERMINISTIC_FP32, DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES}
+    {DETERMINISTIC_FP32, DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}
 )
 
 
@@ -36,6 +37,10 @@ def require_training_precision_policy(
         raise TrainingPrecisionPolicyError(
             f"precision_policy={policy!r} is not declared"
         )
+    if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE:
+        if (device_type, execution_tier, profile) != ("cuda", "canonical", "smoke") or type(batch_size) is not int or batch_size != 8:
+            raise TrainingPrecisionPolicyError("local kernel profile requires canonical CUDA smoke at batch 8")
+        return policy
     if policy in _LOCAL_FINITE_CHECK_POLICIES:
         if (
             (device_type, execution_tier, profile) != ("cuda", "canonical", "smoke")
@@ -89,6 +94,16 @@ def training_precision_metadata(
             "tf32": False,
             "autocast": False,
             "cuda_memory_fraction": 0.45 if device_type == "cuda" else None,
+        }
+    if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE and device_type == "cuda":
+        return {
+            "precision": policy, "parameter_dtype": "float32",
+            "loss_reduction_dtype": "float32", "optimizer_state_dtype": "float32",
+            "ema_dtype": "float32", "gradient_scaler": False, "compile": False,
+            "tf32": False, "autocast": False, "deterministic_algorithms": True,
+            "required_cuda_compute_capability": [8, 6], "cuda_memory_fraction": 0.45,
+            "experimental_only": True, "kernel_profiling": True,
+            "profiled_optimizer_step": 9, "throughput_qualification_allowed": False,
         }
     if policy in _LOCAL_FINITE_CHECK_POLICIES and device_type == "cuda":
         return {
@@ -165,7 +180,7 @@ def training_precision_metadata(
 
 
 def numerical_thread_count(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}:
         return 8
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 16
@@ -184,7 +199,7 @@ def unified_exit_chunk_rows(policy: str, *, batch_size: int) -> int:
         if type(batch_size) is not int or not 1 <= batch_size <= 16:
             raise TrainingPrecisionPolicyError("local full Exit batch size invalid")
         return batch_size
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, *_LOCAL_FINITE_CHECK_POLICIES}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}:
         return min(8, int(batch_size))
     if policy == DETERMINISTIC_BF16_HOPPER:
         return min(64, int(batch_size))
@@ -192,7 +207,7 @@ def unified_exit_chunk_rows(policy: str, *, batch_size: int) -> int:
 
 
 def candidate_checkpoint_interval(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}:
         return 64
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 512
@@ -200,7 +215,7 @@ def candidate_checkpoint_interval(policy: str) -> int:
 
 
 def candidate_validation_checkpoint_interval(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}:
         return 64
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 128
@@ -211,7 +226,9 @@ def require_local_precision_benchmark_geometry(
     policy: str, *, epochs: int, grad_accum_steps: int, subsample_rows: int,
 ) -> None:
     """Keep local numerical and Exit batching experiments strictly bounded."""
-    if policy not in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES}:
+    if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE and (type(subsample_rows) is not int or subsample_rows != 512):
+        raise TrainingPrecisionPolicyError("local kernel profile requires exactly 512 rows")
+    if policy not in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE}:
         return
     if (
         type(epochs) is not int or epochs != 1

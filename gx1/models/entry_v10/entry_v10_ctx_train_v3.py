@@ -112,6 +112,7 @@ from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_BF16_HOPPER,
     EXPERIMENTAL_BF16_3090,
     EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH,
+    EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
     DETERMINISTIC_FP32,
     TRAINING_PRECISION_POLICIES,
     TrainingPrecisionPolicyError,
@@ -234,6 +235,9 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
     fit_entry_v10_train_input_normalization,
     require_dataset_manifest_multi_tf_cache_binding,
     require_multi_tf_v4_cache_binding_files,
+)
+from gx1.models.entry_v10.training_kernel_profile import (
+    profile_training_epoch, kernel_profile_step, kernel_profile_range,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
@@ -2909,7 +2913,7 @@ def _model_forward_fp32(
 ) -> Dict[str, torch.Tensor]:
     """Run the recipe-owned numerical path and return FP32 outputs."""
 
-    with _training_autocast_context(), _training_model_finite_check_context():
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Entry_online" if torch.is_grad_enabled() else "Entry_teacher"):
         out = model(*args, **kwargs)
     if isinstance(out, dict):
         out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
@@ -3205,7 +3209,7 @@ def _set_deterministic(
             _require_local_bf16_3090_capability()
         if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
             _require_local_fp32_full_exit_batch_capability()
-        if model_finite_check_mode(policy) is not None:
+        if model_finite_check_mode(policy) is not None or policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE:
             _require_local_fp32_finite_check_capability()
         torch.cuda.set_per_process_memory_fraction(
             cuda_memory_fraction(policy),
@@ -5579,13 +5583,17 @@ def _optimizer_step_with_finite_gradients(
 ) -> torch.Tensor:
     """Reject a nonfinite norm before mutation; return the existing pre-clip norm."""
 
-    gradient_norm = torch.nn.utils.clip_grad_norm_(
-        model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
-    )
-    optimizer.step()
-    optimizer.zero_grad(set_to_none=True)
+    with kernel_profile_range("gradient_clip_and_finite_guard"):
+        gradient_norm = torch.nn.utils.clip_grad_norm_(
+            model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
+        )
+    with kernel_profile_range("AdamW"):
+        optimizer.step()
+    with kernel_profile_range("zero_grad"):
+        optimizer.zero_grad(set_to_none=True)
     if weight_ema is not None:
-        weight_ema.update(model)
+        with kernel_profile_range("EMA"):
+            weight_ema.update(model)
     return gradient_norm
 
 
@@ -5867,7 +5875,7 @@ def _forward_unified_exit_episode_pack(
             for tf in tf_names
         },
     }
-    with _training_autocast_context(), _training_model_finite_check_context():
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -5995,7 +6003,7 @@ def _forward_unified_exit_episode_batch(
         inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
             device
         )
-    with _training_autocast_context(), _training_model_finite_check_context():
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -6941,7 +6949,7 @@ def _unified_exit_influence_forward(
     model: nn.Module,
     inputs: Mapping[str, Any],
 ) -> torch.Tensor:
-    with _training_autocast_context(), _training_model_finite_check_context():
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**dict(inputs))
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -7994,6 +8002,7 @@ def _train_rss_gib() -> float:
     return -1.0
 
 
+@profile_training_epoch(policy=lambda: _TRAINING_PRECISION_POLICY)
 def train_epoch(
     model,
     target_model,
@@ -8012,6 +8021,7 @@ def train_epoch(
     session_checkpoint_interval_optimizer_steps: Optional[int] = None,
     session_log_label: str = "BOUNDED_TRAINING",
     performance_warmup_optimizer_steps: int = 0,
+    kernel_profile_output_dir: Optional[Path] = None,
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -8349,6 +8359,7 @@ def train_epoch(
                 )
             _accum_count = 0
             _optimizer_steps_this_call += 1
+            kernel_profile_step()
             if int(performance_warmup_optimizer_steps) > 0:
                 if _optimizer_steps_this_call == int(
                     performance_warmup_optimizer_steps
@@ -13371,6 +13382,12 @@ def run_train(
             task_supervision_observed=joint_task_supervision_observed,
             task_gradient_observed=joint_task_gradient_observed,
             weight_ema=weight_ema,
+            kernel_profile_output_dir=(
+                _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override).with_name(
+                    "." + Path(out_bundle_dir).name + ".kernel_profile"
+                )
+                if precision_policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE else None
+            ),
             # Initial local fixed-step diagnostic: discard the cold first update.
             performance_warmup_optimizer_steps=(
                 1 if profile == "smoke" and int(grad_accum_steps) == 1
