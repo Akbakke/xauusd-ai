@@ -133,3 +133,38 @@ def test_local_bf16_benchmark_is_bounded(overrides) -> None:
     kwargs.update(overrides)
     with pytest.raises(TrainingPrecisionPolicyError, match="local precision benchmark"):
         require_local_precision_benchmark_geometry(EXPERIMENTAL_BF16_3090, **kwargs)
+
+
+@pytest.mark.parametrize("batch", [8, 10, 12, 16])
+def test_local_full_exit_batch_is_explicit_fp32_with_unchanged_resource_limits(batch):
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH as policy
+    assert require_training_precision_policy(policy, device_type="cuda", execution_tier="canonical", profile="smoke", batch_size=batch) == policy
+    metadata = training_precision_metadata(policy, device_type="cuda")
+    assert metadata["autocast"] is False and metadata["tf32"] is False and metadata["compile"] is False
+    assert metadata["cuda_memory_fraction"] == 0.45
+    assert numerical_thread_count(policy) == 8
+    assert unified_exit_chunk_rows(policy, batch_size=batch) == batch
+    assert unified_exit_chunk_rows(DETERMINISTIC_FP32, batch_size=batch) == 8
+
+
+@pytest.mark.parametrize("overrides", [
+    {"device_type": "cpu"}, {"execution_tier": "attended_only"},
+    {"profile": "candidate"}, {"batch_size": 9}, {"batch_size": 32},
+    {"batch_size": True},
+])
+def test_local_full_exit_batch_rejects_undeclared_execution(overrides):
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH as policy
+    kwargs = dict(device_type="cuda", execution_tier="canonical", profile="smoke", batch_size=10)
+    kwargs.update(overrides)
+    with pytest.raises(TrainingPrecisionPolicyError):
+        require_training_precision_policy(policy, **kwargs)
+
+
+@pytest.mark.parametrize("overrides", [{"epochs": 2}, {"grad_accum_steps": 2}, {"subsample_rows": 0}, {"subsample_rows": 513}])
+def test_local_full_exit_batch_cannot_be_used_for_unbounded_training(overrides):
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH as policy, require_local_precision_benchmark_geometry
+    kwargs = dict(epochs=1, grad_accum_steps=1, subsample_rows=512)
+    require_local_precision_benchmark_geometry(policy, **kwargs)
+    kwargs.update(overrides)
+    with pytest.raises(TrainingPrecisionPolicyError):
+        require_local_precision_benchmark_geometry(policy, **kwargs)

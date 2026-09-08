@@ -111,6 +111,7 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
 from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_BF16_HOPPER,
     EXPERIMENTAL_BF16_3090,
+    EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH,
     DETERMINISTIC_FP32,
     TRAINING_PRECISION_POLICIES,
     TrainingPrecisionPolicyError,
@@ -3136,6 +3137,12 @@ def _float_output_tensors(value: Any) -> Any:
     return value
 
 
+def _require_local_fp32_full_exit_batch_capability() -> None:
+    capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
+    if capability != (8, 6):
+        raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_FULL_EXIT_BATCH_CAPABILITY_REQUIRED]")
+
+
 def _require_local_bf16_3090_capability() -> None:
     capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
     if capability != (8, 6) or not torch.cuda.is_bf16_supported(including_emulation=False):
@@ -3181,6 +3188,8 @@ def _set_deterministic(
                 )
         if policy == EXPERIMENTAL_BF16_3090:
             _require_local_bf16_3090_capability()
+        if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
+            _require_local_fp32_full_exit_batch_capability()
         torch.cuda.set_per_process_memory_fraction(
             cuda_memory_fraction(policy),
             torch.cuda.current_device(),
@@ -8177,7 +8186,14 @@ def train_epoch(
                     session_exit_action_forward_chunk_rows
                     if session_max_optimizer_steps is not None
                     else (
-                        UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                        (
+                            unified_exit_chunk_rows(
+                                _TRAINING_PRECISION_POLICY, batch_size=batch_rows
+                            )
+                            if _TRAINING_PRECISION_POLICY
+                            == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+                            else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                        )
                         if device.type == "cuda"
                         else None
                     )

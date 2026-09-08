@@ -395,3 +395,50 @@ def test_local_bf16_forward_preserves_fp32_output_and_gradient_boundary(monkeypa
         assert parameter.dtype == torch.float32
         assert parameter.grad.dtype == torch.float32
         assert torch.isfinite(parameter.grad).all()
+
+
+@pytest.mark.parametrize("capability,accepted", [((8, 6), True), ((9, 0), False), ((7, 5), False)])
+def test_local_full_exit_batch_requires_the_local_architecture(monkeypatch, capability, accepted):
+    monkeypatch.setattr(trainer.torch.cuda, "current_device", lambda: 0)
+    monkeypatch.setattr(trainer.torch.cuda, "get_device_capability", lambda device: capability)
+    if accepted:
+        trainer._require_local_fp32_full_exit_batch_capability()
+    else:
+        with pytest.raises(RuntimeError, match="LOCAL_FP32_FULL_EXIT_BATCH_CAPABILITY_REQUIRED"):
+            trainer._require_local_fp32_full_exit_batch_capability()
+
+
+def test_local_full_exit_batch_does_not_enable_autocast(monkeypatch):
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+    monkeypatch.setattr(trainer, "_TRAINING_PRECISION_POLICY", EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("FP32 batch optimization must not invoke autocast")
+    monkeypatch.setattr(trainer.torch, "autocast", forbidden)
+    model = trainer.torch.nn.Linear(8, 4)
+    result = trainer._model_forward_fp32(model, trainer.torch.randn(10, 8))
+    assert result.dtype == trainer.torch.float32
+    result.square().mean().backward()
+    assert all(p.grad is not None and trainer.torch.isfinite(p.grad).all() for p in model.parameters())
+
+
+@pytest.mark.parametrize("policy,rows,device,max_steps,explicit_chunk,expected", [
+    (trainer.EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, 10, "cuda", None, None, 10),
+    (trainer.EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, 2, "cuda", None, None, 2),
+    (trainer.DETERMINISTIC_FP32, 10, "cuda", None, None, 8),
+    (trainer.DETERMINISTIC_FP32, 10, "cpu", None, None, None),
+    (trainer.DETERMINISTIC_FP32, 10, "cuda", 1, 3, 3),
+])
+def test_smoke_exit_training_call_honors_policy_and_partial_batch(policy, rows, device, max_steps, explicit_chunk, expected):
+    """Execute the actual train_epoch call-site expression, not a copied default."""
+    tree = ast.parse(TRAINER_PATH.read_text(encoding="utf-8"))
+    epoch = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "train_epoch")
+    calls = [node for node in ast.walk(epoch) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_train_unified_exit_full_population"]
+    assert len(calls) == 1
+    value = next(item.value for item in calls[0].keywords if item.arg == "exit_action_forward_chunk_rows")
+    actual = eval(compile(ast.Expression(value), str(TRAINER_PATH), "eval"), vars(trainer), {
+        "device": torch.device(device), "batch_rows": rows,
+        "session_max_optimizer_steps": max_steps,
+        "session_exit_action_forward_chunk_rows": explicit_chunk,
+        "_TRAINING_PRECISION_POLICY": policy,
+    })
+    assert actual == expected

@@ -1561,3 +1561,52 @@ def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkey
         if p.grad is not None:
             assert p.grad.dtype == torch.float32
             assert torch.isfinite(p.grad).all()
+
+
+
+def test_exit_whole_batch_preserves_prefix_outputs_and_gradients_against_eight_plus_two():
+    """Actual Exit graph, deterministic dropout-free arithmetic; CUDA/VAL remain separate."""
+    torch.manual_seed(2026090816)
+    whole = _make_model(dropout=0.0).train()
+    grouped = deepcopy(whole)
+    whole_inputs = _make_exit_episode_inputs(state_count=3, batch_size=10)
+    grouped_inputs = deepcopy(whole_inputs)
+    for collection in (whole_inputs, grouped_inputs):
+        for value in _exit_scale_input_leaves(collection).values():
+            value.requires_grad_(True)
+    actual = whole.forward_exit_incremental_prefix(**whole_inputs)
+    valid = actual["exit_action_valid_mask"]
+    count = int(valid.sum())
+    (actual["exit_action_q_bps"][valid].square().sum() / count).backward()
+    actual_values = {name: value.detach().clone() for name, value in actual.items()}
+    del actual
+
+    def sliced(value, start, stop):
+        if isinstance(value, dict):
+            return {key: sliced(item, start, stop) for key, item in value.items()}
+        return value[start:stop]
+
+    pieces = []
+    for start, stop in ((0, 8), (8, 10)):
+        output = grouped.forward_exit_incremental_prefix(**sliced(grouped_inputs, start, stop))
+        (output["exit_action_q_bps"][output["exit_action_valid_mask"]].square().sum() / count).backward()
+        pieces.append({name: value.detach().clone() for name, value in output.items()})
+        del output
+    assert actual_values.keys() == pieces[0].keys() == pieces[1].keys()
+    for name, value in actual_values.items():
+        expected = torch.cat([piece[name] for piece in pieces], dim=0)
+        torch.testing.assert_close(value, expected, atol=1e-6, rtol=1e-5, msg=name)
+    reference_parameters = dict(grouped.named_parameters())
+    for name, parameter in whole.named_parameters():
+        expected = reference_parameters[name].grad
+        assert (parameter.grad is None) == (expected is None), name
+        if parameter.grad is not None:
+            assert torch.isfinite(parameter.grad).all(), name
+            torch.testing.assert_close(parameter.grad, expected, atol=1e-6, rtol=1e-5, msg=name)
+    reference_leaves = _exit_scale_input_leaves(grouped_inputs)
+    for name, value in _exit_scale_input_leaves(whole_inputs).items():
+        expected = reference_leaves[name].grad
+        assert (value.grad is None) == (expected is None), name
+        if value.grad is not None:
+            assert torch.isfinite(value.grad).all(), name
+            torch.testing.assert_close(value.grad, expected, atol=1e-6, rtol=1e-5, msg=name)

@@ -371,3 +371,24 @@ def test_local_bf16_recipe_is_one_change_from_local_baseline(tmp_path, change, v
     else:
         with pytest.raises(PretestTechnicalRecipeError):
             require_pretest_technical_recipe_metadata(recipe)
+
+
+@pytest.mark.parametrize("change,valid", [
+    ({}, True), ({"batch_size": 12}, True), ({"batch_size": 16}, True),
+    ({"epochs": 2}, False), ({"grad_accum_steps": 2}, False),
+    ({"subsample_rows": 0}, False), ({"subsample_rows": 513}, False),
+    ({"batch_size": 32}, False), ({"execution_tier": "attended_only"}, False),
+])
+def test_local_full_exit_batch_recipe_remains_a_bounded_explicit_experiment(tmp_path, change, valid):
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    cli.update(execution_tier="canonical", train_time_window=None,
+               precision_policy=EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, batch_size=10, subsample_rows=512)
+    cli.update(change)
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    if valid:
+        assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    else:
+        with pytest.raises(PretestTechnicalRecipeError):
+            require_pretest_technical_recipe_metadata(recipe)
