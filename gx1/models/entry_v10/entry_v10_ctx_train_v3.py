@@ -3203,6 +3203,7 @@ def _set_deterministic(
     # training work; deterministic CUDA kernels and FP32 policy remain
     # unchanged.
     torch.set_num_threads(numerical_thread_count(policy))
+    random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if device.type == "cuda":

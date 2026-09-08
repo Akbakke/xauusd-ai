@@ -270,3 +270,45 @@ def test_no_fill_capability_is_local_3090_only(monkeypatch, capability, accepted
             RuntimeError, match="LOCAL_FP32_NO_FILL_CAPABILITY_REQUIRED"
         ):
             trainer._require_local_fp32_no_fill_capability()
+
+
+def test_declared_training_seed_initializes_every_checkpointed_cpu_rng(monkeypatch):
+    monkeypatch.setattr(torch, "set_num_threads", lambda _count: None)
+    random.seed(71)
+    trainer._set_deterministic(1337, torch.device("cpu"))
+    first = trainer._attended_session_rng_state(device=torch.device("cpu"))
+    assert first["python"] == random.Random(1337).getstate()
+    random.random()
+    np.random.random(5)
+    torch.rand(7)
+    trainer._set_deterministic(1337, torch.device("cpu"))
+    second = trainer._attended_session_rng_state(device=torch.device("cpu"))
+    _equal_tree(first, second)
+    trainer._set_deterministic(97531, torch.device("cpu"))
+    trainer._restore_attended_session_rng_state(first, device=torch.device("cpu"))
+    _equal_tree(first, trainer._attended_session_rng_state(device=torch.device("cpu")))
+
+
+def test_fresh_processes_use_declared_python_seed_not_startup_entropy():
+    import json
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    code = """
+import json, random, torch
+from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+random.seed()
+torch.set_num_threads = lambda count: None
+trainer._set_deterministic(1337, torch.device('cpu'))
+print(json.dumps([random.random() for _ in range(16)]))
+"""
+    expected = random.Random(1337)
+    draws = [expected.random() for _ in range(16)]
+    for _ in range(2):
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=Path(__file__).resolve().parents[1],
+            text=True, capture_output=True, check=True,
+        )
+        assert json.loads(result.stdout) == draws
