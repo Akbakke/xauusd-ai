@@ -1,11 +1,11 @@
 # GX1 system map
 
-Current boundary, 2026-09-08: exactly one source-current 32-row CUDA smoke is
-authorized on the local GX1 RTX 3090 through the canonical capped runner and
-existing 160 W safety controls. Both candidate sessions remain preserved.
-Candidate continuation, VAL, TEST, candidate acceptance, paper/live, external
-spend and any second execution remain blocked. Restore the review hold after
-the smoke or any failed preflight.
+Current boundary, 2026-09-08: the one authorized source-current 32-row CUDA
+smoke completed successfully on the local GX1 RTX 3090 through canonical 160 W
+guards. It is technical runtime evidence only. Both original and successor
+candidate sessions are preserved and the review hold is restored. No candidate
+continuation, another smoke, VAL, TEST, candidate acceptance, paper/live or
+external spend is authorized.
 
 This file maps architecture; it is not runtime authority. Read
 [docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run

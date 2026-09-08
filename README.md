@@ -1,10 +1,12 @@
 # GX1 Engine
 
-**Current operator boundary, 2026-09-08:** exactly one source-current 32-row
-CUDA smoke is authorized on the local GX1 RTX 3090 through the canonical capped
-runner and existing 160 W safety controls. Candidate continuation, VAL, TEST,
-paper/live, external spend and any second execution remain blocked. The review
-hold must be restored immediately after the smoke or any failed preflight. See
+**Current operator boundary, 2026-09-08:** the one authorized source-current
+32-row CUDA smoke completed successfully on the local GX1 RTX 3090. Canonical
+guards exited cleanly under the signed 160 W controls; the immutable bundle is
+under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z` with commit SHA-256
+`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`.
+The review hold is restored. Candidate continuation, another smoke, VAL, TEST,
+paper/live and external spend remain blocked. See
 `docs/PRETRAIN_READINESS_REPAIR_20260906.md` for prior evidence and decisions.
 
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading

@@ -2,16 +2,19 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Operator override — one guarded local smoke, 2026-09-08
+## Operator override — guarded local smoke complete, hold restored, 2026-09-08
 
-The operator authorizes exactly one new source-current 32-row CUDA smoke on the
-local GX1 RTX 3090. It must use the canonical capped runner, fresh signed 160 W
-telemetry, deterministic FP32 and the existing safety guards. This authority
-does not permit candidate continuation, VAL, TEST, paper/live, cloud purchase,
-model/data changes or a second execution. Preserve both candidate sessions and
-unrelated agent work. Restore `pretraining_review_hold` immediately after the
-smoke or any failed preflight. Exact authority lives in
-`PROJECT_STATE_xau_direction_launch.json`; prose is not launch authority.
+The one authorized source-current 32-row CUDA smoke completed successfully on
+the local GX1 RTX 3090 through the canonical capped runner. The guard exited
+with child status 0 after 350 seconds; its 286 signed samples peaked at 50 C
+core, 50 C memory, 158.83 W and 9417 MiB VRAM under the 160 W physical limit.
+The immutable bundle commit SHA-256 is
+`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`
+under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
+`pretraining_review_hold` is restored. Do not resume candidate training, repeat
+the smoke, run VAL, open TEST, start paper/live or purchase compute. Preserve
+both candidate sessions and unrelated agent work. Exact launch authority lives
+in `PROJECT_STATE_xau_direction_launch.json`; prose is not launch authority.
 
 ## Previous operator override — local pre-cloud package complete, 2026-09-07
 

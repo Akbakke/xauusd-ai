@@ -1,13 +1,17 @@
 # GX1 current re-entry — updated 2026-09-08
 
-**Operator override: one guarded local source-current smoke.** Exactly one new
-32-row CUDA smoke is authorized on the local GX1 RTX 3090. It must use the
-canonical capped runner, fresh signed 160 W telemetry, deterministic FP32 and
-all existing guards. This is technical runtime/throughput evidence only.
-Candidate continuation, VAL, TEST, paper/live, cloud purchase, model/data
-changes and any second execution remain blocked. Preserve both candidate
-sessions and restore `pretraining_review_hold` immediately after the smoke or
-any failed preflight.
+**Operator override: guarded local smoke complete, hold restored.** The one
+authorized source-current 32-row CUDA smoke completed successfully on the local
+GX1 RTX 3090 through the canonical capped runner. The guard exited with child
+status 0 after 350 seconds and 286 signed telemetry samples; peaks were 50 C
+core, 50 C memory, 158.83 W and 9417 MiB VRAM. The first profiled TRAIN batch
+took 2.115376 seconds and peaked at 6376 MiB CUDA memory. The immutable bundle
+commit SHA-256 is
+`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`
+under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
+`pretraining_review_hold` is restored. This is technical runtime/throughput
+evidence only; do not resume candidate training, repeat the smoke, run VAL,
+open TEST, start paper/live or purchase compute from this handoff.
 
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is

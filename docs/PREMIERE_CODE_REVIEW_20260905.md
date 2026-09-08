@@ -1,16 +1,26 @@
 # Pre-training code review — 2026-09-05
 
-## Current operator override — one guarded local smoke, 2026-09-08
+## Current operator override — local guarded smoke complete, 2026-09-08
 
-The operator authorizes exactly one source-current 32-row CUDA smoke on the
-local GX1 RTX 3090. It must run through the canonical capped runner with fresh
-signed 160 W telemetry, deterministic FP32 and all existing safety guards. It
-is technical runtime/throughput evidence only and grants no authority for
-candidate continuation, VAL, TEST, paper/live, cloud purchase, model/data
-changes or a second execution. Preserve both candidate sessions and restore
-`pretraining_review_hold` immediately after the smoke or any failed preflight.
+The one authorized source-current 32-row CUDA smoke completed successfully on
+the local GX1 RTX 3090. Recipe SHA-256
+`21d117236cdb4d81131b5fa0da9319df62c76f366513c04c8dab58e714b3d4e0`
+binds source commit `efa99b2b3105d2fb44a041de404d5a66b41158f8` and source
+bindings SHA-256
+`6691dcd22f7c1de7452515910862213182ebc59e54a44b95586e7a87c53e485d`.
+The canonical guard exited with child status 0 after 350 seconds and 286 signed
+samples, peaking at 50 C core, 50 C memory, 158.83 W and 9417 MiB VRAM. The
+first profiled TRAIN batch took 2.115376 seconds and peaked at 6376 MiB CUDA
+memory. The published bundle commit SHA-256 is
+`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`
+under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
 
-## Current operator override — readiness repair, 2026-09-06
+The smoke proves source-current local runtime plumbing and guard headroom only;
+its 32-row loss/PnL is not quality or edge evidence. `pretraining_review_hold`
+is restored. Candidate continuation, another smoke, VAL, TEST, paper/live,
+cloud purchase and model/data changes remain blocked pending explicit review.
+
+## Previous operator override — readiness repair, 2026-09-06
 
 Final local disposition, 2026-09-07: the requested source repairs and
 multi-agent architecture/data review are complete. The repaired source is

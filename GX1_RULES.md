@@ -2,14 +2,17 @@
 
 This file defines the only active project scope.
 
-## Operator override — one guarded local smoke, 2026-09-08
+## Operator override — guarded local smoke complete, hold restored, 2026-09-08
 
-Exactly one source-current 32-row CUDA smoke is authorized on the local GX1 RTX
-3090. It must use the canonical capped runner, fresh signed 160 W telemetry,
-deterministic FP32 and every existing safety guard. Candidate continuation,
-VAL, TEST, paper/live, external spend, model/data changes and a second execution
-remain blocked. Preserve both sessions and restore `pretraining_review_hold`
-immediately after the smoke or any failed preflight.
+The one authorized source-current 32-row CUDA smoke completed successfully on
+the local GX1 RTX 3090. Canonical guards recorded child status 0, 286 signed
+samples and peaks of 50 C core, 50 C memory, 158.83 W and 9417 MiB VRAM. Its
+immutable bundle commit SHA-256 is
+`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`
+under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
+`pretraining_review_hold` is restored. Candidate continuation, another smoke,
+VAL, TEST, paper/live, external spend and model/data changes remain blocked.
+Preserve both candidate sessions.
 
 ## Previous operator override — local pre-cloud package complete, 2026-09-07
 
