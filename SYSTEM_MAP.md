@@ -1,12 +1,11 @@
 # GX1 system map
 
-Current boundary, 2026-09-07: the local CPU repair/review, committed source,
-source-bound successor recipe, checkpoint migration and actual next-batch
-equivalence are complete. Both original and successor sessions are preserved.
-The review hold remains active: no destination host has rehashed the transfer
-closure or passed its guarded source-current smoke, and no fresh recipe-bound
-cloud launch gate exists. No local continuation, TEST, candidate acceptance,
-paper/live or external spend is authorized.
+Current boundary, 2026-09-08: exactly one source-current 32-row CUDA smoke is
+authorized on the local GX1 RTX 3090 through the canonical capped runner and
+existing 160 W safety controls. Both candidate sessions remain preserved.
+Candidate continuation, VAL, TEST, candidate acceptance, paper/live, external
+spend and any second execution remain blocked. Restore the review hold after
+the smoke or any failed preflight.
 
 This file maps architecture; it is not runtime authority. Read
 [docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run

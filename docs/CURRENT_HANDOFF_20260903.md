@@ -1,13 +1,13 @@
-# GX1 current re-entry — updated 2026-09-07
+# GX1 current re-entry — updated 2026-09-08
 
-**Operator override: local pre-cloud package complete, external qualification
-pending.** CPU repairs/review, explicit source commit, source-bound recipe,
-checkpoint migration and actual next-batch equivalence are complete. The
-launch-state hold supersedes older continuation instructions and remains
-fail-closed until a selected host rehashes the transfer closure, verifies the
-bundled commit, passes a guarded source-current smoke and receives a fresh
-recipe-bound gate. Preserve both sessions and TEST; do not restart training or
-purchase cloud capacity from this handoff.
+**Operator override: one guarded local source-current smoke.** Exactly one new
+32-row CUDA smoke is authorized on the local GX1 RTX 3090. It must use the
+canonical capped runner, fresh signed 160 W telemetry, deterministic FP32 and
+all existing guards. This is technical runtime/throughput evidence only.
+Candidate continuation, VAL, TEST, paper/live, cloud purchase, model/data
+changes and any second execution remain blocked. Preserve both candidate
+sessions and restore `pretraining_review_hold` immediately after the smoke or
+any failed preflight.
 
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is

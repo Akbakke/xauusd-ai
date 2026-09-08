@@ -2,17 +2,22 @@
 
 This file defines the only active project scope.
 
-## Operator override — local pre-cloud package complete, 2026-09-07
+## Operator override — one guarded local smoke, 2026-09-08
+
+Exactly one source-current 32-row CUDA smoke is authorized on the local GX1 RTX
+3090. It must use the canonical capped runner, fresh signed 160 W telemetry,
+deterministic FP32 and every existing safety guard. Candidate continuation,
+VAL, TEST, paper/live, external spend, model/data changes and a second execution
+remain blocked. Preserve both sessions and restore `pretraining_review_hold`
+immediately after the smoke or any failed preflight.
+
+## Previous operator override — local pre-cloud package complete, 2026-09-07
 
 The identified CPU source repairs, independent architecture/data review,
 explicit commit, source-bound successor recipe, checkpoint migration and actual
-next-batch equivalence are complete. Cloud execution remains deferred. The
-launch-state review hold stays active and outranks older continuation text
-because a selected destination must rehash the exact transfer closure, verify
-the bundled commit, pass a source-current guarded smoke and publish fresh
-recipe-bound readiness/gate evidence. Preserve both sessions and TEST. Do not
-launch training, remove genuine feature families, change decision authority or
-purchase compute. The external post-commit evidence beneath
+next-batch equivalence are complete. Cloud execution remains deferred. Preserve
+both sessions and TEST. Do not remove genuine feature families, change decision
+authority or purchase compute. The external post-commit evidence beneath
 `SOURCE_STATE_SUCCESSOR_20260907T213749Z` owns exact paths and hashes.
 
 ## Historical binding status — superseded by the review hold

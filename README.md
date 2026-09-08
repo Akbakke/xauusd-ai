@@ -1,12 +1,11 @@
 # GX1 Engine
 
-**Current operator boundary, 2026-09-07:** the local CPU repair/review package,
-source-bound recipe, migrated checkpoint and actual next-batch equivalence are
-complete. The launch-state review hold remains active until a selected external
-host rehashes the exact transfer closure, checks out the bundled commit, passes
-a guarded source-current smoke and receives a fresh recipe-bound launch gate.
-No cloud purchase, training restart or TEST access is authorized. See
-`docs/PRETRAIN_READINESS_REPAIR_20260906.md` for evidence and decisions.
+**Current operator boundary, 2026-09-08:** exactly one source-current 32-row
+CUDA smoke is authorized on the local GX1 RTX 3090 through the canonical capped
+runner and existing 160 W safety controls. Candidate continuation, VAL, TEST,
+paper/live, external spend and any second execution remain blocked. The review
+hold must be restored immediately after the smoke or any failed preflight. See
+`docs/PRETRAIN_READINESS_REPAIR_20260906.md` for prior evidence and decisions.
 
 GX1 is an offline XAUUSD research and evidence pipeline for one learned trading
 system. It is not currently an admitted or profitable trading bot.

@@ -1,12 +1,24 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-07T16:42:47Z",
-  "pretraining_review_hold": {
-    "schema_version": "gx1_pretraining_review_hold_v1",
-    "decision": "BLOCK",
-    "reason": "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
-    "activation_authority": false,
+  "updated_utc": "2026-09-08T08:34:00Z",
+  "local_source_current_smoke_authorization": {
+    "schema_version": "gx1_local_source_current_smoke_authorization_v1",
+    "decision": "AUTHORIZE_ONE_GUARDED_SOURCE_CURRENT_SMOKE",
+    "activation_authority": true,
+    "authorized_utc": "2026-09-08T08:34:00Z",
+    "machine": "GX1_RTX3090_WSL",
+    "recipe_profile": "smoke",
+    "execution_tier": "canonical",
+    "device": "cuda",
+    "subsample_rows": 32,
+    "max_epochs": 1,
+    "max_execution_count": 1,
+    "required_physical_power_limit_w": 160,
+    "candidate_training_authorized": false,
+    "test_access_authorized": false,
+    "paper_live_authorized": false,
+    "completion_action": "RESTORE_PRETRAINING_REVIEW_HOLD",
     "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
   },
   "reviewed_local_runtime_exclusions": {

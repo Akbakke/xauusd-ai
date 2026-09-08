@@ -2,17 +2,25 @@
 
 Read `GX1_RULES.md` first. It is binding.
 
-## Operator override — local pre-cloud package complete, 2026-09-07
+## Operator override — one guarded local smoke, 2026-09-08
+
+The operator authorizes exactly one new source-current 32-row CUDA smoke on the
+local GX1 RTX 3090. It must use the canonical capped runner, fresh signed 160 W
+telemetry, deterministic FP32 and the existing safety guards. This authority
+does not permit candidate continuation, VAL, TEST, paper/live, cloud purchase,
+model/data changes or a second execution. Preserve both candidate sessions and
+unrelated agent work. Restore `pretraining_review_hold` immediately after the
+smoke or any failed preflight. Exact authority lives in
+`PROJECT_STATE_xau_direction_launch.json`; prose is not launch authority.
+
+## Previous operator override — local pre-cloud package complete, 2026-09-07
 
 The CPU repair/review, explicit source commit, source-bound successor recipe,
-checkpoint migration and actual next-batch equivalence are complete. The
-launch-state `pretraining_review_hold` remains active because no external host
-has been qualified and no fresh source-current cloud smoke/readiness/gate has
-been issued. Do not resume locally, repeat GPU smoke/VAL, open TEST or purchase
-compute. Preserve both candidate sessions and unrelated agent work. The exact
-post-commit recipe/session/transfer hashes live in the immutable external
-pre-cloud evidence beneath `SOURCE_STATE_SUCCESSOR_20260907T213749Z`; prose is
-not launch authority. The continuation text below is historical.
+checkpoint migration and actual next-batch equivalence are complete. External
+qualification remains pending. The exact post-commit recipe/session/transfer
+hashes live in the immutable external pre-cloud evidence beneath
+`SOURCE_STATE_SUCCESSOR_20260907T213749Z`; the continuation text below is
+historical.
 
 ## Historical re-entry status — superseded by the review hold
 

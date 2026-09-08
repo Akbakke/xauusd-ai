@@ -1,5 +1,15 @@
 # Pre-training code review — 2026-09-05
 
+## Current operator override — one guarded local smoke, 2026-09-08
+
+The operator authorizes exactly one source-current 32-row CUDA smoke on the
+local GX1 RTX 3090. It must run through the canonical capped runner with fresh
+signed 160 W telemetry, deterministic FP32 and all existing safety guards. It
+is technical runtime/throughput evidence only and grants no authority for
+candidate continuation, VAL, TEST, paper/live, cloud purchase, model/data
+changes or a second execution. Preserve both candidate sessions and restore
+`pretraining_review_hold` immediately after the smoke or any failed preflight.
+
 ## Current operator override — readiness repair, 2026-09-06
 
 Final local disposition, 2026-09-07: the requested source repairs and
