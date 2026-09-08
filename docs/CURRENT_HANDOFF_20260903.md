@@ -13,6 +13,20 @@ under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
 evidence only; do not resume candidate training, repeat the smoke, run VAL,
 open TEST, start paper/live or purchase compute from this handoff.
 
+**Host idle-power recovery guard deployed 2026-09-08.** Commit `2a8ca13a`
+installs `GX1-GpuPowerAndIdleGuard.ps1` as the persistent
+`GX1GpuPowerLimit` SYSTEM task. It samples the exact RTX 3090 every five
+seconds and requires 24 consecutive P0/P1/P2 samples above 60 W, at or below
+384 MiB and at or below 2 percent utilization before acting. Recovery stops
+signed telemetry, restarts only the bound PnP device, restores 160 W, verifies
+three normal-idle samples and then restarts telemetry. Recovery failure,
+cooldown or more than two attempts per hour retains a blocker and keeps signed
+telemetry stopped, so canonical CUDA fails closed. Deployment verification
+passed with the exact device `OK`, both SYSTEM tasks running, no blocker, policy
+self-test `PASS`, signed telemetry `36,42,22.19,160,72`, and live GPU state P8,
+22.91 W, 72 MiB, 0 percent utilization. This safety deployment does not clear
+the review hold or authorize training.
+
 This is the short human handoff after a lost chat, reboot, or context reset.
 It is an index, not execution authority. The executable authority is
 `bash scripts/gx1_handover.sh`; `GX1_RULES.md` remains binding.

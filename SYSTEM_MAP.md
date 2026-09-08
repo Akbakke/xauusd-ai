@@ -7,6 +7,13 @@ candidate sessions are preserved and the review hold is restored. No candidate
 continuation, another smoke, VAL, TEST, candidate acceptance, paper/live or
 external spend is authorized.
 
+Windows host safety additionally runs the `GX1GpuPowerLimit` SYSTEM task from
+`scripts/windows/GX1-GpuPowerAndIdleGuard.ps1`. It binds the RTX 3090 UUID and
+PnP instance, detects sustained low-memory/zero-load high-power idle, restarts
+only that device, restores 160 W and verifies normal idle before signed
+telemetry returns. An unresolved recovery stops signed telemetry so canonical
+CUDA fails closed. Implementation commit: `2a8ca13a`.
+
 This file maps architecture; it is not runtime authority. Read
 [docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run
 `bash scripts/gx1_handover.sh`. Exact post-commit recipe, migration, parity and

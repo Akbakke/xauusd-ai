@@ -275,6 +275,12 @@ Partial or cap-killed output is not reusable.
 CUDA uses fresh signed Windows telemetry with a 160 W physical power cap.
 The watchdog stops above 65 C core, 80 C memory junction, 160 W configured
 limit, 170 W draw or 12 GiB VRAM, and on missing/invalid telemetry.
+The Windows `GX1GpuPowerLimit` SYSTEM task also samples the exact bound GPU
+every five seconds. Twenty-four consecutive P0/P1/P2 samples above 60 W with
+at most 384 MiB allocated and at most 2 percent utilization trigger an exact
+PnP-device restart, 160 W restoration and three-sample idle verification.
+Signed telemetry remains stopped and CUDA therefore fails closed while a
+recovery blocker, cooldown, rate limit or recovery failure is unresolved.
 
 Live, paper, broker, daemon, promotion and drift/adaptation work are outside
 the frozen scope. See `GX1_RULES.md` for the complete binding rules.
