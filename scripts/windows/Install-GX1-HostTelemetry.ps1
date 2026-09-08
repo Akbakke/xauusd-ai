@@ -27,6 +27,9 @@
   This also installs the `GX1GpuPowerLimit` SYSTEM startup task.  The task
   waits for the Nvidia driver, reapplies the requested cap after every Windows
   restart or driver reset, and verifies the exact GPU UUID before succeeding.
+  It additionally detects a persistent high-power idle P-state, blocks signed
+  CUDA telemetry while recovery is unresolved, restarts only the bound Nvidia
+  display device, restores the power cap and restarts the telemetry bridge.
 #>
 
 [CmdletBinding()]
@@ -86,6 +89,7 @@ function Install-PersistentPowerLimitTask {
     # the host setting, while the bridge independently observes and signs it.
     $root = Join-Path $env:ProgramData 'GX1\GpuPowerLimit'
     $runnerPath = Join-Path $root 'GX1-ApplyGpuPowerLimit.ps1'
+    $runnerSourcePath = Join-Path $PSScriptRoot 'GX1-GpuPowerAndIdleGuard.ps1'
     $configPath = Join-Path $root 'GX1-GpuPowerLimit.config.json'
     $logPath = Join-Path $root 'GX1-GpuPowerLimit.log'
     $taskName = 'GX1GpuPowerLimit'
@@ -104,17 +108,41 @@ function Install-PersistentPowerLimitTask {
         }
     }
     New-Item -ItemType Directory -Path $root -Force | Out-Null
+    if (-not (Test-Path -LiteralPath $runnerSourcePath -PathType Leaf)) {
+        throw "GX1 GPU power/idle guard source is unavailable: $runnerSourcePath"
+    }
+    $displayDevices = @(Get-PnpDevice -PresentOnly -Class Display -ErrorAction Stop | Where-Object {
+        $_.FriendlyName -eq $ExpectedGpuName -and $_.InstanceId -match '^PCI\\VEN_10DE&'
+    })
+    if ($displayDevices.Count -ne 1) {
+        throw "Expected exactly one present Nvidia display device named '$ExpectedGpuName'; got $($displayDevices.Count)."
+    }
 
     $config = [ordered]@{
-        schema_version = 'gx1_gpu_power_limit_startup_task_v1'
+        schema_version = 'gx1_gpu_power_and_idle_guard_v2'
         native_smi = $NativeSmi
         expected_gpu_name = $ExpectedGpuName
         expected_gpu_uuid = $ExpectedGpuUuid
+        gpu_pnp_instance_id = $displayDevices[0].InstanceId
         gpu_index = $GpuIndex
         power_limit_w = $PowerLimitWatts
         initial_retry_count = 90
         retry_delay_seconds = 2
         recheck_seconds = 900
+        sample_seconds = 5
+        idle_power_threshold_w = 60
+        idle_memory_max_mib = 384
+        idle_utilization_max_percent = 2
+        idle_required_samples = 24
+        recovery_cooldown_seconds = 1800
+        recovery_window_seconds = 3600
+        max_recoveries_per_window = 2
+        driver_ready_retry_count = 30
+        driver_ready_retry_seconds = 2
+        post_recovery_settle_seconds = 10
+        post_recovery_verification_samples = 3
+        post_recovery_verification_interval_seconds = 2
+        telemetry_task_name = 'GX1HostTelemetryBridge'
     }
     [System.IO.File]::WriteAllText(
         $configPath,
@@ -122,85 +150,14 @@ function Install-PersistentPowerLimitTask {
         [System.Text.UTF8Encoding]::new($false)
     )
 
-    $runner = @'
-[CmdletBinding()]
-param()
-
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-$root = $PSScriptRoot
-$configPath = Join-Path $root 'GX1-GpuPowerLimit.config.json'
-$logPath = Join-Path $root 'GX1-GpuPowerLimit.log'
-$config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
-
-function Write-Gx1PowerLimitLog {
-    param([Parameter(Mandatory = $true)][string]$Message)
-    $line = "$(Get-Date -Format o) $Message"
-    [System.IO.File]::AppendAllText($logPath, "$line`r`n", [System.Text.UTF8Encoding]::new($false))
-}
-
-$gpuIndex = [int]$config.gpu_index
-$targetLimit = [int]$config.power_limit_w
-$firstCheck = $true
-while ($true) {
-    $lastReason = 'Nvidia driver did not become ready.'
-    $verified = $false
-    $attemptLimit = if ($firstCheck) { [int]$config.initial_retry_count } else { 1 }
-    foreach ($attempt in 1..$attemptLimit) {
-        try {
-            if (-not (Test-Path -LiteralPath ([string]$config.native_smi) -PathType Leaf)) {
-                throw 'nvidia-smi.exe is unavailable'
-            }
-            $setOutput = @(& ([string]$config.native_smi) -i "$gpuIndex" -pl "$targetLimit" 2>&1)
-            if ($LASTEXITCODE -ne 0) {
-                throw "nvidia-smi -pl failed: $(($setOutput | Out-String).Trim())"
-            }
-            $raw = @(& ([string]$config.native_smi) -i "$gpuIndex" --query-gpu=name,uuid,power.limit --format=csv,noheader,nounits 2>&1)
-            if ($LASTEXITCODE -ne 0 -or $raw.Count -ne 1) {
-                throw 'nvidia-smi power-limit verification failed'
-            }
-            $fields = @($raw[0].ToString().Split(',') | ForEach-Object { $_.Trim() })
-            $limit = 0.0
-            if ($fields.Count -ne 3 -or
-                $fields[0] -ne [string]$config.expected_gpu_name -or
-                $fields[1] -ne [string]$config.expected_gpu_uuid -or
-                -not [double]::TryParse($fields[2], [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$limit) -or
-                $limit -gt [double]$targetLimit) {
-                throw "power-limit verification mismatch: '$($raw[0])'"
-            }
-            $verified = $true
-            if ($firstCheck -or $attempt -gt 1) {
-                Write-Gx1PowerLimitLog "SUCCESS gpu_uuid=$($fields[1]) power_limit_w=$limit attempt=$attempt"
-            }
-            break
-        }
-        catch {
-            $lastReason = $_.Exception.Message
-            if ($attempt -lt $attemptLimit) {
-                Start-Sleep -Seconds ([int]$config.retry_delay_seconds)
-            }
-        }
-    }
-    if (-not $verified) {
-        Write-Gx1PowerLimitLog "FAILURE $lastReason"
-    }
-    $firstCheck = $false
-    Start-Sleep -Seconds ([int]$config.recheck_seconds)
-}
-'@
-    [System.IO.File]::WriteAllText(
-        $runnerPath,
-        $runner,
-        [System.Text.UTF8Encoding]::new($false)
-    )
+    Copy-Item -LiteralPath $runnerSourcePath -Destination $runnerPath -Force
 
     $powerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$runnerPath`""
     $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Seconds 0) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
     Start-ScheduledTask -TaskName $taskName
 
@@ -209,7 +166,12 @@ while ($true) {
         runner_path = $runnerPath
         log_path = $logPath
         configured_power_limit_w = $PowerLimitWatts
-        startup_verification = 'SYSTEM retries for up to 180 seconds at boot, then reapplies and verifies the cap every 15 minutes using the exact GPU name and UUID.'
+        idle_guard = [ordered]@{
+            detection = '24 consecutive five-second samples at P0/P1/P2, above 60 W, at or below 384 MiB and at or below 2 percent utilization.'
+            recovery = 'SYSTEM restarts only the exact bound Nvidia PnP device, restores 160 W, verifies low idle and restarts signed telemetry.'
+            failure_mode = 'Signed telemetry is stopped and CUDA remains fail-closed if recovery fails or rate limiting activates.'
+        }
+        startup_verification = 'SYSTEM retries for up to 180 seconds at boot, reapplies the cap every 15 minutes and samples the exact GPU idle state every five seconds.'
     }
 }
 

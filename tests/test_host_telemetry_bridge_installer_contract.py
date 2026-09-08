@@ -6,6 +6,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 INSTALLER = REPO / "scripts" / "windows" / "Install-GX1-HostTelemetryBridge.ps1"
 SENSOR_INSTALLER = REPO / "scripts" / "windows" / "Install-GX1-HostTelemetry.ps1"
+GPU_IDLE_GUARD = REPO / "scripts" / "windows" / "GX1-GpuPowerAndIdleGuard.ps1"
 
 
 def test_host_bridge_installer_keeps_the_signer_host_only_and_nonexportable() -> None:
@@ -103,15 +104,76 @@ def test_sensor_bootstrap_uses_the_same_160_w_limit_as_canonical_cuda() -> None:
 
 def test_sensor_bootstrap_registers_a_verified_persistent_160_w_startup_task() -> None:
     source = SENSOR_INSTALLER.read_text(encoding="utf-8")
+    guard = GPU_IDLE_GUARD.read_text(encoding="utf-8")
 
     assert "function Install-PersistentPowerLimitTask" in source
     assert "$taskName = 'GX1GpuPowerLimit'" in source
     assert "New-ScheduledTaskTrigger -AtStartup" in source
     assert "-UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest" in source
     assert "expected_gpu_uuid" in source
-    assert "--query-gpu=name,uuid,power.limit" in source
+    assert "name,uuid,pstate,temperature.gpu,power.draw,power.limit,memory.used,utilization.gpu" in guard
     assert "-pl" in source
     assert "recheck_seconds = 900" in source
     assert "-ExecutionTimeLimit (New-TimeSpan -Seconds 0)" in source
+    assert "-RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)" in source
     assert "persistent_power_limit_task" in source
     assert "Install-PersistentPowerLimitTask @persistentTaskParameters" in source
+
+
+def test_gpu_idle_guard_detects_only_sustained_low_memory_zero_load_high_power() -> None:
+    installer = SENSOR_INSTALLER.read_text(encoding="utf-8")
+    guard = GPU_IDLE_GUARD.read_text(encoding="utf-8")
+
+    assert "gx1_gpu_power_and_idle_guard_v2" in installer
+    assert "GX1-GpuPowerAndIdleGuard.ps1" in installer
+    assert "Copy-Item -LiteralPath $runnerSourcePath" in installer
+    assert "sample_seconds = 5" in installer
+    assert "idle_power_threshold_w = 60" in installer
+    assert "idle_memory_max_mib = 384" in installer
+    assert "idle_utilization_max_percent = 2" in installer
+    assert "idle_required_samples = 24" in installer
+    assert "Test-Gx1HighIdleSample" in guard
+    assert "$Sample.pstate -match '^P[0-2]$'" in guard
+    assert "$Sample.power_draw_w -gt [double]$Config.idle_power_threshold_w" in guard
+    assert "$Sample.memory_used_mib -le [int]$Config.idle_memory_max_mib" in guard
+    assert "$Sample.utilization_percent -le [int]$Config.idle_utilization_max_percent" in guard
+    assert "$highIdleSamples -ge [int]$config.idle_required_samples" in guard
+
+
+def test_gpu_idle_guard_recovers_exact_device_and_fails_closed() -> None:
+    installer = SENSOR_INSTALLER.read_text(encoding="utf-8")
+    guard = GPU_IDLE_GUARD.read_text(encoding="utf-8")
+
+    assert "Get-PnpDevice -PresentOnly -Class Display" in installer
+    assert "gpu_pnp_instance_id" in installer
+    assert "expected_gpu_uuid" in guard
+    assert "pnputil.exe" in guard
+    assert "'/restart-device'" in guard
+    assert "Set-Gx1PowerLimit -Config $Config" in guard
+    assert "Stop-Gx1TelemetryBridge" in guard
+    assert "Start-Gx1TelemetryBridge" in guard
+    assert "GX1-GpuIdleGuard.block.json" in guard
+    assert "GPU_IDLE_RECOVERY_FAILED" in guard
+    assert "GPU_IDLE_RECOVERY_RATE_LIMITED" in guard
+    assert "GPU_IDLE_RECOVERY_COOLDOWN" in guard
+    assert "telemetry_bridge=STOPPED" in guard
+    assert "GUARD_FAIL_CLOSED_ACTIVE telemetry_bridge=STOPPED" in guard
+    assert "CONFIG_FAILURE message=$configurationFailure telemetry_bridge=STOPPED" in guard
+    assert "BLOCK_CLEARED_AFTER_NORMAL_IDLE" not in guard
+    assert "recovery_cooldown_seconds = 1800" in installer
+    assert "max_recoveries_per_window = 2" in installer
+
+
+def test_gpu_idle_guard_has_offline_policy_self_test_and_one_shot_probe() -> None:
+    guard = GPU_IDLE_GUARD.read_text(encoding="utf-8")
+
+    assert "[switch]$PolicySelfTest" in guard
+    assert "[switch]$Once" in guard
+    assert "gx1_gpu_idle_guard_policy_self_test_v1" in guard
+    assert "persistent_high_idle_detected = $true" in guard
+    assert "active training was misclassified" in guard
+    assert "initialized CUDA context was misclassified" in guard
+    assert "small active CUDA workload was misclassified" in guard
+    assert "normal sample did not reset the sustained counter" in guard
+    assert "gx1_gpu_power_and_idle_guard_once_v1" in guard
+    assert "exit 0" not in guard
