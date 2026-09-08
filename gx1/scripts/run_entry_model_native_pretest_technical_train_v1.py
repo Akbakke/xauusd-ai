@@ -28,6 +28,7 @@ from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CONTRACT_MOD
 from gx1.contracts.entry_model_native_train_launch_v1 import (
     LaunchContractError,
     require_training_recipe_execution_provenance,
+    require_candidate_execution_budget_options,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import MODEL_NATIVE_RECIPE_ENV
 from gx1.contracts.entry_training_precision_v1 import DETERMINISTIC_FP32
@@ -103,6 +104,8 @@ def build_pretest_technical_launch(
     recipe_sha256: str,
     candidate_gate_path: Path | None = None,
     candidate_gate_sha256: str | None = None,
+    candidate_execution_budget_path: Path | None = None,
+    candidate_execution_budget_sha256: str | None = None,
 ) -> tuple[list[str], dict[str, str], dict[str, Any]]:
     """Validate the immutable recipe and derive the sole allowed command."""
 
@@ -150,6 +153,13 @@ def build_pretest_technical_launch(
         raise PretestTechnicalLaunchError(
             "candidate launch gate is invalid for a smoke recipe"
         )
+    try:
+        require_candidate_execution_budget_options(
+            candidate_execution_budget_path, candidate_execution_budget_sha256,
+            recipe_path=recipe_path, recipe_sha256=recipe_sha256, recipe=validated,
+        )
+    except (OSError, ValueError) as exc:
+        raise PretestTechnicalLaunchError(f"candidate execution budget rejected: {exc}") from exc
     execution_tier = str(cli["execution_tier"])
     device = str(cli["device"])
     if (execution_tier, device) not in {
@@ -242,6 +252,11 @@ def build_pretest_technical_launch(
             "--candidate-gate-json", str(candidate_gate_path),
             "--candidate-gate-sha256", str(candidate_gate_sha256),
         ))
+    if candidate_execution_budget_path is not None:
+        trainer_command.extend((
+            "--candidate-execution-budget-json", str(candidate_execution_budget_path),
+            "--candidate-execution-budget-sha256", str(candidate_execution_budget_sha256),
+        ))
     if isinstance(window, Mapping):
         trainer_command.extend((
             "--train-time-window-start-utc", str(window["start_utc"]),
@@ -281,6 +296,8 @@ def main() -> None:
     parser.add_argument("--recipe-sha256", required=True)
     parser.add_argument("--candidate-gate-json", type=Path)
     parser.add_argument("--candidate-gate-sha256")
+    parser.add_argument("--candidate-execution-budget-json", type=Path)
+    parser.add_argument("--candidate-execution-budget-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -291,6 +308,8 @@ def main() -> None:
             recipe_sha256=str(args.recipe_sha256),
             candidate_gate_path=args.candidate_gate_json,
             candidate_gate_sha256=args.candidate_gate_sha256,
+            candidate_execution_budget_path=args.candidate_execution_budget_json,
+            candidate_execution_budget_sha256=args.candidate_execution_budget_sha256,
         )
     except PretestTechnicalLaunchError as exc:
         parser.error(str(exc))

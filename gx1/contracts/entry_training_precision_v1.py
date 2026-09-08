@@ -39,8 +39,8 @@ def require_training_precision_policy(
             f"precision_policy={policy!r} is not declared"
         )
     if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL:
-        if (device_type, execution_tier, profile) != ("cuda", "canonical", "smoke") or type(batch_size) is not int or batch_size != 8:
-            raise TrainingPrecisionPolicyError("local memory-fill experiment requires canonical CUDA smoke at batch 8")
+        if (device_type, execution_tier) != ("cuda", "canonical") or profile not in {"smoke", "candidate"} or type(batch_size) is not int or batch_size != 8:
+            raise TrainingPrecisionPolicyError("local memory-fill experiment requires canonical CUDA smoke or budgeted candidate at batch 8")
         return policy
     if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE:
         if (device_type, execution_tier, profile) != ("cuda", "canonical", "smoke") or type(batch_size) is not int or batch_size != 8:
@@ -238,8 +238,14 @@ def candidate_validation_checkpoint_interval(policy: str) -> int:
 
 def require_local_precision_benchmark_geometry(
     policy: str, *, epochs: int, grad_accum_steps: int, subsample_rows: int,
+    profile: str = "smoke",
 ) -> None:
-    """Keep local numerical and Exit batching experiments strictly bounded."""
+    """Keep local experiments bounded and candidate populations complete."""
+    if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL and profile == "candidate":
+        if type(subsample_rows) is not int or subsample_rows != 0 or type(grad_accum_steps) is not int or grad_accum_steps != 1:
+            raise TrainingPrecisionPolicyError("local memory-fill candidate requires full TRAIN and accumulation 1")
+        # The candidate checkpoint-policy owner validates epochs/early stopping.
+        return
     if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL and (type(subsample_rows) is not int or subsample_rows != 512):
         raise TrainingPrecisionPolicyError("local memory-fill experiment requires exactly 512 rows")
     if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE and (type(subsample_rows) is not int or subsample_rows != 512):

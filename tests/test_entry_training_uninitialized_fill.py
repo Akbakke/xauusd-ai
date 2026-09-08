@@ -224,7 +224,7 @@ def test_no_fill_policy_keeps_original_fp32_checks_and_resource_geometry():
     "change",
     [
         {"device_type": "cpu"},
-        {"profile": "candidate"},
+        {"profile": "unknown"},
         {"execution_tier": "attended_only"},
         {"batch_size": 10},
         {"batch_size": True},

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import json
 from types import SimpleNamespace
 
@@ -326,6 +327,7 @@ def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path
     assert isinstance(cli, dict)
     args = SimpleNamespace(
         recipe_audit_json=recipe_path,
+        recipe_audit_sha256=hashlib.sha256(recipe_path.read_bytes()).hexdigest(),
         profile="smoke",
         run_id=RUN_ID,
         dataset_run_id=DATASET_RUN_ID,

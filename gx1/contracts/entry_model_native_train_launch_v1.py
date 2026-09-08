@@ -854,6 +854,132 @@ def _validate_source_bindings(
     )
 
 
+CANDIDATE_EXECUTION_BUDGET_SCHEMA = 'gx1_candidate_execution_budget_v1'
+
+_CANDIDATE_EXECUTION_BUDGET_FIELDS = frozenset({
+    'schema_version', 'recipe_json', 'recipe_sha256',
+    'expected_active_pointer_sha256', 'stop_after_optimizer_steps',
+    'stop_after_completed_val_epochs', 'max_invocation_seconds',
+})
+
+def require_candidate_execution_budget(
+    path: Path,
+    expected_sha256: str,
+    *,
+    recipe_path: Path,
+    recipe_sha256: str,
+    recipe: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Verify a per-invocation stop budget without changing recipe identity.
+
+    Caller must already have validated the recipe and candidate gate. The
+    launcher and direct trainer both call this owner with their same recipe.
+    The trainer additionally compares the expected pointer hash with the actual
+    session pointer under its exclusive training lock, BEFORE any state write.
+    """
+    if not isinstance(expected_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_sha256):
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_DIGEST_INVALID]')
+    path = Path(path)
+    if not path.is_absolute() or path.resolve() != path or path.is_symlink() or not path.is_file():
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_PATH_INVALID]')
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_DIGEST_MISMATCH]')
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('[CANDIDATE_EXECUTION_BUDGET_DUPLICATE_KEY]')
+            result[key] = value
+        return result
+    budget = json.loads(raw, object_pairs_hook=unique_object)
+    if not isinstance(budget, dict) or set(budget) not in (_CANDIDATE_EXECUTION_BUDGET_FIELDS, _CANDIDATE_EXECUTION_BUDGET_FIELDS | {'resume_probe_val_rows'}) or budget['schema_version'] != CANDIDATE_EXECUTION_BUDGET_SCHEMA:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_SCHEMA_INVALID]')
+    if recipe.get('profile') != 'candidate':
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_PROFILE_INVALID]')
+    if budget['recipe_json'] != str(recipe_path) or budget['recipe_sha256'] != recipe_sha256:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_RECIPE_MISMATCH]')
+    pointer = budget['expected_active_pointer_sha256']
+    if pointer is not None and (not isinstance(pointer, str) or not re.fullmatch(r'[0-9a-f]{64}', pointer)):
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_POINTER_INVALID]')
+    for field in ('stop_after_optimizer_steps', 'stop_after_completed_val_epochs'):
+        value = budget[field]
+        if value is not None and (type(value) is not int or value < 1):
+            raise ValueError('[CANDIDATE_EXECUTION_BUDGET_CEILING_INVALID]')
+    epoch_ceiling = budget['stop_after_completed_val_epochs']
+    if epoch_ceiling is not None and epoch_ceiling > recipe['trainer_cli']['epochs']:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_EPOCH_CEILING_INVALID]')
+    seconds = budget['max_invocation_seconds']
+    # Explicit invocation policy leaves 30 minutes inside the independent 2h
+    # guard for preflight and completing a durable checkpoint boundary.
+    if type(seconds) is not int or not 1 <= seconds <= 5400:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_WALL_LIMIT_INVALID]')
+    if 'resume_probe_val_rows' in budget:
+        probe_rows = budget['resume_probe_val_rows']
+        step_ceiling = budget['stop_after_optimizer_steps']
+        if (
+            type(probe_rows) is not int or probe_rows not in {32, 128, 512}
+            or type(step_ceiling) is not int or not 1 <= step_ceiling <= 128
+        ):
+            raise ValueError('[CANDIDATE_EXECUTION_RESUME_PROBE_SCOPE_INVALID]')
+    return budget
+
+def candidate_execution_pause_reason(
+    budget: Mapping[str, Any], *, global_optimizer_steps: int,
+    completed_val_epochs: int, elapsed_seconds: float,
+) -> str | None:
+    """Pure decision at an existing durable boundary; never save state here."""
+    if (type(global_optimizer_steps) is not int or global_optimizer_steps < 0
+            or type(completed_val_epochs) is not int or completed_val_epochs < 0
+            or isinstance(elapsed_seconds, bool) or not isinstance(elapsed_seconds, (int, float))
+            or not math.isfinite(elapsed_seconds) or elapsed_seconds < 0):
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_PROGRESS_INVALID]')
+    steps = budget['stop_after_optimizer_steps']
+    if steps is not None and global_optimizer_steps >= steps:
+        return 'optimizer_step_ceiling'
+    epochs = budget['stop_after_completed_val_epochs']
+    if epochs is not None and completed_val_epochs >= epochs:
+        return 'completed_val_epoch_ceiling'
+    if elapsed_seconds >= budget['max_invocation_seconds']:
+        return 'invocation_wall_limit'
+    return None
+
+def require_candidate_execution_pointer(budget: Mapping[str, Any], actual_pointer_sha256: str | None) -> None:
+    """Call before initial save or restore, using the existing session owner.
+
+    A null expected pointer requires an untouched fresh session; an existing
+    pointer must match exactly. Ordinary slot/contract/state verification stays
+    with _CandidateTrainingSession, without a second checkpoint parser here.
+    """
+    if actual_pointer_sha256 != budget['expected_active_pointer_sha256']:
+        raise ValueError('[CANDIDATE_EXECUTION_BUDGET_ACTIVE_POINTER_MISMATCH]')
+
+
+def require_candidate_execution_budget_options(
+    path: Path | None, expected_sha256: str | None, *, recipe_path: Path,
+    recipe_sha256: str, recipe: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Keep invocation limits separate from immutable learning settings."""
+    from gx1.contracts.entry_training_precision_v1 import (
+        EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
+    )
+
+    if path is None and expected_sha256 is None:
+        if (
+            recipe.get("profile") == "candidate"
+            and recipe["trainer_cli"].get("precision_policy")
+            == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
+        ):
+            raise ValueError("[CANDIDATE_EXECUTION_BUDGET_REQUIRED]")
+        return None
+    if path is None or expected_sha256 is None:
+        raise ValueError("[CANDIDATE_EXECUTION_BUDGET_PAIR_REQUIRED]")
+    return require_candidate_execution_budget(
+        path, expected_sha256, recipe_path=recipe_path,
+        recipe_sha256=recipe_sha256, recipe=recipe,
+    )
+
+
 def require_training_recipe_source_provenance_metadata(
     value: Mapping[str, Any] | Any,
     *,

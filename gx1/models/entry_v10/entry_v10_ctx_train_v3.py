@@ -108,6 +108,11 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     require_model_native_recipe_env,
     resolve_weight_ema_decay,
 )
+from gx1.contracts.entry_model_native_train_launch_v1 import (
+    candidate_execution_pause_reason,
+    require_candidate_execution_pointer,
+    require_candidate_execution_budget_options,
+)
 from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_BF16_HOPPER,
     EXPERIMENTAL_BF16_3090,
@@ -8042,6 +8047,7 @@ def train_epoch(
     session_log_label: str = "BOUNDED_TRAINING",
     performance_warmup_optimizer_steps: int = 0,
     kernel_profile_output_dir: Optional[Path] = None,
+    session_resume_probe: bool = False,
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -8057,6 +8063,11 @@ def train_epoch(
         )
     if _accum_steps > 1:
         log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
+    if not isinstance(session_resume_probe, bool) or (session_resume_probe and (
+        session_max_optimizer_steps is None
+        or int(session_batch_offset) + int(session_max_optimizer_steps) > 128
+    )):
+        raise RuntimeError("[CANDIDATE_RESUME_PROBE_TRAIN_SCOPE_INVALID]")
     if session_max_optimizer_steps is not None:
         if (
             int(session_max_optimizer_steps) < 1
@@ -8370,6 +8381,11 @@ def train_epoch(
             _gradient_norm = _optimizer_step_with_finite_gradients(
                 model=model, optimizer=optimizer, weight_ema=weight_ema
             )
+            if session_resume_probe:
+                _record_candidate_resume_probe_step(
+                    batch_offset=_absolute_batch_i, loss=loss,
+                    gradient_norm=_gradient_norm, entry_row_indices=entry_row_indices,
+                )
             if int(performance_warmup_optimizer_steps) > 0:
                 # Retain only detached scalars; copy together after the timing window.
                 _performance_gradient_norms.append(_gradient_norm.detach())
@@ -11085,6 +11101,165 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
     )
 
 
+def _record_candidate_resume_probe_step(
+    *, batch_offset: int, loss: torch.Tensor, gradient_norm: torch.Tensor,
+    entry_row_indices: torch.Tensor,
+) -> None:
+    """Record all completed proof updates before the durable pause callback."""
+    payload = {
+        "schema_version": "gx1_candidate_resume_probe_step_v1",
+        "batch_offset": int(batch_offset),
+        "loss": float(loss.detach().cpu()),
+        "gradient_norm_pre_clip": float(gradient_norm.detach().cpu()),
+        "entry_row_indices": entry_row_indices.detach().cpu().tolist(),
+        "optimizer_step_completed": True,
+        "report_only": True,
+    }
+    log.info("[CANDIDATE_RESUME_PROBE_STEP] %s", json.dumps(payload, sort_keys=True, allow_nan=False))
+
+
+def _candidate_resume_validation_probe(
+    *, model: nn.Module, target_model: nn.Module, weight_ema: Optional[_WeightEma],
+    val_ds: EntryV10CtxDataset, device: torch.device, batch_size: int, seed: int,
+    requested_rows: int, session: _CandidateTrainingSession,
+    execution_budget_sha256: str, pointer_sha256: str,
+) -> dict[str, Any]:
+    """A bounded VAL-only resume diagnostic; never updates candidate selection.
+
+    The real full-VAL candidate phase remains unchanged. This separate probe
+    observes the same deterministic VAL sample after each proof pause and
+    restores online weights, model modes and every checkpointed RNG source.
+    """
+    if type(requested_rows) is not int or requested_rows not in {32, 128, 512} or requested_rows > len(val_ds):
+        raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_ROWS_INVALID]")
+    pointer = session.directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
+    if _sha256_file(pointer) != pointer_sha256:
+        raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_POINTER_CHANGED]")
+    path = session.directory / ("CANDIDATE_RESUME_VAL_PROBE_" + execution_budget_sha256 + ".json")
+    binding = {
+        "schema_version": "gx1_candidate_resume_val_probe_v1",
+        "active_pointer_sha256": pointer_sha256,
+        "execution_budget_sha256": execution_budget_sha256,
+        "session_contract_sha256": session.contract_sha256,
+        "requested_val_rows": requested_rows,
+        "device": str(device),
+    }
+    if path.exists():
+        existing = _candidate_training_session_read_json(path, label="RESUME_VAL_PROBE")
+        if any(existing.get(key) != value for key, value in binding.items()):
+            raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_CONFLICT]")
+        return {"executed": True, "path": str(path), "sha256": _sha256_file(path)}
+    rng = _attended_session_rng_state(device=device)
+    modes = [(module, module.training) for root in (model, target_model) for module in root.modules()]
+    online_before = canonical_model_state_sha256(model.state_dict())
+    target_before = canonical_model_state_sha256(target_model.state_dict())
+    indices = deterministic_uniform_subsample_indices(
+        population_rows=len(val_ds), requested_rows=requested_rows, seed=seed, split_salt=1,
+    )
+    loader = DataLoader(
+        val_ds, batch_size=batch_size,
+        sampler=_ExactIndexSampler(torch.from_numpy(indices), batch_offset=0, batch_size=batch_size),
+        num_workers=0, pin_memory=device.type == "cuda",
+        generator=torch.Generator().manual_seed(seed),
+    )
+    started = _synchronized_exit_profile_clock(device)
+    try:
+        context = weight_ema.evaluating(model) if weight_ema is not None else contextlib.nullcontext()
+        with context:
+            loss, _auc, agreement, _ratio, stats = validate(
+                model, target_model, loader, device,
+                collect_full_exit_trajectory=False,
+                candidate_allow_static_feature_gates=True,
+            )
+        seconds = _synchronized_exit_profile_clock(device) - started
+    finally:
+        for module, training in modes:
+            module.training = training
+        _restore_attended_session_rng_state(rng, device=device)
+    if canonical_model_state_sha256(model.state_dict()) != online_before or canonical_model_state_sha256(target_model.state_dict()) != target_before:
+        raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_MODEL_CHANGED]")
+    if _sha256_file(pointer) != pointer_sha256:
+        raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_POINTER_CHANGED]")
+    metrics = {
+        "val_loss": float(loss), "entry_agreement": float(agreement),
+        "entry_pnl_bps": float(stats["entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"]),
+        "exit_mse": float(stats["unified_exit_raw_bps_q_mse_mean"]),
+        "exit_agreement": float(stats["unified_exit_unique_target_action_agreement"]),
+    }
+    if not all(math.isfinite(value) for value in metrics.values()):
+        raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_NONFINITE]")
+    payload = {
+        **binding, "metrics": metrics, "measured_val_seconds": seconds,
+        "val_indices": indices.tolist(), "val_indices_sha256": hashlib.sha256(indices.tobytes()).hexdigest(),
+        "online_model_state_sha256": online_before, "target_model_state_sha256": target_before,
+        "ema_used": weight_ema is not None, "candidate_selection_changed": False,
+        "full_val": False, "collect_full_exit_trajectory": False,
+        "test_accessed": False, "bundle_written": False, "report_only": True,
+    }
+    _candidate_training_session_atomic_write_json(path, payload)
+    return {"executed": True, "path": str(path), "sha256": _sha256_file(path)}
+
+
+def _candidate_execution_budget_for_training(
+    path: Optional[Path], digest: Optional[str], *,
+    recipe_source_provenance: Mapping[str, Any], profile: str,
+    precision_policy: str, export_override: bool,
+) -> Optional[dict[str, Any]]:
+    requested = path is not None or digest is not None
+    required = profile == "candidate" and precision_policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
+    if not requested and not required:
+        return None
+    if profile != "candidate" or export_override:
+        raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_TRAINING_SCOPE_INVALID]")
+    recipe_path = Path(recipe_source_provenance["recipe_audit_path"])
+    recipe_sha = str(recipe_source_provenance["recipe_audit_sha256"])
+    if _sha256_file(recipe_path) != recipe_sha:
+        raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_RECIPE_CHANGED]")
+    recipe = require_pretest_technical_recipe_metadata(json.loads(recipe_path.read_bytes()))
+    if recipe["profile"] != profile or recipe["trainer_cli"].get("precision_policy", DETERMINISTIC_FP32) != precision_policy:
+        raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_RUNTIME_MISMATCH]")
+    return require_candidate_execution_budget_options(
+        path, digest, recipe_path=recipe_path, recipe_sha256=recipe_sha, recipe=recipe,
+    )
+
+
+def _write_candidate_execution_pause_receipt(
+    evidence: Mapping[str, Any], *, out_bundle_dir: Path, gx1_data_override: str,
+) -> Path:
+    """Publish private stop evidence only after a verified durable checkpoint."""
+    output = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
+    directory = output.parent / (_CANDIDATE_TRAINING_SESSION_DIR_PREFIX + output.name)
+    pointer = directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
+    if (
+        evidence.get("schema_version") != "gx1_candidate_execution_pause_v1"
+        or evidence.get("session_directory") != str(directory)
+        or evidence.get("complete") is not False
+        or evidence.get("bundle_written") is not False
+        or _sha256_file(pointer) != evidence.get("active_pointer_sha256")
+        or not isinstance(evidence.get("execution_budget_sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", evidence["execution_budget_sha256"])
+    ):
+        raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_RECEIPT_INVALID]")
+    receipt = directory / (
+        "CANDIDATE_EXECUTION_PAUSE_" + evidence["execution_budget_sha256"] + ".json"
+    )
+    if receipt.exists():
+        if json.loads(receipt.read_bytes()) != dict(evidence):
+            raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_RECEIPT_CONFLICT]")
+    else:
+        # Same exclusive training lock as the session owner; preserve any
+        # existing receipt rather than overwriting historical evidence.
+        _candidate_training_session_atomic_write_json(receipt, dict(evidence))
+    log.info("[CANDIDATE_EXECUTION_PAUSED] receipt=%s reason=%s steps=%d complete=0 bundle_written=0",
+             receipt, evidence["reason"], evidence["global_optimizer_steps"])
+    return receipt
+
+
+class _CandidateExecutionPaused(Exception):
+    def __init__(self, evidence):
+        super().__init__("[CANDIDATE_EXECUTION_PAUSED] " + evidence["reason"])
+        self.evidence = evidence
+
 def _run_resumable_candidate_training(
     *,
     model: nn.Module,
@@ -11130,11 +11305,14 @@ def _run_resumable_candidate_training(
     unified_exit_lifecycle_evidence: Mapping[str, Any],
     recipe_source_provenance: Mapping[str, Any],
     precision_policy: str,
+    execution_budget: Optional[Mapping[str, Any]] = None,
+    execution_budget_sha256: Optional[str] = None,
+    invocation_started_monotonic: Optional[float] = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
-    The candidate is intentionally restarted by the outer, independent
-    resource guard.  Each saved state contains the exact current train order,
+    The independent resource guard remains a hard stop. A separate, bound
+    invocation budget can pause at a durable checkpoint before that limit.  Each saved state contains the exact current train order,
     fixed fitted-Q target, online model, optimizer, EMA, scheduler, RNG,
     model-selection evidence and (when needed) the full VAL accumulator.  A
     restart therefore resumes the same candidate rather than silently training
@@ -11192,6 +11370,22 @@ def _run_resumable_candidate_training(
         precision_policy,
         batch_size=batch_size,
     )
+    if execution_budget is not None:
+        if (
+            not isinstance(execution_budget_sha256, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", execution_budget_sha256)
+            or invocation_started_monotonic is None
+            or not math.isfinite(invocation_started_monotonic)
+            or invocation_started_monotonic > time.monotonic()
+        ):
+            raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_CONTEXT_INVALID]")
+        require_candidate_execution_pointer(
+            execution_budget,
+            _sha256_file(session._active_path)
+            if session._active_path.exists() else None,
+        )
+    elif execution_budget_sha256 is not None or invocation_started_monotonic is not None:
+        raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_CONTEXT_MISMATCH]")
     restored_state = session.load_checkpoint()
     expected_train_batches = -(-len(train_ds) // int(batch_size))
     fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
@@ -11241,6 +11435,48 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_TRAINING_GLOBAL_STEP_MISMATCH]")
         if device.type == "cuda":
             torch.cuda.empty_cache()
+
+    def _pause_if_due(
+        *, phase_value: str, epoch_value: int, batch_offset_value: int,
+    ) -> None:
+        if execution_budget is None:
+            return
+        reason = candidate_execution_pause_reason(
+            execution_budget,
+            global_optimizer_steps=int(global_optimizer_steps),
+            completed_val_epochs=int(progress["checkpoint_selection"]["last_epoch"]),
+            elapsed_seconds=time.monotonic() - invocation_started_monotonic,
+        )
+        if reason is not None:
+            evidence = {
+                "schema_version": "gx1_candidate_execution_pause_v1",
+                "execution_budget_sha256": execution_budget_sha256,
+                "reason": reason,
+                "session_directory": str(session.directory),
+                "session_contract_sha256": session.contract_sha256,
+                "active_pointer_sha256": _sha256_file(session._active_path),
+                "checkpoint_index": int(checkpoint_index),
+                "global_optimizer_steps": int(global_optimizer_steps),
+                "completed_val_epochs": int(progress["checkpoint_selection"]["last_epoch"]),
+                "phase": str(phase_value),
+                "epoch_index": int(epoch_value),
+                "next_batch_offset": int(batch_offset_value),
+                "complete": False,
+                "bundle_written": False,
+                "test_accessed": False,
+            }
+            if "resume_probe_val_rows" in execution_budget:
+                if reason == "optimizer_step_ceiling" and phase_value == "train" and epoch_value == 0:
+                    evidence["resume_validation_probe"] = _candidate_resume_validation_probe(
+                        model=model, target_model=target_model, weight_ema=weight_ema,
+                        val_ds=val_ds, device=device, batch_size=batch_size, seed=seed,
+                        requested_rows=execution_budget["resume_probe_val_rows"],
+                        session=session, execution_budget_sha256=execution_budget_sha256,
+                        pointer_sha256=evidence["active_pointer_sha256"],
+                    )
+                else:
+                    evidence["resume_validation_probe"] = {"executed": False, "reason": reason}
+            raise _CandidateExecutionPaused(evidence)
 
     def _save(
         *,
@@ -11300,6 +11536,12 @@ def _run_resumable_candidate_training(
             int(global_optimizer_steps),
             int(bool(complete_value)),
         )
+        if not complete_value:
+            _pause_if_due(
+                phase_value=phase_value,
+                epoch_value=epoch_value,
+                batch_offset_value=batch_offset_value,
+            )
 
     if restored_state is None:
         _save(
@@ -11332,6 +11574,11 @@ def _run_resumable_candidate_training(
         )
         return _result()
 
+    _pause_if_due(
+        phase_value=phase,
+        epoch_value=epoch_index,
+        batch_offset_value=next_batch_offset,
+    )
     log.info(
         "[CANDIDATE_TRAINING_SESSION_START] directory=%s resumed=%d phase=%s "
         "epoch_index=%d batch_offset=%d train_checkpoint_interval=%d "
@@ -11419,6 +11666,17 @@ def _run_resumable_candidate_training(
                 ],
                 weight_ema=weight_ema,
                 session_batch_offset=next_batch_offset,
+                session_max_optimizer_steps=(
+                    int(execution_budget["stop_after_optimizer_steps"])
+                    - int(global_optimizer_steps)
+                    if execution_budget is not None
+                    and execution_budget["stop_after_optimizer_steps"] is not None
+                    else None
+                ),
+                session_resume_probe=(
+                    execution_budget is not None
+                    and "resume_probe_val_rows" in execution_budget
+                ),
                 session_checkpoint_hook=_checkpoint_train_step,
                 session_exit_action_forward_chunk_rows=(
                     exit_chunk_rows
@@ -11839,14 +12097,23 @@ def run_train(
     val_sequence_source_audit_json: Optional[Path] = None,
     candidate_result_override: Optional[Mapping[str, Any]] = None,
     candidate_epoch_seal: Optional[Mapping[str, Any]] = None,
+    candidate_execution_budget_json: Optional[Path] = None,
+    candidate_execution_budget_sha256: Optional[str] = None,
 ) -> None:
     from gx1.contracts.entry_model_native_train_launch_v1 import (
         require_training_recipe_source_provenance_metadata,
     )
 
+    invocation_started_monotonic = time.monotonic()
     recipe_source_provenance = require_training_recipe_source_provenance_metadata(
         recipe_source_provenance,
         context="ENTRY_TRAIN",
+    )
+    execution_budget = _candidate_execution_budget_for_training(
+        candidate_execution_budget_json, candidate_execution_budget_sha256,
+        recipe_source_provenance=recipe_source_provenance,
+        profile=profile, precision_policy=precision_policy,
+        export_override=candidate_result_override is not None or candidate_epoch_seal is not None,
     )
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
@@ -11883,7 +12150,7 @@ def run_train(
         )
         require_local_precision_benchmark_geometry(
             precision_policy, epochs=epochs, grad_accum_steps=grad_accum_steps,
-            subsample_rows=subsample_rows,
+            subsample_rows=subsample_rows, profile=profile,
         )
     except TrainingPrecisionPolicyError as exc:
         raise RuntimeError("[ENTRY_TRAIN_PRECISION_POLICY_INVALID]") from exc
@@ -13210,53 +13477,65 @@ def run_train(
         else:
             if candidate_epoch_seal is not None:
                 raise RuntimeError("[CANDIDATE_EPOCH_SEAL_OVERRIDE_REQUIRED]")
-            candidate_result = _run_resumable_candidate_training(
-                model=model,
-                optimizer=optimizer,
-                weight_ema=weight_ema,
-                lr_scheduler=lr_scheduler,
-                device=device,
-                train_ds=train_ds,
-                val_ds=val_ds,
-                effective_train_rows=effective_train_rows,
-                batch_size=batch_size,
-                num_workers=num_workers,
-                pin_memory=pin_memory,
-                persistent_workers=persistent_workers,
-                prefetch_factor=prefetch_factor,
-                epochs=epochs,
-                early_stopping_patience=early_stopping_patience,
-                early_stopping_min_delta=early_stopping_min_delta,
-                minimum_epochs_before_stop=minimum_epochs_before_stop,
-                save_top_k=save_top_k,
-                out_bundle_dir=out_bundle_dir,
-                gx1_data_override=gx1_data_override,
-                run_id=run_id,
-                dataset_run_id=dataset_run_id,
-                train_parquet=Path(train_parquet),
-                val_parquet=Path(val_parquet),
-                m5_prebuilt_path=Path(m5_prebuilt_path),
-                unified_exit_lifecycle_manifest_path=Path(
-                    unified_exit_lifecycle_manifest_path
-                ),
-                input_normalization=input_normalization,
-                seed=seed,
-                grad_accum_steps=grad_accum_steps,
-                grad_clip_norm=float(_GRAD_CLIP_NORM),
-                weight_decay=float(_WEIGHT_DECAY),
-                lr=lr,
-                dropout=dropout,
-                seq_len=seq_len,
-                per_tf_seq_lens=_effective_tf_lens,
-                multi_tf_num_layers=multi_tf_num_layers,
-                specialist_num_layers=specialist_num_layers,
-                multi_tf_scale=multi_tf_scale,
-                specialist_fusion_scale=specialist_fusion_scale,
-                cross_family_fusion_scale=cross_family_fusion_scale,
-                unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
-                recipe_source_provenance=recipe_source_provenance,
-                precision_policy=precision_policy,
-            )
+            try:
+                candidate_result = _run_resumable_candidate_training(
+                    model=model,
+                    optimizer=optimizer,
+                    weight_ema=weight_ema,
+                    lr_scheduler=lr_scheduler,
+                    device=device,
+                    train_ds=train_ds,
+                    val_ds=val_ds,
+                    effective_train_rows=effective_train_rows,
+                    batch_size=batch_size,
+                    num_workers=num_workers,
+                    pin_memory=pin_memory,
+                    persistent_workers=persistent_workers,
+                    prefetch_factor=prefetch_factor,
+                    epochs=epochs,
+                    early_stopping_patience=early_stopping_patience,
+                    early_stopping_min_delta=early_stopping_min_delta,
+                    minimum_epochs_before_stop=minimum_epochs_before_stop,
+                    save_top_k=save_top_k,
+                    out_bundle_dir=out_bundle_dir,
+                    gx1_data_override=gx1_data_override,
+                    run_id=run_id,
+                    dataset_run_id=dataset_run_id,
+                    train_parquet=Path(train_parquet),
+                    val_parquet=Path(val_parquet),
+                    m5_prebuilt_path=Path(m5_prebuilt_path),
+                    unified_exit_lifecycle_manifest_path=Path(
+                        unified_exit_lifecycle_manifest_path
+                    ),
+                    input_normalization=input_normalization,
+                    seed=seed,
+                    grad_accum_steps=grad_accum_steps,
+                    grad_clip_norm=float(_GRAD_CLIP_NORM),
+                    weight_decay=float(_WEIGHT_DECAY),
+                    lr=lr,
+                    dropout=dropout,
+                    seq_len=seq_len,
+                    per_tf_seq_lens=_effective_tf_lens,
+                    multi_tf_num_layers=multi_tf_num_layers,
+                    specialist_num_layers=specialist_num_layers,
+                    multi_tf_scale=multi_tf_scale,
+                    specialist_fusion_scale=specialist_fusion_scale,
+                    cross_family_fusion_scale=cross_family_fusion_scale,
+                    unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
+                    recipe_source_provenance=recipe_source_provenance,
+                    precision_policy=precision_policy,
+                    execution_budget=execution_budget,
+                    execution_budget_sha256=candidate_execution_budget_sha256,
+                    invocation_started_monotonic=(
+                        invocation_started_monotonic if execution_budget is not None else None
+                    ),
+                )
+            except _CandidateExecutionPaused as paused:
+                _write_candidate_execution_pause_receipt(
+                    paused.evidence, out_bundle_dir=out_bundle_dir,
+                    gx1_data_override=gx1_data_override,
+                )
+                return
         best_state = candidate_result["best_state"]
         best_val = float(candidate_result["best_val"])
         best_policy_pnl = float(candidate_result["best_policy_pnl"])
@@ -14901,7 +15180,11 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_READ_FAILED]") from exc
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
+    budget_path = getattr(args, "candidate_execution_budget_json", None)
+    budget_sha = getattr(args, "candidate_execution_budget_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
+        if budget_path is not None or budget_sha is not None:
+            raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_PRETEST_RECIPE_REQUIRED]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
         return
@@ -14985,6 +15268,13 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
             ) from exc
     elif candidate_gate_path is not None or candidate_gate_sha256 is not None:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
+    try:
+        require_candidate_execution_budget_options(
+            budget_path, budget_sha, recipe_path=recipe_path,
+            recipe_sha256=str(args.recipe_audit_sha256), recipe=recipe,
+        )
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"[CANDIDATE_EXECUTION_BUDGET_REJECTED] {exc}") from exc
 
 
 def main() -> None:
@@ -15024,6 +15314,8 @@ def main() -> None:
     parser.add_argument("--recipe-audit-sha256", type=str, required=True)
     parser.add_argument("--candidate-gate-json", type=Path)
     parser.add_argument("--candidate-gate-sha256", type=str)
+    parser.add_argument("--candidate-execution-budget-json", type=Path)
+    parser.add_argument("--candidate-execution-budget-sha256", type=str)
     parser.add_argument("--prefreeze-test-seal-json", type=Path, required=True)
     parser.add_argument("--prefreeze-test-seal-sha256", type=str, required=True)
     parser.add_argument(
@@ -15268,6 +15560,8 @@ def main() -> None:
         val_sequence_roll_audit_json=args.val_sequence_roll_audit_json,
         train_sequence_source_audit_json=args.train_sequence_source_audit_json,
         val_sequence_source_audit_json=args.val_sequence_source_audit_json,
+        candidate_execution_budget_json=args.candidate_execution_budget_json,
+        candidate_execution_budget_sha256=args.candidate_execution_budget_sha256,
     )
 
 

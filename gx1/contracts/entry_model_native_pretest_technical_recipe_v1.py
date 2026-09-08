@@ -330,6 +330,7 @@ def require_pretest_technical_recipe_metadata(
             epochs=trainer_cli["epochs"],
             grad_accum_steps=trainer_cli["grad_accum_steps"],
             subsample_rows=trainer_cli["subsample_rows"],
+            profile=profile,
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc

@@ -99,15 +99,35 @@ def _assert_explicit_review_hold(result: subprocess.CompletedProcess) -> bool:
         scope = state.get("local_training_efficiency_scope")
         if scope is None:
             return False
-        # This isolated smoke checkout preserves the canonical candidate's
+        # This isolated efficiency checkout preserves the canonical candidate's
         # original references. They must never become valid resume authority
         # merely because the operator authorized a separate local benchmark.
-        assert scope["candidate_training_authority"] is False
+        assert scope["candidate_training_authority"] == (
+            "conditional_on_fresh_recipe_gate_budget_and_verified_checkpoint"
+        )
         assert scope["test_authority"] is False
         assert scope["cloud_purchase_authority"] is False
         assert scope["physical_power_limit_w"] == 160
-        assert scope["maximum_epochs"] == 1
-        assert scope["maximum_subsample_rows"] == 512
+        assert scope["smoke_limits"] == {
+            "maximum_epochs": 1,
+            "maximum_subsample_rows": 512,
+        }
+        assert scope["candidate_stage"] == {
+            "full_train_population": True,
+            "stop_after_completed_val_epochs": 1,
+            "maximum_invocation_seconds": 5400,
+            "full_blind_30_epoch_run_authorized": False,
+            "original_session_must_remain_unchanged": True,
+        }
+        assert scope["requirements"] == [
+            "clean_committed_source",
+            "fresh_exact_profile_recipe",
+            "candidate_gate_for_candidate_profile",
+            "immutable_execution_budget_for_staged_candidate",
+            "verified_checkpoint_identity_before_resume",
+            "signed_telemetry",
+            "canonical_capped_runner_and_watchdog",
+        ]
         assert result.returncode == 2
         assert "FATAL: active candidate source binding escapes repository" in result.stderr
         assert "no authority status was produced" in result.stderr

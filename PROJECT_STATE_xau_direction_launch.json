@@ -182,16 +182,17 @@
   },
   "local_training_efficiency_scope": {
     "operator_instruction_date": "2026-09-08",
-    "scope": "bounded canonical local RTX3090 TRAIN/VAL-only efficiency smoke",
+    "scope": "bounded RTX3090 TRAIN/VAL efficiency, CUDA resume proof and staged candidate qualification",
     "physical_power_limit_w": 160,
-    "maximum_epochs": 1,
-    "maximum_subsample_rows": 512,
-    "candidate_training_authority": false,
+    "candidate_training_authority": "conditional_on_fresh_recipe_gate_budget_and_verified_checkpoint",
     "test_authority": false,
     "cloud_purchase_authority": false,
     "requirements": [
       "clean_committed_source",
-      "fresh_exact_smoke_recipe",
+      "fresh_exact_profile_recipe",
+      "candidate_gate_for_candidate_profile",
+      "immutable_execution_budget_for_staged_candidate",
+      "verified_checkpoint_identity_before_resume",
       "signed_telemetry",
       "canonical_capped_runner_and_watchdog"
     ],
@@ -201,6 +202,17 @@
       "reason": "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
       "activation_authority": false,
       "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
+    },
+    "smoke_limits": {
+      "maximum_epochs": 1,
+      "maximum_subsample_rows": 512
+    },
+    "candidate_stage": {
+      "full_train_population": true,
+      "stop_after_completed_val_epochs": 1,
+      "maximum_invocation_seconds": 5400,
+      "full_blind_30_epoch_run_authorized": false,
+      "original_session_must_remain_unchanged": true
     }
   }
 }

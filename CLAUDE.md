@@ -1,10 +1,12 @@
-> **Local efficiency scope — 2026-09-08:** This isolated checkout prepares
-> the operator-requested bounded RTX 3090 TRAIN/VAL benchmark at 160 W.
-> The operator request supersedes the historical no-smoke hold below for
-> this scope only. Exact committed source, a fresh smoke recipe, signed
-> telemetry and the canonical capped runner/watchdog remain mandatory.
-> Candidate continuation, TEST and spending remain closed. The original
-> canonical checkout and its work in progress are preserved.
+> **Local efficiency scope — 2026-09-08:** This isolated checkout implements
+> the operator-requested RTX 3090 TRAIN/VAL efficiency work at 160 W, including
+> bounded smoke comparisons, actual CUDA resume proof and staged candidate
+> continuation through one complete TRAIN epoch and full VAL. Candidate runs
+> require a separate immutable invocation budget, a fresh exact recipe/gate,
+> clean committed source, verified checkpoint identity and signed telemetry
+> through the canonical capped runner/watchdog. The original checkout, hold
+> and preserved sessions remain unchanged. TEST, spending and promotion remain
+> closed. A full blind 30-epoch run is outside this scope.
 
 # GX1 operating rules
 
