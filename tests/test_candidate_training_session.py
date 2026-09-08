@@ -681,6 +681,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
         output: Path = out_bundle,
     ):
         return trainer._run_resumable_candidate_training(
+            precision_policy=trainer.DETERMINISTIC_FP32,
             model=model,
             optimizer=optimizer,
             weight_ema=trainer._WeightEma(model, 0.5),

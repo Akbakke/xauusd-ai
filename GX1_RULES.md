@@ -1,3 +1,11 @@
+> **Local efficiency scope — 2026-09-08:** This isolated checkout prepares
+> the operator-requested bounded RTX 3090 TRAIN/VAL benchmark at 160 W.
+> The operator request supersedes the historical no-smoke hold below for
+> this scope only. Exact committed source, a fresh smoke recipe, signed
+> telemetry and the canonical capped runner/watchdog remain mandatory.
+> Candidate continuation, TEST and spending remain closed. The original
+> canonical checkout and its work in progress are preserved.
+
 # GX1 binding rules
 
 This file defines the only active project scope.

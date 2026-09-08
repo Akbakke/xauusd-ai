@@ -266,7 +266,12 @@ def test_capped_runner_serializes_every_heavy_job() -> None:
     assert "NUMERICAL_THREAD_COUNT=8" in source
     assert '--setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT"' in source
     trainer_source = CANONICAL_TRAINER.read_text(encoding="utf-8")
-    assert "torch.set_num_threads(8)" in trainer_source
+    assert "torch.set_num_threads(numerical_thread_count(policy))" in trainer_source
+    from gx1.contracts.entry_training_precision_v1 import (
+        DETERMINISTIC_FP32,
+        numerical_thread_count,
+    )
+    assert numerical_thread_count(DETERMINISTIC_FP32) == 8
 
 
 def test_pre_commit_model_contracts_use_capped_runner() -> None:

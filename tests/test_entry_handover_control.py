@@ -96,7 +96,35 @@ def _assert_explicit_review_hold(result: subprocess.CompletedProcess) -> bool:
     """
     state = json.loads(LAUNCH_STATE.read_text())
     if "pretraining_review_hold" not in state:
-        return False
+        scope = state.get("local_training_efficiency_scope")
+        if scope is None:
+            return False
+        # This isolated smoke checkout preserves the canonical candidate's
+        # original references. They must never become valid resume authority
+        # merely because the operator authorized a separate local benchmark.
+        assert scope["candidate_training_authority"] is False
+        assert scope["test_authority"] is False
+        assert scope["cloud_purchase_authority"] is False
+        assert scope["physical_power_limit_w"] == 160
+        assert scope["maximum_epochs"] == 1
+        assert scope["maximum_subsample_rows"] == 512
+        assert result.returncode == 2
+        assert "FATAL: active candidate source binding escapes repository" in result.stderr
+        assert "no authority status was produced" in result.stderr
+        assert "GATE_READY" not in result.stdout
+        source_only = subprocess.run(
+            ["bash", str(HANDOVER_VIEWER), "--source-only"],
+            cwd=REPO, text=True, capture_output=True, check=False,
+        )
+        if "source_identity_gate: BLOCK_DIRTY_WORKTREE" in source_only.stdout:
+            assert source_only.returncode == 2
+        else:
+            assert source_only.returncode == 0
+            assert "source_identity_gate: READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS" in source_only.stdout
+        assert "unexpected_ignored_path_count: 0" in source_only.stdout
+        assert "historical_artifact_access: NONE" in source_only.stdout
+        assert "cuda_authority: NONE" in source_only.stdout
+        return True
     hold = state["pretraining_review_hold"]
     assert hold["decision"] == "BLOCK"
     assert hold["activation_authority"] is False
@@ -733,7 +761,8 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert "remain fail-closed" in blockers
     # Keep the fail-closed authority compact enough to inspect; immutable
     # run evidence remains in its external artifact paths.
-    assert len(LAUNCH_STATE.read_bytes()) < 14_000
+    # The local benchmark scope adds a small explicit operator record.
+    assert len(LAUNCH_STATE.read_bytes()) < 15_000
     assert not any(
         key in state
         for key in (

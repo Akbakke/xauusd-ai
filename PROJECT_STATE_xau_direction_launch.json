@@ -2,13 +2,6 @@
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
   "updated_utc": "2026-09-08T08:49:20Z",
-  "pretraining_review_hold": {
-    "schema_version": "gx1_pretraining_review_hold_v1",
-    "decision": "BLOCK",
-    "reason": "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
-    "activation_authority": false,
-    "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
-  },
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -186,5 +179,28 @@
   "candidate_guard_recovery": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/RECOVERY_PROOF/CANDIDATE_GUARD_RECOVERY_20260906T062738799702Z.json",
     "sha256": "38b5a5d730acd6de00a5220b7c6938aad544ff2a42f79923644670438d3d5ec4"
+  },
+  "local_training_efficiency_scope": {
+    "operator_instruction_date": "2026-09-08",
+    "scope": "bounded canonical local RTX3090 TRAIN/VAL-only efficiency smoke",
+    "physical_power_limit_w": 160,
+    "maximum_epochs": 1,
+    "maximum_subsample_rows": 512,
+    "candidate_training_authority": false,
+    "test_authority": false,
+    "cloud_purchase_authority": false,
+    "requirements": [
+      "clean_committed_source",
+      "fresh_exact_smoke_recipe",
+      "signed_telemetry",
+      "canonical_capped_runner_and_watchdog"
+    ],
+    "prior_pretraining_review_hold": {
+      "schema_version": "gx1_pretraining_review_hold_v1",
+      "decision": "BLOCK",
+      "reason": "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
+      "activation_authority": false,
+      "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md"
+    }
   }
 }

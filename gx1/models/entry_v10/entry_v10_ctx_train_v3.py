@@ -7973,6 +7973,7 @@ def train_epoch(
     session_checkpoint_every_optimizer_step: bool = True,
     session_checkpoint_interval_optimizer_steps: Optional[int] = None,
     session_log_label: str = "BOUNDED_TRAINING",
+    performance_warmup_optimizer_steps: int = 0,
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -8010,6 +8011,18 @@ def train_epoch(
             or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
         ):
             raise RuntimeError("[BOUNDED_TRAINING_CHECKPOINT_INTERVAL_INVALID]")
+    if (
+        isinstance(performance_warmup_optimizer_steps, bool)
+        or int(performance_warmup_optimizer_steps) < 0
+        or (
+            int(performance_warmup_optimizer_steps) > 0
+            and (
+                _accum_steps != 1
+                or int(performance_warmup_optimizer_steps) >= len(loader)
+            )
+        )
+    ):
+        raise RuntimeError("[TRAIN_PERFORMANCE_MEASUREMENT_ARGUMENT_INVALID]")
     _accum_count = 0
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
@@ -8041,7 +8054,18 @@ def train_epoch(
     _first_batch_logged = False
     _batch_i = 0
     _optimizer_steps_this_call = 0
+    _performance_start: Optional[float] = None
+    _performance_end: Optional[float] = None
+    _performance_rows = 0
+    _performance_cpu_start = 0.0
+    _performance_cpu_end = 0.0
+    _performance_loader_wait = 0.0
+    _loader_wait_started = time.perf_counter()
+    _first_fetch_started = time.perf_counter()
     for batch in loader:
+        _batch_fetched_at = time.perf_counter()
+        if _performance_start is not None:
+            _performance_loader_wait += _batch_fetched_at - _loader_wait_started
         _batch_i += 1
         _absolute_batch_i = int(session_batch_offset) + _batch_i
         # The durable candidate checkpoint is already the authoritative
@@ -8061,6 +8085,9 @@ def train_epoch(
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
+        _initial_h2d_started = (
+            _synchronized_exit_profile_clock(device) if not _first_batch_logged else None
+        )
         seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
         snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
         ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
@@ -8239,7 +8266,13 @@ def train_epoch(
             scaled_main_loss = scaled_main_loss + (
                 entry_representations * exit_entry_gradients
             ).sum()
+        _main_backward_started = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
+        )
         scaled_main_loss.backward()
+        _main_backward_finished = (
+            _synchronized_exit_profile_clock(device) if _profile_timing else None
+        )
         _observe_joint_task_weight_gradients(model, task_gradient_observed)
         if _step_log_due:
             log.info(
@@ -8248,16 +8281,36 @@ def train_epoch(
                 _train_rss_gib(),
             )
         _accum_count += 1
+        _optimizer_update_seconds = None
         if _accum_count >= _accum_steps:
             # V30 package 5: the weight EMA advances once per OPTIMIZER step
             # (not per micro-batch), so its decay means the same thing at any
             # accumulation width. None when the recipe decay is the 0.0 OFF
             # sentinel — then nothing here executes at all.
+            _optimizer_update_started = (
+                _synchronized_exit_profile_clock(device) if _profile_timing else None
+            )
             _optimizer_step_with_finite_gradients(
                 model=model, optimizer=optimizer, weight_ema=weight_ema
             )
+            if _optimizer_update_started is not None:
+                _optimizer_update_seconds = (
+                    _synchronized_exit_profile_clock(device) - _optimizer_update_started
+                )
             _accum_count = 0
             _optimizer_steps_this_call += 1
+            if int(performance_warmup_optimizer_steps) > 0:
+                if _optimizer_steps_this_call == int(
+                    performance_warmup_optimizer_steps
+                ):
+                    _performance_start = _synchronized_exit_profile_clock(device)
+                    _performance_cpu_start = time.process_time()
+                elif _optimizer_steps_this_call > int(
+                    performance_warmup_optimizer_steps
+                ):
+                    _performance_rows += batch_rows
+                    _performance_end = _synchronized_exit_profile_clock(device)
+                    _performance_cpu_end = time.process_time()
             if _step_log_due:
                 log.info("[TRAIN_STEP] batch=%d step_done", _absolute_batch_i)
             _is_final_batch = _batch_i == len(loader)
@@ -8329,6 +8382,30 @@ def train_epoch(
                 _peak_cuda_mib,
             )
 
+            # This is a cold first-batch diagnostic, never a steady-state rate.
+            # MTF/Exit H2D remains inside its owning forward/Exit phase.
+            assert _initial_h2d_started is not None
+            assert _main_backward_started is not None
+            assert _main_backward_finished is not None
+            _efficiency_batch = {
+                "schema_version": "gx1_training_efficiency_batch_v1",
+                "batch": _absolute_batch_i,
+                "rows": batch_rows,
+                "warmup": True,
+                "initial_loader_wait_seconds": _batch_fetched_at - _first_fetch_started,
+                "initial_input_h2d_seconds": _profile_batch_start - _initial_h2d_started,
+                "entry_online_forward_seconds": _profile_entry_online_forward - _profile_batch_start,
+                "entry_target_forward_seconds": _profile_entry_target_forward - _profile_entry_online_forward,
+                "exit_train_seconds": _profile_exit_train - _profile_entry_target_forward,
+                "main_backward_seconds": _main_backward_finished - _main_backward_started,
+                "total_compute_seconds": _profile_end - _profile_batch_start,
+                "report_only": True,
+            }
+            if _optimizer_update_seconds is not None:
+                # Includes finite-gradient checks, clipping, AdamW, EMA, zero_grad.
+                _efficiency_batch["optimizer_update_with_checks_seconds"] = _optimizer_update_seconds
+            log.info("[TRAIN_EFFICIENCY_BATCH] %s", json.dumps(_efficiency_batch, sort_keys=True, allow_nan=False))
+
         bs = batch_rows
         total += float(loss) * bs
         entry_q_loss_sum += float(entry_action_q_loss) * bs
@@ -8365,6 +8442,7 @@ def train_epoch(
             unified_exit_stats["unique_target_action_agreement_rows"]
         )
         n += bs
+        _loader_wait_started = time.perf_counter()
 
     if _accum_count:
         _step_partial_gradient_accumulation(
@@ -8428,6 +8506,40 @@ def train_epoch(
         exit_feature_tf_gate_epoch,
     )
     stats.update(exit_gate_stats)
+    if int(performance_warmup_optimizer_steps) > 0:
+        measured_optimizer_steps = (
+            _optimizer_steps_this_call - int(performance_warmup_optimizer_steps)
+        )
+        if (
+            _performance_start is None
+            or _performance_end is None
+            or measured_optimizer_steps < 1
+            or _performance_rows < 1
+            or _performance_end <= _performance_start
+        ):
+            raise RuntimeError("[TRAIN_PERFORMANCE_MEASUREMENT_INVALID]")
+        stats["training_efficiency_train_measurement"] = {
+            "warmup_optimizer_steps": int(performance_warmup_optimizer_steps),
+            "measured_optimizer_steps": int(measured_optimizer_steps),
+            "measured_train_rows": int(_performance_rows),
+            "measured_started_monotonic": _performance_start,
+            "measured_finished_monotonic": _performance_end,
+            "process_cpu_seconds": _performance_cpu_end - _performance_cpu_start,
+            "loader_wait_seconds": _performance_loader_wait,
+            "process_rss_at_window_end_gib": _train_rss_gib(),
+            "measured_train_seconds": float(
+                _performance_end - _performance_start
+            ),
+        }
+        log.info(
+            "[TRAIN_EFFICIENCY_WINDOW] %s",
+            json.dumps({
+                "schema_version": "gx1_training_efficiency_window_v1",
+                "report_only": True,
+                "timing_scope": "synchronized_optimizer_boundaries_including_loader_and_bookkeeping",
+                **stats["training_efficiency_train_measurement"],
+            }, sort_keys=True, allow_nan=False),
+        )
     return total / max(1, n), stats, True
 
 
@@ -13191,6 +13303,11 @@ def run_train(
             task_supervision_observed=joint_task_supervision_observed,
             task_gradient_observed=joint_task_gradient_observed,
             weight_ema=weight_ema,
+            # Initial local fixed-step diagnostic: discard the cold first update.
+            performance_warmup_optimizer_steps=(
+                1 if profile == "smoke" and int(grad_accum_steps) == 1
+                and len(train_loader) > 1 else 0
+            ),
         )
         if not tr_epoch_complete:
             raise RuntimeError("[ENTRY_CANONICAL_TRAIN_EPOCH_PARTIAL_FORBIDDEN]")
@@ -13223,6 +13340,7 @@ def run_train(
         # the weights it will actually ship, so validation runs ON the averaged
         # weights and the captured `best_state` below is the EMA state. When it
         # is off the raw model is validated, unchanged.
+        efficiency_validation_started = _synchronized_exit_profile_clock(device)
         if weight_ema is not None:
             with weight_ema.evaluating(model):
                 va_loss, auc, acc, val_short_to_long, val_stats = (
@@ -13232,6 +13350,17 @@ def run_train(
             va_loss, auc, acc, val_short_to_long, val_stats = (
                 _validate_current_weights()
             )
+        efficiency_validation_seconds = (
+            _synchronized_exit_profile_clock(device) - efficiency_validation_started
+        )
+        log.info("[TRAIN_EFFICIENCY_VAL] %s", json.dumps({
+            "schema_version": "gx1_training_efficiency_val_v1",
+            "measured_val_rows": len(val_loader.dataset),
+            "measured_val_seconds": efficiency_validation_seconds,
+            "includes_ema_swap": weight_ema is not None,
+            "collect_full_exit_trajectory": profile == "candidate",
+            "report_only": True,
+        }, sort_keys=True, allow_nan=False))
         last_val_stats = dict(val_stats or {})
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
@@ -13746,7 +13875,17 @@ def run_train(
     out_bundle_dir = Path(staging_directory.name).resolve(strict=True)
 
     model_path = out_bundle_dir / "model_state_dict.pt"
+    checkpoint_write_started = time.perf_counter()
     torch.save(best_state, model_path)
+    _fsync_regular_file(model_path)
+    checkpoint_write_seconds = time.perf_counter() - checkpoint_write_started
+    log.info("[TRAIN_EFFICIENCY_CHECKPOINT] %s", json.dumps({
+        "schema_version": "gx1_training_efficiency_checkpoint_v1",
+        "checkpoint_write_seconds": checkpoint_write_seconds,
+        "checkpoint_size_bytes": model_path.stat().st_size,
+        "includes_fsync": True,
+        "report_only": True,
+    }, sort_keys=True, allow_nan=False))
     state_dict_sha256 = _sha256_file(model_path)
     candidate_static_exit_gate_provisional = False
     if profile == "candidate":
