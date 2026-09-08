@@ -69,6 +69,40 @@ function Invoke-NativeChecked {
     return @($output | ForEach-Object { $_.ToString() })
 }
 
+function Set-Gx1PowerGuardDirectoryAcl {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $systemSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+    $administratorsSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+    $inheritanceFlags = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit
+    $propagationFlags = [Security.AccessControl.PropagationFlags]::None
+    $accessType = [Security.AccessControl.AccessControlType]::Allow
+    $security = [Security.AccessControl.DirectorySecurity]::new()
+    $security.SetAccessRuleProtection($true, $false)
+    $security.SetOwner($administratorsSid)
+    foreach ($identity in @($systemSid, $administratorsSid)) {
+        $rule = [Security.AccessControl.FileSystemAccessRule]::new(
+            $identity,
+            [Security.AccessControl.FileSystemRights]::FullControl,
+            $inheritanceFlags,
+            $propagationFlags,
+            $accessType
+        )
+        [void]$security.AddAccessRule($rule)
+    }
+    Set-Acl -LiteralPath $Root -AclObject $security
+    $applied = Get-Acl -LiteralPath $Root
+    $allowedSids = @($applied.Access | ForEach-Object {
+        $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+    } | Sort-Object -Unique)
+    if (-not $applied.AreAccessRulesProtected -or
+        $allowedSids.Count -ne 2 -or
+        $allowedSids -notcontains $systemSid.Value -or
+        $allowedSids -notcontains $administratorsSid.Value) {
+        throw 'GX1 GPU power/idle guard directory ACL verification failed'
+    }
+}
+
 function Install-PersistentPowerLimitTask {
     param(
         [Parameter(Mandatory = $true)]
@@ -108,6 +142,7 @@ function Install-PersistentPowerLimitTask {
         }
     }
     New-Item -ItemType Directory -Path $root -Force | Out-Null
+    Set-Gx1PowerGuardDirectoryAcl -Root $root
     if (-not (Test-Path -LiteralPath $runnerSourcePath -PathType Leaf)) {
         throw "GX1 GPU power/idle guard source is unavailable: $runnerSourcePath"
     }

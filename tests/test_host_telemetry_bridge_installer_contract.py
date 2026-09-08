@@ -120,6 +120,20 @@ def test_sensor_bootstrap_registers_a_verified_persistent_160_w_startup_task() -
     assert "Install-PersistentPowerLimitTask @persistentTaskParameters" in source
 
 
+def test_gpu_idle_guard_task_storage_is_admin_and_system_only() -> None:
+    source = SENSOR_INSTALLER.read_text(encoding="utf-8")
+
+    assert "function Set-Gx1PowerGuardDirectoryAcl" in source
+    assert "SetAccessRuleProtection($true, $false)" in source
+    assert "S-1-5-18" in source
+    assert "S-1-5-32-544" in source
+    assert "allowedSids.Count -ne 2" in source
+    assert "Set-Gx1PowerGuardDirectoryAcl -Root $root" in source
+    assert source.index("Set-Gx1PowerGuardDirectoryAcl -Root $root") < source.index(
+        "[System.IO.File]::WriteAllText(\n        $configPath"
+    )
+
+
 def test_gpu_idle_guard_detects_only_sustained_low_memory_zero_load_high_power() -> None:
     installer = SENSOR_INSTALLER.read_text(encoding="utf-8")
     guard = GPU_IDLE_GUARD.read_text(encoding="utf-8")
