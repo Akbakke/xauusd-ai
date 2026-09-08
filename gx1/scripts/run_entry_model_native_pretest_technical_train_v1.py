@@ -30,6 +30,7 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
     require_training_recipe_execution_provenance,
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import MODEL_NATIVE_RECIPE_ENV
+from gx1.contracts.entry_training_precision_v1 import DETERMINISTIC_FP32
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -199,6 +200,7 @@ def build_pretest_technical_launch(
         "--run-id", str(validated["run_id"]),
         "--dataset-run-id", str(validated["dataset_run_id"]),
         "--seed", str(cli["seed"]), "--device", str(cli["device"]),
+        "--precision-policy", str(cli.get("precision_policy", DETERMINISTIC_FP32)),
         "--batch_size", str(cli["batch_size"]), "--epochs", str(cli["epochs"]),
         "--lr", str(cli["learning_rate"]), "--seq_len", str(cli["seq_len"]),
         "--train-manifest-json", bound_path("train_manifest"),

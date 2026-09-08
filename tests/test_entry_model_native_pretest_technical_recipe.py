@@ -27,6 +27,7 @@ from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _require_pretest_recipe_cli_match,
 )
+from gx1.contracts.entry_training_precision_v1 import DETERMINISTIC_BF16_HOPPER
 from gx1.scripts.materialize_entry_pretest_technical_recipe_v1 import (
     _require_split_m5_prebuilt_binding,
     materialize_pretest_technical_recipe,
@@ -208,6 +209,38 @@ def test_canonical_smoke_allows_only_bounded_throughput_batch_geometries(
     with pytest.raises(PretestTechnicalRecipeError, match="batch geometry invalid"):
         require_pretest_technical_recipe_metadata(recipe)
 
+
+def test_hopper_recipe_requires_explicit_bf16_batch_geometry(tmp_path: Path) -> None:
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    assert isinstance(cli, dict)
+    cli.update(
+        {
+            "execution_tier": "canonical",
+            "train_time_window": None,
+            "precision_policy": DETERMINISTIC_BF16_HOPPER,
+            "batch_size": 32,
+        }
+    )
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+
+    recipe["profile"] = "candidate"
+    cli.update(
+        {
+            "epochs": 30,
+            "early_stop_patience": 5,
+            "subsample_rows": 0,
+            "batch_size": 64,
+        }
+    )
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+
+    cli["batch_size"] = 8
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="precision policy invalid"):
+        require_pretest_technical_recipe_metadata(recipe)
 
 def test_pretest_recipe_rejects_artifact_not_bound_to_guard(tmp_path: Path) -> None:
     recipe = _recipe(tmp_path)

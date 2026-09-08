@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -82,6 +83,47 @@ def test_cuda_memory_fence_and_strict_fp32_policy_are_source_bound() -> None:
     assert "torch.cuda.set_per_process_memory_fraction(" in source
     assert 'tf32_matmul=false "' in source
     assert 'cuda_memory_fraction=%s "' in source
+
+
+def test_hopper_policy_uses_bf16_forward_with_fp32_outputs() -> None:
+    policy = trainer._training_precision_metadata(
+        "cuda",
+        "deterministic_bf16_hopper",
+    )
+    assert policy["autocast_dtype"] == "bfloat16"
+    assert policy["loss_reduction_dtype"] == "float32"
+    source = TRAINER_PATH.read_text(encoding="utf-8")
+    assert 'torch.autocast(device_type="cuda", dtype=torch.bfloat16)' in source
+    assert "torch.cuda.is_bf16_supported()" in source
+    assert "GradScaler(" not in source
+
+
+def test_candidate_override_skips_resumable_training_call() -> None:
+    tree = ast.parse(TRAINER_PATH.read_text(encoding="utf-8"))
+    run_train = next(
+        node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run_train"
+    )
+    override_branch = next(
+        node
+        for node in ast.walk(run_train)
+        if isinstance(node, ast.If)
+        and ast.unparse(node.test) == "candidate_result_override is not None"
+    )
+    calls = [
+        node.func.id
+        for statement in override_branch.orelse
+        for node in ast.walk(statement)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    ]
+    assert "_run_resumable_candidate_training" in calls
+    assert all(
+        "_run_resumable_candidate_training" not in {
+            node.func.id
+            for node in ast.walk(statement)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        for statement in override_branch.body
+    )
 
 
 def test_exit_mtf_history_uses_m1_state_start_not_already_closed_clock() -> None:

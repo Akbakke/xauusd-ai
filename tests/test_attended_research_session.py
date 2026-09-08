@@ -237,9 +237,9 @@ def test_attended_session_source_keeps_speed_modes_forbidden() -> None:
     assert "torch.cuda.set_per_process_memory_fraction(" in source
     assert "cuda_index = torch.cuda.current_device()" in source
     assert 'map_location="cpu", weights_only=True' in source
-    assert '"precision": "deterministic_fp32"' in source
-    assert '"tf32": False' in source
-    assert '"autocast": False' in source
+    assert 'attended_precision.get("precision") != "deterministic_fp32"' in source
+    assert 'attended_precision.get("tf32") is not False' in source
+    assert 'attended_precision.get("autocast") is not False' in source
     assert "[TRAIN_PROFILE]" in source
 
 

@@ -19,6 +19,12 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     require_pretest_or_prefreeze_test_guard_lineage_metadata,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_training_precision_v1 import (
+    DETERMINISTIC_BF16_HOPPER,
+    DETERMINISTIC_FP32,
+    TrainingPrecisionPolicyError,
+    require_training_precision_policy,
+)
 
 
 SCHEMA_VERSION = "entry_model_native_pretest_technical_recipe_v1"
@@ -72,7 +78,7 @@ REQUIRED_ARTIFACTS = frozenset(
         "multi_tf_cache_manifest",
     }
 )
-TRAINER_CLI_KEYS = frozenset(
+LEGACY_TRAINER_CLI_KEYS = frozenset(
     {
         "execution_tier",
         "device",
@@ -105,6 +111,7 @@ TRAINER_CLI_KEYS = frozenset(
         "train_time_window",
     }
 )
+TRAINER_CLI_KEYS = LEGACY_TRAINER_CLI_KEYS | {"precision_policy"}
 SIDE_EFFECTS_ZERO = {
     "training": False,
     "replay": False,
@@ -281,7 +288,10 @@ def require_pretest_technical_recipe_metadata(
             if bindings[key] != guard[guard_key]:
                 raise PretestTechnicalRecipeError(f"{key}: differs from unopened-TEST guard")
     trainer_cli = recipe.get("trainer_cli")
-    if not isinstance(trainer_cli, Mapping) or frozenset(trainer_cli) != TRAINER_CLI_KEYS:
+    if not isinstance(trainer_cli, Mapping) or frozenset(trainer_cli) not in {
+        LEGACY_TRAINER_CLI_KEYS,
+        TRAINER_CLI_KEYS,
+    }:
         raise PretestTechnicalRecipeError("trainer CLI contract keys invalid")
     for key in (
         "seed", "epochs", "batch_size", "seq_len", "early_stop_patience",
@@ -305,6 +315,17 @@ def require_pretest_technical_recipe_metadata(
         or not str(trainer_cli["gx1_data_root"]).startswith("/")
     ):
         raise PretestTechnicalRecipeError("trainer CLI execution identity invalid")
+    precision_policy = trainer_cli.get("precision_policy", DETERMINISTIC_FP32)
+    try:
+        require_training_precision_policy(
+            precision_policy,
+            device_type=str(trainer_cli["device"]),
+            execution_tier=str(trainer_cli["execution_tier"]),
+            profile=profile,
+            batch_size=int(trainer_cli["batch_size"]),
+        )
+    except TrainingPrecisionPolicyError as exc:
+        raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc
     window = trainer_cli.get("train_time_window")
     if window is not None and (
         not isinstance(window, Mapping)
@@ -327,7 +348,7 @@ def require_pretest_technical_recipe_metadata(
         ("attended_only", "cuda"),
         ("attended_cpu_only", "cpu"),
     }
-    if profile == "smoke" and (
+    if profile == "smoke" and precision_policy == DETERMINISTIC_FP32 and (
         trainer_cli["epochs"] != 1
         or trainer_cli["grad_accum_steps"] != 1
         or smoke_execution_identity not in allowed_smoke_execution_identities
@@ -339,7 +360,7 @@ def require_pretest_technical_recipe_metadata(
     # only the three explicitly bounded batch geometries before a new
     # candidate recipe is selected.  It remains one epoch and a positive,
     # deterministic TRAIN/VAL sample above.
-    if profile == "smoke" and (
+    if profile == "smoke" and precision_policy == DETERMINISTIC_FP32 and (
         (
             smoke_execution_identity == ("canonical", "cuda")
             and trainer_cli["batch_size"] not in {8, 9, 10}
@@ -351,6 +372,12 @@ def require_pretest_technical_recipe_metadata(
         )
     ):
         raise PretestTechnicalRecipeError("bounded smoke batch geometry invalid")
+    if (
+        profile == "smoke"
+        and precision_policy == DETERMINISTIC_BF16_HOPPER
+        and trainer_cli["batch_size"] not in {8, 32, 64}
+    ):
+        raise PretestTechnicalRecipeError("bounded Hopper smoke batch geometry invalid")
     if smoke_execution_identity == ("canonical", "cuda") and window is not None:
         raise PretestTechnicalRecipeError(
             "canonical smoke must use deterministic uniform sampling without a time window"

@@ -108,6 +108,19 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
     require_model_native_recipe_env,
     resolve_weight_ema_decay,
 )
+from gx1.contracts.entry_training_precision_v1 import (
+    DETERMINISTIC_BF16_HOPPER,
+    DETERMINISTIC_FP32,
+    TRAINING_PRECISION_POLICIES,
+    TrainingPrecisionPolicyError,
+    candidate_checkpoint_interval,
+    candidate_validation_checkpoint_interval,
+    cuda_memory_fraction,
+    numerical_thread_count,
+    require_training_precision_policy,
+    training_precision_metadata,
+    unified_exit_chunk_rows,
+)
 from gx1.contracts.entry_model_native_learned_component_movement_v1 import (
     ENCODER_COMPONENT_PREFIXES as ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES,
 )
@@ -2881,6 +2894,7 @@ _WEIGHT_DECAY: float = 1e-5
 # activation-retention run fails locally as CUDA OOM before it can reserve
 # enough VRAM to destabilise WSL or the workstation.
 _CANONICAL_CUDA_MEMORY_FRACTION = 0.45
+_TRAINING_PRECISION_POLICY = DETERMINISTIC_FP32
 
 
 def _model_forward_fp32(
@@ -2888,12 +2902,10 @@ def _model_forward_fp32(
     *args,
     **kwargs,
 ) -> Dict[str, torch.Tensor]:
-    """Use the deterministic FP32 tensor path owned by the recipe.
+    """Run the recipe-owned numerical path and return FP32 outputs."""
 
-    Parameters, inputs, targets, matmuls and persisted states remain FP32.
-    """
-
-    out = model(*args, **kwargs)
+    with _training_autocast_context():
+        out = model(*args, **kwargs)
     if isinstance(out, dict):
         out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
                for k, v in out.items()}
@@ -3107,14 +3119,43 @@ def _resolve_device(device_str: str) -> torch.device:
         raise RuntimeError("[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False")
     return torch.device(device_str)
 
-def _set_deterministic(seed: int, device: torch.device) -> None:
+
+def _training_autocast_context():
+    if _TRAINING_PRECISION_POLICY == DETERMINISTIC_BF16_HOPPER:
+        return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+    return contextlib.nullcontext()
+
+
+def _float_output_tensors(value: Any) -> Any:
+    if torch.is_tensor(value) and value.is_floating_point():
+        return value.float()
+    if isinstance(value, dict):
+        return {key: _float_output_tensors(item) for key, item in value.items()}
+    return value
+
+
+def _set_deterministic(
+    seed: int,
+    device: torch.device,
+    precision_policy: str = DETERMINISTIC_FP32,
+) -> None:
+    global _TRAINING_PRECISION_POLICY
+    try:
+        training_precision_metadata(
+            precision_policy,
+            device_type=device.type,
+        )
+    except TrainingPrecisionPolicyError as exc:
+        raise RuntimeError("[ENTRY_TRAIN_PRECISION_POLICY_INVALID]") from exc
+    policy = precision_policy
+    _TRAINING_PRECISION_POLICY = policy
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     # The V9 capped runner reserves logical CPUs 0-7 and pins numerical
     # libraries to eight threads, leaving eleven WSL vCPUs available to the
     # Windows host and desktop. Set the matching source-bound count before any
     # training work; deterministic CUDA kernels and FP32 policy remain
     # unchanged.
-    torch.set_num_threads(8)
+    torch.set_num_threads(numerical_thread_count(policy))
     torch.manual_seed(seed)
     np.random.seed(seed)
     if device.type == "cuda":
@@ -3124,8 +3165,14 @@ def _set_deterministic(seed: int, device: torch.device) -> None:
         # activation-retention path independently of the one-second hardware
         # guard.
         torch.backends.cuda.matmul.allow_tf32 = False
+        if policy == DETERMINISTIC_BF16_HOPPER:
+            capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
+            if capability < (9, 0) or not bool(torch.cuda.is_bf16_supported()):
+                raise RuntimeError(
+                    "[ENTRY_TRAIN_BF16_HOPPER_CAPABILITY_REQUIRED]"
+                )
         torch.cuda.set_per_process_memory_fraction(
-            _CANONICAL_CUDA_MEMORY_FRACTION,
+            cuda_memory_fraction(policy),
             torch.cuda.current_device(),
         )
     torch.backends.cudnn.benchmark = False
@@ -3133,26 +3180,19 @@ def _set_deterministic(seed: int, device: torch.device) -> None:
     torch.use_deterministic_algorithms(True)
 
 
-def _training_precision_metadata(device_type: str) -> dict[str, Any]:
+def _training_precision_metadata(
+    device_type: str,
+    precision_policy: str = DETERMINISTIC_FP32,
+) -> dict[str, Any]:
     """Return the source-owned numerical execution policy for run contracts."""
 
-    if device_type == "cuda":
-        return {
-            "precision": "deterministic_fp32",
-            "compile": False,
-            "tf32": False,
-            "autocast": False,
-            "cuda_memory_fraction": _CANONICAL_CUDA_MEMORY_FRACTION,
-        }
-    if device_type == "cpu":
-        return {
-            "precision": "deterministic_fp32",
-            "compile": False,
-            "tf32": False,
-            "autocast": False,
-            "cuda_memory_fraction": None,
-        }
-    raise RuntimeError("[ENTRY_TRAIN_PRECISION_DEVICE_INVALID]")
+    try:
+        return training_precision_metadata(
+            precision_policy,
+            device_type=device_type,
+        )
+    except TrainingPrecisionPolicyError as exc:
+        raise RuntimeError("[ENTRY_TRAIN_PRECISION_DEVICE_INVALID]") from exc
 # -----------------------------------------------------------------------------
 # Exact immutable dataset identity
 # -----------------------------------------------------------------------------
@@ -5789,7 +5829,9 @@ def _forward_unified_exit_episode_pack(
             for tf in tf_names
         },
     }
-    output = model.forward_exit_episode(**inputs)
+    with _training_autocast_context():
+        output = model.forward_exit_episode(**inputs)
+    output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
     model_valid = output.get("exit_action_valid_mask")
     terminal = output.get("exit_terminal_mask")
@@ -5915,7 +5957,9 @@ def _forward_unified_exit_episode_batch(
         inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
             device
         )
-    output = model.forward_exit_episode(**inputs)
+    with _training_autocast_context():
+        output = model.forward_exit_episode(**inputs)
+    output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
     model_valid = output.get("exit_action_valid_mask")
     terminal = output.get("exit_terminal_mask")
@@ -6859,7 +6903,9 @@ def _unified_exit_influence_forward(
     model: nn.Module,
     inputs: Mapping[str, Any],
 ) -> torch.Tensor:
-    output = model.forward_exit_episode(**dict(inputs))
+    with _training_autocast_context():
+        output = model.forward_exit_episode(**dict(inputs))
+    output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
     if (
         not isinstance(q_values, torch.Tensor)
@@ -9541,6 +9587,13 @@ def _attended_research_session_contract(
         raise RuntimeError("[ATTENDED_RESEARCH_DEVICE_INVALID]")
     if int(max_optimizer_steps) < 1:
         raise RuntimeError("[ATTENDED_RESEARCH_MAX_STEPS_INVALID]")
+    attended_precision = _training_precision_metadata(str(device_type))
+    if (
+        attended_precision.get("precision") != "deterministic_fp32"
+        or attended_precision.get("tf32") is not False
+        or attended_precision.get("autocast") is not False
+    ):
+        raise RuntimeError("[ATTENDED_RESEARCH_FP32_POLICY_INVALID]")
     if train_time_window is not None:
         expected_window_keys = {
             "start_utc",
@@ -9625,7 +9678,7 @@ def _attended_research_session_contract(
             "unified_exit_action_forward_chunk_rows": (
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
             ),
-            **_training_precision_metadata(str(device_type)),
+            **attended_precision,
         },
     }
 
@@ -9795,6 +9848,7 @@ def _candidate_training_session_contract(
     execution_tier: str,
     device_type: str,
     recipe_source_provenance: Mapping[str, Any],
+    precision_policy: str = DETERMINISTIC_FP32,
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
@@ -9809,6 +9863,16 @@ def _candidate_training_session_contract(
 
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
         raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
+    try:
+        precision_policy = require_training_precision_policy(
+            precision_policy,
+            device_type=device_type,
+            execution_tier=execution_tier,
+            profile="candidate",
+            batch_size=int(batch_size),
+        )
+    except TrainingPrecisionPolicyError as exc:
+        raise RuntimeError("[CANDIDATE_TRAINING_PRECISION_POLICY_INVALID]") from exc
     if (
         int(batch_size) < 1
         or int(epochs) < 1
@@ -9923,7 +9987,17 @@ def _candidate_training_session_contract(
             "specialist_fusion_scale": float(specialist_fusion_scale),
             "cross_family_fusion_scale": float(cross_family_fusion_scale),
             "device": str(device_type),
-            **_training_precision_metadata(str(device_type)),
+            "checkpoint_interval_optimizer_steps": candidate_checkpoint_interval(
+                precision_policy
+            ),
+            "validation_checkpoint_interval_batches": (
+                candidate_validation_checkpoint_interval(precision_policy)
+            ),
+            "unified_exit_action_forward_chunk_rows": unified_exit_chunk_rows(
+                precision_policy,
+                batch_size=batch_size,
+            ),
+            **_training_precision_metadata(str(device_type), precision_policy),
         },
     }
 
@@ -10848,6 +10922,7 @@ def _run_resumable_candidate_training(
     cross_family_fusion_scale: float,
     unified_exit_lifecycle_evidence: Mapping[str, Any],
     recipe_source_provenance: Mapping[str, Any],
+    precision_policy: str,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -10899,7 +10974,16 @@ def _run_resumable_candidate_training(
             execution_tier="canonical",
             device_type=device.type,
             recipe_source_provenance=recipe_source_provenance,
+            precision_policy=precision_policy,
         ),
+    )
+    train_checkpoint_interval = candidate_checkpoint_interval(precision_policy)
+    validation_checkpoint_interval = candidate_validation_checkpoint_interval(
+        precision_policy
+    )
+    exit_chunk_rows = unified_exit_chunk_rows(
+        precision_policy,
+        batch_size=batch_size,
     )
     restored_state = session.load_checkpoint()
     expected_train_batches = -(-len(train_ds) // int(batch_size))
@@ -11050,8 +11134,8 @@ def _run_resumable_candidate_training(
         phase,
         epoch_index,
         next_batch_offset,
-        _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS,
-        _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES,
+        train_checkpoint_interval,
+        validation_checkpoint_interval,
     )
 
     while True:
@@ -11130,13 +11214,13 @@ def _run_resumable_candidate_training(
                 session_batch_offset=next_batch_offset,
                 session_checkpoint_hook=_checkpoint_train_step,
                 session_exit_action_forward_chunk_rows=(
-                    UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                    exit_chunk_rows
                     if device.type == "cuda"
                     else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
                 ),
                 session_checkpoint_every_optimizer_step=False,
                 session_checkpoint_interval_optimizer_steps=(
-                    _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
+                    train_checkpoint_interval
                 ),
                 session_log_label="CANDIDATE_TRAINING",
             )
@@ -11190,7 +11274,7 @@ def _run_resumable_candidate_training(
                 resume_validation_state=resume_validation_state,
                 validation_batch_offset=next_batch_offset,
                 validation_checkpoint_interval_batches=(
-                    _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES
+                    validation_checkpoint_interval
                 ),
                 validation_checkpoint_hook=_checkpoint_validation,
                 validation_session_log_label="CANDIDATE_TRAINING",
@@ -11225,7 +11309,7 @@ def _run_resumable_candidate_training(
                     resume_validation_state=resume_validation_state,
                     validation_batch_offset=next_batch_offset,
                     validation_checkpoint_interval_batches=(
-                        _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES
+                        validation_checkpoint_interval
                     ),
                     validation_checkpoint_hook=_checkpoint_ema_validation,
                     validation_session_log_label="CANDIDATE_TRAINING",
@@ -11541,6 +11625,7 @@ def run_train(
     dataset_run_id: str = "",
     profile: str = "",
     execution_tier: str = "canonical",
+    precision_policy: str = DETERMINISTIC_FP32,
     train_sequence_roll_audit_json: Optional[Path] = None,
     val_sequence_roll_audit_json: Optional[Path] = None,
     train_sequence_source_audit_json: Optional[Path] = None,
@@ -11581,6 +11666,16 @@ def run_train(
         raise RuntimeError(
             f"[ENTRY_TRAIN_EXECUTION_TIER_INVALID] {execution_tier!r}"
         )
+    try:
+        precision_policy = require_training_precision_policy(
+            precision_policy,
+            device_type=device.type,
+            execution_tier=execution_tier,
+            profile=profile,
+            batch_size=int(batch_size),
+        )
+    except TrainingPrecisionPolicyError as exc:
+        raise RuntimeError("[ENTRY_TRAIN_PRECISION_POLICY_INVALID]") from exc
     if _is_attended_execution_tier(execution_tier) and profile != "smoke":
         raise RuntimeError(
             "[ENTRY_TRAIN_ATTENDED_TIER_PROFILE_INVALID] attended-only tiers require smoke"
@@ -11788,7 +11883,7 @@ def run_train(
         multi_tf_resolution_pyramid["coverage_seconds"],
     )
 
-    _set_deterministic(seed, device)
+    _set_deterministic(seed, device, precision_policy)
 
     # Pre-build the one V4 cache, bind TRAIN/VAL lifecycle clocks, then prove
     # both exact routes before normalization or optimization begins.
@@ -12203,7 +12298,10 @@ def run_train(
             "[ENTRY_DATALOADER_WORKERS_INVALID] num_workers must equal 0 "
             "under the fixed low-memory recipe"
         )
-    pin_memory = False
+    pin_memory = bool(
+        device.type == "cuda"
+        and precision_policy == DETERMINISTIC_BF16_HOPPER
+    )
     persistent_workers = False
     prefetch_factor = None
     log.info(
@@ -12556,7 +12654,7 @@ def run_train(
         "features=unchanged samples=unchanged batch_semantics=unchanged",
         TRAIN_ACTIVATION_CHECKPOINT_POLICY,
         (
-            f"{_CANONICAL_CUDA_MEMORY_FRACTION:.2f}"
+            f"{cuda_memory_fraction(precision_policy):.2f}"
             if device.type == "cuda"
             else "none"
         ),
@@ -12902,50 +13000,51 @@ def run_train(
             if candidate_epoch_seal is not None:
                 raise RuntimeError("[CANDIDATE_EPOCH_SEAL_OVERRIDE_REQUIRED]")
             candidate_result = _run_resumable_candidate_training(
-            model=model,
-            optimizer=optimizer,
-            weight_ema=weight_ema,
-            lr_scheduler=lr_scheduler,
-            device=device,
-            train_ds=train_ds,
-            val_ds=val_ds,
-            effective_train_rows=effective_train_rows,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            prefetch_factor=prefetch_factor,
-            epochs=epochs,
-            early_stopping_patience=early_stopping_patience,
-            early_stopping_min_delta=early_stopping_min_delta,
-            minimum_epochs_before_stop=minimum_epochs_before_stop,
-            save_top_k=save_top_k,
-            out_bundle_dir=out_bundle_dir,
-            gx1_data_override=gx1_data_override,
-            run_id=run_id,
-            dataset_run_id=dataset_run_id,
-            train_parquet=Path(train_parquet),
-            val_parquet=Path(val_parquet),
-            m5_prebuilt_path=Path(m5_prebuilt_path),
-            unified_exit_lifecycle_manifest_path=Path(
-                unified_exit_lifecycle_manifest_path
-            ),
-            input_normalization=input_normalization,
-            seed=seed,
-            grad_accum_steps=grad_accum_steps,
-            grad_clip_norm=float(_GRAD_CLIP_NORM),
-            weight_decay=float(_WEIGHT_DECAY),
-            lr=lr,
-            dropout=dropout,
-            seq_len=seq_len,
-            per_tf_seq_lens=_effective_tf_lens,
-            multi_tf_num_layers=multi_tf_num_layers,
-            specialist_num_layers=specialist_num_layers,
-            multi_tf_scale=multi_tf_scale,
-            specialist_fusion_scale=specialist_fusion_scale,
-            cross_family_fusion_scale=cross_family_fusion_scale,
-            unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
+                model=model,
+                optimizer=optimizer,
+                weight_ema=weight_ema,
+                lr_scheduler=lr_scheduler,
+                device=device,
+                train_ds=train_ds,
+                val_ds=val_ds,
+                effective_train_rows=effective_train_rows,
+                batch_size=batch_size,
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                persistent_workers=persistent_workers,
+                prefetch_factor=prefetch_factor,
+                epochs=epochs,
+                early_stopping_patience=early_stopping_patience,
+                early_stopping_min_delta=early_stopping_min_delta,
+                minimum_epochs_before_stop=minimum_epochs_before_stop,
+                save_top_k=save_top_k,
+                out_bundle_dir=out_bundle_dir,
+                gx1_data_override=gx1_data_override,
+                run_id=run_id,
+                dataset_run_id=dataset_run_id,
+                train_parquet=Path(train_parquet),
+                val_parquet=Path(val_parquet),
+                m5_prebuilt_path=Path(m5_prebuilt_path),
+                unified_exit_lifecycle_manifest_path=Path(
+                    unified_exit_lifecycle_manifest_path
+                ),
+                input_normalization=input_normalization,
+                seed=seed,
+                grad_accum_steps=grad_accum_steps,
+                grad_clip_norm=float(_GRAD_CLIP_NORM),
+                weight_decay=float(_WEIGHT_DECAY),
+                lr=lr,
+                dropout=dropout,
+                seq_len=seq_len,
+                per_tf_seq_lens=_effective_tf_lens,
+                multi_tf_num_layers=multi_tf_num_layers,
+                specialist_num_layers=specialist_num_layers,
+                multi_tf_scale=multi_tf_scale,
+                specialist_fusion_scale=specialist_fusion_scale,
+                cross_family_fusion_scale=cross_family_fusion_scale,
+                unified_exit_lifecycle_evidence=unified_exit_lifecycle_evidence,
                 recipe_source_provenance=recipe_source_provenance,
+                precision_policy=precision_policy,
             )
         best_state = candidate_result["best_state"]
         best_val = float(candidate_result["best_val"])
@@ -13405,6 +13504,7 @@ def run_train(
                 "trainer_cli": {
                     "seed": int(seed),
                     "device": str(device),
+                    "precision_policy": str(precision_policy),
                     "batch_size": int(batch_size),
                     "epochs": int(epochs),
                     "lr": float(lr),
@@ -14583,6 +14683,9 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     observed = {
         "execution_tier": str(args.execution_tier),
         "device": str(args.device),
+        "precision_policy": str(
+            getattr(args, "precision_policy", DETERMINISTIC_FP32)
+        ),
         "seed": int(args.seed),
         "epochs": int(args.epochs),
         "batch_size": int(args.batch_size),
@@ -14611,7 +14714,9 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         "gx1_data_root": str(args.gx1_data),
         "train_time_window": window,
     }
-    if recipe["trainer_cli"] != observed:
+    expected = dict(recipe["trainer_cli"])
+    expected.setdefault("precision_policy", DETERMINISTIC_FP32)
+    if expected != observed:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_RECIPE_CLI_MISMATCH]")
     if str(args.profile) == "candidate":
         # The public trainer is also callable without the recipe-only wrapper.
@@ -14654,6 +14759,11 @@ def main() -> None:
     parser.add_argument("--dataset-run-id", type=str, required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--device", type=str, required=True, choices=["cpu", "cuda"])
+    parser.add_argument(
+        "--precision-policy",
+        required=True,
+        choices=sorted(TRAINING_PRECISION_POLICIES),
+    )
     parser.add_argument("--batch_size", type=int, required=True)
     parser.add_argument("--epochs", type=int, required=True)
     parser.add_argument("--lr", type=float, required=True)
@@ -14721,6 +14831,16 @@ def main() -> None:
         parser.error(
             "training --run-id must differ from immutable --dataset-run-id"
         )
+    try:
+        require_training_precision_policy(
+            args.precision_policy,
+            device_type=str(args.device),
+            execution_tier=str(args.execution_tier),
+            profile=str(args.profile),
+            batch_size=int(args.batch_size),
+        )
+    except TrainingPrecisionPolicyError as exc:
+        parser.error(str(exc))
     from gx1.contracts.entry_model_native_train_launch_v1 import (
         LaunchContractError,
         require_training_recipe_execution_provenance,
@@ -14811,17 +14931,18 @@ def main() -> None:
         )
     device = _resolve_device(args.device)
     log.info(
-        "[CONFIG] seed=%d device=%s deterministic=true tf32_matmul=false "
+        "[CONFIG] seed=%d device=%s precision_policy=%s deterministic=true tf32_matmul=false "
         "cuda_memory_fraction=%s cpu_threads=%d grad_clip_norm=%.6f "
         "weight_decay=%.6f dropout=%.6f",
         args.seed,
         device,
+        args.precision_policy,
         (
-            f"{_CANONICAL_CUDA_MEMORY_FRACTION:.2f}"
+            f"{cuda_memory_fraction(args.precision_policy):.2f}"
             if device.type == "cuda"
             else "none"
         ),
-        torch.get_num_threads(),
+        numerical_thread_count(args.precision_policy),
         _GRAD_CLIP_NORM,
         _WEIGHT_DECAY,
         float(args.dropout),
@@ -14898,6 +15019,7 @@ def main() -> None:
         dataset_run_id=str(args.dataset_run_id),
         profile=str(args.profile),
         execution_tier=str(args.execution_tier),
+        precision_policy=str(args.precision_policy),
         train_sequence_roll_audit_json=args.train_sequence_roll_audit_json,
         val_sequence_roll_audit_json=args.val_sequence_roll_audit_json,
         train_sequence_source_audit_json=args.train_sequence_source_audit_json,

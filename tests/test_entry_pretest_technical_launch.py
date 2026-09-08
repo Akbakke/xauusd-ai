@@ -53,6 +53,7 @@ def test_pretest_launcher_derives_every_runtime_value_from_recipe(
     assert "--candidate-gate-sha256" not in command
     assert "--execution-tier" in command
     assert command[command.index("--execution-tier") + 1] == "attended_only"
+    assert command[command.index("--precision-policy") + 1] == "deterministic_fp32"
     assert command[command.index("--train-time-window-start-utc") + 1] == (
         recipe["trainer_cli"]["train_time_window"]["start_utc"]
     )
