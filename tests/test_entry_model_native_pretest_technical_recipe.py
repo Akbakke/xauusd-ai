@@ -392,3 +392,18 @@ def test_local_full_exit_batch_recipe_remains_a_bounded_explicit_experiment(tmp_
     else:
         with pytest.raises(PretestTechnicalRecipeError):
             require_pretest_technical_recipe_metadata(recipe)
+
+
+@pytest.mark.parametrize('selected', ['experimental_fp32_3090_finite_single', 'experimental_fp32_3090_finite_grouped'])
+@pytest.mark.parametrize('change,valid', [({},True), ({'epochs':2},False), ({'grad_accum_steps':2},False), ({'subsample_rows':513},False), ({'batch_size':10},False), ({'execution_tier':'attended_only'},False)])
+def test_local_finite_check_recipe_is_bounded_fp32_batch8(tmp_path, selected, change, valid):
+    recipe = _recipe(tmp_path)
+    cli = recipe['trainer_cli']
+    cli.update(execution_tier='canonical', train_time_window=None, precision_policy=selected, batch_size=8, subsample_rows=512)
+    cli.update(change)
+    recipe['trainer_cli_sha256'] = canonical_json_sha256(cli)
+    if valid:
+        assert require_pretest_technical_recipe_metadata(recipe)['trainer_cli'] == cli
+    else:
+        with pytest.raises(PretestTechnicalRecipeError):
+            require_pretest_technical_recipe_metadata(recipe)

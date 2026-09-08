@@ -119,6 +119,7 @@ from gx1.contracts.entry_training_precision_v1 import (
     candidate_validation_checkpoint_interval,
     cuda_memory_fraction,
     numerical_thread_count,
+    model_finite_check_mode,
     require_training_precision_policy,
     require_local_precision_benchmark_geometry,
     training_precision_metadata,
@@ -236,6 +237,7 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
+    model_finite_check_scope,
     MODEL_ARCHITECTURE_SCHEMA_VERSION,
     MODEL_OUTPUT_SCHEMA_VERSION,
     TRAIN_ACTIVATION_CHECKPOINT_POLICY,
@@ -2907,7 +2909,7 @@ def _model_forward_fp32(
 ) -> Dict[str, torch.Tensor]:
     """Run the recipe-owned numerical path and return FP32 outputs."""
 
-    with _training_autocast_context():
+    with _training_autocast_context(), _training_model_finite_check_context():
         out = model(*args, **kwargs)
     if isinstance(out, dict):
         out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
@@ -3123,6 +3125,19 @@ def _resolve_device(device_str: str) -> torch.device:
     return torch.device(device_str)
 
 
+def _training_model_finite_check_context():
+    mode = model_finite_check_mode(_TRAINING_PRECISION_POLICY)
+    if mode is None:
+        return contextlib.nullcontext()
+    return model_finite_check_scope(mode)
+
+
+def _require_local_fp32_finite_check_capability() -> None:
+    capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
+    if capability != (8, 6):
+        raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_FINITE_CHECK_CAPABILITY_REQUIRED]")
+
+
 def _training_autocast_context():
     if _TRAINING_PRECISION_POLICY in {DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090}:
         return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -3190,6 +3205,8 @@ def _set_deterministic(
             _require_local_bf16_3090_capability()
         if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
             _require_local_fp32_full_exit_batch_capability()
+        if model_finite_check_mode(policy) is not None:
+            _require_local_fp32_finite_check_capability()
         torch.cuda.set_per_process_memory_fraction(
             cuda_memory_fraction(policy),
             torch.cuda.current_device(),
@@ -5850,7 +5867,7 @@ def _forward_unified_exit_episode_pack(
             for tf in tf_names
         },
     }
-    with _training_autocast_context():
+    with _training_autocast_context(), _training_model_finite_check_context():
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -5978,7 +5995,7 @@ def _forward_unified_exit_episode_batch(
         inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
             device
         )
-    with _training_autocast_context():
+    with _training_autocast_context(), _training_model_finite_check_context():
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -6924,7 +6941,7 @@ def _unified_exit_influence_forward(
     model: nn.Module,
     inputs: Mapping[str, Any],
 ) -> torch.Tensor:
-    with _training_autocast_context():
+    with _training_autocast_context(), _training_model_finite_check_context():
         output = model.forward_exit_episode(**dict(inputs))
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")

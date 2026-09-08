@@ -1610,3 +1610,46 @@ def test_exit_whole_batch_preserves_prefix_outputs_and_gradients_against_eight_p
         if value.grad is not None:
             assert torch.isfinite(value.grad).all(), name
             torch.testing.assert_close(value.grad, expected, atol=1e-6, rtol=1e-5, msg=name)
+
+
+@pytest.mark.parametrize('mode', ['single', 'grouped'])
+@pytest.mark.parametrize('route', ['entry', 'entry_teacher', 'exit_prefix'])
+def test_experimental_finite_scope_preserves_real_model_outputs_gradients_and_rng(mode, route):
+    import copy
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import model_finite_check_scope
+    torch.manual_seed(814)
+    reference = _make_model(dropout=0.05)
+    reference.train(route != 'entry_teacher')
+    variant = copy.deepcopy(reference)
+    start_rng = torch.get_rng_state().clone()
+
+    def run(model):
+        if route == 'exit_prefix':
+            output = model.forward_exit_incremental_prefix(**_make_exit_episode_inputs(state_count=3))
+            q = output['exit_action_q_bps']
+        else:
+            with torch.set_grad_enabled(route != 'entry_teacher'):
+                output = _forward(model, batch_size=1)
+            q = output['entry_action_q_bps']
+        return output, q
+
+    expected, expected_q = run(reference)
+    if route != 'entry_teacher':
+        expected_q.square().mean().backward()
+    expected_rng = torch.get_rng_state().clone()
+    torch.set_rng_state(start_rng)
+    with model_finite_check_scope(mode):
+        actual, actual_q = run(variant)
+    if route != 'entry_teacher':
+        actual_q.square().mean().backward()
+    assert torch.equal(torch.get_rng_state(), expected_rng)
+    assert actual.keys() == expected.keys()
+    for name in expected:
+        assert torch.equal(actual[name], expected[name]), name
+    for name, parameter in variant.named_parameters():
+        original = dict(reference.named_parameters())[name]
+        assert (parameter.grad is None) == (original.grad is None), name
+        if original.grad is not None:
+            assert torch.equal(parameter.grad, original.grad), name
+    for name, tensor in variant.state_dict().items():
+        assert torch.equal(tensor, reference.state_dict()[name]), name

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Dict, Mapping, Optional, Tuple
 
@@ -75,8 +77,71 @@ def _assert_shape(name: str, t: torch.Tensor, nd: int) -> None:
         raise RuntimeError(f"SHAPE_MISMATCH: {name}.dim={t.dim()} expected={nd} shape={tuple(t.shape)}")
 
 
+@dataclass
+class _ModelFiniteCheckScope:
+    mode: str
+    pending: list[tuple[str, torch.Tensor]]
+
+    def flush(self) -> None:
+        # Retain only detached scalar predicates. Preserve first-invalid order
+        # even if a diagnostic scope happens to include more than one device.
+        if not self.pending:
+            return
+        by_device: dict[torch.device, list[int]] = {}
+        for index, (_name, predicate) in enumerate(self.pending):
+            by_device.setdefault(predicate.device, []).append(index)
+        invalid: list[int] = []
+        for indices in by_device.values():
+            flags = torch.stack([self.pending[index][1] for index in indices])
+            if not bool(flags.all().item()):
+                invalid.extend(index for index, valid in zip(indices, flags.cpu().tolist()) if not valid)
+        if invalid:
+            name = self.pending[min(invalid)][0]
+            raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
+        self.pending.clear()
+
+
+_MODEL_FINITE_CHECK_SCOPE: ContextVar[Optional[_ModelFiniteCheckScope]] = ContextVar(
+    "gx1_model_finite_check_scope", default=None,
+)
+
+
+@contextmanager
+def model_finite_check_scope(mode: str):
+    """Explicit local experiment; every check completes before scope return."""
+    if mode not in {"single", "grouped"}:
+        raise ValueError(f"Unknown model finite-check mode: {mode!r}")
+    parent = _MODEL_FINITE_CHECK_SCOPE.get()
+    if parent is not None:
+        parent.flush()
+    scope = _ModelFiniteCheckScope(mode=mode, pending=[])
+    token = _MODEL_FINITE_CHECK_SCOPE.set(scope)
+    try:
+        try:
+            yield
+        except Exception:
+            # Preserve an earlier nonfinite diagnostic if later computation
+            # failed. Otherwise propagate the original exception unchanged.
+            scope.flush()
+            raise
+        else:
+            scope.flush()
+    finally:
+        scope.pending.clear()
+        _MODEL_FINITE_CHECK_SCOPE.reset(token)
+
+
 def _assert_finite(name: str, t: torch.Tensor) -> None:
-    if torch.isnan(t).any() or torch.isinf(t).any():
+    scope = _MODEL_FINITE_CHECK_SCOPE.get()
+    if scope is None:
+        if torch.isnan(t).any() or torch.isinf(t).any():
+            raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
+        return
+    with torch.no_grad():
+        predicate = torch.isfinite(t).all()
+    if scope.mode == "grouped":
+        scope.pending.append((name, predicate))
+    elif not bool(predicate.item()):
         raise RuntimeError(f"NONFINITE: {name} contains NaN/Inf")
 
 
