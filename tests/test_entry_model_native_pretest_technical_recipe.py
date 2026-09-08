@@ -421,3 +421,17 @@ def test_kernel_profile_recipe_is_explicit_bounded_diagnostic(tmp_path, change, 
     else:
         with pytest.raises(PretestTechnicalRecipeError):
             require_pretest_technical_recipe_metadata(recipe)
+
+
+@pytest.mark.parametrize('change,valid', [({},True), ({'epochs':2},False), ({'grad_accum_steps':2},False), ({'subsample_rows':511},False), ({'subsample_rows':513},False), ({'batch_size':10},False), ({'execution_tier':'attended_only'},False)])
+def test_no_uninitialized_fill_recipe_is_explicit_and_bounded(tmp_path, change, valid):
+    recipe = _recipe(tmp_path)
+    cli = recipe['trainer_cli']
+    cli.update(execution_tier='canonical', train_time_window=None, precision_policy='experimental_fp32_3090_no_uninitialized_fill', batch_size=8, subsample_rows=512)
+    cli.update(change)
+    recipe['trainer_cli_sha256'] = canonical_json_sha256(cli)
+    if valid:
+        assert require_pretest_technical_recipe_metadata(recipe)['trainer_cli'] == cli
+    else:
+        with pytest.raises(PretestTechnicalRecipeError):
+            require_pretest_technical_recipe_metadata(recipe)

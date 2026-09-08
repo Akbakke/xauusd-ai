@@ -113,12 +113,14 @@ from gx1.contracts.entry_training_precision_v1 import (
     EXPERIMENTAL_BF16_3090,
     EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH,
     EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+    EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
     DETERMINISTIC_FP32,
     TRAINING_PRECISION_POLICIES,
     TrainingPrecisionPolicyError,
     candidate_checkpoint_interval,
     candidate_validation_checkpoint_interval,
     cuda_memory_fraction,
+    deterministic_fill_uninitialized_memory,
     numerical_thread_count,
     model_finite_check_mode,
     require_training_precision_policy,
@@ -3142,6 +3144,12 @@ def _require_local_fp32_finite_check_capability() -> None:
         raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_FINITE_CHECK_CAPABILITY_REQUIRED]")
 
 
+def _require_local_fp32_no_fill_capability() -> None:
+    capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
+    if capability != (8, 6):
+        raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_NO_FILL_CAPABILITY_REQUIRED]")
+
+
 def _training_autocast_context():
     if _TRAINING_PRECISION_POLICY in {DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090}:
         return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -3207,6 +3215,8 @@ def _set_deterministic(
                 )
         if policy == EXPERIMENTAL_BF16_3090:
             _require_local_bf16_3090_capability()
+        if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL:
+            _require_local_fp32_no_fill_capability()
         if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
             _require_local_fp32_full_exit_batch_capability()
         if model_finite_check_mode(policy) is not None or policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE:
@@ -3218,6 +3228,16 @@ def _set_deterministic(
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     torch.use_deterministic_algorithms(True)
+    # This process-global option is explicit for every policy so an earlier
+    # experiment cannot leak disabled allocation poisoning into a default run.
+    torch.utils.deterministic.fill_uninitialized_memory = (
+        deterministic_fill_uninitialized_memory(policy)
+    )
+    log.info(
+        "[TRAIN_DETERMINISTIC_MEMORY] fill_uninitialized_memory=%s deterministic_algorithms=%s",
+        torch.utils.deterministic.fill_uninitialized_memory,
+        torch.are_deterministic_algorithms_enabled(),
+    )
 
 
 def _training_precision_metadata(
