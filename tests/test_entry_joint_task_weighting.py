@@ -72,9 +72,11 @@ def test_finite_optimizer_step_advances_weights_optimizer_and_ema_once(
             observed_steps=1, weight_ema=ema,
         )
     else:
-        trainer._optimizer_step_with_finite_gradients(
+        gradient_norm = trainer._optimizer_step_with_finite_gradients(
             model=model, optimizer=optimizer, weight_ema=ema,
         )
+        assert gradient_norm.dtype == torch.float32
+        assert float(gradient_norm) == pytest.approx(3 ** 0.5)
     assert ema.steps == 1
     assert all(int(state["step"]) == 1 for state in optimizer.state.values())
     assert all(parameter.grad is None for parameter in model.parameters())

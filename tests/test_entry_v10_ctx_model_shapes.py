@@ -1523,3 +1523,41 @@ def test_strict_state_loading_does_not_silently_drop_retired_exit_keys(retired):
     legacy_shaped_state[f"{retired}.legacy_weight"] = torch.zeros(1)
     with pytest.raises(RuntimeError, match="Unexpected key"):
         model.load_state_dict(legacy_shaped_state, strict=True)
+
+
+@pytest.mark.parametrize("route", ["entry", "entry_teacher", "exit_episode", "exit_prefix", "exit_step"])
+def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkeypatch, route):
+    """Actual Entry/Exit code under CPU autocast; CUDA proof remains the smoke."""
+    torch.manual_seed(1608)
+    model = _make_model(dropout=0.0).train()
+    if route in {"exit_step", "entry_teacher"}:
+        model.eval()
+    # CUDA autocast disables the MHA fast path automatically; CPU emulation
+    # needs the same path selection to exercise the production tensor graph.
+    monkeypatch.setattr(torch.backends.mha, "get_fastpath_enabled", lambda: False)
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        if route in {"entry", "entry_teacher"}:
+            with torch.set_grad_enabled(route != "entry_teacher"):
+                output = _forward(model, batch_size=1)
+            q = output["entry_action_q_bps"]
+        elif route == "exit_episode":
+            output = model.forward_exit_episode(**_make_exit_episode_inputs())
+            q = output["exit_action_q_bps"]
+        elif route == "exit_prefix":
+            output = model.forward_exit_incremental_prefix(**_make_exit_episode_inputs(state_count=3))
+            q = output["exit_action_q_bps"]
+        else:
+            output, _carry = _exit_scale_step(model, _make_exit_episode_inputs(state_count=3), state=0)
+            q = output["exit_action_q_bps"]
+    assert torch.isfinite(q).all()
+    if route == "entry_teacher":
+        assert not q.requires_grad
+        return
+    q.float().square().mean().backward()
+    gate_parameters = list(model.mtf_feature_context_gate.parameters())
+    assert any(p.grad is not None and torch.count_nonzero(p.grad) for p in gate_parameters)
+    for p in model.parameters():
+        assert p.dtype == torch.float32
+        if p.grad is not None:
+            assert p.grad.dtype == torch.float32
+            assert torch.isfinite(p.grad).all()

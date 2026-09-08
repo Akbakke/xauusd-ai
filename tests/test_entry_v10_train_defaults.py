@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -351,3 +353,45 @@ def test_entry_and_exit_share_one_frozen_target_snapshot_per_iteration() -> None
     assert "target_model.requires_grad_(False)" in source
     assert "target_updated_from_val_or_test" in source
     assert "require_entry_fitted_q_iteration_state" in source
+
+
+@pytest.mark.parametrize("capability,native_supported,accepted", [
+    ((8, 6), True, True), ((8, 6), False, False),
+    ((7, 5), True, False), ((9, 0), True, False),
+])
+def test_local_bf16_capability_probe_requires_native_3090_support(
+    monkeypatch, capability, native_supported, accepted,
+) -> None:
+    monkeypatch.setattr(trainer.torch.cuda, "current_device", lambda: 0)
+    monkeypatch.setattr(trainer.torch.cuda, "get_device_capability", lambda device: capability)
+    def supported(*, including_emulation):
+        assert including_emulation is False
+        return native_supported
+    monkeypatch.setattr(trainer.torch.cuda, "is_bf16_supported", supported)
+    if accepted:
+        trainer._require_local_bf16_3090_capability()
+    else:
+        with pytest.raises(RuntimeError, match="LOCAL_BF16_3090_NATIVE_CAPABILITY_REQUIRED"):
+            trainer._require_local_bf16_3090_capability()
+
+
+def test_local_bf16_forward_preserves_fp32_output_and_gradient_boundary(monkeypatch) -> None:
+    """Exercise actual autocast/autograd on CPU; CUDA kernel proof is the smoke."""
+    import torch
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_BF16_3090
+    real_autocast = torch.autocast
+    requests = []
+    def cpu_test_context(*, device_type, dtype):
+        requests.append((device_type, dtype))
+        return real_autocast(device_type="cpu", dtype=dtype)
+    monkeypatch.setattr(trainer, "_TRAINING_PRECISION_POLICY", EXPERIMENTAL_BF16_3090)
+    monkeypatch.setattr(trainer.torch, "autocast", cpu_test_context)
+    model = torch.nn.Linear(8, 4)
+    output = trainer._model_forward_fp32(model, torch.randn(3, 8))
+    assert requests == [("cuda", torch.bfloat16)]
+    assert output.dtype == torch.float32
+    output.square().mean().backward()
+    for parameter in model.parameters():
+        assert parameter.dtype == torch.float32
+        assert parameter.grad.dtype == torch.float32
+        assert torch.isfinite(parameter.grad).all()

@@ -351,3 +351,23 @@ def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path
     args.batch_size = 16
     with pytest.raises(RuntimeError, match="CLI_MISMATCH"):
         _require_pretest_recipe_cli_match(args)
+
+
+@pytest.mark.parametrize("change,valid", [
+    ({}, True), ({"epochs": 2}, False), ({"grad_accum_steps": 2}, False),
+    ({"subsample_rows": 0}, False), ({"subsample_rows": 513}, False),
+    ({"batch_size": 16}, False),
+])
+def test_local_bf16_recipe_is_one_change_from_local_baseline(tmp_path, change, valid) -> None:
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_BF16_3090
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    cli.update(execution_tier="canonical", train_time_window=None,
+               precision_policy=EXPERIMENTAL_BF16_3090, batch_size=8, subsample_rows=512)
+    cli.update(change)
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    if valid:
+        assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    else:
+        with pytest.raises(PretestTechnicalRecipeError):
+            require_pretest_technical_recipe_metadata(recipe)

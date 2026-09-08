@@ -24,6 +24,7 @@ from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_FP32,
     TrainingPrecisionPolicyError,
     require_training_precision_policy,
+    require_local_precision_benchmark_geometry,
 )
 
 
@@ -323,6 +324,12 @@ def require_pretest_technical_recipe_metadata(
             execution_tier=str(trainer_cli["execution_tier"]),
             profile=profile,
             batch_size=int(trainer_cli["batch_size"]),
+        )
+        require_local_precision_benchmark_geometry(
+            precision_policy,
+            epochs=trainer_cli["epochs"],
+            grad_accum_steps=trainer_cli["grad_accum_steps"],
+            subsample_rows=trainer_cli["subsample_rows"],
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc

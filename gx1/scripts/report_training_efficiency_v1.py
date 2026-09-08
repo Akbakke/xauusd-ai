@@ -134,6 +134,7 @@ def parse_measurements(trainer_text: str, guard_text: str, *, rows: int,
     }
     for marker, key in (("TRAIN_EFFICIENCY_WINDOW", "post_warmup_train_window"),
                         ("TRAIN_EFFICIENCY_BATCH", "cold_batch_detail"),
+                        ("TRAIN_EFFICIENCY_NUMERICS", "numerics"),
                         ("TRAIN_EFFICIENCY_VAL", "validation"),
                         ("TRAIN_EFFICIENCY_CHECKPOINT", "checkpoint")):
         matching = [line for line in lines if f"[{marker}] " in line]

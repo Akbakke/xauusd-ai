@@ -110,6 +110,7 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import (
 )
 from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_BF16_HOPPER,
+    EXPERIMENTAL_BF16_3090,
     DETERMINISTIC_FP32,
     TRAINING_PRECISION_POLICIES,
     TrainingPrecisionPolicyError,
@@ -118,6 +119,7 @@ from gx1.contracts.entry_training_precision_v1 import (
     cuda_memory_fraction,
     numerical_thread_count,
     require_training_precision_policy,
+    require_local_precision_benchmark_geometry,
     training_precision_metadata,
     unified_exit_chunk_rows,
 )
@@ -3121,7 +3123,7 @@ def _resolve_device(device_str: str) -> torch.device:
 
 
 def _training_autocast_context():
-    if _TRAINING_PRECISION_POLICY == DETERMINISTIC_BF16_HOPPER:
+    if _TRAINING_PRECISION_POLICY in {DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090}:
         return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
     return contextlib.nullcontext()
 
@@ -3132,6 +3134,12 @@ def _float_output_tensors(value: Any) -> Any:
     if isinstance(value, dict):
         return {key: _float_output_tensors(item) for key, item in value.items()}
     return value
+
+
+def _require_local_bf16_3090_capability() -> None:
+    capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
+    if capability != (8, 6) or not torch.cuda.is_bf16_supported(including_emulation=False):
+        raise RuntimeError("[ENTRY_TRAIN_LOCAL_BF16_3090_NATIVE_CAPABILITY_REQUIRED]")
 
 
 def _set_deterministic(
@@ -3171,6 +3179,8 @@ def _set_deterministic(
                 raise RuntimeError(
                     "[ENTRY_TRAIN_BF16_HOPPER_CAPABILITY_REQUIRED]"
                 )
+        if policy == EXPERIMENTAL_BF16_3090:
+            _require_local_bf16_3090_capability()
         torch.cuda.set_per_process_memory_fraction(
             cuda_memory_fraction(policy),
             torch.cuda.current_device(),
@@ -5540,16 +5550,18 @@ def _optimizer_step_with_finite_gradients(
     model: nn.Module,
     optimizer: optim.Optimizer,
     weight_ema: Optional["_WeightEma"] = None,
-) -> None:
-    """Reject a nonfinite norm before mutating weights, optimizer or EMA."""
+) -> torch.Tensor:
+    """Reject a nonfinite norm before mutation; return the existing pre-clip norm."""
 
-    torch.nn.utils.clip_grad_norm_(
+    gradient_norm = torch.nn.utils.clip_grad_norm_(
         model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
     )
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
     if weight_ema is not None:
         weight_ema.update(model)
+    return gradient_norm
+
 
 
 def _step_partial_gradient_accumulation(
@@ -8060,6 +8072,8 @@ def train_epoch(
     _performance_cpu_start = 0.0
     _performance_cpu_end = 0.0
     _performance_loader_wait = 0.0
+    _performance_gradient_norms: list[torch.Tensor] = []
+    _performance_losses: list[float] = []
     _loader_wait_started = time.perf_counter()
     _first_fetch_started = time.perf_counter()
     for batch in loader:
@@ -8290,9 +8304,12 @@ def train_epoch(
             _optimizer_update_started = (
                 _synchronized_exit_profile_clock(device) if _profile_timing else None
             )
-            _optimizer_step_with_finite_gradients(
+            _gradient_norm = _optimizer_step_with_finite_gradients(
                 model=model, optimizer=optimizer, weight_ema=weight_ema
             )
+            if int(performance_warmup_optimizer_steps) > 0:
+                # Retain only detached scalars; copy together after the timing window.
+                _performance_gradient_norms.append(_gradient_norm.detach())
             if _optimizer_update_started is not None:
                 _optimizer_update_seconds = (
                     _synchronized_exit_profile_clock(device) - _optimizer_update_started
@@ -8407,7 +8424,10 @@ def train_epoch(
             log.info("[TRAIN_EFFICIENCY_BATCH] %s", json.dumps(_efficiency_batch, sort_keys=True, allow_nan=False))
 
         bs = batch_rows
-        total += float(loss) * bs
+        _batch_loss_value = float(loss)
+        total += _batch_loss_value * bs
+        if int(performance_warmup_optimizer_steps) > 0:
+            _performance_losses.append(_batch_loss_value)
         entry_q_loss_sum += float(entry_action_q_loss) * bs
         side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
         trendline_event_loss_sum += float(
@@ -8540,6 +8560,17 @@ def train_epoch(
                 **stats["training_efficiency_train_measurement"],
             }, sort_keys=True, allow_nan=False),
         )
+        log.info("[TRAIN_EFFICIENCY_NUMERICS] %s", json.dumps({
+            "schema_version": "gx1_training_efficiency_numerics_v1",
+            "report_only": True,
+            "precision_policy": _TRAINING_PRECISION_POLICY,
+            "includes_warmup": True,
+            "optimizer_steps": _optimizer_steps_this_call,
+            "batch_losses": _performance_losses,
+            "gradient_norms_pre_clip": torch.stack(_performance_gradient_norms).cpu().tolist(),
+            "gradient_clip_norm": _GRAD_CLIP_NORM,
+            "nonfinite_gradient_policy": "raise_before_optimizer_step",
+        }, sort_keys=True, allow_nan=False))
     return total / max(1, n), stats, True
 
 
@@ -11785,6 +11816,10 @@ def run_train(
             execution_tier=execution_tier,
             profile=profile,
             batch_size=int(batch_size),
+        )
+        require_local_precision_benchmark_geometry(
+            precision_policy, epochs=epochs, grad_accum_steps=grad_accum_steps,
+            subsample_rows=subsample_rows,
         )
     except TrainingPrecisionPolicyError as exc:
         raise RuntimeError("[ENTRY_TRAIN_PRECISION_POLICY_INVALID]") from exc

@@ -87,3 +87,49 @@ def test_hopper_policy_fails_closed_outside_declared_surface(
             profile=profile,
             batch_size=batch_size,
         )
+
+
+def test_local_bf16_keeps_the_local_resource_geometry() -> None:
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_BF16_3090
+    policy = EXPERIMENTAL_BF16_3090
+    assert require_training_precision_policy(policy, device_type="cuda", execution_tier="canonical", profile="smoke", batch_size=8) == policy
+    metadata = training_precision_metadata(policy, device_type="cuda")
+    assert metadata["cuda_memory_fraction"] == 0.45
+    assert metadata["required_cuda_compute_capability"] == [8, 6]
+    assert metadata["autocast_dtype"] == "bfloat16"
+    assert metadata["native_bf16_required"] is True
+    assert metadata["experimental_only"] is True
+    assert metadata["gradient_scaler"] is False
+    for key in ("parameter_dtype", "loss_reduction_dtype", "optimizer_state_dtype", "ema_dtype"):
+        assert metadata[key] == "float32"
+    assert numerical_thread_count(policy) == 8
+    assert unified_exit_chunk_rows(policy, batch_size=8) == 8
+    assert candidate_checkpoint_interval(policy) == 64
+    assert candidate_validation_checkpoint_interval(policy) == 64
+
+
+@pytest.mark.parametrize("overrides", [
+    {"device_type": "cpu"}, {"execution_tier": "attended_only"},
+    {"profile": "candidate"}, {"batch_size": 16}, {"batch_size": True},
+])
+def test_local_bf16_cannot_expand_execution_scope(overrides) -> None:
+    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_BF16_3090
+    kwargs = dict(device_type="cuda", execution_tier="canonical", profile="smoke", batch_size=8)
+    kwargs.update(overrides)
+    with pytest.raises(TrainingPrecisionPolicyError, match="canonical CUDA smoke at batch 8"):
+        require_training_precision_policy(EXPERIMENTAL_BF16_3090, **kwargs)
+
+
+@pytest.mark.parametrize("overrides", [
+    {"epochs": 2}, {"epochs": True}, {"grad_accum_steps": 2},
+    {"subsample_rows": 0}, {"subsample_rows": 513},
+])
+def test_local_bf16_benchmark_is_bounded(overrides) -> None:
+    from gx1.contracts.entry_training_precision_v1 import (
+        EXPERIMENTAL_BF16_3090, require_local_precision_benchmark_geometry,
+    )
+    kwargs = dict(epochs=1, grad_accum_steps=1, subsample_rows=512)
+    require_local_precision_benchmark_geometry(EXPERIMENTAL_BF16_3090, **kwargs)
+    kwargs.update(overrides)
+    with pytest.raises(TrainingPrecisionPolicyError, match="local precision benchmark"):
+        require_local_precision_benchmark_geometry(EXPERIMENTAL_BF16_3090, **kwargs)

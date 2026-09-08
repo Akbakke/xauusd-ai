@@ -1950,7 +1950,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 full_feature_gate = full_feature_gate.scatter(
                     1,
                     family_idx.view(1, -1).expand(batch_size, -1),
-                    feature_gate,
+                    feature_gate.to(full_feature_gate.dtype),
                 )
                 family_values = numeric_tf.index_select(dim=2, index=family_idx)
                 family_values = (
@@ -2372,7 +2372,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     indices.view(1, 1, -1).expand(
                         batch_size, state_count, -1
                     ),
-                    feature_gate,
+                    feature_gate.to(full_feature_gate.dtype),
                 )
                 current_owned_numeric = current_numeric_fields.index_select(
                     2, indices
@@ -2954,7 +2954,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 full_feature_gate = full_feature_gate.scatter(
                     2,
                     indices.view(1, 1, -1).expand(batch_size, 1, -1),
-                    feature_gate,
+                    feature_gate.to(full_feature_gate.dtype),
                 )
                 current_residual = self.mtf_family_proj[family_name](
                     current_tf_numeric.index_select(1, indices).unsqueeze(1)
