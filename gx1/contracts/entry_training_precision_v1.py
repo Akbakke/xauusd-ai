@@ -13,11 +13,17 @@ EXPERIMENTAL_FP32_3090_FINITE_SINGLE = "experimental_fp32_3090_finite_single"
 EXPERIMENTAL_FP32_3090_FINITE_GROUPED = "experimental_fp32_3090_finite_grouped"
 EXPERIMENTAL_FP32_3090_KERNEL_PROFILE = "experimental_fp32_3090_kernel_profile"
 EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL = "experimental_fp32_3090_no_uninitialized_fill"
+EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL = "experimental_bf16_3090_fp32_q_heads_no_fill"
+EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL = "experimental_fp32_3090_batched_mtf_teacher_no_fill"
+_LOCAL_NEXT_EXPERIMENT_POLICIES = frozenset({
+    EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
+    EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
+})
 _LOCAL_FINITE_CHECK_POLICIES = frozenset({
     EXPERIMENTAL_FP32_3090_FINITE_SINGLE, EXPERIMENTAL_FP32_3090_FINITE_GROUPED,
 })
 TRAINING_PRECISION_POLICIES = frozenset(
-    {DETERMINISTIC_FP32, DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}
+    {DETERMINISTIC_FP32, DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}
 )
 
 
@@ -38,6 +44,10 @@ def require_training_precision_policy(
         raise TrainingPrecisionPolicyError(
             f"precision_policy={policy!r} is not declared"
         )
+    if policy in _LOCAL_NEXT_EXPERIMENT_POLICIES:
+        if (device_type, execution_tier, profile) != ("cuda", "canonical", "smoke") or type(batch_size) is not int or batch_size != 8:
+            raise TrainingPrecisionPolicyError("next local efficiency experiments require canonical CUDA smoke at batch 8")
+        return policy
     if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL:
         if (device_type, execution_tier) != ("cuda", "canonical") or profile not in {"smoke", "candidate"} or type(batch_size) is not int or batch_size != 8:
             raise TrainingPrecisionPolicyError("local memory-fill experiment requires canonical CUDA smoke or budgeted candidate at batch 8")
@@ -92,6 +102,22 @@ def training_precision_metadata(
     *,
     device_type: str,
 ) -> dict[str, Any]:
+    if policy in _LOCAL_NEXT_EXPERIMENT_POLICIES and device_type == "cuda":
+        metadata = training_precision_metadata(
+            EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL, device_type=device_type,
+        )
+        metadata["precision"] = policy
+        if policy == EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL:
+            metadata.update(
+                autocast=True, autocast_dtype="bfloat16", native_bf16_required=True,
+                raw_q_head_arithmetic_dtype="float32", raw_q_head_autocast=False,
+            )
+        else:
+            metadata.update(
+                mtf_equal_length_batching="eval_no_grad_only",
+                mtf_batch_grouping="same_encoder_same_sequence_length",
+            )
+        return metadata
     if policy == DETERMINISTIC_FP32 and device_type in {"cpu", "cuda"}:
         return {
             "precision": DETERMINISTIC_FP32,
@@ -194,7 +220,7 @@ def training_precision_metadata(
 
 
 def numerical_thread_count(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
         return 8
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 16
@@ -213,7 +239,7 @@ def unified_exit_chunk_rows(policy: str, *, batch_size: int) -> int:
         if type(batch_size) is not int or not 1 <= batch_size <= 16:
             raise TrainingPrecisionPolicyError("local full Exit batch size invalid")
         return batch_size
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
         return min(8, int(batch_size))
     if policy == DETERMINISTIC_BF16_HOPPER:
         return min(64, int(batch_size))
@@ -221,7 +247,7 @@ def unified_exit_chunk_rows(policy: str, *, batch_size: int) -> int:
 
 
 def candidate_checkpoint_interval(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
         return 64
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 512
@@ -229,7 +255,7 @@ def candidate_checkpoint_interval(policy: str) -> int:
 
 
 def candidate_validation_checkpoint_interval(policy: str) -> int:
-    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
+    if policy in {DETERMINISTIC_FP32, EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
         return 64
     if policy == DETERMINISTIC_BF16_HOPPER:
         return 128
@@ -241,6 +267,9 @@ def require_local_precision_benchmark_geometry(
     profile: str = "smoke",
 ) -> None:
     """Keep local experiments bounded and candidate populations complete."""
+    if policy in _LOCAL_NEXT_EXPERIMENT_POLICIES:
+        if profile != "smoke" or type(subsample_rows) is not int or subsample_rows != 512:
+            raise TrainingPrecisionPolicyError("next local efficiency experiments require exactly 512 smoke rows")
     if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL and profile == "candidate":
         if type(subsample_rows) is not int or subsample_rows != 0 or type(grad_accum_steps) is not int or grad_accum_steps != 1:
             raise TrainingPrecisionPolicyError("local memory-fill candidate requires full TRAIN and accumulation 1")
@@ -250,7 +279,7 @@ def require_local_precision_benchmark_geometry(
         raise TrainingPrecisionPolicyError("local memory-fill experiment requires exactly 512 rows")
     if policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE and (type(subsample_rows) is not int or subsample_rows != 512):
         raise TrainingPrecisionPolicyError("local kernel profile requires exactly 512 rows")
-    if policy not in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
+    if policy not in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH, *_LOCAL_FINITE_CHECK_POLICIES, *_LOCAL_NEXT_EXPERIMENT_POLICIES, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE, EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL}:
         return
     if (
         type(epochs) is not int or epochs != 1
@@ -276,4 +305,6 @@ def deterministic_fill_uninitialized_memory(policy: str) -> bool:
     """Keep allocation poisoning enabled unless this exact experiment declares it off."""
     if policy not in TRAINING_PRECISION_POLICIES:
         raise TrainingPrecisionPolicyError(f"precision_policy={policy!r} is not declared")
-    return policy != EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
+    return policy not in {
+        EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL, *_LOCAL_NEXT_EXPERIMENT_POLICIES,
+    }

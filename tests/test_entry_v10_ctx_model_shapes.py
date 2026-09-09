@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 from collections import Counter
+from contextlib import nullcontext
 from copy import deepcopy
 import inspect
 from pathlib import Path
@@ -1525,8 +1526,9 @@ def test_strict_state_loading_does_not_silently_drop_retired_exit_keys(retired):
         model.load_state_dict(legacy_shaped_state, strict=True)
 
 
+@pytest.mark.parametrize("fp32_q_heads", [False, True])
 @pytest.mark.parametrize("route", ["entry", "entry_teacher", "exit_episode", "exit_prefix", "exit_step"])
-def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkeypatch, route):
+def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkeypatch, route, fp32_q_heads):
     """Actual Entry/Exit code under CPU autocast; CUDA proof remains the smoke."""
     torch.manual_seed(1608)
     model = _make_model(dropout=0.0).train()
@@ -1535,7 +1537,8 @@ def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkey
     # CUDA autocast disables the MHA fast path automatically; CPU emulation
     # needs the same path selection to exercise the production tensor graph.
     monkeypatch.setattr(torch.backends.mha, "get_fastpath_enabled", lambda: False)
-    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+    scope = model_module.raw_q_fp32_scope() if fp32_q_heads else nullcontext()
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16), scope:
         if route in {"entry", "entry_teacher"}:
             with torch.set_grad_enabled(route != "entry_teacher"):
                 output = _forward(model, batch_size=1)
@@ -1550,6 +1553,9 @@ def test_bf16_autocast_feature_gate_scatter_preserves_dtype_and_gradients(monkey
             output, _carry = _exit_scale_step(model, _make_exit_episode_inputs(state_count=3), state=0)
             q = output["exit_action_q_bps"]
     assert torch.isfinite(q).all()
+    assert model_module._RAW_Q_FP32_SCOPE.get() is False
+    if fp32_q_heads:
+        assert q.dtype == torch.float32
     if route == "entry_teacher":
         assert not q.requires_grad
         return
@@ -1653,3 +1659,110 @@ def test_experimental_finite_scope_preserves_real_model_outputs_gradients_and_rn
             assert torch.equal(parameter.grad, original.grad), name
     for name, tensor in variant.state_dict().items():
         assert torch.equal(tensor, reference.state_dict()[name]), name
+
+
+@pytest.mark.parametrize("hidden_dtype", [torch.float32, torch.bfloat16])
+def test_fp32_q_arithmetic_preserves_margin_before_rounding(hidden_dtype):
+    head = torch.nn.Linear(1, 2, bias=False, dtype=torch.float32)
+    with torch.no_grad():
+        head.weight.copy_(torch.tensor([[1.0], [1.001]]))
+    original_weight = head.weight.detach().clone()
+    hidden = torch.ones(1, 1, dtype=hidden_dtype, requires_grad=True)
+    reference = head(hidden.float())
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        rounded = model_module._forward_raw_q_head(head, hidden)
+        assert rounded.dtype == torch.bfloat16
+        assert rounded.float()[0, 0] == rounded.float()[0, 1]
+        with model_module.raw_q_fp32_scope():
+            precise = model_module._forward_raw_q_head(head, hidden)
+        assert model_module._forward_raw_q_head(head, hidden).dtype == torch.bfloat16
+    assert precise.dtype == torch.float32
+    assert torch.equal(precise, reference)
+    assert precise[0, 0] < precise[0, 1]
+    precise.sum().backward()
+    for gradient in (head.weight.grad, hidden.grad):
+        assert gradient is not None and torch.isfinite(gradient).all()
+        assert torch.all(gradient != 0)
+    assert torch.equal(head.weight, original_weight)
+    assert model_module._RAW_Q_FP32_SCOPE.get() is False
+
+
+@pytest.mark.parametrize("training,grad", [(False, False), (False, True), (True, False), (True, True)])
+def test_equal_length_mtf_batches_only_eval_without_grad(training, grad, monkeypatch):
+    """Real model on small shapes; CUDA speed and production VAL are separate."""
+    torch.manual_seed(4087)
+    lengths = {"m15": 2, "h1": 4, "h4": 4, "d1": 6}
+    reference = _make_model(**{tf + "_seq_len": n for tf, n in lengths.items()})
+    variant = deepcopy(reference)
+    seq, snap, cat, cont, tf_inputs = _make_inputs(batch_size=2)
+    for tf, length in lengths.items():
+        tf_inputs["seq_" + tf] = torch.randn(2, length, TF_DIM)
+    initial_rng = torch.get_rng_state().clone()
+
+    def forward(model, scoped):
+        torch.set_rng_state(initial_rng)
+        model.train(training)
+        calls = []
+        families = {id(encoder): family for family, encoder in model.mtf_family_encoder.items()}
+        original_encode = model_module._memory_bounded_transformer_encoder
+
+        def observe_encode(encoder, src, **kwargs):
+            # CPU training checkpoints individual layers, bypassing the outer
+            # encoder's forward hooks. Observe the common call boundary while
+            # retaining the real checkpoint/forward/backward implementation.
+            if id(encoder) in families:
+                calls.append((families[id(encoder)], tuple(src.shape)))
+            return original_encode(encoder, src, **kwargs)
+
+        scope = model_module.batch_equal_length_mtf_eval_scope() if scoped else nullcontext()
+        with monkeypatch.context() as patch:
+            patch.setattr(model_module, "_memory_bounded_transformer_encoder", observe_encode)
+            with torch.set_grad_enabled(grad), scope:
+                output = model(seq, snap, ctx_cat=cat, ctx_cont=cont, **tf_inputs)
+                if training and grad:
+                    output["entry_action_q_bps"].square().mean().backward()
+        return output, calls, torch.get_rng_state().clone()
+
+    expected, reference_calls, expected_rng = forward(reference, False)
+    actual, calls, actual_rng = forward(variant, True)
+    batching = not training and not grad
+    assert len(reference_calls) == 32
+    assert len(calls) == (24 if batching else 32)
+    if batching:
+        assert sum(shape[:2] == (4, 4) for _, shape in calls) == 8
+        assert torch.equal(actual_rng, initial_rng)
+    assert torch.equal(actual_rng, expected_rng)
+    assert actual.keys() == expected.keys()
+    for key in expected:
+        if batching:
+            torch.testing.assert_close(actual[key], expected[key], atol=1e-6, rtol=1e-5, msg=key)
+        else:
+            assert torch.equal(actual[key], expected[key]), key
+    if training and grad:
+        for name, parameter in variant.named_parameters():
+            other = dict(reference.named_parameters())[name]
+            assert (parameter.grad is None) == (other.grad is None), name
+            if parameter.grad is not None:
+                assert torch.isfinite(parameter.grad).all(), name
+                assert torch.equal(parameter.grad, other.grad), name
+    reference_state = reference.state_dict()
+    for name, tensor in variant.state_dict().items():
+        assert torch.equal(tensor, reference_state[name]), name
+    assert model_module._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False
+
+
+@pytest.mark.parametrize("scope_name,state_name", [
+    ("raw_q_fp32_scope", "_RAW_Q_FP32_SCOPE"),
+    ("batch_equal_length_mtf_eval_scope", "_BATCH_EQUAL_LENGTH_MTF_EVAL"),
+])
+def test_local_model_experiment_scopes_restore_after_nested_exception(scope_name, state_name):
+    scope = getattr(model_module, scope_name)
+    state = getattr(model_module, state_name)
+    assert state.get() is False
+    with scope():
+        with pytest.raises(RuntimeError, match="deliberate"):
+            with scope():
+                assert state.get() is True
+                raise RuntimeError("deliberate")
+        assert state.get() is True
+    assert state.get() is False

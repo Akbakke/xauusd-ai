@@ -173,9 +173,16 @@ def test_real_set_deterministic_applies_option_and_next_default_run_restores_it(
 
 
 @pytest.mark.parametrize("selected", sorted(policy.TRAINING_PRECISION_POLICIES))
-def test_only_explicit_no_fill_policy_disables_allocation_poisoning(selected):
+def test_only_explicit_no_fill_policies_disable_allocation_poisoning(selected):
+    # Both bounded follow-up experiments use the measured no-fill baseline.
+    # Every other declared policy retains allocation poisoning.
+    explicitly_no_fill = {
+        POLICY,
+        policy.EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
+        policy.EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
+    }
     assert policy.deterministic_fill_uninitialized_memory(selected) is (
-        selected != POLICY
+        selected not in explicitly_no_fill
     )
 
 

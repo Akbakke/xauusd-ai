@@ -131,6 +131,45 @@ def model_finite_check_scope(mode: str):
         _MODEL_FINITE_CHECK_SCOPE.reset(token)
 
 
+_RAW_Q_FP32_SCOPE: ContextVar[bool] = ContextVar(
+    "gx1_raw_q_fp32_scope", default=False,
+)
+
+
+@contextmanager
+def raw_q_fp32_scope():
+    """Explicit experimental Q-head arithmetic scope; parameters stay unchanged."""
+    token = _RAW_Q_FP32_SCOPE.set(True)
+    try:
+        yield
+    finally:
+        _RAW_Q_FP32_SCOPE.reset(token)
+
+
+def _forward_raw_q_head(head: nn.Linear, hidden: torch.Tensor) -> torch.Tensor:
+    if not _RAW_Q_FP32_SCOPE.get():
+        return head(hidden)
+    # Casting an already rounded Q output cannot restore an action margin.
+    # Compute the head itself outside autocast, including its input conversion.
+    with torch.autocast(device_type=hidden.device.type, enabled=False):
+        return head(hidden.float())
+
+
+_BATCH_EQUAL_LENGTH_MTF_EVAL: ContextVar[bool] = ContextVar(
+    "gx1_batch_equal_length_mtf_eval", default=False,
+)
+
+
+@contextmanager
+def batch_equal_length_mtf_eval_scope():
+    """Explicit experiment; teacher/VAL only, never changes training dropout."""
+    token = _BATCH_EQUAL_LENGTH_MTF_EVAL.set(True)
+    try:
+        yield
+    finally:
+        _BATCH_EQUAL_LENGTH_MTF_EVAL.reset(token)
+
+
 def _assert_finite(name: str, t: torch.Tensor) -> None:
     scope = _MODEL_FINITE_CHECK_SCOPE.get()
     if scope is None:
@@ -1981,6 +2020,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
             _assert_finite(name, tensor)
 
+        batch_eval = (
+            _BATCH_EQUAL_LENGTH_MTF_EVAL.get()
+            and not self.training
+            and not torch.is_grad_enabled()
+        )
+        projected_eval_rows: dict[str, dict[str, torch.Tensor]] = {}
         family_grid_rows: list[torch.Tensor] = []
         feature_gate_rows: list[torch.Tensor] = []
         for suffix, tensor, _expected_len, expected_dim in tf_inputs:
@@ -2034,13 +2079,42 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         feature_gate[:, local_position].view(batch_size, 1, 1)
                         * effective_scale
                     )
-                encoded = _memory_bounded_transformer_encoder(
-                    self.mtf_family_encoder[specialist],
-                    self._add_pe(projected, f"pos_enc_{suffix}"),
-                )
-                family_tokens.append(encoded.mean(dim=1))
-            family_grid_rows.append(torch.stack(family_tokens, dim=1))
+                projected = self._add_pe(projected, f"pos_enc_{suffix}")
+                if batch_eval:
+                    projected_eval_rows.setdefault(specialist, {})[suffix] = projected
+                else:
+                    encoded = _memory_bounded_transformer_encoder(
+                        self.mtf_family_encoder[specialist], projected,
+                    )
+                    family_tokens.append(encoded.mean(dim=1))
+            if not batch_eval:
+                family_grid_rows.append(torch.stack(family_tokens, dim=1))
             feature_gate_rows.append(full_feature_gate)
+
+        if batch_eval:
+            # Each example keeps its own normalized/gated/embedded/positioned
+            # sequence. Only equal-length calls to the SAME encoder are merged.
+            # No padding, cross-example attention, new weights or feature loss.
+            pooled: dict[tuple[str, str], torch.Tensor] = {}
+            for specialist in self._specialist_names:
+                by_length: dict[int, list[str]] = {}
+                for suffix in route:
+                    length = int(projected_eval_rows[specialist][suffix].shape[1])
+                    by_length.setdefault(length, []).append(suffix)
+                for suffixes in by_length.values():
+                    sequences = [projected_eval_rows[specialist][suffix] for suffix in suffixes]
+                    joined = sequences[0] if len(sequences) == 1 else torch.cat(sequences, dim=0)
+                    encoded = _memory_bounded_transformer_encoder(
+                        self.mtf_family_encoder[specialist], joined,
+                    )
+                    pieces = encoded.split(batch_size, dim=0)
+                    assert len(pieces) == len(suffixes)
+                    for suffix, piece in zip(suffixes, pieces):
+                        pooled[(suffix, specialist)] = piece.mean(dim=1)
+            family_grid_rows = [
+                torch.stack([pooled[(suffix, specialist)] for specialist in self._specialist_names], dim=1)
+                for suffix in route
+            ]
 
         family_tf_feature_gate = torch.stack(feature_gate_rows, dim=1)
         family_grid = torch.stack(family_grid_rows, dim=1)
@@ -2540,7 +2614,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 (token, local_side, mtf_side, side_state, path_encoded), dim=3
             )
         )
-        q_values = self.head_exit_action(hidden)
+        q_values = _forward_raw_q_head(self.head_exit_action, hidden)
         valid = torch.ones_like(q_values, dtype=torch.bool)
         terminal_mask = torch.zeros(
             (batch_size, 2, state_count),
@@ -3109,7 +3183,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 (token, local_side, mtf_side, side_state, path_encoded), dim=3
             )
         )
-        q_values = self.head_exit_action(hidden)
+        q_values = _forward_raw_q_head(self.head_exit_action, hidden)
         valid = torch.ones_like(q_values, dtype=torch.bool)
         terminal_mask = torch.zeros(
             batch_size, 2, 1, dtype=torch.bool, device=q_values.device
@@ -3195,7 +3269,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.entry_q_joint_norm(entry_q_joint_source)
             )
         )
-        entry_action_q_bps = self.head_entry_action_q(entry_q_joint_hidden)
+        entry_action_q_bps = _forward_raw_q_head(self.head_entry_action_q, entry_q_joint_hidden)
         _assert_finite("entry_q_joint_hidden", entry_q_joint_hidden)
         _assert_finite("entry_action_q_bps", entry_action_q_bps)
 

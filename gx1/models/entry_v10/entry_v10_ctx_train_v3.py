@@ -116,6 +116,8 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
 from gx1.contracts.entry_training_precision_v1 import (
     DETERMINISTIC_BF16_HOPPER,
     EXPERIMENTAL_BF16_3090,
+    EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
+    EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
     EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH,
     EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
     EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
@@ -249,6 +251,8 @@ from gx1.models.entry_v10.training_kernel_profile import (
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
     model_finite_check_scope,
+    raw_q_fp32_scope,
+    batch_equal_length_mtf_eval_scope,
     MODEL_ARCHITECTURE_SCHEMA_VERSION,
     MODEL_OUTPUT_SCHEMA_VERSION,
     TRAIN_ACTIVATION_CHECKPOINT_POLICY,
@@ -3155,10 +3159,21 @@ def _require_local_fp32_no_fill_capability() -> None:
         raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_NO_FILL_CAPABILITY_REQUIRED]")
 
 
+@contextlib.contextmanager
 def _training_autocast_context():
-    if _TRAINING_PRECISION_POLICY in {DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090}:
-        return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
-    return contextlib.nullcontext()
+    # Bind each experiment to the declared recipe policy at every model call.
+    # The model itself restricts MTF batching to eval plus no-grad execution.
+    with contextlib.ExitStack() as stack:
+        if _TRAINING_PRECISION_POLICY in {
+            DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090,
+            EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
+        }:
+            stack.enter_context(torch.autocast(device_type="cuda", dtype=torch.bfloat16))
+        if _TRAINING_PRECISION_POLICY == EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL:
+            stack.enter_context(raw_q_fp32_scope())
+        if _TRAINING_PRECISION_POLICY == EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL:
+            stack.enter_context(batch_equal_length_mtf_eval_scope())
+        yield
 
 
 def _float_output_tensors(value: Any) -> Any:
@@ -3219,9 +3234,9 @@ def _set_deterministic(
                 raise RuntimeError(
                     "[ENTRY_TRAIN_BF16_HOPPER_CAPABILITY_REQUIRED]"
                 )
-        if policy == EXPERIMENTAL_BF16_3090:
+        if policy in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL}:
             _require_local_bf16_3090_capability()
-        if policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL:
+        if policy in {EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL, EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL}:
             _require_local_fp32_no_fill_capability()
         if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
             _require_local_fp32_full_exit_batch_capability()

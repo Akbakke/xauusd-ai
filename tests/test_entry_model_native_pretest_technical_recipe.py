@@ -360,12 +360,16 @@ def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path
     ({"subsample_rows": 0}, False), ({"subsample_rows": 513}, False),
     ({"batch_size": 16}, False),
 ])
-def test_local_bf16_recipe_is_one_change_from_local_baseline(tmp_path, change, valid) -> None:
-    from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_BF16_3090
+@pytest.mark.parametrize("policy", [
+    "experimental_bf16_3090",
+    "experimental_bf16_3090_fp32_q_heads_no_fill",
+    "experimental_fp32_3090_batched_mtf_teacher_no_fill",
+])
+def test_local_bf16_recipe_is_one_change_from_local_baseline(tmp_path, change, valid, policy) -> None:
     recipe = _recipe(tmp_path)
     cli = recipe["trainer_cli"]
     cli.update(execution_tier="canonical", train_time_window=None,
-               precision_policy=EXPERIMENTAL_BF16_3090, batch_size=8, subsample_rows=512)
+               precision_policy=policy, batch_size=8, subsample_rows=512)
     cli.update(change)
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     if valid:

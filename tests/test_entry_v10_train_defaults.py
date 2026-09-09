@@ -442,3 +442,61 @@ def test_smoke_exit_training_call_honors_policy_and_partial_batch(policy, rows, 
         "_TRAINING_PRECISION_POLICY": policy,
     })
     assert actual == expected
+
+
+@pytest.mark.parametrize("policy,expected_q,expected_batch,expected_autocast", [
+    ("deterministic_fp32", False, False, False),
+    ("experimental_fp32_3090_no_uninitialized_fill", False, False, False),
+    ("experimental_bf16_3090", False, False, True),
+    ("experimental_bf16_3090_fp32_q_heads_no_fill", True, False, True),
+    ("experimental_fp32_3090_batched_mtf_teacher_no_fill", False, True, False),
+])
+@pytest.mark.parametrize("raise_inside", [False, True])
+def test_local_forward_context_activates_only_declared_experiment(
+    monkeypatch, policy, expected_q, expected_batch, expected_autocast, raise_inside,
+):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as module
+    real_autocast = torch.autocast
+
+    def cpu_emulation(*, device_type, **kwargs):
+        # Exercise actual context restoration on CPU; no CUDA capability claim.
+        return real_autocast(device_type="cpu" if device_type == "cuda" else device_type, **kwargs)
+
+    monkeypatch.setattr(torch, "autocast", cpu_emulation)
+    monkeypatch.setattr(trainer, "_TRAINING_PRECISION_POLICY", policy)
+    observed = []
+
+    class Probe(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.head = torch.nn.Linear(1, 2, bias=False)
+            with torch.no_grad():
+                self.head.weight.copy_(torch.tensor([[1.0], [1.001]]))
+
+        def forward(self, x):
+            observed.append((module._RAW_Q_FP32_SCOPE.get(),
+                             module._BATCH_EQUAL_LENGTH_MTF_EVAL.get(),
+                             torch.is_autocast_enabled("cpu")))
+            if raise_inside:
+                raise RuntimeError("deliberate forward failure")
+            return module._forward_raw_q_head(self.head, x)
+
+    probe = Probe()
+    x = torch.ones(1, 1, requires_grad=True)
+    if raise_inside:
+        with pytest.raises(RuntimeError, match="deliberate forward failure"):
+            trainer._model_forward_fp32(probe, x)
+    else:
+        output = trainer._model_forward_fp32(probe, x)
+        assert output.dtype == torch.float32
+        if expected_autocast and not expected_q:
+            assert output[0, 0] == output[0, 1]
+        else:
+            assert output[0, 0] < output[0, 1]
+        output.sum().backward()
+        assert torch.isfinite(x.grad).all() and torch.all(x.grad != 0)
+        assert torch.isfinite(probe.head.weight.grad).all()
+    assert observed == [(expected_q, expected_batch, expected_autocast)]
+    assert module._RAW_Q_FP32_SCOPE.get() is False
+    assert module._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False
+    assert torch.is_autocast_enabled("cpu") is False
