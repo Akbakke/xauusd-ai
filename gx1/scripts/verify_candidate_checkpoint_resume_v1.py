@@ -22,6 +22,7 @@ import argparse
 import copy
 from datetime import datetime, timezone
 import hashlib
+import math
 import importlib
 import inspect
 import json
@@ -1224,6 +1225,15 @@ _ACTUAL_NEXT_BATCH_REPORT_SCHEMA = (
     "gx1_candidate_source_state_next_batch_equivalence_v1"
 )
 _TF_INPUT_SCALE_PREFIX = "tf_input_scale_"
+_EXACT_STATE_NUMERICAL_TOLERANCES = {
+    "exit": (2e-8, 1e-6, 1e-6),
+    "joint": (1e-9, 1e-6, 1e-6),
+    "raw_gradients": (4e-6, 1e-6, 1e-6),
+    "clipped_gradients": (2e-8, 1e-6, 1e-6),
+    "model_state_after": (2e-7, 1e-6, 1e-8),
+    "optimizer_state_after": (3e-9, 1e-6, 1e-6),
+    "weight_ema_state_after": (2e-11, 1e-6, 1e-9),
+}
 
 
 class _ActualNextBatchCaptureComplete(RuntimeError):
@@ -1801,6 +1811,7 @@ def _compare_tensor_mapping(
     *,
     component: str,
     allow_scale_tolerance: bool,
+    numerical_tolerance: tuple[float, float, float] | None = None,
 ) -> dict[str, Any]:
     original_active = {
         name: value
@@ -1812,7 +1823,10 @@ def _compare_tensor_mapping(
             f"[SOURCE_STATE_NEXT_BATCH_{component.upper()}_KEY_MISMATCH]"
         )
     maximum = 0.0
+    squared_difference = 0.0
+    squared_reference = 0.0
     tolerant_names: list[str] = []
+    numerically_tolerated_names: list[str] = []
     for name in sorted(successor):
         before = original_active[name]
         after = successor[name]
@@ -1825,16 +1839,34 @@ def _compare_tensor_mapping(
             raise RuntimeError(
                 f"[SOURCE_STATE_NEXT_BATCH_{component.upper()}_TENSOR_INVALID:{name}]"
             )
-        difference = (
-            float((before - after).abs().max().item())
-            if before.is_floating_point() and before.numel()
-            else 0.0
-        )
+        difference = 0.0
+        if before.is_floating_point():
+            delta = before.double() - after.double()
+            difference = (
+                float(delta.abs().max().item()) if before.numel() else 0.0
+            )
+            squared_difference += float((delta * delta).sum().item())
+            squared_reference += float(
+                (before.double() * before.double()).sum().item()
+            )
         maximum = max(maximum, difference)
         scale_value = name.startswith(_TF_INPUT_SCALE_PREFIX) or (
             "." + _TF_INPUT_SCALE_PREFIX
         ) in name
-        if allow_scale_tolerance and scale_value and before.is_floating_point():
+        if numerical_tolerance is not None and before.is_floating_point():
+            absolute, relative, _relative_l2 = numerical_tolerance
+            try:
+                torch.testing.assert_close(
+                    before, after, atol=absolute, rtol=relative
+                )
+            except AssertionError as exc:
+                raise RuntimeError(
+                    f"[SOURCE_STATE_NEXT_BATCH_{component.upper()}_"
+                    f"NUMERICAL_TOLERANCE_EXCEEDED:{name}]"
+                ) from exc
+            if not torch.equal(before, after):
+                numerically_tolerated_names.append(name)
+        elif allow_scale_tolerance and scale_value and before.is_floating_point():
             try:
                 torch.testing.assert_close(
                     before, after, atol=1e-6, rtol=1e-5
@@ -1849,10 +1881,25 @@ def _compare_tensor_mapping(
             raise RuntimeError(
                 f"[SOURCE_STATE_NEXT_BATCH_{component.upper()}_VALUE_MISMATCH:{name}]"
             )
+    relative_l2_difference = (
+        math.sqrt(squared_difference / squared_reference)
+        if squared_reference > 0.0
+        else math.sqrt(squared_difference)
+    )
+    if (
+        numerical_tolerance is not None
+        and relative_l2_difference > numerical_tolerance[2]
+    ):
+        raise RuntimeError(
+            f"[SOURCE_STATE_NEXT_BATCH_{component.upper()}_"
+            "RELATIVE_L2_TOLERANCE_EXCEEDED]"
+        )
     return {
         "tensor_count": len(successor),
         "tolerance_limited_to_tf_input_scales": sorted(tolerant_names),
+        "numerically_tolerated_tensor_names": sorted(numerically_tolerated_names),
         "max_abs_difference": maximum,
+        "relative_l2_difference": relative_l2_difference,
     }
 
 
@@ -1889,7 +1936,10 @@ def _active_optimizer_groups(groups: Sequence[Mapping[str, Any]]) -> list[dict[s
 
 
 def _require_actual_next_batch_equivalence(
-    original: Mapping[str, Any], successor: Mapping[str, Any]
+    original: Mapping[str, Any],
+    successor: Mapping[str, Any],
+    *,
+    exact_state: bool = False,
 ) -> dict[str, Any]:
     exact_metadata = (
         "checkpoint_index",
@@ -1916,6 +1966,9 @@ def _require_actual_next_batch_equivalence(
         or successor.get("test_accessed") is not False
     ):
         raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_CHILD_REPORT_INVALID]")
+    exact_state_tolerances = (
+        _EXACT_STATE_NUMERICAL_TOLERANCES if exact_state else {}
+    )
     results: dict[str, Any] = {}
     for index, (before, after) in enumerate(
         zip(original["entry_forwards"], successor["entry_forwards"], strict=True)
@@ -1936,22 +1989,54 @@ def _require_actual_next_batch_equivalence(
             {name: successor["exit"][name]},
             component=f"exit_{name}",
             allow_scale_tolerance=False,
+            numerical_tolerance=exact_state_tolerances.get("exit"),
         )
     if original["exit"]["stats"] != successor["exit"]["stats"]:
         raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_EXIT_STATS_MISMATCH]")
     if original["joint"]["stats"] != successor["joint"]["stats"]:
-        raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_JOINT_STATS_MISMATCH]")
+        if not exact_state:
+            raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_JOINT_STATS_MISMATCH]")
+        original_stats = original["joint"]["stats"]
+        successor_stats = successor["joint"]["stats"]
+        if (
+            set(original_stats) != set(successor_stats)
+            or any(
+                not isinstance(original_stats[name], (int, float, bool))
+                or not isinstance(successor_stats[name], (int, float, bool))
+                for name in original_stats
+            )
+        ):
+            raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_JOINT_STATS_MISMATCH]")
+        def stats_tensors(values: Mapping[str, Any]) -> dict[str, torch.Tensor]:
+            return {
+                name: (
+                    torch.tensor(value, dtype=torch.float64)
+                    if isinstance(value, float)
+                    else torch.tensor(value)
+                )
+                for name, value in values.items()
+            }
+
+        results["joint_stats"] = _compare_tensor_mapping(
+            stats_tensors(original_stats),
+            stats_tensors(successor_stats),
+            component="joint_stats",
+            allow_scale_tolerance=False,
+            numerical_tolerance=exact_state_tolerances["joint"],
+        )
     results["joint_task_losses"] = _compare_tensor_mapping(
         original["joint"]["task_losses"],
         successor["joint"]["task_losses"],
         component="joint_task_losses",
         allow_scale_tolerance=False,
+        numerical_tolerance=exact_state_tolerances.get("joint"),
     )
     results["joint_loss"] = _compare_tensor_mapping(
         {"joint_loss": original["joint"]["joint_loss"]},
         {"joint_loss": successor["joint"]["joint_loss"]},
         component="joint_loss",
         allow_scale_tolerance=False,
+        numerical_tolerance=exact_state_tolerances.get("joint"),
     )
     for name in ("raw_gradients", "clipped_gradients"):
         results[name] = _compare_tensor_mapping(
@@ -1959,9 +2044,10 @@ def _require_actual_next_batch_equivalence(
             successor[name],
             component=name,
             allow_scale_tolerance=True,
+            numerical_tolerance=exact_state_tolerances.get(name),
         )
         tolerated = results[name]["tolerance_limited_to_tf_input_scales"]
-        if tolerated != [
+        if not exact_state and tolerated != [
             f"tf_input_scale_{timeframe}"
             for timeframe in ("d1", "h1", "h4", "m15", "m5")
         ]:
@@ -1973,6 +2059,7 @@ def _require_actual_next_batch_equivalence(
         successor["model_state_after"],
         component="model_state_after",
         allow_scale_tolerance=True,
+        numerical_tolerance=exact_state_tolerances.get("model_state_after"),
     )
     results["target_model_state_after"] = _compare_tensor_mapping(
         original["target_model_state_after"],
@@ -1985,6 +2072,7 @@ def _require_actual_next_batch_equivalence(
         _flatten_optimizer_state(successor["optimizer_state_after"]),
         component="optimizer_state_after",
         allow_scale_tolerance=True,
+        numerical_tolerance=exact_state_tolerances.get("optimizer_state_after"),
     )
     original_ema = original["weight_ema_state_after"]
     successor_ema = successor["weight_ema_state_after"]
@@ -2000,6 +2088,7 @@ def _require_actual_next_batch_equivalence(
         successor_ema["shadow"],
         component="weight_ema_state_after",
         allow_scale_tolerance=True,
+        numerical_tolerance=exact_state_tolerances.get("weight_ema_state_after"),
     )
     if (
         _active_optimizer_groups(original["optimizer_groups_after"])
@@ -2216,7 +2305,7 @@ def verify_source_state_successor_next_batch(
             successor_child, map_location="cpu", weights_only=True
         )
         comparisons = _require_actual_next_batch_equivalence(
-            original_result, successor_result
+            original_result, successor_result, exact_state=exact_state
         )
 
     report = {
@@ -2225,7 +2314,11 @@ def verify_source_state_successor_next_batch(
             if exact_state
             else _ACTUAL_NEXT_BATCH_REPORT_SCHEMA
         ),
-        "decision": "PASS_ACTUAL_CPU_NEXT_BATCH_EQUIVALENCE",
+        "decision": (
+            "PASS_ACTUAL_CPU_NEXT_BATCH_NUMERICAL_EQUIVALENCE"
+            if exact_state
+            else "PASS_ACTUAL_CPU_NEXT_BATCH_EQUIVALENCE"
+        ),
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "activation_authority": False,
         "actual_next_batch_equivalence_authority": True,
@@ -2249,15 +2342,35 @@ def verify_source_state_successor_next_batch(
         "next_batch_indices": original_result["next_batch_indices"],
         "batch_manifest": original_result["batch_manifest"],
         "comparisons": comparisons,
-        "tolerance_policy": {
-            "exact": "all batch bytes, outputs, losses, masks, targets, non-scale gradients and active non-scale state",
-            "tf_input_scale_derived_atol": 1e-6,
-            "tf_input_scale_derived_rtol": 1e-5,
-            "tolerated_parameter_names": [
-                f"tf_input_scale_{timeframe}"
-                for timeframe in ("d1", "h1", "h4", "m15", "m5")
-            ],
-        },
+        "tolerance_policy": (
+            {
+                "exact": (
+                    "batch bytes, masks, action/winner metadata, Entry outputs, "
+                    "target-model state and nonfloating state"
+                ),
+                "cause": (
+                    "same-weight shared-family GRU calls concatenate independent "
+                    "timeframe batches and change only FP32 kernel accumulation order"
+                ),
+                "component_atol_rtol_relative_l2": {
+                    name: {"atol": values[0], "rtol": values[1], "relative_l2": values[2]}
+                    for name, values in _EXACT_STATE_NUMERICAL_TOLERANCES.items()
+                },
+            }
+            if exact_state
+            else {
+                "exact": (
+                    "all batch bytes, outputs, losses, masks, targets, "
+                    "non-scale gradients and active non-scale state"
+                ),
+                "tf_input_scale_derived_atol": 1e-6,
+                "tf_input_scale_derived_rtol": 1e-5,
+                "tolerated_parameter_names": [
+                    f"tf_input_scale_{timeframe}"
+                    for timeframe in ("d1", "h1", "h4", "m15", "m5")
+                ],
+            }
+        ),
         "retired_static_exit_state_absent_from_successor": (
             None if exact_state else True
         ),

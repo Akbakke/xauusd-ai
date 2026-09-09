@@ -518,6 +518,41 @@ def test_actual_next_batch_comparison_excludes_only_reviewed_retired_state() -> 
     ]
 
 
+
+def test_exact_state_next_batch_admits_only_bounded_fp32_order_noise() -> None:
+    original = _actual_next_batch_payload()
+    successor = copy.deepcopy(original)
+    original["joint"]["stats"]["raw"] = 0.25
+    successor["joint"]["stats"]["raw"] = 0.25 + 1e-8
+    successor["exit"]["entry_representation_gradients"] += 1e-8
+    successor["exit"]["entry_action_q_targets"] += 1e-8
+    successor["joint"]["task_losses"]["entry_action_q"] += 1e-8
+    successor["raw_gradients"]["active.weight"] += 1e-7
+    successor["clipped_gradients"]["active.weight"] += 1e-9
+    successor["optimizer_state_after"]["active.weight"]["exp_avg"] += 1e-9
+    successor["weight_ema_state_after"]["shadow"][
+        "tf_input_scale_m5"
+    ] += 1e-11
+
+    report = recovery._require_actual_next_batch_equivalence(
+        original, successor, exact_state=True
+    )
+
+    assert report["entry_forward_0"]["max_abs_difference"] == 0.0
+    assert report["raw_gradients"]["max_abs_difference"] > 0.0
+    assert report["model_state_after"]["relative_l2_difference"] == 0.0
+
+
+def test_exact_state_next_batch_rejects_material_numerical_change() -> None:
+    original = _actual_next_batch_payload()
+    successor = copy.deepcopy(original)
+    successor["raw_gradients"]["active.weight"] += 1e-3
+
+    with pytest.raises(RuntimeError, match="NUMERICAL_TOLERANCE_EXCEEDED"):
+        recovery._require_actual_next_batch_equivalence(
+            original, successor, exact_state=True
+        )
+
 @pytest.mark.parametrize(
     ("surface", "name"),
     [
