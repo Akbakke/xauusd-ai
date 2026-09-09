@@ -481,20 +481,26 @@ def _native_inputs(prepared):
     }
 
 
-def test_actual_native_baseline_matches_existing_wrapper_and_full_gru_scans(
+def test_actual_native_baseline_matches_wrapper_and_batched_full_gru_scans(
     episodes, native_model, online_tokens
 ):
     adapter = _adapter(episodes, native_model)
-    history_lengths = []
+    scan_shapes = []
     family = MODEL_NATIVE_TRAINING_SPECIALISTS[0]
     handle = native_model.exit_episode_mtf_family_gru[family].register_forward_pre_hook(
-        lambda module, arguments: history_lengths.append(arguments[0].shape[1])
+        lambda module, arguments: scan_shapes.append(tuple(arguments[0].shape))
     )
     try:
         actual = adapter.predict_spec(episode=episodes[0], online_entry_token=online_tokens[0])
     finally:
         handle.remove()
-    assert history_lengths == [len(episodes[0][f"exit_mtf_history_{timeframe}"]) for timeframe in _TF_NAMES]
+    history_lengths = [
+        len(episodes[0][f"exit_mtf_history_{timeframe}"])
+        for timeframe in _TF_NAMES
+    ]
+    assert scan_shapes == [
+        (len(_TF_NAMES), max(history_lengths), native_model.cfg.d_model)
+    ]
     with torch.no_grad():
         expected, valid, state_valid, terminal, lengths = _forward_unified_exit_episode_pack(
             model=native_model, entry_decision_representation=online_tokens[0],

@@ -2237,6 +2237,59 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "family_tf_feature_gate": family_tf_feature_gate,
         }
 
+    def _scan_batched_exit_mtf_family_histories(
+        self,
+        *,
+        family_name: str,
+        projected_by_timeframe: Mapping[str, torch.Tensor],
+        timeframe_names: tuple[str, ...],
+        batch_size: int,
+        d_model: int,
+    ) -> Dict[str, torch.Tensor]:
+        """Scan five right-padded native clocks in one shared-family GRU call."""
+
+        if tuple(projected_by_timeframe) != timeframe_names:
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_MTF_BATCH_ORDER_INVALID")
+        max_history_rows = max(
+            int(projected_by_timeframe[tf_name].shape[1])
+            for tf_name in timeframe_names
+        )
+        padded_rows: list[torch.Tensor] = []
+        history_rows: dict[str, int] = {}
+        for tf_name in timeframe_names:
+            projected = projected_by_timeframe[tf_name]
+            if (
+                projected.dim() != 3
+                or int(projected.shape[0]) != batch_size
+                or int(projected.shape[2]) != d_model
+            ):
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_BATCH_INPUT_INVALID:{tf_name}"
+                )
+            row_count = int(projected.shape[1])
+            history_rows[tf_name] = row_count
+            if row_count < max_history_rows:
+                projected = torch.cat(
+                    (
+                        projected,
+                        projected.new_zeros(
+                            batch_size,
+                            max_history_rows - row_count,
+                            d_model,
+                        ),
+                    ),
+                    dim=1,
+                )
+            padded_rows.append(projected)
+        encoded, _ = self.exit_episode_mtf_family_gru[family_name](
+            torch.cat(padded_rows, dim=0)
+        )
+        encoded_chunks = encoded.split(batch_size, dim=0)
+        return {
+            tf_name: chunk[:, : history_rows[tf_name], :]
+            for tf_name, chunk in zip(timeframe_names, encoded_chunks)
+        }
+
     def _forward_exit_causal_episode(
         self,
         *,
@@ -2418,8 +2471,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
             or tuple(exit_mtf_history_lengths) != expected_tf_names
         ):
             raise RuntimeError("UNIFIED_EXIT_EPISODE_MTF_ORDER_INVALID")
-        tf_family_states: list[torch.Tensor] = []
-        tf_feature_gate_rows: list[torch.Tensor] = []
+        # The eight MTF family GRUs share weights across the five native
+        # clocks.  Build every clock-specific projection first, then scan all
+        # five clocks as one larger GRU batch per family.  Right-padding is
+        # causally after every gathered state, so it cannot affect a retained
+        # output.  This reduces forty small GRU launches to eight without
+        # changing parameters, features, state order, or the Exit objective.
+        tf_runtime: dict[str, dict[str, torch.Tensor]] = {}
+        projected_by_family: dict[str, dict[str, torch.Tensor]] = {
+            name: {} for name in self._specialist_names
+        }
         for tf_name in expected_tf_names:
             history = exit_mtf_histories[tf_name]
             gather = exit_mtf_gathers[tf_name]
@@ -2468,20 +2529,20 @@ class EntryV10CtxHybridTransformer(nn.Module):
             numeric = normalized.masked_fill(
                 mtf_cat_mask.view(1, 1, -1), 0.0
             )
-            family_states: list[torch.Tensor] = []
             current_field_index = gather.unsqueeze(-1).expand(
                 -1, -1, int(history.shape[2])
             )
             current_numeric_fields = numeric.gather(1, current_field_index)
             current_raw_fields = history.gather(1, current_field_index)
-            full_feature_gate = torch.zeros(
-                batch_size,
-                state_count,
-                int(history.shape[2]),
-                dtype=numeric.dtype,
-                device=numeric.device,
-            )
             effective_tf_scale = self._effective_tf_input_scale(tf_name)
+            tf_runtime[tf_name] = {
+                "history": history,
+                "gather": gather,
+                "numeric": numeric,
+                "current_numeric_fields": current_numeric_fields,
+                "current_raw_fields": current_raw_fields,
+                "effective_tf_scale": effective_tf_scale,
+            }
             for name in self._specialist_names:
                 indices = getattr(
                     self, f"multi_tf_specialist_idx_{name}"
@@ -2495,15 +2556,54 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     projected = projected + self.mtf_nominal_embeddings[
                         f"{tf_name}_{global_index}"
                     ](history[..., global_index].long())
-                encoded, _ = self.exit_episode_mtf_family_gru[name](
+                projected_by_family[name][tf_name] = (
                     projected
                     * effective_tf_scale.to(projected.dtype)
                 )
+
+        encoded_by_family: dict[str, dict[str, torch.Tensor]] = {}
+        for name in self._specialist_names:
+            encoded_by_family[name] = (
+                self._scan_batched_exit_mtf_family_histories(
+                    family_name=name,
+                    projected_by_timeframe=projected_by_family[name],
+                    timeframe_names=expected_tf_names,
+                    batch_size=batch_size,
+                    d_model=d_model,
+                )
+            )
+
+        tf_family_states: list[torch.Tensor] = []
+        tf_feature_gate_rows: list[torch.Tensor] = []
+        flat_local_state = local_state.reshape(
+            batch_size * state_count, d_model
+        )
+        for tf_name in expected_tf_names:
+            runtime = tf_runtime[tf_name]
+            history = runtime["history"]
+            gather = runtime["gather"]
+            numeric = runtime["numeric"]
+            current_numeric_fields = runtime["current_numeric_fields"]
+            current_raw_fields = runtime["current_raw_fields"]
+            stored_tf_scale = runtime["effective_tf_scale"]
+            full_feature_gate = torch.zeros(
+                batch_size,
+                state_count,
+                int(history.shape[2]),
+                dtype=numeric.dtype,
+                device=numeric.device,
+            )
+            family_states: list[torch.Tensor] = []
+            for name in self._specialist_names:
+                indices = getattr(
+                    self, f"multi_tf_specialist_idx_{name}"
+                ).to(numeric.device)
+                encoded = encoded_by_family[name][tf_name]
                 gather_index = gather.unsqueeze(-1).expand(-1, -1, d_model)
                 gathered_state = encoded.gather(1, gather_index)
                 feature_gate = 2.0 * torch.sigmoid(
                     self.mtf_feature_context_gate[f"{tf_name}__{name}"](
-                        local_state.reshape(batch_size * state_count, d_model)
+                        flat_local_state
                     )
                 ).reshape(batch_size, state_count, -1)
                 full_feature_gate = full_feature_gate.scatter(
@@ -2519,7 +2619,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 current_residual = self.mtf_family_proj[name](
                     current_owned_numeric
                     * feature_gate
-                    * effective_tf_scale.to(current_owned_numeric.dtype)
+                    * stored_tf_scale.to(current_owned_numeric.dtype)
                 )
                 for local_position, global_index in (
                     self._multi_tf_specialist_categorical_positions[name]

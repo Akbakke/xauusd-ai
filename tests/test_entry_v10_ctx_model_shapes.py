@@ -1235,9 +1235,9 @@ _RETIRED_STATIC_EXIT_MODULES = (
 def _restore_repeated_exit_scale_formulation(model, method_name):
     """Test-only pre-hoist arithmetic, not a checkpoint compatibility loader.
 
-    Restore both original per-family scale evaluations in the real forward
-    body. All other operations and the already identical active state stay
-    untouched; no same-seed equivalence across constructor changes is assumed.
+    Restore every current pre-hoist scale evaluation in the real forward body.
+    All other operations and the already identical active state stay untouched;
+    no same-seed equivalence across constructor changes is assumed.
     """
 
     class RestoreScaleCalls(ast.NodeTransformer):
@@ -1280,6 +1280,36 @@ def _restore_repeated_exit_scale_formulation(model, method_name):
         vars(model_module), namespace,
     )
     setattr(model, method_name, MethodType(namespace[method_name], model))
+
+
+def _restore_unbatched_exit_mtf_family_scans(model):
+    """Install the previous five-call-per-family scan for parity testing."""
+
+    def unbatched(
+        self,
+        *,
+        family_name,
+        projected_by_timeframe,
+        timeframe_names,
+        batch_size,
+        d_model,
+    ):
+        assert tuple(projected_by_timeframe) == timeframe_names
+        assert all(
+            tuple(value.shape[:1]) == (batch_size,)
+            and int(value.shape[2]) == d_model
+            for value in projected_by_timeframe.values()
+        )
+        return {
+            tf_name: self.exit_episode_mtf_family_gru[family_name](
+                projected_by_timeframe[tf_name]
+            )[0]
+            for tf_name in timeframe_names
+        }
+
+    model._scan_batched_exit_mtf_family_histories = MethodType(
+        unbatched, model
+    )
 
 
 def _exit_scale_step(model, inputs, *, state, carry=None, append_mtf=True):
@@ -1367,6 +1397,88 @@ def test_exit_effective_tf_scale_is_evaluated_once_per_forward(monkeypatch, rout
                 getattr(model, f"tf_input_scale_{name}").add_(0.1)
 
 
+def test_exit_mtf_family_batching_preserves_outputs_gradients_and_state():
+    torch.manual_seed(20260909)
+    model = _make_model(dropout=0.0).eval()
+    reference = deepcopy(model)
+    _restore_unbatched_exit_mtf_family_scans(reference)
+    assert canonical_model_state_sha256(model.state_dict()) == canonical_model_state_sha256(reference.state_dict())
+
+    inputs = _make_exit_episode_inputs(state_count=3, batch_size=2)
+    # Exercise cross-clock right padding while every retained gather remains
+    # before the added suffix. The suffix is deliberately different per clock.
+    for position, timeframe in enumerate(EXIT_MTF_CONTEXT_TIMEFRAMES):
+        name = timeframe.lower()
+        history = inputs["exit_mtf_histories"][name]
+        if position:
+            suffix = torch.randn(2, position, TF_DIM)
+            history = torch.cat((history, suffix), dim=1)
+            inputs["exit_mtf_histories"][name] = history
+            inputs["exit_mtf_history_lengths"][name] = torch.full(
+                (2,), int(history.shape[1]), dtype=torch.long
+            )
+    reference_inputs = deepcopy(inputs)
+    for collection in (inputs, reference_inputs):
+        collection["entry_decision_representation"].requires_grad_(True)
+        collection["exit_local_history_x"].requires_grad_(True)
+        collection["exit_state_ctx_cont"].requires_grad_(True)
+        collection["exit_path_x"].requires_grad_(True)
+        for history in collection["exit_mtf_histories"].values():
+            history.requires_grad_(True)
+
+    actual_calls = Counter()
+    reference_calls = Counter()
+    handles = []
+    for family in EXACT_SPECIALIST_NAMES:
+        handles.append(
+            model.exit_episode_mtf_family_gru[family].register_forward_hook(
+                lambda _module, _arguments, _output, family=family: actual_calls.update((family,))
+            )
+        )
+        handles.append(
+            reference.exit_episode_mtf_family_gru[family].register_forward_hook(
+                lambda _module, _arguments, _output, family=family: reference_calls.update((family,))
+            )
+        )
+    try:
+        actual = model.forward_exit_incremental_prefix(**inputs)
+        expected = reference.forward_exit_incremental_prefix(**reference_inputs)
+    finally:
+        for handle in handles:
+            handle.remove()
+
+    assert actual.keys() == expected.keys()
+    for name in actual:
+        torch.testing.assert_close(actual[name], expected[name], atol=1e-6, rtol=1e-6, msg=name)
+    assert actual_calls == Counter({family: 1 for family in EXACT_SPECIALIST_NAMES})
+    assert reference_calls == Counter({family: len(EXIT_MTF_CONTEXT_TIMEFRAMES) for family in EXACT_SPECIALIST_NAMES})
+
+    actual_loss = actual["exit_action_q_bps"].square().mean()
+    expected_loss = expected["exit_action_q_bps"].square().mean()
+    actual_loss.backward()
+    expected_loss.backward()
+    reference_parameters = dict(reference.named_parameters())
+    for name, parameter in model.named_parameters():
+        expected_gradient = reference_parameters[name].grad
+        assert (parameter.grad is None) == (expected_gradient is None), name
+        if parameter.grad is not None:
+            torch.testing.assert_close(
+                parameter.grad,
+                expected_gradient,
+                atol=1e-5,
+                rtol=1e-5,
+                msg=name,
+            )
+    for name, history in inputs["exit_mtf_histories"].items():
+        torch.testing.assert_close(
+            history.grad,
+            reference_inputs["exit_mtf_histories"][name].grad,
+            atol=1e-6,
+            rtol=1e-6,
+            msg=name,
+        )
+
+
 def test_exit_full_episode_scale_hoist_preserves_every_output_at_identical_state(monkeypatch):
     torch.manual_seed(20260907)
     model = _make_model(dropout=0.0).eval()
@@ -1387,7 +1499,7 @@ def test_exit_full_episode_scale_hoist_preserves_every_output_at_identical_state
     for name in actual:
         assert torch.equal(actual[name], expected[name]), name
     assert calls == Counter({
-        timeframe.lower(): 2 * len(EXACT_SPECIALIST_NAMES)
+        timeframe.lower(): 1 + len(EXACT_SPECIALIST_NAMES)
         for timeframe in EXIT_MTF_CONTEXT_TIMEFRAMES
     })
 
