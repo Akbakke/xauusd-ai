@@ -1,7 +1,25 @@
-# Local 200 W comparison — source preparation
+# Local 200 W continuation — successor preparation
 
-This checkout is not an authorized higher-power launch or installed service.
-The live first-epoch run retains its separate f47445a4 source and 160 W cap.
+The matched 160/200 W smoke comparison selected 200 W and the shared Exit MTF
+family scan. The selected configuration measured 71.882425555 seconds for 504
+TRAIN rows (7.0114495 rows/s), with exact FP32 loss, gradient, model and VAL
+parity. Its projected full TRAIN epoch is 12.8275 hours versus the earlier
+14.634-hour projection. This is a measured 12.3% reduction without removing any
+feature, head, objective, data row or validation work.
+
+The next operation is an exact-state continuation from the preserved epoch-1
+checkpoint at batch 19072 of 39175. The successor path changes only the session
+contract digest; all learning and progress components must retain their exact
+hashes, and a real CPU next-batch comparison must pass before CUDA execution.
+
+Power scope v2 keeps the completed short comparison and adds one narrow candidate
+continuation mode. Candidate mode requires the exact full candidate geometry,
+immutable gate and invocation-budget digests, a single-use operator token, at
+most 6000 seconds of authorization, continuous signed telemetry, 65 C core,
+80 C memory-junction, 12 GiB VRAM and target+10 W draw stops. Each invocation
+stops after at most 5400 seconds or after the first completed VAL epoch, restores
+the 160 W baseline, and is followed by a PC reboot. TEST, promotion and permanent
+power changes remain unavailable.
 
 The optional Windows keeper scope is now wired in source. Its default config
 still accepts at most 160 W. A benchmark requires both explicit scope-file and

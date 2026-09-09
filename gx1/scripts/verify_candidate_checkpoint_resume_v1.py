@@ -9,8 +9,11 @@ It never reads a dataset, makes a prediction, or opens TEST.
 The explicitly bound --prepare-guard-recovery mode instead transfers a real
 first-epoch checkpoint into a new standard session after a guard-only repair.
 The separate --prepare-source-state-successor mode admits only a new source/run
-identity and removes the exact 36 stateless, retired Exit parameters. Both
-rehash declared TRAIN/VAL inputs and preserve learning state on CPU; neither
+identity and removes the exact 36 stateless, retired Exit parameters. The
+--prepare-exact-state-successor mode is narrower in state space: it admits the
+reviewed local-throughput source delta while preserving every learning-state
+component byte-for-byte except the unavoidable session-contract hash. All
+modes rehash declared TRAIN/VAL inputs and preserve the original session; none
 starts CUDA, opens TEST or relaxes a launch gate.
 """
 from __future__ import annotations
@@ -79,6 +82,59 @@ _SOURCE_SUCCESSOR_EXPECTED_ADDED_ROLES = frozenset(
         "python:gx1/scripts/audit_entry_exit_feature_usefulness_v1.py",
         "python:gx1/scripts/entry_exit_feature_usefulness_native_v1.py",
         "python:gx1/scripts/evaluate_entry_candidate_selective_edge_v1.py",
+    }
+)
+
+
+_EXACT_STATE_SUCCESSOR_ORIGINAL_COMMIT = "f47445a44b1566f0cee2bc1dc73c815d257fe6bb"
+
+
+# The exact-state path exists only for the measured local RTX 3090 throughput
+# wave from f47445a4. Keep this file list explicit: a data, target, objective,
+# optimizer, feature-owner or model-parameter change must not ride through a
+# one-batch equivalence check as if it were a scheduling-only optimization.
+_EXACT_STATE_SUCCESSOR_ALLOWED_PATHS = frozenset(
+    {
+        "AGENTS.md",
+        "CLAUDE.md",
+        "GX1_RULES.md",
+        "docs/LOCAL_POWER_BENCHMARK_PREPARATION_20260909.md",
+        "gx1/contracts/entry_model_native_train_launch_v1.py",
+        "gx1/contracts/entry_training_precision_v1.py",
+        "gx1/contracts/gx1_capped_execution_v1.py",
+        "gx1/contracts/local_power_benchmark_v1.py",
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "gx1/models/entry_v10/training_kernel_profile.py",
+        "gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
+        "gx1/scripts/verify_candidate_checkpoint_resume_v1.py",
+        "scripts/gx1_capped_run.sh",
+        "scripts/gx1_guarded_trainer_exec.sh",
+        "scripts/windows/GX1-GpuPowerAndIdleGuard.ps1",
+        "scripts/windows/GX1-PowerBenchmarkScope.ps1",
+        "scripts/windows/Test-GX1-PowerBenchmarkKeeper.ps1",
+        "scripts/windows/Test-GX1-PowerBenchmarkMainLoop.ps1",
+        "tests/test_candidate_checkpoint_resume_equivalence.py",
+        "tests/test_entry_exit_feature_usefulness_native_v1.py",
+        "tests/test_entry_handover_control.py",
+        "tests/test_entry_model_native_pretest_technical_recipe.py",
+        "tests/test_entry_model_native_train_recipe.py",
+        "tests/test_entry_training_kernel_profile.py",
+        "tests/test_entry_training_precision_v1.py",
+        "tests/test_entry_training_uninitialized_fill.py",
+        "tests/test_entry_v10_ctx_model_shapes.py",
+        "tests/test_entry_v10_train_defaults.py",
+        "tests/test_gx1_capped_execution.py",
+        "tests/test_gx1_capped_run_contract.py",
+        "tests/test_local_power_benchmark_scope.py",
+        "tests/test_power_benchmark_guard_integration.py",
+    }
+)
+_EXACT_STATE_SUCCESSOR_REQUIRED_PATHS = frozenset(
+    {
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "gx1/contracts/local_power_benchmark_v1.py",
+        "scripts/gx1_guarded_trainer_exec.sh",
     }
 )
 
@@ -245,6 +301,138 @@ def _require_source_state_successor_recipe_transition(
             f"changed={sorted(changed_roles)} added={sorted(added_roles)}"
         )
 
+
+
+def _require_exact_state_successor_recipe_transition(
+    original: Mapping[str, Any],
+    successor: Mapping[str, Any],
+    *,
+    repo: Path,
+) -> dict[str, list[str]]:
+    """Admit one reviewed scheduling/power delta with unchanged learning recipe."""
+
+    changed_metadata = {
+        "created_utc",
+        "out_bundle_dir",
+        "run_id",
+        "source_commit",
+        "source_bindings",
+        "source_bindings_sha256",
+    }
+    if (
+        set(original) != set(successor)
+        or {
+            key: value
+            for key, value in original.items()
+            if key not in changed_metadata
+        }
+        != {
+            key: value
+            for key, value in successor.items()
+            if key not in changed_metadata
+        }
+        or original.get("profile") != "candidate"
+        or original.get("run_id") == successor.get("run_id")
+        or original.get("out_bundle_dir") == successor.get("out_bundle_dir")
+    ):
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_LEARNING_RECIPE_CHANGED]")
+    original_commit = str(original.get("source_commit") or "")
+    successor_commit = str(successor.get("source_commit") or "")
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", original_commit) is None
+        or re.fullmatch(r"[0-9a-f]{40}", successor_commit) is None
+        or original_commit != _EXACT_STATE_SUCCESSOR_ORIGINAL_COMMIT
+        or original_commit == successor_commit
+    ):
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_SOURCE_COMMIT_INVALID]")
+    subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", original_commit, successor_commit],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+    changed_paths = set(
+        subprocess.check_output(
+            ["git", "-C", str(repo), "diff", "--name-only", original_commit, successor_commit],
+            text=True,
+        ).splitlines()
+    )
+    forbidden = changed_paths - _EXACT_STATE_SUCCESSOR_ALLOWED_PATHS
+    missing = _EXACT_STATE_SUCCESSOR_REQUIRED_PATHS - changed_paths
+    if forbidden or missing:
+        raise RuntimeError(
+            "[EXACT_STATE_SUCCESSOR_SOURCE_DELTA_INVALID] "
+            f"forbidden={sorted(forbidden)} missing={sorted(missing)}"
+        )
+    old_bindings = original.get("source_bindings")
+    new_bindings = successor.get("source_bindings")
+    if (
+        not isinstance(old_bindings, Mapping)
+        or not isinstance(new_bindings, Mapping)
+        or not set(old_bindings) <= set(new_bindings)
+    ):
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_SOURCE_CLOSURE_INVALID]")
+    changed_roles: list[str] = []
+    for role, old in old_bindings.items():
+        new = new_bindings[role]
+        if not isinstance(old, Mapping) or not isinstance(new, Mapping):
+            raise RuntimeError("[EXACT_STATE_SUCCESSOR_SOURCE_BINDING_INVALID]")
+        if old.get("path") != new.get("path"):
+            raise RuntimeError("[EXACT_STATE_SUCCESSOR_SOURCE_PATH_CHANGED]")
+        if (old.get("sha256"), old.get("size_bytes")) != (
+            new.get("sha256"),
+            new.get("size_bytes"),
+        ):
+            changed_roles.append(str(role))
+    added_roles = sorted(set(new_bindings) - set(old_bindings))
+    if not changed_roles:
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_SOURCE_BINDINGS_UNCHANGED]")
+    return {
+        "changed_paths": sorted(changed_paths),
+        "changed_roles": sorted(changed_roles),
+        "added_roles": added_roles,
+    }
+
+
+def _migrate_exact_state_successor_checkpoint(
+    state: Mapping[str, Any],
+    *,
+    successor_contract_sha256: str,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Copy every state component exactly and replace only its contract identity."""
+
+    if (
+        not isinstance(successor_contract_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", successor_contract_sha256) is None
+    ):
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_CONTRACT_SHA256_INVALID]")
+    if not isinstance(state, Mapping) or "session_contract_sha256" not in state:
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_CHECKPOINT_SCHEMA_INVALID]")
+    before = {
+        key: _state_component_sha256(value)
+        for key, value in state.items()
+        if key != "session_contract_sha256"
+    }
+    migrated = copy.deepcopy(dict(state))
+    migrated["session_contract_sha256"] = successor_contract_sha256
+    after = {
+        key: _state_component_sha256(value)
+        for key, value in migrated.items()
+        if key != "session_contract_sha256"
+    }
+    if before != after:
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_LEARNING_STATE_CHANGED]")
+    _require_finite_recovery_tensors(
+        {
+            key: migrated[key]
+            for key in (
+                "model_state",
+                "target_model_state",
+                "optimizer_state",
+                "weight_ema_state",
+            )
+        }
+    )
+    return migrated, before
 
 def _migrate_source_state_successor_checkpoint(
     state: Mapping[str, Any],
@@ -686,8 +874,12 @@ def prepare_guard_recovery(args: argparse.Namespace) -> dict[str, Any]:
     return report
 
 
-def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
-    """CPU-only migration to the reviewed source/state successor contract."""
+def prepare_source_state_successor(
+    args: argparse.Namespace,
+    *,
+    exact_state: bool = False,
+) -> dict[str, Any]:
+    """CPU-only migration to a reviewed source/state successor contract."""
 
     from gx1.contracts.entry_model_native_bundle_commit_v1 import (
         publish_bundle_directory_noreplace,
@@ -725,7 +917,15 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
         json.loads(args.successor_recipe_json.read_text()),
         expected_profile="candidate",
     )
-    _require_source_state_successor_recipe_transition(original, successor)
+    transition_delta = (
+        _require_exact_state_successor_recipe_transition(
+            original, successor, repo=repo
+        )
+        if exact_state
+        else None
+    )
+    if not exact_state:
+        _require_source_state_successor_recipe_transition(original, successor)
     provenance = require_training_recipe_source_provenance(
         recipe_audit_path=args.successor_recipe_json,
         recipe_audit_sha256=args.successor_recipe_sha256,
@@ -853,7 +1053,11 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("[SOURCE_STATE_SUCCESSOR_CONTRACT_CHANGED]")
 
     staging_name = (
-        ".source-state-successor-stage-"
+        (
+            ".exact-state-successor-stage-"
+            if exact_state
+            else ".source-state-successor-stage-"
+        )
         + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     )
     staging_output = successor_output.with_name(staging_name)
@@ -866,10 +1070,17 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
         out_bundle_dir=staging_output,
         contract=successor_contract,
     )
-    migrated = _migrate_source_state_successor_checkpoint(
-        state,
-        successor_contract_sha256=staged_session.contract_sha256,
-    )
+    if exact_state:
+        migrated, preserved_components = _migrate_exact_state_successor_checkpoint(
+            state,
+            successor_contract_sha256=staged_session.contract_sha256,
+        )
+    else:
+        migrated = _migrate_source_state_successor_checkpoint(
+            state,
+            successor_contract_sha256=staged_session.contract_sha256,
+        )
+        preserved_components = None
     migrated_state_sha256 = _state_component_sha256(migrated)
     staged_session.save_checkpoint(migrated)
     restored = staged_session.load_checkpoint()
@@ -909,9 +1120,23 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
     added_roles = sorted(
         set(successor["source_bindings"]) - set(original["source_bindings"])
     )
+    if exact_state and transition_delta != {
+        "changed_paths": transition_delta["changed_paths"],
+        "changed_roles": changed_roles,
+        "added_roles": added_roles,
+    }:
+        raise RuntimeError("[EXACT_STATE_SUCCESSOR_DELTA_RECORD_MISMATCH]")
     report = {
-        "schema_version": "gx1_candidate_source_state_successor_v1",
-        "decision": "PASS_STRUCTURAL_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY",
+        "schema_version": (
+            "gx1_candidate_exact_state_successor_v1"
+            if exact_state
+            else "gx1_candidate_source_state_successor_v1"
+        ),
+        "decision": (
+            "PASS_EXACT_LEARNING_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
+            if exact_state
+            else "PASS_STRUCTURAL_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
+        ),
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "test_accessed": False,
         "activation_authority": False,
@@ -928,22 +1153,32 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
         "producer": bound(Path(__file__).resolve()),
         "changed_source_binding_roles": changed_roles,
         "added_source_binding_roles": added_roles,
-        "retired_model_state_keys": sorted(
-            _SOURCE_SUCCESSOR_RETIRED_STATE_KEYS
+        "changed_source_paths": (
+            transition_delta["changed_paths"] if exact_state else None
         ),
-        "retired_optimizer_parameter_ids": sorted(
-            _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS
+        "retired_model_state_keys": (
+            [] if exact_state else sorted(_SOURCE_SUCCESSOR_RETIRED_STATE_KEYS)
         ),
-        "optimizer_parameter_id_mapping": {
-            str(parameter_id): new_id
-            for new_id, parameter_id in enumerate(
-                parameter_id
-                for group in _SOURCE_SUCCESSOR_OLD_GROUP_IDS
-                for parameter_id in group
-                if parameter_id not in _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS
-            )
-        },
-        "exit_side_embedding_mapping": {"old_id": 603, "new_id": 579},
+        "unchanged_state_component_sha256": preserved_components,
+        "retired_optimizer_parameter_ids": (
+            [] if exact_state else sorted(_SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS)
+        ),
+        "optimizer_parameter_id_mapping": (
+            {}
+            if exact_state
+            else {
+                str(parameter_id): new_id
+                for new_id, parameter_id in enumerate(
+                    parameter_id
+                    for group in _SOURCE_SUCCESSOR_OLD_GROUP_IDS
+                    for parameter_id in group
+                    if parameter_id not in _SOURCE_SUCCESSOR_RETIRED_PARAMETER_IDS
+                )
+            }
+        ),
+        "exit_side_embedding_mapping": (
+            None if exact_state else {"old_id": 603, "new_id": 579}
+        ),
         "original_state_component_sha256": original_state_sha256,
         "migrated_state_component_sha256": migrated_state_sha256,
         "successor_session_dir": str(successor_dir),
@@ -952,13 +1187,23 @@ def prepare_source_state_successor(args: argparse.Namespace) -> dict[str, Any]:
         "original_session_preserved": True,
         "cuda_started": False,
     }
+    event_prefix = (
+        "CANDIDATE_EXACT_STATE_SUCCESSOR"
+        if exact_state
+        else "CANDIDATE_SOURCE_STATE_SUCCESSOR"
+    )
     report_path, report = write_immutable_json_event(
         args.out_dir,
-        "CANDIDATE_SOURCE_STATE_SUCCESSOR",
+        event_prefix,
         report,
     )
+    origin_name = (
+        "CANDIDATE_EXACT_STATE_SUCCESSOR_ORIGIN.json"
+        if exact_state
+        else "CANDIDATE_SOURCE_STATE_SUCCESSOR_ORIGIN.json"
+    )
     trainer._candidate_training_session_atomic_write_json(
-        staged_session.directory / "CANDIDATE_SOURCE_STATE_SUCCESSOR_ORIGIN.json",
+        staged_session.directory / origin_name,
         bound(report_path),
     )
     publish_bundle_directory_noreplace(staged_session.directory, successor_dir)
@@ -1806,6 +2051,8 @@ def _run_actual_next_batch_process(
 
 def verify_source_state_successor_next_batch(
     args: argparse.Namespace,
+    *,
+    exact_state: bool = False,
 ) -> dict[str, Any]:
     from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
         require_pretest_technical_recipe_metadata,
@@ -1833,7 +2080,15 @@ def verify_source_state_successor_next_batch(
         json.loads(args.successor_recipe_json.read_text(encoding="utf-8")),
         expected_profile="candidate",
     )
-    _require_source_state_successor_recipe_transition(original, successor)
+    transition_delta = (
+        _require_exact_state_successor_recipe_transition(
+            original, successor, repo=repo
+        )
+        if exact_state
+        else None
+    )
+    if not exact_state:
+        _require_source_state_successor_recipe_transition(original, successor)
     require_training_recipe_source_provenance(
         recipe_audit_path=args.successor_recipe_json,
         recipe_audit_sha256=args.successor_recipe_sha256,
@@ -1853,11 +2108,19 @@ def verify_source_state_successor_next_batch(
     successor_recipe_identity = {
         key: successor_binding[key] for key in ("path", "sha256")
     }
+    expected_migration_schema = (
+        "gx1_candidate_exact_state_successor_v1"
+        if exact_state
+        else "gx1_candidate_source_state_successor_v1"
+    )
+    expected_migration_decision = (
+        "PASS_EXACT_LEARNING_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
+        if exact_state
+        else "PASS_STRUCTURAL_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
+    )
     if (
-        migration.get("schema_version")
-        != "gx1_candidate_source_state_successor_v1"
-        or migration.get("decision")
-        != "PASS_STRUCTURAL_STATE_SUCCESSOR_NOT_CUDA_AUTHORITY"
+        migration.get("schema_version") != expected_migration_schema
+        or migration.get("decision") != expected_migration_decision
         or migration.get("original_recipe") != original_recipe_identity
         or migration.get("successor_recipe") != successor_recipe_identity
         or migration.get("successor_session_dir")
@@ -1873,6 +2136,16 @@ def verify_source_state_successor_next_batch(
         or migration.get("test_accessed") is not False
     ):
         raise RuntimeError("[SOURCE_STATE_NEXT_BATCH_MIGRATION_REPORT_INVALID]")
+    if exact_state and (
+        migration.get("changed_source_paths") != transition_delta["changed_paths"]
+        or migration.get("changed_source_binding_roles")
+        != transition_delta["changed_roles"]
+        or migration.get("added_source_binding_roles")
+        != transition_delta["added_roles"]
+        or migration.get("retired_model_state_keys") != []
+        or not isinstance(migration.get("unchanged_state_component_sha256"), Mapping)
+    ):
+        raise RuntimeError("[EXACT_STATE_NEXT_BATCH_MIGRATION_DELTA_INVALID]")
     original_commit = str(original["source_commit"])
     current_commit = subprocess.check_output(
         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
@@ -1946,7 +2219,11 @@ def verify_source_state_successor_next_batch(
         )
 
     report = {
-        "schema_version": _ACTUAL_NEXT_BATCH_REPORT_SCHEMA,
+        "schema_version": (
+            "gx1_candidate_exact_state_next_batch_equivalence_v1"
+            if exact_state
+            else _ACTUAL_NEXT_BATCH_REPORT_SCHEMA
+        ),
         "decision": "PASS_ACTUAL_CPU_NEXT_BATCH_EQUIVALENCE",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "activation_authority": False,
@@ -1980,7 +2257,12 @@ def verify_source_state_successor_next_batch(
                 for timeframe in ("d1", "h1", "h4", "m15", "m5")
             ],
         },
-        "retired_static_exit_state_absent_from_successor": True,
+        "retired_static_exit_state_absent_from_successor": (
+            None if exact_state else True
+        ),
+        "all_learning_state_components_preserved": (
+            True if exact_state else None
+        ),
         "original_session_preserved": True,
         "successor_session_preserved": True,
         "producer": _bound_regular_file(Path(__file__).resolve()),
@@ -2236,8 +2518,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--resume-child", action="store_true")
     parser.add_argument("--prepare-guard-recovery", action="store_true")
     parser.add_argument("--prepare-source-state-successor", action="store_true")
+    parser.add_argument("--prepare-exact-state-successor", action="store_true")
     parser.add_argument(
         "--verify-source-state-successor-next-batch", action="store_true"
+    )
+    parser.add_argument(
+        "--verify-exact-state-successor-next-batch", action="store_true"
     )
     parser.add_argument("--actual-next-batch-child", action="store_true")
     parser.add_argument("--out-bundle", type=Path)
@@ -2294,7 +2580,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             or args.resume_child
             or args.prepare_guard_recovery
             or args.prepare_source_state_successor
+            or args.prepare_exact_state_successor
             or args.verify_source_state_successor_next_batch
+            or args.verify_exact_state_successor_next_batch
             or args.out_bundle is not None
             or args.out_dir is not None
         ):
@@ -2309,14 +2597,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-    if args.verify_source_state_successor_next_batch:
+    if (
+        args.verify_source_state_successor_next_batch
+        or args.verify_exact_state_successor_next_batch
+    ):
         if (
-            not all(value is not None for value in actual_parent_arguments)
+            args.verify_source_state_successor_next_batch
+            == args.verify_exact_state_successor_next_batch
+            or not all(value is not None for value in actual_parent_arguments)
             or any(value is not None for value in guard_recovery_arguments)
             or any(value is not None for value in actual_child_arguments)
             or args.resume_child
             or args.prepare_guard_recovery
             or args.prepare_source_state_successor
+            or args.prepare_exact_state_successor
             or args.out_bundle is not None
             or args.out_dir is not None
         ):
@@ -2325,7 +2619,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "recipe, pointer, migration-report and output bindings"
             )
         try:
-            report = verify_source_state_successor_next_batch(args)
+            report = verify_source_state_successor_next_batch(
+                args,
+                exact_state=args.verify_exact_state_successor_next_batch,
+            )
         except (
             OSError,
             RuntimeError,
@@ -2343,8 +2640,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.prepare_guard_recovery:
         if (
             args.verify_source_state_successor_next_batch
+            or args.verify_exact_state_successor_next_batch
             or args.actual_next_batch_child
             or args.prepare_source_state_successor
+            or args.prepare_exact_state_successor
             or not all(value is not None for value in transition_arguments)
             or args.out_dir is None
             or not all(value is not None for value in guard_recovery_arguments)
@@ -2352,6 +2651,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             or args.successor_pointer_sha256 is not None
             or args.source_state_successor_report is not None
             or args.source_state_successor_report_sha256 is not None
+            or args.verify_source_state_successor_next_batch
+            or args.verify_exact_state_successor_next_batch
             or args.resume_child
             or args.out_bundle is not None
             or args.out_json is not None
@@ -2364,9 +2665,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         print(json.dumps(report, sort_keys=True))
         return 0
-    if args.prepare_source_state_successor:
+    if args.prepare_source_state_successor or args.prepare_exact_state_successor:
         if (
-            not all(value is not None for value in transition_arguments)
+            args.prepare_source_state_successor == args.prepare_exact_state_successor
+            or not all(value is not None for value in transition_arguments)
             or args.out_dir is None
             or any(value is not None for value in guard_recovery_arguments)
             or any(value is not None for value in actual_child_arguments)
@@ -2382,7 +2684,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "and no guard/probe arguments"
             )
         try:
-            report = prepare_source_state_successor(args)
+            report = prepare_source_state_successor(
+                args,
+                exact_state=args.prepare_exact_state_successor,
+            )
         except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
             print(
                 f"FATAL: source-state successor failed; no CUDA authority: {exc}",
@@ -2405,7 +2710,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     ):
         parser.error(
             "transition arguments require --prepare-guard-recovery or "
-            "--prepare-source-state-successor or actual next-batch verification"
+            "--prepare-source-state-successor/--prepare-exact-state-successor "
+            "or actual next-batch verification"
         )
     if args.resume_child:
         if args.out_bundle is None:

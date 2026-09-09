@@ -1,11 +1,13 @@
-> **Power benchmark preparation — 2026-09-09:** This isolated checkout is
-> preparing the operator-requested, temporary 160 W versus 200 W comparison.
-> No higher-power execution or installed Windows service change is authorized
-> by these source edits. The running first epoch stays on its separate frozen
-> 160 W source. A higher-power comparison requires tested source-bound Linux
-> and Windows enforcement plus an explicit operator action. Baseline restoration,
-> signed telemetry, TRAIN/VAL-only scope and all other existing guards remain
-> required. Do not launch this preparation checkout as a training candidate.
+> **Exact local one-epoch successor — 2026-09-09:** The operator authorized
+> continuing the existing five-year candidate locally on the RTX 3090 with the
+> measured state-equivalent MTF batching optimization and the selected 200 W
+> treatment. Before CUDA execution, clean committed successor source, a fresh
+> exact recipe/gate, exact checkpoint-component migration and actual CPU
+> next-batch equivalence must pass. Every GPU invocation requires a fresh
+> single-use candidate budget and power scope, signed telemetry and the canonical
+> capped runner/watchdog. Restore 160 W and reboot the PC between invocations.
+> Stop after epoch 1 plus full VAL. TEST, production promotion, cloud spending,
+> feature/model-quality reductions and blind multi-epoch continuation stay closed.
 
 > **Local efficiency scope — 2026-09-08:** This isolated checkout implements
 > the operator-requested RTX 3090 TRAIN/VAL efficiency work at 160 W, including

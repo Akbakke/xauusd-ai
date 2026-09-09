@@ -35,15 +35,15 @@ function New-TestScope {
     $script:now=[datetime]::Parse('2026-09-09T00:01:00Z').ToUniversalTime();$script:mono=[double]1000
     if ($OperatorId -eq '') { $OperatorId=[guid]::NewGuid().ToString() }
     $scope=[pscustomobject]@{
-        schema_version='gx1_operator_power_benchmark_scope_draft_v1';gpu_uuid=$config.expected_gpu_uuid
+        schema_version='gx1_operator_power_scope_v2';gpu_uuid=$config.expected_gpu_uuid
         baseline_power_limit_w=160;target_power_limit_w=200;draw_stop_w=210;core_stop_c=65
-        memory_junction_stop_c=80;vram_stop_mib=12288;profile='smoke'
+        memory_junction_stop_c=80;vram_stop_mib=12288;scope_kind='smoke_comparison';profile='smoke'
         precision_policy='experimental_fp32_3090_no_uninitialized_fill';subsample_rows=512;batch_size=8
         grad_accum_steps=1;epochs=1;max_optimizer_steps=64;baseline_restore_required=$true
         authority=[pscustomobject]@{short_power_comparison=$true;candidate_continuation=$false;test_access=$false;promotion=$false;permanent_power_change=$false}
         scope_id=[guid]::NewGuid().ToString();operator_action_id=$OperatorId
         created_utc='2026-09-09T00:00:00Z';expires_utc='2026-09-09T00:30:00Z'
-        source_commit=('a'*40);recipe_sha256=('b'*64);baseline_reference_report_sha256=('c'*64);run_id='SYNTHETIC_KEEPER'
+        source_commit=('a'*40);recipe_sha256=('b'*64);baseline_reference_report_sha256=('c'*64);run_id='SYNTHETIC_KEEPER';candidate_gate_sha256=$null;candidate_execution_budget_sha256=$null
     }
     $directory=Join-Path (Join-Path $testRoot 'Benchmarks') $scope.scope_id
     $null=New-Item -ItemType Directory -Path $directory
@@ -120,6 +120,24 @@ $first=New-TestScope;$ctx=New-TestContext $first;$second=New-TestScope -Operator
 $secondCtx=New-TestContext $second
 Assert-Condition ($secondCtx.Phase -eq 'closing' -and -not $secondCtx.FreshOperatorTokenConsumed) 'Operator token reused across scopes'
 $checks+='operator_action_cannot_authorize_two_scope_ids'
+$inputScope=New-TestScope
+$inputScope.Scope.scope_kind='candidate_continuation'
+$inputScope.Scope.profile='candidate';$inputScope.Scope.subsample_rows=[int]0
+$inputScope.Scope.epochs=[int]30;$inputScope.Scope.max_optimizer_steps=[int]0
+$inputScope.Scope.authority.short_power_comparison=$false
+$inputScope.Scope.authority.candidate_continuation=$true
+$inputScope.Scope.candidate_gate_sha256=('d'*64)
+$inputScope.Scope.candidate_execution_budget_sha256=('e'*64)
+$inputScope.Scope.expires_utc='2026-09-09T01:40:00Z'
+[IO.File]::Delete($inputScope.Path)
+Write-Gx1BenchmarkJsonDurable -Path $inputScope.Path -Value $inputScope.Scope -Exclusive
+$inputScope.Hash=(Get-FileHash -LiteralPath $inputScope.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+$ctx=New-TestContext $inputScope
+Sync-Gx1BenchmarkKeeperContext -Context $ctx -BaselineConfig $config
+Assert-Condition ($ctx.Phase -eq 'active' -and $script:sets[-1] -eq 200) 'Candidate continuation scope did not arm'
+Close-Gx1BenchmarkKeeperContext -Context $ctx -BaselineConfig $config -Reason completed
+Assert-Condition ($ctx.Phase -eq 'closed' -and $script:sets[-1] -eq 160) 'Candidate continuation scope did not restore'
+$checks+='candidate_continuation_has_bounded_single_use_lifecycle'
 $inputScope=New-TestScope;$config.sample_seconds=[int]6;$failed=$false
 try { $null=New-TestContext $inputScope } catch { $failed=$true }
 $config.sample_seconds=[int]5

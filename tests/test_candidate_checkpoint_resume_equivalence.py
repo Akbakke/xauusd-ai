@@ -13,7 +13,9 @@ from gx1.scripts import verify_candidate_checkpoint_resume_v1 as recovery
 
 from gx1.scripts.verify_candidate_checkpoint_resume_v1 import (
     _guard_recovery_timing,
+    _migrate_exact_state_successor_checkpoint,
     _migrate_source_state_successor_checkpoint,
+    _require_exact_state_successor_recipe_transition,
     _require_guard_only_recipe_transition,
     _require_finite_recovery_tensors,
     _require_source_state_successor_recipe_transition,
@@ -160,6 +162,59 @@ def _source_state_successor_checkpoint() -> dict:
         "training_progress": {"best": None},
         "complete": False,
     }
+
+
+def test_exact_state_successor_changes_only_contract_identity() -> None:
+    original = _source_state_successor_checkpoint()
+    before = {
+        key: _state_component_sha256(value)
+        for key, value in original.items()
+        if key != "session_contract_sha256"
+    }
+
+    migrated, preserved = _migrate_exact_state_successor_checkpoint(
+        original,
+        successor_contract_sha256="b" * 64,
+    )
+
+    assert original["session_contract_sha256"] == "a" * 64
+    assert migrated["session_contract_sha256"] == "b" * 64
+    assert preserved == before
+    assert {
+        key: _state_component_sha256(value)
+        for key, value in migrated.items()
+        if key != "session_contract_sha256"
+    } == before
+
+
+def test_exact_state_successor_rejects_nonfinite_state() -> None:
+    original = _source_state_successor_checkpoint()
+    original["model_state"]["active_before.weight"][0] = float("nan")
+    with pytest.raises(RuntimeError, match="NONFINITE_LEARNING_STATE"):
+        _migrate_exact_state_successor_checkpoint(
+            original,
+            successor_contract_sha256="b" * 64,
+        )
+
+
+def test_exact_state_successor_rejects_learning_recipe_change() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    original, successor = _transition()
+    original["source_commit"] = "f47445a44b1566f0cee2bc1dc73c815d257fe6bb"
+    successor["source_commit"] = recovery.subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, text=True
+    ).strip()
+    successor["run_id"] = "successor-run"
+    successor["source_bindings"] = copy.deepcopy(original["source_bindings"])
+    successor["source_bindings"]["trainer"]["sha256"] = "changed"
+    _require_exact_state_successor_recipe_transition(
+        original, successor, repo=repo
+    )
+    successor["trainer_cli"]["batch_size"] = 16
+    with pytest.raises(RuntimeError, match="LEARNING_RECIPE_CHANGED"):
+        _require_exact_state_successor_recipe_transition(
+            original, successor, repo=repo
+        )
 
 
 def test_source_state_successor_preserves_active_state_and_remaps_ids() -> None:

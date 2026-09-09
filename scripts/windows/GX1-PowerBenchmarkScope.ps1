@@ -10,38 +10,54 @@ function ConvertFrom-Gx1PowerBenchmarkScope {
         [Parameter(Mandatory = $true)][string]$ExpectedRecipeSha256,
         [Parameter(Mandatory = $true)][string]$ExpectedBaselineReportSha256
     )
-    if ($NowUtc.Kind -ne [DateTimeKind]::Utc) { throw 'Verified current UTC time required' }
+    if ($NowUtc.Kind -ne [DateTimeKind]::Utc) {
+        throw 'Verified current UTC time required'
+    }
+    if ($Value.scope_kind -cnotin @('smoke_comparison', 'candidate_continuation')) {
+        throw 'Unknown power scope kind'
+    }
+    $candidate = $Value.scope_kind -ceq 'candidate_continuation'
     $fixed = [ordered]@{
-        schema_version = 'gx1_operator_power_benchmark_scope_draft_v1'
+        schema_version = 'gx1_operator_power_scope_v2'
         gpu_uuid = 'GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
         baseline_power_limit_w = 160; target_power_limit_w = 200
         draw_stop_w = 210; core_stop_c = 65; memory_junction_stop_c = 80
-        vram_stop_mib = 12288; profile = 'smoke'
+        vram_stop_mib = 12288; scope_kind = [string]$Value.scope_kind
+        profile = $(if ($candidate) { 'candidate' } else { 'smoke' })
         precision_policy = 'experimental_fp32_3090_no_uninitialized_fill'
-        subsample_rows = 512; batch_size = 8; grad_accum_steps = 1
-        epochs = 1; max_optimizer_steps = 64; baseline_restore_required = $true
+        subsample_rows = $(if ($candidate) { 0 } else { 512 })
+        batch_size = 8; grad_accum_steps = 1
+        epochs = $(if ($candidate) { 30 } else { 1 })
+        max_optimizer_steps = $(if ($candidate) { 0 } else { 64 })
+        baseline_restore_required = $true
     }
-    $variable = @('authority', 'scope_id', 'operator_action_id', 'created_utc', 'expires_utc',
-        'source_commit', 'recipe_sha256', 'baseline_reference_report_sha256', 'run_id')
+    $variable = @(
+        'authority', 'scope_id', 'operator_action_id', 'created_utc', 'expires_utc',
+        'source_commit', 'recipe_sha256', 'baseline_reference_report_sha256', 'run_id',
+        'candidate_gate_sha256', 'candidate_execution_budget_sha256'
+    )
     $expectedKeys = @($fixed.Keys) + $variable
     $actualKeys = @($Value.PSObject.Properties.Name)
     if ($actualKeys.Count -ne $expectedKeys.Count -or
         @($actualKeys | Where-Object { $expectedKeys -cnotcontains $_ }).Count -ne 0) {
-        throw 'Power scope fields differ from the first-point contract'
+        throw 'Power scope fields differ from the declared contract'
     }
-    if ($Value.target_power_limit_w -isnot [int] -or $Value.target_power_limit_w -notin @(160,200)) {
+    if ($Value.target_power_limit_w -isnot [int] -or
+        $Value.target_power_limit_w -notin @(160, 200)) {
         throw 'Only matched 160 W reference or 200 W treatment is allowed'
     }
     $fixed['target_power_limit_w'] = $Value.target_power_limit_w
     $fixed['draw_stop_w'] = $Value.target_power_limit_w + 10
     foreach ($key in $fixed.Keys) {
         $expected = $fixed[$key]; $actual = $Value.$key
-        if ($null -eq $actual -or $actual.GetType() -ne $expected.GetType() -or $actual -cne $expected) {
+        if ($null -eq $actual -or $actual.GetType() -ne $expected.GetType() -or
+            $actual -cne $expected) {
             throw "Power scope fixed value differs: $key"
         }
     }
     $authority = [ordered]@{
-        short_power_comparison = $true; candidate_continuation = $false
+        short_power_comparison = (-not $candidate)
+        candidate_continuation = $candidate
         test_access = $false; promotion = $false; permanent_power_change = $false
     }
     $actualAuthorityKeys = @($Value.authority.PSObject.Properties.Name)
@@ -50,7 +66,8 @@ function ConvertFrom-Gx1PowerBenchmarkScope {
         throw 'Power authority fields differ'
     }
     foreach ($key in $authority.Keys) {
-        if ($Value.authority.$key -isnot [bool] -or $Value.authority.$key -ne $authority[$key]) {
+        if ($Value.authority.$key -isnot [bool] -or
+            $Value.authority.$key -ne $authority[$key]) {
             throw "Power authority value differs: $key"
         }
     }
@@ -60,18 +77,37 @@ function ConvertFrom-Gx1PowerBenchmarkScope {
             throw 'Explicit canonical scope/operator action identity required'
         }
     }
-    if ($Value.scope_id -ceq $Value.operator_action_id) { throw 'Scope is not operator action identity' }
+    if ($Value.scope_id -ceq $Value.operator_action_id) {
+        throw 'Scope is not operator action identity'
+    }
     foreach ($binding in @(
         @('source_commit', 40, $ExpectedSourceCommit),
         @('recipe_sha256', 64, $ExpectedRecipeSha256),
         @('baseline_reference_report_sha256', 64, $ExpectedBaselineReportSha256)
     )) {
-        $key = [string]$binding[0]; $length = [int]$binding[1]; $expected = [string]$binding[2]
-        if ($Value.$key -isnot [string] -or $Value.$key -cnotmatch "\A[0-9a-f]{$length}\z" -or
-            $Value.$key -cne $expected) { throw "Power benchmark binding mismatch: $key" }
+        $key = [string]$binding[0]; $length = [int]$binding[1]
+        $expected = [string]$binding[2]
+        if ($Value.$key -isnot [string] -or
+            $Value.$key -cnotmatch "\A[0-9a-f]{$length}\z" -or
+            $Value.$key -cne $expected) {
+            throw "Power scope binding mismatch: $key"
+        }
     }
-    if ($Value.run_id -isnot [string] -or $Value.run_id -cnotmatch '\A[A-Z0-9_]{1,128}\z') {
-        throw 'Exact benchmark run identity required'
+    if ($candidate) {
+        foreach ($key in @('candidate_gate_sha256', 'candidate_execution_budget_sha256')) {
+            if ($Value.$key -isnot [string] -or
+                $Value.$key -cnotmatch '\A[0-9a-f]{64}\z') {
+                throw "Candidate power binding invalid: $key"
+            }
+        }
+    }
+    elseif ($null -ne $Value.candidate_gate_sha256 -or
+            $null -ne $Value.candidate_execution_budget_sha256) {
+        throw 'Smoke scope cannot bind candidate authority'
+    }
+    if ($Value.run_id -isnot [string] -or
+        $Value.run_id -cnotmatch '\A[A-Z0-9_]{1,128}\z') {
+        throw 'Exact power run identity required'
     }
     $timestamps = @{}
     foreach ($key in @('created_utc', 'expires_utc')) {
@@ -79,14 +115,19 @@ function ConvertFrom-Gx1PowerBenchmarkScope {
             $Value.$key -cnotmatch '\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z') {
             throw 'Canonical UTC timestamp required'
         }
-        $timestamps[$key] = [datetime]::ParseExact($Value.$key, "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        $timestamps[$key] = [datetime]::ParseExact(
+            $Value.$key, "yyyy-MM-dd'T'HH:mm:ss'Z'",
             [Globalization.CultureInfo]::InvariantCulture,
-            [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal)
+            [Globalization.DateTimeStyles]::AssumeUniversal -bor
+                [Globalization.DateTimeStyles]::AdjustToUniversal
+        )
     }
     $duration = ($timestamps.expires_utc - $timestamps.created_utc).TotalSeconds
-    if ($duration -le 0 -or $duration -gt 1800 -or
-        $timestamps.created_utc -gt $NowUtc.AddSeconds(2) -or $NowUtc -ge $timestamps.expires_utc) {
-        throw 'Power scope is future-dated, expired or exceeds the 30-minute bound'
+    $maximum = $(if ($candidate) { 6000 } else { 1800 })
+    if ($duration -le 0 -or $duration -gt $maximum -or
+        $timestamps.created_utc -gt $NowUtc.AddSeconds(2) -or
+        $NowUtc -ge $timestamps.expires_utc) {
+        throw 'Power scope is future-dated, expired or exceeds its operation bound'
     }
     return [pscustomobject]@{
         scope = ($Value | ConvertTo-Json -Depth 8 -Compress | ConvertFrom-Json)

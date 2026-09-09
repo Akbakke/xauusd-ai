@@ -1,50 +1,178 @@
-"""Source-bound admission and live receipt checks for the matched 160/200 W smoke comparison.
+"""Source-bound admission and receipts for temporary 160/200 W operation.
 
-Standard-library only: usable before heavy imports. The canonical launcher and
-capped guard remain execution owners; parsing never changes physical power.
+The scope admits either the matched smoke comparison or one bounded candidate
+continuation. It is standard-library only and never changes physical power; the
+canonical launcher, Linux guard and Windows keeper remain execution owners.
 """
 from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime,timedelta,timezone
 import re
 
-GPU_UUID='GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
-FIXED={
- 'schema_version':'gx1_operator_power_benchmark_scope_draft_v1',
- 'gpu_uuid':GPU_UUID,'baseline_power_limit_w':160,'target_power_limit_w':200,
- 'draw_stop_w':210,'core_stop_c':65,'memory_junction_stop_c':80,'vram_stop_mib':12288,
- 'profile':'smoke','precision_policy':'experimental_fp32_3090_no_uninitialized_fill',
- 'subsample_rows':512,'batch_size':8,'grad_accum_steps':1,'epochs':1,'max_optimizer_steps':64,
- 'baseline_restore_required':True,
- 'authority':{'short_power_comparison':True,'candidate_continuation':False,'test_access':False,'promotion':False,'permanent_power_change':False},
+GPU_UUID = "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29"
+_BASE_FIXED = {
+    "schema_version": "gx1_operator_power_scope_v2",
+    "gpu_uuid": GPU_UUID,
+    "baseline_power_limit_w": 160,
+    "core_stop_c": 65,
+    "memory_junction_stop_c": 80,
+    "vram_stop_mib": 12288,
+    "precision_policy": "experimental_fp32_3090_no_uninitialized_fill",
+    "batch_size": 8,
+    "grad_accum_steps": 1,
+    "baseline_restore_required": True,
 }
-VARIABLE={'scope_id','operator_action_id','created_utc','expires_utc','source_commit','recipe_sha256','baseline_reference_report_sha256','run_id'}
-UUID_RE=re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z')
+_SCOPE_KINDS = {
+    "smoke_comparison": {
+        "profile": "smoke",
+        "subsample_rows": 512,
+        "epochs": 1,
+        "max_optimizer_steps": 64,
+        "max_scope_seconds": 1800,
+        "authority": {
+            "short_power_comparison": True,
+            "candidate_continuation": False,
+            "test_access": False,
+            "promotion": False,
+            "permanent_power_change": False,
+        },
+    },
+    "candidate_continuation": {
+        "profile": "candidate",
+        "subsample_rows": 0,
+        "epochs": 30,
+        "max_optimizer_steps": 0,
+        "max_scope_seconds": 6000,
+        "authority": {
+            "short_power_comparison": False,
+            "candidate_continuation": True,
+            "test_access": False,
+            "promotion": False,
+            "permanent_power_change": False,
+        },
+    },
+}
+_VARIABLE = {
+    "scope_id", "operator_action_id", "created_utc", "expires_utc",
+    "source_commit", "recipe_sha256", "baseline_reference_report_sha256",
+    "run_id", "candidate_gate_sha256", "candidate_execution_budget_sha256",
+}
+UUID_RE = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z"
+)
+
+# Retained for callers that construct a smoke fixture from the declared policy.
+FIXED = {
+    **_BASE_FIXED,
+    "scope_kind": "smoke_comparison",
+    "target_power_limit_w": 200,
+    "draw_stop_w": 210,
+    **{key: value for key, value in _SCOPE_KINDS["smoke_comparison"].items()
+       if key != "max_scope_seconds"},
+}
+
 
 def _utc(value):
- if not isinstance(value,str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z',value):raise ValueError('Canonical UTC timestamp required')
- return datetime.strptime(value,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+    if not isinstance(value, str) or not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value
+    ):
+        raise ValueError("Canonical UTC timestamp required")
+    return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=timezone.utc
+    )
 
-def validate_scope(value, *, now_utc, expected_source_commit, expected_recipe_sha256, expected_baseline_report_sha256):
- if not isinstance(value,dict) or set(value)!=set(FIXED)|VARIABLE:raise ValueError('Power scope fields differ from the first-point contract')
- target=value['target_power_limit_w']
- if type(target) is not int or target not in (160,200):raise ValueError('Only matched 160 W reference or 200 W treatment is allowed')
- fixed={**FIXED,'target_power_limit_w':target,'draw_stop_w':target+10}
- for key,expected in fixed.items():
-  if type(value[key]) is not type(expected) or value[key]!=expected:raise ValueError('Power scope fixed value differs: '+key)
- if any(type(v) is not bool for v in value['authority'].values()):raise ValueError('Power authority fields must be explicit booleans')
- for key in ('scope_id','operator_action_id'):
-  if not isinstance(value[key],str) or not UUID_RE.fullmatch(value[key]):raise ValueError('Explicit scope/operator action identity required')
- if value['scope_id']==value['operator_action_id']:raise ValueError('Scope identity is not the operator action receipt')
- for key,length,expected in (('source_commit',40,expected_source_commit),('recipe_sha256',64,expected_recipe_sha256),('baseline_reference_report_sha256',64,expected_baseline_report_sha256)):
-  v=value[key]
-  if not isinstance(v,str) or len(v)!=length or any(c not in '0123456789abcdef' for c in v) or v!=expected:raise ValueError('Power benchmark binding mismatch: '+key)
- if not isinstance(value['run_id'],str) or not re.fullmatch(r'[A-Z0-9_]{1,128}',value['run_id']):raise ValueError('Exact benchmark run identity required')
- if not isinstance(now_utc,datetime) or now_utc.tzinfo is None or now_utc.utcoffset()!=timedelta(0):raise ValueError('Verified current UTC time required')
- created,expires=_utc(value['created_utc']),_utc(value['expires_utc'])
- if not timedelta(0)<expires-created<=timedelta(minutes=30):raise ValueError('Power authorization must be bounded to at most 30 minutes')
- if created>now_utc+timedelta(seconds=2) or now_utc>=expires:raise ValueError('Power scope is future-dated or expired')
- return {'scope':deepcopy(value),'validation_only':True,'operator_action_verified':False,'source_and_recipe_content_verified':False,'physical_power_changed':False,'linux_guard_integrated':False,'windows_keeper_integrated':False,'required_runtime_closure':'Close authorization durably before restoring and independently verifying 160 W; expiry, failure and recovery cannot reuse high-power scope.'}
+
+def _hex(value, length, label):
+    if (
+        not isinstance(value, str)
+        or len(value) != length
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        raise ValueError(label + " must be lowercase hexadecimal")
+    return value
+
+
+def _scope_fixed(kind, target):
+    if kind not in _SCOPE_KINDS:
+        raise ValueError("Unknown power scope kind")
+    geometry = _SCOPE_KINDS[kind]
+    return {
+        **_BASE_FIXED,
+        "scope_kind": kind,
+        "target_power_limit_w": target,
+        "draw_stop_w": target + 10,
+        **{key: value for key, value in geometry.items()
+           if key != "max_scope_seconds"},
+    }
+
+
+def validate_scope(
+    value, *, now_utc, expected_source_commit, expected_recipe_sha256,
+    expected_baseline_report_sha256,
+):
+    if not isinstance(value, dict):
+        raise ValueError("Power scope must be an object")
+    kind = value.get("scope_kind")
+    target = value.get("target_power_limit_w")
+    if type(target) is not int or target not in (160, 200):
+        raise ValueError("Only matched 160 W reference or 200 W treatment is allowed")
+    fixed = _scope_fixed(kind, target)
+    if set(value) != set(fixed) | _VARIABLE:
+        raise ValueError("Power scope fields differ from the declared contract")
+    for key, expected in fixed.items():
+        if type(value[key]) is not type(expected) or value[key] != expected:
+            raise ValueError("Power scope fixed value differs: " + key)
+    if any(type(item) is not bool for item in value["authority"].values()):
+        raise ValueError("Power authority fields must be explicit booleans")
+    for key in ("scope_id", "operator_action_id"):
+        if not isinstance(value[key], str) or not UUID_RE.fullmatch(value[key]):
+            raise ValueError("Explicit scope/operator action identity required")
+    if value["scope_id"] == value["operator_action_id"]:
+        raise ValueError("Scope identity is not the operator action receipt")
+    for key, length, expected in (
+        ("source_commit", 40, expected_source_commit),
+        ("recipe_sha256", 64, expected_recipe_sha256),
+        ("baseline_reference_report_sha256", 64,
+         expected_baseline_report_sha256),
+    ):
+        if _hex(value[key], length, key) != expected:
+            raise ValueError("Power scope binding mismatch: " + key)
+    if not isinstance(value["run_id"], str) or not re.fullmatch(
+        r"[A-Z0-9_]{1,128}", value["run_id"]
+    ):
+        raise ValueError("Exact power run identity required")
+    if kind == "candidate_continuation":
+        _hex(value["candidate_gate_sha256"], 64, "candidate gate digest")
+        _hex(value["candidate_execution_budget_sha256"], 64,
+             "candidate execution budget digest")
+    elif (value["candidate_gate_sha256"] is not None
+          or value["candidate_execution_budget_sha256"] is not None):
+        raise ValueError("Smoke scope cannot bind candidate authority")
+    if (
+        not isinstance(now_utc, datetime)
+        or now_utc.tzinfo is None
+        or now_utc.utcoffset() != timedelta(0)
+    ):
+        raise ValueError("Verified current UTC time required")
+    created, expires = _utc(value["created_utc"]), _utc(value["expires_utc"])
+    maximum = timedelta(seconds=_SCOPE_KINDS[kind]["max_scope_seconds"])
+    if not timedelta(0) < expires - created <= maximum:
+        raise ValueError("Power authorization exceeds its operation bound")
+    if created > now_utc + timedelta(seconds=2) or now_utc >= expires:
+        raise ValueError("Power scope is future-dated or expired")
+    return {
+        "scope": deepcopy(value),
+        "validation_only": True,
+        "operator_action_verified": False,
+        "source_and_recipe_content_verified": False,
+        "physical_power_changed": False,
+        "linux_guard_integrated": False,
+        "windows_keeper_integrated": False,
+        "required_runtime_closure": (
+            "Close authorization durably before restoring and independently "
+            "verifying 160 W; expiry, failure and recovery cannot reuse scope."
+        ),
+    }
 
 
 def require_exact_observed_treatment(scope, *, observed_gpu_uuid, observed_power_limit_w):
@@ -103,42 +231,104 @@ def _require_scope_path(scope_path, scope, *, scope_root=WINDOWS_SCOPE_ROOT):
 
 
 def require_benchmark_recipe_geometry(scope, recipe):
-    """Additional bounded experiment check; the canonical recipe owner still validates all fields."""
-    if (recipe.get('profile')!='smoke' or recipe.get('run_id')!=scope['run_id']
-        or recipe.get('source_commit')!=scope['source_commit']):
-        raise ValueError('Power scope differs from the exact smoke recipe')
-    cli=recipe['trainer_cli']
-    for key,value in {'execution_tier':'canonical','device':'cuda',
-        'precision_policy':FIXED['precision_policy'],'subsample_rows':512,
-        'batch_size':8,'grad_accum_steps':1,'epochs':1,'num_workers':0,'train_time_window':None}.items():
-        if type(cli.get(key)) is not type(value) or cli.get(key)!=value:
-            raise ValueError('Power benchmark recipe geometry differs: '+key)
+    """Match the power scope to the complete immutable training geometry."""
+    kind = scope["scope_kind"]
+    geometry = _SCOPE_KINDS[kind]
+    if (
+        recipe.get("profile") != geometry["profile"]
+        or recipe.get("run_id") != scope["run_id"]
+        or recipe.get("source_commit") != scope["source_commit"]
+    ):
+        raise ValueError("Power scope differs from the exact recipe")
+    cli = recipe["trainer_cli"]
+    expected = {
+        "execution_tier": "canonical",
+        "device": "cuda",
+        "precision_policy": _BASE_FIXED["precision_policy"],
+        "subsample_rows": geometry["subsample_rows"],
+        "batch_size": 8,
+        "grad_accum_steps": 1,
+        "epochs": geometry["epochs"],
+        "num_workers": 0,
+        "train_time_window": None,
+    }
+    for key, value in expected.items():
+        if type(cli.get(key)) is not type(value) or cli.get(key) != value:
+            raise ValueError("Power scope recipe geometry differs: " + key)
 
 
-def require_benchmark_command(command, *, recipe_path, recipe_sha256, recipe, repo):
-    args=list(command);repo=Path(repo)
-    if args[:3]!=[str(repo/'.venv/bin/python'),'-m','gx1.models.entry_v10.entry_v10_ctx_train_v3']:
-        raise ValueError('Power benchmark requires the exact canonical trainer module')
+def require_benchmark_command(
+    command, *, scope, recipe_path, recipe_sha256, recipe, repo
+):
+    args = list(command)
+    repo = Path(repo)
+    if args[:3] != [
+        str(repo / ".venv/bin/python"), "-m",
+        "gx1.models.entry_v10.entry_v10_ctx_train_v3",
+    ]:
+        raise ValueError("Power scope requires the exact canonical trainer module")
+
     def one(flag):
-        if args.count(flag)!=1:raise ValueError('Power benchmark requires exactly one '+flag)
-        i=args.index(flag)
-        if i+1>=len(args) or args[i+1].startswith('--'):raise ValueError('Missing benchmark command value: '+flag)
-        return args[i+1]
-    expected={'--profile':'smoke','--execution-tier':'canonical','--device':'cuda',
-        '--precision-policy':FIXED['precision_policy'],'--batch_size':'8','--epochs':'1',
-        '--grad-accum-steps':'1','--subsample-rows':'512','--run-id':recipe['run_id'],
-        '--recipe-audit-json':str(recipe_path),'--recipe-audit-sha256':recipe_sha256,
-        '--out_bundle_dir':recipe['out_bundle_dir']}
+        if args.count(flag) != 1:
+            raise ValueError("Power scope requires exactly one " + flag)
+        index = args.index(flag)
+        if index + 1 >= len(args) or args[index + 1].startswith("--"):
+            raise ValueError("Missing power-scoped command value: " + flag)
+        return args[index + 1]
+
+    geometry = _SCOPE_KINDS[scope["scope_kind"]]
+    expected = {
+        "--profile": geometry["profile"],
+        "--execution-tier": "canonical",
+        "--device": "cuda",
+        "--precision-policy": _BASE_FIXED["precision_policy"],
+        "--batch_size": "8",
+        "--epochs": str(geometry["epochs"]),
+        "--grad-accum-steps": "1",
+        "--subsample-rows": str(geometry["subsample_rows"]),
+        "--run-id": recipe["run_id"],
+        "--recipe-audit-json": str(recipe_path),
+        "--recipe-audit-sha256": recipe_sha256,
+        "--out_bundle_dir": recipe["out_bundle_dir"],
+    }
+    if scope["scope_kind"] == "candidate_continuation":
+        expected.update({
+            "--candidate-gate-sha256": scope["candidate_gate_sha256"],
+            "--candidate-execution-budget-sha256": (
+                scope["candidate_execution_budget_sha256"]
+            ),
+        })
     for argument in args[3:]:
-        if not argument.startswith('--'):
+        if not argument.startswith("--"):
             continue
-        stem = argument.split('=', 1)[0]
-        if '=' in argument or any(flag.startswith(stem) and flag != stem for flag in expected):
-            raise ValueError('Benchmark command requires unabbreviated separate flag values')
-    for flag,value in expected.items():
-        if one(flag)!=value:raise ValueError('Power scope differs from actual trainer command: '+flag)
-    if args.count('--train')!=1 or any(x.startswith('--candidate-') for x in args):
-        raise ValueError('Power scope cannot authorize candidate continuation')
+        stem = argument.split("=", 1)[0]
+        if "=" in argument or any(
+            flag.startswith(stem) and flag != stem for flag in expected
+        ):
+            raise ValueError(
+                "Power command requires unabbreviated separate flag values"
+            )
+    for flag, value in expected.items():
+        if one(flag) != value:
+            raise ValueError("Power scope differs from trainer command: " + flag)
+    if args.count("--train") != 1:
+        raise ValueError("Power scope requires one TRAIN action")
+    candidate_flags = (
+        "--candidate-gate-json", "--candidate-gate-sha256",
+        "--candidate-execution-budget-json",
+        "--candidate-execution-budget-sha256",
+    )
+    if scope["scope_kind"] == "candidate_continuation":
+        if any(args.count(flag) != 1 for flag in candidate_flags):
+            raise ValueError("Candidate power scope requires exact gate and budget")
+        for path_flag, digest_flag in (
+            ("--candidate-gate-json", "--candidate-gate-sha256"),
+            ("--candidate-execution-budget-json",
+             "--candidate-execution-budget-sha256"),
+        ):
+            _read_json(Path(one(path_flag)), one(digest_flag))
+    elif any(flag in args for flag in candidate_flags):
+        raise ValueError("Smoke power scope cannot authorize candidate continuation")
 
 
 def _native_utc(raw):
@@ -355,7 +545,7 @@ def benchmark_cli(argv=None):
             recipe_path, recipe_digest = _command_recipe(command)
             scope, recipe, receipt = read_active_benchmark(path, digest,
                 recipe_path=recipe_path, recipe_sha256=recipe_digest, now_utc=now)
-            require_benchmark_command(command, recipe_path=recipe_path,
+            require_benchmark_command(command, scope=scope, recipe_path=recipe_path,
                 recipe_sha256=recipe_digest, recipe=recipe, repo=repo)
             require_clean_benchmark_source(repo, scope)
             require_installed_benchmark_sources(recipe)
@@ -366,7 +556,8 @@ def benchmark_cli(argv=None):
                     now_utc=datetime.now(timezone.utc), expected_keeper_pid=receipt['keeper_pid'])
                 # Calculate the deadline from a fresh clock after source checks.
                 remaining = (_utc(scope['expires_utc']) - datetime.now(timezone.utc)).total_seconds()
-                if not 0 < remaining <= 1800:
+                maximum = _SCOPE_KINDS[scope["scope_kind"]]["max_scope_seconds"]
+                if not 0 < remaining <= maximum:
                     raise ValueError('Scope expired while claiming')
                 claim = {'schema_version': 'gx1_power_benchmark_linux_claim_draft_v1',
                     'scope_sha256': digest, 'repo': str(repo), **identity,

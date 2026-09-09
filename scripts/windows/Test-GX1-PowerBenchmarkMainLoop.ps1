@@ -89,12 +89,12 @@ foreach ($case in @('default_once','default_loop','close','expiry','sample_failu
   $script:scopeDirectory=Join-Path (Join-Path $root 'Benchmarks') $scopeId
   $null=New-Item -ItemType Directory -Path $script:scopeDirectory -Force
   $target=200;if ($case -eq 'matched_160') {$target=160}
-  $scope=[pscustomobject]@{schema_version='gx1_operator_power_benchmark_scope_draft_v1';gpu_uuid=$testConfig.expected_gpu_uuid;
-   baseline_power_limit_w=160;target_power_limit_w=$target;draw_stop_w=($target+10);core_stop_c=65;memory_junction_stop_c=80;vram_stop_mib=12288;
+  $scope=[pscustomobject]@{schema_version='gx1_operator_power_scope_v2';gpu_uuid=$testConfig.expected_gpu_uuid;
+   baseline_power_limit_w=160;target_power_limit_w=$target;draw_stop_w=($target+10);core_stop_c=65;memory_junction_stop_c=80;vram_stop_mib=12288;scope_kind='smoke_comparison';
    profile='smoke';precision_policy='experimental_fp32_3090_no_uninitialized_fill';subsample_rows=512;batch_size=8;grad_accum_steps=1;epochs=1;max_optimizer_steps=64;
    baseline_restore_required=$true;authority=[pscustomobject]@{short_power_comparison=$true;candidate_continuation=$false;test_access=$false;promotion=$false;permanent_power_change=$false};
    scope_id=$scopeId;operator_action_id=$operatorId;created_utc=$script:clock.AddSeconds(-1).ToString('yyyy-MM-ddTHH:mm:ssZ');
-   expires_utc=$script:clock.AddSeconds(1790).ToString('yyyy-MM-ddTHH:mm:ssZ');source_commit=('a'*40);recipe_sha256=('b'*64);baseline_reference_report_sha256=('c'*64);run_id='SYNTHETIC_MAIN_LOOP'}
+   expires_utc=$script:clock.AddSeconds(1790).ToString('yyyy-MM-ddTHH:mm:ssZ');source_commit=('a'*40);recipe_sha256=('b'*64);baseline_reference_report_sha256=('c'*64);run_id='SYNTHETIC_MAIN_LOOP';candidate_gate_sha256=$null;candidate_execution_budget_sha256=$null}
   $BenchmarkScopePath=Join-Path $script:scopeDirectory 'scope.json'
   [System.IO.File]::WriteAllText($BenchmarkScopePath,($scope | ConvertTo-Json -Depth 6),[System.Text.UTF8Encoding]::new($false))
   $BenchmarkScopeSha256=(Get-FileHash $BenchmarkScopePath -Algorithm SHA256).Hash.ToLowerInvariant()

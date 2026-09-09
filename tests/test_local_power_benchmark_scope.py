@@ -26,21 +26,34 @@ class PowerScopeLifecycleTests(unittest.TestCase):
         path.write_bytes(raw)
         return sha256(raw).hexdigest()
 
-    def fixture(self, target=200):
-        recipe = {'profile': 'smoke', 'run_id': 'SYNTHETIC_POWER_TEST',
+    def fixture(self, target=200, kind="smoke_comparison"):
+        candidate = kind == "candidate_continuation"
+        geometry = owner._SCOPE_KINDS[kind]
+        recipe = {'profile': geometry['profile'], 'run_id': 'SYNTHETIC_POWER_TEST',
             'source_commit': 'a' * 40, 'out_bundle_dir': str(self.root / 'bundle'),
             'trainer_cli': {'execution_tier': 'canonical', 'device': 'cuda',
-                'precision_policy': owner.FIXED['precision_policy'], 'subsample_rows': 512,
-                'batch_size': 8, 'grad_accum_steps': 1, 'epochs': 1,
+                'precision_policy': owner.FIXED['precision_policy'],
+                'subsample_rows': geometry['subsample_rows'],
+                'batch_size': 8, 'grad_accum_steps': 1,
+                'epochs': geometry['epochs'],
                 'num_workers': 0, 'train_time_window': None}}
         recipe_path = self.root / 'recipe.json'
         recipe_hash = self.write(recipe_path, recipe)
-        scope = {**deepcopy(owner.FIXED), 'target_power_limit_w': target, 'draw_stop_w': target + 10,
+        candidate_gate_hash = None
+        candidate_budget_hash = None
+        if candidate:
+            candidate_gate_hash = self.write(self.root / 'gate.json', {'kind': 'gate'})
+            candidate_budget_hash = self.write(self.root / 'budget.json', {'kind': 'budget'})
+        scope = {**deepcopy(owner._scope_fixed(kind, target)),
             'scope_id': '12345678-1111-2222-3333-123456789abc',
             'operator_action_id': '87654321-1111-2222-3333-123456789abc',
-            'created_utc': '2026-09-09T00:00:00Z', 'expires_utc': '2026-09-09T00:30:00Z',
+            'created_utc': '2026-09-09T00:00:00Z',
+            'expires_utc': ('2026-09-09T01:40:00Z' if candidate
+                            else '2026-09-09T00:30:00Z'),
             'source_commit': recipe['source_commit'], 'recipe_sha256': recipe_hash,
-            'baseline_reference_report_sha256': 'c' * 64, 'run_id': recipe['run_id']}
+            'baseline_reference_report_sha256': 'c' * 64, 'run_id': recipe['run_id'],
+            'candidate_gate_sha256': candidate_gate_hash,
+            'candidate_execution_budget_sha256': candidate_budget_hash}
         directory = self.root / scope['scope_id']; directory.mkdir()
         scope_path = directory / 'scope.json'; scope_hash = self.write(scope_path, scope)
         receipt = {'schema_version': owner.RECEIPT_SCHEMA, 'scope_id': scope['scope_id'],
@@ -69,6 +82,38 @@ class PowerScopeLifecycleTests(unittest.TestCase):
         f[5]['requested_power_limit_w'] = 200
         self.write(f[0].parent / 'receipt.json', f[5])
         with self.assertRaises(ValueError): self.read(f)
+
+
+    def test_candidate_continuation_binds_gate_budget_and_longer_scope(self):
+        f = self.fixture(kind="candidate_continuation")
+        self.assertEqual(self.read(f)[0]["authority"]["candidate_continuation"], True)
+        command = [str(self.repo / ".venv/bin/python"), "-m",
+                   "gx1.models.entry_v10.entry_v10_ctx_train_v3", "--train"]
+        values = {
+            "--profile": "candidate", "--execution-tier": "canonical",
+            "--device": "cuda", "--precision-policy": owner.FIXED["precision_policy"],
+            "--batch_size": "8", "--epochs": "30", "--grad-accum-steps": "1",
+            "--subsample-rows": "0", "--run-id": f[4]["run_id"],
+            "--recipe-audit-json": str(f[2]), "--recipe-audit-sha256": f[3],
+            "--out_bundle_dir": f[4]["out_bundle_dir"],
+            "--candidate-gate-json": str(self.root / "gate.json"),
+            "--candidate-gate-sha256": self.read(f)[0]["candidate_gate_sha256"],
+            "--candidate-execution-budget-json": str(self.root / "budget.json"),
+            "--candidate-execution-budget-sha256": self.read(f)[0]["candidate_execution_budget_sha256"],
+        }
+        for key, value in values.items():
+            command.extend((key, value))
+        owner.require_benchmark_command(
+            command, scope=self.read(f)[0], recipe_path=f[2], recipe_sha256=f[3],
+            recipe=f[4], repo=self.repo,
+        )
+        changed = list(command)
+        changed[changed.index("--candidate-execution-budget-sha256") + 1] = "f" * 64
+        with self.assertRaises(ValueError):
+            owner.require_benchmark_command(
+                changed, scope=self.read(f)[0], recipe_path=f[2],
+                recipe_sha256=f[3], recipe=f[4], repo=self.repo,
+            )
 
     def test_stale_or_restarted_keeper_rejected(self):
         f = self.fixture()
@@ -113,9 +158,10 @@ class PowerScopeLifecycleTests(unittest.TestCase):
             def now(cls, tz=None): return cls.fromisoformat(fixed_now.isoformat())
         command = [str(self.repo / '.venv/bin/python'), '-m',
                    'gx1.models.entry_v10.entry_v10_ctx_train_v3', '--train']
-        values = {'--profile':'smoke', '--execution-tier':'canonical', '--device':'cuda',
+        values = {'--profile':f[4]['profile'], '--execution-tier':'canonical', '--device':'cuda',
             '--precision-policy':owner.FIXED['precision_policy'], '--batch_size':'8',
-            '--epochs':'1', '--grad-accum-steps':'1', '--subsample-rows':'512',
+            '--epochs':str(f[4]['trainer_cli']['epochs']), '--grad-accum-steps':'1',
+            '--subsample-rows':str(f[4]['trainer_cli']['subsample_rows']),
             '--run-id':f[4]['run_id'], '--recipe-audit-json':str(f[2]),
             '--recipe-audit-sha256':f[3], '--out_bundle_dir':f[4]['out_bundle_dir']}
         for k, v in values.items(): command.extend((k, v))

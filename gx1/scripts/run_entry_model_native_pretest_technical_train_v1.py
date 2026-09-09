@@ -286,12 +286,12 @@ def build_pretest_technical_launch(
         raise PretestTechnicalLaunchError("power benchmark scope path/digest must be paired")
     if power_benchmark_scope_path is not None:
         try:
-            require_prepared_benchmark_scope(
+            scope, _ = require_prepared_benchmark_scope(
                 power_benchmark_scope_path, power_benchmark_scope_sha256,
                 recipe_path=recipe_path, recipe_sha256=recipe_sha256,
                 now_utc=datetime.now(timezone.utc),
             )
-            require_benchmark_command(trainer_command, recipe_path=recipe_path,
+            require_benchmark_command(trainer_command, scope=scope, recipe_path=recipe_path,
                 recipe_sha256=recipe_sha256, recipe=validated, repo=REPO)
         except (OSError, ValueError, KeyError) as exc:
             raise PretestTechnicalLaunchError(f"power benchmark scope rejected: {exc}") from exc
