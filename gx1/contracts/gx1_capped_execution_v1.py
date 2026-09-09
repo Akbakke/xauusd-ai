@@ -302,6 +302,7 @@ def _require_capped_cgroup_limits(
     read_text: Callable[[Path], str] | None,
     max_memory_bytes: int,
     error_prefix: str,
+    max_pids: int = _MAX_PIDS,
 ) -> dict[str, Any]:
     """Match finite runner declarations to the current cgroup's hard limits."""
 
@@ -314,7 +315,7 @@ def _require_capped_cgroup_limits(
     if (
         expected["memory"] > max_memory_bytes
         or expected["swap"] > _MAX_SWAP_BYTES
-        or expected["pids"] > _MAX_PIDS
+        or expected["pids"] > max_pids
     ):
         raise RuntimeError(f"[{error_prefix}_ENV_LIMIT_EXCEEDED]")
 
@@ -364,7 +365,7 @@ def _require_capped_cgroup_limits(
         actual["memory_max"] > max_memory_bytes
         or actual["memory_high"] > max_memory_bytes
         or actual["swap"] > _MAX_SWAP_BYTES
-        or actual["pids"] > _MAX_PIDS
+        or actual["pids"] > max_pids
     ):
         raise RuntimeError(f"[{error_prefix}_CGROUP_ACTUAL_LIMIT_EXCEEDED]")
     if (
@@ -375,6 +376,32 @@ def _require_capped_cgroup_limits(
     ):
         raise RuntimeError(f"[{error_prefix}_CGROUP_ENV_ACTUAL_MISMATCH]")
     return {"cgroup_path": str(cgroup_dir), **actual}
+
+
+def require_guarded_cuda_trainer_execution() -> dict[str, Any]:
+    """Verify the existing canonical trainer's 20G/512M/128-task scope."""
+    required = {
+        "GX1_CAPPED_CLASS": "trainer", "GX1_CUDA_PRODUCER_GUARD": "false",
+        "GX1_TRAINER_DEVICE": "cuda", "GX1_TRAINER_EXECUTION_MODE": "canonical",
+        "GX1_CAPPED_MEMORY_BYTES": str(20 * 1024**3),
+        "GX1_CAPPED_SWAP_BYTES": str(512 * 1024**2),
+        "GX1_CAPPED_TASKS_MAX": "128",
+    }
+    for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "BLIS_NUM_THREADS"):
+        required[name] = "8"
+    for name in ("ARROW_NUM_THREADS", "POLARS_MAX_THREADS"):
+        required[name] = "1"
+    for name, expected in required.items():
+        if os.environ.get(name) != expected:
+            raise RuntimeError(f"[GX1_CUDA_TRAINER_ENV_INVALID] field={name}")
+    if os.sched_getaffinity(0) != set(range(8)):
+        raise RuntimeError("[GX1_CUDA_TRAINER_AFFINITY_INVALID]")
+    proof = _require_capped_cgroup_limits(
+        environ=os.environ, read_text=None, max_memory_bytes=_MAX_MEMORY_BYTES,
+        max_pids=128, error_prefix="GX1_CUDA_TRAINER",
+    )
+    return {**proof, "lock": require_capped_lock_ancestry()}
 
 
 def require_guarded_cuda_producer_execution(

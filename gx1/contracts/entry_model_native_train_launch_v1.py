@@ -785,6 +785,8 @@ def recipe_source_binding_paths(*, repo: Path, wrapper_path: Path) -> dict[str, 
     """Return exact shell roots and the complete static local Python closure."""
 
     shell_roots = {
+        "windows_power_keeper": (repo / "scripts/windows/GX1-GpuPowerAndIdleGuard.ps1").resolve(strict=True),
+        "windows_power_benchmark_scope": (repo / "scripts/windows/GX1-PowerBenchmarkScope.ps1").resolve(strict=True),
         "control_surface": (repo / CONTROL_SURFACE_RELATIVE_PATH).resolve(strict=True),
         "wrapper": wrapper_path.resolve(strict=True),
         "trainer_safety_guard": (

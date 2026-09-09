@@ -15,6 +15,25 @@ trap '' PIPE
 
 guard_log_path="${GX1_TRAINER_GUARD_LOG_PATH:-}"
 trainer_stdio_log_path="${GX1_TRAINER_STDIO_LOG_PATH:-}"
+benchmark_claimed=false
+benchmark_scope="${GX1_POWER_BENCHMARK_SCOPE_JSON:-}"
+benchmark_sha="${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}"
+benchmark_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+benchmark_owner="$benchmark_repo/gx1/contracts/local_power_benchmark_v1.py"
+benchmark_python="$benchmark_repo/.venv/bin/python"
+
+benchmark_action() {
+  "$benchmark_python" -I -B "$benchmark_owner" "$1" \
+    --scope-json "$benchmark_scope" --scope-sha256 "$benchmark_sha" "${@:2}"
+}
+
+close_benchmark() {
+  [[ "$benchmark_claimed" == true ]] || return 0
+  benchmark_action close || {
+    guard_log "event=benchmark_close_failed restoration_confirmation_required=true" || true
+    return 1
+  }
+}
 
 guard_log() {
   [[ -n "$guard_log_path" ]] || return 0
@@ -241,6 +260,9 @@ assert_safe_telemetry() {
   guard_log "event=telemetry phase=$phase core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
   float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
     && die "configured GPU power limit ${power_limit}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
+  if [[ "$benchmark_claimed" == true ]] && float_gt "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" "$power_limit"; then
+    die "configured GPU power limit differs from the exact benchmark treatment during $phase"
+  fi
   float_gt "$core_temp" "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
     && die "GPU core temperature ${core_temp}C exceeds ${GX1_TRAINER_GPU_MAX_CORE_TEMP_C}C during $phase"
   if [[ "$memory_observed" == true ]]; then
@@ -364,9 +386,14 @@ terminate_child_group() {
   fi
 }
 
-trap 'terminate_child_group guard_exit; cleanup_stage_notification' EXIT
+trap 'terminate_child_group guard_exit; cleanup_stage_notification; close_benchmark' EXIT
 trap 'terminate_child_group signal; cleanup_stage_notification; exit 130' INT TERM HUP
 
+if [[ -n "$benchmark_scope" || -n "$benchmark_sha" ]]; then
+  [[ -n "$benchmark_scope" && -n "$benchmark_sha" ]] || die "incomplete power benchmark scope"
+  benchmark_action claim -- "$@" >/dev/null || die "power benchmark claim rejected"
+  benchmark_claimed=true
+fi
 if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
   assert_safe_telemetry preflight
 fi
@@ -420,6 +447,11 @@ while child_process_exists; do
   /bin/sleep "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS"
   read_guard_uptime
   now_uptime=$guard_uptime_seconds
+  if [[ "$benchmark_claimed" == true ]] && ! benchmark_action heartbeat; then
+    terminate_child_group power_benchmark_authorization_lost
+    child_pid=
+    die "power benchmark keeper receipt or scope expired"
+  fi
   stage_elapsed=$((now_uptime - stage_start_uptime))
   if [[ "$stage_name" == model_smoke ]]; then
     stage_limit=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS
@@ -462,6 +494,9 @@ while child_process_exists; do
       "$core_temp" "$memory_temp" "$power_draw" "$memory_used" "$memory_observed"
     breach=
     float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" && breach=power_limit
+    if [[ "$benchmark_claimed" == true ]] && float_gt "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" "$power_limit"; then
+      breach=benchmark_treatment_changed
+    fi
     float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" && breach=power_draw
     (( memory_used > GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB )) && breach=gpu_memory_used
     float_gt "$core_temp" "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" && breach=core_temperature
@@ -507,10 +542,13 @@ child_pid=
 if [[ "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" == true \
   && "$stage_name" == data_preflight ]]; then
   cleanup_stage_notification
-  trap - EXIT
   die "attended data preflight exited without its required model-stage marker"
 fi
 cleanup_stage_notification
-trap - EXIT
 guard_log "event=exit child_status=$child_status stage=$stage_name $(telemetry_summary_fields)"
+if ! close_benchmark; then
+  die "power benchmark closure request failed"
+fi
+benchmark_claimed=false
+trap - EXIT
 exit "$child_status"

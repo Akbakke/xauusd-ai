@@ -1211,7 +1211,10 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "NUMERICAL_THREAD_COUNT=8" in source
     assert "TRAINER_HOST_TELEMETRY_URL='http://172.30.224.1:38128/gx1/v1/telemetry/'" in source
     assert "TRAINER_HOST_TELEMETRY_CERT_SHA256='25c9260c2168db53cf58c5f963f2008d5163d80aa69699c5726e0680ed74eb6e'" in source
-    attended_block = source.split('if [[ "$ATTENDED_SMOKE" == true ]]; then', 1)[1]
+    # Earlier occurrences belong to target validation. The final occurrence is
+    # the actual attended-policy block; optional canonical power-scope limits
+    # are deliberately parsed before it.
+    attended_block = source.rsplit('if [[ "$ATTENDED_SMOKE" == true ]]; then', 1)[1]
     assert "TRAINER_GPU_MAX_POWER_DRAW_W=390" not in attended_block
     assert "TRAINER_GPU_MAX_POWER_DRAW_W=170" not in attended_block
     assert (

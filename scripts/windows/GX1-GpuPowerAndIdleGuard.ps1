@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [switch]$Once,
-    [switch]$PolicySelfTest
+    [switch]$PolicySelfTest,
+    [string]$BenchmarkScopePath = '',
+    [string]$BenchmarkScopeSha256 = ''
 )
 
 Set-StrictMode -Version Latest
@@ -362,6 +364,15 @@ function Invoke-Gx1PolicySelfTest {
     } | ConvertTo-Json -Compress
 }
 
+$benchmarkRequested = ($BenchmarkScopePath -ne '' -or $BenchmarkScopeSha256 -ne '')
+if ($benchmarkRequested -and ($Once -or $PolicySelfTest -or $BenchmarkScopePath -eq '' -or $BenchmarkScopeSha256 -eq '')) {
+    throw 'A benchmark requires both explicit operator scope arguments and continuous keeper mode'
+}
+$benchmarkContext = $null
+if ($benchmarkRequested) {
+    . (Join-Path $PSScriptRoot 'GX1-PowerBenchmarkScope.ps1')
+}
+
 if ($PolicySelfTest) {
     Invoke-Gx1PolicySelfTest
     return
@@ -422,18 +433,36 @@ foreach ($attempt in 1..([int]$config.initial_retry_count)) {
     }
 }
 
+if ($benchmarkRequested) {
+    if (Test-Path -LiteralPath $blockerPath) { throw 'Cannot arm a benchmark while the GPU guard is blocked' }
+    $benchmarkContext = New-Gx1BenchmarkKeeperContext -ScopePath $BenchmarkScopePath `
+        -ScopeSha256 $BenchmarkScopeSha256 -GuardRoot $root -BaselineConfig $config
+}
+
+try {
 while ($true) {
     try {
         if (Test-Path -LiteralPath $blockerPath -PathType Leaf) {
+            if ($null -ne $benchmarkContext) {
+                Close-Gx1BenchmarkKeeperContext -Context $benchmarkContext -BaselineConfig $config -Reason guard_failure
+            }
             Stop-Gx1TelemetryBridge -Config $config
+        }
+        $enforcementConfig = $config
+        if ($null -ne $benchmarkContext) {
+            Sync-Gx1BenchmarkKeeperContext -Context $benchmarkContext -BaselineConfig $config
+            if ($benchmarkContext.Phase -eq 'active') { $enforcementConfig = $benchmarkContext.PowerConfig }
         }
         $now = [datetime]::UtcNow
         if (($now - $lastPowerLimitCheck).TotalSeconds -ge [int]$config.recheck_seconds) {
-            $powerSample = Set-Gx1PowerLimit -Config $config
+            $powerSample = Set-Gx1PowerLimit -Config $enforcementConfig
             $lastPowerLimitCheck = $now
             Write-Gx1GuardLog "POWER_LIMIT_VERIFIED gpu_uuid=$($powerSample.gpu_uuid) power_limit_w=$($powerSample.power_limit_w)"
         }
         $sample = Get-Gx1GpuSample -Config $config
+        if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -eq 'active') {
+            Assert-Gx1ExactBenchmarkTreatment -Scope $benchmarkContext.Scope -Sample $sample
+        }
         if (Test-Gx1HighIdleSample -Sample $sample -Config $config) {
             $highIdleSamples += 1
             if ($highIdleSamples -eq 1) {
@@ -448,6 +477,9 @@ while ($true) {
         }
 
         if ($highIdleSamples -ge [int]$config.idle_required_samples) {
+            if ($null -ne $benchmarkContext) {
+                Close-Gx1BenchmarkKeeperContext -Context $benchmarkContext -BaselineConfig $config -Reason recovery
+            }
             try {
                 $now = [datetime]::UtcNow
                 $windowStart = $now.AddSeconds(-[int]$config.recovery_window_seconds)
@@ -495,10 +527,26 @@ while ($true) {
         }
     }
     catch {
-        Write-Gx1GuardLog "SAMPLE_FAILURE message=$($_.Exception.Message)"
+        $sampleFailure = $_.Exception.Message
+        if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -ne 'closed') {
+            try {
+                Close-Gx1BenchmarkKeeperContext -Context $benchmarkContext -BaselineConfig $config -Reason telemetry_failure
+            }
+            catch { Write-Gx1GuardLog "BENCHMARK_CLOSURE_FAILURE message=$($_.Exception.Message)" }
+        }
+        Write-Gx1GuardLog "SAMPLE_FAILURE message=$sampleFailure"
         if ($Once) {
             throw
         }
     }
     Start-Sleep -Seconds ([int]$config.sample_seconds)
+}
+
+}
+finally {
+    # Ordinary termination/uncaught loop failures must close before leaving.
+    # OS-forced process death still requires the external restart/restore owner.
+    if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -ne 'closed') {
+        Close-Gx1BenchmarkKeeperContext -Context $benchmarkContext -BaselineConfig $config -Reason guard_failure
+    }
 }

@@ -45,6 +45,9 @@ REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 CAPPED_EXECUTION_OWNER="$REPO_ROOT/gx1/contracts/gx1_capped_execution_v1.py"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
+POWER_BENCHMARK_OWNER="$REPO_ROOT/gx1/contracts/local_power_benchmark_v1.py"
+POWER_BENCHMARK_SCOPE_JSON=
+POWER_BENCHMARK_SCOPE_SHA256=
 
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
 # not caller-controlled defaults. V9 follows the V8 physical-host incident:
@@ -329,6 +332,14 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || { echo "FATAL: --swap requires a value" >&2; exit 2; }
       SWAP="$2"; shift 2
       ;;
+    --power-benchmark-scope-json)
+      [[ $# -ge 2 && -z "$POWER_BENCHMARK_SCOPE_JSON" && -n "$2" ]] || exit 2
+      POWER_BENCHMARK_SCOPE_JSON="$2"; shift 2
+      ;;
+    --power-benchmark-scope-sha256)
+      [[ $# -ge 2 && -z "$POWER_BENCHMARK_SCOPE_SHA256" && -n "$2" ]] || exit 2
+      POWER_BENCHMARK_SCOPE_SHA256="$2"; shift 2
+      ;;
     --attended-smoke)
       ATTENDED_SMOKE=true; shift
       ;;
@@ -364,6 +375,23 @@ if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
   exit 75
 fi
 validate_target_command "$@"
+
+if [[ -n "$POWER_BENCHMARK_SCOPE_JSON" || -n "$POWER_BENCHMARK_SCOPE_SHA256" ]]; then
+  [[ -n "$POWER_BENCHMARK_SCOPE_JSON" && -n "$POWER_BENCHMARK_SCOPE_SHA256" \
+    && "$JOB_CLASS" == trainer && "$TRAINER_DEVICE" == cuda \
+    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false ]] || {
+      echo "FATAL: power comparison requires paired scope arguments and canonical CUDA trainer" >&2
+      exit 75
+    }
+  benchmark_limits=$("$CANONICAL_TRAINER_PYTHON" -I -B "$POWER_BENCHMARK_OWNER" inspect \
+    --scope-json "$POWER_BENCHMARK_SCOPE_JSON" --scope-sha256 "$POWER_BENCHMARK_SCOPE_SHA256" \
+    -- "$@") || exit 75
+  case "$benchmark_limits" in
+    '160 170') TRAINER_GPU_MAX_POWER_LIMIT_W=160; TRAINER_GPU_MAX_POWER_DRAW_W=170 ;;
+    '200 210') TRAINER_GPU_MAX_POWER_LIMIT_W=200; TRAINER_GPU_MAX_POWER_DRAW_W=210 ;;
+    *) echo "FATAL: invalid validated benchmark limits" >&2; exit 75 ;;
+  esac
+fi
 
 if [[ "$JOB_CLASS" == trainer ]]; then
   NUMERICAL_THREAD_COUNT=8
@@ -606,6 +634,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_EXPECTED_TASKS="$TASKS_MAX" \
   --setenv=GX1_CPU_AFFINITY="$CPU_AFFINITY" \
   --setenv=GX1_CAPPED_CLASS="$JOB_CLASS" \
+  --setenv=GX1_POWER_BENCHMARK_SCOPE_JSON="$POWER_BENCHMARK_SCOPE_JSON" \
+  --setenv=GX1_POWER_BENCHMARK_SCOPE_SHA256="$POWER_BENCHMARK_SCOPE_SHA256" \
   --setenv=GX1_CAPPED_MEMORY_BYTES="$((requested_mem_kib * 1024))" \
   --setenv=GX1_CAPPED_SWAP_BYTES="$((requested_swap_kib * 1024))" \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \

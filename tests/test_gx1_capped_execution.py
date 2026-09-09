@@ -688,3 +688,40 @@ def test_lock_proof_has_no_public_proc_or_environment_override():
         require_capped_lock_ancestry(proc_root="/tmp/fake-proc")
     with pytest.raises(TypeError):
         require_capped_lock_ancestry(environ={"GX1_CAPPED_LOCK_OWNER_PID": "100"})
+
+
+def test_trainer_proof_uses_actual_cgroup_and_lock_with_existing_128_task_limit(monkeypatch):
+    env, files = _guarded_fixture()
+    env.update({'GX1_CAPPED_CLASS':'trainer', 'GX1_CUDA_PRODUCER_GUARD':'false',
+                'GX1_TRAINER_EXECUTION_MODE':'canonical',
+                'GX1_CAPPED_MEMORY_BYTES':str(20 * 1024**3), 'GX1_CAPPED_TASKS_MAX':'128'})
+    for key in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',
+                'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS'):
+        env[key] = '8'
+    env.update({'ARROW_NUM_THREADS':'1', 'POLARS_MAX_THREADS':'1'})
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/memory.max'] = str(20 * 1024**3)
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/memory.high'] = str(20 * 1024**3)
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/pids.max'] = '128'
+    monkeypatch.setattr(capped_execution.os, 'environ', env)
+    monkeypatch.setattr(capped_execution.os, 'sched_getaffinity', lambda _pid: set(range(8)))
+    monkeypatch.setattr(capped_execution.Path, 'read_text', lambda path, **kw: files[str(path)])
+    calls = []
+    def lock():
+        calls.append(True)
+        return {'verified_fixture': True}
+    monkeypatch.setattr(capped_execution, 'require_capped_lock_ancestry', lock)
+    proof = capped_execution.require_guarded_cuda_trainer_execution()
+    assert proof['pids'] == 128 and proof['memory_max'] == 20 * 1024**3
+    assert calls == [True]
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/memory.max'] = str(21 * 1024**3)
+    with pytest.raises(RuntimeError, match='CGROUP_ACTUAL_LIMIT_EXCEEDED'):
+        capped_execution.require_guarded_cuda_trainer_execution()
+    assert calls == [True]
+
+
+def test_producer_cannot_inherit_trainer_128_task_exception():
+    env, files = _guarded_fixture()
+    env['GX1_CAPPED_TASKS_MAX'] = '128'
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/pids.max'] = '128'
+    with pytest.raises(RuntimeError, match='ENV_LIMIT_EXCEEDED'):
+        require_guarded_cuda_producer_execution(environ=env, read_text=lambda path: files[str(path)])

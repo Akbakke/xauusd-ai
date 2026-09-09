@@ -10,6 +10,7 @@ trainer. It has no TEST input, override flag or promotion authority.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -32,6 +33,9 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import MODEL_NATIVE_RECIPE_ENV
 from gx1.contracts.entry_training_precision_v1 import DETERMINISTIC_FP32
+from gx1.contracts.local_power_benchmark_v1 import (
+    require_prepared_benchmark_scope, require_benchmark_command,
+)
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -106,6 +110,8 @@ def build_pretest_technical_launch(
     candidate_gate_sha256: str | None = None,
     candidate_execution_budget_path: Path | None = None,
     candidate_execution_budget_sha256: str | None = None,
+    power_benchmark_scope_path: Path | None = None,
+    power_benchmark_scope_sha256: str | None = None,
 ) -> tuple[list[str], dict[str, str], dict[str, Any]]:
     """Validate the immutable recipe and derive the sole allowed command."""
 
@@ -276,6 +282,21 @@ def build_pretest_technical_launch(
     ]
     if execution_tier == "attended_only":
         command.append("--attended-smoke")
+    if (power_benchmark_scope_path is None) != (power_benchmark_scope_sha256 is None):
+        raise PretestTechnicalLaunchError("power benchmark scope path/digest must be paired")
+    if power_benchmark_scope_path is not None:
+        try:
+            require_prepared_benchmark_scope(
+                power_benchmark_scope_path, power_benchmark_scope_sha256,
+                recipe_path=recipe_path, recipe_sha256=recipe_sha256,
+                now_utc=datetime.now(timezone.utc),
+            )
+            require_benchmark_command(trainer_command, recipe_path=recipe_path,
+                recipe_sha256=recipe_sha256, recipe=validated, repo=REPO)
+        except (OSError, ValueError, KeyError) as exc:
+            raise PretestTechnicalLaunchError(f"power benchmark scope rejected: {exc}") from exc
+        command.extend(("--power-benchmark-scope-json", str(power_benchmark_scope_path),
+                        "--power-benchmark-scope-sha256", str(power_benchmark_scope_sha256)))
     command.extend(("--", *trainer_command))
     return command, environment, validated
 
@@ -298,6 +319,8 @@ def main() -> None:
     parser.add_argument("--candidate-gate-sha256")
     parser.add_argument("--candidate-execution-budget-json", type=Path)
     parser.add_argument("--candidate-execution-budget-sha256")
+    parser.add_argument("--power-benchmark-scope-json", type=Path)
+    parser.add_argument("--power-benchmark-scope-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -310,6 +333,8 @@ def main() -> None:
             candidate_gate_sha256=args.candidate_gate_sha256,
             candidate_execution_budget_path=args.candidate_execution_budget_json,
             candidate_execution_budget_sha256=args.candidate_execution_budget_sha256,
+            power_benchmark_scope_path=args.power_benchmark_scope_json,
+            power_benchmark_scope_sha256=args.power_benchmark_scope_sha256,
         )
     except PretestTechnicalLaunchError as exc:
         parser.error(str(exc))

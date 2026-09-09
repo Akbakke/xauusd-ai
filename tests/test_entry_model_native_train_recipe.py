@@ -317,6 +317,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "trainer_safety_guard",
         "capped_runner",
         "host_telemetry_query",
+        "windows_power_keeper",
+        "windows_power_benchmark_scope",
     }.issubset(bindings)
     python_bindings = {
         key for key in bindings if key.startswith("python:gx1/")
@@ -328,6 +330,8 @@ def test_recipe_producer_event_drives_exact_smoke_wrapper_dry_run(
         "python:gx1/models/entry_v10/entry_v10_input_normalization.py",
         "python:gx1/scripts/run_entry_model_native_pretest_technical_train_v1.py",
         "python:gx1/contracts/entry_pretest_candidate_launch_gate_v1.py",
+        "python:gx1/contracts/local_power_benchmark_v1.py",
+        "python:gx1/contracts/gx1_capped_execution_v1.py",
         "python:gx1/contracts/entry_model_native_training_objective_v1.py",
         "python:gx1/contracts/entry_model_native_joint_task_weighting_v1.py",
         # Every package initializer is executable before the corresponding

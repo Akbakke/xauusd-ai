@@ -3311,6 +3311,11 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_MEMORY_BYTES",
     "GX1_CAPPED_SWAP_BYTES",
     "GX1_CAPPED_TASKS_MAX",
+    # Operator-controlled power benchmark scope identity. Empty values mean
+    # ordinary canonical execution; non-empty values are verified by the
+    # runner and guard and cannot alter model inputs or optimization.
+    "GX1_POWER_BENCHMARK_SCOPE_JSON",
+    "GX1_POWER_BENCHMARK_SCOPE_SHA256",
     "GX1_GPU_GUARD_PATH",
     # The cap runner publishes this exact boolean transport for both trainer
     # and CUDA-producer scopes.  For a trainer it is always ``false`` and is
