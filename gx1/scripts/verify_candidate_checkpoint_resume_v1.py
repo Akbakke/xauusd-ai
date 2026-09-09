@@ -688,6 +688,7 @@ def _guard_recovery_session_contract(
         early_stopping_min_delta=cli["early_stop_min_delta"],
         per_tf_seq_lens={name: cli[f"per_tf_seq_len_{name.lower()}"] for name in trainer.MULTI_TF_TIMEFRAMES},
         device_type=cli["device"], recipe_source_provenance=provenance,
+        precision_policy=cli["precision_policy"],
     )
 
 

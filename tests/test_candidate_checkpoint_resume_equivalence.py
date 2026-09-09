@@ -107,6 +107,53 @@ def test_guard_recovery_rejects_nonfinite_learning_tensors() -> None:
             _require_finite_recovery_tensors({"optimizer": {0: {"exp_avg": torch.tensor([invalid])}}})
 
 
+
+def test_guard_recovery_contract_preserves_recipe_precision_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    same_names = (
+        "seed", "batch_size", "epochs", "grad_accum_steps", "grad_clip_norm",
+        "weight_decay", "dropout", "minimum_epochs_before_stop", "save_top_k",
+        "seq_len", "multi_tf_num_layers", "specialist_num_layers",
+        "multi_tf_scale", "specialist_fusion_scale",
+        "cross_family_fusion_scale", "execution_tier",
+    )
+    cli = dict.fromkeys(same_names, 1)
+    cli.update({
+        "learning_rate": 1e-4, "early_stop_patience": 5,
+        "early_stop_min_delta": 0.0, "device": "cuda",
+        "precision_policy": "experimental_fp32_3090_no_uninitialized_fill",
+        **{
+            f"per_tf_seq_len_{name.lower()}": 16
+            for name in recovery.trainer.MULTI_TF_TIMEFRAMES
+        },
+    })
+    recipe = {
+        "trainer_cli": cli,
+        "artifact_bindings": {
+            name: {"path": f"/data/{name}"}
+            for name in (
+                "train_parquet", "val_parquet", "m5_prebuilt",
+                "unified_exit_lifecycle_manifest",
+            )
+        },
+        "out_bundle_dir": "/data/out", "run_id": "run",
+        "dataset_run_id": "dataset",
+    }
+    observed: dict[str, object] = {}
+
+    def capture(**kwargs: object) -> dict[str, object]:
+        observed.update(kwargs)
+        return dict(kwargs)
+
+    monkeypatch.setattr(
+        recovery.trainer, "_candidate_training_session_contract", capture
+    )
+    recovery._guard_recovery_session_contract(
+        recipe, {"source": "bound"}, "a" * 64
+    )
+    assert observed["precision_policy"] == cli["precision_policy"]
+
 def _source_state_successor_checkpoint() -> dict:
     model_state = {
         "active_before.weight": torch.tensor([1.0], dtype=torch.float32),
