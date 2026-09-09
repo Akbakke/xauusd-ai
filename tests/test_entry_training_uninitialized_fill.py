@@ -178,6 +178,7 @@ def test_only_explicit_no_fill_policies_disable_allocation_poisoning(selected):
     # Every other declared policy retains allocation poisoning.
     explicitly_no_fill = {
         POLICY,
+        policy.EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
         policy.EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
         policy.EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
     }

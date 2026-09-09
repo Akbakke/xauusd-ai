@@ -15,6 +15,8 @@ from gx1.models.entry_v10 import training_kernel_profile as kp
 
 
 POLICY = policy.EXPERIMENTAL_FP32_3090_KERNEL_PROFILE
+NO_FILL_POLICY = policy.EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE
+PROFILER_POLICIES = {POLICY, NO_FILL_POLICY}
 
 
 def test_actual_cpu_profiler_captures_only_warmed_ninth_update(tmp_path):
@@ -94,7 +96,7 @@ def test_profile_output_is_exclusive(tmp_path):
     assert kp._ACTIVE_PROFILE.get() is None
 
 
-@pytest.mark.parametrize('selected', sorted(policy.TRAINING_PRECISION_POLICIES - {POLICY}))
+@pytest.mark.parametrize('selected', sorted(policy.TRAINING_PRECISION_POLICIES - PROFILER_POLICIES))
 def test_other_policies_do_not_start_profiler_or_change_call_signature(monkeypatch, selected):
     def unexpected(*args, **kwargs):
         pytest.fail('default policy started profiler')
@@ -118,6 +120,33 @@ def test_profiler_policy_requires_declared_output_before_any_work():
         function()
 
 
+@pytest.mark.parametrize('selected', sorted(PROFILER_POLICIES))
+def test_both_profiler_policies_start_the_same_bounded_profiler(
+    monkeypatch, tmp_path, selected
+):
+    observed = []
+
+    class FakeSession:
+        def __init__(self, output, include_cuda=True):
+            observed.append((Path(output), include_cuda))
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(kp, '_KernelProfileSession', FakeSession)
+
+    @kp.profile_training_epoch(policy=lambda: selected)
+    def function(*, kernel_profile_output_dir=None):
+        return 42
+
+    output = tmp_path / selected
+    assert function(kernel_profile_output_dir=output) == 42
+    assert observed == [(output, True)]
+
+
 def test_actual_train_epoch_step_call_follows_real_optimizer_update():
     tree = ast.parse(inspect.getsource(trainer.train_epoch))
     fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef))
@@ -139,10 +168,30 @@ def test_smoke_call_derives_profile_directory_from_declared_bundle(tmp_path):
     expression = compile(ast.Expression(keywords[0].value), '<actual-profile-output>', 'eval')
     bundle = tmp_path / 'declared_bundle'
     namespace = dict(Path=Path, _resolve_train_out_bundle_dir=lambda path, _: path, out_bundle_dir=bundle,
-                     gx1_data_override='', precision_policy=POLICY, EXPERIMENTAL_FP32_3090_KERNEL_PROFILE=POLICY)
+                     gx1_data_override='', precision_policy=POLICY,
+                     EXPERIMENTAL_FP32_3090_KERNEL_PROFILE=POLICY,
+                     EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE=NO_FILL_POLICY)
     assert eval(expression, namespace) == tmp_path / '.declared_bundle.kernel_profile'
     namespace['precision_policy'] = policy.DETERMINISTIC_FP32
     assert eval(expression, namespace) is None
+
+
+def test_no_fill_kernel_profile_matches_current_long_run_allocation_policy():
+    metadata = policy.training_precision_metadata(NO_FILL_POLICY, device_type='cuda')
+    assert metadata['kernel_profiling'] is True
+    assert metadata['profiled_optimizer_step'] == 9
+    assert metadata['throughput_qualification_allowed'] is False
+    assert metadata['deterministic_fill_uninitialized_memory'] is False
+    assert metadata['comparison_reference_policy'] == (
+        policy.EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
+    )
+    assert policy.deterministic_fill_uninitialized_memory(NO_FILL_POLICY) is False
+    policy.require_local_precision_benchmark_geometry(
+        NO_FILL_POLICY,
+        epochs=1,
+        grad_accum_steps=1,
+        subsample_rows=512,
+    )
 
 
 def test_kernel_profile_has_original_fp32_and_resource_geometry():

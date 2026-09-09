@@ -12,7 +12,10 @@ from typing import Callable
 
 import torch
 
-from gx1.contracts.entry_training_precision_v1 import EXPERIMENTAL_FP32_3090_KERNEL_PROFILE
+from gx1.contracts.entry_training_precision_v1 import (
+    EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+    EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
+)
 
 _ACTIVE_PROFILE: ContextVar["_KernelProfileSession | None"] = ContextVar(
     "gx1_training_kernel_profile", default=None,
@@ -128,7 +131,10 @@ def profile_training_epoch(*, policy: Callable[[], str]):
         @wraps(function)
         def wrapped(*args, **kwargs):
             output = kwargs.get("kernel_profile_output_dir")
-            enabled = policy() == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE
+            enabled = policy() in {
+                EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+                EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
+            }
             if enabled != (output is not None):
                 raise RuntimeError("[ENTRY_KERNEL_PROFILE_POLICY_OUTPUT_MISMATCH]")
             if not enabled:

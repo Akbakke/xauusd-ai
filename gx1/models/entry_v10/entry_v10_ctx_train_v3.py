@@ -120,6 +120,7 @@ from gx1.contracts.entry_training_precision_v1 import (
     EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
     EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH,
     EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+    EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
     EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
     DETERMINISTIC_FP32,
     TRAINING_PRECISION_POLICIES,
@@ -3236,11 +3237,18 @@ def _set_deterministic(
                 )
         if policy in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL}:
             _require_local_bf16_3090_capability()
-        if policy in {EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL, EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL}:
+        if policy in {
+            EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
+            EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL,
+            EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
+        }:
             _require_local_fp32_no_fill_capability()
         if policy == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH:
             _require_local_fp32_full_exit_batch_capability()
-        if model_finite_check_mode(policy) is not None or policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE:
+        if model_finite_check_mode(policy) is not None or policy in {
+            EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+            EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
+        }:
             _require_local_fp32_finite_check_capability()
         torch.cuda.set_per_process_memory_fraction(
             cuda_memory_fraction(policy),
@@ -13706,7 +13714,10 @@ def run_train(
                 _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override).with_name(
                     "." + Path(out_bundle_dir).name + ".kernel_profile"
                 )
-                if precision_policy == EXPERIMENTAL_FP32_3090_KERNEL_PROFILE else None
+                if precision_policy in {
+                    EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
+                    EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
+                } else None
             ),
             # Initial local fixed-step diagnostic: discard the cold first update.
             performance_warmup_optimizer_steps=(
