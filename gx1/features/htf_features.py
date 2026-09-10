@@ -626,8 +626,6 @@ MULTI_TF_PER_BAR_FEATURES_V4 = (
 MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4 = (
     "volatility.squeeze_active",
     "volatility.squeeze_release_event",
-    "mtf_candle_raw_open_above_previous_high_local_geometry",
-    "mtf_candle_raw_open_below_previous_low_local_geometry",
     "mtf_candle_raw_body_contains_previous_flag",
     "mtf_candle_raw_body_contained_by_previous_flag",
     "mtf_candle_raw_range_contains_previous_flag",
