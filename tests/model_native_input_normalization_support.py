@@ -33,6 +33,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_RESAMPLE_RULES,
+    MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4,
     require_multi_tf_decision_window_coverage_metadata,
     require_multi_tf_resolution_pyramid,
 )
@@ -188,8 +189,11 @@ def input_normalization_fixture(
             values[:, mtf_names.index("ema_stack_aligned_v2")] = (
                 row % 3
             ) - 1
-        if "ema50_200_bull_state" in mtf_names:
-            values[:, mtf_names.index("ema50_200_bull_state")] = row % 2
+        for offset, name in enumerate(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4):
+            if name in mtf_names:
+                values[:, mtf_names.index(name)] = (
+                    row % (offset + 2) == offset
+                ).astype(np.float32)
         if "regime_class_id" in mtf_names:
             values[:, mtf_names.index("regime_class_id")] = row % 5
             semantic = MTF_SEMANTIC_CATEGORICAL_DOMAINS

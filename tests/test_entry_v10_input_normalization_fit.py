@@ -30,6 +30,7 @@ from gx1.features.htf_features import (
     MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
     MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4,
     MULTI_TF_RESAMPLE_RULES,
     build_multi_tf_v4_closed_timestamp_indices,
     load_multi_tf_v4_cache,
@@ -115,10 +116,11 @@ def _mtf_values(rows: int) -> np.ndarray:
     ).astype(np.float32)
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
     values[:, ema_stack] = (np.arange(rows) % 3 - 1).astype(np.float32)
-    bull_state = list(MULTI_TF_PER_BAR_FEATURES_V4).index(
-        "ema50_200_bull_state"
-    )
-    values[:, bull_state] = (np.arange(rows) % 2).astype(np.float32)
+    for offset, name in enumerate(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4):
+        index = list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)
+        values[:, index] = (
+            np.arange(rows) % (offset + 2) == offset
+        ).astype(np.float32)
     return values
 
 
@@ -280,16 +282,17 @@ def _artifacts(
     }
     # Restore exact categorical domains after the harmless per-TF offset.
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
-    bull_state = list(MULTI_TF_PER_BAR_FEATURES_V4).index(
-        "ema50_200_bull_state"
-    )
     for frame in features.values():
         frame.attrs["feats_np"][:, ema_stack] = (
             np.arange(len(frame)) % 3 - 1
         ).astype(np.float32)
-        frame.attrs["feats_np"][:, bull_state] = (
-            np.arange(len(frame)) % 2
-        ).astype(np.float32)
+        for binary_offset, name in enumerate(
+            MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4
+        ):
+            index = list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)
+            frame.attrs["feats_np"][:, index] = (
+                np.arange(len(frame)) % (binary_offset + 2) == binary_offset
+            ).astype(np.float32)
     for tf_offset, (timeframe, frame) in enumerate(features.items()):
         scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
             timeframe
@@ -485,6 +488,8 @@ def test_unconsumed_future_does_not_change_selection_but_consumed_row_does() -> 
     future_values = np.vstack([base_values, _mtf_values(1) + np.float32(99.0)])
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
     future_values[-1, ema_stack] = 0.0
+    for name in MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4:
+        future_values[-1, list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)] = 0.0
     selected_b, window_b, _ = select_causal_mtf_fit_population(
         tf="M5",
         source=_mtf_frame(
