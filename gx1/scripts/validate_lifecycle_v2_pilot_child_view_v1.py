@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -206,19 +208,68 @@ def validate_pilot_child_view(
     return witness
 
 
+def publish_pilot_child_view_admission(
+    *,
+    source_recipe_path: Path,
+    source_recipe_sha256: str,
+    pilot_root: Path,
+    child_root_path: Path,
+    output_path: Path,
+) -> dict[str, Any]:
+    """Publish one immutable witness only after all parent/child bytes pass."""
+
+    root = pilot_root.expanduser().resolve()
+    output = output_path.expanduser().resolve()
+    if output != root / "ADMISSION" / "CHILD_VIEW_ADMISSION.json":
+        raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_OUTPUT_PATH_INVALID")
+    witness = validate_pilot_child_view(
+        source_recipe_path=source_recipe_path,
+        source_recipe_sha256=source_recipe_sha256,
+        pilot_root=root,
+        child_root_path=child_root_path,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    raw = json.dumps(witness, sort_keys=True, allow_nan=False).encode("utf-8") + b"\n"
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(raw)
+        os.link(temporary, output)
+    finally:
+        temporary.unlink(missing_ok=True)
+    if _sha256_file(output) != hashlib.sha256(raw).hexdigest():
+        raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_WRITE_INVALID")
+    return {
+        "path": str(output),
+        "sha256": _sha256_file(output),
+        "witness": witness,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-recipe", required=True, type=Path)
     parser.add_argument("--source-recipe-sha256", required=True)
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--child-root", required=True, type=Path)
+    parser.add_argument("--out-json", type=Path)
     args = parser.parse_args()
-    report = validate_pilot_child_view(
-        source_recipe_path=args.source_recipe,
-        source_recipe_sha256=args.source_recipe_sha256,
-        pilot_root=args.pilot_root,
-        child_root_path=args.child_root,
-    )
+    if args.out_json is None:
+        report = validate_pilot_child_view(
+            source_recipe_path=args.source_recipe,
+            source_recipe_sha256=args.source_recipe_sha256,
+            pilot_root=args.pilot_root,
+            child_root_path=args.child_root,
+        )
+    else:
+        report = publish_pilot_child_view_admission(
+            source_recipe_path=args.source_recipe,
+            source_recipe_sha256=args.source_recipe_sha256,
+            pilot_root=args.pilot_root,
+            child_root_path=args.child_root,
+            output_path=args.out_json,
+        )
     print(json.dumps(report, sort_keys=True, allow_nan=False))
     return 0
 

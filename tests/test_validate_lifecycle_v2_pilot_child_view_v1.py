@@ -9,6 +9,7 @@ from gx1.scripts.materialize_lifecycle_v2_pilot_entry_window_v1 import (
     materialize_pilot_entry_window,
 )
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import (
+    publish_pilot_child_view_admission,
     validate_pilot_child_view,
 )
 from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import (
@@ -63,8 +64,14 @@ def test_child_view_witness_binds_parent_child_and_exact_clocks(
     assert witness["splits"]["train"]["rows"] == 2
     assert witness["splits"]["val"]["rows"] == 2
     assert witness["test_accessed"] is False
-    witness_path = tmp_path / "child-admission.json"
-    witness_path.write_text(json.dumps(witness), encoding="utf-8")
+    published = publish_pilot_child_view_admission(
+        source_recipe_path=recipe,
+        source_recipe_sha256=digest,
+        pilot_root=pilot,
+        child_root_path=root,
+        output_path=pilot / "ADMISSION" / "CHILD_VIEW_ADMISSION.json",
+    )
+    witness_path = Path(published["path"])
     readiness = build_pilot_readiness(
         source_recipe_path=recipe,
         source_recipe_sha256=digest,
@@ -75,6 +82,14 @@ def test_child_view_witness_binds_parent_child_and_exact_clocks(
         child_view_admission=witness_path,
     )
     assert readiness["missing_or_blocked_stages"][0] == "train_economics"
+    with pytest.raises(FileExistsError):
+        publish_pilot_child_view_admission(
+            source_recipe_path=recipe,
+            source_recipe_sha256=digest,
+            pilot_root=pilot,
+            child_root_path=root,
+            output_path=witness_path,
+        )
 
 
 def test_child_view_rejects_swapped_child_bytes(
