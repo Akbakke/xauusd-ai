@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
+import json
 
 import pandas as pd
 import pytest
+import numpy as np
 
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     build_market_closure_authority,
@@ -11,6 +14,9 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     closure_intervals_by_gap_after_row,
     exact_schedule_from_project_policy,
     require_project_inferred_closure_policy,
+)
+from gx1.scripts.materialize_unified_exit_project_closure_policy_v1 import (
+    fit_project_closure_policy,
 )
 
 
@@ -107,6 +113,57 @@ def test_policy_tamper_and_test_split_fail_closed() -> None:
         require_project_inferred_closure_policy(
             policy, expected_train_m1_source_sha256="a" * 64
         )
+
+
+def test_fit_materializer_excludes_479_context_rows(tmp_path: Path) -> None:
+    fit_clock = _train_clock()
+    context = pd.date_range(
+        fit_clock[0] - pd.Timedelta(minutes=479), periods=479, freq="min"
+    )
+    full_clock = pd.DatetimeIndex(list(context) + list(fit_clock))
+    source = tmp_path / "train.m1.parquet"
+    pd.DataFrame({"time": full_clock}).to_parquet(source, index=False)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    clock_sha = hashlib.sha256(
+        np.asarray(full_clock.asi8, dtype="<i8").tobytes()
+    ).hexdigest()
+    fit_sha = hashlib.sha256(
+        np.asarray(fit_clock.asi8, dtype="<i8").tobytes()
+    ).hexdigest()
+    manifest = {
+        "schema_version": "gx1_unified_exit_pilot_m1_child_view_v1",
+        "decision": "PASS",
+        "split": "train",
+        "instrument": "XAU_USD",
+        "timeframe": "M1",
+        "timestamp_semantics": "bar_start_utc",
+        "output_parquet": str(source),
+        "output_parquet_sha256": source_sha,
+        "row_count": len(full_clock),
+        "context_row_count": 479,
+        "fit_row_count": len(fit_clock),
+        "fit_window_start_utc": fit_clock[0].isoformat(),
+        "fit_window_end_utc_exclusive": (
+            fit_clock[-1] + pd.Timedelta(minutes=1)
+        ).isoformat(),
+        "required_local_history_rows": 480,
+        "clock_sha256": clock_sha,
+        "fit_clock_sha256": fit_sha,
+        "context_rows_excluded_from_policy_fit": True,
+        "test_accessed": False,
+    }
+    manifest_path = tmp_path / "train.manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    result = fit_project_closure_policy(
+        train_m1_source_path=source,
+        train_m1_manifest_path=manifest_path,
+        minimum_daily_support=3,
+        minimum_weekend_support=2,
+        output_path=tmp_path / "policy.json",
+        publish=False,
+    )
+    assert result["policy"]["train_m1_row_count"] == len(fit_clock)
+    assert result["policy"]["train_m1_clock_sha256"] == fit_sha
     with pytest.raises(RuntimeError, match="PROJECT_SPLIT_INVALID"):
         exact_schedule_from_project_policy(
             policy=_policy(),

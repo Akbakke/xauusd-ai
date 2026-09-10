@@ -12,6 +12,7 @@ from pathlib import Path
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
@@ -35,7 +36,13 @@ def _read_json(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
-def _load_clock(source_path: Path, manifest_path: Path, *, split: str) -> tuple[pd.Series, str, str]:
+def _load_clock(
+    source_path: Path,
+    manifest_path: Path,
+    *,
+    split: str,
+    fit_only: bool,
+) -> tuple[pd.Series, str, str]:
     source = source_path.expanduser().resolve()
     manifest_file = manifest_path.expanduser().resolve()
     manifest = _read_json(manifest_file, "M1_MANIFEST")
@@ -45,6 +52,8 @@ def _load_clock(source_path: Path, manifest_path: Path, *, split: str) -> tuple[
         split not in {"train", "val"}
         or source.is_symlink()
         or not source.is_file()
+        or manifest.get("schema_version")
+        != "gx1_unified_exit_pilot_m1_child_view_v1"
         or manifest.get("instrument") != "XAU_USD"
         or manifest.get("timeframe") != "M1"
         or manifest.get("timestamp_semantics") != "bar_start_utc"
@@ -52,13 +61,41 @@ def _load_clock(source_path: Path, manifest_path: Path, *, split: str) -> tuple[
         or manifest.get("test_accessed") is not False
         or manifest.get("output_parquet") != str(source)
         or manifest.get("output_parquet_sha256") != source_sha
+        or manifest.get("context_rows_excluded_from_policy_fit") is not True
+        or manifest.get("required_local_history_rows") != 480
     ):
         raise RuntimeError("UNIFIED_EXIT_PROJECT_CLOSURE_M1_MANIFEST_INVALID")
     try:
         times = pd.read_parquet(source, columns=["time"])["time"]
     except (OSError, ValueError) as exc:
         raise RuntimeError("UNIFIED_EXIT_PROJECT_CLOSURE_M1_SOURCE_INVALID") from exc
-    return times, source_sha, manifest_sha
+    observed_clock_sha = hashlib.sha256(
+        np.asarray(pd.DatetimeIndex(times).asi8, dtype="<i8").tobytes()
+    ).hexdigest()
+    if len(times) != manifest.get("row_count") or observed_clock_sha != manifest.get(
+        "clock_sha256"
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PROJECT_CLOSURE_M1_CLOCK_INVALID")
+    if not fit_only:
+        return times, source_sha, manifest_sha
+    start = pd.Timestamp(manifest.get("fit_window_start_utc"))
+    end = pd.Timestamp(manifest.get("fit_window_end_utc_exclusive"))
+    clock = pd.DatetimeIndex(times).as_unit("ns")
+    mask = (clock >= start) & (clock < end)
+    fit_times = pd.Series(clock[mask])
+    fit_clock_sha = hashlib.sha256(
+        np.asarray(clock.asi8[mask], dtype="<i8").tobytes()
+    ).hexdigest()
+    if (
+        start.tz is None
+        or end.tz is None
+        or end <= start
+        or len(fit_times) != manifest.get("fit_row_count")
+        or int(np.count_nonzero(clock < start)) != manifest.get("context_row_count")
+        or fit_clock_sha != manifest.get("fit_clock_sha256")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PROJECT_CLOSURE_FIT_WINDOW_INVALID")
+    return fit_times, source_sha, manifest_sha
 
 
 def _json_bytes(value: Mapping[str, Any]) -> bytes:
@@ -92,7 +129,10 @@ def fit_project_closure_policy(
     publish: bool,
 ) -> dict[str, Any]:
     times, source_sha, _manifest_sha = _load_clock(
-        train_m1_source_path, train_m1_manifest_path, split="train"
+        train_m1_source_path,
+        train_m1_manifest_path,
+        split="train",
+        fit_only=True,
     )
     policy = build_project_inferred_closure_policy(
         train_m1_times=times,
@@ -133,7 +173,10 @@ def apply_project_closure_policy(
         expected_train_m1_source_sha256=raw_policy.get("train_m1_source_sha256"),
     )
     times, source_sha, manifest_sha = _load_clock(
-        target_m1_source_path, target_m1_manifest_path, split=target_split
+        target_m1_source_path,
+        target_m1_manifest_path,
+        split=target_split,
+        fit_only=False,
     )
     schedule = exact_schedule_from_project_policy(
         policy=policy,
