@@ -8,6 +8,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     build_random_access_sampler_contract,
     require_random_access_sample,
     schedule_random_access_epoch,
+    schedule_random_access_entry_anchors,
 )
 from gx1.scripts.materialize_unified_exit_random_access_sampler_v1 import (
     build_parser,
@@ -56,6 +57,16 @@ def test_budget_and_k_are_cli_explicit_and_schedule_is_resume_exact() -> None:
     assert all(item["selection_uses_outcome_values"] is False for item in epoch)
     assert all(item["importance_weight"] == 1.0 for item in epoch)
     assert all(item["sampling_probability"] > 0.0 for item in epoch)
+    anchors = schedule_random_access_entry_anchors(
+        sampler_contract=contract, epoch_index=5
+    )
+    assert len(anchors) == contract["entry_pairs_per_epoch"]
+    assert {item["entry_row_index"] for item in anchors} == {
+        item["entry_row_index"] for item in epoch
+    }
+    assert all(item["state_index"] == 0 for item in anchors)
+    assert all(item["sample_role"] == "entry_anchor_no_loss" for item in anchors)
+    assert contract["anchors_excluded_from_transition_budget"] is True
 
 
 def test_entry_cycle_visits_population_and_tail_bucket_is_reachable() -> None:

@@ -23,6 +23,11 @@ from gx1.contracts.unified_exit_economics_objective_v2 import (
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     require_unified_exit_unbounded_training_readiness,
 )
+from gx1.contracts.unified_exit_market_closure_authority_v1 import (
+    closure_intervals_by_gap_after_row,
+    m1_clock_sha256,
+    require_market_closure_authority,
+)
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     REQUIRED_COMPONENTS,
     canonical_sha256,
@@ -129,6 +134,8 @@ class LazyUnifiedExitEconomicStepProviderV1:
         compact_manifest: Mapping[str, Any],
         economics_readiness: Mapping[str, Any],
         cost_parameter_authority_path: Path,
+        market_closure_authority_path: Path | None = None,
+        market_closure_authority_file_sha256: str | None = None,
     ) -> None:
         manifest = dict(compact_manifest)
         readiness = require_unified_exit_unbounded_training_readiness(
@@ -209,6 +216,33 @@ class LazyUnifiedExitEconomicStepProviderV1:
             "capital_hurdle_artifact_sha256"
         ]
         self._gap_source_sha = manifest["gap_classification_source_sha256"]
+        self._closure_by_row: dict[int, dict[str, Any]] = {}
+        closure_file_sha: str | None = None
+        if (market_closure_authority_path is None) != (
+            market_closure_authority_file_sha256 is None
+        ):
+            raise RuntimeError("UNIFIED_EXIT_STEP_PROVIDER_CLOSURE_BINDING_INVALID")
+        if market_closure_authority_path is not None:
+            closure_path = market_closure_authority_path.expanduser().resolve()
+            closure_file_sha = file_sha256(closure_path)
+            closure = require_market_closure_authority(
+                _read_json(closure_path, "MARKET_CLOSURE_AUTHORITY"),
+                expected_m1_source_sha256=quote["parquet"]["sha256"],
+                expected_m1_clock_sha256=m1_clock_sha256(
+                    pd.DatetimeIndex(self._times_ns, tz="UTC")
+                ),
+            )
+            if (
+                closure_file_sha != market_closure_authority_file_sha256
+                or self._gap_source_sha != closure["artifact_sha256"]
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_CLOSURE_BINDING_INVALID"
+                )
+            self._closure_by_row = closure_intervals_by_gap_after_row(closure)
+            self.market_closure_authority_sha256 = closure["artifact_sha256"]
+        else:
+            self.market_closure_authority_sha256 = self._gap_source_sha
         self._source_manifest_sha256 = canonical_sha256(
             {
                 "cost_parameter_authority_file_sha256": file_sha256(authority_path),
@@ -219,6 +253,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
                     "manifest_payload_sha256"
                 ],
                 "gap_source_manifest_sha256": self._gap_source_sha,
+                "market_closure_authority_file_sha256": closure_file_sha,
             }
         )
         self.economic_exit_step_manifest = seal_economic_exit_step_manifest(
@@ -320,13 +355,26 @@ class LazyUnifiedExitEconomicStepProviderV1:
         return envelope
 
     def _hold_elapsed_seconds(self, state_rows: np.ndarray) -> np.ndarray:
-        """Validate the currently admitted continuous-M1 transitions in one batch."""
+        """Admit continuous or exact declared-closure successor transitions."""
 
         rows = np.ascontiguousarray(state_rows, dtype=np.int64)
         elapsed_ns = self._times_ns[rows + 1] - self._times_ns[rows]
-        if np.any(elapsed_ns != 60_000_000_000):
+        if np.any(elapsed_ns <= 0) or np.any(elapsed_ns % 1_000_000_000 != 0):
             raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_GAP_UNVERIFIED")
-        return np.full(rows.shape, 60, dtype=np.int64)
+        noncontinuous = np.flatnonzero(elapsed_ns != 60_000_000_000)
+        for position in noncontinuous.tolist():
+            row = int(rows[position])
+            record = self._closure_by_row.get(row)
+            if (
+                record is None
+                or record["successor_across_gap_allowed"] is not True
+                or pd.Timestamp(record["previous_bar_start_utc"]).value
+                != int(self._times_ns[row])
+                or pd.Timestamp(record["next_bar_start_utc"]).value
+                != int(self._times_ns[row + 1])
+            ):
+                raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_GAP_UNVERIFIED")
+        return np.ascontiguousarray(elapsed_ns // 1_000_000_000, dtype=np.int64)
 
     def materialize_training_projection(
         self,
@@ -464,6 +512,17 @@ class LazyUnifiedExitEconomicStepProviderV1:
         )
         next_decision_ns = decision_ns + elapsed_seconds * 1_000_000_000
         scale = float(elapsed_seconds) / SECONDS_PER_YEAR
+        gap_record = self._closure_by_row.get(state_row)
+        gap_classification = (
+            "continuous_m1"
+            if elapsed_seconds == 60
+            else str(gap_record["classification"])
+        )
+        gap_artifact_sha = (
+            self._gap_source_sha
+            if gap_record is None
+            else str(gap_record["interval_sha256"])
+        )
         return {
             "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
             "event_kind": event_kind,
@@ -487,9 +546,9 @@ class LazyUnifiedExitEconomicStepProviderV1:
             ),
             "gap": {
                 "status": "COMPLETE",
-                "classification": "continuous_m1",
+                "classification": gap_classification,
                 "source_manifest_sha256": self._gap_source_sha,
-                "classification_artifact_sha256": self._gap_source_sha,
+                "classification_artifact_sha256": gap_artifact_sha,
             },
         }
 

@@ -13,6 +13,7 @@ import pandas as pd
 from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     require_economic_training_projection,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import EXIT_MTF_CONTEXT_TIMEFRAMES
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     elapsed_wall_clock_gamma,
 )
@@ -26,6 +27,7 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     require_market_closure_authority,
 )
 from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+    require_random_access_entry_anchor,
     require_random_access_sample,
     require_random_access_sampler_contract,
 )
@@ -121,6 +123,7 @@ def materialize_random_access_state_view(
     entry_row_index: int,
     entry_m1_start_row: int,
     side_lifecycle_state_counts: Sequence[int],
+    side_economic_terminal: Sequence[bool],
     m1_times: Sequence[Any],
     m1_signal: np.ndarray,
     m1_ctx_cont: np.ndarray,
@@ -137,18 +140,34 @@ def materialize_random_access_state_view(
     """Materialize exact t/t+1 views; memory limits never create terminals."""
 
     contract = require_random_access_sampler_contract(sampler_contract)
-    scheduled = require_random_access_sample(sample, sampler_contract=contract)
+    is_anchor = "anchor_sha256" in sample
+    if is_anchor:
+        scheduled = require_random_access_entry_anchor(
+            sample, sampler_contract=contract
+        )
+        sample_identity_sha256 = scheduled["anchor_sha256"]
+        sample_role = scheduled["sample_role"]
+        loss_weight = scheduled["loss_weight"]
+        successor_index = 1
+    else:
+        scheduled = require_random_access_sample(sample, sampler_contract=contract)
+        sample_identity_sha256 = scheduled["sample_sha256"]
+        sample_role = scheduled["sample_role"]
+        loss_weight = scheduled["importance_weight"]
+        successor_index = scheduled["successor_state_index"]
     if scheduled["entry_row_index"] != entry_row_index:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ENTRY_IDENTITY_INVALID")
     counts = tuple(side_lifecycle_state_counts)
+    economic_terminal = tuple(side_economic_terminal)
     if (
         len(counts) != 2
+        or len(economic_terminal) != 2
+        or any(type(value) is not bool for value in economic_terminal)
         or any(isinstance(count, bool) or not isinstance(count, int) for count in counts)
         or any(count < 2 for count in counts)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SIDE_COUNT_INVALID")
     state_index = scheduled["state_index"]
-    successor_index = scheduled["successor_state_index"]
     if any(successor_index >= count for count in counts):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_COMMON_TIMELINE_INVALID")
 
@@ -227,17 +246,40 @@ def materialize_random_access_state_view(
         )
         state_time = np.asarray([times.asi8[row]], dtype=np.int64)
         mtf_raw = mtf_materializer(state_time)
-        if not isinstance(mtf_raw, Mapping) or not mtf_raw:
+        expected_mtf_keys = {
+            f"exit_mtf_{kind}_{tf.lower()}"
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+            for kind in ("history", "history_time_ns", "gather")
+        }
+        if not isinstance(mtf_raw, Mapping) or set(mtf_raw) != expected_mtf_keys:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MTF_INVALID")
         mtf: dict[str, np.ndarray] = {}
-        for name, raw in mtf_raw.items():
-            array = np.ascontiguousarray(raw)
-            if array.shape[0] != 1 or (
-                array.dtype.kind == "f" and not np.isfinite(array).all()
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES:
+            suffix = tf.lower()
+            history = np.ascontiguousarray(mtf_raw[f"exit_mtf_history_{suffix}"])
+            history_time = np.ascontiguousarray(
+                mtf_raw[f"exit_mtf_history_time_ns_{suffix}"]
+            )
+            gather = np.ascontiguousarray(mtf_raw[f"exit_mtf_gather_{suffix}"])
+            if (
+                history.dtype != np.dtype("float32")
+                or history.ndim != 2
+                or history.shape[0] < 1
+                or not np.isfinite(history).all()
+                or history_time.dtype != np.dtype("int64")
+                or history_time.shape != (history.shape[0],)
+                or gather.dtype != np.dtype("int64")
+                or gather.shape != (1,)
+                or int(gather[0]) != history.shape[0] - 1
             ):
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MTF_INVALID")
-            array.setflags(write=False)
-            mtf[str(name)] = array
+            for name, array in (
+                (f"exit_mtf_history_{suffix}", history),
+                (f"exit_mtf_history_time_ns_{suffix}", history_time),
+                (f"exit_mtf_gather_{suffix}", gather),
+            ):
+                array.setflags(write=False)
+                mtf[name] = array
         return {
             "state_index": index,
             "m1_row_index": row,
@@ -282,7 +324,11 @@ def materialize_random_access_state_view(
     rewards = np.empty((2, 2), dtype=np.float32)
     economics_hashes: list[dict[str, str]] = []
     fastpath = getattr(economic_step_provider, "materialize_training_projection", None)
-    if not callable(fastpath):
+    if (
+        not callable(fastpath)
+        or getattr(economic_step_provider, "market_closure_authority_sha256", None)
+        != authority["artifact_sha256"]
+    ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
     for side in range(2):
         projection = require_economic_training_projection(
@@ -315,6 +361,21 @@ def materialize_random_access_state_view(
     bellman.setflags(write=False)
     successor_observed = np.ones(2, dtype=np.bool_)
     successor_observed.setflags(write=False)
+    successor_terminal = np.asarray(
+        [
+            economic_terminal[side] and successor_index == counts[side] - 1
+            for side in range(2)
+        ],
+        dtype=np.bool_,
+    )
+    successor_terminal.setflags(write=False)
+    successor_policy = np.ones((2, 2), dtype=np.bool_)
+    successor_policy[:, 0] &= ~successor_terminal
+    successor_policy.setflags(write=False)
+    current_terminal = np.zeros(2, dtype=np.bool_)
+    current_terminal.setflags(write=False)
+    current_censored = np.zeros(2, dtype=np.bool_)
+    current_censored.setflags(write=False)
     gamma = elapsed_wall_clock_gamma(
         contract=economics_objective_contract,
         elapsed_wall_clock_seconds=closure["wall_clock_delta_seconds"],
@@ -323,7 +384,9 @@ def materialize_random_access_state_view(
         "schema_version": RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION,
         "action_order": list(EXIT_ACTION_ORDER),
         "sampler_contract_sha256": contract["contract_sha256"],
-        "sample_sha256": scheduled["sample_sha256"],
+        "sample_identity_sha256": sample_identity_sha256,
+        "sample_role": sample_role,
+        "loss_weight": loss_weight,
         "entry_row_index": entry_row_index,
         "entry_m1_start_row": entry_m1_start_row,
         "m1_source_sha256": m1_source_sha256,
@@ -344,14 +407,193 @@ def materialize_random_access_state_view(
         "policy_action_valid_mask": valid,
         "bellman_target_valid_mask": bellman,
         "successor_observed_mask": successor_observed,
+        "successor_policy_action_valid_mask": successor_policy,
+        "successor_terminal_mask": successor_terminal,
         "economic_projection_hashes_by_side": economics_hashes,
-        "terminal_mask": [False, False],
-        "right_censored_mask": [False, False],
+        "terminal_mask": current_terminal,
+        "right_censored_mask": current_censored,
         "capacity_or_tail_length_is_terminal": False,
         "test_data_used": False,
     }
     view["state_view_sha256"] = _structured_sha256(view)
     return view
+
+
+def require_random_access_state_view(
+    value: Mapping[str, Any],
+    *,
+    sampler_contract: Mapping[str, Any],
+    sample: Mapping[str, Any],
+    expected_m1_source_sha256: str,
+    expected_market_closure_authority_sha256: str,
+    expected_economic_step_manifest_sha256: str,
+    expected_economics_objective_contract_sha256: str,
+) -> dict[str, Any]:
+    """Fail closed on pack shape, byte hash and scheduled-sample linkage."""
+
+    contract = require_random_access_sampler_contract(sampler_contract)
+    scheduled_identity = (
+        require_random_access_entry_anchor(sample, sampler_contract=contract)[
+            "anchor_sha256"
+        ]
+        if "anchor_sha256" in sample
+        else require_random_access_sample(sample, sampler_contract=contract)[
+            "sample_sha256"
+        ]
+    )
+    if not isinstance(value, Mapping) or "state_view_sha256" not in value:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_INVALID")
+    observed = dict(value)
+    claimed = observed.pop("state_view_sha256")
+    required = {
+        "schema_version",
+        "action_order",
+        "sampler_contract_sha256",
+        "sample_identity_sha256",
+        "sample_role",
+        "loss_weight",
+        "entry_row_index",
+        "entry_m1_start_row",
+        "m1_source_sha256",
+        "m1_clock_sha256",
+        "market_closure_authority_sha256",
+        "lifetime_summary_registry_sha256",
+        "economic_step_manifest_sha256",
+        "economics_objective_contract_sha256",
+        "current",
+        "successor",
+        "transition_closure",
+        "elapsed_wall_clock_gamma",
+        "immediate_reward_bps",
+        "policy_action_valid_mask",
+        "bellman_target_valid_mask",
+        "successor_observed_mask",
+        "successor_policy_action_valid_mask",
+        "successor_terminal_mask",
+        "economic_projection_hashes_by_side",
+        "terminal_mask",
+        "right_censored_mask",
+        "capacity_or_tail_length_is_terminal",
+        "test_data_used",
+    }
+    if (
+        set(observed) != required
+        or claimed != _structured_sha256(observed)
+        or observed["schema_version"] != RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION
+        or observed["action_order"] != list(EXIT_ACTION_ORDER)
+        or observed["sampler_contract_sha256"] != contract["contract_sha256"]
+        or observed["sample_identity_sha256"] != scheduled_identity
+        or observed["m1_source_sha256"] != expected_m1_source_sha256
+        or observed["market_closure_authority_sha256"]
+        != expected_market_closure_authority_sha256
+        or observed["economic_step_manifest_sha256"]
+        != expected_economic_step_manifest_sha256
+        or observed["economics_objective_contract_sha256"]
+        != expected_economics_objective_contract_sha256
+        or observed["capacity_or_tail_length_is_terminal"] is not False
+        or observed["test_data_used"] is not False
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_INVALID")
+    current = observed["current"]
+    successor = observed["successor"]
+    view_keys = {
+        "state_index",
+        "m1_row_index",
+        "bar_start_time_ns",
+        "decision_time_ns",
+        "m1_local_history_start_row",
+        "m1_local_history_x",
+        "state_ctx_cont",
+        "state_ctx_cat",
+        "trade_path_start_state_index",
+        "trade_path_length",
+        "trade_path_tail_x",
+        "lifetime_summary_x",
+        "lifetime_summary_sha256_by_side",
+        "mtf",
+    }
+    if (
+        not isinstance(current, Mapping)
+        or not isinstance(successor, Mapping)
+        or set(current) != view_keys
+        or set(successor) != view_keys
+        or successor.get("state_index") != current.get("state_index", -2) + 1
+        or current.get("m1_local_history_x", np.empty(0)).shape[0]
+        != M1_LOCAL_HISTORY_ROWS
+        or successor.get("m1_local_history_x", np.empty(0)).shape[0]
+        != M1_LOCAL_HISTORY_ROWS
+        or not 1 <= current.get("trade_path_length", 0) <= TRADE_PATH_TAIL_MAX_ROWS
+        or not 1 <= successor.get("trade_path_length", 0) <= TRADE_PATH_TAIL_MAX_ROWS
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
+    for state in (current, successor):
+        local = state["m1_local_history_x"]
+        path = state["trade_path_tail_x"]
+        summary = state["lifetime_summary_x"]
+        if (
+            not isinstance(local, np.ndarray)
+            or local.dtype != np.dtype("float32")
+            or local.ndim != 2
+            or local.flags.writeable
+            or not isinstance(path, np.ndarray)
+            or path.dtype != np.dtype("float32")
+            or path.ndim != 3
+            or path.shape[:2] != (2, state["trade_path_length"])
+            or path.flags.writeable
+            or not isinstance(summary, np.ndarray)
+            or summary.dtype != np.dtype("float64")
+            or summary.shape != (2, LIFETIME_SUMMARY_DIM)
+            or summary.flags.writeable
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
+        mtf = state["mtf"]
+        expected_mtf_keys = {
+            f"exit_mtf_{kind}_{tf.lower()}"
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+            for kind in ("history", "history_time_ns", "gather")
+        }
+        if not isinstance(mtf, Mapping) or set(mtf) != expected_mtf_keys:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES:
+            suffix = tf.lower()
+            history = mtf[f"exit_mtf_history_{suffix}"]
+            history_time = mtf[f"exit_mtf_history_time_ns_{suffix}"]
+            gather = mtf[f"exit_mtf_gather_{suffix}"]
+            if (
+                not isinstance(history, np.ndarray)
+                or history.dtype != np.dtype("float32")
+                or history.ndim != 2
+                or history.shape[0] < 1
+                or history.flags.writeable
+                or not isinstance(history_time, np.ndarray)
+                or history_time.dtype != np.dtype("int64")
+                or history_time.shape != (history.shape[0],)
+                or history_time.flags.writeable
+                or not isinstance(gather, np.ndarray)
+                or gather.dtype != np.dtype("int64")
+                or gather.shape != (1,)
+                or gather.flags.writeable
+                or int(gather[0]) != history.shape[0] - 1
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID"
+                )
+    shapes = {
+        "immediate_reward_bps": (2, 2),
+        "policy_action_valid_mask": (2, 2),
+        "bellman_target_valid_mask": (2, 2),
+        "successor_observed_mask": (2,),
+        "successor_policy_action_valid_mask": (2, 2),
+        "successor_terminal_mask": (2,),
+        "terminal_mask": (2,),
+        "right_censored_mask": (2,),
+    }
+    for name, shape in shapes.items():
+        array = observed[name]
+        if not isinstance(array, np.ndarray) or array.shape != shape or array.flags.writeable:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
+    observed["state_view_sha256"] = claimed
+    return observed
 
 
 __all__ = (
@@ -360,4 +602,5 @@ __all__ = (
     "RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION",
     "TRADE_PATH_TAIL_MAX_ROWS",
     "materialize_random_access_state_view",
+    "require_random_access_state_view",
 )

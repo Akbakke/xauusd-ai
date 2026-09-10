@@ -28,10 +28,13 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     build_random_access_sampler_contract,
     canonical_sha256,
     duration_bucket_for_state,
+    schedule_random_access_entry_anchors,
 )
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     materialize_random_access_state_view,
+    require_random_access_state_view,
 )
+from gx1.contracts.entry_exit_feature_base_v1 import EXIT_MTF_CONTEXT_TIMEFRAMES
 
 
 def _clock() -> pd.DatetimeIndex:
@@ -100,7 +103,7 @@ def _sample(contract: dict, state_index: int) -> dict:
         "sampler_contract_sha256": contract["contract_sha256"],
         "epoch_index": 0,
         "entry_slot": 0,
-        "entry_row_index": 7,
+        "entry_row_index": 0,
         "sample_slot": 0,
         "duration_bucket_index": bucket,
         "duration_bucket_start_inclusive": start,
@@ -111,6 +114,7 @@ def _sample(contract: dict, state_index: int) -> dict:
         "successor_state_index": state_index + 1,
         "sampling_probability": 1.0 / 6.0 / (stop - start),
         "importance_weight": 1.0,
+        "sample_role": "bellman_transition",
         "both_sides_share_timeline": True,
         "selection_uses_outcome_values": False,
     }
@@ -145,6 +149,9 @@ def _objective() -> dict:
 
 
 class _EconomicProvider:
+    def __init__(self, closure_sha: str) -> None:
+        self.market_closure_authority_sha256 = closure_sha
+
     def materialize_training_projection(self, entry, side, start, stop, hold_stop):
         return seal_economic_training_projection(
             {
@@ -164,7 +171,14 @@ class _EconomicProvider:
         )
 
 
-def _materialize(state_index: int, *, known_gap: bool = True) -> dict:
+def _materialize(
+    state_index: int,
+    *,
+    known_gap: bool = True,
+    counts: tuple[int, int] = (600, 600),
+    terminals: tuple[bool, bool] = (False, False),
+    anchor: bool = False,
+) -> dict:
     clock = _clock()
     contract = _contract()
     signal = np.arange(len(clock) * 3, dtype=np.float32).reshape(len(clock), 3)
@@ -191,25 +205,54 @@ def _materialize(state_index: int, *, known_gap: bool = True) -> dict:
         "economic_step_model_sha256": "b" * 64,
         "economic_step_source_manifest_sha256": "c" * 64,
     }
-    return materialize_random_access_state_view(
+    authority = _authority(clock, known=known_gap)
+
+    def mtf(_times: np.ndarray) -> dict[str, np.ndarray]:
+        out = {}
+        for tf in EXIT_MTF_CONTEXT_TIMEFRAMES:
+            suffix = tf.lower()
+            out[f"exit_mtf_history_{suffix}"] = np.ones((3, 2), dtype=np.float32)
+            out[f"exit_mtf_history_time_ns_{suffix}"] = np.arange(3, dtype=np.int64)
+            out[f"exit_mtf_gather_{suffix}"] = np.asarray([2], dtype=np.int64)
+        return out
+
+    sample = (
+        schedule_random_access_entry_anchors(
+            sampler_contract=contract, epoch_index=0
+        )[0]
+        if anchor
+        else _sample(contract, state_index)
+    )
+    view = materialize_random_access_state_view(
         sampler_contract=contract,
-        sample=_sample(contract, state_index),
-        entry_row_index=7,
+        sample=sample,
+        entry_row_index=0,
         entry_m1_start_row=479,
-        side_lifecycle_state_counts=(600, 600),
+        side_lifecycle_state_counts=counts,
+        side_economic_terminal=terminals,
         m1_times=clock,
         m1_signal=signal,
         m1_ctx_cont=cont,
         m1_ctx_cat=cat,
         m1_source_sha256="2" * 64,
-        market_closure_authority=_authority(clock, known=known_gap),
+        market_closure_authority=authority,
         path_detail_provider=path,
         lifetime_summary_provider=summary,
-        mtf_materializer=lambda times: {"exit_m5_x": np.ones((len(times), 2, 3), dtype=np.float32)},
-        economic_step_provider=_EconomicProvider(),
+        mtf_materializer=mtf,
+        economic_step_provider=_EconomicProvider(authority["artifact_sha256"]),
         economic_step_manifest=manifest,
         economics_objective_contract=_objective(),
     )
+    require_random_access_state_view(
+        view,
+        sampler_contract=contract,
+        sample=sample,
+        expected_m1_source_sha256="2" * 64,
+        expected_market_closure_authority_sha256=authority["artifact_sha256"],
+        expected_economic_step_manifest_sha256="d" * 64,
+        expected_economics_objective_contract_sha256=_objective()["contract_sha256"],
+    )
+    return view
 
 
 def test_first_transition_has_480_local_rows_and_growing_trade_path() -> None:
@@ -218,8 +261,15 @@ def test_first_transition_has_480_local_rows_and_growing_trade_path() -> None:
     assert view["successor"]["m1_local_history_x"].shape == (480, 3)
     assert view["current"]["trade_path_tail_x"].shape == (2, 1, 2)
     assert view["successor"]["trade_path_tail_x"].shape == (2, 2, 2)
-    assert view["terminal_mask"] == [False, False]
+    assert view["terminal_mask"].tolist() == [False, False]
     assert view["capacity_or_tail_length_is_terminal"] is False
+
+
+def test_entry_anchor_materializes_state_zero_outside_loss_budget() -> None:
+    view = _materialize(0, anchor=True)
+    assert view["current"]["state_index"] == 0
+    assert view["sample_role"] == "entry_anchor_no_loss"
+    assert view["loss_weight"] == 0.0
 
 
 def test_deep_transition_uses_rolling_512_tail_and_exact_successor() -> None:
@@ -234,6 +284,15 @@ def test_deep_transition_uses_rolling_512_tail_and_exact_successor() -> None:
     assert view["policy_action_valid_mask"].all()
     assert view["bellman_target_valid_mask"].all()
     assert view["successor_observed_mask"].all()
+
+
+def test_successor_terminal_masks_hold_before_target_max() -> None:
+    view = _materialize(530, counts=(532, 600), terminals=(True, False))
+    assert view["successor_terminal_mask"].tolist() == [True, False]
+    assert view["successor_policy_action_valid_mask"].tolist() == [
+        [False, True],
+        [True, True],
+    ]
 
 
 def test_declared_closure_preserves_successor_but_unknown_gap_censors() -> None:
@@ -252,9 +311,10 @@ def test_split_end_or_side_shorter_than_successor_fails_closed() -> None:
         materialize_random_access_state_view(
             sampler_contract=contract,
             sample=_sample(contract, 4),
-            entry_row_index=7,
+            entry_row_index=0,
             entry_m1_start_row=479,
             side_lifecycle_state_counts=(5, 600),
+            side_economic_terminal=(False, False),
             m1_times=clock,
             m1_signal=np.ones((len(clock), 1), dtype=np.float32),
             m1_ctx_cont=np.ones((len(clock), 1), dtype=np.float32),
@@ -264,7 +324,28 @@ def test_split_end_or_side_shorter_than_successor_fails_closed() -> None:
             path_detail_provider=lambda *_: np.ones((1, 1), dtype=np.float32),
             lifetime_summary_provider=lambda *_: {},
             mtf_materializer=lambda *_: {},
-            economic_step_provider=_EconomicProvider(),
+            economic_step_provider=_EconomicProvider("0" * 64),
             economic_step_manifest={},
             economics_objective_contract={},
+        )
+
+
+def test_state_view_hash_tamper_fails_closed() -> None:
+    view = _materialize(0)
+    contract = _contract()
+    sample = _sample(contract, 0)
+    view["current"]["trade_path_length"] = 2
+    with pytest.raises(RuntimeError, match="STATE_VIEW_INVALID"):
+        require_random_access_state_view(
+            view,
+            sampler_contract=contract,
+            sample=sample,
+            expected_m1_source_sha256="2" * 64,
+            expected_market_closure_authority_sha256=view[
+                "market_closure_authority_sha256"
+            ],
+            expected_economic_step_manifest_sha256="d" * 64,
+            expected_economics_objective_contract_sha256=_objective()[
+                "contract_sha256"
+            ],
         )

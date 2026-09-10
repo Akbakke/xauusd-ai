@@ -11,6 +11,7 @@ from typing import Any
 
 RANDOM_ACCESS_SAMPLER_SCHEMA_VERSION = "gx1_unified_exit_random_access_sampler_v1"
 RANDOM_ACCESS_SAMPLE_SCHEMA_VERSION = "gx1_unified_exit_transition_sample_v1"
+RANDOM_ACCESS_ANCHOR_SCHEMA_VERSION = "gx1_unified_exit_entry_anchor_sample_v1"
 DURATION_BUCKETS: tuple[tuple[int, int | None], ...] = (
     (0, 1),
     (1, 4),
@@ -93,6 +94,9 @@ def build_random_access_sampler_contract(
         "bucket_schedule": "outcome_blind_cyclic_permutation_v1",
         "within_bucket_schedule": "outcome_blind_affine_cycle_v1",
         "sampling_target": "entry_pair_uniform_duration_bucket_uniform_v1",
+        "entry_anchor_policy": "one_state_zero_no_loss_view_per_selected_entry_v1",
+        "entry_anchor_views_per_selected_entry": 1,
+        "anchors_excluded_from_transition_budget": True,
         "common_timeline_both_sides": True,
         "forbidden_seed_fields": ["price", "reward", "label", "pnl", "side"],
         "test_data_used": False,
@@ -231,6 +235,7 @@ def schedule_random_access_epoch(
                     1.0 / population / len(eligible) / bucket_count
                 ),
                 "importance_weight": 1.0,
+                "sample_role": "bellman_transition",
                 "both_sides_share_timeline": True,
                 "selection_uses_outcome_values": False,
             }
@@ -239,6 +244,76 @@ def schedule_random_access_epoch(
     if len(samples) != contract["transition_budget_per_epoch"]:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BUDGET_DRIFT")
     return tuple(samples)
+
+
+def schedule_random_access_entry_anchors(
+    *, sampler_contract: Mapping[str, Any], epoch_index: int
+) -> tuple[dict[str, Any], ...]:
+    """Return mandatory state-zero bridge views outside the transition budget."""
+
+    contract = require_random_access_sampler_contract(sampler_contract)
+    if isinstance(epoch_index, bool) or not isinstance(epoch_index, int) or epoch_index < 0:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_EPOCH_INVALID")
+    population = contract["entry_pair_population"]
+    selected_count = contract["entry_pairs_per_epoch"]
+    entry_seed = _seed(contract, epoch_index=0, scope="entry", slot=0)
+    entry_a, entry_b = _affine_permutation(count=population, seed_sha256=entry_seed)
+    anchors: list[dict[str, Any]] = []
+    for entry_slot in range(selected_count):
+        entry_row_index = (
+            entry_a * (epoch_index * selected_count + entry_slot) + entry_b
+        ) % population
+        anchor = {
+            "schema_version": RANDOM_ACCESS_ANCHOR_SCHEMA_VERSION,
+            "sampler_contract_sha256": contract["contract_sha256"],
+            "epoch_index": epoch_index,
+            "entry_slot": entry_slot,
+            "entry_row_index": entry_row_index,
+            "state_index": 0,
+            "sample_role": "entry_anchor_no_loss",
+            "loss_weight": 0.0,
+            "both_sides_share_timeline": True,
+            "selection_uses_outcome_values": False,
+        }
+        anchor["anchor_sha256"] = canonical_sha256(anchor)
+        anchors.append(anchor)
+    return tuple(anchors)
+
+
+def require_random_access_entry_anchor(
+    value: Mapping[str, Any], *, sampler_contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    contract = require_random_access_sampler_contract(sampler_contract)
+    if not isinstance(value, Mapping) or "anchor_sha256" not in value:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ANCHOR_INVALID")
+    observed = dict(value)
+    claimed = observed.pop("anchor_sha256")
+    if (
+        set(observed)
+        != {
+            "schema_version",
+            "sampler_contract_sha256",
+            "epoch_index",
+            "entry_slot",
+            "entry_row_index",
+            "state_index",
+            "sample_role",
+            "loss_weight",
+            "both_sides_share_timeline",
+            "selection_uses_outcome_values",
+        }
+        or observed["schema_version"] != RANDOM_ACCESS_ANCHOR_SCHEMA_VERSION
+        or observed["sampler_contract_sha256"] != contract["contract_sha256"]
+        or observed["state_index"] != 0
+        or observed["sample_role"] != "entry_anchor_no_loss"
+        or observed["loss_weight"] != 0.0
+        or observed["both_sides_share_timeline"] is not True
+        or observed["selection_uses_outcome_values"] is not False
+        or claimed != canonical_sha256(observed)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ANCHOR_INVALID")
+    observed["anchor_sha256"] = claimed
+    return observed
 
 
 def require_random_access_sample(
@@ -267,6 +342,7 @@ def require_random_access_sample(
         "successor_state_index",
         "sampling_probability",
         "importance_weight",
+        "sample_role",
         "both_sides_share_timeline",
         "selection_uses_outcome_values",
     }
@@ -297,6 +373,7 @@ def require_random_access_sample(
         or not math.isfinite(probability)
         or probability <= 0.0
         or observed.get("importance_weight") != 1.0
+        or observed.get("sample_role") != "bellman_transition"
         or claimed != canonical_sha256(observed)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SAMPLE_INVALID")
@@ -351,12 +428,15 @@ def bucket_coverage_report(
 
 __all__ = (
     "DURATION_BUCKETS",
+    "RANDOM_ACCESS_ANCHOR_SCHEMA_VERSION",
     "RANDOM_ACCESS_SAMPLE_SCHEMA_VERSION",
     "RANDOM_ACCESS_SAMPLER_SCHEMA_VERSION",
     "bucket_coverage_report",
     "build_random_access_sampler_contract",
     "duration_bucket_for_state",
+    "require_random_access_entry_anchor",
     "require_random_access_sample",
     "require_random_access_sampler_contract",
     "schedule_random_access_epoch",
+    "schedule_random_access_entry_anchors",
 )
