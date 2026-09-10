@@ -215,8 +215,8 @@ def _state_component_sha256(value: Any) -> str:
 
 def _require_guard_only_recipe_transition(
     original: Mapping[str, Any], successor: Mapping[str, Any]
-) -> None:
-    """No learning, data, geometry, run-ID or scope change is transferable."""
+) -> frozenset[str]:
+    """Admit one exact runtime-safety owner repair without learning changes."""
     changed_metadata = {
         "created_utc", "out_bundle_dir", "source_commit",
         "source_bindings", "source_bindings_sha256",
@@ -240,8 +240,14 @@ def _require_guard_only_recipe_transition(
             raise RuntimeError("[GUARD_RECOVERY_SOURCE_PATH_CHANGED]")
         if (old["sha256"], old["size_bytes"]) != (new["sha256"], new["size_bytes"]):
             changed.add(name)
-    if changed != {"trainer_safety_guard"}:
+    allowed_repairs = (
+        frozenset({"trainer_safety_guard"}),
+        frozenset({"windows_power_keeper"}),
+    )
+    changed = frozenset(changed)
+    if changed not in allowed_repairs:
         raise RuntimeError(f"[GUARD_RECOVERY_NON_GUARD_SOURCE_CHANGED] {sorted(changed)}")
+    return changed
 
 
 def _require_source_state_successor_recipe_transition(
@@ -628,8 +634,19 @@ def _guard_recovery_timing(
     """
     guard_lines = guard_log.read_text(encoding="utf-8").splitlines()
     stop_lines = [line for line in guard_lines if " event=stop " in line]
-    if len(stop_lines) != 1 or " reason=guard_exit " not in stop_lines[0]:
+    if len(stop_lines) != 1:
         raise RuntimeError("[GUARD_RECOVERY_INCIDENT_STOP_INVALID]")
+    stop_fields = dict(re.findall(r"(\w+)=([^\s]+)", stop_lines[0]))
+    stop_reason = stop_fields.get("reason")
+    if stop_reason not in {"guard_exit", "power_benchmark_authorization_lost"}:
+        raise RuntimeError("[GUARD_RECOVERY_INCIDENT_STOP_INVALID]")
+    if stop_reason == "power_benchmark_authorization_lost":
+        fatal = [
+            line for line in guard_lines
+            if " event=fatal message=power benchmark keeper receipt or scope expired " in line
+        ]
+        if len(fatal) != 1:
+            raise RuntimeError("[GUARD_RECOVERY_POWER_RECEIPT_FAILURE_UNPROVEN]")
     stop = datetime.fromisoformat(stop_lines[0].split()[0].replace("Z", "+00:00"))
     rows = trainer_log.read_text(encoding="utf-8").splitlines()
     step_rows = [line for line in rows if re.search(r"\[TRAIN_STEP\] batch=\d+ step_done$", line)]
@@ -660,6 +677,7 @@ def _guard_recovery_timing(
         "saved_update_precedes_guard_exit": True,
         "telemetry_after_guard_exit_proven": False,
         "checkpoint_serialization_is_not_an_optimizer_update": True,
+        "guard_stop_reason": stop_reason,
     }
 
 
@@ -736,7 +754,7 @@ def prepare_guard_recovery(args: argparse.Namespace) -> dict[str, Any]:
     successor = require_pretest_technical_recipe_metadata(
         json.loads(args.successor_recipe_json.read_text()), expected_profile="candidate"
     )
-    _require_guard_only_recipe_transition(original, successor)
+    changed_roles = _require_guard_only_recipe_transition(original, successor)
     provenance = require_training_recipe_source_provenance(
         recipe_audit_path=args.successor_recipe_json,
         recipe_audit_sha256=args.successor_recipe_sha256,
@@ -753,11 +771,14 @@ def prepare_guard_recovery(args: argparse.Namespace) -> dict[str, Any]:
         frozen = subprocess.check_output(["git", "-C", str(repo), "show", f"{original['source_commit']}:{relative}"])
         if hashlib.sha256(frozen).hexdigest() != binding["sha256"]:
             raise RuntimeError("[GUARD_RECOVERY_ORIGINAL_SOURCE_UNPROVEN]")
-    guard_binding = successor["source_bindings"]["trainer_safety_guard"]
-    relative_guard = Path(guard_binding["path"]).relative_to(repo)
-    repaired = subprocess.check_output(["git", "-C", str(repo), "show", f"{args.guard_repair_commit}:{relative_guard}"])
-    if hashlib.sha256(repaired).hexdigest() != guard_binding["sha256"]:
-        raise RuntimeError("[GUARD_RECOVERY_REPAIR_SOURCE_MISMATCH]")
+    for role in changed_roles:
+        repair_binding = successor["source_bindings"][role]
+        relative_repair = Path(repair_binding["path"]).relative_to(repo)
+        repaired = subprocess.check_output(
+            ["git", "-C", str(repo), "show", f"{args.guard_repair_commit}:{relative_repair}"]
+        )
+        if hashlib.sha256(repaired).hexdigest() != repair_binding["sha256"]:
+            raise RuntimeError("[GUARD_RECOVERY_REPAIR_SOURCE_MISMATCH]")
 
     original_output = Path(original["out_bundle_dir"])
     original_dir = original_output.parent / (trainer._CANDIDATE_TRAINING_SESSION_DIR_PREFIX + original_output.name)
@@ -846,7 +867,7 @@ def prepare_guard_recovery(args: argparse.Namespace) -> dict[str, Any]:
         "guard_repair_commit": args.guard_repair_commit,
         "source_commit": subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip(),
         "producer": bound(Path(__file__).resolve()),
-        "changed_recipe_source_bindings": ["trainer_safety_guard"],
+        "changed_recipe_source_bindings": sorted(changed_roles),
         "unchanged_state_component_sha256": preserved,
         "successor_session_dir": str(successor_dir),
         "successor_contract_sha256": staged_session.contract_sha256,

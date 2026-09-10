@@ -59,12 +59,24 @@ def _transition() -> tuple[dict, dict]:
 
 def test_guard_recovery_admits_only_guard_source_change() -> None:
     old, new = _transition()
-    _require_guard_only_recipe_transition(old, new)
+    assert _require_guard_only_recipe_transition(old, new) == frozenset({"trainer_safety_guard"})
     new["source_bindings"]["trainer"]["mtime_ns"] = 123
-    _require_guard_only_recipe_transition(old, new)
+    assert _require_guard_only_recipe_transition(old, new) == frozenset({"trainer_safety_guard"})
 
 
-@pytest.mark.parametrize("change", ["model", "data", "batch", "run_id", "same_output", "closure", "guard_path", "no_repair"])
+def test_guard_recovery_admits_only_windows_keeper_source_change() -> None:
+    old, new = _transition()
+    old["source_bindings"]["windows_power_keeper"] = {
+        "path": "/repo/windows-keeper", "sha256": "old-windows", "size_bytes": 3,
+    }
+    new = copy.deepcopy(old)
+    new["source_commit"] = "new"
+    new["out_bundle_dir"] = "/data/successor"
+    new["source_bindings"]["windows_power_keeper"]["sha256"] = "new-windows"
+    assert _require_guard_only_recipe_transition(old, new) == frozenset({"windows_power_keeper"})
+
+
+@pytest.mark.parametrize("change", ["model", "data", "batch", "run_id", "same_output", "closure", "guard_path", "no_repair", "two_repairs"])
 def test_guard_recovery_rejects_semantic_and_identity_changes(change: str) -> None:
     old, new = _transition()
     if change == "model":
@@ -83,6 +95,13 @@ def test_guard_recovery_rejects_semantic_and_identity_changes(change: str) -> No
         new["source_bindings"]["trainer_safety_guard"]["path"] = "/other/guard"
     elif change == "no_repair":
         new["source_bindings"] = copy.deepcopy(old["source_bindings"])
+    elif change == "two_repairs":
+        old["source_bindings"]["windows_power_keeper"] = {
+            "path": "/repo/windows-keeper", "sha256": "old-windows", "size_bytes": 3,
+        }
+        new["source_bindings"]["windows_power_keeper"] = {
+            "path": "/repo/windows-keeper", "sha256": "new-windows", "size_bytes": 3,
+        }
     with pytest.raises(RuntimeError, match="GUARD_RECOVERY"):
         _require_guard_only_recipe_transition(old, new)
 
@@ -248,9 +267,9 @@ def test_exact_state_successor_rejects_learning_recipe_change() -> None:
     repo = Path(__file__).resolve().parents[1]
     original, successor = _transition()
     original["source_commit"] = "f47445a44b1566f0cee2bc1dc73c815d257fe6bb"
-    successor["source_commit"] = recovery.subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=repo, text=True
-    ).strip()
+    # Pin the historical exact-state successor boundary. Later guard-only
+    # commits must not silently expand that one-time source-delta contract.
+    successor["source_commit"] = "fd147dee4ba3c0c2b9c6dcef94f86f33eb302842"
     successor["run_id"] = "successor-run"
     successor["source_bindings"] = copy.deepcopy(original["source_bindings"])
     successor["source_bindings"]["trainer"]["sha256"] = "changed"
@@ -602,6 +621,30 @@ def test_guard_recovery_distinguishes_update_from_later_serialization(tmp_path: 
     proof = _guard_recovery_timing(guard_log=guard, trainer_log=child, pointer=pointer, session_dir=Path("/original"))
     assert proof["saved_update_precedes_guard_exit"] is True
     assert proof["telemetry_after_guard_exit_proven"] is False
+    assert proof["guard_stop_reason"] == "guard_exit"
+
+
+def test_guard_recovery_accepts_exact_power_receipt_loss_incident(tmp_path: Path) -> None:
+    guard, child, pointer = _incident_logs(tmp_path)
+    guard.write_text(
+        "2026-09-05T19:56:32Z event=stop reason=power_benchmark_authorization_lost pid=601955 stage=canonical\n"
+        "2026-09-05T19:56:33Z event=fatal message=power benchmark keeper receipt or scope expired telemetry_samples=1\n"
+    )
+    proof = _guard_recovery_timing(
+        guard_log=guard, trainer_log=child, pointer=pointer, session_dir=Path("/original")
+    )
+    assert proof["guard_stop_reason"] == "power_benchmark_authorization_lost"
+
+
+def test_guard_recovery_rejects_unproven_power_receipt_loss(tmp_path: Path) -> None:
+    guard, child, pointer = _incident_logs(tmp_path)
+    guard.write_text(
+        "2026-09-05T19:56:32Z event=stop reason=power_benchmark_authorization_lost pid=601955 stage=canonical\n"
+    )
+    with pytest.raises(RuntimeError, match="POWER_RECEIPT_FAILURE_UNPROVEN"):
+        _guard_recovery_timing(
+            guard_log=guard, trainer_log=child, pointer=pointer, session_dir=Path("/original")
+        )
 
 
 @pytest.mark.parametrize("change", ["late_update", "wrong_steps", "wrong_session", "later_batch", "different_stop"])
