@@ -141,10 +141,13 @@ def test_dry_readiness_is_exact_blocked_and_does_not_write(tmp_path: Path) -> No
         "val_may_fit": False,
     }
     validate = report["commands"]["lifecycle_validate_no_publish"]
-    assert "--validate-no-publish" in validate
+    assert "--publish" not in validate
     assert "--m1-source-parquet" in validate
     assert "--m1-source-manifest" in validate
     assert "--execute" not in validate
+    assert report["commands"]["lifecycle_publish_after_validate_pass"][-1] == (
+        "--publish"
+    )
     assert "--execute" not in report["commands"]["canonical_launch_dry_run"]
     assert report["commands"]["canonical_launch_dry_run"][-1] == "--dry-run"
     assert report["cuda_execution_authorized"] is False
