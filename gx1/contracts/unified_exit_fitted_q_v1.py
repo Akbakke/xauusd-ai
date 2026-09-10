@@ -11,17 +11,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import torch
 
 
-UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v2"
-UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
+UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v4"
+UNIFIED_EXIT_FITTED_Q_GAMMA = "exp(-rho*delta_wall_clock)"
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
-UNIFIED_EXIT_FITTED_Q_TARGET_UNIT = "raw_bps"
+UNIFIED_EXIT_FITTED_Q_TARGET_UNIT = "discounted_net_cash_pnl_utility_bps"
 UNIFIED_EXIT_FIRST_STATE_VALUE_SCHEMA_VERSION = (
     "gx1_unified_exit_first_state_target_value_v1"
 )
@@ -62,7 +64,9 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "target_unit": UNIFIED_EXIT_FITTED_Q_TARGET_UNIT,
         "gamma": UNIFIED_EXIT_FITTED_Q_GAMMA,
         "intermediate_hold_reward_bps": 0.0,
-        "exit_target": "current_executable_trade_pnl_bps",
+        "capital_hurdle_double_counted_in_hold_reward": False,
+        "exit_reward_unit": "undiscounted_net_cash_pnl_bps",
+        "exit_target": "current_executable_net_cash_trade_pnl_bps",
         "hold_target": "stop_gradient(max_valid_q_target_at_next_causal_state)",
         "entry_bridge": (
             "stop_gradient(max_valid_q_target_at_first_authoritative_"
@@ -76,8 +80,15 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "terminal_owner": "explicit_economic_lifecycle_only",
         "chunk_capacity_is_terminal": False,
         "nonterminal_chunk_boundary": (
-            "explicit_stop_gradient_successor_target_q"
+            "explicit_successor_state_evaluated_by_frozen_target_network"
         ),
+        "right_censored_boundary": (
+            "runtime_hold_valid_but_hold_supervision_masked"
+        ),
+        "reporting": {
+            "economic_pnl": "undiscounted_net_cash_pnl_bps",
+            "training_utility": UNIFIED_EXIT_FITTED_Q_TARGET_UNIT,
+        },
         "pathwise_hindsight_max_is_training_target": False,
         "pathwise_hindsight_role": "diagnostic_upper_bound_only",
         "double_q": {
@@ -153,6 +164,10 @@ def build_unified_exit_fitted_q_targets(
     terminal_reason_index: torch.Tensor,
     chunk_successor_target_q_bps: torch.Tensor | None = None,
     chunk_successor_action_valid_mask: torch.Tensor | None = None,
+    bellman_target_valid_mask: torch.Tensor | None = None,
+    successor_observed_mask: torch.Tensor | None = None,
+    right_censored_boundary_mask: torch.Tensor | None = None,
+    transition_discount: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Build one stop-gradient Bellman target tensor.
 
@@ -193,6 +208,38 @@ def build_unified_exit_fitted_q_targets(
     if bool((action_valid_mask[..., 0] != (state_valid_mask & ~terminal_mask)).any().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_HOLD_ACTION_MASK_INVALID")
 
+    target_valid = (
+        action_valid_mask
+        if bellman_target_valid_mask is None
+        else bellman_target_valid_mask
+    )
+    if (
+        tuple(target_valid.shape) != tuple(action_valid_mask.shape)
+        or target_valid.dtype != torch.bool
+        or bool((target_valid & ~action_valid_mask).any().item())
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FITTED_Q_SUPERVISION_MASK_INVALID")
+    if successor_observed_mask is not None:
+        if (
+            tuple(successor_observed_mask.shape) != tuple(expected_state_shape)
+            or successor_observed_mask.dtype != torch.bool
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FITTED_Q_SUCCESSOR_MASK_INVALID")
+        expected_target_valid = action_valid_mask.clone()
+        expected_target_valid[..., 0] &= successor_observed_mask
+        if not torch.equal(target_valid, expected_target_valid):
+            raise RuntimeError("UNIFIED_EXIT_FITTED_Q_SUCCESSOR_MASK_INVALID")
+    discount = (
+        torch.ones_like(exit_now_reward_bps)
+        if transition_discount is None
+        else transition_discount
+    )
+    if (
+        tuple(discount.shape) != tuple(expected_state_shape)
+        or not bool(torch.isfinite(discount).all().item())
+        or bool(((discount <= 0.0) | (discount > 1.0)).any().item())
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TRANSITION_DISCOUNT_INVALID")
     target_q = exit_now_reward_bps.new_zeros(frozen_target_q_bps.shape)
     target_q[..., 1] = exit_now_reward_bps
     if frozen_target_q_bps.shape[-2] > 1:
@@ -201,15 +248,29 @@ def build_unified_exit_fitted_q_targets(
         if bool((~next_valid.any(dim=-1) & state_valid_mask[..., 1:]).any().item()):
             raise RuntimeError("UNIFIED_EXIT_FITTED_Q_NEXT_ACTION_MASK_EMPTY")
         next_value = next_q.masked_fill(~next_valid, -torch.inf).amax(dim=-1)
-        hold_rows = action_valid_mask[..., :-1, 0]
+        hold_rows = target_valid[..., :-1, 0]
         if not bool(torch.isfinite(next_value[hold_rows]).all().item()):
             raise RuntimeError("UNIFIED_EXIT_FITTED_Q_NEXT_VALUE_NONFINITE")
         target_q[..., :-1, 0] = torch.where(
             hold_rows,
-            next_value,
+            discount[..., :-1] * next_value,
             torch.zeros_like(next_value),
         )
-    boundary_hold = action_valid_mask[..., -1, 0]
+    boundary_hold = target_valid[..., -1, 0]
+    censored_boundary = action_valid_mask[..., -1, 0] & ~boundary_hold
+    if bool(censored_boundary.any().item()):
+        if (
+            right_censored_boundary_mask is None
+            or tuple(right_censored_boundary_mask.shape)
+            != tuple(censored_boundary.shape)
+            or right_censored_boundary_mask.dtype != torch.bool
+            or not torch.equal(
+                right_censored_boundary_mask, censored_boundary
+            )
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_FITTED_Q_RIGHT_CENSOR_MASK_REQUIRED"
+            )
     if bool(boundary_hold.any().item()):
         if (
             chunk_successor_target_q_bps is None
@@ -236,23 +297,22 @@ def build_unified_exit_fitted_q_targets(
             raise RuntimeError("UNIFIED_EXIT_FITTED_Q_CHUNK_SUCCESSOR_NONFINITE")
         target_q[..., -1, 0] = torch.where(
             boundary_hold,
-            successor_value,
+            discount[..., -1] * successor_value,
             target_q[..., -1, 0],
         )
-    if not bool(torch.isfinite(target_q[action_valid_mask]).all().item()):
+    if not bool(torch.isfinite(target_q[target_valid]).all().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TARGET_NONFINITE")
-    return target_q.detach(), action_valid_mask
+    return target_q.detach(), target_valid
 
 
 def require_unified_exit_unbounded_training_readiness(
     value: Mapping[str, Any] | None, *, context: str
 ) -> dict[str, Any]:
-    """Admit gamma=1 unbounded training only with an explicit proper policy.
+    """Admit only hash-bound, TRAIN-owned contractive Exit economics.
 
-    The repository currently has no approved economic terminal definition or
-    proof that the undiscounted policy terminates almost surely.  Old
-    capacity-terminal datasets therefore fail here instead of silently
-    treating chunk length as trade lifetime.
+    The gamma=1 alternative remains blocked until a separate machine-verified
+    proper-policy and running-capital-charge owner exists.  A boolean claim is
+    insufficient.  Capacity-terminal datasets also fail this boundary.
     """
 
     if not isinstance(value, Mapping):
@@ -262,19 +322,68 @@ def require_unified_exit_unbounded_training_readiness(
     observed = dict(value)
     expected_keys = {
         "schema_version",
+        "mode",
+        "qualification_artifact_path",
+        "qualification_artifact_sha256",
         "economic_terminal_policy_sha256",
-        "undiscounted_proper_policy_proven",
+        "train_capital_hurdle_annual_rate",
+        "train_capital_hurdle_source_sha256",
+        "hold_running_capital_charge_bps_per_second",
+        "proper_policy_certificate_sha256",
+        "test_data_used",
     }
-    digest = observed.get("economic_terminal_policy_sha256")
+    mode = observed.get("mode")
+    artifact_path = Path(str(observed.get("qualification_artifact_path") or ""))
+    artifact_sha = observed.get("qualification_artifact_sha256")
     if (
         set(observed) != expected_keys
         or observed.get("schema_version")
-        != "gx1_unified_exit_unbounded_training_readiness_v1"
-        or observed.get("undiscounted_proper_policy_proven") is not True
-        or not isinstance(digest, str)
-        or len(digest) != 64
-        or any(character not in "0123456789abcdef" for character in digest)
+        != "gx1_unified_exit_training_economics_readiness_v2"
+        or mode
+        != "elapsed_time_discount_v1"
+        or not artifact_path.is_absolute()
+        or artifact_path.is_symlink()
+        or not artifact_path.is_file()
+        or observed.get("test_data_used") is not False
     ):
+        raise RuntimeError(
+            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+        )
+    for digest in (
+        artifact_sha,
+        observed.get("economic_terminal_policy_sha256"),
+    ):
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise RuntimeError(
+                f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+            )
+    if hashlib.sha256(artifact_path.read_bytes()).hexdigest() != artifact_sha:
+        raise RuntimeError(
+            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+        )
+    hurdle = observed.get("train_capital_hurdle_annual_rate")
+    hurdle_sha = observed.get("train_capital_hurdle_source_sha256")
+    running_charge = observed.get("hold_running_capital_charge_bps_per_second")
+    proper_certificate = observed.get("proper_policy_certificate_sha256")
+    valid_mode = (
+        isinstance(hurdle, (int, float))
+        and not isinstance(hurdle, bool)
+        and math.isfinite(float(hurdle))
+        and float(hurdle) > 0.0
+        and isinstance(hurdle_sha, str)
+        and len(hurdle_sha) == 64
+        and all(c in "0123456789abcdef" for c in hurdle_sha)
+        and isinstance(running_charge, (int, float))
+        and not isinstance(running_charge, bool)
+        and math.isfinite(float(running_charge))
+        and float(running_charge) == 0.0
+        and proper_certificate is None
+    )
+    if not valid_mode:
         raise RuntimeError(
             f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
         )

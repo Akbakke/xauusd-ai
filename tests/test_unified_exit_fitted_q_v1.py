@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 import torch
 
@@ -151,6 +153,60 @@ def test_capacity_terminal_and_missing_unbounded_readiness_fail_closed():
     ):
         require_unified_exit_unbounded_training_readiness(
             None, context="UNIT"
+        )
+
+
+def test_right_censor_separates_policy_validity_from_bellman_mask():
+    q = torch.zeros((1, 1, 2, 2), dtype=torch.float32)
+    q[..., 1, 1] = 10.0
+    rewards = torch.zeros((1, 1, 2), dtype=torch.float32)
+    state_valid = torch.ones((1, 1, 2), dtype=torch.bool)
+    terminal = torch.zeros_like(state_valid)
+    reason = torch.zeros_like(state_valid, dtype=torch.long)
+    policy_valid = torch.ones_like(q, dtype=torch.bool)
+    bellman_valid = policy_valid.clone()
+    bellman_valid[..., -1, 0] = False
+    targets, target_mask = build_unified_exit_fitted_q_targets(
+        frozen_target_q_bps=q,
+        exit_now_reward_bps=rewards,
+        action_valid_mask=policy_valid,
+        state_valid_mask=state_valid,
+        terminal_mask=terminal,
+        terminal_reason_index=reason,
+        bellman_target_valid_mask=bellman_valid,
+        successor_observed_mask=torch.tensor([[[True, False]]]),
+        right_censored_boundary_mask=torch.ones((1, 1), dtype=torch.bool),
+        transition_discount=torch.tensor([[[0.5, 1.0]]]),
+    )
+    assert policy_valid[..., -1, 0].item() is True
+    assert target_mask[..., -1, 0].item() is False
+    assert targets[..., 0, 0].item() == 5.0
+
+
+def test_economics_readiness_binds_real_artifact_and_contractivity(tmp_path):
+    artifact = tmp_path / "economics.json"
+    artifact.write_text('{"decision":"PASS"}')
+    readiness = {
+        "schema_version": "gx1_unified_exit_training_economics_readiness_v2",
+        "mode": "elapsed_time_discount_v1",
+        "qualification_artifact_path": str(artifact),
+        "qualification_artifact_sha256": hashlib.sha256(
+            artifact.read_bytes()
+        ).hexdigest(),
+        "economic_terminal_policy_sha256": "a" * 64,
+        "train_capital_hurdle_annual_rate": 0.08,
+        "train_capital_hurdle_source_sha256": "b" * 64,
+        "hold_running_capital_charge_bps_per_second": 0.0,
+        "proper_policy_certificate_sha256": None,
+        "test_data_used": False,
+    }
+    assert require_unified_exit_unbounded_training_readiness(
+        readiness, context="UNIT"
+    )["mode"] == "elapsed_time_discount_v1"
+    readiness["mode"] = "undiscounted_proper_policy_v1"
+    with pytest.raises(RuntimeError, match="PROPER_POLICY_REQUIRED"):
+        require_unified_exit_unbounded_training_readiness(
+            readiness, context="UNIT"
         )
 
 

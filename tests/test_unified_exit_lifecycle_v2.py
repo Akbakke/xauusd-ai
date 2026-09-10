@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_FEATURE_SEQUENCE_BARS,
@@ -30,6 +33,9 @@ from gx1.contracts.unified_exit_lifecycle_v2 import (
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_FEATURE_DIM,
+)
+from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+    _fitted_q_targets_for_chunk_v2,
 )
 
 
@@ -117,20 +123,28 @@ def test_chunk_schedule_is_deterministic_outcome_blind_permutation():
     order = outcome_blind_chunk_permutation(**identity)
     assert sorted(order) == list(range(7))
     assert order == outcome_blind_chunk_permutation(**identity)
+    assert order == outcome_blind_chunk_permutation(**{**identity, "side_index": 0})
     assert [
         outcome_blind_chunk_index(epoch_index=epoch, **identity)
         for epoch in range(14)
     ] == list(order) * 2
-def _pack(*, chunk_start: int, valid_count: int, successor: bool, censored: bool):
+def _pack(
+    *,
+    chunk_start: int,
+    valid_count: int,
+    successor: bool,
+    censored: bool,
+    qualification_artifact,
+):
     encoded = chunk_start + valid_count + int(successor)
     warm = EXIT_FEATURE_SEQUENCE_BARS - 1
     base = pd.Timestamp("2025-01-01T00:00:00Z").value
     local_times = base + np.arange(warm + encoded, dtype=np.int64) * 60_000_000_000
     state_times = local_times[warm:]
-    action_valid = np.ones((2, valid_count, 2), dtype=np.bool_)
+    action_valid = np.ones((valid_count, 2), dtype=np.bool_)
     supervision = action_valid.copy()
-    successor_observed = np.ones((2, valid_count), dtype=np.bool_)
-    successor_observed[:, -1] = successor
+    successor_observed = np.ones(valid_count, dtype=np.bool_)
+    successor_observed[-1] = successor
     supervision[..., 0] &= successor_observed
     value = {
         "schema_version": UNIFIED_EXIT_EPISODE_PACK_V2_SCHEMA_VERSION,
@@ -154,8 +168,10 @@ def _pack(*, chunk_start: int, valid_count: int, successor: bool, censored: bool
         "unbounded_exit_training_readiness": {
             "schema_version": "gx1_unified_exit_training_economics_readiness_v2",
             "mode": "elapsed_time_discount_v1",
-            "qualification_artifact_path": "/immutable/train/economics.json",
-            "qualification_artifact_sha256": "8" * 64,
+            "qualification_artifact_path": str(qualification_artifact),
+            "qualification_artifact_sha256": hashlib.sha256(
+                qualification_artifact.read_bytes()
+            ).hexdigest(),
             "economic_terminal_policy_sha256": "7" * 64,
             "train_capital_hurdle_annual_rate": 0.05,
             "train_capital_hurdle_source_sha256": "9" * 64,
@@ -176,16 +192,16 @@ def _pack(*, chunk_start: int, valid_count: int, successor: bool, censored: bool
         "exit_state_row_time_ns": state_times,
         "exit_decision_time_ns": state_times + 60_000_000_000,
         "exit_path_x": np.zeros(
-            (2, encoded, UNIFIED_EXIT_PATH_FEATURE_DIM), dtype=np.float32
+            (encoded, UNIFIED_EXIT_PATH_FEATURE_DIM), dtype=np.float32
         ),
-        "exit_entry_bid_ask": np.asarray([[1.0, 1.1], [1.0, 1.1]]),
-        "exit_now_reward_bps": np.zeros((2, valid_count), dtype=np.float32),
+        "exit_entry_bid_ask": np.asarray([1.0, 1.1]),
+        "exit_now_reward_bps": np.zeros(valid_count, dtype=np.float32),
         "exit_policy_action_valid_mask": action_valid,
         "exit_bellman_target_valid_mask": supervision,
         "exit_successor_observed_mask": successor_observed,
-        "exit_state_valid_mask": np.ones((2, valid_count), dtype=np.bool_),
-        "exit_terminal_mask": np.zeros((2, valid_count), dtype=np.bool_),
-        "exit_terminal_reason_index": np.zeros((2, valid_count), dtype=np.int64),
+        "exit_state_valid_mask": np.ones(valid_count, dtype=np.bool_),
+        "exit_terminal_mask": np.zeros(valid_count, dtype=np.bool_),
+        "exit_terminal_reason_index": np.zeros(valid_count, dtype=np.int64),
     }
     for tf in (name.lower() for name in EXIT_MTF_CONTEXT_TIMEFRAMES):
         value[f"exit_mtf_history_{tf}"] = np.zeros(
@@ -201,13 +217,16 @@ def _pack(*, chunk_start: int, valid_count: int, successor: bool, censored: bool
     [(0, 512, True, False), (512, 188, False, True)],
 )
 def test_episode_pack_v2_carries_full_prefix_and_censor_semantics(
-    chunk_start, valid_count, successor, censored
+    chunk_start, valid_count, successor, censored, tmp_path
 ):
+    qualification_artifact = tmp_path / "economics.json"
+    qualification_artifact.write_text('{"decision":"PASS"}')
     pack = _pack(
         chunk_start=chunk_start,
         valid_count=valid_count,
         successor=successor,
         censored=censored,
+        qualification_artifact=qualification_artifact,
     )
     require_unified_exit_episode_pack_v2(
         pack,
@@ -218,3 +237,59 @@ def test_episode_pack_v2_carries_full_prefix_and_censor_semantics(
     assert len(pack["exit_local_history_x"]) == (
         479 + chunk_start + valid_count + int(successor)
     )
+
+
+def test_lifecycle_v2_right_censors_before_unknown_clock_gap():
+    before = pd.date_range("2025-01-01", periods=700, freq="min", tz="UTC")
+    after = pd.date_range(before[-1] + pd.Timedelta(minutes=3), periods=30, freq="min")
+    times = before.append(after)
+    terminals = {(0, 0): None, (0, 1): None}
+    chunks, _manifest = build_unified_exit_lifecycle_chunks_v2(
+        entry_m1_start_rows=[100],
+        m1_times=times,
+        split="train",
+        split_end=times[-1] + pd.Timedelta(minutes=1),
+        terminal_state_count_by_entry_side=terminals,
+        economic_lifecycle_authority=_authority(terminals),
+        m1_source_sha256="3" * 64,
+    )
+    for side_index in (0, 1):
+        rows = chunks.loc[chunks["side_index"] == side_index]
+        assert rows["valid_state_count"].tolist() == [512, 88]
+        assert rows.iloc[-1]["right_censored"]
+
+
+def test_trainer_v2_bootstraps_from_frozen_successor_state(tmp_path):
+    qualification_artifact = tmp_path / "economics.json"
+    qualification_artifact.write_text('{"decision":"PASS"}')
+    pack = _pack(
+        chunk_start=0,
+        valid_count=3,
+        successor=True,
+        censored=False,
+        qualification_artifact=qualification_artifact,
+    )
+
+    class _Target:
+        training = False
+
+        def forward_exit_incremental_prefix(self, **kwargs):
+            state_count = kwargs["exit_path_x"].shape[2]
+            q = torch.zeros((1, 2, state_count, 2), dtype=torch.float32)
+            q[0, 0, -1] = torch.tensor([3.0, 7.0])
+            return {
+                "exit_action_q_bps": q,
+                "exit_action_valid_mask": torch.ones_like(q, dtype=torch.bool),
+            }
+
+    targets, target_mask, _current = _fitted_q_targets_for_chunk_v2(
+        target_model=_Target(),
+        target_entry_decision_representation=torch.zeros((1, 256)),
+        chunk_pack=pack,
+        per_tf_seq_lens={name: 2 for name in EXIT_MTF_CONTEXT_TIMEFRAMES},
+        expected_mtf_cache_identity_sha256="6" * 64,
+        device=torch.device("cpu"),
+    )
+    assert targets.shape == (1, 1, 3, 2)
+    assert target_mask[0, 0, -1, 0]
+    assert 6.99 < float(targets[0, 0, -1, 0]) < 7.0

@@ -189,6 +189,9 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
     require_unified_exit_episode_pack,
     seal_unified_exit_episode_pack,
 )
+from gx1.contracts.unified_exit_episode_pack_v2 import (
+    require_unified_exit_episode_pack_v2,
+)
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
@@ -6243,26 +6246,6 @@ def _fitted_q_targets_for_episode(
                     episode["exit_terminal_reason_index"], dtype=np.int64
                 )
             ).unsqueeze(0).to(device),
-            chunk_successor_target_q_bps=(
-                torch.from_numpy(
-                    np.asarray(
-                        episode["exit_chunk_successor_target_q_bps"],
-                        dtype=np.float32,
-                    )
-                ).unsqueeze(0).to(device)
-                if "exit_chunk_successor_target_q_bps" in episode
-                else None
-            ),
-            chunk_successor_action_valid_mask=(
-                torch.from_numpy(
-                    np.asarray(
-                        episode["exit_chunk_successor_action_valid_mask"],
-                        dtype=np.bool_,
-                    )
-                ).unsqueeze(0).to(device)
-                if "exit_chunk_successor_action_valid_mask" in episode
-                else None
-            ),
         )
     if targets.requires_grad or target_mask.requires_grad:
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_TARGET_NOT_FROZEN]")
@@ -6318,26 +6301,6 @@ def _fitted_q_targets_for_episode_batch(
                     axis=0,
                 ).astype(np.int64, copy=False)
             ).to(device),
-            chunk_successor_target_q_bps=(
-                torch.from_numpy(
-                    np.stack(
-                        [episode["exit_chunk_successor_target_q_bps"] for episode in episodes],
-                        axis=0,
-                    ).astype(np.float32, copy=False)
-                ).to(device)
-                if all("exit_chunk_successor_target_q_bps" in episode for episode in episodes)
-                else None
-            ),
-            chunk_successor_action_valid_mask=(
-                torch.from_numpy(
-                    np.stack(
-                        [episode["exit_chunk_successor_action_valid_mask"] for episode in episodes],
-                        axis=0,
-                    ).astype(np.bool_, copy=False)
-                ).to(device)
-                if all("exit_chunk_successor_action_valid_mask" in episode for episode in episodes)
-                else None
-            ),
         )
         first_side_values = unified_exit_first_state_side_values(
             frozen_target_q_bps=target_q,
@@ -6352,6 +6315,179 @@ def _fitted_q_targets_for_episode_batch(
         first_side_values,
         first_side_valid,
     )
+
+
+def _fitted_q_targets_for_chunk_v2(
+    *,
+    target_model: nn.Module,
+    target_entry_decision_representation: torch.Tensor,
+    chunk_pack: Mapping[str, Any],
+    per_tf_seq_lens: Mapping[str, int],
+    expected_mtf_cache_identity_sha256: str,
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Evaluate one full causal prefix and bootstrap its chunk successor.
+
+    Later chunks deliberately rescan the prefix in this first correct owner.
+    Replacing that scan with persisted learned carry is an optimization and
+    must prove state/gradient equivalence before it can replace this route.
+    """
+
+    if target_model.training:
+        raise RuntimeError("[UNIFIED_EXIT_TARGET_MODEL_MUST_BE_FROZEN_EVAL]")
+    pack = require_unified_exit_episode_pack_v2(
+        chunk_pack,
+        per_tf_seq_lens=per_tf_seq_lens,
+        expected_mtf_cache_identity_sha256=(
+            expected_mtf_cache_identity_sha256
+        ),
+        context="UNIFIED_EXIT_TRAIN_CHUNK_V2",
+    )
+    economics = require_unified_exit_unbounded_training_readiness(
+        pack.get("unbounded_exit_training_readiness"),
+        context="UNIFIED_EXIT_TRAIN_CHUNK_V2",
+    )
+    tf_names = tuple(tf.lower() for tf in EXIT_MTF_CONTEXT_TIMEFRAMES)
+    encoded_count = int(pack["encoded_prefix_state_count"])
+    chunk_start = int(pack["chunk_start_bars_in_trade"])
+    valid_count = int(pack["valid_state_count"])
+    side_index = int(pack["side_index"])
+    selected_path = torch.from_numpy(
+        np.asarray(pack["exit_path_x"], dtype=np.float32)
+    ).to(device)
+    model_path_pair = torch.zeros(
+        (1, 2, encoded_count, selected_path.shape[-1]),
+        dtype=selected_path.dtype,
+        device=device,
+    )
+    model_path_pair[0, side_index] = selected_path
+    with torch.no_grad():
+        output = target_model.forward_exit_incremental_prefix(
+            entry_decision_representation=(
+                target_entry_decision_representation.detach()
+            ),
+            exit_local_history_x=torch.from_numpy(
+                np.asarray(pack["exit_local_history_x"], dtype=np.float32)
+            ).unsqueeze(0).to(device),
+            exit_state_ctx_cat=torch.from_numpy(
+                np.asarray(pack["exit_state_ctx_cat"], dtype=np.int64)
+            ).unsqueeze(0).to(device),
+            exit_state_ctx_cont=torch.from_numpy(
+                np.asarray(pack["exit_state_ctx_cont"], dtype=np.float32)
+            ).unsqueeze(0).to(device),
+            exit_path_x=model_path_pair,
+            exit_mtf_histories={
+                tf: torch.from_numpy(
+                    np.asarray(pack[f"exit_mtf_history_{tf}"], dtype=np.float32)
+                ).unsqueeze(0).to(device)
+                for tf in tf_names
+            },
+            exit_mtf_gathers={
+                tf: torch.from_numpy(
+                    np.asarray(pack[f"exit_mtf_gather_{tf}"], dtype=np.int64)
+                ).unsqueeze(0).to(device)
+                for tf in tf_names
+            },
+            exit_mtf_history_lengths={
+                tf: torch.tensor(
+                    [len(pack[f"exit_mtf_history_{tf}"])],
+                    dtype=torch.long,
+                    device=device,
+                )
+                for tf in tf_names
+            },
+        )
+        prefix_q = output["exit_action_q_bps"]
+        prefix_valid = output["exit_action_valid_mask"]
+        if (
+            tuple(prefix_q.shape) != (1, 2, encoded_count, 2)
+            or tuple(prefix_valid.shape) != tuple(prefix_q.shape)
+        ):
+            raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_PREFIX_OUTPUT_INVALID]")
+        current_q = prefix_q[
+            :, side_index : side_index + 1,
+            chunk_start : chunk_start + valid_count,
+            :,
+        ]
+        action_valid = torch.from_numpy(
+            np.asarray(pack["exit_policy_action_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        supervision_valid = torch.from_numpy(
+            np.asarray(pack["exit_bellman_target_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        successor_observed = torch.from_numpy(
+            np.asarray(pack["exit_successor_observed_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        state_valid = torch.from_numpy(
+            np.asarray(pack["exit_state_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        terminal = torch.from_numpy(
+            np.asarray(pack["exit_terminal_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        terminal_reason = torch.from_numpy(
+            np.asarray(pack["exit_terminal_reason_index"], dtype=np.int64)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        successor_index = int(pack["successor_prefix_state_index"])
+        successor_q = (
+            prefix_q[:, side_index : side_index + 1, successor_index, :]
+            if bool(pack["successor_available"])
+            else None
+        )
+        successor_valid = (
+            prefix_valid[:, side_index : side_index + 1, successor_index, :]
+            if bool(pack["successor_available"])
+            else None
+        )
+        rewards = torch.from_numpy(
+            np.asarray(pack["exit_now_reward_bps"], dtype=np.float32)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        censored = torch.full(
+            (1, 1),
+            bool(pack["right_censored"]),
+            dtype=torch.bool,
+            device=device,
+        )
+        decision_times_ns = np.asarray(
+            pack["exit_decision_time_ns"], dtype=np.int64
+        )
+        transition_seconds = np.ones(valid_count, dtype=np.float64)
+        transition_stop = chunk_start + valid_count
+        if valid_count > 1:
+            transition_seconds[:-1] = np.diff(
+                decision_times_ns[chunk_start:transition_stop]
+            ) / 1_000_000_000.0
+        if bool(pack["successor_available"]):
+            transition_seconds[-1] = (
+                decision_times_ns[transition_stop]
+                - decision_times_ns[transition_stop - 1]
+            ) / 1_000_000_000.0
+        if (
+            not np.isfinite(transition_seconds).all()
+            or np.any(transition_seconds <= 0.0)
+        ):
+            raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_TRANSITION_CLOCK_INVALID]")
+        rho = float(economics["train_capital_hurdle_annual_rate"])
+        discount = np.exp(
+            -rho * transition_seconds / (365.25 * 24.0 * 60.0 * 60.0)
+        )
+        transition_discount = torch.from_numpy(
+            np.broadcast_to(discount, (1, 1, valid_count)).copy()
+        ).to(device=device, dtype=rewards.dtype)
+        targets, target_mask = build_unified_exit_fitted_q_targets(
+            frozen_target_q_bps=current_q,
+            exit_now_reward_bps=rewards,
+            action_valid_mask=action_valid,
+            state_valid_mask=state_valid,
+            terminal_mask=terminal,
+            terminal_reason_index=terminal_reason,
+            chunk_successor_target_q_bps=successor_q,
+            chunk_successor_action_valid_mask=successor_valid,
+            bellman_target_valid_mask=supervision_valid,
+            successor_observed_mask=successor_observed,
+            right_censored_boundary_mask=(censored if bool(pack["right_censored"]) else None),
+            transition_discount=transition_discount,
+        )
+    return targets, target_mask, current_q.detach()
 
 
 def _episode_native_exit_eval_loss(

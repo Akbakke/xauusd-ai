@@ -163,16 +163,17 @@ def unified_exit_lifecycle_v2_contract() -> dict[str, Any]:
         "terminal_reason_values": ["none", "economic_terminal"],
         "right_censor_is_terminal": False,
         "nonterminal_full_chunk_successor_required": True,
+        "clock_gap_policy": "right_censor_before_first_non_m1_transition",
         "economic_authority_schema_version": (
             UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION
         ),
         "chunk_schedule": {
             "mode": "outcome_blind_affine_permutation_v1",
+            "unit": "entry_pair_timeline",
             "seed_fields": [
                 "lineage_sha256",
                 "split",
                 "entry_row_index",
-                "side_index",
             ],
             "forbidden_seed_fields": ["reward", "price", "label"],
         },
@@ -211,7 +212,6 @@ def outcome_blind_chunk_permutation(
                 "lineage_sha256": lineage,
                 "split": split,
                 "entry_row_index": entry_row_index,
-                "side_index": side_index,
             }
         )
     )
@@ -349,6 +349,11 @@ def build_unified_exit_lifecycle_chunks_v2(
             np.searchsorted(clock, int(end.value) - delta, side="right")
         )
         available_count = max(0, available_stop - start)
+        if available_count > 1:
+            local_deltas = np.diff(clock[start : start + available_count])
+            gap_positions = np.flatnonzero(local_deltas != delta)
+            if gap_positions.size:
+                available_count = int(gap_positions[0]) + 1
         if available_count < 1:
             continue
         for side_index, side in enumerate(UNIFIED_EXIT_SIDE_ORDER):
@@ -410,6 +415,7 @@ def build_unified_exit_lifecycle_chunks_v2(
         "state_rows": int(chunks["valid_state_count"].sum()),
         "successor_chunk_rows": int(chunks["successor_available"].sum()),
         "right_censored_chunk_rows": int(chunks["right_censored"].sum()),
+        "clock_gap_policy": "right_censor_before_first_non_m1_transition",
         "chunk_pointer_stream_schema_version": (
             UNIFIED_EXIT_CHUNK_POINTER_SCHEMA_VERSION
         ),
@@ -447,6 +453,8 @@ def require_unified_exit_lifecycle_chunks_v2(
         or observed.get("test_access") is not False
         or observed.get("capacity_forces_exit") is not False
         or observed.get("maximum_trade_duration_bars") is not None
+        or observed.get("clock_gap_policy")
+        != "right_censor_before_first_non_m1_transition"
         or observed.get("chunk_rows") != len(chunks)
         or observed.get("state_rows") != int(chunks["valid_state_count"].sum())
         or observed.get("chunk_pointer_stream_sha256")
@@ -489,6 +497,22 @@ def require_unified_exit_lifecycle_chunks_v2(
             if (
                 last >= len(times)
                 or times[last] + delta > split_end
+                or (
+                    valid_count > 1
+                    and not bool(
+                        np.all(
+                            np.diff(
+                                np.asarray(
+                                    times[
+                                        int(row.chunk_m1_start_row) : last + 1
+                                    ].asi8,
+                                    dtype=np.int64,
+                                )
+                            )
+                            == int(delta.value)
+                        )
+                    )
+                )
                 or pd.Timestamp(row.first_state_row_time)
                 != times[int(row.chunk_m1_start_row)]
                 or pd.Timestamp(row.last_state_row_time) != times[last]
@@ -499,6 +523,7 @@ def require_unified_exit_lifecycle_chunks_v2(
                     valid_count != UNIFIED_EXIT_CHUNK_ROWS
                     or int(row.successor_m1_row) != last + 1
                     or pd.Timestamp(row.successor_state_row_time) != times[last + 1]
+                    or times[last + 1] - times[last] != delta
                     or times[last + 1] + delta > split_end
                 ):
                     raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_SUCCESSOR_INVALID")

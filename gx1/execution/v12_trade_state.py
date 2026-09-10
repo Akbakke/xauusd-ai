@@ -1517,10 +1517,6 @@ class TradeState:
         mid-minute broker fill can therefore never inherit pre-fill high/low.
         Literal mid prices are retained rather than reconstructed from bid/ask.
         """
-        if self.bars_in_trade >= UNIFIED_EXIT_MAX_PATH_BARS:
-            raise ValueError(
-                "unified Exit current capacity requires terminal EXIT_NOW"
-            )
         if schema_version != CLOSED_M1_PATH_SCHEMA_VERSION:
             raise ValueError("closed M1 path schema_version mismatch")
         canonical_bar = canonical_closed_m1_bar(

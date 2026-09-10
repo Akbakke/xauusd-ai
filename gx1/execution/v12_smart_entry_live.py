@@ -99,7 +99,6 @@ from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_ACTION_ORDER,
     UNIFIED_EXIT_ENTRY_REPRESENTATION_DIM,
     UNIFIED_EXIT_ENTRY_REPRESENTATION_KEY,
-    UNIFIED_EXIT_MAX_PATH_BARS,
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
     UNIFIED_EXIT_SIDE_ORDER,
     canonical_unified_evidence_sha256,
@@ -1499,8 +1498,8 @@ class SmartEntryLiveInference:
             entry_ask=entry_ask,
         )
         bars_in_trade = int(envelope["bars_in_trade"])
-        if not 1 <= bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS:
-            raise RuntimeError("[SMART_EXIT] path state is outside current capacity")
+        if bars_in_trade < 1:
+            raise RuntimeError("[SMART_EXIT] path state has no post-fill state")
         token_sha256 = canonical_unified_evidence_sha256(token_snapshot)
         previous_carry_sha256 = UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
         prior_carry = None
@@ -1641,7 +1640,7 @@ class SmartEntryLiveInference:
             valid_mask.shape != (2,)
             or not valid_mask.any()
             or not bool(valid_mask[1])
-            or bool(valid_mask[0]) != (len(path_values) < UNIFIED_EXIT_MAX_PATH_BARS)
+            or not bool(valid_mask[0])
         ):
             raise RuntimeError("[SMART_EXIT] invalid optimal-stopping action mask")
         valid_q = q_values[valid_mask]

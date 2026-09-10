@@ -1375,7 +1375,7 @@ def test_trade_state_binds_bar_count_to_all_persisted_history_lengths() -> None:
         TradeState.from_dict(payload)
 
 
-def test_trade_state_current_capacity_requires_terminal_exit() -> None:
+def test_trade_state_rolls_detail_tail_without_forcing_terminal_exit() -> None:
     trade = _open()
     start = pd.Timestamp("2026-07-16T12:00:00Z")
     for offset in range(TRAJECTORY_HISTORY_MAXLEN):
@@ -1384,21 +1384,19 @@ def test_trade_state_current_capacity_requires_terminal_exit() -> None:
                 (start + pd.Timedelta(minutes=offset)).isoformat()
             )
         )
-    with pytest.raises(
-        ValueError,
-        match="current capacity requires terminal EXIT_NOW",
-    ):
-        trade.update_bar(
-            **_valid_closed_m1_bar(
-                (start + pd.Timedelta(minutes=TRAJECTORY_HISTORY_MAXLEN)).isoformat()
-            )
+    trade.update_bar(
+        **_valid_closed_m1_bar(
+            (start + pd.Timedelta(minutes=TRAJECTORY_HISTORY_MAXLEN)).isoformat()
         )
+    )
 
     assert len(trade.m1_returns_window) == M1_RETURNS_WINDOW_MAXLEN
     assert len(trade.pnl_history) == TRAJECTORY_HISTORY_MAXLEN
     assert len(trade.closed_m1_path) == TRAJECTORY_HISTORY_MAXLEN
-    assert trade.bars_in_trade == TRAJECTORY_HISTORY_MAXLEN
-    assert trade.closed_m1_path[0]["time"] == start.isoformat()
+    assert trade.bars_in_trade == TRAJECTORY_HISTORY_MAXLEN + 1
+    assert trade.closed_m1_path[0]["time"] == (
+        start + pd.Timedelta(minutes=1)
+    ).isoformat()
     assert len(trade.full_path_chain_sha256) == 64
 
 

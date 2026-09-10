@@ -22,6 +22,9 @@ from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_CHUNK_ROWS,
     UNIFIED_EXIT_LIFECYCLE_V2_SCHEMA_VERSION,
 )
+from gx1.contracts.unified_exit_fitted_q_v1 import (
+    require_unified_exit_unbounded_training_readiness,
+)
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_FEATURE_DIM,
@@ -43,6 +46,10 @@ def unified_exit_episode_pack_v2_contract() -> dict[str, Any]:
             "all_post_fill_states_from_entry_through_chunk_successor"
         ),
         "later_chunk_semantics": "full_causal_prefix_equivalent_to_exact_carry",
+        "training_unit": "one_entry_side_chunk",
+        "model_side_pair_adapter": (
+            "selected_side_path_is_inserted_into_its_independent_model_side_branch"
+        ),
         "successor_is_training_state": False,
         "successor_role": "frozen_target_network_boundary_value_only",
         "right_censored_hold_target_valid": False,
@@ -216,15 +223,15 @@ def require_unified_exit_episode_pack_v2(
         "exit_state_ctx_cat": (encoded_count, MODEL_NATIVE_CTX_CAT_DIM),
         "exit_state_row_time_ns": (encoded_count,),
         "exit_decision_time_ns": (encoded_count,),
-        "exit_path_x": (2, encoded_count, UNIFIED_EXIT_PATH_FEATURE_DIM),
-        "exit_entry_bid_ask": (2, 2),
-        "exit_now_reward_bps": (2, valid_count),
-        "exit_policy_action_valid_mask": (2, valid_count, 2),
-        "exit_bellman_target_valid_mask": (2, valid_count, 2),
-        "exit_successor_observed_mask": (2, valid_count),
-        "exit_state_valid_mask": (2, valid_count),
-        "exit_terminal_mask": (2, valid_count),
-        "exit_terminal_reason_index": (2, valid_count),
+        "exit_path_x": (encoded_count, UNIFIED_EXIT_PATH_FEATURE_DIM),
+        "exit_entry_bid_ask": (2,),
+        "exit_now_reward_bps": (valid_count,),
+        "exit_policy_action_valid_mask": (valid_count, 2),
+        "exit_bellman_target_valid_mask": (valid_count, 2),
+        "exit_successor_observed_mask": (valid_count,),
+        "exit_state_valid_mask": (valid_count,),
+        "exit_terminal_mask": (valid_count,),
+        "exit_terminal_reason_index": (valid_count,),
     }
     for name, shape in expected_shapes.items():
         array = np.asarray(observed[name])
@@ -255,14 +262,14 @@ def require_unified_exit_episode_pack_v2(
     reason = np.asarray(observed["exit_terminal_reason_index"], dtype=np.int64)
     economic_terminal = observed["terminal_reason"] == "economic_terminal"
     expected_successor_observed = state_valid.copy()
-    expected_successor_observed[:, -1] = successor
+    expected_successor_observed[-1] = successor
     expected_supervision = action_valid.copy()
     expected_supervision[..., 0] &= successor_observed
     expected_terminal = np.zeros_like(terminal)
     expected_reason = np.zeros_like(reason)
     if economic_terminal:
-        expected_terminal[:, -1] = True
-        expected_reason[:, -1] = 2
+        expected_terminal[-1] = True
+        expected_reason[-1] = 2
     if (
         not state_valid.all()
         or not np.array_equal(action_valid[..., 1], state_valid)
@@ -275,6 +282,9 @@ def require_unified_exit_episode_pack_v2(
         or (not economic_terminal and not successor and not right_censored)
     ):
         raise RuntimeError(f"{context}_UNIFIED_EXIT_CHUNK_PACK_MASK_INVALID")
+    require_unified_exit_unbounded_training_readiness(
+        observed["unbounded_exit_training_readiness"], context=context
+    )
     for tf, canonical_name in zip(tf_names, EXIT_MTF_CONTEXT_TIMEFRAMES):
         history = np.asarray(observed[f"exit_mtf_history_{tf}"])
         times = np.asarray(observed[f"exit_mtf_history_time_ns_{tf}"], dtype=np.int64)
