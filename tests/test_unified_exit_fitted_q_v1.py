@@ -6,6 +6,7 @@ import torch
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     build_unified_exit_fitted_q_targets,
     build_unified_exit_first_state_value_envelope,
+    require_unified_exit_unbounded_training_readiness,
     unified_exit_first_state_side_values,
     unified_exit_fitted_q_contract,
 )
@@ -26,11 +27,13 @@ def _two_episode_counterexample():
     terminal[..., -1] = True
     action_valid = torch.ones((2, 1, 2, 2), dtype=torch.bool)
     action_valid[..., -1, 0] = False
-    return target_q, rewards, action_valid, state_valid, terminal
+    terminal_reason = torch.zeros_like(state_valid, dtype=torch.long)
+    terminal_reason[..., -1] = 2
+    return target_q, rewards, action_valid, state_valid, terminal, terminal_reason
 
 
 def test_fitted_q_counterexample_does_not_learn_hindsight_expected_max():
-    target_q, rewards, action_valid, state_valid, terminal = (
+    target_q, rewards, action_valid, state_valid, terminal, terminal_reason = (
         _two_episode_counterexample()
     )
     targets, valid = build_unified_exit_fitted_q_targets(
@@ -39,6 +42,7 @@ def test_fitted_q_counterexample_does_not_learn_hindsight_expected_max():
         action_valid_mask=action_valid,
         state_valid_mask=state_valid,
         terminal_mask=terminal,
+        terminal_reason_index=terminal_reason,
     )
     assert torch.equal(valid, action_valid)
     # Fitted Bellman samples are the next-state target values themselves.
@@ -59,7 +63,7 @@ def test_fitted_q_counterexample_does_not_learn_hindsight_expected_max():
 
 
 def test_fitted_q_targets_are_stop_gradient_and_capacity_agnostic():
-    target_q, rewards, action_valid, state_valid, terminal = (
+    target_q, rewards, action_valid, state_valid, terminal, terminal_reason = (
         _two_episode_counterexample()
     )
     targets, _ = build_unified_exit_fitted_q_targets(
@@ -68,13 +72,14 @@ def test_fitted_q_targets_are_stop_gradient_and_capacity_agnostic():
         action_valid_mask=action_valid,
         state_valid_mask=state_valid,
         terminal_mask=terminal,
+        terminal_reason_index=terminal_reason,
     )
     assert targets.shape == (2, 1, 2, 2)
     assert not targets.requires_grad
 
 
 def test_fitted_q_rejects_hidden_terminal_hold_action():
-    target_q, rewards, action_valid, state_valid, terminal = (
+    target_q, rewards, action_valid, state_valid, terminal, terminal_reason = (
         _two_episode_counterexample()
     )
     action_valid[..., -1, 0] = True
@@ -87,6 +92,65 @@ def test_fitted_q_rejects_hidden_terminal_hold_action():
             action_valid_mask=action_valid,
             state_valid_mask=state_valid,
             terminal_mask=terminal,
+            terminal_reason_index=terminal_reason,
+        )
+
+
+def test_nonterminal_chunk_boundary_requires_and_uses_explicit_successor():
+    q = torch.zeros((1, 2, 3, 2), dtype=torch.float32)
+    rewards = torch.zeros((1, 2, 3), dtype=torch.float32)
+    state_valid = torch.ones_like(rewards, dtype=torch.bool)
+    terminal = torch.zeros_like(state_valid)
+    reason = torch.zeros_like(state_valid, dtype=torch.long)
+    valid = torch.ones_like(q, dtype=torch.bool)
+    with pytest.raises(
+        RuntimeError, match="UNIFIED_EXIT_FITTED_Q_CHUNK_SUCCESSOR_REQUIRED"
+    ):
+        build_unified_exit_fitted_q_targets(
+            frozen_target_q_bps=q,
+            exit_now_reward_bps=rewards,
+            action_valid_mask=valid,
+            state_valid_mask=state_valid,
+            terminal_mask=terminal,
+            terminal_reason_index=reason,
+        )
+    successor_q = torch.tensor([[[4.0, 7.0], [9.0, 2.0]]])
+    successor_valid = torch.ones_like(successor_q, dtype=torch.bool)
+    targets, _ = build_unified_exit_fitted_q_targets(
+        frozen_target_q_bps=q,
+        exit_now_reward_bps=rewards,
+        action_valid_mask=valid,
+        state_valid_mask=state_valid,
+        terminal_mask=terminal,
+        terminal_reason_index=reason,
+        chunk_successor_target_q_bps=successor_q,
+        chunk_successor_action_valid_mask=successor_valid,
+    )
+    assert targets[0, :, -1, 0].tolist() == [7.0, 9.0]
+
+
+def test_capacity_terminal_and_missing_unbounded_readiness_fail_closed():
+    target_q, rewards, action_valid, state_valid, terminal, reason = (
+        _two_episode_counterexample()
+    )
+    reason[..., -1] = 1
+    with pytest.raises(
+        RuntimeError, match="UNIFIED_EXIT_FITTED_Q_CAPACITY_TERMINAL_FORBIDDEN"
+    ):
+        build_unified_exit_fitted_q_targets(
+            frozen_target_q_bps=target_q,
+            exit_now_reward_bps=rewards,
+            action_valid_mask=action_valid,
+            state_valid_mask=state_valid,
+            terminal_mask=terminal,
+            terminal_reason_index=reason,
+        )
+    with pytest.raises(
+        RuntimeError,
+        match="UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED",
+    ):
+        require_unified_exit_unbounded_training_readiness(
+            None, context="UNIT"
         )
 
 

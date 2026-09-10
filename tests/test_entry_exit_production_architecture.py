@@ -60,6 +60,9 @@ def test_exact_current_production_architecture_passes() -> None:
     }
     assert expected["exit"]["sequence_bars"] == 480
     assert expected["exit"]["max_path_bars"] == 512
+    assert expected["exit"]["detailed_path_tail_bars"] == 512
+    assert expected["exit"]["max_trade_duration_bars"] is None
+    assert expected["exit"]["capacity_forces_exit"] is False
 
 
 @pytest.mark.parametrize(
@@ -276,6 +279,9 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
             "exit_local_timeframe": "M1",
             "exit_local_sequence_bars": 480,
             "exit_max_path_bars": 512,
+            "exit_detailed_path_tail_bars": 512,
+            "exit_max_total_bars": None,
+            "exit_capacity_forces_exit": False,
             "shared_feature_base_contract": {
                 "shared_encoder": (
                     "entry_v10_ctx_hybrid_transformer_shared_specialists_v2"

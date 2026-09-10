@@ -20,6 +20,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION,
     canonical_closed_m1_bar,
     canonical_closed_m1_path_sha256,
+    canonical_unified_evidence_sha256,
     extend_closed_m1_path_chain_sha256,
     require_unified_exit_output,
     require_unified_exit_path_envelope,
@@ -34,6 +35,9 @@ from gx1.contracts.entry_decision_token_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
+)
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
 )
 
 
@@ -311,6 +315,13 @@ class UnifiedExitPathState:
             != self.entry_decision_token_snapshot
         ):
             raise ValueError("Exit input envelope differs from replay state")
+        previous_carry_sha256 = (
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            if self.last_exit_decision is None
+            else canonical_unified_evidence_sha256(
+                self.last_exit_decision["exit_incremental_carry_envelope"]
+            )
+        )
         validated = require_unified_exit_output(
             decision,
             context="UNIFIED_EXIT_PATH_STATE_BIND",
@@ -318,6 +329,7 @@ class UnifiedExitPathState:
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
             exit_input_envelope=input_envelope,
+            expected_previous_carry_envelope_sha256=previous_carry_sha256,
         )
         self.last_exit_decision = deepcopy(validated)
         self.last_exit_input_envelope = deepcopy(input_envelope)
@@ -373,6 +385,13 @@ class UnifiedExitPathState:
         require_entry_decision_token_snapshot(
             staged.entry_decision_token_snapshot
         )
+        previous_carry_sha256 = (
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            if self.last_exit_decision is None
+            else canonical_unified_evidence_sha256(
+                self.last_exit_decision["exit_incremental_carry_envelope"]
+            )
+        )
         require_unified_exit_output(
             staged.last_exit_decision,
             context="UNIFIED_EXIT_PATH_STATE_COMMIT",
@@ -380,6 +399,7 @@ class UnifiedExitPathState:
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
             exit_input_envelope=input_envelope,
+            expected_previous_carry_envelope_sha256=previous_carry_sha256,
         )
         self.__dict__.clear()
         self.__dict__.update(deepcopy(staged.__dict__))

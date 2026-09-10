@@ -244,8 +244,8 @@ class UnifiedExitIncrementalCarry:
 # fence in the trainer before this path is entered.
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = "cuda_disabled_cpu_checkpointed_v2"
 CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v8"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v8"
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v9"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v9"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -2302,6 +2302,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_mtf_gathers: Mapping[str, torch.Tensor],
         exit_mtf_history_lengths: Mapping[str, torch.Tensor],
         require_full_episode: bool,
+        exit_action_valid_mask: Optional[torch.Tensor] = None,
+        exit_terminal_mask: Optional[torch.Tensor] = None,
+        exit_terminal_reason_index: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """Shared causal scan for full episodes and online prefix replay."""
 
@@ -2320,7 +2323,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         d_model = int(self.cfg.d_model)
         if (
             int(entry_decision_representation.shape[1]) != d_model
-            or not 1 <= state_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or state_count < 1
             or tuple(exit_local_history_x.shape)
             != (
                 batch_size,
@@ -2715,6 +2718,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         )
         q_values = _forward_raw_q_head(self.head_exit_action, hidden)
+        # Action validity and terminal state are properties of the economic
+        # lifecycle, never of this scan's storage/chunk capacity.  A 512-row
+        # call is merely one bounded compute chunk; runtime may continue with
+        # recurrent carry for as long as the trade remains open.
         valid = torch.ones_like(q_values, dtype=torch.bool)
         terminal_mask = torch.zeros(
             (batch_size, 2, state_count),
@@ -2726,13 +2733,57 @@ class EntryV10CtxHybridTransformer(nn.Module):
             dtype=torch.long,
             device=q_values.device,
         )
-        if state_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
-            valid[:, :, -1, 0] = False
-            terminal_mask[:, :, -1] = True
-            # 1 = current capacity terminal. Zero means non-terminal. This is
-            # explicit so a later economic/data terminal contract can replace
-            # capacity without changing recurrent encoder semantics.
-            terminal_reason_index[:, :, -1] = 1
+        explicit_lifecycle = (
+            exit_action_valid_mask,
+            exit_terminal_mask,
+            exit_terminal_reason_index,
+        )
+        if any(value is not None for value in explicit_lifecycle):
+            if any(value is None for value in explicit_lifecycle):
+                raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_INPUT_INCOMPLETE")
+            assert exit_action_valid_mask is not None
+            assert exit_terminal_mask is not None
+            assert exit_terminal_reason_index is not None
+            if (
+                tuple(exit_action_valid_mask.shape) != tuple(q_values.shape)
+                or tuple(exit_terminal_mask.shape)
+                != (batch_size, 2, state_count)
+                or tuple(exit_terminal_reason_index.shape)
+                != (batch_size, 2, state_count)
+                or exit_action_valid_mask.dtype != torch.bool
+                or exit_terminal_mask.dtype != torch.bool
+                or exit_terminal_reason_index.dtype
+                not in (torch.int64, torch.int32)
+                or bool((exit_terminal_reason_index == 1).any().item())
+                or bool(
+                    (
+                        (exit_terminal_reason_index != 0)
+                        & ~exit_terminal_mask
+                    ).any().item()
+                )
+                or bool(
+                    (
+                        exit_terminal_mask
+                        & (exit_terminal_reason_index != 2)
+                    ).any().item()
+                )
+                or bool(
+                    (
+                        exit_action_valid_mask[..., 1]
+                        != torch.ones_like(exit_terminal_mask)
+                    ).any().item()
+                )
+                or bool(
+                    (
+                        exit_action_valid_mask[..., 0]
+                        != ~exit_terminal_mask
+                    ).any().item()
+                )
+            ):
+                raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_INPUT_INVALID")
+            valid = exit_action_valid_mask
+            terminal_mask = exit_terminal_mask
+            terminal_reason_index = exit_terminal_reason_index.to(torch.long)
         for name, value in (
             ("exit_episode_local_state", local_state),
             ("exit_episode_family_gate", family_gate),
@@ -2771,8 +2822,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_mtf_histories: Mapping[str, torch.Tensor],
         exit_mtf_gathers: Mapping[str, torch.Tensor],
         exit_mtf_history_lengths: Mapping[str, torch.Tensor],
+        exit_action_valid_mask: Optional[torch.Tensor] = None,
+        exit_terminal_mask: Optional[torch.Tensor] = None,
+        exit_terminal_reason_index: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
-        """Emit [B,2,512,2] Q values from one causal episode scan."""
+        """Emit one 512-state training chunk without inventing a terminal."""
 
         return self._forward_exit_causal_episode(
             entry_decision_representation=entry_decision_representation,
@@ -2784,6 +2838,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             exit_mtf_gathers=exit_mtf_gathers,
             exit_mtf_history_lengths=exit_mtf_history_lengths,
             require_full_episode=True,
+            exit_action_valid_mask=exit_action_valid_mask,
+            exit_terminal_mask=exit_terminal_mask,
+            exit_terminal_reason_index=exit_terminal_reason_index,
         )
 
     def forward_exit_incremental_prefix(
@@ -2907,7 +2964,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if (
             isinstance(step_count, bool)
             or not isinstance(step_count, int)
-            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or step_count < 1
             or isinstance(batch_size, bool)
             or not isinstance(batch_size, int)
             or batch_size < 1
@@ -2985,7 +3042,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             != (batch_size, self._expected_ctx_cont_dim)
             or tuple(exit_path_row_x.shape)
             != (batch_size, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
-            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or step_count < 1
             or tuple(exit_mtf_new_rows) != expected_tf_names
             or (
                 carry is not None
@@ -3291,10 +3348,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
         terminal_reason_index = torch.zeros(
             batch_size, 2, 1, dtype=torch.long, device=q_values.device
         )
-        if step_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
-            valid[..., 0] = False
-            terminal_mask[..., 0] = True
-            terminal_reason_index[..., 0] = 1
         output = {
             "exit_action_q_bps": q_values,
             "exit_action_valid_mask": valid,

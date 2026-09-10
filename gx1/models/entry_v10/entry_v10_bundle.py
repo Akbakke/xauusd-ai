@@ -327,6 +327,11 @@ def _bundle_architecture_observation(
         "sequence_bars": unified.get("exit_local_sequence_bars"),
         "mtf_route": mtf.get("exit_route_timeframes"),
         "max_path_bars": unified.get("exit_max_path_bars"),
+        "detailed_path_tail_bars": unified.get(
+            "exit_detailed_path_tail_bars"
+        ),
+        "max_trade_duration_bars": unified.get("exit_max_total_bars"),
+        "capacity_forces_exit": unified.get("exit_capacity_forces_exit"),
     }
     return observed
 

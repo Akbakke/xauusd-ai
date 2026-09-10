@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 
-UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v1"
+UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v2"
 UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
 UNIFIED_EXIT_FITTED_Q_TARGET_UNIT = "raw_bps"
@@ -73,6 +73,11 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "target_snapshot_fitted_splits": ["train"],
         "validation_or_test_updates_target_snapshot": False,
         "terminal_valid_actions": ["EXIT_NOW"],
+        "terminal_owner": "explicit_economic_lifecycle_only",
+        "chunk_capacity_is_terminal": False,
+        "nonterminal_chunk_boundary": (
+            "explicit_stop_gradient_successor_target_q"
+        ),
         "pathwise_hindsight_max_is_training_target": False,
         "pathwise_hindsight_role": "diagnostic_upper_bound_only",
         "double_q": {
@@ -145,6 +150,9 @@ def build_unified_exit_fitted_q_targets(
     action_valid_mask: torch.Tensor,
     state_valid_mask: torch.Tensor,
     terminal_mask: torch.Tensor,
+    terminal_reason_index: torch.Tensor,
+    chunk_successor_target_q_bps: torch.Tensor | None = None,
+    chunk_successor_action_valid_mask: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Build one stop-gradient Bellman target tensor.
 
@@ -160,10 +168,12 @@ def build_unified_exit_fitted_q_targets(
         tuple(exit_now_reward_bps.shape) != tuple(expected_state_shape)
         or tuple(state_valid_mask.shape) != tuple(expected_state_shape)
         or tuple(terminal_mask.shape) != tuple(expected_state_shape)
+        or tuple(terminal_reason_index.shape) != tuple(expected_state_shape)
         or tuple(action_valid_mask.shape) != tuple(frozen_target_q_bps.shape)
         or action_valid_mask.dtype != torch.bool
         or state_valid_mask.dtype != torch.bool
         or terminal_mask.dtype != torch.bool
+        or terminal_reason_index.dtype not in (torch.int64, torch.int32)
         or not bool(torch.isfinite(frozen_target_q_bps).all().item())
         or not bool(torch.isfinite(exit_now_reward_bps).all().item())
     ):
@@ -172,6 +182,12 @@ def build_unified_exit_fitted_q_targets(
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_EMPTY_EPISODE")
     if bool((terminal_mask & ~state_valid_mask).any().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TERMINAL_MASK_INVALID")
+    if bool((terminal_reason_index == 1).any().item()):
+        raise RuntimeError("UNIFIED_EXIT_FITTED_Q_CAPACITY_TERMINAL_FORBIDDEN")
+    if bool((terminal_reason_index != 0).logical_and(~terminal_mask).any().item()) or bool(
+        terminal_mask.logical_and(terminal_reason_index != 2).any().item()
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TERMINAL_REASON_INVALID")
     if bool((action_valid_mask[..., 1] != state_valid_mask).any().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_EXIT_ACTION_MASK_INVALID")
     if bool((action_valid_mask[..., 0] != (state_valid_mask & ~terminal_mask)).any().item()):
@@ -193,9 +209,76 @@ def build_unified_exit_fitted_q_targets(
             next_value,
             torch.zeros_like(next_value),
         )
+    boundary_hold = action_valid_mask[..., -1, 0]
+    if bool(boundary_hold.any().item()):
+        if (
+            chunk_successor_target_q_bps is None
+            or chunk_successor_action_valid_mask is None
+            or tuple(chunk_successor_target_q_bps.shape)
+            != tuple(frozen_target_q_bps.shape[:-2]) + (2,)
+            or tuple(chunk_successor_action_valid_mask.shape)
+            != tuple(frozen_target_q_bps.shape[:-2]) + (2,)
+            or chunk_successor_action_valid_mask.dtype != torch.bool
+            or not bool(torch.isfinite(chunk_successor_target_q_bps).all().item())
+            or bool(
+                (~chunk_successor_action_valid_mask.any(dim=-1) & boundary_hold)
+                .any()
+                .item()
+            )
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_FITTED_Q_CHUNK_SUCCESSOR_REQUIRED"
+            )
+        successor_value = chunk_successor_target_q_bps.detach().masked_fill(
+            ~chunk_successor_action_valid_mask, -torch.inf
+        ).amax(dim=-1)
+        if not bool(torch.isfinite(successor_value[boundary_hold]).all().item()):
+            raise RuntimeError("UNIFIED_EXIT_FITTED_Q_CHUNK_SUCCESSOR_NONFINITE")
+        target_q[..., -1, 0] = torch.where(
+            boundary_hold,
+            successor_value,
+            target_q[..., -1, 0],
+        )
     if not bool(torch.isfinite(target_q[action_valid_mask]).all().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TARGET_NONFINITE")
     return target_q.detach(), action_valid_mask
+
+
+def require_unified_exit_unbounded_training_readiness(
+    value: Mapping[str, Any] | None, *, context: str
+) -> dict[str, Any]:
+    """Admit gamma=1 unbounded training only with an explicit proper policy.
+
+    The repository currently has no approved economic terminal definition or
+    proof that the undiscounted policy terminates almost surely.  Old
+    capacity-terminal datasets therefore fail here instead of silently
+    treating chunk length as trade lifetime.
+    """
+
+    if not isinstance(value, Mapping):
+        raise RuntimeError(
+            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+        )
+    observed = dict(value)
+    expected_keys = {
+        "schema_version",
+        "economic_terminal_policy_sha256",
+        "undiscounted_proper_policy_proven",
+    }
+    digest = observed.get("economic_terminal_policy_sha256")
+    if (
+        set(observed) != expected_keys
+        or observed.get("schema_version")
+        != "gx1_unified_exit_unbounded_training_readiness_v1"
+        or observed.get("undiscounted_proper_policy_proven") is not True
+        or not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise RuntimeError(
+            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+        )
+    return observed
 
 
 def unified_exit_first_state_side_values(
@@ -345,6 +428,7 @@ __all__ = (
     "build_unified_exit_fitted_q_targets",
     "require_unified_exit_fitted_q_contract",
     "require_unified_exit_fitted_q_iteration_state",
+    "require_unified_exit_unbounded_training_readiness",
     "replay_unified_exit_fitted_q_policy",
     "unified_exit_first_state_side_values",
     "unified_exit_fitted_q_contract",

@@ -1,8 +1,9 @@
 """Canonical one-pass episode pack for learned unified Exit.
 
 One pack owns one Entry snapshot, both counterfactual sides, 479 exact
-pre-entry M1 feature rows, 512 post-fill closed rows, one full side-specific
-path per side, and one unique closed-bar history per MTF clock.  Per-state MTF
+pre-entry M1 feature rows, one 512-state post-fill compute chunk, one
+side-specific rolling-detail path per side, and one unique closed-bar history
+per MTF clock.  Per-state MTF
 inputs are integer gathers into those histories; rolling feature windows and
 padded path prefixes are forbidden.
 """
@@ -33,7 +34,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 
 UNIFIED_EXIT_EPISODE_PACK_SCHEMA_VERSION = (
-    "gx1_unified_exit_causal_episode_pack_v1"
+    "gx1_unified_exit_causal_episode_pack_v2"
 )
 UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS = (
     EXIT_FEATURE_SEQUENCE_BARS - 1 + UNIFIED_EXIT_MAX_PATH_BARS
@@ -94,7 +95,7 @@ def unified_exit_episode_pack_contract() -> dict[str, Any]:
         "schema_version": UNIFIED_EXIT_EPISODE_PACK_SCHEMA_VERSION,
         "local_history_rows": UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS,
         "pre_entry_warm_rows": EXIT_FEATURE_SEQUENCE_BARS - 1,
-        "post_fill_closed_rows": UNIFIED_EXIT_EPISODE_STATE_COUNT,
+        "chunk_state_count": UNIFIED_EXIT_EPISODE_STATE_COUNT,
         "side_order": ["long", "short"],
         "action_order": ["HOLD", "EXIT_NOW"],
         "local_owner_roles": {
@@ -103,16 +104,15 @@ def unified_exit_episode_pack_contract() -> dict[str, Any]:
         },
         "mtf_timeframes": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
         "mtf_storage": "unique_native_closed_histories_plus_last_closed_gathers",
-        "path_storage": "one_complete_unpadded_path_per_side",
+        "path_storage": "rolling_detailed_tail_plus_all_time_carry",
         "entry_token_storage": "one_frozen_token_per_entry_broadcast_in_model",
         "state_capacity": UNIFIED_EXIT_EPISODE_STATE_COUNT,
         "state_lengths": "explicit_per_side_not_encoder_weight_shape",
         "current_pack_supports_variable_length": False,
-        "current_terminal_semantics": "capacity_forced_at_512",
-        "open_next_wave": (
-            "data_or_economic_terminal_plus_financing_and_slippage"
-        ),
-        "terminal_reason_index": {"0": "not_terminal", "1": "capacity_terminal"},
+        "chunk_capacity_is_terminal": False,
+        "terminal_semantics": "explicit_economic_lifecycle_only",
+        "terminal_reason_index": {"0": "not_terminal", "2": "economic_terminal"},
+        "nonterminal_boundary_successor": "required_external_target_q_state",
         "supervision": {
             "known_label": "current_executable_exit_now_reward_bps",
             "hold_label": "frozen_train_fitted_q_target_at_next_causal_state",
@@ -227,13 +227,10 @@ def require_unified_exit_episode_pack(
     if (
         not state_valid.all()
         or not np.array_equal(lengths, np.full(2, UNIFIED_EXIT_EPISODE_STATE_COUNT))
-        or not terminal[:, -1].all()
-        or terminal[:, :-1].any()
-        or np.any(terminal_reason[:, :-1] != 0)
-        or np.any(terminal_reason[:, -1] != 1)
+        or terminal.any()
+        or np.any(terminal_reason != 0)
         or not np.array_equal(valid[..., 1], state_valid)
-        or not np.array_equal(valid[..., 0], state_valid & ~terminal)
-        or valid[:, -1].tolist() != [[False, True], [False, True]]
+        or not np.array_equal(valid[..., 0], state_valid)
     ):
         raise RuntimeError(
             f"{context}_UNIFIED_EXIT_EPISODE_PACK_TARGET_MASK_INVALID"

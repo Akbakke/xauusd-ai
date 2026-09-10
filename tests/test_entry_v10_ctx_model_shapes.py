@@ -913,9 +913,9 @@ def test_exit_episode_one_pass_prefix_and_future_append_parity_all_states() -> N
     assert episode["exit_episode_lengths"].tolist() == [
         [UNIFIED_EXIT_MAX_PATH_BARS, UNIFIED_EXIT_MAX_PATH_BARS]
     ]
-    assert episode["exit_terminal_mask"][:, :, :-1].sum().item() == 0
-    assert episode["exit_terminal_mask"][:, :, -1].all()
-    assert episode["exit_terminal_reason_index"][:, :, -1].eq(1).all()
+    assert not episode["exit_terminal_mask"].any()
+    assert not episode["exit_terminal_reason_index"].any()
+    assert episode["exit_action_valid_mask"].all()
 
     # The shorter online prefix sees exactly the same causal owner state at
     # every included row.  Future state/path/MTF appends cannot alter it.
@@ -1055,6 +1055,14 @@ def test_exit_incremental_persisted_carry_restart_matches_uninterrupted_step() -
             envelope, device=torch.device("cpu")
         ),
     )
+    restored_after_long_trade = model.restore_exit_incremental_carry_tensor_state(
+        step_count=1024,
+        batch_size=1,
+        tensors=decode_unified_exit_incremental_carry_tensors(
+            envelope, device=torch.device("cpu")
+        ),
+    )
+    assert restored_after_long_trade.step_count == 1024
     second_mtf = {
         tf: history[:, SEQ_LEN : SEQ_LEN + 1]
         for tf, history in inputs["exit_mtf_histories"].items()
@@ -1078,9 +1086,15 @@ def test_exit_incremental_persisted_carry_restart_matches_uninterrupted_step() -
         restarted, _ = model.forward_exit_incremental_step(
             **kwargs, carry=restored
         )
+        after_long_trade, continued_carry = model.forward_exit_incremental_step(
+            **kwargs, carry=restored_after_long_trade
+        )
     assert torch.equal(
         uninterrupted["exit_action_q_bps"], restarted["exit_action_q_bps"]
     )
+    assert continued_carry.step_count == 1025
+    assert after_long_trade["exit_action_valid_mask"].all()
+    assert not after_long_trade["exit_terminal_mask"].any()
 
 
 def test_exit_episode_feature_tf_gate_is_genuine_per_field_not_family_broadcast() -> None:

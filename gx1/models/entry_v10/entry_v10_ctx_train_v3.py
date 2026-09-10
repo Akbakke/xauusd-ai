@@ -192,6 +192,7 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
+    require_unified_exit_unbounded_training_readiness,
     unified_exit_first_state_side_values,
     unified_exit_fitted_q_contract,
 )
@@ -5928,6 +5929,15 @@ def _forward_unified_exit_episode_pack(
             )
             for tf in tf_names
         },
+        "exit_action_valid_mask": torch.from_numpy(
+            np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).to(device),
+        "exit_terminal_mask": torch.from_numpy(
+            np.asarray(episode["exit_terminal_mask"], dtype=np.bool_)
+        ).unsqueeze(0).to(device),
+        "exit_terminal_reason_index": torch.from_numpy(
+            np.asarray(episode["exit_terminal_reason_index"], dtype=np.int64)
+        ).unsqueeze(0).to(device),
     }
     with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**inputs)
@@ -6034,6 +6044,24 @@ def _forward_unified_exit_episode_batch(
         "exit_mtf_histories": {},
         "exit_mtf_gathers": {},
         "exit_mtf_history_lengths": {},
+        "exit_action_valid_mask": torch.from_numpy(
+            np.stack(
+                [episode["exit_action_valid_mask"] for episode in episodes],
+                axis=0,
+            ).astype(np.bool_, copy=False)
+        ).to(device),
+        "exit_terminal_mask": torch.from_numpy(
+            np.stack(
+                [episode["exit_terminal_mask"] for episode in episodes],
+                axis=0,
+            ).astype(np.bool_, copy=False)
+        ).to(device),
+        "exit_terminal_reason_index": torch.from_numpy(
+            np.stack(
+                [episode["exit_terminal_reason_index"] for episode in episodes],
+                axis=0,
+            ).astype(np.int64, copy=False)
+        ).to(device),
     }
     for tf in tf_names:
         histories = [
@@ -6186,6 +6214,10 @@ def _fitted_q_targets_for_episode(
 
     if target_model.training:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_MODEL_MUST_BE_FROZEN_EVAL]")
+    require_unified_exit_unbounded_training_readiness(
+        episode.get("unbounded_exit_training_readiness"),
+        context="UNIFIED_EXIT_TRAIN_EPISODE",
+    )
     with torch.no_grad():
         target_q, valid, state_valid, terminal, _lengths = (
             _forward_unified_exit_episode_pack(
@@ -6206,6 +6238,31 @@ def _fitted_q_targets_for_episode(
             action_valid_mask=valid,
             state_valid_mask=state_valid,
             terminal_mask=terminal,
+            terminal_reason_index=torch.from_numpy(
+                np.asarray(
+                    episode["exit_terminal_reason_index"], dtype=np.int64
+                )
+            ).unsqueeze(0).to(device),
+            chunk_successor_target_q_bps=(
+                torch.from_numpy(
+                    np.asarray(
+                        episode["exit_chunk_successor_target_q_bps"],
+                        dtype=np.float32,
+                    )
+                ).unsqueeze(0).to(device)
+                if "exit_chunk_successor_target_q_bps" in episode
+                else None
+            ),
+            chunk_successor_action_valid_mask=(
+                torch.from_numpy(
+                    np.asarray(
+                        episode["exit_chunk_successor_action_valid_mask"],
+                        dtype=np.bool_,
+                    )
+                ).unsqueeze(0).to(device)
+                if "exit_chunk_successor_action_valid_mask" in episode
+                else None
+            ),
         )
     if targets.requires_grad or target_mask.requires_grad:
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_TARGET_NOT_FROZEN]")
@@ -6227,6 +6284,11 @@ def _fitted_q_targets_for_episode_batch(
 ]:
     if target_model.training:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_MODEL_MUST_BE_FROZEN_EVAL]")
+    for episode in episodes:
+        require_unified_exit_unbounded_training_readiness(
+            episode.get("unbounded_exit_training_readiness"),
+            context="UNIFIED_EXIT_TRAIN_EPISODE",
+        )
     with torch.no_grad():
         target_q, valid, state_valid, terminal, _lengths = (
             _forward_unified_exit_episode_batch(
@@ -6250,6 +6312,32 @@ def _fitted_q_targets_for_episode_batch(
             action_valid_mask=valid,
             state_valid_mask=state_valid,
             terminal_mask=terminal,
+            terminal_reason_index=torch.from_numpy(
+                np.stack(
+                    [episode["exit_terminal_reason_index"] for episode in episodes],
+                    axis=0,
+                ).astype(np.int64, copy=False)
+            ).to(device),
+            chunk_successor_target_q_bps=(
+                torch.from_numpy(
+                    np.stack(
+                        [episode["exit_chunk_successor_target_q_bps"] for episode in episodes],
+                        axis=0,
+                    ).astype(np.float32, copy=False)
+                ).to(device)
+                if all("exit_chunk_successor_target_q_bps" in episode for episode in episodes)
+                else None
+            ),
+            chunk_successor_action_valid_mask=(
+                torch.from_numpy(
+                    np.stack(
+                        [episode["exit_chunk_successor_action_valid_mask"] for episode in episodes],
+                        axis=0,
+                    ).astype(np.bool_, copy=False)
+                ).to(device)
+                if all("exit_chunk_successor_action_valid_mask" in episode for episode in episodes)
+                else None
+            ),
         )
         first_side_values = unified_exit_first_state_side_values(
             frozen_target_q_bps=target_q,

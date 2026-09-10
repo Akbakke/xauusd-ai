@@ -41,14 +41,15 @@ from gx1.features.htf_features import (
 
 
 ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION = (
-    "gx1_entry_exit_production_architecture_v10"
+    "gx1_entry_exit_production_architecture_v11"
 )
 # Derived from the one ordered per-TF surface owner (rule 13: a repeated
 # literal is not ownership proof).  V29 Phase A stage 2: pre-V29 111 + 21
 # event fields + 11 level-registry fields + 30 trendline-registry fields.
 PRODUCTION_MTF_PER_TF_WIDTH = MULTI_TF_FEATURE_COUNT_V4
 PRODUCTION_EXIT_SEQUENCE_BARS = 480
-PRODUCTION_EXIT_MAX_PATH_BARS = 512
+PRODUCTION_EXIT_DETAILED_PATH_TAIL_BARS = 512
+PRODUCTION_EXIT_MAX_PATH_BARS = PRODUCTION_EXIT_DETAILED_PATH_TAIL_BARS
 PRODUCTION_MTF_CACHE_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 PRODUCTION_MTF_PER_TF_WINDOW_BARS = (
     ("M5", 16),
@@ -118,6 +119,9 @@ def entry_exit_production_architecture_contract() -> dict[str, Any]:
             "sequence_bars": PRODUCTION_EXIT_SEQUENCE_BARS,
             "mtf_route": list(PRODUCTION_EXIT_MTF_ROUTE),
             "max_path_bars": PRODUCTION_EXIT_MAX_PATH_BARS,
+            "detailed_path_tail_bars": PRODUCTION_EXIT_DETAILED_PATH_TAIL_BARS,
+            "max_trade_duration_bars": None,
+            "capacity_forces_exit": False,
         },
     }
 
@@ -165,6 +169,9 @@ def current_entry_exit_architecture_observation() -> dict[str, Any]:
         "sequence_bars": EXIT_FEATURE_SEQUENCE_BARS,
         "mtf_route": list(EXIT_MTF_CONTEXT_TIMEFRAMES),
         "max_path_bars": EXIT_FEATURE_MAX_SEQUENCE_BARS,
+        "detailed_path_tail_bars": EXIT_FEATURE_MAX_SEQUENCE_BARS,
+        "max_trade_duration_bars": None,
+        "capacity_forces_exit": False,
     }
     return observed
 
@@ -232,6 +239,7 @@ def require_entry_exit_production_architecture(
 __all__ = [
     "ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION",
     "PRODUCTION_EXIT_MAX_PATH_BARS",
+    "PRODUCTION_EXIT_DETAILED_PATH_TAIL_BARS",
     "PRODUCTION_EXIT_SEQUENCE_BARS",
     "PRODUCTION_MTF_PER_TF_WIDTH",
     "PRODUCTION_MTF_PER_TF_WINDOW_BARS",

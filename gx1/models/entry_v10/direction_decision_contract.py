@@ -81,7 +81,7 @@ MODEL_DIRECTION_TRADE_INDICES = (
     MODEL_DIRECTION_LONG_INDEX,
     MODEL_DIRECTION_SHORT_INDEX,
 )
-UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v10"
+UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION = "gx1_unified_entry_exit_v11"
 UNIFIED_EXIT_Q_BPS_KEY = "exit_action_q_bps"
 UNIFIED_EXIT_ACTION_VALID_MASK_KEY = "exit_action_valid_mask"
 UNIFIED_EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
@@ -97,7 +97,10 @@ UNIFIED_EXIT_PATH_CHAIN_SCHEMA_VERSION = "gx1_unified_exit_path_chain_v1"
 UNIFIED_EXIT_PATH_CHAIN_GENESIS_SHA256 = hashlib.sha256(
     UNIFIED_EXIT_PATH_CHAIN_SCHEMA_VERSION.encode("ascii")
 ).hexdigest()
-UNIFIED_EXIT_MAX_PATH_BARS = 512
+UNIFIED_EXIT_DETAILED_PATH_TAIL_BARS = 512
+# Compatibility name for array geometry only.  It must never be interpreted
+# as a maximum trade duration or an implicit terminal condition.
+UNIFIED_EXIT_MAX_PATH_BARS = UNIFIED_EXIT_DETAILED_PATH_TAIL_BARS
 UNIFIED_EXIT_PATH_PRICE_FIELDS = (
     "bid_open",
     "bid_high",
@@ -792,7 +795,9 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
             ENTRY_DECISION_TOKEN_SNAPSHOT_SCHEMA_VERSION
         ),
         "exit_max_path_bars": UNIFIED_EXIT_MAX_PATH_BARS,
+        "exit_detailed_path_tail_bars": UNIFIED_EXIT_DETAILED_PATH_TAIL_BARS,
         "exit_max_total_bars": None,
+        "exit_capacity_forces_exit": False,
         "exit_path_capacity_semantics": "bounded_recent_tail_not_trade_duration_cap",
         "exit_path_envelope_schema_version": (
             UNIFIED_EXIT_PATH_ENVELOPE_SCHEMA_VERSION
@@ -868,6 +873,7 @@ def require_unified_exit_output(
     entry_snapshot: Mapping[str, Any],
     exit_path_envelope: Mapping[str, Any],
     exit_input_envelope: Mapping[str, Any],
+    expected_previous_carry_envelope_sha256: str,
 ) -> dict[str, Any]:
     """Validate and content-bind the exact same-bundle Exit output."""
 
@@ -992,9 +998,7 @@ def require_unified_exit_output(
             "mtf_last_row_sha256"
         ],
         expected_previous_carry_envelope_sha256=(
-            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
-            if int(exit_path_envelope["bars_in_trade"]) == 1
-            else None
+            expected_previous_carry_envelope_sha256
         ),
     )
     if carry["input_envelope_sha256"] != input_envelope[

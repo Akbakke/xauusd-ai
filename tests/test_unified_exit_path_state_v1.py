@@ -207,6 +207,43 @@ def test_unit_path_state_stages_hash_binds_and_commits_one_bar() -> None:
     assert state.closed_m1_path[0]["bid_close"] == 3300.5
 
 
+def test_path_state_rejects_a_valid_but_wrong_previous_carry_hash() -> None:
+    state = _open()
+    first = state.clone_for_exit_decision()
+    first.update_bar(**_closed_bar("2026-07-17T12:00:00Z"))
+    first_decision = _exit_decision(first)
+    first.bind_unified_exit_decision(
+        first_decision,
+        expected_bundle_sha256=_BUNDLE_SHA256,
+        exit_input_envelope=first_decision["exit_input_envelope"],
+    )
+    state.commit_complete_exit_bar(first, expected_bundle_sha256=_BUNDLE_SHA256)
+
+    second = state.clone_for_exit_decision()
+    second.update_bar(**_closed_bar("2026-07-17T12:01:00Z", offset=0.1))
+    decision = _exit_decision(second)
+    envelope = second.build_closed_m1_path_evidence()
+    input_envelope = decision["exit_input_envelope"]
+    decision["exit_incremental_carry_envelope"] = (
+        unified_exit_carry_fixture(
+            input_envelope=input_envelope,
+            exit_path_envelope=envelope,
+            previous_carry_envelope={"carry_envelope_sha256": "f" * 64},
+        )
+    )
+    decision["output_evidence_sha256"] = canonical_unified_evidence_sha256(
+        {key: value for key, value in decision.items() if key != "output_evidence_sha256"}
+    )
+    with pytest.raises(
+        RuntimeError, match="UNIFIED_EXIT_CARRY_EXPECTED_BINDING_MISMATCH"
+    ):
+        second.bind_unified_exit_decision(
+            decision,
+            expected_bundle_sha256=_BUNDLE_SHA256,
+            exit_input_envelope=input_envelope,
+        )
+
+
 def test_path_state_fails_closed_on_side_clock_and_unbound_commit() -> None:
     with pytest.raises(ValueError, match="contract mode is stale"):
         UnifiedExitPathState.open_unit_normalized_research(

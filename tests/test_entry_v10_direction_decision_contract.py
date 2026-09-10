@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+)
+
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_ACTION_BY_INDEX,
     MODEL_DIRECTION_ACTION_ID_BY_INDEX,
@@ -140,6 +144,9 @@ def _validate_exit(output: dict[str, object]) -> dict[str, object]:
         entry_snapshot=_entry_snapshot(),
         exit_path_envelope=_path_envelope(),
         exit_input_envelope=output["exit_input_envelope"],
+        expected_previous_carry_envelope_sha256=(
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+        ),
     )
 
 

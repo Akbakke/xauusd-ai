@@ -24,9 +24,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from gx1.models.entry_v10.direction_decision_contract import (
-    UNIFIED_EXIT_MAX_PATH_BARS,
-)
 from gx1.contracts.entry_model_native_sizing_calibration_v1 import (
     MODEL_NATIVE_SIZING_OOS_ROW_COLUMNS,
     ModelNativeSizingContractError,
@@ -815,7 +812,6 @@ def recompute_joint_exit_replay_coverage(
             :, ["exit_hold_valid", "exit_now_valid"]
         ].to_numpy(dtype=np.bool_)
         expected_valid = np.ones(q_values.shape, dtype=np.bool_)
-        expected_valid[:, 0] = trace["step"].to_numpy(dtype=np.int64) < UNIFIED_EXIT_MAX_PATH_BARS
         masked_q = np.where(valid, q_values, -np.inf)
         predicted_tie = valid.all(axis=1) & (q_values[:, 0] == q_values[:, 1])
         if (
