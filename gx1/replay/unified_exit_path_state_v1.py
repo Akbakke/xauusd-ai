@@ -318,9 +318,9 @@ class UnifiedExitPathState:
         previous_carry_sha256 = (
             UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
             if self.last_exit_decision is None
-            else canonical_unified_evidence_sha256(
-                self.last_exit_decision["exit_incremental_carry_envelope"]
-            )
+            else self.last_exit_decision["exit_incremental_carry_envelope"][
+                "carry_envelope_sha256"
+            ]
         )
         validated = require_unified_exit_output(
             decision,
@@ -388,9 +388,9 @@ class UnifiedExitPathState:
         previous_carry_sha256 = (
             UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
             if self.last_exit_decision is None
-            else canonical_unified_evidence_sha256(
-                self.last_exit_decision["exit_incremental_carry_envelope"]
-            )
+            else self.last_exit_decision["exit_incremental_carry_envelope"][
+                "carry_envelope_sha256"
+            ]
         )
         require_unified_exit_output(
             staged.last_exit_decision,

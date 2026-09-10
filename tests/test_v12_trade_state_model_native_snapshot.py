@@ -1495,6 +1495,34 @@ def test_trade_state_transactional_commit_preserves_exact_closed_m1_state() -> N
     assert restored.last_exit_decision == staged.last_exit_decision
 
 
+def test_trade_state_rehydrate_binds_exact_predecessor_carry() -> None:
+    trade = _open()
+    first = trade.clone_for_exit_decision()
+    first.update_bar(**_valid_closed_m1_bar())
+    _bind_test_hold_decision(first)
+    trade.commit_complete_exit_bar(first)
+    first_carry_sha256 = trade.exit_incremental_carry_envelope[
+        "carry_envelope_sha256"
+    ]
+
+    second = trade.clone_for_exit_decision()
+    second.update_bar(
+        **_valid_closed_m1_bar("2026-07-16T12:01:00Z")
+    )
+    _bind_test_hold_decision(second)
+    trade.commit_complete_exit_bar(second)
+
+    payload = trade.to_dict()
+    assert (
+        payload["previous_exit_carry_envelope_sha256"]
+        == first_carry_sha256
+    )
+    tampered = json.loads(json.dumps(payload))
+    tampered["previous_exit_carry_envelope_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="last Exit decision is invalid"):
+        TradeState.from_dict(tampered)
+
+
 def test_trade_state_rejects_tampered_or_missing_persisted_exit_decision() -> None:
     trade = _open()
     trade.update_bar(**_valid_closed_m1_bar())

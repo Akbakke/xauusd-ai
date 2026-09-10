@@ -1677,6 +1677,7 @@ class SmartEntryLiveInference:
             entry_snapshot=snapshot,
             exit_path_envelope=envelope,
             exit_input_envelope=exit_input_envelope,
+            expected_previous_carry_envelope_sha256=previous_carry_sha256,
         )
 
     def build_exit_mtf_feature_windows(

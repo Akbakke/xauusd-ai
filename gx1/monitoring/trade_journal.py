@@ -43,6 +43,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
     require_unified_exit_output,
     require_unified_exit_path_envelope,
 )
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1259,6 +1262,38 @@ class TradeJournal:
                     "unified Exit journal bar identity differs from "
                     "the exact closed M1 envelope"
                 )
+            decisions = trade_journal.setdefault(
+                "v12_bar_decisions",
+                [],
+            )
+            if not isinstance(decisions, list):
+                raise RuntimeError(
+                    "unified Exit journal decision history is invalid"
+                )
+            expected_previous_carry_sha256 = (
+                UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            )
+            if bars_in_trade > 1:
+                prior = [
+                    existing
+                    for existing in decisions
+                    if isinstance(existing, dict)
+                    and existing.get("bars_in_trade") == bars_in_trade - 1
+                ]
+                if len(prior) != 1:
+                    raise RuntimeError(
+                        "unified Exit journal prior carry is unavailable"
+                    )
+                prior_carry = prior[0].get(
+                    "exit_incremental_carry_envelope"
+                )
+                if not isinstance(prior_carry, dict):
+                    raise RuntimeError(
+                        "unified Exit journal prior carry is invalid"
+                    )
+                expected_previous_carry_sha256 = prior_carry.get(
+                    "carry_envelope_sha256"
+                )
             require_unified_exit_output(
                 exit_output,
                 context="TRADE_JOURNAL_UNIFIED_EXIT",
@@ -1266,6 +1301,9 @@ class TradeJournal:
                 entry_snapshot=entry_evidence,
                 exit_path_envelope=validated_path,
                 exit_input_envelope=exit_input_envelope,
+                expected_previous_carry_envelope_sha256=(
+                    expected_previous_carry_sha256
+                ),
             )
             bar_record = {
                 "schema_version": "gx1_unified_exit_journal_bar_v4",
@@ -1295,14 +1333,6 @@ class TradeJournal:
                     exit_incremental_carry_envelope
                 ),
             }
-            decisions = trade_journal.setdefault(
-                "v12_bar_decisions",
-                [],
-            )
-            if not isinstance(decisions, list):
-                raise RuntimeError(
-                    "unified Exit journal decision history is invalid"
-                )
             exact_replay = [
                 existing
                 for existing in decisions

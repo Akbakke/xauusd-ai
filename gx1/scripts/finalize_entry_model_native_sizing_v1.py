@@ -1598,10 +1598,6 @@ def produce_canonical_unified_joint_sizing_proof(
                 previous_carry_envelope_sha256=previous_carry_sha256,
                 mtf_last_row_sha256=current_mtf_hashes,
             )
-            previous_carry_sha256 = next_carry_envelope[
-                "carry_envelope_sha256"
-            ]
-            prior_mtf_hashes = current_mtf_hashes
             q_tensor = model_output.get("exit_action_q_bps")[:, side_index, 0]
             valid_tensor = model_output.get("exit_action_valid_mask")[:, side_index, 0]
             if (
@@ -1657,7 +1653,14 @@ def produce_canonical_unified_joint_sizing_proof(
                 entry_snapshot=head,
                 exit_path_envelope=envelope,
                 exit_input_envelope=exit_input_envelope,
+                expected_previous_carry_envelope_sha256=(
+                    previous_carry_sha256
+                ),
             )
+            previous_carry_sha256 = next_carry_envelope[
+                "carry_envelope_sha256"
+            ]
+            prior_mtf_hashes = current_mtf_hashes
             staged.bind_unified_exit_decision(
                 exit_decision,
                 expected_bundle_sha256=bundle_authority[

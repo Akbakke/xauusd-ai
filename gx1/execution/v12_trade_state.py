@@ -71,7 +71,7 @@ SIDE_LONG = "long"
 SIDE_SHORT = "short"
 SIDES = (SIDE_LONG, SIDE_SHORT)
 
-PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v13"
+PERSISTED_TRADE_STATE_SCHEMA_VERSION = "gx1_persisted_trade_state_v14"
 TRADE_STATE_MODEL_BUNDLE_BINDING_SCHEMA_VERSION = (
     "gx1_trade_state_model_bundle_binding_v2"
 )
@@ -139,6 +139,7 @@ _PERSISTED_TRADE_STATE_FIELDS = frozenset(
         "last_exit_input_envelope",
         "last_exit_decision",
         "exit_incremental_carry_envelope",
+        "previous_exit_carry_envelope_sha256",
     }
 )
 _MODEL_BUNDLE_BINDING_FIELDS = frozenset(
@@ -1037,16 +1038,36 @@ def _validate_persisted_trade_state_payload(
     raw_last_exit_decision = payload["last_exit_decision"]
     raw_last_exit_input = payload["last_exit_input_envelope"]
     raw_exit_carry = payload["exit_incremental_carry_envelope"]
+    raw_previous_exit_carry_sha256 = payload[
+        "previous_exit_carry_envelope_sha256"
+    ]
     if bars_in_trade == 0:
         if (
             raw_last_exit_decision is not None
             or raw_last_exit_input is not None
             or raw_exit_carry is not None
+            or raw_previous_exit_carry_sha256 is not None
         ):
             raise ValueError(
                 "zero-bar persisted state cannot contain Exit input/decision"
             )
     else:
+        if (
+            not isinstance(raw_previous_exit_carry_sha256, str)
+            or len(raw_previous_exit_carry_sha256) != 64
+            or any(
+                character not in _SHA256_CHARACTERS
+                for character in raw_previous_exit_carry_sha256
+            )
+            or (
+                bars_in_trade == 1
+                and raw_previous_exit_carry_sha256
+                != UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            )
+        ):
+            raise ValueError(
+                "persisted previous Exit carry identity is invalid"
+            )
         if not isinstance(raw_last_exit_decision, dict):
             raise ValueError(
                 "processed persisted state requires its last Exit decision"
@@ -1114,6 +1135,9 @@ def _validate_persisted_trade_state_payload(
                 entry_snapshot=snapshot,
                 exit_path_envelope=exit_path_envelope,
                 exit_input_envelope=validated_exit_input,
+                expected_previous_carry_envelope_sha256=(
+                    raw_previous_exit_carry_sha256
+                ),
             )
             validated_carry = require_unified_exit_incremental_carry_envelope(
                 raw_exit_carry,
@@ -1136,9 +1160,7 @@ def _validate_persisted_trade_state_payload(
                     "mtf_last_row_sha256"
                 ],
                 expected_previous_carry_envelope_sha256=(
-                    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
-                    if bars_in_trade == 1
-                    else None
+                    raw_previous_exit_carry_sha256
                 ),
             )
             if (
@@ -1232,6 +1254,7 @@ class TradeState:
     last_exit_decision: dict[str, Any] | None = None
     last_exit_input_envelope: dict[str, Any] | None = None
     exit_incremental_carry_envelope: dict[str, Any] | None = None
+    previous_exit_carry_envelope_sha256: str | None = None
 
     def require_entry_snapshot(self) -> dict[str, Any]:
         """Validate this trade's snapshot under its exact execution mode."""
@@ -1688,6 +1711,9 @@ class TradeState:
             "exit_incremental_carry_envelope": _jsonable(
                 self.exit_incremental_carry_envelope
             ),
+            "previous_exit_carry_envelope_sha256": (
+                self.previous_exit_carry_envelope_sha256
+            ),
         })
         if not isinstance(payload, dict):  # pragma: no cover - fixed literal shape
             raise AssertionError("trade-state serialization did not produce an object")
@@ -1757,6 +1783,9 @@ class TradeState:
                 dict(d["exit_incremental_carry_envelope"])
                 if d["exit_incremental_carry_envelope"] is not None
                 else None
+            ),
+            previous_exit_carry_envelope_sha256=(
+                d["previous_exit_carry_envelope_sha256"]
             ),
             full_path_chain_sha256=d["full_path_chain_sha256"],
         )
@@ -1830,6 +1859,13 @@ class TradeState:
             )
         ):
             raise ValueError("Exit input envelope differs from trade state")
+        previous_carry_sha256 = (
+            UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+            if self.exit_incremental_carry_envelope is None
+            else self.exit_incremental_carry_envelope[
+                "carry_envelope_sha256"
+            ]
+        )
         validated = require_unified_exit_output(
             decision,
             context="TRADE_STATE_BIND_EXIT",
@@ -1837,9 +1873,11 @@ class TradeState:
             entry_snapshot=snapshot,
             exit_path_envelope=path_envelope,
             exit_input_envelope=input_envelope,
+            expected_previous_carry_envelope_sha256=previous_carry_sha256,
         )
         self.last_exit_decision = deepcopy(validated)
         self.last_exit_input_envelope = deepcopy(input_envelope)
+        self.previous_exit_carry_envelope_sha256 = previous_carry_sha256
         self.exit_incremental_carry_envelope = deepcopy(
             validated["exit_incremental_carry_envelope"]
         )

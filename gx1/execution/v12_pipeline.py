@@ -29,6 +29,9 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
     ModelNativeRuntimeEvidenceError,
     require_model_native_runtime_evidence,
 )
+from gx1.contracts.unified_exit_incremental_carry_v1 import (
+    UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256,
+)
 from gx1.execution.v12_m1_to_m5_downsample import latest_closed_m5_start_at
 from gx1.execution.v12_model_native_state_live import (
     SEQ_LEN_MODEL_NATIVE as ENTRY_SEQ_LEN,
@@ -757,6 +760,13 @@ class V12Pipeline:
                     exit_input_envelope=decision[
                         "exit_input_envelope"
                     ],
+                    expected_previous_carry_envelope_sha256=(
+                        UNIFIED_EXIT_INCREMENTAL_CARRY_GENESIS_SHA256
+                        if trade.exit_incremental_carry_envelope is None
+                        else trade.exit_incremental_carry_envelope[
+                            "carry_envelope_sha256"
+                        ]
+                    ),
                 )
                 staged.bind_unified_exit_decision(
                     decision,
