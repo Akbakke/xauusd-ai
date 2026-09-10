@@ -63,8 +63,11 @@ def _json(path: Path) -> dict[str, Any]:
 
 def _matrix(table: Any, name: str, dtype: str) -> np.ndarray:
     column = table[name].combine_chunks()
-    width = column.type.list_size
-    return np.ascontiguousarray(column.values.to_numpy(zero_copy_only=False).reshape(len(column), width), dtype=dtype)
+    flat = column.values.to_numpy(zero_copy_only=False)
+    if len(column) < 1 or len(flat) % len(column) != 0:
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_LIST_SHAPE_INVALID")
+    width = len(flat) // len(column)
+    return np.ascontiguousarray(flat.reshape(len(column), width), dtype=dtype)
 
 
 def fit_base(
