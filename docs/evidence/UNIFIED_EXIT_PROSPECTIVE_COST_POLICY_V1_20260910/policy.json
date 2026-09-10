@@ -1,0 +1,111 @@
+{
+  "artifact_sha256": "3f248827df3f37c98aeda88d213266a91c7a9b1fd53b470e818fe3a0368a919e",
+  "broker_evidence": {
+    "artifact_sha256": "850a36e49d2bb43c1b875540763be57bc6e95c9133de2b2ac8ee9c045850a128",
+    "file_sha256": "c0f36264a2689a712b090f0abb78cefa085eb5bf277e592c2a8a2d58e1d72579",
+    "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_BROKER_EVIDENCE_V1_20260910.json"
+  },
+  "commission": {
+    "bps_per_execution": 0.0,
+    "current_account_snapshot_sha256": "bc78e7eabf4365f9fc58d29092ab2818d4a7e98d2058717ce4c703ccf0aedc97",
+    "current_revalidation_at_utc": "2026-09-10T21:12:24.577830+00:00",
+    "drift_action": "FAIL_CLOSED",
+    "implicit_zero_used": false,
+    "pre_cutoff_commission_nonzero_count": 0,
+    "pre_cutoff_commission_present_count": 258,
+    "pre_cutoff_fill_count": 258,
+    "revalidate_before_each_run": true,
+    "zero_basis": "258_of_258_pre_cutoff_fills_zero_plus_current_account_revalidation"
+  },
+  "coverage": {
+    "end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+    "start_utc": "2025-06-01T00:00:00+00:00",
+    "test_data_used": false
+  },
+  "decision": "PREREGISTERED_PROSPECTIVE_POLICY_NOT_HISTORICAL_TRUTH",
+  "economics_pass_claimed": false,
+  "executable_bid_ask": {
+    "manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/pretest_direct_m1_quotes_source_20260829T172817Z/manifest.json",
+      "sha256": "13a7fca94deaaa110d4aad602d41e5383a84d59f8d7da5d7f4f3ac66fc7981fc"
+    },
+    "manifest_schema_version": "gx1_direct_native_pretest_source_v2",
+    "parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/pretest_direct_m1_quotes_source_20260829T172817Z/m1_quotes.parquet",
+      "sha256": "a8b2b9c1ea9eacfeda3370dbe971843f6caf9a1bbfbc7026e732256048952d32"
+    },
+    "pricing_method": "side_correct_executable_bid_ask_from_bound_m1_tape",
+    "quote_complete_m1": true,
+    "row_count": 2628372,
+    "test_accessed": false,
+    "time_max_utc": "2026-06-30T23:59:00+00:00",
+    "time_min_utc": "2019-01-01T23:00:00+00:00"
+  },
+  "financing_or_swap": {
+    "accrual": "actual_elapsed_wall_clock",
+    "cost_formula": "open_notional*annual_cost_rate*elapsed_wall_clock_seconds/seconds_per_year",
+    "current_instrument_snapshot_sha256": "2621600658d37ac88563a7634f58544c32944b3148356aca03ff556805a10ebd",
+    "drift_action": "FAIL_CLOSED",
+    "favorable_credit_clipped_to_zero": true,
+    "historical_rate_series_complete": false,
+    "implicit_zero_used": false,
+    "long_annual_cost_rate": 0.054,
+    "revalidate_before_each_run": true,
+    "seconds_per_year": 31557600.0,
+    "short_annual_cost_rate": 0.0,
+    "source_long_financing_rate": -0.054,
+    "source_short_financing_rate": 0.0282
+  },
+  "future_train_only_risk_sweep_required": true,
+  "guaranteed_execution_fee": {
+    "account_currency_per_execution": 0.0,
+    "drift_action": "FAIL_CLOSED",
+    "implicit_zero_used": false,
+    "market_order_no_gslo_policy_sha256": "290d9c8da8ae062bb355aa42f58f57038c71e3fa7b5850647fb04f4cdbd85ff1",
+    "policy_source": {
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/gx1/execution/oanda_client.py",
+      "sha256": "715b7b87e0bcfe549926a957b7d45534dc2d1245ebdf325cc5acedfb261c19c4"
+    },
+    "treatment": "structural_zero_only_under_exact_hash_bound_no_gslo_policy"
+  },
+  "historical_cost_truth_qualified": false,
+  "hold_risk_utility": {
+    "hold_risk_penalty_annual_bps_by_side": {
+      "long": 0.0,
+      "short": 0.0
+    },
+    "parameter_origin": "cash_net_pnl_learning_baseline_explicit_cli_zero_no_train_risk_fit",
+    "risk_utility_formula": "annual_open_notional_penalty_bps*elapsed_wall_clock_seconds/seconds_per_year",
+    "risk_utility_is_cash_pnl": false,
+    "seconds_per_year": 31557600.0
+  },
+  "latency_slippage": {
+    "application": "each_market_entry_and_each_trade_close",
+    "central_bps_per_execution": 2.0,
+    "direction": "adverse",
+    "implicit_zero_used": false,
+    "parameter_origin": "explicit_conservative_nonfitted_preregistration",
+    "separate_from_bid_ask_spread": true,
+    "source_status": "UNKNOWN_NO_PRE_CUTOFF_DECISION_QUOTE_TO_FILL_CLOCK_BINDING",
+    "val_refit_permitted": false,
+    "val_sensitivity_scenarios": [
+      {
+        "bps_per_execution": 1.0,
+        "name": "low"
+      },
+      {
+        "bps_per_execution": 2.0,
+        "name": "central"
+      },
+      {
+        "bps_per_execution": 4.0,
+        "name": "high"
+      }
+    ]
+  },
+  "policy_scope": "prospective_one_year_train_and_fixed_val_sensitivity",
+  "preregistered_at_utc": "2026-09-10T21:33:53+00:00",
+  "schema_version": "gx1_unified_exit_prospective_cost_policy_v1",
+  "test_data_used": false,
+  "validation_policy_selection_permitted": false
+}

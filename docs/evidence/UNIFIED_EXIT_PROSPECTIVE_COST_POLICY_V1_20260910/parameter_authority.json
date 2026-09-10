@@ -1,0 +1,85 @@
+{
+  "authority_sha256": "fff62df1ccfc15f10444e1a7effee2084e3f3f67edf328ba7ba97caa319bb805",
+  "component_artifacts": {
+    "commission": {
+      "artifact_sha256": "3656ad71d6ffa5b85de0154aa921a777e8f07d9892df31a031f38ebaa71ab9b3",
+      "file_sha256": "3088a962175543248b9deab2d6634c8be8866941fb4c1dbe7c0728876c09cd80",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/commission.fact.json"
+    },
+    "executable_bid_ask": {
+      "artifact_sha256": "920ead109d87bb17a2e1e8ed7fb1be253516b848d1444659e5911ae844b9478d",
+      "file_sha256": "62b26852469ccb34ff1f998e363002e50ae3ea30fa8d958547f4ee707f418406",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/executable_bid_ask.fact.json"
+    },
+    "execution_slippage": {
+      "artifact_sha256": "8dd93ef63041cacd9551e9b1533b4c3e9a95193ce5a4510759c77701e2720399",
+      "file_sha256": "8416ca45fe1c76fb351d96f0b1bbbd86f2dcd53038d29021d71eeda211ebd79c",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/execution_slippage.fact.json"
+    },
+    "financing_or_swap": {
+      "artifact_sha256": "015801b1489aa3fa84c035d6afa4621da0b0a121aa2e65dbf7d8fb213e81546e",
+      "file_sha256": "e7cf1bd2bf2c63c577342ae9c449e5fda63fe3dbe404b6c73a6dab0f6329e16e",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/financing_or_swap.fact.json"
+    },
+    "guaranteed_execution_fee": {
+      "artifact_sha256": "ad8592d4dab2e4f6033a96981a8682a7e222a036269a3a8eaf0733a0a5aa7ac5",
+      "file_sha256": "504b1a8e9df0dc6f33c19dc8e9ba4e89d11ca34ab51cc386656772c290e3e9a4",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/guaranteed_execution_fee.fact.json"
+    }
+  },
+  "coverage_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+  "coverage_start_utc": "2025-06-01T00:00:00+00:00",
+  "decision": "PASS_POLICY_PARAMETERS_COMPLETE_NOT_ECONOMICS_PASS",
+  "economics_fact_manifest": {
+    "file_sha256": "8104fa33708d849d7f1864c2ed6eafb3e42885ba34fe5feab38336ad2f7e062e",
+    "manifest_sha256": "5c33834cc0f1d6b9014501cc0a165af834de01c20e323d3cf055a510e2ac9c3c",
+    "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/economics.fact_manifest.json"
+  },
+  "economics_pass_claimed": false,
+  "future_train_only_risk_sweep_required": true,
+  "historical_cost_truth_qualified": false,
+  "hold_risk_penalty_annual_bps_by_side": {
+    "long": 0.0,
+    "short": 0.0
+  },
+  "method_receipt": {
+    "file_sha256": "f9019b7c028eabdc2ae2a15ed65200fb2a4f6abb92b5e8cddefd4a5be72f69a4",
+    "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/method_receipt.json",
+    "receipt_sha256": "2141d9605e463c02550408aeec39cb015aa6b7e0c8c219fa11850be19ccb78b6"
+  },
+  "parameters": {
+    "commission": {
+      "bps_per_execution": 0.0
+    },
+    "executable_bid_ask": {
+      "mode": "side_correct_executable_bid_ask_from_bound_m1_tape"
+    },
+    "execution_slippage": {
+      "central_bps_per_execution": 2.0,
+      "val_sensitivity_bps_per_execution": [
+        1.0,
+        2.0,
+        4.0
+      ]
+    },
+    "financing_or_swap": {
+      "favorable_credit_clipped_to_zero": true,
+      "long_annual_cost_rate": 0.054,
+      "short_annual_cost_rate": 0.0
+    },
+    "guaranteed_execution_fee": {
+      "account_currency_per_execution": 0.0,
+      "zero_requires_hash_bound_no_gslo_policy": true
+    }
+  },
+  "policy": {
+    "artifact_sha256": "3f248827df3f37c98aeda88d213266a91c7a9b1fd53b470e818fe3a0368a919e",
+    "file_sha256": "88012002464d0f99cfc0227bfa09e180e9629d9e3e26204e94ed3816d0f9063c",
+    "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/policy.json"
+  },
+  "preregistered_at_utc": "2026-09-10T21:33:53+00:00",
+  "risk_utility_formula": "annual_open_notional_penalty_bps*elapsed_wall_clock_seconds/seconds_per_year",
+  "risk_utility_is_cash_pnl": false,
+  "schema_version": "gx1_unified_exit_cost_parameter_authority_v1",
+  "test_data_used": false
+}

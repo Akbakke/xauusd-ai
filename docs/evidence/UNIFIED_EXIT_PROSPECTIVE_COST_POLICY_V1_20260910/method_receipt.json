@@ -1,0 +1,17 @@
+{
+  "commission_formula": "open_notional*commission_bps_per_execution/10000_at_each_execution",
+  "decision": "PASS_METHOD_COMPLETE_NOT_ECONOMICS_PASS",
+  "financing_formula": "open_notional*annual_cost_rate_by_side*elapsed_wall_clock_seconds/31557600",
+  "guaranteed_execution_fee_formula": "zero_only_while_hash_bound_no_gslo_policy_is_unchanged",
+  "historical_cost_truth_qualified": false,
+  "latency_slippage_formula": "open_notional*adverse_bps_per_execution/10000_at_each_execution",
+  "policy_artifact_sha256": "3f248827df3f37c98aeda88d213266a91c7a9b1fd53b470e818fe3a0368a919e",
+  "receipt_sha256": "2141d9605e463c02550408aeec39cb015aa6b7e0c8c219fa11850be19ccb78b6",
+  "risk_utility_formula": "annual_open_notional_penalty_bps*elapsed_wall_clock_seconds/seconds_per_year",
+  "risk_utility_is_cash_pnl": false,
+  "same_component_double_counting_forbidden": true,
+  "schema_version": "gx1_unified_exit_cost_method_receipt_v1",
+  "spread_formula": "side_correct_entry_and_exit_price_from_executable_bid_ask_tape",
+  "test_data_used": false,
+  "undiscounted_net_cash_pnl_formula": "gross_executable_bid_ask_cash_pnl-minus-commission-minus-latency_slippage-minus-financing-minus-guaranteed_execution_fee"
+}

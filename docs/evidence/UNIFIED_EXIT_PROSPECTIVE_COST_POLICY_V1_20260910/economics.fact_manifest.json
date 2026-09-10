@@ -1,0 +1,36 @@
+{
+  "all_required_components_complete": true,
+  "component_artifacts": {
+    "commission": {
+      "artifact_sha256": "3656ad71d6ffa5b85de0154aa921a777e8f07d9892df31a031f38ebaa71ab9b3",
+      "file_sha256": "3088a962175543248b9deab2d6634c8be8866941fb4c1dbe7c0728876c09cd80",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/commission.fact.json"
+    },
+    "executable_bid_ask": {
+      "artifact_sha256": "920ead109d87bb17a2e1e8ed7fb1be253516b848d1444659e5911ae844b9478d",
+      "file_sha256": "62b26852469ccb34ff1f998e363002e50ae3ea30fa8d958547f4ee707f418406",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/executable_bid_ask.fact.json"
+    },
+    "execution_slippage": {
+      "artifact_sha256": "8dd93ef63041cacd9551e9b1533b4c3e9a95193ce5a4510759c77701e2720399",
+      "file_sha256": "8416ca45fe1c76fb351d96f0b1bbbd86f2dcd53038d29021d71eeda211ebd79c",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/execution_slippage.fact.json"
+    },
+    "financing_or_swap": {
+      "artifact_sha256": "015801b1489aa3fa84c035d6afa4621da0b0a121aa2e65dbf7d8fb213e81546e",
+      "file_sha256": "e7cf1bd2bf2c63c577342ae9c449e5fda63fe3dbe404b6c73a6dab0f6329e16e",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/financing_or_swap.fact.json"
+    },
+    "guaranteed_execution_fee": {
+      "artifact_sha256": "ad8592d4dab2e4f6033a96981a8682a7e222a036269a3a8eaf0733a0a5aa7ac5",
+      "file_sha256": "504b1a8e9df0dc6f33c19dc8e9ba4e89d11ca34ab51cc386656772c290e3e9a4",
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/facts/guaranteed_execution_fee.fact.json"
+    }
+  },
+  "coverage_end_utc": "2026-07-01T00:00:00+00:00",
+  "coverage_start_utc": "2025-06-01T00:00:00+00:00",
+  "decision": "PASS",
+  "manifest_sha256": "5c33834cc0f1d6b9014501cc0a165af834de01c20e323d3cf055a510e2ac9c3c",
+  "schema_version": "gx1_exit_economics_fact_manifest_v1",
+  "test_data_used": false
+}

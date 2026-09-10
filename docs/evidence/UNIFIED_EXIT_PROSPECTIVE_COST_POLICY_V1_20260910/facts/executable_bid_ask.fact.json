@@ -1,0 +1,17 @@
+{
+  "artifact_sha256": "920ead109d87bb17a2e1e8ed7fb1be253516b848d1444659e5911ae844b9478d",
+  "component": "executable_bid_ask",
+  "coverage_end_utc": "2026-07-01T00:00:00+00:00",
+  "coverage_start_utc": "2025-06-01T00:00:00+00:00",
+  "decision": "PASS",
+  "fact_population_sha256": "beac0d3efbc74dce6ae40ab3abdbeedfe5cb6cc2eb2f932413f69891dc8cdfc7",
+  "implicit_zero_used": false,
+  "missing_values_present": false,
+  "schema_version": "gx1_exit_economics_component_fact_v1",
+  "source_evidence_path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/policy.json",
+  "source_evidence_sha256": "88012002464d0f99cfc0227bfa09e180e9629d9e3e26204e94ed3816d0f9063c",
+  "test_data_used": false,
+  "unknown_values_present": false,
+  "verifier_schema_version": "gx1_executable_bid_ask_fact_verifier_v1",
+  "zero_values_source_verified": true
+}
