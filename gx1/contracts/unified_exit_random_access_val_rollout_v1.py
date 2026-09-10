@@ -39,7 +39,7 @@ from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
 )
 from gx1.contracts.unified_exit_random_access_training_v1 import (
-    _collate_states,
+    collate_random_access_states_v1,
 )
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 
@@ -176,6 +176,10 @@ def build_random_access_val_rollout_contract(
     source_lineage_sha256: str,
     m1_source_sha256: str,
     m1_clock_sha256_value: str,
+    m1_source_manifest_file_sha256: str,
+    parent_m1_source_sha256: str,
+    parent_m1_source_manifest_sha256: str,
+    parent_m1_row_offset: int,
     market_closure_authority_sha256: str,
     market_closure_authority_file_sha256: str,
     economic_step_manifest_sha256: str,
@@ -199,6 +203,9 @@ def build_random_access_val_rollout_contract(
         or normalization["val_fit_rows"] != 0
         or normalization["test_fit_rows"] != 0
         or normalization["test_accessed"] is not False
+        or isinstance(parent_m1_row_offset, bool)
+        or not isinstance(parent_m1_row_offset, int)
+        or parent_m1_row_offset < 0
         or isinstance(compute_guard_max_model_forwards, bool)
         or not isinstance(compute_guard_max_model_forwards, int)
         or compute_guard_max_model_forwards < 1
@@ -222,6 +229,16 @@ def build_random_access_val_rollout_contract(
         "source_lineage_sha256": _require_sha(source_lineage_sha256, "SOURCE_LINEAGE"),
         "m1_source_sha256": _require_sha(m1_source_sha256, "M1_SOURCE"),
         "m1_clock_sha256": _require_sha(m1_clock_sha256_value, "M1_CLOCK"),
+        "m1_source_manifest_file_sha256": _require_sha(
+            m1_source_manifest_file_sha256, "M1_SOURCE_MANIFEST_FILE"
+        ),
+        "parent_m1_source_sha256": _require_sha(
+            parent_m1_source_sha256, "PARENT_M1_SOURCE"
+        ),
+        "parent_m1_source_manifest_sha256": _require_sha(
+            parent_m1_source_manifest_sha256, "PARENT_M1_SOURCE_MANIFEST"
+        ),
+        "parent_m1_row_offset": parent_m1_row_offset,
         "market_closure_authority_sha256": _require_sha(
             market_closure_authority_sha256, "CLOSURE_AUTHORITY"
         ),
@@ -281,6 +298,10 @@ def require_random_access_val_rollout_contract(
         "source_lineage_sha256",
         "m1_source_sha256",
         "m1_clock_sha256",
+        "m1_source_manifest_file_sha256",
+        "parent_m1_source_sha256",
+        "parent_m1_source_manifest_sha256",
+        "parent_m1_row_offset",
         "market_closure_authority_sha256",
         "market_closure_authority_file_sha256",
         "economic_step_manifest_sha256",
@@ -319,6 +340,9 @@ def require_random_access_val_rollout_contract(
         != RANDOM_ACCESS_MODEL_SCHEMA_VERSION
         or observed["model_architecture_sha256"] != RANDOM_ACCESS_MODEL_SCHEMA_SHA256
         or observed["test_data_used"] is not False
+        or isinstance(observed["parent_m1_row_offset"], bool)
+        or not isinstance(observed["parent_m1_row_offset"], int)
+        or observed["parent_m1_row_offset"] < 0
         or not isinstance(guard, Mapping)
         or set(guard)
         != {
@@ -336,6 +360,9 @@ def require_random_access_val_rollout_contract(
         "source_lineage_sha256",
         "m1_source_sha256",
         "m1_clock_sha256",
+        "m1_source_manifest_file_sha256",
+        "parent_m1_source_sha256",
+        "parent_m1_source_manifest_sha256",
         "market_closure_authority_sha256",
         "market_closure_authority_file_sha256",
         "economic_step_manifest_sha256",
@@ -483,6 +510,16 @@ class RandomAccessValRolloutAdapterV1:
             or normalization["val_mode"] != "apply_frozen_train_transform_only"
             or getattr(economic_step_provider, "market_closure_authority_sha256", None)
             != closure["artifact_sha256"]
+            or getattr(economic_step_provider, "state_m1_source_sha256", None)
+            != self.contract["m1_source_sha256"]
+            or getattr(economic_step_provider, "state_m1_source_manifest_sha256", None)
+            != self.contract["m1_source_manifest_file_sha256"]
+            or getattr(economic_step_provider, "parent_m1_source_sha256", None)
+            != self.contract["parent_m1_source_sha256"]
+            or getattr(economic_step_provider, "parent_m1_source_manifest_sha256", None)
+            != self.contract["parent_m1_source_manifest_sha256"]
+            or getattr(economic_step_provider, "parent_m1_row_offset", None)
+            != self.contract["parent_m1_row_offset"]
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_SOURCE_BINDING_INVALID")
         for entry in self.entries:
@@ -704,9 +741,9 @@ def run_random_access_val_rollout(
         envelopes = adapter.materialize_active_batch(row_indices, state_index)
         materialized_count += len(envelopes)
         states = [envelope["state"] for envelope in envelopes]
-        model_inputs = _collate_states(
+        model_inputs = collate_random_access_states_v1(
             states,
-            surface=adapter.normalization["surface"],
+            normalization_artifact=adapter.normalization,
             device=device,
         )
         selected = torch.as_tensor(active_entries, dtype=torch.long, device=device)

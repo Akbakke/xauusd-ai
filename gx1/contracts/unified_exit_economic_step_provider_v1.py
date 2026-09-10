@@ -268,6 +268,9 @@ class LazyUnifiedExitEconomicStepProviderV1:
             self._price_row_offset = 0
             self.state_m1_source_sha256 = quote["parquet"]["sha256"]
             self.state_m1_source_manifest_sha256 = quote["manifest"]["sha256"]
+        self.parent_m1_source_sha256 = quote["parquet"]["sha256"]
+        self.parent_m1_source_manifest_sha256 = quote["manifest"]["sha256"]
+        self.parent_m1_row_offset = self._price_row_offset
         if common_successor_transition_counts is not None:
             counts = np.ascontiguousarray(
                 common_successor_transition_counts, dtype="<i8"

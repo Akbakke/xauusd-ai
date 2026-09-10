@@ -269,4 +269,13 @@ def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path) -> 
     projection = provider.materialize_training_projection(0, 0, 0, 1, 1)
     assert projection["hold_event_kind_index"].tolist() == [1]
     assert provider.state_m1_source_sha256 == child_sha
-    assert provider._price_row_offset == parent_offset
+    assert provider.state_m1_source_manifest_sha256 == file_sha256(child_manifest_path)
+    assert (
+        provider.parent_m1_source_sha256
+        == policy["executable_bid_ask"]["parquet"]["sha256"]
+    )
+    assert (
+        provider.parent_m1_source_manifest_sha256
+        == policy["executable_bid_ask"]["manifest"]["sha256"]
+    )
+    assert provider.parent_m1_row_offset == parent_offset

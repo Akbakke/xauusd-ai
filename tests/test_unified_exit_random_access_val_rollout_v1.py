@@ -188,6 +188,11 @@ class _EconomicProvider:
     def __init__(self, clock, closure_sha, objective, manifest):
         self.clock = clock
         self.market_closure_authority_sha256 = closure_sha
+        self.state_m1_source_sha256 = "8" * 64
+        self.state_m1_source_manifest_sha256 = "a" * 64
+        self.parent_m1_source_sha256 = "b" * 64
+        self.parent_m1_source_manifest_sha256 = "c" * 64
+        self.parent_m1_row_offset = 100
         self.objective = objective
         self.manifest = manifest
 
@@ -311,6 +316,10 @@ def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000):
         source_lineage_sha256="6" * 64,
         m1_source_sha256="8" * 64,
         m1_clock_sha256_value=m1_clock_sha256(clock),
+        m1_source_manifest_file_sha256="a" * 64,
+        parent_m1_source_sha256="b" * 64,
+        parent_m1_source_manifest_sha256="c" * 64,
+        parent_m1_row_offset=100,
         market_closure_authority_sha256=closure["artifact_sha256"],
         market_closure_authority_file_sha256="7" * 64,
         economic_step_manifest_sha256=manifest["manifest_sha256"],
