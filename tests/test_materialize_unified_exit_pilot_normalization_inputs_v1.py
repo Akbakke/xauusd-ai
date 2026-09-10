@@ -416,14 +416,22 @@ def test_view_is_explicitly_blocked_until_summary_registry(
     )
     view = report["normalization_view"]
     assert report["published"] is False
-    assert view["decision"] == "BLOCKED"
-    assert view["blockers"] == ["lifetime_summary_registry_pending"]
+    from gx1.contracts.unified_exit_lifetime_summary_v1 import (
+        lifetime_summary_registry,
+    )
+
+    registry = lifetime_summary_registry()
+    assert view["decision"] == "PASS"
+    assert view["blockers"] == []
     assert view["lifetime_summary_registry"] == {
         "schema_version": EXPECTED_SUMMARY_REGISTRY_SCHEMA,
-        "status": "PENDING",
-        "contract_sha256": None,
-        "field_order_sha256": None,
+        "status": "BOUND",
+        "registry_sha256": registry["registry_sha256"],
+        "field_order": registry["field_order"],
+        "field_order_sha256": registry["field_order_sha256"],
+        "dimension": registry["dimension"],
     }
+    assert view["normalization_fit_status"] == "READY_FOR_TRAIN_ONLY_FIT"
     assert view["final_normalization_published"] is False
     assert view["first_state_witness_published"] is False
     assert not output.exists()

@@ -3,8 +3,8 @@
 
 The artifacts produced here bind physical TRAIN feature rows.  They deliberately
 contain no transition-sampler, chunk, reward, Q-value, or outcome selection.
-The final normalization fit remains blocked until the lifetime-summary registry
-is immutable.
+The view binds the immutable lifetime-summary registry and is then ready for a
+separate outcome-blind TRAIN-only normalization fit.
 """
 
 from __future__ import annotations
@@ -31,6 +31,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
     feature_surface_binding_from_split_manifest,
     require_sequence_source_reconstruction_audit,
+)
+from gx1.contracts.unified_exit_lifetime_summary_v1 import (
+    LIFETIME_SUMMARY_FIELD_ORDER,
+    lifetime_summary_registry,
 )
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     MARKET_CLOSURE_AUTHORITY_SCHEMA_VERSION,
@@ -823,10 +827,16 @@ def build_normalization_inputs(
             "CHILD_TRAIN_MANIFEST",
         )["source_manifest"]["path"]
     )
+    summary_registry = lifetime_summary_registry()
+    if (
+        summary_registry["schema_version"] != EXPECTED_SUMMARY_REGISTRY_SCHEMA
+        or summary_registry["field_order"] != list(LIFETIME_SUMMARY_FIELD_ORDER)
+    ):
+        raise RuntimeError("PILOT_NORMALIZATION_SUMMARY_REGISTRY_INVALID")
     view = {
         "schema_version": VIEW_SCHEMA_VERSION,
-        "decision": "BLOCKED",
-        "blockers": ["lifetime_summary_registry_pending"],
+        "decision": "PASS",
+        "blockers": [],
         "child_dataset_run_id": admission["child_dataset_run_id"],
         "child_admission": {
             "path": str(Path(child_admission_path)),
@@ -854,12 +864,14 @@ def build_normalization_inputs(
             "contract_sha256": population["contract_sha256"],
         },
         "lifetime_summary_registry": {
-            "schema_version": EXPECTED_SUMMARY_REGISTRY_SCHEMA,
-            "status": "PENDING",
-            "contract_sha256": None,
-            "field_order_sha256": None,
+            "schema_version": summary_registry["schema_version"],
+            "status": "BOUND",
+            "registry_sha256": summary_registry["registry_sha256"],
+            "field_order": summary_registry["field_order"],
+            "field_order_sha256": summary_registry["field_order_sha256"],
+            "dimension": summary_registry["dimension"],
         },
-        "normalization_fit_status": "PENDING_SUMMARY_REGISTRY",
+        "normalization_fit_status": "READY_FOR_TRAIN_ONLY_FIT",
         "final_normalization_published": False,
         "first_state_witness_published": False,
         "val_fit_rows": 0,
@@ -871,7 +883,7 @@ def build_normalization_inputs(
         return {
             "schema_version": BUNDLE_SCHEMA_VERSION,
             "mode": "validate_no_publish",
-            "decision": "BLOCKED",
+            "decision": "PASS",
             "published": False,
             "output_dir": str(output),
             "sequence_audit": sequence_audit,
@@ -898,11 +910,11 @@ def build_normalization_inputs(
     return {
         "schema_version": BUNDLE_SCHEMA_VERSION,
         "mode": "publish_intermediate_inputs",
-        "decision": "BLOCKED",
+        "decision": "PASS",
         "published": True,
         "output_dir": str(output),
         "normalization_view_contract_sha256": view["contract_sha256"],
-        "normalization_fit_status": "PENDING_SUMMARY_REGISTRY",
+        "normalization_fit_status": "READY_FOR_TRAIN_ONLY_FIT",
         "test_accessed": False,
     }
 
