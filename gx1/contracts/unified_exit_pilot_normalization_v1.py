@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_fitted_q_v1 import entry_fill_binding_sha256
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     fit_surface_normalization,
     require_surface_normalization,
@@ -312,6 +313,8 @@ def build_first_state_entry_bridge_witness(
     state_view_source_sha256: str,
     lifetime_summary_registry_sha256: str,
     train_normalization_sha256: str,
+    m1_bid_open: Sequence[float],
+    m1_ask_open: Sequence[float],
 ) -> dict[str, Any]:
     if split not in {"train", "val"}:
         raise RuntimeError("UNIFIED_EXIT_PILOT_BRIDGE_SPLIT_INVALID")
@@ -345,6 +348,49 @@ def build_first_state_entry_bridge_witness(
     positions = np.searchsorted(m1.asi8, expected)
     if np.any(positions >= len(m1)) or not np.array_equal(m1.asi8[positions], expected):
         raise RuntimeError("UNIFIED_EXIT_PILOT_FIRST_STATE_MISSING")
+    bids = np.asarray(m1_bid_open, dtype="<f8")
+    asks = np.asarray(m1_ask_open, dtype="<f8")
+    if (
+        bids.shape != (len(m1),)
+        or asks.shape != (len(m1),)
+        or not np.isfinite(bids).all()
+        or not np.isfinite(asks).all()
+        or np.any(bids <= 0.0)
+        or np.any(asks <= bids)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PILOT_FIRST_STATE_QUOTES_INVALID")
+    selected_quotes = np.column_stack([bids[positions], asks[positions]]).astype(
+        "<f4", copy=False
+    )
+    episode_bindings: list[str] = []
+    fill_bindings: list[str] = []
+    for entry_row_index, (state_time_ns, quote) in enumerate(
+        zip(expected.tolist(), selected_quotes)
+    ):
+        episode_binding = canonical_sha256(
+            {
+                "schema_version": FIRST_STATE_BRIDGE_SCHEMA_VERSION,
+                "split": split,
+                "entry_row_index": entry_row_index,
+                "first_exit_state_time_ns": int(state_time_ns),
+                "entry_bid": float(quote[0]),
+                "entry_ask": float(quote[1]),
+                "fill_source": "first_exit_m1_bar_bid_open_ask_open",
+                "side_order": ["long", "short"],
+                "state_view_source_sha256": bindings["state_view_source"],
+                "closure_authority_sha256": bindings["closure_authority"],
+                "m1_source_sha256": bindings["m1_source"],
+            }
+        )
+        side_quotes = np.repeat(quote[None, :], 2, axis=0)
+        fill_binding = entry_fill_binding_sha256(
+            entry_row_index=entry_row_index,
+            episode_pack_sha256=episode_binding,
+            first_exit_state_time_ns=int(state_time_ns),
+            exit_entry_bid_ask=side_quotes,
+        )
+        episode_bindings.append(episode_binding)
+        fill_bindings.append(fill_binding)
     stream = np.column_stack(
         [np.arange(len(entry), dtype="<i8"), entry.asi8, positions.astype("<i8"), expected]
     ).astype("<i8", copy=False)
@@ -355,6 +401,16 @@ def build_first_state_entry_bridge_witness(
         "entry_row_count": len(entry),
         "first_state_rule": "entry_m5_bar_start_plus_300_seconds_equals_first_exit_m1_bar_start",
         "bridge_stream_sha256": hashlib.sha256(stream.tobytes()).hexdigest(),
+        "entry_quote_values_sha256": hashlib.sha256(selected_quotes.tobytes()).hexdigest(),
+        "first_state_episode_binding_sha256_by_entry": episode_bindings,
+        "entry_fill_binding_sha256_by_entry": fill_bindings,
+        "entry_fill_binding_stream_sha256": canonical_sha256(fill_bindings),
+        "fill_source": "first_exit_m1_bar_bid_open_ask_open",
+        "fill_side_semantics": {
+            "long": "entry_ask",
+            "short": "entry_bid",
+            "counterfactual_side_quotes": "same_raw_bid_ask_repeated_in_long_short_order",
+        },
         "first_entry_time_utc": entry[0].isoformat(),
         "last_entry_time_utc": entry[-1].isoformat(),
         "first_state_min_utc": pd.Timestamp(expected[0], tz="UTC").isoformat(),

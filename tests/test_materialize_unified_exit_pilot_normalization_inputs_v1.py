@@ -211,10 +211,29 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
 ) -> None:
     fixture = _sequence_fixture(tmp_path)
     m1_times = pd.date_range(fixture["times"][0], periods=600, freq="1min")
+    parent_m1_source = tmp_path / "parent_m1.parquet"
+    pd.DataFrame({"time": m1_times}).to_parquet(parent_m1_source, index=False)
+    parent_m1_manifest = tmp_path / "parent_m1.manifest.json"
+    _write_json(parent_m1_manifest, {"source": "synthetic_parent"})
     m1_source = tmp_path / "m1.parquet"
     pd.DataFrame({"time": m1_times}).to_parquet(m1_source, index=False)
     m1_manifest = tmp_path / "m1.manifest.json"
-    _write_json(m1_manifest, {"source": "synthetic"})
+    _write_json(
+        m1_manifest,
+        {
+            "schema_version": "gx1_unified_exit_pilot_m1_child_view_v1",
+            "split": "train",
+            "decision": "PASS",
+            "output_parquet": str(m1_source),
+            "output_parquet_sha256": _sha256_file(m1_source),
+            "parent_m1_path": str(parent_m1_source),
+            "parent_m1_sha256": _sha256_file(parent_m1_source),
+            "parent_m1_manifest_path": str(parent_m1_manifest),
+            "parent_m1_manifest_sha256": _sha256_file(parent_m1_manifest),
+            "right_censor_time_utc_exclusive": "2025-06-02T00:00:00Z",
+            "test_accessed": False,
+        },
+    )
 
     m1_signal = np.arange(
         len(m1_times) * MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32
@@ -225,8 +244,8 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
     feature_manifest = {
         "output_parquet": str(m1_feature),
         "output_parquet_sha256": _sha256_file(m1_feature),
-        "alignment_parquet": str(m1_source),
-        "alignment_sha256": _sha256_file(m1_source),
+        "alignment_parquet": str(parent_m1_source),
+        "alignment_sha256": _sha256_file(parent_m1_source),
         "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
@@ -268,10 +287,10 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
     _write_json(closure_path, closure)
 
     fixture["child"]["m1_source_binding"] = {
-        "parquet_path": str(m1_source),
-        "parquet_sha256": _sha256_file(m1_source),
-        "manifest_path": str(m1_manifest),
-        "manifest_sha256": _sha256_file(m1_manifest),
+        "parquet_path": str(parent_m1_source),
+        "parquet_sha256": _sha256_file(parent_m1_source),
+        "manifest_path": str(parent_m1_manifest),
+        "manifest_sha256": _sha256_file(parent_m1_manifest),
     }
     mtf_manifest = tmp_path / "mtf.json"
     _write_json(mtf_manifest, {"cache": "bound"})

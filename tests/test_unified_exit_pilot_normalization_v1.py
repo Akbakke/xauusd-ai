@@ -143,6 +143,8 @@ def test_first_state_bridge_binds_exact_clock_and_sources() -> None:
         "state_view_source_sha256": "6" * 64,
         "lifetime_summary_registry_sha256": "7" * 64,
         "train_normalization_sha256": "8" * 64,
+        "m1_bid_open": np.linspace(100.0, 101.0, len(m1)),
+        "m1_ask_open": np.linspace(100.1, 101.1, len(m1)),
     }
     witness = build_first_state_entry_bridge_witness(**kwargs)
     assert witness["entry_row_count"] == 3
@@ -169,4 +171,6 @@ def test_first_state_bridge_rejects_test_split() -> None:
             state_view_source_sha256="6" * 64,
             lifetime_summary_registry_sha256="7" * 64,
             train_normalization_sha256="8" * 64,
+            m1_bid_open=[100.0],
+            m1_ask_open=[100.1],
         )

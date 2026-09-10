@@ -541,12 +541,23 @@ def build_train_normalization_population_witness(
     m1_sha = _sha256_file(m1_path)
     m1_manifest_sha = _sha256_file(m1_manifest_path)
     expected_m1 = child_admission["m1_source_binding"]
-    if expected_m1 != {
-        "parquet_path": str(m1_path),
-        "parquet_sha256": m1_sha,
-        "manifest_path": str(m1_manifest_path),
-        "manifest_sha256": m1_manifest_sha,
-    }:
+    m1_manifest = _read_json(m1_manifest_path, "M1_SOURCE_MANIFEST")
+    if (
+        m1_manifest.get("schema_version")
+        != "gx1_unified_exit_pilot_m1_child_view_v1"
+        or m1_manifest.get("split") != "train"
+        or m1_manifest.get("decision") != "PASS"
+        or m1_manifest.get("output_parquet") != str(m1_path)
+        or m1_manifest.get("output_parquet_sha256") != m1_sha
+        or m1_manifest.get("parent_m1_path") != expected_m1["parquet_path"]
+        or m1_manifest.get("parent_m1_sha256") != expected_m1["parquet_sha256"]
+        or m1_manifest.get("parent_m1_manifest_path")
+        != expected_m1["manifest_path"]
+        or m1_manifest.get("parent_m1_manifest_sha256")
+        != expected_m1["manifest_sha256"]
+        or m1_manifest.get("right_censor_time_utc_exclusive") != train_end
+        or m1_manifest.get("test_accessed") is not False
+    ):
         raise RuntimeError("PILOT_NORMALIZATION_M1_BINDING_INVALID")
     m1_times = pd.DatetimeIndex(
         pd.read_parquet(m1_path, columns=["time"])["time"]
@@ -664,8 +675,8 @@ def build_train_normalization_population_witness(
     if (
         feature_manifest.get("output_parquet") != str(feature_path)
         or feature_manifest.get("output_parquet_sha256") != feature_sha
-        or feature_manifest.get("alignment_parquet") != str(m1_path)
-        or feature_manifest.get("alignment_sha256") != m1_sha
+        or feature_manifest.get("alignment_parquet") != expected_m1["parquet_path"]
+        or feature_manifest.get("alignment_sha256") != expected_m1["parquet_sha256"]
         or feature_manifest.get("signal_dim") != MODEL_NATIVE_SIGNAL_DIM
         or feature_manifest.get("ctx_cont_dim") != MODEL_NATIVE_CTX_CONT_DIM
         or feature_manifest.get("ctx_cat_dim") != MODEL_NATIVE_CTX_CAT_DIM
@@ -731,6 +742,8 @@ def build_train_normalization_population_witness(
             "manifest_sha256": m1_manifest_sha,
             "clock_sha256": clock_sha,
             "rows": len(m1_times),
+            "parent_full_tape": dict(expected_m1),
+            "right_censor_time_utc_exclusive": train_end,
         },
         "m1_feature_base": {
             "path": str(feature_path),

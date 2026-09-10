@@ -149,7 +149,10 @@ def build_bundle(*, recipe_path: Path) -> dict[str, Any]:
         entry_pair_population=int(admission["splits"]["train"]["rows"]),
     )
 
-    m1_times = pq.read_table(m1_path, columns=["time"])["time"].to_pandas()
+    m1_table = pq.read_table(m1_path, columns=["time", "bid_open", "ask_open"])
+    m1_times = m1_table["time"].to_pandas()
+    m1_bid_open = m1_table["bid_open"].to_numpy(zero_copy_only=False)
+    m1_ask_open = m1_table["ask_open"].to_numpy(zero_copy_only=False)
     require_market_closure_authority(
         closure,
         expected_m1_source_sha256=recipe["m1_source"]["sha256"],
@@ -174,6 +177,8 @@ def build_bundle(*, recipe_path: Path) -> dict[str, Any]:
             state_view_source_sha256=recipe["state_view_source"]["sha256"],
             lifetime_summary_registry_sha256=registry["registry_sha256"],
             train_normalization_sha256=summary_normalization["normalization_sha256"],
+            m1_bid_open=m1_bid_open,
+            m1_ask_open=m1_ask_open,
         )
 
     value = {
