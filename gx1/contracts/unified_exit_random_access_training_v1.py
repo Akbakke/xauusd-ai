@@ -117,9 +117,7 @@ def _collate_states(
         mtf_histories[suffix] = torch.from_numpy(histories["values"]).to(device)
         mtf_lengths[suffix] = torch.from_numpy(histories["lengths"]).to(device)
         mtf_gathers[suffix] = torch.from_numpy(
-            np.stack(
-                [state["mtf"][f"exit_mtf_gather_{suffix}"] for state in states]
-            )
+            np.stack([state["mtf"][f"exit_mtf_gather_{suffix}"] for state in states])
         ).to(device)
     return {
         "m1_local_history_x": torch.from_numpy(
@@ -140,6 +138,18 @@ def _collate_states(
         "exit_mtf_gathers": mtf_gathers,
         "exit_mtf_history_lengths": mtf_lengths,
     }
+
+
+def collate_random_access_states_v1(
+    states: Sequence[Mapping[str, Any]],
+    *,
+    normalization_artifact: Mapping[str, Any],
+    device: torch.device,
+) -> dict[str, Any]:
+    """Public exact state-collation owner shared by TRAIN and VAL."""
+
+    surface, _normalization_sha = _normalization_surface(normalization_artifact)
+    return _collate_states(states, surface=surface, device=device)
 
 
 def collate_random_access_training_items(
@@ -232,15 +242,19 @@ def collate_random_access_training_items(
                     expected_economics_objective_contract_sha256
                 ),
             )
-            if sample["entry_row_index"] != entry_row or view["entry_row_index"] != entry_row:
-                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_ENTRY_BINDING_INVALID")
+            if (
+                sample["entry_row_index"] != entry_row
+                or view["entry_row_index"] != entry_row
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_ENTRY_BINDING_INVALID"
+                )
             expected_current = sample["state_index"]
             if (
                 view["sample_role"] != "bellman_transition"
                 or view["loss_weight"] != sample["importance_weight"]
                 or view["current"]["state_index"] != expected_current
-                or view["successor"]["state_index"]
-                != sample["successor_state_index"]
+                or view["successor"]["state_index"] != sample["successor_state_index"]
                 or not np.isfinite(view["elapsed_wall_clock_gamma"])
                 or not 0.0 < view["elapsed_wall_clock_gamma"] <= 1.0
             ):
@@ -257,9 +271,7 @@ def collate_random_access_training_items(
                 view["successor_policy_action_valid_mask"], dtype=np.bool_
             )
             current_terminal = np.asarray(view["terminal_mask"], dtype=np.bool_)
-            current_censored = np.asarray(
-                view["right_censored_mask"], dtype=np.bool_
-            )
+            current_censored = np.asarray(view["right_censored_mask"], dtype=np.bool_)
             expected_successor_policy = np.ones((2, 2), dtype=np.bool_)
             expected_successor_policy[:, 0] &= ~successor_terminal
             expected_bellman = policy.copy()
@@ -273,13 +285,14 @@ def collate_random_access_training_items(
                 or not np.array_equal(bellman, expected_bellman)
                 or not np.isfinite(view["immediate_reward_bps"]).all()
             ):
-                raise RuntimeError(
-                    "UNIFIED_EXIT_RANDOM_ACCESS_TRANSITION_MASK_INVALID"
-                )
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRANSITION_MASK_INVALID")
             transition_samples.append(sample)
             transitions.append((sample, view))
         anchor_pair = item["anchor"]
-        if not isinstance(anchor_pair, Mapping) or set(anchor_pair) != {"sample", "state_view"}:
+        if not isinstance(anchor_pair, Mapping) or set(anchor_pair) != {
+            "sample",
+            "state_view",
+        }:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ANCHOR_PAIR_INVALID")
         anchor_sample = require_random_access_entry_anchor(
             anchor_pair["sample"], sampler_contract=contract
@@ -305,10 +318,8 @@ def collate_random_access_training_items(
             or anchor_view["current"]["state_index"] != 0
             or anchor_view["sample_role"] != "entry_anchor_no_loss"
             or anchor_view["loss_weight"] != 0.0
-            or anchor_sample["epoch_index"]
-            != transition_samples[0]["epoch_index"]
-            or anchor_sample["entry_slot"]
-            != transition_samples[0]["entry_slot"]
+            or anchor_sample["epoch_index"] != transition_samples[0]["epoch_index"]
+            or anchor_sample["entry_slot"] != transition_samples[0]["entry_slot"]
             or sorted(sample["sample_slot"] for sample in transition_samples)
             != list(range(contract["transitions_per_entry"]))
             or any(
@@ -322,12 +333,16 @@ def collate_random_access_training_items(
         episode_hashes.append(
             _require_sha(item["entry_episode_binding_sha256"], "EPISODE_BINDING")
         )
-        fill_hashes.append(_require_sha(item["entry_fill_binding_sha256"], "FILL_BINDING"))
+        fill_hashes.append(
+            _require_sha(item["entry_fill_binding_sha256"], "FILL_BINDING")
+        )
         witness_hashes.append(
             _require_sha(item["first_state_bridge_witness_sha256"], "BRIDGE_WITNESS")
         )
     layout = flatten_sample_counts(counts)
-    expected_owner = np.asarray(owner_by_item, dtype=np.int64)[layout["entry_batch_index"]]
+    expected_owner = np.asarray(owner_by_item, dtype=np.int64)[
+        layout["entry_batch_index"]
+    ]
     online_states = [view["current"] for _sample, view in transitions]
     target_states = [view["successor"] for _sample, view in transitions] + [
         view["current"] for _sample, view in anchors
@@ -344,9 +359,15 @@ def collate_random_access_training_items(
         "target_entry_batch_index": torch.from_numpy(
             np.concatenate((expected_owner, np.asarray(owner_by_item, dtype=np.int64)))
         ).to(device),
-        "selected_entry_batch_index": torch.tensor(owner_by_item, dtype=torch.long, device=device),
-        "online_model_inputs": _collate_states(online_states, surface=surface, device=device),
-        "target_model_inputs": _collate_states(target_states, surface=surface, device=device),
+        "selected_entry_batch_index": torch.tensor(
+            owner_by_item, dtype=torch.long, device=device
+        ),
+        "online_model_inputs": _collate_states(
+            online_states, surface=surface, device=device
+        ),
+        "target_model_inputs": _collate_states(
+            target_states, surface=surface, device=device
+        ),
         "online_action_valid_mask": torch.from_numpy(
             np.stack([view["policy_action_valid_mask"] for view in transition_views])
         ).to(device),
@@ -355,7 +376,10 @@ def collate_random_access_training_items(
         ).to(device),
         "successor_action_valid_mask": torch.from_numpy(
             np.stack(
-                [view["successor_policy_action_valid_mask"] for view in transition_views]
+                [
+                    view["successor_policy_action_valid_mask"]
+                    for view in transition_views
+                ]
             )
         ).to(device),
         "successor_observed_mask": torch.from_numpy(
@@ -376,14 +400,19 @@ def collate_random_access_training_items(
             device=device,
         ),
         "importance_weight": torch.tensor(
-            [sample["importance_weight"] * view["loss_weight"] for sample, view in transitions],
+            [
+                sample["importance_weight"] * view["loss_weight"]
+                for sample, view in transitions
+            ],
             dtype=torch.float32,
             device=device,
         ),
         "anchor_action_valid_mask": torch.from_numpy(
             np.stack([view["policy_action_valid_mask"] for view in anchor_views])
         ).to(device),
-        "anchor_state_view_sha256": [view["state_view_sha256"] for view in anchor_views],
+        "anchor_state_view_sha256": [
+            view["state_view_sha256"] for view in anchor_views
+        ],
         "entry_episode_binding_sha256": episode_hashes,
         "entry_fill_binding_sha256": fill_hashes,
         "first_state_bridge_witness_sha256": witness_hashes,
@@ -461,20 +490,28 @@ def run_random_access_training_step(
         state_valid = action[..., 1]
         terminal = batch["terminal_mask"]
         if bool(batch["right_censored_mask"].any().item()):
-            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_RIGHT_CENSORED_TRAIN_FORBIDDEN")
+            raise RuntimeError(
+                "UNIFIED_EXIT_RANDOM_ACCESS_RIGHT_CENSORED_TRAIN_FORBIDDEN"
+            )
         targets, valid = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=torch.zeros_like(successor_q).unsqueeze(2),
             exit_now_reward_bps=batch["immediate_reward_bps"][..., 1].unsqueeze(2),
             action_valid_mask=action.unsqueeze(2),
             state_valid_mask=state_valid.unsqueeze(2),
             terminal_mask=terminal.unsqueeze(2),
-            terminal_reason_index=torch.zeros_like(terminal, dtype=torch.long).unsqueeze(2),
+            terminal_reason_index=torch.zeros_like(
+                terminal, dtype=torch.long
+            ).unsqueeze(2),
             chunk_successor_target_q_bps=successor_q,
             chunk_successor_action_valid_mask=batch["successor_action_valid_mask"],
             bellman_target_valid_mask=batch["bellman_target_valid_mask"].unsqueeze(2),
             successor_observed_mask=batch["successor_observed_mask"].unsqueeze(2),
-            hold_immediate_reward_bps=batch["immediate_reward_bps"][..., 0].unsqueeze(2),
-            transition_discount=batch["elapsed_wall_clock_gamma"][:, None, None].expand(-1, 2, 1),
+            hold_immediate_reward_bps=batch["immediate_reward_bps"][..., 0].unsqueeze(
+                2
+            ),
+            transition_discount=batch["elapsed_wall_clock_gamma"][:, None, None].expand(
+                -1, 2, 1
+            ),
         )
         return targets.squeeze(2), valid.squeeze(2)
 
@@ -532,7 +569,9 @@ def run_random_access_training_step(
         "anchor_state_view_sha256": list(batch["anchor_state_view_sha256"]),
         "entry_episode_binding_sha256": list(batch["entry_episode_binding_sha256"]),
         "entry_fill_binding_sha256": list(batch["entry_fill_binding_sha256"]),
-        "first_state_bridge_witness_sha256": list(batch["first_state_bridge_witness_sha256"]),
+        "first_state_bridge_witness_sha256": list(
+            batch["first_state_bridge_witness_sha256"]
+        ),
         "target_model_values_are_stop_gradient": True,
         "flat_target_bps": 0.0,
         "entry_fitted_q_binding_sha256": fitted_entry_binding["binding_sha256"],
@@ -551,6 +590,7 @@ def run_random_access_training_step(
 __all__ = (
     "RANDOM_ACCESS_ENTRY_BRIDGE_BATCH_SCHEMA_VERSION",
     "RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION",
+    "collate_random_access_states_v1",
     "collate_random_access_training_items",
     "run_random_access_training_step",
 )

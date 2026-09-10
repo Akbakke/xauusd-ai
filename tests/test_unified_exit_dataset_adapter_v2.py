@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
@@ -22,10 +23,25 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     seal_economic_training_projection,
 )
 from gx1.contracts.unified_exit_lifecycle_v2 import unified_exit_lifecycle_v2_contract
+from gx1.contracts.unified_exit_market_closure_authority_v1 import (
+    MARKET_CLOSURE_SCHEDULE_SCHEMA_VERSION,
+    build_market_closure_authority,
+    seal_exact_market_schedule,
+)
+from gx1.contracts.unified_exit_pilot_normalization_v1 import (
+    build_first_state_entry_bridge_witness,
+    build_physical_summary_sample_authority,
+    fit_lifetime_summary_normalization,
+)
+from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+    build_random_access_sampler_contract,
+)
+from gx1.contracts.unified_exit_random_access_training_v1 import (
+    collate_random_access_training_items,
+)
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     EntryV10CtxDataset,
-    _episode_native_exit_eval_loss,
     _episode_native_exit_train,
 )
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
@@ -38,7 +54,9 @@ from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
 
 def _sha(value):
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
     ).hexdigest()
 
 
@@ -114,7 +132,9 @@ def _steps(*, count, terminal, hurdle_sha, action="exit_now"):
                 "gap": {
                     "status": "COMPLETE",
                     "classification": (
-                        "continuous_m1" if action == "hold" else "instantaneous_execution"
+                        "continuous_m1"
+                        if action == "hold"
+                        else "instantaneous_execution"
                     ),
                     "source_manifest_sha256": "8" * 64,
                     "classification_artifact_sha256": "9" * 64,
@@ -169,7 +189,8 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
             lineage_sha256=lineage,
             split="train",
             entry_row_index=0,
-        ) == 0
+        )
+        == 0
     )
     manifest = {
         **unified_exit_lifecycle_v2_contract(),
@@ -186,9 +207,13 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
     hurdle_sha = readiness["capital_hurdle_artifact"]["artifact_sha256"]
     streams = {
         "0:0:exit_now": _steps(count=700, terminal=True, hurdle_sha=hurdle_sha),
-        "0:0:hold": _steps(count=699, terminal=False, hurdle_sha=hurdle_sha, action="hold"),
+        "0:0:hold": _steps(
+            count=699, terminal=False, hurdle_sha=hurdle_sha, action="hold"
+        ),
         "0:1:exit_now": _steps(count=700, terminal=True, hurdle_sha=hurdle_sha),
-        "0:1:hold": _steps(count=699, terminal=False, hurdle_sha=hurdle_sha, action="hold"),
+        "0:1:hold": _steps(
+            count=699, terminal=False, hurdle_sha=hurdle_sha, action="hold"
+        ),
     }
     economic_manifest = seal_economic_exit_step_manifest(
         {
@@ -219,6 +244,7 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
         }
         envelope["slice_sha256"] = _sha(envelope)
         return envelope
+
     dataset = EntryV10CtxDataset.__new__(EntryV10CtxDataset)
     dataset._unified_exit_lifecycle_v2 = None
     dataset.per_tf_seq_lens = {tf: 2 for tf in EXIT_MTF_CONTEXT_TIMEFRAMES}
@@ -293,9 +319,7 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
             self.scalar_calls += 1
             return provide_step_slice(entry, side, action, start, stop)
 
-        def materialize_training_projection(
-            self, entry, side, start, stop, hold_stop
-        ):
+        def materialize_training_projection(self, entry, side, start, stop, hold_stop):
             contract = readiness["economics_objective_contract"]
             exit_steps = streams[f"{entry}:{side}:exit_now"][start:stop]
             hold_steps = streams[f"{entry}:{side}:hold"][start:hold_stop]
@@ -365,27 +389,140 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
             assert old_value.shape == new_value.shape
             assert old_value.tobytes() == new_value.tobytes()
 
+    schedule = seal_exact_market_schedule(
+        {
+            "schema_version": MARKET_CLOSURE_SCHEDULE_SCHEMA_VERSION,
+            "decision": "PASS",
+            "instrument": "XAU_USD",
+            "timeframe": "M1",
+            "coverage_start_utc": times[0].isoformat(),
+            "coverage_end_utc_exclusive": (
+                times[-1] + pd.Timedelta(minutes=1)
+            ).isoformat(),
+            "interval_semantics": "left_closed_right_open_utc",
+            "source_method": "externally_sourced_exact_xau_utc_closure_intervals_v1",
+            "source_reference_sha256": "1" * 64,
+            "intervals": [],
+            "test_data_used": False,
+        }
+    )
+    closure = build_market_closure_authority(
+        m1_times=times,
+        m1_source_path=Path("/immutable/train.m1.parquet"),
+        m1_source_sha256="a" * 64,
+        m1_source_manifest_path=Path("/immutable/train.m1.manifest.json"),
+        m1_source_manifest_sha256="2" * 64,
+        exact_schedule=schedule,
+        exact_schedule_path=Path("/immutable/schedule.json"),
+        exact_schedule_file_sha256="3" * 64,
+    )
+    sampler = build_random_access_sampler_contract(
+        split="train",
+        source_lineage_sha256="4" * 64,
+        transition_budget_per_epoch=4,
+        transitions_per_entry=4,
+        entry_pair_population=1,
+    )
+    summary_authority = build_physical_summary_sample_authority(
+        successor_transition_count_by_entry=[699],
+        source_lineage_sha256=sampler["source_lineage_sha256"],
+    )
+    fit_rows = summary_authority["fit_row_count"]
+    fitted = fit_lifetime_summary_normalization(
+        values=np.arange(fit_rows * 7, dtype=np.float64).reshape(fit_rows, 7),
+        sample_authority=summary_authority,
+    )
+    summary_manifest = {
+        "schema_version": "gx1_unified_exit_pilot_summary_fit_inputs_v1",
+        "decision": "PASS",
+        "split": "train",
+        "source_lineage_sha256": sampler["source_lineage_sha256"],
+        "child_admission_sha256": "5" * 64,
+        "child_parquet_sha256": "6" * 64,
+        "m1_source_sha256": "a" * 64,
+        "m1_manifest_sha256": "7" * 64,
+        "closure_authority_file_sha256": "8" * 64,
+        "closure_authority_sha256": closure["artifact_sha256"],
+        "entry_pair_population": 1,
+        "successor_counts_sha256": hashlib.sha256(
+            np.asarray([699], dtype="<i8").tobytes()
+        ).hexdigest(),
+        "successor_transition_total": 699,
+        "summary_sample_authority": summary_authority,
+        "lifetime_summary_normalization": fitted,
+        "val_fit_rows": 0,
+        "test_fit_rows": 0,
+        "test_accessed": False,
+    }
+    summary_manifest["manifest_sha256"] = _sha(summary_manifest)
+    witness = build_first_state_entry_bridge_witness(
+        split="train",
+        entry_times=[times[entry_start] - pd.Timedelta(minutes=5)],
+        m1_times=times,
+        child_admission_sha256="5" * 64,
+        child_parquet_sha256="6" * 64,
+        entry_sequence_audit_sha256="9" * 64,
+        m1_source_sha256="a" * 64,
+        closure_authority_sha256=closure["artifact_sha256"],
+        state_view_source_sha256="d" * 64,
+        lifetime_summary_registry_sha256=summary_authority[
+            "lifetime_summary_registry_sha256"
+        ],
+        train_normalization_sha256=fitted["normalization_sha256"],
+        m1_bid_open=dataset._m1["bid_open"],
+        m1_ask_open=dataset._m1["ask_open"],
+    )
+    fast_provider.market_closure_authority_sha256 = closure["artifact_sha256"]
+    fast_provider.economic_exit_step_manifest = economic_manifest
+    fast_adapter.configure_random_access_training_v1(
+        sampler_contract=sampler,
+        successor_transition_counts=[699],
+        summary_fit_manifest=summary_manifest,
+        market_closure_authority=closure,
+        normalization_artifact=fitted,
+        first_state_bridge_witness=witness,
+        random_access_m1_times=times,
+        parent_m1_row_offset=0,
+        expected_child_parquet_sha256="6" * 64,
+        expected_state_view_source_sha256="d" * 64,
+    )
+    item = fast_adapter.materialize_random_access_training_item_v1(
+        0, outer_batch_index=0
+    )
+    assert item is not None
+    assert len(item["transitions"]) == 4
+    assert item["anchor"]["sample"]["state_index"] == 0
+    random_bindings = fast_adapter.random_access_training_bindings_v1()
+    random_batch = collate_random_access_training_items(
+        [item],
+        outer_batch_size=1,
+        sampler_contract=random_bindings["sampler_contract"],
+        normalization_artifact=random_bindings["normalization_artifact"],
+        expected_m1_source_sha256=random_bindings["m1_source_sha256"],
+        expected_market_closure_authority_sha256=random_bindings[
+            "market_closure_authority_sha256"
+        ],
+        expected_economic_step_manifest_sha256=random_bindings[
+            "economic_step_manifest_sha256"
+        ],
+        expected_economics_objective_contract_sha256=random_bindings[
+            "economics_objective_contract_sha256"
+        ],
+        device=torch.device("cpu"),
+    )
+    assert random_batch["transition_count"] == 4
+    assert random_batch["selected_entry_count"] == 1
+
     validation_packs = dataset.materialize_exit_validation_chunks_v2(0)
     assert len(validation_packs) == 4
     assert {(item["side_index"], item["chunk_index"]) for item in validation_packs} == {
-        (0, 0), (0, 1), (1, 0), (1, 1)
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
     }
-    gradients, stats, _entry_targets, _entry_valid = _episode_native_exit_train(
-        model=_Model(online=True),
-        target_model=_Model(online=False),
-        entry_decision_representations=torch.zeros((1, 256)),
-        target_entry_decision_representations=torch.zeros((1, 256)),
-        entry_row_indices=torch.tensor([0]),
-        dataset=dataset,
-        device=torch.device("cpu"),
-        grad_accum_steps=1,
-        exit_cooperation_gate_epoch={},
-        exit_feature_tf_gate_epoch={},
-    )
-    assert stats["eligible_entry_rows"] == 1
-    assert gradients.abs().sum() > 0
-    val_loss, val_stats, _targets, _valid, _realized = (
-        _episode_native_exit_eval_loss(
+    with pytest.raises(RuntimeError, match="RANDOM_ACCESS_TRAIN_NOT_CONFIGURED"):
+        _episode_native_exit_train(
             model=_Model(online=True),
             target_model=_Model(online=False),
             entry_decision_representations=torch.zeros((1, 256)),
@@ -393,12 +530,10 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
             entry_row_indices=torch.tensor([0]),
             dataset=dataset,
             device=torch.device("cpu"),
+            grad_accum_steps=1,
             exit_cooperation_gate_epoch={},
             exit_feature_tf_gate_epoch={},
         )
-    )
-    assert val_stats["eligible_entry_rows"] == 1
-    assert torch.isfinite(val_loss)
     tampered = dict(pack)
     tampered["scheduled_pair_chunk_pointer_sha256"] = "f" * 64
     with pytest.raises(RuntimeError, match="PACK_SCHEDULE_INVALID"):

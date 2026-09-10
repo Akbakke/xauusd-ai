@@ -26,6 +26,21 @@ from gx1.contracts.unified_exit_fitted_q_v1 import (
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_PRICE_FIELDS,
     unified_exit_causal_prefix_path_tensor_from_values,
+    unified_exit_path_tensor_from_values,
+)
+from gx1.contracts.unified_exit_lifetime_summary_v1 import build_lifetime_summary
+from gx1.contracts.unified_exit_market_closure_authority_v1 import (
+    m1_clock_sha256,
+    require_market_closure_authority,
+)
+from gx1.contracts.unified_exit_pilot_normalization_v1 import (
+    FIRST_STATE_BRIDGE_SCHEMA_VERSION,
+    require_lifetime_summary_normalization,
+)
+from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+    require_random_access_sampler_contract,
+    schedule_random_access_entry_anchors,
+    schedule_random_access_epoch,
 )
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
     COMPACT_LIFECYCLE_SCHEMA_VERSION,
@@ -43,6 +58,62 @@ ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION = (
 _EXIT_NOW_EVENT_INDEX = 0
 _HOLD_EVENT_INDEX = 1
 _ECONOMIC_TERMINAL_EVENT_INDEX = 2
+
+
+class _RangeExtrema:
+    """O(n)-memory/O(log n)-query extrema with stable first-index ties."""
+
+    def __init__(self, values: Any, *, maximum: bool) -> None:
+        base = np.ascontiguousarray(values, dtype="<f8")
+        if base.ndim != 1 or base.size < 1 or not np.isfinite(base).all():
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PRICE_SOURCE_INVALID")
+        self._maximum = maximum
+        self._count = base.size
+        size = 1 << (base.size - 1).bit_length()
+        neutral = -np.inf if maximum else np.inf
+        self._values = np.full(size * 2, neutral, dtype="<f8")
+        self._indices = np.full(size * 2, np.iinfo(np.int64).max, dtype="<i8")
+        self._values[size : size + base.size] = base
+        self._indices[size : size + base.size] = np.arange(base.size, dtype=np.int64)
+        self._size = size
+        for node in range(size - 1, 0, -1):
+            left, right = node * 2, node * 2 + 1
+            if self._better(
+                self._values[left],
+                self._indices[left],
+                self._values[right],
+                self._indices[right],
+            ):
+                chosen = left
+            else:
+                chosen = right
+            self._values[node] = self._values[chosen]
+            self._indices[node] = self._indices[chosen]
+
+    def _better(self, a: float, ai: int, b: float, bi: int) -> bool:
+        return (a > b if self._maximum else a < b) or (a == b and ai <= bi)
+
+    def query(self, left: int, stop: int) -> tuple[float, int]:
+        length = stop - left
+        if left < 0 or stop > self._count or length < 1:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUMMARY_RANGE_INVALID")
+        lo, hi = left + self._size, stop + self._size
+        value = -np.inf if self._maximum else np.inf
+        index = np.iinfo(np.int64).max
+        while lo < hi:
+            if lo & 1:
+                candidate, candidate_index = self._values[lo], self._indices[lo]
+                if self._better(candidate, candidate_index, value, index):
+                    value, index = candidate, candidate_index
+                lo += 1
+            if hi & 1:
+                hi -= 1
+                candidate, candidate_index = self._values[hi], self._indices[hi]
+                if self._better(candidate, candidate_index, value, index):
+                    value, index = candidate, candidate_index
+            lo //= 2
+            hi //= 2
+        return float(value), int(index)
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -181,10 +252,19 @@ def require_economic_training_projection(
     ):
         raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_IDENTITY_INVALID")
     shapes_and_dtypes = {
-        "exit_event_kind_index": ((stop_state_index - start_state_index,), np.dtype("u1")),
+        "exit_event_kind_index": (
+            (stop_state_index - start_state_index,),
+            np.dtype("u1"),
+        ),
         "exit_reward_bps": ((stop_state_index - start_state_index,), np.dtype("<f8")),
-        "hold_event_kind_index": ((hold_stop_state_index - start_state_index,), np.dtype("u1")),
-        "hold_reward_bps": ((hold_stop_state_index - start_state_index,), np.dtype("<f8")),
+        "hold_event_kind_index": (
+            (hold_stop_state_index - start_state_index,),
+            np.dtype("u1"),
+        ),
+        "hold_reward_bps": (
+            (hold_stop_state_index - start_state_index,),
+            np.dtype("<f8"),
+        ),
     }
     for name, (shape, dtype) in shapes_and_dtypes.items():
         array = observed[name]
@@ -197,15 +277,12 @@ def require_economic_training_projection(
             or (array.dtype.kind == "f" and not np.isfinite(array).all())
         ):
             raise RuntimeError(f"UNIFIED_EXIT_ECONOMIC_PROJECTION_ARRAY_INVALID:{name}")
-    if (
-        np.any(
-            ~np.isin(
-                observed["exit_event_kind_index"],
-                (_EXIT_NOW_EVENT_INDEX, _ECONOMIC_TERMINAL_EVENT_INDEX),
-            )
+    if np.any(
+        ~np.isin(
+            observed["exit_event_kind_index"],
+            (_EXIT_NOW_EVENT_INDEX, _ECONOMIC_TERMINAL_EVENT_INDEX),
         )
-        or np.any(observed["hold_event_kind_index"] != _HOLD_EVENT_INDEX)
-    ):
+    ) or np.any(observed["hold_event_kind_index"] != _HOLD_EVENT_INDEX):
         raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_EVENT_INVALID")
     sealed = seal_economic_training_projection(
         {key: item for key, item in observed.items() if key not in forbidden}
@@ -326,6 +403,387 @@ class UnifiedExitDatasetAdapterV2:
         self._mtf_materializer = mtf_materializer
         self.per_tf_seq_lens = dict(per_tf_seq_lens)
         self.mtf_cache_identity_sha256 = mtf_cache_identity_sha256
+        self._random_access_train: dict[str, Any] | None = None
+
+    def configure_random_access_training_v1(
+        self,
+        *,
+        sampler_contract: Mapping[str, Any],
+        successor_transition_counts: Sequence[int],
+        summary_fit_manifest: Mapping[str, Any],
+        market_closure_authority: Mapping[str, Any],
+        normalization_artifact: Mapping[str, Any],
+        first_state_bridge_witness: Mapping[str, Any],
+        random_access_m1_times: Sequence[Any],
+        parent_m1_row_offset: int,
+        expected_child_parquet_sha256: str,
+        expected_state_view_source_sha256: str,
+    ) -> None:
+        """Bind immutable TRAIN artifacts before the first DataLoader read."""
+
+        if self._manifest["split"] != "train" or self._random_access_train is not None:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BINDING_INVALID")
+        contract = require_random_access_sampler_contract(sampler_contract)
+        counts = np.ascontiguousarray(successor_transition_counts, dtype="<i8")
+        summary = dict(summary_fit_manifest)
+        normalization = require_lifetime_summary_normalization(
+            normalization_artifact,
+            expected_sample_authority_sha256=summary.get(
+                "summary_sample_authority", {}
+            ).get("authority_sha256"),
+        )
+        population = len(self._rows)
+        if (
+            contract["split"] != "train"
+            or contract["entry_pair_population"] != population
+            or contract["source_lineage_sha256"] != summary.get("source_lineage_sha256")
+            or counts.shape != (population,)
+            or np.any(counts < 1)
+            or hashlib.sha256(counts.tobytes()).hexdigest()
+            != summary.get("successor_counts_sha256")
+            or summary.get("schema_version")
+            != "gx1_unified_exit_pilot_summary_fit_inputs_v1"
+            or summary.get("decision") != "PASS"
+            or summary.get("split") != "train"
+            or summary.get("entry_pair_population") != population
+            or summary.get("lifetime_summary_normalization") != normalization
+            or summary.get("val_fit_rows") != 0
+            or summary.get("test_fit_rows") != 0
+            or summary.get("test_accessed") is not False
+            or summary.get("manifest_sha256")
+            != _canonical_sha256(
+                {
+                    key: value
+                    for key, value in summary.items()
+                    if key != "manifest_sha256"
+                }
+            )
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUMMARY_BINDING_INVALID")
+        child_times = pd.DatetimeIndex(
+            pd.to_datetime(random_access_m1_times, utc=True, errors="coerce")
+        ).as_unit("ns")
+        authority = require_market_closure_authority(
+            market_closure_authority,
+            expected_m1_source_sha256=summary["m1_source_sha256"],
+            expected_m1_clock_sha256=m1_clock_sha256(child_times),
+        )
+        if (
+            authority["artifact_sha256"] != summary["closure_authority_sha256"]
+            or isinstance(parent_m1_row_offset, bool)
+            or not isinstance(parent_m1_row_offset, int)
+            or parent_m1_row_offset < 0
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_CLOSURE_BINDING_INVALID")
+        parent_times = pd.DatetimeIndex(self._source._m1_times).as_unit("ns")
+        parent_stop = parent_m1_row_offset + len(child_times)
+        if (
+            child_times.empty
+            or parent_stop > len(parent_times)
+            or not parent_times[parent_m1_row_offset:parent_stop].equals(child_times)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PARENT_CLOCK_INVALID")
+        feature_times = pd.DatetimeIndex(self._source._m1_feature_times).as_unit("ns")
+        feature_start = int(np.searchsorted(feature_times.asi8, child_times.asi8[0]))
+        feature_stop = feature_start + len(child_times)
+        if (
+            feature_start < 0
+            or feature_stop > len(feature_times)
+            or not feature_times[feature_start:feature_stop].equals(child_times)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FEATURE_CLOCK_INVALID")
+        source_features = self._source._m1_features
+        signal = np.ascontiguousarray(
+            source_features["signal"][feature_start:feature_stop], dtype="<f4"
+        )
+        ctx_cont = np.ascontiguousarray(
+            source_features["ctx_cont"][feature_start:feature_stop], dtype="<f4"
+        )
+        ctx_cat = np.ascontiguousarray(
+            source_features["ctx_cat"][feature_start:feature_stop], dtype="<i8"
+        )
+        if not len(signal) == len(ctx_cont) == len(ctx_cat) == len(child_times):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FEATURE_SOURCE_INVALID")
+        witness = dict(first_state_bridge_witness)
+        claimed_witness = witness.get("witness_sha256")
+        bindings = witness.get("bindings")
+        if (
+            witness.get("schema_version") != FIRST_STATE_BRIDGE_SCHEMA_VERSION
+            or witness.get("decision") != "PASS"
+            or witness.get("split") != "train"
+            or witness.get("entry_row_count") != population
+            or witness.get("test_accessed") is not False
+            or claimed_witness
+            != _canonical_sha256(
+                {
+                    key: value
+                    for key, value in witness.items()
+                    if key != "witness_sha256"
+                }
+            )
+            or not isinstance(bindings, Mapping)
+            or bindings.get("child_parquet") != expected_child_parquet_sha256
+            or bindings.get("m1_source") != summary["m1_source_sha256"]
+            or bindings.get("closure_authority") != authority["artifact_sha256"]
+            or bindings.get("state_view_source") != expected_state_view_source_sha256
+            or bindings.get("train_normalization")
+            != normalization["normalization_sha256"]
+            or len(witness.get("first_state_episode_binding_sha256_by_entry", ()))
+            != population
+            or len(witness.get("entry_fill_binding_sha256_by_entry", ())) != population
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BRIDGE_BINDING_INVALID")
+        starts = self._rows["entry_m1_start_row"].to_numpy(dtype=np.int64)
+        child_starts = starts - parent_m1_row_offset
+        if (
+            np.any(child_starts < 479)
+            or np.any(child_starts + counts >= len(child_times))
+            or not np.array_equal(
+                child_times.asi8[child_starts],
+                pd.DatetimeIndex(self._rows["first_state_row_time"]).as_unit("ns").asi8,
+            )
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ENTRY_CLOCK_INVALID")
+        price_fields = tuple(
+            dict.fromkeys(
+                (
+                    *UNIFIED_EXIT_PATH_PRICE_FIELDS,
+                    "bid_open",
+                    "bid_high",
+                    "bid_low",
+                    "bid_close",
+                    "ask_open",
+                    "ask_high",
+                    "ask_low",
+                    "ask_close",
+                    "volume",
+                )
+            )
+        )
+        prices = {
+            name: np.ascontiguousarray(
+                self._source._m1[name][parent_m1_row_offset:parent_stop], dtype="<f8"
+            )
+            for name in price_fields
+        }
+        self._random_access_train = {
+            "sampler_contract": contract,
+            "successor_counts": counts,
+            "summary_fit_manifest_sha256": summary["manifest_sha256"],
+            "normalization_artifact": normalization,
+            "m1_source_sha256": summary["m1_source_sha256"],
+            "market_closure_authority": authority,
+            "m1_times": child_times,
+            "m1_signal": signal,
+            "m1_ctx_cont": ctx_cont,
+            "m1_ctx_cat": ctx_cat,
+            "parent_row_offset": parent_m1_row_offset,
+            "child_entry_starts": child_starts,
+            "prices": prices,
+            "ranges": {
+                "bid_high": _RangeExtrema(prices["bid_high"], maximum=True),
+                "bid_low": _RangeExtrema(prices["bid_low"], maximum=False),
+                "ask_low": _RangeExtrema(prices["ask_low"], maximum=False),
+                "ask_high": _RangeExtrema(prices["ask_high"], maximum=True),
+            },
+            "first_state_bridge_witness": witness,
+            "first_state_bridge_witness_sha256": claimed_witness,
+            "state_view_source_sha256": expected_state_view_source_sha256,
+            "child_parquet_sha256": expected_child_parquet_sha256,
+        }
+        self._prepare_random_access_epoch()
+
+    def _prepare_random_access_epoch(self) -> None:
+        binding = self._random_access_train
+        if binding is None:
+            return
+        samples = schedule_random_access_epoch(
+            sampler_contract=binding["sampler_contract"],
+            epoch_index=self._epoch_index,
+            successor_transition_count_by_entry=[
+                int(value) for value in binding["successor_counts"]
+            ],
+        )
+        anchors = schedule_random_access_entry_anchors(
+            sampler_contract=binding["sampler_contract"], epoch_index=self._epoch_index
+        )
+        grouped: dict[int, list[dict[str, Any]]] = {}
+        for sample in samples:
+            grouped.setdefault(int(sample["entry_row_index"]), []).append(sample)
+        binding["samples_by_entry"] = {
+            entry: tuple(sorted(values, key=lambda item: item["sample_slot"]))
+            for entry, values in grouped.items()
+        }
+        binding["anchors_by_entry"] = {
+            int(anchor["entry_row_index"]): anchor for anchor in anchors
+        }
+
+    def random_access_training_bindings_v1(self) -> dict[str, Any]:
+        binding = self._random_access_train
+        if binding is None:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
+        return {
+            "sampler_contract": binding["sampler_contract"],
+            "normalization_artifact": binding["normalization_artifact"],
+            "m1_source_sha256": binding["m1_source_sha256"],
+            "market_closure_authority_sha256": binding["market_closure_authority"][
+                "artifact_sha256"
+            ],
+            "economic_step_manifest_sha256": self._economic_manifest["manifest_sha256"],
+            "economics_objective_contract_sha256": self._readiness[
+                "economics_objective_contract"
+            ]["contract_sha256"],
+        }
+
+    def random_access_selected_entry_rows_v1(self) -> tuple[int, ...]:
+        binding = self._random_access_train
+        if binding is None:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
+        anchors = binding["anchors_by_entry"]
+        return tuple(
+            entry
+            for entry, _anchor in sorted(
+                anchors.items(), key=lambda item: int(item[1]["entry_slot"])
+            )
+        )
+
+    def _random_access_lifetime_summary(
+        self, *, entry_start: int, side: int, state_index: int
+    ) -> dict[str, Any]:
+        binding = self._random_access_train
+        if binding is None:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
+        stop = entry_start + state_index + 1
+        prices, ranges = binding["prices"], binding["ranges"]
+        entry_bid = float(prices["bid_open"][entry_start])
+        entry_ask = float(prices["ask_open"][entry_start])
+        current_row = stop - 1
+        if side == 0:
+            current = (
+                (float(prices["bid_close"][current_row]) - entry_ask)
+                / entry_ask
+                * 10_000.0
+            )
+            peak_price, peak_row = ranges["bid_high"].query(entry_start, stop)
+            trough_price, _ = ranges["bid_low"].query(entry_start, stop)
+            mfe = max(0.0, (peak_price - entry_ask) / entry_ask * 10_000.0)
+            mae = min(0.0, (trough_price - entry_ask) / entry_ask * 10_000.0)
+        else:
+            current = (
+                (entry_bid - float(prices["ask_close"][current_row]))
+                / entry_bid
+                * 10_000.0
+            )
+            peak_price, peak_row = ranges["ask_low"].query(entry_start, stop)
+            trough_price, _ = ranges["ask_high"].query(entry_start, stop)
+            mfe = max(0.0, (entry_bid - peak_price) / entry_bid * 10_000.0)
+            mae = min(0.0, (entry_bid - trough_price) / entry_bid * 10_000.0)
+        bars = state_index + 1
+        elapsed = int(
+            (
+                int(binding["m1_times"].asi8[current_row])
+                + 60_000_000_000
+                - int(binding["m1_times"].asi8[entry_start])
+            )
+            // 1_000_000_000
+        )
+        return build_lifetime_summary(
+            side=("long", "short")[side],
+            bars_in_trade=bars,
+            elapsed_wall_clock_seconds=elapsed,
+            current_executable_pnl_bps=current,
+            cum_mfe_bps=mfe,
+            cum_mae_bps=mae,
+            bars_since_mfe_peak=(current_row - peak_row if mfe > 0.0 else bars),
+        )
+
+    def materialize_random_access_training_item_v1(
+        self, entry_row_index: int, *, outer_batch_index: int
+    ) -> dict[str, Any] | None:
+        binding = self._random_access_train
+        if binding is None:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
+        samples = binding["samples_by_entry"].get(entry_row_index)
+        anchor = binding["anchors_by_entry"].get(entry_row_index)
+        if samples is None and anchor is None:
+            return None
+        if samples is None or anchor is None or entry_row_index not in self._rows.index:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SCHEDULE_PAIR_INVALID")
+        from gx1.contracts.unified_exit_random_access_state_view_v1 import (
+            materialize_random_access_state_view,
+        )
+
+        entry_start = int(binding["child_entry_starts"][entry_row_index])
+        count = int(binding["successor_counts"][entry_row_index]) + 1
+        row = self._rows.loc[entry_row_index]
+        if isinstance(row, pd.DataFrame):
+            raise RuntimeError("UNIFIED_EXIT_DATASET_V2_DUPLICATE_ENTRY_ROW")
+
+        def path_detail(_side: int, start: int, stop: int) -> np.ndarray:
+            absolute = slice(entry_start + start, entry_start + stop)
+            price_values = np.column_stack(
+                [
+                    binding["prices"][name][absolute]
+                    for name in UNIFIED_EXIT_PATH_PRICE_FIELDS
+                ]
+            )
+            return unified_exit_path_tensor_from_values(
+                price_values=price_values,
+                volumes=binding["prices"]["volume"][absolute],
+                bars_in_trade=stop,
+                entry_bid=float(binding["prices"]["bid_open"][entry_start]),
+                entry_ask=float(binding["prices"]["ask_open"][entry_start]),
+            )
+
+        def one_view(sample: Mapping[str, Any]) -> dict[str, Any]:
+            return materialize_random_access_state_view(
+                sampler_contract=binding["sampler_contract"],
+                sample=sample,
+                entry_row_index=entry_row_index,
+                entry_m1_start_row=entry_start,
+                side_lifecycle_state_counts=(count, count),
+                side_economic_terminal=(
+                    bool(row["long_economic_terminal"]),
+                    bool(row["short_economic_terminal"]),
+                ),
+                m1_times=binding["m1_times"],
+                m1_signal=binding["m1_signal"],
+                m1_ctx_cont=binding["m1_ctx_cont"],
+                m1_ctx_cat=binding["m1_ctx_cat"],
+                m1_source_sha256=binding["m1_source_sha256"],
+                market_closure_authority=binding["market_closure_authority"],
+                path_detail_provider=path_detail,
+                lifetime_summary_provider=lambda side, index: (
+                    self._random_access_lifetime_summary(
+                        entry_start=entry_start, side=side, state_index=index
+                    )
+                ),
+                mtf_materializer=self._mtf_materializer,
+                economic_step_provider=self._economic_provider,
+                economic_step_manifest=self._economic_manifest,
+                economics_objective_contract=self._readiness[
+                    "economics_objective_contract"
+                ],
+            )
+
+        witness = binding["first_state_bridge_witness"]
+        return {
+            "outer_batch_index": outer_batch_index,
+            "entry_row_index": entry_row_index,
+            "transitions": [
+                {"sample": sample, "state_view": one_view(sample)} for sample in samples
+            ],
+            "anchor": {"sample": anchor, "state_view": one_view(anchor)},
+            "entry_episode_binding_sha256": witness[
+                "first_state_episode_binding_sha256_by_entry"
+            ][entry_row_index],
+            "entry_fill_binding_sha256": witness["entry_fill_binding_sha256_by_entry"][
+                entry_row_index
+            ],
+            "first_state_bridge_witness_sha256": binding[
+                "first_state_bridge_witness_sha256"
+            ],
+        }
 
     def set_epoch_index(self, epoch_index: int) -> None:
         """Select the outcome-blind TRAIN chunk schedule for one epoch."""
@@ -338,6 +796,7 @@ class UnifiedExitDatasetAdapterV2:
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_EPOCH_INVALID")
         self._epoch_index = epoch_index
+        self._prepare_random_access_epoch()
 
     def require_pack(self, value: Mapping[str, Any]) -> dict[str, Any]:
         entry_row = int(value["entry_row_index"])
@@ -532,9 +991,7 @@ class UnifiedExitDatasetAdapterV2:
             self._economic_provider, "materialize_training_projection", None
         )
         if fastpath is None:
-            exit_slice = load_slice(
-                "exit_now", chunk_start, chunk_start + valid_count
-            )
+            exit_slice = load_slice("exit_now", chunk_start, chunk_start + valid_count)
             hold_slice = load_slice("hold", chunk_start, hold_stop)
             raw_steps = exit_slice["steps"]
             raw_hold_steps = hold_slice["steps"]
