@@ -211,7 +211,7 @@ def require_train_fitted_capital_hurdle_artifact(
             nonnegative=True,
         )
         owner_invalid = (
-            observed["owner_kind"] != "operator_preregistered_prospective_policy"
+            observed["owner_kind"] != "project_preregistered_prospective_policy"
             or observed["applicable_splits"] != ["train", "val"]
             or observed["fitted_splits"] != []
             or observed["rate_conversion_formula"]

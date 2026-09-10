@@ -122,7 +122,7 @@ def require_capital_hurdle_method_receipt(
     if (
         observed["schema_version"] != CAPITAL_HURDLE_METHOD_RECEIPT_SCHEMA_VERSION
         or observed["decision"] != "PASS"
-        or observed["owner_kind"] != "operator_preregistered_prospective_policy"
+        or observed["owner_kind"] != "project_preregistered_prospective_policy"
         or observed["applicable_splits"] != ["train", "val"]
         or observed["fitted_splits"] != []
         or observed["validation_or_test_used"] is not False
@@ -185,7 +185,7 @@ def build_training_economics_readiness(
         {
             "schema_version": FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION,
             "decision": "PASS",
-            "owner_kind": "operator_preregistered_prospective_policy",
+            "owner_kind": "project_preregistered_prospective_policy",
             "applicable_splits": ["train", "val"],
             "fitted_splits": [],
             "validation_or_test_used": False,

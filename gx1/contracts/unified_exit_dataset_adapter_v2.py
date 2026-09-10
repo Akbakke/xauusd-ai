@@ -164,6 +164,18 @@ class UnifiedExitDatasetAdapterV2:
         self.per_tf_seq_lens = dict(per_tf_seq_lens)
         self.mtf_cache_identity_sha256 = mtf_cache_identity_sha256
 
+    def set_epoch_index(self, epoch_index: int) -> None:
+        """Select the outcome-blind TRAIN chunk schedule for one epoch."""
+
+        if (
+            self._manifest["split"] != "train"
+            or isinstance(epoch_index, bool)
+            or not isinstance(epoch_index, int)
+            or epoch_index < 0
+        ):
+            raise RuntimeError("UNIFIED_EXIT_DATASET_V2_EPOCH_INVALID")
+        self._epoch_index = epoch_index
+
     def require_pack(self, value: Mapping[str, Any]) -> dict[str, Any]:
         entry_row = int(value["entry_row_index"])
         if (

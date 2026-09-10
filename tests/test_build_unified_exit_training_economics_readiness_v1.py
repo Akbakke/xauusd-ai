@@ -31,7 +31,7 @@ def _receipt(tmp_path: Path) -> Path:
             "schema_version": CAPITAL_HURDLE_METHOD_RECEIPT_SCHEMA_VERSION,
             "decision": "PASS",
             "method": "prospective_capital_policy_v1",
-            "owner_kind": "operator_preregistered_prospective_policy",
+            "owner_kind": "project_preregistered_prospective_policy",
             "applicable_splits": ["train", "val"],
             "fitted_splits": [],
             "validation_or_test_used": False,
