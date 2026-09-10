@@ -257,9 +257,7 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
     require_multi_tf_v4_cache_binding_files,
 )
 from gx1.models.entry_v10.training_kernel_profile import (
-    profile_training_epoch,
-    kernel_profile_step,
-    kernel_profile_range,
+    profile_training_epoch, kernel_profile_step, kernel_profile_range,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
@@ -274,16 +272,9 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     TIMING_HEAD_DIM,
     TAIL_RISK_HEAD_DIM,
     VOL_FORECAST_HEAD_DIM,
-    DIP_DIRECTIONS,
-    DIP_HORIZONS,
-    DIP_TARGETS,
-    FORECAST_HORIZONS,
-    TIMING_DIRECTIONS,
-    TIMING_HORIZONS,
-    TIMING_TARGETS,
-    TAIL_RISK_DIRECTIONS,
-    TAIL_RISK_HORIZONS,
-    TAIL_RISK_QUANTILE,
+    DIP_DIRECTIONS, DIP_HORIZONS, DIP_TARGETS, FORECAST_HORIZONS,
+    TIMING_DIRECTIONS, TIMING_HORIZONS, TIMING_TARGETS,
+    TAIL_RISK_DIRECTIONS, TAIL_RISK_HORIZONS, TAIL_RISK_QUANTILE,
     VOL_FORECAST_HORIZONS,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -326,8 +317,6 @@ _DIP_FORECAST_TARGET_COLS = (
     + _TAIL_RISK_TARGET_COLS
     + _VOL_FORECAST_TARGET_COLS
 )
-
-
 def _require_active_aux_head_prediction(
     out: dict,
     batch: dict,
@@ -416,19 +405,15 @@ def _joint_task_loss(
                 f"[ENTRY_JOINT_TASK_LOSS_SHAPE_INVALID] task={task_name}"
             )
         if not bool(torch.isfinite(raw_loss).all().item()):
-            raise RuntimeError(f"[ENTRY_JOINT_TASK_LOSS_NONFINITE] task={task_name}")
+            raise RuntimeError(
+                f"[ENTRY_JOINT_TASK_LOSS_NONFINITE] task={task_name}"
+            )
         log_variance = log_variances[task_name]
         weighted = torch.exp(-log_variance) * raw_loss + log_variance
         total = weighted if total is None else total + weighted
-        diagnostic_tensors[f"joint_task_raw_loss_{task_name}"] = (
-            raw_loss.detach().reshape(())
-        )
-        diagnostic_tensors[f"joint_task_log_variance_{task_name}"] = (
-            log_variance.detach().reshape(())
-        )
-        diagnostic_tensors[f"joint_task_effective_precision_{task_name}"] = torch.exp(
-            -log_variance.detach()
-        ).reshape(())
+        diagnostic_tensors[f"joint_task_raw_loss_{task_name}"] = raw_loss.detach().reshape(())
+        diagnostic_tensors[f"joint_task_log_variance_{task_name}"] = log_variance.detach().reshape(())
+        diagnostic_tensors[f"joint_task_effective_precision_{task_name}"] = torch.exp(-log_variance.detach()).reshape(())
     if total is None:
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_NO_ACTIVE_TASK]")
     values = torch.stack(tuple(diagnostic_tensors.values())).cpu().tolist()
@@ -487,14 +472,10 @@ def dip_forecast_task_losses(
         output_name="forecast_pred",
         target_names=_FORECAST_TARGET_COLS,
     )
-    fc_tgt = (
-        torch.stack(
-            [batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS],
-            dim=1,
-        )
-        .to(device)
-        .float()
-    )
+    fc_tgt = torch.stack(
+        [batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS],
+        dim=1,
+    ).to(device).float()
     forecast_loss = torch.nn.functional.l1_loss(
         fc_pred.float(),
         fc_tgt,
@@ -511,7 +492,7 @@ def dip_forecast_task_losses(
         for K in TIMING_HORIZONS:
             for tgt in TIMING_TARGETS:
                 t_tgts.append(batch[f"y_{tgt}_{d}_K{K}"])
-    t_tgt = torch.stack(t_tgts, dim=1).to(device).float()  # (B, 12)
+    t_tgt = torch.stack(t_tgts, dim=1).to(device).float()          # (B, 12)
     timing_loss = torch.nn.functional.l1_loss(timing_pred.float(), t_tgt)
     # ── tail-risk head (6, pinball q=0.9) — worst adverse over full horizon ─────
     tail_pred = _require_active_aux_head_prediction(
@@ -520,11 +501,8 @@ def dip_forecast_task_losses(
         output_name="tail_risk_pred",
         target_names=_TAIL_RISK_TARGET_COLS,
     )
-    tail_tgts = [
-        batch[f"y_tail_mae_{d}_K{K}"]
-        for d in TAIL_RISK_DIRECTIONS
-        for K in TAIL_RISK_HORIZONS
-    ]
+    tail_tgts = [batch[f"y_tail_mae_{d}_K{K}"]
+                 for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
     tail_tgt = torch.stack(tail_tgts, dim=1).to(device).float()
     q = float(TAIL_RISK_QUANTILE)
     err = tail_tgt - tail_pred.float()
@@ -536,14 +514,10 @@ def dip_forecast_task_losses(
         output_name="vol_forecast_pred",
         target_names=_VOL_FORECAST_TARGET_COLS,
     )
-    vol_tgt = (
-        torch.stack(
-            [batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS],
-            dim=1,
-        )
-        .to(device)
-        .float()
-    )
+    vol_tgt = torch.stack(
+        [batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS],
+        dim=1,
+    ).to(device).float()
     vol_loss = torch.nn.functional.l1_loss(
         vol_pred.float(),
         vol_tgt,
@@ -591,14 +565,9 @@ _MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS = (
 # through validation and both losses (rule 16); only the dip-MAE half of the
 # dip surface is a non-negative adverse magnitude.
 _MODEL_NATIVE_NONNEGATIVE_TARGET_COLS = (
-    (
-        "y_long_expected_mae_bps",
-        "y_short_expected_mae_bps",
-    )
-    + tuple(MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS)
-    + _TAIL_RISK_TARGET_COLS
-    + _VOL_FORECAST_TARGET_COLS
-)
+    "y_long_expected_mae_bps",
+    "y_short_expected_mae_bps",
+) + tuple(MODEL_NATIVE_DIP_MAE_TARGET_COLUMNS) + _TAIL_RISK_TARGET_COLS + _VOL_FORECAST_TARGET_COLS
 
 
 def _model_native_active_target_failures(
@@ -615,9 +584,7 @@ def _model_native_active_target_failures(
         return [
             f"{split_name} model-native target frame has duplicate columns: {duplicate_columns}"
         ]
-    missing = [
-        name for name in _MODEL_NATIVE_ACTIVE_TARGET_COLS if name not in df.columns
-    ]
+    missing = [name for name in _MODEL_NATIVE_ACTIVE_TARGET_COLS if name not in df.columns]
     if missing:
         return [
             f"{split_name} missing model-native active target columns: {missing}; "
@@ -629,27 +596,21 @@ def _model_native_active_target_failures(
         values = pd.to_numeric(df[name], errors="coerce").to_numpy(dtype=np.float64)
         numeric[name] = values
         if not np.isfinite(values).all():
-            failures.append(
-                f"{split_name} model-native target {name} contains non-finite values"
-            )
+            failures.append(f"{split_name} model-native target {name} contains non-finite values")
     if failures:
         return failures
 
     for name in _MODEL_NATIVE_BINARY_TARGET_COLS:
         values = numeric[name]
         if bool((~np.isin(values, [0.0, 1.0])).any()):
-            failures.append(
-                f"{split_name} model-native binary target {name} is outside {{0,1}}"
-            )
+            failures.append(f"{split_name} model-native binary target {name} is outside {{0,1}}")
     for name in _MODEL_NATIVE_UNIT_INTERVAL_TARGET_COLS:
         values = numeric[name]
         if bool(((values < 0.0) | (values > 1.0)).any()):
             failures.append(f"{split_name} model-native target {name} is outside [0,1]")
     for name in _MODEL_NATIVE_NONNEGATIVE_TARGET_COLS:
         if bool((numeric[name] < 0.0).any()):
-            failures.append(
-                f"{split_name} model-native target {name} contains negative values"
-            )
+            failures.append(f"{split_name} model-native target {name} contains negative values")
     return failures
 
 
@@ -763,15 +724,11 @@ def _direction_decision_contract_export_failures(
     meta_contract = meta.get("direction_decision_contract")
     failures: list[str] = []
     if lock_contract != canonical:
-        failures.append(
-            "MASTER_TRANSFORMER_LOCK direction_decision_contract is not canonical"
-        )
+        failures.append("MASTER_TRANSFORMER_LOCK direction_decision_contract is not canonical")
     if meta_contract != canonical:
         failures.append("bundle_metadata direction_decision_contract is not canonical")
     if lock_contract != meta_contract:
-        failures.append(
-            "direction_decision_contract split-brain between lock and metadata"
-        )
+        failures.append("direction_decision_contract split-brain between lock and metadata")
     return failures
 
 
@@ -786,10 +743,15 @@ def _unified_exit_export_failures(
             "MASTER_TRANSFORMER_LOCK unified_entry_exit_contract is not canonical"
         )
     if meta.get("unified_entry_exit_contract") != canonical:
-        failures.append("bundle_metadata unified_entry_exit_contract is not canonical")
+        failures.append(
+            "bundle_metadata unified_entry_exit_contract is not canonical"
+        )
     lock_evidence = lock.get("unified_exit_training_evidence")
     meta_evidence = meta.get("unified_exit_training_evidence")
-    if not isinstance(lock_evidence, dict) or lock_evidence.get("decision") != "PASS":
+    if (
+        not isinstance(lock_evidence, dict)
+        or lock_evidence.get("decision") != "PASS"
+    ):
         failures.append(
             "MASTER_TRANSFORMER_LOCK unified_exit_training_evidence missing"
         )
@@ -804,7 +766,8 @@ def _unified_exit_export_failures(
             )
         except RuntimeError as exc:
             failures.append(
-                f"unified_exit lifecycle M1 authority evidence invalid: {exc}"
+                "unified_exit lifecycle M1 authority evidence invalid: "
+                f"{exc}"
             )
     return failures
 
@@ -832,9 +795,7 @@ def _m1_feature_surface_binding_from_lifecycle(
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(
-            "ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_MANIFEST_INVALID"
-        ) from exc
+        raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_MANIFEST_INVALID") from exc
     pair_generation_id = manifest.get("pair_generation_id")
     feature_sha256 = _sha256_file(feature_path)
     manifest_sha256 = _sha256_file(manifest_path)
@@ -857,9 +818,12 @@ def _m1_feature_surface_binding_from_lifecycle(
         or manifest.get("dataset_run_id") != dataset_run_id
         or manifest.get("output_parquet") != str(feature_path)
         or manifest.get("output_parquet_sha256") != feature_sha256
-        or manifest.get("feature_field_order_sha256") != feature_field_order_sha256
-        or lifecycle_evidence.get("m1_feature_base_sha256") != feature_sha256
-        or lifecycle_evidence.get("m1_feature_base_manifest_sha256") != manifest_sha256
+        or manifest.get("feature_field_order_sha256")
+        != feature_field_order_sha256
+        or lifecycle_evidence.get("m1_feature_base_sha256")
+        != feature_sha256
+        or lifecycle_evidence.get("m1_feature_base_manifest_sha256")
+        != manifest_sha256
     ):
         raise RuntimeError("ENTRY_EXPORT_M1_FEATURE_SURFACE_BINDING_LINEAGE_INVALID")
     return {
@@ -894,9 +858,7 @@ def _guard_no_rl() -> None:
 # -----------------------------------------------------------------------------
 # Logging
 # -----------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
 _TRAINER_MEMORY_LIMIT_BYTES = 20 * 1024**3
@@ -928,7 +890,9 @@ def _require_trainer_cgroup_preflight(
     for label, name in _TRAINER_CGROUP_ENV.items():
         raw = str(env.get(name) or "")
         if not raw.isascii() or not raw.isdigit() or int(raw) <= 0:
-            raise RuntimeError(f"[ENTRY_TRAIN_CGROUP_ENV_PROOF_INVALID] field={name}")
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CGROUP_ENV_PROOF_INVALID] field={name}"
+            )
         expected[label] = int(raw)
     if (
         expected["memory"] > _TRAINER_MEMORY_LIMIT_BYTES
@@ -968,7 +932,9 @@ def _require_trainer_cgroup_preflight(
                 f"[ENTRY_TRAIN_CGROUP_LIMIT_UNAVAILABLE] field={name}"
             ) from exc
         if not raw.isascii() or not raw.isdigit() or int(raw) <= 0:
-            raise RuntimeError(f"[ENTRY_TRAIN_CGROUP_LIMIT_INVALID] field={name}")
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CGROUP_LIMIT_INVALID] field={name}"
+            )
         return int(raw)
 
     actual = {
@@ -1221,7 +1187,9 @@ _CANDIDATE_TRAINING_STATE_KEYS = frozenset(
         "complete",
     )
 )
-_CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION = "gx1_candidate_training_progress_v1"
+_CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION = (
+    "gx1_candidate_training_progress_v1"
+)
 _CANDIDATE_TRAINING_PROGRESS_KEYS = frozenset(
     (
         "schema_version",
@@ -1275,8 +1243,12 @@ def _new_candidate_training_progress() -> dict[str, Any]:
 
     return {
         "schema_version": _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION,
-        "joint_task_supervision_observed": {name: False for name in JOINT_TASK_NAMES},
-        "joint_task_gradient_observed": {name: False for name in JOINT_TASK_NAMES},
+        "joint_task_supervision_observed": {
+            name: False for name in JOINT_TASK_NAMES
+        },
+        "joint_task_gradient_observed": {
+            name: False for name in JOINT_TASK_NAMES
+        },
         "checkpoint_selection": {
             "checkpoint_policy": checkpoint_policy_metadata(),
             "best_checkpoint": None,
@@ -1308,7 +1280,8 @@ def _require_candidate_training_progress(
     progress = dict(value)
     if (
         set(progress) != _CANDIDATE_TRAINING_PROGRESS_KEYS
-        or progress.get("schema_version") != _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION
+        or progress.get("schema_version")
+        != _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_PROGRESS_SCHEMA_INVALID]")
     for key in (
@@ -1322,7 +1295,9 @@ def _require_candidate_training_progress(
             or not all(isinstance(flag, bool) for flag in observed.values())
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_PROGRESS_TASKS_INVALID]")
-        progress[key] = {name: bool(observed[name]) for name in JOINT_TASK_NAMES}
+        progress[key] = {
+            name: bool(observed[name]) for name in JOINT_TASK_NAMES
+        }
     selection = progress.get("checkpoint_selection")
     if (
         not isinstance(selection, Mapping)
@@ -1359,7 +1334,9 @@ def _require_candidate_training_progress(
     best_checkpoint = normalized_selection.get("best_checkpoint")
     if best_checkpoint is not None:
         try:
-            normalized_best = retain_top_k([best_checkpoint], top_k=1)[0]
+            normalized_best = retain_top_k(
+                [best_checkpoint], top_k=1
+            )[0]
         except RuntimeError as exc:
             raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]") from exc
         if normalized_best not in top_k:
@@ -1442,7 +1419,9 @@ def _attended_session_read_json(path: Path, *, label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, ValueError) as exc:
-        raise RuntimeError(f"[ATTENDED_RESEARCH_SESSION_{label}_JSON_INVALID]") from exc
+        raise RuntimeError(
+            f"[ATTENDED_RESEARCH_SESSION_{label}_JSON_INVALID]"
+        ) from exc
     if not isinstance(value, dict):
         raise RuntimeError(f"[ATTENDED_RESEARCH_SESSION_{label}_JSON_INVALID]")
     return value
@@ -1524,7 +1503,9 @@ def _restore_attended_session_rng_state(
                 )
             ):
                 raise RuntimeError("[ATTENDED_RESEARCH_CUDA_RNG_STATE_INVALID]")
-            torch.cuda.set_rng_state_all([value.detach().cpu() for value in cuda_state])
+            torch.cuda.set_rng_state_all(
+                [value.detach().cpu() for value in cuda_state]
+            )
     except (TypeError, ValueError, RuntimeError) as exc:
         if isinstance(exc, RuntimeError) and str(exc).startswith("[ATTENDED_"):
             raise
@@ -1572,7 +1553,9 @@ class _AttendedResearchSession:
                 or directory_stat.st_mode & 0o077
             ):
                 raise RuntimeError("[ATTENDED_RESEARCH_SESSION_DIRECTORY_INVALID]")
-            on_disk = _attended_session_read_json(self._contract_path, label="CONTRACT")
+            on_disk = _attended_session_read_json(
+                self._contract_path, label="CONTRACT"
+            )
             if on_disk != self._contract:
                 raise RuntimeError("[ATTENDED_RESEARCH_SESSION_CONTRACT_MISMATCH]")
         else:
@@ -1630,8 +1613,7 @@ class _AttendedResearchSession:
             or active.get("session_contract_sha256") != self._contract_sha256
             or active.get("slot") not in (0, 1)
             or any(
-                not isinstance(active.get(key), int)
-                or isinstance(active.get(key), bool)
+                not isinstance(active.get(key), int) or isinstance(active.get(key), bool)
                 or int(active[key]) < 0
                 for key in (
                     "checkpoint_index",
@@ -1643,7 +1625,9 @@ class _AttendedResearchSession:
             or not isinstance(active.get("state_sha256"), str)
             or not re.fullmatch(r"[0-9a-f]{64}", str(active.get("state_sha256")))
             or not isinstance(active.get("epoch_order_sha256"), str)
-            or not re.fullmatch(r"[0-9a-f]{64}", str(active.get("epoch_order_sha256")))
+            or not re.fullmatch(
+                r"[0-9a-f]{64}", str(active.get("epoch_order_sha256"))
+            )
             or not isinstance(active.get("complete"), bool)
         ):
             raise RuntimeError("[ATTENDED_RESEARCH_ACTIVE_POINTER_INVALID]")
@@ -1665,7 +1649,8 @@ class _AttendedResearchSession:
         if (
             state.get("schema_version") != _ATTENDED_RESEARCH_SESSION_SCHEMA_VERSION
             or state.get("session_contract_sha256") != self._contract_sha256
-            or int(state.get("checkpoint_index", -1)) != int(active["checkpoint_index"])
+            or int(state.get("checkpoint_index", -1))
+            != int(active["checkpoint_index"])
             or int(state.get("complete_optimizer_steps", -1))
             != int(active["complete_optimizer_steps"])
             or int(state.get("epoch_index", -1)) != int(active["epoch_index"])
@@ -1679,9 +1664,7 @@ class _AttendedResearchSession:
             not isinstance(order, torch.Tensor)
             or order.dtype != torch.int64
             or order.ndim != 1
-            or hashlib.sha256(
-                order.detach().cpu().contiguous().numpy().tobytes()
-            ).hexdigest()
+            or hashlib.sha256(order.detach().cpu().contiguous().numpy().tobytes()).hexdigest()
             != active["epoch_order_sha256"]
         ):
             raise RuntimeError("[ATTENDED_RESEARCH_ORDER_INVALID]")
@@ -1716,12 +1699,8 @@ class _AttendedResearchSession:
         ):
             raise RuntimeError("[ATTENDED_RESEARCH_CHECKPOINT_ARGUMENT_INVALID]")
         previous = self.load_checkpoint()
-        previous_slot = (
-            -1
-            if previous is None
-            else int(
-                _attended_session_read_json(self._active_path, label="ACTIVE")["slot"]
-            )
+        previous_slot = -1 if previous is None else int(
+            _attended_session_read_json(self._active_path, label="ACTIVE")["slot"]
         )
         slot = 0 if previous_slot != 0 else 1
         state_path = self._slot_path(slot)
@@ -1729,12 +1708,18 @@ class _AttendedResearchSession:
             raise RuntimeError("[ATTENDED_RESEARCH_STATE_PATH_INVALID]")
         order_cpu = epoch_order.detach().cpu().contiguous()
         supervision = (
-            {name: bool(task_supervision_observed[name]) for name in JOINT_TASK_NAMES}
+            {
+                name: bool(task_supervision_observed[name])
+                for name in JOINT_TASK_NAMES
+            }
             if task_supervision_observed is not None
             else {name: False for name in JOINT_TASK_NAMES}
         )
         gradients = (
-            {name: bool(task_gradient_observed[name]) for name in JOINT_TASK_NAMES}
+            {
+                name: bool(task_gradient_observed[name])
+                for name in JOINT_TASK_NAMES
+            }
             if task_gradient_observed is not None
             else {name: False for name in JOINT_TASK_NAMES}
         )
@@ -1767,9 +1752,7 @@ class _AttendedResearchSession:
             "task_gradient_observed": gradients,
             "complete": bool(complete),
         }
-        fd, temporary = tempfile.mkstemp(
-            prefix=f".{state_path.name}.", dir=str(self._directory)
-        )
+        fd, temporary = tempfile.mkstemp(prefix=f".{state_path.name}.", dir=str(self._directory))
         try:
             os.close(fd)
             torch.save(state, temporary)
@@ -1934,12 +1917,9 @@ class _CandidateTrainingSession:
             )
             if on_disk == requested_contract:
                 resolved_contract = requested_contract
-            elif (
-                not self._read_only
-                and _candidate_training_session_legacy_contract_matches(
-                    on_disk=on_disk,
-                    requested_contract=requested_contract,
-                )
+            elif not self._read_only and _candidate_training_session_legacy_contract_matches(
+                on_disk=on_disk,
+                requested_contract=requested_contract,
             ):
                 # Sessions written before recipe source provenance was retained
                 # have state pointers bound to this exact legacy contract hash.
@@ -2005,9 +1985,7 @@ class _CandidateTrainingSession:
                     "[CANDIDATE_TRAINING_ACTIVE_POINTER_MISSING_WITH_STATE]"
                 )
             return None
-        active = _candidate_training_session_read_json(
-            self._active_path, label="ACTIVE"
-        )
+        active = _candidate_training_session_read_json(self._active_path, label="ACTIVE")
         expected_keys = {
             "schema_version",
             "session_contract_sha256",
@@ -2055,7 +2033,8 @@ class _CandidateTrainingSession:
         if (
             state.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
             or state.get("session_contract_sha256") != self._contract_sha256
-            or int(state.get("checkpoint_index", -1)) != int(active["checkpoint_index"])
+            or int(state.get("checkpoint_index", -1))
+            != int(active["checkpoint_index"])
             or state.get("phase") != active["phase"]
             or int(state.get("epoch_index", -1)) != int(active["epoch_index"])
             or int(state.get("next_batch_offset", -1))
@@ -2076,7 +2055,9 @@ class _CandidateTrainingSession:
             state["training_progress"]
         )
         self.validate_top_k_checkpoints(
-            state["training_progress"]["checkpoint_selection"]["top_k_checkpoints"]
+            state["training_progress"]["checkpoint_selection"][
+                "top_k_checkpoints"
+            ]
         )
         return state
 
@@ -2112,25 +2093,19 @@ class _CandidateTrainingSession:
             value["training_progress"]
         )
         self.validate_top_k_checkpoints(
-            value["training_progress"]["checkpoint_selection"]["top_k_checkpoints"]
+            value["training_progress"]["checkpoint_selection"][
+                "top_k_checkpoints"
+            ]
         )
         previous = self.load_checkpoint()
-        previous_slot = (
-            -1
-            if previous is None
-            else int(
-                _candidate_training_session_read_json(
-                    self._active_path, label="ACTIVE"
-                )["slot"]
-            )
+        previous_slot = -1 if previous is None else int(
+            _candidate_training_session_read_json(self._active_path, label="ACTIVE")["slot"]
         )
         slot = 0 if previous_slot != 0 else 1
         state_path = self._slot_path(slot)
         if state_path.is_symlink():
             raise RuntimeError("[CANDIDATE_TRAINING_STATE_PATH_INVALID]")
-        fd, temporary = tempfile.mkstemp(
-            prefix=f".{state_path.name}.", dir=str(self._directory)
-        )
+        fd, temporary = tempfile.mkstemp(prefix=f".{state_path.name}.", dir=str(self._directory))
         try:
             os.close(fd)
             torch.save(value, temporary)
@@ -2234,9 +2209,7 @@ class _CandidateTrainingSession:
                 for key, value in target_model_state.items()
             },
         }
-        fd, temporary = tempfile.mkstemp(
-            prefix=f".{destination.name}.", dir=str(directory)
-        )
+        fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=str(directory))
         try:
             os.close(fd)
             torch.save(payload, temporary)
@@ -2256,7 +2229,9 @@ class _CandidateTrainingSession:
             "sha256": _sha256_file(destination),
         }
 
-    def validate_top_k_checkpoints(self, records: Sequence[Mapping[str, Any]]) -> None:
+    def validate_top_k_checkpoints(
+        self, records: Sequence[Mapping[str, Any]]
+    ) -> None:
         """Verify retained selection snapshots before a resume can use them."""
 
         for record in records:
@@ -2333,22 +2308,24 @@ def _enforce_canonical_train_env_contract() -> None:
     extra_controls = sorted(
         key
         for key in os.environ
-        if (key.startswith("ENTRY_") or key.startswith("GX1_"))
+        if (
+            key.startswith("ENTRY_")
+            or key.startswith("GX1_")
+        )
         and key not in MODEL_NATIVE_RECIPE_ENV_KEYS
         and key not in allowed_runtime_env
     )
     if extra_controls:
         raise RuntimeError(
-            "[ENTRY_TRAIN_AMBIENT_CONTROL_FORBIDDEN] " + ", ".join(extra_controls)
+            "[ENTRY_TRAIN_AMBIENT_CONTROL_FORBIDDEN] "
+            + ", ".join(extra_controls)
         )
-
 
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
 
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -2428,9 +2405,10 @@ def _load_sequence_source_surface(
     cached = _SEQUENCE_SOURCE_SURFACE_CACHE.get(cache_key)
     if cached is not None:
         cached_times, cached_signal = cached
-        if cached_times.shape == (int(expected_rows),) and cached_signal.shape == (
-            int(expected_rows),
-            MODEL_NATIVE_SIGNAL_DIM,
+        if (
+            cached_times.shape == (int(expected_rows),)
+            and cached_signal.shape
+            == (int(expected_rows), MODEL_NATIVE_SIGNAL_DIM)
         ):
             return cached
         raise RuntimeError(
@@ -2627,7 +2605,8 @@ def _sequence_roll_exact_sha256(value: Any, *, field: str) -> str:
         or any(character not in "0123456789abcdef" for character in value)
     ):
         raise RuntimeError(
-            f"[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_AUDIT_SHA256_INVALID] field={field}"
+            "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_AUDIT_SHA256_INVALID] "
+            f"field={field}"
         )
     return value
 
@@ -2675,9 +2654,7 @@ def _require_sequence_roll_audit(
         or not isinstance(audit.get("created_utc"), str)
         or not audit["created_utc"]
     ):
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_AUDIT_DECISION_INVALID]"
-        )
+        raise RuntimeError("[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_AUDIT_DECISION_INVALID]")
     if (
         audit.get("parquet_path") != str(parquet_path)
         or audit.get("manifest_path") != str(manifest_path)
@@ -2690,9 +2667,7 @@ def _require_sequence_roll_audit(
         )
         != _sha256_file(manifest_path)
     ):
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_SOURCE_BINDING_INVALID]"
-        )
+        raise RuntimeError("[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_SOURCE_BINDING_INVALID]")
     import pyarrow.parquet as pq
 
     rows = int(pq.ParquetFile(parquet_path).metadata.num_rows)
@@ -2718,7 +2693,6 @@ def _model_state_sha256(model: nn.Module) -> str:
 
     return canonical_model_state_sha256(model.state_dict())
 
-
 def _git_commit() -> str:
     try:
         r = subprocess.run(
@@ -2732,11 +2706,9 @@ def _git_commit() -> str:
         pass
     return "unknown"
 
-
 def _require(cond: bool, msg: str) -> None:
     if not cond:
         raise RuntimeError(msg)
-
 
 def _require_nonneg(name: str, v: float) -> None:
     if float(v) < 0.0:
@@ -2766,9 +2738,14 @@ def _capture_entry_q_initial_state(
     state = model.state_dict()
     missing = [key for key in _ENTRY_Q_MOVEMENT_KEYS if key not in state]
     if missing:
-        raise RuntimeError(f"[ENTRY_FITTED_Q_INITIAL_STATE_MISSING] keys={missing}")
+        raise RuntimeError(
+            "[ENTRY_FITTED_Q_INITIAL_STATE_MISSING] "
+            f"keys={missing}"
+        )
     encoder_keys = {
-        component: tuple(key for key in state if key.startswith(prefix))
+        component: tuple(
+            key for key in state if key.startswith(prefix)
+        )
         for component, prefix in ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES.items()
     }
     missing_encoders = [
@@ -2780,8 +2757,13 @@ def _capture_entry_q_initial_state(
             f"components={missing_encoders}"
         )
     selected_keys = set(_ENTRY_Q_MOVEMENT_KEYS)
-    selected_keys.update(key for keys in encoder_keys.values() for key in keys)
-    return {key: state[key].detach().cpu().clone() for key in sorted(selected_keys)}
+    selected_keys.update(
+        key for keys in encoder_keys.values() for key in keys
+    )
+    return {
+        key: state[key].detach().cpu().clone()
+        for key in sorted(selected_keys)
+    }
 
 
 def _entry_fitted_q_movement_proof(
@@ -2801,9 +2783,7 @@ def _entry_fitted_q_movement_proof(
     for key in _ENTRY_Q_MOVEMENT_KEYS:
         initial = initial_state.get(key)
         selected = selected_state.get(key)
-        if not isinstance(initial, torch.Tensor) or not isinstance(
-            selected, torch.Tensor
-        ):
+        if not isinstance(initial, torch.Tensor) or not isinstance(selected, torch.Tensor):
             failures.append(f"{key}:missing_or_non_tensor")
             continue
         if tuple(initial.shape) != tuple(selected.shape):
@@ -2821,9 +2801,7 @@ def _entry_fitted_q_movement_proof(
             continue
         delta = selected_f64 - initial_f64
         max_abs_delta = float(delta.abs().max().item()) if delta.numel() else 0.0
-        l2_delta = (
-            float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
-        )
+        l2_delta = float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
         changed = bool(max_abs_delta > 0.0 and l2_delta > 0.0)
         if not np.isfinite(max_abs_delta) or not np.isfinite(l2_delta):
             failures.append(f"{key}:non_finite_delta")
@@ -2839,9 +2817,7 @@ def _entry_fitted_q_movement_proof(
             key for key in _ENTRY_Q_MOVEMENT_KEYS if key.startswith("entry_q_joint")
         ),
         "raw_q_head": tuple(
-            key
-            for key in _ENTRY_Q_MOVEMENT_KEYS
-            if key.startswith("head_entry_action_q")
+            key for key in _ENTRY_Q_MOVEMENT_KEYS if key.startswith("head_entry_action_q")
         ),
     }
     component_changed = {
@@ -2856,7 +2832,11 @@ def _entry_fitted_q_movement_proof(
 
     encoder_component_movement: Dict[str, Dict[str, Any]] = {}
     for component, prefix in ENTRY_MOVEMENT_ENCODER_COMPONENT_PREFIXES.items():
-        keys = sorted(key for key in initial_state if key.startswith(prefix))
+        keys = sorted(
+            key
+            for key in initial_state
+            if key.startswith(prefix)
+        )
         if not keys:
             failures.append(f"{component}:initial_parameter_set_missing")
             continue
@@ -2866,9 +2846,7 @@ def _entry_fitted_q_movement_proof(
         for key in keys:
             initial = initial_state.get(key)
             selected = selected_state.get(key)
-            if not isinstance(initial, torch.Tensor) or not isinstance(
-                selected, torch.Tensor
-            ):
+            if not isinstance(initial, torch.Tensor) or not isinstance(selected, torch.Tensor):
                 failures.append(f"{component}:{key}:missing_or_non_tensor")
                 continue
             if tuple(initial.shape) != tuple(selected.shape):
@@ -2883,9 +2861,7 @@ def _entry_fitted_q_movement_proof(
                 continue
             delta = selected_f64 - initial_f64
             component_max = float(delta.abs().max().item()) if delta.numel() else 0.0
-            component_l2 = (
-                float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
-            )
+            component_l2 = float(torch.linalg.vector_norm(delta).item()) if delta.numel() else 0.0
             if not np.isfinite(component_max) or not np.isfinite(component_l2):
                 failures.append(f"{component}:{key}:non_finite_delta")
                 continue
@@ -2895,7 +2871,9 @@ def _entry_fitted_q_movement_proof(
                 changed_parameter_count += 1
         l2_delta = float(math.sqrt(l2_squared))
         changed = bool(
-            changed_parameter_count > 0 and max_abs_delta > 0.0 and l2_delta > 0.0
+            changed_parameter_count > 0
+            and max_abs_delta > 0.0
+            and l2_delta > 0.0
         )
         encoder_component_movement[component] = {
             "parameter_count": len(keys),
@@ -2957,31 +2935,17 @@ def _model_forward_fp32(
 ) -> Dict[str, torch.Tensor]:
     """Run the recipe-owned numerical path and return FP32 outputs."""
 
-    with (
-        _training_autocast_context(),
-        _training_model_finite_check_context(),
-        kernel_profile_range(
-            "Entry_online" if torch.is_grad_enabled() else "Entry_teacher"
-        ),
-    ):
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Entry_online" if torch.is_grad_enabled() else "Entry_teacher"):
         out = model(*args, **kwargs)
     if isinstance(out, dict):
-        out = {
-            k: (
-                v.float()
-                if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point()
-                else v
-            )
-            for k, v in out.items()
-        }
+        out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
+               for k, v in out.items()}
     elif torch.is_tensor(out) and out.is_floating_point():
         out = out.float()
     return out
 
 
-def _multi_tf_kwargs_from_batch(
-    batch: Dict[str, torch.Tensor], device: torch.device
-) -> Dict[str, torch.Tensor]:
+def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
     """Extract Entry's exact M15/H1/H4/D1 route, or fail closed."""
     out: Dict[str, torch.Tensor] = {}
     for key in ("seq_m15", "seq_h1", "seq_h4", "seq_d1"):
@@ -2999,20 +2963,14 @@ def _load_specialist_fusion_contract(
     contract_mode: str,
 ) -> tuple[Dict[str, list[int]], Dict[str, Any]]:
     try:
-        normalized_contract_mode = require_model_native_specialist_contract_mode(
-            contract_mode
-        )
+        normalized_contract_mode = require_model_native_specialist_contract_mode(contract_mode)
     except ValueError as exc:
         raise RuntimeError(
             "[SPECIALIST_MODEL_NATIVE_CONTRACT_REQUIRED] "
             f"contract_mode={contract_mode!r} expected={MODEL_NATIVE_CONTRACT_MODE!r}"
         ) from exc
-    required_training_specialists = required_training_specialists_for_mode(
-        normalized_contract_mode
-    )
-    expected_model_contract = specialist_model_contract_for_mode(
-        normalized_contract_mode
-    )
+    required_training_specialists = required_training_specialists_for_mode(normalized_contract_mode)
+    expected_model_contract = specialist_model_contract_for_mode(normalized_contract_mode)
     if audit_json is None:
         raise RuntimeError("[SPECIALIST_AUDIT_EXPLICIT_PATH_REQUIRED]")
     path = Path(audit_json).expanduser().resolve()
@@ -3020,26 +2978,18 @@ def _load_specialist_fusion_contract(
         raise RuntimeError(f"[SPECIALIST_AUDIT_MISSING] {path}")
     report = json.loads(path.read_text(encoding="utf-8"))
     if str(report.get("decision")) != "PASS":
-        raise RuntimeError(
-            f"[SPECIALIST_AUDIT_NOT_PASS] {path} decision={report.get('decision')} failures={report.get('failures')}"
-        )
+        raise RuntimeError(f"[SPECIALIST_AUDIT_NOT_PASS] {path} decision={report.get('decision')} failures={report.get('failures')}")
     signal_dim = int(report.get("signal_field_count") or 0)
     if signal_dim != int(expected_signal_dim):
-        raise RuntimeError(
-            f"[SPECIALIST_SIGNAL_DIM_MISMATCH] audit={signal_dim} expected={expected_signal_dim}"
-        )
+        raise RuntimeError(f"[SPECIALIST_SIGNAL_DIM_MISMATCH] audit={signal_dim} expected={expected_signal_dim}")
     specialist_model_contract = (
         report.get("specialist_model_contract")
         if isinstance(report.get("specialist_model_contract"), dict)
         else {}
     )
-    specialist_model_failures = list(
-        report.get("specialist_model_contract_failures") or []
-    )
+    specialist_model_failures = list(report.get("specialist_model_contract_failures") or [])
     if not bool(report.get("specialist_model_contract_valid")):
-        specialist_model_failures.append(
-            "specialist audit did not declare specialist_model_contract_valid=true"
-        )
+        specialist_model_failures.append("specialist audit did not declare specialist_model_contract_valid=true")
     observed_contract_mode = report.get("contract_mode")
     if observed_contract_mode != normalized_contract_mode:
         specialist_model_failures.append(
@@ -3055,16 +3005,10 @@ def _load_specialist_fusion_contract(
     for name, expected_spec in expected_model_contract.items():
         observed_spec = specialist_model_contract.get(name)
         if not isinstance(observed_spec, dict):
-            specialist_model_failures.append(
-                f"specialist model contract missing spec for {name}"
-            )
+            specialist_model_failures.append(f"specialist model contract missing spec for {name}")
             continue
-        if str(observed_spec.get("model_role") or "") != str(
-            expected_spec.get("model_role") or ""
-        ):
-            specialist_model_failures.append(
-                f"specialist model contract model_role mismatch: {name}"
-            )
+        if str(observed_spec.get("model_role") or "") != str(expected_spec.get("model_role") or ""):
+            specialist_model_failures.append(f"specialist model contract model_role mismatch: {name}")
         for field in ("owned_objectives", "primary_signal_families", "supports_heads"):
             observed_values = tuple(str(x) for x in observed_spec.get(field) or ())
             expected_values = tuple(str(x) for x in expected_spec.get(field) or ())
@@ -3077,16 +3021,8 @@ def _load_specialist_fusion_contract(
             "[SPECIALIST_MODEL_CONTRACT_INVALID] "
             f"{path} failures={specialist_model_failures[:5]}"
         )
-    arch = (
-        report.get("architecture_contract")
-        if isinstance(report.get("architecture_contract"), dict)
-        else {}
-    )
-    raw = (
-        arch.get("specialist_input_indices")
-        if isinstance(arch.get("specialist_input_indices"), dict)
-        else {}
-    )
+    arch = report.get("architecture_contract") if isinstance(report.get("architecture_contract"), dict) else {}
+    raw = arch.get("specialist_input_indices") if isinstance(arch.get("specialist_input_indices"), dict) else {}
     context_routing = (
         arch.get("context_specialist_routing")
         if isinstance(arch.get("context_specialist_routing"), dict)
@@ -3104,19 +3040,9 @@ def _load_specialist_fusion_contract(
         ordered_signal_names=ordered_signal_names,
         context="SPECIALIST_AUDIT",
     )
-    recommended = (
-        arch.get("recommended_fusion")
-        if isinstance(arch.get("recommended_fusion"), dict)
-        else {}
-    )
-    active_heads = [
-        str(head)
-        for head in recommended.get("active_heads") or recommended.get("heads") or []
-        if str(head)
-    ]
-    blocked_heads = [
-        str(head) for head in recommended.get("blocked_heads") or [] if str(head)
-    ]
+    recommended = arch.get("recommended_fusion") if isinstance(arch.get("recommended_fusion"), dict) else {}
+    active_heads = [str(head) for head in recommended.get("active_heads") or recommended.get("heads") or [] if str(head)]
+    blocked_heads = [str(head) for head in recommended.get("blocked_heads") or [] if str(head)]
     if set(active_heads) != set(SPECIALIST_FUSION_ACTIVE_HEADS):
         raise RuntimeError(
             "[SPECIALIST_ACTIVE_HEADS_MISMATCH] "
@@ -3150,17 +3076,13 @@ def _load_specialist_fusion_contract(
         values = raw.get(key)
         if not isinstance(values, list) or not values:
             raise RuntimeError(f"[SPECIALIST_REQUIRED_GROUP_INVALID] {key}")
-        if any(
-            isinstance(value, bool) or not isinstance(value, int) for value in values
-        ):
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
             raise RuntimeError(f"[SPECIALIST_INDEX_TYPE_INVALID] {key}")
         idx = list(values)
         if idx != sorted(set(idx)):
             raise RuntimeError(f"[SPECIALIST_INDEX_ORDER_INVALID] {key}")
         if min(idx) < 0 or max(idx) >= int(expected_signal_dim):
-            raise RuntimeError(
-                f"[SPECIALIST_INDEX_OOB] {key}: min={min(idx)} max={max(idx)} dim={expected_signal_dim}"
-            )
+            raise RuntimeError(f"[SPECIALIST_INDEX_OOB] {key}: min={min(idx)} max={max(idx)} dim={expected_signal_dim}")
         duplicate = seen_indices.intersection(idx)
         if duplicate:
             raise RuntimeError(
@@ -3217,19 +3139,15 @@ def _load_specialist_fusion_contract(
     }
     return indices, meta
 
-
 def _resolve_gx1_data(override: str = "") -> Path:
     base = Path(override or os.environ.get("GX1_DATA", "")).expanduser().resolve()
     if not base.is_dir():
         raise RuntimeError(f"GX1_DATA invalid or missing: {base}")
     return base
 
-
 def _resolve_device(device_str: str) -> torch.device:
     if device_str == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError(
-            "[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False"
-        )
+        raise RuntimeError("[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False")
     return torch.device(device_str)
 
 
@@ -3258,19 +3176,13 @@ def _training_autocast_context():
     # The model itself restricts MTF batching to eval plus no-grad execution.
     with contextlib.ExitStack() as stack:
         if _TRAINING_PRECISION_POLICY in {
-            DETERMINISTIC_BF16_HOPPER,
-            EXPERIMENTAL_BF16_3090,
+            DETERMINISTIC_BF16_HOPPER, EXPERIMENTAL_BF16_3090,
             EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
         }:
-            stack.enter_context(
-                torch.autocast(device_type="cuda", dtype=torch.bfloat16)
-            )
+            stack.enter_context(torch.autocast(device_type="cuda", dtype=torch.bfloat16))
         if _TRAINING_PRECISION_POLICY == EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL:
             stack.enter_context(raw_q_fp32_scope())
-        if (
-            _TRAINING_PRECISION_POLICY
-            == EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL
-        ):
+        if _TRAINING_PRECISION_POLICY == EXPERIMENTAL_FP32_3090_BATCHED_MTF_TEACHER_NO_FILL:
             stack.enter_context(batch_equal_length_mtf_eval_scope())
         yield
 
@@ -3286,16 +3198,12 @@ def _float_output_tensors(value: Any) -> Any:
 def _require_local_fp32_full_exit_batch_capability() -> None:
     capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
     if capability != (8, 6):
-        raise RuntimeError(
-            "[ENTRY_TRAIN_LOCAL_FP32_FULL_EXIT_BATCH_CAPABILITY_REQUIRED]"
-        )
+        raise RuntimeError("[ENTRY_TRAIN_LOCAL_FP32_FULL_EXIT_BATCH_CAPABILITY_REQUIRED]")
 
 
 def _require_local_bf16_3090_capability() -> None:
     capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
-    if capability != (8, 6) or not torch.cuda.is_bf16_supported(
-        including_emulation=False
-    ):
+    if capability != (8, 6) or not torch.cuda.is_bf16_supported(including_emulation=False):
         raise RuntimeError("[ENTRY_TRAIN_LOCAL_BF16_3090_NATIVE_CAPABILITY_REQUIRED]")
 
 
@@ -3332,15 +3240,12 @@ def _set_deterministic(
         # guard.
         torch.backends.cuda.matmul.allow_tf32 = False
         if policy == DETERMINISTIC_BF16_HOPPER:
-            capability = tuple(
-                torch.cuda.get_device_capability(torch.cuda.current_device())
-            )
+            capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
             if capability < (9, 0) or not bool(torch.cuda.is_bf16_supported()):
-                raise RuntimeError("[ENTRY_TRAIN_BF16_HOPPER_CAPABILITY_REQUIRED]")
-        if policy in {
-            EXPERIMENTAL_BF16_3090,
-            EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL,
-        }:
+                raise RuntimeError(
+                    "[ENTRY_TRAIN_BF16_HOPPER_CAPABILITY_REQUIRED]"
+                )
+        if policy in {EXPERIMENTAL_BF16_3090, EXPERIMENTAL_BF16_3090_FP32_Q_HEADS_NO_FILL}:
             _require_local_bf16_3090_capability()
         if policy in {
             EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL,
@@ -3387,8 +3292,6 @@ def _training_precision_metadata(
         )
     except TrainingPrecisionPolicyError as exc:
         raise RuntimeError("[ENTRY_TRAIN_PRECISION_DEVICE_INVALID]") from exc
-
-
 # -----------------------------------------------------------------------------
 # Exact immutable dataset identity
 # -----------------------------------------------------------------------------
@@ -3401,8 +3304,12 @@ _TRAIN_ARTIFACT_HASH_ENV = {
     "unified_exit_lifecycle_manifest": (
         "GX1_ENTRY_UNIFIED_EXIT_LIFECYCLE_MANIFEST_SHA256"
     ),
-    "train_sequence_source_audit": ("GX1_ENTRY_TRAIN_SEQUENCE_SOURCE_AUDIT_SHA256"),
-    "val_sequence_source_audit": ("GX1_ENTRY_VAL_SEQUENCE_SOURCE_AUDIT_SHA256"),
+    "train_sequence_source_audit": (
+        "GX1_ENTRY_TRAIN_SEQUENCE_SOURCE_AUDIT_SHA256"
+    ),
+    "val_sequence_source_audit": (
+        "GX1_ENTRY_VAL_SEQUENCE_SOURCE_AUDIT_SHA256"
+    ),
 }
 _TRAIN_DATASET_RUN_ID_ENV = "GX1_ENTRY_DATASET_RUN_ID"
 # Recipe-validated absolute path of the mandatory verified multi-TF V2 disk
@@ -3463,8 +3370,6 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_TRAINER_HOST_TELEMETRY_GPU_UUID",
     "GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS",
 )
-
-
 def _explicit_regular_artifact(path: Path, *, label: str) -> Path:
     raw = Path(path).expanduser()
     if not raw.is_absolute():
@@ -3628,10 +3533,10 @@ def _resolve_explicit_train_split_artifacts(
         if reference_mtf_cache_binding is None:
             reference_mtf_cache_binding = mtf_cache_binding
         elif mtf_cache_binding != reference_mtf_cache_binding:
-            raise RuntimeError("[ENTRY_TRAIN_SPLIT_MTF_CACHE_BINDING_MISMATCH]")
-        inputs = (
-            payload.get("inputs") if isinstance(payload.get("inputs"), dict) else {}
-        )
+            raise RuntimeError(
+                "[ENTRY_TRAIN_SPLIT_MTF_CACHE_BINDING_MISMATCH]"
+            )
+        inputs = payload.get("inputs") if isinstance(payload.get("inputs"), dict) else {}
         declared_m5_raw = str(inputs.get("source_parquet") or "").strip()
         declared_m5 = Path(declared_m5_raw).expanduser()
         if not declared_m5.is_absolute() or declared_m5 != m5_prebuilt:
@@ -3652,7 +3557,9 @@ def _resolve_explicit_train_split_artifacts(
             ) from exc
         manifest_dataset_run_id = extra.get("entry_run_id")
         state_dataset_run_id = (
-            state_contract.get("entry_run_id") if state_contract is not None else None
+            state_contract.get("entry_run_id")
+            if state_contract is not None
+            else None
         )
         if (
             manifest_dataset_run_id != dataset_run_id
@@ -3689,11 +3596,7 @@ def _resolve_explicit_train_split_artifacts(
 
 def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
     extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
-    sb = (
-        extra.get("signal_bridge")
-        if isinstance(extra.get("signal_bridge"), dict)
-        else {}
-    )
+    sb = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
     contract_mode = str(extra.get("contract_mode") or "").strip()
     if contract_mode != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError(
@@ -3741,9 +3644,7 @@ def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _signal_contract_from_manifest_path(
-    dataset_manifest: Optional[Path],
-) -> Dict[str, Any]:
+def _signal_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
     if dataset_manifest is None:
         raise RuntimeError("[ENTRY_MODEL_NATIVE_DATASET_MANIFEST_REQUIRED]")
     p = Path(dataset_manifest).expanduser().resolve()
@@ -3752,25 +3653,19 @@ def _signal_contract_from_manifest_path(
     return _signal_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
 
 
-def _model_native_state_contract_from_manifest_obj(
-    data: Dict[str, Any],
-) -> Dict[str, Any]:
+def _model_native_state_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
     extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
     contract = extra.get("model_native_state_contract")
     return dict(contract) if isinstance(contract, dict) else {}
 
 
-def _model_native_state_contract_from_manifest_path(
-    dataset_manifest: Optional[Path],
-) -> Dict[str, Any]:
+def _model_native_state_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
     if dataset_manifest is None:
         return {}
     p = Path(dataset_manifest).expanduser().resolve()
     if not p.exists():
         return {}
-    return _model_native_state_contract_from_manifest_obj(
-        json.loads(p.read_text(encoding="utf-8"))
-    )
+    return _model_native_state_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
 
 
 def _model_native_state_contract_for_parquet(parquet_path: Path) -> Dict[str, Any]:
@@ -3828,13 +3723,9 @@ def _entry_position_size_target_policy_from_manifest(
     )
 
 
-def _model_native_state_contract_failures(
-    contract: Dict[str, Any], *, split: str
-) -> list[str]:
+def _model_native_state_contract_failures(contract: Dict[str, Any], *, split: str) -> list[str]:
     if not isinstance(contract, dict) or not contract:
-        return [
-            f"{split} manifest missing model_native_state_contract for XAU direction repair"
-        ]
+        return [f"{split} manifest missing model_native_state_contract for XAU direction repair"]
     try:
         validate_state_contract_metadata_v2(contract)
     except (RuntimeError, TypeError, ValueError, OSError) as exc:
@@ -3842,16 +3733,10 @@ def _model_native_state_contract_failures(
     return []
 
 
-def _signal_contract_for_parquet(
-    parquet_path: Path, seq_dim: int, snap_dim: int
-) -> Dict[str, Any]:
-    manifest_path = (
-        Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
-    )
+def _signal_contract_for_parquet(parquet_path: Path, seq_dim: int, snap_dim: int) -> Dict[str, Any]:
+    manifest_path = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
     contract = _signal_contract_from_manifest_path(manifest_path)
-    if int(contract["seq_input_dim"]) != int(seq_dim) or int(
-        contract["snap_input_dim"]
-    ) != int(snap_dim):
+    if int(contract["seq_input_dim"]) != int(seq_dim) or int(contract["snap_input_dim"]) != int(snap_dim):
         raise RuntimeError(
             "[ENTRY_V10_CTX_MANIFEST_SIGNAL_DIM_MISMATCH] "
             f"{manifest_path} declares seq/snap={contract['seq_input_dim']}/{contract['snap_input_dim']} "
@@ -3876,9 +3761,7 @@ def _xau_direction_repair_source_failures(paths: Dict[str, Any]) -> list[str]:
             continue
         for marker in stale_markers:
             if marker in low:
-                failures.append(
-                    f"{label} references stale pre-repair dataset marker {marker!r}: {text}"
-                )
+                failures.append(f"{label} references stale pre-repair dataset marker {marker!r}: {text}")
     return failures
 
 
@@ -3891,21 +3774,15 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
         parquet_path = Path(raw_path).expanduser()
         manifest_path = parquet_path.with_suffix(".manifest.json")
         if manifest_path.is_symlink() or not manifest_path.is_file():
-            failures.append(
-                f"{split} manifest missing for XAU direction repair: {manifest_path}"
-            )
+            failures.append(f"{split} manifest missing for XAU direction repair: {manifest_path}")
             continue
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            failures.append(
-                f"{split} manifest unreadable for XAU direction repair: {manifest_path}: {exc}"
-            )
+            failures.append(f"{split} manifest unreadable for XAU direction repair: {manifest_path}: {exc}")
             continue
         extra = manifest.get("extra") if isinstance(manifest.get("extra"), dict) else {}
-        inputs = (
-            manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
-        )
+        inputs = manifest.get("inputs") if isinstance(manifest.get("inputs"), dict) else {}
         try:
             _signal_contract_from_manifest_obj(manifest)
         except RuntimeError as exc:
@@ -3917,9 +3794,7 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
             or ""
         ).strip()
         state_contract = _model_native_state_contract_from_manifest_obj(manifest)
-        failures.extend(
-            _model_native_state_contract_failures(state_contract, split=split)
-        )
+        failures.extend(_model_native_state_contract_failures(state_contract, split=split))
         expected_run_id = str(state_contract.get("entry_run_id") or "").strip()
         cache_key = (tape_root, expected_run_id)
         try:
@@ -3971,9 +3846,7 @@ def _xau_direction_repair_manifest_failures(parquet_paths: Dict[str, Any]) -> li
                 )
         except (RuntimeError, OSError, ValueError) as exc:
             failures.append(f"{split} immutable XAU_USD tape provenance invalid: {exc}")
-        split_windows = (
-            manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {}
-        )
+        split_windows = manifest.get("splits") if isinstance(manifest.get("splits"), dict) else {}
         train_window = (
             split_windows.get("train")
             if isinstance(split_windows.get("train"), dict)
@@ -4033,8 +3906,9 @@ def _multi_tf_cache_key(
         if source_sha256 is not None
         else _sha256_file(source_path)
     )
-    if len(observed_source_sha256) != 64 or any(
-        ch not in "0123456789abcdef" for ch in observed_source_sha256
+    if (
+        len(observed_source_sha256) != 64
+        or any(ch not in "0123456789abcdef" for ch in observed_source_sha256)
     ):
         raise RuntimeError("[MULTI_TF_CACHE_SOURCE_SHA256_INVALID]")
     normalized_backend = str(backend_identity).strip()
@@ -4078,7 +3952,9 @@ def _prebuild_multi_tf_features_once(
         raise RuntimeError(
             "[MULTI_TF_V4_CACHE_DIR_REQUIRED] source-build fallback is forbidden"
         )
-    backend_locator = f"disk_path:{Path(disk_cache_raw).expanduser().resolve()}"
+    backend_locator = (
+        f"disk_path:{Path(disk_cache_raw).expanduser().resolve()}"
+    )
     active_identity = (
         f"{m5_path}|source_sha256={source_sha256}"
         f"|backend_locator={backend_locator}"
@@ -4102,14 +3978,17 @@ def _prebuild_multi_tf_features_once(
     cache_source = Path(
         str(getattr(loaded, "m5_prebuilt_source", "") or "")
     ).expanduser()
-    cache_source_sha256 = str(getattr(loaded, "m5_prebuilt_source_sha256", "") or "")
+    cache_source_sha256 = str(
+        getattr(loaded, "m5_prebuilt_source_sha256", "") or ""
+    )
     if (
         not cache_source.is_absolute()
         or not cache_source.is_file()
         or cache_source.is_symlink()
     ):
         raise RuntimeError(
-            f"[MULTI_TF_CACHE_SOURCE_MISSING] cache_source={str(cache_source)!r}"
+            "[MULTI_TF_CACHE_SOURCE_MISSING] "
+            f"cache_source={str(cache_source)!r}"
         )
     observed_cache_source_sha256 = _sha256_file(cache_source)
     if observed_cache_source_sha256 != cache_source_sha256:
@@ -4119,11 +3998,15 @@ def _prebuild_multi_tf_features_once(
             f"declared_sha256={cache_source_sha256} "
             f"observed_sha256={observed_cache_source_sha256}"
         )
-    cache_identity_sha256 = str(getattr(loaded, "cache_identity_sha256", ""))
+    cache_identity_sha256 = str(
+        getattr(loaded, "cache_identity_sha256", "")
+    )
     cache_key = _multi_tf_cache_key(
         m5_path,
         source_sha256=source_sha256,
-        backend_identity=(f"{backend_locator}:cache_identity={cache_identity_sha256}"),
+        backend_identity=(
+            f"{backend_locator}:cache_identity={cache_identity_sha256}"
+        ),
     )
     cached = _MULTI_TF_CACHE.get(cache_key)
     if cached is not None:
@@ -4253,7 +4136,8 @@ class EntryV10CtxDataset(Dataset):
             not isinstance(per_tf_seq_lens, dict)
             or tuple(per_tf_seq_lens) != expected_timeframes
             or any(
-                isinstance(per_tf_seq_lens[tf], bool) or int(per_tf_seq_lens[tf]) <= 0
+                isinstance(per_tf_seq_lens[tf], bool)
+                or int(per_tf_seq_lens[tf]) <= 0
                 for tf in expected_timeframes
             )
         ):
@@ -4280,16 +4164,19 @@ class EntryV10CtxDataset(Dataset):
         # full dataset/lifecycle row space remains authoritative; this is only
         # a storage optimization after TRAIN normalization has been fitted.
         self._compact_row_indices: Optional[np.ndarray] = None
-        self._unified_exit_lifecycle: Optional[UnifiedExitLifecycleSplit] = None
-        self._unified_exit_lifecycle_v2: Optional[UnifiedExitDatasetAdapterV2] = None
+        self._unified_exit_lifecycle: Optional[
+            UnifiedExitLifecycleSplit
+        ] = None
+        self._unified_exit_lifecycle_v2: Optional[
+            UnifiedExitDatasetAdapterV2
+        ] = None
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
-        if (
-            sequence_roll_audit_json is not None
-            and sequence_source_audit_json is not None
-        ):
-            raise RuntimeError("[ENTRY_SEQUENCE_RECONSTRUCTION_PROOF_MODE_AMBIGUOUS]")
+        if sequence_roll_audit_json is not None and sequence_source_audit_json is not None:
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_RECONSTRUCTION_PROOF_MODE_AMBIGUOUS]"
+            )
         sequence_roll_audit: Optional[dict[str, Any]] = None
         if sequence_roll_audit_json is not None:
             sequence_roll_audit = _require_sequence_roll_audit(
@@ -4319,9 +4206,7 @@ class EntryV10CtxDataset(Dataset):
         self.signal_names = list(signal_contract["fields"])
         self.contract_mode = MODEL_NATIVE_CONTRACT_MODE
         self.direction_logit_mode = MODEL_NATIVE_DIRECTION_LOGIT_MODE
-        self.model_native_signal_contract = signal_contract[
-            "model_native_signal_contract"
-        ]
+        self.model_native_signal_contract = signal_contract["model_native_signal_contract"]
         self.aux_head_target_contract = signal_contract["aux_head_target_contract"]
 
         manifest_architecture = current_entry_exit_architecture_observation()
@@ -4329,8 +4214,12 @@ class EntryV10CtxDataset(Dataset):
         manifest_architecture["exit"]["sequence_bars"] = (
             self.seq_len * ENTRY_EXIT_RESOLUTION_RATIO
         )
-        manifest_architecture["shared_surface"]["signal_dim"] = self.seq_input_dim
-        manifest_architecture["shared_surface"]["snap_dim"] = self.snap_input_dim
+        manifest_architecture["shared_surface"]["signal_dim"] = (
+            self.seq_input_dim
+        )
+        manifest_architecture["shared_surface"]["snap_dim"] = (
+            self.snap_input_dim
+        )
         manifest_architecture["schemas"]["signal"] = (
             self.model_native_signal_contract.get("schema_version")
             if isinstance(self.model_native_signal_contract, Mapping)
@@ -4347,7 +4236,6 @@ class EntryV10CtxDataset(Dataset):
         # We re-read them via chunked pyarrow into pre-allocated numpy arrays
         # below for the only admitted nested model-native schema.
         import pyarrow.parquet as pq
-
         _all_cols = pq.ParquetFile(self.parquet_path).schema_arrow.names
         _nested_cols = {"seq", "snap", "ctx_cont", "ctx_cat"}
         missing_nested = sorted(_nested_cols - set(_all_cols))
@@ -4401,7 +4289,6 @@ class EntryV10CtxDataset(Dataset):
             # float32 numpy fill = 5GB peak. Drop nested cols from df before this
             # path was taken — we now re-read those 4 cols via chunked pyarrow.
             import pyarrow.parquet as pq
-
             log.info("[MEM_FIX] chunked pyarrow load of nested cols (bypass pandas)...")
             pf = pq.ParquetFile(self.parquet_path)
             n_rows = int(pf.metadata.num_rows)
@@ -4457,8 +4344,7 @@ class EntryV10CtxDataset(Dataset):
             nested_bytes = (
                 np.prod(seq_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
                 + np.prod(snap_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
-                + np.prod(ctx_cont_shape, dtype=np.int64)
-                * np.dtype(np.float32).itemsize
+                + np.prod(ctx_cont_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
                 + np.prod(ctx_cat_shape, dtype=np.int64) * np.dtype(np.int64).itemsize
             )
             # Keep validation and other non-compacted split arrays off RSS as
@@ -4484,7 +4370,8 @@ class EntryV10CtxDataset(Dataset):
             if not source_reconstruction:
                 first_sequence = (
                     first_batch.column("seq")[0]
-                    .values.flatten()
+                    .values
+                    .flatten()
                     .to_numpy(zero_copy_only=False)
                     .reshape(seq_len, seq_dim)
                     .astype(np.float32, copy=False)
@@ -4497,29 +4384,13 @@ class EntryV10CtxDataset(Dataset):
                     dir=str(memmap_root),
                 )
                 memmap_dir = Path(self._memmap_tmpdir.name)
-                self._np_seq = np.memmap(
-                    memmap_dir / "seq.float32.mmap",
-                    dtype=np.float32,
-                    mode="w+",
-                    shape=seq_shape,
-                )
-                self._np_snap = np.memmap(
-                    memmap_dir / "snap.float32.mmap",
-                    dtype=np.float32,
-                    mode="w+",
-                    shape=snap_shape,
-                )
+                self._np_seq = np.memmap(memmap_dir / "seq.float32.mmap", dtype=np.float32, mode="w+", shape=seq_shape)
+                self._np_snap = np.memmap(memmap_dir / "snap.float32.mmap", dtype=np.float32, mode="w+", shape=snap_shape)
                 self._np_ctx_cont = np.memmap(
-                    memmap_dir / "ctx_cont.float32.mmap",
-                    dtype=np.float32,
-                    mode="w+",
-                    shape=ctx_cont_shape,
+                    memmap_dir / "ctx_cont.float32.mmap", dtype=np.float32, mode="w+", shape=ctx_cont_shape
                 )
                 self._np_ctx_cat = np.memmap(
-                    memmap_dir / "ctx_cat.int64.mmap",
-                    dtype=np.int64,
-                    mode="w+",
-                    shape=ctx_cat_shape,
+                    memmap_dir / "ctx_cat.int64.mmap", dtype=np.int64, mode="w+", shape=ctx_cat_shape
                 )
                 log.info(
                     "[MEMMAP] advanced nested arrays disk-backed: total=%.2f GB threshold=%.2f GB dir=%s",
@@ -4535,7 +4406,9 @@ class EntryV10CtxDataset(Dataset):
                         raise RuntimeError(
                             "[ENTRY_SEQUENCE_ROLL_RECONSTRUCTION_FIRST_WINDOW_MISSING]"
                         )
-                    chain = np.empty((n_rows + seq_len - 1, seq_dim), dtype=np.float32)
+                    chain = np.empty(
+                        (n_rows + seq_len - 1, seq_dim), dtype=np.float32
+                    )
                     chain[: seq_len - 1] = first_sequence[:-1]
                     self._sequence_reconstruction_chain = chain
                     self._np_seq = np.lib.stride_tricks.sliding_window_view(
@@ -4561,56 +4434,26 @@ class EntryV10CtxDataset(Dataset):
             ):
                 nb = batch.num_rows
                 if not (reconstruct_sequence_from_snapshots or source_reconstruction):
-                    self._np_seq[idx : idx + nb] = (
-                        batch.column("seq")
-                        .flatten()
-                        .flatten()
-                        .to_numpy(zero_copy_only=False)
-                        .reshape(nb, seq_len, seq_dim)
-                        .astype(np.float32, copy=False)
-                    )
-                self._np_snap[idx : idx + nb] = (
-                    batch.column("snap")
-                    .flatten()
-                    .to_numpy(zero_copy_only=False)
-                    .reshape(nb, snap_dim)
-                    .astype(np.float32, copy=False)
-                )
-                self._np_ctx_cont[idx : idx + nb] = (
-                    batch.column("ctx_cont")
-                    .flatten()
-                    .to_numpy(zero_copy_only=False)
-                    .reshape(nb, ctx_cont_dim)
-                    .astype(np.float32, copy=False)
-                )
-                self._np_ctx_cat[idx : idx + nb] = (
-                    batch.column("ctx_cat")
-                    .flatten()
-                    .to_numpy(zero_copy_only=False)
-                    .reshape(nb, ctx_cat_dim)
-                    .astype(np.int64, copy=False)
-                )
+                    self._np_seq[idx:idx+nb] = batch.column("seq").flatten().flatten().to_numpy(
+                        zero_copy_only=False).reshape(nb, seq_len, seq_dim).astype(np.float32, copy=False)
+                self._np_snap[idx:idx+nb] = batch.column("snap").flatten().to_numpy(
+                    zero_copy_only=False).reshape(nb, snap_dim).astype(np.float32, copy=False)
+                self._np_ctx_cont[idx:idx+nb] = batch.column("ctx_cont").flatten().to_numpy(
+                    zero_copy_only=False).reshape(nb, ctx_cont_dim).astype(np.float32, copy=False)
+                self._np_ctx_cat[idx:idx+nb] = batch.column("ctx_cat").flatten().to_numpy(
+                    zero_copy_only=False).reshape(nb, ctx_cat_dim).astype(np.int64, copy=False)
                 if reconstruct_sequence_from_snapshots:
                     self._sequence_reconstruction_chain[
                         seq_len - 1 + idx : seq_len - 1 + idx + nb
-                    ] = self._np_snap[idx : idx + nb]
+                    ] = self._np_snap[idx:idx+nb]
                 idx += nb
                 if use_memmap and idx % _MEMMAP_WRITEBACK_ROWS == 0:
-                    _flush_memmap_pages(
-                        self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat
-                    )
-            for arr in (
-                self._np_seq,
-                self._np_snap,
-                self._np_ctx_cont,
-                self._np_ctx_cat,
-            ):
+                    _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
+            for arr in (self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat):
                 if isinstance(arr, np.memmap):
                     arr.flush()
             if use_memmap:
-                _flush_memmap_pages(
-                    self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat
-                )
+                _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
             if reconstruct_sequence_from_snapshots:
                 if first_sequence is None:
                     raise RuntimeError(
@@ -4739,7 +4582,6 @@ class EntryV10CtxDataset(Dataset):
             MULTI_TF_FEATURE_COUNT_V4,
             MULTI_TF_PER_BAR_FEATURES_V4,
         )
-
         if m5_prebuilt_path is None:
             raise RuntimeError(
                 "[MULTI_TF_INIT_FAIL] exact architecture requires m5_prebuilt_path "
@@ -4854,7 +4696,10 @@ class EntryV10CtxDataset(Dataset):
             route_timeframes=route_timeframes,
             base_bar_duration=pd.Timedelta(seconds=base_bar_seconds),
         )
-        return {f"{key_prefix}{tf.lower()}": value for tf, value in windows.items()}
+        return {
+            f"{key_prefix}{tf.lower()}": value
+            for tf, value in windows.items()
+        }
 
     def _get_exit_multi_tf_episode_histories(
         self,
@@ -4888,13 +4733,18 @@ class EntryV10CtxDataset(Dataset):
                 ts_int64.dtype != np.dtype(np.int64)
                 or ts_int64.shape != (len(feats),)
                 or feats_np.dtype != np.dtype(np.float32)
-                or feats_np.shape != (len(feats), self._multi_tf_feature_count)
+                or feats_np.shape
+                != (len(feats), self._multi_tf_feature_count)
                 or isinstance(warmup_rows, bool)
                 or not isinstance(warmup_rows, (int, np.integer))
             ):
-                raise RuntimeError(f"UNIFIED_EXIT_EPISODE_MTF_SOURCE_INVALID:{tf}")
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_SOURCE_INVALID:{tf}"
+                )
             cutoff_ns = availability_ns - int(MULTI_TF_SHIFT[tf].value)
-            right = np.searchsorted(ts_int64, cutoff_ns, side="right").astype(np.int64)
+            right = np.searchsorted(ts_int64, cutoff_ns, side="right").astype(
+                np.int64
+            )
             tail = right - 1
             required = int(self.per_tf_seq_lens[tf])
             left = int(tail[0]) - required + 1
@@ -4905,12 +4755,16 @@ class EntryV10CtxDataset(Dataset):
                 or left < 0
                 or last >= len(feats)
             ):
-                raise RuntimeError(f"UNIFIED_EXIT_EPISODE_MTF_HISTORY_INVALID:{tf}")
-            history = np.ascontiguousarray(feats_np[left : last + 1], dtype=np.float32)
+                raise RuntimeError(
+                    f"UNIFIED_EXIT_EPISODE_MTF_HISTORY_INVALID:{tf}"
+                )
+            history = np.ascontiguousarray(
+                feats_np[left : last + 1], dtype=np.float32
+            )
             gather = np.ascontiguousarray(tail - left, dtype=np.int64)
             out[f"exit_mtf_history_{tf.lower()}"] = history
-            out[f"exit_mtf_history_time_ns_{tf.lower()}"] = np.ascontiguousarray(
-                ts_int64[left : last + 1], dtype=np.int64
+            out[f"exit_mtf_history_time_ns_{tf.lower()}"] = (
+                np.ascontiguousarray(ts_int64[left : last + 1], dtype=np.int64)
             )
             out[f"exit_mtf_gather_{tf.lower()}"] = gather
         return out
@@ -4943,7 +4797,9 @@ class EntryV10CtxDataset(Dataset):
         return require_unified_exit_episode_pack(
             pack,
             per_tf_seq_lens=self.per_tf_seq_lens,
-            expected_mtf_cache_identity_sha256=(self._multi_tf_cache_identity_sha256),
+            expected_mtf_cache_identity_sha256=(
+                self._multi_tf_cache_identity_sha256
+            ),
             context="ENTRY_DATASET_EXIT_EPISODE",
         )
 
@@ -5022,22 +4878,30 @@ class EntryV10CtxDataset(Dataset):
         """
 
         if not bool(getattr(self, "_advanced", False)):
-            raise RuntimeError("[ENTRY_V10_CTX_COMPACT_REQUIRES_ADVANCED_DATASET]")
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_REQUIRES_ADVANCED_DATASET]"
+            )
         observed = np.asarray(row_indices, dtype=np.int64)
         if observed.ndim != 1 or observed.size < 1:
             raise RuntimeError(
                 "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_INVALID] expected non-empty 1-D"
             )
         if np.any(observed < 0) or np.any(observed >= len(self.df)):
-            raise RuntimeError("[ENTRY_V10_CTX_COMPACT_ROW_INDICES_OOB]")
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_OOB]"
+            )
         if np.any(np.diff(observed) <= 0):
-            raise RuntimeError("[ENTRY_V10_CTX_COMPACT_ROW_INDICES_NOT_SORTED_UNIQUE]")
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_NOT_SORTED_UNIQUE]"
+            )
         if not np.array_equal(observed, np.asarray(self.indices, dtype=np.int64)):
             raise RuntimeError(
                 "[ENTRY_V10_CTX_COMPACT_ROW_INDICES_MUST_MATCH_DATASET_SELECTION]"
             )
         if self._compact_row_indices is not None:
-            raise RuntimeError("[ENTRY_V10_CTX_COMPACT_ALREADY_APPLIED]")
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_COMPACT_ALREADY_APPLIED]"
+            )
 
         old_arrays = (
             self._np_seq,
@@ -5091,8 +4955,7 @@ class EntryV10CtxDataset(Dataset):
             "[MEM_COMPACT] smoke_rows=%d original_rows=%d retained_nested_bytes=%.2f MB",
             int(observed.size),
             int(len(self.df)),
-            sum(int(array.nbytes) for array in compact_arrays if array is not None)
-            / 1e6,
+            sum(int(array.nbytes) for array in compact_arrays if array is not None) / 1e6,
         )
 
     def bind_unified_exit_lifecycle(
@@ -5102,7 +4965,9 @@ class EntryV10CtxDataset(Dataset):
         """Bind the exact split-local Exit episodes to immutable Entry rows."""
 
         if not isinstance(lifecycle, UnifiedExitLifecycleSplit):
-            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_SPLIT_OBJECT_REQUIRED")
+            raise RuntimeError(
+                "UNIFIED_EXIT_LIFECYCLE_SPLIT_OBJECT_REQUIRED"
+            )
         if int(lifecycle.entry_row_count) != len(self.df):
             raise RuntimeError(
                 "UNIFIED_EXIT_LIFECYCLE_ENTRY_ROW_COUNT_MISMATCH: "
@@ -5129,7 +4994,9 @@ class EntryV10CtxDataset(Dataset):
     ) -> dict[str, Any] | None:
         if self._unified_exit_lifecycle_v2 is None:
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND")
-        return self._unified_exit_lifecycle_v2.materialize(int(entry_row_index))
+        return self._unified_exit_lifecycle_v2.materialize(
+            int(entry_row_index)
+        )
 
     def set_unified_exit_lifecycle_v2_epoch(self, epoch_index: int) -> None:
         if self._unified_exit_lifecycle_v2 is None:
@@ -5208,7 +5075,6 @@ class EntryV10CtxDataset(Dataset):
                 )
             return out_batch
 
-
 # -----------------------------------------------------------------------------
 # Training loops
 # -----------------------------------------------------------------------------
@@ -5275,14 +5141,16 @@ def _finalize_feature_tf_gate_epoch(
             "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_EPOCH_EVIDENCE_MISSING]"
         )
     mean = np.asarray(accumulator["sum"], dtype=np.float64) / float(rows)
-    variance = np.asarray(accumulator["sum_sq"], dtype=np.float64) / float(
-        rows
-    ) - np.square(mean)
+    variance = (
+        np.asarray(accumulator["sum_sq"], dtype=np.float64) / float(rows)
+        - np.square(mean)
+    )
     std = np.sqrt(np.maximum(variance, 0.0))
     minimum = np.asarray(accumulator["min"], dtype=np.float64)
     maximum = np.asarray(accumulator["max"], dtype=np.float64)
     if not all(
-        bool(np.isfinite(value).all()) for value in (mean, std, minimum, maximum)
+        bool(np.isfinite(value).all())
+        for value in (mean, std, minimum, maximum)
     ):
         raise RuntimeError(
             "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_EPOCH_EVIDENCE_INVALID]"
@@ -5418,15 +5286,21 @@ def _cooperation_gate_health_failures(
             "family_tf_feature_gate epoch-wide evidence is missing or invalid"
         )
     else:
-        dead = np.flatnonzero(feature_std <= _MODEL_NATIVE_FEATURE_TF_GATE_MIN_STD)
-        saturated = np.flatnonzero((feature_min <= 0.0) | (feature_max >= 2.0))
+        dead = np.flatnonzero(
+            feature_std <= _MODEL_NATIVE_FEATURE_TF_GATE_MIN_STD
+        )
+        saturated = np.flatnonzero(
+            (feature_min <= 0.0) | (feature_max >= 2.0)
+        )
         if dead.size:
             failures.append(
-                f"family_tf_feature_gate constant/dead indices={dead.tolist()}"
+                "family_tf_feature_gate constant/dead indices="
+                f"{dead.tolist()}"
             )
         if saturated.size:
             failures.append(
-                f"family_tf_feature_gate saturated indices={saturated.tolist()}"
+                "family_tf_feature_gate saturated indices="
+                f"{saturated.tolist()}"
             )
     return failures
 
@@ -5601,12 +5475,17 @@ def _side_mae_auxiliary_loss(
         name="y_short_expected_mae_bps",
     )
 
-    mae_target = torch.stack([y_long_mae, y_short_mae], dim=1).to(dtype=side_mae.dtype)
+    mae_target = torch.stack([y_long_mae, y_short_mae], dim=1).to(
+        dtype=side_mae.dtype
+    )
     loss = nn.functional.l1_loss(side_mae, mae_target)
     return loss, {
         "side_mae_loss": float(loss.detach().cpu().item()),
-        "side_mae_target_mean_bps": float(mae_target.detach().mean().cpu().item()),
+        "side_mae_target_mean_bps": float(
+            mae_target.detach().mean().cpu().item()
+        ),
     }
+
 
 
 def _trendline_event_aux_loss(
@@ -5633,42 +5512,12 @@ def _trendline_event_aux_loss(
         "trendline_resistance_rows": 0.0,
     }
     non_blocking = device.type == "cuda"
-    rising = (
-        batch["y_line_support_touch_held"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
-    rising_mask = (
-        batch["y_line_support_touch_mask"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
-    falling = (
-        batch["y_line_resistance_touch_held"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
-    falling_mask = (
-        batch["y_line_resistance_touch_mask"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
-    short_trap = (
-        batch["y_countertrend_short_trap"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
-    long_trap = (
-        batch["y_countertrend_long_trap"]
-        .to(device, non_blocking=non_blocking)
-        .float()
-        .clamp(0.0, 1.0)
-    )
+    rising = batch["y_line_support_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    rising_mask = batch["y_line_support_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    falling = batch["y_line_resistance_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    falling_mask = batch["y_line_resistance_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    short_trap = batch["y_countertrend_short_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
+    long_trap = batch["y_countertrend_long_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
     targets = torch.stack(
         [rising, falling, short_trap, long_trap],
         dim=1,
@@ -5695,15 +5544,9 @@ def _trendline_event_aux_loss(
     )
     loss = (per_element * element_mask).sum() / mask_total
     stats["trendline_event_loss"] = float(loss.detach().cpu().item())
-    stats["trendline_event_rows"] = float(
-        int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item())
-    )
-    stats["trendline_support_rows"] = float(
-        int((rising_mask > 0.5).sum().detach().cpu().item())
-    )
-    stats["trendline_resistance_rows"] = float(
-        int((falling_mask > 0.5).sum().detach().cpu().item())
-    )
+    stats["trendline_event_rows"] = float(int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item()))
+    stats["trendline_support_rows"] = float(int((rising_mask > 0.5).sum().detach().cpu().item()))
+    stats["trendline_resistance_rows"] = float(int((falling_mask > 0.5).sum().detach().cpu().item()))
     return loss, stats
 
 
@@ -5734,7 +5577,8 @@ class _WeightEma:
             )
         self.decay = decay
         self._shadow: Dict[str, torch.Tensor] = {
-            name: tensor.detach().clone() for name, tensor in model.state_dict().items()
+            name: tensor.detach().clone()
+            for name, tensor in model.state_dict().items()
         }
         self._parameter_names = frozenset(
             name for name, _tensor in model.named_parameters()
@@ -5755,7 +5599,9 @@ class _WeightEma:
         for name, tensor in current.items():
             shadow = self._shadow[name]
             if name in self._parameter_names:
-                shadow.mul_(self.decay).add_(tensor.detach(), alpha=1.0 - self.decay)
+                shadow.mul_(self.decay).add_(
+                    tensor.detach(), alpha=1.0 - self.decay
+                )
             else:
                 shadow.copy_(tensor.detach())
         self._steps += 1
@@ -5770,7 +5616,8 @@ class _WeightEma:
                 "EMA that has taken no optimizer step"
             )
         saved = {
-            name: tensor.detach().clone() for name, tensor in model.state_dict().items()
+            name: tensor.detach().clone()
+            for name, tensor in model.state_dict().items()
         }
         model.load_state_dict(self._shadow, strict=True)
         try:
@@ -5779,9 +5626,7 @@ class _WeightEma:
             model.load_state_dict(saved, strict=True)
 
     def state_dict_clone(self) -> Dict[str, torch.Tensor]:
-        return {
-            name: tensor.detach().cpu().clone() for name, tensor in self._shadow.items()
-        }
+        return {name: tensor.detach().cpu().clone() for name, tensor in self._shadow.items()}
 
     def checkpoint_state(self) -> Dict[str, Any]:
         """Return the in-place shadow without a host-side clone.
@@ -5823,7 +5668,8 @@ class _WeightEma:
                 or not bool(torch.isfinite(value).all().item())
             ):
                 raise RuntimeError(
-                    f"[ATTENDED_RESEARCH_WEIGHT_EMA_TENSOR_INVALID] name={name}"
+                    "[ATTENDED_RESEARCH_WEIGHT_EMA_TENSOR_INVALID] "
+                    f"name={name}"
                 )
             restored[name] = value.detach().to(expected_tensor.device).clone()
         self._shadow = restored
@@ -5850,6 +5696,7 @@ def _optimizer_step_with_finite_gradients(
         with kernel_profile_range("EMA"):
             weight_ema.update(model)
     return gradient_norm
+
 
 
 def _step_partial_gradient_accumulation(
@@ -5932,12 +5779,14 @@ def _capture_unified_exit_initial_state(
         component
         for component, prefixes in _UNIFIED_EXIT_MOVEMENT_PREFIXES.items()
         if not any(
-            any(key.startswith(prefix) for prefix in prefixes) for key in selected
+            any(key.startswith(prefix) for prefix in prefixes)
+            for key in selected
         )
     ]
     if missing_components:
         raise RuntimeError(
-            f"[UNIFIED_EXIT_INITIAL_STATE_MISSING] components={missing_components}"
+            "[UNIFIED_EXIT_INITIAL_STATE_MISSING] "
+            f"components={missing_components}"
         )
     return selected
 
@@ -5953,7 +5802,9 @@ def _unified_exit_movement_proof(
     for key, initial in initial_state.items():
         selected = selected_state.get(key)
         if not isinstance(selected, torch.Tensor) or selected.shape != initial.shape:
-            raise RuntimeError(f"[UNIFIED_EXIT_SELECTED_STATE_INVALID] parameter={key}")
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_SELECTED_STATE_INVALID] parameter={key}"
+            )
         delta = float(
             torch.max(
                 torch.abs(
@@ -5963,7 +5814,9 @@ def _unified_exit_movement_proof(
             ).item()
         )
         if not math.isfinite(delta):
-            raise RuntimeError(f"[UNIFIED_EXIT_MOVEMENT_NONFINITE] parameter={key}")
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_MOVEMENT_NONFINITE] parameter={key}"
+            )
         parameter_max_abs_delta[key] = delta
     for component, prefixes in _UNIFIED_EXIT_MOVEMENT_PREFIXES.items():
         deltas = [
@@ -5972,7 +5825,9 @@ def _unified_exit_movement_proof(
             if any(key.startswith(prefix) for prefix in prefixes)
         ]
         if not deltas:
-            raise RuntimeError(f"[UNIFIED_EXIT_MOVEMENT_COMPONENT_MISSING] {component}")
+            raise RuntimeError(
+                f"[UNIFIED_EXIT_MOVEMENT_COMPONENT_MISSING] {component}"
+            )
         component_max_abs_delta[component] = max(deltas)
     dead = [
         component
@@ -5981,7 +5836,8 @@ def _unified_exit_movement_proof(
     ]
     if dead:
         raise RuntimeError(
-            f"[UNIFIED_EXIT_SELECTED_CHECKPOINT_UNTRAINED] components={dead}"
+            "[UNIFIED_EXIT_SELECTED_CHECKPOINT_UNTRAINED] "
+            f"components={dead}"
         )
     return {
         "schema_version": "gx1_unified_exit_parameter_movement_v2",
@@ -6017,7 +5873,9 @@ def _unified_exit_full_population_eval_loss(
         model=model,
         target_model=target_model,
         entry_decision_representations=entry_decision_representations,
-        target_entry_decision_representations=(target_entry_decision_representations),
+        target_entry_decision_representations=(
+            target_entry_decision_representations
+        ),
         entry_row_indices=entry_row_indices,
         dataset=dataset,
         device=device,
@@ -6025,7 +5883,6 @@ def _unified_exit_full_population_eval_loss(
         exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
         full_trajectory_accumulator=full_trajectory_accumulator,
     )
-
 
 def _train_unified_exit_full_population(
     *,
@@ -6053,7 +5910,9 @@ def _train_unified_exit_full_population(
         model=model,
         target_model=target_model,
         entry_decision_representations=entry_decision_representations,
-        target_entry_decision_representations=(target_entry_decision_representations),
+        target_entry_decision_representations=(
+            target_entry_decision_representations
+        ),
         entry_row_indices=entry_row_indices,
         dataset=dataset,
         device=device,
@@ -6063,7 +5922,6 @@ def _train_unified_exit_full_population(
         profile_timing=profile_timing,
         exit_action_forward_chunk_rows=exit_action_forward_chunk_rows,
     )
-
 
 def _forward_unified_exit_episode_pack(
     *,
@@ -6087,38 +5945,26 @@ def _forward_unified_exit_episode_pack(
         "entry_decision_representation": entry_decision_representation,
         "exit_local_history_x": torch.from_numpy(
             np.asarray(episode["exit_local_history_x"], dtype=np.float32)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_state_ctx_cat": torch.from_numpy(
             np.asarray(episode["exit_state_ctx_cat"], dtype=np.int64)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_state_ctx_cont": torch.from_numpy(
             np.asarray(episode["exit_state_ctx_cont"], dtype=np.float32)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_path_x": torch.from_numpy(
             np.asarray(episode["exit_path_x"], dtype=np.float32)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_mtf_histories": {
             tf: torch.from_numpy(
                 np.asarray(episode[f"exit_mtf_history_{tf}"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .to(device)
+            ).unsqueeze(0).to(device)
             for tf in tf_names
         },
         "exit_mtf_gathers": {
             tf: torch.from_numpy(
                 np.asarray(episode[f"exit_mtf_gather_{tf}"], dtype=np.int64)
-            )
-            .unsqueeze(0)
-            .to(device)
+            ).unsqueeze(0).to(device)
             for tf in tf_names
         },
         "exit_mtf_history_lengths": {
@@ -6131,27 +5977,15 @@ def _forward_unified_exit_episode_pack(
         },
         "exit_action_valid_mask": torch.from_numpy(
             np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_terminal_mask": torch.from_numpy(
             np.asarray(episode["exit_terminal_mask"], dtype=np.bool_)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         "exit_terminal_reason_index": torch.from_numpy(
             np.asarray(episode["exit_terminal_reason_index"], dtype=np.int64)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
     }
-    with (
-        _training_autocast_context(),
-        _training_model_finite_check_context(),
-        kernel_profile_range(
-            "Exit_online" if torch.is_grad_enabled() else "Exit_teacher"
-        ),
-    ):
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -6159,33 +5993,21 @@ def _forward_unified_exit_episode_pack(
     terminal = output.get("exit_terminal_mask")
     terminal_reason = output.get("exit_terminal_reason_index")
     lengths = output.get("exit_episode_lengths")
-    valid = (
-        torch.from_numpy(np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_))
-        .unsqueeze(0)
-        .to(device)
-    )
-    state_valid = (
-        torch.from_numpy(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_))
-        .unsqueeze(0)
-        .to(device)
-    )
-    target_terminal = (
-        torch.from_numpy(np.asarray(episode["exit_terminal_mask"], dtype=np.bool_))
-        .unsqueeze(0)
-        .to(device)
-    )
-    target_terminal_reason = (
-        torch.from_numpy(
-            np.asarray(episode["exit_terminal_reason_index"], dtype=np.int64)
-        )
-        .unsqueeze(0)
-        .to(device)
-    )
-    target_lengths = (
-        torch.from_numpy(np.asarray(episode["exit_episode_lengths"], dtype=np.int64))
-        .unsqueeze(0)
-        .to(device)
-    )
+    valid = torch.from_numpy(
+        np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_)
+    ).unsqueeze(0).to(device)
+    state_valid = torch.from_numpy(
+        np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_)
+    ).unsqueeze(0).to(device)
+    target_terminal = torch.from_numpy(
+        np.asarray(episode["exit_terminal_mask"], dtype=np.bool_)
+    ).unsqueeze(0).to(device)
+    target_terminal_reason = torch.from_numpy(
+        np.asarray(episode["exit_terminal_reason_index"], dtype=np.int64)
+    ).unsqueeze(0).to(device)
+    target_lengths = torch.from_numpy(
+        np.asarray(episode["exit_episode_lengths"], dtype=np.int64)
+    ).unsqueeze(0).to(device)
     expected_shape = (1, 2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
     if (
         not isinstance(q_values, torch.Tensor)
@@ -6261,9 +6083,9 @@ def _forward_unified_exit_episode_batch(
             ).astype(np.float32, copy=False)
         ).to(device),
         "exit_path_x": torch.from_numpy(
-            np.stack([episode["exit_path_x"] for episode in episodes], axis=0).astype(
-                np.float32, copy=False
-            )
+            np.stack(
+                [episode["exit_path_x"] for episode in episodes], axis=0
+            ).astype(np.float32, copy=False)
         ).to(device),
         "exit_mtf_histories": {},
         "exit_mtf_gathers": {},
@@ -6306,14 +6128,10 @@ def _forward_unified_exit_episode_batch(
                 axis=0,
             ).astype(np.int64, copy=False)
         ).to(device)
-        inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(device)
-    with (
-        _training_autocast_context(),
-        _training_model_finite_check_context(),
-        kernel_profile_range(
-            "Exit_online" if torch.is_grad_enabled() else "Exit_teacher"
-        ),
-    ):
+        inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
+            device
+        )
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -6403,13 +6221,10 @@ def _episode_stats_update(
         "q_valid_cells": flat_valid.sum(),
         "target_equivalent_action_rows": target_equivalent.sum(),
         "predicted_tied_rows": predicted_tie.sum(),
-        "target_tied_prediction_unique_rows": (
-            target_equivalent & ~predicted_tie
-        ).sum(),
+        "target_tied_prediction_unique_rows": (target_equivalent & ~predicted_tie).sum(),
         "unique_target_action_agreement_rows": (
             flat_equivalence.gather(1, predictions[:, None]).squeeze(1)
-            & ~predicted_tie
-            & ~target_equivalent
+            & ~predicted_tie & ~target_equivalent
         ).sum(),
         "hold_target_greedy_rows": flat_equivalence[:, 0].sum(),
         "exit_now_target_greedy_rows": flat_equivalence[:, 1].sum(),
@@ -6460,13 +6275,9 @@ def _fitted_q_targets_for_episode(
                 device=device,
             )
         )
-        rewards = (
-            torch.from_numpy(
-                np.asarray(episode["exit_now_reward_bps"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .to(device)
-        )
+        rewards = torch.from_numpy(
+            np.asarray(episode["exit_now_reward_bps"], dtype=np.float32)
+        ).unsqueeze(0).to(device)
         targets, target_mask = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=target_q,
             exit_now_reward_bps=rewards,
@@ -6474,10 +6285,10 @@ def _fitted_q_targets_for_episode(
             state_valid_mask=state_valid,
             terminal_mask=terminal,
             terminal_reason_index=torch.from_numpy(
-                np.asarray(episode["exit_terminal_reason_index"], dtype=np.int64)
-            )
-            .unsqueeze(0)
-            .to(device),
+                np.asarray(
+                    episode["exit_terminal_reason_index"], dtype=np.int64
+                )
+            ).unsqueeze(0).to(device),
         )
     if targets.requires_grad or target_mask.requires_grad:
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_TARGET_NOT_FROZEN]")
@@ -6570,7 +6381,9 @@ def _fitted_q_targets_for_chunk_v2(
     pack = require_unified_exit_episode_pack_v2(
         chunk_pack,
         per_tf_seq_lens=per_tf_seq_lens,
-        expected_mtf_cache_identity_sha256=(expected_mtf_cache_identity_sha256),
+        expected_mtf_cache_identity_sha256=(
+            expected_mtf_cache_identity_sha256
+        ),
         context="UNIFIED_EXIT_TRAIN_CHUNK_V2",
     )
     economics = require_unified_exit_unbounded_training_readiness(
@@ -6598,34 +6411,24 @@ def _fitted_q_targets_for_chunk_v2(
             ),
             exit_local_history_x=torch.from_numpy(
                 np.asarray(pack["exit_local_history_x"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .to(device),
+            ).unsqueeze(0).to(device),
             exit_state_ctx_cat=torch.from_numpy(
                 np.asarray(pack["exit_state_ctx_cat"], dtype=np.int64)
-            )
-            .unsqueeze(0)
-            .to(device),
+            ).unsqueeze(0).to(device),
             exit_state_ctx_cont=torch.from_numpy(
                 np.asarray(pack["exit_state_ctx_cont"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .to(device),
+            ).unsqueeze(0).to(device),
             exit_path_x=model_path_pair,
             exit_mtf_histories={
                 tf: torch.from_numpy(
                     np.asarray(pack[f"exit_mtf_history_{tf}"], dtype=np.float32)
-                )
-                .unsqueeze(0)
-                .to(device)
+                ).unsqueeze(0).to(device)
                 for tf in tf_names
             },
             exit_mtf_gathers={
                 tf: torch.from_numpy(
                     np.asarray(pack[f"exit_mtf_gather_{tf}"], dtype=np.int64)
-                )
-                .unsqueeze(0)
-                .to(device)
+                ).unsqueeze(0).to(device)
                 for tf in tf_names
             },
             exit_mtf_history_lengths={
@@ -6639,60 +6442,34 @@ def _fitted_q_targets_for_chunk_v2(
         )
         prefix_q = output["exit_action_q_bps"]
         prefix_valid = output["exit_action_valid_mask"]
-        if tuple(prefix_q.shape) != (1, 2, encoded_count, 2) or tuple(
-            prefix_valid.shape
-        ) != tuple(prefix_q.shape):
+        if (
+            tuple(prefix_q.shape) != (1, 2, encoded_count, 2)
+            or tuple(prefix_valid.shape) != tuple(prefix_q.shape)
+        ):
             raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_PREFIX_OUTPUT_INVALID]")
         current_q = prefix_q[
-            :,
-            side_index : side_index + 1,
+            :, side_index : side_index + 1,
             chunk_start : chunk_start + valid_count,
             :,
         ]
-        action_valid = (
-            torch.from_numpy(
-                np.asarray(pack["exit_policy_action_valid_mask"], dtype=np.bool_)
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        supervision_valid = (
-            torch.from_numpy(
-                np.asarray(pack["exit_bellman_target_valid_mask"], dtype=np.bool_)
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        successor_observed = (
-            torch.from_numpy(
-                np.asarray(pack["exit_successor_observed_mask"], dtype=np.bool_)
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        state_valid = (
-            torch.from_numpy(np.asarray(pack["exit_state_valid_mask"], dtype=np.bool_))
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        terminal = (
-            torch.from_numpy(np.asarray(pack["exit_terminal_mask"], dtype=np.bool_))
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        terminal_reason = (
-            torch.from_numpy(
-                np.asarray(pack["exit_terminal_reason_index"], dtype=np.int64)
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
+        action_valid = torch.from_numpy(
+            np.asarray(pack["exit_policy_action_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        supervision_valid = torch.from_numpy(
+            np.asarray(pack["exit_bellman_target_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        successor_observed = torch.from_numpy(
+            np.asarray(pack["exit_successor_observed_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        state_valid = torch.from_numpy(
+            np.asarray(pack["exit_state_valid_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        terminal = torch.from_numpy(
+            np.asarray(pack["exit_terminal_mask"], dtype=np.bool_)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        terminal_reason = torch.from_numpy(
+            np.asarray(pack["exit_terminal_reason_index"], dtype=np.int64)
+        ).unsqueeze(0).unsqueeze(0).to(device)
         successor_index = int(pack["successor_prefix_state_index"])
         successor_q = (
             prefix_q[:, side_index : side_index + 1, successor_index, :]
@@ -6704,45 +6481,41 @@ def _fitted_q_targets_for_chunk_v2(
             if bool(pack["successor_available"])
             else None
         )
-        rewards = (
-            torch.from_numpy(np.asarray(pack["exit_now_reward_bps"], dtype=np.float32))
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
-        hold_rewards = (
-            torch.from_numpy(
-                np.asarray(pack["hold_immediate_reward_bps"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .to(device)
-        )
+        rewards = torch.from_numpy(
+            np.asarray(pack["exit_now_reward_bps"], dtype=np.float32)
+        ).unsqueeze(0).unsqueeze(0).to(device)
+        hold_rewards = torch.from_numpy(
+            np.asarray(pack["hold_immediate_reward_bps"], dtype=np.float32)
+        ).unsqueeze(0).unsqueeze(0).to(device)
         censored = torch.full(
             (1, 1),
             bool(pack["right_censored"]),
             dtype=torch.bool,
             device=device,
         )
-        decision_times_ns = np.asarray(pack["exit_decision_time_ns"], dtype=np.int64)
+        decision_times_ns = np.asarray(
+            pack["exit_decision_time_ns"], dtype=np.int64
+        )
         transition_seconds = np.ones(valid_count, dtype=np.float64)
         transition_stop = chunk_start + valid_count
         if valid_count > 1:
-            transition_seconds[:-1] = (
-                np.diff(decision_times_ns[chunk_start:transition_stop])
-                / 1_000_000_000.0
-            )
+            transition_seconds[:-1] = np.diff(
+                decision_times_ns[chunk_start:transition_stop]
+            ) / 1_000_000_000.0
         if bool(pack["successor_available"]):
             transition_seconds[-1] = (
                 decision_times_ns[transition_stop]
                 - decision_times_ns[transition_stop - 1]
             ) / 1_000_000_000.0
-        if not np.isfinite(transition_seconds).all() or np.any(
-            transition_seconds <= 0.0
+        if (
+            not np.isfinite(transition_seconds).all()
+            or np.any(transition_seconds <= 0.0)
         ):
             raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_TRANSITION_CLOCK_INVALID]")
         rho = float(economics["validated_annual_continuous_hurdle_rate"])
-        discount = np.exp(-rho * transition_seconds / (365.25 * 24.0 * 60.0 * 60.0))
+        discount = np.exp(
+            -rho * transition_seconds / (365.25 * 24.0 * 60.0 * 60.0)
+        )
         transition_discount = torch.from_numpy(
             np.broadcast_to(discount, (1, 1, valid_count)).copy()
         ).to(device=device, dtype=rewards.dtype)
@@ -6757,9 +6530,7 @@ def _fitted_q_targets_for_chunk_v2(
             chunk_successor_action_valid_mask=successor_valid,
             bellman_target_valid_mask=supervision_valid,
             successor_observed_mask=successor_observed,
-            right_censored_boundary_mask=(
-                censored if bool(pack["right_censored"]) else None
-            ),
+            right_censored_boundary_mask=(censored if bool(pack["right_censored"]) else None),
             transition_discount=transition_discount,
             hold_immediate_reward_bps=hold_rewards,
         )
@@ -6810,10 +6581,10 @@ def _episode_native_exit_eval_loss(
         if "entry_rows_scanned" not in full_trajectory_accumulator:
             raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_SCHEMA_INVALID")
         full_trajectory_accumulator["entry_rows_scanned"] += len(rows)
-    materialized = [dataset.materialize_full_exit_episode(int(index)) for index in rows]
-    selected = [
-        index for index, episode in enumerate(materialized) if episode is not None
+    materialized = [
+        dataset.materialize_full_exit_episode(int(index)) for index in rows
     ]
+    selected = [index for index, episode in enumerate(materialized) if episode is not None]
     loss_sum = entry_decision_representations.sum() * 0.0
     stats = _empty_exit_stats()
     if not selected:
@@ -6856,13 +6627,17 @@ def _episode_native_exit_eval_loss(
         _target_terminal,
         first_side_values,
         first_side_valid,
-    ) = _fitted_q_targets_for_episode_batch(
-        target_model=target_model,
-        target_entry_decision_representations=(
-            target_entry_decision_representations.index_select(0, selected_index)
-        ),
-        episodes=episodes,
-        device=device,
+    ) = (
+        _fitted_q_targets_for_episode_batch(
+            target_model=target_model,
+            target_entry_decision_representations=(
+                target_entry_decision_representations.index_select(
+                    0, selected_index
+                )
+            ),
+            episodes=episodes,
+            device=device,
+        )
     )
     if not torch.equal(valid, target_mask):
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
@@ -6870,7 +6645,9 @@ def _episode_native_exit_eval_loss(
         q_values[valid], targets[valid], reduction="sum"
     )
     stats["eligible_entry_rows"] = len(episodes)
-    _episode_stats_update(stats, q_values=q_values, targets=targets, valid=valid)
+    _episode_stats_update(
+        stats, q_values=q_values, targets=targets, valid=valid
+    )
     if full_trajectory_accumulator is not None:
         _accumulate_unified_exit_full_trajectory(
             full_trajectory_accumulator,
@@ -6885,7 +6662,9 @@ def _episode_native_exit_eval_loss(
     all_first_values = torch.zeros(
         (len(rows), 2), device=device, dtype=first_side_values.dtype
     )
-    all_first_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
+    all_first_valid = torch.zeros(
+        (len(rows), 2), device=device, dtype=torch.bool
+    )
     all_first_values.index_copy_(0, selected_index, first_side_values)
     all_first_valid.index_copy_(0, selected_index, first_side_valid)
     episode_hashes: list[str | None] = [None] * len(rows)
@@ -7032,13 +6811,7 @@ def _episode_native_exit_eval_loss_v2(
     entry_targets = torch.zeros((len(rows), 2), device=device)
     entry_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
     raw_loss = loss_sum if total_valid == 0 else loss_sum / float(total_valid)
-    return (
-        raw_loss,
-        {**stats, "raw_loss": float(raw_loss.cpu().item())},
-        entry_targets,
-        entry_valid,
-        realized,
-    )
+    return raw_loss, {**stats, "raw_loss": float(raw_loss.cpu().item())}, entry_targets, entry_valid, realized
 
 
 def _forward_unified_exit_training_chunk_v2(
@@ -7068,34 +6841,24 @@ def _forward_unified_exit_training_chunk_v2(
         entry_decision_representation=entry_decision_representation,
         exit_local_history_x=torch.from_numpy(
             np.asarray(pack["exit_local_history_x"], dtype=np.float32)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         exit_state_ctx_cat=torch.from_numpy(
             np.asarray(pack["exit_state_ctx_cat"], dtype=np.int64)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         exit_state_ctx_cont=torch.from_numpy(
             np.asarray(pack["exit_state_ctx_cont"], dtype=np.float32)
-        )
-        .unsqueeze(0)
-        .to(device),
+        ).unsqueeze(0).to(device),
         exit_path_x=path_pair,
         exit_mtf_histories={
             tf: torch.from_numpy(
                 np.asarray(pack[f"exit_mtf_history_{tf}"], dtype=np.float32)
-            )
-            .unsqueeze(0)
-            .to(device)
+            ).unsqueeze(0).to(device)
             for tf in tf_names
         },
         exit_mtf_gathers={
             tf: torch.from_numpy(
                 np.asarray(pack[f"exit_mtf_gather_{tf}"], dtype=np.int64)
-            )
-            .unsqueeze(0)
-            .to(device)
+            ).unsqueeze(0).to(device)
             for tf in tf_names
         },
         exit_mtf_history_lengths={
@@ -7111,8 +6874,7 @@ def _forward_unified_exit_training_chunk_v2(
     if tuple(q.shape) != (1, 2, encoded_count, 2):
         raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_ONLINE_OUTPUT_INVALID]")
     return q[
-        :,
-        side_index : side_index + 1,
+        :, side_index : side_index + 1,
         chunk_start : chunk_start + valid_count,
         :,
     ]
@@ -7231,10 +6993,7 @@ def _episode_native_exit_train(
 ]:
     if grad_accum_steps < 1:
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
-    if (
-        target_entry_decision_representations.shape
-        != entry_decision_representations.shape
-    ):
+    if target_entry_decision_representations.shape != entry_decision_representations.shape:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_ENTRY_BATCH_SHAPE_INVALID]")
     if getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None:
         if exit_action_forward_chunk_rows is not None:
@@ -7273,9 +7032,13 @@ def _episode_native_exit_train(
             profile_timing=profile_timing,
             exit_action_forward_chunk_rows=int(exit_action_forward_chunk_rows),
         )
-    profile_start = _synchronized_exit_profile_clock(device) if profile_timing else None
+    profile_start = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     rows = entry_row_indices.detach().cpu().tolist()
-    episodes = [dataset.materialize_full_exit_episode(int(index)) for index in rows]
+    episodes = [
+        dataset.materialize_full_exit_episode(int(index)) for index in rows
+    ]
     profile_materialized = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
@@ -7333,13 +7096,17 @@ def _episode_native_exit_train(
         _target_terminal,
         first_side_values,
         first_side_valid,
-    ) = _fitted_q_targets_for_episode_batch(
-        target_model=target_model,
-        target_entry_decision_representations=(
-            target_entry_decision_representations.index_select(0, selected_index)
-        ),
-        episodes=selected_episodes,
-        device=device,
+    ) = (
+        _fitted_q_targets_for_episode_batch(
+            target_model=target_model,
+            target_entry_decision_representations=(
+                target_entry_decision_representations.index_select(
+                    0, selected_index
+                )
+            ),
+            episodes=selected_episodes,
+            device=device,
+        )
     )
     profile_target_forward = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
@@ -7349,7 +7116,9 @@ def _episode_native_exit_train(
     q_loss_sum = nn.functional.mse_loss(
         q_values[valid], targets[valid], reduction="sum"
     )
-    _episode_stats_update(stats, q_values=q_values, targets=targets, valid=valid)
+    _episode_stats_update(
+        stats, q_values=q_values, targets=targets, valid=valid
+    )
     stats["eligible_entry_rows"] = len(selected_episodes)
     (
         torch.exp(-model.task_log_variances["unified_exit_action"])
@@ -7363,12 +7132,14 @@ def _episode_native_exit_train(
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
     entry_gradients.index_copy_(0, selected_index, token.grad.detach())
-    if int(stats["q_valid_cells"]) != total_valid or int(
-        stats["population_rows"]
-    ) != sum(
-        int(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_).sum())
-        for episode in episodes
-        if episode is not None
+    if (
+        int(stats["q_valid_cells"]) != total_valid
+        or int(stats["population_rows"])
+        != sum(
+            int(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_).sum())
+            for episode in episodes
+            if episode is not None
+        )
     ):
         raise RuntimeError("[UNIFIED_EXIT_EPISODE_POPULATION_COUNT_MISMATCH]")
     all_first_values = torch.zeros(
@@ -7376,7 +7147,9 @@ def _episode_native_exit_train(
         device=device,
         dtype=first_side_values.dtype,
     )
-    all_first_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
+    all_first_valid = torch.zeros(
+        (len(rows), 2), device=device, dtype=torch.bool
+    )
     all_first_values.index_copy_(0, selected_index, first_side_values)
     all_first_valid.index_copy_(0, selected_index, first_side_valid)
     episode_hashes: list[str | None] = [None] * len(rows)
@@ -7425,7 +7198,8 @@ def _episode_native_exit_train(
         entry_gradients,
         {
             **stats,
-            "raw_loss": float(q_loss_sum.detach().cpu().item()) / float(total_valid),
+            "raw_loss": float(q_loss_sum.detach().cpu().item())
+            / float(total_valid),
         },
         entry_targets,
         entry_valid,
@@ -7460,9 +7234,13 @@ def _episode_native_exit_train_chunked(
     immediately, so CUDA can release its attention graph before the next group.
     """
 
-    profile_start = _synchronized_exit_profile_clock(device) if profile_timing else None
+    profile_start = (
+        _synchronized_exit_profile_clock(device) if profile_timing else None
+    )
     rows = entry_row_indices.detach().cpu().tolist()
-    episodes = [dataset.materialize_full_exit_episode(int(index)) for index in rows]
+    episodes = [
+        dataset.materialize_full_exit_episode(int(index)) for index in rows
+    ]
     profile_materialized = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
@@ -7557,7 +7335,9 @@ def _episode_native_exit_train_chunked(
         q_loss_sum = nn.functional.mse_loss(
             q_values[valid], targets[valid], reduction="sum"
         )
-        _episode_stats_update(stats, q_values=q_values, targets=targets, valid=valid)
+        _episode_stats_update(
+            stats, q_values=q_values, targets=targets, valid=valid
+        )
         selected_first_values.index_copy_(0, positions, first_side_values)
         selected_first_valid.index_copy_(0, positions, first_side_valid)
         (
@@ -7588,18 +7368,22 @@ def _episode_native_exit_train_chunked(
     if token.grad is None or not bool(torch.isfinite(token.grad).all().item()):
         raise RuntimeError("[UNIFIED_EXIT_EPISODE_TOKEN_GRADIENT_INVALID]")
     entry_gradients.index_copy_(0, selected_index, token.grad.detach())
-    if int(stats["q_valid_cells"]) != total_valid or int(
-        stats["population_rows"]
-    ) != sum(
-        int(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_).sum())
-        for episode in episodes
-        if episode is not None
+    if (
+        int(stats["q_valid_cells"]) != total_valid
+        or int(stats["population_rows"])
+        != sum(
+            int(np.asarray(episode["exit_state_valid_mask"], dtype=np.bool_).sum())
+            for episode in episodes
+            if episode is not None
+        )
     ):
         raise RuntimeError("[UNIFIED_EXIT_EPISODE_POPULATION_COUNT_MISMATCH]")
     all_first_values = torch.zeros(
         (len(rows), 2), device=device, dtype=selected_first_values.dtype
     )
-    all_first_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
+    all_first_valid = torch.zeros(
+        (len(rows), 2), device=device, dtype=torch.bool
+    )
     all_first_values.index_copy_(0, selected_index, selected_first_values)
     all_first_valid.index_copy_(0, selected_index, selected_first_valid)
     episode_hashes: list[str | None] = [None] * len(rows)
@@ -7637,8 +7421,7 @@ def _episode_native_exit_train_chunked(
             profile_online_forward_s,
             profile_target_forward_s,
             profile_backward_s,
-            profile_end
-            - profile_materialized
+            profile_end - profile_materialized
             - profile_online_forward_s
             - profile_target_forward_s
             - profile_backward_s,
@@ -7664,10 +7447,7 @@ def _collect_unified_exit_influence_sample(
     if not isinstance(dataset, EntryV10CtxDataset):
         raise RuntimeError("UNIFIED_EXIT_INPUT_INFLUENCE_DATASET_INVALID")
     dataset_indices = np.asarray(dataset.indices, dtype=np.int64)
-    if (
-        dataset_indices.ndim != 1
-        or dataset_indices.size < UNIFIED_EXIT_INFLUENCE_SIDE_ROWS
-    ):
+    if dataset_indices.ndim != 1 or dataset_indices.size < UNIFIED_EXIT_INFLUENCE_SIDE_ROWS:
         raise RuntimeError("UNIFIED_EXIT_INPUT_INFLUENCE_INDEX_POPULATION_INVALID")
     offsets = (
         np.arange(UNIFIED_EXIT_INFLUENCE_SIDE_ROWS, dtype=np.int64)
@@ -7700,9 +7480,7 @@ def _collect_unified_exit_influence_sample(
                 or int(batch_tokens.shape[0]) != int(indices.shape[0])
             ):
                 raise RuntimeError("UNIFIED_EXIT_INPUT_INFLUENCE_ENTRY_TOKEN_INVALID")
-            for batch_index, raw_entry_row in enumerate(
-                indices.detach().cpu().tolist()
-            ):
+            for batch_index, raw_entry_row in enumerate(indices.detach().cpu().tolist()):
                 entry_row = int(raw_entry_row)
                 if entry_row not in target_rows:
                     continue
@@ -7725,26 +7503,18 @@ def _collect_unified_exit_influence_sample(
         raise RuntimeError("UNIFIED_EXIT_INPUT_INFLUENCE_SAMPLE_INCOMPLETE")
     sampled: dict[str, Any] = {
         "entry_decision_representation": torch.stack(tokens, dim=0).to(device),
-        "exit_local_history_x": torch.from_numpy(
-            np.stack([episode["exit_local_history_x"] for episode in episodes]).astype(
-                np.float32, copy=False
-            )
-        ).to(device),
-        "exit_state_ctx_cat": torch.from_numpy(
-            np.stack([episode["exit_state_ctx_cat"] for episode in episodes]).astype(
-                np.int64, copy=False
-            )
-        ).to(device),
-        "exit_state_ctx_cont": torch.from_numpy(
-            np.stack([episode["exit_state_ctx_cont"] for episode in episodes]).astype(
-                np.float32, copy=False
-            )
-        ).to(device),
-        "exit_path_x": torch.from_numpy(
-            np.stack([episode["exit_path_x"] for episode in episodes]).astype(
-                np.float32, copy=False
-            )
-        ).to(device),
+        "exit_local_history_x": torch.from_numpy(np.stack([
+            episode["exit_local_history_x"] for episode in episodes
+        ]).astype(np.float32, copy=False)).to(device),
+        "exit_state_ctx_cat": torch.from_numpy(np.stack([
+            episode["exit_state_ctx_cat"] for episode in episodes
+        ]).astype(np.int64, copy=False)).to(device),
+        "exit_state_ctx_cont": torch.from_numpy(np.stack([
+            episode["exit_state_ctx_cont"] for episode in episodes
+        ]).astype(np.float32, copy=False)).to(device),
+        "exit_path_x": torch.from_numpy(np.stack([
+            episode["exit_path_x"] for episode in episodes
+        ]).astype(np.float32, copy=False)).to(device),
         "exit_mtf_histories": {},
         "exit_mtf_gathers": {},
         "exit_mtf_history_lengths": {},
@@ -7762,11 +7532,9 @@ def _collect_unified_exit_influence_sample(
         for row, history in enumerate(histories):
             padded[row, : len(history)] = history
         sampled["exit_mtf_histories"][tf] = torch.from_numpy(padded).to(device)
-        sampled["exit_mtf_gathers"][tf] = torch.from_numpy(
-            np.stack([episode[f"exit_mtf_gather_{tf}"] for episode in episodes]).astype(
-                np.int64, copy=False
-            )
-        ).to(device)
+        sampled["exit_mtf_gathers"][tf] = torch.from_numpy(np.stack([
+            episode[f"exit_mtf_gather_{tf}"] for episode in episodes
+        ]).astype(np.int64, copy=False)).to(device)
         sampled["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(device)
     return sampled, entry_rows, decision_times_ns
 
@@ -7775,13 +7543,7 @@ def _unified_exit_influence_forward(
     model: nn.Module,
     inputs: Mapping[str, Any],
 ) -> torch.Tensor:
-    with (
-        _training_autocast_context(),
-        _training_model_finite_check_context(),
-        kernel_profile_range(
-            "Exit_online" if torch.is_grad_enabled() else "Exit_teacher"
-        ),
-    ):
+    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Exit_online" if torch.is_grad_enabled() else "Exit_teacher"):
         output = model.forward_exit_episode(**dict(inputs))
     output = _float_output_tensors(output)
     q_values = output.get("exit_action_q_bps")
@@ -7837,7 +7599,10 @@ def _unified_exit_input_influence_contract(
     numeric_input_names = {
         "seq_signal": "exit_local_history_x",
         "ctx_cont": "exit_state_ctx_cont",
-        **{f"seq_{tf.lower()}": tf.lower() for tf in EXIT_MTF_CONTEXT_TIMEFRAMES},
+        **{
+            f"seq_{tf.lower()}": tf.lower()
+            for tf in EXIT_MTF_CONTEXT_TIMEFRAMES
+        },
         "entry_decision_representation": "entry_decision_representation",
         "exit_path": "exit_path_x",
     }
@@ -7846,10 +7611,7 @@ def _unified_exit_input_influence_contract(
             sampled["exit_mtf_histories"][input_name]
             if surface.startswith("seq_") and surface != "seq_signal"
             else sampled[input_name]
-        )
-        .detach()
-        .clone()
-        .requires_grad_(True)
+        ).detach().clone().requires_grad_(True)
         for surface, input_name in numeric_input_names.items()
     }
     gradient_inputs = {
@@ -7862,7 +7624,9 @@ def _unified_exit_input_influence_contract(
     }
     for surface, input_name in numeric_input_names.items():
         if surface.startswith("seq_") and surface != "seq_signal":
-            gradient_inputs["exit_mtf_histories"][input_name] = numeric_tensors[surface]
+            gradient_inputs["exit_mtf_histories"][input_name] = numeric_tensors[
+                surface
+            ]
         else:
             gradient_inputs[input_name] = numeric_tensors[surface]
     logits = _unified_exit_influence_forward(model, gradient_inputs)
@@ -7904,9 +7668,7 @@ def _unified_exit_input_influence_contract(
                 "failures": row_failures,
                 "max_abs_exit_margin_gradient": float(value),
             }
-            failures.extend(
-                f"numeric/{surface}/{token}: {item}" for item in row_failures
-            )
+            failures.extend(f"numeric/{surface}/{token}: {item}" for item in row_failures)
         numeric_metrics[surface] = {
             "tokens": tokens,
             "source_indices": source_indices.tolist(),
@@ -7914,9 +7676,9 @@ def _unified_exit_input_influence_contract(
         }
 
     with torch.no_grad():
-        baseline_margin = (lambda value: value[..., 1] - value[..., 0])(
-            _unified_exit_influence_forward(model, sampled)
-        )
+        baseline_margin = (
+            lambda value: value[..., 1] - value[..., 0]
+        )(_unified_exit_influence_forward(model, sampled))
     categorical_metrics: dict[str, Any] = {}
     for owner in ownership["categorical"]:
         token = str(owner["token"])
@@ -7974,22 +7736,18 @@ def _unified_exit_input_influence_contract(
                 f"UNIFIED_EXIT_INPUT_INFLUENCE_OWNER_INVALID: {owner_name}"
             )
         with torch.no_grad():
-            changed_margin = (lambda value: value[..., 1] - value[..., 0])(
-                _unified_exit_influence_forward(model, perturbed)
-            )
-        deltas = (
-            (changed_margin - baseline_margin).abs().detach().cpu().double().numpy()
-        )
+            changed_margin = (
+                lambda value: value[..., 1] - value[..., 0]
+            )(_unified_exit_influence_forward(model, perturbed))
+        deltas = (changed_margin - baseline_margin).abs().detach().cpu().double().numpy()
         max_delta = float(deltas.max())
-        changed_rows = int(
-            np.count_nonzero(
-                np.any(
-                    deltas.reshape(UNIFIED_EXIT_INFLUENCE_SIDE_ROWS, 2, -1)
-                    > UNIFIED_EXIT_INFLUENCE_CAT_EPSILON,
-                    axis=2,
-                )
+        changed_rows = int(np.count_nonzero(
+            np.any(
+                deltas.reshape(UNIFIED_EXIT_INFLUENCE_SIDE_ROWS, 2, -1)
+                > UNIFIED_EXIT_INFLUENCE_CAT_EPSILON,
+                axis=2,
             )
-        )
+        ))
         row_failures = (
             []
             if math.isfinite(max_delta)
@@ -8009,18 +7767,12 @@ def _unified_exit_input_influence_contract(
 
     side_deltas = (
         (baseline_margin[:, 0] - baseline_margin[:, 1])
-        .abs()
-        .detach()
-        .cpu()
-        .double()
-        .numpy()
+        .abs().detach().cpu().double().numpy()
     )
     side_max_delta = float(side_deltas.max())
-    side_changed_rows = 2 * int(
-        np.count_nonzero(
-            np.any(side_deltas > UNIFIED_EXIT_INFLUENCE_CAT_EPSILON, axis=1)
-        )
-    )
+    side_changed_rows = 2 * int(np.count_nonzero(
+        np.any(side_deltas > UNIFIED_EXIT_INFLUENCE_CAT_EPSILON, axis=1)
+    ))
     side_failures = (
         []
         if math.isfinite(side_max_delta)
@@ -8065,7 +7817,9 @@ def _unified_exit_input_influence_contract(
             "exit_side_axis": {
                 "decision": "PASS" if not side_failures else "FAIL",
                 "failures": side_failures,
-                "counterfactual": ("same_market_token_and_path_compare_both_side_axes"),
+                "counterfactual": (
+                    "same_market_token_and_path_compare_both_side_axes"
+                ),
                 "max_abs_exit_margin_delta": side_max_delta,
                 "changed_rows": side_changed_rows,
                 "total_rows": UNIFIED_EXIT_INFLUENCE_SAMPLE_COUNT,
@@ -8098,10 +7852,7 @@ def _entry_val_influence_sample(
         * (len(dataset) - 1)
         // (ENTRY_VAL_INFLUENCE_SAMPLE_COUNT - 1)
     )
-    if (
-        len(set(int(item) for item in positions.tolist()))
-        != ENTRY_VAL_INFLUENCE_SAMPLE_COUNT
-    ):
+    if len(set(int(item) for item in positions.tolist())) != ENTRY_VAL_INFLUENCE_SAMPLE_COUNT:
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_SAMPLE_POSITIONS_DUPLICATE")
     batch = default_collate([dataset[int(position)] for position in positions])
     if not isinstance(batch, dict):
@@ -8116,12 +7867,10 @@ def _entry_val_influence_sample(
     if entry_rows != expected_rows:
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ROW_INDEX_MISMATCH")
     decision_times_ns = [
-        int(pd.Timestamp(dataset.df.iloc[row]["time"]).value) for row in entry_rows
+        int(pd.Timestamp(dataset.df.iloc[row]["time"]).value)
+        for row in entry_rows
     ]
-    if any(
-        later <= earlier
-        for earlier, later in zip(decision_times_ns, decision_times_ns[1:])
-    ):
+    if any(later <= earlier for earlier, later in zip(decision_times_ns, decision_times_ns[1:])):
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_TIME_ORDER_INVALID")
     return batch, entry_rows, decision_times_ns
 
@@ -8134,16 +7883,7 @@ def _entry_val_influence_inputs(
 ) -> dict[str, Any]:
     """Copy the exact Entry route into an isolated audit input mapping."""
 
-    required = (
-        "seq_x",
-        "snap_x",
-        "ctx_cat",
-        "ctx_cont",
-        "seq_m15",
-        "seq_h1",
-        "seq_h4",
-        "seq_d1",
-    )
+    required = ("seq_x", "snap_x", "ctx_cat", "ctx_cont", "seq_m15", "seq_h1", "seq_h4", "seq_d1")
     if any(not isinstance(batch.get(key), torch.Tensor) for key in required):
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_BATCH_SURFACE_MISSING")
     inputs: dict[str, Any] = {
@@ -8194,9 +7934,7 @@ def _entry_val_q_delta(
     centered_altered = altered - altered.mean(dim=1, keepdim=True)
     per_row = (centered_altered - centered_baseline).abs().amax(dim=1)
     values = per_row.detach().cpu().double().numpy()
-    return float(values.max()), int(
-        np.count_nonzero(values > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON)
-    )
+    return float(values.max()), int(np.count_nonzero(values > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON))
 
 
 def _entry_val_next_alias_value(
@@ -8234,11 +7972,7 @@ def _entry_val_next_alias_value(
     scale = model.input_norm_signal_scale[signal_index].to(
         device=current.device, dtype=current.dtype
     )
-    if (
-        not bool(torch.isfinite(center).item())
-        or not bool(torch.isfinite(scale).item())
-        or float(scale.item()) <= 0.0
-    ):
+    if not bool(torch.isfinite(center).item()) or not bool(torch.isfinite(scale).item()) or float(scale.item()) <= 0.0:
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_SCALE_INVALID")
     return torch.where(current == center, center + scale, center)
 
@@ -8264,9 +7998,9 @@ def _entry_val_perturb_owner(
         signal_index = int(owner["signal_index"])
         ctx_index = int(owner["ctx_cont_index"])
         current = inputs["seq_x"][:, -1, signal_index]
-        if not torch.equal(
-            current, inputs["snap_x"][:, signal_index]
-        ) or not torch.equal(current, inputs["ctx_cont"][:, ctx_index]):
+        if not torch.equal(current, inputs["snap_x"][:, signal_index]) or not torch.equal(
+            current, inputs["ctx_cont"][:, ctx_index]
+        ):
             raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_MANIFOLD_INVALID")
         replacement = _entry_val_next_alias_value(
             model=model,
@@ -8281,9 +8015,7 @@ def _entry_val_perturb_owner(
     domain = owner["domain"]
     if owner_name == "ctx_cat_embedding":
         index = int(owner["source_index"])
-        inputs["ctx_cat"][:, index] = _next_valid_category(
-            inputs["ctx_cat"][:, index], domain
-        )
+        inputs["ctx_cat"][:, index] = _next_valid_category(inputs["ctx_cat"][:, index], domain)
     elif owner_name == "signal_nominal_embedding":
         index = int(owner["source_index"])
         current = inputs["seq_x"][:, -1, index]
@@ -8294,16 +8026,12 @@ def _entry_val_perturb_owner(
         inputs["snap_x"][:, index] = replacement[:, -1].to(inputs["snap_x"].dtype)
     elif owner_name == "ctx_cont_nominal_embedding":
         index = int(owner["source_index"])
-        inputs["ctx_cont"][:, index] = _next_valid_category(
-            inputs["ctx_cont"][:, index], domain
-        ).to(inputs["ctx_cont"].dtype)
+        inputs["ctx_cont"][:, index] = _next_valid_category(inputs["ctx_cont"][:, index], domain).to(inputs["ctx_cont"].dtype)
     elif owner_name == "signal_ctx_temporal_alias_nominal_embedding":
         signal_index = int(owner["signal_index"])
         ctx_index = int(owner["ctx_cont_index"])
         current = inputs["seq_x"][:, -1, signal_index]
-        if not torch.equal(
-            current, inputs["snap_x"][:, signal_index]
-        ) or not torch.equal(current, inputs["ctx_cont"][:, ctx_index]):
+        if not torch.equal(current, inputs["snap_x"][:, signal_index]) or not torch.equal(current, inputs["ctx_cont"][:, ctx_index]):
             raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_ALIAS_MANIFOLD_INVALID")
         replacement = _next_valid_category(inputs["ctx_cont"][:, ctx_index], domain)
         inputs["seq_x"][:, -1, signal_index] = replacement.to(inputs["seq_x"].dtype)
@@ -8355,9 +8083,7 @@ def _entry_val_input_influence_contract(
     )
     batch, entry_rows, decision_times_ns = _entry_val_influence_sample(dataset)
     model.eval()
-    gradient_inputs = _entry_val_influence_inputs(
-        batch, device=device, require_grad=True
-    )
+    gradient_inputs = _entry_val_influence_inputs(batch, device=device, require_grad=True)
     q = _entry_val_influence_forward(model, gradient_inputs)
     numeric_tensors: dict[str, torch.Tensor] = {
         "seq_signal": gradient_inputs["seq_x"],
@@ -8382,14 +8108,9 @@ def _entry_val_input_influence_contract(
             absolute = gradient.detach().abs()
             reduced = absolute.amax(dim=tuple(range(absolute.ndim - 1)))
             values = reduced.cpu().double().numpy().reshape(-1)
-            if (
-                values.shape != gradients_by_surface[surface].shape
-                or not np.isfinite(values).all()
-            ):
+            if values.shape != gradients_by_surface[surface].shape or not np.isfinite(values).all():
                 raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_GRADIENT_INVALID")
-            gradients_by_surface[surface] = np.maximum(
-                gradients_by_surface[surface], values
-            )
+            gradients_by_surface[surface] = np.maximum(gradients_by_surface[surface], values)
     failures: list[str] = []
     numeric_report: dict[str, Any] = {}
     for surface, owner in ownership["numeric"].items():
@@ -8397,28 +8118,19 @@ def _entry_val_input_influence_contract(
         values = gradients_by_surface[surface]
         metrics: dict[str, Any] = {}
         for token, value in zip(owner["tokens"], values[indices].tolist()):
-            row_failures = (
-                []
-                if math.isfinite(float(value))
-                and float(value) > ENTRY_VAL_INFLUENCE_GRADIENT_EPSILON
-                else ["class-margin gradient is dead"]
-            )
+            row_failures = [] if math.isfinite(float(value)) and float(value) > ENTRY_VAL_INFLUENCE_GRADIENT_EPSILON else ["class-margin gradient is dead"]
             metrics[str(token)] = {
                 "decision": "PASS" if not row_failures else "FAIL",
                 "failures": row_failures,
                 "max_abs_entry_action_q_class_margin_gradient": float(value),
             }
-            failures.extend(
-                f"numeric/{surface}/{token}: {item}" for item in row_failures
-            )
+            failures.extend(f"numeric/{surface}/{token}: {item}" for item in row_failures)
         numeric_report[surface] = {
             "tokens": list(owner["tokens"]),
             "source_indices": indices.tolist(),
             "metrics": metrics,
         }
-    baseline_inputs = _entry_val_influence_inputs(
-        batch, device=device, require_grad=False
-    )
+    baseline_inputs = _entry_val_influence_inputs(batch, device=device, require_grad=False)
     with torch.no_grad():
         baseline_q = _entry_val_influence_forward(model, baseline_inputs)
     manifold_reports: dict[str, Any] = {}
@@ -8428,19 +8140,10 @@ def _entry_val_input_influence_contract(
             with torch.no_grad():
                 altered_q = _entry_val_influence_forward(
                     model,
-                    _entry_val_perturb_owner(
-                        model=model,
-                        baseline=baseline_inputs,
-                        owner=owner,
-                        continuous=True,
-                    ),
+                    _entry_val_perturb_owner(model=model, baseline=baseline_inputs, owner=owner, continuous=True),
                 )
             delta, changed = _entry_val_q_delta(baseline_q, altered_q)
-            row_failures = (
-                []
-                if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1
-                else ["alias manifold counterfactual is dead"]
-            )
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1 else ["alias manifold counterfactual is dead"]
         except Exception as exc:
             delta, changed = 0.0, 0
             row_failures = [f"alias manifold counterfactual failed: {exc}"]
@@ -8460,19 +8163,10 @@ def _entry_val_input_influence_contract(
             with torch.no_grad():
                 altered_q = _entry_val_influence_forward(
                     model,
-                    _entry_val_perturb_owner(
-                        model=model,
-                        baseline=baseline_inputs,
-                        owner=owner,
-                        continuous=False,
-                    ),
+                    _entry_val_perturb_owner(model=model, baseline=baseline_inputs, owner=owner, continuous=False),
                 )
             delta, changed = _entry_val_q_delta(baseline_q, altered_q)
-            row_failures = (
-                []
-                if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1
-                else ["categorical counterfactual is dead"]
-            )
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_COUNTERFACTUAL_EPSILON and changed >= 1 else ["categorical counterfactual is dead"]
         except Exception as exc:
             delta, changed = 0.0, 0
             row_failures = [f"categorical counterfactual failed: {exc}"]
@@ -8497,9 +8191,7 @@ def _entry_val_input_influence_contract(
     mtf_reports: dict[str, Any] = {}
     for specialist in MODEL_NATIVE_TRAINING_SPECIALISTS:
         signal_indices = _entry_val_model_buffer_indices(
-            model=model,
-            prefix="specialist_idx",
-            specialist=specialist,
+            model=model, prefix="specialist_idx", specialist=specialist,
             expected=specialist_indices[specialist],
         )
         context_indices = {
@@ -8520,49 +8212,33 @@ def _entry_val_input_influence_contract(
         with torch.no_grad():
             altered_q = _entry_val_influence_forward(model, altered)
         delta, changed = _entry_val_q_delta(baseline_q, altered_q)
-        row_failures = (
-            []
-            if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1
-            else ["local/context family mask is dead"]
-        )
+        row_failures = [] if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1 else ["local/context family mask is dead"]
         local_reports[specialist] = {
             "decision": "PASS" if not row_failures else "FAIL",
             "failures": row_failures,
-            "source_binding_sha256": entry_val_influence_sha256(
-                {"signal": signal_indices, "context": context_indices}
-            ),
+            "source_binding_sha256": entry_val_influence_sha256({"signal": signal_indices, "context": context_indices}),
             "max_abs_entry_action_q_delta_bps": delta,
             "changed_rows": changed,
             "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
         }
         failures.extend(f"local_context/{specialist}: {item}" for item in row_failures)
         mtf_indices = _entry_val_model_buffer_indices(
-            model=model,
-            prefix="multi_tf_specialist_idx",
-            specialist=specialist,
+            model=model, prefix="multi_tf_specialist_idx", specialist=specialist,
             expected=multi_tf_specialist_indices[specialist],
         )
         for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES:
             surface = f"seq_{timeframe.lower()}"
-            altered = _entry_val_influence_inputs(
-                batch, device=device, require_grad=False
-            )
+            altered = _entry_val_influence_inputs(batch, device=device, require_grad=False)
             altered["mtf"][surface][..., mtf_indices] = 0.0
             with torch.no_grad():
                 altered_q = _entry_val_influence_forward(model, altered)
             delta, changed = _entry_val_q_delta(baseline_q, altered_q)
-            row_failures = (
-                []
-                if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1
-                else ["MTF family mask is dead"]
-            )
+            row_failures = [] if delta > ENTRY_VAL_INFLUENCE_FAMILY_EPSILON and changed >= 1 else ["MTF family mask is dead"]
             token = f"{timeframe.lower()}:{specialist}"
             mtf_reports[token] = {
                 "decision": "PASS" if not row_failures else "FAIL",
                 "failures": row_failures,
-                "source_binding_sha256": entry_val_influence_sha256(
-                    {"timeframe": timeframe, "indices": mtf_indices}
-                ),
+                "source_binding_sha256": entry_val_influence_sha256({"timeframe": timeframe, "indices": mtf_indices}),
                 "max_abs_entry_action_q_delta_bps": delta,
                 "changed_rows": changed,
                 "total_rows": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
@@ -8572,9 +8248,7 @@ def _entry_val_input_influence_contract(
         "signal": {name: list(values) for name, values in specialist_indices.items()},
         "context": dict(context_routing),
     }
-    multi_tf_routing = {
-        name: list(values) for name, values in multi_tf_specialist_indices.items()
-    }
+    multi_tf_routing = {name: list(values) for name, values in multi_tf_specialist_indices.items()}
     report = {
         "schema_version": ENTRY_VAL_INPUT_INFLUENCE_SCHEMA_VERSION,
         "decision": "PASS" if not failures else "FAIL",
@@ -8596,9 +8270,7 @@ def _entry_val_input_influence_contract(
         "signal_names_sha256": entry_val_influence_sha256(signal_names),
         "input_ownership": ownership,
         "input_ownership_sha256": entry_val_influence_sha256(ownership),
-        "numeric_input_count": sum(
-            len(row["tokens"]) for row in ownership["numeric"].values()
-        ),
+        "numeric_input_count": sum(len(row["tokens"]) for row in ownership["numeric"].values()),
         "continuous_manifold_input_count": len(ownership["continuous_manifold"]),
         "categorical_input_count": len(ownership["categorical"]),
         "individual": {
@@ -8609,9 +8281,7 @@ def _entry_val_input_influence_contract(
         "family_ablation": {
             "epsilon": ENTRY_VAL_INFLUENCE_FAMILY_EPSILON,
             "sample_count": ENTRY_VAL_INFLUENCE_SAMPLE_COUNT,
-            "local_context_routing_sha256": entry_val_influence_sha256(
-                local_context_routing
-            ),
+            "local_context_routing_sha256": entry_val_influence_sha256(local_context_routing),
             "multi_tf_routing_sha256": entry_val_influence_sha256(multi_tf_routing),
             "local_context": local_reports,
             "multi_tf": mtf_reports,
@@ -8701,7 +8371,8 @@ def _accumulate_unified_exit_full_trajectory(
         )
         or q_values.shape != targets.shape
         or valid.shape != q_values.shape
-        or tuple(q_values.shape[1:]) != (2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
+        or tuple(q_values.shape[1:])
+        != (2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
     ):
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_INPUT_INVALID")
     if int(q_values.shape[0]) != len(episodes):
@@ -8716,7 +8387,9 @@ def _accumulate_unified_exit_full_trajectory(
     equivalence = (flat_target == target_value) & flat_valid
     target_tie = equivalence.all(dim=1)
     prediction_tie = flat_valid.all(dim=1) & (flat_q[:, 0] == flat_q[:, 1])
-    prediction = torch.argmax(flat_q.masked_fill(~flat_valid, -torch.inf), dim=1)
+    prediction = torch.argmax(
+        flat_q.masked_fill(~flat_valid, -torch.inf), dim=1
+    )
     accumulator["eligible_entry_rows"] += len(episodes)
     accumulator["population_rows"] += int(flat_q.shape[0])
     accumulator["q_valid_cells"] += int(flat_valid.sum().item())
@@ -8730,12 +8403,12 @@ def _accumulate_unified_exit_full_trajectory(
             equivalence.gather(1, prediction[:, None]).squeeze(1)
             & ~target_tie
             & ~prediction_tie
-        )
-        .sum()
-        .item()
+        ).sum().item()
     )
     accumulator["loss_sum"] += float(
-        nn.functional.mse_loss(q_values[valid], targets[valid], reduction="sum")
+        nn.functional.mse_loss(
+            q_values[valid], targets[valid], reduction="sum"
+        )
         .detach()
         .cpu()
         .item()
@@ -8748,7 +8421,9 @@ def _accumulate_unified_exit_full_trajectory(
         entry_index = int(raw_entry_indices[int(entry_position)])
         rewards = np.asarray(episode["exit_now_reward_bps"], dtype=np.float64)
         for side_index, side_name in enumerate(("long", "short")):
-            accumulator[f"{side_name}_population_rows"] += UNIFIED_EXIT_MAX_PATH_BARS
+            accumulator[f"{side_name}_population_rows"] += (
+                UNIFIED_EXIT_MAX_PATH_BARS
+            )
             replay = replay_unified_exit_fitted_q_policy(
                 predicted_q_bps=q_np[episode_position, side_index],
                 action_valid_mask=valid_np[episode_position, side_index],
@@ -8757,18 +8432,22 @@ def _accumulate_unified_exit_full_trajectory(
             accumulator["learned_realized"].append(
                 float(replay["realized_executable_pnl_bps"])
             )
-            accumulator["learned_exit_states"].append(int(replay["exit_state_index"]))
-            accumulator["immediate_realized"].append(float(rewards[side_index, 0]))
-            accumulator["terminal_realized"].append(float(rewards[side_index, -1]))
-        stream_rows = np.column_stack(
-            (
-                np.repeat(entry_index, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
-                np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
-                np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
-                q_np[episode_position, ..., 0].reshape(-1),
-                q_np[episode_position, ..., 1].reshape(-1),
+            accumulator["learned_exit_states"].append(
+                int(replay["exit_state_index"])
             )
-        )
+            accumulator["immediate_realized"].append(
+                float(rewards[side_index, 0])
+            )
+            accumulator["terminal_realized"].append(
+                float(rewards[side_index, -1])
+            )
+        stream_rows = np.column_stack((
+            np.repeat(entry_index, 2 * UNIFIED_EXIT_MAX_PATH_BARS),
+            np.repeat(np.arange(2), UNIFIED_EXIT_MAX_PATH_BARS),
+            np.tile(np.arange(UNIFIED_EXIT_MAX_PATH_BARS), 2),
+            q_np[episode_position, ..., 0].reshape(-1),
+            q_np[episode_position, ..., 1].reshape(-1),
+        ))
         row_digest = hashlib.sha256(
             np.ascontiguousarray(stream_rows).tobytes()
         ).digest()
@@ -8858,9 +8537,7 @@ def _finalize_unified_exit_full_trajectory_validation(
             f"entries={accumulator['entry_rows_scanned']}/{len(dataset)}"
         )
     state_stream = accumulator["state_stream_chain_sha256"]
-    if not isinstance(state_stream, str) or not re.fullmatch(
-        r"[0-9a-f]{64}", state_stream
-    ):
+    if not isinstance(state_stream, str) or not re.fullmatch(r"[0-9a-f]{64}", state_stream):
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_STREAM_INVALID")
     return {
         "schema_version": _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION,
@@ -8954,17 +8631,11 @@ def train_epoch(
             f"[ENTRY_GRAD_ACCUM_STEPS_INVALID] observed={_accum_steps} expected>=1"
         )
     if _accum_steps > 1:
-        log.info(
-            "[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step",
-            _accum_steps,
-        )
-    if not isinstance(session_resume_probe, bool) or (
-        session_resume_probe
-        and (
-            session_max_optimizer_steps is None
-            or int(session_batch_offset) + int(session_max_optimizer_steps) > 128
-        )
-    ):
+        log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
+    if not isinstance(session_resume_probe, bool) or (session_resume_probe and (
+        session_max_optimizer_steps is None
+        or int(session_batch_offset) + int(session_max_optimizer_steps) > 128
+    )):
         raise RuntimeError("[CANDIDATE_RESUME_PROBE_TRAIN_SCOPE_INVALID]")
     if session_max_optimizer_steps is not None:
         if (
@@ -9052,8 +8723,7 @@ def train_epoch(
         # adds avoidable WSL filesystem work without adding evidence.
         _step_log_due = (
             _batch_i == 1
-            or _absolute_batch_i
-            % _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
+            or _absolute_batch_i % _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS
             == 0
         )
         if _step_log_due:
@@ -9066,9 +8736,7 @@ def train_epoch(
             log.info("[TRAIN_RSS] first_batch_fetched rss_gib=%.2f", _train_rss_gib())
         non_blocking = device.type == "cuda"
         _initial_h2d_started = (
-            _synchronized_exit_profile_clock(device)
-            if not _first_batch_logged
-            else None
+            _synchronized_exit_profile_clock(device) if not _first_batch_logged else None
         )
         seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
         snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
@@ -9126,34 +8794,38 @@ def train_epoch(
             unified_exit_stats,
             entry_action_q_targets,
             entry_action_q_valid,
-        ) = _train_unified_exit_full_population(
-            model=model,
-            target_model=target_model,
-            entry_decision_representations=entry_representations,
-            target_entry_decision_representations=(target_entry_representations),
-            entry_row_indices=entry_row_indices,
-            dataset=dataset,
-            device=device,
-            grad_accum_steps=_accum_steps,
-            exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
-            exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-            profile_timing=_profile_timing,
-            exit_action_forward_chunk_rows=(
-                session_exit_action_forward_chunk_rows
-                if session_max_optimizer_steps is not None
-                else (
-                    (
-                        unified_exit_chunk_rows(
-                            _TRAINING_PRECISION_POLICY, batch_size=batch_rows
+        ) = (
+            _train_unified_exit_full_population(
+                model=model,
+                target_model=target_model,
+                entry_decision_representations=entry_representations,
+                target_entry_decision_representations=(
+                    target_entry_representations
+                ),
+                entry_row_indices=entry_row_indices,
+                dataset=dataset,
+                device=device,
+                grad_accum_steps=_accum_steps,
+                exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                profile_timing=_profile_timing,
+                exit_action_forward_chunk_rows=(
+                    session_exit_action_forward_chunk_rows
+                    if session_max_optimizer_steps is not None
+                    else (
+                        (
+                            unified_exit_chunk_rows(
+                                _TRAINING_PRECISION_POLICY, batch_size=batch_rows
+                            )
+                            if _TRAINING_PRECISION_POLICY
+                            == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+                            else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
                         )
-                        if _TRAINING_PRECISION_POLICY
-                        == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
-                        else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                        if device.type == "cuda"
+                        else None
                     )
-                    if device.type == "cuda"
-                    else None
-                )
-            ),
+                ),
+            )
         )
         _profile_exit_train = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
@@ -9166,7 +8838,8 @@ def train_epoch(
         entry_action_q_bps = out["entry_action_q_bps"]
         if (
             not isinstance(entry_action_q_bps, torch.Tensor)
-            or tuple(entry_action_q_bps.shape) != tuple(entry_action_q_targets.shape)
+            or tuple(entry_action_q_bps.shape)
+            != tuple(entry_action_q_targets.shape)
             or not bool(entry_action_q_valid[:, 2].all().item())
         ):
             raise RuntimeError("[ENTRY_FITTED_Q_PREDICTION_SHAPE_INVALID]")
@@ -9179,7 +8852,9 @@ def train_epoch(
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] after_forward_losses rss_gib=%.2f", _train_rss_gib())
             _first_batch_logged = True
-        task_losses: dict[str, torch.Tensor] = {"entry_action_q": entry_action_q_loss}
+        task_losses: dict[str, torch.Tensor] = {
+            "entry_action_q": entry_action_q_loss
+        }
         side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
             out,
             batch,
@@ -9196,9 +8871,7 @@ def train_epoch(
             output_name="position_size_logit",
             target_names=("y_position_size_target", "y_position_size_mask"),
         )
-        y_pos_size = batch["y_position_size_target"].to(
-            device, non_blocking=non_blocking
-        )
+        y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
         y_pos_size_mask = batch["y_position_size_mask"].to(
             device, non_blocking=non_blocking
         )
@@ -9216,22 +8889,25 @@ def train_epoch(
         exit_supervised = int(unified_exit_stats["q_valid_cells"]) > 0
         if exit_supervised:
             task_supervision_observed["unified_exit_action"] = True
-            exit_log_variance = model.task_log_variances["unified_exit_action"]
+            exit_log_variance = model.task_log_variances[
+                "unified_exit_action"
+            ]
             # The precision*Q-MSE gradient was already streamed per chunk. Add
             # its detached value for exact reporting and +s once for this
             # genuinely supervised batch.
             loss = (
                 loss
-                + torch.exp(-exit_log_variance.detach()) * unified_exit_loss.detach()
+                + torch.exp(-exit_log_variance.detach())
+                * unified_exit_loss.detach()
                 + exit_log_variance
             )
 
         masked_entry_q = entry_action_q_bps.masked_fill(
             ~entry_action_q_valid, -torch.inf
         )
-        winner_count = masked_entry_q.eq(masked_entry_q.amax(dim=1, keepdim=True)).sum(
-            dim=1
-        )
+        winner_count = masked_entry_q.eq(
+            masked_entry_q.amax(dim=1, keepdim=True)
+        ).sum(dim=1)
         if bool((winner_count != 1).any().item()):
             raise RuntimeError("[ENTRY_FITTED_Q_TRAIN_PREDICTED_TIE]")
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
@@ -9244,9 +8920,9 @@ def train_epoch(
             )
         scaled_main_loss = loss / float(_accum_steps)
         if exit_supervised:
-            scaled_main_loss = (
-                scaled_main_loss + (entry_representations * exit_entry_gradients).sum()
-            )
+            scaled_main_loss = scaled_main_loss + (
+                entry_representations * exit_entry_gradients
+            ).sum()
         _main_backward_started = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
@@ -9276,10 +8952,8 @@ def train_epoch(
             )
             if session_resume_probe:
                 _record_candidate_resume_probe_step(
-                    batch_offset=_absolute_batch_i,
-                    loss=loss,
-                    gradient_norm=_gradient_norm,
-                    entry_row_indices=entry_row_indices,
+                    batch_offset=_absolute_batch_i, loss=loss,
+                    gradient_norm=_gradient_norm, entry_row_indices=entry_row_indices,
                 )
             if int(performance_warmup_optimizer_steps) > 0:
                 # Retain only detached scalars; copy together after the timing window.
@@ -9326,10 +9000,7 @@ def train_epoch(
                 and _optimizer_steps_this_call >= int(session_max_optimizer_steps)
                 and _batch_i < len(loader)
             ):
-                if (
-                    session_checkpoint_hook is not None
-                    and not session_checkpoint_every_optimizer_step
-                ):
+                if session_checkpoint_hook is not None and not session_checkpoint_every_optimizer_step:
                     session_checkpoint_hook(
                         next_batch_offset=_absolute_batch_i,
                         complete_epoch=False,
@@ -9388,28 +9059,18 @@ def train_epoch(
                 "rows": batch_rows,
                 "warmup": True,
                 "initial_loader_wait_seconds": _batch_fetched_at - _first_fetch_started,
-                "initial_input_h2d_seconds": _profile_batch_start
-                - _initial_h2d_started,
-                "entry_online_forward_seconds": _profile_entry_online_forward
-                - _profile_batch_start,
-                "entry_target_forward_seconds": _profile_entry_target_forward
-                - _profile_entry_online_forward,
-                "exit_train_seconds": _profile_exit_train
-                - _profile_entry_target_forward,
-                "main_backward_seconds": _main_backward_finished
-                - _main_backward_started,
+                "initial_input_h2d_seconds": _profile_batch_start - _initial_h2d_started,
+                "entry_online_forward_seconds": _profile_entry_online_forward - _profile_batch_start,
+                "entry_target_forward_seconds": _profile_entry_target_forward - _profile_entry_online_forward,
+                "exit_train_seconds": _profile_exit_train - _profile_entry_target_forward,
+                "main_backward_seconds": _main_backward_finished - _main_backward_started,
                 "total_compute_seconds": _profile_end - _profile_batch_start,
                 "report_only": True,
             }
             if _optimizer_update_seconds is not None:
                 # Includes finite-gradient checks, clipping, AdamW, EMA, zero_grad.
-                _efficiency_batch["optimizer_update_with_checks_seconds"] = (
-                    _optimizer_update_seconds
-                )
-            log.info(
-                "[TRAIN_EFFICIENCY_BATCH] %s",
-                json.dumps(_efficiency_batch, sort_keys=True, allow_nan=False),
-            )
+                _efficiency_batch["optimizer_update_with_checks_seconds"] = _optimizer_update_seconds
+            log.info("[TRAIN_EFFICIENCY_BATCH] %s", json.dumps(_efficiency_batch, sort_keys=True, allow_nan=False))
 
         bs = batch_rows
         _batch_loss_value = float(loss)
@@ -9418,9 +9079,13 @@ def train_epoch(
             _performance_losses.append(_batch_loss_value)
         entry_q_loss_sum += float(entry_action_q_loss) * bs
         side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
-        trendline_event_loss_sum += float(trendline_stats["trendline_event_loss"]) * bs
+        trendline_event_loss_sum += float(
+            trendline_stats["trendline_event_loss"]
+        ) * bs
         trendline_event_rows_sum += int(trendline_stats["trendline_event_rows"])
-        trendline_support_rows_sum += int(trendline_stats["trendline_support_rows"])
+        trendline_support_rows_sum += int(
+            trendline_stats["trendline_support_rows"]
+        )
         trendline_resistance_rows_sum += int(
             trendline_stats["trendline_resistance_rows"]
         )
@@ -9428,7 +9093,9 @@ def train_epoch(
         unified_exit_loss_sum += (
             float(unified_exit_loss.detach().cpu().item()) * _exit_rows
         )
-        unified_exit_population_rows += int(unified_exit_stats["population_rows"])
+        unified_exit_population_rows += int(
+            unified_exit_stats["population_rows"]
+        )
         unified_exit_rows += _exit_rows
         unified_exit_tied_rows += int(
             unified_exit_stats["target_equivalent_action_rows"]
@@ -9437,7 +9104,9 @@ def train_epoch(
             unified_exit_stats["eligible_entry_rows"]
         )
         unified_exit_hold_rows += int(unified_exit_stats["hold_target_greedy_rows"])
-        unified_exit_now_rows += int(unified_exit_stats["exit_now_target_greedy_rows"])
+        unified_exit_now_rows += int(
+            unified_exit_stats["exit_now_target_greedy_rows"]
+        )
         unified_exit_correct += int(
             unified_exit_stats["unique_target_action_agreement_rows"]
         )
@@ -9472,14 +9141,18 @@ def train_epoch(
         "trendline_event_rows": int(trendline_event_rows_sum),
         "trendline_support_rows": int(trendline_support_rows_sum),
         "trendline_resistance_rows": int(trendline_resistance_rows_sum),
-        "unified_exit_raw_bps_q_mse_mean": (unified_exit_loss_sum / unified_exit_rows),
+        "unified_exit_raw_bps_q_mse_mean": (
+            unified_exit_loss_sum / unified_exit_rows
+        ),
         "unified_exit_population_rows": int(unified_exit_population_rows),
         "unified_exit_q_valid_cells": int(unified_exit_rows),
         "unified_exit_target_equivalent_action_rows": int(unified_exit_tied_rows),
         "unified_exit_unique_target_rows": int(
             unified_exit_population_rows - unified_exit_tied_rows
         ),
-        "unified_exit_eligible_entry_rows": int(unified_exit_eligible_entry_rows),
+        "unified_exit_eligible_entry_rows": int(
+            unified_exit_eligible_entry_rows
+        ),
         "unified_exit_hold_target_greedy_rows": int(unified_exit_hold_rows),
         "unified_exit_exit_now_target_greedy_rows": int(unified_exit_now_rows),
         "unified_exit_unique_target_action_agreement": (
@@ -9503,8 +9176,8 @@ def train_epoch(
     )
     stats.update(exit_gate_stats)
     if int(performance_warmup_optimizer_steps) > 0:
-        measured_optimizer_steps = _optimizer_steps_this_call - int(
-            performance_warmup_optimizer_steps
+        measured_optimizer_steps = (
+            _optimizer_steps_this_call - int(performance_warmup_optimizer_steps)
         )
         if (
             _performance_start is None
@@ -9523,41 +9196,30 @@ def train_epoch(
             "process_cpu_seconds": _performance_cpu_end - _performance_cpu_start,
             "loader_wait_seconds": _performance_loader_wait,
             "process_rss_at_window_end_gib": _train_rss_gib(),
-            "measured_train_seconds": float(_performance_end - _performance_start),
+            "measured_train_seconds": float(
+                _performance_end - _performance_start
+            ),
         }
         log.info(
             "[TRAIN_EFFICIENCY_WINDOW] %s",
-            json.dumps(
-                {
-                    "schema_version": "gx1_training_efficiency_window_v1",
-                    "report_only": True,
-                    "timing_scope": "synchronized_optimizer_boundaries_including_loader_and_bookkeeping",
-                    **stats["training_efficiency_train_measurement"],
-                },
-                sort_keys=True,
-                allow_nan=False,
-            ),
+            json.dumps({
+                "schema_version": "gx1_training_efficiency_window_v1",
+                "report_only": True,
+                "timing_scope": "synchronized_optimizer_boundaries_including_loader_and_bookkeeping",
+                **stats["training_efficiency_train_measurement"],
+            }, sort_keys=True, allow_nan=False),
         )
-        log.info(
-            "[TRAIN_EFFICIENCY_NUMERICS] %s",
-            json.dumps(
-                {
-                    "schema_version": "gx1_training_efficiency_numerics_v1",
-                    "report_only": True,
-                    "precision_policy": _TRAINING_PRECISION_POLICY,
-                    "includes_warmup": True,
-                    "optimizer_steps": _optimizer_steps_this_call,
-                    "batch_losses": _performance_losses,
-                    "gradient_norms_pre_clip": torch.stack(_performance_gradient_norms)
-                    .cpu()
-                    .tolist(),
-                    "gradient_clip_norm": _GRAD_CLIP_NORM,
-                    "nonfinite_gradient_policy": "raise_before_optimizer_step",
-                },
-                sort_keys=True,
-                allow_nan=False,
-            ),
-        )
+        log.info("[TRAIN_EFFICIENCY_NUMERICS] %s", json.dumps({
+            "schema_version": "gx1_training_efficiency_numerics_v1",
+            "report_only": True,
+            "precision_policy": _TRAINING_PRECISION_POLICY,
+            "includes_warmup": True,
+            "optimizer_steps": _optimizer_steps_this_call,
+            "batch_losses": _performance_losses,
+            "gradient_norms_pre_clip": torch.stack(_performance_gradient_norms).cpu().tolist(),
+            "gradient_clip_norm": _GRAD_CLIP_NORM,
+            "nonfinite_gradient_policy": "raise_before_optimizer_step",
+        }, sort_keys=True, allow_nan=False))
     return total / max(1, n), stats, True
 
 
@@ -9678,19 +9340,23 @@ def _active_head_target_surfaces(
 
     side_mae_target = torch.stack(
         [
-            _active_head_batch_target(batch, "y_long_expected_mae_bps", device)
-            .reshape(-1)
-            .clamp_min(0.0),
-            _active_head_batch_target(batch, "y_short_expected_mae_bps", device)
-            .reshape(-1)
-            .clamp_min(0.0),
+            _active_head_batch_target(
+                batch, "y_long_expected_mae_bps", device
+            ).reshape(-1).clamp_min(0.0),
+            _active_head_batch_target(
+                batch, "y_short_expected_mae_bps", device
+            ).reshape(-1).clamp_min(0.0),
         ],
         dim=1,
     )
     trendline_target = torch.stack(
         [
-            _active_head_batch_target(batch, "y_line_support_touch_held", device),
-            _active_head_batch_target(batch, "y_line_resistance_touch_held", device),
+            _active_head_batch_target(
+                batch, "y_line_support_touch_held", device
+            ),
+            _active_head_batch_target(
+                batch, "y_line_resistance_touch_held", device
+            ),
             _active_head_batch_target(batch, "y_countertrend_short_trap", device),
             _active_head_batch_target(batch, "y_countertrend_long_trap", device),
         ],
@@ -9702,12 +9368,10 @@ def _active_head_target_surfaces(
         [
             _active_head_batch_target(
                 batch, "y_line_support_touch_mask", device
-            ).reshape(-1)
-            > 0.5,
+            ).reshape(-1) > 0.5,
             _active_head_batch_target(
                 batch, "y_line_resistance_touch_mask", device
-            ).reshape(-1)
-            > 0.5,
+            ).reshape(-1) > 0.5,
             torch.ones(batch_size, dtype=torch.bool, device=device),
             torch.ones(batch_size, dtype=torch.bool, device=device),
         ],
@@ -9792,7 +9456,8 @@ def _active_head_target_surfaces(
 def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
     return {
         "heads": {
-            head_name: {"components": {}} for head_name in MODEL_NATIVE_ACTIVE_HEADS
+            head_name: {"components": {}}
+            for head_name in MODEL_NATIVE_ACTIVE_HEADS
         },
         "entry_row_index_chunks": [],
         # Kept inside the existing resume-safe active-head accumulator so a
@@ -9872,9 +9537,7 @@ def _candidate_snapshot_restore(value: Any) -> Any:
     if isinstance(value, np.ndarray):
         return np.ascontiguousarray(value).copy()
     if isinstance(value, Mapping):
-        return {
-            str(key): _candidate_snapshot_restore(item) for key, item in value.items()
-        }
+        return {str(key): _candidate_snapshot_restore(item) for key, item in value.items()}
     if isinstance(value, list):
         return [_candidate_snapshot_restore(item) for item in value]
     if value is None or isinstance(value, (str, bool, int, float)):
@@ -9888,14 +9551,18 @@ def _candidate_snapshot_restore(value: Any) -> Any:
 def _candidate_validation_snapshot(**values: Any) -> dict[str, Any]:
     if set(values) != _CANDIDATE_VALIDATION_SNAPSHOT_KEYS:
         raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_SCHEMA_INVALID]")
-    return {key: _candidate_snapshot_safe(value) for key, value in values.items()}
+    return {
+        key: _candidate_snapshot_safe(value)
+        for key, value in values.items()
+    }
 
 
 def _restore_candidate_validation_snapshot(value: Mapping[str, Any]) -> dict[str, Any]:
     if set(value) != _CANDIDATE_VALIDATION_SNAPSHOT_KEYS:
         raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_STATE_SCHEMA_INVALID]")
     restored = {
-        str(key): _candidate_snapshot_restore(item) for key, item in value.items()
+        str(key): _candidate_snapshot_restore(item)
+        for key, item in value.items()
     }
     if not isinstance(restored.get("rows"), int) or int(restored["rows"]) < 0:
         raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_ROWS_INVALID]")
@@ -9968,8 +9635,12 @@ def _accumulate_active_head_epoch(
             component_store["prediction"].append(
                 prediction.detach().float().cpu().numpy()
             )
-            component_store["target"].append(target.detach().float().cpu().numpy())
-            component_store["mask"].append(element_mask.detach().bool().cpu().numpy())
+            component_store["target"].append(
+                target.detach().float().cpu().numpy()
+            )
+            component_store["mask"].append(
+                element_mask.detach().bool().cpu().numpy()
+            )
             head_supervised_cells += int(element_mask.detach().sum().cpu().item())
         supervised_cells[head_name] = head_supervised_cells
     return supervised_cells
@@ -10017,7 +9688,9 @@ def _accumulate_joint_task_loss_evidence(
             raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
         cells = int(cells_by_task.get(task_name, 0))
         if cells < 1:
-            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_DENOMINATOR_INVALID]")
+            raise RuntimeError(
+                "[ENTRY_JOINT_TASK_LOSS_EVIDENCE_DENOMINATOR_INVALID]"
+            )
         row = evidence.get(task_name)
         if (
             not isinstance(row, dict)
@@ -10083,11 +9756,7 @@ def _active_head_component_validation_metrics(
 
     flat_prediction = prediction[element_mask].astype(np.float64, copy=False)
     flat_target = target[element_mask].astype(np.float64, copy=False)
-    if (
-        flat_prediction.size < 1
-        or not np.isfinite(flat_prediction).all()
-        or not np.isfinite(flat_target).all()
-    ):
+    if flat_prediction.size < 1 or not np.isfinite(flat_prediction).all() or not np.isfinite(flat_target).all():
         raise RuntimeError("[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_NONFINITE]")
 
     is_binary = component_name == "trendline_event_logits"
@@ -10130,10 +9799,7 @@ def _active_head_component_validation_metrics(
         precision_denominator = int(predicted_positive.sum())
         ranks = pd.Series(probability).rank(method="average").to_numpy(dtype=np.float64)
         auc = (
-            float(
-                (ranks[labels].sum() - positives * (positives + 1) / 2.0)
-                / (positives * negatives)
-            )
+            float((ranks[labels].sum() - positives * (positives + 1) / 2.0) / (positives * negatives))
             if positives > 0 and negatives > 0
             else None
         )
@@ -10143,15 +9809,14 @@ def _active_head_component_validation_metrics(
             in_bin = bins == bin_index
             if bool(in_bin.any()):
                 calibration_error += float(in_bin.mean()) * abs(
-                    float(probability[in_bin].mean()) - float(labels[in_bin].mean())
+                    float(probability[in_bin].mean())
+                    - float(labels[in_bin].mean())
                 )
         result.update(
             {
                 "metric_type": "binary_classification",
                 "binary_cross_entropy": float(bce),
-                "constant_prevalence_baseline_binary_cross_entropy": float(
-                    baseline_bce
-                ),
+                "constant_prevalence_baseline_binary_cross_entropy": float(baseline_bce),
                 "accuracy_at_0_5": float(np.mean(predicted_positive == labels)),
                 "precision_at_0_5": (
                     float(true_positive / precision_denominator)
@@ -10168,11 +9833,11 @@ def _active_head_component_validation_metrics(
         return result
 
     baseline = float(np.mean(flat_target))
-    rank_prediction = (
-        pd.Series(observed_prediction).rank(method="average").to_numpy(dtype=np.float64)
+    rank_prediction = pd.Series(observed_prediction).rank(method="average").to_numpy(
+        dtype=np.float64
     )
-    rank_target = (
-        pd.Series(flat_target).rank(method="average").to_numpy(dtype=np.float64)
+    rank_target = pd.Series(flat_target).rank(method="average").to_numpy(
+        dtype=np.float64
     )
     result.update(
         {
@@ -10222,10 +9887,7 @@ def _entry_action_q_primary_validation_diagnostics(
     rows = np.arange(prediction.shape[0])
     selected_prediction = prediction[rows, chosen_action]
     selected_target = target[rows, chosen_action]
-    if (
-        not np.isfinite(selected_prediction).all()
-        or not np.isfinite(selected_target).all()
-    ):
+    if not np.isfinite(selected_prediction).all() or not np.isfinite(selected_target).all():
         raise RuntimeError("[ENTRY_PRIMARY_Q_DIAGNOSTIC_NONFINITE]")
     # `method=first` gives a deterministic, complete ten-way partition even
     # for tied Q predictions. It is reporting-only and cannot affect policy.
@@ -10285,12 +9947,8 @@ def _entry_action_q_primary_validation_diagnostics(
         "rows": int(prediction.shape[0]),
         "selected_q_pearson": _finite_pearson(selected_prediction, selected_target),
         "selected_q_spearman_rank_ic": _finite_pearson(
-            pd.Series(selected_prediction)
-            .rank(method="average")
-            .to_numpy(dtype=np.float64),
-            pd.Series(selected_target)
-            .rank(method="average")
-            .to_numpy(dtype=np.float64),
+            pd.Series(selected_prediction).rank(method="average").to_numpy(dtype=np.float64),
+            pd.Series(selected_target).rank(method="average").to_numpy(dtype=np.float64),
         ),
         "deciles": deciles,
         "top_decile_minus_bottom_decile_target_bps": float(
@@ -10310,6 +9968,7 @@ def _entry_action_q_primary_validation_diagnostics(
             "reason": "no locked regime label column exists in the fitted-Q VAL parquet",
         },
     }
+
 
 
 def _active_head_epoch_diagnostics(
@@ -10361,7 +10020,8 @@ def _active_head_epoch_diagnostics(
         component_metrics: Dict[str, Any] = {}
         if not isinstance(components, dict) or not components:
             failures.append(
-                f"[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENTS_MISSING] head={head_name}"
+                "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENTS_MISSING] "
+                f"head={head_name}"
             )
             components = {}
         expected_components = set(_ACTIVE_HEAD_TARGET_COMPONENTS[head_name])
@@ -10380,7 +10040,9 @@ def _active_head_epoch_diagnostics(
             target_chunks = (
                 component.get("target") if isinstance(component, dict) else None
             )
-            mask_chunks = component.get("mask") if isinstance(component, dict) else None
+            mask_chunks = (
+                component.get("mask") if isinstance(component, dict) else None
+            )
             if not prediction_chunks or not target_chunks:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_MISSING] "
@@ -10389,10 +10051,7 @@ def _active_head_epoch_diagnostics(
                 continue
             try:
                 prediction = np.concatenate(
-                    [
-                        np.asarray(value, dtype=np.float64)
-                        for value in prediction_chunks
-                    ],
+                    [np.asarray(value, dtype=np.float64) for value in prediction_chunks],
                     axis=0,
                 )
                 target = np.concatenate(
@@ -10455,39 +10114,23 @@ def _active_head_epoch_diagnostics(
                 )
                 continue
             prediction_range = np.asarray(
-                [
-                    np.ptp(prediction[element_mask[:, col], col])
-                    for col in range(prediction.shape[1])
-                ]
+                [np.ptp(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
             )
             target_range = np.asarray(
-                [
-                    np.ptp(target[element_mask[:, col], col])
-                    for col in range(target.shape[1])
-                ]
+                [np.ptp(target[element_mask[:, col], col]) for col in range(target.shape[1])]
             )
             prediction_std = np.asarray(
-                [
-                    np.std(prediction[element_mask[:, col], col])
-                    for col in range(prediction.shape[1])
-                ]
+                [np.std(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
             )
             target_std = np.asarray(
-                [
-                    np.std(target[element_mask[:, col], col])
-                    for col in range(target.shape[1])
-                ]
+                [np.std(target[element_mask[:, col], col]) for col in range(target.shape[1])]
             )
-            dead_prediction_columns = (
-                np.flatnonzero(prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS)
-                .astype(int)
-                .tolist()
-            )
-            dead_target_columns = (
-                np.flatnonzero(target_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS)
-                .astype(int)
-                .tolist()
-            )
+            dead_prediction_columns = np.flatnonzero(
+                prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+            ).astype(int).tolist()
+            dead_target_columns = np.flatnonzero(
+                target_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+            ).astype(int).tolist()
             structural_constant_columns = set(
                 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS.get(
                     component_name,
@@ -10508,7 +10151,9 @@ def _active_head_epoch_diagnostics(
                 )
             target_dead = bool(blocking_dead_target_columns)
             if component_name in _ACTIVE_HEAD_DERIVED_TARGET_COMPONENTS:
-                target_dead = len(blocking_dead_target_columns) == int(target.shape[1])
+                target_dead = len(blocking_dead_target_columns) == int(
+                    target.shape[1]
+                )
             if target_dead:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_TARGET_DEAD] "
@@ -10525,7 +10170,9 @@ def _active_head_epoch_diagnostics(
                 "target_min_std": float(np.min(target_std)),
                 "prediction_dead_columns": dead_prediction_columns,
                 "target_dead_columns": dead_target_columns,
-                "structural_constant_columns": sorted(structural_constant_columns),
+                "structural_constant_columns": sorted(
+                    structural_constant_columns
+                ),
                 "validation_metrics": _active_head_component_validation_metrics(
                     component_name=component_name,
                     prediction=prediction,
@@ -10763,8 +10410,9 @@ def _attended_research_session_contract(
             or not isinstance(train_time_window.get("selected_rows"), int)
             or int(train_time_window["selected_rows"]) < 1
             or not isinstance(train_time_window.get("selection_sha256"), str)
-            or re.fullmatch(r"[0-9a-f]{64}", str(train_time_window["selection_sha256"]))
-            is None
+            or re.fullmatch(
+                r"[0-9a-f]{64}", str(train_time_window["selection_sha256"])
+            ) is None
         ):
             raise RuntimeError("[ATTENDED_RESEARCH_TIME_WINDOW_INVALID]")
     normalized = dict(input_normalization)
@@ -10927,7 +10575,9 @@ def _restore_attended_research_checkpoint(
         else:
             if not isinstance(state["weight_ema_state"], Mapping):
                 raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_MISSING]")
-            weight_ema.restore_checkpoint_state(state["weight_ema_state"], model=model)
+            weight_ema.restore_checkpoint_state(
+                state["weight_ema_state"], model=model
+            )
         if lr_scheduler is None:
             if state["lr_scheduler_state"] is not None:
                 raise RuntimeError("[ATTENDED_RESEARCH_LR_SCHEDULER_UNEXPECTED]")
@@ -11120,7 +10770,8 @@ def _candidate_training_session_contract(
             "checkpoint_policy": checkpoint_policy,
             "seq_len": int(seq_len),
             "per_tf_seq_lens": {
-                name: int(per_tf_seq_lens[name]) for name in MULTI_TF_TIMEFRAMES
+                name: int(per_tf_seq_lens[name])
+                for name in MULTI_TF_TIMEFRAMES
             },
             "multi_tf_num_layers": int(multi_tf_num_layers),
             "specialist_num_layers": int(specialist_num_layers),
@@ -11234,7 +10885,9 @@ def _restore_candidate_training_checkpoint(
 
 def _fsync_regular_file(path: Path) -> None:
     if path.is_symlink() or not path.is_file():
-        raise RuntimeError(f"[ENTRY_BUNDLE_STAGE_ARTIFACT_INVALID] {path}")
+        raise RuntimeError(
+            f"[ENTRY_BUNDLE_STAGE_ARTIFACT_INVALID] {path}"
+        )
     descriptor = os.open(path, os.O_RDONLY)
     try:
         os.fsync(descriptor)
@@ -11297,13 +10950,11 @@ def _write_pre_candidate_time_window_integration_report(
     """
 
     missing_supervision = sorted(
-        name
-        for name in JOINT_TASK_NAMES
+        name for name in JOINT_TASK_NAMES
         if task_supervision_observed.get(name) is not True
     )
     missing_gradients = sorted(
-        name
-        for name in JOINT_TASK_NAMES
+        name for name in JOINT_TASK_NAMES
         if task_gradient_observed.get(name) is not True
     )
     if missing_supervision or missing_gradients:
@@ -11316,9 +10967,7 @@ def _write_pre_candidate_time_window_integration_report(
     final_model_state_sha256 = _model_state_sha256(model)
     if initial_model_state_sha256 == final_model_state_sha256:
         raise RuntimeError("[PRE_CANDIDATE_TIME_WINDOW_NO_PARAMETER_MOVEMENT]")
-    report_path = (
-        session.directory / "PRE_CANDIDATE_TIME_WINDOW_INTEGRATION_REPORT.json"
-    )
+    report_path = session.directory / "PRE_CANDIDATE_TIME_WINDOW_INTEGRATION_REPORT.json"
     if report_path.exists() or report_path.is_symlink():
         raise RuntimeError("[PRE_CANDIDATE_TIME_WINDOW_REPORT_DESTINATION_INVALID]")
     report = {
@@ -11349,10 +10998,12 @@ def _write_pre_candidate_time_window_integration_report(
             "specialists": list(MODEL_NATIVE_TRAINING_SPECIALISTS),
         },
         "joint_task_supervision_observed": {
-            name: bool(task_supervision_observed[name]) for name in JOINT_TASK_NAMES
+            name: bool(task_supervision_observed[name])
+            for name in JOINT_TASK_NAMES
         },
         "joint_task_gradient_observed": {
-            name: bool(task_gradient_observed[name]) for name in JOINT_TASK_NAMES
+            name: bool(task_gradient_observed[name])
+            for name in JOINT_TASK_NAMES
         },
         "model_state": {
             "initial_fixed_target_sha256": initial_model_state_sha256,
@@ -11362,9 +11013,7 @@ def _write_pre_candidate_time_window_integration_report(
         "last_session_train_stats": dict(train_stats),
     }
     payload = _attended_session_json_bytes(report)
-    fd, temporary = tempfile.mkstemp(
-        prefix=f".{report_path.name}.", dir=str(session.directory)
-    )
+    fd, temporary = tempfile.mkstemp(prefix=f".{report_path.name}.", dir=str(session.directory))
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(payload)
@@ -11410,10 +11059,7 @@ def validate(
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
     if dataset._unified_exit_lifecycle is None:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
-    if (
-        max_validation_batches is not None
-        or validation_checkpoint_interval_batches is not None
-    ) and (
+    if (max_validation_batches is not None or validation_checkpoint_interval_batches is not None) and (
         (max_validation_batches is not None and int(max_validation_batches) < 1)
         or (
             validation_checkpoint_interval_batches is not None
@@ -11493,9 +11139,7 @@ def validate(
         unified_exit_population_rows = int(restored["unified_exit_population_rows"])
         unified_exit_rows = int(restored["unified_exit_rows"])
         unified_exit_tied_rows = int(restored["unified_exit_tied_rows"])
-        unified_exit_eligible_entry_rows = int(
-            restored["unified_exit_eligible_entry_rows"]
-        )
+        unified_exit_eligible_entry_rows = int(restored["unified_exit_eligible_entry_rows"])
         unified_exit_hold_rows = int(restored["unified_exit_hold_rows"])
         unified_exit_now_rows = int(restored["unified_exit_now_rows"])
         unified_exit_correct = int(restored["unified_exit_correct"])
@@ -11536,7 +11180,9 @@ def validate(
                 ctx_cont=ctx_cont,
                 **_multi_tf_kwargs_from_batch(batch, seq_x.device),
             )
-            entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+            entry_representations = out.get(
+                UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+            )
             target_entry_representations = target_out.get(
                 UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
             )
@@ -11546,28 +11192,38 @@ def validate(
                 or not isinstance(target_entry_representations, torch.Tensor)
                 or not isinstance(entry_row_indices, torch.Tensor)
             ):
-                raise RuntimeError("[UNIFIED_EXIT_VALIDATION_ENTRY_EVIDENCE_MISSING]")
+                raise RuntimeError(
+                    "[UNIFIED_EXIT_VALIDATION_ENTRY_EVIDENCE_MISSING]"
+                )
             (
                 unified_exit_loss,
                 unified_exit_stats,
                 entry_action_q_targets,
                 entry_action_q_valid,
                 entry_policy_realized_pnl_bps,
-            ) = _unified_exit_full_population_eval_loss(
-                model=model,
-                target_model=target_model,
-                entry_decision_representations=entry_representations,
-                target_entry_decision_representations=(target_entry_representations),
-                entry_row_indices=entry_row_indices,
-                dataset=dataset,
-                device=device,
-                exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
-                exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-                full_trajectory_accumulator=full_trajectory_accumulator,
+            ) = (
+                _unified_exit_full_population_eval_loss(
+                    model=model,
+                    target_model=target_model,
+                    entry_decision_representations=entry_representations,
+                    target_entry_decision_representations=(
+                        target_entry_representations
+                    ),
+                    entry_row_indices=entry_row_indices,
+                    dataset=dataset,
+                    device=device,
+                    exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                    exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                    full_trajectory_accumulator=full_trajectory_accumulator,
+                )
             )
             active_head_out = dict(out)
-            active_head_out["_entry_action_q_target"] = entry_action_q_targets
-            active_head_out["_entry_action_q_valid"] = entry_action_q_valid
+            active_head_out["_entry_action_q_target"] = (
+                entry_action_q_targets
+            )
+            active_head_out["_entry_action_q_valid"] = (
+                entry_action_q_valid
+            )
             active_head_supervised_cells = _accumulate_active_head_epoch(
                 active_head_epoch,
                 model,
@@ -11576,9 +11232,11 @@ def validate(
                 device,
             )
             entry_action_q_bps = out["entry_action_q_bps"]
-            if not isinstance(entry_action_q_bps, torch.Tensor) or tuple(
-                entry_action_q_bps.shape
-            ) != tuple(entry_action_q_targets.shape):
+            if (
+                not isinstance(entry_action_q_bps, torch.Tensor)
+                or tuple(entry_action_q_bps.shape)
+                != tuple(entry_action_q_targets.shape)
+            ):
                 raise RuntimeError(
                     "[ENTRY_FITTED_Q_VALIDATION_PREDICTION_SHAPE_INVALID]"
                 )
@@ -11610,9 +11268,7 @@ def validate(
                 output_name="position_size_logit",
                 target_names=("y_position_size_target", "y_position_size_mask"),
             )
-            y_pos_size = batch["y_position_size_target"].to(
-                device, non_blocking=non_blocking
-            )
+            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
             y_pos_size_mask = batch["y_position_size_mask"].to(
                 device, non_blocking=non_blocking
             )
@@ -11628,17 +11284,23 @@ def validate(
                 active_head_epoch,
                 task_losses,
                 active_head_supervised_cells=active_head_supervised_cells,
-                unified_exit_supervised_cells=int(unified_exit_stats["q_valid_cells"]),
+                unified_exit_supervised_cells=int(
+                    unified_exit_stats["q_valid_cells"]
+                ),
             )
             bs = batch_rows
             total += float(loss) * bs
             entry_q_loss_sum += float(entry_action_q_loss) * bs
             side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
-            trendline_event_loss_sum += (
-                float(trendline_stats["trendline_event_loss"]) * bs
+            trendline_event_loss_sum += float(
+                trendline_stats["trendline_event_loss"]
+            ) * bs
+            trendline_event_rows_sum += int(
+                trendline_stats["trendline_event_rows"]
             )
-            trendline_event_rows_sum += int(trendline_stats["trendline_event_rows"])
-            trendline_support_rows_sum += int(trendline_stats["trendline_support_rows"])
+            trendline_support_rows_sum += int(
+                trendline_stats["trendline_support_rows"]
+            )
             trendline_resistance_rows_sum += int(
                 trendline_stats["trendline_resistance_rows"]
             )
@@ -11646,7 +11308,9 @@ def validate(
             unified_exit_loss_sum += (
                 float(unified_exit_loss.detach().cpu().item()) * _exit_rows
             )
-            unified_exit_population_rows += int(unified_exit_stats["population_rows"])
+            unified_exit_population_rows += int(
+                unified_exit_stats["population_rows"]
+            )
             unified_exit_rows += _exit_rows
             unified_exit_tied_rows += int(
                 unified_exit_stats["target_equivalent_action_rows"]
@@ -11654,7 +11318,9 @@ def validate(
             unified_exit_eligible_entry_rows += int(
                 unified_exit_stats["eligible_entry_rows"]
             )
-            unified_exit_hold_rows += int(unified_exit_stats["hold_target_greedy_rows"])
+            unified_exit_hold_rows += int(
+                unified_exit_stats["hold_target_greedy_rows"]
+            )
             unified_exit_now_rows += int(
                 unified_exit_stats["exit_now_target_greedy_rows"]
             )
@@ -11693,7 +11359,6 @@ def validate(
             entry_policy_realized_pnl_chunks.append(
                 realized_policy_pnl.detach().cpu().numpy()
             )
-
             def _checkpoint_validation_snapshot() -> dict[str, Any]:
                 snapshot = _candidate_validation_snapshot(
                     total=total,
@@ -11747,7 +11412,8 @@ def validate(
                     validation_snapshot=_checkpoint_validation_snapshot(),
                 )
                 log.info(
-                    "[%s_VALIDATION_SESSION_PAUSE] batches_completed=%d max_batches=%d",
+                    "[%s_VALIDATION_SESSION_PAUSE] batches_completed=%d "
+                    "max_batches=%d",
                     validation_session_log_label,
                     next_batch_offset,
                     int(max_validation_batches),
@@ -11793,21 +11459,26 @@ def validate(
         "entry_unique_target_rows": int(entry_unique_target_rows),
         "entry_target_equivalent_rows": int(entry_target_equivalent_rows),
         "entry_unique_target_action_agreement": (
-            entry_unique_target_agreement_rows / max(1, entry_unique_target_rows)
+            entry_unique_target_agreement_rows
+            / max(1, entry_unique_target_rows)
         ),
         "side_mae_loss_mean": (side_mae_loss_sum / max(1, n)),
         "trendline_event_loss_mean": (trendline_event_loss_sum / max(1, n)),
         "trendline_event_rows": int(trendline_event_rows_sum),
         "trendline_support_rows": int(trendline_support_rows_sum),
         "trendline_resistance_rows": int(trendline_resistance_rows_sum),
-        "unified_exit_raw_bps_q_mse_mean": (unified_exit_loss_sum / unified_exit_rows),
+        "unified_exit_raw_bps_q_mse_mean": (
+            unified_exit_loss_sum / unified_exit_rows
+        ),
         "unified_exit_population_rows": int(unified_exit_population_rows),
         "unified_exit_q_valid_cells": int(unified_exit_rows),
         "unified_exit_target_equivalent_action_rows": int(unified_exit_tied_rows),
         "unified_exit_unique_target_rows": int(
             unified_exit_population_rows - unified_exit_tied_rows
         ),
-        "unified_exit_eligible_entry_rows": int(unified_exit_eligible_entry_rows),
+        "unified_exit_eligible_entry_rows": int(
+            unified_exit_eligible_entry_rows
+        ),
         "unified_exit_hold_target_greedy_rows": int(unified_exit_hold_rows),
         "unified_exit_exit_now_target_greedy_rows": int(unified_exit_now_rows),
         "unified_exit_unique_target_action_agreement": (
@@ -11879,7 +11550,9 @@ def validate(
     if active_head_technical_smoke_min_supervised_rows is not None:
         technical_metrics, technical_failures = _active_head_epoch_diagnostics(
             active_head_epoch,
-            minimum_supervised_rows=(active_head_technical_smoke_min_supervised_rows),
+            minimum_supervised_rows=(
+                active_head_technical_smoke_min_supervised_rows
+            ),
             dataset=dataset,
         )
         stats["active_head_technical_smoke_evidence"] = {
@@ -11959,7 +11632,8 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
         fifo_stat = os.stat(fifo_path, follow_symlinks=False)
     except OSError as exc:
         raise RuntimeError(
-            f"[ENTRY_ATTENDED_STAGE_NOTIFICATION_FIFO_UNAVAILABLE] {exc}"
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_FIFO_UNAVAILABLE] "
+            f"{exc}"
         ) from exc
     if (
         not stat.S_ISFIFO(fifo_stat.st_mode)
@@ -11971,14 +11645,17 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
             "expected a private FIFO owned by this trainer user"
         )
     flags = os.O_WRONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
-    payload = f"{_ATTENDED_PREFLIGHT_NOTIFICATION_PREFIX}{token}\n".encode("ascii")
+    payload = f"{_ATTENDED_PREFLIGHT_NOTIFICATION_PREFIX}{token}\n".encode(
+        "ascii"
+    )
     fd: Optional[int] = None
     try:
         fd = os.open(fifo_path, flags)
         written = os.write(fd, payload)
     except OSError as exc:
         raise RuntimeError(
-            f"[ENTRY_ATTENDED_STAGE_NOTIFICATION_WRITE_FAILED] {exc}"
+            "[ENTRY_ATTENDED_STAGE_NOTIFICATION_WRITE_FAILED] "
+            f"{exc}"
         ) from exc
     finally:
         if fd is not None:
@@ -11988,14 +11665,13 @@ def _announce_attended_preflight_ready(*, execution_tier: str) -> None:
             "[ENTRY_ATTENDED_STAGE_NOTIFICATION_PARTIAL_WRITE] "
             f"written={written} expected={len(payload)}"
         )
-    log.info("[ATTENDED_STAGE_NOTIFICATION] stage=data_preflight status=sent")
+    log.info(
+        "[ATTENDED_STAGE_NOTIFICATION] stage=data_preflight status=sent"
+    )
 
 
 def _record_candidate_resume_probe_step(
-    *,
-    batch_offset: int,
-    loss: torch.Tensor,
-    gradient_norm: torch.Tensor,
+    *, batch_offset: int, loss: torch.Tensor, gradient_norm: torch.Tensor,
     entry_row_indices: torch.Tensor,
 ) -> None:
     """Record all completed proof updates before the durable pause callback."""
@@ -12008,25 +11684,14 @@ def _record_candidate_resume_probe_step(
         "optimizer_step_completed": True,
         "report_only": True,
     }
-    log.info(
-        "[CANDIDATE_RESUME_PROBE_STEP] %s",
-        json.dumps(payload, sort_keys=True, allow_nan=False),
-    )
+    log.info("[CANDIDATE_RESUME_PROBE_STEP] %s", json.dumps(payload, sort_keys=True, allow_nan=False))
 
 
 def _candidate_resume_validation_probe(
-    *,
-    model: nn.Module,
-    target_model: nn.Module,
-    weight_ema: Optional[_WeightEma],
-    val_ds: EntryV10CtxDataset,
-    device: torch.device,
-    batch_size: int,
-    seed: int,
-    requested_rows: int,
-    session: _CandidateTrainingSession,
-    execution_budget_sha256: str,
-    pointer_sha256: str,
+    *, model: nn.Module, target_model: nn.Module, weight_ema: Optional[_WeightEma],
+    val_ds: EntryV10CtxDataset, device: torch.device, batch_size: int, seed: int,
+    requested_rows: int, session: _CandidateTrainingSession,
+    execution_budget_sha256: str, pointer_sha256: str,
 ) -> dict[str, Any]:
     """A bounded VAL-only resume diagnostic; never updates candidate selection.
 
@@ -12034,18 +11699,12 @@ def _candidate_resume_validation_probe(
     observes the same deterministic VAL sample after each proof pause and
     restores online weights, model modes and every checkpointed RNG source.
     """
-    if (
-        type(requested_rows) is not int
-        or requested_rows not in {32, 128, 512}
-        or requested_rows > len(val_ds)
-    ):
+    if type(requested_rows) is not int or requested_rows not in {32, 128, 512} or requested_rows > len(val_ds):
         raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_ROWS_INVALID]")
     pointer = session.directory / _CANDIDATE_TRAINING_ACTIVE_FILENAME
     if _sha256_file(pointer) != pointer_sha256:
         raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_POINTER_CHANGED]")
-    path = session.directory / (
-        "CANDIDATE_RESUME_VAL_PROBE_" + execution_budget_sha256 + ".json"
-    )
+    path = session.directory / ("CANDIDATE_RESUME_VAL_PROBE_" + execution_budget_sha256 + ".json")
     binding = {
         "schema_version": "gx1_candidate_resume_val_probe_v1",
         "active_pointer_sha256": pointer_sha256,
@@ -12060,42 +11719,24 @@ def _candidate_resume_validation_probe(
             raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_CONFLICT]")
         return {"executed": True, "path": str(path), "sha256": _sha256_file(path)}
     rng = _attended_session_rng_state(device=device)
-    modes = [
-        (module, module.training)
-        for root in (model, target_model)
-        for module in root.modules()
-    ]
+    modes = [(module, module.training) for root in (model, target_model) for module in root.modules()]
     online_before = canonical_model_state_sha256(model.state_dict())
     target_before = canonical_model_state_sha256(target_model.state_dict())
     indices = deterministic_uniform_subsample_indices(
-        population_rows=len(val_ds),
-        requested_rows=requested_rows,
-        seed=seed,
-        split_salt=1,
+        population_rows=len(val_ds), requested_rows=requested_rows, seed=seed, split_salt=1,
     )
     loader = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        sampler=_ExactIndexSampler(
-            torch.from_numpy(indices), batch_offset=0, batch_size=batch_size
-        ),
-        num_workers=0,
-        pin_memory=device.type == "cuda",
+        val_ds, batch_size=batch_size,
+        sampler=_ExactIndexSampler(torch.from_numpy(indices), batch_offset=0, batch_size=batch_size),
+        num_workers=0, pin_memory=device.type == "cuda",
         generator=torch.Generator().manual_seed(seed),
     )
     started = _synchronized_exit_profile_clock(device)
     try:
-        context = (
-            weight_ema.evaluating(model)
-            if weight_ema is not None
-            else contextlib.nullcontext()
-        )
+        context = weight_ema.evaluating(model) if weight_ema is not None else contextlib.nullcontext()
         with context:
             loss, _auc, agreement, _ratio, stats = validate(
-                model,
-                target_model,
-                loader,
-                device,
+                model, target_model, loader, device,
                 collect_full_exit_trajectory=False,
                 candidate_allow_static_feature_gates=True,
             )
@@ -12104,58 +11745,37 @@ def _candidate_resume_validation_probe(
         for module, training in modes:
             module.training = training
         _restore_attended_session_rng_state(rng, device=device)
-    if (
-        canonical_model_state_sha256(model.state_dict()) != online_before
-        or canonical_model_state_sha256(target_model.state_dict()) != target_before
-    ):
+    if canonical_model_state_sha256(model.state_dict()) != online_before or canonical_model_state_sha256(target_model.state_dict()) != target_before:
         raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_MODEL_CHANGED]")
     if _sha256_file(pointer) != pointer_sha256:
         raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_POINTER_CHANGED]")
     metrics = {
-        "val_loss": float(loss),
-        "entry_agreement": float(agreement),
-        "entry_pnl_bps": float(
-            stats["entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"]
-        ),
+        "val_loss": float(loss), "entry_agreement": float(agreement),
+        "entry_pnl_bps": float(stats["entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"]),
         "exit_mse": float(stats["unified_exit_raw_bps_q_mse_mean"]),
         "exit_agreement": float(stats["unified_exit_unique_target_action_agreement"]),
     }
     if not all(math.isfinite(value) for value in metrics.values()):
         raise RuntimeError("[CANDIDATE_RESUME_VAL_PROBE_NONFINITE]")
     payload = {
-        **binding,
-        "metrics": metrics,
-        "measured_val_seconds": seconds,
-        "val_indices": indices.tolist(),
-        "val_indices_sha256": hashlib.sha256(indices.tobytes()).hexdigest(),
-        "online_model_state_sha256": online_before,
-        "target_model_state_sha256": target_before,
-        "ema_used": weight_ema is not None,
-        "candidate_selection_changed": False,
-        "full_val": False,
-        "collect_full_exit_trajectory": False,
-        "test_accessed": False,
-        "bundle_written": False,
-        "report_only": True,
+        **binding, "metrics": metrics, "measured_val_seconds": seconds,
+        "val_indices": indices.tolist(), "val_indices_sha256": hashlib.sha256(indices.tobytes()).hexdigest(),
+        "online_model_state_sha256": online_before, "target_model_state_sha256": target_before,
+        "ema_used": weight_ema is not None, "candidate_selection_changed": False,
+        "full_val": False, "collect_full_exit_trajectory": False,
+        "test_accessed": False, "bundle_written": False, "report_only": True,
     }
     _candidate_training_session_atomic_write_json(path, payload)
     return {"executed": True, "path": str(path), "sha256": _sha256_file(path)}
 
 
 def _candidate_execution_budget_for_training(
-    path: Optional[Path],
-    digest: Optional[str],
-    *,
-    recipe_source_provenance: Mapping[str, Any],
-    profile: str,
-    precision_policy: str,
-    export_override: bool,
+    path: Optional[Path], digest: Optional[str], *,
+    recipe_source_provenance: Mapping[str, Any], profile: str,
+    precision_policy: str, export_override: bool,
 ) -> Optional[dict[str, Any]]:
     requested = path is not None or digest is not None
-    required = (
-        profile == "candidate"
-        and precision_policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
-    )
+    required = profile == "candidate" and precision_policy == EXPERIMENTAL_FP32_3090_NO_UNINITIALIZED_FILL
     if not requested and not required:
         return None
     if profile != "candidate" or export_override:
@@ -12164,29 +11784,16 @@ def _candidate_execution_budget_for_training(
     recipe_sha = str(recipe_source_provenance["recipe_audit_sha256"])
     if _sha256_file(recipe_path) != recipe_sha:
         raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_RECIPE_CHANGED]")
-    recipe = require_pretest_technical_recipe_metadata(
-        json.loads(recipe_path.read_bytes())
-    )
-    if (
-        recipe["profile"] != profile
-        or recipe["trainer_cli"].get("precision_policy", DETERMINISTIC_FP32)
-        != precision_policy
-    ):
+    recipe = require_pretest_technical_recipe_metadata(json.loads(recipe_path.read_bytes()))
+    if recipe["profile"] != profile or recipe["trainer_cli"].get("precision_policy", DETERMINISTIC_FP32) != precision_policy:
         raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_RUNTIME_MISMATCH]")
     return require_candidate_execution_budget_options(
-        path,
-        digest,
-        recipe_path=recipe_path,
-        recipe_sha256=recipe_sha,
-        recipe=recipe,
+        path, digest, recipe_path=recipe_path, recipe_sha256=recipe_sha, recipe=recipe,
     )
 
 
 def _write_candidate_execution_pause_receipt(
-    evidence: Mapping[str, Any],
-    *,
-    out_bundle_dir: Path,
-    gx1_data_override: str,
+    evidence: Mapping[str, Any], *, out_bundle_dir: Path, gx1_data_override: str,
 ) -> Path:
     """Publish private stop evidence only after a verified durable checkpoint."""
     output = _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override)
@@ -12212,12 +11819,8 @@ def _write_candidate_execution_pause_receipt(
         # Same exclusive training lock as the session owner; preserve any
         # existing receipt rather than overwriting historical evidence.
         _candidate_training_session_atomic_write_json(receipt, dict(evidence))
-    log.info(
-        "[CANDIDATE_EXECUTION_PAUSED] receipt=%s reason=%s steps=%d complete=0 bundle_written=0",
-        receipt,
-        evidence["reason"],
-        evidence["global_optimizer_steps"],
-    )
+    log.info("[CANDIDATE_EXECUTION_PAUSED] receipt=%s reason=%s steps=%d complete=0 bundle_written=0",
+             receipt, evidence["reason"], evidence["global_optimizer_steps"])
     return receipt
 
 
@@ -12225,7 +11828,6 @@ class _CandidateExecutionPaused(Exception):
     def __init__(self, evidence):
         super().__init__("[CANDIDATE_EXECUTION_PAUSED] " + evidence["reason"])
         self.evidence = evidence
-
 
 def _run_resumable_candidate_training(
     *,
@@ -12349,12 +11951,9 @@ def _run_resumable_candidate_training(
         require_candidate_execution_pointer(
             execution_budget,
             _sha256_file(session._active_path)
-            if session._active_path.exists()
-            else None,
+            if session._active_path.exists() else None,
         )
-    elif (
-        execution_budget_sha256 is not None or invocation_started_monotonic is not None
-    ):
+    elif execution_budget_sha256 is not None or invocation_started_monotonic is not None:
         raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_CONTEXT_MISMATCH]")
     restored_state = session.load_checkpoint()
     expected_train_batches = -(-len(train_ds) // int(batch_size))
@@ -12386,7 +11985,9 @@ def _run_resumable_candidate_training(
             dataset_rows=len(train_ds),
         )
         epoch_order = restored["epoch_order"]
-        progress = _require_candidate_training_progress(restored["training_progress"])
+        progress = _require_candidate_training_progress(
+            restored["training_progress"]
+        )
         phase = str(restored["phase"])
         epoch_index = int(restored["epoch_index"])
         next_batch_offset = int(restored["next_batch_offset"])
@@ -12394,7 +11995,8 @@ def _run_resumable_candidate_training(
         checkpoint_index = int(restored["checkpoint_index"])
         complete = bool(restored["complete"])
         expected_global_optimizer_steps = (
-            int(epoch_index) * int(expected_train_batches) + int(next_batch_offset)
+            int(epoch_index) * int(expected_train_batches)
+            + int(next_batch_offset)
             if phase == "train"
             else (int(epoch_index) + 1) * int(expected_train_batches)
         )
@@ -12404,10 +12006,7 @@ def _run_resumable_candidate_training(
             torch.cuda.empty_cache()
 
     def _pause_if_due(
-        *,
-        phase_value: str,
-        epoch_value: int,
-        batch_offset_value: int,
+        *, phase_value: str, epoch_value: int, batch_offset_value: int,
     ) -> None:
         if execution_budget is None:
             return
@@ -12427,9 +12026,7 @@ def _run_resumable_candidate_training(
                 "active_pointer_sha256": _sha256_file(session._active_path),
                 "checkpoint_index": int(checkpoint_index),
                 "global_optimizer_steps": int(global_optimizer_steps),
-                "completed_val_epochs": int(
-                    progress["checkpoint_selection"]["last_epoch"]
-                ),
+                "completed_val_epochs": int(progress["checkpoint_selection"]["last_epoch"]),
                 "phase": str(phase_value),
                 "epoch_index": int(epoch_value),
                 "next_batch_offset": int(batch_offset_value),
@@ -12438,31 +12035,16 @@ def _run_resumable_candidate_training(
                 "test_accessed": False,
             }
             if "resume_probe_val_rows" in execution_budget:
-                if (
-                    reason == "optimizer_step_ceiling"
-                    and phase_value == "train"
-                    and epoch_value == 0
-                ):
-                    evidence["resume_validation_probe"] = (
-                        _candidate_resume_validation_probe(
-                            model=model,
-                            target_model=target_model,
-                            weight_ema=weight_ema,
-                            val_ds=val_ds,
-                            device=device,
-                            batch_size=batch_size,
-                            seed=seed,
-                            requested_rows=execution_budget["resume_probe_val_rows"],
-                            session=session,
-                            execution_budget_sha256=execution_budget_sha256,
-                            pointer_sha256=evidence["active_pointer_sha256"],
-                        )
+                if reason == "optimizer_step_ceiling" and phase_value == "train" and epoch_value == 0:
+                    evidence["resume_validation_probe"] = _candidate_resume_validation_probe(
+                        model=model, target_model=target_model, weight_ema=weight_ema,
+                        val_ds=val_ds, device=device, batch_size=batch_size, seed=seed,
+                        requested_rows=execution_budget["resume_probe_val_rows"],
+                        session=session, execution_budget_sha256=execution_budget_sha256,
+                        pointer_sha256=evidence["active_pointer_sha256"],
                     )
                 else:
-                    evidence["resume_validation_probe"] = {
-                        "executed": False,
-                        "reason": reason,
-                    }
+                    evidence["resume_validation_probe"] = {"executed": False, "reason": reason}
             raise _CandidateExecutionPaused(evidence)
 
     def _save(
@@ -12478,12 +12060,13 @@ def _run_resumable_candidate_training(
         # the completed optimizer count follows from the persisted epoch order
         # and offset; retaining it makes resume evidence independently auditable.
         if phase_value == "train":
-            global_optimizer_steps = int(epoch_value) * int(
-                expected_train_batches
-            ) + int(batch_offset_value)
+            global_optimizer_steps = (
+                int(epoch_value) * int(expected_train_batches)
+                + int(batch_offset_value)
+            )
         else:
-            global_optimizer_steps = (int(epoch_value) + 1) * int(
-                expected_train_batches
+            global_optimizer_steps = (
+                (int(epoch_value) + 1) * int(expected_train_batches)
             )
         if advance_checkpoint:
             checkpoint_index += 1
@@ -12645,8 +12228,12 @@ def _run_resumable_candidate_training(
                 optimizer,
                 device,
                 grad_accum_steps=int(grad_accum_steps),
-                task_supervision_observed=progress["joint_task_supervision_observed"],
-                task_gradient_observed=progress["joint_task_gradient_observed"],
+                task_supervision_observed=progress[
+                    "joint_task_supervision_observed"
+                ],
+                task_gradient_observed=progress[
+                    "joint_task_gradient_observed"
+                ],
                 weight_ema=weight_ema,
                 session_batch_offset=next_batch_offset,
                 session_max_optimizer_steps=(
@@ -12667,7 +12254,9 @@ def _run_resumable_candidate_training(
                     else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
                 ),
                 session_checkpoint_every_optimizer_step=False,
-                session_checkpoint_interval_optimizer_steps=(train_checkpoint_interval),
+                session_checkpoint_interval_optimizer_steps=(
+                    train_checkpoint_interval
+                ),
                 session_log_label="CANDIDATE_TRAINING",
             )
             # A normal return necessarily finished the remaining sampler. The
@@ -12719,7 +12308,9 @@ def _run_resumable_candidate_training(
                 collect_full_exit_trajectory=True,
                 resume_validation_state=resume_validation_state,
                 validation_batch_offset=next_batch_offset,
-                validation_checkpoint_interval_batches=(validation_checkpoint_interval),
+                validation_checkpoint_interval_batches=(
+                    validation_checkpoint_interval
+                ),
                 validation_checkpoint_hook=_checkpoint_validation,
                 validation_session_log_label="CANDIDATE_TRAINING",
                 candidate_allow_static_feature_gates=True,
@@ -12731,8 +12322,7 @@ def _run_resumable_candidate_training(
             }
 
             def _checkpoint_ema_validation(
-                *,
-                next_batch_offset: int,
+                *, next_batch_offset: int,
                 validation_snapshot: Mapping[str, Any],
             ) -> None:
                 model.load_state_dict(raw_model_state, strict=True)
@@ -12800,18 +12390,16 @@ def _run_resumable_candidate_training(
         if admission_ok and np.isfinite(policy_pnl):
             full_trajectory = val_stats.get("unified_exit_full_trajectory_validation")
             if not isinstance(full_trajectory, Mapping):
-                raise RuntimeError(
-                    "[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]"
-                )
+                raise RuntimeError("[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]")
             target_model_state_sha256 = _model_state_sha256(target_model)
             fitted_q_iteration_state = {
                 "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
                 "iteration_index": int(epoch_index),
                 "target_model_state_sha256": target_model_state_sha256,
                 "train_split_sha256": _sha256_file(Path(train_parquet)),
-                "train_fold_sha256": unified_exit_lifecycle_evidence["splits"]["train"][
-                    "lifecycle_manifest_sha256"
-                ],
+                "train_fold_sha256": unified_exit_lifecycle_evidence["splits"][
+                    "train"
+                ]["lifecycle_manifest_sha256"],
                 "source_lineage_sha256": unified_exit_lifecycle_evidence[
                     "root_manifest_sha256"
                 ],
@@ -12906,9 +12494,9 @@ def _run_resumable_candidate_training(
                 ENTRY_CKPT_MONITOR,
             )
         else:
-            selection["epochs_since_improve"] = (
-                int(selection["epochs_since_improve"]) + 1
-            )
+            selection["epochs_since_improve"] = int(
+                selection["epochs_since_improve"]
+            ) + 1
             if candidate_should_early_stop(
                 completed_epochs=int(epoch_index) + 1,
                 epochs_since_improve=int(selection["epochs_since_improve"]),
@@ -13023,7 +12611,9 @@ def load_completed_candidate_epoch_for_seal(
         "joint_task_supervision_observed": dict(
             progress["joint_task_supervision_observed"]
         ),
-        "joint_task_gradient_observed": dict(progress["joint_task_gradient_observed"]),
+        "joint_task_gradient_observed": dict(
+            progress["joint_task_gradient_observed"]
+        ),
         "session_directory": str(session.directory),
     }
 
@@ -13099,13 +12689,10 @@ def run_train(
         context="ENTRY_TRAIN",
     )
     execution_budget = _candidate_execution_budget_for_training(
-        candidate_execution_budget_json,
-        candidate_execution_budget_sha256,
+        candidate_execution_budget_json, candidate_execution_budget_sha256,
         recipe_source_provenance=recipe_source_provenance,
-        profile=profile,
-        precision_policy=precision_policy,
-        export_override=candidate_result_override is not None
-        or candidate_epoch_seal is not None,
+        profile=profile, precision_policy=precision_policy,
+        export_override=candidate_result_override is not None or candidate_epoch_seal is not None,
     )
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
@@ -13129,7 +12716,9 @@ def run_train(
     if profile not in ("smoke", "candidate"):
         raise RuntimeError(f"[ENTRY_TRAIN_PROFILE_INVALID] {profile!r}")
     if execution_tier not in ("canonical", *_ATTENDED_EXECUTION_TIERS):
-        raise RuntimeError(f"[ENTRY_TRAIN_EXECUTION_TIER_INVALID] {execution_tier!r}")
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_EXECUTION_TIER_INVALID] {execution_tier!r}"
+        )
     try:
         precision_policy = require_training_precision_policy(
             precision_policy,
@@ -13139,11 +12728,8 @@ def run_train(
             batch_size=int(batch_size),
         )
         require_local_precision_benchmark_geometry(
-            precision_policy,
-            epochs=epochs,
-            grad_accum_steps=grad_accum_steps,
-            subsample_rows=subsample_rows,
-            profile=profile,
+            precision_policy, epochs=epochs, grad_accum_steps=grad_accum_steps,
+            subsample_rows=subsample_rows, profile=profile,
         )
     except TrainingPrecisionPolicyError as exc:
         raise RuntimeError("[ENTRY_TRAIN_PRECISION_POLICY_INVALID]") from exc
@@ -13192,14 +12778,13 @@ def run_train(
     val_sequence_source_audit_json = _require_bound_sequence_source_audit(
         Path(val_sequence_source_audit_json), split="val"
     )
-    if any(
-        value is not None
-        for value in (
-            train_sequence_roll_audit_json,
-            val_sequence_roll_audit_json,
+    if any(value is not None for value in (
+        train_sequence_roll_audit_json,
+        val_sequence_roll_audit_json,
+    )):
+        raise RuntimeError(
+            "[ENTRY_TRAIN_SEQUENCE_ROLL_RECONSTRUCTION_RETIRED]"
         )
-    ):
-        raise RuntimeError("[ENTRY_TRAIN_SEQUENCE_ROLL_RECONSTRUCTION_RETIRED]")
     if profile == "candidate" and int(subsample_rows) != 0:
         raise RuntimeError(
             "[ENTRY_CANDIDATE_SUBSAMPLE_FORBIDDEN] candidate training must "
@@ -13229,7 +12814,8 @@ def run_train(
             "bounded model-compute population"
         )
     time_window_requested = (
-        train_time_window_start_utc is not None or train_time_window_end_utc is not None
+        train_time_window_start_utc is not None
+        or train_time_window_end_utc is not None
     )
     if time_window_requested:
         if (
@@ -13244,7 +12830,9 @@ def run_train(
                 "UTC bounds"
             )
         try:
-            train_time_window_start = pd.Timestamp(train_time_window_start_utc)
+            train_time_window_start = pd.Timestamp(
+                train_time_window_start_utc
+            )
             train_time_window_end = pd.Timestamp(train_time_window_end_utc)
         except (TypeError, ValueError) as exc:
             raise RuntimeError("[ENTRY_TRAIN_TIME_WINDOW_PARSE_INVALID]") from exc
@@ -13283,8 +12871,8 @@ def run_train(
         )
 
     try:
-        normalized_specialist_contract_mode = (
-            require_model_native_specialist_contract_mode(specialist_contract_mode)
+        normalized_specialist_contract_mode = require_model_native_specialist_contract_mode(
+            specialist_contract_mode
         )
     except ValueError as exc:
         raise RuntimeError(
@@ -13294,7 +12882,9 @@ def run_train(
 
     if m5_prebuilt_path is None:
         raise RuntimeError("[MULTI_TF_MANDATORY] m5_prebuilt_path is required")
-    mtf_cache_raw = str(os.environ.get(_TRAIN_MULTI_TF_CACHE_ENV) or "").strip()
+    mtf_cache_raw = str(
+        os.environ.get(_TRAIN_MULTI_TF_CACHE_ENV) or ""
+    ).strip()
     mtf_cache_dir = Path(mtf_cache_raw).expanduser()
     if not mtf_cache_raw or not mtf_cache_dir.is_absolute():
         raise RuntimeError(
@@ -13307,12 +12897,18 @@ def run_train(
             "[ENTRY_GRAD_ACCUM_STEPS_INVALID] "
             f"observed={int(grad_accum_steps)} expected>=1"
         )
-    if isinstance(multi_tf_num_layers, bool) or int(multi_tf_num_layers) <= 0:
+    if (
+        isinstance(multi_tf_num_layers, bool)
+        or int(multi_tf_num_layers) <= 0
+    ):
         raise RuntimeError(
             "[ENTRY_MULTI_TF_NUM_LAYERS_INVALID] expected a positive "
             f"explicit integer; got {multi_tf_num_layers!r}"
         )
-    if isinstance(specialist_num_layers, bool) or int(specialist_num_layers) <= 0:
+    if (
+        isinstance(specialist_num_layers, bool)
+        or int(specialist_num_layers) <= 0
+    ):
         raise RuntimeError(
             "[ENTRY_SPECIALIST_NUM_LAYERS_INVALID] expected a positive "
             f"explicit integer; got {specialist_num_layers!r}"
@@ -13393,7 +12989,9 @@ def run_train(
         ("val", val_parquet),
     ):
         try:
-            _split_times = pd.read_parquet(_split_path, columns=["time"])["time"]
+            _split_times = pd.read_parquet(
+                _split_path, columns=["time"]
+            )["time"]
         except Exception as exc:
             raise RuntimeError(
                 "[MULTI_TF_DECISION_COVERAGE_SPLIT_READ_FAIL] "
@@ -13409,15 +13007,18 @@ def run_train(
             unit="ns",
             utc=True,
         )
-    multi_tf_decision_window_coverage = require_multi_tf_decision_window_coverage(
-        multi_tf_features,
-        per_tf_seq_lens=_effective_tf_lens,
-        decision_times_by_route_split=decision_times_by_route_split,
+    multi_tf_decision_window_coverage = (
+        require_multi_tf_decision_window_coverage(
+            multi_tf_features,
+            per_tf_seq_lens=_effective_tf_lens,
+            decision_times_by_route_split=decision_times_by_route_split,
+        )
     )
     log.info(
         "[MULTI_TF_DECISION_WINDOW_COVERAGE] contract_sha256=%s",
         multi_tf_decision_window_coverage["contract_sha256"],
     )
+
 
     train_ds = EntryV10CtxDataset(
         train_parquet,
@@ -13428,12 +13029,9 @@ def run_train(
         sequence_source_audit_json=train_sequence_source_audit_json,
     )
     physical_train_rows = int(len(train_ds))
-    # Bind the immutable TRAIN lifecycle before normalization so the shared
-    # The owner-declared signal/context fit sees the exact M1 Exit rows selected by the same lifecycle
-    # used by optimization. This occurs before any smoke subsampling.
+    # The v1 lifecycle remains the feature/normalization source owner only.
+    # Its fixed target route is deliberately not bound to the canonical dataset.
     train_exit_lifecycle = unified_exit_lifecycle.splits["train"]
-    # Lifecycle-v1 remains a source owner for the already verified M1 feature
-    # surface. Its fixed-length target route is deliberately not bound.
     # Normalization must be fitted over the same windows the model reads, so it
     # takes the one resolution above rather than re-deriving it. A second
     # derivation is a second truth waiting to drift.
@@ -13453,15 +13051,23 @@ def run_train(
             train_manifest_path=Path(train_manifest_path),
             m5_prebuilt_path=Path(m5_prebuilt_path),
             mtf_cache_dir=mtf_cache_dir,
-            train_sequence_source_audit_path=(train_sequence_source_audit_json),
+            train_sequence_source_audit_path=(
+                train_sequence_source_audit_json
+            ),
         ),
         prevalidated_multi_tf_cache=multi_tf_features,
-        entry_sequence_source=(train_ds.source_reconstruction_normalization_input()),
+        entry_sequence_source=(
+            train_ds.source_reconstruction_normalization_input()
+        ),
     )
     input_normalization = normalization_fit["normalization_contract"]
-    input_normalization_fit_population_proof = normalization_fit["fit_population_proof"]
+    input_normalization_fit_population_proof = normalization_fit[
+        "fit_population_proof"
+    ]
     normalization_entry_source = (
-        input_normalization_fit_population_proof.get("entry_sequence_source_provenance")
+        input_normalization_fit_population_proof.get(
+            "entry_sequence_source_provenance"
+        )
         if isinstance(input_normalization_fit_population_proof, Mapping)
         else None
     )
@@ -13471,7 +13077,9 @@ def run_train(
             or normalization_entry_source.get("mode")
             != "source_backed_m5_feature_surface_reconstruction"
             or normalization_entry_source.get("candidate_authorized") is not True
-            or not isinstance(normalization_entry_source.get("provenance_sha256"), str)
+            or not isinstance(
+                normalization_entry_source.get("provenance_sha256"), str
+            )
             or len(str(normalization_entry_source["provenance_sha256"])) != 64
         ):
             raise RuntimeError(
@@ -13481,7 +13089,11 @@ def run_train(
         "[ENTRY_INPUT_NORMALIZATION_FIT] contract_sha256=%s "
         "shared_context_train_rows=%d val_rows=0 test_rows=0",
         input_normalization["contract_sha256"],
-        int(input_normalization_fit_population_proof["train_decision_row_count"]),
+        int(
+            input_normalization_fit_population_proof[
+                "train_decision_row_count"
+            ]
+        ),
     )
     val_ds = EntryV10CtxDataset(
         val_parquet,
@@ -13529,7 +13141,9 @@ def run_train(
         or train_ds._sequence_source_audit is None
         or val_ds._sequence_source_audit is None
     ):
-        raise RuntimeError("[ENTRY_TRAIN_SEQUENCE_SOURCE_RECONSTRUCTION_MISSING]")
+        raise RuntimeError(
+            "[ENTRY_TRAIN_SEQUENCE_SOURCE_RECONSTRUCTION_MISSING]"
+        )
     sequence_source_reconstruction_evidence: dict[str, Any] = {
         "schema_version": "entry_model_native_sequence_source_reconstruction_v1",
         "authority": "data_reconstruction_only",
@@ -13547,7 +13161,9 @@ def run_train(
         "[SEQUENCE_SOURCE_RECONSTRUCTION] TRAIN+VAL proof-bound storage "
         "representation active; authority=data_reconstruction_only"
     )
-    unified_exit_feature_source_evidence = dict(unified_exit_lifecycle.evidence)
+    unified_exit_feature_source_evidence = dict(
+        unified_exit_lifecycle.evidence
+    )
     m1_feature_surface_binding = _m1_feature_surface_binding_from_lifecycle(
         unified_exit_feature_source_evidence,
         dataset_run_id=str(dataset_run_id),
@@ -13616,10 +13232,15 @@ def run_train(
     )
     val_entry_position_size_target_policy = (
         _entry_position_size_target_policy_from_manifest(
-            Path(val_parquet).expanduser().resolve().with_suffix(".manifest.json"),
+            Path(val_parquet).expanduser().resolve().with_suffix(
+                ".manifest.json"
+            ),
         )
     )
-    if val_entry_position_size_target_policy != entry_position_size_target_policy:
+    if (
+        val_entry_position_size_target_policy
+        != entry_position_size_target_policy
+    ):
         raise RuntimeError("[ENTRY_TRAIN_POSITION_SIZE_POLICY_SPLIT_MISMATCH]")
     contract_failures: list[str] = []
     contract_failures.extend(
@@ -13641,7 +13262,8 @@ def run_train(
     )
     for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
         forbidden_present = sorted(
-            set(ds_obj.signal_names) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
+            set(ds_obj.signal_names)
+            & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
         )
         if forbidden_present:
             contract_failures.append(
@@ -13653,14 +13275,14 @@ def run_train(
             + "; ".join(contract_failures)
         )
     required_raw_aux_cols = [
-        "y_long_expected_mae_bps",
-        "y_short_expected_mae_bps",
-        "y_line_support_touch_held",
-        "y_line_support_touch_mask",
-        "y_line_resistance_touch_held",
-        "y_line_resistance_touch_mask",
-        "y_countertrend_short_trap",
-        "y_countertrend_long_trap",
+            "y_long_expected_mae_bps",
+            "y_short_expected_mae_bps",
+            "y_line_support_touch_held",
+            "y_line_support_touch_mask",
+            "y_line_resistance_touch_held",
+            "y_line_resistance_touch_mask",
+            "y_countertrend_short_trap",
+            "y_countertrend_long_trap",
     ]
     for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
         missing = [c for c in required_raw_aux_cols if c not in ds_obj.df.columns]
@@ -13784,16 +13406,14 @@ def run_train(
             "under the fixed low-memory recipe"
         )
     pin_memory = bool(
-        device.type == "cuda" and precision_policy == DETERMINISTIC_BF16_HOPPER
+        device.type == "cuda"
+        and precision_policy == DETERMINISTIC_BF16_HOPPER
     )
     persistent_workers = False
     prefetch_factor = None
     log.info(
         "[DATALOADER_CONFIG] num_workers=%d pin_memory=%s persistent_workers=%s prefetch_factor=%s",
-        num_workers,
-        pin_memory,
-        persistent_workers,
-        str(prefetch_factor),
+        num_workers, pin_memory, persistent_workers, str(prefetch_factor),
     )
 
     attended_session: Optional[_AttendedResearchSession] = None
@@ -13820,7 +13440,9 @@ def run_train(
                 train_parquet=Path(train_parquet),
                 val_parquet=Path(val_parquet),
                 m5_prebuilt_path=Path(m5_prebuilt_path),
-                lifecycle_manifest_path=Path(unified_exit_lifecycle_manifest_path),
+                lifecycle_manifest_path=Path(
+                    unified_exit_lifecycle_manifest_path
+                ),
                 input_normalization=input_normalization,
                 seed=seed,
                 batch_size=batch_size,
@@ -13950,10 +13572,7 @@ def run_train(
     sample = next(iter(train_loader))
     seq_input_dim = int(sample["seq_x"].shape[2])
     snap_input_dim = int(sample["snap_x"].shape[1])
-    _require(
-        seq_input_dim == snap_input_dim and seq_input_dim > 0,
-        f"[SIGNAL_DIM_INVALID] seq={seq_input_dim} snap={snap_input_dim}",
-    )
+    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SIGNAL_DIM_INVALID] seq={seq_input_dim} snap={snap_input_dim}")
     ctx_cont_dim = int(sample["ctx_cont"].shape[1])
     ctx_cat_dim = int(sample["ctx_cat"].shape[1])
     ordered_ctx_cont_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
@@ -14022,7 +13641,10 @@ def run_train(
     log.info("[SPECIALIST_FUSION] exact groups=%s", sorted(specialist_indices))
     log.info(
         "[MULTI_TF_SPECIALIST_FUSION] exact groups=%s",
-        {name: len(indices) for name, indices in multi_tf_specialist_indices.items()},
+        {
+            name: len(indices)
+            for name, indices in multi_tf_specialist_indices.items()
+        },
     )
     # This is the last point after complete immutable-data preflight and
     # before CUDA/model allocation.  Keep the measurement source-local so an
@@ -14043,8 +13665,7 @@ def run_train(
                     cuda_index,
                 )
                 total_mib = int(
-                    torch.cuda.get_device_properties(cuda_index).total_memory
-                    // (1024 * 1024)
+                    torch.cuda.get_device_properties(cuda_index).total_memory // (1024 * 1024)
                 )
             except (RuntimeError, ValueError) as exc:
                 raise RuntimeError(
@@ -14148,8 +13769,7 @@ def run_train(
     log.info(
         "[MULTI_TF_PROOF] enabled=True TFs=M5+M15+H1+H4+D1 (V4) "
         "per_tf_dim=%d per_tf_lens=%s total_extra_params≈%dK",
-        _mtf_feat_count,
-        _effective_tf_lens,
+        _mtf_feat_count, _effective_tf_lens,
         (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
     )
     head_out = int(getattr(model.head_entry_action_q, "out_features", -1))
@@ -14167,9 +13787,7 @@ def run_train(
         int(seq_input_dim),
     )
     preflight_batch = {
-        key: (
-            value[:1] if isinstance(value, torch.Tensor) and value.ndim > 0 else value
-        )
+        key: (value[:1] if isinstance(value, torch.Tensor) and value.ndim > 0 else value)
         for key, value in sample.items()
     }
     preflight_seq = preflight_batch["seq_x"].to(device)
@@ -14288,8 +13906,9 @@ def run_train(
         # This branch is intentionally terminal.  It does not invoke VAL,
         # checkpoint selection, bundle writing or any promotion-capable code;
         # its only product is the hash-bound research-session state owned above.
-        if attended_checkpoint_state is not None and bool(
-            attended_checkpoint_state.get("complete", False)
+        if (
+            attended_checkpoint_state is not None
+            and bool(attended_checkpoint_state.get("complete", False))
         ):
             log.info(
                 "[ATTENDED_RESEARCH_SESSION_TERMINAL] directory=%s "
@@ -14309,8 +13928,12 @@ def run_train(
                 "epoch_index": 0,
                 "next_batch_offset": 0,
                 "epoch_order": attended_epoch_order,
-                "task_supervision_observed": {name: False for name in JOINT_TASK_NAMES},
-                "task_gradient_observed": {name: False for name in JOINT_TASK_NAMES},
+                "task_supervision_observed": {
+                    name: False for name in JOINT_TASK_NAMES
+                },
+                "task_gradient_observed": {
+                    name: False for name in JOINT_TASK_NAMES
+                },
                 "complete": False,
             }
         else:
@@ -14348,13 +13971,12 @@ def run_train(
             prefetch_factor=prefetch_factor,
             generator=torch.Generator().manual_seed(int(seed)),
         )
-        if (
-            len(attended_train_loader)
-            != _expected_train_batches - attended_start_offset
-        ):
+        if len(attended_train_loader) != _expected_train_batches - attended_start_offset:
             raise RuntimeError("[ATTENDED_RESEARCH_REMAINING_LOADER_INVALID]")
         attended_checkpoint_index = int(attended_progress["checkpoint_index"])
-        attended_complete_steps = int(attended_progress["complete_optimizer_steps"])
+        attended_complete_steps = int(
+            attended_progress["complete_optimizer_steps"]
+        )
         target_model_state_sha256 = _model_state_sha256(target_model)
         log.info(
             "[ATTENDED_RESEARCH_SESSION_START] directory=%s checkpoint_index=%d "
@@ -14400,8 +14022,12 @@ def run_train(
                 int(bool(complete_epoch)),
             )
 
-        attended_supervision = dict(attended_progress["task_supervision_observed"])
-        attended_gradients = dict(attended_progress["task_gradient_observed"])
+        attended_supervision = dict(
+            attended_progress["task_supervision_observed"]
+        )
+        attended_gradients = dict(
+            attended_progress["task_gradient_observed"]
+        )
         _attended_loss, attended_stats, attended_epoch_complete = train_epoch(
             model,
             target_model,
@@ -14531,15 +14157,12 @@ def run_train(
                     execution_budget=execution_budget,
                     execution_budget_sha256=candidate_execution_budget_sha256,
                     invocation_started_monotonic=(
-                        invocation_started_monotonic
-                        if execution_budget is not None
-                        else None
+                        invocation_started_monotonic if execution_budget is not None else None
                     ),
                 )
             except _CandidateExecutionPaused as paused:
                 _write_candidate_execution_pause_receipt(
-                    paused.evidence,
-                    out_bundle_dir=out_bundle_dir,
+                    paused.evidence, out_bundle_dir=out_bundle_dir,
                     gx1_data_override=gx1_data_override,
                 )
                 return
@@ -14562,8 +14185,12 @@ def run_train(
         best_unified_exit_fitted_q_state = dict(
             candidate_result["best_unified_exit_fitted_q_state"]
         )
-        best_entry_fitted_q_state = dict(candidate_result["best_entry_fitted_q_state"])
-        best_fitted_q_target_state = candidate_result["best_fitted_q_target_state"]
+        best_entry_fitted_q_state = dict(
+            candidate_result["best_entry_fitted_q_state"]
+        )
+        best_fitted_q_target_state = candidate_result[
+            "best_fitted_q_target_state"
+        ]
         best_epoch = int(candidate_result["best_epoch"])
         epochs_since_improve = int(candidate_result["epochs_since_improve"])
         last_epoch = int(candidate_result["last_epoch"])
@@ -14596,9 +14223,9 @@ def run_train(
             "iteration_index": int(epoch),
             "target_model_state_sha256": target_model_state_sha256,
             "train_split_sha256": _sha256_file(Path(train_parquet)),
-            "train_fold_sha256": unified_exit_lifecycle_evidence["splits"]["train"][
-                "lifecycle_manifest_sha256"
-            ],
+            "train_fold_sha256": unified_exit_lifecycle_evidence["splits"][
+                "train"
+            ]["lifecycle_manifest_sha256"],
             "source_lineage_sha256": unified_exit_lifecycle_evidence[
                 "root_manifest_sha256"
             ],
@@ -14614,10 +14241,16 @@ def run_train(
             "exit_fitted_q_iteration_state_sha256": canonical_json_sha256(
                 fitted_q_iteration_state
             ),
-            "train_split_sha256": fitted_q_iteration_state["train_split_sha256"],
+            "train_split_sha256": fitted_q_iteration_state[
+                "train_split_sha256"
+            ],
             "train_fold_sha256": fitted_q_iteration_state["train_fold_sha256"],
-            "source_lineage_sha256": fitted_q_iteration_state["source_lineage_sha256"],
-            "normalization_sha256": fitted_q_iteration_state["normalization_sha256"],
+            "source_lineage_sha256": fitted_q_iteration_state[
+                "source_lineage_sha256"
+            ],
+            "normalization_sha256": fitted_q_iteration_state[
+                "normalization_sha256"
+            ],
             "entry_fitted_q_contract": entry_fitted_q_contract(),
             "exit_fitted_q_contract": unified_exit_fitted_q_contract(),
             "target_updated_from_val_or_test": False,
@@ -14680,23 +14313,18 @@ def run_train(
             task_gradient_observed=joint_task_gradient_observed,
             weight_ema=weight_ema,
             kernel_profile_output_dir=(
-                _resolve_train_out_bundle_dir(
-                    out_bundle_dir, gx1_data_override
-                ).with_name("." + Path(out_bundle_dir).name + ".kernel_profile")
-                if precision_policy
-                in {
+                _resolve_train_out_bundle_dir(out_bundle_dir, gx1_data_override).with_name(
+                    "." + Path(out_bundle_dir).name + ".kernel_profile"
+                )
+                if precision_policy in {
                     EXPERIMENTAL_FP32_3090_KERNEL_PROFILE,
                     EXPERIMENTAL_FP32_3090_NO_FILL_KERNEL_PROFILE,
-                }
-                else None
+                } else None
             ),
             # Initial local fixed-step diagnostic: discard the cold first update.
             performance_warmup_optimizer_steps=(
-                1
-                if profile == "smoke"
-                and int(grad_accum_steps) == 1
-                and len(train_loader) > 1
-                else 0
+                1 if profile == "smoke" and int(grad_accum_steps) == 1
+                and len(train_loader) > 1 else 0
             ),
         )
         if not tr_epoch_complete:
@@ -14743,25 +14371,18 @@ def run_train(
         efficiency_validation_seconds = (
             _synchronized_exit_profile_clock(device) - efficiency_validation_started
         )
-        log.info(
-            "[TRAIN_EFFICIENCY_VAL] %s",
-            json.dumps(
-                {
-                    "schema_version": "gx1_training_efficiency_val_v1",
-                    "measured_val_rows": len(val_loader.dataset),
-                    "measured_val_seconds": efficiency_validation_seconds,
-                    "includes_ema_swap": weight_ema is not None,
-                    "collect_full_exit_trajectory": profile == "candidate",
-                    "report_only": True,
-                },
-                sort_keys=True,
-                allow_nan=False,
-            ),
-        )
+        log.info("[TRAIN_EFFICIENCY_VAL] %s", json.dumps({
+            "schema_version": "gx1_training_efficiency_val_v1",
+            "measured_val_rows": len(val_loader.dataset),
+            "measured_val_seconds": efficiency_validation_seconds,
+            "includes_ema_swap": weight_ema is not None,
+            "collect_full_exit_trajectory": profile == "candidate",
+            "report_only": True,
+        }, sort_keys=True, allow_nan=False))
         last_val_stats = dict(val_stats or {})
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
-            f"[EPOCH {epoch + 1}/{epochs}] "
+            f"[EPOCH {epoch+1}/{epochs}] "
             f"train={tr_loss:.6f} val={va_loss:.6f} auc={auc_display} acc={acc:.4f} "
             f"short_to_long_val={val_short_to_long:.6f}"
         )
@@ -14776,9 +14397,7 @@ def run_train(
                 if isinstance(active_head_details, dict)
                 else {}
             )
-            components = (
-                details.get("components", {}) if isinstance(details, dict) else {}
-            )
+            components = details.get("components", {}) if isinstance(details, dict) else {}
             prediction_ranges = [
                 float(component.get("prediction_min_range", 0.0))
                 for component in components.values()
@@ -14879,9 +14498,9 @@ def run_train(
         _improved = np.isfinite(_policy_pnl) and (
             _policy_pnl - best_policy_pnl
         ) > float(early_stopping_min_delta)
-        _strict_active_head_health_ok = (
-            bool(val_stats.get("active_head_health_ok", False)) if val_stats else False
-        )
+        _strict_active_head_health_ok = bool(
+            val_stats.get("active_head_health_ok", False)
+        ) if val_stats else False
         _active_head_health_ok = _profiled_active_head_admission_health(
             profile=profile,
             validation_stats=val_stats or {},
@@ -14900,21 +14519,19 @@ def run_train(
                 int(_active_head_health_ok),
                 _technical_evidence.get("minimum_supervised_rows"),
             )
-        _cooperation_gate_health_ok = (
-            bool(val_stats.get("cooperation_gate_health_ok", False))
-            if val_stats
-            else False
-        )
-        _exit_cooperation_gate_health_ok = (
-            bool(val_stats.get("exit_cooperation_gate_health_ok", False))
-            if val_stats
-            else False
-        )
+        _cooperation_gate_health_ok = bool(
+            val_stats.get("cooperation_gate_health_ok", False)
+        ) if val_stats else False
+        _exit_cooperation_gate_health_ok = bool(
+            val_stats.get("exit_cooperation_gate_health_ok", False)
+        ) if val_stats else False
         _admission_ok = _checkpoint_admission_ok(
             profile=profile,
             active_head_health_ok=_active_head_health_ok,
             cooperation_gate_health_ok=_cooperation_gate_health_ok,
-            exit_cooperation_gate_health_ok=(_exit_cooperation_gate_health_ok),
+            exit_cooperation_gate_health_ok=(
+                _exit_cooperation_gate_health_ok
+            ),
             candidate_exit_gate_health_provisional_ok=False,
         )
         if _improved and not _admission_ok:
@@ -14938,7 +14555,8 @@ def run_train(
             best_unified_exit_validation = {
                 key: val_stats[key]
                 for key in val_stats
-                if key.startswith("unified_exit_") or key.startswith("exit_")
+                if key.startswith("unified_exit_")
+                or key.startswith("exit_")
             }
             if profile == "candidate":
                 full_trajectory = val_stats.get(
@@ -14948,7 +14566,9 @@ def run_train(
                     raise RuntimeError(
                         "[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]"
                     )
-                best_unified_exit_full_trajectory_validation = dict(full_trajectory)
+                best_unified_exit_full_trajectory_validation = dict(
+                    full_trajectory
+                )
             best_unified_exit_fitted_q_state = dict(fitted_q_iteration_state)
             best_entry_fitted_q_state = dict(entry_fitted_q_iteration_state)
             best_fitted_q_target_state = {
@@ -15049,9 +14669,7 @@ def run_train(
                 "trainer_env": dict(MODEL_NATIVE_RECIPE_ENV),
             },
         )
-        log.error(
-            "[ENTRY_CHECKPOINT_ADMISSION_FAILURE_EVIDENCE] path=%s", evidence_path
-        )
+        log.error("[ENTRY_CHECKPOINT_ADMISSION_FAILURE_EVIDENCE] path=%s", evidence_path)
         raise RuntimeError(
             "[TRAIN_FAIL_NO_BEST_STATE] no validation checkpoint satisfied "
             "profile admission; failure evidence was written and bundle creation "
@@ -15079,10 +14697,12 @@ def run_train(
         int(best_epoch),
         len(JOINT_TASK_NAMES),
     )
-    model_native_learned_component_movement = _entry_fitted_q_movement_proof(
-        entry_q_initial_state,
-        best_state,
-        selected_checkpoint_epoch=best_epoch,
+    model_native_learned_component_movement = (
+        _entry_fitted_q_movement_proof(
+            entry_q_initial_state,
+            best_state,
+            selected_checkpoint_epoch=best_epoch,
+        )
     )
     log.info(
         "[ENTRY_FITTED_Q_MOVEMENT_PASS] epoch=%d components=%s",
@@ -15100,14 +14720,21 @@ def run_train(
         unified_exit_parameter_movement["component_max_abs_delta"],
     )
     if (
-        int(best_unified_exit_validation.get("unified_exit_q_valid_cells", 0)) <= 0
-        or int(
-            best_unified_exit_validation.get("unified_exit_hold_target_greedy_rows", 0)
+        int(
+            best_unified_exit_validation.get(
+                "unified_exit_q_valid_cells", 0
+            )
         )
         <= 0
         or int(
             best_unified_exit_validation.get(
-                "unified_exit_exit_now_target_greedy_rows",
+                "unified_exit_hold_target_greedy_rows", 0
+            )
+        )
+        <= 0
+        or int(
+            best_unified_exit_validation.get(
+                    "unified_exit_exit_now_target_greedy_rows",
                 0,
             )
         )
@@ -15135,12 +14762,18 @@ def run_train(
     if profile == "candidate":
         model.load_state_dict(best_state, strict=True)
         selected_target_model = copy.deepcopy(model).to(device)
-        selected_target_model.load_state_dict(best_fitted_q_target_state, strict=True)
+        selected_target_model.load_state_dict(
+            best_fitted_q_target_state, strict=True
+        )
         selected_target_model.requires_grad_(False)
         selected_target_model.eval()
-        full_trajectory_validation = dict(best_unified_exit_full_trajectory_validation)
+        full_trajectory_validation = dict(
+            best_unified_exit_full_trajectory_validation
+        )
         selected_model_state_sha256 = _model_state_sha256(model)
-        selected_target_model_state_sha256 = _model_state_sha256(selected_target_model)
+        selected_target_model_state_sha256 = _model_state_sha256(
+            selected_target_model
+        )
         if (
             full_trajectory_validation.get("schema_version")
             != _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION
@@ -15161,14 +14794,16 @@ def run_train(
         # provenance.  The input-influence audit is online-model only, so
         # release this full CUDA/CPU replica before that audit begins.
         del selected_target_model
-        unified_exit_input_influence = _unified_exit_input_influence_contract(
-            model=model,
-            loader=val_loader,
-            device=device,
-            selected_online_model_state_sha256=selected_model_state_sha256,
-            unified_exit_lifecycle_root_manifest_sha256=str(
-                unified_exit_lifecycle_evidence["root_manifest_sha256"]
-            ),
+        unified_exit_input_influence = (
+            _unified_exit_input_influence_contract(
+                model=model,
+                loader=val_loader,
+                device=device,
+                selected_online_model_state_sha256=selected_model_state_sha256,
+                unified_exit_lifecycle_root_manifest_sha256=str(
+                    unified_exit_lifecycle_evidence["root_manifest_sha256"]
+                ),
+            )
         )
         log.info(
             "[UNIFIED_EXIT_INPUT_INFLUENCE_PASS] numeric=%d categorical=%d "
@@ -15184,11 +14819,9 @@ def run_train(
             int(full_trajectory_validation["population_rows"]),
             int(full_trajectory_validation["q_valid_cells"]),
             int(full_trajectory_validation["target_equivalent_action_rows"]),
-            float(
-                full_trajectory_validation[
-                    "learned_policy_mean_realized_executable_pnl_bps"
-                ]
-            ),
+            float(full_trajectory_validation[
+                "learned_policy_mean_realized_executable_pnl_bps"
+            ]),
             float(full_trajectory_validation["fitted_q_bellman_mse_mean"]),
             full_trajectory_validation["state_prediction_stream_sha256"],
         )
@@ -15208,7 +14841,9 @@ def run_train(
         "schema_version": "gx1_unified_exit_training_evidence_v10",
         "decision": "PASS",
         "shared_model_state_dict": True,
-        "entry_representation_surface": (UNIFIED_EXIT_MODEL_REPRESENTATION_KEY),
+        "entry_representation_surface": (
+            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+        ),
         "future_outcomes_used_as_model_inputs": False,
         "exit_action_task_name": "unified_exit_action",
         "exit_action_target": "train_fitted_raw_bps_q_iteration",
@@ -15217,17 +14852,22 @@ def run_train(
         "intermediate_hold_reward_bps": 0.0,
         "baseline_cross_entropy_authority": False,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
-        "selected_fitted_q_iteration_state": (best_unified_exit_fitted_q_state),
+        "selected_fitted_q_iteration_state": (
+            best_unified_exit_fitted_q_state
+        ),
         "loss_scalarization": "model_native_joint_task_weighting",
         "lifecycle": unified_exit_lifecycle_evidence,
         "selected_checkpoint_validation": best_unified_exit_validation,
         "individual_input_influence": unified_exit_input_influence,
         "full_trajectory_validation": full_trajectory_validation,
-        "selected_checkpoint_parameter_movement": (unified_exit_parameter_movement),
+        "selected_checkpoint_parameter_movement": (
+            unified_exit_parameter_movement
+        ),
     }
     # Historical class-distribution and context-slice checkpoint gates are not
     # part of fitted-Q admission.  This gross research metric cannot authorize
     # serving until the explicit production-economics contract is READY.
+
 
     # Build the complete bundle in a hidden sibling directory.  The requested
     # immutable destination does not exist until every strict verification has
@@ -15243,7 +14883,8 @@ def run_train(
         or not final_out_bundle_dir.parent.is_dir()
     ):
         raise RuntimeError(
-            f"[ENTRY_BUNDLE_IMMUTABLE_DESTINATION_INVALID] {final_out_bundle_dir}"
+            "[ENTRY_BUNDLE_IMMUTABLE_DESTINATION_INVALID] "
+            f"{final_out_bundle_dir}"
         )
     staging_directory = tempfile.TemporaryDirectory(
         prefix=f".{final_out_bundle_dir.name}.staging.",
@@ -15256,20 +14897,13 @@ def run_train(
     torch.save(best_state, model_path)
     _fsync_regular_file(model_path)
     checkpoint_write_seconds = time.perf_counter() - checkpoint_write_started
-    log.info(
-        "[TRAIN_EFFICIENCY_CHECKPOINT] %s",
-        json.dumps(
-            {
-                "schema_version": "gx1_training_efficiency_checkpoint_v1",
-                "checkpoint_write_seconds": checkpoint_write_seconds,
-                "checkpoint_size_bytes": model_path.stat().st_size,
-                "includes_fsync": True,
-                "report_only": True,
-            },
-            sort_keys=True,
-            allow_nan=False,
-        ),
-    )
+    log.info("[TRAIN_EFFICIENCY_CHECKPOINT] %s", json.dumps({
+        "schema_version": "gx1_training_efficiency_checkpoint_v1",
+        "checkpoint_write_seconds": checkpoint_write_seconds,
+        "checkpoint_size_bytes": model_path.stat().st_size,
+        "includes_fsync": True,
+        "report_only": True,
+    }, sort_keys=True, allow_nan=False))
     state_dict_sha256 = _sha256_file(model_path)
     candidate_static_exit_gate_provisional = False
     if profile == "candidate":
@@ -15280,30 +14914,26 @@ def run_train(
             Mapping,
         )
     if profile == "candidate":
-        model_native_entry_val_input_influence = _entry_val_input_influence_contract(
-            model=model,
-            dataset=val_ds,
-            device=device,
-            state_dict_sha256=state_dict_sha256,
-            specialist_indices=specialist_indices,
-            context_routing=specialist_meta["context_routing"],
-            multi_tf_specialist_indices=multi_tf_specialist_indices,
+        model_native_entry_val_input_influence = (
+            _entry_val_input_influence_contract(
+                model=model,
+                dataset=val_ds,
+                device=device,
+                state_dict_sha256=state_dict_sha256,
+                specialist_indices=specialist_indices,
+                context_routing=specialist_meta["context_routing"],
+                multi_tf_specialist_indices=multi_tf_specialist_indices,
+            )
         )
         log.info(
             "[ENTRY_VAL_INPUT_INFLUENCE_PASS] numeric=%d manifold=%d "
             "categorical=%d local_families=%d mtf_families=%d",
             int(model_native_entry_val_input_influence["numeric_input_count"]),
-            int(
-                model_native_entry_val_input_influence[
-                    "continuous_manifold_input_count"
-                ]
-            ),
+            int(model_native_entry_val_input_influence[
+                "continuous_manifold_input_count"
+            ]),
             int(model_native_entry_val_input_influence["categorical_input_count"]),
-            len(
-                model_native_entry_val_input_influence["family_ablation"][
-                    "local_context"
-                ]
-            ),
+            len(model_native_entry_val_input_influence["family_ablation"]["local_context"]),
             len(model_native_entry_val_input_influence["family_ablation"]["multi_tf"]),
         )
         if candidate_static_exit_gate_provisional:
@@ -15328,9 +14958,7 @@ def run_train(
         trained_model_native_signal_contract,
         context="ENTRY_EXPORT",
     )
-    trained_model_native_state_contract = _model_native_state_contract_for_parquet(
-        Path(train_parquet)
-    )
+    trained_model_native_state_contract = _model_native_state_contract_for_parquet(Path(train_parquet))
     state_contract_failures = _model_native_state_contract_failures(
         trained_model_native_state_contract,
         split="train",
@@ -15369,16 +14997,16 @@ def run_train(
         "model_output_schema_version": MODEL_OUTPUT_SCHEMA_VERSION,
         "created_at_utc": _utc_now(),
         "signal_bridge_id": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
-        "signal_bridge_contract_sha256": trained_model_native_signal_contract[
-            "static_contract_sha256"
-        ],
+        "signal_bridge_contract_sha256": trained_model_native_signal_contract["static_contract_sha256"],
         "contract_mode": train_contract_mode,
         "direction_decision_contract": direction_decision_contract,
         "unified_entry_exit_contract": unified_entry_exit_contract,
         "unified_exit_training_evidence": unified_exit_training_evidence,
         "m1_feature_surface_binding": m1_feature_surface_binding,
         "model_native_entry_fitted_q": model_native_entry_fitted_q,
-        "entry_fitted_q_production_economics": (entry_fitted_q_production_economics),
+        "entry_fitted_q_production_economics": (
+            entry_fitted_q_production_economics
+        ),
         "selected_entry_fitted_q_iteration_state": best_entry_fitted_q_state,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_entry_val_input_influence": (
@@ -15431,13 +15059,17 @@ def run_train(
         learned_tf_input_scale_raw[_tf] = _value
     tf_input_scale_contract = build_tf_input_scale_contract(
         init_effective={
-            tf: float(TF_INPUT_SCALE_NEUTRAL_INIT) for tf in TF_INPUT_SCALE_NAMES
+            tf: float(TF_INPUT_SCALE_NEUTRAL_INIT)
+            for tf in TF_INPUT_SCALE_NAMES
         },
         learned_raw=learned_tf_input_scale_raw,
     )
     log.info(
         "[TF_INPUT_SCALE_LEARNED] %s",
-        {k: round(float(v), 4) for k, v in tf_input_scale_contract["learned"].items()},
+        {
+            k: round(float(v), 4)
+            for k, v in tf_input_scale_contract["learned"].items()
+        },
     )
 
     active_heads = _build_active_head_names()
@@ -15455,7 +15087,9 @@ def run_train(
         "unified_exit_training_evidence": unified_exit_training_evidence,
         "m1_feature_surface_binding": m1_feature_surface_binding,
         "model_native_entry_fitted_q": model_native_entry_fitted_q,
-        "entry_fitted_q_production_economics": (entry_fitted_q_production_economics),
+        "entry_fitted_q_production_economics": (
+            entry_fitted_q_production_economics
+        ),
         "selected_entry_fitted_q_iteration_state": best_entry_fitted_q_state,
         "model_native_learned_component_movement": model_native_learned_component_movement,
         "model_native_entry_val_input_influence": (
@@ -15473,7 +15107,9 @@ def run_train(
         "val_data_sha256": _sha256_file(Path(val_parquet)),
         "best_val_loss": best_val,
         "best_epoch": best_epoch,
-        "best_entry_policy_realized_gross_spread_inclusive_pnl_bps": (best_policy_pnl),
+        "best_entry_policy_realized_gross_spread_inclusive_pnl_bps": (
+            best_policy_pnl
+        ),
         "ckpt_monitor": _ckpt_monitor,
         "best_unique_target_action_agreement": (
             float(best_unique_target_action_agreement)
@@ -15512,10 +15148,16 @@ def run_train(
             "exit_family_tf_gate_width": (
                 EXIT_MTF_CONTEXT_COUNT * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
             ),
-            "shared_cache_identity_sha256": (train_ds._multi_tf_cache_identity_sha256),
-            "shared_cache_manifest_sha256": (train_ds._multi_tf_cache_manifest_sha256),
+            "shared_cache_identity_sha256": (
+                train_ds._multi_tf_cache_identity_sha256
+            ),
+            "shared_cache_manifest_sha256": (
+                train_ds._multi_tf_cache_manifest_sha256
+            ),
             "shared_cache_dir": train_ds._multi_tf_cache_dir,
-            "shared_cache_manifest_path": (train_ds._multi_tf_cache_manifest_path),
+            "shared_cache_manifest_path": (
+                train_ds._multi_tf_cache_manifest_path
+            ),
             "shared_cache_m5_source": train_ds._multi_tf_cache_m5_source,
             "shared_cache_m5_source_sha256": (
                 train_ds._multi_tf_cache_m5_source_sha256
@@ -15547,13 +15189,17 @@ def run_train(
             ).hexdigest(),
             "closed_bar_target_availability": True,
             "resolution_pyramid": multi_tf_resolution_pyramid,
-            "decision_window_coverage": (multi_tf_decision_window_coverage),
+            "decision_window_coverage": (
+                multi_tf_decision_window_coverage
+            ),
             "specialist_routing_schema_version": (
                 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION
             ),
             "specialist_input_indices": multi_tf_specialist_indices,
             "parameter_family_tf_token_order": list(model.family_tf_token_order),
-            "entry_family_tf_token_order": list(model.entry_family_tf_token_order),
+            "entry_family_tf_token_order": list(
+                model.entry_family_tf_token_order
+            ),
             "exit_family_tf_token_order": list(model.exit_family_tf_token_order),
         },
         # All five scale parameters begin at the same contract-owned neutral
@@ -15700,15 +15346,21 @@ def run_train(
         # This records the exact storage-reconstruction proof for every
         # profile. It is an explicit denial of candidate and deployment
         # authority by itself, never a substitute for an OOS result.
-        lock["sequence_source_reconstruction"] = sequence_source_reconstruction_evidence
-        meta["sequence_source_reconstruction"] = sequence_source_reconstruction_evidence
+        lock["sequence_source_reconstruction"] = (
+            sequence_source_reconstruction_evidence
+        )
+        meta["sequence_source_reconstruction"] = (
+            sequence_source_reconstruction_evidence
+        )
     # Architecture reconstruction fields are duplicated exactly in the lock;
     # neither side may infer MTF layout or positive-scale semantics from the
     # other.
     lock["multi_tf"] = meta["multi_tf"]
     lock["tf_input_scale"] = meta["tf_input_scale"]
     export_contract_failures = _direction_decision_contract_export_failures(lock, meta)
-    export_contract_failures.extend(_unified_exit_export_failures(lock, meta))
+    export_contract_failures.extend(
+        _unified_exit_export_failures(lock, meta)
+    )
     if export_contract_failures:
         raise RuntimeError(
             "[ENTRY_EXPORT_DIRECTION_DECISION_CONTRACT_INVALID] "
@@ -15809,11 +15461,11 @@ def run_train(
         dummy_cont = ctx_cont_center.view(1, -1).repeat(B, 1)
         entry_mtf_kwargs = {
             f"seq_{tf.lower()}": torch.tensor(
-                input_normalization["surfaces"][f"mtf_{tf.lower()}"]["center"],
+                input_normalization["surfaces"][f"mtf_{tf.lower()}"][
+                    "center"
+                ],
                 dtype=torch.float32,
-            )
-            .view(1, 1, -1)
-            .repeat(
+            ).view(1, 1, -1).repeat(
                 B,
                 normalization_per_tf_seq_lens[tf],
                 1,
@@ -15834,11 +15486,11 @@ def run_train(
             )
         exit_mtf_rows = {
             tf.lower(): torch.tensor(
-                input_normalization["surfaces"][f"mtf_{tf.lower()}"]["center"],
+                input_normalization["surfaces"][f"mtf_{tf.lower()}"][
+                    "center"
+                ],
                 dtype=torch.float32,
-            )
-            .view(1, 1, -1)
-            .repeat(
+            ).view(1, 1, -1).repeat(
                 B,
                 normalization_per_tf_seq_lens[tf],
                 1,
@@ -15871,7 +15523,6 @@ def run_train(
 
     # Bundle load proof via runtime loader (strict)
     from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-
     _ = load_entry_v10_ctx_bundle(
         bundle_dir=out_bundle_dir,
         device="cpu",
@@ -15886,11 +15537,7 @@ def run_train(
     # dead: the launch contract has already hash-validated the immutable full-
     # population liveness artifact before CUDA is allocated.
     try:
-        from gx1.audit.feature_liveness import (
-            assert_v10_batch_liveness,
-            FeatureLivenessError,
-        )
-
+        from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
         _live_cc = list(ordered_ctx_cont_names)
         if len(_live_cc) != MODEL_NATIVE_CTX_CONT_DIM:
             raise FeatureLivenessError(
@@ -15958,15 +15605,9 @@ def run_train(
                 }
             else:
                 _ab = {
-                    "seq_x": np.asarray(
-                        _live_ds._np_seq[_sample_idx], dtype=np.float32
-                    ),
-                    "ctx_cont": np.asarray(
-                        _live_ds._np_ctx_cont[_sample_idx], dtype=np.float32
-                    ),
-                    "snap_x": np.asarray(
-                        _live_ds._np_snap[_sample_idx], dtype=np.float32
-                    ),
+                    "seq_x": np.asarray(_live_ds._np_seq[_sample_idx], dtype=np.float32),
+                    "ctx_cont": np.asarray(_live_ds._np_ctx_cont[_sample_idx], dtype=np.float32),
+                    "snap_x": np.asarray(_live_ds._np_snap[_sample_idx], dtype=np.float32),
                 }
             if getattr(_live_ds, "_multi_tf_feats", None):
                 for _tf, _feats in _live_ds._multi_tf_feats.items():
@@ -16045,7 +15686,9 @@ def run_train(
             "signal_sequence": ("signal", _live_ds._np_snap, _snap_names),
             "ctx_cont": ("ctx_cont", _live_ds._np_ctx_cont, _live_cc),
         }
-        _live_mtf_names = list(getattr(_live_ds, "_multi_tf_feature_names", ()))
+        _live_mtf_names = list(
+            getattr(_live_ds, "_multi_tf_feature_names", ())
+        )
         if len(_live_mtf_names) != int(
             getattr(_live_ds, "_multi_tf_feature_count", -1)
         ):
@@ -16082,17 +15725,15 @@ def run_train(
                 )
             return _pop_cache[key]
 
-        assert_v10_batch_liveness(
-            _ab,
-            ctx_cont_names=_live_cc,
-            snap_names=_snap_names,
-            multi_tf_names=_live_mtf_names,
-            raise_on_fail=True,
-            population_stats=_population_stats,
-            require_variability=(
-                profile == "candidate" or train_time_window is not None
-            ),
-        )
+        assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
+                                  snap_names=_snap_names,
+                                  multi_tf_names=_live_mtf_names,
+                                  raise_on_fail=True,
+                                  population_stats=_population_stats,
+                                  require_variability=(
+                                      profile == "candidate"
+                                      or train_time_window is not None
+                                  ))
         if _pop_cache:
             log.info(
                 "[FEATURE_LIVENESS_POPULATION_ESCALATION] %d field(s) below "
@@ -16119,7 +15760,9 @@ def run_train(
     except FeatureLivenessError:
         raise
     except Exception as _e:
-        raise RuntimeError(f"[FEATURE_LIVENESS_AUDIT_UNAVAILABLE] {_e!r}") from _e
+        raise RuntimeError(
+            f"[FEATURE_LIVENESS_AUDIT_UNAVAILABLE] {_e!r}"
+        ) from _e
     publish_bundle_directory_noreplace(
         out_bundle_dir,
         final_out_bundle_dir,
@@ -16173,10 +15816,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     budget_path = getattr(args, "candidate_execution_budget_json", None)
     budget_sha = getattr(args, "candidate_execution_budget_sha256", None)
-    if (
-        not isinstance(payload, Mapping)
-        or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION
-    ):
+    if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
         if budget_path is not None or budget_sha is not None:
             raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_PRETEST_RECIPE_REQUIRED]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
@@ -16204,7 +15844,9 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     observed = {
         "execution_tier": str(args.execution_tier),
         "device": str(args.device),
-        "precision_policy": str(getattr(args, "precision_policy", DETERMINISTIC_FP32)),
+        "precision_policy": str(
+            getattr(args, "precision_policy", DETERMINISTIC_FP32)
+        ),
         "seed": int(args.seed),
         "epochs": int(args.epochs),
         "batch_size": int(args.batch_size),
@@ -16262,11 +15904,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
     try:
         require_candidate_execution_budget_options(
-            budget_path,
-            budget_sha,
-            recipe_path=recipe_path,
-            recipe_sha256=str(args.recipe_audit_sha256),
-            recipe=recipe,
+            budget_path, budget_sha, recipe_path=recipe_path,
+            recipe_sha256=str(args.recipe_audit_sha256), recipe=recipe,
         )
     except (OSError, ValueError) as exc:
         raise RuntimeError(f"[CANDIDATE_EXECUTION_BUDGET_REJECTED] {exc}") from exc
@@ -16376,10 +16015,7 @@ def main() -> None:
     parser.add_argument("--dropout", type=float, required=True)
     args = parser.parse_args()
 
-    from gx1.contracts.entry_run_lineage_v1 import (
-        EntryRunLineageError,
-        require_entry_run_id,
-    )
+    from gx1.contracts.entry_run_lineage_v1 import EntryRunLineageError, require_entry_run_id
 
     try:
         require_entry_run_id(args.run_id)
@@ -16387,7 +16023,9 @@ def main() -> None:
     except EntryRunLineageError as exc:
         parser.error(str(exc))
     if args.run_id == args.dataset_run_id:
-        parser.error("training --run-id must differ from immutable --dataset-run-id")
+        parser.error(
+            "training --run-id must differ from immutable --dataset-run-id"
+        )
     try:
         require_training_precision_policy(
             args.precision_policy,
@@ -16448,7 +16086,9 @@ def main() -> None:
             "smoke training requires an explicit positive --subsample-rows "
             "to bound both TRAIN and VAL model compute"
         )
-    if bool(args.train_time_window_start_utc) != bool(args.train_time_window_end_utc):
+    if bool(args.train_time_window_start_utc) != bool(
+        args.train_time_window_end_utc
+    ):
         parser.error(
             "--train-time-window-start-utc and --train-time-window-end-utc "
             "must be supplied together"
@@ -16468,13 +16108,10 @@ def main() -> None:
         parser.error("--execution-tier attended_only requires --device cuda")
     if args.execution_tier == "attended_cpu_only" and args.device != "cpu":
         parser.error("--execution-tier attended_cpu_only requires --device cpu")
-    if any(
-        value is not None
-        for value in (
-            args.train_sequence_roll_audit_json,
-            args.val_sequence_roll_audit_json,
-        )
-    ):
+    if any(value is not None for value in (
+        args.train_sequence_roll_audit_json,
+        args.val_sequence_roll_audit_json,
+    )):
         parser.error("sequence-roll reconstruction proofs are retired")
     if _is_attended_execution_tier(args.execution_tier):
         _install_attended_smoke_termination_handler()
@@ -16484,7 +16121,9 @@ def main() -> None:
     _WEIGHT_DECAY = float(args.weight_decay)
     _guard_no_rl()
     if args.device == "cuda":
-        _require_cuda_trainer_guard_execution(execution_tier=str(args.execution_tier))
+        _require_cuda_trainer_guard_execution(
+            execution_tier=str(args.execution_tier)
+        )
     device = _resolve_device(args.device)
     log.info(
         "[CONFIG] seed=%d device=%s precision_policy=%s deterministic=true tf32_matmul=false "
@@ -16527,7 +16166,9 @@ def main() -> None:
             expected_dataset_dir=train_parquet.parent,
         )
     except (PrefreezeTestSealLineageError, OSError, ValueError) as exc:
-        raise RuntimeError(f"[ENTRY_TRAIN_PREFREEZE_TEST_SEAL_REJECTED] {exc}") from exc
+        raise RuntimeError(
+            f"[ENTRY_TRAIN_PREFREEZE_TEST_SEAL_REJECTED] {exc}"
+        ) from exc
 
     run_train(
         train_parquet=train_parquet,
@@ -16589,7 +16230,9 @@ def main() -> None:
         train_unified_exit_v2_manifest_path=(
             args.train_unified_exit_lifecycle_v2_manifest_json
         ),
-        val_unified_exit_v2_compact_path=(args.val_unified_exit_lifecycle_v2_parquet),
+        val_unified_exit_v2_compact_path=(
+            args.val_unified_exit_lifecycle_v2_parquet
+        ),
         val_unified_exit_v2_manifest_path=(
             args.val_unified_exit_lifecycle_v2_manifest_json
         ),
