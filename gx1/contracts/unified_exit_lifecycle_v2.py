@@ -21,6 +21,9 @@ from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_DETAILED_PATH_TAIL_BARS,
     UNIFIED_EXIT_SIDE_ORDER,
 )
+from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
+    NO_CAP_AUTHORITY_SCHEMA_VERSION,
+)
 
 
 UNIFIED_EXIT_LIFECYCLE_V2_SCHEMA_VERSION = (
@@ -166,6 +169,9 @@ def unified_exit_lifecycle_v2_contract() -> dict[str, Any]:
         "clock_gap_policy": "right_censor_before_first_non_m1_transition",
         "economic_authority_schema_version": (
             UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION
+        ),
+        "no_cap_economic_authority_schema_version": (
+            NO_CAP_AUTHORITY_SCHEMA_VERSION
         ),
         "chunk_schedule": {
             "mode": "outcome_blind_affine_permutation_v1",

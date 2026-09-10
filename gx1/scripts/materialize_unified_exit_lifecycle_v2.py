@@ -43,6 +43,11 @@ from gx1.contracts.unified_exit_lifecycle_v2 import (
     terminal_state_counts_sha256,
     unified_exit_lifecycle_v2_contract,
 )
+from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
+    NO_CAP_AUTHORITY_SCHEMA_VERSION,
+    require_no_cap_authority,
+    require_no_cap_authority_sources,
+)
 
 
 COMPACT_LIFECYCLE_SCHEMA_VERSION = "gx1_unified_exit_compact_lifecycle_v2"
@@ -471,7 +476,11 @@ def _load_terminal_counts(
     entry_rows: int,
 ) -> tuple[dict[tuple[int, int], int | None], dict[str, Any], str]:
     authority = _read_json(authority_path, f"{split.upper()}_ECONOMIC_AUTHORITY")
-    if authority.get("schema_version") != UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION:
+    authority_schema = authority.get("schema_version")
+    if authority_schema not in {
+        UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION,
+        NO_CAP_AUTHORITY_SCHEMA_VERSION,
+    }:
         raise RuntimeError("COMPACT_LIFECYCLE_ECONOMIC_AUTHORITY_SCHEMA_INVALID")
     counts_path = Path(str(authority.get("authority_artifact_path") or ""))
     counts = _read_json(counts_path, f"{split.upper()}_ECONOMIC_COUNTS")
@@ -511,13 +520,25 @@ def _load_terminal_counts(
         ):
             raise RuntimeError("COMPACT_LIFECYCLE_ECONOMIC_COUNTS_INVALID")
         mapping[(entry_row, side_index)] = state_count
-    require_unified_exit_economic_lifecycle_authority(
+    terminal_hash = terminal_state_counts_sha256(mapping)
+    if authority_schema == UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION:
+        require_unified_exit_economic_lifecycle_authority(
+            authority,
+            expected_terminal_state_counts_sha256=terminal_hash,
+        )
+        raise _EconomicAuthorityBlocked(
+            "COMPACT_LIFECYCLE_ECONOMIC_TERMINAL_VERIFIER_UNAVAILABLE"
+        )
+    checked = require_no_cap_authority(
         authority,
-        expected_terminal_state_counts_sha256=terminal_state_counts_sha256(mapping),
+        expected_split=split,
+        expected_dataset_run_id=dataset_run_id,
+        expected_terminal_state_counts_sha256=terminal_hash,
     )
-    raise _EconomicAuthorityBlocked(
-        "COMPACT_LIFECYCLE_ECONOMIC_TERMINAL_VERIFIER_UNAVAILABLE"
-    )
+    require_no_cap_authority_sources(checked)
+    if any(value is not None for value in mapping.values()):
+        raise RuntimeError("COMPACT_LIFECYCLE_NO_CAP_TERMINAL_COUNT_INVALID")
+    return mapping, checked, _sha256_file(authority_path)
 
 
 def _validate_entry_manifest(
