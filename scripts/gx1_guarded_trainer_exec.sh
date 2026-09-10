@@ -35,6 +35,27 @@ close_benchmark() {
   }
 }
 
+benchmark_heartbeat() {
+  local attempt
+  # A single Windows/DrvFS metadata hiccup must not discard a healthy
+  # checkpoint interval.  Keep the receipt's strict 15-second freshness
+  # contract and allow exactly one bounded retry; persistent loss still stops
+  # the child fail-closed before the next telemetry heartbeat.
+  for attempt in 1 2; do
+    if benchmark_action heartbeat; then
+      if (( attempt > 1 )); then
+        guard_log "event=power_benchmark_heartbeat_recovered attempt=$attempt"
+      fi
+      return 0
+    fi
+    guard_log "event=power_benchmark_heartbeat_retry attempt=$attempt max_attempts=2"
+    if (( attempt < 2 )); then
+      /bin/sleep 1
+    fi
+  done
+  return 1
+}
+
 guard_log() {
   [[ -n "$guard_log_path" ]] || return 0
   [[ "$guard_log_path" == /* && -f "$guard_log_path" && ! -L "$guard_log_path" ]] \
@@ -447,7 +468,7 @@ while child_process_exists; do
   /bin/sleep "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS"
   read_guard_uptime
   now_uptime=$guard_uptime_seconds
-  if [[ "$benchmark_claimed" == true ]] && ! benchmark_action heartbeat; then
+  if [[ "$benchmark_claimed" == true ]] && ! benchmark_heartbeat; then
     terminate_child_group power_benchmark_authorization_lost
     child_pid=
     die "power benchmark keeper receipt or scope expired"

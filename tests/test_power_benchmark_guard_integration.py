@@ -21,6 +21,9 @@ def _fixture(tmp_path, *, target=200, telemetry_limit=200, owner_fault=''):
         + 'case "$4" in\n'
         + ('claim) exit 75;;\n' if owner_fault == 'claim' else '')
         + ('heartbeat) exit 75;;\n' if owner_fault == 'heartbeat' else '')
+        + ("heartbeat) if [[ ! -e " + shlex.quote(str(tmp_path / 'heartbeat-failed-once'))
+           + " ]]; then touch " + shlex.quote(str(tmp_path / 'heartbeat-failed-once'))
+           + "; exit 75; fi;;\n" if owner_fault == 'heartbeat_once' else '')
         + ('close) exit 75;;\n' if owner_fault == 'close' else '')
         + '*) exit 0;;\nesac\n')
     python.chmod(0o755)
@@ -69,7 +72,7 @@ def test_lost_scope_heartbeat_stops_child_then_requests_close(tmp_path):
                             env=env, capture_output=True, text=True, timeout=20)
     assert result.returncode == 75
     assert 'power_benchmark_authorization_lost' in result.stderr
-    assert calls.read_text().splitlines() == ['claim', 'heartbeat', 'close']
+    assert calls.read_text().splitlines() == ['claim', 'heartbeat', 'heartbeat', 'close']
     with pytest.raises(ProcessLookupError): os.kill(int(pid_file.read_text()), 0)
 
 
@@ -91,6 +94,16 @@ def test_sigterm_closes_scope_and_terminates_owned_child(tmp_path):
     finally:
         if process.poll() is None:
             process.kill(); process.communicate(timeout=5)
+
+
+def test_one_transient_scope_heartbeat_failure_is_retried(tmp_path):
+    guard, env, calls = _fixture(tmp_path, owner_fault='heartbeat_once')
+    result = subprocess.run(['bash', str(guard), '/bin/sleep', '2'], env=env,
+                            capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr
+    actions = calls.read_text().splitlines()
+    assert actions[:3] == ['claim', 'heartbeat', 'heartbeat']
+    assert actions[-1] == 'close'
 
 
 def test_failed_close_is_not_reported_as_success(tmp_path):
