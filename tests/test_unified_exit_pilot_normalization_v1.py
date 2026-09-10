@@ -16,6 +16,7 @@ from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     build_sampler_benchmark_candidate_set,
     fit_lifetime_summary_normalization,
     iter_physical_summary_samples,
+    require_lifetime_summary_normalization,
 )
 
 
@@ -86,6 +87,27 @@ def test_lifetime_summary_fit_is_train_only_and_registry_bound() -> None:
     assert fitted["val_fit_rows"] == fitted["test_fit_rows"] == 0
     assert fitted["val_mode"] == "apply_frozen_train_transform_only"
     assert fitted["test_accessed"] is False
+
+
+def test_lifetime_summary_normalization_validator_rejects_mutation() -> None:
+    authority = build_physical_summary_sample_authority(
+        successor_transition_count_by_entry=[2, 20, 300],
+        source_lineage_sha256="9" * 64,
+    )
+    rows = authority["fit_row_count"]
+    values = np.arange(rows * 7, dtype=np.float64).reshape(rows, 7)
+    fitted = fit_lifetime_summary_normalization(
+        values=values,
+        sample_authority=authority,
+    )
+    assert require_lifetime_summary_normalization(
+        fitted,
+        expected_sample_authority_sha256=authority["authority_sha256"],
+    ) == fitted
+    bad = copy.deepcopy(fitted)
+    bad["surface"]["center"][0] += 1.0
+    with pytest.raises(RuntimeError, match="SUMMARY_NORMALIZATION_INVALID"):
+        require_lifetime_summary_normalization(bad)
 
 
 def test_lifetime_summary_fit_rejects_mutated_authority() -> None:

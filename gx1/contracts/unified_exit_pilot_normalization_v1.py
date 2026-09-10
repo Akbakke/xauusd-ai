@@ -12,6 +12,7 @@ import pandas as pd
 
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     fit_surface_normalization,
+    require_surface_normalization,
 )
 from gx1.contracts.unified_exit_lifetime_summary_v1 import (
     LIFETIME_SUMMARY_FIELD_ORDER,
@@ -237,6 +238,65 @@ def fit_lifetime_summary_normalization(
     }
     result["normalization_sha256"] = canonical_sha256(result)
     return result
+
+
+def require_lifetime_summary_normalization(
+    value: Mapping[str, Any],
+    *,
+    expected_sample_authority_sha256: str | None = None,
+) -> dict[str, Any]:
+    expected_keys = {
+        "schema_version",
+        "decision",
+        "fit_scope",
+        "sample_authority_sha256",
+        "sample_values_sha256",
+        "lifetime_summary_registry_sha256",
+        "field_order",
+        "field_order_sha256",
+        "surface",
+        "train_fit_rows",
+        "val_fit_rows",
+        "val_mode",
+        "test_fit_rows",
+        "test_accessed",
+        "normalization_sha256",
+    }
+    if not isinstance(value, Mapping) or set(value) != expected_keys:
+        raise RuntimeError("UNIFIED_EXIT_PILOT_SUMMARY_NORMALIZATION_INVALID")
+    observed = dict(value)
+    claimed = observed.pop("normalization_sha256")
+    registry = lifetime_summary_registry()
+    expected_authority = (
+        _require_sha(expected_sample_authority_sha256, "SUMMARY_AUTHORITY")
+        if expected_sample_authority_sha256 is not None
+        else value["sample_authority_sha256"]
+    )
+    if (
+        value["schema_version"] != SUMMARY_NORMALIZATION_SCHEMA_VERSION
+        or value["decision"] != "PASS"
+        or value["fit_scope"] != "train_only_outcome_blind_physical_state_sample"
+        or value["sample_authority_sha256"] != expected_authority
+        or value["lifetime_summary_registry_sha256"] != registry["registry_sha256"]
+        or value["field_order"] != list(LIFETIME_SUMMARY_FIELD_ORDER)
+        or value["field_order_sha256"] != registry["field_order_sha256"]
+        or value["train_fit_rows"] != value["surface"].get("fit_row_count")
+        or value["val_fit_rows"] != 0
+        or value["val_mode"] != "apply_frozen_train_transform_only"
+        or value["test_fit_rows"] != 0
+        or value["test_accessed"] is not False
+        or claimed != canonical_sha256(observed)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PILOT_SUMMARY_NORMALIZATION_INVALID")
+    try:
+        require_surface_normalization(
+            value["surface"],
+            surface="lifetime_summary",
+            field_names=LIFETIME_SUMMARY_FIELD_ORDER,
+        )
+    except (RuntimeError, TypeError, ValueError) as exc:
+        raise RuntimeError("UNIFIED_EXIT_PILOT_SUMMARY_NORMALIZATION_INVALID") from exc
+    return dict(value)
 
 
 def build_first_state_entry_bridge_witness(
