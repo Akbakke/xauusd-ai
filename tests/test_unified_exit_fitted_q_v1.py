@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-
 import pytest
 import torch
 
@@ -12,6 +10,49 @@ from gx1.contracts.unified_exit_fitted_q_v1 import (
     unified_exit_first_state_side_values,
     unified_exit_fitted_q_contract,
 )
+from gx1.contracts import unified_exit_economics_objective_v2 as economics_owner
+
+
+def _economics_readiness(rho: float = 0.08):
+    train_split = "1" * 64
+    train_fold = "2" * 64
+    lineage = "3" * 64
+    policy = "4" * 64
+    hurdle = economics_owner.seal_train_fitted_capital_hurdle_artifact(
+        {
+            "schema_version": economics_owner.CAPITAL_HURDLE_SCHEMA_VERSION,
+            "decision": "PASS",
+            "fitted_splits": ["train"],
+            "validation_or_test_used": False,
+            "train_split_sha256": train_split,
+            "train_fold_sha256": train_fold,
+            "source_lineage_sha256": lineage,
+            "annual_continuous_hurdle_rate": rho,
+            "rate_unit": "continuous_per_wall_clock_year",
+            "seconds_per_year": economics_owner.SECONDS_PER_YEAR,
+            "fit_method": "unit_train_only",
+            "fit_evidence_sha256": "5" * 64,
+        }
+    )
+    objective = economics_owner.build_unified_exit_economics_objective_contract(
+        capital_hurdle_artifact=hurdle,
+        expected_train_split_sha256=train_split,
+        expected_train_fold_sha256=train_fold,
+        expected_source_lineage_sha256=lineage,
+        policy_sha256=policy,
+    )
+    return {
+        "schema_version": "gx1_unified_exit_training_economics_readiness_v3",
+        "mode": "economics_objective_v2",
+        "capital_hurdle_artifact": hurdle,
+        "economics_objective_contract": objective,
+        "expected_train_split_sha256": train_split,
+        "expected_train_fold_sha256": train_fold,
+        "expected_source_lineage_sha256": lineage,
+        "policy_sha256": policy,
+        "proper_policy_certificate_sha256": None,
+        "test_data_used": False,
+    }
 
 
 def _two_episode_counterexample():
@@ -183,26 +224,11 @@ def test_right_censor_separates_policy_validity_from_bellman_mask():
     assert targets[..., 0, 0].item() == 5.0
 
 
-def test_economics_readiness_binds_real_artifact_and_contractivity(tmp_path):
-    artifact = tmp_path / "economics.json"
-    artifact.write_text('{"decision":"PASS"}')
-    readiness = {
-        "schema_version": "gx1_unified_exit_training_economics_readiness_v2",
-        "mode": "elapsed_time_discount_v1",
-        "qualification_artifact_path": str(artifact),
-        "qualification_artifact_sha256": hashlib.sha256(
-            artifact.read_bytes()
-        ).hexdigest(),
-        "economic_terminal_policy_sha256": "a" * 64,
-        "train_capital_hurdle_annual_rate": 0.08,
-        "train_capital_hurdle_source_sha256": "b" * 64,
-        "hold_running_capital_charge_bps_per_second": 0.0,
-        "proper_policy_certificate_sha256": None,
-        "test_data_used": False,
-    }
+def test_economics_readiness_binds_verified_owner_contract():
+    readiness = _economics_readiness()
     assert require_unified_exit_unbounded_training_readiness(
         readiness, context="UNIT"
-    )["mode"] == "elapsed_time_discount_v1"
+    )["mode"] == "economics_objective_v2"
     readiness["mode"] = "undiscounted_proper_policy_v1"
     with pytest.raises(RuntimeError, match="PROPER_POLICY_REQUIRED"):
         require_unified_exit_unbounded_training_readiness(

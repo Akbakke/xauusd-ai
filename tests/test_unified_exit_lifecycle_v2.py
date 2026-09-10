@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -21,6 +19,7 @@ from gx1.contracts.unified_exit_episode_pack_v2 import (
     require_unified_exit_episode_pack_v2,
     seal_unified_exit_episode_pack_v2,
 )
+from gx1.contracts import unified_exit_economics_objective_v2 as economics_owner
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION,
     UNIFIED_EXIT_LIFECYCLE_V2_SCHEMA_VERSION,
@@ -35,6 +34,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+    _episode_native_exit_train,
     _fitted_q_targets_for_chunk_v2,
 )
 
@@ -128,13 +128,54 @@ def test_chunk_schedule_is_deterministic_outcome_blind_permutation():
         outcome_blind_chunk_index(epoch_index=epoch, **identity)
         for epoch in range(14)
     ] == list(order) * 2
+def _economics_readiness(rho: float = 0.05):
+    train_split = "1" * 64
+    train_fold = "2" * 64
+    lineage = "3" * 64
+    policy = "4" * 64
+    hurdle = economics_owner.seal_train_fitted_capital_hurdle_artifact(
+        {
+            "schema_version": economics_owner.CAPITAL_HURDLE_SCHEMA_VERSION,
+            "decision": "PASS",
+            "fitted_splits": ["train"],
+            "validation_or_test_used": False,
+            "train_split_sha256": train_split,
+            "train_fold_sha256": train_fold,
+            "source_lineage_sha256": lineage,
+            "annual_continuous_hurdle_rate": rho,
+            "rate_unit": "continuous_per_wall_clock_year",
+            "seconds_per_year": economics_owner.SECONDS_PER_YEAR,
+            "fit_method": "unit_train_only",
+            "fit_evidence_sha256": "5" * 64,
+        }
+    )
+    objective = economics_owner.build_unified_exit_economics_objective_contract(
+        capital_hurdle_artifact=hurdle,
+        expected_train_split_sha256=train_split,
+        expected_train_fold_sha256=train_fold,
+        expected_source_lineage_sha256=lineage,
+        policy_sha256=policy,
+    )
+    return {
+        "schema_version": "gx1_unified_exit_training_economics_readiness_v3",
+        "mode": "economics_objective_v2",
+        "capital_hurdle_artifact": hurdle,
+        "economics_objective_contract": objective,
+        "expected_train_split_sha256": train_split,
+        "expected_train_fold_sha256": train_fold,
+        "expected_source_lineage_sha256": lineage,
+        "policy_sha256": policy,
+        "proper_policy_certificate_sha256": None,
+        "test_data_used": False,
+    }
+
+
 def _pack(
     *,
     chunk_start: int,
     valid_count: int,
     successor: bool,
     censored: bool,
-    qualification_artifact,
 ):
     encoded = chunk_start + valid_count + int(successor)
     warm = EXIT_FEATURE_SEQUENCE_BARS - 1
@@ -165,20 +206,7 @@ def _pack(
         "lifecycle_manifest_sha256": "4" * 64,
         "chunk_pointer_stream_sha256": "5" * 64,
         "multi_tf_cache_identity_sha256": "6" * 64,
-        "unbounded_exit_training_readiness": {
-            "schema_version": "gx1_unified_exit_training_economics_readiness_v2",
-            "mode": "elapsed_time_discount_v1",
-            "qualification_artifact_path": str(qualification_artifact),
-            "qualification_artifact_sha256": hashlib.sha256(
-                qualification_artifact.read_bytes()
-            ).hexdigest(),
-            "economic_terminal_policy_sha256": "7" * 64,
-            "train_capital_hurdle_annual_rate": 0.05,
-            "train_capital_hurdle_source_sha256": "9" * 64,
-            "hold_running_capital_charge_bps_per_second": 0.0,
-            "proper_policy_certificate_sha256": None,
-            "test_data_used": False,
-        },
+        "unbounded_exit_training_readiness": _economics_readiness(),
         "exit_local_history_x": np.zeros(
             (warm + encoded, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32
         ),
@@ -219,14 +247,11 @@ def _pack(
 def test_episode_pack_v2_carries_full_prefix_and_censor_semantics(
     chunk_start, valid_count, successor, censored, tmp_path
 ):
-    qualification_artifact = tmp_path / "economics.json"
-    qualification_artifact.write_text('{"decision":"PASS"}')
     pack = _pack(
         chunk_start=chunk_start,
         valid_count=valid_count,
         successor=successor,
         censored=censored,
-        qualification_artifact=qualification_artifact,
     )
     require_unified_exit_episode_pack_v2(
         pack,
@@ -260,14 +285,11 @@ def test_lifecycle_v2_right_censors_before_unknown_clock_gap():
 
 
 def test_trainer_v2_bootstraps_from_frozen_successor_state(tmp_path):
-    qualification_artifact = tmp_path / "economics.json"
-    qualification_artifact.write_text('{"decision":"PASS"}')
     pack = _pack(
         chunk_start=0,
         valid_count=3,
         successor=True,
         censored=False,
-        qualification_artifact=qualification_artifact,
     )
 
     class _Target:
@@ -293,3 +315,53 @@ def test_trainer_v2_bootstraps_from_frozen_successor_state(tmp_path):
     assert targets.shape == (1, 1, 3, 2)
     assert target_mask[0, 0, -1, 0]
     assert 6.99 < float(targets[0, 0, -1, 0]) < 7.0
+
+
+def test_canonical_trainer_dispatches_to_v2_chunk_consumer():
+    pack = _pack(chunk_start=0, valid_count=3, successor=True, censored=False)
+
+    class _Model:
+        training = False
+
+        def __init__(self, *, online):
+            self.online = online
+            self.task_log_variances = {
+                "unified_exit_action": torch.tensor(0.0)
+            }
+
+        def forward_exit_incremental_prefix(self, **kwargs):
+            state_count = kwargs["exit_path_x"].shape[2]
+            token = kwargs["entry_decision_representation"]
+            base = token.sum(dim=1).view(1, 1, 1, 1) if self.online else 0.0
+            q = torch.zeros((1, 2, state_count, 2), dtype=torch.float32) + base
+            if not self.online:
+                q[0, 0, -1] = torch.tensor([3.0, 7.0])
+            return {
+                "exit_action_q_bps": q,
+                "exit_action_valid_mask": torch.ones_like(q, dtype=torch.bool),
+            }
+
+    class _Dataset:
+        per_tf_seq_lens = {name: 2 for name in EXIT_MTF_CONTEXT_TIMEFRAMES}
+        _multi_tf_cache_identity_sha256 = "6" * 64
+
+        @staticmethod
+        def materialize_exit_training_chunk_v2(entry_row_index):
+            assert entry_row_index == 4
+            return pack
+
+    gradients, stats, _entry_targets, entry_valid = _episode_native_exit_train(
+        model=_Model(online=True),
+        target_model=_Model(online=False),
+        entry_decision_representations=torch.zeros((1, 256)),
+        target_entry_decision_representations=torch.zeros((1, 256)),
+        entry_row_indices=torch.tensor([4]),
+        dataset=_Dataset(),
+        device=torch.device("cpu"),
+        grad_accum_steps=1,
+        exit_cooperation_gate_epoch={},
+        exit_feature_tf_gate_epoch={},
+    )
+    assert stats["eligible_entry_rows"] == 1
+    assert torch.isfinite(gradients).all() and gradients.abs().sum() > 0
+    assert not entry_valid.any()

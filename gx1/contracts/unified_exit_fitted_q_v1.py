@@ -11,13 +11,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import torch
+
+from gx1.contracts.unified_exit_economics_objective_v2 import (
+    require_train_fitted_capital_hurdle_artifact,
+    require_unified_exit_economics_objective_contract,
+)
 
 
 UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v4"
@@ -308,86 +311,80 @@ def build_unified_exit_fitted_q_targets(
 def require_unified_exit_unbounded_training_readiness(
     value: Mapping[str, Any] | None, *, context: str
 ) -> dict[str, Any]:
-    """Admit only hash-bound, TRAIN-owned contractive Exit economics.
+    """Admit only the machine-verified TRAIN-owned economics v2 owner."""
 
-    The gamma=1 alternative remains blocked until a separate machine-verified
-    proper-policy and running-capital-charge owner exists.  A boolean claim is
-    insufficient.  Capacity-terminal datasets also fail this boundary.
-    """
-
+    error = (
+        f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+    )
     if not isinstance(value, Mapping):
-        raise RuntimeError(
-            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
-        )
+        raise RuntimeError(error)
     observed = dict(value)
     expected_keys = {
         "schema_version",
         "mode",
-        "qualification_artifact_path",
-        "qualification_artifact_sha256",
-        "economic_terminal_policy_sha256",
-        "train_capital_hurdle_annual_rate",
-        "train_capital_hurdle_source_sha256",
-        "hold_running_capital_charge_bps_per_second",
+        "capital_hurdle_artifact",
+        "economics_objective_contract",
+        "expected_train_split_sha256",
+        "expected_train_fold_sha256",
+        "expected_source_lineage_sha256",
+        "policy_sha256",
         "proper_policy_certificate_sha256",
         "test_data_used",
     }
-    mode = observed.get("mode")
-    artifact_path = Path(str(observed.get("qualification_artifact_path") or ""))
-    artifact_sha = observed.get("qualification_artifact_sha256")
     if (
         set(observed) != expected_keys
         or observed.get("schema_version")
-        != "gx1_unified_exit_training_economics_readiness_v2"
-        or mode
-        != "elapsed_time_discount_v1"
-        or not artifact_path.is_absolute()
-        or artifact_path.is_symlink()
-        or not artifact_path.is_file()
+        != "gx1_unified_exit_training_economics_readiness_v3"
+        or observed.get("mode") != "economics_objective_v2"
+        or observed.get("proper_policy_certificate_sha256") is not None
         or observed.get("test_data_used") is not False
     ):
-        raise RuntimeError(
-            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
-        )
-    for digest in (
-        artifact_sha,
-        observed.get("economic_terminal_policy_sha256"),
+        raise RuntimeError(error)
+    for key in (
+        "expected_train_split_sha256",
+        "expected_train_fold_sha256",
+        "expected_source_lineage_sha256",
+        "policy_sha256",
     ):
+        digest = observed.get(key)
         if (
             not isinstance(digest, str)
             or len(digest) != 64
             or any(character not in "0123456789abcdef" for character in digest)
         ):
-            raise RuntimeError(
-                f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
-            )
-    if hashlib.sha256(artifact_path.read_bytes()).hexdigest() != artifact_sha:
-        raise RuntimeError(
-            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+            raise RuntimeError(error)
+    try:
+        hurdle = require_train_fitted_capital_hurdle_artifact(
+            observed["capital_hurdle_artifact"],
+            expected_train_split_sha256=observed["expected_train_split_sha256"],
+            expected_train_fold_sha256=observed["expected_train_fold_sha256"],
+            expected_source_lineage_sha256=observed["expected_source_lineage_sha256"],
         )
-    hurdle = observed.get("train_capital_hurdle_annual_rate")
-    hurdle_sha = observed.get("train_capital_hurdle_source_sha256")
-    running_charge = observed.get("hold_running_capital_charge_bps_per_second")
-    proper_certificate = observed.get("proper_policy_certificate_sha256")
-    valid_mode = (
-        isinstance(hurdle, (int, float))
-        and not isinstance(hurdle, bool)
-        and math.isfinite(float(hurdle))
-        and float(hurdle) > 0.0
-        and isinstance(hurdle_sha, str)
-        and len(hurdle_sha) == 64
-        and all(c in "0123456789abcdef" for c in hurdle_sha)
-        and isinstance(running_charge, (int, float))
-        and not isinstance(running_charge, bool)
-        and math.isfinite(float(running_charge))
-        and float(running_charge) == 0.0
-        and proper_certificate is None
-    )
-    if not valid_mode:
-        raise RuntimeError(
-            f"{context}_UNBOUNDED_EXIT_ECONOMIC_TERMINAL_OR_PROPER_POLICY_REQUIRED"
+        economics = require_unified_exit_economics_objective_contract(
+            observed["economics_objective_contract"],
+            capital_hurdle_artifact=hurdle,
+            expected_train_split_sha256=observed["expected_train_split_sha256"],
+            expected_train_fold_sha256=observed["expected_train_fold_sha256"],
+            expected_source_lineage_sha256=observed["expected_source_lineage_sha256"],
+            policy_sha256=observed["policy_sha256"],
+            proper_policy_certificate=None,
         )
-    return observed
+    except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+        raise RuntimeError(error) from exc
+    if (
+        float(economics["annual_continuous_hurdle_rate"]) <= 0.0
+        or economics["same_capital_hurdle_running_cost_allowed"] is not False
+        or economics["capital_hurdle_double_counting_forbidden"] is not True
+        or economics["undiscounted_net_cash_pnl_is_separate"] is not True
+        or economics["explicit_gap_classification_required"] is not True
+    ):
+        raise RuntimeError(error)
+    return {
+        **observed,
+        "validated_annual_continuous_hurdle_rate": float(
+            economics["annual_continuous_hurdle_rate"]
+        ),
+    }
 
 
 def unified_exit_first_state_side_values(
