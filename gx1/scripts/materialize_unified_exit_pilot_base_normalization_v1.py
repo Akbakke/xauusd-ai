@@ -30,7 +30,6 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
-    MODEL_NATIVE_SIGNAL_FIELDS,
 )
 from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
@@ -84,6 +83,11 @@ def fit_base(
     view = _json(normalization_view_path)
     population = _json(population_witness_path)
     child = admission["splits"]["train"]
+    parent_manifest_path = Path(view["parent_train_manifest"]["path"])
+    if _sha(parent_manifest_path) != view["parent_train_manifest"]["sha256"]:
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_PARENT_MANIFEST_INVALID")
+    parent_manifest = _json(parent_manifest_path)
+    signal_fields = tuple(parent_manifest["feature_contract"]["signal_bridge_fields"])
     if (
         admission.get("decision") != "PASS"
         or view.get("decision") != "PASS"
@@ -128,11 +132,11 @@ def fit_base(
         else:
             merged[-1][1] = max(merged[-1][1], right)
     local = np.concatenate([np.arange(left, right, dtype=np.int64) for left, right in merged])
-    aliases = _derive_temporal_aliases(MODEL_NATIVE_SIGNAL_FIELDS)
+    aliases = _derive_temporal_aliases(signal_fields)
     signal_parts = [MatrixPopulationPart(m5_signal, row_indices=entry_indices, source="entry_m5"), MatrixPopulationPart(m1_signal, row_indices=local, source="exit_m1")]
     ctx_parts = [MatrixPopulationPart(entry_ctx, source="entry"), MatrixPopulationPart(m1_ctx, row_indices=current, source="exit")]
     cat_parts = [MatrixPopulationPart(entry_cat, source="entry"), MatrixPopulationPart(m1_cat, row_indices=current, source="exit")]
-    signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=MODEL_NATIVE_SIGNAL_FIELDS, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS)
+    signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=signal_fields, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS)
     ctx_raw = fit_surface_normalization(ctx_parts, surface="ctx_cont", field_names=MODEL_NATIVE_CTX_CONT_FIELDS, row_count=len(entry_times) + len(current), semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
     ctx_surface = share_temporal_alias_stats_from_signal(ctx_raw, signal_surface, temporal_aliases=aliases, ctx_cont_values=ctx_parts)
     surfaces: dict[str, Any] = {"signal": signal_surface, "ctx_cont": ctx_surface}
