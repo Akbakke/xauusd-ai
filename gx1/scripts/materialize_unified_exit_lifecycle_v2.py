@@ -34,6 +34,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+    UnifiedExitLifecycleCorpus,
 )
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_CHUNK_ROWS,
@@ -50,6 +51,7 @@ ECONOMIC_COUNTS_SCHEMA_VERSION = "gx1_unified_exit_economic_terminal_counts_v1"
 PAIR_SCHEDULE_SCHEMA_VERSION = "gx1_unified_exit_pair_chunk_schedule_v1"
 PAIR_COVERAGE_SCHEMA_VERSION = "gx1_unified_exit_pair_chunk_coverage_v1"
 PRODUCER_SOURCE_SCHEMA_VERSION = "gx1_unified_exit_compact_producer_source_v1"
+ADOPTION_WITNESS_SCHEMA_VERSION = "gx1_unified_exit_v1_adoption_witness_v1"
 COMPACT_COLUMNS = (
     "schema_version",
     "entry_row_index",
@@ -72,6 +74,12 @@ COMPACT_COLUMNS = (
     "short_terminal_state_m1_row",
     "long_chunk_pointer_stream_sha256",
     "short_chunk_pointer_stream_sha256",
+    "entry_binding_sha256",
+    "row_identity_sha256",
+    "gap_classification",
+    "gap_seconds",
+    "gap_after_m1_row",
+    "gap_binding_sha256",
     "m1_clock_sha256",
     "m1_source_sha256",
 )
@@ -128,6 +136,48 @@ def _read_json(path: Path, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RuntimeError(f"COMPACT_LIFECYCLE_{label}_JSON_INVALID")
     return value
+
+
+class _EconomicAuthorityBlocked(RuntimeError):
+    pass
+
+
+def _require_full_v1_admission(
+    *,
+    entry_paths: Mapping[str, Path],
+    entry_manifest_paths: Mapping[str, Path],
+    dataset_run_id: str,
+) -> dict[str, Any]:
+    declared_roots: set[Path] = set()
+    bindings: dict[str, dict[str, str]] = {}
+    for split in ("train", "val"):
+        manifest_path = entry_manifest_paths[split]
+        manifest = _read_json(manifest_path, f"{split.upper()}_ENTRY_MANIFEST")
+        extra = manifest.get("extra")
+        lifecycle = extra.get("unified_exit_lifecycle") if isinstance(extra, Mapping) else None
+        root_dir = Path(
+            str(lifecycle.get("output_dir") or "")
+            if isinstance(lifecycle, Mapping)
+            else ""
+        )
+        declared_roots.add(root_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json")
+        bindings[split] = {
+            "path": str(manifest_path),
+            "sha256": _sha256_file(manifest_path),
+        }
+    if len(declared_roots) != 1:
+        raise RuntimeError("COMPACT_LIFECYCLE_V1_ROOT_IDENTITY_INVALID")
+    root_path = next(iter(declared_roots))
+    try:
+        return UnifiedExitLifecycleCorpus._require_file_admission(
+            root_manifest_path=root_path,
+            entry_parquets=entry_paths,
+            entry_manifest_bindings=bindings,
+            dataset_run_id=dataset_run_id,
+            splits=("train", "val"),
+        )
+    except Exception as exc:
+        raise RuntimeError("COMPACT_LIFECYCLE_FULL_V1_ADOPTION_INVALID") from exc
 
 
 def pair_chunk_permutation(
@@ -319,6 +369,8 @@ def scheduled_pair_chunk_pointer(
         "pair_chunk_slot": slot,
         "chunk_start_bars_in_trade": chunk_start,
         "chunk_m1_start_row": int(compact_row["entry_m1_start_row"]) + chunk_start,
+        "gap_classification": compact_row["gap_classification"],
+        "gap_binding_sha256": compact_row["gap_binding_sha256"],
         "both_sides_share_timeline": True,
         "selection_uses_outcome_values": False,
         "sides": sides,
@@ -334,6 +386,7 @@ def _chunk_pointer_stream_sha256(
     entry_m1_start_row: int,
     state_count: int,
     economic_terminal: bool,
+    gap_binding_sha256: str,
     m1_clock_sha256: str,
     m1_source_sha256: str,
 ) -> str:
@@ -351,6 +404,9 @@ def _chunk_pointer_stream_sha256(
             "successor_formula": "chunk_end_lt_state_count_then_entry_m1_start_row+chunk_end",
             "economic_terminal": economic_terminal,
             "right_censor_at_last_state": not economic_terminal,
+            "gap_binding_sha256": _require_sha(
+                gap_binding_sha256, "GAP_BINDING"
+            ),
             "m1_clock_sha256": _require_sha(m1_clock_sha256, "M1_CLOCK"),
             "m1_source_sha256": m1_source_sha256,
         }
@@ -361,6 +417,24 @@ def _m1_clock_sha256(clock_ns: np.ndarray) -> str:
     return hashlib.sha256(
         np.ascontiguousarray(clock_ns, dtype="<i8").tobytes()
     ).hexdigest()
+
+
+def _row_identity_sha256(value: Mapping[str, Any]) -> str:
+    return _canonical_sha256(
+        {
+            "schema_version": COMPACT_LIFECYCLE_SCHEMA_VERSION,
+            "entry_row_index": int(value["entry_row_index"]),
+            "entry_time_ns": int(pd.Timestamp(value["entry_time"]).value),
+            "entry_m1_start_row": int(value["entry_m1_start_row"]),
+            "first_state_row_time_ns": int(
+                pd.Timestamp(value["first_state_row_time"]).value
+            ),
+            "entry_binding_sha256": value["entry_binding_sha256"],
+            "m1_source_sha256": value["m1_source_sha256"],
+            "m1_clock_sha256": value["m1_clock_sha256"],
+            "gap_binding_sha256": value["gap_binding_sha256"],
+        }
+    )
 
 
 def _compact_pointer_stream_sha256(frame: pd.DataFrame) -> str:
@@ -441,7 +515,9 @@ def _load_terminal_counts(
         authority,
         expected_terminal_state_counts_sha256=terminal_state_counts_sha256(mapping),
     )
-    return mapping, authority, _sha256_file(authority_path)
+    raise _EconomicAuthorityBlocked(
+        "COMPACT_LIFECYCLE_ECONOMIC_TERMINAL_VERIFIER_UNAVAILABLE"
+    )
 
 
 def _validate_entry_manifest(
@@ -450,7 +526,8 @@ def _validate_entry_manifest(
     entry_path: Path,
     split: str,
     dataset_run_id: str,
-) -> tuple[dict[str, Any], str, str, int, str, str]:
+    full_v1_admission: Mapping[str, Any],
+) -> tuple[dict[str, Any], int, dict[str, Any]]:
     manifest = _read_json(manifest_path, f"{split.upper()}_ENTRY_MANIFEST")
     extra = manifest.get("extra")
     guard = extra.get("pretest_test_guard") if isinstance(extra, Mapping) else None
@@ -500,6 +577,16 @@ def _validate_entry_manifest(
     )
     split_bindings = lifecycle_root.get("splits")
     binding = split_bindings.get(split) if isinstance(split_bindings, Mapping) else None
+    admitted_splits = full_v1_admission.get("splits")
+    admitted_split = (
+        admitted_splits.get(split) if isinstance(admitted_splits, Mapping) else None
+    )
+    entry_windows = full_v1_admission.get("entry_windows")
+    admitted_window = (
+        entry_windows.get(split) if isinstance(entry_windows, Mapping) else None
+    )
+    manifest_sha = _sha256_file(manifest_path)
+    root_sha = _sha256_file(lifecycle_root_path)
     if (
         lifecycle_root.get("schema_version")
         != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
@@ -510,16 +597,29 @@ def _validate_entry_manifest(
         or binding.get("entry_dataset_sha256") != entry_sha
         or isinstance(binding.get("episode_rows"), bool)
         or binding.get("episode_rows") != entry_rows * 2
+        or full_v1_admission.get("root_manifest_path") != lifecycle_root_path
+        or full_v1_admission.get("root_manifest_sha256") != root_sha
+        or not isinstance(admitted_split, Mapping)
+        or admitted_split.get("entry_path") != entry_path
+        or not isinstance(admitted_window, Mapping)
+        or admitted_window.get("manifest_sha256") != manifest_sha
     ):
         raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_ARTIFACT_BINDING_INVALID")
-    return (
-        manifest,
-        _sha256_file(manifest_path),
-        entry_sha,
-        entry_rows,
-        str(lifecycle_root_path),
-        _sha256_file(lifecycle_root_path),
-    )
+    witness = {
+        "schema_version": ADOPTION_WITNESS_SCHEMA_VERSION,
+        "split": split,
+        "dataset_run_id": dataset_run_id,
+        "entry_parquet_path": str(entry_path),
+        "entry_parquet_sha256": entry_sha,
+        "entry_manifest_path": str(manifest_path),
+        "entry_manifest_sha256": manifest_sha,
+        "lifecycle_root_path": str(lifecycle_root_path),
+        "lifecycle_root_sha256": root_sha,
+        "full_v1_admission_verified": True,
+        "test_accessed": False,
+    }
+    witness["witness_sha256"] = _canonical_sha256(witness)
+    return manifest, entry_rows, witness
 
 
 def _validate_m1_source(
@@ -558,12 +658,18 @@ def build_compact_split(
     split_end: Any,
     terminal_state_count_by_entry_side: Mapping[tuple[int, int], int | None],
     m1_source_sha256: str,
+    gap_classification_source_sha256: str,
+    entry_binding_sha256: str,
 ) -> pd.DataFrame:
     """Build one compact row per Entry pair and bind all successor pointers."""
 
     if split not in {"train", "val"}:
         raise RuntimeError("COMPACT_LIFECYCLE_SPLIT_FORBIDDEN")
     source_sha = _require_sha(m1_source_sha256, "M1_SOURCE")
+    gap_source_sha = _require_sha(
+        gap_classification_source_sha256, "GAP_CLASSIFICATION_SOURCE"
+    )
+    entry_binding = _require_sha(entry_binding_sha256, "ENTRY_BINDING")
     entries = pd.DatetimeIndex(pd.to_datetime(entry_times, utc=True)).as_unit("ns")
     clock = pd.DatetimeIndex(pd.to_datetime(m1_times, utc=True)).as_unit("ns")
     if (
@@ -600,12 +706,48 @@ def build_compact_split(
         raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_M1_OPEN_MISSING")
     delta_ns = int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
     available_stop = int(np.searchsorted(clock_ns, end.value - delta_ns, side="right"))
+    gap_after_rows = np.flatnonzero(np.diff(clock_ns) != delta_ns)
     rows: list[dict[str, Any]] = []
     for entry_row, start_value in enumerate(starts.tolist()):
         start = int(start_value)
-        available = available_stop - start
+        gap_position = int(np.searchsorted(gap_after_rows, start, side="left"))
+        gap_after = (
+            int(gap_after_rows[gap_position])
+            if gap_position < len(gap_after_rows)
+            and int(gap_after_rows[gap_position]) < available_stop - 1
+            else -1
+        )
+        contiguous_stop = min(
+            available_stop,
+            gap_after + 1 if gap_after >= 0 else available_stop,
+        )
+        available = contiguous_stop - start
         if available < 1:
             raise RuntimeError("COMPACT_LIFECYCLE_NO_STATE_BEFORE_SPLIT_END")
+        if gap_after >= 0:
+            gap_seconds = int((clock_ns[gap_after + 1] - clock_ns[gap_after]) // 1_000_000_000)
+            before = clock[gap_after]
+            after = clock[gap_after + 1]
+            gap_classification = (
+                "weekend_source_absence"
+                if gap_seconds >= 24 * 60 * 60
+                and (before.weekday() == 4 or after.weekday() in (6, 0))
+                else "unknown_source_absence"
+            )
+        else:
+            gap_seconds = 0
+            gap_classification = "split_end"
+        gap_binding_sha = _canonical_sha256(
+            {
+                "schema_version": "gx1_m1_gap_censor_binding_v1",
+                "entry_row_index": entry_row,
+                "classification_source_sha256": gap_source_sha,
+                "classification": gap_classification,
+                "gap_after_m1_row": gap_after,
+                "gap_seconds": gap_seconds,
+                "successor_across_gap_allowed": False,
+            }
+        )
         side_values: list[dict[str, Any]] = []
         for side_index in (0, 1):
             terminal_count = terminal_state_count_by_entry_side[(entry_row, side_index)]
@@ -627,14 +769,14 @@ def build_compact_split(
                         entry_m1_start_row=start,
                         state_count=state_count,
                         economic_terminal=terminal_count is not None,
+                        gap_binding_sha256=gap_binding_sha,
                         m1_clock_sha256=clock_sha,
                         m1_source_sha256=source_sha,
                     ),
                 }
             )
         long, short = side_values
-        rows.append(
-            {
+        row = {
                 "schema_version": COMPACT_LIFECYCLE_SCHEMA_VERSION,
                 "entry_row_index": entry_row,
                 "entry_time": entries[entry_row],
@@ -656,25 +798,54 @@ def build_compact_split(
                 "short_terminal_state_m1_row": short["terminal_row"],
                 "long_chunk_pointer_stream_sha256": long["pointer_sha"],
                 "short_chunk_pointer_stream_sha256": short["pointer_sha"],
+                "entry_binding_sha256": entry_binding,
+                "row_identity_sha256": "",
+                "gap_classification": gap_classification,
+                "gap_seconds": gap_seconds,
+                "gap_after_m1_row": gap_after,
+                "gap_binding_sha256": gap_binding_sha,
                 "m1_clock_sha256": clock_sha,
                 "m1_source_sha256": source_sha,
             }
-        )
+        row["row_identity_sha256"] = _row_identity_sha256(row)
+        rows.append(row)
     frame = pd.DataFrame(rows, columns=COMPACT_COLUMNS)
-    require_compact_split(frame, split_end=end, m1_times=clock)
+    require_compact_split(
+        frame,
+        split_end=end,
+        m1_times=clock,
+        expected_m1_source_sha256=source_sha,
+        expected_entry_binding_sha256=entry_binding,
+        expected_gap_classification_source_sha256=gap_source_sha,
+    )
     return frame
 
 
 def require_compact_split(
-    frame: pd.DataFrame, *, split_end: Any, m1_times: Sequence[Any]
+    frame: pd.DataFrame,
+    *,
+    split_end: Any,
+    m1_times: Sequence[Any],
+    expected_m1_source_sha256: str,
+    expected_entry_binding_sha256: str,
+    expected_gap_classification_source_sha256: str,
 ) -> pd.DataFrame:
+    source_sha = _require_sha(expected_m1_source_sha256, "EXPECTED_M1_SOURCE")
+    entry_binding = _require_sha(
+        expected_entry_binding_sha256, "EXPECTED_ENTRY_BINDING"
+    )
+    gap_source_sha = _require_sha(
+        expected_gap_classification_source_sha256,
+        "EXPECTED_GAP_CLASSIFICATION_SOURCE",
+    )
     if (
         not isinstance(frame, pd.DataFrame)
         or tuple(frame.columns) != COMPACT_COLUMNS
         or frame.empty
         or frame["schema_version"].ne(COMPACT_LIFECYCLE_SCHEMA_VERSION).any()
         or frame["entry_row_index"].tolist() != list(range(len(frame)))
-        or frame["m1_source_sha256"].nunique() != 1
+        or frame["m1_source_sha256"].ne(source_sha).any()
+        or frame["entry_binding_sha256"].ne(entry_binding).any()
     ):
         raise RuntimeError("COMPACT_LIFECYCLE_FRAME_INVALID")
     clock = pd.DatetimeIndex(pd.to_datetime(m1_times, utc=True)).as_unit("ns")
@@ -684,6 +855,57 @@ def require_compact_split(
     for row in frame.itertuples(index=False):
         if row.m1_clock_sha256 != clock_sha:
             raise RuntimeError("COMPACT_LIFECYCLE_M1_CLOCK_BINDING_INVALID")
+        gap_after = int(row.gap_after_m1_row)
+        if gap_after >= 0:
+            if (
+                gap_after < int(row.entry_m1_start_row)
+                or gap_after + 1 >= len(clock)
+            ):
+                raise RuntimeError("COMPACT_LIFECYCLE_GAP_CENSOR_INVALID")
+            observed_gap_seconds = int(
+                (clock_ns[gap_after + 1] - clock_ns[gap_after]) // 1_000_000_000
+            )
+            expected_gap_classification = (
+                "weekend_source_absence"
+                if observed_gap_seconds >= 24 * 60 * 60
+                and (
+                    clock[gap_after].weekday() == 4
+                    or clock[gap_after + 1].weekday() in (6, 0)
+                )
+                else "unknown_source_absence"
+            )
+            if (
+                clock_ns[gap_after + 1] - clock_ns[gap_after]
+                == int(pd.Timedelta(minutes=1).value)
+                or int(row.available_state_count)
+                != gap_after - int(row.entry_m1_start_row) + 1
+                or int(row.gap_seconds) != observed_gap_seconds
+                or row.gap_classification != expected_gap_classification
+                or np.any(
+                    np.diff(
+                        clock_ns[int(row.entry_m1_start_row) : gap_after + 1]
+                    )
+                    != int(pd.Timedelta(minutes=1).value)
+                )
+            ):
+                raise RuntimeError("COMPACT_LIFECYCLE_GAP_CENSOR_INVALID")
+        elif row.gap_classification != "split_end" or int(row.gap_seconds) != 0:
+            raise RuntimeError("COMPACT_LIFECYCLE_GAP_CENSOR_INVALID")
+        expected_gap_binding = _canonical_sha256(
+            {
+                "schema_version": "gx1_m1_gap_censor_binding_v1",
+                "entry_row_index": int(row.entry_row_index),
+                "classification_source_sha256": gap_source_sha,
+                "classification": str(row.gap_classification),
+                "gap_after_m1_row": gap_after,
+                "gap_seconds": int(row.gap_seconds),
+                "successor_across_gap_allowed": False,
+            }
+        )
+        if row.gap_binding_sha256 != expected_gap_binding:
+            raise RuntimeError("COMPACT_LIFECYCLE_GAP_BINDING_INVALID")
+        if row.row_identity_sha256 != _row_identity_sha256(row._asdict()):
+            raise RuntimeError("COMPACT_LIFECYCLE_ROW_IDENTITY_INVALID")
         for side in ("long", "short"):
             count = int(getattr(row, f"{side}_lifecycle_state_count"))
             chunks = int(getattr(row, f"{side}_chunk_count"))
@@ -707,6 +929,7 @@ def require_compact_split(
                 entry_m1_start_row=int(row.entry_m1_start_row),
                 state_count=count,
                 economic_terminal=terminal,
+                gap_binding_sha256=str(row.gap_binding_sha256),
                 m1_clock_sha256=clock_sha,
                 m1_source_sha256=str(row.m1_source_sha256),
             )
@@ -729,22 +952,21 @@ def _build_split_from_files(
     dataset_run_id: str,
     m1_times: pd.DatetimeIndex,
     m1_source_sha256: str,
+    m1_source_manifest_sha256: str,
+    full_v1_admission: Mapping[str, Any],
     planned_epochs: int,
     claim_full_coverage: bool,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    (
-        _manifest,
-        entry_manifest_sha,
-        entry_sha,
-        bound_entry_rows,
-        entry_lifecycle_root_path,
-        entry_lifecycle_root_sha,
-    ) = _validate_entry_manifest(
+    _manifest, bound_entry_rows, adoption_witness = _validate_entry_manifest(
         entry_manifest_path,
         entry_path=entry_path,
         split=split,
         dataset_run_id=dataset_run_id,
+        full_v1_admission=full_v1_admission,
     )
+    entry_manifest_sha = adoption_witness["entry_manifest_sha256"]
+    entry_sha = adoption_witness["entry_parquet_sha256"]
+    entry_binding_sha = adoption_witness["witness_sha256"]
     entry_times = pd.read_parquet(entry_path, columns=["time"])["time"]
     if len(entry_times) != bound_entry_rows:
         raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_ROW_COUNT_CHANGED")
@@ -761,6 +983,8 @@ def _build_split_from_files(
         split_end=split_end,
         terminal_state_count_by_entry_side=mapping,
         m1_source_sha256=m1_source_sha256,
+        gap_classification_source_sha256=m1_source_manifest_sha256,
+        entry_binding_sha256=entry_binding_sha,
     )
     lineage = _canonical_sha256(
         {
@@ -768,7 +992,7 @@ def _build_split_from_files(
             "split": split,
             "entry_sha256": entry_sha,
             "entry_manifest_sha256": entry_manifest_sha,
-            "entry_lifecycle_root_sha256": entry_lifecycle_root_sha,
+            "entry_adoption_witness_sha256": entry_binding_sha,
             "m1_source_sha256": m1_source_sha256,
             "economic_authority_sha256": authority_sha,
         }
@@ -796,8 +1020,9 @@ def _build_split_from_files(
         "entry_parquet_sha256": entry_sha,
         "entry_manifest_path": str(entry_manifest_path),
         "entry_manifest_sha256": entry_manifest_sha,
-        "entry_lifecycle_root_path": entry_lifecycle_root_path,
-        "entry_lifecycle_root_sha256": entry_lifecycle_root_sha,
+        "entry_adoption_witness": adoption_witness,
+        "entry_binding_sha256": entry_binding_sha,
+        "gap_classification_source_sha256": m1_source_manifest_sha256,
         "economic_authority_path": str(economic_authority_path),
         "economic_authority_sha256": authority_sha,
         "economic_authority": authority,
@@ -862,6 +1087,14 @@ def materialize_compact_train_val_bundle(
     ) = paths
     if any(path.is_symlink() or not path.is_file() for path in paths):
         raise RuntimeError("COMPACT_LIFECYCLE_INPUT_FILE_INVALID")
+    full_v1_admission = _require_full_v1_admission(
+        entry_paths={"train": train_entry_path, "val": val_entry_path},
+        entry_manifest_paths={
+            "train": train_entry_manifest_path,
+            "val": val_entry_manifest_path,
+        },
+        dataset_run_id=dataset_run_id,
+    )
     m1_times, _m1_manifest, m1_manifest_sha, m1_source_sha = _validate_m1_source(
         m1_source_path, m1_source_manifest_path
     )
@@ -880,19 +1113,34 @@ def materialize_compact_train_val_bundle(
         ),
     }
     built: dict[str, tuple[pd.DataFrame, dict[str, Any]]] = {}
-    for split, (entry, manifest, authority, split_end) in split_specs.items():
-        built[split] = _build_split_from_files(
-            split=split,
-            entry_path=entry,
-            entry_manifest_path=manifest,
-            economic_authority_path=authority,
-            split_end=split_end,
-            dataset_run_id=dataset_run_id,
-            m1_times=m1_times,
-            m1_source_sha256=m1_source_sha,
-            planned_epochs=planned_epochs,
-            claim_full_coverage=claim_full_coverage,
-        )
+    try:
+        for split, (entry, manifest, authority, split_end) in split_specs.items():
+            built[split] = _build_split_from_files(
+                split=split,
+                entry_path=entry,
+                entry_manifest_path=manifest,
+                economic_authority_path=authority,
+                split_end=split_end,
+                dataset_run_id=dataset_run_id,
+                m1_times=m1_times,
+                m1_source_sha256=m1_source_sha,
+                m1_source_manifest_sha256=m1_manifest_sha,
+                full_v1_admission=full_v1_admission,
+                planned_epochs=planned_epochs,
+                claim_full_coverage=claim_full_coverage,
+            )
+    except _EconomicAuthorityBlocked as exc:
+        if publish:
+            raise RuntimeError("COMPACT_LIFECYCLE_PUBLISH_BLOCKED") from exc
+        return {
+            "mode": "validate_no_publish",
+            "decision": "BLOCKED",
+            "published": False,
+            "output_dir": str(output_dir),
+            "blockers": [str(exc)],
+            "full_v1_admission_verified": True,
+            "test_accessed": False,
+        }
     root = {
         "schema_version": COMPACT_ROOT_SCHEMA_VERSION,
         "decision": "PASS",

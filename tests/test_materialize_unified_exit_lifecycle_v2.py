@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from gx1.scripts import materialize_unified_exit_lifecycle_v2 as producer
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CONTRACT_MODE,
     MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
@@ -34,6 +35,8 @@ from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
 
 LINEAGE = "4" * 64
 M1_SHA = "5" * 64
+GAP_SOURCE_SHA = "7" * 64
+ENTRY_BINDING_SHA = "8" * 64
 
 
 def _sha(path: Path) -> str:
@@ -185,6 +188,30 @@ def _inputs(tmp_path: Path) -> dict[str, object]:
     return result
 
 
+def _stub_full_admission(inputs: dict[str, object]) -> dict[str, object]:
+    root_path = (
+        Path(inputs["train_entry_manifest_path"]).parent
+        / "legacy_lifecycle_authority"
+        / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    )
+    return {
+        "root_manifest_path": root_path,
+        "root_manifest_sha256": _sha(root_path),
+        "splits": {
+            split: {"entry_path": Path(inputs[f"{split}_entry_path"])}
+            for split in ("train", "val")
+        },
+        "entry_windows": {
+            split: {
+                "manifest_sha256": _sha(
+                    Path(inputs[f"{split}_entry_manifest_path"])
+                )
+            }
+            for split in ("train", "val")
+        },
+    }
+
+
 def test_pair_schedule_is_outcome_blind_deterministic_and_resumable() -> None:
     parameters = set(inspect.signature(pair_chunk_permutation).parameters)
     assert not parameters.intersection({"side", "side_index", "reward", "pnl", "q", "feature"})
@@ -255,6 +282,8 @@ def test_compact_rows_bind_deep_successors_without_targets() -> None:
         split_end=clock[-1] + pd.Timedelta(minutes=1),
         terminal_state_count_by_entry_side={(0, 0): 700, (0, 1): 1025},
         m1_source_sha256=M1_SHA,
+        gap_classification_source_sha256=GAP_SOURCE_SHA,
+        entry_binding_sha256=ENTRY_BINDING_SHA,
     )
     assert len(frame) == 1
     assert tuple(frame.columns) == COMPACT_COLUMNS
@@ -279,35 +308,42 @@ def test_compact_rows_bind_deep_successors_without_targets() -> None:
             frame,
             split_end=clock[-1] + pd.Timedelta(minutes=1),
             m1_times=altered_clock,
+            expected_m1_source_sha256=M1_SHA,
+            expected_entry_binding_sha256=ENTRY_BINDING_SHA,
+            expected_gap_classification_source_sha256=GAP_SOURCE_SHA,
         )
 
 
-def test_validate_no_publish_and_atomic_train_val_only_publish(tmp_path: Path) -> None:
+def test_validate_no_publish_stays_blocked_without_economic_verifier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     inputs = _inputs(tmp_path)
+    monkeypatch.setattr(
+        producer,
+        "_require_full_v1_admission",
+        lambda **_kwargs: _stub_full_admission(inputs),
+    )
     report = materialize_compact_train_val_bundle(**inputs, publish=False)
     assert report["mode"] == "validate_no_publish"
+    assert report["decision"] == "BLOCKED"
     assert report["published"] is False
     assert not Path(inputs["output_dir"]).exists()
-    assert report["root_manifest"]["allowed_splits"] == ["train", "val"]
-    assert report["root_manifest"]["target_q_stored"] is False
-    published = materialize_compact_train_val_bundle(**inputs, publish=True)
-    output = Path(published["output_dir"])
-    assert published["published"] is True
-    assert {path.name for path in output.iterdir()} == {
-        "train_unified_exit_lifecycle_v2.parquet",
-        "train_unified_exit_lifecycle_v2.manifest.json",
-        "val_unified_exit_lifecycle_v2.parquet",
-        "val_unified_exit_lifecycle_v2.manifest.json",
-        "UNIFIED_EXIT_LIFECYCLE_V2_MANIFEST.json",
-    }
-    assert len(pd.read_parquet(output / "train_unified_exit_lifecycle_v2.parquet")) == 2
-    assert len(pd.read_parquet(output / "val_unified_exit_lifecycle_v2.parquet")) == 1
-    with pytest.raises(RuntimeError, match="OUTPUT_ALREADY_EXISTS"):
+    assert report["blockers"] == [
+        "COMPACT_LIFECYCLE_ECONOMIC_TERMINAL_VERIFIER_UNAVAILABLE"
+    ]
+    with pytest.raises(RuntimeError, match="PUBLISH_BLOCKED"):
         materialize_compact_train_val_bundle(**inputs, publish=True)
 
 
-def test_swapped_entry_parquet_or_manifest_fails_closed(tmp_path: Path) -> None:
+def test_swapped_entry_parquet_or_manifest_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     inputs = _inputs(tmp_path)
+    monkeypatch.setattr(
+        producer,
+        "_require_full_v1_admission",
+        lambda **_kwargs: _stub_full_admission(inputs),
+    )
     swapped_parquet = dict(inputs)
     swapped_parquet["train_entry_path"] = inputs["val_entry_path"]
     with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
@@ -321,8 +357,16 @@ def test_swapped_entry_parquet_or_manifest_fails_closed(tmp_path: Path) -> None:
         materialize_compact_train_val_bundle(**swapped_manifest, publish=False)
 
 
-def test_entry_manifest_schema_and_row_count_fail_closed(tmp_path: Path) -> None:
+def test_entry_manifest_schema_and_row_count_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     inputs = _inputs(tmp_path)
+    admission = _stub_full_admission(inputs)
+    monkeypatch.setattr(
+        producer,
+        "_require_full_v1_admission",
+        lambda **_kwargs: admission,
+    )
     manifest_path = Path(inputs["train_entry_manifest_path"])
     original = json.loads(manifest_path.read_text(encoding="utf-8"))
     invalid_schema = json.loads(json.dumps(original))
@@ -335,4 +379,100 @@ def test_entry_manifest_schema_and_row_count_fail_closed(tmp_path: Path) -> None
     invalid_rows["extra"]["rows"] += 1
     _write_json(manifest_path, invalid_rows)
     with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
+        materialize_compact_train_val_bundle(**inputs, publish=False)
+
+
+@pytest.mark.parametrize(
+    ("clock", "classification"),
+    [
+        (
+            pd.DatetimeIndex(
+                list(pd.date_range("2020-01-03T20:00Z", periods=11, freq="min"))
+                + list(pd.date_range("2020-01-05T22:00Z", periods=20, freq="min"))
+            ),
+            "weekend_source_absence",
+        ),
+        (
+            pd.DatetimeIndex(
+                list(pd.date_range("2020-01-07T10:00Z", periods=11, freq="min"))
+                + list(pd.date_range("2020-01-07T10:13Z", periods=20, freq="min"))
+            ),
+            "unknown_source_absence",
+        ),
+    ],
+)
+def test_non_m1_transition_censors_before_gap_and_has_no_successor(
+    clock: pd.DatetimeIndex, classification: str
+) -> None:
+    frame = build_compact_split(
+        entry_times=[clock[0]],
+        m1_times=clock,
+        split="train",
+        split_end=clock[-1] + pd.Timedelta(minutes=1),
+        terminal_state_count_by_entry_side={(0, 0): None, (0, 1): None},
+        m1_source_sha256=M1_SHA,
+        gap_classification_source_sha256=GAP_SOURCE_SHA,
+        entry_binding_sha256=ENTRY_BINDING_SHA,
+    )
+    row = frame.iloc[0]
+    assert row["gap_classification"] == classification
+    assert row["available_state_count"] == 6
+    assert row["long_lifecycle_state_count"] == 6
+    pointer = scheduled_pair_chunk_pointer(
+        compact_row=row.to_dict(),
+        epoch_index=0,
+        lineage_sha256=LINEAGE,
+        split="train",
+    )
+    assert pointer["sides"]["long"]["successor_available"] is False
+    assert pointer["sides"]["short"]["successor_available"] is False
+    assert pointer["sides"]["long"]["right_censored"] is True
+    with pytest.raises(RuntimeError, match="TERMINAL_OUTSIDE_SPLIT"):
+        build_compact_split(
+            entry_times=[clock[0]],
+            m1_times=clock,
+            split="train",
+            split_end=clock[-1] + pd.Timedelta(minutes=1),
+            terminal_state_count_by_entry_side={(0, 0): 7, (0, 1): None},
+            m1_source_sha256=M1_SHA,
+            gap_classification_source_sha256=GAP_SOURCE_SHA,
+            entry_binding_sha256=ENTRY_BINDING_SHA,
+        )
+
+
+def test_compact_validator_uses_external_source_and_entry_identity() -> None:
+    clock = pd.date_range("2020-01-01", periods=20, freq="min", tz="UTC")
+    frame = build_compact_split(
+        entry_times=[clock[0]],
+        m1_times=clock,
+        split="val",
+        split_end=clock[-1] + pd.Timedelta(minutes=1),
+        terminal_state_count_by_entry_side={(0, 0): None, (0, 1): None},
+        m1_source_sha256=M1_SHA,
+        gap_classification_source_sha256=GAP_SOURCE_SHA,
+        entry_binding_sha256=ENTRY_BINDING_SHA,
+    )
+    with pytest.raises(RuntimeError, match="FRAME_INVALID"):
+        require_compact_split(
+            frame,
+            split_end=clock[-1] + pd.Timedelta(minutes=1),
+            m1_times=clock,
+            expected_m1_source_sha256="9" * 64,
+            expected_entry_binding_sha256=ENTRY_BINDING_SHA,
+            expected_gap_classification_source_sha256=GAP_SOURCE_SHA,
+        )
+    with pytest.raises(RuntimeError, match="FRAME_INVALID"):
+        require_compact_split(
+            frame,
+            split_end=clock[-1] + pd.Timedelta(minutes=1),
+            m1_times=clock,
+            expected_m1_source_sha256=M1_SHA,
+            expected_entry_binding_sha256="a" * 64,
+            expected_gap_classification_source_sha256=GAP_SOURCE_SHA,
+        )
+
+
+def test_minimal_self_attested_lifecycle_root_is_rejected(tmp_path: Path) -> None:
+    inputs = _inputs(tmp_path)
+    with pytest.raises(RuntimeError, match="FULL_V1_ADOPTION_INVALID"):
         materialize_compact_train_val_bundle(**inputs, publish=False)
