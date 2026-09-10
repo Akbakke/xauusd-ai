@@ -617,6 +617,23 @@ MULTI_TF_PER_BAR_FEATURES_V4 = (
     + MULTI_TF_V4_LEVEL_REGISTRY_FEATURES
     + MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES
 )
+# Exact 0/1 fields whose domains are proven by their producer, independently
+# of which values happen to occur in a TRAIN window.  Keep this registry
+# deliberately narrow: a new field enters only with a source-level proof of
+# its complete domain.  The normalization owner uses it to preserve a
+# constant-zero or constant-one TRAIN sample as an identity input instead of
+# inventing a scale from VAL or dropping the feature.
+MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4 = (
+    "ema50_200_bull_state",
+)
+if (
+    len(set(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4))
+    != len(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4)
+    or not set(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4).issubset(
+        MULTI_TF_PER_BAR_FEATURES_V4
+    )
+):
+    raise RuntimeError("MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4_INVALID")
 MULTI_TF_FEATURE_COUNT_V4 = len(MULTI_TF_PER_BAR_FEATURES_V4)
 MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
     json.dumps(

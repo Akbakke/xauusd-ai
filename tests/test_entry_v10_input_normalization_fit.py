@@ -115,6 +115,10 @@ def _mtf_values(rows: int) -> np.ndarray:
     ).astype(np.float32)
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
     values[:, ema_stack] = (np.arange(rows) % 3 - 1).astype(np.float32)
+    bull_state = list(MULTI_TF_PER_BAR_FEATURES_V4).index(
+        "ema50_200_bull_state"
+    )
+    values[:, bull_state] = (np.arange(rows) % 2).astype(np.float32)
     return values
 
 
@@ -276,9 +280,15 @@ def _artifacts(
     }
     # Restore exact categorical domains after the harmless per-TF offset.
     ema_stack = list(MULTI_TF_PER_BAR_FEATURES_V4).index("ema_stack_aligned_v2")
+    bull_state = list(MULTI_TF_PER_BAR_FEATURES_V4).index(
+        "ema50_200_bull_state"
+    )
     for frame in features.values():
         frame.attrs["feats_np"][:, ema_stack] = (
             np.arange(len(frame)) % 3 - 1
+        ).astype(np.float32)
+        frame.attrs["feats_np"][:, bull_state] = (
+            np.arange(len(frame)) % 2
         ).astype(np.float32)
     for tf_offset, (timeframe, frame) in enumerate(features.items()):
         scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[

@@ -228,14 +228,49 @@ def test_require_rejects_a_surface_that_carries_an_inferred_binary_mask() -> Non
     stale["binary_field_count"] = 1
     stale["center"][1] = 0.0
     stale["scale"][1] = 1.0
-    stale["scale_source"][1] = "binary_identity"
+    stale["scale_source"][1] = "semantic_binary_identity"
     stale["train_transformed_min"][1] = 0.0
     stale["train_transformed_max"][1] = 1.0
-    with pytest.raises(RuntimeError, match="INFERRED_BINARY_MASK_FORBIDDEN"):
+    with pytest.raises(RuntimeError, match="BINARY_CONTRACT_INVALID"):
         normalization_contract.require_surface_normalization(
             stale,
             surface="signal",
             field_names=names,
+        )
+
+
+def test_source_declared_binary_field_preserves_constant_train_support() -> None:
+    fitted = fit_surface_normalization(
+        np.ones((8, 1), dtype=np.float32),
+        surface="mtf_d1",
+        field_names=["ema50_200_bull_state"],
+    )
+    assert fitted["binary_mask"] == [1]
+    assert fitted["center"] == [0.0]
+    assert fitted["scale"] == [1.0]
+    assert fitted["scale_source"] == ["semantic_binary_identity"]
+    assert fitted["train_transformed_min"] == [1.0]
+    assert fitted["train_transformed_max"] == [1.0]
+    assert normalization_contract.require_surface_normalization(
+        fitted,
+        surface="mtf_d1",
+        field_names=["ema50_200_bull_state"],
+    ) == fitted
+    np.testing.assert_array_equal(
+        apply_surface_normalization(
+            np.array([[0.0], [1.0]], dtype=np.float32),
+            fitted,
+        ),
+        np.array([[0.0], [1.0]], dtype=np.float32),
+    )
+
+
+def test_source_declared_binary_field_rejects_out_of_domain_train_value() -> None:
+    with pytest.raises(RuntimeError, match="BINARY_DOMAIN_INVALID"):
+        fit_surface_normalization(
+            np.array([[0.0], [2.0]], dtype=np.float32),
+            surface="mtf_d1",
+            field_names=["ema50_200_bull_state"],
         )
 
 

@@ -3,11 +3,11 @@
 The model consumes raw, finite XAU feature tensors. This contract fits the
 shared local encoder on the deduplicated physical M5+M1 TRAIN union, context on
 the Entry+Exit TRAIN decision union, and MTF surfaces on actual +5m/+1m route
-consumption. A field is scaled as a nominal category only when a contract owner
-DECLARES its exact integral domain; every other field -- including a field whose
-fit window happens to show two values -- is median-centered, robustly scaled,
-then mapped by an invertible ``asinh``. No tail observation is clipped,
-saturated or collapsed onto a boundary.
+consumption. A field receives an identity transform only when a contract owner
+DECLARES its complete categorical or structural-binary domain; every other
+field -- including a field whose fit window happens to show two values -- is
+median-centered, robustly scaled, then mapped by an invertible ``asinh``. No
+tail observation is clipped, saturated or collapsed onto a boundary.
 """
 
 from __future__ import annotations
@@ -25,11 +25,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
 )
 from gx1.features.htf_features import (
+    MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4,
     MULTI_TF_TIMEFRAMES,
 )
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v7"
-TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v4"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v8"
+TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v5"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
@@ -51,6 +52,9 @@ SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS = {
 }
 CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
 MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
+MTF_SEMANTIC_BINARY_FIELDS = frozenset(
+    MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4
+)
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _LINEAGE_KEYS = {
     "dataset_run_id",
@@ -707,6 +711,7 @@ def fit_surface_normalization(
     row_count: int | None = None,
     column_chunk: int = FIT_COLUMN_CHUNK,
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
+    semantic_binary_fields: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Fit an invertible robust transform without materializing the matrix.
 
@@ -758,8 +763,18 @@ def fit_surface_normalization(
         str(name): tuple(int(value) for value in domain)
         for name, domain in (semantic_categorical_domains or {}).items()
     }
+    if semantic_binary_fields is None:
+        binary_fields = (
+            set(MTF_SEMANTIC_BINARY_FIELDS).intersection(names)
+            if str(surface).startswith("mtf_")
+            else set()
+        )
+    else:
+        binary_fields = {str(name) for name in semantic_binary_fields}
     if (
         not set(categorical_domains).issubset(names)
+        or not binary_fields.issubset(names)
+        or binary_fields.intersection(categorical_domains)
         or any(
             not domain or len(domain) != len(set(domain))
             for domain in categorical_domains.values()
@@ -802,6 +817,17 @@ def fit_surface_normalization(
         for local in range(stop - start):
             index = start + local
             column = block[:, local]
+            if names[index] in binary_fields:
+                if not np.logical_or(column == 0.0, column == 1.0).all():
+                    raise RuntimeError(
+                        "[ENTRY_INPUT_NORMALIZATION_BINARY_DOMAIN_INVALID] "
+                        f"surface={surface} field={names[index]}"
+                    )
+                center[index] = np.float32(0.0)
+                scale[index] = np.float32(1.0)
+                binary_mask[index] = np.uint8(1)
+                scale_source[index] = "semantic_binary_identity"
+                continue
             if names[index] in categorical_domains:
                 domain = categorical_domains[names[index]]
                 if (
@@ -843,10 +869,9 @@ def fit_surface_normalization(
             # ternaries is captured depends only on which sign the window
             # happens to contain, which is the defect, not the field.
             #
-            # No branch replaces it. A field is scaled as a nominal category
-            # only where a contract owner DECLARES its exact domain above;
-            # everything else -- including a genuinely two-valued flag -- takes
-            # the continuous branch below. Two properties of that branch are
+            # No sample-inferred branch replaces it. A field uses identity only
+            # where a contract owner DECLARES its exact domain above; everything
+            # else takes the continuous branch below. Two properties of that branch are
             # proven from the algebra, not assumed:
             #   * it is injective on two points (a positive affine map followed
             #     by the strictly increasing asinh), so no evidence is lost and
@@ -1011,23 +1036,36 @@ def require_surface_normalization(
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_VALUES_INVALID] surface={surface}"
         )
-    # v7 (2026-08-19): no fit may stamp ``binary_mask`` any more (see the
-    # removed inference in ``fit_surface_normalization``), so a surface that
-    # carries one was fitted by the pre-v7 owner and its center/scale for that
-    # field is an identity chosen from a window, not a fitted statistic. That
-    # is stale immutable bundle state (rule 18) and is rejected here rather
-    # than silently re-admitted. The key itself stays in the schema because the
-    # runtime encoder registers an ``input_norm_{surface}_binary_mask`` buffer
-    # from it and applies the same identity rule; retiring the key belongs to
-    # that owner's wave, not this contract's.
-    if int(binary_mask.sum()) != 0:
+    expected_binary_fields = (
+        set(MTF_SEMANTIC_BINARY_FIELDS).intersection(names)
+        if str(surface).startswith("mtf_")
+        else set()
+    )
+    observed_binary_fields = {
+        names[index] for index in np.flatnonzero(binary_mask)
+    }
+    if observed_binary_fields != expected_binary_fields:
         raise RuntimeError(
-            f"[ENTRY_INPUT_NORMALIZATION_INFERRED_BINARY_MASK_FORBIDDEN] "
+            f"[ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID] "
             f"surface={surface} "
-            f"fields={[names[index] for index in np.flatnonzero(binary_mask)][:10]}"
+            f"expected={sorted(expected_binary_fields)} "
+            f"observed={sorted(observed_binary_fields)}"
         )
     for index in range(len(names)):
+        is_binary = bool(binary_mask[index])
         is_categorical = bool(categorical_mask[index])
+        if is_binary:
+            if (
+                center[index] != np.float32(0.0)
+                or scale[index] != np.float32(1.0)
+                or scale_source[index] != "semantic_binary_identity"
+                or transformed_min[index] not in (0.0, 1.0)
+                or transformed_max[index] not in (0.0, 1.0)
+            ):
+                raise RuntimeError(
+                    "[ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID] "
+                    f"surface={surface} field={names[index]}"
+                )
         if is_categorical:
             domain = categorical_domains.get(names[index])
             if (
@@ -1056,7 +1094,7 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
-        if not is_categorical and scale_source[index] not in {
+        if not is_binary and not is_categorical and scale_source[index] not in {
             "raw_iqr",
             "median_positive_abs_deviation",
         }:
@@ -1065,7 +1103,8 @@ def require_surface_normalization(
                 f"surface={surface} field={names[index]}"
             )
         if (
-            not is_categorical
+            not is_binary
+            and not is_categorical
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(
@@ -1436,10 +1475,8 @@ def apply_surface_normalization(
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_WIDTH_MISMATCH]")
     if not np.isfinite(matrix).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_NONFINITE]")
-    # v7: no fit stamps ``binary_mask`` and ``require_surface_normalization``
-    # rejects a surface that carries one, so this guard is reached only from a
-    # caller that hands in an unvalidated payload. It stays because the key is
-    # still in the schema and the runtime encoder still honours it.
+    # Binary identity is reserved for source-declared structural 0/1 fields.
+    # The stored mask is validated against that registry before apply.
     if binary.any():
         binary_values = matrix[..., binary]
         if not np.logical_or(binary_values == 0.0, binary_values == 1.0).all():

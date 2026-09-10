@@ -188,6 +188,8 @@ def input_normalization_fixture(
             values[:, mtf_names.index("ema_stack_aligned_v2")] = (
                 row % 3
             ) - 1
+        if "ema50_200_bull_state" in mtf_names:
+            values[:, mtf_names.index("ema50_200_bull_state")] = row % 2
         if "regime_class_id" in mtf_names:
             values[:, mtf_names.index("regime_class_id")] = row % 5
             semantic = MTF_SEMANTIC_CATEGORICAL_DOMAINS
