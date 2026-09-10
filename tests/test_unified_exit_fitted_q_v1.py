@@ -218,10 +218,11 @@ def test_right_censor_separates_policy_validity_from_bellman_mask():
         successor_observed_mask=torch.tensor([[[True, False]]]),
         right_censored_boundary_mask=torch.ones((1, 1), dtype=torch.bool),
         transition_discount=torch.tensor([[[0.5, 1.0]]]),
+        hold_immediate_reward_bps=torch.tensor([[[1.25, 0.0]]]),
     )
     assert policy_valid[..., -1, 0].item() is True
     assert target_mask[..., -1, 0].item() is False
-    assert targets[..., 0, 0].item() == 5.0
+    assert targets[..., 0, 0].item() == 6.25
 
 
 def test_economics_readiness_binds_verified_owner_contract():

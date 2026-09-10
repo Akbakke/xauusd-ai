@@ -629,6 +629,49 @@ def unified_exit_path_tensor_from_values(
     return tensor
 
 
+def unified_exit_causal_prefix_path_tensor_from_values(
+    *,
+    price_values: np.ndarray,
+    volumes: np.ndarray,
+    entry_bid: float,
+    entry_ask: float,
+) -> np.ndarray:
+    """Replay an unbounded causal prefix through exact 512-row detail windows.
+
+    Each bounded call retains the canonical rolling-detail transform while the
+    returned rows let the recurrent training path replay every state from the
+    fill.  This does not change runtime's 512-row persisted tail.
+    """
+
+    prices = np.asarray(price_values)
+    raw_volumes = np.asarray(volumes)
+    if (
+        prices.ndim != 2
+        or prices.shape[0] < 1
+        or raw_volumes.shape != (prices.shape[0],)
+    ):
+        raise ValueError("unified Exit causal prefix path shape is invalid")
+    rows: list[np.ndarray] = []
+    processed = 0
+    total = int(prices.shape[0])
+    while processed < total:
+        stop = min(total, processed + UNIFIED_EXIT_MAX_PATH_BARS)
+        start = max(0, stop - UNIFIED_EXIT_MAX_PATH_BARS)
+        window = unified_exit_path_tensor_from_values(
+            price_values=prices[start:stop],
+            volumes=raw_volumes[start:stop],
+            bars_in_trade=stop,
+            entry_bid=entry_bid,
+            entry_ask=entry_ask,
+        )
+        rows.append(window[processed - start :])
+        processed = stop
+    result = np.ascontiguousarray(np.concatenate(rows, axis=0), dtype=np.float32)
+    if result.shape != (total, UNIFIED_EXIT_PATH_FEATURE_DIM):
+        raise RuntimeError("unified Exit causal prefix path replay is incomplete")
+    return result
+
+
 def canonical_unified_evidence_sha256(value: Mapping[str, Any]) -> str:
     """Hash one exact JSON-safe unified Entry/Exit evidence mapping."""
 

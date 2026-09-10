@@ -169,6 +169,7 @@ def build_unified_exit_fitted_q_targets(
     chunk_successor_action_valid_mask: torch.Tensor | None = None,
     bellman_target_valid_mask: torch.Tensor | None = None,
     successor_observed_mask: torch.Tensor | None = None,
+    hold_immediate_reward_bps: torch.Tensor | None = None,
     right_censored_boundary_mask: torch.Tensor | None = None,
     transition_discount: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -243,6 +244,16 @@ def build_unified_exit_fitted_q_targets(
         or bool(((discount <= 0.0) | (discount > 1.0)).any().item())
     ):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TRANSITION_DISCOUNT_INVALID")
+    hold_reward = (
+        torch.zeros_like(exit_now_reward_bps)
+        if hold_immediate_reward_bps is None
+        else hold_immediate_reward_bps
+    )
+    if (
+        tuple(hold_reward.shape) != tuple(expected_state_shape)
+        or not bool(torch.isfinite(hold_reward).all().item())
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FITTED_Q_HOLD_REWARD_INVALID")
     target_q = exit_now_reward_bps.new_zeros(frozen_target_q_bps.shape)
     target_q[..., 1] = exit_now_reward_bps
     if frozen_target_q_bps.shape[-2] > 1:
@@ -256,7 +267,7 @@ def build_unified_exit_fitted_q_targets(
             raise RuntimeError("UNIFIED_EXIT_FITTED_Q_NEXT_VALUE_NONFINITE")
         target_q[..., :-1, 0] = torch.where(
             hold_rows,
-            discount[..., :-1] * next_value,
+            hold_reward[..., :-1] + discount[..., :-1] * next_value,
             torch.zeros_like(next_value),
         )
     boundary_hold = target_valid[..., -1, 0]
@@ -300,7 +311,7 @@ def build_unified_exit_fitted_q_targets(
             raise RuntimeError("UNIFIED_EXIT_FITTED_Q_CHUNK_SUCCESSOR_NONFINITE")
         target_q[..., -1, 0] = torch.where(
             boundary_hold,
-            discount[..., -1] * successor_value,
+            hold_reward[..., -1] + discount[..., -1] * successor_value,
             target_q[..., -1, 0],
         )
     if not bool(torch.isfinite(target_q[target_valid]).all().item()):

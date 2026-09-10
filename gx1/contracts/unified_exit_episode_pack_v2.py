@@ -108,6 +108,10 @@ def require_unified_exit_episode_pack_v2(
     *,
     per_tf_seq_lens: Mapping[str, int],
     expected_mtf_cache_identity_sha256: str,
+    expected_split: str | None = None,
+    expected_lifecycle_manifest_sha256: str | None = None,
+    expected_chunk_pointer_stream_sha256: str | None = None,
+    expected_scheduled_pair_chunk_pointer_sha256: str | None = None,
     context: str,
 ) -> dict[str, Any]:
     """Validate one full-prefix chunk and its optional causal successor."""
@@ -126,6 +130,7 @@ def require_unified_exit_episode_pack_v2(
         "exit_path_x",
         "exit_entry_bid_ask",
         "exit_now_reward_bps",
+        "hold_immediate_reward_bps",
         "exit_policy_action_valid_mask",
         "exit_bellman_target_valid_mask",
         "exit_successor_observed_mask",
@@ -154,6 +159,10 @@ def require_unified_exit_episode_pack_v2(
         "terminal_reason",
         "lifecycle_manifest_sha256",
         "chunk_pointer_stream_sha256",
+        "economic_exit_step_manifest_sha256",
+        "economic_exit_step_stream_sha256",
+        "economic_hold_step_stream_sha256",
+        "scheduled_pair_chunk_pointer_sha256",
         "multi_tf_cache_identity_sha256",
         "unbounded_exit_training_readiness",
         "episode_pack_sha256",
@@ -197,11 +206,31 @@ def require_unified_exit_episode_pack_v2(
         != observed["entry_m1_start_row"] + chunk_start
         or observed["multi_tf_cache_identity_sha256"]
         != expected_mtf_cache_identity_sha256
+        or (expected_split is not None and observed["split"] != expected_split)
+        or (
+            expected_lifecycle_manifest_sha256 is not None
+            and observed["lifecycle_manifest_sha256"]
+            != expected_lifecycle_manifest_sha256
+        )
+        or (
+            expected_chunk_pointer_stream_sha256 is not None
+            and observed["chunk_pointer_stream_sha256"]
+            != expected_chunk_pointer_stream_sha256
+        )
+        or (
+            expected_scheduled_pair_chunk_pointer_sha256 is not None
+            and observed["scheduled_pair_chunk_pointer_sha256"]
+            != expected_scheduled_pair_chunk_pointer_sha256
+        )
     ):
         raise RuntimeError(f"{context}_UNIFIED_EXIT_CHUNK_PACK_IDENTITY_INVALID")
     for key in (
         "lifecycle_manifest_sha256",
         "chunk_pointer_stream_sha256",
+        "economic_exit_step_manifest_sha256",
+        "economic_exit_step_stream_sha256",
+        "economic_hold_step_stream_sha256",
+        "scheduled_pair_chunk_pointer_sha256",
         "multi_tf_cache_identity_sha256",
     ):
         digest = observed[key]
@@ -226,6 +255,7 @@ def require_unified_exit_episode_pack_v2(
         "exit_path_x": (encoded_count, UNIFIED_EXIT_PATH_FEATURE_DIM),
         "exit_entry_bid_ask": (2,),
         "exit_now_reward_bps": (valid_count,),
+        "hold_immediate_reward_bps": (valid_count,),
         "exit_policy_action_valid_mask": (valid_count, 2),
         "exit_bellman_target_valid_mask": (valid_count, 2),
         "exit_successor_observed_mask": (valid_count,),

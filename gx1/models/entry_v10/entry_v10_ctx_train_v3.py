@@ -192,6 +192,9 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
 from gx1.contracts.unified_exit_episode_pack_v2 import (
     require_unified_exit_episode_pack_v2,
 )
+from gx1.contracts.unified_exit_dataset_adapter_v2 import (
+    UnifiedExitDatasetAdapterV2,
+)
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
@@ -4161,6 +4164,9 @@ class EntryV10CtxDataset(Dataset):
         self._unified_exit_lifecycle: Optional[
             UnifiedExitLifecycleSplit
         ] = None
+        self._unified_exit_lifecycle_v2: Optional[
+            UnifiedExitDatasetAdapterV2
+        ] = None
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
@@ -4707,7 +4713,7 @@ class EntryV10CtxDataset(Dataset):
         state_start_ns = np.asarray(state_bar_start_time_ns, dtype=np.int64)
         if (
             state_start_ns.ndim != 1
-            or state_start_ns.shape != (UNIFIED_EXIT_MAX_PATH_BARS,)
+            or state_start_ns.size < 1
             or np.any(np.diff(state_start_ns) <= 0)
         ):
             raise RuntimeError("UNIFIED_EXIT_EPISODE_MTF_CLOCK_INVALID")
@@ -4968,6 +4974,35 @@ class EntryV10CtxDataset(Dataset):
         if self._unified_exit_lifecycle is not None:
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ALREADY_BOUND")
         self._unified_exit_lifecycle = lifecycle
+
+    def bind_unified_exit_lifecycle_v2(
+        self, adapter: UnifiedExitDatasetAdapterV2
+    ) -> None:
+        """Bind the lazy compact lifecycle-v2 materializer."""
+
+        if not isinstance(adapter, UnifiedExitDatasetAdapterV2):
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_ADAPTER_REQUIRED")
+        if self._unified_exit_lifecycle_v2 is not None:
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_ALREADY_BOUND")
+        self._unified_exit_lifecycle_v2 = adapter
+
+    def materialize_exit_training_chunk_v2(
+        self, entry_row_index: int
+    ) -> dict[str, Any] | None:
+        if self._unified_exit_lifecycle_v2 is None:
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND")
+        return self._unified_exit_lifecycle_v2.materialize(
+            int(entry_row_index)
+        )
+
+    def materialize_exit_validation_chunks_v2(
+        self, entry_row_index: int
+    ) -> tuple[dict[str, Any], ...]:
+        if self._unified_exit_lifecycle_v2 is None:
+            raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND")
+        return self._unified_exit_lifecycle_v2.materialize_validation(
+            int(entry_row_index)
+        )
 
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         if self._advanced:
@@ -6441,6 +6476,9 @@ def _fitted_q_targets_for_chunk_v2(
         rewards = torch.from_numpy(
             np.asarray(pack["exit_now_reward_bps"], dtype=np.float32)
         ).unsqueeze(0).unsqueeze(0).to(device)
+        hold_rewards = torch.from_numpy(
+            np.asarray(pack["hold_immediate_reward_bps"], dtype=np.float32)
+        ).unsqueeze(0).unsqueeze(0).to(device)
         censored = torch.full(
             (1, 1),
             bool(pack["right_censored"]),
@@ -6486,6 +6524,7 @@ def _fitted_q_targets_for_chunk_v2(
             successor_observed_mask=successor_observed,
             right_censored_boundary_mask=(censored if bool(pack["right_censored"]) else None),
             transition_discount=transition_discount,
+            hold_immediate_reward_bps=hold_rewards,
         )
     return targets, target_mask, current_q.detach()
 
@@ -6518,6 +6557,17 @@ def _episode_native_exit_eval_loss(
         != entry_decision_representations.shape
     ):
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
+    if getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None:
+        return _episode_native_exit_eval_loss_v2(
+            model=model,
+            target_model=target_model,
+            entry_decision_representations=entry_decision_representations,
+            target_entry_decision_representations=target_entry_decision_representations,
+            entry_row_indices=entry_row_indices,
+            dataset=dataset,
+            device=device,
+            full_trajectory_accumulator=full_trajectory_accumulator,
+        )
     rows = entry_row_indices.detach().cpu().tolist()
     if full_trajectory_accumulator is not None:
         if "entry_rows_scanned" not in full_trajectory_accumulator:
@@ -6670,6 +6720,92 @@ def _synchronized_exit_profile_clock(device: torch.device) -> float:
     return time.perf_counter()
 
 
+def _episode_native_exit_eval_loss_v2(
+    *,
+    model: nn.Module,
+    target_model: nn.Module,
+    entry_decision_representations: torch.Tensor,
+    target_entry_decision_representations: torch.Tensor,
+    entry_row_indices: torch.Tensor,
+    dataset: "EntryV10CtxDataset",
+    device: torch.device,
+    full_trajectory_accumulator: Optional[dict[str, Any]] = None,
+) -> tuple[torch.Tensor, Dict[str, Any], torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Evaluate VAL through the same lifecycle-v2 materializer and Bellman owner."""
+
+    rows = [int(value) for value in entry_row_indices.detach().cpu().tolist()]
+    if full_trajectory_accumulator is not None:
+        if "entry_rows_scanned" not in full_trajectory_accumulator:
+            raise RuntimeError("UNIFIED_EXIT_FULL_VAL_ACCUMULATOR_SCHEMA_INVALID")
+        full_trajectory_accumulator["entry_rows_scanned"] += len(rows)
+    loss_sum = entry_decision_representations.sum() * 0.0
+    stats = _empty_exit_stats()
+    stats["partial_chunk_realized_pnl_unavailable"] = 0
+    realized = torch.zeros((len(rows), 2), device=device)
+    total_valid = 0
+    with torch.no_grad():
+        for position, row in enumerate(rows):
+            packs = dataset.materialize_exit_validation_chunks_v2(row)
+            row_eligible = False
+            for pack in packs:
+                validated = dataset._unified_exit_lifecycle_v2.require_pack(pack)
+                if int(validated["entry_row_index"]) != row:
+                    raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_ENTRY_BINDING_INVALID]")
+                row_eligible = True
+                q_values = _forward_unified_exit_training_chunk_v2(
+                    model=model,
+                    entry_decision_representation=(
+                        entry_decision_representations[position : position + 1]
+                    ),
+                    pack=validated,
+                    device=device,
+                )
+                targets, target_mask, _ = _fitted_q_targets_for_chunk_v2(
+                    target_model=target_model,
+                    target_entry_decision_representation=(
+                        target_entry_decision_representations[position : position + 1]
+                    ),
+                    chunk_pack=validated,
+                    per_tf_seq_lens=dataset.per_tf_seq_lens,
+                    expected_mtf_cache_identity_sha256=(
+                        dataset._multi_tf_cache_identity_sha256
+                    ),
+                    device=device,
+                )
+                loss_sum = loss_sum + nn.functional.mse_loss(
+                    q_values[target_mask], targets[target_mask], reduction="sum"
+                )
+                total_valid += int(target_mask.sum().item())
+                _episode_stats_update(
+                    stats, q_values=q_values, targets=targets, valid=target_mask
+                )
+                side = int(validated["side_index"])
+                if (
+                    validated["terminal_reason"] == "economic_terminal"
+                    and int(validated["chunk_start_bars_in_trade"]) == 0
+                ):
+                    replay = replay_unified_exit_fitted_q_policy(
+                        predicted_q_bps=q_values[0, 0].cpu().numpy(),
+                        action_valid_mask=np.asarray(
+                            validated["exit_policy_action_valid_mask"], dtype=np.bool_
+                        ),
+                        exit_now_reward_bps=np.asarray(
+                            validated["exit_now_reward_bps"], dtype=np.float64
+                        ),
+                    )
+                    realized[position, side] = float(
+                        replay["realized_executable_pnl_bps"]
+                    )
+                else:
+                    stats["partial_chunk_realized_pnl_unavailable"] += 1
+            if row_eligible:
+                stats["eligible_entry_rows"] += 1
+    entry_targets = torch.zeros((len(rows), 2), device=device)
+    entry_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
+    raw_loss = loss_sum if total_valid == 0 else loss_sum / float(total_valid)
+    return raw_loss, {**stats, "raw_loss": float(raw_loss.cpu().item())}, entry_targets, entry_valid, realized
+
+
 def _forward_unified_exit_training_chunk_v2(
     *,
     model: nn.Module,
@@ -6768,14 +6904,7 @@ def _episode_native_exit_train_v2(
     for position, pack in enumerate(packs):
         if pack is None:
             continue
-        validated = require_unified_exit_episode_pack_v2(
-            pack,
-            per_tf_seq_lens=dataset.per_tf_seq_lens,
-            expected_mtf_cache_identity_sha256=(
-                dataset._multi_tf_cache_identity_sha256
-            ),
-            context="UNIFIED_EXIT_CANONICAL_TRAIN_CHUNK_V2",
-        )
+        validated = dataset._unified_exit_lifecycle_v2.require_pack(pack)
         if int(validated["entry_row_index"]) != rows[position]:
             raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_ENTRY_BINDING_INVALID]")
         token = (
@@ -6858,7 +6987,7 @@ def _episode_native_exit_train(
         raise RuntimeError("[UNIFIED_EXIT_ENTRY_BATCH_SHAPE_INVALID]")
     if target_entry_decision_representations.shape != entry_decision_representations.shape:
         raise RuntimeError("[UNIFIED_EXIT_TARGET_ENTRY_BATCH_SHAPE_INVALID]")
-    if callable(getattr(dataset, "materialize_exit_training_chunk_v2", None)):
+    if getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None:
         if exit_action_forward_chunk_rows is not None:
             raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_NESTED_CHUNKING_FORBIDDEN]")
         return _episode_native_exit_train_v2(

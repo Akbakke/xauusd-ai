@@ -205,6 +205,10 @@ def _pack(
         "terminal_reason": "none",
         "lifecycle_manifest_sha256": "4" * 64,
         "chunk_pointer_stream_sha256": "5" * 64,
+        "economic_exit_step_manifest_sha256": "a" * 64,
+        "economic_exit_step_stream_sha256": "b" * 64,
+        "economic_hold_step_stream_sha256": "c" * 64,
+        "scheduled_pair_chunk_pointer_sha256": "d" * 64,
         "multi_tf_cache_identity_sha256": "6" * 64,
         "unbounded_exit_training_readiness": _economics_readiness(),
         "exit_local_history_x": np.zeros(
@@ -224,6 +228,7 @@ def _pack(
         ),
         "exit_entry_bid_ask": np.asarray([1.0, 1.1]),
         "exit_now_reward_bps": np.zeros(valid_count, dtype=np.float32),
+        "hold_immediate_reward_bps": np.zeros(valid_count, dtype=np.float32),
         "exit_policy_action_valid_mask": action_valid,
         "exit_bellman_target_valid_mask": supervision,
         "exit_successor_observed_mask": successor_observed,
@@ -344,6 +349,9 @@ def test_canonical_trainer_dispatches_to_v2_chunk_consumer():
     class _Dataset:
         per_tf_seq_lens = {name: 2 for name in EXIT_MTF_CONTEXT_TIMEFRAMES}
         _multi_tf_cache_identity_sha256 = "6" * 64
+        _unified_exit_lifecycle_v2 = type(
+            "_Adapter", (), {"require_pack": staticmethod(lambda value: value)}
+        )()
 
         @staticmethod
         def materialize_exit_training_chunk_v2(entry_row_index):
