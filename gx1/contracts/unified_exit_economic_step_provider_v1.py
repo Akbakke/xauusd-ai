@@ -12,7 +12,9 @@ import pandas as pd
 
 from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION,
+    ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
     seal_economic_exit_step_manifest,
+    seal_economic_training_projection,
 )
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     ECONOMIC_STEP_SCHEMA_VERSION,
@@ -233,14 +235,15 @@ class LazyUnifiedExitEconomicStepProviderV1:
             }
         )
 
-    def __call__(
+    def _locate_request(
         self,
+        *,
         entry_row_index: int,
         side_index: int,
         action: str,
         start_state_index: int,
         stop_state_index: int,
-    ) -> dict[str, Any]:
+    ) -> tuple[pd.Series, int, int, float]:
         if (
             entry_row_index not in self._rows.index
             or side_index not in (0, 1)
@@ -254,18 +257,51 @@ class LazyUnifiedExitEconomicStepProviderV1:
         ):
             raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
         row = self._rows.loc[entry_row_index]
+        if isinstance(row, pd.DataFrame):
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
         lifecycle_count = int(row[f"{_SIDES[side_index]}_lifecycle_state_count"])
         maximum_stop = lifecycle_count if action == "exit_now" else lifecycle_count - 1
         if stop_state_index > maximum_stop:
             raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
         entry_row = int(row["entry_m1_start_row"])
-        entry_price = self._prices[("ask_open", "bid_open")[side_index]][entry_row]
+        entry_price = float(
+            self._prices[("ask_open", "bid_open")[side_index]][entry_row]
+        )
+        return row, lifecycle_count, entry_row, entry_price
+
+    def __call__(
+        self,
+        entry_row_index: int,
+        side_index: int,
+        action: str,
+        start_state_index: int,
+        stop_state_index: int,
+    ) -> dict[str, Any]:
+        row, lifecycle_count, entry_row, entry_price = self._locate_request(
+            entry_row_index=entry_row_index,
+            side_index=side_index,
+            action=action,
+            start_state_index=start_state_index,
+            stop_state_index=stop_state_index,
+        )
+        is_economic_terminal = bool(
+            row[f"{_SIDES[side_index]}_economic_terminal"]
+        )
         steps = [
             self._step(
                 entry_price=entry_price,
                 state_row=entry_row + state_index,
                 side_index=side_index,
                 action=action,
+                event_kind=(
+                    "ECONOMIC_TERMINAL"
+                    if action == "exit_now"
+                    and is_economic_terminal
+                    and state_index == lifecycle_count - 1
+                    else "EXIT_NOW"
+                    if action == "exit_now"
+                    else "HOLD"
+                ),
             )
             for state_index in range(start_state_index, stop_state_index)
         ]
@@ -283,8 +319,109 @@ class LazyUnifiedExitEconomicStepProviderV1:
         envelope["slice_sha256"] = canonical_sha256(envelope)
         return envelope
 
+    def _hold_elapsed_seconds(self, state_rows: np.ndarray) -> np.ndarray:
+        """Validate the currently admitted continuous-M1 transitions in one batch."""
+
+        rows = np.ascontiguousarray(state_rows, dtype=np.int64)
+        elapsed_ns = self._times_ns[rows + 1] - self._times_ns[rows]
+        if np.any(elapsed_ns != 60_000_000_000):
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_GAP_UNVERIFIED")
+        return np.full(rows.shape, 60, dtype=np.int64)
+
+    def materialize_training_projection(
+        self,
+        entry_row_index: int,
+        side_index: int,
+        start_state_index: int,
+        stop_state_index: int,
+        hold_stop_state_index: int,
+    ) -> dict[str, Any]:
+        """Vectorize the exact economic values consumed by the trainer."""
+
+        row, lifecycle_count, entry_row, entry_price = self._locate_request(
+            entry_row_index=entry_row_index,
+            side_index=side_index,
+            action="exit_now",
+            start_state_index=start_state_index,
+            stop_state_index=stop_state_index,
+        )
+        self._locate_request(
+            entry_row_index=entry_row_index,
+            side_index=side_index,
+            action="hold",
+            start_state_index=start_state_index,
+            stop_state_index=hold_stop_state_index,
+        )
+        if hold_stop_state_index > stop_state_index:
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
+
+        state_rows = entry_row + np.arange(
+            start_state_index, stop_state_index, dtype=np.int64
+        )
+        exit_price = self._prices[("bid_close", "ask_close")[side_index]][
+            state_rows
+        ]
+        if side_index == 0:
+            gross = (exit_price - entry_price) / entry_price * 10_000.0
+        else:
+            gross = (entry_price - exit_price) / entry_price * 10_000.0
+        exit_reward = gross + 0.0
+        exit_reward = exit_reward - self._commission_total[side_index]
+        exit_reward = exit_reward - self._slippage_total[side_index]
+        exit_reward = exit_reward - 0.0
+        exit_reward = np.ascontiguousarray(exit_reward - 0.0, dtype="<f8")
+        if not np.isfinite(exit_reward).all():
+            raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
+        exit_events = np.full(exit_reward.shape, 0, dtype="u1")
+        if (
+            exit_events.size
+            and bool(row[f"{_SIDES[side_index]}_economic_terminal"])
+            and stop_state_index == lifecycle_count
+        ):
+            exit_events[-1] = 2
+
+        hold_rows = entry_row + np.arange(
+            start_state_index, hold_stop_state_index, dtype=np.int64
+        )
+        elapsed_seconds = self._hold_elapsed_seconds(hold_rows)
+        scale = elapsed_seconds.astype(np.float64) / SECONDS_PER_YEAR
+        financing = -self._financing_cost_annual_bps[side_index] * scale
+        risk_penalty = self._risk_penalty[side_index] * scale
+        hold_reward = 0.0 + financing
+        hold_reward = hold_reward - 0.0
+        hold_reward = hold_reward - 0.0
+        hold_reward = hold_reward - 0.0
+        hold_reward = np.ascontiguousarray(hold_reward - risk_penalty, dtype="<f8")
+        if not np.isfinite(hold_reward).all():
+            raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
+        hold_events = np.full(hold_reward.shape, 1, dtype="u1")
+        return seal_economic_training_projection(
+            {
+                "schema_version": ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
+                "entry_row_index": entry_row_index,
+                "side_index": side_index,
+                "start_state_index": start_state_index,
+                "stop_state_index": stop_state_index,
+                "hold_stop_state_index": hold_stop_state_index,
+                "exit_event_kind_index": exit_events,
+                "exit_reward_bps": exit_reward,
+                "hold_event_kind_index": hold_events,
+                "hold_reward_bps": hold_reward,
+                "economic_step_model_sha256": self._authority_sha,
+                "economic_step_source_manifest_sha256": (
+                    self._source_manifest_sha256
+                ),
+            }
+        )
+
     def _step(
-        self, *, entry_price: float, state_row: int, side_index: int, action: str
+        self,
+        *,
+        entry_price: float,
+        state_row: int,
+        side_index: int,
+        action: str,
+        event_kind: str,
     ) -> dict[str, Any]:
         decision_ns = int(self._times_ns[state_row] + 60_000_000_000)
         hashes = self._component_hashes
@@ -297,7 +434,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
             )
             return {
                 "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
-                "event_kind": "EXIT_NOW",
+                "event_kind": event_kind,
                 "interval_start_time_ns": decision_ns,
                 "interval_end_time_ns": decision_ns,
                 "gross_price_cashflow": _component(gross, hashes["executable_bid_ask"]),
@@ -322,14 +459,14 @@ class LazyUnifiedExitEconomicStepProviderV1:
                     "classification_artifact_sha256": self._gap_source_sha,
                 },
             }
-        next_decision_ns = int(self._times_ns[state_row + 1] + 60_000_000_000)
-        elapsed_seconds = (next_decision_ns - decision_ns) // 1_000_000_000
-        if elapsed_seconds != 60:
-            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_GAP_UNVERIFIED")
+        elapsed_seconds = int(
+            self._hold_elapsed_seconds(np.asarray([state_row], dtype=np.int64))[0]
+        )
+        next_decision_ns = decision_ns + elapsed_seconds * 1_000_000_000
         scale = float(elapsed_seconds) / SECONDS_PER_YEAR
         return {
             "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
-            "event_kind": "HOLD",
+            "event_kind": event_kind,
             "interval_start_time_ns": decision_ns,
             "interval_end_time_ns": next_decision_ns,
             "gross_price_cashflow": _component(0.0, hashes["executable_bid_ask"]),

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from types import SimpleNamespace
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -18,8 +16,10 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION,
+    ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
     UnifiedExitDatasetAdapterV2,
     seal_economic_exit_step_manifest,
+    seal_economic_training_projection,
 )
 from gx1.contracts.unified_exit_lifecycle_v2 import unified_exit_lifecycle_v2_contract
 from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT_V4
@@ -284,6 +284,87 @@ def test_compact_producer_to_dataset_api_to_canonical_trainer():
     assert pack["successor_available"] is True
     assert len(pack["exit_local_history_x"]) == 479 + 513
     assert np.allclose(pack["hold_immediate_reward_bps"], -0.2)
+
+    class FastProjectionProvider:
+        def __init__(self):
+            self.scalar_calls = 0
+
+        def __call__(self, entry, side, action, start, stop):
+            self.scalar_calls += 1
+            return provide_step_slice(entry, side, action, start, stop)
+
+        def materialize_training_projection(
+            self, entry, side, start, stop, hold_stop
+        ):
+            contract = readiness["economics_objective_contract"]
+            exit_steps = streams[f"{entry}:{side}:exit_now"][start:stop]
+            hold_steps = streams[f"{entry}:{side}:hold"][start:hold_stop]
+            event_index = {"EXIT_NOW": 0, "HOLD": 1, "ECONOMIC_TERMINAL": 2}
+            return seal_economic_training_projection(
+                {
+                    "schema_version": ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
+                    "entry_row_index": entry,
+                    "side_index": side,
+                    "start_state_index": start,
+                    "stop_state_index": stop,
+                    "hold_stop_state_index": hold_stop,
+                    "exit_event_kind_index": np.asarray(
+                        [event_index[step["event_kind"]] for step in exit_steps],
+                        dtype="u1",
+                    ),
+                    "exit_reward_bps": np.asarray(
+                        [
+                            economics.compose_economic_step(step, contract=contract)[
+                                "undiscounted_risk_adjusted_utility_increment_bps"
+                            ]
+                            for step in exit_steps
+                        ],
+                        dtype="<f8",
+                    ),
+                    "hold_event_kind_index": np.asarray(
+                        [event_index[step["event_kind"]] for step in hold_steps],
+                        dtype="u1",
+                    ),
+                    "hold_reward_bps": np.asarray(
+                        [
+                            economics.compose_economic_step(step, contract=contract)[
+                                "undiscounted_risk_adjusted_utility_increment_bps"
+                            ]
+                            for step in hold_steps
+                        ],
+                        dtype="<f8",
+                    ),
+                    "economic_step_model_sha256": "d" * 64,
+                    "economic_step_source_manifest_sha256": "e" * 64,
+                }
+            )
+
+    fast_provider = FastProjectionProvider()
+    fast_adapter = UnifiedExitDatasetAdapterV2(
+        compact_rows=compact,
+        compact_manifest=manifest,
+        source_owner=dataset,
+        epoch_index=epoch,
+        expected_m1_source_sha256="a" * 64,
+        expected_entry_binding_sha256="f" * 64,
+        expected_gap_classification_source_sha256="6" * 64,
+        economics_readiness=readiness,
+        economic_exit_step_manifest=economic_manifest,
+        economic_exit_step_provider=fast_provider,
+        mtf_materializer=dataset._get_exit_multi_tf_episode_histories,
+        per_tf_seq_lens=dataset.per_tf_seq_lens,
+        mtf_cache_identity_sha256=dataset._multi_tf_cache_identity_sha256,
+    )
+    fast_pack = fast_adapter.materialize(0)
+    assert fast_pack is not None
+    assert fast_provider.scalar_calls == 0
+    for name, old_value in pack.items():
+        if isinstance(old_value, np.ndarray):
+            new_value = fast_pack[name]
+            assert old_value.dtype == new_value.dtype
+            assert old_value.shape == new_value.shape
+            assert old_value.tobytes() == new_value.tobytes()
+
     validation_packs = dataset.materialize_exit_validation_chunks_v2(0)
     assert len(validation_packs) == 4
     assert {(item["side_index"], item["chunk_index"]) for item in validation_packs} == {

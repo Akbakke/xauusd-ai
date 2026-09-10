@@ -37,6 +37,12 @@ from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
 ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION = (
     "gx1_unified_exit_economic_exit_now_step_manifest_v1"
 )
+ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION = (
+    "gx1_unified_exit_economic_training_projection_v1"
+)
+_EXIT_NOW_EVENT_INDEX = 0
+_HOLD_EVENT_INDEX = 1
+_ECONOMIC_TERMINAL_EVENT_INDEX = 2
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -52,6 +58,163 @@ def seal_economic_exit_step_manifest(value: Mapping[str, Any]) -> dict[str, Any]
     if "manifest_sha256" in observed:
         raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_MANIFEST_ALREADY_SEALED")
     observed["manifest_sha256"] = _canonical_sha256(observed)
+    return observed
+
+
+def _array_mapping_sha256(value: Mapping[str, Any]) -> str:
+    """Hash exact scalar identities and C-contiguous array bytes."""
+
+    digest = hashlib.sha256()
+    for name in sorted(value):
+        item = value[name]
+        digest.update(name.encode("ascii"))
+        digest.update(b"\0")
+        if isinstance(item, np.ndarray):
+            digest.update(item.dtype.str.encode("ascii"))
+            digest.update(b"\0")
+            digest.update(np.asarray(item.shape, dtype="<i8").tobytes())
+            digest.update(item.tobytes(order="C"))
+        else:
+            digest.update(
+                json.dumps(
+                    item, sort_keys=True, separators=(",", ":"), allow_nan=False
+                ).encode("utf-8")
+            )
+    return digest.hexdigest()
+
+
+def seal_economic_training_projection(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Seal the immutable, model-consumed projection of one economic slice."""
+
+    observed = dict(value)
+    forbidden = {"exit_stream_sha256", "hold_stream_sha256", "projection_sha256"}
+    if forbidden & set(observed):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_ALREADY_SEALED")
+    for name in (
+        "exit_event_kind_index",
+        "exit_reward_bps",
+        "hold_event_kind_index",
+        "hold_reward_bps",
+    ):
+        array = observed.get(name)
+        if not isinstance(array, np.ndarray):
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_ARRAY_INVALID")
+        array.setflags(write=False)
+    common = {
+        key: observed[key]
+        for key in (
+            "schema_version",
+            "entry_row_index",
+            "side_index",
+            "economic_step_model_sha256",
+            "economic_step_source_manifest_sha256",
+        )
+    }
+    observed["exit_stream_sha256"] = _array_mapping_sha256(
+        {
+            **common,
+            "action": "exit_now",
+            "start_state_index": observed["start_state_index"],
+            "stop_state_index": observed["stop_state_index"],
+            "event_kind_index": observed["exit_event_kind_index"],
+            "reward_bps": observed["exit_reward_bps"],
+        }
+    )
+    observed["hold_stream_sha256"] = _array_mapping_sha256(
+        {
+            **common,
+            "action": "hold",
+            "start_state_index": observed["start_state_index"],
+            "stop_state_index": observed["hold_stop_state_index"],
+            "event_kind_index": observed["hold_event_kind_index"],
+            "reward_bps": observed["hold_reward_bps"],
+        }
+    )
+    observed["projection_sha256"] = _array_mapping_sha256(observed)
+    return observed
+
+
+def require_economic_training_projection(
+    value: Mapping[str, Any],
+    *,
+    entry_row_index: int,
+    side_index: int,
+    start_state_index: int,
+    stop_state_index: int,
+    hold_stop_state_index: int,
+    economic_manifest: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate exact immutable arrays without rebuilding scalar step dictionaries."""
+
+    expected = {
+        "schema_version",
+        "entry_row_index",
+        "side_index",
+        "start_state_index",
+        "stop_state_index",
+        "hold_stop_state_index",
+        "exit_event_kind_index",
+        "exit_reward_bps",
+        "hold_event_kind_index",
+        "hold_reward_bps",
+        "economic_step_model_sha256",
+        "economic_step_source_manifest_sha256",
+        "exit_stream_sha256",
+        "hold_stream_sha256",
+        "projection_sha256",
+    }
+    if not isinstance(value, Mapping) or set(value) != expected:
+        raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_KEYS_INVALID")
+    observed = dict(value)
+    forbidden = {"exit_stream_sha256", "hold_stream_sha256", "projection_sha256"}
+    if (
+        observed["schema_version"] != ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION
+        or observed["entry_row_index"] != entry_row_index
+        or observed["side_index"] != side_index
+        or observed["start_state_index"] != start_state_index
+        or observed["stop_state_index"] != stop_state_index
+        or observed["hold_stop_state_index"] != hold_stop_state_index
+        or observed["economic_step_model_sha256"]
+        != economic_manifest["economic_step_model_sha256"]
+        or observed["economic_step_source_manifest_sha256"]
+        != economic_manifest["economic_step_source_manifest_sha256"]
+    ):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_IDENTITY_INVALID")
+    shapes_and_dtypes = {
+        "exit_event_kind_index": ((stop_state_index - start_state_index,), np.dtype("u1")),
+        "exit_reward_bps": ((stop_state_index - start_state_index,), np.dtype("<f8")),
+        "hold_event_kind_index": ((hold_stop_state_index - start_state_index,), np.dtype("u1")),
+        "hold_reward_bps": ((hold_stop_state_index - start_state_index,), np.dtype("<f8")),
+    }
+    for name, (shape, dtype) in shapes_and_dtypes.items():
+        array = observed[name]
+        if (
+            not isinstance(array, np.ndarray)
+            or array.shape != shape
+            or array.dtype != dtype
+            or not array.flags.c_contiguous
+            or array.flags.writeable
+            or (array.dtype.kind == "f" and not np.isfinite(array).all())
+        ):
+            raise RuntimeError(f"UNIFIED_EXIT_ECONOMIC_PROJECTION_ARRAY_INVALID:{name}")
+    if (
+        np.any(
+            ~np.isin(
+                observed["exit_event_kind_index"],
+                (_EXIT_NOW_EVENT_INDEX, _ECONOMIC_TERMINAL_EVENT_INDEX),
+            )
+        )
+        or np.any(observed["hold_event_kind_index"] != _HOLD_EVENT_INDEX)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_EVENT_INVALID")
+    sealed = seal_economic_training_projection(
+        {key: item for key, item in observed.items() if key not in forbidden}
+    )
+    if any(
+        observed[name] != sealed[name]
+        for name in ("exit_stream_sha256", "hold_stream_sha256", "projection_sha256")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_HASH_INVALID")
     return observed
 
 
@@ -360,56 +523,110 @@ class UnifiedExitDatasetAdapterV2:
                 )
             return observed
 
-        exit_slice = load_slice("exit_now", chunk_start, chunk_start + valid_count)
         hold_stop = min(
             chunk_start + valid_count,
             int(row[f"{('long', 'short')[side_index]}_lifecycle_state_count"]) - 1,
         )
-        hold_slice = load_slice("hold", chunk_start, hold_stop)
-        raw_steps = exit_slice["steps"]
-        raw_hold_steps = hold_slice["steps"]
-        if (
-            not isinstance(raw_steps, Sequence)
-            or isinstance(raw_steps, (str, bytes))
-            or not isinstance(raw_hold_steps, Sequence)
-            or isinstance(raw_hold_steps, (str, bytes))
-        ):
-            raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_MISSING")
-        contract = self._readiness["economics_objective_contract"]
-        composed = [
-            compose_economic_step(step, contract=contract) for step in raw_steps
-        ]
-        composed_hold = [
-            compose_economic_step(step, contract=contract) for step in raw_hold_steps
-        ]
         economic_terminal = side_pointer["terminal_reason"] == "economic_terminal"
-        for position, step in enumerate(composed):
-            expected_event = (
-                "ECONOMIC_TERMINAL"
-                if economic_terminal and position == valid_count - 1
-                else "EXIT_NOW"
+        fastpath = getattr(
+            self._economic_provider, "materialize_training_projection", None
+        )
+        if fastpath is None:
+            exit_slice = load_slice(
+                "exit_now", chunk_start, chunk_start + valid_count
             )
-            if step["event_kind"] != expected_event:
+            hold_slice = load_slice("hold", chunk_start, hold_stop)
+            raw_steps = exit_slice["steps"]
+            raw_hold_steps = hold_slice["steps"]
+            if (
+                not isinstance(raw_steps, Sequence)
+                or isinstance(raw_steps, (str, bytes))
+                or not isinstance(raw_hold_steps, Sequence)
+                or isinstance(raw_hold_steps, (str, bytes))
+            ):
+                raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_MISSING")
+            contract = self._readiness["economics_objective_contract"]
+            composed = [
+                compose_economic_step(step, contract=contract) for step in raw_steps
+            ]
+            composed_hold = [
+                compose_economic_step(step, contract=contract)
+                for step in raw_hold_steps
+            ]
+            for position, step in enumerate(composed):
+                expected_event = (
+                    "ECONOMIC_TERMINAL"
+                    if economic_terminal and position == valid_count - 1
+                    else "EXIT_NOW"
+                )
+                if step["event_kind"] != expected_event:
+                    raise RuntimeError(
+                        "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID"
+                    )
+            if any(step["event_kind"] != "HOLD" for step in composed_hold):
                 raise RuntimeError(
                     "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID"
                 )
-        if any(step["event_kind"] != "HOLD" for step in composed_hold):
-            raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID")
-        rewards = np.asarray(
-            [
-                step["undiscounted_risk_adjusted_utility_increment_bps"]
-                for step in composed
-            ],
-            dtype=np.float32,
-        )
-        hold_rewards = np.zeros(valid_count, dtype=np.float32)
-        hold_rewards[: len(composed_hold)] = np.asarray(
-            [
-                step["undiscounted_risk_adjusted_utility_increment_bps"]
-                for step in composed_hold
-            ],
-            dtype=np.float32,
-        )
+            rewards = np.asarray(
+                [
+                    step["undiscounted_risk_adjusted_utility_increment_bps"]
+                    for step in composed
+                ],
+                dtype=np.float32,
+            )
+            hold_rewards = np.zeros(valid_count, dtype=np.float32)
+            hold_rewards[: len(composed_hold)] = np.asarray(
+                [
+                    step["undiscounted_risk_adjusted_utility_increment_bps"]
+                    for step in composed_hold
+                ],
+                dtype=np.float32,
+            )
+            exit_stream_sha256 = exit_slice["slice_sha256"]
+            hold_stream_sha256 = hold_slice["slice_sha256"]
+        else:
+            if not callable(fastpath):
+                raise RuntimeError("UNIFIED_EXIT_ECONOMIC_PROJECTION_PROVIDER_INVALID")
+            try:
+                projection = require_economic_training_projection(
+                    fastpath(
+                        entry_row,
+                        side_index,
+                        chunk_start,
+                        chunk_start + valid_count,
+                        hold_stop,
+                    ),
+                    entry_row_index=entry_row,
+                    side_index=side_index,
+                    start_state_index=chunk_start,
+                    stop_state_index=chunk_start + valid_count,
+                    hold_stop_state_index=hold_stop,
+                    economic_manifest=self._economic_manifest,
+                )
+            except (KeyError, FileNotFoundError, OSError) as exc:
+                raise RuntimeError(
+                    "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_MISSING"
+                ) from exc
+            expected_exit_events = np.full(
+                valid_count, _EXIT_NOW_EVENT_INDEX, dtype=np.uint8
+            )
+            if economic_terminal:
+                expected_exit_events[-1] = _ECONOMIC_TERMINAL_EVENT_INDEX
+            if not np.array_equal(
+                projection["exit_event_kind_index"], expected_exit_events
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID"
+                )
+            rewards = np.ascontiguousarray(
+                projection["exit_reward_bps"], dtype=np.float32
+            )
+            hold_rewards = np.zeros(valid_count, dtype=np.float32)
+            hold_rewards[: hold_stop - chunk_start] = np.asarray(
+                projection["hold_reward_bps"], dtype=np.float32
+            )
+            exit_stream_sha256 = projection["exit_stream_sha256"]
+            hold_stream_sha256 = projection["hold_stream_sha256"]
         state_valid = np.ones(valid_count, dtype=np.bool_)
         terminal = np.zeros(valid_count, dtype=np.bool_)
         reason = np.zeros(valid_count, dtype=np.int64)
@@ -446,8 +663,8 @@ class UnifiedExitDatasetAdapterV2:
             "economic_exit_step_manifest_sha256": self._economic_manifest[
                 "manifest_sha256"
             ],
-            "economic_exit_step_stream_sha256": exit_slice["slice_sha256"],
-            "economic_hold_step_stream_sha256": hold_slice["slice_sha256"],
+            "economic_exit_step_stream_sha256": exit_stream_sha256,
+            "economic_hold_step_stream_sha256": hold_stream_sha256,
             "scheduled_pair_chunk_pointer_sha256": pointer["schedule_sha256"],
             "multi_tf_cache_identity_sha256": self.mtf_cache_identity_sha256,
             "unbounded_exit_training_readiness": self._readiness,
@@ -488,6 +705,9 @@ class UnifiedExitDatasetAdapterV2:
 
 __all__ = (
     "ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION",
+    "ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION",
     "UnifiedExitDatasetAdapterV2",
+    "require_economic_training_projection",
     "seal_economic_exit_step_manifest",
+    "seal_economic_training_projection",
 )

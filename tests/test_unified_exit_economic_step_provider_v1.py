@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -62,7 +63,11 @@ def _readiness(policy_sha256: str) -> dict:
     }
 
 
-def _provider(*, readiness_policy_sha256: str | None = None):
+def _provider(
+    *,
+    readiness_policy_sha256: str | None = None,
+    economic_terminal: bool = False,
+):
     authority = json.loads(AUTHORITY_PATH.read_text())
     policy = json.loads(Path(authority["policy"]["path"]).read_text())
     tape_path = Path(policy["executable_bid_ask"]["parquet"]["path"])
@@ -77,6 +82,8 @@ def _provider(*, readiness_policy_sha256: str | None = None):
             "entry_m1_start_row": [start],
             "long_lifecycle_state_count": [3],
             "short_lifecycle_state_count": [3],
+            "long_economic_terminal": [economic_terminal],
+            "short_economic_terminal": [economic_terminal],
             "m1_source_sha256": [policy["executable_bid_ask"]["parquet"]["sha256"]],
         }
     )
@@ -118,3 +125,48 @@ def test_production_provider_consumes_committed_source_rich_authority() -> None:
 def test_provider_rejects_readiness_not_bound_to_cost_authority() -> None:
     with pytest.raises(RuntimeError, match="POLICY_BINDING_INVALID"):
         _provider(readiness_policy_sha256="f" * 64)
+
+
+def test_vectorized_training_projection_is_byte_exact_to_scalar_composition() -> None:
+    provider, readiness = _provider()
+    contract = readiness["economics_objective_contract"]
+    for side_index in (0, 1):
+        projection = provider.materialize_training_projection(
+            0, side_index, 0, 3, 2
+        )
+        scalar_exit = np.asarray(
+            [
+                economics.compose_economic_step(step, contract=contract)[
+                    "undiscounted_risk_adjusted_utility_increment_bps"
+                ]
+                for step in provider(0, side_index, "exit_now", 0, 3)["steps"]
+            ],
+            dtype=np.float32,
+        )
+        scalar_hold = np.asarray(
+            [
+                economics.compose_economic_step(step, contract=contract)[
+                    "undiscounted_risk_adjusted_utility_increment_bps"
+                ]
+                for step in provider(0, side_index, "hold", 0, 2)["steps"]
+            ],
+            dtype=np.float32,
+        )
+        vector_exit = np.asarray(projection["exit_reward_bps"], dtype=np.float32)
+        vector_hold = np.asarray(projection["hold_reward_bps"], dtype=np.float32)
+        assert vector_exit.tobytes() == scalar_exit.tobytes()
+        assert vector_hold.tobytes() == scalar_hold.tobytes()
+        assert not projection["exit_reward_bps"].flags.writeable
+        assert not projection["hold_reward_bps"].flags.writeable
+
+
+def test_terminal_event_identity_matches_scalar_and_vectorized_paths() -> None:
+    provider, _ = _provider(economic_terminal=True)
+    scalar = provider(0, 0, "exit_now", 0, 3)
+    projection = provider.materialize_training_projection(0, 0, 0, 3, 2)
+    assert [step["event_kind"] for step in scalar["steps"]] == [
+        "EXIT_NOW",
+        "EXIT_NOW",
+        "ECONOMIC_TERMINAL",
+    ]
+    assert projection["exit_event_kind_index"].tolist() == [0, 0, 2]
