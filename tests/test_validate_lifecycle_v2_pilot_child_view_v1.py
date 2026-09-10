@@ -11,6 +11,9 @@ from gx1.scripts.materialize_lifecycle_v2_pilot_entry_window_v1 import (
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import (
     validate_pilot_child_view,
 )
+from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import (
+    build_pilot_readiness,
+)
 from tests.test_prepare_unified_exit_lifecycle_v2_pilot_v1 import _source_fixture
 
 
@@ -60,6 +63,18 @@ def test_child_view_witness_binds_parent_child_and_exact_clocks(
     assert witness["splits"]["train"]["rows"] == 2
     assert witness["splits"]["val"]["rows"] == 2
     assert witness["test_accessed"] is False
+    witness_path = tmp_path / "child-admission.json"
+    witness_path.write_text(json.dumps(witness), encoding="utf-8")
+    readiness = build_pilot_readiness(
+        source_recipe_path=recipe,
+        source_recipe_sha256=digest,
+        pilot_root=pilot,
+        entry_window_adoption_receipt=pilot
+        / "ENTRY_WINDOW"
+        / "ENTRY_WINDOW_ADOPTION_RECEIPT.json",
+        child_view_admission=witness_path,
+    )
+    assert readiness["missing_or_blocked_stages"][0] == "train_economics"
 
 
 def test_child_view_rejects_swapped_child_bytes(

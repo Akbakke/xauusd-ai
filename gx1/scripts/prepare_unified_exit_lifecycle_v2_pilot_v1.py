@@ -246,12 +246,65 @@ def _optional_economic_authority(
     return {"path": str(path), "sha256": digest, "payload": checked}
 
 
+def _optional_child_admission(
+    path: Path | None, *, plan: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    path = _regular_absolute(path, "CHILD_VIEW_ADMISSION")
+    digest = _sha256_file(path)
+    value = _read_bound_json(path, digest, "CHILD_VIEW_ADMISSION")
+    splits = value.get("splits")
+    if (
+        value.get("schema_version")
+        != "gx1_lifecycle_v2_pilot_child_view_admission_v1"
+        or value.get("decision") != "PASS"
+        or value.get("pilot_run_id") != plan["pilot_run_id"]
+        or value.get("parent_dataset_run_id") != plan["dataset_run_id"]
+        or value.get("child_dataset_run_id") != plan["pilot_dataset_run_id"]
+        or value.get("pilot_binding_sha256") != plan["pilot_binding_sha256"]
+        or value.get("parent_v1_root_path")
+        != plan["source_bindings"]["unified_exit_lifecycle_manifest"]["path"]
+        or value.get("parent_v1_root_sha256")
+        != plan["source_bindings"]["unified_exit_lifecycle_manifest"]["sha256"]
+        or value.get("m1_source_binding") != plan["m1_source_binding"]
+        or value.get("test_accessed") is not False
+        or value.get("witness_sha256")
+        != _canonical_sha256(
+            {key: item for key, item in value.items() if key != "witness_sha256"}
+        )
+        or not isinstance(splits, Mapping)
+        or set(splits) != {"train", "val"}
+    ):
+        raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_NOT_PASS")
+    for split in ("train", "val"):
+        observed = splits[split]
+        selection = plan["selection_bindings"][split]
+        if (
+            not isinstance(observed, Mapping)
+            or observed.get("rows") != selection["selected_rows"]
+            or observed.get("source_row_indices_sha256")
+            != selection["source_row_indices_sha256"]
+            or observed.get("clock_sha256") != selection["selected_clock_sha256"]
+        ):
+            raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_NOT_PASS")
+        for kind in ("parquet", "manifest"):
+            artifact = Path(str(observed.get(f"{kind}_path") or ""))
+            expected_sha = observed.get(
+                "parquet_sha256" if kind == "parquet" else "manifest_file_sha256"
+            )
+            if _sha256_file(_regular_absolute(artifact, "CHILD_VIEW_ARTIFACT")) != expected_sha:
+                raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_NOT_PASS")
+    return {"path": str(path), "sha256": digest, "payload": value}
+
+
 def build_pilot_readiness(
     *,
     source_recipe_path: Path,
     source_recipe_sha256: str,
     pilot_root: Path,
     entry_window_adoption_receipt: Path | None = None,
+    child_view_admission: Path | None = None,
     train_economics_authority: Path | None = None,
     val_economics_authority: Path | None = None,
     lifecycle_validate_receipt: Path | None = None,
@@ -328,11 +381,19 @@ def build_pilot_readiness(
         "planned_epochs": PILOT_EPOCHS,
     }
     pilot_binding_sha256 = _canonical_sha256(pilot_binding)
+    plan_context = {
+        **pilot_binding,
+        "dataset_run_id": dataset_run_id,
+        "pilot_binding_sha256": pilot_binding_sha256,
+    }
     receipts = {
         "entry_window_adoption": _optional_stage_receipt(
             entry_window_adoption_receipt,
             stage="entry_window_adoption",
             pilot_binding_sha256=pilot_binding_sha256,
+        ),
+        "child_view_admission": _optional_child_admission(
+            child_view_admission, plan=plan_context
         ),
         "train_economics": _optional_economic_authority(
             train_economics_authority,
@@ -473,6 +534,7 @@ def main() -> None:
     parser.add_argument("--source-recipe-sha256", required=True)
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--entry-window-adoption-receipt", type=Path)
+    parser.add_argument("--child-view-admission", type=Path)
     parser.add_argument("--train-economics-authority", type=Path)
     parser.add_argument("--val-economics-authority", type=Path)
     parser.add_argument("--lifecycle-validate-receipt", type=Path)
@@ -486,6 +548,7 @@ def main() -> None:
         source_recipe_sha256=args.source_recipe_sha256,
         pilot_root=args.pilot_root,
         entry_window_adoption_receipt=args.entry_window_adoption_receipt,
+        child_view_admission=args.child_view_admission,
         train_economics_authority=args.train_economics_authority,
         val_economics_authority=args.val_economics_authority,
         lifecycle_validate_receipt=args.lifecycle_validate_receipt,

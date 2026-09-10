@@ -58,7 +58,7 @@ def test_publish_is_atomic_and_receipt_reopens_exact_subset(tmp_path: Path) -> N
         entry_window_adoption_receipt=output
         / "ENTRY_WINDOW_ADOPTION_RECEIPT.json",
     )
-    assert readiness["missing_or_blocked_stages"][0] == "train_economics"
+    assert readiness["missing_or_blocked_stages"][0] == "child_view_admission"
 
     (output / "train.parquet").write_bytes(b"tampered")
     with pytest.raises(RuntimeError, match="ARTIFACT_BINDING_INVALID"):
