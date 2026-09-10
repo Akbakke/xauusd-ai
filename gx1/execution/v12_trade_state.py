@@ -1512,6 +1512,15 @@ class TradeState:
             trough = (self.entry_bid - ask_high) / self.entry_bid * 10000.0
         return float(peak), float(trough)
 
+    def lifetime_summary_v1(self) -> dict[str, Any]:
+        """Project the live all-time fields through the offline-owned registry."""
+
+        from gx1.contracts.unified_exit_lifetime_summary_v1 import (
+            lifetime_summary_from_trade_state,
+        )
+
+        return lifetime_summary_from_trade_state(self)
+
     def update_bar(
         self,
         *,
