@@ -54,6 +54,11 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
     UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS,
     UNIFIED_EXIT_EPISODE_STATE_COUNT,
 )
+from gx1.contracts.unified_exit_lifetime_summary_v1 import LIFETIME_SUMMARY_DIM
+from gx1.contracts.unified_exit_random_access_model_v1 import (
+    RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
+    RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+)
 from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
     require_entry_exit_production_architecture,
@@ -1411,6 +1416,31 @@ class EntryV10CtxHybridTransformer(nn.Module):
             nn.Linear(d_model, d_model),
             nn.GELU(),
         )
+        # Random-access v2 is a new architecture surface.  Its normally
+        # initialized parameters are intentionally absent from v1 checkpoints;
+        # one explicit bootstrap migration may reuse the compatible backbone.
+        self.unified_exit_random_access_architecture_version = (
+            RANDOM_ACCESS_MODEL_SCHEMA_VERSION
+        )
+        self.register_buffer(
+            "unified_exit_random_access_architecture_sha256",
+            torch.tensor(
+                list(bytes.fromhex(RANDOM_ACCESS_MODEL_SCHEMA_SHA256)),
+                dtype=torch.uint8,
+            ),
+        )
+        self.exit_random_access_summary_proj = nn.Sequential(
+            nn.LayerNorm(LIFETIME_SUMMARY_DIM),
+            nn.Linear(LIFETIME_SUMMARY_DIM, d_model),
+            nn.GELU(),
+        )
+        self.exit_random_access_fuse = nn.Sequential(
+            nn.LayerNorm(6 * d_model),
+            nn.Linear(6 * d_model, d_model),
+            nn.GELU(),
+            nn.Linear(d_model, d_model),
+            nn.GELU(),
+        )
 
         # Strict markers (useful for debugging)
         self._expected_seq_dim = int(seq_input_dim)
@@ -2305,8 +2335,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_action_valid_mask: Optional[torch.Tensor] = None,
         exit_terminal_mask: Optional[torch.Tensor] = None,
         exit_terminal_reason_index: Optional[torch.Tensor] = None,
+        market_state_only: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Shared causal scan for full episodes and online prefix replay."""
+        """Shared causal local/MTF scan with optional episode path/Q projection."""
+
+        if type(market_state_only) is not bool:
+            raise RuntimeError("UNIFIED_EXIT_EPISODE_MARKET_STATE_MODE_INVALID")
 
         _assert_shape(
             "entry_decision_representation",
@@ -2694,6 +2728,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
             local_state.dtype
         ) * mtf_correction
 
+        if market_state_only:
+            return {
+                "exit_episode_local_state": local_state,
+                "exit_episode_mtf_correction": mtf_correction,
+                "exit_episode_market_state": market_state,
+                "exit_specialist_gate": family_gate,
+                "exit_tf_gate": cooperation_gate.sum(dim=3),
+                "exit_family_tf_cooperation_gate": cooperation_gate,
+                "exit_family_tf_feature_gate": family_tf_feature_gate,
+            }
+
         path_flat = exit_path_x.reshape(
             batch_size * 2, state_count, UNIFIED_EXIT_PATH_FEATURE_DIM
         )
@@ -2808,6 +2853,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "exit_family_tf_cooperation_gate": cooperation_gate,
             "exit_family_tf_feature_gate": family_tf_feature_gate,
             "exit_episode_market_state": market_state,
+            "exit_episode_local_state": local_state,
+            "exit_episode_mtf_correction": mtf_correction,
             "exit_episode_path_state": path_encoded,
         }
 
@@ -2868,6 +2915,163 @@ class EntryV10CtxHybridTransformer(nn.Module):
             exit_mtf_history_lengths=exit_mtf_history_lengths,
             require_full_episode=False,
         )
+
+    def forward_exit_random_access_batch(
+        self,
+        *,
+        entry_decision_representation: torch.Tensor,
+        m1_local_history_x: torch.Tensor,
+        state_ctx_cat: torch.Tensor,
+        state_ctx_cont: torch.Tensor,
+        trade_path_tail_x: torch.Tensor,
+        trade_path_lengths: torch.Tensor,
+        normalized_lifetime_summary_x: torch.Tensor,
+        exit_mtf_histories: Mapping[str, torch.Tensor],
+        exit_mtf_gathers: Mapping[str, torch.Tensor],
+        exit_mtf_history_lengths: Mapping[str, torch.Tensor],
+        action_valid_mask: Optional[torch.Tensor] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Evaluate independent sampled states with bounded causal tails."""
+
+        _assert_shape(
+            "entry_decision_representation", entry_decision_representation, 2
+        )
+        _assert_shape("m1_local_history_x", m1_local_history_x, 3)
+        _assert_shape("state_ctx_cat", state_ctx_cat, 2)
+        _assert_shape("state_ctx_cont", state_ctx_cont, 2)
+        _assert_shape("trade_path_tail_x", trade_path_tail_x, 4)
+        _assert_shape("trade_path_lengths", trade_path_lengths, 1)
+        _assert_shape(
+            "normalized_lifetime_summary_x",
+            normalized_lifetime_summary_x,
+            3,
+        )
+        batch_size = int(entry_decision_representation.shape[0])
+        tail_rows = int(trade_path_tail_x.shape[2])
+        if (
+            batch_size < 1
+            or tuple(m1_local_history_x.shape)
+            != (batch_size, EXIT_FEATURE_SEQUENCE_BARS, self._expected_seq_dim)
+            or tuple(state_ctx_cat.shape)
+            != (batch_size, self._expected_ctx_cat_dim)
+            or tuple(state_ctx_cont.shape)
+            != (batch_size, self._expected_ctx_cont_dim)
+            or tuple(trade_path_tail_x.shape)
+            != (
+                batch_size,
+                2,
+                tail_rows,
+                UNIFIED_EXIT_PATH_FEATURE_DIM,
+            )
+            or tuple(trade_path_lengths.shape) != (batch_size,)
+            or trade_path_lengths.dtype not in (torch.int64, torch.int32)
+            or tail_rows < 1
+            or tail_rows > UNIFIED_EXIT_MAX_PATH_BARS
+            or bool((trade_path_lengths < 1).any().item())
+            or bool((trade_path_lengths > tail_rows).any().item())
+            or tuple(normalized_lifetime_summary_x.shape)
+            != (batch_size, 2, LIFETIME_SUMMARY_DIM)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MODEL_INPUT_INVALID")
+        for name, value in (
+            ("m1_local_history_x", m1_local_history_x),
+            ("state_ctx_cont", state_ctx_cont),
+            ("trade_path_tail_x", trade_path_tail_x),
+            ("normalized_lifetime_summary_x", normalized_lifetime_summary_x),
+        ):
+            _assert_finite(name, value)
+        padding = torch.arange(
+            tail_rows, device=trade_path_tail_x.device
+        )[None, :] >= trade_path_lengths[:, None]
+        if bool((trade_path_tail_x.permute(0, 2, 1, 3)[padding] != 0).any().item()):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PATH_PADDING_INVALID")
+        final_path_index = (trade_path_lengths.to(torch.long) - 1).view(
+            batch_size, 1, 1, 1
+        ).expand(-1, 2, 1, UNIFIED_EXIT_PATH_FEATURE_DIM)
+        current_path = trade_path_tail_x.gather(2, final_path_index)
+        base = self._forward_exit_causal_episode(
+            entry_decision_representation=entry_decision_representation,
+            exit_local_history_x=m1_local_history_x,
+            exit_state_ctx_cat=state_ctx_cat.unsqueeze(1),
+            exit_state_ctx_cont=state_ctx_cont.unsqueeze(1),
+            exit_path_x=current_path,
+            exit_mtf_histories=exit_mtf_histories,
+            exit_mtf_gathers=exit_mtf_gathers,
+            exit_mtf_history_lengths=exit_mtf_history_lengths,
+            require_full_episode=False,
+            market_state_only=True,
+        )
+        d_model = int(self.cfg.d_model)
+        path_flat = trade_path_tail_x.reshape(
+            batch_size * 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM
+        )
+        path_sequence, _ = self.exit_episode_path_gru(
+            self.exit_path_proj(path_flat)
+        )
+        side_lengths = trade_path_lengths[:, None].expand(-1, 2).reshape(-1)
+        path_state = path_sequence[
+            torch.arange(batch_size * 2, device=path_sequence.device),
+            side_lengths.to(torch.long) - 1,
+        ].reshape(batch_size, 2, d_model)
+        summary_state = self.exit_random_access_summary_proj(
+            normalized_lifetime_summary_x.to(path_state.dtype)
+        )
+        local_state = base["exit_episode_local_state"][:, 0]
+        mtf_state = base["exit_episode_mtf_correction"][:, 0]
+        token = entry_decision_representation[:, None, :].expand(-1, 2, -1)
+        local_side = local_state[:, None, :].expand(-1, 2, -1)
+        mtf_side = mtf_state[:, None, :].expand(-1, 2, -1)
+        side_index = torch.arange(2, device=path_state.device).view(1, 2)
+        side_state = self.exit_side_embedding(side_index).expand(
+            batch_size, -1, -1
+        )
+        hidden = self.exit_random_access_fuse(
+            torch.cat(
+                (
+                    token,
+                    local_side,
+                    mtf_side,
+                    side_state,
+                    path_state,
+                    summary_state,
+                ),
+                dim=2,
+            )
+        )
+        q_values = _forward_raw_q_head(self.head_exit_action, hidden)
+        valid = (
+            torch.ones_like(q_values, dtype=torch.bool)
+            if action_valid_mask is None
+            else action_valid_mask
+        )
+        if (
+            tuple(valid.shape) != tuple(q_values.shape)
+            or valid.dtype != torch.bool
+            or bool((~valid.any(dim=2)).any().item())
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ACTION_MASK_INVALID")
+        for name, value in (
+            ("exit_random_access_path_state", path_state),
+            ("exit_random_access_summary_state", summary_state),
+            ("exit_random_access_q_bps", q_values),
+        ):
+            _assert_finite(name, value)
+        return {
+            "exit_action_q_bps": q_values,
+            "exit_action_valid_mask": valid,
+            "exit_specialist_gate": base["exit_specialist_gate"],
+            "exit_tf_gate": base["exit_tf_gate"],
+            "exit_family_tf_cooperation_gate": base[
+                "exit_family_tf_cooperation_gate"
+            ],
+            "exit_family_tf_feature_gate": base[
+                "exit_family_tf_feature_gate"
+            ],
+            "exit_random_access_path_state": path_state,
+            "exit_random_access_summary_state": summary_state,
+            "exit_random_access_local_state": local_state,
+            "exit_random_access_mtf_state": mtf_state,
+        }
 
     def export_exit_incremental_carry_tensor_state(
         self, carry: UnifiedExitIncrementalCarry

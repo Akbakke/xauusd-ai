@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import copy
+
+import pytest
+import torch
+
+from gx1.contracts.unified_exit_random_access_model_v1 import (
+    RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+    bootstrap_random_access_v2_from_pretrained,
+    strict_load_random_access_v2_state,
+)
+from gx1.models.entry_v10.direction_decision_contract import (
+    UNIFIED_EXIT_PATH_FEATURE_DIM,
+)
+from tests.test_entry_v10_ctx_model_shapes import (
+    _make_exit_episode_inputs,
+    _make_model,
+)
+
+
+def _inputs(batch_size: int = 3) -> dict:
+    base = _make_exit_episode_inputs(state_count=1, batch_size=batch_size)
+    tail_rows = 5
+    lengths = torch.tensor([5, 3, 4][:batch_size], dtype=torch.long)
+    path = torch.randn(
+        batch_size, 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM
+    )
+    for index, length in enumerate(lengths.tolist()):
+        path[index, :, length:] = 0.0
+    return {
+        "entry_decision_representation": base[
+            "entry_decision_representation"
+        ],
+        "m1_local_history_x": base["exit_local_history_x"],
+        "state_ctx_cat": base["exit_state_ctx_cat"][:, 0],
+        "state_ctx_cont": base["exit_state_ctx_cont"][:, 0],
+        "trade_path_tail_x": path,
+        "trade_path_lengths": lengths,
+        "normalized_lifetime_summary_x": torch.randn(batch_size, 2, 7),
+        "exit_mtf_histories": base["exit_mtf_histories"],
+        "exit_mtf_gathers": {
+            name: gather[:, :1]
+            for name, gather in base["exit_mtf_gathers"].items()
+        },
+        "exit_mtf_history_lengths": base["exit_mtf_history_lengths"],
+        "action_valid_mask": torch.ones(
+            batch_size, 2, 2, dtype=torch.bool
+        ),
+    }
+
+
+def _slice(inputs: dict, index: int) -> dict:
+    sliced = {
+        name: value[index : index + 1]
+        for name, value in inputs.items()
+        if not isinstance(value, dict)
+    }
+    for key in (
+        "exit_mtf_histories",
+        "exit_mtf_gathers",
+        "exit_mtf_history_lengths",
+    ):
+        sliced[key] = {
+            name: value[index : index + 1]
+            for name, value in inputs[key].items()
+        }
+    length = int(sliced["trade_path_lengths"][0])
+    sliced["trade_path_tail_x"] = sliced["trade_path_tail_x"][:, :, :length]
+    return sliced
+
+
+def test_random_access_model_batch_matches_independent_state_calls() -> None:
+    torch.manual_seed(20260911)
+    batched_model = _make_model(dropout=0.0).eval()
+    loop_model = copy.deepcopy(batched_model).eval()
+    inputs = _inputs()
+    calls = {"path_gru": 0, "q_head": 0}
+
+    def count_path(_module, _args, _output):
+        calls["path_gru"] += 1
+
+    def count_head(_module, _args, _output):
+        calls["q_head"] += 1
+
+    path_hook = batched_model.exit_episode_path_gru.register_forward_hook(count_path)
+    head_hook = batched_model.head_exit_action.register_forward_hook(count_head)
+    try:
+        output = batched_model.forward_exit_random_access_batch(**inputs)
+        batched = output["exit_action_q_bps"]
+    finally:
+        path_hook.remove()
+        head_hook.remove()
+    assert calls == {"path_gru": 1, "q_head": 1}
+    for name in (
+        "exit_specialist_gate",
+        "exit_tf_gate",
+        "exit_family_tf_cooperation_gate",
+        "exit_family_tf_feature_gate",
+    ):
+        assert isinstance(output[name], torch.Tensor)
+        assert output[name].shape[0] == 3
+    loop = torch.cat(
+        [
+            loop_model.forward_exit_random_access_batch(**_slice(inputs, index))[
+                "exit_action_q_bps"
+            ]
+            for index in range(3)
+        ],
+        dim=0,
+    )
+    assert torch.allclose(batched, loop, rtol=1e-5, atol=1e-5)
+
+    batched.square().sum().backward()
+    loop.square().sum().backward()
+    for name in (
+        "exit_random_access_summary_proj.1.weight",
+        "exit_random_access_fuse.1.weight",
+        "head_exit_action.weight",
+        "exit_episode_global_gru.weight_ih_l0",
+    ):
+        batch_parameter = dict(batched_model.named_parameters())[name]
+        loop_parameter = dict(loop_model.named_parameters())[name]
+        assert torch.allclose(
+            batch_parameter.grad, loop_parameter.grad, rtol=2e-5, atol=2e-6
+        )
+
+
+def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict() -> None:
+    torch.manual_seed(3)
+    model = _make_model(dropout=0.0)
+    full = copy.deepcopy(model.state_dict())
+    new_prefixes = (
+        "unified_exit_random_access_architecture_sha256",
+        "exit_random_access_summary_proj.",
+        "exit_random_access_fuse.",
+    )
+    old = {
+        name: value.clone()
+        for name, value in full.items()
+        if not any(name == prefix or name.startswith(prefix) for prefix in new_prefixes)
+    }
+    old["head_exit_action.weight"] = torch.full_like(
+        old["head_exit_action.weight"], 0.125
+    )
+    with pytest.raises(RuntimeError, match="V2_STATE_KEYSET_INVALID"):
+        strict_load_random_access_v2_state(model, old)
+    new_before = {
+        name: value.clone()
+        for name, value in full.items()
+        if name not in old
+    }
+    receipt = bootstrap_random_access_v2_from_pretrained(model, old)
+    assert receipt["decision"] == "PASS"
+    assert receipt["architecture_schema_version"] == RANDOM_ACCESS_MODEL_SCHEMA_VERSION
+    assert torch.equal(
+        model.state_dict()["head_exit_action.weight"],
+        old["head_exit_action.weight"],
+    )
+    for name, value in new_before.items():
+        assert torch.equal(model.state_dict()[name], value)
+    v2_state = copy.deepcopy(model.state_dict())
+    strict_digest = strict_load_random_access_v2_state(model, v2_state)
+    assert strict_digest == receipt["resulting_v2_state_sha256"]

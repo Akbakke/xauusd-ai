@@ -198,6 +198,10 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
 from gx1.contracts.unified_exit_trainer_wiring_v2 import (
     bind_canonical_unified_exit_lifecycle_v2,
 )
+from gx1.contracts.unified_exit_random_access_training_v1 import (
+    collate_random_access_training_items,
+    run_random_access_training_step,
+)
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
@@ -6890,86 +6894,117 @@ def _episode_native_exit_train_v2(
     dataset: "EntryV10CtxDataset",
     device: torch.device,
     grad_accum_steps: int,
+    exit_cooperation_gate_epoch: dict[str, dict[str, Any]],
+    exit_feature_tf_gate_epoch: dict[str, Any],
 ) -> tuple[torch.Tensor, Dict[str, Any], torch.Tensor, torch.Tensor]:
-    """Canonical single-side chunk consumer selected by the dataset API."""
+    """Consume canonical sampled random-access v2 states as one outer batch."""
 
-    materialize = getattr(dataset, "materialize_exit_training_chunk_v2", None)
-    if not callable(materialize):
-        raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_MATERIALIZER_REQUIRED]")
+    adapter = getattr(dataset, "_unified_exit_lifecycle_v2", None)
+    materialize = getattr(
+        adapter, "materialize_random_access_training_item_v1", None
+    )
+    binding_owner = getattr(adapter, "random_access_training_bindings_v1", None)
+    if not callable(materialize) or not callable(binding_owner):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_RANDOM_ACCESS_V2_ADAPTER_BOUNDARY_REQUIRED]"
+        )
+    bindings = binding_owner()
+    required_bindings = {
+        "sampler_contract",
+        "normalization_artifact",
+        "m1_source_sha256",
+        "market_closure_authority_sha256",
+        "economic_step_manifest_sha256",
+        "economics_objective_contract_sha256",
+    }
+    if not isinstance(bindings, Mapping) or set(bindings) != required_bindings:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_RANDOM_ACCESS_V2_BINDINGS_INVALID]"
+        )
     rows = [int(value) for value in entry_row_indices.detach().cpu().tolist()]
-    packs = [materialize(row) for row in rows]
-    checked = [pack for pack in packs if pack is not None]
-    total_valid = sum(
-        int(np.asarray(pack["exit_bellman_target_valid_mask"], dtype=np.bool_).sum())
-        for pack in checked
+    raw_items = [
+        materialize(row, outer_batch_index=position)
+        for position, row in enumerate(rows)
+    ]
+    items = [item for item in raw_items if item is not None]
+    if not items:
+        entry_targets = torch.zeros(
+            (len(rows), 3),
+            dtype=entry_decision_representations.dtype,
+            device=device,
+        )
+        entry_valid = torch.zeros(
+            (len(rows), 3), dtype=torch.bool, device=device
+        )
+        entry_valid[:, 2] = True
+        return (
+            torch.zeros_like(entry_decision_representations),
+            {**_empty_exit_stats(), "raw_loss": 0.0},
+            entry_targets,
+            entry_valid,
+        )
+    batch = collate_random_access_training_items(
+        items,
+        outer_batch_size=len(rows),
+        sampler_contract=bindings["sampler_contract"],
+        normalization_artifact=bindings["normalization_artifact"],
+        expected_m1_source_sha256=bindings["m1_source_sha256"],
+        expected_market_closure_authority_sha256=(
+            bindings["market_closure_authority_sha256"]
+        ),
+        expected_economic_step_manifest_sha256=(
+            bindings["economic_step_manifest_sha256"]
+        ),
+        expected_economics_objective_contract_sha256=(
+            bindings["economics_objective_contract_sha256"]
+        ),
+        device=device,
     )
-    entry_gradients = torch.zeros_like(entry_decision_representations)
+    outcome = run_random_access_training_step(
+        model=model,
+        target_model=target_model,
+        entry_decision_representations=entry_decision_representations,
+        target_entry_decision_representations=(
+            target_entry_decision_representations
+        ),
+        batch=batch,
+        grad_accum_steps=grad_accum_steps,
+    )
+    gate_view = _unified_exit_gate_view(outcome["online_output"])
+    _accumulate_cooperation_gate_epoch(
+        exit_cooperation_gate_epoch,
+        gate_view,
+        gate_widths=_UNIFIED_EXIT_COOPERATION_GATE_WIDTHS,
+    )
+    _accumulate_feature_tf_gate_epoch(
+        exit_feature_tf_gate_epoch,
+        gate_view,
+        gate_shape=_UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE,
+    )
     stats = _empty_exit_stats()
-    if total_valid == 0:
-        zeros = torch.zeros((len(rows), 2), device=device)
-        return entry_gradients, {**stats, "raw_loss": 0.0}, zeros, zeros.bool()
-    raw_loss_sum = 0.0
-    for position, pack in enumerate(packs):
-        if pack is None:
-            continue
-        validated = dataset._unified_exit_lifecycle_v2.require_pack(pack)
-        if int(validated["entry_row_index"]) != rows[position]:
-            raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_ENTRY_BINDING_INVALID]")
-        token = (
-            entry_decision_representations[position : position + 1]
-            .detach()
-            .clone()
-            .requires_grad_(True)
-        )
-        online_q = _forward_unified_exit_training_chunk_v2(
-            model=model,
-            entry_decision_representation=token,
-            pack=validated,
-            device=device,
-        )
-        targets, target_mask, _target_q = _fitted_q_targets_for_chunk_v2(
-            target_model=target_model,
-            target_entry_decision_representation=(
-                target_entry_decision_representations[position : position + 1]
-            ),
-            chunk_pack=validated,
-            per_tf_seq_lens=dataset.per_tf_seq_lens,
-            expected_mtf_cache_identity_sha256=(
-                dataset._multi_tf_cache_identity_sha256
-            ),
-            device=device,
-        )
-        if not bool(target_mask.any().item()):
-            continue
-        loss_sum = nn.functional.mse_loss(
-            online_q[target_mask], targets[target_mask], reduction="sum"
-        )
-        (
-            torch.exp(-model.task_log_variances["unified_exit_action"])
-            * loss_sum
-            / float(total_valid)
-            / float(grad_accum_steps)
-        ).backward()
-        if token.grad is None or not bool(torch.isfinite(token.grad).all().item()):
-            raise RuntimeError("[UNIFIED_EXIT_CHUNK_V2_TOKEN_GRADIENT_INVALID]")
-        entry_gradients[position] = token.grad.detach()[0]
-        raw_loss_sum += float(loss_sum.detach().cpu().item())
-        _episode_stats_update(
-            stats, q_values=online_q, targets=targets, valid=target_mask
-        )
-        stats["eligible_entry_rows"] += 1
-    # Entry's separate fitted-Q bridge remains masked until the dataset emits
-    # a hash-bound first-state pair for both counterfactual sides.  The Exit
-    # loss still propagates through the actual Entry token above.
-    entry_targets = torch.zeros((len(rows), 2), device=device)
-    entry_valid = torch.zeros((len(rows), 2), device=device, dtype=torch.bool)
-    return (
-        entry_gradients,
-        {**stats, "raw_loss": raw_loss_sum / float(total_valid)},
-        entry_targets,
-        entry_valid,
+    _episode_stats_update(
+        stats,
+        q_values=outcome["prediction"],
+        targets=outcome["targets"],
+        valid=outcome["valid_mask"],
     )
-
+    stats["eligible_entry_rows"] = int(batch["selected_entry_count"])
+    stats["random_access_transition_count"] = int(
+        batch["transition_count"]
+    )
+    stats["random_access_online_forward_calls"] = int(
+        outcome["online_forward_calls"]
+    )
+    stats["random_access_target_forward_calls"] = int(
+        outcome["target_forward_calls"]
+    )
+    stats["random_access_backward_calls"] = int(outcome["backward_calls"])
+    return (
+        outcome["entry_gradients"],
+        {**stats, "raw_loss": float(outcome["raw_loss"].cpu().item())},
+        outcome["entry_targets"],
+        outcome["entry_valid_mask"],
+    )
 
 def _episode_native_exit_train(
     *,
@@ -7009,6 +7044,8 @@ def _episode_native_exit_train(
             dataset=dataset,
             device=device,
             grad_accum_steps=grad_accum_steps,
+            exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+            exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
         )
     if exit_action_forward_chunk_rows is not None:
         if int(exit_action_forward_chunk_rows) < 1:
