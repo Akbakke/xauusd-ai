@@ -454,14 +454,28 @@ while ($true) {
             if ($benchmarkContext.Phase -eq 'active') { $enforcementConfig = $benchmarkContext.PowerConfig }
         }
         $now = [datetime]::UtcNow
+        $scopedTreatmentRecheckDue = $false
         if (($now - $lastPowerLimitCheck).TotalSeconds -ge [int]$config.recheck_seconds) {
-            $powerSample = Set-Gx1PowerLimit -Config $enforcementConfig
-            $lastPowerLimitCheck = $now
-            Write-Gx1GuardLog "POWER_LIMIT_VERIFIED gpu_uuid=$($powerSample.gpu_uuid) power_limit_w=$($powerSample.power_limit_w)"
+            if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -eq 'active') {
+                # The active scope already samples and verifies the exact limit
+                # every loop. Re-running the setter can block long enough for
+                # Linux to reject the otherwise healthy five-second receipt.
+                # Mark the interval here and prove it with the sample below.
+                $scopedTreatmentRecheckDue = $true
+                $lastPowerLimitCheck = $now
+            }
+            else {
+                $powerSample = Set-Gx1PowerLimit -Config $enforcementConfig
+                $lastPowerLimitCheck = $now
+                Write-Gx1GuardLog "POWER_LIMIT_VERIFIED gpu_uuid=$($powerSample.gpu_uuid) power_limit_w=$($powerSample.power_limit_w)"
+            }
         }
         $sample = Get-Gx1GpuSample -Config $config
         if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -eq 'active') {
             Assert-Gx1ExactBenchmarkTreatment -Scope $benchmarkContext.Scope -Sample $sample
+            if ($scopedTreatmentRecheckDue) {
+                Write-Gx1GuardLog "BENCHMARK_TREATMENT_RECHECK_VERIFIED scope_id=$($benchmarkContext.Scope.scope_id) gpu_uuid=$($sample.gpu_uuid) power_limit_w=$($sample.power_limit_w)"
+            }
         }
         if (Test-Gx1HighIdleSample -Sample $sample -Config $config) {
             $highIdleSamples += 1

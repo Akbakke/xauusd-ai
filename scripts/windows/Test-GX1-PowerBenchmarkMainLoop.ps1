@@ -112,7 +112,10 @@ foreach ($case in @('default_once','default_loop','close','expiry','sample_failu
   $receipt=Get-Content (Join-Path $script:scopeDirectory 'receipt.json') -Raw | ConvertFrom-Json
   if ($receipt.phase -ne 'closed' -or $receipt.baseline_restoration.observed_power_limit_w -ne 160) {throw "No verified closure for $case"}
   if ($case -eq 'recovery' -and $script:events -notcontains 'recovery_at_160') {throw 'Recovery branch not reached'}
-  if ($case -eq 'periodic' -and @($script:events | Where-Object {$_ -eq 'set:200'}).Count -lt 3) {throw 'Periodic treatment reapplication not reached'}
+  if ($case -eq 'periodic') {
+   if (@($script:events | Where-Object {$_ -eq 'set:200'}).Count -ne 1) {throw 'Periodic scope re-ran the slow treatment setter'}
+   if (@($script:events | Where-Object {$_ -like 'log:BENCHMARK_TREATMENT_RECHECK_VERIFIED*'}).Count -lt 1) {throw 'Periodic exact sample verification not reached'}
+  }
  }
  $results += [pscustomobject]@{case=$case;passed=$true;events=$script:events;physical_final_w=$script:physical}
 }
