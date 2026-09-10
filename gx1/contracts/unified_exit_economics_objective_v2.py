@@ -19,9 +19,8 @@ import numpy as np
 
 ECONOMICS_OBJECTIVE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v2"
 CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_train_fit_v1"
-PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION = (
-    "gx1_exit_absorbing_policy_certificate_v1"
-)
+FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_frozen_owner_v2"
+PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION = "gx1_exit_absorbing_policy_certificate_v1"
 ECONOMIC_STEP_SCHEMA_VERSION = "gx1_exit_economic_step_v1"
 ECONOMIC_PATH_SCHEMA_VERSION = "gx1_exit_economic_path_objective_v1"
 SECONDS_PER_YEAR = 31_557_600.0
@@ -116,6 +115,18 @@ def seal_train_fitted_capital_hurdle_artifact(
     return observed
 
 
+def seal_frozen_capital_hurdle_owner_artifact(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Seal a preregistered external/operator owner without calling it a fit."""
+
+    observed = dict(value)
+    if "artifact_sha256" in observed:
+        raise RuntimeError("UNIFIED_EXIT_ECONOMICS_HURDLE_ALREADY_SEALED")
+    observed["artifact_sha256"] = _canonical_sha256(observed)
+    return observed
+
+
 def require_train_fitted_capital_hurdle_artifact(
     value: Mapping[str, Any],
     *,
@@ -125,7 +136,7 @@ def require_train_fitted_capital_hurdle_artifact(
 ) -> dict[str, Any]:
     """Validate the immutable TRAIN-only owner of rho/capital hurdle."""
 
-    expected_keys = {
+    train_fit_keys = {
         "schema_version",
         "decision",
         "fitted_splits",
@@ -140,7 +151,29 @@ def require_train_fitted_capital_hurdle_artifact(
         "fit_evidence_sha256",
         "artifact_sha256",
     }
-    if not isinstance(value, Mapping) or set(value) != expected_keys:
+    frozen_owner_keys = {
+        "schema_version",
+        "decision",
+        "owner_kind",
+        "applicable_splits",
+        "fitted_splits",
+        "validation_or_test_used",
+        "train_split_sha256",
+        "train_fold_sha256",
+        "source_lineage_sha256",
+        "effective_annual_return_hurdle",
+        "annual_continuous_hurdle_rate",
+        "rate_conversion_formula",
+        "rate_unit",
+        "seconds_per_year",
+        "source_method",
+        "source_method_artifact_sha256",
+        "artifact_sha256",
+    }
+    if not isinstance(value, Mapping) or frozenset(value) not in {
+        frozenset(train_fit_keys),
+        frozenset(frozen_owner_keys),
+    }:
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_HURDLE_SCHEMA_INVALID")
     observed = dict(value)
     declared_sha256 = _require_sha256(
@@ -155,28 +188,55 @@ def require_train_fitted_capital_hurdle_artifact(
     ):
         _require_sha256(expected, label=f"EXPECTED_{label}")
         if observed[label.lower() + "_sha256"] != expected:
-            raise RuntimeError(
-                f"UNIFIED_EXIT_ECONOMICS_HURDLE_{label}_MISMATCH"
-            )
-    fit_method = observed["fit_method"]
-    if (
-        observed["schema_version"] != CAPITAL_HURDLE_SCHEMA_VERSION
-        or observed["decision"] != "PASS"
-        or observed["fitted_splits"] != ["train"]
+            raise RuntimeError(f"UNIFIED_EXIT_ECONOMICS_HURDLE_{label}_MISMATCH")
+    common_invalid = (
+        observed["decision"] != "PASS"
         or observed["validation_or_test_used"] is not False
         or observed["rate_unit"] != "continuous_per_wall_clock_year"
         or _finite(observed["seconds_per_year"], label="SECONDS_PER_YEAR")
         != SECONDS_PER_YEAR
-        or not isinstance(fit_method, str)
-        or not fit_method
-    ):
+    )
+    if observed["schema_version"] == CAPITAL_HURDLE_SCHEMA_VERSION:
+        fit_method = observed["fit_method"]
+        owner_invalid = (
+            observed["fitted_splits"] != ["train"]
+            or not isinstance(fit_method, str)
+            or not fit_method
+        )
+        _require_sha256(observed["fit_evidence_sha256"], label="FIT_EVIDENCE")
+    elif observed["schema_version"] == FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION:
+        effective = _finite(
+            observed["effective_annual_return_hurdle"],
+            label="EFFECTIVE_ANNUAL_HURDLE",
+            nonnegative=True,
+        )
+        owner_invalid = (
+            observed["owner_kind"] != "operator_preregistered_prospective_policy"
+            or observed["applicable_splits"] != ["train", "val"]
+            or observed["fitted_splits"] != []
+            or observed["rate_conversion_formula"]
+            != "rho=ln(1+effective_annual_return)"
+            or not isinstance(observed["source_method"], str)
+            or not observed["source_method"]
+            or not math.isclose(
+                float(observed["annual_continuous_hurdle_rate"]),
+                math.log1p(effective),
+                rel_tol=0.0,
+                abs_tol=1e-15,
+            )
+        )
+        _require_sha256(
+            observed["source_method_artifact_sha256"], label="SOURCE_METHOD_ARTIFACT"
+        )
+    else:
+        owner_invalid = True
+    if common_invalid or owner_invalid:
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_HURDLE_POLICY_INVALID")
     rho = _finite(
         observed["annual_continuous_hurdle_rate"],
         label="ANNUAL_HURDLE_RATE",
         nonnegative=True,
     )
-    _require_sha256(observed["fit_evidence_sha256"], label="FIT_EVIDENCE")
     return {
         **observed,
         "annual_continuous_hurdle_rate": rho,
@@ -226,9 +286,7 @@ def require_proper_policy_certificate(
     )
     if declared_sha256 != _canonical_sha256(observed):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_CERTIFICATE_HASH_INVALID")
-    expected_policy = _require_sha256(
-        expected_policy_sha256, label="EXPECTED_POLICY"
-    )
+    expected_policy = _require_sha256(expected_policy_sha256, label="EXPECTED_POLICY")
     if (
         observed["schema_version"] != PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION
         or observed["proof_kind"] != "absorbing_markov_chain_policy_v1"
@@ -266,30 +324,20 @@ def require_proper_policy_certificate(
         or not np.isfinite(initial).all()
         or np.any(transition < 0.0)
         or np.any(initial < 0.0)
-        or not np.allclose(
-            transition.sum(axis=1), 1.0, rtol=0.0, atol=tolerance
-        )
-        or not math.isclose(
-            float(initial.sum()), 1.0, rel_tol=0.0, abs_tol=tolerance
-        )
+        or not np.allclose(transition.sum(axis=1), 1.0, rtol=0.0, atol=tolerance)
+        or not math.isclose(float(initial.sum()), 1.0, rel_tol=0.0, abs_tol=tolerance)
     ):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_CERTIFICATE_ARRAY_INVALID")
     terminal_set = set(int(index) for index in terminal.tolist())
     for index in terminal_set:
         expected_row = np.zeros(transition.shape[0], dtype=np.float64)
         expected_row[index] = 1.0
-        if not np.allclose(
-            transition[index], expected_row, rtol=0.0, atol=tolerance
-        ):
+        if not np.allclose(transition[index], expected_row, rtol=0.0, atol=tolerance):
             raise RuntimeError(
                 "UNIFIED_EXIT_ECONOMICS_CERTIFICATE_TERMINAL_NOT_ABSORBING"
             )
     nonterminal = np.asarray(
-        [
-            index
-            for index in range(transition.shape[0])
-            if index not in terminal_set
-        ],
+        [index for index in range(transition.shape[0]) if index not in terminal_set],
         dtype=np.int64,
     )
     if nonterminal.size < 1:
@@ -488,9 +536,7 @@ def elapsed_wall_clock_gamma(
     return gamma
 
 
-def _complete_component(
-    value: Any, *, label: str, nonnegative: bool
-) -> dict[str, Any]:
+def _complete_component(value: Any, *, label: str, nonnegative: bool) -> dict[str, Any]:
     if not isinstance(value, Mapping) or set(value) != {
         "status",
         "value_bps",
@@ -563,10 +609,7 @@ def require_economic_step_inputs(
     classification = gap["classification"]
     if (
         (elapsed_seconds == 0 and classification != "instantaneous_execution")
-        or (
-            elapsed_seconds == NOMINAL_M1_SECONDS
-            and classification != "continuous_m1"
-        )
+        or (elapsed_seconds == NOMINAL_M1_SECONDS and classification != "continuous_m1")
         or (
             elapsed_seconds > NOMINAL_M1_SECONDS
             and classification != "declared_market_closure"
@@ -707,9 +750,9 @@ def evaluate_economic_path(
         discounted_utility += (
             discount * row["undiscounted_risk_adjusted_utility_increment_bps"]
         )
-        component_totals["gross_price_cashflow_bps"] += row[
-            "gross_price_cashflow"
-        ]["value_bps"]
+        component_totals["gross_price_cashflow_bps"] += row["gross_price_cashflow"][
+            "value_bps"
+        ]
         for name in _COST_COMPONENTS:
             component_totals[f"{name}_bps"] += row[name]["value_bps"]
         discount *= row["continuation_gamma"]
@@ -731,6 +774,7 @@ def evaluate_economic_path(
 
 __all__ = (
     "CAPITAL_HURDLE_SCHEMA_VERSION",
+    "FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION",
     "ECONOMIC_PATH_SCHEMA_VERSION",
     "ECONOMIC_STEP_SCHEMA_VERSION",
     "ECONOMICS_OBJECTIVE_SCHEMA_VERSION",
@@ -747,4 +791,5 @@ __all__ = (
     "require_unified_exit_economics_objective_contract",
     "seal_proper_policy_certificate",
     "seal_train_fitted_capital_hurdle_artifact",
+    "seal_frozen_capital_hurdle_owner_artifact",
 )

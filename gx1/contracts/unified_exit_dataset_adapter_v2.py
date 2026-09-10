@@ -41,7 +41,9 @@ ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION = (
 
 def _canonical_sha256(value: Any) -> str:
     return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
     ).hexdigest()
 
 
@@ -83,7 +85,11 @@ class UnifiedExitDatasetAdapterV2:
             or manifest.get("target_q_stored") is not False
             or manifest.get("manifest_sha256")
             != _canonical_sha256(
-                {key: value for key, value in manifest.items() if key != "manifest_sha256"}
+                {
+                    key: value
+                    for key, value in manifest.items()
+                    if key != "manifest_sha256"
+                }
             )
             or manifest.get("compact_pointer_stream_sha256")
             != _compact_pointer_stream_sha256(compact_rows)
@@ -103,6 +109,9 @@ class UnifiedExitDatasetAdapterV2:
             economics_readiness, context="UNIFIED_EXIT_DATASET_V2"
         )
         economic_manifest = dict(economic_exit_step_manifest)
+        provider_manifest = getattr(
+            economic_exit_step_provider, "economic_exit_step_manifest", None
+        )
         expected_economic_keys = {
             "schema_version",
             "split",
@@ -132,9 +141,17 @@ class UnifiedExitDatasetAdapterV2:
                 }
             )
             or not callable(economic_exit_step_provider)
+            or (
+                provider_manifest is not None
+                and dict(provider_manifest) != economic_manifest
+            )
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_INVALID")
-        if isinstance(epoch_index, bool) or not isinstance(epoch_index, int) or epoch_index < 0:
+        if (
+            isinstance(epoch_index, bool)
+            or not isinstance(epoch_index, int)
+            or epoch_index < 0
+        ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_EPOCH_INVALID")
         self._rows = compact_rows.set_index("entry_row_index", drop=False)
         self._manifest = manifest
@@ -174,8 +191,7 @@ class UnifiedExitDatasetAdapterV2:
             int(value["chunk_index"]) != int(pointer["pair_chunk_slot"])
             or int(value["chunk_start_bars_in_trade"])
             != int(pointer["chunk_start_bars_in_trade"])
-            or int(value["valid_state_count"])
-            != int(side_pointer["valid_state_count"])
+            or int(value["valid_state_count"]) != int(side_pointer["valid_state_count"])
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_PACK_SCHEDULE_INVALID")
         return require_unified_exit_episode_pack_v2(
@@ -225,7 +241,9 @@ class UnifiedExitDatasetAdapterV2:
             side_index=side_index,
         )
 
-    def materialize_validation(self, entry_row_index: int) -> tuple[dict[str, Any], ...]:
+    def materialize_validation(
+        self, entry_row_index: int
+    ) -> tuple[dict[str, Any], ...]:
         """Materialize deterministic full chunk coverage for both VAL sides."""
 
         if entry_row_index not in self._rows.index:
@@ -265,7 +283,10 @@ class UnifiedExitDatasetAdapterV2:
         entry_bid = float(self._source._m1["bid_open"][start])
         entry_ask = float(self._source._m1["ask_open"][start])
         price_values = np.column_stack(
-            [self._source._m1[name][source_slice] for name in UNIFIED_EXIT_PATH_PRICE_FIELDS]
+            [
+                self._source._m1[name][source_slice]
+                for name in UNIFIED_EXIT_PATH_PRICE_FIELDS
+            ]
         )
         path = unified_exit_causal_prefix_path_tensor_from_values(
             price_values=price_values,
@@ -273,6 +294,7 @@ class UnifiedExitDatasetAdapterV2:
             entry_bid=entry_bid,
             entry_ask=entry_ask,
         )
+
         def load_slice(action: str, slice_start: int, slice_stop: int):
             try:
                 envelope = self._economic_provider(
@@ -286,14 +308,21 @@ class UnifiedExitDatasetAdapterV2:
                 raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_MISSING")
             observed = dict(envelope)
             expected = {
-                "schema_version", "entry_row_index", "side_index", "action",
-                "start_state_index", "stop_state_index", "steps",
-                "economic_step_model_sha256", "economic_step_source_manifest_sha256",
+                "schema_version",
+                "entry_row_index",
+                "side_index",
+                "action",
+                "start_state_index",
+                "stop_state_index",
+                "steps",
+                "economic_step_model_sha256",
+                "economic_step_source_manifest_sha256",
                 "slice_sha256",
             }
             if (
                 set(observed) != expected
-                or observed["schema_version"] != "gx1_unified_exit_economic_step_slice_v1"
+                or observed["schema_version"]
+                != "gx1_unified_exit_economic_step_slice_v1"
                 or observed["entry_row_index"] != entry_row
                 or observed["side_index"] != side_index
                 or observed["action"] != action
@@ -305,16 +334,21 @@ class UnifiedExitDatasetAdapterV2:
                 != self._economic_manifest["economic_step_source_manifest_sha256"]
                 or not isinstance(observed["steps"], list)
                 or len(observed["steps"]) != slice_stop - slice_start
-                or observed["slice_sha256"] != _canonical_sha256(
-                    {key: value for key, value in observed.items() if key != "slice_sha256"}
+                or observed["slice_sha256"]
+                != _canonical_sha256(
+                    {
+                        key: value
+                        for key, value in observed.items()
+                        if key != "slice_sha256"
+                    }
                 )
             ):
-                raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_SLICE_INVALID")
+                raise RuntimeError(
+                    "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_SLICE_INVALID"
+                )
             return observed
 
-        exit_slice = load_slice(
-            "exit_now", chunk_start, chunk_start + valid_count
-        )
+        exit_slice = load_slice("exit_now", chunk_start, chunk_start + valid_count)
         hold_stop = min(
             chunk_start + valid_count,
             int(row[f"{('long', 'short')[side_index]}_lifecycle_state_count"]) - 1,
@@ -330,10 +364,11 @@ class UnifiedExitDatasetAdapterV2:
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEPS_MISSING")
         contract = self._readiness["economics_objective_contract"]
-        composed = [compose_economic_step(step, contract=contract) for step in raw_steps]
+        composed = [
+            compose_economic_step(step, contract=contract) for step in raw_steps
+        ]
         composed_hold = [
-            compose_economic_step(step, contract=contract)
-            for step in raw_hold_steps
+            compose_economic_step(step, contract=contract) for step in raw_hold_steps
         ]
         economic_terminal = side_pointer["terminal_reason"] == "economic_terminal"
         for position, step in enumerate(composed):
@@ -343,11 +378,16 @@ class UnifiedExitDatasetAdapterV2:
                 else "EXIT_NOW"
             )
             if step["event_kind"] != expected_event:
-                raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID")
+                raise RuntimeError(
+                    "UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID"
+                )
         if any(step["event_kind"] != "HOLD" for step in composed_hold):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_ECONOMIC_STEP_EVENT_INVALID")
         rewards = np.asarray(
-            [step["undiscounted_risk_adjusted_utility_increment_bps"] for step in composed],
+            [
+                step["undiscounted_risk_adjusted_utility_increment_bps"]
+                for step in composed
+            ],
             dtype=np.float32,
         )
         hold_rewards = np.zeros(valid_count, dtype=np.float32)
@@ -391,26 +431,33 @@ class UnifiedExitDatasetAdapterV2:
             "terminal_reason": side_pointer["terminal_reason"],
             "lifecycle_manifest_sha256": self._manifest["manifest_sha256"],
             "chunk_pointer_stream_sha256": side_pointer["pointer_stream_sha256"],
-            "economic_exit_step_manifest_sha256": self._economic_manifest["manifest_sha256"],
+            "economic_exit_step_manifest_sha256": self._economic_manifest[
+                "manifest_sha256"
+            ],
             "economic_exit_step_stream_sha256": exit_slice["slice_sha256"],
             "economic_hold_step_stream_sha256": hold_slice["slice_sha256"],
             "scheduled_pair_chunk_pointer_sha256": pointer["schedule_sha256"],
             "multi_tf_cache_identity_sha256": self.mtf_cache_identity_sha256,
             "unbounded_exit_training_readiness": self._readiness,
             "exit_local_history_x": np.ascontiguousarray(
-                self._source._m1_features["signal"][local_start:local_stop], dtype=np.float32
+                self._source._m1_features["signal"][local_start:local_stop],
+                dtype=np.float32,
             ),
             "exit_local_history_time_ns": np.asarray(
-                self._source._m1_feature_times.asi8[local_start:local_stop], dtype=np.int64
+                self._source._m1_feature_times.asi8[local_start:local_stop],
+                dtype=np.int64,
             ),
             "exit_state_ctx_cont": np.ascontiguousarray(
-                self._source._m1_features["ctx_cont"][current_start:current_stop], dtype=np.float32
+                self._source._m1_features["ctx_cont"][current_start:current_stop],
+                dtype=np.float32,
             ),
             "exit_state_ctx_cat": np.ascontiguousarray(
-                self._source._m1_features["ctx_cat"][current_start:current_stop], dtype=np.int64
+                self._source._m1_features["ctx_cat"][current_start:current_stop],
+                dtype=np.int64,
             ),
             "exit_state_row_time_ns": state_times,
-            "exit_decision_time_ns": state_times + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
+            "exit_decision_time_ns": state_times
+            + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value),
             "exit_path_x": np.ascontiguousarray(path, dtype=np.float32),
             "exit_entry_bid_ask": np.asarray([entry_bid, entry_ask], dtype=np.float64),
             "exit_now_reward_bps": rewards,
