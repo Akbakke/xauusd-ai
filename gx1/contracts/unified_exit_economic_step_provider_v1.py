@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -136,6 +137,13 @@ class LazyUnifiedExitEconomicStepProviderV1:
         cost_parameter_authority_path: Path,
         market_closure_authority_path: Path | None = None,
         market_closure_authority_file_sha256: str | None = None,
+        state_m1_source_path: Path | None = None,
+        state_m1_source_manifest_path: Path | None = None,
+        state_m1_source_file_sha256: str | None = None,
+        state_m1_source_manifest_file_sha256: str | None = None,
+        parent_m1_row_offset: int | None = None,
+        common_successor_transition_counts: np.ndarray | None = None,
+        expected_successor_counts_sha256: str | None = None,
     ) -> None:
         manifest = dict(compact_manifest)
         readiness = require_unified_exit_unbounded_training_readiness(
@@ -170,7 +178,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
         quote = policy["executable_bid_ask"]
         tape_path = Path(quote["parquet"]["path"])
         tape_manifest_path = Path(quote["manifest"]["path"])
-        self._times_ns, self._prices, tape_manifest = _load_tape(
+        parent_times_ns, self._prices, tape_manifest = _load_tape(
             tape_path=tape_path,
             tape_sha256=quote["parquet"]["sha256"],
             manifest_path=tape_manifest_path,
@@ -182,9 +190,110 @@ class LazyUnifiedExitEconomicStepProviderV1:
         if (
             compact.empty
             or compact["m1_source_sha256"].ne(quote["parquet"]["sha256"]).any()
-            or int(compact["entry_m1_start_row"].max()) >= len(self._times_ns)
+            or int(compact["entry_m1_start_row"].max()) >= len(parent_times_ns)
         ):
             raise RuntimeError("UNIFIED_EXIT_STEP_PROVIDER_LIFECYCLE_TAPE_MISMATCH")
+        child_binding_values = (
+            state_m1_source_path,
+            state_m1_source_manifest_path,
+            state_m1_source_file_sha256,
+            state_m1_source_manifest_file_sha256,
+            parent_m1_row_offset,
+        )
+        child_fields_present = tuple(
+            value is not None for value in child_binding_values
+        )
+        child_bound = all(child_fields_present)
+        if any(child_fields_present) and not child_bound:
+            raise RuntimeError(
+                "UNIFIED_EXIT_STEP_PROVIDER_STATE_SOURCE_BINDING_INVALID"
+            )
+        if child_bound:
+            child_path = state_m1_source_path.expanduser().resolve()  # type: ignore[union-attr]
+            child_manifest_path = state_m1_source_manifest_path.expanduser().resolve()  # type: ignore[union-attr]
+            if (
+                child_path.is_symlink()
+                or child_manifest_path.is_symlink()
+                or file_sha256(child_path) != state_m1_source_file_sha256
+                or file_sha256(child_manifest_path)
+                != state_m1_source_manifest_file_sha256
+                or isinstance(parent_m1_row_offset, bool)
+                or not isinstance(parent_m1_row_offset, int)
+                or parent_m1_row_offset < 0
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_STATE_SOURCE_BINDING_INVALID"
+                )
+            child_manifest = _read_json(child_manifest_path, "STATE_M1_MANIFEST")
+            if (
+                child_manifest.get("schema_version")
+                != "gx1_unified_exit_pilot_m1_child_view_v1"
+                or child_manifest.get("decision") != "PASS"
+                or child_manifest.get("split") != manifest.get("split")
+                or child_manifest.get("test_accessed") is not False
+                or child_manifest.get("output_parquet") != str(child_path)
+                or child_manifest.get("output_parquet_sha256")
+                != state_m1_source_file_sha256
+                or child_manifest.get("parent_m1_sha256") != quote["parquet"]["sha256"]
+                or child_manifest.get("parent_m1_manifest_sha256")
+                != quote["manifest"]["sha256"]
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_STATE_SOURCE_BINDING_INVALID"
+                )
+            child_frame = pd.read_parquet(child_path, columns=["time"])
+            child_times = pd.DatetimeIndex(
+                pd.to_datetime(child_frame["time"], utc=True, errors="coerce")
+            ).as_unit("ns")
+            child_stop = parent_m1_row_offset + len(child_times)
+            if (
+                len(child_times) != child_manifest.get("row_count")
+                or child_times.empty
+                or child_times.hasnans
+                or child_stop > len(parent_times_ns)
+                or not np.array_equal(
+                    child_times.asi8,
+                    parent_times_ns[parent_m1_row_offset:child_stop],
+                )
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_STATE_SOURCE_BINDING_INVALID"
+                )
+            self._times_ns = np.asarray(child_times.asi8, dtype=np.int64)
+            self._price_row_offset = parent_m1_row_offset
+            self.state_m1_source_sha256 = state_m1_source_file_sha256
+            self.state_m1_source_manifest_sha256 = state_m1_source_manifest_file_sha256
+        else:
+            self._times_ns = parent_times_ns
+            self._price_row_offset = 0
+            self.state_m1_source_sha256 = quote["parquet"]["sha256"]
+            self.state_m1_source_manifest_sha256 = quote["manifest"]["sha256"]
+        if common_successor_transition_counts is not None:
+            counts = np.ascontiguousarray(
+                common_successor_transition_counts, dtype="<i8"
+            )
+            if (
+                expected_successor_counts_sha256 is None
+                or counts.shape != (len(compact),)
+                or np.any(counts < 1)
+                or hashlib.sha256(counts.tobytes()).hexdigest()
+                != expected_successor_counts_sha256
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_SUCCESSOR_COUNTS_INVALID"
+                )
+            for side in _SIDES:
+                compact[f"{side}_lifecycle_state_count"] = counts + 1
+            child_starts = (
+                compact["entry_m1_start_row"].to_numpy(dtype=np.int64)
+                - self._price_row_offset
+            )
+            if np.any(child_starts < 0) or np.any(
+                child_starts + counts >= len(self._times_ns)
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_STEP_PROVIDER_SUCCESSOR_COUNTS_INVALID"
+                )
         parameters = authority["parameters"]
         commission = float(parameters["commission"]["bps_per_execution"])
         slippage = float(parameters["execution_slippage"]["central_bps_per_execution"])
@@ -227,18 +336,15 @@ class LazyUnifiedExitEconomicStepProviderV1:
             closure_file_sha = file_sha256(closure_path)
             closure = require_market_closure_authority(
                 _read_json(closure_path, "MARKET_CLOSURE_AUTHORITY"),
-                expected_m1_source_sha256=quote["parquet"]["sha256"],
+                expected_m1_source_sha256=self.state_m1_source_sha256,
                 expected_m1_clock_sha256=m1_clock_sha256(
                     pd.DatetimeIndex(self._times_ns, tz="UTC")
                 ),
             )
-            if (
-                closure_file_sha != market_closure_authority_file_sha256
-                or self._gap_source_sha != closure["artifact_sha256"]
+            if closure_file_sha != market_closure_authority_file_sha256 or (
+                not child_bound and self._gap_source_sha != closure["artifact_sha256"]
             ):
-                raise RuntimeError(
-                    "UNIFIED_EXIT_STEP_PROVIDER_CLOSURE_BINDING_INVALID"
-                )
+                raise RuntimeError("UNIFIED_EXIT_STEP_PROVIDER_CLOSURE_BINDING_INVALID")
             self._closure_by_row = closure_intervals_by_gap_after_row(closure)
             self.market_closure_authority_sha256 = closure["artifact_sha256"]
         else:
@@ -254,6 +360,10 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 ],
                 "gap_source_manifest_sha256": self._gap_source_sha,
                 "market_closure_authority_file_sha256": closure_file_sha,
+                "state_m1_source_sha256": self.state_m1_source_sha256,
+                "state_m1_source_manifest_sha256": self.state_m1_source_manifest_sha256,
+                "parent_m1_row_offset": self._price_row_offset,
+                "successor_counts_sha256": expected_successor_counts_sha256,
             }
         )
         self.economic_exit_step_manifest = seal_economic_exit_step_manifest(
@@ -298,9 +408,13 @@ class LazyUnifiedExitEconomicStepProviderV1:
         maximum_stop = lifecycle_count if action == "exit_now" else lifecycle_count - 1
         if stop_state_index > maximum_stop:
             raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-        entry_row = int(row["entry_m1_start_row"])
+        entry_row = int(row["entry_m1_start_row"]) - self._price_row_offset
+        if entry_row < 0:
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
         entry_price = float(
-            self._prices[("ask_open", "bid_open")[side_index]][entry_row]
+            self._prices[("ask_open", "bid_open")[side_index]][
+                entry_row + self._price_row_offset
+            ]
         )
         return row, lifecycle_count, entry_row, entry_price
 
@@ -319,9 +433,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
             start_state_index=start_state_index,
             stop_state_index=stop_state_index,
         )
-        is_economic_terminal = bool(
-            row[f"{_SIDES[side_index]}_economic_terminal"]
-        )
+        is_economic_terminal = bool(row[f"{_SIDES[side_index]}_economic_terminal"])
         steps = [
             self._step(
                 entry_price=entry_price,
@@ -407,7 +519,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
             start_state_index, stop_state_index, dtype=np.int64
         )
         exit_price = self._prices[("bid_close", "ask_close")[side_index]][
-            state_rows
+            state_rows + self._price_row_offset
         ]
         if side_index == 0:
             gross = (exit_price - entry_price) / entry_price * 10_000.0
@@ -456,9 +568,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 "hold_event_kind_index": hold_events,
                 "hold_reward_bps": hold_reward,
                 "economic_step_model_sha256": self._authority_sha,
-                "economic_step_source_manifest_sha256": (
-                    self._source_manifest_sha256
-                ),
+                "economic_step_source_manifest_sha256": (self._source_manifest_sha256),
             }
         )
 
@@ -474,7 +584,9 @@ class LazyUnifiedExitEconomicStepProviderV1:
         decision_ns = int(self._times_ns[state_row] + 60_000_000_000)
         hashes = self._component_hashes
         if action == "exit_now":
-            exit_price = self._prices[("bid_close", "ask_close")[side_index]][state_row]
+            exit_price = self._prices[("bid_close", "ask_close")[side_index]][
+                state_row + self._price_row_offset
+            ]
             gross = (
                 (exit_price - entry_price) / entry_price * 10_000.0
                 if side_index == 0
@@ -514,9 +626,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
         scale = float(elapsed_seconds) / SECONDS_PER_YEAR
         gap_record = self._closure_by_row.get(state_row)
         gap_classification = (
-            "continuous_m1"
-            if elapsed_seconds == 60
-            else str(gap_record["classification"])
+            "continuous_m1" if elapsed_seconds == 60 else "declared_market_closure"
         )
         gap_artifact_sha = (
             self._gap_source_sha
