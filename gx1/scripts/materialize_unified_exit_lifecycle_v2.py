@@ -22,10 +22,18 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 from gx1.contracts.entry_exit_feature_base_v1 import (
     ENTRY_DECISION_BAR_SECONDS,
     EXIT_DECISION_BAR_SECONDS,
+)
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
 )
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_CHUNK_ROWS,
@@ -442,7 +450,7 @@ def _validate_entry_manifest(
     entry_path: Path,
     split: str,
     dataset_run_id: str,
-) -> tuple[dict[str, Any], str, str]:
+) -> tuple[dict[str, Any], str, str, int, str, str]:
     manifest = _read_json(manifest_path, f"{split.upper()}_ENTRY_MANIFEST")
     extra = manifest.get("extra")
     guard = extra.get("pretest_test_guard") if isinstance(extra, Mapping) else None
@@ -455,7 +463,63 @@ def _validate_entry_manifest(
     ):
         raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_PRETEST_BINDING_INVALID")
     entry_sha = _sha256_file(entry_path)
-    return manifest, _sha256_file(manifest_path), entry_sha
+    try:
+        parquet = pq.ParquetFile(entry_path)
+        entry_rows = int(parquet.metadata.num_rows)
+        parquet_columns = set(parquet.schema_arrow.names)
+    except Exception as exc:
+        raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_PARQUET_INVALID") from exc
+    lifecycle = extra.get("unified_exit_lifecycle")
+    lifecycle_dir = Path(
+        str(lifecycle.get("output_dir") or "")
+        if isinstance(lifecycle, Mapping)
+        else ""
+    )
+    lifecycle_root_path = lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json"
+    if (
+        manifest.get("schema_version")
+        != MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+        or manifest.get("manifest_variant") != MODEL_NATIVE_CONTRACT_MODE
+        or manifest.get("output_data_path") != str(entry_path)
+        or isinstance(extra.get("rows"), bool)
+        or extra.get("rows") != entry_rows
+        or entry_rows < 1
+        or "time" not in parquet_columns
+        or not isinstance(lifecycle, Mapping)
+        or lifecycle.get("schema_version")
+        != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+        or not lifecycle_root_path.is_absolute()
+        or lifecycle_root_path.resolve() != lifecycle_root_path
+        or lifecycle_root_path.is_symlink()
+        or not lifecycle_root_path.is_file()
+    ):
+        raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_ARTIFACT_BINDING_INVALID")
+    lifecycle_root = _read_json(
+        lifecycle_root_path,
+        f"{split.upper()}_ENTRY_LIFECYCLE_ROOT",
+    )
+    split_bindings = lifecycle_root.get("splits")
+    binding = split_bindings.get(split) if isinstance(split_bindings, Mapping) else None
+    if (
+        lifecycle_root.get("schema_version")
+        != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+        or lifecycle_root.get("decision") != "PASS"
+        or lifecycle_root.get("entry_run_id") != dataset_run_id
+        or not isinstance(binding, Mapping)
+        or binding.get("entry_dataset_path") != str(entry_path)
+        or binding.get("entry_dataset_sha256") != entry_sha
+        or isinstance(binding.get("episode_rows"), bool)
+        or binding.get("episode_rows") != entry_rows * 2
+    ):
+        raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_ARTIFACT_BINDING_INVALID")
+    return (
+        manifest,
+        _sha256_file(manifest_path),
+        entry_sha,
+        entry_rows,
+        str(lifecycle_root_path),
+        _sha256_file(lifecycle_root_path),
+    )
 
 
 def _validate_m1_source(
@@ -668,13 +732,22 @@ def _build_split_from_files(
     planned_epochs: int,
     claim_full_coverage: bool,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    _manifest, entry_manifest_sha, entry_sha = _validate_entry_manifest(
+    (
+        _manifest,
+        entry_manifest_sha,
+        entry_sha,
+        bound_entry_rows,
+        entry_lifecycle_root_path,
+        entry_lifecycle_root_sha,
+    ) = _validate_entry_manifest(
         entry_manifest_path,
         entry_path=entry_path,
         split=split,
         dataset_run_id=dataset_run_id,
     )
     entry_times = pd.read_parquet(entry_path, columns=["time"])["time"]
+    if len(entry_times) != bound_entry_rows:
+        raise RuntimeError("COMPACT_LIFECYCLE_ENTRY_ROW_COUNT_CHANGED")
     mapping, authority, authority_sha = _load_terminal_counts(
         economic_authority_path,
         split=split,
@@ -695,6 +768,7 @@ def _build_split_from_files(
             "split": split,
             "entry_sha256": entry_sha,
             "entry_manifest_sha256": entry_manifest_sha,
+            "entry_lifecycle_root_sha256": entry_lifecycle_root_sha,
             "m1_source_sha256": m1_source_sha256,
             "economic_authority_sha256": authority_sha,
         }
@@ -722,6 +796,8 @@ def _build_split_from_files(
         "entry_parquet_sha256": entry_sha,
         "entry_manifest_path": str(entry_manifest_path),
         "entry_manifest_sha256": entry_manifest_sha,
+        "entry_lifecycle_root_path": entry_lifecycle_root_path,
+        "entry_lifecycle_root_sha256": entry_lifecycle_root_sha,
         "economic_authority_path": str(economic_authority_path),
         "economic_authority_sha256": authority_sha,
         "economic_authority": authority,

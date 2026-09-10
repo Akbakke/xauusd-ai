@@ -8,9 +8,16 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CONTRACT_MODE,
+    MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+)
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION,
     terminal_state_counts_sha256,
+)
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
 )
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
     COMPACT_COLUMNS,
@@ -116,23 +123,14 @@ def _inputs(tmp_path: Path) -> dict[str, object]:
         "planned_epochs": 1,
         "claim_full_coverage": False,
     }
+    split_rows: dict[str, tuple[Path, list[pd.Timestamp]]] = {}
     for split, starts in {
         "train": [m1_times[0], m1_times[10]],
         "val": [m1_times[20]],
     }.items():
         entry = (tmp_path / f"{split}.entry.parquet").resolve()
         pd.DataFrame({"time": starts}).to_parquet(entry, index=False)
-        manifest = (tmp_path / f"{split}.entry.manifest.json").resolve()
-        _write_json(
-            manifest,
-            {
-                "extra": {
-                    "entry_run_id": dataset_run_id,
-                    "pretest_only": True,
-                    "pretest_test_guard": {"test_accessed": False},
-                }
-            },
-        )
+        split_rows[split] = (entry, starts)
         authority = _economic_authority(
             tmp_path,
             split=split,
@@ -141,9 +139,49 @@ def _inputs(tmp_path: Path) -> dict[str, object]:
             state_counts=[600, 1100] * len(starts),
         )
         result[f"{split}_entry_path"] = entry
-        result[f"{split}_entry_manifest_path"] = manifest
         result[f"{split}_economic_authority_path"] = authority
         result[f"{split}_split_end"] = "2020-01-03T00:00:00+00:00"
+    lifecycle_dir = (tmp_path / "legacy_lifecycle_authority").resolve()
+    lifecycle_dir.mkdir()
+    _write_json(
+        lifecycle_dir / "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        {
+            "schema_version": UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+            "decision": "PASS",
+            "entry_run_id": dataset_run_id,
+            "splits": {
+                split: {
+                    "entry_dataset_path": str(entry),
+                    "entry_dataset_sha256": _sha(entry),
+                    "episode_rows": len(starts) * 2,
+                }
+                for split, (entry, starts) in split_rows.items()
+            },
+        },
+    )
+    for split, (entry, starts) in split_rows.items():
+        manifest = (tmp_path / f"{split}.entry.manifest.json").resolve()
+        _write_json(
+            manifest,
+            {
+                "schema_version": MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+                "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
+                "output_data_path": str(entry),
+                "extra": {
+                    "rows": len(starts),
+                    "entry_run_id": dataset_run_id,
+                    "pretest_only": True,
+                    "pretest_test_guard": {"test_accessed": False},
+                    "unified_exit_lifecycle": {
+                        "schema_version": (
+                            UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+                        ),
+                        "output_dir": str(lifecycle_dir),
+                    },
+                },
+            },
+        )
+        result[f"{split}_entry_manifest_path"] = manifest
     return result
 
 
@@ -266,3 +304,35 @@ def test_validate_no_publish_and_atomic_train_val_only_publish(tmp_path: Path) -
     assert len(pd.read_parquet(output / "val_unified_exit_lifecycle_v2.parquet")) == 1
     with pytest.raises(RuntimeError, match="OUTPUT_ALREADY_EXISTS"):
         materialize_compact_train_val_bundle(**inputs, publish=True)
+
+
+def test_swapped_entry_parquet_or_manifest_fails_closed(tmp_path: Path) -> None:
+    inputs = _inputs(tmp_path)
+    swapped_parquet = dict(inputs)
+    swapped_parquet["train_entry_path"] = inputs["val_entry_path"]
+    with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
+        materialize_compact_train_val_bundle(**swapped_parquet, publish=False)
+
+    swapped_manifest = dict(inputs)
+    swapped_manifest["train_entry_manifest_path"] = inputs[
+        "val_entry_manifest_path"
+    ]
+    with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
+        materialize_compact_train_val_bundle(**swapped_manifest, publish=False)
+
+
+def test_entry_manifest_schema_and_row_count_fail_closed(tmp_path: Path) -> None:
+    inputs = _inputs(tmp_path)
+    manifest_path = Path(inputs["train_entry_manifest_path"])
+    original = json.loads(manifest_path.read_text(encoding="utf-8"))
+    invalid_schema = json.loads(json.dumps(original))
+    invalid_schema["schema_version"] = "wrong_schema"
+    _write_json(manifest_path, invalid_schema)
+    with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
+        materialize_compact_train_val_bundle(**inputs, publish=False)
+
+    invalid_rows = json.loads(json.dumps(original))
+    invalid_rows["extra"]["rows"] += 1
+    _write_json(manifest_path, invalid_rows)
+    with pytest.raises(RuntimeError, match="ENTRY_ARTIFACT_BINDING_INVALID"):
+        materialize_compact_train_val_bundle(**inputs, publish=False)
