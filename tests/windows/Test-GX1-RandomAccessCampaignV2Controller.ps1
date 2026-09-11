@@ -9,6 +9,26 @@ if ($LASTEXITCODE -ne 0) { throw 'wsl cat failed' }
 $source = $lines -join [Environment]::NewLine
 [void][ScriptBlock]::Create($source)
 
+# Bind against the real parameter block, without executing its host writes.
+$parseTokens = $null
+$parseErrors = $null
+$controllerAst = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$parseTokens, [ref]$parseErrors)
+$bootFunction = $controllerAst.Find({
+    param($node)
+    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Write-Gx1BootIdentity'
+}, $true)
+if ($null -eq $bootFunction) { throw 'boot identity function was not found' }
+$bindingOnly = [ScriptBlock]::Create($bootFunction.Body.ParamBlock.Extent.Text + "`nreturn `$WslTimeoutMilliseconds")
+if ((& $bindingOnly -WslTimeoutMilliseconds 30000) -ne 30000) {
+    throw 'boot identity rejects the actual cold-start timeout'
+}
+foreach ($invalidTimeout in @(0, 30001)) {
+    $rejectedTimeout = $false
+    try { & $bindingOnly -WslTimeoutMilliseconds $invalidTimeout | Out-Null }
+    catch [System.Management.Automation.ParameterBindingException] { $rejectedTimeout = $true }
+    if (-not $rejectedTimeout) { throw "boot identity accepted invalid timeout: $invalidTimeout" }
+}
+
 $helperStart = $source.IndexOf('function Join-Gx1NativeArguments')
 $helperEnd = $source.IndexOf('function Reset-Gx1HostTelemetryPortProxy', $helperStart)
 if ($helperStart -lt 0 -or $helperEnd -le $helperStart) { throw 'function boundaries not found' }
@@ -81,5 +101,5 @@ if ($script:bootCalls -ne 1 -or $script:inspectCalls -ne 1 -or $initial.Status.o
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS"
 )

@@ -52,8 +52,10 @@ corrected first-call timeout and complete data/model/checkpoint/plan bindings pa
   call, with zero retry, terminate, shutdown or reset. Later calls keep their
   normal short bound.
 - No ACTIVE file, guard file, trainer process or CUDA process existed. The
-  snapshot's GPU query fields are null, so exact idle power/temperature remains
-  unproven and must be supplied before a heavy invocation.
+  original snapshot's GPU fields were null. A later canonical signed
+  preinstall query (recorded 14:34:18Z) verified 37 C core, 44 C memory,
+  22.59 W draw, 160 W limit and 78 MiB used. Live guard checks still apply
+  to every future invocation.
 - The Codex heartbeat remains paused. The probe reboot is complete; do not
   request another reboot for this diagnosis.
 - The simple staged probe can call only bounded Ubuntu-22.04 `/bin/true` and
@@ -71,19 +73,19 @@ Snapshot files may state that an object is absent; absence must be explicit and
 machine-readable.
 
 The current snapshot can supply the boot/task/probe/guard/process safety roles,
-but not the missing GPU measurement or complete data/model/checkpoint/plan
-authority. A snapshot that explicitly records `null` stays unknown; it is not a
+and the later canonical signed query supplies the GPU measurement. Complete
+data/model/checkpoint/plan authority must still be bound to the successor commit. A snapshot that explicitly records `null` stays unknown; it is not a
 PASS by absence.
 
 
 ## Repository verification status
 
-- The complete current-checkout suite passes: **4,665 tests and 14 subtests**,
-  in 1,264.15 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
+- The complete current-checkout suite passes: **4,666 tests and 14 subtests**,
+  in 1,262.17 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
   swap, CPU 0-7, one numerical thread). Bash syntax, Python compilation and
   `git diff --check` also pass. No CUDA or candidate training job was launched.
-- Exact results: `/tmp/gx1_lifecycle_v2_takeover_final_20260911.log` and
-  `/tmp/gx1_lifecycle_v2_takeover_final_20260911.xml` on the WSL host.
+- Exact results: `/tmp/gx1_lifecycle_v2_timeout_bound_final_20260911.log` and
+  `/tmp/gx1_lifecycle_v2_timeout_bound_final_20260911.xml` on the WSL host.
 - The earlier suites imported some test helpers from the original checkout.
   `tests/__init__.py` now binds helpers to this checkout, and `.venv` is a
   physical local environment with the existing dependencies. The original
@@ -100,6 +102,10 @@ PASS by absence.
 - The collector/controller targeted suite and actual Windows PowerShell
   hardening harness passed, including 200,000-byte stdout/stderr drain,
   bounded timeout and `one_shot_initial_state=PASS`.
+- The actual PowerShell boot-identity parameter admits the 30,000 ms cold
+  call. The real parameter-block regression accepts that value and rejects
+  0 and 30,001 ms without executing host writes. The Windows harness passes
+  with `boot_identity_parameter_binding=PASS`.
 - The previous handover task is archived and its duplicate test run was
   interrupted. Only this takeover may advance the work; one heavy job at a
   time. The interrupted duplicate log is not verification evidence.

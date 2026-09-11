@@ -32,15 +32,19 @@ Kampanjen, gammel WSL-bootstrap og engangsproben er Disabled; proben har
 resultat 0 og retries 0. Heartbeat er pauset. Post-reboot-baseline var clean på
 `feature/unbounded-exit-lifecycle-v2-20260910` ved `fb4f060d60d7017bf4188684cf5c0b5f05e110b4`;
 den nye source/docs/test-committen må bindes eksplisitt av collector før launch authority.
-Det finnes ingen ACTIVE-, guard-, trainer- eller CUDA-evidens. GPU-målingen i
-snapshotet er null, så sikker idle-status må fortsatt måles og bindes sammen med
-data/model/checkpoint/plan før launchautoritet kan vurderes.
+Det finnes ingen ACTIVE-, guard-, trainer- eller CUDA-evidens. Den senere signaturverifiserte GPU-avlesningen (registrert 14:34:18Z) viser
+37 C kjerne, 44 C minne, 22.59 W forbruk, 160 W grense og 78 MiB brukt.
+Målingen må bindes sammen med data/model/checkpoint/plan, og sanntidsvaktene
+gjelder fortsatt ved hver oppstart.
 Detaljene og eksakte neste gate står i `CURRENT_HANDOVER.md`.
 
-Kildekontrollen er nå grønn: 4665 tester og 14 deltester bestått i den
+Kildekontrollen er nå grønn: 4666 tester og 14 deltester bestått i den
 samlede, ressursbegrensede kjøringen. Python-kompilering, shell-syntaks og
 Git-diffkontroll passerte også. Lifecycle-v2-bindingene, kampanjemiljøet og
 skillet mellom lovlig HOLD og manglende Bellman-mål er rettet. Gamle
 ufullstendige oppskrifter er fortsatt blokkert. Neste port er ren commit,
 kildebundet kampanjeplan og verifisert Windows-installasjon. Den gamle
 oppgaven er arkivert; arbeidet fortsetter med bare én tung jobb om gangen.
+
+Den reelle PowerShell-parameteren godtar nå kaldkallet på 30 sekunder.
+Windows-regresjonen og den nye samlede kontrollen passerer.

@@ -43,7 +43,7 @@ function Convert-Gx1WslPath {
     return $value[0]
 }
 function Write-Gx1BootIdentity {
-    param([ValidateRange(1, 10000)][int]$WslTimeoutMilliseconds = 10000)
+    param([ValidateRange(1, 30000)][int]$WslTimeoutMilliseconds = 10000)
     $operatingSystem = Get-CimInstance Win32_OperatingSystem
     $bootId = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' -Name BootId -ErrorAction Stop).BootId
     $bootUtc = $operatingSystem.LastBootUpTime.ToUniversalTime().ToString('o')

@@ -222,3 +222,17 @@ def test_single_wsl_boot_owner_is_source_bound_before_inspect() -> None:
         assert forbidden not in function
     for forbidden in ("Invoke-Gx1WslBootstrapRecovery", "Invoke-Gx1WslControlBounded", "Invoke-Gx1WslRecoveryProbe", "New-Gx1WslRecoveryIntent", "--terminate", "@('--shutdown')"):
         assert forbidden not in source
+
+
+def test_cold_wsl_call_fits_real_boot_identity_parameter_range() -> None:
+    import re
+
+    source = CONTROLLER.read_text(encoding="utf-8")
+    boot_start = source.index("function Write-Gx1BootIdentity {")
+    boot = source[boot_start:source.index("\nfunction ", boot_start + 1)]
+    lower, upper = map(int, re.search(r"ValidateRange\((\d+), (\d+)\)", boot).groups())
+    initial_start = source.index("function Get-Gx1InitialCampaignState {")
+    initial = source[initial_start:source.index("\nfunction ", initial_start + 1)]
+    requested = int(re.search(r"Write-Gx1BootIdentity -WslTimeoutMilliseconds (\d+)", initial)[1])
+    assert 1 <= lower <= requested <= upper <= 30000
+    assert "boot_identity_parameter_binding=PASS" in HARDENING_TEST.read_text(encoding="utf-8")
