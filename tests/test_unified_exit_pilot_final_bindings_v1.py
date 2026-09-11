@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import numpy as np
@@ -64,7 +65,7 @@ def _base() -> dict:
 
 def test_composite_normalization_binds_and_revalidates_both_surfaces() -> None:
     value = build_composite_normalization_binding(
-        base_artifact=_base(),
+        base_artifact=json.loads(json.dumps(_base(), sort_keys=True)),
         base_path="/immutable/base.json",
         base_file_sha256="3" * 64,
         summary_normalization=_summary(),

@@ -192,11 +192,11 @@ def _require_lineage(value: Mapping[str, Any]) -> dict[str, Any]:
     windows = data["per_tf_fit_windows"]
     if (
         not isinstance(seq_lens, Mapping)
-        or tuple(seq_lens) != EXPECTED_TFS
+        or set(seq_lens) != set(EXPECTED_TFS)
         or not isinstance(shifts, Mapping)
-        or tuple(shifts) != EXPECTED_TFS
+        or set(shifts) != set(EXPECTED_TFS)
         or not isinstance(windows, Mapping)
-        or tuple(windows) != EXPECTED_TFS
+        or set(windows) != set(EXPECTED_TFS)
     ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_MTF_LINEAGE_INVALID]")
     for tf in EXPECTED_TFS:
@@ -490,7 +490,7 @@ def require_ctx_cat_contract(
     ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_CONTRACT_INVALID]")
     counts = data["observed_train_counts"]
-    if not isinstance(counts, Mapping) or tuple(counts) != tuple(names):
+    if not isinstance(counts, Mapping) or set(counts) != set(names):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CTX_CAT_COUNTS_INVALID]")
     for name in names:
         expected_count_keys = {str(value) for value in CTX_CAT_DOMAINS[name]}
@@ -1398,7 +1398,7 @@ def require_input_normalization_contract(
         or _parse_utc(data["fit_end_utc"], field="fit_end_utc")
         != _parse_utc(lineage["train_time_max_utc"], field="train_time_max_utc")
         or not isinstance(data["surfaces"], Mapping)
-        or tuple(data["surfaces"]) != EXPECTED_SURFACES
+        or set(data["surfaces"]) != set(EXPECTED_SURFACES)
         or set(expected_field_names) != set(EXPECTED_SURFACES)
     ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_LINEAGE_INVALID]")
