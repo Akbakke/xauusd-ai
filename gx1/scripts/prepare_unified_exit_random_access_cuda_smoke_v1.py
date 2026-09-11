@@ -15,13 +15,13 @@ import torch
 
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
-    build_composite_normalization_binding,
     require_composite_normalization_binding,
 )
 from gx1.contracts.unified_exit_pilot_normalization_v1 import canonical_sha256
 from gx1.contracts.unified_exit_random_access_cuda_smoke_v1 import (
     build_blocked_smoke_manifest,
     build_bootstrap_base_normalization,
+    build_bootstrap_composite_normalization,
     build_bootstrap_source_receipt,
     file_sha256,
     require_smoke_manifest,
@@ -214,16 +214,11 @@ def build_package(recipe_path: Path) -> dict[str, Any]:
     output_root = Path(str(recipe["output_root"]))
     base_path = output_root / "BOOTSTRAP_BASE_NORMALIZATION.json"
     base_bytes = _json_bytes(bootstrap_base)
-    summary = child_composite["lifetime_summary_normalization"]
-    summary_manifest = child_composite["summary_fit_manifest"]
-    bootstrap_composite = build_composite_normalization_binding(
-        base_artifact=bootstrap_base["base_artifact"],
+    bootstrap_composite = build_bootstrap_composite_normalization(
+        bootstrap_base=bootstrap_base,
         base_path=str(base_path),
         base_file_sha256=_bytes_sha(base_bytes),
-        summary_normalization=summary,
-        summary_manifest_path=summary_manifest["path"],
-        summary_manifest_file_sha256=summary_manifest["file_sha256"],
-        summary_manifest_sha256=summary_manifest["manifest_sha256"],
+        child_composite=child_composite,
     )
     composite_path = output_root / "BOOTSTRAP_COMPOSITE_NORMALIZATION.json"
     composite_bytes = _json_bytes(bootstrap_composite)

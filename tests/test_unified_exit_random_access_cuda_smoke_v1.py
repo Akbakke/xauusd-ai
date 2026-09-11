@@ -12,11 +12,13 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
 )
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     build_physical_summary_sample_authority,
+    canonical_sha256,
     fit_lifetime_summary_normalization,
 )
 from gx1.contracts.unified_exit_random_access_cuda_smoke_v1 import (
     build_blocked_smoke_manifest,
     build_bootstrap_base_normalization,
+    build_bootstrap_composite_normalization,
     build_bootstrap_source_receipt,
     file_sha256,
     require_bootstrap_base_normalization,
@@ -70,6 +72,32 @@ def _base_contract() -> dict:
     )
 
 
+def _legacy_contract() -> dict:
+    value = _base_contract()
+    value["schema_version"] = "entry_model_native_input_normalization_v7"
+    value["transform"] = "shared_entry_exit_train_only_median_raw_iqr_asinh_v4"
+    value.pop("contract_sha256")
+    value["contract_sha256"] = canonical_sha256(value)
+    return value
+
+
+def _source_metadata(contract: dict) -> dict:
+    return {
+        "git_commit": "a" * 40,
+        "input_normalization": contract,
+        "input_normalization_fit_population_proof": {"proof_sha256": "c" * 64},
+        "recipe_source_provenance": {
+            "source_commit": "a" * 40,
+            "source_bindings": {
+                "python:gx1/contracts/entry_model_native_input_normalization_v1.py": {
+                    "path": "/immutable/entry_model_native_input_normalization_v1.py",
+                    "sha256": "b" * 64,
+                }
+            },
+        },
+    }
+
+
 def test_checkpoint_source_receipt_is_v1_only_and_hash_bound() -> None:
     receipt = build_bootstrap_source_receipt(
         checkpoint=_checkpoint("9" * 64), source_commit="a" * 40
@@ -87,7 +115,7 @@ def test_checkpoint_source_receipt_is_v1_only_and_hash_bound() -> None:
 
 
 def test_bootstrap_base_preserves_checkpoint_normalization_and_blocks_val_fit() -> None:
-    old = _base_contract()
+    old = _legacy_contract()
     old["lineage"]["train_time_max_utc"] = "2026-05-31T23:45:00+00:00"
     old["fit_end_utc"] = "2026-05-31T23:45:00+00:00"
     # Recompute the contract because the lineage is hash-bound.
@@ -96,11 +124,8 @@ def test_bootstrap_base_preserves_checkpoint_normalization_and_blocks_val_fit() 
     from gx1.contracts.unified_exit_pilot_normalization_v1 import canonical_sha256
 
     old["contract_sha256"] = canonical_sha256(old_without)
-    source = {
-        "input_normalization": old,
-        "input_normalization_fit_population_proof": {"proof_sha256": "c" * 64},
-    }
-    child_contract = copy.deepcopy(old)
+    source = _source_metadata(old)
+    child_contract = _base_contract()
     child = {
         "schema_version": "gx1_unified_exit_pilot_base_normalization_v1",
         "decision": "PASS",
@@ -135,33 +160,51 @@ def test_bootstrap_base_preserves_checkpoint_normalization_and_blocks_val_fit() 
 
 
 def test_smoke_manifest_cannot_self_attest_sampler_selection(tmp_path: Path) -> None:
-    contract = _base_contract()
-    source = {
-        "input_normalization": contract,
-        "input_normalization_fit_population_proof": {"proof_sha256": "c" * 64},
-    }
+    contract = _legacy_contract()
+    source = _source_metadata(contract)
     base = build_bootstrap_base_normalization(
         source_bundle_metadata=source,
         source_bundle_metadata_path="/immutable/source.json",
         source_bundle_metadata_file_sha256="e" * 64,
         checkpoint_input_normalization_sha256=contract["contract_sha256"],
         child_base_artifact={
-            "contract": contract,
-            "contract_sha256": contract["contract_sha256"],
+            "contract": _base_contract(),
+            "contract_sha256": _base_contract()["contract_sha256"],
         },
         pilot_val_start_utc="2027-01-01T00:00:00+00:00",
     )
     base_file = tmp_path / "base.json"
     base_file.write_text(json.dumps(base, sort_keys=True, indent=2) + "\n")
     summary = _summary()
-    composite = build_composite_normalization_binding(
-        base_artifact=base["base_artifact"],
+    child_base_contract = _base_contract()
+    child_base = {
+        "schema_version": "gx1_unified_exit_pilot_base_normalization_v1",
+        "decision": "PASS",
+        "contract": child_base_contract,
+        "contract_sha256": child_base_contract["contract_sha256"],
+        "population_witness_sha256": "d" * 64,
+        "val_fit_rows": 0,
+        "test_fit_rows": 0,
+        "test_accessed": False,
+    }
+    child_composite = build_composite_normalization_binding(
+        base_artifact=child_base,
         base_path=str(base_file),
         base_file_sha256=file_sha256(base_file),
         summary_normalization=summary,
         summary_manifest_path="/immutable/summary.json",
         summary_manifest_file_sha256="f" * 64,
         summary_manifest_sha256="0" * 64,
+    )
+    child_composite_file = tmp_path / "child_composite.json"
+    child_composite_file.write_text(
+        json.dumps(child_composite, sort_keys=True, indent=2) + "\n"
+    )
+    composite = build_bootstrap_composite_normalization(
+        bootstrap_base=base,
+        base_path=str(base_file),
+        base_file_sha256=file_sha256(base_file),
+        child_composite=child_composite,
     )
     composite_file = tmp_path / "composite.json"
     composite_file.write_text(json.dumps(composite, sort_keys=True, indent=2) + "\n")
@@ -182,12 +225,13 @@ def test_smoke_manifest_cannot_self_attest_sampler_selection(tmp_path: Path) -> 
         )
     }
     artifacts["child_composite_normalization"] = {
+        "path": str(child_composite_file),
+        "sha256": file_sha256(child_composite_file),
+    }
+    artifacts["bootstrap_composite_normalization"] = {
         "path": str(composite_file),
         "sha256": file_sha256(composite_file),
     }
-    artifacts["bootstrap_composite_normalization"] = dict(
-        artifacts["child_composite_normalization"]
-    )
     coordinator = {
         name: {"path": str(dummy), "sha256": file_sha256(dummy)}
         for name in ("contract", "controller", "telemetry", "installer")

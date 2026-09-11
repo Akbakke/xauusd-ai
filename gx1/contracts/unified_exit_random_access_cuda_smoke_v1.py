@@ -9,19 +9,26 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    _stats_sha256,
     require_input_normalization_contract,
 )
 from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
     require_composite_normalization_binding,
 )
-from gx1.contracts.unified_exit_pilot_normalization_v1 import canonical_sha256
+from gx1.contracts.unified_exit_pilot_normalization_v1 import (
+    canonical_sha256,
+    require_lifetime_summary_normalization,
+)
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
     RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
 )
 
 BOOTSTRAP_BASE_SCHEMA = "gx1_unified_exit_bootstrap_base_normalization_v1"
+BOOTSTRAP_COMPOSITE_SCHEMA = "gx1_unified_exit_bootstrap_composite_normalization_v1"
 BOOTSTRAP_SOURCE_SCHEMA = "gx1_unified_exit_random_access_bootstrap_source_receipt_v1"
 SMOKE_SCHEMA = "gx1_unified_exit_random_access_cuda_smoke_manifest_v1"
 _SHA = re.compile(r"[0-9a-f]{64}")
@@ -41,6 +48,99 @@ _REQUIRED_ARTIFACTS = frozenset(
         "state_view_source",
     }
 )
+_NORMALIZATION_KEYS = {
+    "schema_version",
+    "transform",
+    "fit_scope",
+    "fit_population",
+    "fit_start_utc",
+    "fit_end_utc",
+    "continuous_transform",
+    "continuous_inverse",
+    "lineage",
+    "ctx_cat",
+    "temporal_aliases",
+    "temporal_aliases_sha256",
+    "surfaces",
+    "surface_stats_sha256",
+    "contract_sha256",
+}
+
+
+def _require_legacy_v7_normalization(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    data = dict(value)
+    claimed = data.pop("contract_sha256", None)
+    if (
+        set(value) != _NORMALIZATION_KEYS
+        or value.get("schema_version") != "entry_model_native_input_normalization_v7"
+        or value.get("transform")
+        != "shared_entry_exit_train_only_median_raw_iqr_asinh_v4"
+        or value.get("fit_scope") != "train_only"
+        or value.get("fit_population")
+        != "unique_physical_train_rows_entry_exit_union_v2"
+        or value.get("continuous_transform") != "asinh_affine_invertible_non_saturating"
+        or value.get("continuous_inverse") != "x=sinh(z)*scale+center"
+        or claimed != canonical_sha256(data)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_BASE_INVALID")
+    lineage = value.get("lineage")
+    surfaces = value.get("surfaces")
+    if (
+        not isinstance(lineage, Mapping)
+        or not isinstance(surfaces, Mapping)
+        or int(lineage.get("train_row_count", 0)) < 1
+        or int(lineage.get("val_fit_row_count", -1)) != 0
+        or int(lineage.get("test_fit_row_count", -1)) != 0
+        or value.get("fit_start_utc") != lineage.get("train_time_min_utc")
+        or value.get("fit_end_utc") != lineage.get("train_time_max_utc")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_LINEAGE_INVALID")
+    observed_hashes: dict[str, str] = {}
+    for surface_name, surface in surfaces.items():
+        if not isinstance(surface, Mapping):
+            raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_SURFACE_INVALID")
+        names = list(surface.get("field_names") or [])
+        center = np.asarray(surface.get("center"), dtype=np.float32)
+        scale = np.asarray(surface.get("scale"), dtype=np.float32)
+        binary = np.asarray(surface.get("binary_mask"), dtype=np.uint8)
+        categorical = np.asarray(surface.get("categorical_mask"), dtype=np.uint8)
+        minimum = np.asarray(surface.get("train_transformed_min"), dtype=np.float64)
+        maximum = np.asarray(surface.get("train_transformed_max"), dtype=np.float64)
+        expected_shape = (len(names),)
+        domains = surface.get("categorical_domains")
+        if (
+            surface.get("surface") != surface_name
+            or int(surface.get("field_count", -1)) != len(names)
+            or any(
+                array.shape != expected_shape
+                for array in (center, scale, binary, categorical, minimum, maximum)
+            )
+            or not np.isfinite(center).all()
+            or not np.isfinite(scale).all()
+            or not (scale > 0).all()
+            or not np.isfinite(minimum).all()
+            or not np.isfinite(maximum).all()
+            or not isinstance(domains, Mapping)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_SURFACE_INVALID")
+        expected_stats = _stats_sha256(
+            field_names=names,
+            center=center,
+            scale=scale,
+            binary_mask=binary,
+            categorical_mask=categorical,
+            categorical_domains=domains,
+            train_transformed_min=minimum,
+            train_transformed_max=maximum,
+        )
+        if surface.get("stats_sha256") != expected_stats:
+            raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_SURFACE_HASH_INVALID")
+        observed_hashes[str(surface_name)] = expected_stats
+    if value.get("surface_stats_sha256") != observed_hashes:
+        raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_LEGACY_SURFACE_SET_INVALID")
+    return dict(value)
 
 
 def file_sha256(path: Path) -> str:
@@ -103,11 +203,7 @@ def build_bootstrap_base_normalization(
         str(name): list(surface.get("field_names") or [])
         for name, surface in child.get("surfaces", {}).items()
     }
-    checked_old = require_input_normalization_contract(
-        old,
-        expected_field_names=old_names,
-        expected_ctx_cat_names=list(old.get("ctx_cat", {}).get("field_names") or []),
-    )
+    checked_old = _require_legacy_v7_normalization(old)
     checked_child = require_input_normalization_contract(
         child,
         expected_field_names=child_names,
@@ -121,13 +217,35 @@ def build_bootstrap_base_normalization(
         or checked_old["ctx_cat"]["field_names"]
         != checked_child["ctx_cat"]["field_names"]
         or checked_old["ctx_cat"]["domains"] != checked_child["ctx_cat"]["domains"]
+        or checked_old["temporal_aliases"] != checked_child["temporal_aliases"]
         or lineage.get("val_fit_row_count") != 0
         or lineage.get("test_fit_row_count") != 0
         or str(lineage.get("train_time_max_utc", "")) >= str(pilot_val_start_utc)
     ):
         raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BASE_TRANSFER_INVALID")
     proof = source_bundle_metadata.get("input_normalization_fit_population_proof")
-    if not isinstance(proof, Mapping) or not isinstance(proof.get("proof_sha256"), str):
+    provenance = source_bundle_metadata.get("recipe_source_provenance")
+    source_bindings = (
+        provenance.get("source_bindings") if isinstance(provenance, Mapping) else None
+    )
+    owner = (
+        source_bindings.get(
+            "python:gx1/contracts/entry_model_native_input_normalization_v1.py"
+        )
+        if isinstance(source_bindings, Mapping)
+        else None
+    )
+    historical_commit = source_bundle_metadata.get("git_commit")
+    if (
+        not isinstance(proof, Mapping)
+        or not isinstance(proof.get("proof_sha256"), str)
+        or not isinstance(provenance, Mapping)
+        or provenance.get("source_commit") != historical_commit
+        or not isinstance(historical_commit, str)
+        or _COMMIT.fullmatch(historical_commit) is None
+        or not isinstance(owner, Mapping)
+        or _SHA.fullmatch(str(owner.get("sha256", ""))) is None
+    ):
         raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BASE_PROOF_MISSING")
     base_artifact = {
         "schema_version": "gx1_unified_exit_pilot_base_normalization_v1",
@@ -149,6 +267,11 @@ def build_bootstrap_base_normalization(
             "path": str(source_bundle_metadata_path),
             "sha256": _sha(source_bundle_metadata_file_sha256, "SOURCE_BUNDLE"),
         },
+        "historical_normalization_owner": {
+            "source_commit": historical_commit,
+            "path": str(owner.get("path")),
+            "sha256": str(owner.get("sha256")),
+        },
         "feature_schema_matches_child_base": True,
         "child_base_contract_sha256": checked_child["contract_sha256"],
         "pilot_val_start_utc": str(pilot_val_start_utc),
@@ -168,17 +291,7 @@ def require_bootstrap_base_normalization(value: Mapping[str, Any]) -> dict[str, 
     )
     if not isinstance(contract, Mapping):
         raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BOOTSTRAP_BASE_INVALID")
-    names = {
-        str(name): list(surface.get("field_names") or [])
-        for name, surface in contract.get("surfaces", {}).items()
-    }
-    checked = require_input_normalization_contract(
-        contract,
-        expected_field_names=names,
-        expected_ctx_cat_names=list(
-            contract.get("ctx_cat", {}).get("field_names") or []
-        ),
-    )
+    checked = _require_legacy_v7_normalization(contract)
     if (
         data.get("schema_version") != BOOTSTRAP_BASE_SCHEMA
         or base_artifact.get("schema_version")
@@ -196,8 +309,76 @@ def require_bootstrap_base_normalization(value: Mapping[str, Any]) -> dict[str, 
         or data.get("val_fit_rows") != 0
         or data.get("test_fit_rows") != 0
         or data.get("test_accessed") is not False
+        or set(data.get("historical_normalization_owner", {}))
+        != {"source_commit", "path", "sha256"}
     ):
         raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BOOTSTRAP_BASE_INVALID")
+    return dict(value)
+
+
+def build_bootstrap_composite_normalization(
+    *,
+    bootstrap_base: Mapping[str, Any],
+    base_path: str,
+    base_file_sha256: str,
+    child_composite: Mapping[str, Any],
+) -> dict[str, Any]:
+    checked_base = require_bootstrap_base_normalization(bootstrap_base)
+    checked_child = require_composite_normalization_binding(child_composite)
+    summary = require_lifetime_summary_normalization(
+        checked_child["lifetime_summary_normalization"]
+    )
+    value = {
+        "schema_version": BOOTSTRAP_COMPOSITE_SCHEMA,
+        "decision": "PASS",
+        "fit_scope": "historical_train_only_base_plus_pilot_train_only_summary",
+        "base_feature_normalization": {
+            "path": str(base_path),
+            "file_sha256": _sha(base_file_sha256, "BOOTSTRAP_BASE_FILE"),
+            "contract_sha256": checked_base["contract_sha256"],
+            "artifact_sha256": checked_base["artifact_sha256"],
+            "artifact": checked_base,
+        },
+        "lifetime_summary_normalization": summary,
+        "summary_fit_manifest": dict(checked_child["summary_fit_manifest"]),
+        "val_mode": "apply_frozen_train_transforms_only",
+        "val_fit_rows": 0,
+        "test_fit_rows": 0,
+        "test_accessed": False,
+    }
+    value["composite_normalization_sha256"] = canonical_sha256(value)
+    return value
+
+
+def require_bootstrap_composite_normalization(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    data = _canonical_payload(
+        value, "composite_normalization_sha256", "BOOTSTRAP_COMPOSITE"
+    )
+    base_binding = data.get("base_feature_normalization")
+    if not isinstance(base_binding, Mapping):
+        raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BOOTSTRAP_COMPOSITE_INVALID")
+    base = require_bootstrap_base_normalization(base_binding.get("artifact", {}))
+    summary = require_lifetime_summary_normalization(
+        data.get("lifetime_summary_normalization", {})
+    )
+    if (
+        data.get("schema_version") != BOOTSTRAP_COMPOSITE_SCHEMA
+        or data.get("decision") != "PASS"
+        or data.get("fit_scope")
+        != "historical_train_only_base_plus_pilot_train_only_summary"
+        or base_binding.get("contract_sha256") != base["contract_sha256"]
+        or base_binding.get("artifact_sha256") != base["artifact_sha256"]
+        or data.get("val_mode") != "apply_frozen_train_transforms_only"
+        or data.get("val_fit_rows") != 0
+        or data.get("test_fit_rows") != 0
+        or data.get("test_accessed") is not False
+        or summary.get("val_fit_rows") != 0
+        or summary.get("test_fit_rows") != 0
+        or summary.get("test_accessed") is not False
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CUDA_SMOKE_BOOTSTRAP_COMPOSITE_INVALID")
     return dict(value)
 
 
@@ -339,7 +520,7 @@ def build_blocked_smoke_manifest(
             Path(checked_artifacts["child_composite_normalization"]["path"]).read_text()
         )
     )
-    bootstrap_composite = require_composite_normalization_binding(
+    bootstrap_composite = require_bootstrap_composite_normalization(
         json.loads(
             Path(
                 checked_artifacts["bootstrap_composite_normalization"]["path"]
@@ -461,13 +642,16 @@ def require_smoke_manifest(
 
 __all__ = (
     "BOOTSTRAP_BASE_SCHEMA",
+    "BOOTSTRAP_COMPOSITE_SCHEMA",
     "BOOTSTRAP_SOURCE_SCHEMA",
     "SMOKE_SCHEMA",
     "build_blocked_smoke_manifest",
     "build_bootstrap_base_normalization",
+    "build_bootstrap_composite_normalization",
     "build_bootstrap_source_receipt",
     "file_sha256",
     "require_bootstrap_base_normalization",
+    "require_bootstrap_composite_normalization",
     "require_bootstrap_source_receipt",
     "require_smoke_manifest",
 )
