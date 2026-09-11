@@ -322,9 +322,33 @@ def test_route_diagnostics_preserve_feature_scaling_contract() -> None:
     observed = {}
     accumulate_route_diagnostics_v1(observed, routes)
     assert observed["exit_family_tf_feature_gate"]["max"] == 1.5
-    for invalid in (0.0, 2.0, -0.1, float("nan")):
+    for invalid in (-0.1, 2.1, float("nan")):
         bad = {**routes, "exit_family_tf_feature_gate": torch.full((1, 2, 2), invalid)}
         with pytest.raises(RuntimeError, match="UNIFIED_EXIT_VAL_ROUTE_(RANGE|OUTPUT)_INVALID"):
             accumulate_route_diagnostics_v1({}, bad)
     with pytest.raises(RuntimeError, match="UNIFIED_EXIT_VAL_ROUTE_RANGE_INVALID:exit_tf_gate"):
         accumulate_route_diagnostics_v1({}, {**routes, "exit_tf_gate": torch.tensor([[0.4, 1.1]])})
+
+
+def test_saturated_feature_gates_remain_visible_quality_failures() -> None:
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        accumulate_route_diagnostics_v1, finalize_route_diagnostics_v1,
+    )
+
+    routes = {
+        "exit_specialist_gate": torch.tensor([[0.25, 0.75]]),
+        "exit_tf_gate": torch.tensor([[0.4, 0.6]]),
+        "exit_family_tf_cooperation_gate": torch.full((1, 2, 2), 0.25),
+        "exit_family_tf_feature_gate": torch.tensor([[[0.0, 2.0], [1.25, 0.75]]]),
+    }
+    observed = {}
+    accumulate_route_diagnostics_v1(observed, routes)
+    result = finalize_route_diagnostics_v1(observed)
+    feature = result["routes"]["exit_family_tf_feature_gate"]
+    assert feature["min"] == 0.0 and feature["max"] == 2.0
+    quality = feature["feature_gate_quality"]
+    assert quality["saturated_lower_element_count"] == 1
+    assert quality["saturated_upper_element_count"] == 1
+    assert quality["saturated_element_fraction"] == 0.5
+    assert quality["open_range_quality_pass"] is False
+    assert quality["candidate_admission_claimed"] is False

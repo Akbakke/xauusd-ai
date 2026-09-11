@@ -37,7 +37,7 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     unique_active_exit_actions,
 )
 
-PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v1"
+PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v2"
 RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v2"
 PAUSE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_pause_v1"
 _ROUTE_KEYS = (
@@ -317,10 +317,11 @@ def _accumulate_routes(
                 raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SIDE_SHAPE_INVALID:{name}")
             values = values[torch.from_numpy(mask)]
         if name == "exit_family_tf_feature_gate":
-            # The shared Entry/Exit model uses 2 * sigmoid feature scaling.
-            # Its (0,2) contract is distinct from the simplex route weights.
+            # FP32 2 * sigmoid can round to exactly 0 or 2. Observe these
+            # finite endpoints and report saturation below. Admission/runtime
+            # owners still enforce the stricter open-range quality contract.
             invalid_range = bool(
-                ((values <= 0.0) | (values >= 2.0)).any().item()
+                ((values < 0.0) | (values > 2.0)).any().item()
             )
         else:
             invalid_range = bool((values < -1e-8).any().item()) or bool(
@@ -350,10 +351,15 @@ def _accumulate_routes(
                 "max": None,
                 "effective_route_count_sum": 0.0,
                 "top_flat_index_count": [0] * flat.shape[1],
+                "saturated_lower_element_count": 0,
+                "saturated_upper_element_count": 0,
             }
             accumulators[name] = observed
         if observed["shape_tail"] != list(values.shape[1:]):
             raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SHAPE_DRIFT:{name}")
+        if name == "exit_family_tf_feature_gate":
+            observed["saturated_lower_element_count"] += int((values == 0.0).sum().item())
+            observed["saturated_upper_element_count"] += int((values == 2.0).sum().item())
         observed["batch_row_count"] += int(values.shape[0])
         observed["element_count"] += int(values.numel())
         observed["sum"] += float(values.sum().item())
@@ -450,6 +456,17 @@ def _finalize_routes(accumulators: Mapping[str, Any]) -> dict[str, Any]:
             / rows,
             "top_flat_index_count": list(raw["top_flat_index_count"]),
         }
+        if name == "exit_family_tf_feature_gate":
+            lower = int(raw["saturated_lower_element_count"])
+            upper = int(raw["saturated_upper_element_count"])
+            result[name]["feature_gate_quality"] = {
+                "required_open_range": [0.0, 2.0],
+                "saturated_lower_element_count": lower,
+                "saturated_upper_element_count": upper,
+                "saturated_element_fraction": (lower + upper) / count,
+                "open_range_quality_pass": lower == 0 and upper == 0,
+                "candidate_admission_claimed": False,
+            }
     return {
         "semantics": "observation_only_gate_and_route_usage_not_causal_feature_importance",
         "causal_feature_importance_claimed": False,
