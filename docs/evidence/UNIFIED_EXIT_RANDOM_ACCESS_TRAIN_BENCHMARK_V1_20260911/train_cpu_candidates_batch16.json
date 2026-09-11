@@ -1,0 +1,165 @@
+{
+  "batch_sizes": [
+    16
+  ],
+  "candidate_budgets": [
+    32768,
+    65536,
+    131072
+  ],
+  "candidate_selection_performed": true,
+  "candidates": [
+    {
+      "batch_size_sweep": [
+        {
+          "batch_size": 16,
+          "collate_seconds": 177.81901109089813,
+          "entry_pairs_per_second": 15.535907703757582,
+          "materialize_seconds": 349.4482908778955,
+          "measured_entry_pairs": 8192,
+          "measured_epoch_seconds": 527.2945846619987,
+          "measured_transitions": 32768,
+          "median_seconds": 527.2945846619987,
+          "peak_padded_model_input_bytes": 74700864,
+          "peak_python_allocation_bytes": 271238523,
+          "population_cycle_epochs": 8,
+          "projected_entry_population_cycle_seconds": 4218.356677295989,
+          "transitions_per_second": 62.14363081503033
+        }
+      ],
+      "full_budget_measured": true,
+      "full_selected_entry_pairs": 8192,
+      "sampler_contract_sha256": "b9679ec7ebf0ef9f2c805a30bf778b13f92a735aec7be242cca495d5e7fabf40",
+      "transition_budget_per_epoch": 32768
+    },
+    {
+      "batch_size_sweep": [
+        {
+          "batch_size": 16,
+          "collate_seconds": 360.350193052931,
+          "entry_pairs_per_second": 15.277118490212557,
+          "materialize_seconds": 712.0456277041085,
+          "measured_entry_pairs": 16384,
+          "measured_epoch_seconds": 1072.4535527099943,
+          "measured_transitions": 65536,
+          "median_seconds": 1072.4535527099943,
+          "peak_padded_model_input_bytes": 74700864,
+          "peak_python_allocation_bytes": 270916255,
+          "population_cycle_epochs": 4,
+          "projected_entry_population_cycle_seconds": 4289.814210839977,
+          "transitions_per_second": 61.108473960850226
+        }
+      ],
+      "full_budget_measured": true,
+      "full_selected_entry_pairs": 16384,
+      "sampler_contract_sha256": "f91c58a22f1e9618a2ffbd88d0b179d5ee3cbccdcbbd17f4ac6505b445e443ac",
+      "transition_budget_per_epoch": 65536
+    },
+    {
+      "batch_size_sweep": [
+        {
+          "batch_size": 16,
+          "collate_seconds": 711.7500000089931,
+          "entry_pairs_per_second": 14.063923949738236,
+          "materialize_seconds": 1618.0485603437774,
+          "measured_entry_pairs": 32768,
+          "measured_epoch_seconds": 2329.9329630270004,
+          "measured_transitions": 131072,
+          "median_seconds": 2329.9329630270004,
+          "peak_padded_model_input_bytes": 74700864,
+          "peak_python_allocation_bytes": 271369633,
+          "population_cycle_epochs": 2,
+          "projected_entry_population_cycle_seconds": 4659.865926054001,
+          "transitions_per_second": 56.25569579895294
+        }
+      ],
+      "full_budget_measured": true,
+      "full_selected_entry_pairs": 32768,
+      "sampler_contract_sha256": "edbbdc13586f4ff3b8df9342032f5978a169e833e04800925f9305b0b58172fb",
+      "transition_budget_per_epoch": 131072
+    }
+  ],
+  "decision": "PASS",
+  "device": "cpu",
+  "receipt_sha256": "988f6505ed85fd23babb05c72cdc8620ef33803c9bc76d96701f6152dcffff57",
+  "repeats": 1,
+  "run_bindings": {
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
+    "files": {
+      "candidate_set": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/FINAL_BINDINGS_V2/SAMPLER_BENCHMARK_CANDIDATES.json",
+        "sha256": "44533dc21d00e768721145d99b8e953c576c0ccbb86abd16506d10fe9f330349"
+      },
+      "composite_normalization": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/FINAL_BINDINGS_V2/COMPOSITE_NORMALIZATION.json",
+        "sha256": "3be907909462a35a89eefa0fbe340e166fe07285f16d6716b76195b416b941d7"
+      },
+      "economics_readiness": {
+        "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROJECT_CAPITAL_HURDLE_V1_20260910/train_economics_readiness.json",
+        "sha256": "37f8d0b474bb6b4fd299aab5a646442c03118c53bac1fd3ff4503d177deabff0"
+      },
+      "entry_train_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+      },
+      "entry_train_parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+      },
+      "feature_lifecycle_root": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/UNIFIED_EXIT_LIFECYCLE/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        "sha256": "3fa95fb054b9e593708533e714189939f2e48fb10270dbb48efb5cc8aefdae52"
+      },
+      "m5_prebuilt": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V3_ENRICHED_20260829T173000Z/FULL_PLUS_CTX_v3src.parquet",
+        "sha256": "1785e41c025e8844a47fb78897ec17a082efbb716a9789a8f0494e564b12c9d9"
+      },
+      "root_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/RANDOM_ACCESS_INDEX_V3/ROOT.json",
+        "sha256": "35c255a7ce7a624c44fd305edcab0210a2e810fbc6e13642b0210f2f7ea65871"
+      },
+      "sequence_source_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260905T143732Z.json",
+        "sha256": "53f836d0bee89409636ad58f988ada44d61633bfd62c10014bef4e5f2f68ef29"
+      },
+      "train_cost_authority": {
+        "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/parameter_authority.json",
+        "sha256": "6b113666db19170ec8e05aa5a69cbee67a1c5790a1633a3aa4fc35339d88b344"
+      }
+    },
+    "mtf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V3_ENRICHED_20260829T173000Z/MULTI_TF_V4_CACHE"
+  },
+  "schema_version": "gx1_unified_exit_random_access_train_benchmark_v2",
+  "selected_candidate": {
+    "batch_size": 16,
+    "measured_epoch_seconds": 1072.4535527099943,
+    "population_cycle_epochs": 4,
+    "projected_entry_population_cycle_seconds": 4289.814210839977,
+    "sampler_contract_sha256": "f91c58a22f1e9618a2ffbd88d0b179d5ee3cbccdcbbd17f4ac6505b445e443ac",
+    "transition_budget_per_epoch": 65536
+  },
+  "selection_policy": {
+    "authoritative_batch_size": 16,
+    "authoritative_repeats": 1,
+    "eligibility": "complete_once_at_batch16_with_cpu_epoch_and_memory_within_caps",
+    "entry_pair_population": 65295,
+    "max_measured_cpu_prep_epoch_seconds": 1800,
+    "max_peak_padded_model_input_bytes": 1073741824,
+    "max_peak_python_allocation_bytes": 2147483648,
+    "policy_sha256": "15274a1d8229b948367540521a27ffe7868c6231c56287907791650788a1c1e2",
+    "rank_order": [
+      "population_cycle_epochs_ascending",
+      "measured_epoch_seconds_ascending",
+      "peak_padded_model_input_bytes_ascending",
+      "peak_python_allocation_bytes_ascending",
+      "transition_budget_per_epoch_ascending"
+    ],
+    "rule": "minimum_population_cycle_epochs_with_30m_cpu_cap_v1",
+    "schema_version": "gx1_unified_exit_sampler_selection_policy_v1",
+    "selection_uses_outcome_values": false,
+    "test_data_used": false
+  },
+  "selection_uses_outcome_values": false,
+  "test_data_used": false,
+  "transitions_per_entry": 4
+}
