@@ -553,7 +553,7 @@ def build_blocked_smoke_manifest(
         },
         "benchmark_matrix": {
             "precision_policies": ["deterministic_fp32"],
-            "batch_sizes": [4, 8],
+            "batch_sizes": [4, 8, 16],
             "warmup_optimizer_steps_per_arm": 1,
             "measured_optimizer_steps_per_arm": 2,
             "checkpoint_after_each_arm": True,
@@ -628,7 +628,7 @@ def require_smoke_manifest(
             )
     if data.get("benchmark_matrix") != {
         "precision_policies": ["deterministic_fp32"],
-        "batch_sizes": [4, 8],
+        "batch_sizes": [4, 8, 16],
         "warmup_optimizer_steps_per_arm": 1,
         "measured_optimizer_steps_per_arm": 2,
         "checkpoint_after_each_arm": True,

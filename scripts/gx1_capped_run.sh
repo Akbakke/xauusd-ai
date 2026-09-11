@@ -34,6 +34,7 @@ set -euo pipefail
 JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
+RANDOM_ACCESS_FIXED_STEP_MODULE=gx1.scripts.run_unified_exit_random_access_fixed_step_v1
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
 # CUDA producer routes are intentionally enumerated rather than accepting an
 # arbitrary module.  Both are read-only, TRAIN/VAL-only evidence producers;
@@ -128,7 +129,8 @@ validate_target_command() {
   local trainer_reference=false hardware_smoke_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
-  local profile_value= execution_tier_value=
+  local checkpoint_dir_count=0 launch_manifest_count=0 mode_count=0 arm_batch_size_count=0
+  local profile_value= execution_tier_value= mode_value= arm_batch_size_value=
   local -a target_args=("$@")
 
   case "$executable_basename" in
@@ -139,7 +141,7 @@ validate_target_command() {
   esac
 
   for target_arg in "$@"; do
-    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"* ]]; then
+    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_FIXED_STEP_MODULE"* ]]; then
       trainer_reference=true
     fi
     if [[ "$target_arg" == *"$ATTENDED_HARDWARE_SMOKE_MODULE"* ]]; then
@@ -222,6 +224,7 @@ validate_target_command() {
   fi
   module="${3:-}"
   [[ "$module" == "$CANONICAL_TRAINER_MODULE" \
+    || "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" \
     || "$module" == "$ATTENDED_HARDWARE_SMOKE_MODULE" ]] || {
     echo "FATAL: trainer class permits only the canonical trainer or attended hardware smoke module" >&2
     exit 75
@@ -260,6 +263,24 @@ validate_target_command() {
         }
         execution_tier_value="${target_args[$((target_index + 1))]}"
         ;;
+      --checkpoint-dir)
+        checkpoint_dir_count=$((checkpoint_dir_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
+        TRAINER_OUT_BUNDLE_DIR="${target_args[$((target_index + 1))]}"
+        ;;
+      --launch-manifest)
+        launch_manifest_count=$((launch_manifest_count + 1))
+        ;;
+      --mode)
+        mode_count=$((mode_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
+        mode_value="${target_args[$((target_index + 1))]}"
+        ;;
+      --arm-batch-size)
+        arm_batch_size_count=$((arm_batch_size_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
+        arm_batch_size_value="${target_args[$((target_index + 1))]}"
+        ;;
       --out_bundle_dir)
         out_bundle_dir_count=$((out_bundle_dir_count + 1))
         (( target_index + 1 < ${#target_args[@]} )) || {
@@ -274,6 +295,14 @@ validate_target_command() {
     || [[ "$TRAINER_DEVICE" != cpu && "$TRAINER_DEVICE" != cuda ]]; then
     echo "FATAL: trainer class requires exactly one canonical --device cpu|cuda" >&2
     exit 75
+  fi
+
+  if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]; then
+    if [[ "$ATTENDED_SMOKE" != true || "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $mode_count -ne 1       || $arm_batch_size_count -ne 1       || ( "$mode_value" != bootstrap && "$mode_value" != resume-probe )       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || ${#target_args[@]} -ne 13 ]]; then
+      echo "FATAL: random-access fixed-step smoke requires the exact attended CUDA command contract" >&2
+      exit 75
+    fi
+    return
   fi
 
   if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then

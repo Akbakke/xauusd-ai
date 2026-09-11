@@ -4174,6 +4174,7 @@ class EntryV10CtxDataset(Dataset):
         self._unified_exit_lifecycle_v2: Optional[
             UnifiedExitDatasetAdapterV2
         ] = None
+        self._random_access_child_index_by_parent: Optional[dict[int, int]] = None
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
@@ -4982,6 +4983,27 @@ class EntryV10CtxDataset(Dataset):
             raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_ALREADY_BOUND")
         self._unified_exit_lifecycle = lifecycle
 
+    def bind_random_access_entry_coordinate_mapping_v1(
+        self,
+        *,
+        parent_entry_row_indices: Sequence[int],
+        child_entry_row_indices: Sequence[int],
+    ) -> None:
+        parents = [int(value) for value in parent_entry_row_indices]
+        children = [int(value) for value in child_entry_row_indices]
+        if (
+            self._random_access_child_index_by_parent is not None
+            or len(parents) != len(children)
+            or not parents
+            or len(set(parents)) != len(parents)
+            or len(set(children)) != len(children)
+            or min(parents) < 0
+            or max(parents) >= len(self.df)
+            or sorted(children) != list(range(len(children)))
+        ):
+            raise RuntimeError("[UNIFIED_EXIT_RANDOM_ACCESS_ENTRY_MAPPING_INVALID]")
+        self._random_access_child_index_by_parent = dict(zip(parents, children))
+
     def bind_unified_exit_lifecycle_v2(
         self, adapter: UnifiedExitDatasetAdapterV2
     ) -> None:
@@ -5044,8 +5066,19 @@ class EntryV10CtxDataset(Dataset):
                     f"[ENTRY_V10_CTX_SHAPE_MISMATCH] ctx_cat shape {ctx_cat.shape} expected ({self.ctx_cat_dim},)"
                 )
 
+            if self._random_access_child_index_by_parent is None:
+                emitted_entry_row_index = t
+            else:
+                try:
+                    emitted_entry_row_index = self._random_access_child_index_by_parent[t]
+                except KeyError as exc:
+                    raise RuntimeError(
+                        "[UNIFIED_EXIT_RANDOM_ACCESS_PARENT_ENTRY_NOT_MAPPED]"
+                    ) from exc
             out_batch = {
-                "entry_row_index": torch.tensor(t, dtype=torch.long),
+                "entry_row_index": torch.tensor(
+                    emitted_entry_row_index, dtype=torch.long
+                ),
                 "seq_x": torch.tensor(seq),
                 "snap_x": torch.tensor(snap),
                 "ctx_cont": torch.tensor(ctx_cont),
@@ -8680,8 +8713,17 @@ def train_epoch(
             or session_checkpoint_hook is None
             or _accum_steps != 1
             or int(session_batch_offset) < 0
-            or session_exit_action_forward_chunk_rows is None
-            or int(session_exit_action_forward_chunk_rows) < 1
+            or (
+                getattr(dataset, "_unified_exit_lifecycle_v2", None) is None
+                and (
+                    session_exit_action_forward_chunk_rows is None
+                    or int(session_exit_action_forward_chunk_rows) < 1
+                )
+            )
+            or (
+                getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
+                and session_exit_action_forward_chunk_rows is not None
+            )
             or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
         ):
             raise RuntimeError("[BOUNDED_TRAINING_EPOCH_ARGUMENT_INVALID]")
@@ -8691,8 +8733,17 @@ def train_epoch(
             or session_checkpoint_hook is None
             or _accum_steps != 1
             or int(session_batch_offset) < 0
-            or session_exit_action_forward_chunk_rows is None
-            or int(session_exit_action_forward_chunk_rows) < 1
+            or (
+                getattr(dataset, "_unified_exit_lifecycle_v2", None) is None
+                and (
+                    session_exit_action_forward_chunk_rows is None
+                    or int(session_exit_action_forward_chunk_rows) < 1
+                )
+            )
+            or (
+                getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
+                and session_exit_action_forward_chunk_rows is not None
+            )
             or not re.fullmatch(r"[A-Z][A-Z0-9_]*", str(session_log_label))
         ):
             raise RuntimeError("[BOUNDED_TRAINING_CHECKPOINT_INTERVAL_INVALID]")
