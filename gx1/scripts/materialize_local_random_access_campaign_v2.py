@@ -393,6 +393,82 @@ def materialize_selected_training_campaign(
     return {"plan": checked, "path": str(plan_path), "sha256": file_sha256(plan_path)}
 
 
+
+def materialize_full_population_training_campaign(
+    *, repo: Path, output: Path, runtime: Path, gpu_uuid: str,
+    prepared_boot_path: Path, prepared_boot_file_sha256: str,
+    prelaunch_path: Path, prelaunch_file_sha256: str, certificate_path: Path,
+    prior_campaign_path: Path, prior_campaign_file_sha256: str,
+    selection_path: Path, selection_file_sha256: str,
+    epoch_session_path: Path, epoch_session_file_sha256: str,
+    epoch_window_steps: int,
+) -> dict[str, Any]:
+    from gx1.contracts.unified_exit_full_population_train_session_v1 import (
+        require_full_population_train_session,
+    )
+    commit = _source_commit(repo)
+    if output.exists() or output.is_symlink() or epoch_window_steps < 1:
+        raise RandomAccessCampaignError("full-year output or window invalid")
+    session = require_full_population_train_session(
+        _require_manifest(epoch_session_path, epoch_session_file_sha256)
+    )
+    prior = require_plan(_read(prior_campaign_path), verify_files=True)
+    selection = require_selection(_read(selection_path), verify_files=True)
+    launch = _require_manifest(prelaunch_path, prelaunch_file_sha256)
+    authority = _read(Path(session["prefix_checkpoint_authority"]["path"]))
+    if (
+        file_sha256(prior_campaign_path) != prior_campaign_file_sha256
+        or file_sha256(selection_path) != selection_file_sha256
+        or session["source_commit"] != commit or session["source_repo"] != str(repo)
+        or prior["phase"] != "selected_training"
+        or prior["source_commit"] != session["predecessor_source_commit"]
+        or authority["campaign_plan"] != _binding(prior_campaign_path)
+        or session["gpu_batch_selection"] != _binding(selection_path)
+        or session["prelaunch"] != _binding(prelaunch_path)
+        or selection["launch_manifest_sha256"] != launch["manifest_sha256"]
+    ):
+        raise RandomAccessCampaignError("full-year campaign provenance invalid")
+    batch = session["selected_batch_size"]
+    remaining = session["remaining_optimizer_steps"]
+    window_count = math.ceil(remaining / epoch_window_steps)
+    checkpoint_dir = Path(session["checkpoint_dir"])
+    if checkpoint_dir.exists() or checkpoint_dir.is_symlink():
+        raise RandomAccessCampaignError("full-year checkpoint directory must be fresh")
+    invocations = []
+    for index in range(window_count):
+        _, binding = _write_invocation(
+            output=output, repo=repo, commit=commit, runtime=runtime, number=index + 1,
+            kind="epoch1_window", batch=batch,
+            budget=min(epoch_window_steps, remaining - index * epoch_window_steps),
+            outcome="COMPLETE" if index == window_count - 1 else "RESUMABLE",
+            stage="epoch1-window", launch_path=prelaunch_path, launch=launch,
+            checkpoint_dir=checkpoint_dir, progress_path=checkpoint_dir / "PROGRESS.json",
+            pointer_path=checkpoint_dir / "RESUME_POINTER.json",
+            before_mode="GENESIS" if index == 0 else "PREVIOUS_RECEIPT_AFTER",
+            predecessor=None if index == 0 else index,
+            session_path=epoch_session_path, session=session,
+            window_index=index, window_count=window_count,
+        )
+        invocations.append(binding)
+    boot = require_boot_identity(_read(prepared_boot_path))
+    if file_sha256(prepared_boot_path) != prepared_boot_file_sha256:
+        raise RandomAccessCampaignError("prepared boot file SHA-256 mismatch")
+    guards, controllers = _sources(repo, certificate_path)
+    plan = _base_plan(
+        phase="selected_training", campaign_id=f"GX1_FULL_YEAR_{commit[:12]}",
+        repo=repo, commit=commit, runtime=runtime, gpu_uuid=gpu_uuid, boot=boot,
+        guards=guards, controllers=controllers, prior=_binding(prior_campaign_path),
+        selection=_binding(selection_path), selected_batch_size=batch, invocations=invocations,
+    )
+    plan.pop("plan_sha256")
+    plan["entry_pairs_per_epoch"] = session["entry_pairs_per_epoch"]
+    plan["transitions_per_epoch"] = session["transition_budget_per_epoch"]
+    plan["plan_sha256"] = canonical_sha256(plan)
+    path = output / "CAMPAIGN_PLAN.json"
+    _atomic_json(path, plan)
+    checked = require_plan(plan, verify_files=True)
+    return {"plan": checked, "path": str(path), "sha256": file_sha256(path)}
+
 def _full_val_launcher(
     *,
     repo: Path,
@@ -665,7 +741,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",
-        choices=("gpu-selection", "resume-proof", "selected-training", "full-val"),
+        choices=("gpu-selection", "resume-proof", "selected-training", "full-val", "full-year-continuation"),
         required=True,
     )
     parser.add_argument("--source-repo", type=Path, required=True)
@@ -712,6 +788,27 @@ def main(argv: list[str] | None = None) -> int:
             **base,
             prelaunch_path=args.prelaunch_manifest.resolve(),
             prelaunch_file_sha256=args.prelaunch_file_sha256,
+        )
+    elif args.phase == "full-year-continuation":
+        required = (
+            args.prelaunch_manifest, args.prelaunch_file_sha256,
+            args.prior_campaign, args.prior_campaign_file_sha256,
+            args.gpu_selection, args.gpu_selection_file_sha256,
+            args.epoch_session_manifest, args.epoch_session_file_sha256,
+        )
+        if any(value is None for value in required):
+            raise RandomAccessCampaignError("full-year continuation inputs incomplete")
+        result = materialize_full_population_training_campaign(
+            **base,
+            prelaunch_path=args.prelaunch_manifest.resolve(),
+            prelaunch_file_sha256=args.prelaunch_file_sha256,
+            prior_campaign_path=args.prior_campaign.resolve(),
+            prior_campaign_file_sha256=args.prior_campaign_file_sha256,
+            selection_path=args.gpu_selection.resolve(),
+            selection_file_sha256=args.gpu_selection_file_sha256,
+            epoch_session_path=args.epoch_session_manifest.resolve(),
+            epoch_session_file_sha256=args.epoch_session_file_sha256,
+            epoch_window_steps=args.epoch_window_steps,
         )
     elif args.phase in {"resume-proof", "selected-training"}:
         required = (

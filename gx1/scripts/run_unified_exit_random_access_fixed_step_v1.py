@@ -445,8 +445,13 @@ def _schedule_witness(
     batch_size: int,
     epoch_schedule_sha256: str,
     selected_sampler_artifact_sha256: str,
+    full_population_schedule: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if len(child_order) != 16384 or len(parent_order) != len(child_order):
+    expected_count = (
+        16384 if full_population_schedule is None
+        else int(full_population_schedule["entry_pair_count"])
+    )
+    if len(child_order) != expected_count or len(parent_order) != len(child_order):
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SCHEDULE_SIZE_INVALID")
     next_start = 4 * batch_size
     next_stop = next_start + batch_size
@@ -474,6 +479,15 @@ def _schedule_witness(
         "next_batch_after_optimizer_step_4": next_identity,
         "test_data_used": False,
     }
+    if full_population_schedule is not None:
+        if (
+            full_population_schedule["entry_order_sha256"]
+            != _canonical([int(item) for item in child_order])
+            or full_population_schedule["every_entry_pair_exactly_once"] is not True
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FULL_YEAR_SCHEDULE_INVALID")
+        value["schema_version"] = "gx1_unified_exit_full_population_schedule_witness_v1"
+        value["full_population_schedule"] = dict(full_population_schedule)
     value["witness_sha256"] = _canonical(value)
     return value
 
@@ -627,6 +641,7 @@ def run(
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_BATCH_ARM_INVALID")
     root_checkpoint_dir = Path(launch["checkpoint_dir"])
     gpu_selection = None
+    full_session = None
     if stage == "smoke-arm":
         expected_checkpoint_dir = root_checkpoint_dir / f"batch_{arm_batch_size}"
         expected_progress_path = expected_checkpoint_dir / "PROGRESS.json"
@@ -642,9 +657,30 @@ def run(
         gpu_selection = require_selection(
             _read(Path(train_session["gpu_batch_selection"]["path"]))
         )
+        from gx1.contracts.unified_exit_full_population_train_session_v1 import (
+            SCHEMA_VERSION as FULL_POPULATION_SCHEMA,
+        )
+        if train_session["schema_version"] == FULL_POPULATION_SCHEMA:
+            if stage != "epoch1-window":
+                raise RuntimeError("UNIFIED_EXIT_FULL_YEAR_STAGE_INVALID")
+            full_session = train_session
+            current_repo = str(Path(__file__).resolve().parents[2])
+            current_head = subprocess.check_output(
+                ["git", "-C", current_repo, "rev-parse", "HEAD"], text=True
+            ).strip()
+            current_dirty = subprocess.check_output(
+                ["git", "-C", current_repo, "status", "--porcelain", "--untracked-files=all"],
+                text=True,
+            )
+            if (
+                current_repo != full_session["source_repo"]
+                or current_head != full_session["source_commit"] or current_dirty
+                or full_session["predecessor_source_commit"] != launch["source_commit"]
+            ):
+                raise RuntimeError("UNIFIED_EXIT_FULL_YEAR_EXECUTION_SOURCE_INVALID")
         if (
             train_session["prelaunch_manifest_sha256"] != launch["manifest_sha256"]
-            or train_session["source_commit"] != launch["source_commit"]
+            or (full_session is None and train_session["source_commit"] != launch["source_commit"])
             or train_session["gpu_batch_selection_artifact_sha256"]
             != gpu_selection["artifact_sha256"]
             or gpu_selection["launch_manifest_sha256"] != launch["manifest_sha256"]
@@ -667,6 +703,7 @@ def run(
         elif stage == "epoch1-window":
             expected_checkpoint_dir = (
                 root_checkpoint_dir / f"epoch1_batch_{arm_batch_size}"
+                if full_session is None else Path(full_session["checkpoint_dir"])
             )
             expected_progress_path = expected_checkpoint_dir / "PROGRESS.json"
             if (
@@ -764,7 +801,13 @@ def run(
         train_feature_source_owner=corpus.splits["train"],
     )
     adapter = factory(65536)
-    adapter.set_epoch_index(0)
+    full_population_schedule = None
+    if full_session is None:
+        adapter.set_epoch_index(0)
+    else:
+        full_population_schedule = adapter.set_full_population_epoch_index(0)
+        if full_population_schedule != full_session["full_population_schedule"]:
+            raise RuntimeError("UNIFIED_EXIT_FULL_YEAR_REBUILT_SCHEDULE_DIFFERS")
     dataset.bind_unified_exit_lifecycle_v2(adapter)
     index = pd.read_parquet(
         files["train_random_access_index"],
@@ -778,21 +821,21 @@ def run(
     child_to_parent = dict(zip(children, parents))
     child_order = [int(x) for x in adapter.random_access_selected_entry_rows_v1()]
     parent_order = [child_to_parent[x] for x in child_order]
-    epoch_schedule_sha256 = _canonical(
-        {
-            "epoch_index": 0,
-            "selected_sampler_contract_sha256": selected[
-                "selected_sampler_contract_sha256"
-            ],
-            "child_entry_order": child_order,
-        }
-    )
+    schedule_identity = {
+        "epoch_index": 0,
+        "selected_sampler_contract_sha256": selected["selected_sampler_contract_sha256"],
+        "child_entry_order": child_order,
+    }
+    if full_population_schedule is not None:
+        schedule_identity["full_population_schedule_sha256"] = full_population_schedule["schedule_sha256"]
+    epoch_schedule_sha256 = _canonical(schedule_identity)
     schedule_witness = _schedule_witness(
         child_order=child_order,
         parent_order=parent_order,
         batch_size=arm_batch_size,
         epoch_schedule_sha256=epoch_schedule_sha256,
         selected_sampler_artifact_sha256=selected["artifact_sha256"],
+        full_population_schedule=full_population_schedule,
     )
     source_pointer = _read(files["checkpoint_pointer"])
     source_state_path = (
@@ -834,8 +877,10 @@ def run(
     )
     weight_ema = _FreshWeightEma(model, float(launch["weight_ema_decay"]))
     pointer_path = checkpoint_dir / "RESUME_POINTER.json"
-    bootstrap_stage = stage in {"smoke-arm", "reference-4", "resume-proof-first"} or (
-        stage == "epoch1-window" and not pointer_path.exists()
+    prefix_resume = full_session is not None and not pointer_path.exists()
+    bootstrap_stage = full_session is None and (
+        stage in {"smoke-arm", "reference-4", "resume-proof-first"}
+        or (stage == "epoch1-window" and not pointer_path.exists())
     )
     if bootstrap_stage:
         if checkpoint_dir.exists():
@@ -866,8 +911,16 @@ def run(
         global_optimizer_steps = 0
         resume_probe = False
     else:
+        resume_pointer_path = (
+            Path(full_session["prefix_checkpoint"]["path"])
+            if prefix_resume else pointer_path
+        )
+        resume_schedule_sha256 = (
+            full_session["prefix_epoch_schedule_sha256"]
+            if prefix_resume else epoch_schedule_sha256
+        )
         progress = load_checkpoint_strict(
-            pointer_path=pointer_path,
+            pointer_path=resume_pointer_path,
             model=model,
             target_model=target,
             optimizer=optimizer,
@@ -882,8 +935,14 @@ def run(
                 "lifetime_summary_normalization"
             ]["normalization_sha256"],
             expected_batch_size=arm_batch_size,
-            expected_epoch_schedule_sha256=epoch_schedule_sha256,
+            expected_epoch_schedule_sha256=resume_schedule_sha256,
         )
+        if prefix_resume and (
+            progress["next_batch_offset"] != full_session["initial_batch_offset"]
+            or progress["global_step"] != full_session["initial_global_step"]
+            or progress["epoch_index"] != 0
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FULL_YEAR_PREFIX_CURSOR_INVALID")
         bind_preserved_v7_input_normalization(model, old_norm)
         bind_preserved_v7_input_normalization(target, old_norm)
         start = int(progress["next_batch_offset"])
@@ -913,9 +972,9 @@ def run(
         checkpoint_dir / "EPOCH_SCHEDULE.json", schedule_witness
     )
     total_batches = (
-        int(gpu_selection["total_batches_per_epoch"])
-        if gpu_selection is not None
-        else -(-16384 // arm_batch_size)
+        int(full_session["total_batches_per_epoch"]) if full_session is not None
+        else int(gpu_selection["total_batches_per_epoch"])
+        if gpu_selection is not None else -(-16384 // arm_batch_size)
     )
     if stage == "epoch1-window":
         remaining = total_batches - start

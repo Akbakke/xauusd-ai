@@ -21,11 +21,14 @@ zero. Reusing their completed checkpoint requires an exact prefix witness and
 strict preservation of model, target, optimizer, scheduler, EMA and RNG state.
 The frozen adce execution checkout and its checkpoint remain unchanged.
 
-Integration still required before launch: bind the full-year session and
-checkpoint continuation to the runner/campaign, use full-cohort counts in
-progress/final authority, and evaluate the completed year. Then implement the
-30-epoch ceiling and VAL early stopping with a correctly coupled Entry/Exit
-net-Bps metric. The prepared V23 VAL is not a completed-year evaluation and
+The full-population session now binds the original final checkpoint, exact
+prefix proof, current execution source and remaining step budget. The existing
+guarded epoch1-window runner resumes all checkpoint states into a fresh output
+directory and reports the full-cohort cursor. Actual immutable session/plan
+admission and CUDA continuation remain required before claiming completion.
+Then extend final authority and VAL to the full cohort, followed by full
+five-year training with a 30-epoch ceiling, VAL early stopping and a correctly
+coupled Entry/Exit net-Bps metric. The prepared V23 VAL is not a completed-year evaluation and
 must not be launched as one. TEST remains sealed.
 
 Focused scheduler/adapter regressions cover exact legacy-stream preservation,

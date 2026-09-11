@@ -99,6 +99,14 @@ def build_train_session_manifest(
 def require_train_session_manifest(
     value: Mapping[str, Any], *, expected_phase: str, verify_files: bool = True
 ) -> dict[str, Any]:
+    from gx1.contracts.unified_exit_full_population_train_session_v1 import (
+        SCHEMA_VERSION as FULL_POPULATION_SCHEMA,
+        require_full_population_train_session,
+    )
+    if value.get("schema_version") == FULL_POPULATION_SCHEMA:
+        if expected_phase != "epoch1":
+            raise RuntimeError("UNIFIED_EXIT_TRAIN_SESSION_PHASE_INVALID")
+        return require_full_population_train_session(value, verify_files=verify_files)
     data = dict(value)
     claimed = data.pop("manifest_sha256", None)
     if (

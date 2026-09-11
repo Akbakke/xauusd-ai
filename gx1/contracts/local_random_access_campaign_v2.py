@@ -470,6 +470,7 @@ def _require_sequence(
     *,
     phase: str,
     selected_batch_size: int | None,
+    expected_epoch_optimizer_steps: int | None = None,
 ) -> None:
     if phase == "gpu_selection":
         if len(invocations) != 3:
@@ -530,7 +531,10 @@ def _require_sequence(
         if not epoch or any(item["kind"] != "epoch1_window" for item in epoch):
             raise RandomAccessCampaignError("epoch1 window sequence invalid")
         count = len(epoch)
-        expected_total_batches = -(-16384 // selected_batch_size)
+        expected_total_batches = (
+            -(-16384 // selected_batch_size)
+            if expected_epoch_optimizer_steps is None else expected_epoch_optimizer_steps
+        )
         if (
             sum(int(item["optimizer_step_budget"]) for item in epoch)
             != expected_total_batches
@@ -593,6 +597,39 @@ def _require_sequence(
             raise RandomAccessCampaignError("invocation sequence is not contiguous")
 
 
+
+def _full_population_session_for_plan(
+    plan: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
+    from gx1.contracts.unified_exit_full_population_train_session_v1 import (
+        require_full_population_train_session,
+    )
+    def bound_json(value: Any, label: str) -> tuple[dict[str, Any], dict[str, str]]:
+        binding = require_binding(value, label=label, verify_file=True)
+        return read_bound_json(Path(binding["path"]), binding["sha256"]), binding
+    if not isinstance(plan["invocations"], list) or not plan["invocations"]:
+        raise RandomAccessCampaignError("full-year invocation missing")
+    invocation, _ = bound_json(plan["invocations"][0], "full-year invocation")
+    execution, _ = bound_json(invocation["execution_manifest"], "full-year execution")
+    raw_session, binding = bound_json(execution["train_session_manifest"], "full-year session")
+    try:
+        session = require_full_population_train_session(raw_session, verify_files=True)
+    except (RuntimeError, KeyError, TypeError, ValueError, OSError) as exc:
+        raise RandomAccessCampaignError("full-year session unavailable or invalid") from exc
+    authority, _ = bound_json(session["prefix_checkpoint_authority"], "prefix authority")
+    if (
+        session["source_commit"] != plan["source_commit"]
+        or session["source_repo"] != plan["source_repo"]
+        or session["entry_pairs_per_epoch"] != plan["entry_pairs_per_epoch"]
+        or session["transition_budget_per_epoch"] != plan["transitions_per_epoch"]
+        or session["selected_batch_size"] != plan["selected_batch_size"]
+        or session["gpu_batch_selection"] != plan["selection_receipt"]
+        or execution["train_session_manifest_sha256"] != session["manifest_sha256"]
+        or invocation["kind"] != "epoch1_window"
+    ):
+        raise RandomAccessCampaignError("full-year session provenance invalid")
+    return session, binding, authority["campaign_plan"]
+
 def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
     keys = {
         "schema_version",
@@ -631,8 +668,11 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or not isinstance(result.get("campaign_id"), str)
         or not result["campaign_id"]
         or result.get("phase") not in {"gpu_selection", "resume_proof", "selected_training", "full_val"}
-        or result.get("entry_pairs_per_epoch") != 16384
-        or result.get("transitions_per_epoch") != 65536
+        or type(result.get("entry_pairs_per_epoch")) is not int
+        or result["entry_pairs_per_epoch"] < 1
+        or type(result.get("transitions_per_epoch")) is not int
+        or result["transitions_per_epoch"] != 4 * result["entry_pairs_per_epoch"]
+        or (result.get("phase") != "selected_training" and result["entry_pairs_per_epoch"] != 16384)
         or not isinstance(result.get("source_commit"), str)
         or _COMMIT.fullmatch(result["source_commit"]) is None
         or not isinstance(result.get("gpu_uuid"), str)
@@ -694,6 +734,11 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         for name, binding in controllers.items()
     }
     phase = result["phase"]
+    full_session = None
+    full_session_binding = None
+    prefix_campaign = None
+    if verify_files and phase == "selected_training" and result["entry_pairs_per_epoch"] != 16384:
+        full_session, full_session_binding, prefix_campaign = _full_population_session_for_plan(result)
     if phase == "gpu_selection":
         if (
             result.get("prior_campaign") is not None
@@ -742,13 +787,18 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                     "canonical GPU batch selection unavailable or invalid"
                 ) from exc
             expected_prior_phases = (
-                {"gpu_selection"} if phase == "resume_proof"
+                {"selected_training"} if full_session is not None
+                else {"gpu_selection"} if phase == "resume_proof"
                 else {"gpu_selection", "resume_proof"} if phase == "selected_training"
                 else {"selected_training"}
             )
             if (
                 prior["phase"] not in expected_prior_phases
-                or prior["source_commit"] != result["source_commit"]
+                or prior["source_commit"] != (
+                    result["source_commit"] if full_session is None
+                    else full_session["predecessor_source_commit"]
+                )
+                or (full_session is not None and prior_binding != prefix_campaign)
                 or selection.get("selected_batch_size") != selected
                 or selection.get("entry_pairs_per_epoch") != 16384
                 or selection.get("transition_budget_per_epoch") != 65536
@@ -825,10 +875,25 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             invocations,
             phase=result["phase"],
             selected_batch_size=result["selected_batch_size"],
+            expected_epoch_optimizer_steps=(
+                None if full_session is None else full_session["remaining_optimizer_steps"]
+            ),
         )
+        if full_session is not None:
+            for item in invocations:
+                execution = read_bound_json(
+                    Path(item["execution_manifest"]["path"]), item["execution_manifest"]["sha256"]
+                )
+                if (
+                    execution["train_session_manifest"] != full_session_binding
+                    or item["checkpoint"]["pointer_path"] != str(Path(full_session["checkpoint_dir"]) / "RESUME_POINTER.json")
+                    or item["progress_path"] != str(Path(full_session["checkpoint_dir"]) / "PROGRESS.json")
+                ):
+                    raise RandomAccessCampaignError("full-year window session differs")
+            result["checked_full_population_session"] = full_session
         if phase == "selected_training":
             epoch_only = invocations[0]["kind"] == "epoch1_window"
-            if epoch_only != (prior["phase"] == "resume_proof"):
+            if epoch_only != (prior["phase"] == "resume_proof" or full_session is not None):
                 raise RandomAccessCampaignError("training/proof campaign order invalid")
     result["source_repo"] = str(repo)
     result["runtime_root"] = str(runtime)
