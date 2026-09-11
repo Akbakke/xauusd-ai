@@ -23,6 +23,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     require_boot_identity,
     require_clean_source,
     require_plan,
+    require_progress,
     require_receipt,
     require_receipt_chain,
 )
@@ -64,7 +65,9 @@ def _receipts(runtime: Path) -> list[dict[str, Any]]:
     if root.is_symlink() or not root.is_dir():
         raise RandomAccessCampaignError("receipt directory invalid")
     paths = sorted(root.glob("invocation-*.json"))
-    expected = [root / f"invocation-{index:04d}.json" for index in range(1, len(paths) + 1)]
+    expected = [
+        root / f"invocation-{index:04d}.json" for index in range(1, len(paths) + 1)
+    ]
     if paths != expected:
         raise RandomAccessCampaignError("receipt filenames are not contiguous")
     return [_read(path) for path in paths]
@@ -111,9 +114,12 @@ def _required_reboot_number(receipt_count: int) -> int:
 
 
 def _require_reboot_receipt(
-    *, plan: Mapping[str, Any], receipt_count: int, current_boot: Mapping[str, Any]
+    *,
+    plan: Mapping[str, Any],
+    receipts: list[dict[str, Any]],
+    current_boot: Mapping[str, Any],
 ) -> None:
-    number = _required_reboot_number(receipt_count)
+    number = _required_reboot_number(len(receipts))
     path = Path(plan["runtime_root"]) / "reboot-receipts" / f"after-{number:04d}.json"
     if not path.is_file() or path.is_symlink():
         raise RandomAccessCampaignError("confirmed reboot request receipt required")
@@ -141,6 +147,11 @@ def _require_reboot_receipt(
     ):
         raise RandomAccessCampaignError("reboot request receipt invalid")
     requested_boot = require_boot_identity(value["requested_from_boot"])
+    predecessor_boot = (
+        plan["prepared_windows_boot"] if number == 0 else receipts[number - 1]["boot"]
+    )
+    if requested_boot["identity_sha256"] != predecessor_boot["identity_sha256"]:
+        raise RandomAccessCampaignError("reboot request predecessor boot differs")
     checked_current = require_boot_identity(current_boot)
     if (
         checked_current["boot_id"] <= requested_boot["boot_id"]
@@ -159,15 +170,15 @@ def inspect_campaign(
     require_receipt_chain(plan, receipts, verify_files=True)
     _reconcile_active(plan=plan, receipts=receipts)
     action = next_action(plan, receipts, current_boot=current_boot)
-    if action["decision"] == "LAUNCH":
-        _require_reboot_receipt(
-            plan=plan, receipt_count=len(receipts), current_boot=current_boot
-        )
+    if action["decision"] == "LAUNCH" and receipts:
+        _require_reboot_receipt(plan=plan, receipts=receipts, current_boot=current_boot)
     return {
         "ok": True,
         "campaign_id": plan["campaign_id"],
         "plan_sha256": plan["plan_sha256"],
         "action": action,
+        "controller_sources": plan["controller_sources"],
+        "policy": plan["policy"],
         "cuda_started": False,
         "test_authorized": False,
     }
@@ -201,8 +212,10 @@ def begin_invocation(
         predecessor = invocation["checkpoint"]["predecessor_invocation_number"]
         prior = _receipts(runtime)[predecessor - 1]
         pointer_before = file_sha256(pointer)
-        if pointer_before != prior["pointer_after_sha256"]:
-            raise RandomAccessCampaignError("resume pointer differs from predecessor receipt")
+        if pointer_before != prior["checkpoint_pointer_after"]["sha256"]:
+            raise RandomAccessCampaignError(
+                "resume pointer differs from predecessor receipt"
+            )
     marker = {
         "schema_version": ACTIVE_SCHEMA,
         "plan_sha256": plan["plan_sha256"],
@@ -229,10 +242,15 @@ def _require_guard_log(path: Path, *, success: bool) -> None:
     if not path.is_file() or path.is_symlink():
         raise RandomAccessCampaignError("signed guard log unavailable")
     text = path.read_text(encoding="utf-8", errors="strict")
-    if "telemetry_owner=signed_windows_bridge" not in text or "event=telemetry" not in text:
+    if (
+        "telemetry_owner=signed_windows_bridge" not in text
+        or "event=telemetry" not in text
+    ):
         raise RandomAccessCampaignError("signed guard telemetry evidence incomplete")
     if success and "event=exit child_status=0" not in text:
-        raise RandomAccessCampaignError("signed guard successful terminal evidence missing")
+        raise RandomAccessCampaignError(
+            "signed guard successful terminal evidence missing"
+        )
 
 
 def record_invocation(
@@ -249,7 +267,9 @@ def record_invocation(
     if not active_path.is_file() or active_path.is_symlink():
         raise RandomAccessCampaignError("active invocation marker unavailable")
     active = _read(active_path)
-    marker_unsigned = {key: item for key, item in active.items() if key != "marker_sha256"}
+    marker_unsigned = {
+        key: item for key, item in active.items() if key != "marker_sha256"
+    }
     if (
         active.get("schema_version") != ACTIVE_SCHEMA
         or active.get("plan_sha256") != plan["plan_sha256"]
@@ -263,20 +283,22 @@ def record_invocation(
         raise RandomAccessCampaignError("active invocation binding differs")
     pointer = Path(invocation["checkpoint"]["pointer_path"])
     if not pointer.is_file() or pointer.is_symlink():
-        raise RandomAccessCampaignError("checkpoint pointer after invocation unavailable")
+        raise RandomAccessCampaignError(
+            "checkpoint pointer after invocation unavailable"
+        )
     pointer_after = file_sha256(pointer)
     progress_path = Path(invocation["progress_path"])
     if not progress_path.is_file() or progress_path.is_symlink():
         raise RandomAccessCampaignError("progress receipt unavailable")
-    progress = _read(progress_path)
-    if (
-        progress.get("schema_version") != "gx1_local_random_access_progress_v2"
-        or progress.get("plan_sha256") != plan["plan_sha256"]
-        or progress.get("invocation_sha256") != invocation["invocation_sha256"]
-        or progress.get("terminal") is not True
-        or progress.get("outcome") != outcome
-    ):
-        raise RandomAccessCampaignError("progress receipt invalid")
+    progress = require_progress(
+        _read(progress_path),
+        plan_sha256=plan["plan_sha256"],
+        invocation=invocation,
+        expected_selection_receipt_sha256=plan["selection_artifact_sha256"],
+        verify_file=True,
+    )
+    if progress["outcome"] != outcome:
+        raise RandomAccessCampaignError("progress outcome differs")
     success = trainer_guard_exit_code == 0 and progress_observer_exit_code == 0
     guard_path = Path(invocation["guard_log_path"])
     _require_guard_log(guard_path, success=success)
@@ -287,6 +309,7 @@ def record_invocation(
         "invocation_number": number,
         "invocation_id": invocation["invocation_id"],
         "kind": invocation["kind"],
+        "selection_receipt_sha256": plan["selection_artifact_sha256"],
         "boot": active["boot"],
         "started_utc": active["started_utc"],
         "finished_utc": datetime.now(timezone.utc).isoformat(),
@@ -294,9 +317,14 @@ def record_invocation(
         "trainer_guard_exit_code": trainer_guard_exit_code,
         "progress_observer_exit_code": progress_observer_exit_code,
         "pointer_before_sha256": active["pointer_before_sha256"],
-        "pointer_after_sha256": pointer_after,
+        "checkpoint_pointer_after": {
+            "path": str(pointer),
+            "sha256": pointer_after,
+        },
         "progress": {"path": str(progress_path), "sha256": file_sha256(progress_path)},
         "guard_log": {"path": str(guard_path), "sha256": file_sha256(guard_path)},
+        "guard_decision": "PASS" if success and outcome != "FAILED" else "FAILED",
+        "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
         "active_marker_sha256": file_sha256(active_path),
         "test_data_used": False,
     }
@@ -343,7 +371,12 @@ def prepare_reboot(
     intent["intent_sha256"] = canonical_sha256(intent)
     path = Path(plan["runtime_root"]) / "reboot-pending" / f"after-{after:04d}.json"
     _atomic_new(path, intent)
-    return {"ok": True, "intent": intent, "path": str(path), "sha256": file_sha256(path)}
+    return {
+        "ok": True,
+        "intent": intent,
+        "path": str(path),
+        "sha256": file_sha256(path),
+    }
 
 
 def confirm_reboot(
@@ -362,7 +395,9 @@ def confirm_reboot(
     if not pending.is_file() or pending.is_symlink():
         raise RandomAccessCampaignError("pending reboot intent unavailable")
     intent = _read(pending)
-    unsigned_intent = {key: item for key, item in intent.items() if key != "intent_sha256"}
+    unsigned_intent = {
+        key: item for key, item in intent.items() if key != "intent_sha256"
+    }
     if (
         intent.get("schema_version") != REBOOT_INTENT_SCHEMA
         or intent.get("plan_sha256") != plan["plan_sha256"]
@@ -389,7 +424,12 @@ def confirm_reboot(
     if archive.exists() or archive.is_symlink():
         raise RandomAccessCampaignError("reboot intent archive collision")
     os.replace(pending, archive)
-    return {"ok": True, "receipt": receipt, "path": str(final), "sha256": file_sha256(final)}
+    return {
+        "ok": True,
+        "receipt": receipt,
+        "path": str(final),
+        "sha256": file_sha256(final),
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -405,7 +445,9 @@ def main(argv: list[str] | None = None) -> int:
     record.add_argument("--plan-file-sha256", required=True)
     record.add_argument("--trainer-guard-exit-code", type=int, required=True)
     record.add_argument("--progress-observer-exit-code", type=int, required=True)
-    record.add_argument("--outcome", choices=("COMPLETE", "RESUMABLE", "FAILED"), required=True)
+    record.add_argument(
+        "--outcome", choices=("COMPLETE", "RESUMABLE", "FAILED"), required=True
+    )
     confirm = sub.add_parser("confirm-reboot")
     confirm.add_argument("--plan-json", type=_absolute, required=True)
     confirm.add_argument("--plan-file-sha256", required=True)
@@ -441,7 +483,14 @@ def main(argv: list[str] | None = None) -> int:
                 request_nonce=args.request_nonce,
                 shutdown_exit_code=args.shutdown_exit_code,
             )
-    except (OSError, ValueError, KeyError, IndexError, json.JSONDecodeError, RandomAccessCampaignError) as exc:
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        IndexError,
+        json.JSONDecodeError,
+        RandomAccessCampaignError,
+    ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
         return 2
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

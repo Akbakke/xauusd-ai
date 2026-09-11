@@ -13,6 +13,7 @@ from typing import Any, Mapping, Sequence
 
 PLAN_SCHEMA = "gx1_local_random_access_campaign_v2"
 INVOCATION_SCHEMA = "gx1_local_random_access_invocation_v2"
+EXECUTION_MANIFEST_SCHEMA = "gx1_local_random_access_execution_manifest_v2"
 BOOT_SCHEMA = "gx1_windows_boot_identity_v1"
 ACTIVE_SCHEMA = "gx1_local_random_access_active_invocation_v2"
 RECEIPT_SCHEMA = "gx1_local_random_access_invocation_receipt_v2"
@@ -23,7 +24,14 @@ STATUS_SCHEMA = "gx1_local_random_access_status_v2"
 
 _SHA = re.compile(r"[0-9a-f]{64}")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
-_KINDS = {"smoke_arm", "resume_proof", "epoch1_window", "full_val"}
+_KINDS = {
+    "smoke_arm",
+    "reference_run",
+    "resume_proof_first",
+    "resume_proof_second",
+    "epoch1_window",
+    "full_val",
+}
 _SUCCESS_OUTCOMES = {"COMPLETE", "RESUMABLE"}
 
 
@@ -33,8 +41,7 @@ class RandomAccessCampaignError(RuntimeError):
 
 def canonical_bytes(value: Any) -> bytes:
     return (
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
-        + "\n"
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
     ).encode("utf-8")
 
 
@@ -170,11 +177,21 @@ def _require_launcher(
         raise RandomAccessCampaignError("direct source-bound Python module required")
     if outer[:2] != ["--class", "trainer"]:
         raise RandomAccessCampaignError("trainer class required")
-    if "--mem" not in outer or "20G" not in outer or "--swap" not in outer or "512M" not in outer:
+    if (
+        "--mem" not in outer
+        or "20G" not in outer
+        or "--swap" not in outer
+        or "512M" not in outer
+    ):
         raise RandomAccessCampaignError("canonical memory/swap envelope required")
     attended = "--attended-smoke" in outer
-    if attended != (kind in {"smoke_arm", "resume_proof"}):
-        raise RandomAccessCampaignError("attended-smoke scope differs from invocation kind")
+    if attended != (
+        kind
+        in {"smoke_arm", "reference_run", "resume_proof_first", "resume_proof_second"}
+    ):
+        raise RandomAccessCampaignError(
+            "attended-smoke scope differs from invocation kind"
+        )
     lowered = [token.lower() for token in argv]
     if any(token == "--test" or token == "test" for token in lowered):
         raise RandomAccessCampaignError("TEST token forbidden")
@@ -230,7 +247,11 @@ def require_invocation(
     ):
         raise RandomAccessCampaignError("invocation identity invalid")
     number = result.get("invocation_number")
-    if type(number) is not int or number < 1 or result.get("invocation_id") != f"invocation-{number:04d}":
+    if (
+        type(number) is not int
+        or number < 1
+        or result.get("invocation_id") != f"invocation-{number:04d}"
+    ):
         raise RandomAccessCampaignError("invocation number invalid")
     batch_size = result.get("batch_size")
     if batch_size not in (4, 8, 16):
@@ -250,7 +271,9 @@ def require_invocation(
     if type(maximum_wall) is not int or not 1 <= maximum_wall <= 7200:
         raise RandomAccessCampaignError("invocation wall bound invalid")
     result["execution_manifest"] = require_binding(
-        result["execution_manifest"], label="execution manifest", verify_file=verify_files
+        result["execution_manifest"],
+        label="execution manifest",
+        verify_file=verify_files,
     )
     result["progress_path"] = str(_absolute(result["progress_path"], "progress"))
     result["guard_log_path"] = str(_absolute(result["guard_log_path"], "guard log"))
@@ -287,74 +310,140 @@ def require_invocation(
         kind=str(kind),
         claimed_sha256=result["launcher_argv_sha256"],
     )
+    if verify_files:
+        execution = read_bound_json(
+            Path(result["execution_manifest"]["path"]),
+            result["execution_manifest"]["sha256"],
+        )
+        unsigned = {
+            key: item for key, item in execution.items() if key != "artifact_sha256"
+        }
+        separator = result["launcher_argv"].index("--")
+        target_module = result["launcher_argv"][separator + 3]
+        if (
+            set(execution)
+            != {
+                "schema_version",
+                "decision",
+                "invocation_kind",
+                "python_module",
+                "source_commit",
+                "launcher_argv_sha256",
+                "test_data_used",
+                "artifact_sha256",
+            }
+            or execution.get("schema_version") != EXECUTION_MANIFEST_SCHEMA
+            or execution.get("decision") != "PASS_EXACT_INVOCATION"
+            or execution.get("invocation_kind") != kind
+            or execution.get("python_module") != target_module
+            or execution.get("source_commit") != source_commit
+            or execution.get("launcher_argv_sha256") != result["launcher_argv_sha256"]
+            or execution.get("test_data_used") is not False
+            or execution.get("artifact_sha256") != canonical_sha256(unsigned)
+        ):
+            raise RandomAccessCampaignError("execution manifest binding invalid")
     result["invocation_sha256"] = claimed
     return result
 
 
-def _require_sequence(invocations: Sequence[Mapping[str, Any]]) -> None:
-    if len(invocations) < 6:
-        raise RandomAccessCampaignError("campaign sequence is incomplete")
-    expected_smoke = [("smoke_arm", 4), ("smoke_arm", 8), ("smoke_arm", 16)]
-    for index, (kind, batch) in enumerate(expected_smoke):
-        item = invocations[index]
+def _require_sequence(
+    invocations: Sequence[Mapping[str, Any]],
+    *,
+    phase: str,
+    selected_batch_size: int | None,
+) -> None:
+    if phase == "gpu_selection":
+        if len(invocations) != 3:
+            raise RandomAccessCampaignError("GPU-selection invocation sequence invalid")
+        expected_smoke = [("smoke_arm", 4), ("smoke_arm", 8), ("smoke_arm", 16)]
+        for index, (kind, batch) in enumerate(expected_smoke):
+            item = invocations[index]
+            if (
+                item["kind"] != kind
+                or item["batch_size"] != batch
+                or item["optimizer_step_budget"] != 3
+                or item["checkpoint"]["before_mode"] != "GENESIS"
+                or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
+                or item["expected_success_outcome"] != "COMPLETE"
+            ):
+                raise RandomAccessCampaignError("smoke-arm sequence invalid")
+    elif phase == "selected_training":
+        if selected_batch_size not in (4, 8, 16) or len(invocations) < 5:
+            raise RandomAccessCampaignError("selected training sequence invalid")
+        reference, first, second = invocations[:3]
         if (
-            item["kind"] != kind
-            or item["batch_size"] != batch
-            or item["optimizer_step_budget"] != 3
-            or item["checkpoint"]["before_mode"] != "GENESIS"
-            or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
-            or item["expected_success_outcome"] != "COMPLETE"
+            reference["kind"] != "reference_run"
+            or reference["batch_size"] != selected_batch_size
+            or reference["optimizer_step_budget"] != 4
+            or reference["checkpoint"]["before_mode"] != "GENESIS"
+            or reference["expected_success_outcome"] != "COMPLETE"
         ):
-            raise RandomAccessCampaignError("smoke-arm sequence invalid")
-    resume = invocations[3]
-    if (
-        resume["kind"] != "resume_proof"
-        or resume["batch_size"] != 16
-        or resume["optimizer_step_budget"] != 1
-        or resume["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
-        or resume["checkpoint"]["predecessor_invocation_number"] != 3
-        or resume["checkpoint"]["pointer_path"]
-        != invocations[2]["checkpoint"]["pointer_path"]
-        or resume["expected_success_outcome"] != "COMPLETE"
-    ):
-        raise RandomAccessCampaignError("selected resume-proof sequence invalid")
-    epoch = [item for item in invocations[4:-1] if item["kind"] == "epoch1_window"]
-    if len(epoch) != len(invocations[4:-1]) or not epoch:
-        raise RandomAccessCampaignError("epoch1 window sequence invalid")
-    count = len(epoch)
-    for offset, item in enumerate(epoch):
+            raise RandomAccessCampaignError("selected reference-run sequence invalid")
         if (
-            item["batch_size"] != 16
-            or item["epoch_index"] != 0
-            or item["window_index"] != offset
-            or item["window_count"] != count
-            or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
-            or item["expected_success_outcome"]
-            != ("COMPLETE" if offset == count - 1 else "RESUMABLE")
+            first["kind"] != "resume_proof_first"
+            or first["batch_size"] != selected_batch_size
+            or first["optimizer_step_budget"] != 3
+            or first["checkpoint"]["before_mode"] != "GENESIS"
+            or first["expected_success_outcome"] != "COMPLETE"
         ):
-            raise RandomAccessCampaignError("epoch1 window identity invalid")
-        expected_mode = "GENESIS" if offset == 0 else "PREVIOUS_RECEIPT_AFTER"
-        if item["checkpoint"]["before_mode"] != expected_mode:
-            raise RandomAccessCampaignError("epoch1 checkpoint chain invalid")
-        if offset > 0 and (
-            item["checkpoint"]["predecessor_invocation_number"]
-            != epoch[offset - 1]["invocation_number"]
-            or item["checkpoint"]["pointer_path"]
-            != epoch[offset - 1]["checkpoint"]["pointer_path"]
+            raise RandomAccessCampaignError("resume-proof first sequence invalid")
+        if (
+            second["kind"] != "resume_proof_second"
+            or second["batch_size"] != selected_batch_size
+            or second["optimizer_step_budget"] != 1
+            or second["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
+            or second["checkpoint"]["predecessor_invocation_number"]
+            != first["invocation_number"]
+            or second["checkpoint"]["pointer_path"]
+            != first["checkpoint"]["pointer_path"]
+            or second["expected_success_outcome"] != "COMPLETE"
         ):
-            raise RandomAccessCampaignError("epoch1 checkpoint predecessor invalid")
-    val = invocations[-1]
-    if (
-        val["kind"] != "full_val"
-        or val["batch_size"] != 16
-        or val["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
-        or val["checkpoint"]["predecessor_invocation_number"]
-        != epoch[-1]["invocation_number"]
-        or val["checkpoint"]["pointer_path"]
-        != epoch[-1]["checkpoint"]["pointer_path"]
-        or val["checkpoint"]["write_mode"] != "READ_ONLY"
-    ):
-        raise RandomAccessCampaignError("full VAL sequence invalid")
+            raise RandomAccessCampaignError("resume-proof second sequence invalid")
+        epoch = list(invocations[3:-1])
+        if not epoch or any(item["kind"] != "epoch1_window" for item in epoch):
+            raise RandomAccessCampaignError("epoch1 window sequence invalid")
+        count = len(epoch)
+        expected_total_batches = -(-16384 // selected_batch_size)
+        if (
+            sum(int(item["optimizer_step_budget"]) for item in epoch)
+            != expected_total_batches
+        ):
+            raise RandomAccessCampaignError("epoch1 optimizer-step coverage invalid")
+        for offset, item in enumerate(epoch):
+            if (
+                item["batch_size"] != selected_batch_size
+                or item["epoch_index"] != 0
+                or item["window_index"] != offset
+                or item["window_count"] != count
+                or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
+                or item["expected_success_outcome"]
+                != ("COMPLETE" if offset == count - 1 else "RESUMABLE")
+            ):
+                raise RandomAccessCampaignError("epoch1 window identity invalid")
+            expected_mode = "GENESIS" if offset == 0 else "PREVIOUS_RECEIPT_AFTER"
+            if item["checkpoint"]["before_mode"] != expected_mode:
+                raise RandomAccessCampaignError("epoch1 checkpoint chain invalid")
+            if offset > 0 and (
+                item["checkpoint"]["predecessor_invocation_number"]
+                != epoch[offset - 1]["invocation_number"]
+                or item["checkpoint"]["pointer_path"]
+                != epoch[offset - 1]["checkpoint"]["pointer_path"]
+            ):
+                raise RandomAccessCampaignError("epoch1 checkpoint predecessor invalid")
+        val = invocations[-1]
+        if (
+            val["kind"] != "full_val"
+            or val["batch_size"] != selected_batch_size
+            or val["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
+            or val["checkpoint"]["predecessor_invocation_number"]
+            != epoch[-1]["invocation_number"]
+            or val["checkpoint"]["pointer_path"]
+            != epoch[-1]["checkpoint"]["pointer_path"]
+            or val["checkpoint"]["write_mode"] != "READ_ONLY"
+        ):
+            raise RandomAccessCampaignError("full VAL sequence invalid")
+    else:
+        raise RandomAccessCampaignError("campaign phase invalid")
     for number, item in enumerate(invocations, 1):
         if item["invocation_number"] != number:
             raise RandomAccessCampaignError("invocation sequence is not contiguous")
@@ -365,12 +454,18 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         "schema_version",
         "decision",
         "campaign_id",
+        "phase",
         "created_utc",
         "source_repo",
         "source_commit",
         "runtime_root",
         "gpu_uuid",
         "prepared_windows_boot",
+        "prior_campaign",
+        "selection_receipt",
+        "selected_batch_size",
+        "entry_pairs_per_epoch",
+        "transitions_per_epoch",
         "invocations",
         "signed_guard_sources",
         "controller_sources",
@@ -390,6 +485,9 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or result.get("decision") != "PASS_PREPARED"
         or not isinstance(result.get("campaign_id"), str)
         or not result["campaign_id"]
+        or result.get("phase") not in {"gpu_selection", "selected_training"}
+        or result.get("entry_pairs_per_epoch") != 16384
+        or result.get("transitions_per_epoch") != 65536
         or not isinstance(result.get("source_commit"), str)
         or _COMMIT.fullmatch(result["source_commit"]) is None
         or not isinstance(result.get("gpu_uuid"), str)
@@ -399,7 +497,9 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
     ):
         raise RandomAccessCampaignError("campaign plan identity invalid")
     _utc(result["created_utc"], "campaign creation")
-    result["prepared_windows_boot"] = require_boot_identity(result["prepared_windows_boot"])
+    result["prepared_windows_boot"] = require_boot_identity(
+        result["prepared_windows_boot"]
+    )
     expected_policy = {
         "physical_power_limit_w": 160,
         "maximum_actual_power_draw_w": 170,
@@ -418,22 +518,93 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         "live": False,
         "cloud_spend": False,
     }
-    if result.get("policy") != expected_policy or result.get("authority") != expected_authority:
+    if (
+        result.get("policy") != expected_policy
+        or result.get("authority") != expected_authority
+    ):
         raise RandomAccessCampaignError("campaign policy differs")
     guard = result.get("signed_guard_sources")
     controllers = result.get("controller_sources")
-    if not isinstance(guard, Mapping) or set(guard) != {"runner", "guard", "query", "certificate"}:
+    if not isinstance(guard, Mapping) or set(guard) != {
+        "runner",
+        "guard",
+        "query",
+        "certificate",
+    }:
         raise RandomAccessCampaignError("signed guard source set invalid")
-    if not isinstance(controllers, Mapping) or set(controllers) != {"controller", "observer", "campaign_cli"}:
+    if not isinstance(controllers, Mapping) or set(controllers) != {
+        "controller",
+        "observer",
+        "campaign_cli",
+    }:
         raise RandomAccessCampaignError("controller source set invalid")
     result["signed_guard_sources"] = {
         name: require_binding(binding, label=f"guard {name}", verify_file=verify_files)
         for name, binding in guard.items()
     }
     result["controller_sources"] = {
-        name: require_binding(binding, label=f"controller {name}", verify_file=verify_files)
+        name: require_binding(
+            binding, label=f"controller {name}", verify_file=verify_files
+        )
         for name, binding in controllers.items()
     }
+    phase = result["phase"]
+    if phase == "gpu_selection":
+        if (
+            result.get("prior_campaign") is not None
+            or result.get("selection_receipt") is not None
+            or result.get("selected_batch_size") is not None
+        ):
+            raise RandomAccessCampaignError(
+                "GPU-selection plan cannot preselect a winner"
+            )
+    else:
+        selected = result.get("selected_batch_size")
+        if selected not in (4, 8, 16):
+            raise RandomAccessCampaignError("selected batch size invalid")
+        prior_binding = require_binding(
+            result.get("prior_campaign"),
+            label="prior GPU-selection campaign",
+            verify_file=verify_files,
+        )
+        selection_binding = require_binding(
+            result.get("selection_receipt"),
+            label="GPU batch selection receipt",
+            verify_file=verify_files,
+        )
+        if verify_files:
+            prior = require_plan(
+                read_bound_json(Path(prior_binding["path"]), prior_binding["sha256"]),
+                verify_files=True,
+            )
+            selection = read_bound_json(
+                Path(selection_binding["path"]), selection_binding["sha256"]
+            )
+            try:
+                from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
+                    require_selection,
+                )
+
+                selection = require_selection(selection, verify_files=True)
+            except (ImportError, RuntimeError) as exc:
+                raise RandomAccessCampaignError(
+                    "canonical GPU batch selection unavailable or invalid"
+                ) from exc
+            if (
+                prior["phase"] != "gpu_selection"
+                or prior["source_commit"] != result["source_commit"]
+                or selection.get("selected_batch_size") != selected
+                or selection.get("entry_pairs_per_epoch") != 16384
+                or selection.get("transition_budget_per_epoch") != 65536
+                or selection.get("total_batches_per_epoch") != -(-16384 // selected)
+                or selection.get("test_data_used") is not False
+            ):
+                raise RandomAccessCampaignError("selected training provenance invalid")
+        result["prior_campaign"] = prior_binding
+        result["selection_receipt"] = selection_binding
+        result["selection_artifact_sha256"] = selection["artifact_sha256"]
+    if phase == "gpu_selection":
+        result["selection_artifact_sha256"] = None
     raw = result.get("invocations")
     if not isinstance(raw, list):
         raise RandomAccessCampaignError("invocation binding list invalid")
@@ -452,7 +623,11 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                     verify_files=True,
                 )
             )
-        _require_sequence(invocations)
+        _require_sequence(
+            invocations,
+            phase=result["phase"],
+            selected_batch_size=result["selected_batch_size"],
+        )
     result["source_repo"] = str(repo)
     result["runtime_root"] = str(runtime)
     result["invocations"] = bindings
@@ -487,6 +662,82 @@ def require_clean_source(plan: Mapping[str, Any]) -> None:
         raise RandomAccessCampaignError("source must be exact clean committed state")
 
 
+def require_progress(
+    value: Any,
+    *,
+    plan_sha256: str,
+    invocation: Mapping[str, Any],
+    expected_selection_receipt_sha256: str | None,
+    verify_file: bool = True,
+) -> dict[str, Any]:
+    keys = {
+        "schema_version",
+        "plan_sha256",
+        "invocation_sha256",
+        "phase",
+        "epoch_index",
+        "global_optimizer_steps",
+        "next_batch_offset",
+        "total_batches",
+        "completed_units",
+        "total_units",
+        "epoch_schedule_sha256",
+        "selection_receipt_sha256",
+        "checkpoint_pointer",
+        "terminal",
+        "outcome",
+        "observed_utc",
+        "progress_sha256",
+    }
+    if not isinstance(value, Mapping) or set(value) != keys:
+        raise RandomAccessCampaignError("progress fields differ")
+    result = dict(value)
+    claimed = _sha(result.pop("progress_sha256"), "progress")
+    selection = result.get("selection_receipt_sha256")
+    if selection is not None:
+        _sha(selection, "selection receipt")
+    if selection != expected_selection_receipt_sha256:
+        raise RandomAccessCampaignError("progress selection receipt differs")
+    if (
+        result.get("schema_version") != PROGRESS_SCHEMA
+        or result.get("plan_sha256") != plan_sha256
+        or result.get("invocation_sha256") != invocation["invocation_sha256"]
+        or result.get("phase") != invocation["kind"]
+        or result.get("epoch_index") != invocation["epoch_index"]
+        or result.get("terminal") is not True
+        or result.get("outcome") not in {"COMPLETE", "RESUMABLE", "FAILED"}
+        or claimed != canonical_sha256(result)
+    ):
+        raise RandomAccessCampaignError("progress identity invalid")
+    _utc(result.get("observed_utc"), "progress")
+    for name in (
+        "global_optimizer_steps",
+        "next_batch_offset",
+        "total_batches",
+        "completed_units",
+        "total_units",
+    ):
+        if type(result.get(name)) is not int or result[name] < 0:
+            raise RandomAccessCampaignError("progress counter invalid")
+    if (
+        result["total_batches"] < 1
+        or result["total_units"] < 1
+        or result["next_batch_offset"] > result["total_batches"]
+        or result["completed_units"] > result["total_units"]
+    ):
+        raise RandomAccessCampaignError("progress range invalid")
+    _sha(result.get("epoch_schedule_sha256"), "epoch schedule")
+    result["checkpoint_pointer"] = require_binding(
+        result["checkpoint_pointer"],
+        label="progress checkpoint pointer",
+        verify_file=verify_file,
+    )
+    if result["checkpoint_pointer"]["path"] != invocation["checkpoint"]["pointer_path"]:
+        raise RandomAccessCampaignError("progress checkpoint pointer path differs")
+    result["progress_sha256"] = claimed
+    return result
+
+
 def require_receipt(
     value: Any,
     *,
@@ -501,6 +752,7 @@ def require_receipt(
         "invocation_number",
         "invocation_id",
         "kind",
+        "selection_receipt_sha256",
         "boot",
         "started_utc",
         "finished_utc",
@@ -508,9 +760,11 @@ def require_receipt(
         "trainer_guard_exit_code",
         "progress_observer_exit_code",
         "pointer_before_sha256",
-        "pointer_after_sha256",
+        "checkpoint_pointer_after",
         "progress",
         "guard_log",
+        "guard_decision",
+        "signed_guard_telemetry_owner",
         "active_marker_sha256",
         "test_data_used",
         "receipt_sha256",
@@ -530,6 +784,9 @@ def require_receipt(
         or claimed != canonical_sha256(result)
     ):
         raise RandomAccessCampaignError("receipt identity invalid")
+    selection = result.get("selection_receipt_sha256")
+    if selection is not None:
+        _sha(selection, "receipt selection")
     result["boot"] = require_boot_identity(result["boot"])
     started = _utc(result["started_utc"], "receipt start")
     finished = _utc(result["finished_utc"], "receipt finish")
@@ -554,11 +811,38 @@ def require_receipt(
             raise RandomAccessCampaignError("GENESIS pointer-before invalid")
     else:
         _sha(before, "pointer before")
-    _sha(result.get("pointer_after_sha256"), "pointer after")
+    result["checkpoint_pointer_after"] = require_binding(
+        result["checkpoint_pointer_after"],
+        label="checkpoint pointer after",
+        verify_file=verify_files,
+    )
+    if (
+        result["checkpoint_pointer_after"]["path"]
+        != invocation["checkpoint"]["pointer_path"]
+    ):
+        raise RandomAccessCampaignError(
+            "checkpoint pointer path differs from invocation"
+        )
     _sha(result.get("active_marker_sha256"), "active marker")
+    expected_guard_decision = "PASS" if success and outcome != "FAILED" else "FAILED"
+    if (
+        result.get("guard_decision") != expected_guard_decision
+        or result.get("signed_guard_telemetry_owner") != "gx1_guarded_trainer_exec.sh"
+    ):
+        raise RandomAccessCampaignError("signed guard decision invalid")
     result["progress"] = require_binding(
         result["progress"], label="progress receipt", verify_file=verify_files
     )
+    if verify_files:
+        require_progress(
+            read_bound_json(
+                Path(result["progress"]["path"]), result["progress"]["sha256"]
+            ),
+            plan_sha256=plan_sha256,
+            invocation=invocation,
+            expected_selection_receipt_sha256=selection,
+            verify_file=True,
+        )
     result["guard_log"] = require_binding(
         result["guard_log"], label="signed guard log", verify_file=verify_files
     )
@@ -567,7 +851,10 @@ def require_receipt(
 
 
 def require_receipt_chain(
-    plan: Mapping[str, Any], receipts: Sequence[Mapping[str, Any]], *, verify_files: bool = True
+    plan: Mapping[str, Any],
+    receipts: Sequence[Mapping[str, Any]],
+    *,
+    verify_files: bool = True,
 ) -> list[dict[str, Any]]:
     checked_plan = (
         dict(plan)
@@ -576,7 +863,9 @@ def require_receipt_chain(
     )
     invocations = checked_plan.get("checked_invocations")
     if invocations is None:
-        raise RandomAccessCampaignError("receipt chain requires verified invocation files")
+        raise RandomAccessCampaignError(
+            "receipt chain requires verified invocation files"
+        )
     if len(receipts) > len(invocations):
         raise RandomAccessCampaignError("too many receipts")
     checked: list[dict[str, Any]] = []
@@ -588,20 +877,30 @@ def require_receipt_chain(
             invocation=invocation,
             verify_files=verify_files,
         )
+        if (
+            item["selection_receipt_sha256"]
+            != checked_plan["selection_artifact_sha256"]
+        ):
+            raise RandomAccessCampaignError("receipt selection differs from campaign")
         if index == 0:
             previous_boot = checked_plan["prepared_windows_boot"]
         else:
             previous_boot = checked[-1]["boot"]
         if not fresh_boot(item["boot"], previous_boot):
-            raise RandomAccessCampaignError("each heavy invocation requires a fresh Windows boot")
+            raise RandomAccessCampaignError(
+                "each heavy invocation requires a fresh Windows boot"
+            )
         checkpoint = invocation["checkpoint"]
         if checkpoint["before_mode"] == "PREVIOUS_RECEIPT_AFTER":
             predecessor = checkpoint["predecessor_invocation_number"]
             prior = checked[predecessor - 1]
-            if item["pointer_before_sha256"] != prior["pointer_after_sha256"]:
+            if (
+                item["pointer_before_sha256"]
+                != prior["checkpoint_pointer_after"]["sha256"]
+            ):
                 raise RandomAccessCampaignError("checkpoint receipt chain mismatch")
         if invocation["checkpoint"]["write_mode"] == "READ_ONLY" and (
-            item["pointer_after_sha256"] != item["pointer_before_sha256"]
+            item["checkpoint_pointer_after"]["sha256"] != item["pointer_before_sha256"]
         ):
             raise RandomAccessCampaignError("read-only checkpoint changed during VAL")
         checked.append(item)
@@ -649,6 +948,7 @@ def next_action(
 __all__ = [
     "ACTIVE_SCHEMA",
     "BOOT_SCHEMA",
+    "EXECUTION_MANIFEST_SCHEMA",
     "INVOCATION_SCHEMA",
     "PLAN_SCHEMA",
     "PROGRESS_SCHEMA",
@@ -667,6 +967,7 @@ __all__ = [
     "require_boot_identity",
     "require_invocation",
     "require_plan",
+    "require_progress",
     "require_clean_source",
     "require_receipt",
     "require_receipt_chain",

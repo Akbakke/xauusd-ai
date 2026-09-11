@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -9,12 +9,18 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     BOOT_SCHEMA,
     INVOCATION_SCHEMA,
     PLAN_SCHEMA,
+    PROGRESS_SCHEMA,
     RandomAccessCampaignError,
     canonical_bytes,
     canonical_sha256,
     file_sha256,
     next_action,
     require_plan,
+)
+from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
+    ARM_SCHEMA,
+    build_selection,
+    canonical_sha256 as selection_sha256,
 )
 from gx1.scripts.local_random_access_campaign_v2 import (
     begin_invocation,
@@ -27,10 +33,11 @@ from gx1.scripts.local_random_access_campaign_v2 import (
 
 def _write(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if isinstance(value, (dict, list)):
-        path.write_bytes(canonical_bytes(value))
-    else:
-        path.write_text(str(value), encoding="utf-8")
+    path.write_bytes(
+        canonical_bytes(value)
+        if isinstance(value, (dict, list))
+        else str(value).encode()
+    )
 
 
 def _seal(value: dict, key: str) -> dict:
@@ -55,183 +62,418 @@ def _binding(path: Path) -> dict:
     return {"path": str(path), "sha256": file_sha256(path)}
 
 
-def _fixture(tmp_path: Path) -> tuple[dict, Path, list[dict]]:
+def _source(tmp_path: Path) -> tuple[Path, str, dict, dict]:
     repo = tmp_path / "repo"
-    runtime = tmp_path / "runtime"
-    runtime.mkdir(parents=True)
     runner = repo / "scripts/gx1_capped_run.sh"
     python = repo / ".venv/bin/python"
     _write(runner, "#!/bin/sh\n")
     _write(python, "#!/bin/sh\n")
-    guard_sources = {}
+    guards = {}
     for name in ("runner", "guard", "query", "certificate"):
         path = runner if name == "runner" else repo / f"evidence/{name}.bin"
         if name != "runner":
             _write(path, name)
-        guard_sources[name] = _binding(path)
-    controller_sources = {}
+        guards[name] = _binding(path)
+    controllers = {}
     for name in ("controller", "observer", "campaign_cli"):
         path = repo / f"controller/{name}.txt"
         _write(path, name)
-        controller_sources[name] = _binding(path)
+        controllers[name] = _binding(path)
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"], check=True)
-    subprocess.run(["git", "-C", str(repo), "config", "user.name", "GX1 Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "GX1 Test"], check=True
+    )
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-qm", "fixture"], check=True)
-    source_commit = subprocess.run(
+    commit = subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"],
         check=True,
         text=True,
         stdout=subprocess.PIPE,
     ).stdout.strip()
+    return repo, commit, guards, controllers
 
-    definitions = [
-        ("smoke_arm", 4, 3, "COMPLETE", "GENESIS", None, "ATOMIC_UPDATE", 0, 0),
-        ("smoke_arm", 8, 3, "COMPLETE", "GENESIS", None, "ATOMIC_UPDATE", 0, 0),
-        ("smoke_arm", 16, 3, "COMPLETE", "GENESIS", None, "ATOMIC_UPDATE", 0, 0),
-        ("resume_proof", 16, 1, "COMPLETE", "PREVIOUS_RECEIPT_AFTER", 3, "ATOMIC_UPDATE", 0, 0),
-        ("epoch1_window", 16, 5, "RESUMABLE", "GENESIS", None, "ATOMIC_UPDATE", 0, 2),
-        ("epoch1_window", 16, 5, "COMPLETE", "PREVIOUS_RECEIPT_AFTER", 5, "ATOMIC_UPDATE", 1, 2),
-        ("full_val", 16, None, "COMPLETE", "PREVIOUS_RECEIPT_AFTER", 6, "READ_ONLY", 0, 0),
+
+def _invocation(
+    tmp_path: Path,
+    repo: Path,
+    commit: str,
+    runtime: Path,
+    number: int,
+    kind: str,
+    batch: int,
+    budget: int | None,
+    outcome: str,
+    before: str,
+    predecessor: int | None,
+    write_mode: str,
+    pointer: Path,
+    window: int = 0,
+    windows: int = 0,
+) -> tuple[dict, dict]:
+    manifest = tmp_path / runtime.name / "manifests" / f"{number:04d}.json"
+    outer = [
+        str(repo / "scripts/gx1_capped_run.sh"),
+        "--class",
+        "trainer",
+        "--mem",
+        "20G",
+        "--swap",
+        "512M",
     ]
-    invocations: list[dict] = []
-    invocation_bindings = []
-    smoke16_pointer = runtime / "smoke-b16/RESUME_POINTER.json"
-    epoch_pointer = runtime / "epoch1/RESUME_POINTER.json"
-    for number, definition in enumerate(definitions, 1):
-        kind, batch, budget, expected, before, predecessor, write_mode, window, windows = definition
-        if kind == "smoke_arm":
-            pointer = runtime / f"smoke-b{batch}/RESUME_POINTER.json"
-        elif kind == "resume_proof":
-            pointer = smoke16_pointer
-        else:
-            pointer = epoch_pointer
-        manifest_path = tmp_path / "manifests" / f"invocation-{number:04d}.json"
-        _write(manifest_path, {"source_commit": source_commit, "number": number})
-        outer = [
-            str(runner),
-            "--class",
-            "trainer",
-            "--mem",
-            "20G",
-            "--swap",
-            "512M",
-        ]
-        if kind in {"smoke_arm", "resume_proof"}:
-            outer.append("--attended-smoke")
-        argv = [
-            *outer,
-            "--",
-            str(python),
-            "-m",
-            "gx1.scripts.fixture_executor",
-            "--device",
-            "cuda",
-            "--invocation",
-            str(number),
-        ]
-        invocation = _seal(
-            {
-                "schema_version": INVOCATION_SCHEMA,
-                "decision": "PASS",
-                "invocation_number": number,
-                "invocation_id": f"invocation-{number:04d}",
-                "kind": kind,
-                "batch_size": batch,
-                "epoch_index": 0,
-                "window_index": window,
-                "window_count": windows,
-                "optimizer_step_budget": budget,
-                "expected_success_outcome": expected,
-                "source_commit": source_commit,
-                "execution_manifest": _binding(manifest_path),
-                "launcher_argv": argv,
-                "launcher_argv_sha256": canonical_sha256(argv),
-                "progress_path": str(runtime / f"progress-{number:04d}.json"),
-                "guard_log_path": str(runtime / f"guard-{number:04d}.log"),
-                "checkpoint": {
-                    "pointer_path": str(pointer),
-                    "before_mode": before,
-                    "predecessor_invocation_number": predecessor,
-                    "write_mode": write_mode,
-                },
-                "maximum_wall_seconds": 300 if number <= 4 else 7200,
-                "requires_fresh_windows_boot": True,
-                "signed_guard_only": True,
-                "test_data_used": False,
-            },
-            "invocation_sha256",
-        )
-        path = tmp_path / "invocations" / f"invocation-{number:04d}.json"
-        _write(path, invocation)
-        invocations.append(invocation)
-        invocation_bindings.append(_binding(path))
-
-    plan = _seal(
+    if kind in {
+        "smoke_arm",
+        "reference_run",
+        "resume_proof_first",
+        "resume_proof_second",
+    }:
+        outer.append("--attended-smoke")
+    argv = [
+        *outer,
+        "--",
+        str(repo / ".venv/bin/python"),
+        "-m",
+        "gx1.scripts.fixture_executor",
+        "--device",
+        "cuda",
+        "--invocation",
+        str(number),
+    ]
+    execution = _seal(
         {
-            "schema_version": PLAN_SCHEMA,
-            "decision": "PASS_PREPARED",
-            "campaign_id": "GX1_RANDOM_ACCESS_V2_FIXTURE",
-            "created_utc": "2026-09-11T10:00:00+00:00",
-            "source_repo": str(repo),
-            "source_commit": source_commit,
-            "runtime_root": str(runtime),
-            "gpu_uuid": "GPU-12345678-1234-1234-1234-123456789abc",
-            "prepared_windows_boot": _boot(100, 0),
-            "invocations": invocation_bindings,
-            "signed_guard_sources": guard_sources,
-            "controller_sources": controller_sources,
-            "policy": {
+            "schema_version": "gx1_local_random_access_execution_manifest_v2",
+            "decision": "PASS_EXACT_INVOCATION",
+            "invocation_kind": kind,
+            "python_module": "gx1.scripts.fixture_executor",
+            "source_commit": commit,
+            "launcher_argv_sha256": canonical_sha256(argv),
+            "test_data_used": False,
+        },
+        "artifact_sha256",
+    )
+    _write(manifest, execution)
+    value = _seal(
+        {
+            "schema_version": INVOCATION_SCHEMA,
+            "decision": "PASS",
+            "invocation_number": number,
+            "invocation_id": f"invocation-{number:04d}",
+            "kind": kind,
+            "batch_size": batch,
+            "epoch_index": 0,
+            "window_index": window,
+            "window_count": windows,
+            "optimizer_step_budget": budget,
+            "expected_success_outcome": outcome,
+            "source_commit": commit,
+            "execution_manifest": _binding(manifest),
+            "launcher_argv": argv,
+            "launcher_argv_sha256": canonical_sha256(argv),
+            "progress_path": str(runtime / f"progress-{number:04d}.json"),
+            "guard_log_path": str(runtime / f"guard-{number:04d}.log"),
+            "checkpoint": {
+                "pointer_path": str(pointer),
+                "before_mode": before,
+                "predecessor_invocation_number": predecessor,
+                "write_mode": write_mode,
+            },
+            "maximum_wall_seconds": 300
+            if kind not in {"epoch1_window", "full_val"}
+            else 7200,
+            "requires_fresh_windows_boot": True,
+            "signed_guard_only": True,
+            "test_data_used": False,
+        },
+        "invocation_sha256",
+    )
+    path = tmp_path / runtime.name / "invocations" / f"{number:04d}.json"
+    _write(path, value)
+    return value, _binding(path)
+
+
+def _base(
+    repo: Path, commit: str, runtime: Path, guards: dict, controllers: dict
+) -> dict:
+    return {
+        "schema_version": PLAN_SCHEMA,
+        "decision": "PASS_PREPARED",
+        "campaign_id": f"GX1_RANDOM_ACCESS_V2_{runtime.name.upper()}",
+        "created_utc": "2026-09-11T10:00:00+00:00",
+        "source_repo": str(repo),
+        "source_commit": commit,
+        "runtime_root": str(runtime),
+        "gpu_uuid": "GPU-12345678-1234-1234-1234-123456789abc",
+        "prepared_windows_boot": _boot(100, 0),
+        "entry_pairs_per_epoch": 16384,
+        "transitions_per_epoch": 65536,
+        "signed_guard_sources": guards,
+        "controller_sources": controllers,
+        "policy": {
+            "physical_power_limit_w": 160,
+            "maximum_actual_power_draw_w": 170,
+            "maximum_core_temperature_c": 65,
+            "maximum_memory_junction_temperature_c": 80,
+            "maximum_vram_mib": 12288,
+            "signed_local_telemetry_seconds": 1,
+            "human_status_seconds": 900,
+            "fresh_physical_windows_boot_before_every_invocation": True,
+            "automatic_power_limit_change": False,
+        },
+        "authority": {
+            "test": False,
+            "promotion": False,
+            "paper": False,
+            "live": False,
+            "cloud_spend": False,
+        },
+        "test_data_used": False,
+    }
+
+
+def _gpu_plan(tmp_path: Path) -> tuple:
+    repo, commit, guards, controllers = _source(tmp_path)
+    runtime = tmp_path / "runtime-gpu"
+    runtime.mkdir()
+    values, bindings = [], []
+    for number, batch in enumerate((4, 8, 16), 1):
+        value, binding = _invocation(
+            tmp_path,
+            repo,
+            commit,
+            runtime,
+            number,
+            "smoke_arm",
+            batch,
+            3,
+            "COMPLETE",
+            "GENESIS",
+            None,
+            "ATOMIC_UPDATE",
+            runtime / f"smoke-b{batch}/RESUME_POINTER.json",
+        )
+        values.append(value)
+        bindings.append(binding)
+    plan = _base(repo, commit, runtime, guards, controllers)
+    plan.update(
+        phase="gpu_selection",
+        prior_campaign=None,
+        selection_receipt=None,
+        selected_batch_size=None,
+        invocations=bindings,
+    )
+    plan = _seal(plan, "plan_sha256")
+    path = tmp_path / "GPU_PLAN.json"
+    _write(path, plan)
+    return plan, path, values, repo, commit, guards, controllers
+
+
+def _selection(tmp_path: Path) -> tuple[dict, Path]:
+    bindings = []
+    for batch, seconds in ((4, 4.0), (8, 3.0), (16, 2.0)):
+        root = tmp_path / "arms" / str(batch)
+        progress, pointer, guard = (
+            root / "progress.json",
+            root / "pointer.json",
+            root / "guard.log",
+        )
+        _write(progress, {"terminal": True})
+        _write(pointer, {"batch_size": batch})
+        _write(guard, "signed")
+        transitions = 8 * batch
+        receipt = {
+            "schema_version": ARM_SCHEMA,
+            "decision": "PASS",
+            "launch_manifest_sha256": "a" * 64,
+            "batch_size": batch,
+            "precision_policy": "deterministic_fp32",
+            "warmup_optimizer_steps": 1,
+            "measured_optimizer_steps": 2,
+            "measured_entry_rows": 2 * batch,
+            "transitions_per_entry": 4,
+            "measured_transition_count": transitions,
+            "measured_train_seconds": seconds,
+            "measured_transitions_per_second": transitions / seconds,
+            "guard_decision": "PASS",
+            "safety": {
                 "physical_power_limit_w": 160,
-                "maximum_actual_power_draw_w": 170,
+                "maximum_actual_draw_w": 170,
                 "maximum_core_temperature_c": 65,
                 "maximum_memory_junction_temperature_c": 80,
                 "maximum_vram_mib": 12288,
-                "signed_local_telemetry_seconds": 1,
-                "human_status_seconds": 900,
-                "fresh_physical_windows_boot_before_every_invocation": True,
-                "automatic_power_limit_change": False,
             },
-            "authority": {
-                "test": False,
-                "promotion": False,
-                "paper": False,
-                "live": False,
-                "cloud_spend": False,
-            },
+            "progress": _binding(progress),
+            "checkpoint_pointer": _binding(pointer),
+            "guard_log": _binding(guard),
             "test_data_used": False,
-        },
-        "plan_sha256",
+        }
+        receipt["receipt_sha256"] = selection_sha256(receipt)
+        path = root / "receipt.json"
+        _write(path, receipt)
+        bindings.append(_binding(path))
+    value = build_selection(bindings)
+    path = tmp_path / "GPU_SELECTION.json"
+    _write(path, value)
+    return value, path
+
+
+def _selected_plan(
+    tmp_path: Path,
+    gpu: dict,
+    gpu_path: Path,
+    repo: Path,
+    commit: str,
+    guards: dict,
+    controllers: dict,
+) -> tuple:
+    selection, selection_path = _selection(tmp_path)
+    batch = selection["selected_batch_size"]
+    assert batch == 16
+    runtime = tmp_path / "runtime-selected"
+    runtime.mkdir()
+    total, half = -(-16384 // batch), 512
+    ref = runtime / "reference/RESUME_POINTER.json"
+    split = runtime / "resume-proof/RESUME_POINTER.json"
+    epoch = runtime / "epoch1/RESUME_POINTER.json"
+    definitions = [
+        ("reference_run", 4, "COMPLETE", "GENESIS", None, "ATOMIC_UPDATE", ref, 0, 0),
+        (
+            "resume_proof_first",
+            3,
+            "COMPLETE",
+            "GENESIS",
+            None,
+            "ATOMIC_UPDATE",
+            split,
+            0,
+            0,
+        ),
+        (
+            "resume_proof_second",
+            1,
+            "COMPLETE",
+            "PREVIOUS_RECEIPT_AFTER",
+            2,
+            "ATOMIC_UPDATE",
+            split,
+            0,
+            0,
+        ),
+        (
+            "epoch1_window",
+            half,
+            "RESUMABLE",
+            "GENESIS",
+            None,
+            "ATOMIC_UPDATE",
+            epoch,
+            0,
+            2,
+        ),
+        (
+            "epoch1_window",
+            total - half,
+            "COMPLETE",
+            "PREVIOUS_RECEIPT_AFTER",
+            4,
+            "ATOMIC_UPDATE",
+            epoch,
+            1,
+            2,
+        ),
+        (
+            "full_val",
+            None,
+            "COMPLETE",
+            "PREVIOUS_RECEIPT_AFTER",
+            5,
+            "READ_ONLY",
+            epoch,
+            0,
+            0,
+        ),
+    ]
+    values, bindings = [], []
+    for number, args in enumerate(definitions, 1):
+        kind, budget, outcome, before, predecessor, write, pointer, window, windows = (
+            args
+        )
+        value, binding = _invocation(
+            tmp_path,
+            repo,
+            commit,
+            runtime,
+            number,
+            kind,
+            batch,
+            budget,
+            outcome,
+            before,
+            predecessor,
+            write,
+            pointer,
+            window,
+            windows,
+        )
+        values.append(value)
+        bindings.append(binding)
+    plan = _base(repo, commit, runtime, guards, controllers)
+    plan.update(
+        phase="selected_training",
+        prior_campaign=_binding(gpu_path),
+        selection_receipt=_binding(selection_path),
+        selected_batch_size=batch,
+        invocations=bindings,
     )
-    plan_path = tmp_path / "PLAN.json"
-    _write(plan_path, plan)
-    return plan, plan_path, invocations
+    plan = _seal(plan, "plan_sha256")
+    path = tmp_path / "SELECTED_PLAN.json"
+    _write(path, plan)
+    return plan, path, values
 
 
-def test_explicit_sequence_and_fresh_boot_gate(tmp_path: Path) -> None:
-    plan, _, checked = _fixture(tmp_path)
-    result = require_plan(plan)
-    assert [item["kind"] for item in result["checked_invocations"]] == [
-        "smoke_arm",
-        "smoke_arm",
-        "smoke_arm",
-        "resume_proof",
+def test_two_phase_sequence_and_selected_epoch_budget(tmp_path: Path) -> None:
+    gpu, gpu_path, gpu_invocations, repo, commit, guards, controllers = _gpu_plan(
+        tmp_path
+    )
+    checked_gpu = require_plan(gpu)
+    assert [x["batch_size"] for x in checked_gpu["checked_invocations"]] == [4, 8, 16]
+    assert (
+        next_action(gpu, [], current_boot=_boot(100, 0))["decision"]
+        == "REBOOT_REQUIRED"
+    )
+    assert next_action(gpu, [], current_boot=_boot(101, 1))["kind"] == "smoke_arm"
+    assert (
+        inspect_campaign(
+            plan_path=gpu_path,
+            plan_file_sha256=file_sha256(gpu_path),
+            current_boot=_boot(101, 1),
+        )["action"]["decision"]
+        == "LAUNCH"
+    )
+    selected, _, invocations = _selected_plan(
+        tmp_path, gpu, gpu_path, repo, commit, guards, controllers
+    )
+    checked = require_plan(selected)
+    assert [x["kind"] for x in checked["checked_invocations"]] == [
+        "reference_run",
+        "resume_proof_first",
+        "resume_proof_second",
         "epoch1_window",
         "epoch1_window",
         "full_val",
     ]
-    assert [item["batch_size"] for item in result["checked_invocations"][:4]] == [4, 8, 16, 16]
-    assert next_action(plan, [], current_boot=_boot(100, 0))["decision"] == "REBOOT_REQUIRED"
-    assert next_action(plan, [], current_boot=_boot(101, 1))["kind"] == "smoke_arm"
-    bad = dict(checked[2])
+    assert sum(x["optimizer_step_budget"] for x in invocations[3:5]) == 1024
+    bad = dict(gpu_invocations[2])
     bad["batch_size"] = 8
     bad.pop("invocation_sha256")
     bad["invocation_sha256"] = canonical_sha256(bad)
-    path = Path(plan["invocations"][2]["path"])
+    path = Path(gpu["invocations"][2]["path"])
     _write(path, bad)
-    broken = dict(plan)
-    broken["invocations"] = list(plan["invocations"])
+    broken = dict(gpu)
+    broken["invocations"] = list(gpu["invocations"])
     broken["invocations"][2] = _binding(path)
     broken.pop("plan_sha256")
     broken["plan_sha256"] = canonical_sha256(broken)
@@ -239,13 +481,11 @@ def test_explicit_sequence_and_fresh_boot_gate(tmp_path: Path) -> None:
         require_plan(broken)
 
 
-def test_bootstrap_active_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
-    plan, plan_path, invocations = _fixture(tmp_path)
+def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
+    plan, plan_path, invocations, *_ = _gpu_plan(tmp_path)
     plan_file_sha = file_sha256(plan_path)
     prepared = prepare_reboot(
-        plan_path=plan_path,
-        plan_file_sha256=plan_file_sha,
-        current_boot=_boot(100, 0),
+        plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=_boot(100, 0)
     )
     confirm_reboot(
         plan_path=plan_path,
@@ -254,46 +494,66 @@ def test_bootstrap_active_receipt_archive_and_reboot_receipt(tmp_path: Path) -> 
         shutdown_exit_code=0,
     )
     boot = _boot(101, 1)
-    assert inspect_campaign(
-        plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=boot
-    )["action"]["invocation_number"] == 1
+    assert (
+        inspect_campaign(
+            plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=boot
+        )["action"]["invocation_number"]
+        == 1
+    )
     active = begin_invocation(
         plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=boot
     )
     assert Path(active["active_marker"]["path"]).is_file()
-
     invocation = invocations[0]
     pointer = Path(invocation["checkpoint"]["pointer_path"])
-    _write(pointer, {"schema_version": "gx1_unified_exit_random_access_fixed_step_pointer_v1"})
-    progress = {
-        "schema_version": "gx1_local_random_access_progress_v2",
-        "plan_sha256": plan["plan_sha256"],
-        "invocation_sha256": invocation["invocation_sha256"],
-        "terminal": True,
-        "outcome": "COMPLETE",
-    }
+    _write(
+        pointer,
+        {"schema_version": "gx1_unified_exit_random_access_fixed_step_pointer_v1"},
+    )
+    progress = _seal(
+        {
+            "schema_version": PROGRESS_SCHEMA,
+            "plan_sha256": plan["plan_sha256"],
+            "invocation_sha256": invocation["invocation_sha256"],
+            "phase": invocation["kind"],
+            "epoch_index": 0,
+            "global_optimizer_steps": 3,
+            "next_batch_offset": 3,
+            "total_batches": 3,
+            "completed_units": 3,
+            "total_units": 3,
+            "epoch_schedule_sha256": "b" * 64,
+            "selection_receipt_sha256": None,
+            "checkpoint_pointer": _binding(pointer),
+            "terminal": True,
+            "outcome": "COMPLETE",
+            "observed_utc": "2026-09-11T10:01:03+00:00",
+        },
+        "progress_sha256",
+    )
     _write(Path(invocation["progress_path"]), progress)
     _write(
         Path(invocation["guard_log_path"]),
-        "2026-09-11T10:01:01Z event=start telemetry_owner=signed_windows_bridge\n"
-        "2026-09-11T10:01:02Z event=telemetry power_draw_w=150\n"
-        "2026-09-11T10:01:03Z event=exit child_status=0\n",
+        "event=start telemetry_owner=signed_windows_bridge\n"
+        "event=telemetry power_draw_w=150\n"
+        "event=exit child_status=0\n",
     )
-    receipt = record_invocation(
+    recorded = record_invocation(
         plan_path=plan_path,
         plan_file_sha256=plan_file_sha,
         trainer_guard_exit_code=0,
         progress_observer_exit_code=0,
         outcome="COMPLETE",
     )
-    assert receipt["receipt"]["pointer_before_sha256"] == "GENESIS"
+    assert recorded["receipt"]["pointer_before_sha256"] == "GENESIS"
+    assert recorded["receipt"]["checkpoint_pointer_after"]["path"] == str(pointer)
+    assert recorded["receipt"]["guard_decision"] == "PASS"
     assert not (Path(plan["runtime_root"]) / "ACTIVE_INVOCATION.json").exists()
-    assert (Path(plan["runtime_root"]) / "active-archive/invocation-0001.json").is_file()
-
+    assert (
+        Path(plan["runtime_root"]) / "active-archive/invocation-0001.json"
+    ).is_file()
     reboot = prepare_reboot(
-        plan_path=plan_path,
-        plan_file_sha256=plan_file_sha,
-        current_boot=boot,
+        plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=boot
     )
     with pytest.raises(RandomAccessCampaignError, match="did not accept"):
         confirm_reboot(
@@ -305,26 +565,18 @@ def test_bootstrap_active_receipt_archive_and_reboot_receipt(tmp_path: Path) -> 
 
 
 def test_active_without_receipt_blocks_recovery(tmp_path: Path) -> None:
-    plan, plan_path, _ = _fixture(tmp_path)
-    plan_file_sha = file_sha256(plan_path)
+    plan, plan_path, *_ = _gpu_plan(tmp_path)
+    sha = file_sha256(plan_path)
     prepared = prepare_reboot(
-        plan_path=plan_path,
-        plan_file_sha256=plan_file_sha,
-        current_boot=_boot(100, 0),
+        plan_path=plan_path, plan_file_sha256=sha, current_boot=_boot(100, 0)
     )
     confirm_reboot(
         plan_path=plan_path,
-        plan_file_sha256=plan_file_sha,
+        plan_file_sha256=sha,
         request_nonce=prepared["intent"]["request_nonce"],
         shutdown_exit_code=0,
     )
     boot = _boot(101, 1)
-    begin_invocation(
-        plan_path=plan_path, plan_file_sha256=plan_file_sha, current_boot=boot
-    )
+    begin_invocation(plan_path=plan_path, plan_file_sha256=sha, current_boot=boot)
     with pytest.raises(RandomAccessCampaignError, match="RECOVERY_RECEIPT_REQUIRED"):
-        inspect_campaign(
-            plan_path=plan_path,
-            plan_file_sha256=plan_file_sha,
-            current_boot=boot,
-        )
+        inspect_campaign(plan_path=plan_path, plan_file_sha256=sha, current_boot=boot)
