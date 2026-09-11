@@ -18,6 +18,8 @@ def test_controller_uses_physical_reboot_and_transactional_cli() -> None:
     assert "observer.ExitCode" in source
     assert "$env:GX1_CAMPAIGN_PLAN_SHA256" in source
     assert "$env:GX1_CAMPAIGN_INVOCATION_SHA256" in source
+    assert "$env:GX1_CAMPAIGN_GUARD_LOG_PATH" in source
+    assert "$env:WSLENV" in source
     assert "nvidia-smi -pl" not in source.lower()
 
 

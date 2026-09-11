@@ -111,14 +111,26 @@ if (Test-Path -LiteralPath $guardWindows) { throw 'Guard log already exists befo
 $trainerArguments = @('-d', $Distro, '-u', $LinuxUser, '--cd', $SourceRepo, '--') + $argv
 $priorPlanSha = $env:GX1_CAMPAIGN_PLAN_SHA256
 $priorInvocationSha = $env:GX1_CAMPAIGN_INVOCATION_SHA256
+$priorGuardLogPath = $env:GX1_CAMPAIGN_GUARD_LOG_PATH
+$priorWslEnv = $env:WSLENV
+$campaignWslEnv = 'GX1_CAMPAIGN_PLAN_SHA256:GX1_CAMPAIGN_INVOCATION_SHA256:GX1_CAMPAIGN_GUARD_LOG_PATH'
 try {
     $env:GX1_CAMPAIGN_PLAN_SHA256 = [string]$status.plan_sha256
     $env:GX1_CAMPAIGN_INVOCATION_SHA256 = [string]$invocation.invocation_sha256
+    $env:GX1_CAMPAIGN_GUARD_LOG_PATH = [string]$invocation.guard_log_path
+    $env:WSLENV = if ([string]::IsNullOrWhiteSpace($priorWslEnv)) {
+        $campaignWslEnv
+    }
+    else {
+        "$priorWslEnv`:$campaignWslEnv"
+    }
     $trainer = Start-Process -FilePath 'wsl.exe' -ArgumentList $trainerArguments -PassThru -NoNewWindow
 }
 finally {
     $env:GX1_CAMPAIGN_PLAN_SHA256 = $priorPlanSha
     $env:GX1_CAMPAIGN_INVOCATION_SHA256 = $priorInvocationSha
+    $env:GX1_CAMPAIGN_GUARD_LOG_PATH = $priorGuardLogPath
+    $env:WSLENV = $priorWslEnv
 }
 $observerScript = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
 $observer = Start-Process -FilePath 'powershell.exe' -ArgumentList @(

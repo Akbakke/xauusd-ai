@@ -12,12 +12,22 @@ from typing import Any
 
 import torch
 
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.local_random_access_campaign_v2 import (
     read_bound_json,
     require_plan,
     require_receipt_chain,
 )
 from gx1.contracts.unified_exit_gpu_batch_selection_v1 import require_selection
+from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
+    require_composite_normalization_binding,
+)
+from gx1.contracts.unified_exit_random_access_cuda_smoke_v1 import (
+    require_bootstrap_composite_normalization,
+)
+from gx1.contracts.unified_exit_selected_sampler_v1 import (
+    require_selected_sampler_artifact,
+)
 from gx1.contracts.unified_exit_random_access_checkpoint_v1 import (
     POINTER_SCHEMA,
     SCHEMA_VERSION as CHECKPOINT_SCHEMA,
@@ -88,8 +98,45 @@ def _load_checkpoint(pointer_binding: Mapping[str, Any]) -> tuple[dict[str, Any]
         raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_POINTER_INVALID")
     state = torch.load(state_path, map_location="cpu", weights_only=True)
     ema = state.get("weight_ema_state") if isinstance(state, Mapping) else None
+    online = state.get("online_model_state") if isinstance(state, Mapping) else None
+    target = state.get("target_model_state") if isinstance(state, Mapping) else None
+    shadow = ema.get("shadow") if isinstance(ema, Mapping) else None
+    parameter_names = ema.get("parameter_names") if isinstance(ema, Mapping) else None
+    model_states_valid = (
+        isinstance(online, Mapping)
+        and isinstance(target, Mapping)
+        and set(online) == set(target)
+        and canonical_model_state_sha256(online)
+        == state.get("online_model_state_sha256")
+        and canonical_model_state_sha256(target)
+        == state.get("target_model_state_sha256")
+    )
+    ema_valid = (
+        isinstance(ema, Mapping)
+        and set(ema) == {"decay", "steps", "parameter_names", "shadow"}
+        and isinstance(parameter_names, list)
+        and parameter_names == sorted(set(parameter_names))
+        and bool(parameter_names)
+        and isinstance(shadow, Mapping)
+        and isinstance(online, Mapping)
+        and set(shadow) == set(online)
+        and set(parameter_names).issubset(online)
+        and all(
+            isinstance(shadow[name], torch.Tensor)
+            and isinstance(online[name], torch.Tensor)
+            and shadow[name].shape == online[name].shape
+            and shadow[name].dtype == online[name].dtype
+            and (
+                not shadow[name].is_floating_point()
+                or bool(torch.isfinite(shadow[name]).all().item())
+            )
+            for name in shadow
+        )
+    )
     if (
         not isinstance(state, Mapping)
+        or not model_states_valid
+        or not ema_valid
         or state.get("schema_version") != CHECKPOINT_SCHEMA
         or state.get("global_step") != pointer.get("global_step")
         or state.get("next_batch_offset") != pointer.get("next_batch_offset")
@@ -154,6 +201,31 @@ def build_final_train_checkpoint_authority(
         raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_SELECTION_INVALID")
     launch_ref, raw_launch = _read(session["prelaunch"])
     launch = require_launch_manifest(raw_launch)
+    files = launch["files"]
+    selected_sampler = require_selected_sampler_artifact(
+        read_bound_json(
+            Path(files["selected_sampler"]["path"]),
+            files["selected_sampler"]["sha256"],
+        )
+    )
+    bootstrap_normalization = require_bootstrap_composite_normalization(
+        read_bound_json(
+            Path(files["bootstrap_composite_normalization"]["path"]),
+            files["bootstrap_composite_normalization"]["sha256"],
+        )
+    )
+    child_normalization = require_composite_normalization_binding(
+        read_bound_json(
+            Path(files["child_composite_normalization"]["path"]),
+            files["child_composite_normalization"]["sha256"],
+        )
+    )
+    expected_base_normalization_sha256 = bootstrap_normalization[
+        "base_feature_normalization"
+    ]["artifact"]["base_artifact"]["contract"]["contract_sha256"]
+    expected_summary_normalization_sha256 = child_normalization[
+        "lifetime_summary_normalization"
+    ]["normalization_sha256"]
     pointer_ref = final_receipt["checkpoint_pointer_after"]
     pointer, state, state_ref = _load_checkpoint(pointer_ref)
     progress_ref, progress = _read(final_receipt["progress"])
@@ -175,10 +247,14 @@ def build_final_train_checkpoint_authority(
         or pointer["next_batch_offset"] != total_batches
         or pointer["epoch_index"] != 0
         or pointer["batch_size"] != selected_batch
-        or state["base_normalization_sha256"] == state["summary_normalization_sha256"]
+        or pointer["selected_sampler_artifact_sha256"]
+        != selected_sampler["artifact_sha256"]
+        or state["base_normalization_sha256"]
+        != expected_base_normalization_sha256
+        or state["summary_normalization_sha256"]
+        != expected_summary_normalization_sha256
     ):
         raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_PROGRESS_INVALID")
-    files = launch["files"]
     value = {
         "schema_version": SCHEMA_VERSION,
         "decision": "PASS_FULL_VAL_ELIGIBLE",

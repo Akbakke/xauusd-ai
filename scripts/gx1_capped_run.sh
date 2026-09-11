@@ -35,6 +35,7 @@ JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 RANDOM_ACCESS_FIXED_STEP_MODULE=gx1.scripts.run_unified_exit_random_access_fixed_step_v1
+RANDOM_ACCESS_VAL_MODULE=gx1.scripts.run_unified_exit_random_access_val_v1
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
 # CUDA producer routes are intentionally enumerated rather than accepting an
 # arbitrary module.  Both are read-only, TRAIN/VAL-only evidence producers;
@@ -143,7 +144,7 @@ validate_target_command() {
   esac
 
   for target_arg in "$@"; do
-    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_FIXED_STEP_MODULE"* ]]; then
+    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_FIXED_STEP_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_VAL_MODULE"* ]]; then
       trainer_reference=true
     fi
     if [[ "$target_arg" == *"$ATTENDED_HARDWARE_SMOKE_MODULE"* ]]; then
@@ -227,10 +228,52 @@ validate_target_command() {
   module="${3:-}"
   [[ "$module" == "$CANONICAL_TRAINER_MODULE" \
     || "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" \
+    || "$module" == "$RANDOM_ACCESS_VAL_MODULE" \
     || "$module" == "$ATTENDED_HARDWARE_SMOKE_MODULE" ]] || {
     echo "FATAL: trainer class permits only the canonical trainer or attended hardware smoke module" >&2
     exit 75
   }
+  if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]; then
+    local -a val_flags=(
+      --launch-manifest
+      --final-train-checkpoint-authority
+      --final-train-checkpoint-authority-file-sha256
+      --checkpoint-pointer
+      --progress-path
+      --rollout-progress-path
+      --result-path
+      --device
+      --max-forwards-this-invocation
+      --progress-interval-forwards
+      --compute-guard-max-model-forwards
+      --compute-guard-max-materialized-state-views
+      --compute-guard-max-wall-seconds
+    )
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false       || ${#target_args[@]} -ne 29       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$       || "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" != /* ]]; then
+      echo "FATAL: random-access full VAL requires the exact guarded campaign contract" >&2
+      exit 75
+    fi
+    for ((val_index = 0; val_index < ${#val_flags[@]}; val_index++)); do
+      flag_position=$((3 + 2 * val_index))
+      value_position=$((flag_position + 1))
+      [[ "${target_args[$flag_position]}" == "${val_flags[$val_index]}" ]] || {
+        echo "FATAL: random-access full VAL argument order differs" >&2
+        exit 75
+      }
+      val_value="${target_args[$value_position]}"
+      [[ -n "$val_value" && "$val_value" != -* ]] || exit 75
+      if (( val_index <= 6 && val_index != 2 )); then
+        [[ "$val_value" == /* ]] || exit 75
+      elif (( val_index >= 8 )); then
+        [[ "$val_value" =~ ^[1-9][0-9]*$ ]] || exit 75
+      fi
+    done
+    [[ "${target_args[8]}" =~ ^[0-9a-f]{64}$       && "${target_args[18]}" == cuda ]] || exit 75
+    TRAINER_DEVICE=cuda
+    TRAINER_OUT_BUNDLE_DIR="${target_args[16]}"
+    return
+  fi
+
   if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]] \
     && (( trainer_flag_count != 1 )); then
     echo "FATAL: trainer class requires the canonical --train mode exactly once" >&2
@@ -322,7 +365,7 @@ validate_target_command() {
     elif [[ "$stage_value" == epoch1-window && $train_session_count -eq 1       && $max_optimizer_steps_count -eq 1 && ${#target_args[@]} -eq 19 ]]; then
       stage_shape_valid=true
     fi
-    if [[ "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $stage_count -ne 1       || $arm_batch_size_count -ne 1 || $progress_path_count -ne 1       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || "$stage_shape_valid" != true       || ( "$stage_requires_attended" == true && "$ATTENDED_SMOKE" != true )       || ( "$stage_requires_attended" == false && "$ATTENDED_SMOKE" != false )       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    if [[ "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $stage_count -ne 1       || $arm_batch_size_count -ne 1 || $progress_path_count -ne 1       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || "$stage_shape_valid" != true       || ( "$stage_requires_attended" == true && "$ATTENDED_SMOKE" != true )       || ( "$stage_requires_attended" == false && "$ATTENDED_SMOKE" != false )       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$       || "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" != /* ]]; then
       echo "FATAL: random-access fixed-step smoke/train requires the exact attended CUDA stage contract" >&2
       exit 75
     fi
@@ -638,12 +681,24 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && -n "$TRAI
     echo "FATAL: trainer guard-log parent is unavailable: $TRAINER_GUARD_LOG_PARENT" >&2
     exit 75
   }
-  TRAINER_GUARD_LOG_PATH=$(
-    /usr/bin/mktemp "${TRAINER_GUARD_LOG_PARENT}/.${TRAINER_GUARD_LOG_BASENAME}.guard.XXXXXXXX.log"
-  ) || {
-    echo "FATAL: could not create exclusive trainer guard log" >&2
-    exit 75
-  }
+  if [[ -n "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" ]]; then
+    [[ "$GX1_CAMPAIGN_GUARD_LOG_PATH" == /*       && "${GX1_CAMPAIGN_GUARD_LOG_PATH%/*}" == "$TRAINER_GUARD_LOG_PARENT"       && ! -e "$GX1_CAMPAIGN_GUARD_LOG_PATH"       && ! -L "$GX1_CAMPAIGN_GUARD_LOG_PATH" ]] || {
+      echo "FATAL: campaign guard-log path is not a fresh exact sibling" >&2
+      exit 75
+    }
+    if ! (set -o noclobber; umask 077; : > "$GX1_CAMPAIGN_GUARD_LOG_PATH"); then
+      echo "FATAL: could not create exclusive campaign guard log" >&2
+      exit 75
+    fi
+    TRAINER_GUARD_LOG_PATH="$GX1_CAMPAIGN_GUARD_LOG_PATH"
+  else
+    TRAINER_GUARD_LOG_PATH=$(
+      /usr/bin/mktemp "${TRAINER_GUARD_LOG_PARENT}/.${TRAINER_GUARD_LOG_BASENAME}.guard.XXXXXXXX.log"
+    ) || {
+      echo "FATAL: could not create exclusive trainer guard log" >&2
+      exit 75
+    }
+  fi
   TRAINER_STDIO_LOG_PATH=$(
     /usr/bin/mktemp "${TRAINER_GUARD_LOG_PARENT}/.${TRAINER_GUARD_LOG_BASENAME}.trainer.XXXXXXXX.log"
   ) || {
