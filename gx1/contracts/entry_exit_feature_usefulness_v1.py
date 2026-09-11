@@ -1282,8 +1282,9 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
             if (
                 isinstance(terminal_count, bool)
                 or not isinstance(terminal_count, int)
-                or not 1 <= terminal_count <= row_count
-                or terminal_count != single_valid_count
+                or not 0 <= terminal_count <= row_count
+                # Unbounded windows omit the last HOLD target without a terminal.
+                or terminal_count not in (0, single_valid_count)
             ):
                 raise RuntimeError(
                     "FEATURE_USEFULNESS_EXIT_SUPERVISION_COUNTS_INVALID"
@@ -1506,7 +1507,7 @@ def require_feature_usefulness_report(value: Mapping[str, Any]) -> dict[str, Any
         or exit_task["donor_plan"]["block_count"] != pair_count
         or exit_task["donor_plan"]["native_mtf_geometry_sha256"]
         != identity["native_mtf_geometry_sha256"]
-        or exit_task["supervision"]["terminal_row_count"]
+        or exit_task["supervision"]["single_valid_action_row_count"]
         != pair_count * UNIFIED_EXIT_EPISODE_SIDE_COUNT
     ):
         raise RuntimeError("FEATURE_USEFULNESS_NATIVE_EPISODE_POPULATION_MISMATCH")

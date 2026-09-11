@@ -3333,6 +3333,11 @@ _TRAIN_CAPPED_SCOPE_ENV = (
     "GX1_CAPPED_MEMORY_BYTES",
     "GX1_CAPPED_SWAP_BYTES",
     "GX1_CAPPED_TASKS_MAX",
+    # Exact campaign identity already verified by the capped runner.
+    "GX1_CAMPAIGN_PLAN_PATH",
+    "GX1_CAMPAIGN_PLAN_FILE_SHA256",
+    "GX1_CAMPAIGN_PLAN_SHA256",
+    "GX1_CAMPAIGN_INVOCATION_SHA256",
     # Operator-controlled power benchmark scope identity. Empty values mean
     # ordinary canonical execution; non-empty values are verified by the
     # runner and guard and cannot alter model inputs or optimization.
@@ -6315,12 +6320,17 @@ def _fitted_q_targets_for_episode(
         rewards = torch.from_numpy(
             np.asarray(episode["exit_now_reward_bps"], dtype=np.float32)
         ).unsqueeze(0).to(device)
+        bellman_target_valid_mask = valid.clone()
+        right_censored_boundary_mask = valid[..., -1, 0].clone()
+        bellman_target_valid_mask[..., -1, 0] = False
         targets, target_mask = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=target_q,
             exit_now_reward_bps=rewards,
             action_valid_mask=valid,
             state_valid_mask=state_valid,
             terminal_mask=terminal,
+            bellman_target_valid_mask=bellman_target_valid_mask,
+            right_censored_boundary_mask=right_censored_boundary_mask,
             terminal_reason_index=torch.from_numpy(
                 np.asarray(
                     episode["exit_terminal_reason_index"], dtype=np.int64
@@ -6369,12 +6379,17 @@ def _fitted_q_targets_for_episode_batch(
                 axis=0,
             ).astype(np.float32, copy=False)
         ).to(device)
+        bellman_target_valid_mask = valid.clone()
+        right_censored_boundary_mask = valid[..., -1, 0].clone()
+        bellman_target_valid_mask[..., -1, 0] = False
         targets, target_mask = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=target_q,
             exit_now_reward_bps=rewards,
             action_valid_mask=valid,
             state_valid_mask=state_valid,
             terminal_mask=terminal,
+            bellman_target_valid_mask=bellman_target_valid_mask,
+            right_censored_boundary_mask=right_censored_boundary_mask,
             terminal_reason_index=torch.from_numpy(
                 np.stack(
                     [episode["exit_terminal_reason_index"] for episode in episodes],

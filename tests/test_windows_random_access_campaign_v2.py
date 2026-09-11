@@ -86,7 +86,10 @@ def test_installer_uses_explicit_wsl_owner_and_startup_only() -> None:
     assert "-UserId $WindowsTaskUser -LogonType S4U" in source
     assert "must run as the explicit Windows account" in source
     assert "MultipleInstances IgnoreNew" in source
-    assert "RestartCount 3" in source
+    assert "RestartCount 3" not in source
+    assert "RestartInterval" not in source
+    assert "[int]$registered.Settings.RestartCount -ne 0" in source
+    assert "automatic_restart_count = [int]$registered.Settings.RestartCount" in source
     assert "$trigger.Delay = 'PT60S'" in source
     assert "Disable-ScheduledTask -TaskName 'WSL SSH Bootstrap'" in source
     assert "Legacy WSL SSH Bootstrap task could not be disabled" in source
@@ -188,48 +191,34 @@ def test_bootstrap_failure_is_recorded_once_before_active_without_masking() -> N
     assert "Bootstrap error receipt already exists for this BootId and plan" in source
     assert source.index("$bootstrapStage = 'mutex'") < source.index(receipt_call) < source.index(begin)
     assert source.index("throw $bootstrapError", source.index(receipt_call)) < source.index(begin)
-    harness = HARDENING_TEST.read_text(encoding="utf-8")
-    assert "bootstrap error receipt lost exact error evidence" in harness
-    assert "bootstrap error receipt overwrite protection failed" in harness
 
 def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
     source = HARDENING_TEST.read_text(encoding="utf-8")
-    assert "[Console]::Out.Write('x' * 200000)" in source
-    assert "[Console]::Error.Write('y' * 200000)" in source
+    assert "[Console]::Out.Write(('x' * 200000 -join ''))" in source
+    assert "[Console]::Error.Write(('y' * 200000 -join ''))" in source
     assert "-TimeoutMilliseconds 100" in source
     assert "Bounded process timed out" in source
-    assert "$script:initialWriteCalls -ne 3" in source
-    assert "$script:recoveryCalls -ne 1" in source
-    assert "non-wsl timeout entered recovery" in source
-    assert "exact bounded wsl.exe timeout did not enter one recovery" in source
-    assert "bounded WSL timeout did not produce the single shutdown fallback" in source
-    assert "recovery function boundaries not found" in source
-    assert "duplicate recovery intent accepted" in source
-    assert "$script:taskCalls -lt 3" in source
-    assert "$script:taskCalls -ne 5" in source
-    assert "$script:addressCalls -ne 3" in source
+    assert "one_shot_initial_state" in source
     assert "POWERSHELL_HARDENING_PASS" in source
 
-def test_single_wsl_boot_owner_and_recovery_are_source_bound_before_inspect() -> None:
+def test_single_wsl_boot_owner_is_source_bound_before_inspect() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
     early = "$controllerSourceRoot = Assert-Gx1EarlyControllerIdentity"
     initial = "$initial = Get-Gx1InitialCampaignState"
     begin = "$begin = Invoke-Gx1Json -Arguments @("
     trainer = "Start-Process -FilePath 'wsl.exe'"
     assert "[Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedControllerSha256" in source
-    assert "Global\\GX1RandomAccessCampaignV2WslBootstrap" in source
+    assert r"Global\GX1RandomAccessCampaignV2WslBootstrap" in source
     assert source.index(early) < source.index(initial) < source.index(begin) < source.index(trainer)
     assert "Running campaign controller differs from installer-bound staged identity" in source
-    assert "$exactUnexpectedFailures -ge 2" in source
-    assert "Test-Gx1AuthorizedColdWslFailure -Message $message" in source
-    assert "Test-Gx1ExactBoundedWslTimeout" in source
-    assert "terminate_probe_timed_out" in source
-    assert "New-Gx1WslRecoveryIntent -BootId" in source
-    assert "WSL recovery was already attempted for this BootId, plan, and distro" in source
-    assert "Foreign wsl.exe client exists; recovery refused" in source
-    assert "Dedicated-host distro inventory differs" in source
-    assert "@('--terminate', $Distro)" in source
-    assert "@('--shutdown')" in source
-    assert source.index("@('--terminate', $Distro)") < source.index("@('--shutdown')")
-    assert "gx1_campaign_wsl_recovery_result_v1" in source
-    assert "result_sha256" in source
+    start = source.index("function Get-Gx1InitialCampaignState {")
+    end = source.index("function Wait-Gx1HostTelemetryBridgeV4BootReady {", start)
+    function = source[start:end]
+    assert function.count("Write-Gx1BootIdentity") == 1
+    assert function.count("'inspect'") == 1
+    assert function.count("-WslTimeoutMilliseconds 30000") == 1
+    assert function.count("-TimeoutMilliseconds 30000") == 1
+    for forbidden in ("while (", "Start-Sleep", "continue"):
+        assert forbidden not in function
+    for forbidden in ("Invoke-Gx1WslBootstrapRecovery", "Invoke-Gx1WslControlBounded", "Invoke-Gx1WslRecoveryProbe", "New-Gx1WslRecoveryIntent", "--terminate", "@('--shutdown')"):
+        assert forbidden not in source

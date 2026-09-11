@@ -47,9 +47,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $WindowsTaskUser -LogonType S4U 
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
     -ExecutionTimeLimit (New-TimeSpan -Hours 3) `
-    -MultipleInstances IgnoreNew `
-    -RestartCount 3 `
-    -RestartInterval (New-TimeSpan -Minutes 1)
+    -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 $registered = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 $registeredDelaySeconds = [Xml.XmlConvert]::ToTimeSpan([string]$registered.Triggers[0].Delay).TotalSeconds
@@ -61,6 +59,7 @@ if ($registered.Principal.UserId -cne $WindowsTaskUser -or
     $registeredDelaySeconds -ne 60 -or
     @($registered.Actions).Count -ne 1 -or
     [string]$registered.Actions[0].Arguments -cne $arguments -or
+    [int]$registered.Settings.RestartCount -ne 0 -or
     ($null -ne $legacyWslTask -and [string]$legacyWslTask.State -cne 'Disabled')) {
     throw 'Campaign task single-owner, principal, action, or delayed-trigger verification failed'
 }
@@ -74,6 +73,7 @@ if ($registered.Principal.UserId -cne $WindowsTaskUser -or
     controller_file_sha256 = $controllerSha256
     legacy_wsl_ssh_bootstrap_disabled = ($null -eq $legacyWslTask -or [string]$legacyWslTask.State -ceq 'Disabled')
     boot_trigger_delay = [string]$registered.Triggers[0].Delay
+    automatic_restart_count = [int]$registered.Settings.RestartCount
     observer_path = $observer
     observer_file_sha256 = (Get-FileHash -LiteralPath $observer -Algorithm SHA256).Hash.ToLowerInvariant()
     plan_file_sha256 = $PlanFileSha256

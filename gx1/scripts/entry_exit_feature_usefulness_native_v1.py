@@ -246,12 +246,10 @@ class CompactNativeExitUsefulnessAdapter:
         if (
             not episode["exit_state_valid_mask"].all()
             or not np.all(episode["exit_episode_lengths"] == state_count)
-            or not terminal[:, -1].all()
-            or terminal[:, :-1].any()
-            or np.any(reason[:, :-1] != 0)
-            or np.any(reason[:, -1] != 1)
-            or not valid[..., 1].all()
-            or not np.array_equal(valid[..., 0], ~terminal)
+            or terminal.any()
+            or np.any(reason != 0)
+            or not np.array_equal(valid[..., 1], episode["exit_state_valid_mask"])
+            or not np.array_equal(valid[..., 0], episode["exit_state_valid_mask"])
         ):
             raise RuntimeError("NATIVE_EXIT_USEFULNESS_COMPLETE_EPISODE_REQUIRED")
         self._require_aliases(episode)
@@ -408,6 +406,7 @@ class CompactNativeExitUsefulnessAdapter:
         teacher_episode = {
             **original.model_inputs,
             "exit_now_reward_bps": np.array(episode["exit_now_reward_bps"], copy=True),
+            "unbounded_exit_training_readiness": episode["unbounded_exit_training_readiness"],
         }
         with torch.no_grad():
             (

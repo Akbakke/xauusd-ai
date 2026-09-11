@@ -1094,6 +1094,7 @@ def native_baseline_io(tmp_path, monkeypatch):
             calls.append(("exit_teacher", episode["entry_row_index"]))
             targets = np.broadcast_to(np.array([3, 4], dtype=np.float32), episode["exit_action_valid_mask"].shape).copy()
             valid = episode["exit_action_valid_mask"].copy()
+            valid[..., -1, 0] = False
             equivalent = valid & (targets == np.max(np.where(valid, targets, -np.inf), axis=-1, keepdims=True))
             return native.NativeExitSupervision(
                 q_targets_bps=targets, action_valid_mask=valid, action_equivalence_mask=equivalent,
@@ -1168,6 +1169,9 @@ def test_native_interventions_cover_every_spec_and_publish_no_partial_scope(nati
     report = usefulness_audit.audit_native_feature_usefulness(**fixture.audit_arguments)
     assert require_feature_usefulness_report(report) == report
     assert report["test_rows_read"] is False and report["test_artifacts_read"] == []
+    supervision = report["tasks"]["exit"]["supervision"]
+    assert supervision["terminal_row_count"] == 0
+    assert supervision["single_valid_action_row_count"] == 2 * UNIFIED_EXIT_EPISODE_SIDE_COUNT
     assert fixture.interventions == [
         (entry, donor, spec["physical_id"])
         for entry, donor in ((0, 2), (2, 0)) for spec in fixture.specs["exit"]
@@ -1270,7 +1274,7 @@ def test_native_baseline_keeps_full_entry_population_and_fixed_teacher_bridge(na
     assert (result.arrays["entry_q_bps"].argmax(axis=1) == 2).all()
 
 
-@pytest.mark.parametrize("fault", ["budget", "index", "omitted", "spurious", "clock", "pack_hash", "missing_side", "population", "bridge", "output_dtype"])
+@pytest.mark.parametrize("fault", ["budget", "index", "omitted", "spurious", "clock", "pack_hash", "missing_side", "population", "bridge", "target_mask", "output_dtype"])
 def test_native_baseline_rejects_partial_population_or_changed_inputs(native_baseline_io, monkeypatch, fault):
     fixture = native_baseline_io
     if fault == "budget":
@@ -1292,6 +1296,13 @@ def test_native_baseline_rejects_partial_population_or_changed_inputs(native_bas
         fixture.lifecycle._episode_pointers.pop((0, 1))
     elif fault == "population":
         fixture.lifecycle.state_population_rows -= 1
+    elif fault == "target_mask":
+        original = fixture.adapter.baseline_supervision
+        def wrong_mask(instance, **arguments):
+            supervision = original(instance, **arguments)
+            supervision.action_valid_mask[..., -1, 0] = True
+            return supervision
+        monkeypatch.setattr(fixture.adapter, "baseline_supervision", wrong_mask)
     elif fault == "bridge":
         original = fixture.adapter.baseline_supervision
         def wrong_bridge(instance, **arguments):
@@ -1349,6 +1360,10 @@ def test_native_baseline_real_native_model_and_teacher_bridge_on_synthetic_popul
         expected = adapter.baseline_supervision(episode=episode, target_model=teacher, target_entry_token=target)
         np.testing.assert_array_equal(result.arrays["exit_q_bps"][pair_index], expected_q)
         np.testing.assert_array_equal(result.arrays["exit_targets_bps"][pair_index], expected.q_targets_bps)
+        assert episode["exit_action_valid_mask"].all()
+        assert not expected.action_valid_mask[..., -1, 0].any()
+        assert expected.action_valid_mask[..., :-1, :].all()
+        assert not expected.terminal_mask.any()
         np.testing.assert_array_equal(result.arrays["entry_targets_bps"][entry, :2], expected.entry_first_side_values_bps)
     assert not np.array_equal(result.arrays["online_tokens"], result.arrays["target_tokens"])
     assert canonical_model_state_sha256(model.state_dict()) == result.identity["model_state_sha256"]

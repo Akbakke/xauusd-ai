@@ -370,11 +370,15 @@ def collect_native_usefulness_baseline(
                 seals.append(None)
                 fills.append(None)
                 continue
+            readiness = episode["unbounded_exit_training_readiness"]
             episode = episode_owner.require_unified_exit_episode_pack(
-                episode, per_tf_seq_lens=dataset.per_tf_seq_lens,
+                {key: value for key, value in episode.items()
+                 if key != "unbounded_exit_training_readiness"},
+                per_tf_seq_lens=dataset.per_tf_seq_lens,
                 expected_mtf_cache_identity_sha256=dataset._multi_tf_cache_identity_sha256,
                 context="FEATURE_USEFULNESS_NATIVE_BASELINE",
             )
+            episode["unbounded_exit_training_readiness"] = readiness
             if (
                 episode["entry_row_index"] != entry
                 or episode["lifecycle_state_population_sha256"] != lifecycle.state_population_sha256
@@ -418,8 +422,11 @@ def collect_native_usefulness_baseline(
                 if value.shape != arrays[key][pair_index].shape or value.dtype != arrays[key].dtype:
                     raise RuntimeError("FEATURE_USEFULNESS_NATIVE_BASELINE_OUTPUT_DTYPE_OR_SHAPE_INVALID")
                 arrays[key][pair_index] = value
+            # The final HOLD remains legal but has no observed Bellman successor.
+            expected_target_mask = episode["exit_action_valid_mask"].copy()
+            expected_target_mask[..., -1, 0] = False
             if (
-                not np.array_equal(supervision.action_valid_mask, episode["exit_action_valid_mask"])
+                not np.array_equal(supervision.action_valid_mask, expected_target_mask)
                 or not np.array_equal(supervision.terminal_mask, episode["exit_terminal_mask"])
             ):
                 raise RuntimeError("FEATURE_USEFULNESS_NATIVE_BASELINE_MASK_MISMATCH")
@@ -2026,11 +2033,15 @@ def audit_native_feature_usefulness(
         episode = dataset.materialize_full_exit_episode(entry)
         if episode is None:
             raise RuntimeError("FEATURE_USEFULNESS_NATIVE_EXIT_EPISODE_CHANGED")
+        readiness = episode["unbounded_exit_training_readiness"]
         episode = episode_owner.require_unified_exit_episode_pack(
-            episode, per_tf_seq_lens=dataset.per_tf_seq_lens,
+            {key: value for key, value in episode.items()
+             if key != "unbounded_exit_training_readiness"},
+            per_tf_seq_lens=dataset.per_tf_seq_lens,
             expected_mtf_cache_identity_sha256=dataset._multi_tf_cache_identity_sha256,
             context="FEATURE_USEFULNESS_NATIVE_INTERVENTION",
         )
+        episode["unbounded_exit_training_readiness"] = readiness
         if episode["entry_row_index"] != entry or episode["episode_pack_sha256"] != baseline.episode_pack_sha256[entry]:
             raise RuntimeError("FEATURE_USEFULNESS_NATIVE_EXIT_EPISODE_CHANGED")
         return episode

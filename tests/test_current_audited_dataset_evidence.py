@@ -22,8 +22,35 @@ def _state() -> dict[str, object]:
     return json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
 
 
+def assert_retired_pretest_recipe_rejected(state) -> bool:
+    """A byte-valid v1 recipe cannot become v2 launch authority."""
+    from hashlib import sha256
+    from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
+        REQUIRED_ARTIFACTS, PretestTechnicalRecipeError,
+    )
+    selected = state.get("current_source_technical_recipe")
+    if "current_pretest_trainability_readiness" not in state or selected is None:
+        return False
+    raw = Path(selected["recipe_path"]).read_bytes()
+    assert sha256(raw).hexdigest() == selected["recipe_sha256"]
+    bindings = json.loads(raw)["artifact_bindings"]
+    missing = REQUIRED_ARTIFACTS - set(bindings)
+    if not missing:
+        return False
+    assert missing == {key for key in REQUIRED_ARTIFACTS if "_v2_" in key or key.endswith("_v2")}
+    assert not (set(bindings) - REQUIRED_ARTIFACTS)
+    assert state["decision"] == "BLOCK"
+    assert state["accepted_dataset_dir"] is None
+    assert state["accepted_bundle_dir"] is None
+    with pytest.raises(PretestTechnicalRecipeError, match="artifact bindings are not exact"):
+        require_blocked_launch_state_with_current_audited_dataset(state)
+    return True
+
+
 def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
     state = _state()
+    if assert_retired_pretest_recipe_rejected(state):
+        return
     if "pretraining_review_hold" in state and "current_pretest_trainability_readiness" not in state:
         # V46's immutable PASS report predates entry-notional short returns.
         # Hash integrity must not be mistaken for current semantic validity.

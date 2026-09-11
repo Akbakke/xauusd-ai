@@ -26,6 +26,11 @@ from tests.test_candidate_training_session import (
 class Rows(torch.utils.data.Dataset):
     def __init__(self, count):
         self.count = count
+        self.lifecycle_epoch = None
+
+    def set_unified_exit_lifecycle_v2_epoch(self, epoch_index):
+        assert isinstance(epoch_index, int) and epoch_index >= 0
+        self.lifecycle_epoch = epoch_index
 
     def __len__(self):
         return self.count
@@ -69,6 +74,7 @@ class Harness:
         self.ns["validate"] = self.validate
 
     def train(self, model, teacher, loader, optimizer, device, **kwargs):
+        assert loader.dataset.lifecycle_epoch is not None
         cap = kwargs.get("session_max_optimizer_steps")
         for index, batch in enumerate(loader, 1):
             self.batches.append(batch.tolist())

@@ -20,10 +20,17 @@ function Invoke-Gx1Json {
     ) + $Arguments) -TimeoutMilliseconds $TimeoutMilliseconds
     $lines = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $lines.Count -ne 1) {
-        throw "Random-access campaign command failed: $($result.StdErr.Trim())"
+        throw (Format-Gx1CompletedWslFailure -Context 'Random-access campaign command failed' -Result $result)
     }
-    $value = $lines[0] | ConvertFrom-Json
-    if ($value.ok -ne $true) { throw 'Random-access campaign command returned non-PASS' }
+    try {
+        $value = $lines[0] | ConvertFrom-Json
+    }
+    catch {
+        throw (Format-Gx1CompletedWslFailure -Context 'Random-access campaign command returned invalid JSON' -Result $result)
+    }
+    if ($value.ok -ne $true) {
+        throw (Format-Gx1CompletedWslFailure -Context 'Random-access campaign command returned non-PASS' -Result $result)
+    }
     return $value
 }
 function Convert-Gx1WslPath {
@@ -31,7 +38,7 @@ function Convert-Gx1WslPath {
     $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-w', $LinuxPath) -TimeoutMilliseconds 10000
     $value = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $value.Count -ne 1) {
-        throw "WSL path conversion failed: $($result.StdErr.Trim())"
+        throw (Format-Gx1CompletedWslFailure -Context 'WSL path conversion failed' -Result $result)
     }
     return $value[0]
 }
@@ -78,7 +85,7 @@ function Write-Gx1BootIdentity {
     $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-u', $escapedPathForWsl) -TimeoutMilliseconds $WslTimeoutMilliseconds
     $linux = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $linux.Count -ne 1) {
-        throw "Boot identity path conversion failed: $($result.StdErr.Trim())"
+        throw (Format-Gx1CompletedWslFailure -Context 'Boot identity path conversion failed' -Result $result)
     }
     return [pscustomobject]@{ Windows = $path; Linux = $linux[0]; Payload = $value }
 }
@@ -272,14 +279,14 @@ function Assert-Gx1HostTelemetryBridgeV4 {
     $wslAddresses = @($addressResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($addressResult.ExitCode -ne 0 -or $wslAddresses.Count -ne 1 -or
         -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
-        throw 'Current WSL client address differs from HostTelemetryBridgeV4 configuration'
+        throw (Format-Gx1CompletedWslFailure -Context 'Current WSL client address differs from HostTelemetryBridgeV4 configuration' -Result $addressResult)
     }
     $routeResult = Invoke-Gx1WslBounded -Arguments @('--', '/usr/sbin/ip', '-4', 'route', 'show', 'default') -TimeoutMilliseconds 8000
     $defaultRoutes = @($routeResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($routeResult.ExitCode -ne 0 -or $defaultRoutes.Count -ne 1 -or
         [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
         $Matches[1] -cne $expectedListenAddress) {
-        throw 'Current WSL gateway differs from HostTelemetryBridgeV4 configuration'
+        throw (Format-Gx1CompletedWslFailure -Context 'Current WSL gateway differs from HostTelemetryBridgeV4 configuration' -Result $routeResult)
     }
 
     $firewallRules = @(Get-NetFirewallRule -DisplayName 'GX1HostTelemetryBridge-Wsl-38128' -ErrorAction Stop)
@@ -372,240 +379,24 @@ function Invoke-Gx1WslBounded {
     $allArguments = @('-d', $Distro, '-u', $LinuxUser) + $Arguments
     return Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -ArgumentList $allArguments -TimeoutMilliseconds $TimeoutMilliseconds
 }
-function Test-Gx1ExactWslUnexpected {
-    param([Parameter(Mandatory = $true)][string]$Message)
-    return $Message -cmatch '(^|[^A-Za-z0-9_/])Wsl/Service/E_UNEXPECTED([^A-Za-z0-9_/]|$)'
-}
-function Test-Gx1ExactBoundedWslTimeout {
-    param([Parameter(Mandatory = $true)][string]$Message)
-    $wslPath = [Regex]::Escape((Join-Path $env:WINDIR 'System32\wsl.exe'))
-    return $Message -cmatch ("^Bounded process timed out after [1-9][0-9]*ms: $wslPath$")
-}
-function Test-Gx1AuthorizedColdWslFailure {
-    param([Parameter(Mandatory = $true)][string]$Message)
-    return ((Test-Gx1ExactWslUnexpected -Message $Message) -or
-        (Test-Gx1ExactBoundedWslTimeout -Message $Message))
-}
-function New-Gx1WslRecoveryIntent {
+function Format-Gx1CompletedWslFailure {
     param(
-        [Parameter(Mandatory = $true)][long]$BootId,
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Wsl/Service/E_UNEXPECTED', 'BOUNDED_WSL_EXE_TIMEOUT')]
-        [string]$FailureSignature,
-        [string]$RecoveryRoot = (Join-Path $env:ProgramData 'GX1\RandomAccessCampaignV2\wsl-recovery')
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)][object]$Result
     )
-    New-Item -ItemType Directory -Path $RecoveryRoot -Force | Out-Null
-    if (((Get-Item -LiteralPath $RecoveryRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-        throw 'WSL recovery root must not be a reparse point'
-    }
-    $name = "boot-$BootId-$PlanFileSha256-$Distro.intent.json"
-    $path = Join-Path $RecoveryRoot $name
-    if (Test-Path -LiteralPath $path) {
-        throw 'WSL recovery was already attempted for this BootId, plan, and distro'
-    }
-    $unsigned = [ordered]@{
-        schema_version = 'gx1_campaign_wsl_recovery_intent_v1'
-        boot_id = $BootId
-        plan_file_sha256 = $PlanFileSha256
-        distro = $Distro
-        expected_controller_sha256 = $ExpectedControllerSha256
-        requested_utc = [DateTimeOffset]::UtcNow.ToString('o')
-        exact_failure = $FailureSignature
-        maximum_attempts_this_boot = 1
-    }
-    $canonical = $unsigned | ConvertTo-Json -Depth 8 -Compress
-    $value = [ordered]@{}
-    foreach ($entry in $unsigned.GetEnumerator()) { $value[$entry.Key] = $entry.Value }
-    $value['intent_sha256'] = Get-Gx1StringSha256 -Value $canonical
-    Write-Gx1AtomicJson -Path $path -Value $value
-    return [pscustomobject]@{ Path = $path; Value = $value }
-}
-function Write-Gx1WslRecoveryResult {
-    param(
-        [Parameter(Mandatory = $true)][string]$IntentPath,
-        [Parameter(Mandatory = $true)][object]$Value
-    )
-    $path = $IntentPath.Replace('.intent.json', '.result.json')
-    if ($path -ceq $IntentPath -or (Test-Path -LiteralPath $path)) {
-        throw 'WSL recovery result path is invalid or already exists'
-    }
-    $unsigned = [ordered]@{}
-    foreach ($property in $Value.GetEnumerator()) { $unsigned[$property.Key] = $property.Value }
-    $sealed = [ordered]@{}
-    foreach ($property in $unsigned.GetEnumerator()) { $sealed[$property.Key] = $property.Value }
-    $sealed['result_sha256'] = Get-Gx1StringSha256 -Value ($unsigned | ConvertTo-Json -Depth 8 -Compress)
-    Write-Gx1AtomicJson -Path $path -Value $sealed
-}
-function Assert-Gx1ExclusiveWslRecoveryScope {
-    if ($Distro -cne 'Ubuntu-22.04') {
-        throw 'Global WSL recovery is authorized only for the dedicated Ubuntu-22.04 host'
-    }
-    $clients = @(Get-CimInstance Win32_Process -Filter "Name = 'wsl.exe'" -ErrorAction Stop)
-    if ($clients.Count -ne 0) { throw 'Foreign wsl.exe client exists; recovery refused' }
-    $lxssRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss'
-    $distros = @(
-        Get-ChildItem -LiteralPath $lxssRoot -ErrorAction Stop | ForEach-Object {
-            [string](Get-ItemProperty -LiteralPath $_.PSPath -Name DistributionName -ErrorAction Stop).DistributionName
-        }
-    )
-    if ($distros.Count -ne 1 -or $distros[0] -cne $Distro) {
-        throw 'Dedicated-host distro inventory differs; global WSL recovery refused'
-    }
-    $legacy = Get-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction SilentlyContinue
-    if ($null -ne $legacy -and [string]$legacy.State -cne 'Disabled') {
-        throw 'Legacy WSL SSH Bootstrap task is not disabled'
-    }
-    $oldPilot = Get-ScheduledTask -TaskName 'GX1LifecycleV2PilotResume' -ErrorAction SilentlyContinue
-    if ($null -ne $oldPilot -and [string]$oldPilot.State -cne 'Disabled') {
-        throw 'Unexpected legacy GX1 WSL controller task is enabled'
-    }
-}
-function Invoke-Gx1WslControlBounded {
-    param(
-        [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [ValidateRange(1, 15000)][int]$TimeoutMilliseconds = 10000
-    )
-    return Invoke-Gx1NativeProcessBounded `
-        -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') `
-        -ArgumentList $Arguments `
-        -TimeoutMilliseconds $TimeoutMilliseconds
-}
-function Invoke-Gx1WslRecoveryProbe {
-    return Invoke-Gx1WslBounded -Arguments @('--', '/bin/true') -TimeoutMilliseconds 10000
-}
-function Invoke-Gx1WslBootstrapRecovery {
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Wsl/Service/E_UNEXPECTED', 'BOUNDED_WSL_EXE_TIMEOUT')]
-        [string]$FailureSignature
-    )
-    $bootPath = Join-Path $env:ProgramData 'GX1\RandomAccessCampaignV2\CURRENT_BOOT.json'
-    if (-not (Test-Path -LiteralPath $bootPath -PathType Leaf)) {
-        throw 'Current Windows boot identity is unavailable for WSL recovery'
-    }
-    $boot = Get-Content -LiteralPath $bootPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($boot.schema_version -cne 'gx1_windows_boot_identity_v1' -or [long]$boot.boot_id -lt 0) {
-        throw 'Current Windows boot identity is invalid for WSL recovery'
-    }
-    Assert-Gx1ExclusiveWslRecoveryScope
-    $intent = New-Gx1WslRecoveryIntent -BootId ([long]$boot.boot_id) -FailureSignature $FailureSignature
-    $result = [ordered]@{
-        schema_version = 'gx1_campaign_wsl_recovery_result_v1'
-        intent_sha256 = [string]$intent.Value.intent_sha256
-        boot_id = [long]$boot.boot_id
-        plan_file_sha256 = $PlanFileSha256
-        distro = $Distro
-        failure_signature = $FailureSignature
-        terminate_exit_code = $null
-        terminate_timed_out = $false
-        terminate_probe_exit_code = $null
-        terminate_probe_timed_out = $false
-        shutdown_attempted = $false
-        shutdown_exit_code = $null
-        shutdown_timed_out = $false
-        final_probe_exit_code = $null
-        final_probe_timed_out = $false
-        outcome = 'FAILED'
-        observed_utc = $null
-    }
-    try {
-        try {
-            $terminated = Invoke-Gx1WslControlBounded -Arguments @('--terminate', $Distro)
-            $result.terminate_exit_code = [int]$terminated.ExitCode
-        } catch {
-            if (-not (Test-Gx1ExactBoundedWslTimeout -Message $_.Exception.Message)) { throw }
-            $result.terminate_timed_out = $true
-        }
-        Start-Sleep -Seconds 3
-        $probe = $null
-        try {
-            $probe = Invoke-Gx1WslRecoveryProbe
-            $result.terminate_probe_exit_code = [int]$probe.ExitCode
-        } catch {
-            if (-not (Test-Gx1ExactBoundedWslTimeout -Message $_.Exception.Message)) { throw }
-            $result.terminate_probe_timed_out = $true
-        }
-        $probeRequiresShutdown = $result.terminate_probe_timed_out
-        if ($null -ne $probe -and $probe.ExitCode -ne 0) {
-            if (-not (Test-Gx1ExactWslUnexpected -Message ([string]$probe.StdErr))) {
-                throw 'Distro recovery probe failed with a non-authorized error'
-            }
-            $probeRequiresShutdown = $true
-        }
-        if ($probeRequiresShutdown) {
-            $result.shutdown_attempted = $true
-            try {
-                $shutdown = Invoke-Gx1WslControlBounded -Arguments @('--shutdown')
-                $result.shutdown_exit_code = [int]$shutdown.ExitCode
-            } catch {
-                if (Test-Gx1ExactBoundedWslTimeout -Message $_.Exception.Message) {
-                    $result.shutdown_timed_out = $true
-                    throw 'Bounded global WSL shutdown timed out'
-                }
-                throw
-            }
-            if ($shutdown.ExitCode -ne 0) { throw 'Bounded global WSL shutdown failed' }
-            Start-Sleep -Seconds 3
-            try {
-                $probe = Invoke-Gx1WslRecoveryProbe
-            } catch {
-                if (Test-Gx1ExactBoundedWslTimeout -Message $_.Exception.Message) {
-                    $result.final_probe_timed_out = $true
-                    throw 'Final WSL recovery probe timed out'
-                }
-                throw
-            }
-        }
-        $result.final_probe_exit_code = [int]$probe.ExitCode
-        if ($probe.ExitCode -ne 0) { throw 'WSL did not recover after the single bounded reset' }
-        $result.outcome = 'PASS_RECOVERED'
-    } finally {
-        $result.observed_utc = [DateTimeOffset]::UtcNow.ToString('o')
-        Write-Gx1WslRecoveryResult -IntentPath $intent.Path -Value $result
-    }
+    return ("{0}; exit_code={1}; stdout={2}; stderr={3}" -f
+        $Context, [int]$Result.ExitCode, [string]$Result.StdOut, [string]$Result.StdErr)
 }
 function Get-Gx1InitialCampaignState {
-    # The only authorized repair is two exact persistent cold-bootstrap signatures.
-    # Every other error fails immediately, before inspect, ACTIVE, or CUDA.
-    $deadlineMilliseconds = 60000
-    $nativeCallLimitMilliseconds = 8000
-    $clock = [Diagnostics.Stopwatch]::StartNew()
-    $exactUnexpectedFailures = 0
-    $recoveryAttempted = $false
-    while ($clock.ElapsedMilliseconds -lt $deadlineMilliseconds) {
-        try {
-            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
-            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
-            $boot = Write-Gx1BootIdentity -WslTimeoutMilliseconds $callLimit
-            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
-            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
-            $status = Invoke-Gx1Json -Arguments @(
-                'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
-                '--boot-json', $boot.Linux
-            ) -TimeoutMilliseconds $callLimit
-            return [pscustomobject]@{ Boot = $boot; Status = $status }
-        } catch {
-            $message = $_.Exception.Message
-            if (-not (Test-Gx1AuthorizedColdWslFailure -Message $message)) {
-                throw "Initial campaign state failed without authorized WSL recovery signature: $message"
-            }
-            $failureSignature = if (Test-Gx1ExactWslUnexpected -Message $message) {
-                'Wsl/Service/E_UNEXPECTED'
-            } else {
-                'BOUNDED_WSL_EXE_TIMEOUT'
-            }
-            $exactUnexpectedFailures++
-            if ($exactUnexpectedFailures -ge 2) {
-                if ($recoveryAttempted) { throw 'WSL remained unavailable after its single recovery attempt' }
-                $recoveryAttempted = $true
-                Invoke-Gx1WslBootstrapRecovery -FailureSignature $failureSignature
-                continue
-            }
-        }
-        $remaining = [int]($deadlineMilliseconds - $clock.ElapsedMilliseconds)
-        if ($remaining -gt 0) { Start-Sleep -Milliseconds ([int][Math]::Min(2000, $remaining)) }
-    }
-    throw 'Initial cold-WSL campaign inspection exhausted its monotonic budget'
+    # Boot 359 probe evidence shows that a healthy cold /bin/true can take 14.070 s.
+    # Make one bounded boot-identity conversion and one bounded inspect call.
+    # This function never resets, terminates, shuts down, or retries WSL.
+    $boot = Write-Gx1BootIdentity -WslTimeoutMilliseconds 30000
+    $status = Invoke-Gx1Json -Arguments @(
+        'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
+        '--boot-json', $boot.Linux
+    ) -TimeoutMilliseconds 30000
+    return [pscustomobject]@{ Boot = $boot; Status = $status }
 }
 function Wait-Gx1HostTelemetryBridgeV4BootReady {
     # The telemetry service and campaign controller are independent boot tasks.
@@ -634,7 +425,7 @@ function Wait-Gx1HostTelemetryBridgeV4BootReady {
             $wslAddresses = @($addressResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
             if ($addressResult.ExitCode -ne 0 -or $wslAddresses.Count -ne 1 -or
                 -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
-                throw "WSL client address is not ready: $($addressResult.StdErr.Trim())"
+                throw (Format-Gx1CompletedWslFailure -Context 'WSL client address is not ready' -Result $addressResult)
             }
             $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
             $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
@@ -643,7 +434,7 @@ function Wait-Gx1HostTelemetryBridgeV4BootReady {
             if ($routeResult.ExitCode -ne 0 -or $defaultRoutes.Count -ne 1 -or
                 [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
                 $Matches[1] -cne $expectedListenAddress) {
-                throw "WSL gateway is not ready: $($routeResult.StdErr.Trim())"
+                throw (Format-Gx1CompletedWslFailure -Context 'WSL gateway is not ready' -Result $routeResult)
             }
             return
         } catch {
@@ -683,7 +474,7 @@ function Confirm-Gx1SignedHostTelemetryReady {
     if ($queryHashResult.ExitCode -ne 0 -or $queryHashOutput.Count -ne 1 -or
         [string]$queryHashOutput[0] -notmatch '^([0-9a-f]{64})  ' -or
         $Matches[1] -cne $bridge.QuerySha256) {
-        throw 'Canonical host telemetry query no longer matches the inspected source binding'
+        throw (Format-Gx1CompletedWslFailure -Context 'Canonical host telemetry query no longer matches the inspected source binding' -Result $queryHashResult)
     }
     foreach ($attempt in 1..12) {
         $probeResult = Invoke-Gx1WslBounded -Arguments @(
@@ -698,7 +489,7 @@ function Confirm-Gx1SignedHostTelemetryReady {
         }
         if ($attempt -lt 12) { Start-Sleep -Seconds 2 }
     }
-    throw 'Canonical signed HostTelemetryBridgeV4 readiness probe failed after bounded retry'
+    throw (Format-Gx1CompletedWslFailure -Context 'Canonical signed HostTelemetryBridgeV4 readiness probe failed after bounded retry' -Result $probeResult)
 }
 function Request-Gx1PhysicalReboot {
     param([object]$Boot)

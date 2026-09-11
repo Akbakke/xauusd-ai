@@ -133,6 +133,14 @@ def materialize_pretest_technical_recipe(
     train_sequence_source_reconstruction: Path,
     val_sequence_source_reconstruction: Path,
     unified_exit_lifecycle_manifest: Path,
+    unified_exit_lifecycle_v2_root_manifest: Path,
+    train_unified_exit_lifecycle_v2_parquet: Path,
+    train_unified_exit_lifecycle_v2_manifest: Path,
+    val_unified_exit_lifecycle_v2_parquet: Path,
+    val_unified_exit_lifecycle_v2_manifest: Path,
+    unified_exit_v2_economics_readiness: Path,
+    train_unified_exit_v2_cost_authority: Path,
+    val_unified_exit_v2_cost_authority: Path,
     m5_prebuilt: Path,
     multi_tf_cache_manifest: Path,
     trainer_cli: Mapping[str, Any],
@@ -166,6 +174,14 @@ def materialize_pretest_technical_recipe(
         "train_sequence_source_reconstruction": train_sequence_source_reconstruction,
         "val_sequence_source_reconstruction": val_sequence_source_reconstruction,
         "unified_exit_lifecycle_manifest": unified_exit_lifecycle_manifest,
+        "unified_exit_lifecycle_v2_root_manifest": unified_exit_lifecycle_v2_root_manifest,
+        "train_unified_exit_lifecycle_v2_parquet": train_unified_exit_lifecycle_v2_parquet,
+        "train_unified_exit_lifecycle_v2_manifest": train_unified_exit_lifecycle_v2_manifest,
+        "val_unified_exit_lifecycle_v2_parquet": val_unified_exit_lifecycle_v2_parquet,
+        "val_unified_exit_lifecycle_v2_manifest": val_unified_exit_lifecycle_v2_manifest,
+        "unified_exit_v2_economics_readiness": unified_exit_v2_economics_readiness,
+        "train_unified_exit_v2_cost_authority": train_unified_exit_v2_cost_authority,
+        "val_unified_exit_v2_cost_authority": val_unified_exit_v2_cost_authority,
         "m5_prebuilt": m5_prebuilt,
         "multi_tf_cache_manifest": multi_tf_cache_manifest,
     }
@@ -317,6 +333,30 @@ def main() -> None:
         train_sequence_source_reconstruction=Path(args.train_sequence_source_reconstruction),
         val_sequence_source_reconstruction=Path(args.val_sequence_source_reconstruction),
         unified_exit_lifecycle_manifest=Path(args.unified_exit_lifecycle_manifest),
+        unified_exit_lifecycle_v2_root_manifest=Path(
+            args.unified_exit_lifecycle_v2_root_manifest
+        ),
+        train_unified_exit_lifecycle_v2_parquet=Path(
+            args.train_unified_exit_lifecycle_v2_parquet
+        ),
+        train_unified_exit_lifecycle_v2_manifest=Path(
+            args.train_unified_exit_lifecycle_v2_manifest
+        ),
+        val_unified_exit_lifecycle_v2_parquet=Path(
+            args.val_unified_exit_lifecycle_v2_parquet
+        ),
+        val_unified_exit_lifecycle_v2_manifest=Path(
+            args.val_unified_exit_lifecycle_v2_manifest
+        ),
+        unified_exit_v2_economics_readiness=Path(
+            args.unified_exit_v2_economics_readiness
+        ),
+        train_unified_exit_v2_cost_authority=Path(
+            args.train_unified_exit_v2_cost_authority
+        ),
+        val_unified_exit_v2_cost_authority=Path(
+            args.val_unified_exit_v2_cost_authority
+        ),
         m5_prebuilt=Path(args.m5_prebuilt),
         multi_tf_cache_manifest=Path(args.multi_tf_cache_manifest),
         trainer_cli=trainer_cli,

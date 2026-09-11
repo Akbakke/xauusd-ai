@@ -1,304 +1,64 @@
+<!-- GX1_DOCUMENT_CLASS: CANONICAL | stable lifecycle-v2 system map -->
 # GX1 system map
 
-Current boundary, 2026-09-08: the one authorized source-current 32-row CUDA
-smoke completed successfully on the local GX1 RTX 3090 through canonical 160 W
-guards. It is technical runtime evidence only. Both original and successor
-candidate sessions are preserved and the review hold is restored. No candidate
-continuation, another smoke, VAL, TEST, candidate acceptance, paper/live or
-external spend is authorized.
+This file is the stable map of the GX1 Entry Transformer V10 system. Runtime
+facts belong in `CURRENT_HANDOVER.md`; immutable hashes belong in a generated
+handover bundle.
 
-Windows host safety additionally runs the `GX1GpuPowerLimit` SYSTEM task from
-`scripts/windows/GX1-GpuPowerAndIdleGuard.ps1`. It binds the RTX 3090 UUID and
-PnP instance, detects sustained low-memory/zero-load high-power idle, restarts
-only that device, restores 160 W and verifies normal idle before signed
-telemetry returns. An unresolved recovery stops signed telemetry so canonical
-CUDA fails closed. Implementation commit: `2a8ca13a`.
+## Authority order
 
-This file maps architecture; it is not runtime authority. Read
-[docs/CURRENT_HANDOFF_20260903.md](docs/CURRENT_HANDOFF_20260903.md) and run
-`bash scripts/gx1_handover.sh`. Exact post-commit recipe, migration, parity and
-transfer identities are immutable external evidence beneath
-`SOURCE_STATE_SUCCESSOR_20260907T213749Z`, not values copied into prose.
+1. A reviewed `gx1_handover_bundle_v1` generated from the exact host state.
+2. `CURRENT_HANDOVER.md`, updated from the latest signed/read-only snapshot.
+3. Clean lifecycle-v2 source commit and its immutable authority manifests.
+4. Historical reports listed below. They describe what happened, but cannot
+   authorize a new run.
 
-The older V4/V5 status below is retained as historical architecture context.
+TEST remains sealed. Nothing in this map grants training, reboot, task-enable,
+CUDA, promotion, live trading or cloud-spend authority.
 
-> **Operational checkpoint, 2026-08-30:** the map below remains the intended
-> M5 Entry / M1 Exit architecture.  Its technical checkpoint bundle now has
-> exact clean-CPU reload parity, but that is not a trained candidate or market
-> result.  The VAL-only journal is a label-plumbing diagnostic, not a backtest.
-> Candidate CUDA has reached partial TRAIN checkpoint 640 and passed a
-> fresh-process resume canary, but external compute, TEST and all broker routes
-> remain blocked pending a completed candidate and the evidence described in
-> the current audit. The current
-> source binds Exit input/trajectory evidence to the selected model and its
-> VAL/cache/lifecycle lineage; Entry gate failures cannot use a provisional
-> escape hatch.
+## System components
 
-## Current feature architecture
+| Component | Canonical responsibility | Required authority/evidence |
+|---|---|---|
+| Source | Lifecycle-v2 code and contracts | clean repo path, branch and commit |
+| Data | PRETEST TRAIN/VAL M1, MTF caches and Entry windows | data authority/manifest with exact file hashes and split limits |
+| Model | Entry V10 plus unbounded Exit model | model/contract authority bound to source and feature order |
+| Entry | Uses 480 local M1 rows at the first Exit state: 479 prior closed bars plus current post-fill bar | first-state witness and causal gather bindings |
+| Exit lifecycle | HOLD/EXIT_NOW only for open trades; no 512-bar forced exit | lifecycle-v2/index/closure authorities |
+| Exit memory | 1..512 post-entry rows as a rolling detail tail; lifetime may continue to the split end | random-access state-view and lifetime-summary contracts |
+| Features | 238 local signals, 71 continuous context fields, one categorical context field, 176 fields per MTF lane, eight feature families | exact registries, normalization and M5/M15/H1/H4/D1 gather hashes |
+| Economics | Side-correct executable PnL, cost policy, financing, closure-aware elapsed-time discount | frozen economics facts/policy and source receipts |
+| Sampling | Outcome-blind bounded random-access transitions from the full holding-time tail | selected sampler receipt and schedule SHA |
+| Training | Fixed-step TRAIN windows, target/online/optimizer/EMA/RNG resume | launch manifest, checkpoint pointer and equivalence receipts |
+| Campaign | Fresh physical Windows boot before each heavy invocation; atomic progress and receipts | campaign plan, task/boot evidence and controller hash |
+| Safety | Signed guard is the safety owner; sidecar status is observational | guard receipt/log plus process and GPU safety snapshots |
+| Validation | Full 5,508 Entry cohort, both sides, learned Exit on open trades only | final TRAIN authority, full-VAL campaign and rollout cursor receipts |
 
-```text
-OANDA XAU_USD complete MBA candles
-  M5 native source --------------------------+
-  M1 native source ----+                     |
-                       v                     v
-             same 8 feature owners, run independently
-                 M1 values              M5 values
-          + M5/M15/H1/H4/D1      + M15/H1/H4/D1
-                       |                     |
-                       +-- exact contract ----+
-                                  |
-              TRAIN-only ranking + normalization
-                                  |
-        signal + continuous ctx + categorical ctx (widths: run the owner)
-                                  |
-                    shared specialist encoder
-                       /                     \
-        Entry M5 (96 bars)             Exit M1 (480 bars)
-        LONG/SHORT/FLAT                 HOLD/EXIT_NOW
-                       \                     /
-                        same committed bundle
-```
+## Current host boundary
 
-The eight owners are:
+The post-reboot snapshot binds BootId 359, boot time
+`2026-09-11T10:39:11.5000000Z`, and a successful one-shot probe at
+`2026-09-11T10:40:24.7603135Z`. Ubuntu `/bin/true` needed 14,070 ms on the first
+cold call; the following exact `wslpath` call needed 71 ms. `WSLService`,
+`vmcompute` and `hns` were running.
 
-1. structure/swing;
-2. SMC/liquidity;
-3. trend/EMA;
-4. volatility/compression;
-5. momentum/flow;
-6. session/regime;
-7. chart geometry;
-8. price action/candles.
+This identifies the immediate launch defect: the prior 8–10 second first-call
+budget was shorter than a healthy observed 14.07-second cold start. The narrow
+repair is one bounded 30-second allowance for the first cold WSL call, with no
+retry, terminate, shutdown or reset. The campaign remains disabled until its
+installed task has zero automatic retries and the source-bound controller is verified.
 
-Entry has local M5 evidence and closed M15/H1/H4/D1 context. Exit has local M1
-evidence and closed M5/M15/H1/H4/D1 context. OHLCV is closed and aligned before
-the same owners compute each timeframe; finished M1 features are never rolled
-up. Relevance is learned, with no handwritten confluence vote or TF weight.
+## Document disposition
 
-Every MTF lane has `MULTI_TF_FEATURE_COUNT_V4` ordered fields. The volume owner computes
-`vol_z_20`, `vol_ratio_5_20` and `vol_pct_96` independently on every closed
-timeframe after OHLCV resampling with tick volume summed. The 96-bar Entry
-slice is computed from 191 native M5 rows and the 480-bar Exit slice from 575
-native M1 rows: both include the required 95-row volume prefix and neither is
-zero padded.
-
-The five-field volatility-squeeze state uses the same owner independently on
-local M1/M5 and every native MTF clock. One immutable six-clock manifest binds
-the separate TRAIN-only parameters, source/pair/split/tape lineage, exact bar
-grids and file/payload hashes; there is no default or cross-clock reuse.
-
-The MTF matrix, cache manifest and full-input liveness contracts bind the single
-UTC trading-session clock (their schema versions are printed by
-`bash scripts/gx1_handover.sh`, never restated here). Its H4 bins open on 22/02/06/10/14/18 UTC and D1 opens
-at 22:00 UTC, so the retired H4 00/04/... and calendar-midnight D1 axes cannot
-pass as current cache identity.
-
-The signal surface is a frozen base block + the mandatory causal families + the
-complete code-owned candidate remainder. **The widths are not restated here**
-(rule 4/13): the counts this paragraph used to carry were stale by 88 fields
-within two days. Read them from the owner:
-`gx1/contracts/entry_model_native_signal_v1.py` —
-`MODEL_NATIVE_SIGNAL_DIM`, `MODEL_NATIVE_BASE_SIGNAL_DIM`,
-`MODEL_NATIVE_MANDATORY_SELECTED_FIELDS`,
-`MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS`,
-`MODEL_NATIVE_MANDATORY_FAMILY_FEATURES`. The runnable one-liner is in
-`HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`.
-
-Signal binds the same exact causal candle geometry/relation/carry owner locally
-and on every TF; its width derives from
-`gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES`. The retained six-field
-local SMC addition exposes displacement, sided sweep depth, one-shot sweep
-events and event age as raw evidence rather than a direction score.
-
-Exact counts and order derive from `MODEL_NATIVE_SPECIALIST_LAYER_FEATURES`;
-there is no second hand-maintained schema. Every active emitted owner field is
-available to the learned model; no fixed top-k/ranker has selection authority.
-The historically named V29 addition introduced the retained level
-registry
-(`gx1/features/level_registry_v1.py`: level identity, touch counts, ages,
-signed reaction history, break/retest events, round numbers) and a trendline
-registry (`gx1/features/trendline_registry_v1.py`: two-point sloped lines,
-≥3-touch validation, channels), plus per-timeframe EMA-cross, RSI-threshold,
-divergence, regime-flip and swing-break event primitives on all five
-timeframes. The per-TF width is derived from `MULTI_TF_PER_BAR_FEATURES_V4`. Registry tolerances are TRAIN-fitted
-by immutable chronological inner-TRAIN competing-risk selection (no quantile
-or window recipe input exists) on the declared TRAIN window — an ordered
-`declared_train_window_start`/`declared_train_window_end` pair, both required
-and both re-checked against the chain's own `--train-start` /
-`--registry-fit-train-end` by exact timestamp equality once each lane
-publishes — and frozen into the
-hash-bound build manifests (M5 lanes: V4 cache manifest; Exit M1 lane: the
-M1-enriched manifest) with exact fit-source provenance, including a
-hash-bound `pair_manifest_artifact`/`pair_manifest_sha256` pointer to the
-generation the fit read; consumers fail closed without them. The level registry's post-fit runtime-population shadow uses the
-same state machine as serving and is only a nonempty-support/provenance gate,
-not a duplicate registry or a shadow/live execution route.
-
-The declared TRAIN window is a chain invocation value, not a code default; the
-current one and its derivation are in `docs/TRAIN_WINDOW_WIDENING_20260819.md`.
-`--history-start` must cover the widest per-TF receptive field
-(`PRODUCTION_MTF_PER_TF_WINDOW_BARS`, the D1 lane) in real closed D1 bars, and
-the chain fails closed otherwise. Forward label purging at a split boundary
-needs no owner of its own: the builder rebuilds each split with its own
-computation end, so the direction/path horizon truncation, the auxiliary
-union-completeness mask and the Exit lifecycle `crosses_split_end` guard all
-bite at every window end. There is no backward embargo and none is required —
-feature lookback is causal and is what serving does.
-
-The immutable M5 surface is Entry's sole signal/context input authority. It is
-loaded once and exposed to TRAIN/VAL/TEST as exact contiguous timestamp views,
-so no split rebuilds the specialist stack. The M1 surface is Exit's matching
-native-resolution authority; neither surface can substitute for the other.
-
-## Data and lifecycle
-
-The M1 and M5 sources are one immutable generation pair. Dataset splits share
-the same run ID and boundaries. Entry and Exit share TRAIN normalization and
-the exact ordered signal-manifest identity, while their computed values remain
-native to each clock. Exit episodes point into the hash-bound M1 surface; they
-do not duplicate paths or deterministic 512-state vectors. The compact episode
-envelope stores scalar pointers; validation reconstructs every state from the
-same immutable M1 clock and verifies its population stream.
-
-Exit supervision has no caller-selected lookahead and **no fitted horizon at
-all**. Every one of the 512 states of every episode is supervised by
-`gx1/contracts/unified_exit_fitted_q_v1.py`: HOLD bootstraps from a frozen
-TRAIN target-network snapshot at the next causal state, EXIT_NOW terminates at
-the current executable quote. There is no discount, margin, indifference band
-or lookahead window (`unified_exit_optimal_stopping_v1` docstring), and the
-pathwise hindsight optimum in that owner is explicitly never a training target.
-Until 2026-08-19 this paragraph described a `gx1_unified_exit_target_policy_v1`
-with a TRAIN-median-spread indifference band and a 1..512 discovery-curve knee;
-no such owner has ever existed in source, and
-`tests/test_entry_v10_outcome_targets.py` asserts its absence in the builder.
-
-The current published source authority is resolved from
-`PROJECT_STATE_xau_direction_launch.json`; this map deliberately restates no
-generation ID. One rank artifact is fit from its canonical M5 market fields;
-the final model source must prove exact
-market identity through TRAIN before either ranking or dataset construction.
-
-The Exit row clock is consecutive authoritative observed M1 rows. Weekend and
-market-closure gaps are allowed only when the native OANDA manifest proves
-source absence; no synthetic candle is inserted. A lifecycle episode has 480
-feature rows and 512 supervised path states. Runtime/replay retains the latest
-512 detailed path rows but carries all-time elapsed age and an incremental hash
-over every prior row, so 512 is not a forced trade-duration limit.
-
-Direction labels are future-outcome supervision, not live rules. **The horizon
-is not a constant and is not restated here**: it is TRAIN-fitted per build by
-the maximum-chord knee of the cumulative material-profit discovery curve over
-candidates 1..`ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS`
-(`gx1/contracts/entry_direction_target_policy_v1.py`), and each build freezes
-it into its own `DATASET_BUILD_PROOF.json` as
-`diagnostic_outcome_horizon_bars`. This paragraph claimed a fixed 24 M5 bars
-until 2026-08-19; there is no 24 in the owner. The horizon is always M5 bars —
-any M1 reconstruction resolves those M5 buckets first and may never count M1
-rows as M5 bars.
-
-## Model-native decision path
-
-```text
-all shared evidence -> encoder -> entry_action_q_bps (expected return, bps)
-                                   |
-                       unique argmax or failure
-                         LONG / SHORT / FLAT
-
-learned Entry-decision token + M1 features + five-TF context + path
-                                   -> unified_exit_action q (bps)
-                                           |
-                               unique argmax or failure
-                                  HOLD / EXIT_NOW
-```
-
-Auxiliary, utility, path-quality and sizing heads train the representation and
-produce evidence. They cannot vote, veto, threshold or replace the direction
-argmax. Sizing cannot create an order when direction is FLAT or invalid.
-Its target is an exact selected-side path-quality ECDF fitted on TRAIN
-tradable rows; only explicitly masked rows train the size head, VAL/TEST use
-the frozen ECDF, and the size output has no direction authority.
-The Entry-decision token is a learned projection of the exact ordered six-block
-pre-argmax decision source, whose block names and widths are owned by
-`gx1/contracts/entry_decision_token_v1.py` and are not restated here; the last
-block is `entry_action_q_bps`, not a logit vector.
-It is frozen once at fill as exact little-endian float32 bytes. Every Exit result additionally binds the exact M1
-and five-TF tensor bytes, their clocks/cache identity, side, quotes, path and
-trade identity in one persisted full-input envelope.
-
-Lifecycle state construction is independent of HOLD/EXIT_NOW target labels.
-Canonical candidate training uses the full TRAIN population and valid action
-cells from both long/short trajectories, including target ties. Each epoch's
-selection uses full VAL and its complete Exit trajectory evidence. The selected
-online and frozen target states must match that evidence before bundle
-publication. A subsampled smoke cannot establish candidate qualification.
-
-Technical liveness requires finite, positive, state-varying routes through all
-eight specialists and the required training-connectivity evidence. Every family
-need not become the largest softmax weight. Routing liveness and a top-rank
-histogram do not prove predictive or economic value.
-
-The five handwritten regime composites, the handcrafted `tf_agreement`
-auxiliary objective/head and `signed_vol_z_20` are absent from the active
-surface. Raw per-TF regime/EMA/trend-age/D1-distance evidence, genuine change
-events, local return and the three unsigned volume primitives remain available
-for learned fusion.
-
-The objective and recipe owners
-(`gx1/contracts/entry_model_native_training_objective_v1.py`,
-`gx1/contracts/entry_model_native_train_recipe_v1.py`) own their schema
-versions, keys and flags; execute them, nothing is restated here (rule 13).
-Proven from source 2026-08-19: the sole decision loss is masked raw-bps MSE on
-fitted-Q for Entry and Exit, task weights are learned by trainable
-homoscedastic log-variance, and no cross-entropy holds decision authority — one
-masked BCE survives on the `trendline_event` auxiliary head. The retired
-"objective v6 / 46-key recipe-v5 / unweighted CE / pending Wave C" description
-matched nothing in source. Whether every static magnitude in the trainer is
-gone is **not examined**.
-
-The TRAIN-fit squeeze owner is implemented and six per-clock artifacts have
-been fitted and admitted; several such sets now exist on disk with different
-`contract_sha256`, so the current binding is read from a run's V4 cache
-manifest and is not named here. The current V46 data chain completed its
-feature/cache/lifecycle/liveness gates on its own bound artifacts. Fit and
-serve share one causal forward-filter decoder; a second decoder is what made
-the 2026-08-15 artifacts absorbing. This is data-level evidence only: Exit
-remains a closed-M1 system, and no model, OOS result or trading claim exists.
-
-## Evidence sequence
-
-```text
-source pair
- -> feature/cache/liveness proofs
- -> lifecycle + split manifests
- -> smoke recipe and smoke bundle audit
- -> full candidate
- -> immutable calibration
- -> untouched TEST selective-edge report
- -> same-candidate unified Entry/Exit replay
- -> recomputable sizing/serve parity evidence
-```
-
-Failure at any required arrow stops the chain. Historical V28/V29J datasets
-were retired with their superseded feature contracts and have no training or
-comparison authority; V39/V40 are also historical. V46 and the later five-year
-TRAIN/VAL preparation are audited research evidence, not admitted production
-data or models. Technical bundles and VAL prediction artifacts exist; the
-five-year candidate has started with durable checkpoints, not completed or
-accepted, and TEST remains sealed.
-
-The 2026-09-04 smoke audit failed only its strict specialist top-rank quality
-heuristic; its technical contract supported an immutable candidate gate.
-That gate is historical evidence after the 2026-09-05 source and short-return
-contract repairs. The corrected target/policy/audit rebuild, both new recipes
-and CPU readiness are complete. The exact successor smoke and full VAL pass
-have also completed and supported the new technical candidate gate. The
-operator-authorized candidate has started. Do not repeat those prerequisites
-or substitute the historical gate; retain the exact current recipe/session
-through every fresh guarded preflight. CPU readiness alone never grants CUDA.
-No trading-edge, candidate acceptance or production claim follows.
-
-## Scope boundary
-
-The active checkout ends at offline train/OOS/replay. Historical live, paper,
-collector, launch and adaptation modules are quarantined and not exposed by the
-control surface. They are not evidence and cannot authorize operation.
+`DOC_INDEX.md` is the complete Markdown inventory and disposition authority.
+Canonical documents are the four current status/map/index files, `AGENTS.md`,
+`GX1_RULES.md`, `README.md`, the data/telemetry/worktree/integrity contracts,
+and the exact authority manifests. All other tracked Markdown is explicitly
+marked `HISTORICAL`, `SUPERSEDED` or `PRIVATE / REMOVE` there. Historical and
+superseded text cannot authorize training, reboot, task enable, CUDA, TEST,
+promotion, live trading or cloud spend.
+The post-reboot baseline was clean on branch
+`feature/unbounded-exit-lifecycle-v2-20260910`, commit
+`fb4f060d60d7017bf4188684cf5c0b5f05e110b4`; the successor source must be
+resolved and bound explicitly by the read-only collector. Data, model, checkpoint and
+campaign authority still require their exact manifest bindings before launch.

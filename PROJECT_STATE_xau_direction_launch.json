@@ -36,7 +36,7 @@
   "decision_surface": "model_direction_argmax",
   "public_trade_flat_surface": "public_trade_flat_decision_logits",
   "required_contract_mode": "xau_seq513_model_native_direction_v20",
-  "required_unified_entry_exit_contract": "gx1_unified_entry_exit_v10",
+  "required_unified_entry_exit_contract": "gx1_unified_entry_exit_v11",
   "required_entry_action_order": [
     "LONG",
     "SHORT",

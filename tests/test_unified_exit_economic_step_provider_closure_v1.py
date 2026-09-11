@@ -64,7 +64,7 @@ def test_hold_step_uses_full_closure_wall_clock_for_financing_and_risk() -> None
     assert step["interval_end_time_ns"] - step["interval_start_time_ns"] == (
         elapsed * 1_000_000_000
     )
-    assert step["gap"]["classification"] == "declared_weekend_market_closure"
+    assert step["gap"]["classification"] == "declared_market_closure"
     assert step["gap"]["classification_artifact_sha256"] == "9" * 64
     assert step["financing_or_swap"]["value_bps"] < 0.0
     assert step["risk_utility_penalty"]["value_bps"] > 0.0

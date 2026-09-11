@@ -52,6 +52,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     ordered_model_native_signal_fields,
 )
 from gx1.contracts import unified_exit_episode_pack_v1 as episode_owner
+from tests.test_unified_exit_lifecycle_v2 import _economics_readiness as _lifecycle_economics_readiness
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -138,10 +139,9 @@ def _episode(normalization, seed):
     pack["exit_decision_time_ns"] = pack["exit_state_row_time_ns"] + minute_ns
     pack["exit_state_valid_mask"] = np.ones((2, _STATE_COUNT), dtype=np.bool_)
     pack["exit_terminal_mask"] = np.zeros((2, _STATE_COUNT), dtype=np.bool_)
-    pack["exit_terminal_mask"][:, -1] = True
-    pack["exit_terminal_reason_index"] = pack["exit_terminal_mask"].astype(np.int64)
+    pack["exit_terminal_reason_index"] = np.zeros((2, _STATE_COUNT), dtype=np.int64)
     pack["exit_action_valid_mask"] = np.stack(
-        (~pack["exit_terminal_mask"], pack["exit_state_valid_mask"]), axis=-1
+        (pack["exit_state_valid_mask"], pack["exit_state_valid_mask"]), axis=-1
     )
     pack["exit_episode_lengths"] = np.full(2, _STATE_COUNT, dtype=np.int64)
     for timeframe, stride in zip(EXIT_MTF_CONTEXT_TIMEFRAMES, (5, 15, 60, 240, 1440)):
@@ -164,17 +164,27 @@ def _episode(normalization, seed):
         lifecycle_state_population_sha256="a" * 64,
         multi_tf_cache_identity_sha256="b" * 64,
     )
+    pack["unbounded_exit_training_readiness"] = _lifecycle_economics_readiness()
     return _seal_fixture(pack)
 
 
 def _seal_fixture(pack):
-    unsealed = {name: value for name, value in pack.items() if name != "episode_pack_sha256"}
-    return episode_owner.require_unified_exit_episode_pack(
+    readiness = pack.get("unbounded_exit_training_readiness")
+    unsealed = {
+        name: value
+        for name, value in pack.items()
+        if name not in {"episode_pack_sha256", "unbounded_exit_training_readiness"}
+    }
+    sealed = episode_owner.require_unified_exit_episode_pack(
         episode_owner.seal_unified_exit_episode_pack(unsealed),
         per_tf_seq_lens=_TF_LENGTHS,
         expected_mtf_cache_identity_sha256="b" * 64,
         context="SYNTHETIC_NATIVE_USEFULNESS_TEST",
     )
+    if readiness is not None:
+        sealed["unbounded_exit_training_readiness"] = readiness
+    return sealed
+
 
 
 @pytest.fixture(scope="module")
@@ -376,8 +386,10 @@ def test_intervention_has_no_new_seal_or_source_admission(episodes, layout):
     with pytest.raises(RuntimeError, match="SOURCE_SEAL_REQUIRED"):
         adapter.prepare(episode=prepared.model_inputs, online_entry_token=_token())
     with pytest.raises(RuntimeError, match="EPISODE_PACK_HASH_INVALID"):
+        mutated = {**episodes[0], **prepared.model_inputs}
+        mutated.pop("unbounded_exit_training_readiness", None)
         episode_owner.require_unified_exit_episode_pack(
-            {**episodes[0], **prepared.model_inputs},
+            mutated,
             per_tf_seq_lens=_TF_LENGTHS,
             expected_mtf_cache_identity_sha256="b" * 64,
             context="INTERVENTION_IS_NOT_A_REAL_SOURCE",
@@ -508,8 +520,8 @@ def test_actual_native_baseline_matches_wrapper_and_batched_full_gru_scans(
         )
     np.testing.assert_array_equal(actual, expected[0].numpy())
     assert actual.shape == (2, _STATE_COUNT, 2)
-    assert valid[0, :, -1].tolist() == [[False, True], [False, True]]
-    assert state_valid.all() and terminal[:, :, -1].all()
+    assert valid[0, :, -1].tolist() == [[True, True], [True, True]]
+    assert state_valid.all() and not terminal.any()
     assert lengths.tolist() == [[_STATE_COUNT, _STATE_COUNT]]
     assert not native_model.training
     assert all(parameter.grad is None for parameter in native_model.parameters())
@@ -592,7 +604,7 @@ def test_baseline_teacher_targets_and_masks_do_not_follow_interventions(
     for kind in ("token", "path", "side"):
         adapter.predict_spec(**_kwargs(episodes, layout, kind, online_tokens[0], online_tokens[1]))
         np.testing.assert_array_equal(supervision.q_targets_bps, original_targets)
-        np.testing.assert_array_equal(supervision.action_valid_mask, episodes[0]["exit_action_valid_mask"])
+        np.testing.assert_array_equal(supervision.action_valid_mask, valid[0].numpy())
         np.testing.assert_array_equal(supervision.entry_first_side_values_bps, original_first_values)
         np.testing.assert_array_equal(supervision.entry_side_valid_mask, original_side_valid)
     with pytest.raises(TypeError):

@@ -579,6 +579,11 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     class _Rows(torch.utils.data.Dataset):
         def __init__(self, rows: int) -> None:
             self.rows = rows
+            self.lifecycle_epoch = None
+
+        def set_unified_exit_lifecycle_v2_epoch(self, epoch_index):
+            assert isinstance(epoch_index, int) and epoch_index >= 0
+            self.lifecycle_epoch = epoch_index
 
         def __len__(self) -> int:
             return self.rows
@@ -594,6 +599,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     def _fake_train_epoch(*args, **kwargs):
         calls["train"] += 1
         loader = args[2]
+        assert loader.dataset.lifecycle_epoch is not None
         model, optimizer = args[0], args[3]
         checkpoint = kwargs["session_checkpoint_hook"]
         train_offsets.append(int(kwargs["session_batch_offset"]))

@@ -30,6 +30,7 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CAT_DOMAINS,
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
     EXPECTED_SURFACES,
+    MTF_SEMANTIC_BINARY_FIELDS,
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
     build_input_normalization_contract,
     fit_ctx_cat_contract,
@@ -170,6 +171,9 @@ def _synthetic_normalization() -> tuple[dict[str, Any], dict[str, np.ndarray]]:
         ).astype(np.float32)
         if "ema_stack_aligned_v2" in mtf_names:
             values[:, mtf_names.index("ema_stack_aligned_v2")] = (row % 3) - 1
+        for name in MTF_SEMANTIC_BINARY_FIELDS:
+            if name in mtf_names:
+                values[:, mtf_names.index(name)] = row % 2
         if "regime_class_id" in mtf_names:
             values[:, mtf_names.index("regime_class_id")] = row % 5
         mtf_values[tf] = values

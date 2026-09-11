@@ -19,6 +19,10 @@ from gx1.contracts.unified_exit_episode_pack_v2 import (
     require_unified_exit_episode_pack_v2,
     seal_unified_exit_episode_pack_v2,
 )
+from gx1.contracts.unified_exit_gate_evidence_v1 import (
+    COOPERATION_GATE_WIDTHS as EXIT_GATE_WIDTHS,
+    FEATURE_TF_GATE_SHAPE as EXIT_FEATURE_GATE_SHAPE,
+)
 from gx1.contracts import unified_exit_economics_objective_v2 as economics_owner
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_ECONOMIC_AUTHORITY_SCHEMA_VERSION,
@@ -36,6 +40,12 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _episode_native_exit_train,
     _fitted_q_targets_for_chunk_v2,
+    _new_cooperation_gate_epoch_accumulator,
+    _new_feature_tf_gate_epoch_accumulator,
+)
+from tests.test_unified_exit_random_access_training_v1 import (
+    _item as _random_access_item,
+    _normalization as _random_access_normalization,
 )
 
 
@@ -325,10 +335,11 @@ def test_trainer_v2_bootstraps_from_frozen_successor_state(tmp_path):
 def test_canonical_trainer_dispatches_to_v2_chunk_consumer():
     pack = _pack(chunk_start=0, valid_count=3, successor=True, censored=False)
 
-    class _Model:
-        training = False
+    class _Model(torch.nn.Module):
 
         def __init__(self, *, online):
+            super().__init__()
+            self.training = False
             self.online = online
             self.task_log_variances = {
                 "unified_exit_action": torch.tensor(0.0)
@@ -346,30 +357,81 @@ def test_canonical_trainer_dispatches_to_v2_chunk_consumer():
                 "exit_action_valid_mask": torch.ones_like(q, dtype=torch.bool),
             }
 
-    class _Dataset:
-        per_tf_seq_lens = {name: 2 for name in EXIT_MTF_CONTEXT_TIMEFRAMES}
-        _multi_tf_cache_identity_sha256 = "6" * 64
-        _unified_exit_lifecycle_v2 = type(
-            "_Adapter", (), {"require_pack": staticmethod(lambda value: value)}
-        )()
+        def forward_exit_random_access_batch(self, **kwargs):
+            state_count = kwargs["m1_local_history_x"].shape[0]
+            token = kwargs["entry_decision_representation"]
+            base = token.sum(dim=1).view(-1, 1, 1) if self.online else 0.0
+            q = torch.zeros((state_count, 2, 2), dtype=torch.float32) + base
+            if not self.online:
+                q[:, 0, 0] = 3.0
+                q[:, 0, 1] = 7.0
+            return {
+                "exit_action_q_bps": q,
+                "exit_action_valid_mask": kwargs["action_valid_mask"],
+                "exit_specialist_gate": torch.full(
+                    (state_count, EXIT_GATE_WIDTHS["specialist_gate"]), 0.5
+                ),
+                "exit_tf_gate": torch.full(
+                    (state_count, EXIT_GATE_WIDTHS["tf_gate"]), 0.5
+                ),
+                "exit_family_tf_cooperation_gate": torch.full(
+                    (state_count, EXIT_GATE_WIDTHS["family_tf_cooperation_gate"]),
+                    0.5,
+                ),
+                "exit_family_tf_feature_gate": torch.full(
+                    (state_count, *EXIT_FEATURE_GATE_SHAPE), 0.5
+                ),
+            }
 
-        @staticmethod
-        def materialize_exit_training_chunk_v2(entry_row_index):
-            assert entry_row_index == 4
-            return pack
+    class _Dataset:
+        contract, item = _random_access_item()
+        view = item["transitions"][0]["state_view"]
+
+        class _Adapter:
+            @staticmethod
+            def random_access_training_bindings_v1():
+                return {
+                    "sampler_contract": _Dataset.contract,
+                    "normalization_artifact": _random_access_normalization(),
+                    "m1_source_sha256": _Dataset.view["m1_source_sha256"],
+                    "market_closure_authority_sha256": _Dataset.view[
+                        "market_closure_authority_sha256"
+                    ],
+                    "economic_step_manifest_sha256": _Dataset.view[
+                        "economic_step_manifest_sha256"
+                    ],
+                    "economics_objective_contract_sha256": _Dataset.view[
+                        "economics_objective_contract_sha256"
+                    ],
+                }
+
+            @staticmethod
+            def materialize_random_access_training_item_v1(
+                entry_row_index, *, outer_batch_index
+            ):
+                assert entry_row_index == 0
+                item = dict(_Dataset.item)
+                item["outer_batch_index"] = outer_batch_index
+                return item
+
+        _unified_exit_lifecycle_v2 = _Adapter()
 
     gradients, stats, _entry_targets, entry_valid = _episode_native_exit_train(
         model=_Model(online=True),
         target_model=_Model(online=False),
         entry_decision_representations=torch.zeros((1, 256)),
         target_entry_decision_representations=torch.zeros((1, 256)),
-        entry_row_indices=torch.tensor([4]),
+        entry_row_indices=torch.tensor([0]),
         dataset=_Dataset(),
         device=torch.device("cpu"),
         grad_accum_steps=1,
-        exit_cooperation_gate_epoch={},
-        exit_feature_tf_gate_epoch={},
+        exit_cooperation_gate_epoch=_new_cooperation_gate_epoch_accumulator(
+            EXIT_GATE_WIDTHS
+        ),
+        exit_feature_tf_gate_epoch=_new_feature_tf_gate_epoch_accumulator(
+            EXIT_FEATURE_GATE_SHAPE
+        ),
     )
     assert stats["eligible_entry_rows"] == 1
     assert torch.isfinite(gradients).all() and gradients.abs().sum() > 0
-    assert not entry_valid.any()
+    assert entry_valid.all()

@@ -22,6 +22,9 @@ AUTHORITY_PATHS = (
     REPO / "GX1_RULES.md",
     REPO / "README.md",
     REPO / "SYSTEM_MAP.md",
+    REPO / "CURRENT_GX1_STATUS.md",
+    REPO / "CURRENT_HANDOVER.md",
+    REPO / "DOC_INDEX.md",
     REPO / "passord.md",
     HANDOVER,
     REPO / "docs/CURRENT_AUDIT_STATUS_20260828.md",
@@ -625,6 +628,9 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         require_blocked_launch_state_with_current_audited_dataset,
     )
 
+    from tests.test_current_audited_dataset_evidence import assert_retired_pretest_recipe_rejected
+    if assert_retired_pretest_recipe_rejected(state):
+        return
     if "pretraining_review_hold" in state and "current_pretest_trainability_readiness" not in state:
         # The retained causality audit predates corrected short returns. It
         # must no longer qualify as current evidence, even though its bytes

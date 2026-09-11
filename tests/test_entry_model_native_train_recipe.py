@@ -206,6 +206,9 @@ def test_candidate_binding_requires_the_refreshed_current_liveness_before_traini
         "dataset_run_id": str(evidence["dataset_run_id"]),
         "artifacts": artifacts,
     }
+    from tests.test_current_audited_dataset_evidence import assert_retired_pretest_recipe_rejected
+    if assert_retired_pretest_recipe_rejected(state):
+        return
     if "current_pretest_trainability_readiness" in state:
         # The current TRAIN/VAL owner supersedes the retained three-split V46
         # reports. A safety hold does not turn this back into the earlier

@@ -1,6 +1,23 @@
+<!-- GX1_DOCUMENT_CLASS: CANONICAL | repository entry point -->
 # GX1 Engine
 
-**Current operator boundary, 2026-09-08:** the one authorized source-current
+
+## Current lifecycle-v2 boundary — 2026-09-11
+
+Training remains blocked. BootId 359 passed the one-shot read-only probe: cold
+Ubuntu `/bin/true` took 14,070 ms and the following exact `wslpath` took 71 ms.
+The source fix is one 30-second first-call WSL bound, zero Task Scheduler
+retries, and no campaign-owned WSL terminate/shutdown/reset recovery. The
+campaign, legacy bootstrap and probe remain disabled; no ACTIVE/guard/trainer/
+CUDA evidence exists.
+
+The authoritative current documents are [`CURRENT_HANDOVER.md`](CURRENT_HANDOVER.md),
+[`CURRENT_GX1_STATUS.md`](CURRENT_GX1_STATUS.md), [`SYSTEM_MAP.md`](SYSTEM_MAP.md)
+and [`DOC_INDEX.md`](DOC_INDEX.md). Generate a read-only
+`scripts/collect_gx1_handover_readonly.py` bundle only from explicit evidence
+files; it does not grant launch authority. TEST remains sealed.
+
+**Historical operator boundary, superseded by the lifecycle-v2 handover:** the one authorized source-current
 32-row CUDA smoke completed successfully on the local GX1 RTX 3090. Canonical
 guards exited cleanly under the signed 160 W controls; the immutable bundle is
 under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z` with commit SHA-256
