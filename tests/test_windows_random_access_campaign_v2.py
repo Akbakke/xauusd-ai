@@ -220,7 +220,7 @@ def test_single_wsl_boot_owner_is_source_bound_before_inspect() -> None:
     assert function.count("Write-Gx1BootIdentity") == 1
     assert function.count("'inspect'") == 1
     assert function.count("-WslTimeoutMilliseconds 30000") == 1
-    assert function.count("-TimeoutMilliseconds 30000") == 1
+    assert function.count("-TimeoutMilliseconds 90000") == 1
     for forbidden in ("while (", "Start-Sleep", "continue"):
         assert forbidden not in function
     for forbidden in ("Invoke-Gx1WslBootstrapRecovery", "Invoke-Gx1WslControlBounded", "Invoke-Gx1WslRecoveryProbe", "New-Gx1WslRecoveryIntent", "--terminate", "@('--shutdown')"):

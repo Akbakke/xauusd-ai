@@ -606,7 +606,9 @@ def _write_full_val_invocation(
             "predecessor_invocation_number": None if number == 1 else number - 1,
             "write_mode": "READ_ONLY",
         },
-        "maximum_wall_seconds": max_wall_seconds,
+        # Reserve up to 20 minutes for strict checkpoint/data preflight before
+        # the evaluator's resumable wall window. The outer guard stays at 2 h.
+        "maximum_wall_seconds": 7200,
         "requires_fresh_windows_boot": True,
         "signed_guard_only": True,
         "test_data_used": False,
@@ -641,7 +643,7 @@ def materialize_full_val_campaign(
     controller_repo: Path | None = None,
 ) -> dict[str, Any]:
     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
-        require_final_train_checkpoint_authority,
+        require_final_train_checkpoint_authority, FULL_POPULATION_SCHEMA_VERSION,
     )
     from gx1.scripts.local_random_access_campaign_v2 import _prepare_private_directory
 
@@ -654,7 +656,7 @@ def materialize_full_val_campaign(
         or progress_interval_forwards < 1
         or max_model_forwards < max_forwards_per_window
         or max_materialized_state_views < max_model_forwards
-        or not 1 <= max_wall_seconds <= 7200
+        or not 1 <= max_wall_seconds <= 6000
     ):
         raise RandomAccessCampaignError("full VAL window bounds invalid")
     prior = require_plan(_read(prior_campaign_path), verify_files=True)
@@ -662,17 +664,18 @@ def materialize_full_val_campaign(
     authority = require_final_train_checkpoint_authority(
         _read(final_authority_path), verify_files=True
     )
+    full_population = authority.get("schema_version") == FULL_POPULATION_SCHEMA_VERSION
     if (
         file_sha256(prior_campaign_path) != prior_campaign_file_sha256
         or file_sha256(selection_path) != selection_file_sha256
         or file_sha256(final_authority_path) != final_authority_file_sha256
         or prior["phase"] != "selected_training"
-        or prior["source_commit"] != commit
+        or prior["source_commit"] != authority["source_commit"]
         or selection["artifact_sha256"]
         != authority["gpu_batch_selection_artifact_sha256"]
         or authority["campaign_plan"] != _binding(prior_campaign_path)
         or authority["gpu_batch_selection"] != _binding(selection_path)
-        or authority["source_commit"] != commit
+        or (not full_population and authority["source_commit"] != commit)
     ):
         raise RandomAccessCampaignError("full VAL authority provenance invalid")
     launch_path = Path(authority["launch_manifest"]["path"])
@@ -731,6 +734,11 @@ def materialize_full_val_campaign(
         invocations=invocations,
         final_train_checkpoint_authority=_binding(final_authority_path),
     )
+    if full_population:
+        plan.pop("plan_sha256")
+        plan["entry_pairs_per_epoch"] = authority["entry_pair_count"]
+        plan["transitions_per_epoch"] = authority["transition_count"]
+        plan["plan_sha256"] = canonical_sha256(plan)
     plan_path = output / "CAMPAIGN_PLAN.json"
     _atomic_json(plan_path, plan)
     checked = require_plan(plan, verify_files=True)

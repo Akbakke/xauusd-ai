@@ -15,6 +15,9 @@ from typing import Any
 import numpy as np
 import torch
 from torch import nn
+from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
+    require_entry_policy_decisions, coupled_entry_exit_policy_metrics,
+)
 
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_random_access_model_v1 import (
@@ -31,10 +34,11 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     VAL_ENTRY_COHORT_SIZE,
     RandomAccessValRolloutAdapterV1,
     require_random_access_val_rollout_contract,
+    unique_active_exit_actions,
 )
 
 PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v1"
-RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v1"
+RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v2"
 PAUSE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_pause_v1"
 _ROUTE_KEYS = (
     "exit_specialist_gate",
@@ -465,6 +469,7 @@ def _finalize_result(
     checkpoint_binding: Mapping[str, Any],
     execution_contract: Mapping[str, Any],
     entry_route_diagnostics: Mapping[str, Any],
+    entry_policy_decisions: Mapping[str, Any],
     guard_reason: str | None,
 ) -> dict[str, Any]:
     outcomes: list[dict[str, Any]] = []
@@ -588,6 +593,11 @@ def _finalize_result(
             progress["route_accumulators"]
         ),
         "entry_gate_and_feature_route_diagnostics": dict(entry_route_diagnostics),
+        "entry_policy_decisions": dict(entry_policy_decisions),
+        "entry_exit_policy_metrics": coupled_entry_exit_policy_metrics(
+            entry_policy=entry_policy_decisions, trade_outcomes=outcomes,
+            full_cohort_authoritative=truncated == 0 and censored == 0,
+        ),
         "compute_guard_triggered": guard_reason,
         "rollout_execution_complete": truncated == 0,
         "full_cohort_policy_metrics_authoritative": truncated == 0 and censored == 0,
@@ -655,6 +665,22 @@ def require_random_access_val_evaluation_result_v1(
         or claimed != canonical_sha256(result)
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_INVALID")
+    policy = require_entry_policy_decisions(
+        result.get("entry_policy_decisions"),
+        entry_row_indices=list(range(VAL_ENTRY_COHORT_SIZE)),
+        checkpoint_binding_sha256=checkpoint_binding_sha256,
+    )
+    authoritative = all(row["status"] == "EXITED" for row in outcomes)
+    metrics = coupled_entry_exit_policy_metrics(
+        entry_policy=policy, trade_outcomes=outcomes,
+        full_cohort_authoritative=authoritative,
+    )
+    if (
+        execution.get("entry_policy_sha256") != policy["policy_sha256"]
+        or result.get("entry_exit_policy_metrics") != metrics
+        or result.get("full_cohort_policy_metrics_authoritative") is not authoritative
+    ):
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_POLICY_INVALID")
     result["semantic_result_sha256"] = claimed
     return result
 
@@ -666,6 +692,7 @@ def run_resumable_random_access_val_evaluation_v1(
     adapter: RandomAccessValRolloutAdapterV1,
     checkpoint_binding: Mapping[str, Any],
     entry_route_diagnostics: Mapping[str, Any],
+    entry_policy_decisions: Mapping[str, Any],
     progress_path: Path,
     result_path: Path,
     max_forwards_this_invocation: int,
@@ -679,8 +706,14 @@ def run_resumable_random_access_val_evaluation_v1(
     checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
         checkpoint_binding
     )
+    entry_policy_decisions = require_entry_policy_decisions(
+        entry_policy_decisions,
+        entry_row_indices=[int(row["entry_row_index"]) for row in adapter.entries],
+        checkpoint_binding_sha256=checked_checkpoint["binding_sha256"],
+    )
     execution_contract = {
-        "schema_version": "gx1_unified_exit_random_access_val_execution_v1",
+        "schema_version": "gx1_unified_exit_random_access_val_execution_v2",
+        "entry_policy_sha256": entry_policy_decisions["policy_sha256"],
         "rollout_contract_sha256": contract["contract_sha256"],
         "checkpoint_binding_sha256": checked_checkpoint["binding_sha256"],
         "policy_batch_size": policy_batch_size,
@@ -746,6 +779,7 @@ def run_resumable_random_access_val_evaluation_v1(
     active = np.asarray(progress["active_side_mask"], dtype=np.bool_)
     guard = contract["compute_guard"]
     invocation_started = monotonic()
+    window_started = invocation_started
     forwards_this_invocation = 0
     guard_reason: str | None = None
     while bool(active.any()):
@@ -755,10 +789,17 @@ def run_resumable_random_access_val_evaluation_v1(
         if int(progress["model_forward_count"]) >= guard["max_model_forwards"]:
             guard_reason = "max_model_forwards"
             break
-        if elapsed >= float(guard["max_wall_seconds"]):
+        if (
+            guard["wall_limit_scope"] == "entire_rollout"
+            and elapsed >= float(guard["max_wall_seconds"])
+        ):
             guard_reason = "max_wall_seconds"
             break
-        if forwards_this_invocation >= max_forwards_this_invocation:
+        wall_window_exhausted = (
+            guard["wall_limit_scope"] == "invocation"
+            and monotonic() - window_started >= float(guard["max_wall_seconds"])
+        )
+        if forwards_this_invocation >= max_forwards_this_invocation or wall_window_exhausted:
             progress["elapsed_compute_seconds"] = elapsed
             progress["completed_invocation_count"] += 1
             progress["active_side_mask"] = active.tolist()
@@ -767,6 +808,7 @@ def run_resumable_random_access_val_evaluation_v1(
             pause = {
                 "schema_version": PAUSE_SCHEMA_VERSION,
                 "decision": "PAUSED_RESUMABLE",
+                "pause_reason": "invocation_wall_limit" if wall_window_exhausted else "invocation_forward_limit",
                 "rollout_contract_sha256": contract["contract_sha256"],
                 "execution_contract_sha256": execution_contract[
                     "execution_contract_sha256"
@@ -850,7 +892,7 @@ def run_resumable_random_access_val_evaluation_v1(
             output,
             active_side_mask=active_rows_before,
         )
-        actions = torch.argmax(q, dim=2).detach().cpu().numpy()
+        actions = unique_active_exit_actions(q, active_rows_before)
         _accumulate_q(
             progress["q_diagnostics"],
             q=q,
@@ -935,6 +977,7 @@ def run_resumable_random_access_val_evaluation_v1(
         checkpoint_binding=checked_checkpoint,
         execution_contract=execution_contract,
         entry_route_diagnostics=entry_route_diagnostics,
+        entry_policy_decisions=entry_policy_decisions,
         guard_reason=guard_reason,
     )
     _atomic_json(result_path, result, replace=False)

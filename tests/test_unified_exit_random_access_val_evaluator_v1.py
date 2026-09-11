@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import build_entry_policy_decisions
+
 import json
 
 import numpy as np
@@ -50,6 +52,14 @@ def _with_route_outputs(model, seen_batch_sizes=None):
 
     model.forward_exit_random_access_batch = forward
     return model
+
+
+def _entry_policy(adapter, binding):
+    return build_entry_policy_decisions(
+        predicted_q_bps=np.tile(np.array([2, 1, 0], dtype=np.float32), (len(adapter.entries), 1)),
+        entry_row_indices=[int(row["entry_row_index"]) for row in adapter.entries],
+        checkpoint_binding_sha256=binding["binding_sha256"],
+    )
 
 
 def _checkpoint_binding(contract, adapter, tmp_path):
@@ -118,6 +128,7 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         entry_decision_representations=representations,
         adapter=adapter,
         checkpoint_binding=binding,
+        entry_policy_decisions=_entry_policy(adapter, binding),
         entry_route_diagnostics={
             "semantics": "observation_only",
             "causal_feature_importance_claimed": False,
@@ -142,6 +153,7 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
             entry_decision_representations=representations,
             adapter=adapter,
             checkpoint_binding=binding,
+            entry_policy_decisions=_entry_policy(adapter, binding),
             entry_route_diagnostics={
                 "semantics": "observation_only",
                 "causal_feature_importance_claimed": False,
@@ -158,6 +170,7 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         entry_decision_representations=representations,
         adapter=adapter,
         checkpoint_binding=binding,
+        entry_policy_decisions=_entry_policy(adapter, binding),
         entry_route_diagnostics={
             "semantics": "observation_only",
             "causal_feature_importance_claimed": False,
@@ -204,6 +217,7 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         entry_decision_representations=representations,
         adapter=adapter,
         checkpoint_binding=binding,
+        entry_policy_decisions=_entry_policy(adapter, binding),
         entry_route_diagnostics={
             "semantics": "observation_only",
             "causal_feature_importance_claimed": False,
@@ -214,6 +228,8 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         policy_batch_size=16,
     )
     assert recovered == completed
+    assert completed["entry_exit_policy_metrics"]["selected_trade_count"] == VAL_ENTRY_COHORT_SIZE
+    assert completed["entry_exit_policy_metrics"]["full_cohort_authoritative"] is True
 
 
 def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
@@ -231,12 +247,14 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
             entry_decision_representations=representations,
             adapter=adapter,
             checkpoint_binding=binding,
+            entry_policy_decisions=_entry_policy(adapter, binding),
             entry_route_diagnostics={},
             progress_path=tmp_path / "progress.json",
             result_path=tmp_path / "result.json",
             max_forwards_this_invocation=1,
             policy_batch_size=16,
         )
+
 
     binding["model_variant"] = "weight_ema"
     binding.pop("binding_sha256")
@@ -247,9 +265,44 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
             entry_decision_representations=representations,
             adapter=adapter,
             checkpoint_binding=binding,
+            entry_policy_decisions=_entry_policy(adapter, binding),
             entry_route_diagnostics={},
             progress_path=tmp_path / "progress2.json",
             result_path=tmp_path / "result2.json",
             max_forwards_this_invocation=1,
             policy_batch_size=16,
         )
+
+
+
+def test_wall_window_pauses_then_resumes_despite_prior_elapsed_time(tmp_path):
+    model, representations, adapter, contract = _fixture(
+        thresholds=np.zeros((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32),
+        counts=np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64),
+    )
+    model = _with_route_outputs(model)
+    adapter.contract["compute_guard"]["wall_limit_scope"] = "invocation"
+    adapter.contract["compute_guard"]["max_wall_seconds"] = 0.5
+    unsigned = dict(adapter.contract)
+    unsigned.pop("contract_sha256")
+    adapter.contract["contract_sha256"] = canonical_sha256(unsigned)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
+    common = dict(
+        model=model, entry_decision_representations=representations, adapter=adapter,
+        checkpoint_binding=binding, entry_policy_decisions=_entry_policy(adapter, binding),
+        entry_route_diagnostics={}, progress_path=tmp_path / "wall-progress.json",
+        result_path=tmp_path / "wall-result.json", max_forwards_this_invocation=10_000,
+        policy_batch_size=16,
+    )
+    clock_values = iter([0.0, 1.0])
+    paused = run_resumable_random_access_val_evaluation_v1(
+        **common, monotonic=lambda: next(clock_values, 1.0),
+    )
+    assert paused["decision"] == "PAUSED_RESUMABLE"
+    assert paused["pause_reason"] == "invocation_wall_limit"
+    assert not common["result_path"].exists()
+    completed = run_resumable_random_access_val_evaluation_v1(
+        **common, monotonic=lambda: 0.0,
+    )
+    assert completed["decision"] == "PASS_COMPLETE"
+    assert completed["entry_exit_policy_metrics"]["full_cohort_authoritative"] is True

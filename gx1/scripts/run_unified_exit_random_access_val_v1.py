@@ -16,6 +16,9 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Sampler
+from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
+    build_entry_policy_decisions,
+)
 
 from gx1.contracts.local_random_access_campaign_v2 import (
     PROGRESS_SCHEMA,
@@ -64,6 +67,7 @@ from gx1.contracts.unified_exit_selected_sampler_v1 import (
 )
 from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
     require_final_train_checkpoint_authority,
+    FULL_POPULATION_SCHEMA_VERSION,
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     require_unified_exit_unbounded_training_readiness,
@@ -156,7 +160,10 @@ def _campaign_context(
         plan["phase"] != "full_val"
         or plan["final_train_checkpoint_authority"] != authority_binding
         or plan["selected_batch_size"] != authority["selected_batch_size"]
-        or plan["source_commit"] != authority["source_commit"]
+        or (
+            authority["schema_version"] != FULL_POPULATION_SCHEMA_VERSION
+            and plan["source_commit"] != authority["source_commit"]
+        )
         or invocation["kind"] != "full_val_window"
         or Path(invocation["progress_path"]) != progress_path
         or invocation["checkpoint"]["pointer_path"]
@@ -294,7 +301,7 @@ def _entry_representations(
     parent_rows: Sequence[int],
     device: torch.device,
     batch_size: int,
-) -> tuple[torch.Tensor, dict[str, Any]]:
+) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
     if len(parent_rows) != 5_508 or len(set(parent_rows)) != len(parent_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_MAPPING_INVALID")
     loader = DataLoader(
@@ -305,6 +312,7 @@ def _entry_representations(
     )
     route_accumulators: dict[str, Any] = {}
     representations: list[torch.Tensor] = []
+    entry_q_values: list[torch.Tensor] = []
     consumed = 0
     for batch in loader:
         observed_rows = batch["entry_row_index"].tolist()
@@ -325,6 +333,14 @@ def _entry_representations(
                 **_multi_tf_kwargs_from_batch(batch, device),
             )
         representation = output.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+        entry_q = output.get("entry_action_q_bps")
+        if (
+            not isinstance(entry_q, torch.Tensor) or entry_q.dtype != torch.float32
+            or entry_q.shape != (len(observed_rows), 3)
+            or not bool(torch.isfinite(entry_q).all().item())
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_CLI_ENTRY_Q_INVALID")
+        entry_q_values.append(entry_q.detach().cpu())
         if (
             not isinstance(representation, torch.Tensor)
             or representation.ndim != 2
@@ -349,7 +365,7 @@ def _entry_representations(
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_ENTRY_COHORT_INCOMPLETE")
     diagnostics = finalize_route_diagnostics_v1(route_accumulators)
     diagnostics["surface"] = "entry_full_cohort_forward"
-    return torch.cat(representations, dim=0), diagnostics
+    return torch.cat(representations, dim=0), diagnostics, torch.cat(entry_q_values, dim=0)
 
 
 def _build_provider(
@@ -422,9 +438,12 @@ def run(
         authority_file_sha256=final_train_checkpoint_authority_file_sha256,
         progress_path=campaign_progress_path,
     )
+    if Path(__file__).resolve().parents[2] != Path(plan["source_repo"]):
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_EXECUTION_SOURCE_INVALID")
+    _assert_clean_source(plan)
     files = {name: Path(binding["path"]) for name, binding in launch["files"].items()}
     if (
-        authority["source_commit"] != launch["source_commit"]
+        authority.get("bootstrap_source_commit", authority["source_commit"]) != launch["source_commit"]
         or authority["launch_manifest"]["path"] != str(launch_manifest_path)
         or authority["launch_manifest"]["sha256"] != file_sha256(launch_manifest_path)
         or authority["launch_manifest_sha256"] != launch["manifest_sha256"]
@@ -457,19 +476,25 @@ def run(
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_INDEX_INVALID")
     pointer = _read(checkpoint_pointer_path)
     epoch_index = int(pointer.get("epoch_index", -1))
-    anchors = schedule_random_access_entry_anchors(
-        sampler_contract=selected["selected_sampler_contract"],
-        epoch_index=epoch_index,
-    )
-    epoch_schedule_sha256 = canonical_sha256(
-        {
-            "epoch_index": epoch_index,
-            "selected_sampler_contract_sha256": selected[
-                "selected_sampler_contract_sha256"
-            ],
-            "child_entry_order": [int(anchor["entry_row_index"]) for anchor in anchors],
-        }
-    )
+    if "full_population_schedule" in authority:
+        if authority["full_population_schedule"]["epoch_index"] != epoch_index:
+            raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_EPOCH_INVALID")
+        # The rebuilt final authority verifies the bound full schedule witness.
+        epoch_schedule_sha256 = authority["epoch_schedule_sha256"]
+    else:
+        anchors = schedule_random_access_entry_anchors(
+            sampler_contract=selected["selected_sampler_contract"],
+            epoch_index=epoch_index,
+        )
+        epoch_schedule_sha256 = canonical_sha256(
+            {
+                "epoch_index": epoch_index,
+                "selected_sampler_contract_sha256": selected[
+                    "selected_sampler_contract_sha256"
+                ],
+                "child_entry_order": [int(anchor["entry_row_index"]) for anchor in anchors],
+            }
+        )
     meta = _read(files["source_bundle_metadata"])
     child = require_composite_normalization_binding(
         _read(files["child_composite_normalization"])
@@ -533,7 +558,7 @@ def run(
         sequence_source_audit_json=files["sequence_source_audit"],
     )
     parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
-    representations, entry_routes = _entry_representations(
+    representations, entry_routes, entry_q_values = _entry_representations(
         model=model,
         dataset=entry_dataset,
         parent_rows=parent_rows,
@@ -600,15 +625,22 @@ def run(
             compute_guard_max_materialized_state_views
         ),
         compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
+        resumable_wall_limit=True,
     )
     if contract["entry_pair_cohort_size"] != 5_508:
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_COHORT_REQUIRED")
+    entry_policy = build_entry_policy_decisions(
+        predicted_q_bps=entry_q_values.numpy(),
+        entry_row_indices=frame["entry_row_index"].astype("int64").tolist(),
+        checkpoint_binding_sha256=checkpoint_binding["binding_sha256"],
+    )
     result = run_resumable_random_access_val_evaluation_v1(
         model=model,
         entry_decision_representations=representations,
         adapter=adapter,
         checkpoint_binding=checkpoint_binding,
         entry_route_diagnostics=entry_routes,
+        entry_policy_decisions=entry_policy,
         progress_path=rollout_progress_path,
         result_path=result_path,
         max_forwards_this_invocation=max_forwards_this_invocation,

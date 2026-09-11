@@ -35,6 +35,7 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     require_random_access_val_rollout_contract,
     require_random_access_val_rollout_result,
     run_random_access_val_rollout,
+    unique_active_exit_actions,
 )
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 
@@ -48,6 +49,13 @@ def _sha(value: object) -> str:
             allow_nan=False,
         ).encode("ascii")
     ).hexdigest()
+
+
+def test_unique_exit_action_rejects_active_tie_but_ignores_inactive_side():
+    q = torch.tensor([[[0.0, 2.0], [0.0, 0.0]]])
+    assert unique_active_exit_actions(q, np.array([[True, False]]))[0, 0] == 1
+    with pytest.raises(RuntimeError, match="TIED_ACTION"):
+        unique_active_exit_actions(q, np.array([[True, True]]))
 
 
 def _readonly(value: object, dtype: str) -> np.ndarray:

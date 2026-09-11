@@ -45,7 +45,7 @@ from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 
 
 VAL_ROLLOUT_CONTRACT_SCHEMA_VERSION = (
-    "gx1_unified_exit_random_access_val_rollout_contract_v1"
+    "gx1_unified_exit_random_access_val_rollout_contract_v2"
 )
 VAL_ROLLOUT_STATE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_state_v1"
 VAL_ROLLOUT_RESULT_SCHEMA_VERSION = (
@@ -191,6 +191,7 @@ def build_random_access_val_rollout_contract(
     compute_guard_max_model_forwards: int,
     compute_guard_max_materialized_state_views: int,
     compute_guard_max_wall_seconds: float,
+    resumable_wall_limit: bool = False,
 ) -> dict[str, Any]:
     """Bind the exact immutable VAL cohort, model and source artifacts."""
 
@@ -216,6 +217,7 @@ def build_random_access_val_rollout_contract(
         or not isinstance(compute_guard_max_wall_seconds, (int, float))
         or not math.isfinite(float(compute_guard_max_wall_seconds))
         or float(compute_guard_max_wall_seconds) <= 0.0
+        or type(resumable_wall_limit) is not bool
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_CONTRACT_INPUT_INVALID")
     result = {
@@ -264,7 +266,7 @@ def build_random_access_val_rollout_contract(
             checkpoint_file_sha256, "CHECKPOINT_FILE"
         ),
         "action_order": list(EXIT_ACTION_ORDER),
-        "tie_break": "action_order_first_max_hold",
+        "tie_break": "unique_argmax_or_fail_closed",
         "rollout_order": "relative_m1_state_index_with_active_entry_compaction",
         "capacity_or_512_is_terminal": False,
         "economic_terminal_present": False,
@@ -272,7 +274,8 @@ def build_random_access_val_rollout_contract(
             "max_model_forwards": compute_guard_max_model_forwards,
             "max_materialized_state_views": compute_guard_max_materialized_state_views,
             "max_wall_seconds": float(compute_guard_max_wall_seconds),
-            "guard_stop_semantics": "truncated_non_authoritative_never_terminal",
+            "wall_limit_scope": "invocation" if resumable_wall_limit else "entire_rollout",
+            "guard_stop_semantics": "hard_budget_truncated_wall_scope_explicit_never_terminal",
         },
         "test_data_used": False,
     }
@@ -332,7 +335,7 @@ def require_random_access_val_rollout_contract(
         or observed["entry_pair_cohort_size"] != VAL_ENTRY_COHORT_SIZE
         or observed["both_sides_evaluated"] is not True
         or observed["action_order"] != list(EXIT_ACTION_ORDER)
-        or observed["tie_break"] != "action_order_first_max_hold"
+        or observed["tie_break"] != "unique_argmax_or_fail_closed"
         or observed["capacity_or_512_is_terminal"] is not False
         or observed["economic_terminal_present"] is not False
         or observed["normalization_val_mode"] != "apply_frozen_train_transform_only"
@@ -349,9 +352,11 @@ def require_random_access_val_rollout_contract(
             "max_model_forwards",
             "max_materialized_state_views",
             "max_wall_seconds",
+            "wall_limit_scope",
             "guard_stop_semantics",
         }
-        or guard["guard_stop_semantics"] != "truncated_non_authoritative_never_terminal"
+        or guard["wall_limit_scope"] not in {"invocation", "entire_rollout"}
+        or guard["guard_stop_semantics"] != "hard_budget_truncated_wall_scope_explicit_never_terminal"
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_CONTRACT_INVALID")
     for field in (
@@ -658,6 +663,20 @@ class RandomAccessValRolloutAdapterV1:
         return composed, claimed
 
 
+def unique_active_exit_actions(q: torch.Tensor, active_side_mask: Any) -> np.ndarray:
+    active = torch.as_tensor(active_side_mask, device=q.device)
+    if (
+        q.ndim != 3 or q.shape[-1] != 2 or active.shape != q.shape[:2]
+        or active.dtype != torch.bool or not bool(active.any().item())
+        or not bool(torch.isfinite(q).all().item())
+    ):
+        raise RuntimeError("UNIFIED_EXIT_VAL_MODEL_OUTPUT_INVALID")
+    active_q = q[active]
+    if bool((active_q.eq(active_q.amax(dim=1, keepdim=True)).sum(dim=1) != 1).any().item()):
+        raise RuntimeError("UNIFIED_EXIT_VAL_MODEL_TIED_ACTION")
+    return torch.argmax(q, dim=2).detach().cpu().numpy()
+
+
 def run_random_access_val_rollout(
     *,
     model: nn.Module,
@@ -668,6 +687,8 @@ def run_random_access_val_rollout(
     """Roll both sides until learned EXIT, censor, or an explicit compute guard."""
 
     contract = adapter.contract
+    if contract["compute_guard"]["wall_limit_scope"] == "invocation":
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESUMABLE_EVALUATOR_REQUIRED")
     entries = adapter.entries
     if (
         model.training
@@ -767,7 +788,7 @@ def run_random_access_val_rollout(
             or not bool(valid.all().item())
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_MODEL_OUTPUT_INVALID")
-        actions = torch.argmax(q, dim=2).detach().cpu().numpy()
+        actions = unique_active_exit_actions(q, active[active_entries])
         compaction_trace.append(
             {
                 "state_index": state_index,

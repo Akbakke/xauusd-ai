@@ -655,6 +655,7 @@ class RandomAccessValStateFactoryV1:
         compute_guard_max_model_forwards: int,
         compute_guard_max_materialized_state_views: int,
         compute_guard_max_wall_seconds: float,
+        resumable_wall_limit: bool = False,
     ) -> tuple[dict[str, Any], RandomAccessValRolloutAdapterV1]:
         contract = build_random_access_val_rollout_contract(
             entries=self.entries,
@@ -687,6 +688,7 @@ class RandomAccessValStateFactoryV1:
             compute_guard_max_model_forwards=compute_guard_max_model_forwards,
             compute_guard_max_materialized_state_views=compute_guard_max_materialized_state_views,
             compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
+            resumable_wall_limit=resumable_wall_limit,
         )
         adapter = RandomAccessValRolloutAdapterV1(
             contract=contract,

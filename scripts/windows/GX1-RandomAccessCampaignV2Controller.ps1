@@ -14,7 +14,9 @@ $ErrorActionPreference = 'Stop'
 function Invoke-Gx1Json {
     param(
         [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [ValidateRange(1, 30000)][int]$TimeoutMilliseconds = 30000
+        # Full-year authority verifies both the preserved prefix and final state.
+        # This bounds metadata work only; telemetry and GPU limits are unchanged.
+        [ValidateRange(1, 90000)][int]$TimeoutMilliseconds = 90000
     )
     $result = Invoke-Gx1WslBounded -Arguments (@(
         '--cd', $CampaignControlRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
@@ -396,7 +398,7 @@ function Get-Gx1InitialCampaignState {
     $status = Invoke-Gx1Json -Arguments @(
         'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
         '--boot-json', $boot.Linux
-    ) -TimeoutMilliseconds 30000
+    ) -TimeoutMilliseconds 90000
     return [pscustomobject]@{ Boot = $boot; Status = $status }
 }
 function Wait-Gx1HostTelemetryBridgeV4BootReady {

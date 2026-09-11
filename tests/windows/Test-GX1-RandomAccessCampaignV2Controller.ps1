@@ -137,7 +137,7 @@ function Write-Gx1BootIdentity {
 function Invoke-Gx1Json {
     param([string[]]$Arguments, [int]$TimeoutMilliseconds)
     $script:inspectCalls++
-    if ($TimeoutMilliseconds -ne 30000) { throw "wrong inspect timeout: $TimeoutMilliseconds" }
+    if ($TimeoutMilliseconds -ne 90000) { throw "wrong inspect timeout: $TimeoutMilliseconds" }
     return [pscustomobject]@{ ok = $true; result = [pscustomobject]@{} }
 }
 $PlanJson = '/tmp/plan.json'

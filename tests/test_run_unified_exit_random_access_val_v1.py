@@ -68,6 +68,7 @@ def test_campaign_context_separates_file_and_internal_sha(monkeypatch, tmp_path)
         "checkpoint": {"pointer_path": str(tmp_path / "POINTER.json")},
     }
     authority = {
+        "schema_version": "gx1_unified_exit_final_train_checkpoint_authority_v1",
         "selected_batch_size": 16,
         "source_commit": "c" * 40,
         "final_checkpoint_pointer": {"path": str(tmp_path / "POINTER.json")},

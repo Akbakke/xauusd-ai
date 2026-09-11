@@ -891,6 +891,9 @@ def test_production_materializer_builds_acyclic_phase_plans(
     pointer_path = tmp_path / "epoch1" / "RESUME_POINTER.json"
     _write(pointer_path, {"pointer_sha256": "f" * 64})
     authority = {
+        "schema_version": "gx1_unified_exit_final_train_checkpoint_authority_v1",
+        "entry_pair_count": 16384,
+        "transition_count": 65536,
         "source_commit": commit,
         "campaign_plan": {"path": phase2["path"], "sha256": phase2["sha256"]},
         "gpu_batch_selection": _binding(selection_path),

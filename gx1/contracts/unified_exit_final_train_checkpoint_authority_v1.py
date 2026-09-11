@@ -41,6 +41,7 @@ from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
 )
 
 SCHEMA_VERSION = "gx1_unified_exit_final_train_checkpoint_authority_v1"
+FULL_POPULATION_SCHEMA_VERSION = "gx1_unified_exit_final_train_checkpoint_authority_v2"
 
 
 def file_sha256(path: Path) -> str:
@@ -198,9 +199,20 @@ def build_final_train_checkpoint_authority(
     selection_ref, raw_selection = _read(gpu_selection_binding)
     selection = require_selection(raw_selection, verify_files=True)
     session_ref, raw_session = _read(train_session_binding)
-    session = require_train_session_manifest(
-        raw_session, expected_phase="epoch1", verify_files=True
-    )
+    full_session = plan.get("checked_full_population_session")
+    if full_session is None:
+        session = require_train_session_manifest(
+            raw_session, expected_phase="epoch1", verify_files=True
+        )
+        resume_evidence = session
+    else:
+        # require_plan has already verified this exact session and its prefix.
+        session = dict(full_session)
+        execution = plan["checked_invocations"][-1]["execution_manifest"]
+        _, execution_value = _read(execution)
+        if raw_session != session or execution_value["train_session_manifest"] != session_ref:
+            raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_SESSION_INVALID")
+        _, resume_evidence = _read(session["prefix_checkpoint_authority"])
     if (
         selection_ref != plan["selection_receipt"]
         or selection["artifact_sha256"] != plan["selection_artifact_sha256"]
@@ -240,11 +252,34 @@ def build_final_train_checkpoint_authority(
     pointer, state, state_ref = _load_checkpoint(pointer_ref)
     progress_ref, progress = _read(final_receipt["progress"])
     selected_batch = int(selection["selected_batch_size"])
-    total_batches = int(selection["total_batches_per_epoch"])
+    total_batches = int(
+        selection["total_batches_per_epoch"] if full_session is None
+        else session["total_batches_per_epoch"]
+    )
+    entry_count = 16384 if full_session is None else session["entry_pairs_per_epoch"]
+    witness_ref = None
+    if full_session is not None:
+        witness_path = Path(pointer_ref["path"]).parent / "EPOCH_SCHEDULE.json"
+        witness_ref, witness = _read({"path": str(witness_path), "sha256": file_sha256(witness_path)})
+        if (
+            witness.get("schema_version") != "gx1_unified_exit_full_population_schedule_witness_v1"
+            or witness.get("witness_sha256") != canonical_sha256({
+                k: v for k, v in witness.items() if k != "witness_sha256"
+            })
+            or witness.get("full_population_schedule") != session["full_population_schedule"]
+            or witness.get("epoch_schedule_sha256") != pointer["epoch_schedule_sha256"]
+            or witness.get("child_order_sha256") != session["full_population_schedule"]["entry_order_sha256"]
+            or witness.get("entry_pair_count") != entry_count
+            or witness.get("transition_count") != session["transition_budget_per_epoch"]
+            or witness.get("batch_size") != selected_batch
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_FULL_SCHEDULE_INVALID")
     if (
         launch_ref != session["prelaunch"]
         or launch["manifest_sha256"] != session["prelaunch_manifest_sha256"]
-        or launch["source_commit"] != plan["source_commit"]
+        or launch["source_commit"] != (
+            plan["source_commit"] if full_session is None else session["predecessor_source_commit"]
+        )
         or selection["launch_manifest_sha256"] != launch["manifest_sha256"]
         or pointer_ref != progress["checkpoint_pointer"]
         or progress["outcome"] != "COMPLETE"
@@ -266,7 +301,7 @@ def build_final_train_checkpoint_authority(
     ):
         raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_PROGRESS_INVALID")
     value = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": SCHEMA_VERSION if full_session is None else FULL_POPULATION_SCHEMA_VERSION,
         "decision": "PASS_FULL_VAL_ELIGIBLE",
         "source_commit": plan["source_commit"],
         "campaign_plan": plan_ref,
@@ -279,8 +314,8 @@ def build_final_train_checkpoint_authority(
         "gpu_batch_selection_artifact_sha256": selection["artifact_sha256"],
         "train_session": session_ref,
         "train_session_manifest_sha256": session["manifest_sha256"],
-        "resume_equivalence": dict(session["resume_equivalence"]),
-        "resume_equivalence_artifact_sha256": session["resume_equivalence_artifact_sha256"],
+        "resume_equivalence": dict(resume_evidence["resume_equivalence"]),
+        "resume_equivalence_artifact_sha256": resume_evidence["resume_equivalence_artifact_sha256"],
         "launch_manifest": launch_ref,
         "launch_manifest_sha256": launch["manifest_sha256"],
         "final_checkpoint_pointer": pointer_ref,
@@ -295,8 +330,8 @@ def build_final_train_checkpoint_authority(
         "selected_batch_size": selected_batch,
         "epoch_index": 0,
         "epoch_complete": True,
-        "entry_pair_count": 16384,
-        "transition_count": 65536,
+        "entry_pair_count": entry_count,
+        "transition_count": 4 * entry_count,
         "total_batches": total_batches,
         "global_optimizer_steps": total_batches,
         "epoch_schedule_sha256": pointer["epoch_schedule_sha256"],
@@ -309,6 +344,10 @@ def build_final_train_checkpoint_authority(
         "train_cost_authority": dict(files["train_cost_authority"]),
         "test_data_used": False,
     }
+    if full_session is not None:
+        value["full_population_schedule"] = session["full_population_schedule"]
+        value["epoch_schedule_witness"] = witness_ref
+        value["bootstrap_source_commit"] = launch["source_commit"]
     value["authority_sha256"] = canonical_sha256(value)
     return value
 
@@ -336,18 +375,23 @@ def require_final_train_checkpoint_authority(
         "summary_normalization_sha256", "random_access_root", "economics_readiness",
         "train_cost_authority", "test_data_used", "authority_sha256",
     }
+    full_population = value.get("schema_version") == FULL_POPULATION_SCHEMA_VERSION
+    if full_population:
+        required.update({"full_population_schedule", "epoch_schedule_witness", "bootstrap_source_commit"})
+    count = value.get("entry_pair_count")
     if (
         set(value) != required
-        or value.get("schema_version") != SCHEMA_VERSION
+        or value.get("schema_version") not in {SCHEMA_VERSION, FULL_POPULATION_SCHEMA_VERSION}
         or value.get("decision") != "PASS_FULL_VAL_ELIGIBLE"
         or value.get("model_variant_for_val") != "weight_ema"
         or value.get("selected_batch_size") not in (4, 8, 16)
         or value.get("epoch_index") != 0
         or value.get("epoch_complete") is not True
-        or value.get("entry_pair_count") != 16384
-        or value.get("transition_count") != 65536
+        or type(count) is not int or count < 1
+        or (not full_population and count != 16384)
+        or value.get("transition_count") != 4 * count
         or value.get("total_batches")
-        != -(-16384 // int(value.get("selected_batch_size", 1)))
+        != -(-count // int(value.get("selected_batch_size", 1)))
         or value.get("global_optimizer_steps") != value.get("total_batches")
         or value.get("guard_decision") != "PASS"
         or value.get("signed_guard_telemetry_owner") != "gx1_guarded_trainer_exec.sh"

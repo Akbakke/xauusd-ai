@@ -672,7 +672,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or result["entry_pairs_per_epoch"] < 1
         or type(result.get("transitions_per_epoch")) is not int
         or result["transitions_per_epoch"] != 4 * result["entry_pairs_per_epoch"]
-        or (result.get("phase") != "selected_training" and result["entry_pairs_per_epoch"] != 16384)
+        or (result.get("phase") not in {"selected_training", "full_val"} and result["entry_pairs_per_epoch"] != 16384)
         or not isinstance(result.get("source_commit"), str)
         or _COMMIT.fullmatch(result["source_commit"]) is None
         or not isinstance(result.get("gpu_uuid"), str)
@@ -794,10 +794,10 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             )
             if (
                 prior["phase"] not in expected_prior_phases
-                or prior["source_commit"] != (
+                or (phase != "full_val" and prior["source_commit"] != (
                     result["source_commit"] if full_session is None
                     else full_session["predecessor_source_commit"]
-                )
+                ))
                 or (full_session is not None and prior_binding != prefix_campaign)
                 or selection.get("selected_batch_size") != selected
                 or selection.get("entry_pairs_per_epoch") != 16384
@@ -824,6 +824,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 try:
                     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
                         require_final_train_checkpoint_authority,
+                        FULL_POPULATION_SCHEMA_VERSION,
                     )
 
                     authority = require_final_train_checkpoint_authority(
@@ -838,7 +839,13 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                         "final TRAIN checkpoint authority unavailable or invalid"
                     ) from exc
                 if (
-                    authority["source_commit"] != result["source_commit"]
+                    authority["source_commit"] != prior["source_commit"]
+                    or (
+                        authority["schema_version"] != FULL_POPULATION_SCHEMA_VERSION
+                        and authority["source_commit"] != result["source_commit"]
+                    )
+                    or authority["entry_pair_count"] != result["entry_pairs_per_epoch"]
+                    or authority["transition_count"] != result["transitions_per_epoch"]
                     or authority["campaign_plan"] != prior_binding
                     or authority["gpu_batch_selection"] != selection_binding
                     or authority["selected_batch_size"] != selected
