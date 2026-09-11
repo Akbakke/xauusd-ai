@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTROLLER = ROOT / "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1"
 OBSERVER = ROOT / "scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1"
 INSTALLER = ROOT / "scripts/windows/Install-GX1RandomAccessCampaignV2.ps1"
+HARDENING_TEST = ROOT / "tests/windows/Test-GX1-RandomAccessCampaignV2Controller.ps1"
 
 
 def test_controller_uses_physical_reboot_and_transactional_cli() -> None:
@@ -94,13 +95,14 @@ def test_boot_identity_escapes_windows_path_only_at_wslpath_boundary() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
     assignment = "$escapedPathForWsl = $path.Replace('\\', '\\\\')"
     invocation = (
-        "$linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u "
+        "Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-u', "
         "$escapedPathForWsl)"
     )
     assert assignment in source
     assert invocation in source
     assert source.index(assignment) < source.index(invocation)
     assert "wslpath -u $path" not in source
+    assert "$linux = @(& wsl.exe" not in source
 
 
 def test_controller_refreshes_exact_v4_proxy_and_signed_probe_before_active() -> None:
@@ -134,12 +136,17 @@ def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
     assert "Get-NetTCPConnection -State Listen -LocalPort 38127" in source
     assert "Get-NetFirewallAddressFilter" in source
     assert "Get-NetFirewallPortFilter" in source
-    assert "/usr/bin/sha256sum $bridge.QueryPath" in source
-    assert "$bridge.CertificateSha256 $bridge.GpuUuid '2'" in source
+    assert "'--', '/usr/bin/sha256sum', $bridge.QueryPath" in source
+    assert "$bridge.CertificateSha256, $bridge.GpuUuid, '2'" in source
     assert "$deadlineMilliseconds = 60000" in source
     assert "$nativeCallLimitMilliseconds = 8000" in source
     assert "$process.WaitForExit($TimeoutMilliseconds)" in source
+    assert "$process.StandardOutput.ReadToEndAsync()" in source
+    assert "$process.StandardError.ReadToEndAsync()" in source
+    assert "[Threading.Tasks.Task]::WaitAll($outputTasks, $remaining)" in source
+    assert "$process.WaitForExit()" not in source
     assert "$process.Kill()" in source
+    assert "Native process argument is empty or requires forbidden quoting" in source
     assert "[Diagnostics.Stopwatch]::StartNew()" in source
     assert "WSL distro or user is unsafe for direct process arguments" in source
     assert "HostTelemetryBridgeV4 boot readiness failed after bounded retry" in source
@@ -160,3 +167,14 @@ def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
     gate_call = source.index("Confirm-Gx1SignedHostTelemetryReady -Status $status")
     begin_call = source.index("$begin = Invoke-Gx1Json -Arguments @(")
     assert gate_call < begin_call
+
+
+def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
+    source = HARDENING_TEST.read_text(encoding="utf-8")
+    assert "[Console]::Out.Write('x' * 200000)" in source
+    assert "[Console]::Error.Write('y' * 200000)" in source
+    assert "-TimeoutMilliseconds 100" in source
+    assert "Bounded process timed out" in source
+    assert "$script:taskCalls -lt 3" in source
+    assert "$script:taskCalls -ne 3" in source
+    assert "POWERSHELL_HARDENING_PASS" in source

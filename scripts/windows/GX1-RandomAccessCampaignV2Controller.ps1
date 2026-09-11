@@ -11,16 +11,24 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 function Invoke-Gx1Json {
     param([Parameter(Mandatory = $true)][string[]]$Arguments)
-    $lines = @(& wsl.exe -d $Distro -u $LinuxUser --cd $SourceRepo -- $Python -m gx1.scripts.local_random_access_campaign_v2 @Arguments)
-    if ($LASTEXITCODE -ne 0 -or $lines.Count -ne 1) { throw 'Random-access campaign command failed' }
+    $result = Invoke-Gx1WslBounded -Arguments (@(
+        '--cd', $SourceRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
+    ) + $Arguments) -TimeoutMilliseconds 30000
+    $lines = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($result.ExitCode -ne 0 -or $lines.Count -ne 1) {
+        throw "Random-access campaign command failed: $($result.StdErr.Trim())"
+    }
     $value = $lines[0] | ConvertFrom-Json
     if ($value.ok -ne $true) { throw 'Random-access campaign command returned non-PASS' }
     return $value
 }
 function Convert-Gx1WslPath {
     param([Parameter(Mandatory = $true)][string]$LinuxPath)
-    $value = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -w $LinuxPath)
-    if ($LASTEXITCODE -ne 0 -or $value.Count -ne 1) { throw 'WSL path conversion failed' }
+    $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-w', $LinuxPath) -TimeoutMilliseconds 10000
+    $value = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($result.ExitCode -ne 0 -or $value.Count -ne 1) {
+        throw "WSL path conversion failed: $($result.StdErr.Trim())"
+    }
     return $value[0]
 }
 function Write-Gx1BootIdentity {
@@ -62,8 +70,11 @@ function Write-Gx1BootIdentity {
     # wsl.exe consumes one layer of backslash escaping before wslpath sees the
     # argument. Keep the filesystem path untouched and escape only this argv.
     $escapedPathForWsl = $path.Replace('\', '\\')
-    $linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u $escapedPathForWsl)
-    if ($LASTEXITCODE -ne 0 -or $linux.Count -ne 1) { throw 'Boot identity path conversion failed' }
+    $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-u', $escapedPathForWsl) -TimeoutMilliseconds 10000
+    $linux = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($result.ExitCode -ne 0 -or $linux.Count -ne 1) {
+        throw "Boot identity path conversion failed: $($result.StdErr.Trim())"
+    }
     return [pscustomobject]@{ Windows = $path; Linux = $linux[0]; Payload = $value }
 }
 function Test-Gx1PrivateIpv4 {
@@ -160,13 +171,15 @@ function Assert-Gx1HostTelemetryBridgeV4 {
         throw 'HostTelemetryBridgeV4 loopback listener is unavailable or widened'
     }
 
-    $wslAddresses = @(& wsl.exe -d $Distro -u $LinuxUser -- /bin/hostname -I)
-    if ($LASTEXITCODE -ne 0 -or $wslAddresses.Count -ne 1 -or
+    $addressResult = Invoke-Gx1WslBounded -Arguments @('--', '/bin/hostname', '-I') -TimeoutMilliseconds 8000
+    $wslAddresses = @($addressResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($addressResult.ExitCode -ne 0 -or $wslAddresses.Count -ne 1 -or
         -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
         throw 'Current WSL client address differs from HostTelemetryBridgeV4 configuration'
     }
-    $defaultRoutes = @(& wsl.exe -d $Distro -u $LinuxUser -- /usr/sbin/ip -4 route show default)
-    if ($LASTEXITCODE -ne 0 -or $defaultRoutes.Count -ne 1 -or
+    $routeResult = Invoke-Gx1WslBounded -Arguments @('--', '/usr/sbin/ip', '-4', 'route', 'show', 'default') -TimeoutMilliseconds 8000
+    $defaultRoutes = @($routeResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($routeResult.ExitCode -ne 0 -or $defaultRoutes.Count -ne 1 -or
         [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
         $Matches[1] -cne $expectedListenAddress) {
         throw 'Current WSL gateway differs from HostTelemetryBridgeV4 configuration'
@@ -202,39 +215,65 @@ function Assert-Gx1HostTelemetryBridgeV4 {
         GpuUuid = [string]$Status.gpu_uuid
     }
 }
+function Join-Gx1NativeArguments {
+    param([Parameter(Mandatory = $true)][string[]]$Arguments)
+    foreach ($argument in $Arguments) {
+        if ([string]::IsNullOrEmpty($argument) -or $argument -match '["\s]') {
+            throw 'Native process argument is empty or requires forbidden quoting'
+        }
+    }
+    return [string]::Join(' ', $Arguments)
+}
 function Invoke-Gx1NativeProcessBounded {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
-        [Parameter(Mandatory = $true)][string]$Arguments,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
         [Parameter(Mandatory = $true)][int]$TimeoutMilliseconds
     )
     if ($TimeoutMilliseconds -le 0) { throw 'Native process timeout must be positive' }
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = $FilePath
-    $startInfo.Arguments = $Arguments
+    $startInfo.Arguments = Join-Gx1NativeArguments -Arguments $ArgumentList
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $startInfo
+    $clock = [Diagnostics.Stopwatch]::StartNew()
     try {
         if (-not $process.Start()) { throw "Failed to start bounded process: $FilePath" }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutMilliseconds)) {
             try { $process.Kill() } catch {}
-            try { $process.WaitForExit() } catch {}
             throw "Bounded process timed out after $($TimeoutMilliseconds)ms: $FilePath"
         }
-        $stdout = $process.StandardOutput.ReadToEnd()
-        $stderr = $process.StandardError.ReadToEnd()
+        $remaining = [int][Math]::Max(1, $TimeoutMilliseconds - $clock.ElapsedMilliseconds)
+        $outputTasks = [Threading.Tasks.Task[]]@($stdoutTask, $stderrTask)
+        if (-not [Threading.Tasks.Task]::WaitAll($outputTasks, $remaining)) {
+            try { $process.Kill() } catch {}
+            throw "Bounded process output drain timed out after $($TimeoutMilliseconds)ms: $FilePath"
+        }
         return [pscustomobject]@{
             ExitCode = [int]$process.ExitCode
-            StdOut = [string]$stdout
-            StdErr = [string]$stderr
+            StdOut = [string]$stdoutTask.Result
+            StdErr = [string]$stderrTask.Result
         }
     } finally {
         $process.Dispose()
     }
+}
+function Invoke-Gx1WslBounded {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][int]$TimeoutMilliseconds
+    )
+    if ($Distro -notmatch '^[A-Za-z0-9_.-]+$' -or $LinuxUser -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw 'WSL distro or user is unsafe for direct process arguments'
+    }
+    $allArguments = @('-d', $Distro, '-u', $LinuxUser) + $Arguments
+    return Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -ArgumentList $allArguments -TimeoutMilliseconds $TimeoutMilliseconds
 }
 function Wait-Gx1HostTelemetryBridgeV4BootReady {
     # The telemetry service and campaign controller are independent boot tasks.
@@ -245,9 +284,6 @@ function Wait-Gx1HostTelemetryBridgeV4BootReady {
     $expectedListenAddress = '172.30.224.1'
     $deadlineMilliseconds = 60000
     $nativeCallLimitMilliseconds = 8000
-    if ($Distro -notmatch '^[A-Za-z0-9_.-]+$' -or $LinuxUser -notmatch '^[A-Za-z0-9_.-]+$') {
-        throw 'WSL distro or user is unsafe for direct process arguments'
-    }
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $lastFailure = 'boot readiness was not observed'
     while ($clock.ElapsedMilliseconds -lt $deadlineMilliseconds) {
@@ -260,20 +296,17 @@ function Wait-Gx1HostTelemetryBridgeV4BootReady {
             if ($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1') {
                 throw 'loopback listener is not ready'
             }
-
             $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
             $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
-            $wslBase = "-d $Distro -u $LinuxUser --"
-            $addressResult = Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -Arguments "$wslBase /bin/hostname -I" -TimeoutMilliseconds $callLimit
+            $addressResult = Invoke-Gx1WslBounded -Arguments @('--', '/bin/hostname', '-I') -TimeoutMilliseconds $callLimit
             $wslAddresses = @($addressResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
             if ($addressResult.ExitCode -ne 0 -or $wslAddresses.Count -ne 1 -or
                 -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
                 throw "WSL client address is not ready: $($addressResult.StdErr.Trim())"
             }
-
             $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
             $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
-            $routeResult = Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -Arguments "$wslBase /usr/sbin/ip -4 route show default" -TimeoutMilliseconds $callLimit
+            $routeResult = Invoke-Gx1WslBounded -Arguments @('--', '/usr/sbin/ip', '-4', 'route', 'show', 'default') -TimeoutMilliseconds $callLimit
             $defaultRoutes = @($routeResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
             if ($routeResult.ExitCode -ne 0 -or $defaultRoutes.Count -ne 1 -or
                 [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
@@ -313,16 +346,20 @@ function Confirm-Gx1SignedHostTelemetryReady {
     $bridge = Assert-Gx1HostTelemetryBridgeV4 -Status $Status
     Reset-Gx1HostTelemetryPortProxy -Bridge $bridge
 
-    $queryHashOutput = @(& wsl.exe -d $Distro -u $LinuxUser -- /usr/bin/sha256sum $bridge.QueryPath)
-    if ($LASTEXITCODE -ne 0 -or $queryHashOutput.Count -ne 1 -or
+    $queryHashResult = Invoke-Gx1WslBounded -Arguments @('--', '/usr/bin/sha256sum', $bridge.QueryPath) -TimeoutMilliseconds 8000
+    $queryHashOutput = @($queryHashResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+    if ($queryHashResult.ExitCode -ne 0 -or $queryHashOutput.Count -ne 1 -or
         [string]$queryHashOutput[0] -notmatch '^([0-9a-f]{64})  ' -or
         $Matches[1] -cne $bridge.QuerySha256) {
         throw 'Canonical host telemetry query no longer matches the inspected source binding'
     }
     foreach ($attempt in 1..12) {
-        $telemetry = @(& wsl.exe -d $Distro -u $LinuxUser -- $bridge.QueryPath `
-            $bridge.Url $bridge.CertificatePath $bridge.CertificateSha256 $bridge.GpuUuid '2')
-        $probeExitCode = $LASTEXITCODE
+        $probeResult = Invoke-Gx1WslBounded -Arguments @(
+            '--', $bridge.QueryPath, $bridge.Url, $bridge.CertificatePath,
+            $bridge.CertificateSha256, $bridge.GpuUuid, '2'
+        ) -TimeoutMilliseconds 8000
+        $telemetry = @($probeResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+        $probeExitCode = $probeResult.ExitCode
         if ($probeExitCode -eq 0 -and $telemetry.Count -eq 1 -and
             [string]$telemetry[0] -match '^[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+$') {
             return
