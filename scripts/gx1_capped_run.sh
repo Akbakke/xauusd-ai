@@ -682,8 +682,8 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && -n "$TRAI
     exit 75
   }
   if [[ -n "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" ]]; then
-    [[ "$GX1_CAMPAIGN_GUARD_LOG_PATH" == /*       && "${GX1_CAMPAIGN_GUARD_LOG_PATH%/*}" == "$TRAINER_GUARD_LOG_PARENT"       && ! -e "$GX1_CAMPAIGN_GUARD_LOG_PATH"       && ! -L "$GX1_CAMPAIGN_GUARD_LOG_PATH" ]] || {
-      echo "FATAL: campaign guard-log path is not a fresh exact sibling" >&2
+    [[ "$GX1_CAMPAIGN_GUARD_LOG_PATH" == /*       && -d "${GX1_CAMPAIGN_GUARD_LOG_PATH%/*}"       && ! -L "${GX1_CAMPAIGN_GUARD_LOG_PATH%/*}"       && ! -e "$GX1_CAMPAIGN_GUARD_LOG_PATH"       && ! -L "$GX1_CAMPAIGN_GUARD_LOG_PATH" ]] || {
+      echo "FATAL: campaign guard-log path is not a fresh exact regular path" >&2
       exit 75
     }
     if ! (set -o noclobber; umask 077; : > "$GX1_CAMPAIGN_GUARD_LOG_PATH"); then
