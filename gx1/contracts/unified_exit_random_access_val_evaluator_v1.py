@@ -604,6 +604,61 @@ def _finalize_result(
     return result
 
 
+def require_random_access_val_evaluation_result_v1(
+    value: Mapping[str, Any],
+    *,
+    rollout_contract_sha256: str,
+    checkpoint_binding_sha256: str,
+    execution_contract_sha256: str,
+) -> dict[str, Any]:
+    """Validate a completed immutable result so outer publication can recover."""
+
+    if not isinstance(value, Mapping):
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_INVALID")
+    result = dict(value)
+    claimed = result.pop("semantic_result_sha256", None)
+    checkpoint = result.get("checkpoint_binding")
+    execution = result.get("execution_contract")
+    outcomes = result.get("trade_outcomes")
+    if (
+        result.get("schema_version") != RESULT_SCHEMA_VERSION
+        or result.get("decision")
+        not in {
+            "PASS_COMPLETE",
+            "COMPLETE_WITH_RIGHT_CENSORING",
+            "TRUNCATED_NON_AUTHORITATIVE",
+        }
+        or result.get("contract_sha256") != rollout_contract_sha256
+        or result.get("checkpoint_binding_sha256") != checkpoint_binding_sha256
+        or result.get("execution_contract_sha256") != execution_contract_sha256
+        or not isinstance(execution, Mapping)
+        or execution.get("execution_contract_sha256") != execution_contract_sha256
+        or canonical_sha256(
+            {
+                key: item
+                for key, item in execution.items()
+                if key != "execution_contract_sha256"
+            }
+        )
+        != execution_contract_sha256
+        or not isinstance(checkpoint, Mapping)
+        or require_selected_weight_ema_checkpoint_binding_v1(checkpoint)[
+            "binding_sha256"
+        ]
+        != checkpoint_binding_sha256
+        or result.get("entry_pair_cohort_size") != VAL_ENTRY_COHORT_SIZE
+        or result.get("side_trade_count") != 2 * VAL_ENTRY_COHORT_SIZE
+        or not isinstance(outcomes, list)
+        or len(outcomes) != 2 * VAL_ENTRY_COHORT_SIZE
+        or result.get("test_data_used") is not False
+        or not isinstance(claimed, str)
+        or claimed != canonical_sha256(result)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_INVALID")
+    result["semantic_result_sha256"] = claimed
+    return result
+
+
 def run_resumable_random_access_val_evaluation_v1(
     *,
     model: nn.Module,
@@ -666,7 +721,14 @@ def run_resumable_random_access_val_evaluation_v1(
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_EXECUTION_BINDING_INVALID")
     if result_path.exists():
-        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_ALREADY_EXISTS")
+        if result_path.is_symlink() or not result_path.is_file():
+            raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_INVALID")
+        return require_random_access_val_evaluation_result_v1(
+            json.loads(result_path.read_text()),
+            rollout_contract_sha256=contract["contract_sha256"],
+            checkpoint_binding_sha256=checkpoint_binding_sha,
+            execution_contract_sha256=execution_contract["execution_contract_sha256"],
+        )
     if progress_path.exists():
         progress = _require_progress(
             json.loads(progress_path.read_text()),
@@ -892,5 +954,6 @@ __all__ = (
     "canonical_sha256",
     "finalize_route_diagnostics_v1",
     "file_sha256",
+    "require_random_access_val_evaluation_result_v1",
     "run_resumable_random_access_val_evaluation_v1",
 )

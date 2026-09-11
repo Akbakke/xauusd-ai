@@ -134,6 +134,23 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
     assert paused["next_entry_scan_position"] == 16
     assert not result.exists()
 
+    with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):
+        run_resumable_random_access_val_evaluation_v1(
+            model=model,
+            entry_decision_representations=representations,
+            adapter=adapter,
+            checkpoint_binding=binding,
+            entry_route_diagnostics={
+                "semantics": "observation_only",
+                "causal_feature_importance_claimed": False,
+            },
+            progress_path=progress,
+            result_path=result,
+            max_forwards_this_invocation=1,
+            policy_batch_size=8,
+            progress_interval_forwards=1,
+        )
+
     completed = run_resumable_random_access_val_evaluation_v1(
         model=model,
         entry_decision_representations=representations,
@@ -179,6 +196,22 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
     terminal = json.loads(progress.read_text())
     assert terminal["decision"] == "COMPLETE"
     assert terminal["result_file_sha256"]
+
+    recovered = run_resumable_random_access_val_evaluation_v1(
+        model=model,
+        entry_decision_representations=representations,
+        adapter=adapter,
+        checkpoint_binding=binding,
+        entry_route_diagnostics={
+            "semantics": "observation_only",
+            "causal_feature_importance_claimed": False,
+        },
+        progress_path=progress,
+        result_path=result,
+        max_forwards_this_invocation=1,
+        policy_batch_size=16,
+    )
+    assert recovered == completed
 
 
 def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
