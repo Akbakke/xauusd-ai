@@ -929,6 +929,10 @@ def test_production_materializer_builds_acyclic_phase_plans(
         max_wall_seconds=3600,
     )
     val_invocations = phase3["plan"]["checked_invocations"]
+    result_parent = tmp_path / "runtime-phase3" / "rollout"
+    assert result_parent.is_dir() and not result_parent.is_symlink()
+    assert result_parent.stat().st_mode & 0o777 == 0o700
+    assert list(result_parent.iterdir()) == []
     assert phase3["plan"]["phase"] == "full_val"
     assert phase3["plan"]["source_repo"] == str(repo)
     assert phase3["plan"]["source_commit"] == commit

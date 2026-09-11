@@ -567,6 +567,7 @@ def materialize_full_val_campaign(
     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
         require_final_train_checkpoint_authority,
     )
+    from gx1.scripts.local_random_access_campaign_v2 import _prepare_private_directory
 
     commit = _source_commit(repo)
     if output.exists() or output.is_symlink():
@@ -604,6 +605,9 @@ def materialize_full_val_campaign(
     batch = int(authority["selected_batch_size"])
     rollout_path = runtime / "rollout" / "ROLLOUT_PROGRESS.json"
     result_path = runtime / "rollout" / "VAL_RESULT.json"
+    # The capped runner writes its immutable-adjacent stdio before it starts
+    # the evaluator. Its result parent must therefore already be private.
+    _prepare_private_directory(result_path.parent, label="full VAL result")
     output.mkdir(parents=True)
     invocations = [
         _write_full_val_invocation(

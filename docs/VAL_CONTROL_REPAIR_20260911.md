@@ -11,3 +11,5 @@ The plan's existing absolute controller source bindings can select this repaired
 Validation: the production campaign materializer test exercises a separate control repository, a single begin plan load, resumable and complete VAL receipts, and rejection of automatic success after a failed child. The CLI identity regression rejects wrong paths and changed bytes. The Windows harness executes the production dispatch and outcome selection on the actual host.
 
 This repair establishes no VAL quality result or positive net Bps. Full VAL remains the next model operation.
+
+The repaired begin succeeded on BootId 372. The capped target then exited 75 before guard creation and evaluator startup. Inspection found that the result/stdio parent (runtime/rollout) was absent, while progress and guard parents existed. The materializer now creates that private empty result directory before launch. The production materializer test checks its mode, absence of symlinks and absence of output files before begin. Controller and CLI bytes remain unchanged, preserving the failed plan's source bindings.
