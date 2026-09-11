@@ -110,12 +110,17 @@ $humanJsonl = Join-Path $runtimeWindows 'HUMAN_STATUS.jsonl'
 if (Test-Path -LiteralPath $guardWindows) { throw 'Guard log already exists before invocation' }
 $trainerArguments = @('-d', $Distro, '-u', $LinuxUser, '--cd', $SourceRepo, '--') + $argv
 $priorPlanSha = $env:GX1_CAMPAIGN_PLAN_SHA256
+$priorPlanPath = $env:GX1_CAMPAIGN_PLAN_PATH
+$priorPlanFileSha = $env:GX1_CAMPAIGN_PLAN_FILE_SHA256
 $priorInvocationSha = $env:GX1_CAMPAIGN_INVOCATION_SHA256
 $priorGuardLogPath = $env:GX1_CAMPAIGN_GUARD_LOG_PATH
 $priorWslEnv = $env:WSLENV
-$campaignWslEnv = 'GX1_CAMPAIGN_PLAN_SHA256:GX1_CAMPAIGN_INVOCATION_SHA256:GX1_CAMPAIGN_GUARD_LOG_PATH'
+$campaignWslEnv = 'GX1_CAMPAIGN_PLAN_SHA256:GX1_CAMPAIGN_PLAN_PATH:GX1_CAMPAIGN_PLAN_FILE_SHA256:GX1_CAMPAIGN_INVOCATION_SHA256:GX1_CAMPAIGN_GUARD_LOG_PATH'
 try {
     $env:GX1_CAMPAIGN_PLAN_SHA256 = [string]$status.plan_sha256
+    if (-not $PlanJson.StartsWith('/')) { throw 'Campaign plan must be an absolute WSL path' }
+    $env:GX1_CAMPAIGN_PLAN_PATH = $PlanJson
+    $env:GX1_CAMPAIGN_PLAN_FILE_SHA256 = $PlanFileSha256
     $env:GX1_CAMPAIGN_INVOCATION_SHA256 = [string]$invocation.invocation_sha256
     $env:GX1_CAMPAIGN_GUARD_LOG_PATH = [string]$invocation.guard_log_path
     $env:WSLENV = if ([string]::IsNullOrWhiteSpace($priorWslEnv)) {
@@ -128,6 +133,8 @@ try {
 }
 finally {
     $env:GX1_CAMPAIGN_PLAN_SHA256 = $priorPlanSha
+    $env:GX1_CAMPAIGN_PLAN_PATH = $priorPlanPath
+    $env:GX1_CAMPAIGN_PLAN_FILE_SHA256 = $priorPlanFileSha
     $env:GX1_CAMPAIGN_INVOCATION_SHA256 = $priorInvocationSha
     $env:GX1_CAMPAIGN_GUARD_LOG_PATH = $priorGuardLogPath
     $env:WSLENV = $priorWslEnv

@@ -99,6 +99,12 @@ def test_capped_runner_has_exact_non_attended_full_val_allowlist() -> None:
     assert 'if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]' in source
     assert "random-access full VAL requires the exact guarded campaign contract" in source
     assert "GX1_CAMPAIGN_GUARD_LOG_PATH" in source
+    assert "require_campaign_plan_environment" in source
+    assert "GX1_CAMPAIGN_PLAN_PATH" in source
+    assert "GX1_CAMPAIGN_PLAN_FILE_SHA256" in source
+    assert "/usr/bin/sha256sum \"$plan_path\"" in source
+    assert '--setenv=GX1_CAMPAIGN_PLAN_PATH=' in source
+    assert '--setenv=GX1_CAMPAIGN_PLAN_FILE_SHA256=' in source
     assert "set -o noclobber" in source
     for flag in (
         "--launch-manifest",

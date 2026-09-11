@@ -125,6 +125,23 @@ is_direct_python() {
   [[ "$1" == "$CANONICAL_TRAINER_PYTHON" ]]
 }
 
+require_campaign_plan_environment() {
+  local plan_path="${GX1_CAMPAIGN_PLAN_PATH:-}"
+  local plan_sha="${GX1_CAMPAIGN_PLAN_SHA256:-}"
+  local plan_file_sha="${GX1_CAMPAIGN_PLAN_FILE_SHA256:-}"
+  [[ "$plan_path" == /* \
+    && "$plan_path" != *$'\n'* \
+    && -f "$plan_path" \
+    && ! -L "$plan_path" \
+    && "$(readlink -f "$plan_path")" == "$plan_path" \
+    && "$plan_sha" =~ ^[0-9a-f]{64}$ \
+    && "$plan_file_sha" =~ ^[0-9a-f]{64}$ \
+    && "$(/usr/bin/sha256sum "$plan_path" | /usr/bin/awk '{print $1}')" == "$plan_file_sha" ]] || {
+    echo "FATAL: campaign plan path/file SHA-256 binding invalid" >&2
+    exit 75
+  }
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -234,6 +251,7 @@ validate_target_command() {
     exit 75
   }
   if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]; then
+    require_campaign_plan_environment
     local -a val_flags=(
       --launch-manifest
       --final-train-checkpoint-authority
@@ -355,6 +373,7 @@ validate_target_command() {
   fi
 
   if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]; then
+    require_campaign_plan_environment
     local stage_shape_valid=false
     if [[ "$stage_value" == smoke-arm && $train_session_count -eq 0       && $max_optimizer_steps_count -eq 0 && ${#target_args[@]} -eq 15 ]]; then
       stage_shape_valid=true
@@ -773,6 +792,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_GPU_UUID="$TRAINER_HOST_TELEMETRY_GPU_UUID" \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS="$TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" \
   --setenv=GX1_CAMPAIGN_PLAN_SHA256="${GX1_CAMPAIGN_PLAN_SHA256:-}" \
+  --setenv=GX1_CAMPAIGN_PLAN_PATH="${GX1_CAMPAIGN_PLAN_PATH:-}" \
+  --setenv=GX1_CAMPAIGN_PLAN_FILE_SHA256="${GX1_CAMPAIGN_PLAN_FILE_SHA256:-}" \
   --setenv=GX1_CAMPAIGN_INVOCATION_SHA256="${GX1_CAMPAIGN_INVOCATION_SHA256:-}" \
   --setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=MKL_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
