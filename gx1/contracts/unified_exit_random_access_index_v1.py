@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -222,6 +223,8 @@ def require_random_access_index_manifest(
     *,
     expected_split: str,
     index_frame: pd.DataFrame | None = None,
+    index_path: Path | None = None,
+    verify_sources: bool = False,
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_MANIFEST_INVALID")
@@ -251,6 +254,26 @@ def require_random_access_index_manifest(
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SOURCE_INVALID")
         _sha(binding.get("sha256"), "SOURCE")
+    if index_path is not None:
+        resolved = index_path.expanduser().resolve()
+        if (
+            not resolved.is_file()
+            or resolved.is_symlink()
+            or str(resolved) != value.get("index_parquet_path")
+            or hashlib.sha256(resolved.read_bytes()).hexdigest()
+            != value.get("index_parquet_sha256")
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_FILE_INVALID")
+    if verify_sources:
+        for binding in sources.values():
+            resolved = Path(binding["path"]).expanduser().resolve()
+            if (
+                not resolved.is_file()
+                or resolved.is_symlink()
+                or hashlib.sha256(resolved.read_bytes()).hexdigest()
+                != binding["sha256"]
+            ):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SOURCE_INVALID")
     if index_frame is not None:
         checked = require_random_access_index(
             index_frame, expected_split=expected_split

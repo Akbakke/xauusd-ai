@@ -94,3 +94,46 @@ def test_manifest_seals_no_chunk_or_prefix_contract():
         require_random_access_index_manifest(
             value, expected_split="train", index_frame=frame
         )
+
+
+def test_manifest_rejects_staging_path_after_publication(tmp_path):
+    frame, _ = _built()
+    actual = tmp_path / "train.random_access_index.parquet"
+    frame.to_parquet(actual, index=False)
+    import hashlib
+
+    source_file = tmp_path / "source.json"
+    source_file.write_text("{}", encoding="utf-8")
+    source = {
+        "x": {
+            "path": str(source_file),
+            "sha256": hashlib.sha256(source_file.read_bytes()).hexdigest(),
+        }
+    }
+    value = {
+        "schema_version": RANDOM_ACCESS_INDEX_SCHEMA_VERSION,
+        "decision": "PASS",
+        "split": "train",
+        "entry_row_count": 2,
+        "successor_transition_total": 7,
+        "economic_terminal_count": 0,
+        "split_end_is_right_censor": True,
+        "storage_granularity": "one_row_per_entry",
+        "full_prefix_states_stored": False,
+        "chunk_pointers_stored": False,
+        "target_q_stored": False,
+        "index_parquet_path": str(tmp_path / ".deleted-stage" / actual.name),
+        "index_parquet_sha256": hashlib.sha256(actual.read_bytes()).hexdigest(),
+        "index_stream_sha256": index_stream_sha256(frame),
+        "source_bindings": source,
+        "test_accessed": False,
+    }
+    value["manifest_sha256"] = canonical_sha256(value)
+    with pytest.raises(RuntimeError, match="FILE_INVALID"):
+        require_random_access_index_manifest(
+            value,
+            expected_split="train",
+            index_frame=frame,
+            index_path=actual,
+            verify_sources=True,
+        )

@@ -95,6 +95,7 @@ def _build_split(
     pilot_root: Path,
     split: str,
     output_dir: Path,
+    final_output_dir: Path,
     composite: dict[str, Any],
     final_bundle_path: Path,
 ) -> dict[str, Any]:
@@ -220,7 +221,7 @@ def _build_split(
         "gap_classification_source_sha256": summary["closure_authority_sha256"],
         "split_end_utc": authority["coverage_end_utc"],
         "index_parquet_path": str(
-            output_dir.parent / output_dir.name / f"{split}.random_access_index.parquet"
+            final_output_dir / f"{split}.random_access_index.parquet"
         ),
         "index_parquet_sha256": file_sha256(parquet_path),
         "index_stream_sha256": index_stream_sha256(frame),
@@ -241,7 +242,9 @@ def _build_split(
     _sealed_json(output_dir / f"{split}.manifest.json", manifest, "manifest_sha256")
     manifest = _read_json(output_dir / f"{split}.manifest.json")
     require_random_access_index_manifest(
-        manifest, expected_split=split, index_frame=frame
+        manifest,
+        expected_split=split,
+        index_frame=frame,
     )
     return manifest
 
@@ -279,6 +282,7 @@ def publish(*, pilot_root: Path, output_dir: Path) -> dict[str, Any]:
                 pilot_root=pilot_root,
                 split=split,
                 output_dir=stage,
+                final_output_dir=output_dir,
                 composite=composite,
                 final_bundle_path=final_bundle_path,
             )
@@ -323,7 +327,20 @@ def publish(*, pilot_root: Path, output_dir: Path) -> dict[str, Any]:
         if output_dir.exists():
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OUTPUT_EXISTS")
         os.replace(stage, output_dir)
-        return _read_json(output_dir / "ROOT.json")
+        published_root = require_random_access_index_root(
+            _read_json(output_dir / "ROOT.json")
+        )
+        for split in ("train", "val"):
+            published_index = output_dir / f"{split}.random_access_index.parquet"
+            published_frame = pd.read_parquet(published_index)
+            require_random_access_index_manifest(
+                _read_json(output_dir / f"{split}.manifest.json"),
+                expected_split=split,
+                index_frame=published_frame,
+                index_path=published_index,
+                verify_sources=True,
+            )
+        return published_root
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise
