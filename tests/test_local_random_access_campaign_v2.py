@@ -10,6 +10,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     INVOCATION_SCHEMA,
     PLAN_SCHEMA,
     PROGRESS_SCHEMA,
+    RECEIPT_SCHEMA,
     RandomAccessCampaignError,
     canonical_bytes,
     canonical_sha256,
@@ -18,7 +19,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     require_plan,
 )
 from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
-    ARM_SCHEMA,
+    build_arm_receipt,
     build_selection,
     canonical_sha256 as selection_sha256,
 )
@@ -271,49 +272,97 @@ def _gpu_plan(tmp_path: Path) -> tuple:
     return plan, path, values, repo, commit, guards, controllers
 
 
-def _selection(tmp_path: Path) -> tuple[dict, Path]:
+def _selection(
+    tmp_path: Path,
+    gpu: dict,
+    gpu_path: Path,
+    gpu_invocations: list[dict],
+) -> tuple[dict, Path]:
     bindings = []
-    for batch, seconds in ((4, 4.0), (8, 3.0), (16, 2.0)):
+    for number, (invocation, batch, seconds) in enumerate(
+        zip(gpu_invocations, (4, 8, 16), (4.0, 3.0, 2.0), strict=True), 1
+    ):
         root = tmp_path / "arms" / str(batch)
-        progress, pointer, guard = (
-            root / "progress.json",
-            root / "pointer.json",
-            root / "guard.log",
-        )
-        _write(progress, {"terminal": True})
+        pointer = Path(invocation["checkpoint"]["pointer_path"])
+        guard = Path(invocation["guard_log_path"])
+        progress = Path(invocation["progress_path"])
         _write(pointer, {"batch_size": batch})
         _write(guard, "signed")
-        transitions = 8 * batch
-        receipt = {
-            "schema_version": ARM_SCHEMA,
-            "decision": "PASS",
+        progress_value = _seal(
+            {
+                "schema_version": PROGRESS_SCHEMA,
+                "plan_sha256": gpu["plan_sha256"],
+                "invocation_sha256": invocation["invocation_sha256"],
+                "phase": "smoke_arm",
+                "epoch_index": 0,
+                "global_optimizer_steps": 3,
+                "next_batch_offset": 3,
+                "total_batches": 3,
+                "completed_units": 3,
+                "total_units": 3,
+                "epoch_schedule_sha256": "b" * 64,
+                "selection_receipt_sha256": None,
+                "checkpoint_pointer": _binding(pointer),
+                "terminal": True,
+                "outcome": "COMPLETE",
+                "observed_utc": f"2026-09-11T10:{number:02d}:03+00:00",
+            },
+            "progress_sha256",
+        )
+        _write(progress, progress_value)
+        campaign_receipt = _seal(
+            {
+                "schema_version": RECEIPT_SCHEMA,
+                "plan_sha256": gpu["plan_sha256"],
+                "invocation_sha256": invocation["invocation_sha256"],
+                "invocation_number": number,
+                "invocation_id": f"invocation-{number:04d}",
+                "kind": "smoke_arm",
+                "selection_receipt_sha256": None,
+                "boot": _boot(100 + number, number),
+                "started_utc": f"2026-09-11T10:{number:02d}:00+00:00",
+                "finished_utc": f"2026-09-11T10:{number:02d}:04+00:00",
+                "outcome": "COMPLETE",
+                "trainer_guard_exit_code": 0,
+                "progress_observer_exit_code": 0,
+                "pointer_before_sha256": "GENESIS",
+                "checkpoint_pointer_after": _binding(pointer),
+                "progress": _binding(progress),
+                "guard_log": _binding(guard),
+                "guard_decision": "PASS",
+                "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
+                "active_marker_sha256": "c" * 64,
+                "test_data_used": False,
+            },
+            "receipt_sha256",
+        )
+        campaign_path = root / "campaign-receipt.json"
+        _write(campaign_path, campaign_receipt)
+        measurement = {
+            "schema_version": "gx1_unified_exit_cuda_smoke_measurement_v1",
             "launch_manifest_sha256": "a" * 64,
             "batch_size": batch,
-            "precision_policy": "deterministic_fp32",
             "warmup_optimizer_steps": 1,
             "measured_optimizer_steps": 2,
             "measured_entry_rows": 2 * batch,
             "transitions_per_entry": 4,
-            "measured_transition_count": transitions,
+            "measured_transition_count": 8 * batch,
             "measured_train_seconds": seconds,
-            "measured_transitions_per_second": transitions / seconds,
-            "guard_decision": "PASS",
-            "safety": {
-                "physical_power_limit_w": 160,
-                "maximum_actual_draw_w": 170,
-                "maximum_core_temperature_c": 65,
-                "maximum_memory_junction_temperature_c": 80,
-                "maximum_vram_mib": 12288,
-            },
-            "progress": _binding(progress),
-            "checkpoint_pointer": _binding(pointer),
-            "guard_log": _binding(guard),
             "test_data_used": False,
         }
-        receipt["receipt_sha256"] = selection_sha256(receipt)
-        path = root / "receipt.json"
-        _write(path, receipt)
-        bindings.append(_binding(path))
+        measurement["measurement_sha256"] = selection_sha256(measurement)
+        measurement_path = root / "measurement.json"
+        _write(measurement_path, measurement)
+        invocation_path = Path(gpu["invocations"][number - 1]["path"])
+        arm = build_arm_receipt(
+            campaign_plan_binding=_binding(gpu_path),
+            campaign_invocation_binding=_binding(invocation_path),
+            campaign_receipt_binding=_binding(campaign_path),
+            measurement_binding=_binding(measurement_path),
+        )
+        arm_path = root / "receipt.json"
+        _write(arm_path, arm)
+        bindings.append(_binding(arm_path))
     value = build_selection(bindings)
     path = tmp_path / "GPU_SELECTION.json"
     _write(path, value)
@@ -324,12 +373,15 @@ def _selected_plan(
     tmp_path: Path,
     gpu: dict,
     gpu_path: Path,
+    gpu_invocations: list[dict],
     repo: Path,
     commit: str,
     guards: dict,
     controllers: dict,
 ) -> tuple:
-    selection, selection_path = _selection(tmp_path)
+    selection, selection_path = _selection(
+        tmp_path, gpu, gpu_path, gpu_invocations
+    )
     batch = selection["selected_batch_size"]
     assert batch == 16
     runtime = tmp_path / "runtime-selected"
@@ -454,7 +506,7 @@ def test_two_phase_sequence_and_selected_epoch_budget(tmp_path: Path) -> None:
         == "LAUNCH"
     )
     selected, _, invocations = _selected_plan(
-        tmp_path, gpu, gpu_path, repo, commit, guards, controllers
+        tmp_path, gpu, gpu_path, gpu_invocations, repo, commit, guards, controllers
     )
     checked = require_plan(selected)
     assert [x["kind"] for x in checked["checked_invocations"]] == [

@@ -388,6 +388,54 @@ class _FreshWeightEma:
         self.steps = int(value["steps"])
 
 
+def _schedule_witness(
+    *,
+    child_order: Sequence[int],
+    parent_order: Sequence[int],
+    batch_size: int,
+    epoch_schedule_sha256: str,
+    selected_sampler_artifact_sha256: str,
+) -> dict[str, Any]:
+    if len(child_order) != 16384 or len(parent_order) != len(child_order):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SCHEDULE_SIZE_INVALID")
+    next_start = 4 * batch_size
+    next_stop = next_start + batch_size
+    next_child = [int(value) for value in child_order[next_start:next_stop]]
+    next_parent = [int(value) for value in parent_order[next_start:next_stop]]
+    if len(next_child) != batch_size or len(next_parent) != batch_size:
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_NEXT_BATCH_INVALID")
+    next_identity = {
+        "batch_offset": 4,
+        "batch_size": batch_size,
+        "child_entry_row_indices": next_child,
+        "parent_entry_row_indices": next_parent,
+    }
+    next_identity["identity_sha256"] = _canonical(next_identity)
+    value = {
+        "schema_version": "gx1_unified_exit_epoch_schedule_witness_v1",
+        "epoch_index": 0,
+        "batch_size": batch_size,
+        "entry_pair_count": len(child_order),
+        "transition_count": 4 * len(child_order),
+        "selected_sampler_artifact_sha256": selected_sampler_artifact_sha256,
+        "epoch_schedule_sha256": epoch_schedule_sha256,
+        "child_order_sha256": _canonical([int(value) for value in child_order]),
+        "parent_order_sha256": _canonical([int(value) for value in parent_order]),
+        "next_batch_after_optimizer_step_4": next_identity,
+        "test_data_used": False,
+    }
+    value["witness_sha256"] = _canonical(value)
+    return value
+
+
+def _write_or_require_schedule_witness(path: Path, value: Mapping[str, Any]) -> None:
+    if path.exists():
+        if path.is_symlink() or _read(path) != dict(value):
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SCHEDULE_WITNESS_MISMATCH")
+        return
+    _write_progress_atomic(path, value)
+
+
 def _write_progress_atomic(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = (
@@ -680,6 +728,13 @@ def run(
             "child_entry_order": child_order,
         }
     )
+    schedule_witness = _schedule_witness(
+        child_order=child_order,
+        parent_order=parent_order,
+        batch_size=arm_batch_size,
+        epoch_schedule_sha256=epoch_schedule_sha256,
+        selected_sampler_artifact_sha256=selected["artifact_sha256"],
+    )
     model = _model(meta, child_norm, device)
     target = copy.deepcopy(model).to(device)
     joint_task_parameters = list(model.task_log_variances.parameters())
@@ -791,6 +846,9 @@ def run(
             resume_probe = False
         else:
             raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_RESUME_STAGE_INVALID")
+    _write_or_require_schedule_witness(
+        checkpoint_dir / "EPOCH_SCHEDULE.json", schedule_witness
+    )
     total_batches = (
         int(gpu_selection["total_batches_per_epoch"])
         if gpu_selection is not None

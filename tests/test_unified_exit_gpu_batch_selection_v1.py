@@ -5,24 +5,43 @@ from pathlib import Path
 
 import pytest
 
+import gx1.contracts.unified_exit_gpu_batch_selection_v1 as owner
 from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
     ARM_SCHEMA,
     build_selection,
     canonical_sha256,
     file_sha256,
+    require_arm_receipt,
     require_selection,
 )
 
 
-def _arm(tmp_path: Path, batch: int, seconds: float) -> dict:
-    bindings = {}
-    for name in ("progress", "checkpoint_pointer", "guard_log"):
-        path = tmp_path / f"{batch}.{name}"
+def _binding(path: Path) -> dict[str, str]:
+    return {"path": str(path), "sha256": file_sha256(path)}
+
+
+def _arm(tmp_path: Path, batch: int, seconds: float) -> tuple[dict, dict]:
+    files = {}
+    for name in (
+        "campaign_plan", "campaign_invocation", "campaign_receipt", "measurement",
+        "progress", "checkpoint_pointer", "guard_log",
+    ):
+        path = (tmp_path / str(batch) / name).resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(name)
-        bindings[name] = {"path": str(path), "sha256": file_sha256(path)}
+        files[name] = _binding(path)
     value = {
         "schema_version": ARM_SCHEMA,
         "decision": "PASS",
+        "campaign_plan": files["campaign_plan"],
+        "campaign_plan_sha256": "a" * 64,
+        "campaign_invocation": files["campaign_invocation"],
+        "campaign_invocation_sha256": f"{batch:x}" * 64,
+        "campaign_receipt": files["campaign_receipt"],
+        "campaign_receipt_sha256": "b" * 64,
+        "measurement": files["measurement"],
+        "measurement_sha256": "c" * 64,
+        "source_commit": "d" * 40,
         "launch_manifest_sha256": "1" * 64,
         "batch_size": batch,
         "precision_policy": "deterministic_fp32",
@@ -34,6 +53,7 @@ def _arm(tmp_path: Path, batch: int, seconds: float) -> dict:
         "measured_train_seconds": seconds,
         "measured_transitions_per_second": 8 * batch / seconds,
         "guard_decision": "PASS",
+        "boot_identity_sha256": "e" * 64,
         "safety": {
             "physical_power_limit_w": 160,
             "maximum_actual_draw_w": 170,
@@ -41,31 +61,37 @@ def _arm(tmp_path: Path, batch: int, seconds: float) -> dict:
             "maximum_memory_junction_temperature_c": 80,
             "maximum_vram_mib": 12288,
         },
-        **bindings,
+        "progress": files["progress"],
+        "checkpoint_pointer": files["checkpoint_pointer"],
+        "guard_log": files["guard_log"],
         "test_data_used": False,
     }
     value["receipt_sha256"] = canonical_sha256(value)
-    path = tmp_path / f"{batch}.arm_receipt.json"
+    path = (tmp_path / str(batch) / "arm.json").resolve()
     path.write_text(json.dumps(value, sort_keys=True))
-    return {"path": str(path), "sha256": file_sha256(path)}
+    return _binding(path), value
 
 
-def test_selects_highest_transition_rate_then_lower_batch(tmp_path: Path):
-    selection = build_selection(
-        [_arm(tmp_path, 4, 1.0), _arm(tmp_path, 8, 2.0), _arm(tmp_path, 16, 2.0)]
-    )
+def _patch_loaded(monkeypatch: pytest.MonkeyPatch, pairs: list[tuple[dict, dict]]) -> None:
+    monkeypatch.setattr(owner, "_checked_arm_set", lambda _bindings: pairs)
+
+
+def test_selects_highest_transition_rate_then_lower_batch(tmp_path: Path, monkeypatch):
+    pairs = [_arm(tmp_path, 4, 1.0), _arm(tmp_path, 8, 2.0), _arm(tmp_path, 16, 2.0)]
+    _patch_loaded(monkeypatch, pairs)
+    selection = build_selection([binding for binding, _ in pairs])
     assert require_selection(selection)["selected_batch_size"] == 16
 
 
-def test_selection_rejects_tampered_winner(tmp_path: Path):
-    selection = build_selection(
-        [_arm(tmp_path, 4, 1.0), _arm(tmp_path, 8, 2.0), _arm(tmp_path, 16, 4.0)]
-    )
+def test_selection_rejects_tampered_winner(tmp_path: Path, monkeypatch):
+    pairs = [_arm(tmp_path, 4, 1.0), _arm(tmp_path, 8, 2.0), _arm(tmp_path, 16, 4.0)]
+    _patch_loaded(monkeypatch, pairs)
+    selection = build_selection([binding for binding, _ in pairs])
     selection["selected_batch_size"] = 16
     selection["artifact_sha256"] = canonical_sha256(
         {k: v for k, v in selection.items() if k != "artifact_sha256"}
     )
-    with pytest.raises(RuntimeError, match="WINNER_INVALID"):
+    with pytest.raises(RuntimeError, match="REBUILD_MISMATCH"):
         require_selection(selection)
 
 
@@ -78,13 +104,25 @@ def test_selection_rejects_tampered_winner(tmp_path: Path):
     ],
 )
 def test_epoch_budget_is_invariant_while_batch_count_is_derived(
-    tmp_path: Path, winner: int, seconds: dict[int, float], expected_batches: int
+    tmp_path: Path, monkeypatch, winner: int, seconds: dict[int, float], expected_batches: int
 ):
-    selection = build_selection(
-        [_arm(tmp_path, batch, seconds[batch]) for batch in (4, 8, 16)]
-    )
+    pairs = [_arm(tmp_path, batch, seconds[batch]) for batch in (4, 8, 16)]
+    _patch_loaded(monkeypatch, pairs)
+    selection = build_selection([binding for binding, _ in pairs])
     checked = require_selection(selection)
     assert checked["selected_batch_size"] == winner
     assert checked["transition_budget_per_epoch"] == 65536
     assert checked["entry_pairs_per_epoch"] == 16384
     assert checked["total_batches_per_epoch"] == expected_batches
+
+
+def test_arm_receipt_rejects_legacy_self_attestation(tmp_path: Path) -> None:
+    legacy = {
+        "schema_version": ARM_SCHEMA,
+        "decision": "PASS",
+        "batch_size": 16,
+        "test_data_used": False,
+    }
+    legacy["receipt_sha256"] = canonical_sha256(legacy)
+    with pytest.raises(RuntimeError, match="ARM_RECEIPT_INVALID"):
+        require_arm_receipt(legacy, verify_files=False)
