@@ -199,6 +199,7 @@ def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
     assert "-TimeoutMilliseconds 100" in source
     assert "Bounded process timed out" in source
     assert "one_shot_initial_state" in source
+    assert "bridge_configuration_comparison=PASS" in source
     assert "POWERSHELL_HARDENING_PASS" in source
 
 def test_single_wsl_boot_owner_is_source_bound_before_inspect() -> None:

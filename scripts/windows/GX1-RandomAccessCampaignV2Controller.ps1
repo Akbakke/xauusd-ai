@@ -223,7 +223,7 @@ function Assert-Gx1HostTelemetryBridgeV4 {
         'wsl_transport'
     )
     $actualConfigurationFields = @($configuration.PSObject.Properties.Name | Sort-Object)
-    if ((Compare-Object -ReferenceObject $expectedConfigurationFields -DifferenceObject $actualConfigurationFields).Count -ne 0 -or
+    if (@(Compare-Object -ReferenceObject $expectedConfigurationFields -DifferenceObject $actualConfigurationFields).Count -ne 0 -or
         $configuration.schema_version -cne 'gx1_host_telemetry_bridge_install_v1' -or
         $configuration.expected_gpu_name -cne 'NVIDIA GeForce RTX 3090' -or
         [int]$configuration.gpu_index -ne 0 -or

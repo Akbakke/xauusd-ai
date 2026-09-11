@@ -4,6 +4,7 @@ param(
     [string]$LinuxUserName = 'andre2'
 )
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 $lines = @(& wsl.exe -d $DistroName -u $LinuxUserName -- /bin/cat $ControllerSourceWsl)
 if ($LASTEXITCODE -ne 0) { throw 'wsl cat failed' }
 $source = $lines -join [Environment]::NewLine
@@ -27,6 +28,22 @@ foreach ($invalidTimeout in @(0, 30001)) {
     try { & $bindingOnly -WslTimeoutMilliseconds $invalidTimeout | Out-Null }
     catch [System.Management.Automation.ParameterBindingException] { $rejectedTimeout = $true }
     if (-not $rejectedTimeout) { throw "boot identity accepted invalid timeout: $invalidTimeout" }
+}
+
+# Exercise the real comparison predicate for zero and singleton differences.
+$comparison = [regex]::Match($source, '(?m)^\s*if \((.+Compare-Object[^\r\n]+) -or\r?$')
+if (-not $comparison.Success) { throw 'bridge configuration comparison was not found' }
+$comparisonOnly = [ScriptBlock]::Create("param(`$expectedConfigurationFields, `$actualConfigurationFields)`n" + $comparison.Groups[1].Value)
+$comparisonCases = @(
+    @{ fields = @('beta', 'alpha'); rejected = $false },
+    @{ fields = @('alpha'); rejected = $true },
+    @{ fields = @('alpha', 'beta', 'unexpected'); rejected = $true }
+)
+foreach ($case in $comparisonCases) {
+    $rejected = & $comparisonOnly -expectedConfigurationFields @('alpha', 'beta') -actualConfigurationFields $case.fields
+    if ($rejected -isnot [bool] -or $rejected -ne $case.rejected) {
+        throw 'bridge configuration field-set comparison failed'
+    }
 }
 
 $helperStart = $source.IndexOf('function Join-Gx1NativeArguments')
@@ -101,5 +118,5 @@ if ($script:bootCalls -ne 1 -or $script:inspectCalls -ne 1 -or $initial.Status.o
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS"
 )

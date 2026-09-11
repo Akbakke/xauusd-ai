@@ -1,17 +1,31 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current operational status -->
 # GX1 current handover
 
-Updated from `gx1_post_reboot_handover_snapshot_v1`, observed
+Earlier probe evidence from `gx1_post_reboot_handover_snapshot_v1`, observed
 `2026-09-11T10:54:04.2445771Z`. Snapshot file SHA-256:
 `6c9228f1116a26b2d1037b63648a0f404bd9695425dbfaac68d567f18d9ed446`.
 
 ## Decision
 
-**BLOCK_TRAINING_PENDING_HOST_INSTALL_VERIFICATION_AND_COMPLETE_AUTHORITY BINDING.**
-The repository controller/installer fix is complete and tested, but the installed
-host task still requires explicit zero-retry verification. Do not enable the
-campaign, start CUDA/training or resume a checkpoint until the installed task,
-corrected first-call timeout and complete data/model/checkpoint/plan bindings pass.
+**BLOCK_TRAINING_PENDING_SOURCE_REBIND_AND_CORRECTED_CONTROLLER_INSTALL.**
+BootId 360 began at `2026-09-11T15:11:08.5000000Z`. The V17 controller
+passed initial WSL/campaign inspection, then stopped at `telemetry_readiness`
+on `2026-09-11T15:12:42.6196258Z`, before `begin` or any GPU invocation.
+The installed task is Disabled with zero automatic retries; no ACTIVE record
+exists. Its plan file SHA-256 is
+`8dd2395ee04fb5dd6b0af3123fec18d842c209b5c641d8d4cc83fb8974e9d45e`.
+
+The exact failure was `.Count` on the empty `Compare-Object` result when the
+bridge configuration field set matched. The corrected source preserves an
+array for zero or singleton differences. The actual Windows harness now runs
+under production strict mode, and the complete real telemetry preflight passes,
+including task, certificate, listener, private transport and signed query.
+The full current-checkout suite also passes. Rebind the clean successor and
+install its exact controller before the next canonical launch; do not retry V17.
+
+Failure evidence is
+`C:\ProgramData\GX1\RandomAccessCampaignV2\bootstrap-errors\boot-360-8dd2395ee04fb5dd6b0af3123fec18d842c209b5c641d8d4cc83fb8974e9d45e.error.json`,
+file SHA-256 `302d75a27876763670f7ca35abac2a57c8540666e11f1f03ebbf97c4df8eeb02`.
 
 ## Current status
 
@@ -38,15 +52,16 @@ corrected first-call timeout and complete data/model/checkpoint/plan bindings pa
   `feature/unbounded-exit-lifecycle-v2-20260910` at
   `fb4f060d60d7017bf4188684cf5c0b5f05e110b4`; the successor source must be
   rebound to its exact clean commit by the collector before launch authority.
-- BootId 359 began at `2026-09-11T10:39:11.5000000Z`. The one-shot probe passed
+- Historical probe BootId 359 began at `2026-09-11T10:39:11.5000000Z`. The one-shot probe passed
   at `10:40:24.7603135Z`: cold Ubuntu `/bin/true` took 14,070 ms and returned 0;
   exact `wslpath` took 71 ms and returned `/mnt/c/ProgramData/GX1`.
 - `WSLService`, `vmcompute` and `hns` were running. The probe task is Disabled,
   returned 0 and has zero automatic retries. The campaign and legacy WSL
   bootstrap are Disabled. `GX1LifecycleV2PilotResume` is absent.
-- The campaign task still has `RestartCount=3`. Its result 0 belongs to its
-  earlier 10:06:50Z run, not a new training launch. This setting remains a hard
-  blocker because one failure could be replayed on the same boot.
+- The corrected installer was exercised on the actual host and verified
+  `RestartCount=0`, S4U owner `Andre`, exact V17 source/plan identity and the
+  one-minute startup trigger. The task was disabled after the BootId 360
+  bootstrap failure. Its result 1 is not a CUDA/training result.
 - The observed 14.07-second healthy cold call explains the earlier 8–10 second
   campaign timeout failures. Use one 30-second timeout for the first cold WSL
   call, with zero retry, terminate, shutdown or reset. Later calls keep their
@@ -81,11 +96,11 @@ PASS by absence.
 ## Repository verification status
 
 - The complete current-checkout suite passes: **4,666 tests and 14 subtests**,
-  in 1,262.17 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
+  in 1,230.05 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
   swap, CPU 0-7, one numerical thread). Bash syntax, Python compilation and
   `git diff --check` also pass. No CUDA or candidate training job was launched.
-- Exact results: `/tmp/gx1_lifecycle_v2_timeout_bound_final_20260911.log` and
-  `/tmp/gx1_lifecycle_v2_timeout_bound_final_20260911.xml` on the WSL host.
+- Exact results: `/tmp/gx1_lifecycle_v2_bridge_count_final_20260911.log` and
+  `/tmp/gx1_lifecycle_v2_bridge_count_final_20260911.xml` on the WSL host.
 - The earlier suites imported some test helpers from the original checkout.
   `tests/__init__.py` now binds helpers to this checkout, and `.venv` is a
   physical local environment with the existing dependencies. The original
@@ -106,9 +121,18 @@ PASS by absence.
   call. The real parameter-block regression accepts that value and rejects
   0 and 30,001 ms without executing host writes. The Windows harness passes
   with `boot_identity_parameter_binding=PASS`.
+- The actual Windows harness also proves empty, missing-field and extra-field
+  configuration comparisons under strict mode. The complete real
+  `Confirm-Gx1SignedHostTelemetryReady` path passed on BootId 360 without
+  candidate start or reboot.
 - The previous handover task is archived and its duplicate test run was
   interrupted. Only this takeover may advance the work; one heavy job at a
   time. The interrupted duplicate log is not verification evidence.
+
+The ten-role V17 handover bundle was captured with clean source
+`2de8ff8af31a9d61567de2c799923cf1b821735a` before this attempt. It remains
+historical evidence, not authority for the corrected controller. Its bundle
+SHA-256 is `5c56ac833bca77f469525fb50fb1c5fe478d196a97a8a89a61558d1ff6b09d59`.
 
 ## Next action
 
