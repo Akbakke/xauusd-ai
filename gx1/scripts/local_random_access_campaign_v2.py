@@ -291,15 +291,23 @@ def begin_invocation(
     pointer = Path(invocation["checkpoint"]["pointer_path"])
     progress_path = Path(invocation["progress_path"])
     guard_path = Path(invocation["guard_log_path"])
-    for parent, label in (
-        (pointer.parent, "checkpoint"),
-        (progress_path.parent, "progress"),
+    before_mode = invocation["checkpoint"]["before_mode"]
+    fresh_checkpoint = before_mode == "GENESIS"
+    if fresh_checkpoint and (pointer.parent.exists() or pointer.parent.is_symlink()):
+        raise RandomAccessCampaignError("GENESIS checkpoint directory already exists")
+    # The trainer exclusively creates a fresh checkpoint directory. The capped
+    # runner needs only its parent for durable stdio, and observer status lives
+    # under runtime_root, outside the checkpoint/progress directory.
+    parents = [
+        (pointer.parent.parent if fresh_checkpoint else pointer.parent, "checkpoint"),
         (guard_path.parent, "guard"),
-    ):
+    ]
+    if not fresh_checkpoint or progress_path.parent != pointer.parent:
+        parents.append((progress_path.parent, "progress"))
+    for parent, label in parents:
         _prepare_private_directory(parent, label=label)
     if guard_path.exists() or guard_path.is_symlink():
         raise RandomAccessCampaignError("fresh guard output already exists")
-    before_mode = invocation["checkpoint"]["before_mode"]
     rollout_cursor_before: str | None = None
     if before_mode == "GENESIS":
         if pointer.exists() or pointer.is_symlink():

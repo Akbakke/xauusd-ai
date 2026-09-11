@@ -1,4 +1,4 @@
-"""Materialize immutable phase-1/phase-2 random-access campaign plans."""
+"""Materialize immutable random-access campaign plans at each evidence gate."""
 
 from __future__ import annotations
 
@@ -286,8 +286,9 @@ def materialize_selected_training_campaign(
     prior_campaign_path: Path, prior_campaign_file_sha256: str,
     selection_path: Path, selection_file_sha256: str,
     resume_session_path: Path, resume_session_file_sha256: str,
-    epoch_session_path: Path, epoch_session_file_sha256: str,
+    epoch_session_path: Path | None, epoch_session_file_sha256: str | None,
     epoch_window_steps: int,
+    resume_proof_only: bool = False,
 ) -> dict[str, Any]:
     commit = _source_commit(repo)
     if output.exists() or output.is_symlink():
@@ -302,7 +303,24 @@ def materialize_selected_training_campaign(
         raise RandomAccessCampaignError("selection file SHA-256 mismatch")
     launch = _require_manifest(prelaunch_path, prelaunch_file_sha256)
     resume_session = _require_manifest(resume_session_path, resume_session_file_sha256)
-    epoch_session = _require_manifest(epoch_session_path, epoch_session_file_sha256)
+    if resume_proof_only:
+        if prior["phase"] != "gpu_selection" or epoch_session_path is not None or epoch_session_file_sha256 is not None:
+            raise RandomAccessCampaignError("resume proof must precede epoch authorization")
+        epoch_session = None
+    else:
+        if epoch_session_path is None or epoch_session_file_sha256 is None:
+            raise RandomAccessCampaignError("epoch session required after resume proof")
+        epoch_session = _require_manifest(epoch_session_path, epoch_session_file_sha256)
+    if resume_proof_only or prior["phase"] == "resume_proof":
+        from gx1.contracts.unified_exit_train_session_manifest_v1 import require_train_session_manifest
+        for phase, session in [("resume_proof", resume_session)] + (
+            [] if resume_proof_only else [("epoch1", epoch_session)]
+        ):
+            checked_session = require_train_session_manifest(session, expected_phase=phase, verify_files=True)
+            if (checked_session["source_commit"] != commit
+                or checked_session["prelaunch_manifest_sha256"] != launch["manifest_sha256"]
+                or checked_session["gpu_batch_selection_artifact_sha256"] != selection["artifact_sha256"]):
+                raise RandomAccessCampaignError("train session provenance invalid")
     batch = int(selection["selected_batch_size"])
     if batch not in (4, 8, 16) or selection["source_commit"] != commit:
         raise RandomAccessCampaignError("selected batch provenance invalid")
@@ -326,13 +344,16 @@ def materialize_selected_training_campaign(
     total_batches = math.ceil(16384 / batch)
     window_count = math.ceil(total_batches / epoch_window_steps)
     epoch_dir = checkpoint_root / f"epoch1_batch_{batch}"
-    for index in range(window_count):
+    if prior["phase"] == "resume_proof":
+        definitions = []
+    proof_invocation_count = len(definitions)
+    for index in range(0 if resume_proof_only else window_count):
         budget = min(epoch_window_steps, total_batches - index * epoch_window_steps)
         definitions.append({
             "kind": "epoch1_window", "stage": "epoch1-window", "budget": budget,
             "dir": epoch_dir, "progress": epoch_dir / "PROGRESS.json",
             "before": "GENESIS" if index == 0 else "PREVIOUS_RECEIPT_AFTER",
-            "predecessor": None if index == 0 else 3 + index,
+            "predecessor": None if index == 0 else proof_invocation_count + index,
             "session_path": epoch_session_path, "session": epoch_session,
             "window_index": index, "window_count": window_count,
         })
@@ -355,7 +376,8 @@ def materialize_selected_training_campaign(
         raise RandomAccessCampaignError("prepared boot file SHA-256 mismatch")
     guards, controllers = _sources(repo, certificate_path)
     plan = _base_plan(
-        phase="selected_training", campaign_id=f"GX1_RANDOM_ACCESS_SELECTED_TRAINING_{commit[:12]}",
+        phase="resume_proof" if resume_proof_only else "selected_training",
+        campaign_id=f"GX1_RANDOM_ACCESS_{'RESUME_PROOF' if resume_proof_only else 'SELECTED_TRAINING'}_{commit[:12]}",
         repo=repo, commit=commit, runtime=runtime, gpu_uuid=gpu_uuid, boot=boot,
         guards=guards, controllers=controllers, prior=_binding(prior_campaign_path),
         selection=_binding(selection_path), selected_batch_size=batch, invocations=invocations,
@@ -631,7 +653,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",
-        choices=("gpu-selection", "selected-training", "full-val"),
+        choices=("gpu-selection", "resume-proof", "selected-training", "full-val"),
         required=True,
     )
     parser.add_argument("--source-repo", type=Path, required=True)
@@ -678,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
             prelaunch_path=args.prelaunch_manifest.resolve(),
             prelaunch_file_sha256=args.prelaunch_file_sha256,
         )
-    elif args.phase == "selected-training":
+    elif args.phase in {"resume-proof", "selected-training"}:
         required = (
             args.prelaunch_manifest,
             args.prelaunch_file_sha256,
@@ -688,9 +710,9 @@ def main(argv: list[str] | None = None) -> int:
             args.gpu_selection_file_sha256,
             args.resume_session_manifest,
             args.resume_session_file_sha256,
-            args.epoch_session_manifest,
-            args.epoch_session_file_sha256,
-        )
+        ) + (() if args.phase == "resume-proof" else (
+            args.epoch_session_manifest, args.epoch_session_file_sha256,
+        ))
         if any(value is None for value in required):
             raise RandomAccessCampaignError("selected-training inputs incomplete")
         result = materialize_selected_training_campaign(
@@ -703,9 +725,10 @@ def main(argv: list[str] | None = None) -> int:
             selection_file_sha256=args.gpu_selection_file_sha256,
             resume_session_path=args.resume_session_manifest.resolve(),
             resume_session_file_sha256=args.resume_session_file_sha256,
-            epoch_session_path=args.epoch_session_manifest.resolve(),
+            epoch_session_path=args.epoch_session_manifest.resolve() if args.epoch_session_manifest else None,
             epoch_session_file_sha256=args.epoch_session_file_sha256,
             epoch_window_steps=args.epoch_window_steps,
+            resume_proof_only=args.phase == "resume-proof",
         )
     else:
         required = (

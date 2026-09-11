@@ -54,6 +54,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     EntryV10CtxDataset,
     JOINT_TASK_NAMES,
+    _announce_attended_preflight_ready,
     _set_deterministic,
     train_epoch,
 )
@@ -784,6 +785,22 @@ def run(
         epoch_schedule_sha256=epoch_schedule_sha256,
         selected_sampler_artifact_sha256=selected["artifact_sha256"],
     )
+    source_pointer = _read(files["checkpoint_pointer"])
+    source_state_path = (
+        files["checkpoint_pointer"].parent
+        / f"candidate_training_state_slot_{source_pointer['slot']}.pt"
+    )
+    if file_sha256(source_state_path) != source_pointer["state_sha256"]:
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SOURCE_STATE_INVALID")
+    source = torch.load(source_state_path, map_location="cpu", weights_only=True)
+    expected_bootstrap_sources = {
+        "online": canonical_model_state_sha256(source["model_state"]),
+        "target": canonical_model_state_sha256(source["target_model_state"]),
+    }
+    if device.type == "cuda" and stage in {
+        "smoke-arm", "reference-4", "resume-proof-first", "resume-proof-second"
+    }:
+        _announce_attended_preflight_ready(execution_tier="attended_only")
     model = _model(meta, child_norm, device)
     target = copy.deepcopy(model).to(device)
     joint_task_parameters = list(model.task_log_variances.parameters())
@@ -807,18 +824,6 @@ def run(
         optimizer, T_max=30, eta_min=0.0
     )
     weight_ema = _FreshWeightEma(model, float(launch["weight_ema_decay"]))
-    source_pointer = _read(files["checkpoint_pointer"])
-    source_state_path = (
-        files["checkpoint_pointer"].parent
-        / f"candidate_training_state_slot_{source_pointer['slot']}.pt"
-    )
-    if file_sha256(source_state_path) != source_pointer["state_sha256"]:
-        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SOURCE_STATE_INVALID")
-    source = torch.load(source_state_path, map_location="cpu", weights_only=True)
-    expected_bootstrap_sources = {
-        "online": canonical_model_state_sha256(source["model_state"]),
-        "target": canonical_model_state_sha256(source["target_model_state"]),
-    }
     pointer_path = checkpoint_dir / "RESUME_POINTER.json"
     bootstrap_stage = stage in {"smoke-arm", "reference-4", "resume-proof-first"} or (
         stage == "epoch1-window" and not pointer_path.exists()

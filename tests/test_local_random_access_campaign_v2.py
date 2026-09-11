@@ -640,9 +640,9 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
     )
     assert Path(active["active_marker"]["path"]).is_file()
     invocation = invocations[0]
+    assert not Path(invocation["checkpoint"]["pointer_path"]).parent.exists()
     for output_parent in (
-        Path(invocation["checkpoint"]["pointer_path"]).parent,
-        Path(invocation["progress_path"]).parent,
+        Path(invocation["checkpoint"]["pointer_path"]).parent.parent,
         Path(invocation["guard_log_path"]).parent,
     ):
         assert output_parent.stat().st_mode & 0o777 == 0o700
@@ -748,6 +748,8 @@ def test_active_without_receipt_blocks_recovery(tmp_path: Path) -> None:
 def test_production_materializer_builds_acyclic_phase_plans(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from gx1.contracts.unified_exit_train_session_manifest_v1 import build_train_session_manifest
+    from tests.test_unified_exit_fixed_step_resume_equivalence_v1 import _build as build_real_equivalence
     repo, commit, guards, _ = _source(tmp_path)
     boot_path = tmp_path / "BOOT.json"
     _write(boot_path, _boot(100, 0))
@@ -794,24 +796,28 @@ def test_production_materializer_builds_acyclic_phase_plans(
         for item in checked_phase1["checked_invocations"]
     )
 
+    begun = begin_invocation(
+        plan_path=Path(phase1["path"]), plan_file_sha256=phase1["sha256"],
+        current_boot=_boot(101, 1),
+    )
+    checkpoint_dir = Path(begun["invocation"]["checkpoint"]["pointer_path"]).parent
+    assert not checkpoint_dir.exists()
+    assert checkpoint_dir.parent.stat().st_mode & 0o777 == 0o700
+    assert not Path(begun["invocation"]["progress_path"]).parent.exists()
+
     selection = {
-        "artifact_sha256": "e" * 64,
+        "artifact_sha256": "6" * 64,
         "source_commit": commit,
         "launch_manifest_sha256": launch["manifest_sha256"],
         "selected_batch_size": 16,
         "entry_pairs_per_epoch": 16384,
         "transition_budget_per_epoch": 65536,
         "total_batches_per_epoch": 1024,
+        "checkpoint_interval_optimizer_steps": 64,
         "test_data_used": False,
     }
     selection_path = tmp_path / "SELECTION.json"
     _write(selection_path, selection)
-    resume_session = _seal_manifest({"test_data_used": False})
-    epoch_session = _seal_manifest({"test_data_used": False})
-    resume_path = tmp_path / "RESUME_SESSION.json"
-    epoch_path = tmp_path / "EPOCH_SESSION.json"
-    _write(resume_path, resume_session)
-    _write(epoch_path, epoch_session)
     monkeypatch.setattr(
         "gx1.scripts.materialize_local_random_access_campaign_v2.require_selection",
         lambda value, verify_files=True: dict(value),
@@ -820,6 +826,39 @@ def test_production_materializer_builds_acyclic_phase_plans(
         "gx1.contracts.unified_exit_gpu_batch_selection_v1.require_selection",
         lambda value, verify_files=True: dict(value),
     )
+    monkeypatch.setattr(
+        "gx1.contracts.unified_exit_train_session_manifest_v1.require_selection",
+        lambda value, verify_files=True: dict(value),
+    )
+    resume_path = tmp_path / "RESUME_SESSION.json"
+    epoch_path = tmp_path / "EPOCH_SESSION.json"
+    session_args = dict(source_commit=commit, prelaunch_binding=_binding(launch_path),
+                        prelaunch_manifest_sha256=launch["manifest_sha256"],
+                        gpu_selection_binding=_binding(selection_path), gpu_selection=selection)
+    _write(resume_path, build_train_session_manifest(phase="resume_proof", **session_args))
+    proof = materialize_selected_training_campaign(
+        repo=repo, output=tmp_path / "proof", runtime=tmp_path / "runtime-proof",
+        gpu_uuid="GPU-12345678-1234-1234-1234-123456789abc",
+        prepared_boot_path=boot_path, prepared_boot_file_sha256=file_sha256(boot_path),
+        prelaunch_path=launch_path, prelaunch_file_sha256=file_sha256(launch_path),
+        certificate_path=Path(guards["certificate"]["path"]),
+        prior_campaign_path=Path(phase1["path"]), prior_campaign_file_sha256=phase1["sha256"],
+        selection_path=selection_path, selection_file_sha256=file_sha256(selection_path),
+        resume_session_path=resume_path, resume_session_file_sha256=file_sha256(resume_path),
+        epoch_session_path=None, epoch_session_file_sha256=None, epoch_window_steps=64,
+        resume_proof_only=True,
+    )
+    assert proof["plan"]["phase"] == "resume_proof"
+    assert [i["optimizer_step_budget"] for i in proof["plan"]["checked_invocations"]] == [4, 3, 1]
+    assert not epoch_path.exists()
+    with pytest.raises(RuntimeError, match="EQ_REQUIRED"):
+        build_train_session_manifest(phase="epoch1", **session_args)
+    equivalence = build_real_equivalence(tmp_path)
+    eq_path = tmp_path / "EQUIVALENCE.json"
+    _write(eq_path, equivalence)
+    _write(epoch_path, build_train_session_manifest(
+        phase="epoch1", resume_equivalence_binding=_binding(eq_path),
+        resume_equivalence=equivalence, **session_args))
     phase2 = materialize_selected_training_campaign(
         repo=repo,
         output=tmp_path / "phase2",
@@ -830,8 +869,8 @@ def test_production_materializer_builds_acyclic_phase_plans(
         prelaunch_path=launch_path,
         prelaunch_file_sha256=file_sha256(launch_path),
         certificate_path=Path(guards["certificate"]["path"]),
-        prior_campaign_path=Path(phase1["path"]),
-        prior_campaign_file_sha256=phase1["sha256"],
+        prior_campaign_path=Path(proof["path"]),
+        prior_campaign_file_sha256=proof["sha256"],
         selection_path=selection_path,
         selection_file_sha256=file_sha256(selection_path),
         resume_session_path=resume_path,
@@ -841,15 +880,12 @@ def test_production_materializer_builds_acyclic_phase_plans(
         epoch_window_steps=64,
     )
     invocations = phase2["plan"]["checked_invocations"]
-    assert [item["kind"] for item in invocations[:3]] == [
-        "reference_run",
-        "resume_proof_first",
-        "resume_proof_second",
-    ]
-    assert len(invocations[3:]) == 16
-    assert all(item["kind"] == "epoch1_window" for item in invocations[3:])
+    assert len(invocations) == 16
+    assert all(item["kind"] == "epoch1_window" for item in invocations)
+    assert invocations[0]["checkpoint"]["before_mode"] == "GENESIS"
+    assert invocations[1]["checkpoint"]["predecessor_invocation_number"] == 1
     assert invocations[-1]["expected_success_outcome"] == "COMPLETE"
-    assert sum(item["optimizer_step_budget"] for item in invocations[3:]) == 1024
+    assert sum(item["optimizer_step_budget"] for item in invocations) == 1024
 
     pointer_path = tmp_path / "epoch1" / "RESUME_POINTER.json"
     _write(pointer_path, {"pointer_sha256": "f" * 64})

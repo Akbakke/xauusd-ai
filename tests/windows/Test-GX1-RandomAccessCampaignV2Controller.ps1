@@ -46,6 +46,13 @@ foreach ($case in $comparisonCases) {
     }
 }
 
+# Run the controller's actual status-root assignment with distinct paths.
+$statusRoot = [regex]::Match($source, '(?m)^\$runtimeWindows = [^\r\n]+')
+if (-not $statusRoot.Success) { throw 'observer status root was not found' }
+$statusRootOnly = [ScriptBlock]::Create("param(`$progressWindows, `$guardWindows)`n" + $statusRoot.Value + "`n`$runtimeWindows")
+$actualStatusRoot = & $statusRootOnly -progressWindows 'C:\gx1\checkpoints\batch_4\PROGRESS.json' -guardWindows 'C:\gx1\runtime\guard\invocation-0001.log'
+if ($actualStatusRoot -cne 'C:\gx1\runtime') { throw 'observer would claim the trainer checkpoint directory' }
+
 $helperStart = $source.IndexOf('function Join-Gx1NativeArguments')
 $helperEnd = $source.IndexOf('function Reset-Gx1HostTelemetryPortProxy', $helperStart)
 if ($helperStart -lt 0 -or $helperEnd -le $helperStart) { throw 'function boundaries not found' }
@@ -118,5 +125,5 @@ if ($script:bootCalls -ne 1 -or $script:inspectCalls -ne 1 -or $initial.Status.o
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS"
 )

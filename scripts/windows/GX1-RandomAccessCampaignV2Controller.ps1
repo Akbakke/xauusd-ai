@@ -578,7 +578,7 @@ $invocation = $begin.invocation
 $argv = @($invocation.launcher_argv | ForEach-Object { [string]$_ })
 $progressWindows = Convert-Gx1WslPath -LinuxPath ([string]$invocation.progress_path)
 $guardWindows = Convert-Gx1WslPath -LinuxPath ([string]$invocation.guard_log_path)
-$runtimeWindows = Split-Path -Parent $progressWindows
+$runtimeWindows = Split-Path -Parent (Split-Path -Parent $guardWindows)
 $statusJson = Join-Path $runtimeWindows ('STATUS-{0}.json' -f $invocation.invocation_id)
 $humanJsonl = Join-Path $runtimeWindows 'HUMAN_STATUS.jsonl'
 if (Test-Path -LiteralPath $guardWindows) { throw 'Guard log already exists before invocation' }

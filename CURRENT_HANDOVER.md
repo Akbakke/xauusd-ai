@@ -7,27 +7,50 @@ Earlier probe evidence from `gx1_post_reboot_handover_snapshot_v1`, observed
 
 ## Decision
 
-**BLOCK_TRAINING_PENDING_SOURCE_REBIND_AND_CORRECTED_CONTROLLER_INSTALL.**
-BootId 360 began at `2026-09-11T15:11:08.5000000Z`. The V17 controller
-passed initial WSL/campaign inspection, then stopped at `telemetry_readiness`
-on `2026-09-11T15:12:42.6196258Z`, before `begin` or any GPU invocation.
-The installed task is Disabled with zero automatic retries; no ACTIVE record
-exists. Its plan file SHA-256 is
-`8dd2395ee04fb5dd6b0af3123fec18d842c209b5c641d8d4cc83fb8974e9d45e`.
+**BLOCK_TRAINING_PENDING_VERIFIED_STARTUP_OWNERSHIP_SUCCESSOR.**
+BootId 361 began at 2026-09-11T15:57:48.5000000Z. V18 bound clean source
+747111162705a8f7e8b10df4b0ede641cf4431ab and passed Windows cold-start,
+strict bridge configuration and signed telemetry checks. Its first smoke
+invocation began at 15:59:23.577665Z and stopped at 16:03:15Z.
 
-The exact failure was `.Count` on the empty `Compare-Object` result when the
-bridge configuration field set matched. The corrected source preserves an
-array for zero or singleton differences. The actual Windows harness now runs
-under production strict mode, and the complete real telemetry preflight passes,
-including task, certificate, listener, private transport and signed query.
-The full current-checkout suite also passes. Rebind the clean successor and
-install its exact controller before the next canonical launch; do not retry V17.
+The exact trainer exception was UNIFIED_EXIT_FIXED_STEP_CHECKPOINT_DIR_EXISTS:
+campaign begin created the same fresh directory the bootstrap trainer must own.
+No optimizer step, resume pointer or terminal progress was produced. The
+scheduler is Disabled with zero retries and no candidate process remains.
+The unresolved V18 ACTIVE marker is preserved as failed evidence; never delete
+it to retry this plan, and do not treat it as a currently running process.
 
-Failure evidence is
-`C:\ProgramData\GX1\RandomAccessCampaignV2\bootstrap-errors\boot-360-8dd2395ee04fb5dd6b0af3123fec18d842c209b5c641d8d4cc83fb8974e9d45e.error.json`,
-file SHA-256 `302d75a27876763670f7ca35abac2a57c8540666e11f1f03ebbf97c4df8eeb02`.
+The correction leaves fresh checkpoint-directory creation to the trainer and
+places observer status under runtime_root. The fixed-step CUDA smoke now uses
+the existing private-FIFO notification after CPU checkpoint verification and
+before model construction, so the guard enforces its separate model budget.
+The next producer also had a circular dependency: it required an epoch session
+before the resume proof that authorizes that session. The existing 4-step
+reference and 3+1 proof now form a resume-proof campaign; the subsequent
+selected-training campaign contains only epoch windows and requires the
+completed equivalence-bound epoch manifest.
 
-## Current status
+Targeted CPU tests: 32 passed. The actual Windows hardening harness also passes,
+including observer_checkpoint_isolation=PASS. The operator reprioritized direct
+progress to one year / one epoch over repeated broad suites. The fourth full
+suite was interrupted: 683 tests and 14 subtests passed in 176.24 seconds before
+SIGINT; this is partial verification, not a full PASS. Use the passing targeted
+checks for these concrete startup fixes. Do not repeat the full suite merely
+because a commit is due. Source must be committed and rebound before launch.
+
+V18 plan file SHA-256:
+b45bd3c8cb7f01f2e0c6e03122d33e4be258589bc7cd90afdd980b39003dbe81.
+Exact immutable failure snapshot:
+LIFECYCLE_V2_LOCAL_PILOT_20260910/PRELAUNCH_EVIDENCE_V18_74711116_BOOT360/FAILED_SMOKE_READONLY.json.
+Trainer log SHA-256:
+f03ef6e951e632f717f26a5449ffc018293f058815cb617d3234e278209083d8.
+Guard log SHA-256:
+de28ab6bf59f25454e86352381b1c67f4266a6967f0a423ff31034eea2cc1e1b.
+The logs are bound by that snapshot. Guard peaks were 51 C core, 52 C memory,
+132.48 W draw and 490 MiB resident VRAM, with the physical limit at 160 W.
+
+## Earlier context
+
 
 - The old five-year epoch 1 is preserved as immutable historical evidence:
   313,399 TRAIN rows, 39,175 optimizer steps, 5,509 Entry VAL rows and
@@ -93,9 +116,9 @@ data/model/checkpoint/plan authority must still be bound to the successor commit
 PASS by absence.
 
 
-## Repository verification status
+## Prior committed baseline verification
 
-- The complete current-checkout suite passes: **4,666 tests and 14 subtests**,
+- The prior committed baseline suite passed: **4,666 tests and 14 subtests**,
   in 1,230.05 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
   swap, CPU 0-7, one numerical thread). Bash syntax, Python compilation and
   `git diff --check` also pass. No CUDA or candidate training job was launched.
@@ -129,12 +152,24 @@ PASS by absence.
   interrupted. Only this takeover may advance the work; one heavy job at a
   time. The interrupted duplicate log is not verification evidence.
 
+The ten-role V18 bundle passed with source 747111162705a8f7e8b10df4b0ede641cf4431ab,
+bundle SHA-256 46895a69b75023d1242ea4f879c8bdb1386e81933a5d7a748134fe6d78727de1.
+It is historical capture evidence, not authority for the pending successor.
+
 The ten-role V17 handover bundle was captured with clean source
 `2de8ff8af31a9d61567de2c799923cf1b821735a` before this attempt. It remains
 historical evidence, not authority for the corrected controller. Its bundle
 SHA-256 is `5c56ac833bca77f469525fb50fb1c5fe478d196a97a8a89a61558d1ff6b09d59`.
 
 ## Next action
+
+Commit the targeted-verified startup-ownership correction. Preserve V18 as failed, then use a new output/runtime root and the
+actual prepared BootId 361. Only the canonical controller may request the
+next physical reboot and sequential smoke invocations. After GPU selection,
+use --phase resume-proof first; build the epoch session only after real 4 versus
+3+1 equivalence passes, then materialize selected-training against that proof
+plan. The TRAIN 2025-06-01 through 2026-05-31 and full June-2026 VAL objective,
+TEST seal and hardware guards are unchanged.
 
 1. Verify the committed successor is clean with `gx1_handover.sh --source-only`.
    Rebind the existing smoke recipes and campaign plan to that exact commit

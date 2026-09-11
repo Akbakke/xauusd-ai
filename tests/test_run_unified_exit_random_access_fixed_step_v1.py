@@ -200,3 +200,93 @@ def test_multi_tf_cache_binding_rejects_symlink_and_manifest_path_drift(
     with pytest.raises(RuntimeError, match="CACHE_PATH_INVALID"):
         _bind_multi_tf_cache_from_source_bundle_metadata(metadata)
     assert "GX1_V10_MULTI_TF_V4_CACHE_DIR" not in os.environ
+
+
+@pytest.mark.parametrize("corrupt_checkpoint", [False, True])
+def test_guard_model_signal_follows_cpu_checkpoint_proof(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, corrupt_checkpoint: bool
+) -> None:
+    from types import SimpleNamespace
+    import gx1.scripts.run_unified_exit_random_access_fixed_step_v1 as runner
+
+    class ModelBoundaryReached(Exception):
+        pass
+
+    checkpoint_root = tmp_path / "checkpoints"
+    files = {name: tmp_path / (name + ".json") for name in (
+        "selected_sampler", "random_access_root", "source_bundle_metadata",
+        "child_composite_normalization", "bootstrap_composite_normalization",
+        "entry_train_parquet", "entry_val_parquet", "m5_prebuilt",
+        "sequence_source_audit", "feature_lifecycle_root", "entry_train_manifest",
+        "entry_val_manifest", "economics_readiness", "train_cost_authority",
+        "train_random_access_index", "checkpoint_pointer",
+    )}
+    for path in files.values():
+        path.write_text("{}")
+    state_path = tmp_path / "candidate_training_state_slot_1.pt"
+    torch.save({"model_state": {"w": torch.ones(1)},
+                "target_model_state": {"w": torch.ones(1)}}, state_path)
+    expected_sha = runner.file_sha256(state_path)
+    launch = {"files": {k: {"path": str(v)} for k, v in files.items()},
+              "checkpoint_dir": str(checkpoint_root), "batch_sizes": [4, 8, 16],
+              "source_repo": str(tmp_path), "source_commit": "a" * 40,
+              "dataset_run_id": "fixture", "seed": 7}
+    documents = {path: {} for path in files.values()}
+    documents[files["selected_sampler"]] = {
+        "random_access_root": {"path": str(files["random_access_root"])},
+        "candidate_set": {"path": str(tmp_path / "candidate.json")},
+        "selected_sampler_contract_sha256": "b" * 64, "artifact_sha256": "c" * 64}
+    documents[files["source_bundle_metadata"]] = {
+        "seq_len": 1, "multi_tf": {name + "_seq_len": 1 for name in ("m5", "m15", "h1", "h4", "d1")}}
+    documents[files["child_composite_normalization"]] = {
+        "base_feature_normalization": {"artifact": {"contract": {}}}}
+    documents[files["bootstrap_composite_normalization"]] = {
+        "base_feature_normalization": {"artifact": {"base_artifact": {"contract": {}}}}}
+    documents[files["checkpoint_pointer"]] = {
+        "slot": 1, "state_sha256": "0" * 64 if corrupt_checkpoint else expected_sha}
+    manifest = tmp_path / "launch.json"
+    documents[manifest] = launch
+    monkeypatch.setattr(runner, "_read", lambda path: documents[path])
+    for name in ("require_launch_manifest", "require_selected_sampler_artifact",
+                 "require_composite_normalization_binding", "require_bootstrap_composite_normalization"):
+        monkeypatch.setattr(runner, name, lambda value: value)
+    monkeypatch.setattr(runner.subprocess, "run", lambda args, **kw:
+                        SimpleNamespace(stdout="a" * 40 if "rev-parse" in args else ""))
+    monkeypatch.setattr(runner, "_set_deterministic", lambda *args: None)
+    monkeypatch.setattr(runner, "_bind_multi_tf_cache_from_source_bundle_metadata", lambda meta: None)
+    dataset = SimpleNamespace(bind_unified_exit_lifecycle_v2=lambda adapter: None,
+                              bind_random_access_entry_coordinate_mapping_v1=lambda **kw: None)
+    monkeypatch.setattr(runner, "EntryV10CtxDataset", lambda *args, **kw: dataset)
+    monkeypatch.setattr(runner, "UnifiedExitLifecycleCorpus", lambda **kw:
+                        SimpleNamespace(splits={"train": object()}))
+    adapter = SimpleNamespace(set_epoch_index=lambda epoch: None,
+                              random_access_selected_entry_rows_v1=lambda: list(range(16384)))
+    monkeypatch.setattr(runner, "build_random_access_train_adapter_factory_v1",
+                        lambda **kw: lambda budget: adapter)
+    monkeypatch.setattr(runner.pd, "read_parquet", lambda *args, **kw: pd.DataFrame({
+        "entry_row_index": range(16384), "parent_entry_row_index": range(16384)}))
+    fifo = tmp_path / "guard-stage"
+    os.mkfifo(fifo, 0o600)
+    fd = os.open(fifo, os.O_RDWR | os.O_NONBLOCK)
+    monkeypatch.setenv("GX1_TRAINER_ATTENDED_STAGE_FIFO", str(fifo))
+    monkeypatch.setenv("GX1_TRAINER_ATTENDED_STAGE_TOKEN", "d" * 64)
+
+    def model_boundary(*args):
+        assert runner.file_sha256(state_path) == expected_sha
+        assert os.read(fd, 256) == ("gx1_attended_preflight_ready_v1:" + "d" * 64 + "\n").encode()
+        assert not (checkpoint_root / "batch_4").exists()
+        raise ModelBoundaryReached
+
+    monkeypatch.setattr(runner, "_model", model_boundary)
+    try:
+        expected_error = RuntimeError if corrupt_checkpoint else ModelBoundaryReached
+        with pytest.raises(expected_error, match="SOURCE_STATE_INVALID" if corrupt_checkpoint else None):
+            runner.run(manifest_path=manifest, stage="smoke-arm", device=torch.device("cuda"),
+                       checkpoint_dir=checkpoint_root / "batch_4", arm_batch_size=4,
+                       progress_path=checkpoint_root / "batch_4" / "PROGRESS.json",
+                       train_session_manifest_path=None, max_optimizer_steps=None,
+                       plan_sha256="e" * 64, invocation_sha256="f" * 64)
+        with pytest.raises(BlockingIOError):
+            os.read(fd, 256)
+    finally:
+        os.close(fd)

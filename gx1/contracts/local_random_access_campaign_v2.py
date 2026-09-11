@@ -486,39 +486,47 @@ def _require_sequence(
                 or item["expected_success_outcome"] != "COMPLETE"
             ):
                 raise RandomAccessCampaignError("smoke-arm sequence invalid")
-    elif phase == "selected_training":
-        if selected_batch_size not in (4, 8, 16) or len(invocations) < 4:
+    elif phase in {"resume_proof", "selected_training"}:
+        if selected_batch_size not in (4, 8, 16) or not invocations:
             raise RandomAccessCampaignError("selected training sequence invalid")
-        reference, first, second = invocations[:3]
-        if (
-            reference["kind"] != "reference_run"
-            or reference["batch_size"] != selected_batch_size
-            or reference["optimizer_step_budget"] != 4
-            or reference["checkpoint"]["before_mode"] != "GENESIS"
-            or reference["expected_success_outcome"] != "COMPLETE"
-        ):
-            raise RandomAccessCampaignError("selected reference-run sequence invalid")
-        if (
-            first["kind"] != "resume_proof_first"
-            or first["batch_size"] != selected_batch_size
-            or first["optimizer_step_budget"] != 3
-            or first["checkpoint"]["before_mode"] != "GENESIS"
-            or first["expected_success_outcome"] != "COMPLETE"
-        ):
-            raise RandomAccessCampaignError("resume-proof first sequence invalid")
-        if (
-            second["kind"] != "resume_proof_second"
-            or second["batch_size"] != selected_batch_size
-            or second["optimizer_step_budget"] != 1
-            or second["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
-            or second["checkpoint"]["predecessor_invocation_number"]
-            != first["invocation_number"]
-            or second["checkpoint"]["pointer_path"]
-            != first["checkpoint"]["pointer_path"]
-            or second["expected_success_outcome"] != "COMPLETE"
-        ):
-            raise RandomAccessCampaignError("resume-proof second sequence invalid")
-        epoch = list(invocations[3:])
+        has_proof = invocations[0]["kind"] == "reference_run"
+        if phase == "resume_proof" and (not has_proof or len(invocations) != 3):
+            raise RandomAccessCampaignError("resume-proof sequence invalid")
+        if has_proof:
+            if len(invocations) < 3:
+                raise RandomAccessCampaignError("resume-proof sequence incomplete")
+            reference, first, second = invocations[:3]
+            if (
+                reference["kind"] != "reference_run"
+                or reference["batch_size"] != selected_batch_size
+                or reference["optimizer_step_budget"] != 4
+                or reference["checkpoint"]["before_mode"] != "GENESIS"
+                or reference["expected_success_outcome"] != "COMPLETE"
+            ):
+                raise RandomAccessCampaignError("selected reference-run sequence invalid")
+            if (
+                first["kind"] != "resume_proof_first"
+                or first["batch_size"] != selected_batch_size
+                or first["optimizer_step_budget"] != 3
+                or first["checkpoint"]["before_mode"] != "GENESIS"
+                or first["expected_success_outcome"] != "COMPLETE"
+            ):
+                raise RandomAccessCampaignError("resume-proof first sequence invalid")
+            if (
+                second["kind"] != "resume_proof_second"
+                or second["batch_size"] != selected_batch_size
+                or second["optimizer_step_budget"] != 1
+                or second["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
+                or second["checkpoint"]["predecessor_invocation_number"]
+                != first["invocation_number"]
+                or second["checkpoint"]["pointer_path"]
+                != first["checkpoint"]["pointer_path"]
+                or second["expected_success_outcome"] != "COMPLETE"
+            ):
+                raise RandomAccessCampaignError("resume-proof second sequence invalid")
+        if phase == "resume_proof":
+            return
+        epoch = list(invocations[3:] if has_proof else invocations)
         if not epoch or any(item["kind"] != "epoch1_window" for item in epoch):
             raise RandomAccessCampaignError("epoch1 window sequence invalid")
         count = len(epoch)
@@ -622,7 +630,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or result.get("decision") != "PASS_PREPARED"
         or not isinstance(result.get("campaign_id"), str)
         or not result["campaign_id"]
-        or result.get("phase") not in {"gpu_selection", "selected_training", "full_val"}
+        or result.get("phase") not in {"gpu_selection", "resume_proof", "selected_training", "full_val"}
         or result.get("entry_pairs_per_epoch") != 16384
         or result.get("transitions_per_epoch") != 65536
         or not isinstance(result.get("source_commit"), str)
@@ -702,7 +710,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             raise RandomAccessCampaignError("selected batch size invalid")
         prior_label = (
             "prior GPU-selection campaign"
-            if phase == "selected_training"
+            if phase in {"resume_proof", "selected_training"}
             else "prior selected-training campaign"
         )
         prior_binding = require_binding(
@@ -733,11 +741,13 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 raise RandomAccessCampaignError(
                     "canonical GPU batch selection unavailable or invalid"
                 ) from exc
-            expected_prior_phase = (
-                "gpu_selection" if phase == "selected_training" else "selected_training"
+            expected_prior_phases = (
+                {"gpu_selection"} if phase == "resume_proof"
+                else {"gpu_selection", "resume_proof"} if phase == "selected_training"
+                else {"selected_training"}
             )
             if (
-                prior["phase"] != expected_prior_phase
+                prior["phase"] not in expected_prior_phases
                 or prior["source_commit"] != result["source_commit"]
                 or selection.get("selected_batch_size") != selected
                 or selection.get("entry_pairs_per_epoch") != 16384
@@ -749,7 +759,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         result["prior_campaign"] = prior_binding
         result["selection_receipt"] = selection_binding
         result["selection_artifact_sha256"] = selection["artifact_sha256"]
-        if phase == "selected_training":
+        if phase in {"resume_proof", "selected_training"}:
             if result.get("final_train_checkpoint_authority") is not None:
                 raise RandomAccessCampaignError(
                     "selected training final authority forbidden"
@@ -816,6 +826,10 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             phase=result["phase"],
             selected_batch_size=result["selected_batch_size"],
         )
+        if phase == "selected_training":
+            epoch_only = invocations[0]["kind"] == "epoch1_window"
+            if epoch_only != (prior["phase"] == "resume_proof"):
+                raise RandomAccessCampaignError("training/proof campaign order invalid")
     result["source_repo"] = str(repo)
     result["runtime_root"] = str(runtime)
     result["invocations"] = bindings
