@@ -58,3 +58,52 @@ def test_benchmark_sweeps_preregistered_budgets_and_marks_cap(monkeypatch) -> No
         [row["batch_size"] for row in item["batch_size_sweep"]] == [1, 2]
         for item in receipt["candidates"]
     )
+    assert receipt["candidate_selection_performed"] is False
+    assert receipt["selected_candidate"] is None
+
+
+def test_authoritative_benchmark_selects_only_after_complete_receipt(
+    monkeypatch,
+) -> None:
+    clock = iter(float(index) for index in range(100_000))
+    monkeypatch.setattr(benchmark.time, "perf_counter", lambda: next(clock))
+    monkeypatch.setattr(benchmark.gc, "collect", lambda: None)
+    monkeypatch.setattr(benchmark.tracemalloc, "start", lambda: None)
+    monkeypatch.setattr(benchmark.tracemalloc, "stop", lambda: None)
+    monkeypatch.setattr(benchmark.tracemalloc, "get_traced_memory", lambda: (0, 123))
+
+    def fake_collate(items, **_kwargs):
+        import torch
+
+        return {
+            "transition_count": len(items) * 4,
+            "online_model_inputs": {"x": torch.zeros((len(items), 2))},
+            "target_model_inputs": {},
+        }
+
+    monkeypatch.setattr(benchmark, "collate_random_access_training_items", fake_collate)
+    receipt = benchmark.benchmark_random_access_train_candidates_v1(
+        adapter_factory=_Adapter,
+        batch_sizes=(16,),
+        repeats=1,
+    )
+    assert receipt["decision"] == "PASS"
+    assert receipt["candidate_selection_performed"] is True
+    assert receipt["selected_candidate"]["population_cycle_epochs"] in {8, 4, 2}
+    assert [
+        candidate["batch_size_sweep"][0]["population_cycle_epochs"]
+        for candidate in receipt["candidates"]
+    ] == [8, 4, 2]
+    assert receipt["selection_policy"]["selection_uses_outcome_values"] is False
+    assert receipt["test_data_used"] is False
+
+
+def test_uncapped_benchmark_rejects_non_preregistered_shape() -> None:
+    import pytest
+
+    with pytest.raises(RuntimeError, match="PREREGISTRATION_MISMATCH"):
+        benchmark.benchmark_random_access_train_candidates_v1(
+            adapter_factory=_Adapter,
+            batch_sizes=(8,),
+            repeats=1,
+        )
