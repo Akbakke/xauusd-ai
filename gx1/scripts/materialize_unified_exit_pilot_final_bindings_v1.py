@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pyarrow.parquet as pq
 
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
@@ -38,6 +39,40 @@ from gx1.contracts.unified_exit_lifetime_summary_v1 import (
 
 RECIPE_SCHEMA_VERSION = "gx1_unified_exit_pilot_final_bindings_recipe_v1"
 BUNDLE_SCHEMA_VERSION = "gx1_unified_exit_pilot_final_bindings_bundle_v1"
+_M1_MANIFEST_KEYS = {
+    "child_admission_path",
+    "child_admission_sha256",
+    "child_parquet_sha256",
+    "clock_sha256",
+    "context_row_count",
+    "context_rows_excluded_from_policy_fit",
+    "decision",
+    "first_entry_time_utc",
+    "first_state_local_history_rows_available",
+    "first_state_time_utc",
+    "fit_clock_sha256",
+    "fit_row_count",
+    "fit_window_end_utc_exclusive",
+    "fit_window_start_utc",
+    "instrument",
+    "manifest_payload_sha256",
+    "output_parquet",
+    "output_parquet_sha256",
+    "parent_m1_manifest_path",
+    "parent_m1_manifest_sha256",
+    "parent_m1_path",
+    "parent_m1_sha256",
+    "required_local_history_rows",
+    "right_censor_time_utc_exclusive",
+    "row_count",
+    "schema_version",
+    "split",
+    "test_accessed",
+    "time_max_utc",
+    "time_min_utc",
+    "timeframe",
+    "timestamp_semantics",
+}
 
 
 def _file_sha(path: Path) -> str:
@@ -75,6 +110,73 @@ def _verify_canonical(value: Mapping[str, Any], hash_key: str, label: str) -> No
     claimed = unsigned.pop(hash_key, None)
     if claimed != canonical_sha256(unsigned):
         raise RuntimeError(f"UNIFIED_EXIT_FINAL_{label}_HASH_INVALID")
+
+
+def _require_m1_manifest(
+    value: Mapping[str, Any],
+    *,
+    split: str,
+    manifest_path: Path,
+    m1_path: Path,
+    m1_file_sha256: str,
+    m1_times: Any,
+    child: Mapping[str, Any],
+    admission_path: Path,
+    admission_file_sha256: str,
+    parent_m1: Mapping[str, Any],
+) -> dict[str, Any]:
+    if set(value) != _M1_MANIFEST_KEYS:
+        raise RuntimeError(f"UNIFIED_EXIT_FINAL_{split.upper()}_M1_SCHEMA_INVALID")
+    _verify_canonical(value, "manifest_payload_sha256", f"{split}_M1_MANIFEST")
+    timestamps = pd.DatetimeIndex(pd.to_datetime(m1_times, utc=True))
+    clock_sha = m1_clock_sha256(timestamps)
+    fit_start = pd.Timestamp(value["fit_window_start_utc"])
+    fit_end = pd.Timestamp(value["fit_window_end_utc_exclusive"])
+    fit_mask = (timestamps >= fit_start) & (timestamps < fit_end)
+    fit_times = timestamps[fit_mask]
+    context_times = timestamps[timestamps < fit_start]
+    entry_first = pd.Timestamp(value["first_entry_time_utc"])
+    state_first = pd.Timestamp(value["first_state_time_utc"])
+    if (
+        value.get("schema_version")
+        != "gx1_unified_exit_pilot_m1_child_view_v1"
+        or value.get("decision") != "PASS"
+        or value.get("split") != split
+        or value.get("instrument") != "XAU_USD"
+        or value.get("timeframe") != "M1"
+        or value.get("timestamp_semantics") != "bar_start_utc"
+        or value.get("test_accessed") is not False
+        or value.get("context_rows_excluded_from_policy_fit") is not True
+        or value.get("required_local_history_rows") != 480
+        or value.get("first_state_local_history_rows_available") != 480
+        or value.get("output_parquet") != str(m1_path)
+        or value.get("output_parquet_sha256") != m1_file_sha256
+        or value.get("clock_sha256") != clock_sha
+        or value.get("row_count") != len(timestamps)
+        or not timestamps.is_monotonic_increasing
+        or not timestamps.is_unique
+        or value.get("time_min_utc") != timestamps[0].isoformat()
+        or value.get("time_max_utc") != timestamps[-1].isoformat()
+        or value.get("fit_row_count") != len(fit_times)
+        or value.get("fit_clock_sha256") != m1_clock_sha256(fit_times)
+        or value.get("context_row_count") != len(context_times)
+        or value["fit_row_count"] + value["context_row_count"]
+        != value["row_count"]
+        or value.get("child_admission_path") != str(admission_path)
+        or value.get("child_admission_sha256") != admission_file_sha256
+        or value.get("child_parquet_sha256") != child["parquet_sha256"]
+        or value.get("parent_m1_path") != parent_m1["parquet_path"]
+        or value.get("parent_m1_sha256") != parent_m1["parquet_sha256"]
+        or value.get("parent_m1_manifest_path") != parent_m1["manifest_path"]
+        or value.get("parent_m1_manifest_sha256")
+        != parent_m1["manifest_sha256"]
+        or state_first - entry_first != pd.Timedelta(minutes=5)
+        or pd.Timestamp(value["right_censor_time_utc_exclusive"])
+        != pd.Timestamp(value["fit_window_end_utc_exclusive"])
+        or not manifest_path.is_file()
+    ):
+        raise RuntimeError(f"UNIFIED_EXIT_FINAL_{split.upper()}_M1_MANIFEST_INVALID")
+    return dict(value)
 
 
 def _write(path: Path, value: Mapping[str, Any]) -> None:
@@ -151,6 +253,18 @@ def build_bundle(recipe_path: Path) -> dict[str, Any]:
         m1_manifest = _json(m1_manifest_path)
         m1_table = pq.read_table(m1_path, columns=["time", "bid_open", "ask_open"])
         m1_times = m1_table["time"].to_pandas()
+        m1_manifest = _require_m1_manifest(
+            m1_manifest,
+            split=split,
+            manifest_path=m1_manifest_path,
+            m1_path=m1_path,
+            m1_file_sha256=spec["m1_source"]["sha256"],
+            m1_times=m1_times,
+            child=child,
+            admission_path=admission_path,
+            admission_file_sha256=recipe["child_admission"]["sha256"],
+            parent_m1=admission["m1_source_binding"],
+        )
         closure = _json(closure_path)
         checked_closure = require_market_closure_authority(
             closure,
@@ -158,9 +272,7 @@ def build_bundle(recipe_path: Path) -> dict[str, Any]:
             expected_m1_clock_sha256=m1_clock_sha256(m1_times),
         )
         if (
-            m1_manifest.get("parquet_sha256") != spec["m1_source"]["sha256"]
-            or m1_manifest.get("clock_sha256") != m1_clock_sha256(m1_times)
-            or summary.get("m1_source_sha256") != spec["m1_source"]["sha256"]
+            summary.get("m1_source_sha256") != spec["m1_source"]["sha256"]
             or summary.get("m1_manifest_sha256") != spec["m1_manifest"]["sha256"]
             or summary.get("closure_authority_sha256")
             != checked_closure["artifact_sha256"]

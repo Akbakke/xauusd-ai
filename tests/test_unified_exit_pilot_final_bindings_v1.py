@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -14,7 +15,14 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
 )
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     build_physical_summary_sample_authority,
+    canonical_sha256,
     fit_lifetime_summary_normalization,
+)
+from gx1.contracts.unified_exit_market_closure_authority_v1 import (
+    m1_clock_sha256,
+)
+from gx1.scripts.materialize_unified_exit_pilot_final_bindings_v1 import (
+    _require_m1_manifest,
 )
 from tests.model_native_input_normalization_support import (
     input_normalization_fixture,
@@ -130,3 +138,73 @@ def test_split_sequence_binding_rejects_successor_past_child_end() -> None:
             closure_authority_file_sha256="8" * 64,
             closure_authority_sha256="9" * 64,
         )
+
+
+def test_child_m1_manifest_requires_exact_real_schema_and_parquet_binding(
+    tmp_path: Path,
+) -> None:
+    m1_path = tmp_path / "train.m1.parquet"
+    m1_path.write_bytes(b"m1")
+    manifest_path = tmp_path / "train.manifest.json"
+    manifest_path.write_text("{}")
+    admission_path = tmp_path / "admission.json"
+    admission_path.write_text("{}")
+    times = pd.date_range("2025-06-01T21:57:00Z", periods=8, freq="1min")
+    value = {
+        "child_admission_path": str(admission_path),
+        "child_admission_sha256": "1" * 64,
+        "child_parquet_sha256": "2" * 64,
+        "clock_sha256": m1_clock_sha256(times),
+        "context_row_count": 3,
+        "context_rows_excluded_from_policy_fit": True,
+        "decision": "PASS",
+        "first_entry_time_utc": "2025-06-01T22:00:00+00:00",
+        "first_state_local_history_rows_available": 480,
+        "first_state_time_utc": "2025-06-01T22:05:00+00:00",
+        "fit_clock_sha256": m1_clock_sha256(times[3:]),
+        "fit_row_count": 5,
+        "fit_window_end_utc_exclusive": "2025-06-02T00:00:00+00:00",
+        "fit_window_start_utc": "2025-06-01T22:00:00+00:00",
+        "instrument": "XAU_USD",
+        "output_parquet": str(m1_path),
+        "output_parquet_sha256": "4" * 64,
+        "parent_m1_manifest_path": "/parent/manifest.json",
+        "parent_m1_manifest_sha256": "5" * 64,
+        "parent_m1_path": "/parent/m1.parquet",
+        "parent_m1_sha256": "6" * 64,
+        "required_local_history_rows": 480,
+        "right_censor_time_utc_exclusive": "2025-06-02T00:00:00+00:00",
+        "row_count": 8,
+        "schema_version": "gx1_unified_exit_pilot_m1_child_view_v1",
+        "split": "train",
+        "test_accessed": False,
+        "time_max_utc": times[-1].isoformat(),
+        "time_min_utc": times[0].isoformat(),
+        "timeframe": "M1",
+        "timestamp_semantics": "bar_start_utc",
+    }
+    value["manifest_payload_sha256"] = canonical_sha256(value)
+    kwargs = {
+        "split": "train",
+        "manifest_path": manifest_path,
+        "m1_path": m1_path,
+        "m1_file_sha256": "4" * 64,
+        "m1_times": times,
+        "child": {"parquet_sha256": "2" * 64},
+        "admission_path": admission_path,
+        "admission_file_sha256": "1" * 64,
+        "parent_m1": {
+            "parquet_path": "/parent/m1.parquet",
+            "parquet_sha256": "6" * 64,
+            "manifest_path": "/parent/manifest.json",
+            "manifest_sha256": "5" * 64,
+        },
+    }
+    assert _require_m1_manifest(value, **kwargs) == value
+    swapped = copy.deepcopy(value)
+    swapped["output_parquet_sha256"] = "7" * 64
+    unsigned = dict(swapped)
+    unsigned.pop("manifest_payload_sha256")
+    swapped["manifest_payload_sha256"] = canonical_sha256(unsigned)
+    with pytest.raises(RuntimeError, match="M1_MANIFEST_INVALID"):
+        _require_m1_manifest(swapped, **kwargs)
