@@ -78,3 +78,16 @@ def test_installer_uses_explicit_wsl_owner_and_startup_only() -> None:
     assert "RestartCount 3" in source
     assert "Start-ScheduledTask" not in source
     assert "first_launch_requires_next_windows_boot = $true" in source
+
+
+def test_boot_identity_escapes_windows_path_only_at_wslpath_boundary() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assignment = "$escapedPathForWsl = $path.Replace('\\', '\\\\')"
+    invocation = (
+        "$linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u "
+        "$escapedPathForWsl)"
+    )
+    assert assignment in source
+    assert invocation in source
+    assert source.index(assignment) < source.index(invocation)
+    assert "wslpath -u $path" not in source

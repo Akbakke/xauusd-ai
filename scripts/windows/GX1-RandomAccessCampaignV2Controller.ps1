@@ -59,7 +59,10 @@ function Write-Gx1BootIdentity {
         if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
         if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
     }
-    $linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u $path)
+    # wsl.exe consumes one layer of backslash escaping before wslpath sees the
+    # argument. Keep the filesystem path untouched and escape only this argv.
+    $escapedPathForWsl = $path.Replace('\', '\\')
+    $linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u $escapedPathForWsl)
     if ($LASTEXITCODE -ne 0 -or $linux.Count -ne 1) { throw 'Boot identity path conversion failed' }
     return [pscustomobject]@{ Windows = $path; Linux = $linux[0]; Payload = $value }
 }
