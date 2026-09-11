@@ -175,6 +175,9 @@ def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
     assert "[Console]::Error.Write('y' * 200000)" in source
     assert "-TimeoutMilliseconds 100" in source
     assert "Bounded process timed out" in source
+    assert "$script:initialWriteCalls -lt 3" in source
+    assert "$script:initialInspectCalls -lt 2" in source
     assert "$script:taskCalls -lt 3" in source
-    assert "$script:taskCalls -ne 3" in source
+    assert "$script:taskCalls -ne 5" in source
+    assert "$script:addressCalls -ne 3" in source
     assert "POWERSHELL_HARDENING_PASS" in source

@@ -8,6 +8,12 @@ $lines = @(& wsl.exe -d $DistroName -u $LinuxUserName -- /bin/cat $ControllerSou
 if ($LASTEXITCODE -ne 0) { throw 'wsl cat failed' }
 $source = $lines -join [Environment]::NewLine
 [void][ScriptBlock]::Create($source)
+$initialCall = $source.LastIndexOf('$initial = Get-Gx1InitialCampaignState')
+$bootUse = $source.IndexOf('$boot = $initial.Boot', $initialCall)
+$statusUse = $source.IndexOf('$status = $initial.Status', $bootUse)
+if ($initialCall -lt 0 -or $bootUse -le $initialCall -or $statusUse -le $bootUse) {
+    throw 'top-level cold-WSL gate must precede boot and campaign state use'
+}
 $start = $source.IndexOf('function Join-Gx1NativeArguments')
 $end = $source.IndexOf('function Reset-Gx1HostTelemetryPortProxy', $start)
 if ($start -lt 0 -or $end -le $start) { throw 'function boundaries not found' }
@@ -52,7 +58,30 @@ if (-not $timedOut -or $timeoutClock.ElapsedMilliseconds -gt 3000) {
 
 $waitStart = $source.IndexOf('function Wait-Gx1HostTelemetryBridgeV4BootReady')
 . ([ScriptBlock]::Create($source.Substring($waitStart, $end - $waitStart)))
+function Start-Sleep { [CmdletBinding()] param([int]$Milliseconds) }
+$script:initialWriteCalls = 0
+$script:initialInspectCalls = 0
+function Write-Gx1BootIdentity {
+    param([int]$WslTimeoutMilliseconds)
+    $script:initialWriteCalls++
+    if ($script:initialWriteCalls -lt 3) { throw 'Wsl/Service/E_UNEXPECTED' }
+    return [pscustomobject]@{ Linux = '/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/CURRENT_BOOT.json' }
+}
+function Invoke-Gx1Json {
+    param([string[]]$Arguments, [int]$TimeoutMilliseconds)
+    $script:initialInspectCalls++
+    if ($script:initialInspectCalls -lt 2) { throw 'transient inspect failure' }
+    return [pscustomobject]@{ ok = $true }
+}
+$PlanJson = '/tmp/plan.json'
+$PlanFileSha256 = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+$initial = Get-Gx1InitialCampaignState
+if ($script:initialWriteCalls -ne 4 -or $script:initialInspectCalls -ne 2 -or $initial.Status.ok -ne $true) {
+    throw "cold WSL retry write_calls=$script:initialWriteCalls inspect_calls=$script:initialInspectCalls"
+}
+
 $script:taskCalls = 0
+$script:addressCalls = 0
 function Get-ScheduledTask {
     [CmdletBinding()] param([string]$TaskName)
     $script:taskCalls++
@@ -66,18 +95,23 @@ function Get-NetTCPConnection {
 function Invoke-Gx1WslBounded {
     param([string[]]$Arguments, [int]$TimeoutMilliseconds)
     if ($Arguments -contains '/bin/hostname') {
+        $script:addressCalls++
+        if ($script:addressCalls -lt 3) {
+            return [pscustomobject]@{ ExitCode = -1; StdOut = ''; StdErr = 'Wsl/Service/E_UNEXPECTED' }
+        }
         return [pscustomobject]@{ ExitCode = 0; StdOut = "172.30.231.75 `n"; StdErr = '' }
     }
     return [pscustomobject]@{ ExitCode = 0; StdOut = "default via 172.30.224.1 dev eth0 proto kernel `n"; StdErr = '' }
 }
-function Start-Sleep { [CmdletBinding()] param([int]$Milliseconds) }
 $Distro = $DistroName
 $LinuxUser = $LinuxUserName
 Wait-Gx1HostTelemetryBridgeV4BootReady
-if ($script:taskCalls -ne 3) { throw "transient readiness calls=$script:taskCalls" }
+if ($script:taskCalls -ne 5 -or $script:addressCalls -ne 3) {
+    throw "transient readiness task_calls=$script:taskCalls address_calls=$script:addressCalls"
+}
 
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) transient_attempts=$script:taskCalls"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) cold_wsl_attempts=$script:initialWriteCalls transient_task_attempts=$script:taskCalls transient_wsl_attempts=$script:addressCalls"
 )

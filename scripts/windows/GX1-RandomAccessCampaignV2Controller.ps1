@@ -10,10 +10,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 function Invoke-Gx1Json {
-    param([Parameter(Mandatory = $true)][string[]]$Arguments)
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [ValidateRange(1, 30000)][int]$TimeoutMilliseconds = 30000
+    )
     $result = Invoke-Gx1WslBounded -Arguments (@(
         '--cd', $SourceRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
-    ) + $Arguments) -TimeoutMilliseconds 30000
+    ) + $Arguments) -TimeoutMilliseconds $TimeoutMilliseconds
     $lines = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $lines.Count -ne 1) {
         throw "Random-access campaign command failed: $($result.StdErr.Trim())"
@@ -32,6 +35,7 @@ function Convert-Gx1WslPath {
     return $value[0]
 }
 function Write-Gx1BootIdentity {
+    param([ValidateRange(1, 10000)][int]$WslTimeoutMilliseconds = 10000)
     $operatingSystem = Get-CimInstance Win32_OperatingSystem
     $bootId = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' -Name BootId -ErrorAction Stop).BootId
     $bootUtc = $operatingSystem.LastBootUpTime.ToUniversalTime().ToString('o')
@@ -70,7 +74,7 @@ function Write-Gx1BootIdentity {
     # wsl.exe consumes one layer of backslash escaping before wslpath sees the
     # argument. Keep the filesystem path untouched and escape only this argv.
     $escapedPathForWsl = $path.Replace('\', '\\')
-    $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-u', $escapedPathForWsl) -TimeoutMilliseconds 10000
+    $result = Invoke-Gx1WslBounded -Arguments @('--', 'wslpath', '-u', $escapedPathForWsl) -TimeoutMilliseconds $WslTimeoutMilliseconds
     $linux = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $linux.Count -ne 1) {
         throw "Boot identity path conversion failed: $($result.StdErr.Trim())"
@@ -275,6 +279,37 @@ function Invoke-Gx1WslBounded {
     $allArguments = @('-d', $Distro, '-u', $LinuxUser) + $Arguments
     return Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -ArgumentList $allArguments -TimeoutMilliseconds $TimeoutMilliseconds
 }
+function Get-Gx1InitialCampaignState {
+    # A BootTrigger may run before the WSL distro accepts its first command.
+    # Retry both boot-path conversion and the initial read-only inspection under
+    # one monotonic budget.  No ACTIVE state or CUDA process exists at this point.
+    $deadlineMilliseconds = 60000
+    $nativeCallLimitMilliseconds = 8000
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $lastFailure = 'cold WSL readiness was not observed'
+    while ($clock.ElapsedMilliseconds -lt $deadlineMilliseconds) {
+        try {
+            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
+            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
+            $boot = Write-Gx1BootIdentity -WslTimeoutMilliseconds $callLimit
+
+            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
+            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
+            $status = Invoke-Gx1Json -Arguments @(
+                'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
+                '--boot-json', $boot.Linux
+            ) -TimeoutMilliseconds $callLimit
+            return [pscustomobject]@{ Boot = $boot; Status = $status }
+        } catch {
+            $lastFailure = $_.Exception.Message
+        }
+        $remaining = [int]($deadlineMilliseconds - $clock.ElapsedMilliseconds)
+        if ($remaining -gt 0) {
+            Start-Sleep -Milliseconds ([int][Math]::Min(2000, $remaining))
+        }
+    }
+    throw "Initial cold-WSL campaign inspection failed after bounded retry: $lastFailure"
+}
 function Wait-Gx1HostTelemetryBridgeV4BootReady {
     # The telemetry service and campaign controller are independent boot tasks.
     # Wait only for their dynamic boot state here; Assert below revalidates the
@@ -383,11 +418,9 @@ function Request-Gx1PhysicalReboot {
         '--shutdown-exit-code', [string]$shutdownExit
     ))
 }
-$boot = Write-Gx1BootIdentity
-$status = Invoke-Gx1Json -Arguments @(
-    'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
-    '--boot-json', $boot.Linux
-)
+$initial = Get-Gx1InitialCampaignState
+$boot = $initial.Boot
+$status = $initial.Status
 $controllerSourceRoot = [IO.Path]::GetFullPath($WindowsControllerSourceRoot).TrimEnd('\')
 if ($controllerSourceRoot -notmatch '^[Cc]:\\' -or
     -not (Test-Path -LiteralPath $controllerSourceRoot -PathType Container) -or
