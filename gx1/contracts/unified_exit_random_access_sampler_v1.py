@@ -280,6 +280,84 @@ def schedule_random_access_entry_anchors(
     return tuple(anchors)
 
 
+
+def schedule_random_access_full_population_epoch(
+    *,
+    sampler_contract: Mapping[str, Any],
+    epoch_index: int,
+    successor_transition_count_by_entry: Sequence[int],
+) -> tuple[tuple[dict[str, Any], ...], tuple[dict[str, Any], ...], dict[str, Any]]:
+    """Cover each Entry once while preserving the measured sampler stream.
+
+    Legacy epochs are bounded sampler chunks. A full epoch is one
+    population-length interval of the same stream, including partial chunks.
+    Existing transition/anchor bytes and seeds are retained.
+    """
+    contract = require_random_access_sampler_contract(sampler_contract)
+    if (
+        contract["split"] != "train"
+        or isinstance(epoch_index, bool)
+        or not isinstance(epoch_index, int)
+        or epoch_index < 0
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FULL_POPULATION_EPOCH_INVALID")
+    population = contract["entry_pair_population"]
+    chunk_size = contract["entry_pairs_per_epoch"]
+    first = epoch_index * population
+    stop = first + population
+    samples: list[dict[str, Any]] = []
+    anchors: list[dict[str, Any]] = []
+    segments: list[dict[str, int]] = []
+    cursor = first
+    while cursor < stop:
+        chunk_epoch, start_slot = divmod(cursor, chunk_size)
+        count = min(chunk_size - start_slot, stop - cursor)
+        stop_slot = start_slot + count
+        chunk_samples = schedule_random_access_epoch(
+            sampler_contract=contract,
+            epoch_index=chunk_epoch,
+            successor_transition_count_by_entry=successor_transition_count_by_entry,
+        )
+        chunk_anchors = schedule_random_access_entry_anchors(
+            sampler_contract=contract, epoch_index=chunk_epoch
+        )
+        samples.extend(
+            item for item in chunk_samples
+            if start_slot <= item["entry_slot"] < stop_slot
+        )
+        anchors.extend(chunk_anchors[start_slot:stop_slot])
+        segments.append({
+            "sampler_chunk_index": chunk_epoch,
+            "first_entry_slot": start_slot,
+            "stop_entry_slot": stop_slot,
+            "full_epoch_row_start": cursor - first,
+        })
+        cursor += count
+    order = [item["entry_row_index"] for item in anchors]
+    if (
+        len(order) != population
+        or len(set(order)) != population
+        or set(order) != set(range(population))
+        or len(samples) != population * contract["transitions_per_entry"]
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FULL_POPULATION_COVERAGE_INVALID")
+    metadata = {
+        "schema_version": "gx1_unified_exit_full_population_epoch_v1",
+        "epoch_index": epoch_index,
+        "sampler_contract_sha256": contract["contract_sha256"],
+        "entry_pair_count": population,
+        "transition_count": len(samples),
+        "entry_order_sha256": canonical_sha256(order),
+        "global_entry_start": first,
+        "global_entry_stop": stop,
+        "segments": segments,
+        "every_entry_pair_exactly_once": True,
+        "transition_sampling_unchanged": True,
+        "test_data_used": False,
+    }
+    metadata["schedule_sha256"] = canonical_sha256(metadata)
+    return tuple(samples), tuple(anchors), metadata
+
 def require_random_access_entry_anchor(
     value: Mapping[str, Any], *, sampler_contract: Mapping[str, Any]
 ) -> dict[str, Any]:

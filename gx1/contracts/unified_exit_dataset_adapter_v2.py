@@ -45,6 +45,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_sampler_contract,
     schedule_random_access_entry_anchors,
     schedule_random_access_epoch,
+    schedule_random_access_full_population_epoch,
 )
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
     COMPACT_LIFECYCLE_SCHEMA_VERSION,
@@ -717,15 +718,29 @@ class UnifiedExitDatasetAdapterV2:
         binding = self._random_access_train
         if binding is None:
             return
-        samples = schedule_random_access_epoch(
-            sampler_contract=binding["sampler_contract"],
-            epoch_index=self._epoch_index,
-            successor_transition_count_by_entry=[
-                int(value) for value in binding["successor_counts"]
-            ],
-        )
-        anchors = schedule_random_access_entry_anchors(
-            sampler_contract=binding["sampler_contract"], epoch_index=self._epoch_index
+        if binding.get("full_population_mode", False):
+            samples, anchors, metadata = schedule_random_access_full_population_epoch(
+                sampler_contract=binding["sampler_contract"],
+                epoch_index=self._epoch_index,
+                successor_transition_count_by_entry=[
+                    int(value) for value in binding["successor_counts"]
+                ],
+            )
+            binding["full_population_schedule"] = metadata
+        else:
+            samples = schedule_random_access_epoch(
+                sampler_contract=binding["sampler_contract"],
+                epoch_index=self._epoch_index,
+                successor_transition_count_by_entry=[
+                    int(value) for value in binding["successor_counts"]
+                ],
+            )
+            anchors = schedule_random_access_entry_anchors(
+                sampler_contract=binding["sampler_contract"], epoch_index=self._epoch_index
+            )
+            binding.pop("full_population_schedule", None)
+        binding["selected_entry_order"] = tuple(
+            int(anchor["entry_row_index"]) for anchor in anchors
         )
         grouped: dict[int, list[dict[str, Any]]] = {}
         for sample in samples:
@@ -759,13 +774,22 @@ class UnifiedExitDatasetAdapterV2:
         binding = self._random_access_train
         if binding is None:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
-        anchors = binding["anchors_by_entry"]
-        return tuple(
-            entry
-            for entry, _anchor in sorted(
-                anchors.items(), key=lambda item: int(item[1]["entry_slot"])
-            )
-        )
+        return binding["selected_entry_order"]
+
+    def set_full_population_epoch_index(self, epoch_index: int) -> dict[str, Any]:
+        """Select all TRAIN Entry pairs without changing the transition sampler."""
+        if (
+            self._random_access_train is None
+            or self._manifest["split"] != "train"
+            or isinstance(epoch_index, bool)
+            or not isinstance(epoch_index, int)
+            or epoch_index < 0
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FULL_POPULATION_EPOCH_INVALID")
+        self._epoch_index = epoch_index
+        self._random_access_train["full_population_mode"] = True
+        self._prepare_random_access_epoch()
+        return dict(self._random_access_train["full_population_schedule"])
 
     def _random_access_lifetime_summary(
         self, *, entry_start: int, side: int, state_index: int
@@ -917,6 +941,8 @@ class UnifiedExitDatasetAdapterV2:
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_EPOCH_INVALID")
         self._epoch_index = epoch_index
+        if self._random_access_train is not None:
+            self._random_access_train["full_population_mode"] = False
         self._prepare_random_access_epoch()
 
     def require_pack(self, value: Mapping[str, Any]) -> dict[str, Any]:
