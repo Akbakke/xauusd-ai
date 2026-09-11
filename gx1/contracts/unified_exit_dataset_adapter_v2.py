@@ -37,6 +37,10 @@ from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     FIRST_STATE_BRIDGE_SCHEMA_VERSION,
     require_lifetime_summary_normalization,
 )
+from gx1.contracts.unified_exit_random_access_index_v1 import (
+    require_random_access_index,
+    require_random_access_index_manifest,
+)
 from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_sampler_contract,
     schedule_random_access_entry_anchors,
@@ -405,6 +409,104 @@ class UnifiedExitDatasetAdapterV2:
         self.mtf_cache_identity_sha256 = mtf_cache_identity_sha256
         self._random_access_train: dict[str, Any] | None = None
 
+    @classmethod
+    def from_random_access_index_v1(
+        cls,
+        *,
+        index_rows: pd.DataFrame,
+        index_manifest: Mapping[str, Any],
+        source_owner: Any,
+        epoch_index: int,
+        economics_readiness: Mapping[str, Any],
+        economic_exit_step_manifest: Mapping[str, Any],
+        economic_exit_step_provider: Callable[
+            [int, int, str, int, int], Mapping[str, Any]
+        ],
+        mtf_materializer: Callable[[np.ndarray], Mapping[str, np.ndarray]],
+        per_tf_seq_lens: Mapping[str, int],
+        mtf_cache_identity_sha256: str,
+    ) -> "UnifiedExitDatasetAdapterV2":
+        """Construct the random-access path without any compact/chunk artifact."""
+
+        manifest = require_random_access_index_manifest(
+            index_manifest,
+            expected_split=str(index_manifest.get("split")),
+            index_frame=index_rows,
+        )
+        readiness = require_unified_exit_unbounded_training_readiness(
+            economics_readiness, context="UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ADAPTER"
+        )
+        economic_manifest = dict(economic_exit_step_manifest)
+        provider_manifest = getattr(
+            economic_exit_step_provider, "economic_exit_step_manifest", None
+        )
+        if (
+            manifest["split"] != "train"
+            or manifest["manifest_sha256"]
+            != economic_manifest.get("lifecycle_manifest_sha256")
+            or economic_manifest.get("schema_version")
+            != ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION
+            or economic_manifest.get("split") != "train"
+            or economic_manifest.get("economics_objective_contract_sha256")
+            != readiness["economics_objective_contract"]["contract_sha256"]
+            or economic_manifest.get("test_data_used") is not False
+            or economic_manifest.get("manifest_sha256")
+            != _canonical_sha256(
+                {
+                    key: value
+                    for key, value in economic_manifest.items()
+                    if key != "manifest_sha256"
+                }
+            )
+            or not callable(economic_exit_step_provider)
+            or (
+                provider_manifest is not None
+                and dict(provider_manifest) != economic_manifest
+            )
+            or isinstance(epoch_index, bool)
+            or not isinstance(epoch_index, int)
+            or epoch_index < 0
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ADAPTER_INVALID")
+        native = require_random_access_index(index_rows, expected_split="train")
+        rows = pd.DataFrame(
+            {
+                "entry_row_index": native["entry_row_index"].to_numpy(dtype="<i8"),
+                "entry_m1_start_row": native["parent_m1_start_row"].to_numpy(
+                    dtype="<i8"
+                ),
+                "first_state_row_time": pd.to_datetime(
+                    native["first_state_time_ns"].to_numpy(dtype="<i8"), utc=True
+                ),
+                "long_lifecycle_state_count": native["lifecycle_state_count"].to_numpy(
+                    dtype="<i8"
+                ),
+                "short_lifecycle_state_count": native["lifecycle_state_count"].to_numpy(
+                    dtype="<i8"
+                ),
+                "long_economic_terminal": native["economic_terminal"].to_numpy(
+                    dtype=np.bool_
+                ),
+                "short_economic_terminal": native["economic_terminal"].to_numpy(
+                    dtype=np.bool_
+                ),
+            }
+        )
+        instance = cls.__new__(cls)
+        instance._rows = rows.set_index("entry_row_index", drop=False)
+        instance._manifest = manifest
+        instance._source = source_owner
+        instance._epoch_index = epoch_index
+        instance._readiness = dict(economics_readiness)
+        instance._economic_manifest = economic_manifest
+        instance._economic_provider = economic_exit_step_provider
+        instance._mtf_materializer = mtf_materializer
+        instance.per_tf_seq_lens = dict(per_tf_seq_lens)
+        instance.mtf_cache_identity_sha256 = mtf_cache_identity_sha256
+        instance._random_access_train = None
+        instance._native_random_access_index = native.copy()
+        return instance
+
     def configure_random_access_training_v1(
         self,
         *,
@@ -418,6 +520,7 @@ class UnifiedExitDatasetAdapterV2:
         parent_m1_row_offset: int,
         expected_child_parquet_sha256: str,
         expected_state_view_source_sha256: str,
+        expected_composite_normalization_sha256: str | None = None,
     ) -> None:
         """Bind immutable TRAIN artifacts before the first DataLoader read."""
 
@@ -527,7 +630,11 @@ class UnifiedExitDatasetAdapterV2:
             or bindings.get("closure_authority") != authority["artifact_sha256"]
             or bindings.get("state_view_source") != expected_state_view_source_sha256
             or bindings.get("train_normalization")
-            != normalization["normalization_sha256"]
+            != (
+                expected_composite_normalization_sha256
+                if expected_composite_normalization_sha256 is not None
+                else normalization["normalization_sha256"]
+            )
             or len(witness.get("first_state_episode_binding_sha256_by_entry", ()))
             != population
             or len(witness.get("entry_fill_binding_sha256_by_entry", ())) != population
