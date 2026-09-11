@@ -82,6 +82,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     _multi_tf_kwargs_from_batch,
 )
 from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
+    _bind_multi_tf_cache_from_source_bundle_metadata,
     _model,
     require_launch_manifest,
 )
@@ -117,6 +118,37 @@ def _load_final_authority(path: Path, expected_file_sha256: str) -> dict[str, An
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FINAL_AUTHORITY_FILE_INVALID")
     return require_final_train_checkpoint_authority(_read(resolved), verify_files=True)
+
+
+def _val_sequence_source_audit(
+    meta: Mapping[str, Any], launch_files: Mapping[str, Mapping[str, Any]],
+) -> Path:
+    """Resolve the VAL audit through the already bound bootstrap metadata."""
+    def bound_json(binding: Mapping[str, Any]) -> tuple[Path, dict[str, Any]]:
+        if not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}:
+            raise RuntimeError("UNIFIED_EXIT_VAL_SEQUENCE_AUDIT_BINDING_INVALID")
+        path = Path(binding["path"])
+        if (not path.is_absolute() or path.resolve() != path or path.is_symlink()
+                or not path.is_file() or file_sha256(path) != binding["sha256"]):
+            raise RuntimeError("UNIFIED_EXIT_VAL_SEQUENCE_AUDIT_BINDING_INVALID")
+        return path, _read(path)
+
+    provenance = meta["recipe_source_provenance"]
+    _, recipe = bound_json({
+        "path": provenance["recipe_audit_path"],
+        "sha256": provenance["recipe_audit_sha256"],
+    })
+    path, audit = bound_json(recipe["artifact_bindings"]["val_sequence_source_reconstruction"])
+    if (
+        audit != meta["sequence_source_reconstruction"]["splits"]["val"]
+        or audit.get("decision") != "PASS"
+        or audit.get("parquet_path") != launch_files["entry_val_parquet"]["path"]
+        or audit.get("parquet_sha256") != launch_files["entry_val_parquet"]["sha256"]
+        or audit.get("manifest_path") != launch_files["entry_val_manifest"]["path"]
+        or audit.get("manifest_sha256") != launch_files["entry_val_manifest"]["sha256"]
+    ):
+        raise RuntimeError("UNIFIED_EXIT_VAL_SEQUENCE_AUDIT_SOURCE_INVALID")
+    return path
 
 
 def _campaign_context(
@@ -506,6 +538,7 @@ def run(
             }
         )
     meta = _read(files["source_bundle_metadata"])
+    _bind_multi_tf_cache_from_source_bundle_metadata(meta)
     child = require_composite_normalization_binding(
         _read(files["child_composite_normalization"])
     )
@@ -553,13 +586,14 @@ def run(
         for name in ("m5", "m15", "h1", "h4", "d1")
     }
     parent_val_path = files["entry_val_parquet"]
+    val_sequence_audit = _val_sequence_source_audit(meta, launch["files"])
     entry_dataset = EntryV10CtxDataset(
         parent_val_path,
         seq_len=int(meta["seq_len"]),
         m5_prebuilt_path=files["m5_prebuilt"],
         per_tf_seq_lens=per_tf,
         multi_tf_closed_bar=True,
-        sequence_source_audit_json=files["sequence_source_audit"],
+        sequence_source_audit_json=val_sequence_audit,
     )
     parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
     representations, entry_routes, entry_q_values = _entry_representations(
@@ -570,6 +604,9 @@ def run(
         batch_size=selected_batch_size,
     )
     entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
+    entry_routes["sequence_source_reconstruction_audit"] = {
+        "path": str(val_sequence_audit), "sha256": file_sha256(val_sequence_audit),
+    }
     corpus = UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
         entry_parquets={
