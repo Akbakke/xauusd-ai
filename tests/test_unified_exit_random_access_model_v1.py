@@ -7,9 +7,11 @@ import torch
 
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+    bind_preserved_v7_input_normalization,
     bootstrap_random_access_v2_from_pretrained,
     strict_load_random_access_v2_state,
 )
+from gx1.contracts.unified_exit_pilot_normalization_v1 import canonical_sha256
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_PATH_FEATURE_DIM,
 )
@@ -23,15 +25,11 @@ def _inputs(batch_size: int = 3) -> dict:
     base = _make_exit_episode_inputs(state_count=1, batch_size=batch_size)
     tail_rows = 5
     lengths = torch.tensor([5, 3, 4][:batch_size], dtype=torch.long)
-    path = torch.randn(
-        batch_size, 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM
-    )
+    path = torch.randn(batch_size, 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM)
     for index, length in enumerate(lengths.tolist()):
         path[index, :, length:] = 0.0
     return {
-        "entry_decision_representation": base[
-            "entry_decision_representation"
-        ],
+        "entry_decision_representation": base["entry_decision_representation"],
         "m1_local_history_x": base["exit_local_history_x"],
         "state_ctx_cat": base["exit_state_ctx_cat"][:, 0],
         "state_ctx_cont": base["exit_state_ctx_cont"][:, 0],
@@ -40,13 +38,10 @@ def _inputs(batch_size: int = 3) -> dict:
         "normalized_lifetime_summary_x": torch.randn(batch_size, 2, 7),
         "exit_mtf_histories": base["exit_mtf_histories"],
         "exit_mtf_gathers": {
-            name: gather[:, :1]
-            for name, gather in base["exit_mtf_gathers"].items()
+            name: gather[:, :1] for name, gather in base["exit_mtf_gathers"].items()
         },
         "exit_mtf_history_lengths": base["exit_mtf_history_lengths"],
-        "action_valid_mask": torch.ones(
-            batch_size, 2, 2, dtype=torch.bool
-        ),
+        "action_valid_mask": torch.ones(batch_size, 2, 2, dtype=torch.bool),
     }
 
 
@@ -62,8 +57,7 @@ def _slice(inputs: dict, index: int) -> dict:
         "exit_mtf_history_lengths",
     ):
         sliced[key] = {
-            name: value[index : index + 1]
-            for name, value in inputs[key].items()
+            name: value[index : index + 1] for name, value in inputs[key].items()
         }
     length = int(sliced["trade_path_lengths"][0])
     sliced["trade_path_tail_x"] = sliced["trade_path_tail_x"][:, :, :length]
@@ -146,9 +140,7 @@ def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict() -> None:
     with pytest.raises(RuntimeError, match="V2_STATE_KEYSET_INVALID"):
         strict_load_random_access_v2_state(model, old)
     new_before = {
-        name: value.clone()
-        for name, value in full.items()
-        if name not in old
+        name: value.clone() for name, value in full.items() if name not in old
     }
     receipt = bootstrap_random_access_v2_from_pretrained(model, old)
     assert receipt["decision"] == "PASS"
@@ -162,3 +154,29 @@ def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict() -> None:
     v2_state = copy.deepcopy(model.state_dict())
     strict_digest = strict_load_random_access_v2_state(model, v2_state)
     assert strict_digest == receipt["resulting_v2_state_sha256"]
+
+
+def test_bootstrap_explicitly_binds_preserved_v7_normalization() -> None:
+    model = _make_model(dropout=0.0)
+    old_contract = copy.deepcopy(model._input_normalization_contract)
+    old_contract["schema_version"] = "entry_model_native_input_normalization_v7"
+    old_contract["transform"] = "shared_entry_exit_train_only_median_raw_iqr_asinh_v4"
+    old_contract.pop("contract_sha256")
+    old_contract["contract_sha256"] = canonical_sha256(old_contract)
+    old = {
+        name: value.clone()
+        for name, value in model.state_dict().items()
+        if not (
+            name == "unified_exit_random_access_architecture_sha256"
+            or name.startswith("exit_random_access_summary_proj.")
+            or name.startswith("exit_random_access_fuse.")
+        )
+    }
+    old["input_norm_contract_sha256"] = torch.tensor(
+        list(bytes.fromhex(old_contract["contract_sha256"])), dtype=torch.uint8
+    )
+    bootstrap_random_access_v2_from_pretrained(model, old)
+    assert (
+        bind_preserved_v7_input_normalization(model, old_contract)
+        == old_contract["contract_sha256"]
+    )

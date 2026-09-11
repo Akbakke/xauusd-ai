@@ -26,7 +26,9 @@ def _new_state_keys(model: nn.Module) -> tuple[str, ...]:
     return tuple(
         name
         for name in model.state_dict()
-        if any(name == prefix or name.startswith(prefix) for prefix in _NEW_STATE_PREFIXES)
+        if any(
+            name == prefix or name.startswith(prefix) for prefix in _NEW_STATE_PREFIXES
+        )
     )
 
 
@@ -105,6 +107,49 @@ def bootstrap_random_access_v2_from_pretrained(
     }
 
 
+def bind_preserved_v7_input_normalization(
+    model: nn.Module, legacy_contract: Mapping[str, Any]
+) -> str:
+    """Adopt the verified v7 contract after its buffers were bootstrapped.
+
+    The v2 model is constructed with the schema-compatible child v8 contract.
+    Bootstrap then restores every learned v1 tensor, including the historical
+    normalization buffers. This explicit binding updates the Python-side
+    contract only after proving field, alias and categorical identities match.
+    """
+
+    from gx1.contracts.unified_exit_random_access_cuda_smoke_v1 import (
+        _require_legacy_v7_normalization,
+    )
+
+    _require_model(model)
+    checked = _require_legacy_v7_normalization(legacy_contract)
+    current = getattr(model, "_input_normalization_contract", None)
+    if not isinstance(current, Mapping):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_NORMALIZATION_STATE_MISSING")
+    old_surfaces = checked.get("surfaces", {})
+    current_surfaces = current.get("surfaces", {})
+    if (
+        {
+            name: list(surface.get("field_names") or [])
+            for name, surface in old_surfaces.items()
+        }
+        != {
+            name: list(surface.get("field_names") or [])
+            for name, surface in current_surfaces.items()
+        }
+        or checked.get("temporal_aliases") != current.get("temporal_aliases")
+        or checked.get("ctx_cat", {}).get("field_names")
+        != current.get("ctx_cat", {}).get("field_names")
+        or checked.get("ctx_cat", {}).get("domains")
+        != current.get("ctx_cat", {}).get("domains")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_NORMALIZATION_SCHEMA_MISMATCH")
+    model._input_normalization_contract = checked
+    model.require_input_normalization_state()
+    return str(checked["contract_sha256"])
+
+
 def strict_load_random_access_v2_state(
     model: nn.Module, state: Mapping[str, Any]
 ) -> str:
@@ -128,5 +173,6 @@ __all__ = (
     "RANDOM_ACCESS_MODEL_SCHEMA_SHA256",
     "RANDOM_ACCESS_MODEL_SCHEMA_VERSION",
     "bootstrap_random_access_v2_from_pretrained",
+    "bind_preserved_v7_input_normalization",
     "strict_load_random_access_v2_state",
 )
