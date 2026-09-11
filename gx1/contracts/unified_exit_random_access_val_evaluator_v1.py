@@ -148,6 +148,7 @@ def _new_progress(
         "contract_sha256": contract_sha256,
         "checkpoint_binding_sha256": checkpoint_binding_sha256,
         "next_state_index": 0,
+        "next_entry_scan_position": 0,
         "model_forward_count": 0,
         "materialized_state_view_count": 0,
         "completed_invocation_count": 0,
@@ -247,6 +248,7 @@ def _require_progress(
             raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_ACTIVE_INVALID")
     for name in (
         "next_state_index",
+        "next_entry_scan_position",
         "model_forward_count",
         "materialized_state_view_count",
         "completed_invocation_count",
@@ -254,6 +256,8 @@ def _require_progress(
         raw = observed[name]
         if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
             raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
+    if observed["next_entry_scan_position"] > VAL_ENTRY_COHORT_SIZE:
+        raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
     elapsed = observed["elapsed_compute_seconds"]
     if (
         isinstance(elapsed, bool)
@@ -459,6 +463,7 @@ def _finalize_result(
     *,
     adapter: RandomAccessValRolloutAdapterV1,
     checkpoint_binding: Mapping[str, Any],
+    execution_contract: Mapping[str, Any],
     entry_route_diagnostics: Mapping[str, Any],
     guard_reason: str | None,
 ) -> dict[str, Any]:
@@ -528,7 +533,9 @@ def _finalize_result(
         "decision": decision,
         "contract_sha256": adapter.contract["contract_sha256"],
         "checkpoint_binding": dict(checkpoint_binding),
-        "checkpoint_binding_sha256": canonical_sha256(checkpoint_binding),
+        "checkpoint_binding_sha256": checkpoint_binding["binding_sha256"],
+        "execution_contract": dict(execution_contract),
+        "execution_contract_sha256": execution_contract["execution_contract_sha256"],
         "entry_pair_cohort_size": VAL_ENTRY_COHORT_SIZE,
         "side_trade_count": VAL_ENTRY_COHORT_SIZE * 2,
         "exited_side_trade_count": len(exited_rows),
@@ -607,6 +614,7 @@ def run_resumable_random_access_val_evaluation_v1(
     progress_path: Path,
     result_path: Path,
     max_forwards_this_invocation: int,
+    policy_batch_size: int,
     progress_interval_forwards: int = 64,
     monotonic: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
@@ -615,6 +623,18 @@ def run_resumable_random_access_val_evaluation_v1(
     contract = require_random_access_val_rollout_contract(adapter.contract)
     checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
         checkpoint_binding
+    )
+    execution_contract = {
+        "schema_version": "gx1_unified_exit_random_access_val_execution_v1",
+        "rollout_contract_sha256": contract["contract_sha256"],
+        "checkpoint_binding_sha256": checked_checkpoint["binding_sha256"],
+        "policy_batch_size": policy_batch_size,
+        "cohort_cursor_semantics": "ascending_entry_position_within_common_state_v1",
+        "progress_commit_semantics": "complete_policy_subbatch_only_v1",
+        "test_data_used": False,
+    }
+    execution_contract["execution_contract_sha256"] = canonical_sha256(
+        execution_contract
     )
     checkpoint_binding_sha = checked_checkpoint["binding_sha256"]
     if (
@@ -639,6 +659,8 @@ def run_resumable_random_access_val_evaluation_v1(
         or entry_decision_representations.shape[0] != VAL_ENTRY_COHORT_SIZE
         or isinstance(max_forwards_this_invocation, bool)
         or max_forwards_this_invocation < 1
+        or isinstance(policy_batch_size, bool)
+        or policy_batch_size not in (4, 8, 16)
         or isinstance(progress_interval_forwards, bool)
         or progress_interval_forwards < 1
     ):
@@ -648,13 +670,13 @@ def run_resumable_random_access_val_evaluation_v1(
     if progress_path.exists():
         progress = _require_progress(
             json.loads(progress_path.read_text()),
-            contract_sha256=contract["contract_sha256"],
+            contract_sha256=execution_contract["execution_contract_sha256"],
             checkpoint_binding_sha256=checkpoint_binding_sha,
         )
     else:
         progress = _seal_progress(
             _new_progress(
-                contract_sha256=contract["contract_sha256"],
+                contract_sha256=execution_contract["execution_contract_sha256"],
                 checkpoint_binding_sha256=checkpoint_binding_sha,
             )
         )
@@ -671,13 +693,6 @@ def run_resumable_random_access_val_evaluation_v1(
         if int(progress["model_forward_count"]) >= guard["max_model_forwards"]:
             guard_reason = "max_model_forwards"
             break
-        active_entries = np.flatnonzero(active.any(axis=1))
-        if (
-            int(progress["materialized_state_view_count"]) + len(active_entries)
-            > guard["max_materialized_state_views"]
-        ):
-            guard_reason = "max_materialized_state_views"
-            break
         if elapsed >= float(guard["max_wall_seconds"]):
             guard_reason = "max_wall_seconds"
             break
@@ -690,9 +705,13 @@ def run_resumable_random_access_val_evaluation_v1(
             pause = {
                 "schema_version": PAUSE_SCHEMA_VERSION,
                 "decision": "PAUSED_RESUMABLE",
-                "contract_sha256": contract["contract_sha256"],
+                "rollout_contract_sha256": contract["contract_sha256"],
+                "execution_contract_sha256": execution_contract[
+                    "execution_contract_sha256"
+                ],
                 "checkpoint_binding_sha256": checkpoint_binding_sha,
                 "next_state_index": int(progress["next_state_index"]),
+                "next_entry_scan_position": int(progress["next_entry_scan_position"]),
                 "model_forward_count": int(progress["model_forward_count"]),
                 "progress_path": str(progress_path),
                 "progress_file_sha256": file_sha256(progress_path),
@@ -701,6 +720,28 @@ def run_resumable_random_access_val_evaluation_v1(
             pause["pause_sha256"] = canonical_sha256(pause)
             return pause
         state_index = int(progress["next_state_index"])
+        scan_position = int(progress["next_entry_scan_position"])
+        remaining_mask = active.any(axis=1)
+        remaining_mask[:scan_position] = False
+        active_entries = np.flatnonzero(remaining_mask)[:policy_batch_size]
+        if len(active_entries) == 0:
+            progress["next_state_index"] = state_index + 1
+            progress["next_entry_scan_position"] = 0
+            continue
+        if (
+            int(progress["materialized_state_view_count"]) + len(active_entries)
+            > guard["max_materialized_state_views"]
+        ):
+            guard_reason = "max_materialized_state_views"
+            break
+        if scan_position == 0:
+            progress["compaction_trace"].append(
+                {
+                    "state_index": state_index,
+                    "active_entry_count": int(active.any(axis=1).sum()),
+                    "active_side_count": int(active.sum()),
+                }
+            )
         row_indices = [
             adapter.entries[int(position)]["entry_row_index"]
             for position in active_entries
@@ -752,13 +793,6 @@ def run_resumable_random_access_val_evaluation_v1(
             actions=actions,
             active_rows=active_rows_before,
         )
-        progress["compaction_trace"].append(
-            {
-                "state_index": state_index,
-                "active_entry_count": len(envelopes),
-                "active_side_count": int(active_rows_before.sum()),
-            }
-        )
         progress["model_forward_count"] += 1
         progress["materialized_state_view_count"] += len(envelopes)
         forwards_this_invocation += 1
@@ -806,7 +840,10 @@ def run_resumable_random_access_val_evaluation_v1(
                         raise RuntimeError("UNIFIED_EXIT_VAL_CENSOR_REASON_INVALID")
                     trade["status"] = f"RIGHT_CENSORED_{reason.upper()}"
                     active[entry_position, side] = False
-        progress["next_state_index"] = state_index + 1
+        progress["next_entry_scan_position"] = int(active_entries[-1]) + 1
+        if not bool(active.any(axis=1)[progress["next_entry_scan_position"] :].any()):
+            progress["next_state_index"] = state_index + 1
+            progress["next_entry_scan_position"] = 0
         progress["active_side_mask"] = active.tolist()
         if forwards_this_invocation % progress_interval_forwards == 0:
             progress["elapsed_compute_seconds"] = float(
@@ -832,6 +869,7 @@ def run_resumable_random_access_val_evaluation_v1(
         progress,
         adapter=adapter,
         checkpoint_binding=checked_checkpoint,
+        execution_contract=execution_contract,
         entry_route_diagnostics=entry_route_diagnostics,
         guard_reason=guard_reason,
     )

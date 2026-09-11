@@ -28,12 +28,14 @@ from tests.test_unified_exit_random_access_val_rollout_v1 import (
 )
 
 
-def _with_route_outputs(model):
+def _with_route_outputs(model, seen_batch_sizes=None):
     original = model.forward_exit_random_access_batch
 
     def forward(**inputs):
         result = original(**inputs)
         batch = result["exit_action_q_bps"].shape[0]
+        if seen_batch_sizes is not None:
+            seen_batch_sizes.append(batch)
         result.update(
             {
                 "exit_specialist_gate": torch.full((batch, 2, 3), 1.0 / 3.0),
@@ -105,7 +107,8 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         thresholds=thresholds,
         counts=counts,
     )
-    model = _with_route_outputs(model)
+    seen_batch_sizes = []
+    model = _with_route_outputs(model, seen_batch_sizes)
     binding = _checkpoint_binding(contract, adapter, tmp_path)
     progress = tmp_path / "progress.json"
     result = tmp_path / "result.json"
@@ -122,11 +125,13 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         progress_path=progress,
         result_path=result,
         max_forwards_this_invocation=1,
+        policy_batch_size=16,
         progress_interval_forwards=1,
     )
     assert paused["schema_version"] == PAUSE_SCHEMA_VERSION
     assert paused["decision"] == "PAUSED_RESUMABLE"
-    assert paused["next_state_index"] == 1
+    assert paused["next_state_index"] == 0
+    assert paused["next_entry_scan_position"] == 16
     assert not result.exists()
 
     completed = run_resumable_random_access_val_evaluation_v1(
@@ -140,15 +145,21 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         },
         progress_path=progress,
         result_path=result,
-        max_forwards_this_invocation=2,
-        progress_interval_forwards=1,
+        max_forwards_this_invocation=700,
+        policy_batch_size=16,
+        progress_interval_forwards=64,
     )
     assert completed["schema_version"] == RESULT_SCHEMA_VERSION
     assert completed["decision"] == "PASS_COMPLETE"
     assert completed["entry_pair_cohort_size"] == VAL_ENTRY_COHORT_SIZE
     assert completed["side_trade_count"] == VAL_ENTRY_COHORT_SIZE * 2
     assert completed["exited_side_trade_count"] == VAL_ENTRY_COHORT_SIZE * 2
-    assert completed["model_forward_count"] == 2
+    assert completed["model_forward_count"] == 690
+    assert max(seen_batch_sizes) == 16
+    assert seen_batch_sizes[0] == 16
+    assert min(seen_batch_sizes) == 4
+    assert len(seen_batch_sizes) == 690
+    assert completed["execution_contract"]["policy_batch_size"] == 16
     assert completed["exit_policy_diagnostics"]["hold_action_count"] == (
         VAL_ENTRY_COHORT_SIZE * 2
     )
@@ -189,6 +200,7 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
             progress_path=tmp_path / "progress.json",
             result_path=tmp_path / "result.json",
             max_forwards_this_invocation=1,
+            policy_batch_size=16,
         )
 
     binding["model_variant"] = "weight_ema"
@@ -204,4 +216,5 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
             progress_path=tmp_path / "progress2.json",
             result_path=tmp_path / "result2.json",
             max_forwards_this_invocation=1,
+            policy_batch_size=16,
         )
