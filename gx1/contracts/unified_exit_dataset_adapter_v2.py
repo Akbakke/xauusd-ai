@@ -673,14 +673,27 @@ class UnifiedExitDatasetAdapterV2:
             )
             for name in price_fields
         }
+        from gx1.contracts.unified_exit_random_access_state_view_v1 import (
+            validate_random_access_m1_source_v1,
+        )
+
+        validated_m1_source = validate_random_access_m1_source_v1(
+            m1_times=child_times,
+            m1_signal=signal,
+            m1_ctx_cont=ctx_cont,
+            m1_ctx_cat=ctx_cat,
+            m1_source_sha256=summary["m1_source_sha256"],
+            market_closure_authority=authority,
+        )
         self._random_access_train = {
             "sampler_contract": contract,
+            "prevalidated_m1_source": validated_m1_source,
             "successor_counts": counts,
             "summary_fit_manifest_sha256": summary["manifest_sha256"],
             "normalization_artifact": normalization,
             "m1_source_sha256": summary["m1_source_sha256"],
-            "market_closure_authority": authority,
-            "m1_times": child_times,
+            "market_closure_authority": validated_m1_source["market_closure_authority"],
+            "m1_times": validated_m1_source["times"],
             "m1_signal": signal,
             "m1_ctx_cont": ctx_cont,
             "m1_ctx_cat": ctx_cat,
@@ -871,6 +884,7 @@ class UnifiedExitDatasetAdapterV2:
                 economics_objective_contract=self._readiness[
                     "economics_objective_contract"
                 ],
+                prevalidated_m1_source=binding["prevalidated_m1_source"],
             )
 
         witness = binding["first_state_bridge_witness"]

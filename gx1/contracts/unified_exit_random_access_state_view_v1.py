@@ -33,9 +33,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 )
 
 
-RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION = (
-    "gx1_unified_exit_random_access_state_view_v1"
-)
+RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v1"
 EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
 M1_LOCAL_HISTORY_ROWS = 480
 TRADE_PATH_TAIL_MAX_ROWS = 512
@@ -72,7 +70,9 @@ def _readonly_array(
     value: Any, *, dtype: np.dtype[Any], shape: tuple[int, ...], label: str
 ) -> np.ndarray:
     array = np.ascontiguousarray(value, dtype=dtype)
-    if array.shape != shape or (array.dtype.kind == "f" and not np.isfinite(array).all()):
+    if array.shape != shape or (
+        array.dtype.kind == "f" and not np.isfinite(array).all()
+    ):
         raise RuntimeError(f"UNIFIED_EXIT_RANDOM_ACCESS_{label}_INVALID")
     array.setflags(write=False)
     return array
@@ -116,6 +116,103 @@ def _closure_for_transition(
     }
 
 
+def validate_random_access_m1_source_v1(
+    *,
+    m1_times: Sequence[Any],
+    m1_signal: np.ndarray,
+    m1_ctx_cont: np.ndarray,
+    m1_ctx_cat: np.ndarray,
+    m1_source_sha256: str,
+    market_closure_authority: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate the immutable shared M1 surface once before hot-path sampling."""
+
+    times = pd.DatetimeIndex(
+        pd.to_datetime(m1_times, utc=True, errors="coerce")
+    ).as_unit("ns")
+    signal = np.asarray(m1_signal)
+    cont = np.asarray(m1_ctx_cont)
+    cat = np.asarray(m1_ctx_cat)
+    if (
+        times.empty
+        or times.hasnans
+        or not times.is_unique
+        or not times.is_monotonic_increasing
+        or signal.ndim != 2
+        or cont.ndim != 2
+        or cat.ndim != 2
+        or not len(times) == len(signal) == len(cont) == len(cat)
+        or not np.isfinite(signal).all()
+        or not np.isfinite(cont).all()
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_M1_SOURCE_INVALID")
+    for array in (signal, cont, cat):
+        array.setflags(write=False)
+    source_clock_sha = m1_clock_sha256(times)
+    authority = require_market_closure_authority(
+        market_closure_authority,
+        expected_m1_source_sha256=m1_source_sha256,
+        expected_m1_clock_sha256=source_clock_sha,
+    )
+    return {
+        "schema_version": "gx1_unified_exit_validated_m1_source_v1",
+        "times": times,
+        "signal": signal,
+        "cont": cont,
+        "cat": cat,
+        "m1_source_sha256": m1_source_sha256,
+        "m1_clock_sha256": source_clock_sha,
+        "market_closure_authority": authority,
+        "market_closure_authority_sha256": authority["artifact_sha256"],
+    }
+
+
+def _require_validated_m1_source(
+    value: Mapping[str, Any],
+    *,
+    m1_times: Sequence[Any],
+    m1_signal: np.ndarray,
+    m1_ctx_cont: np.ndarray,
+    m1_ctx_cat: np.ndarray,
+    m1_source_sha256: str,
+    market_closure_authority: Mapping[str, Any],
+) -> tuple[pd.DatetimeIndex, np.ndarray, np.ndarray, np.ndarray, str, dict[str, Any]]:
+    expected = {
+        "schema_version",
+        "times",
+        "signal",
+        "cont",
+        "cat",
+        "m1_source_sha256",
+        "m1_clock_sha256",
+        "market_closure_authority",
+        "market_closure_authority_sha256",
+    }
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != expected
+        or value["schema_version"] != "gx1_unified_exit_validated_m1_source_v1"
+        or value["times"] is not m1_times
+        or value["signal"] is not m1_signal
+        or value["cont"] is not m1_ctx_cont
+        or value["cat"] is not m1_ctx_cat
+        or value["m1_source_sha256"] != m1_source_sha256
+        or value["market_closure_authority"] is not market_closure_authority
+        or value["market_closure_authority_sha256"]
+        != market_closure_authority.get("artifact_sha256")
+        or any(value[name].flags.writeable for name in ("signal", "cont", "cat"))
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PREVALIDATED_SOURCE_INVALID")
+    return (
+        value["times"],
+        value["signal"],
+        value["cont"],
+        value["cat"],
+        value["m1_clock_sha256"],
+        dict(value["market_closure_authority"]),
+    )
+
+
 def materialize_random_access_state_view(
     *,
     sampler_contract: Mapping[str, Any],
@@ -136,6 +233,7 @@ def materialize_random_access_state_view(
     economic_step_provider: Any,
     economic_step_manifest: Mapping[str, Any],
     economics_objective_contract: Mapping[str, Any],
+    prevalidated_m1_source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Materialize exact t/t+1 views; memory limits never create terminals."""
 
@@ -163,7 +261,9 @@ def materialize_random_access_state_view(
         len(counts) != 2
         or len(economic_terminal) != 2
         or any(type(value) is not bool for value in economic_terminal)
-        or any(isinstance(count, bool) or not isinstance(count, int) for count in counts)
+        or any(
+            isinstance(count, bool) or not isinstance(count, int) for count in counts
+        )
         or any(count < 2 for count in counts)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SIDE_COUNT_INVALID")
@@ -171,32 +271,35 @@ def materialize_random_access_state_view(
     if any(successor_index >= count for count in counts):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_COMMON_TIMELINE_INVALID")
 
-    times = pd.DatetimeIndex(pd.to_datetime(m1_times, utc=True, errors="coerce")).as_unit(
-        "ns"
-    )
-    signal = np.asarray(m1_signal)
-    cont = np.asarray(m1_ctx_cont)
-    cat = np.asarray(m1_ctx_cat)
-    if (
-        times.empty
-        or times.hasnans
-        or not times.is_unique
-        or not times.is_monotonic_increasing
-        or signal.ndim != 2
-        or cont.ndim != 2
-        or cat.ndim != 2
-        or not len(times) == len(signal) == len(cont) == len(cat)
-        or not np.isfinite(signal).all()
-        or not np.isfinite(cont).all()
-        or entry_m1_start_row < M1_LOCAL_HISTORY_ROWS - 1
-    ):
+    if prevalidated_m1_source is None:
+        validated = validate_random_access_m1_source_v1(
+            m1_times=m1_times,
+            m1_signal=m1_signal,
+            m1_ctx_cont=m1_ctx_cont,
+            m1_ctx_cat=m1_ctx_cat,
+            m1_source_sha256=m1_source_sha256,
+            market_closure_authority=market_closure_authority,
+        )
+        times = validated["times"]
+        signal = validated["signal"]
+        cont = validated["cont"]
+        cat = validated["cat"]
+        source_clock_sha = validated["m1_clock_sha256"]
+        authority = dict(validated["market_closure_authority"])
+    else:
+        times, signal, cont, cat, source_clock_sha, authority = (
+            _require_validated_m1_source(
+                prevalidated_m1_source,
+                m1_times=m1_times,
+                m1_signal=m1_signal,
+                m1_ctx_cont=m1_ctx_cont,
+                m1_ctx_cat=m1_ctx_cat,
+                m1_source_sha256=m1_source_sha256,
+                market_closure_authority=market_closure_authority,
+            )
+        )
+    if entry_m1_start_row < M1_LOCAL_HISTORY_ROWS - 1:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_M1_SOURCE_INVALID")
-    source_clock_sha = m1_clock_sha256(times)
-    authority = require_market_closure_authority(
-        market_closure_authority,
-        expected_m1_source_sha256=m1_source_sha256,
-        expected_m1_clock_sha256=source_clock_sha,
-    )
     state_row = entry_m1_start_row + state_index
     successor_row = entry_m1_start_row + successor_index
     if successor_row >= len(times):
@@ -332,7 +435,9 @@ def materialize_random_access_state_view(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
     for side in range(2):
         projection = require_economic_training_projection(
-            fastpath(entry_row_index, side, state_index, state_index + 1, state_index + 1),
+            fastpath(
+                entry_row_index, side, state_index, state_index + 1, state_index + 1
+            ),
             entry_row_index=entry_row_index,
             side_index=side,
             start_state_index=state_index,
@@ -590,7 +695,11 @@ def require_random_access_state_view(
     }
     for name, shape in shapes.items():
         array = observed[name]
-        if not isinstance(array, np.ndarray) or array.shape != shape or array.flags.writeable:
+        if (
+            not isinstance(array, np.ndarray)
+            or array.shape != shape
+            or array.flags.writeable
+        ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
     observed["state_view_sha256"] = claimed
     return observed
@@ -602,5 +711,6 @@ __all__ = (
     "RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION",
     "TRADE_PATH_TAIL_MAX_ROWS",
     "materialize_random_access_state_view",
+    "validate_random_access_m1_source_v1",
     "require_random_access_state_view",
 )

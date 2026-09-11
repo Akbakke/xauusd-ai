@@ -33,6 +33,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     materialize_random_access_state_view,
     require_random_access_state_view,
+    validate_random_access_m1_source_v1,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import EXIT_MTF_CONTEXT_TIMEFRAMES
 
@@ -178,6 +179,7 @@ def _materialize(
     counts: tuple[int, int] = (600, 600),
     terminals: tuple[bool, bool] = (False, False),
     anchor: bool = False,
+    prevalidate: bool = False,
 ) -> dict:
     clock = _clock()
     contract = _contract()
@@ -216,10 +218,26 @@ def _materialize(
             out[f"exit_mtf_gather_{suffix}"] = np.asarray([2], dtype=np.int64)
         return out
 
+    prevalidated = None
+    if prevalidate:
+        prevalidated = validate_random_access_m1_source_v1(
+            m1_times=clock,
+            m1_signal=signal,
+            m1_ctx_cont=cont,
+            m1_ctx_cat=cat,
+            m1_source_sha256="2" * 64,
+            market_closure_authority=authority,
+        )
+        clock = prevalidated["times"]
+        signal = prevalidated["signal"]
+        cont = prevalidated["cont"]
+        cat = prevalidated["cat"]
+        authority = prevalidated["market_closure_authority"]
+
     sample = (
-        schedule_random_access_entry_anchors(
-            sampler_contract=contract, epoch_index=0
-        )[0]
+        schedule_random_access_entry_anchors(sampler_contract=contract, epoch_index=0)[
+            0
+        ]
         if anchor
         else _sample(contract, state_index)
     )
@@ -242,6 +260,7 @@ def _materialize(
         economic_step_provider=_EconomicProvider(authority["artifact_sha256"]),
         economic_step_manifest=manifest,
         economics_objective_contract=_objective(),
+        prevalidated_m1_source=prevalidated,
     )
     require_random_access_state_view(
         view,
@@ -349,3 +368,17 @@ def test_state_view_hash_tamper_fails_closed() -> None:
                 "contract_sha256"
             ],
         )
+
+
+def test_prevalidated_source_preserves_exact_state_view_bytes():
+    regular = _materialize(530)
+    fast = _materialize(530, prevalidate=True)
+    assert fast["state_view_sha256"] == regular["state_view_sha256"]
+    assert np.array_equal(
+        fast["current"]["m1_local_history_x"],
+        regular["current"]["m1_local_history_x"],
+    )
+    assert np.array_equal(
+        fast["successor"]["trade_path_tail_x"],
+        regular["successor"]["trade_path_tail_x"],
+    )
