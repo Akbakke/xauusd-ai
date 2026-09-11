@@ -134,19 +134,23 @@ def _load_campaign_evidence(
     measurement = _require_measurement(
         raw_measurement, batch_size=int(invocation["batch_size"])
     )
-    launch = read_bound_json(
+    execution = read_bound_json(
         Path(invocation["execution_manifest"]["path"]),
         invocation["execution_manifest"]["sha256"],
     )
+    prelaunch_ref = _require_binding(
+        execution.get("prelaunch_manifest"), verify_files=True
+    )
+    prelaunch = read_bound_json(
+        Path(prelaunch_ref["path"]), prelaunch_ref["sha256"]
+    )
     launch_sha = measurement.get("launch_manifest_sha256")
-    execution_launch_sha = launch.get("manifest_sha256")
+    prelaunch_sha = prelaunch.get("manifest_sha256")
     if (
         not isinstance(launch_sha, str)
         or len(launch_sha) != 64
-        or (
-            execution_launch_sha is not None
-            and execution_launch_sha != launch_sha
-        )
+        or execution.get("prelaunch_manifest_sha256") != prelaunch_sha
+        or launch_sha != prelaunch_sha
         or campaign_receipt["selection_receipt_sha256"] is not None
         or campaign_receipt["outcome"] != "COMPLETE"
         or campaign_receipt["guard_decision"] != "PASS"
@@ -166,6 +170,7 @@ def _load_campaign_evidence(
         "campaign_receipt": campaign_receipt,
         "measurement_ref": measurement_ref,
         "measurement": measurement,
+        "prelaunch_manifest": prelaunch_ref,
         "launch_manifest_sha256": launch_sha,
     }
 
@@ -208,6 +213,7 @@ def build_arm_receipt(
         "measurement": evidence["measurement_ref"],
         "measurement_sha256": measurement["measurement_sha256"],
         "source_commit": plan["source_commit"],
+        "prelaunch_manifest": evidence["prelaunch_manifest"],
         "launch_manifest_sha256": evidence["launch_manifest_sha256"],
         "batch_size": batch,
         "precision_policy": "deterministic_fp32",
@@ -237,7 +243,8 @@ def require_arm_receipt(value: Mapping[str, Any], *, verify_files: bool = True) 
         "schema_version", "decision", "campaign_plan", "campaign_plan_sha256",
         "campaign_invocation", "campaign_invocation_sha256", "campaign_receipt",
         "campaign_receipt_sha256", "measurement", "measurement_sha256",
-        "source_commit", "launch_manifest_sha256", "batch_size", "precision_policy",
+        "source_commit", "prelaunch_manifest", "launch_manifest_sha256",
+        "batch_size", "precision_policy",
         "warmup_optimizer_steps", "measured_optimizer_steps", "measured_entry_rows",
         "transitions_per_entry", "measured_transition_count", "measured_train_seconds",
         "measured_transitions_per_second", "guard_decision", "boot_identity_sha256",
@@ -274,6 +281,11 @@ def require_arm_receipt(value: Mapping[str, Any], *, verify_files: bool = True) 
         or value.get("test_data_used") is not False
         or claimed != canonical_sha256(data)
     ):
+        raise RuntimeError("UNIFIED_EXIT_GPU_SMOKE_ARM_RECEIPT_INVALID")
+    prelaunch_ref = _require_binding(
+        value.get("prelaunch_manifest"), verify_files=verify_files
+    )
+    if value.get("prelaunch_manifest") != prelaunch_ref:
         raise RuntimeError("UNIFIED_EXIT_GPU_SMOKE_ARM_RECEIPT_INVALID")
     if verify_files:
         rebuilt = build_arm_receipt(
@@ -331,7 +343,15 @@ def build_selection(arm_receipt_bindings: Sequence[Mapping[str, Any]]) -> dict[s
     checked = [receipt for _binding, receipt in loaded]
     launch_hashes = {receipt["launch_manifest_sha256"] for receipt in checked}
     source_commits = {receipt["source_commit"] for receipt in checked}
-    if len(launch_hashes) != 1 or len(source_commits) != 1:
+    prelaunch_bindings = {
+        (receipt["prelaunch_manifest"]["path"], receipt["prelaunch_manifest"]["sha256"])
+        for receipt in checked
+    }
+    if (
+        len(launch_hashes) != 1
+        or len(source_commits) != 1
+        or len(prelaunch_bindings) != 1
+    ):
         raise RuntimeError("UNIFIED_EXIT_GPU_SELECTION_LAUNCH_MISMATCH")
     winner = min(checked, key=lambda receipt: (-float(receipt["measured_transitions_per_second"]), int(receipt["batch_size"])))
     batch16 = next(receipt for receipt in checked if receipt["batch_size"] == 16)
@@ -345,6 +365,7 @@ def build_selection(arm_receipt_bindings: Sequence[Mapping[str, Any]]) -> dict[s
         "campaign_plan": dict(checked[0]["campaign_plan"]),
         "campaign_plan_sha256": checked[0]["campaign_plan_sha256"],
         "source_commit": source_commits.pop(),
+        "prelaunch_manifest": dict(checked[0]["prelaunch_manifest"]),
         "launch_manifest_sha256": launch_hashes.pop(),
         "selection_metric": "highest_guarded_measured_optimizer_transitions_per_second",
         "tie_break": "lower_batch_size",
@@ -378,6 +399,9 @@ def build_selection(arm_receipt_bindings: Sequence[Mapping[str, Any]]) -> dict[s
 
 
 def require_selection(value: Mapping[str, Any], *, verify_files: bool = True) -> dict[str, Any]:
+    prelaunch_ref = _require_binding(
+        value.get("prelaunch_manifest"), verify_files=verify_files
+    )
     data = dict(value)
     claimed = data.pop("artifact_sha256", None)
     arms = value.get("arm_receipts")
@@ -388,6 +412,7 @@ def require_selection(value: Mapping[str, Any], *, verify_files: bool = True) ->
         or value.get("tie_break") != "lower_batch_size"
         or not isinstance(arms, Mapping)
         or set(arms) != {"4", "8", "16"}
+        or value.get("prelaunch_manifest") != prelaunch_ref
         or value.get("selection_uses_outcome_values") is not False
         or value.get("test_data_used") is not False
         or claimed != canonical_sha256(data)

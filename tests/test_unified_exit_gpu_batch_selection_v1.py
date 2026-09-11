@@ -30,6 +30,10 @@ def _arm(tmp_path: Path, batch: int, seconds: float) -> tuple[dict, dict]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(name)
         files[name] = _binding(path)
+    prelaunch = (tmp_path / "prelaunch_manifest").resolve()
+    if not prelaunch.exists():
+        prelaunch.write_text("prelaunch_manifest")
+    files["prelaunch_manifest"] = _binding(prelaunch)
     value = {
         "schema_version": ARM_SCHEMA,
         "decision": "PASS",
@@ -42,6 +46,7 @@ def _arm(tmp_path: Path, batch: int, seconds: float) -> tuple[dict, dict]:
         "measurement": files["measurement"],
         "measurement_sha256": "c" * 64,
         "source_commit": "d" * 40,
+        "prelaunch_manifest": files["prelaunch_manifest"],
         "launch_manifest_sha256": "1" * 64,
         "batch_size": batch,
         "precision_policy": "deterministic_fp32",
@@ -126,3 +131,34 @@ def test_arm_receipt_rejects_legacy_self_attestation(tmp_path: Path) -> None:
     legacy["receipt_sha256"] = canonical_sha256(legacy)
     with pytest.raises(RuntimeError, match="ARM_RECEIPT_INVALID"):
         require_arm_receipt(legacy, verify_files=False)
+
+
+def test_arm_receipt_requires_exact_prelaunch_file_binding(
+    tmp_path: Path,
+) -> None:
+    _binding_value, arm = _arm(tmp_path, 16, 1.0)
+    arm.pop("prelaunch_manifest")
+    arm["receipt_sha256"] = canonical_sha256(
+        {key: item for key, item in arm.items() if key != "receipt_sha256"}
+    )
+    with pytest.raises(RuntimeError, match="ARM_RECEIPT_INVALID"):
+        require_arm_receipt(arm, verify_files=False)
+
+
+def test_selection_rejects_prelaunch_binding_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pairs = [_arm(tmp_path, 4, 1.0), _arm(tmp_path, 8, 1.0), _arm(tmp_path, 16, 1.0)]
+    pairs[1][1]["prelaunch_manifest"] = _binding(
+        (tmp_path / "8" / "campaign_plan").resolve()
+    )
+    pairs[1][1]["receipt_sha256"] = canonical_sha256(
+        {
+            key: item
+            for key, item in pairs[1][1].items()
+            if key != "receipt_sha256"
+        }
+    )
+    _patch_loaded(monkeypatch, pairs)
+    with pytest.raises(RuntimeError, match="LAUNCH_MISMATCH"):
+        build_selection([binding for binding, _ in pairs])

@@ -156,6 +156,26 @@ def _load_checkpoint(pointer_binding: Mapping[str, Any]) -> tuple[dict[str, Any]
     return pointer, dict(state), state_ref
 
 
+
+def _require_terminal_epoch_chain(
+    plan: Mapping[str, Any], receipts: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    invocations = plan.get("checked_invocations")
+    if (
+        not isinstance(invocations, Sequence)
+        or isinstance(invocations, (str, bytes))
+        or len(receipts) != len(invocations)
+        or not receipts
+        or receipts[-1].get("kind") != "epoch1_window"
+        or receipts[-1].get("outcome") != "COMPLETE"
+        or receipts[-1].get("guard_decision") != "PASS"
+        or invocations[-1].get("kind") != "epoch1_window"
+        or invocations[-1].get("invocation_sha256")
+        != receipts[-1].get("invocation_sha256")
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_CAMPAIGN_INCOMPLETE")
+    return dict(receipts[-1])
+
 def build_final_train_checkpoint_authority(
     *,
     campaign_plan_binding: Mapping[str, Any],
@@ -174,17 +194,7 @@ def build_final_train_checkpoint_authority(
         receipt_refs.append(ref)
         raw_receipts.append(raw)
     receipts = require_receipt_chain(plan, raw_receipts, verify_files=True)
-    invocations = plan["checked_invocations"]
-    if (
-        len(receipts) != len(invocations) - 1
-        or not receipts
-        or receipts[-1]["kind"] != "epoch1_window"
-        or receipts[-1]["outcome"] != "COMPLETE"
-        or receipts[-1]["guard_decision"] != "PASS"
-        or invocations[len(receipts)]["kind"] != "full_val"
-    ):
-        raise RuntimeError("UNIFIED_EXIT_FINAL_TRAIN_CAMPAIGN_INCOMPLETE")
-    final_receipt = receipts[-1]
+    final_receipt = _require_terminal_epoch_chain(plan, receipts)
     selection_ref, raw_selection = _read(gpu_selection_binding)
     selection = require_selection(raw_selection, verify_files=True)
     session_ref, raw_session = _read(train_session_binding)

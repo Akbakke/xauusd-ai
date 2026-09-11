@@ -9,6 +9,7 @@ import torch
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
     _load_checkpoint,
+    _require_terminal_epoch_chain,
     canonical_sha256,
     file_sha256,
     require_final_train_checkpoint_authority,
@@ -90,3 +91,28 @@ def _checkpoint_pointer(tmp_path: Path, *, valid_model_digest: bool) -> dict[str
 def test_checkpoint_authority_recomputes_model_digests(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="STATE_INVALID"):
         _load_checkpoint(_checkpoint_pointer(tmp_path, valid_model_digest=False))
+
+
+def test_final_authority_requires_phase1_to_end_at_complete_epoch_window() -> None:
+    invocation = {
+        "kind": "epoch1_window",
+        "invocation_sha256": "a" * 64,
+    }
+    receipt = {
+        "kind": "epoch1_window",
+        "invocation_sha256": "a" * 64,
+        "outcome": "COMPLETE",
+        "guard_decision": "PASS",
+    }
+    assert _require_terminal_epoch_chain(
+        {"checked_invocations": [invocation]}, [receipt]
+    ) == receipt
+
+    legacy_plan = {
+        "checked_invocations": [
+            invocation,
+            {"kind": "full_val", "invocation_sha256": "b" * 64},
+        ]
+    }
+    with pytest.raises(RuntimeError, match="CAMPAIGN_INCOMPLETE"):
+        _require_terminal_epoch_chain(legacy_plan, [receipt])
