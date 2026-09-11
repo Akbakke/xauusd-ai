@@ -293,9 +293,18 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         )
         for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
     }
-    mtf_ema_stack_index = mtf_names.index("ema_stack_aligned_v2")
-    for values in mtf.values():
-        values[:, :, mtf_ema_stack_index] = 0.0
+    for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES:
+        suffix = timeframe.lower()
+        values = mtf[f"seq_{suffix}"]
+        # Keep the production-field fixture inside the exact discrete domains
+        # declared by the same normalization contract used by the model.
+        binary_mask = getattr(model, f"input_norm_mtf_{suffix}_binary_mask")
+        categorical_mask = getattr(
+            model, f"input_norm_mtf_{suffix}_categorical_mask"
+        )
+        values[:, :, binary_mask] = 0.0
+        values[:, :, categorical_mask] = 0.0
+        values[:, :, mtf_names.index("ema_stack_aligned_v2")] = 0.0
     ctx_cat = torch.zeros(
         batch_size, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long
     )
