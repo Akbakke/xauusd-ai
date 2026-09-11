@@ -45,7 +45,7 @@ def _with_route_outputs(model, seen_batch_sizes=None):
                 "exit_family_tf_cooperation_gate": torch.full(
                     (batch, 2, 2, 3), 1.0 / 6.0
                 ),
-                "exit_family_tf_feature_gate": torch.full((batch, 2, 2, 3), 0.5),
+                "exit_family_tf_feature_gate": torch.full((batch, 2, 2, 3), 1.5),
             }
         )
         return result
@@ -306,3 +306,25 @@ def test_wall_window_pauses_then_resumes_despite_prior_elapsed_time(tmp_path):
     )
     assert completed["decision"] == "PASS_COMPLETE"
     assert completed["entry_exit_policy_metrics"]["full_cohort_authoritative"] is True
+
+
+def test_route_diagnostics_preserve_feature_scaling_contract() -> None:
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        accumulate_route_diagnostics_v1,
+    )
+
+    routes = {
+        "exit_specialist_gate": torch.tensor([[0.25, 0.75]]),
+        "exit_tf_gate": torch.tensor([[0.4, 0.6]]),
+        "exit_family_tf_cooperation_gate": torch.full((1, 2, 2), 0.25),
+        "exit_family_tf_feature_gate": torch.tensor([[[0.5, 1.5], [1.25, 0.75]]]),
+    }
+    observed = {}
+    accumulate_route_diagnostics_v1(observed, routes)
+    assert observed["exit_family_tf_feature_gate"]["max"] == 1.5
+    for invalid in (0.0, 2.0, -0.1, float("nan")):
+        bad = {**routes, "exit_family_tf_feature_gate": torch.full((1, 2, 2), invalid)}
+        with pytest.raises(RuntimeError, match="UNIFIED_EXIT_VAL_ROUTE_(RANGE|OUTPUT)_INVALID"):
+            accumulate_route_diagnostics_v1({}, bad)
+    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_VAL_ROUTE_RANGE_INVALID:exit_tf_gate"):
+        accumulate_route_diagnostics_v1({}, {**routes, "exit_tf_gate": torch.tensor([[0.4, 1.1]])})

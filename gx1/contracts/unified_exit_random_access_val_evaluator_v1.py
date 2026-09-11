@@ -316,9 +316,17 @@ def _accumulate_routes(
             if values.ndim < 3 or tuple(values.shape[:2]) != tuple(mask.shape):
                 raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SIDE_SHAPE_INVALID:{name}")
             values = values[torch.from_numpy(mask)]
-        if bool((values < -1e-8).any().item()) or bool(
-            (values > 1.0 + 1e-6).any().item()
-        ):
+        if name == "exit_family_tf_feature_gate":
+            # The shared Entry/Exit model uses 2 * sigmoid feature scaling.
+            # Its (0,2) contract is distinct from the simplex route weights.
+            invalid_range = bool(
+                ((values <= 0.0) | (values >= 2.0)).any().item()
+            )
+        else:
+            invalid_range = bool((values < -1e-8).any().item()) or bool(
+                (values > 1.0 + 1e-6).any().item()
+            )
+        if invalid_range:
             raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_RANGE_INVALID:{name}")
         flat = values.reshape(values.shape[0], -1)
         row_sum = flat.sum(dim=1, keepdim=True)
