@@ -32,8 +32,9 @@ AUTHORITATIVE_BATCH_SIZE = 16
 AUTHORITATIVE_REPEATS = 1
 MAX_PEAK_PYTHON_ALLOCATION_BYTES = 2 * 1024**3
 MAX_PEAK_PADDED_MODEL_INPUT_BYTES = 1024**3
+MAX_MEASURED_CPU_PREP_EPOCH_SECONDS = 30 * 60
 ENTRY_PAIR_POPULATION = 65_295
-SELECTION_RULE_VERSION = "minimum_train_population_cycle_eta_then_memory_v1"
+SELECTION_RULE_VERSION = "minimum_population_cycle_epochs_with_30m_cpu_cap_v1"
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -65,14 +66,15 @@ def _selection_policy() -> dict[str, Any]:
         "entry_pair_population": ENTRY_PAIR_POPULATION,
         "max_peak_python_allocation_bytes": MAX_PEAK_PYTHON_ALLOCATION_BYTES,
         "max_peak_padded_model_input_bytes": MAX_PEAK_PADDED_MODEL_INPUT_BYTES,
+        "max_measured_cpu_prep_epoch_seconds": MAX_MEASURED_CPU_PREP_EPOCH_SECONDS,
         "eligibility": (
-            "all_three_candidates_complete_once_at_batch16_and_memory_within_caps"
+            "complete_once_at_batch16_with_cpu_epoch_and_memory_within_caps"
         ),
         "rank_order": [
-            "projected_entry_population_cycle_seconds_ascending",
+            "population_cycle_epochs_ascending",
+            "measured_epoch_seconds_ascending",
             "peak_padded_model_input_bytes_ascending",
             "peak_python_allocation_bytes_ascending",
-            "measured_epoch_seconds_ascending",
             "transition_budget_per_epoch_ascending",
         ],
         "selection_uses_outcome_values": False,
@@ -282,6 +284,7 @@ def benchmark_random_access_train_candidates_v1(
             row = rows[0]
             if (
                 row["batch_size"] != AUTHORITATIVE_BATCH_SIZE
+                or row["measured_epoch_seconds"] > MAX_MEASURED_CPU_PREP_EPOCH_SECONDS
                 or row["peak_python_allocation_bytes"]
                 > MAX_PEAK_PYTHON_ALLOCATION_BYTES
                 or row["peak_padded_model_input_bytes"]
@@ -289,10 +292,10 @@ def benchmark_random_access_train_candidates_v1(
             ):
                 continue
             rank = (
-                row["projected_entry_population_cycle_seconds"],
+                row["population_cycle_epochs"],
+                row["measured_epoch_seconds"],
                 row["peak_padded_model_input_bytes"],
                 row["peak_python_allocation_bytes"],
-                row["measured_epoch_seconds"],
                 candidate["transition_budget_per_epoch"],
             )
             eligible.append((rank, candidate))

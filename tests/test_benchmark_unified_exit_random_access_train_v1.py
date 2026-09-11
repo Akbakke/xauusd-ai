@@ -71,6 +71,7 @@ def test_authoritative_benchmark_selects_only_after_complete_receipt(
     monkeypatch.setattr(benchmark.tracemalloc, "start", lambda: None)
     monkeypatch.setattr(benchmark.tracemalloc, "stop", lambda: None)
     monkeypatch.setattr(benchmark.tracemalloc, "get_traced_memory", lambda: (0, 123))
+    monkeypatch.setattr(benchmark, "MAX_MEASURED_CPU_PREP_EPOCH_SECONDS", 100_000)
 
     def fake_collate(items, **_kwargs):
         import torch
@@ -90,6 +91,7 @@ def test_authoritative_benchmark_selects_only_after_complete_receipt(
     assert receipt["decision"] == "PASS"
     assert receipt["candidate_selection_performed"] is True
     assert receipt["selected_candidate"]["population_cycle_epochs"] in {8, 4, 2}
+    assert receipt["selected_candidate"]["transition_budget_per_epoch"] == 131_072
     assert [
         candidate["batch_size_sweep"][0]["population_cycle_epochs"]
         for candidate in receipt["candidates"]
