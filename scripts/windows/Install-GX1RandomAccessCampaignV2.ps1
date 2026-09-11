@@ -18,17 +18,31 @@ $observer = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampai
 foreach ($path in @($controller, $observer)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Campaign source unavailable: $path" }
 }
+$controllerSha256 = (Get-FileHash -LiteralPath $controller -Algorithm SHA256).Hash.ToLowerInvariant()
+$legacyWslTask = Get-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction SilentlyContinue
+if ($null -ne $legacyWslTask) {
+    if ([string]$legacyWslTask.State -ceq 'Running') {
+        Stop-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction Stop
+    }
+    Disable-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction Stop | Out-Null
+    $legacyWslTask = Get-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction Stop
+    if ([string]$legacyWslTask.State -cne 'Disabled') {
+        throw 'Legacy WSL SSH Bootstrap task could not be disabled'
+    }
+}
 $arguments = @(
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $controller + '"'),
     '-PlanJson', ('"' + $PlanJson + '"'),
     '-PlanFileSha256', $PlanFileSha256,
     '-SourceRepo', ('"' + $SourceRepo + '"'),
     '-WindowsSourceRepo', ('"' + $WindowsSourceRepo + '"'),
+    '-ExpectedControllerSha256', $controllerSha256,
     '-Distro', ('"' + $Distro + '"'),
     '-LinuxUser', ('"' + $LinuxUser + '"')
 ) -join ' '
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -AtStartup
+$trigger.Delay = 'PT60S'
 $principal = New-ScheduledTaskPrincipal -UserId $WindowsTaskUser -LogonType S4U -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
@@ -38,8 +52,17 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartInterval (New-TimeSpan -Minutes 1)
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
 $registered = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-if ($registered.Principal.UserId -cne $WindowsTaskUser -or $registered.Principal.LogonType -cne 'S4U') {
-    throw 'Campaign task principal verification failed'
+$registeredDelaySeconds = [Xml.XmlConvert]::ToTimeSpan([string]$registered.Triggers[0].Delay).TotalSeconds
+$legacyWslTask = Get-ScheduledTask -TaskName 'WSL SSH Bootstrap' -ErrorAction SilentlyContinue
+if ($registered.Principal.UserId -cne $WindowsTaskUser -or
+    $registered.Principal.LogonType -cne 'S4U' -or
+    @($registered.Triggers).Count -ne 1 -or
+    $registered.Triggers[0].CimClass.CimClassName -cne 'MSFT_TaskBootTrigger' -or
+    $registeredDelaySeconds -ne 60 -or
+    @($registered.Actions).Count -ne 1 -or
+    [string]$registered.Actions[0].Arguments -cne $arguments -or
+    ($null -ne $legacyWslTask -and [string]$legacyWslTask.State -cne 'Disabled')) {
+    throw 'Campaign task single-owner, principal, action, or delayed-trigger verification failed'
 }
 [ordered]@{
     schema_version = 'gx1_random_access_campaign_v2_task_install_receipt_v1'
@@ -48,7 +71,9 @@ if ($registered.Principal.UserId -cne $WindowsTaskUser -or $registered.Principal
     windows_task_user = $WindowsTaskUser
     logon_type = [string]$registered.Principal.LogonType
     controller_path = $controller
-    controller_file_sha256 = (Get-FileHash -LiteralPath $controller -Algorithm SHA256).Hash.ToLowerInvariant()
+    controller_file_sha256 = $controllerSha256
+    legacy_wsl_ssh_bootstrap_disabled = ($null -eq $legacyWslTask -or [string]$legacyWslTask.State -ceq 'Disabled')
+    boot_trigger_delay = [string]$registered.Triggers[0].Delay
     observer_path = $observer
     observer_file_sha256 = (Get-FileHash -LiteralPath $observer -Algorithm SHA256).Hash.ToLowerInvariant()
     plan_file_sha256 = $PlanFileSha256
