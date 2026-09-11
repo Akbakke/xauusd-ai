@@ -107,7 +107,7 @@ def materialize(
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
     return {
-        "decision": "PASS_LAUNCH_ELIGIBLE",
+        "decision": "PASS_GPU_SMOKE_MATRIX_ELIGIBLE",
         "published": publish,
         "output_path": str(output_path),
         "manifest_sha256": value["manifest_sha256"],

@@ -50,7 +50,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     train_epoch,
 )
 
-LAUNCH_SCHEMA = "gx1_unified_exit_random_access_cuda_smoke_launch_v1"
+LAUNCH_SCHEMA = "gx1_unified_exit_random_access_cuda_smoke_launch_v2"
 
 
 def _read(path: Path) -> dict[str, Any]:
@@ -82,11 +82,14 @@ def require_launch_manifest(
     claimed = data.pop("manifest_sha256", None)
     if (
         value.get("schema_version") != LAUNCH_SCHEMA
-        or value.get("decision") != "PASS_LAUNCH_ELIGIBLE"
+        or value.get("decision") != "PASS_GPU_SMOKE_MATRIX_ELIGIBLE"
         or claimed != _canonical(data)
         or value.get("precision_policy") != "deterministic_fp32"
         or value.get("batch_sizes") != [4, 8, 16]
-        or value.get("selected_batch_size") != 16
+        or value.get("selected_batch_size") is not None
+        or value.get("gpu_batch_selection_status") != "PENDING_MEASURED_CUDA_MATRIX"
+        or value.get("gpu_batch_selection_metric")
+        != "highest_guarded_measured_optimizer_transitions_per_second_then_lower_batch_tie_break"
         or value.get("warmup_optimizer_steps_per_arm") != 1
         or value.get("measured_optimizer_steps_per_arm") != 2
         or value.get("bootstrap_optimizer_steps") != 3
@@ -184,15 +187,6 @@ def require_launch_manifest(
             observed_launch_paths.add(command[command.index("--launch-manifest") + 1])
         except (ValueError, IndexError):
             raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_COMMANDS_INVALID") from None
-    resume_command = commands.get("selected_resume_probe")
-    if not isinstance(resume_command, list):
-        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_COMMANDS_INVALID")
-    try:
-        observed_launch_paths.add(
-            resume_command[resume_command.index("--launch-manifest") + 1]
-        )
-    except (ValueError, IndexError):
-        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_COMMANDS_INVALID") from None
     if len(observed_launch_paths) != 1:
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_COMMANDS_INVALID")
     launch_manifest_path = Path(observed_launch_paths.pop())
@@ -208,13 +202,6 @@ def require_launch_manifest(
             )
             for batch_size in value["batch_sizes"]
         },
-        "selected_resume_probe": _launch_command(
-            source_repo=source_repo,
-            launch_manifest_path=launch_manifest_path,
-            checkpoint_dir=checkpoint_dir,
-            mode="resume-probe",
-            batch_size=value["selected_batch_size"],
-        ),
     }
     if commands != expected_commands:
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_COMMANDS_INVALID")
@@ -273,7 +260,7 @@ def build_launch_manifest(
     batch_sizes = [4, 8, 16]
     value = {
         "schema_version": LAUNCH_SCHEMA,
-        "decision": "PASS_LAUNCH_ELIGIBLE",
+        "decision": "PASS_GPU_SMOKE_MATRIX_ELIGIBLE",
         "source_repo": str(source_repo),
         "source_commit": source_commit,
         "files": {name: dict(binding) for name, binding in files.items()},
@@ -281,7 +268,9 @@ def build_launch_manifest(
         "dataset_run_id": "PRETEST_V3_20260829T173000Z",
         "precision_policy": "deterministic_fp32",
         "batch_sizes": batch_sizes,
-        "selected_batch_size": 16,
+        "selected_batch_size": None,
+        "gpu_batch_selection_status": "PENDING_MEASURED_CUDA_MATRIX",
+        "gpu_batch_selection_metric": "highest_guarded_measured_optimizer_transitions_per_second_then_lower_batch_tie_break",
         "warmup_optimizer_steps_per_arm": 1,
         "measured_optimizer_steps_per_arm": 2,
         "bootstrap_optimizer_steps": 3,
@@ -326,13 +315,6 @@ def build_launch_manifest(
                 )
                 for batch_size in batch_sizes
             },
-            "selected_resume_probe": _launch_command(
-                source_repo=source_repo,
-                launch_manifest_path=launch_manifest_path,
-                checkpoint_dir=checkpoint_dir,
-                mode="resume-probe",
-                batch_size=16,
-            ),
         },
         "bootstrap_source_receipt_sha256": _read(
             Path(files["blocked_smoke_manifest"]["path"]).parent
@@ -487,9 +469,7 @@ def run(
     launch = require_launch_manifest(_read(manifest_path))
     files = {k: Path(v["path"]) for k, v in launch["files"].items()}
     selected = require_selected_sampler_artifact(_read(files["selected_sampler"]))
-    if arm_batch_size not in launch["batch_sizes"] or (
-        mode == "resume-probe" and arm_batch_size != 16
-    ):
+    if arm_batch_size not in launch["batch_sizes"] or mode == "resume-probe":
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_BATCH_ARM_INVALID")
     expected_checkpoint_dir = Path(launch["checkpoint_dir"]) / f"batch_{arm_batch_size}"
     if checkpoint_dir != expected_checkpoint_dir:
