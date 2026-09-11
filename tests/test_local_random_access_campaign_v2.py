@@ -34,6 +34,7 @@ from gx1.scripts.local_random_access_campaign_v2 import (
     record_invocation,
 )
 from gx1.scripts.materialize_local_random_access_campaign_v2 import (
+    materialize_full_val_campaign,
     materialize_gpu_selection_campaign,
     materialize_selected_training_campaign,
 )
@@ -170,11 +171,7 @@ def _invocation(
         str(repo / ".venv/bin/python"),
         "-m",
         "gx1.scripts.fixture_executor",
-        *(
-            ["--launch-manifest", str(prelaunch)]
-            if kind != "full_val"
-            else []
-        ),
+        *(["--launch-manifest", str(prelaunch)] if kind != "full_val" else []),
         *(
             ["--train-session-manifest", str(session)]
             if kind not in {"smoke_arm", "full_val"}
@@ -193,12 +190,8 @@ def _invocation(
             "python_module": "gx1.scripts.fixture_executor",
             "source_commit": commit,
             "launcher_argv_sha256": canonical_sha256(argv),
-            "prelaunch_manifest": _binding(prelaunch)
-            if kind != "full_val"
-            else None,
-            "prelaunch_manifest_sha256": "a" * 64
-            if kind != "full_val"
-            else None,
+            "prelaunch_manifest": _binding(prelaunch) if kind != "full_val" else None,
+            "prelaunch_manifest_sha256": "a" * 64 if kind != "full_val" else None,
             "train_session_manifest": _binding(session)
             if kind not in {"smoke_arm", "full_val"}
             else None,
@@ -262,6 +255,7 @@ def _base(
         "runtime_root": str(runtime),
         "gpu_uuid": "GPU-12345678-1234-1234-1234-123456789abc",
         "prepared_windows_boot": _boot(100, 0),
+        "final_train_checkpoint_authority": None,
         "entry_pairs_per_epoch": 16384,
         "transitions_per_epoch": 65536,
         "signed_guard_sources": guards,
@@ -445,9 +439,7 @@ def _selected_plan(
     guards: dict,
     controllers: dict,
 ) -> tuple:
-    selection, selection_path = _selection(
-        tmp_path, gpu, gpu_path, gpu_invocations
-    )
+    selection, selection_path = _selection(tmp_path, gpu, gpu_path, gpu_invocations)
     batch = selection["selected_batch_size"]
     assert batch == 16
     runtime = tmp_path / "runtime-selected"
@@ -653,9 +645,10 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
     )
     assert recorded["receipt"]["pointer_before_sha256"] == "GENESIS"
     assert recorded["receipt"]["checkpoint_pointer_after"]["path"] == str(pointer)
-    assert Path(
-        recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]
-    ).read_bytes() == pointer.read_bytes()
+    assert (
+        Path(recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]).read_bytes()
+        == pointer.read_bytes()
+    )
     assert Path(recorded["receipt"]["progress"]["path"]).name == "PROGRESS.json"
     assert recorded["receipt"]["guard_decision"] == "PASS"
     original_snapshot = Path(
@@ -670,9 +663,10 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
         invocation=checked_invocation,
         verify_files=True,
     )
-    assert Path(
-        recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]
-    ).read_bytes() == original_snapshot
+    assert (
+        Path(recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]).read_bytes()
+        == original_snapshot
+    )
     assert not (Path(plan["runtime_root"]) / "ACTIVE_INVOCATION.json").exists()
     assert (
         Path(plan["runtime_root"]) / "active-archive/invocation-0001.json"
@@ -812,3 +806,160 @@ def test_production_materializer_builds_acyclic_phase_plans(
     assert all(item["kind"] == "epoch1_window" for item in invocations[3:])
     assert invocations[-1]["expected_success_outcome"] == "COMPLETE"
     assert sum(item["optimizer_step_budget"] for item in invocations[3:]) == 1024
+
+    pointer_path = tmp_path / "epoch1" / "RESUME_POINTER.json"
+    _write(pointer_path, {"pointer_sha256": "f" * 64})
+    authority = {
+        "source_commit": commit,
+        "campaign_plan": {"path": phase2["path"], "sha256": phase2["sha256"]},
+        "gpu_batch_selection": _binding(selection_path),
+        "gpu_batch_selection_artifact_sha256": selection["artifact_sha256"],
+        "launch_manifest": _binding(launch_path),
+        "final_checkpoint_pointer": _binding(pointer_path),
+        "selected_batch_size": 16,
+    }
+    authority_path = tmp_path / "FINAL_AUTHORITY.json"
+    _write(authority_path, authority)
+    monkeypatch.setattr(
+        "gx1.contracts.unified_exit_final_train_checkpoint_authority_v1.require_final_train_checkpoint_authority",
+        lambda value, verify_files=True: dict(value),
+    )
+    phase3 = materialize_full_val_campaign(
+        repo=repo,
+        output=tmp_path / "phase3",
+        runtime=tmp_path / "runtime-phase3",
+        gpu_uuid="GPU-12345678-1234-1234-1234-123456789abc",
+        prepared_boot_path=boot_path,
+        prepared_boot_file_sha256=file_sha256(boot_path),
+        certificate_path=Path(guards["certificate"]["path"]),
+        prior_campaign_path=Path(phase2["path"]),
+        prior_campaign_file_sha256=phase2["sha256"],
+        selection_path=selection_path,
+        selection_file_sha256=file_sha256(selection_path),
+        final_authority_path=authority_path,
+        final_authority_file_sha256=file_sha256(authority_path),
+        window_count=3,
+        max_forwards_per_window=128,
+        progress_interval_forwards=16,
+        max_model_forwards=4096,
+        max_materialized_state_views=65536,
+        max_wall_seconds=3600,
+    )
+    val_invocations = phase3["plan"]["checked_invocations"]
+    assert phase3["plan"]["phase"] == "full_val"
+    assert [item["kind"] for item in val_invocations] == [
+        "full_val_window",
+        "full_val_window",
+        "full_val_window",
+    ]
+    assert all(
+        item["expected_success_outcome"] == "RESUMABLE_OR_COMPLETE"
+        for item in val_invocations
+    )
+    assert val_invocations[0]["checkpoint"]["before_mode"] == "FINAL_AUTHORITY"
+    assert val_invocations[1]["checkpoint"]["before_mode"] == "PREVIOUS_RECEIPT_AFTER"
+    assert len({item["progress_path"] for item in val_invocations}) == 3
+    assert len({item["rollout_cursor_path"] for item in val_invocations}) == 1
+
+    phase3_path = Path(phase3["path"])
+    boot1 = _boot(101, 1)
+    begun = begin_invocation(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        current_boot=boot1,
+    )
+    assert begun["invocation"]["window_index"] == 0
+    cursor_path = Path(val_invocations[0]["rollout_cursor_path"])
+    _write(cursor_path, {"next_state_index": 7})
+    progress_path = Path(val_invocations[0]["progress_path"])
+    progress = _seal(
+        {
+            "schema_version": PROGRESS_SCHEMA,
+            "plan_sha256": phase3["plan"]["plan_sha256"],
+            "invocation_sha256": val_invocations[0]["invocation_sha256"],
+            "phase": "full_val_window",
+            "epoch_index": 0,
+            "global_optimizer_steps": 1024,
+            "next_batch_offset": 1024,
+            "total_batches": 1024,
+            "completed_units": 100,
+            "total_units": 5508,
+            "epoch_schedule_sha256": "1" * 64,
+            "selection_receipt_sha256": selection["artifact_sha256"],
+            "checkpoint_pointer": _binding(pointer_path),
+            "rollout_cursor": _binding(cursor_path),
+            "terminal": True,
+            "outcome": "RESUMABLE",
+            "observed_utc": "2026-09-11T13:00:00+00:00",
+        },
+        "progress_sha256",
+    )
+    _write(progress_path, progress)
+    _write(
+        Path(val_invocations[0]["guard_log_path"]),
+        "telemetry_owner=signed_windows_bridge event=telemetry\n"
+        "event=exit child_status=0\n",
+    )
+    first_receipt = record_invocation(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        trainer_guard_exit_code=0,
+        progress_observer_exit_code=0,
+        outcome="RESUMABLE",
+    )["receipt"]
+    snapshot_path = Path(first_receipt["rollout_cursor_snapshot"]["path"])
+    assert snapshot_path.read_bytes() == cursor_path.read_bytes()
+    reboot = prepare_reboot(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        current_boot=boot1,
+    )
+    confirm_reboot(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        request_nonce=reboot["intent"]["request_nonce"],
+        shutdown_exit_code=0,
+    )
+    boot2 = _boot(102, 2)
+    original_cursor = snapshot_path.read_bytes()
+    _write(cursor_path, {"next_state_index": 999})
+    with pytest.raises(RandomAccessCampaignError, match="rollout cursor differs"):
+        begin_invocation(
+            plan_path=phase3_path,
+            plan_file_sha256=phase3["sha256"],
+            current_boot=boot2,
+        )
+    cursor_path.write_bytes(original_cursor)
+    second = begin_invocation(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        current_boot=boot2,
+    )
+    assert second["invocation"]["window_index"] == 1
+    _write(cursor_path, {"next_state_index": 8, "complete": True})
+    progress_path = Path(val_invocations[1]["progress_path"])
+    progress["invocation_sha256"] = val_invocations[1]["invocation_sha256"]
+    progress["completed_units"] = 5508
+    progress["rollout_cursor"] = _binding(cursor_path)
+    progress["outcome"] = "COMPLETE"
+    progress.pop("progress_sha256")
+    progress["progress_sha256"] = canonical_sha256(progress)
+    _write(progress_path, progress)
+    _write(
+        Path(val_invocations[1]["guard_log_path"]),
+        "telemetry_owner=signed_windows_bridge event=telemetry\n"
+        "event=exit child_status=0\n",
+    )
+    record_invocation(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        trainer_guard_exit_code=0,
+        progress_observer_exit_code=0,
+        outcome="COMPLETE",
+    )
+    final = inspect_campaign(
+        plan_path=phase3_path,
+        plan_file_sha256=phase3["sha256"],
+        current_boot=boot2,
+    )
+    assert final["action"]["decision"] == "COMPLETE"

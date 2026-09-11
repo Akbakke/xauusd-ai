@@ -30,9 +30,10 @@ _KINDS = {
     "resume_proof_first",
     "resume_proof_second",
     "epoch1_window",
-    "full_val",
+    "full_val_window",
 }
 _SUCCESS_OUTCOMES = {"COMPLETE", "RESUMABLE"}
+_EXPECTED_SUCCESS_OUTCOMES = _SUCCESS_OUTCOMES | {"RESUMABLE_OR_COMPLETE"}
 
 
 class RandomAccessCampaignError(RuntimeError):
@@ -260,12 +261,16 @@ def require_invocation(
         if type(result.get(name)) is not int or result[name] < 0:
             raise RandomAccessCampaignError(f"invocation {name} invalid")
     budget = result.get("optimizer_step_budget")
-    if kind == "full_val":
-        if budget is not None or result["expected_success_outcome"] != "COMPLETE":
-            raise RandomAccessCampaignError("full VAL budget/outcome invalid")
+    if kind == "full_val_window":
+        if (
+            budget is not None
+            or result["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
+            or result["window_count"] < 1
+        ):
+            raise RandomAccessCampaignError("full VAL window budget/outcome invalid")
     elif type(budget) is not int or budget < 1:
         raise RandomAccessCampaignError("optimizer-step budget invalid")
-    if result["expected_success_outcome"] not in _SUCCESS_OUTCOMES:
+    if result["expected_success_outcome"] not in _EXPECTED_SUCCESS_OUTCOMES:
         raise RandomAccessCampaignError("expected outcome invalid")
     maximum_wall = result.get("maximum_wall_seconds")
     if type(maximum_wall) is not int or not 1 <= maximum_wall <= 7200:
@@ -288,9 +293,13 @@ def require_invocation(
     pointer_path = str(_absolute(checkpoint.get("pointer_path"), "checkpoint pointer"))
     before_mode = checkpoint.get("before_mode")
     predecessor = checkpoint.get("predecessor_invocation_number")
-    if before_mode == "GENESIS":
+    if before_mode in {"GENESIS", "FINAL_AUTHORITY"}:
         if predecessor is not None:
-            raise RandomAccessCampaignError("GENESIS checkpoint predecessor forbidden")
+            raise RandomAccessCampaignError(
+                f"{before_mode} checkpoint predecessor forbidden"
+            )
+        if before_mode == "FINAL_AUTHORITY" and kind != "full_val_window":
+            raise RandomAccessCampaignError("FINAL_AUTHORITY limited to full VAL")
     elif before_mode == "PREVIOUS_RECEIPT_AFTER":
         if type(predecessor) is not int or not 1 <= predecessor < number:
             raise RandomAccessCampaignError("checkpoint predecessor invalid")
@@ -346,15 +355,40 @@ def require_invocation(
             or execution.get("artifact_sha256") != canonical_sha256(unsigned)
         ):
             raise RandomAccessCampaignError("execution manifest binding invalid")
-        if kind == "full_val":
+        if kind == "full_val_window":
+            prelaunch_binding = require_binding(
+                execution["prelaunch_manifest"],
+                label="full VAL launch manifest",
+                verify_file=True,
+            )
+            prelaunch = read_bound_json(
+                Path(prelaunch_binding["path"]), prelaunch_binding["sha256"]
+            )
             if (
-                execution["prelaunch_manifest"] is not None
-                or execution["prelaunch_manifest_sha256"] is not None
+                prelaunch.get("manifest_sha256")
+                != _sha(
+                    execution["prelaunch_manifest_sha256"],
+                    "full VAL launch manifest artifact",
+                )
                 or execution["train_session_manifest"] is not None
                 or execution["train_session_manifest_sha256"] is not None
-                or "--launch-manifest" in result["launcher_argv"]
+                or result["launcher_argv"].count("--launch-manifest") != 1
+                or result["launcher_argv"][
+                    result["launcher_argv"].index("--launch-manifest") + 1
+                ]
+                != prelaunch_binding["path"]
             ):
-                raise RandomAccessCampaignError("full VAL prelaunch binding forbidden")
+                raise RandomAccessCampaignError("full VAL launch binding invalid")
+            if result["launcher_argv"].count("--rollout-progress-path") != 1:
+                raise RandomAccessCampaignError("full VAL rollout cursor missing")
+            result["rollout_cursor_path"] = str(
+                _absolute(
+                    result["launcher_argv"][
+                        result["launcher_argv"].index("--rollout-progress-path") + 1
+                    ],
+                    "full VAL rollout cursor",
+                )
+            )
         else:
             prelaunch_binding = require_binding(
                 execution["prelaunch_manifest"],
@@ -403,8 +437,7 @@ def require_invocation(
                     session.get("manifest_sha256") != session_sha
                     or "--train-session-manifest" not in result["launcher_argv"]
                     or result["launcher_argv"][
-                        result["launcher_argv"].index("--train-session-manifest")
-                        + 1
+                        result["launcher_argv"].index("--train-session-manifest") + 1
                     ]
                     != session_binding["path"]
                 ):
@@ -499,6 +532,35 @@ def _require_sequence(
                 != epoch[offset - 1]["checkpoint"]["pointer_path"]
             ):
                 raise RandomAccessCampaignError("epoch1 checkpoint predecessor invalid")
+    elif phase == "full_val":
+        if selected_batch_size not in (4, 8, 16) or not invocations:
+            raise RandomAccessCampaignError("full VAL sequence invalid")
+        count = len(invocations)
+        pointer_path = invocations[0]["checkpoint"]["pointer_path"]
+        rollout_cursor_path = invocations[0].get("rollout_cursor_path")
+        for offset, item in enumerate(invocations):
+            expected_mode = (
+                "FINAL_AUTHORITY" if offset == 0 else "PREVIOUS_RECEIPT_AFTER"
+            )
+            if (
+                item["kind"] != "full_val_window"
+                or item["batch_size"] != selected_batch_size
+                or item["optimizer_step_budget"] is not None
+                or item["epoch_index"] != 0
+                or item["window_index"] != offset
+                or item["window_count"] != count
+                or item["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
+                or item["checkpoint"]["before_mode"] != expected_mode
+                or item["checkpoint"]["write_mode"] != "READ_ONLY"
+                or item["checkpoint"]["pointer_path"] != pointer_path
+                or item.get("rollout_cursor_path") != rollout_cursor_path
+            ):
+                raise RandomAccessCampaignError("full VAL window identity invalid")
+            if offset > 0 and (
+                item["checkpoint"]["predecessor_invocation_number"]
+                != invocations[offset - 1]["invocation_number"]
+            ):
+                raise RandomAccessCampaignError("full VAL window predecessor invalid")
     else:
         raise RandomAccessCampaignError("campaign phase invalid")
     for number, item in enumerate(invocations, 1):
@@ -520,6 +582,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         "prepared_windows_boot",
         "prior_campaign",
         "selection_receipt",
+        "final_train_checkpoint_authority",
         "selected_batch_size",
         "entry_pairs_per_epoch",
         "transitions_per_epoch",
@@ -542,7 +605,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or result.get("decision") != "PASS_PREPARED"
         or not isinstance(result.get("campaign_id"), str)
         or not result["campaign_id"]
-        or result.get("phase") not in {"gpu_selection", "selected_training"}
+        or result.get("phase") not in {"gpu_selection", "selected_training", "full_val"}
         or result.get("entry_pairs_per_epoch") != 16384
         or result.get("transitions_per_epoch") != 65536
         or not isinstance(result.get("source_commit"), str)
@@ -611,6 +674,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             result.get("prior_campaign") is not None
             or result.get("selection_receipt") is not None
             or result.get("selected_batch_size") is not None
+            or result.get("final_train_checkpoint_authority") is not None
         ):
             raise RandomAccessCampaignError(
                 "GPU-selection plan cannot preselect a winner"
@@ -619,9 +683,14 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         selected = result.get("selected_batch_size")
         if selected not in (4, 8, 16):
             raise RandomAccessCampaignError("selected batch size invalid")
+        prior_label = (
+            "prior GPU-selection campaign"
+            if phase == "selected_training"
+            else "prior selected-training campaign"
+        )
         prior_binding = require_binding(
             result.get("prior_campaign"),
-            label="prior GPU-selection campaign",
+            label=prior_label,
             verify_file=verify_files,
         )
         selection_binding = require_binding(
@@ -647,8 +716,11 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 raise RandomAccessCampaignError(
                     "canonical GPU batch selection unavailable or invalid"
                 ) from exc
+            expected_prior_phase = (
+                "gpu_selection" if phase == "selected_training" else "selected_training"
+            )
             if (
-                prior["phase"] != "gpu_selection"
+                prior["phase"] != expected_prior_phase
                 or prior["source_commit"] != result["source_commit"]
                 or selection.get("selected_batch_size") != selected
                 or selection.get("entry_pairs_per_epoch") != 16384
@@ -656,10 +728,52 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 or selection.get("total_batches_per_epoch") != -(-16384 // selected)
                 or selection.get("test_data_used") is not False
             ):
-                raise RandomAccessCampaignError("selected training provenance invalid")
+                raise RandomAccessCampaignError(f"{phase} campaign provenance invalid")
         result["prior_campaign"] = prior_binding
         result["selection_receipt"] = selection_binding
         result["selection_artifact_sha256"] = selection["artifact_sha256"]
+        if phase == "selected_training":
+            if result.get("final_train_checkpoint_authority") is not None:
+                raise RandomAccessCampaignError(
+                    "selected training final authority forbidden"
+                )
+        else:
+            authority_binding = require_binding(
+                result.get("final_train_checkpoint_authority"),
+                label="final TRAIN checkpoint authority",
+                verify_file=verify_files,
+            )
+            if verify_files:
+                try:
+                    from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
+                        require_final_train_checkpoint_authority,
+                    )
+
+                    authority = require_final_train_checkpoint_authority(
+                        read_bound_json(
+                            Path(authority_binding["path"]),
+                            authority_binding["sha256"],
+                        ),
+                        verify_files=True,
+                    )
+                except (ImportError, RuntimeError) as exc:
+                    raise RandomAccessCampaignError(
+                        "final TRAIN checkpoint authority unavailable or invalid"
+                    ) from exc
+                if (
+                    authority["source_commit"] != result["source_commit"]
+                    or authority["campaign_plan"] != prior_binding
+                    or authority["gpu_batch_selection"] != selection_binding
+                    or authority["selected_batch_size"] != selected
+                    or authority["gpu_batch_selection_artifact_sha256"]
+                    != selection["artifact_sha256"]
+                ):
+                    raise RandomAccessCampaignError(
+                        "full VAL final authority provenance invalid"
+                    )
+            result["final_train_checkpoint_authority"] = authority_binding
+            if verify_files:
+                result["checked_final_train_checkpoint_authority"] = authority
     if phase == "gpu_selection":
         result["selection_artifact_sha256"] = None
     raw = result.get("invocations")
@@ -746,6 +860,9 @@ def require_progress(
         "observed_utc",
         "progress_sha256",
     }
+    is_full_val = invocation.get("kind") == "full_val_window"
+    if is_full_val:
+        keys.add("rollout_cursor")
     if not isinstance(value, Mapping) or set(value) != keys:
         raise RandomAccessCampaignError("progress fields differ")
     result = dict(value)
@@ -791,6 +908,14 @@ def require_progress(
     )
     if result["checkpoint_pointer"]["path"] != invocation["checkpoint"]["pointer_path"]:
         raise RandomAccessCampaignError("progress checkpoint pointer path differs")
+    if is_full_val:
+        result["rollout_cursor"] = require_binding(
+            result["rollout_cursor"],
+            label="full VAL rollout cursor",
+            verify_file=verify_file,
+        )
+        if result["rollout_cursor"]["path"] != invocation.get("rollout_cursor_path"):
+            raise RandomAccessCampaignError("progress rollout cursor path differs")
     result["progress_sha256"] = claimed
     return result
 
@@ -827,6 +952,15 @@ def require_receipt(
         "test_data_used",
         "receipt_sha256",
     }
+    is_full_val = invocation.get("kind") == "full_val_window"
+    if is_full_val:
+        keys.update(
+            {
+                "rollout_cursor_before_sha256",
+                "rollout_cursor_after",
+                "rollout_cursor_snapshot",
+            }
+        )
     if not isinstance(value, Mapping) or set(value) != keys:
         raise RandomAccessCampaignError("receipt fields differ")
     result = dict(value)
@@ -861,8 +995,15 @@ def require_receipt(
     if outcome == "FAILED":
         if success:
             raise RandomAccessCampaignError("failed receipt has successful processes")
-    elif outcome != invocation["expected_success_outcome"] or not success:
-        raise RandomAccessCampaignError("receipt outcome/exit codes invalid")
+    else:
+        expected = invocation["expected_success_outcome"]
+        expected_matches = (
+            outcome in _SUCCESS_OUTCOMES
+            if expected == "RESUMABLE_OR_COMPLETE"
+            else outcome == expected
+        )
+        if not expected_matches or not success:
+            raise RandomAccessCampaignError("receipt outcome/exit codes invalid")
     before = result.get("pointer_before_sha256")
     if invocation["checkpoint"]["before_mode"] == "GENESIS":
         if before != "GENESIS":
@@ -920,6 +1061,32 @@ def require_receipt(
         )
         if progress["checkpoint_pointer"] != result["checkpoint_pointer_after"]:
             raise RandomAccessCampaignError("progress checkpoint evidence differs")
+    if is_full_val:
+        before_cursor = result.get("rollout_cursor_before_sha256")
+        if before_cursor != "GENESIS":
+            _sha(before_cursor, "rollout cursor before")
+        result["rollout_cursor_after"] = require_binding(
+            result["rollout_cursor_after"],
+            label="rollout cursor after",
+            verify_file=False,
+        )
+        result["rollout_cursor_snapshot"] = require_binding(
+            result["rollout_cursor_snapshot"],
+            label="rollout cursor snapshot",
+            verify_file=verify_files,
+        )
+        if (
+            result["rollout_cursor_after"]["path"]
+            != invocation.get("rollout_cursor_path")
+            or result["rollout_cursor_after"]["sha256"]
+            != result["rollout_cursor_snapshot"]["sha256"]
+        ):
+            raise RandomAccessCampaignError("rollout cursor evidence differs")
+        if (
+            verify_files
+            and progress["rollout_cursor"] != result["rollout_cursor_after"]
+        ):
+            raise RandomAccessCampaignError("progress rollout cursor differs")
     result["guard_log"] = require_binding(
         result["guard_log"], label="signed guard log", verify_file=verify_files
     )
@@ -933,6 +1100,15 @@ def require_receipt(
         or Path(result["guard_log"]["path"]) != snapshot_root / "SIGNED_GUARD.log"
         or result["checkpoint_pointer_snapshot"]["path"]
         == result["checkpoint_pointer_after"]["path"]
+        or (
+            is_full_val
+            and (
+                Path(result["rollout_cursor_snapshot"]["path"])
+                != snapshot_root / "ROLLOUT_CURSOR.json"
+                or result["rollout_cursor_snapshot"]["path"]
+                == result["rollout_cursor_after"]["path"]
+            )
+        )
     ):
         raise RandomAccessCampaignError("immutable invocation evidence layout invalid")
     result["receipt_sha256"] = claimed
@@ -959,6 +1135,14 @@ def require_receipt_chain(
         raise RandomAccessCampaignError("too many receipts")
     checked: list[dict[str, Any]] = []
     for index, raw in enumerate(receipts):
+        if (
+            checked_plan["phase"] == "full_val"
+            and checked
+            and checked[-1]["outcome"] == "COMPLETE"
+        ):
+            raise RandomAccessCampaignError(
+                "receipt after terminal full VAL completion forbidden"
+            )
         invocation = invocations[index]
         item = require_receipt(
             raw,
@@ -980,7 +1164,18 @@ def require_receipt_chain(
                 "each heavy invocation requires a fresh Windows boot"
             )
         checkpoint = invocation["checkpoint"]
-        if checkpoint["before_mode"] == "PREVIOUS_RECEIPT_AFTER":
+        if checkpoint["before_mode"] == "FINAL_AUTHORITY":
+            authority = checked_plan.get("checked_final_train_checkpoint_authority")
+            if (
+                not isinstance(authority, Mapping)
+                or item["pointer_before_sha256"]
+                != authority["final_checkpoint_pointer"]["sha256"]
+                or item["rollout_cursor_before_sha256"] != "GENESIS"
+            ):
+                raise RandomAccessCampaignError(
+                    "initial full VAL authority/cursor binding differs"
+                )
+        elif checkpoint["before_mode"] == "PREVIOUS_RECEIPT_AFTER":
             predecessor = checkpoint["predecessor_invocation_number"]
             prior = checked[predecessor - 1]
             if (
@@ -988,6 +1183,11 @@ def require_receipt_chain(
                 != prior["checkpoint_pointer_after"]["sha256"]
             ):
                 raise RandomAccessCampaignError("checkpoint receipt chain mismatch")
+            if invocation["kind"] == "full_val_window" and (
+                item["rollout_cursor_before_sha256"]
+                != prior["rollout_cursor_snapshot"]["sha256"]
+            ):
+                raise RandomAccessCampaignError("rollout cursor chain mismatch")
         if invocation["checkpoint"]["write_mode"] == "READ_ONLY" and (
             item["checkpoint_pointer_after"]["sha256"] != item["pointer_before_sha256"]
         ):
@@ -1011,7 +1211,15 @@ def next_action(
     invocations = checked_plan["checked_invocations"]
     if checked_receipts and checked_receipts[-1]["outcome"] == "FAILED":
         return {"decision": "BLOCKED_FAILED_INVOCATION"}
+    if (
+        checked_plan["phase"] == "full_val"
+        and checked_receipts
+        and checked_receipts[-1]["outcome"] == "COMPLETE"
+    ):
+        return {"decision": "COMPLETE"}
     if len(checked_receipts) == len(invocations):
+        if checked_plan["phase"] == "full_val":
+            return {"decision": "BLOCKED_VAL_WINDOWS_EXHAUSTED"}
         return {"decision": "COMPLETE"}
     prior_boot = (
         checked_plan["prepared_windows_boot"]

@@ -132,6 +132,8 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
     assert paused["decision"] == "PAUSED_RESUMABLE"
     assert paused["next_state_index"] == 0
     assert paused["next_entry_scan_position"] == 16
+    assert paused["completed_entry_pair_count"] == 0
+    assert paused["completed_side_trade_count"] == 0
     assert not result.exists()
 
     with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):

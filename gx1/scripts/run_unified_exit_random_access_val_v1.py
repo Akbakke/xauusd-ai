@@ -115,20 +115,42 @@ def _load_final_authority(path: Path, expected_file_sha256: str) -> dict[str, An
 
 
 def _campaign_context(
-    authority: Mapping[str, Any], *, progress_path: Path
+    authority: Mapping[str, Any],
+    *,
+    authority_path: Path,
+    authority_file_sha256: str,
+    progress_path: Path,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    plan_binding = authority["campaign_plan"]
+    plan_sha256 = os.environ.get("GX1_CAMPAIGN_PLAN_SHA256")
+    plan_path_raw = os.environ.get("GX1_CAMPAIGN_PLAN_PATH")
+    if not isinstance(plan_sha256, str) or not isinstance(plan_path_raw, str):
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_ENV_INVALID")
+    plan_path = Path(plan_path_raw)
+    if not plan_path.is_absolute() or plan_path.resolve() != plan_path:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_PATH_INVALID")
     plan = require_plan(
-        read_bound_json(Path(plan_binding["path"]), plan_binding["sha256"]),
+        read_bound_json(plan_path, plan_sha256),
         verify_files=True,
     )
-    invocation = plan["checked_invocations"][-1]
+    invocation_sha256 = os.environ.get("GX1_CAMPAIGN_INVOCATION_SHA256")
+    matches = [
+        item
+        for item in plan["checked_invocations"]
+        if item["invocation_sha256"] == invocation_sha256
+    ]
+    if len(matches) != 1:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_INVOCATION_INVALID")
+    invocation = matches[0]
+    authority_binding = {
+        "path": str(authority_path),
+        "sha256": authority_file_sha256,
+    }
     if (
-        os.environ.get("GX1_CAMPAIGN_PLAN_SHA256") != plan["plan_sha256"]
-        or os.environ.get("GX1_CAMPAIGN_INVOCATION_SHA256")
-        != invocation["invocation_sha256"]
-        or invocation["kind"] != "full_val"
-        or invocation["checkpoint"]["write_mode"] != "READ_ONLY"
+        plan["phase"] != "full_val"
+        or plan["final_train_checkpoint_authority"] != authority_binding
+        or plan["selected_batch_size"] != authority["selected_batch_size"]
+        or plan["source_commit"] != authority["source_commit"]
+        or invocation["kind"] != "full_val_window"
         or Path(invocation["progress_path"]) != progress_path
         or invocation["checkpoint"]["pointer_path"]
         != authority["final_checkpoint_pointer"]["path"]
@@ -144,29 +166,45 @@ def _publish_campaign_progress(
     plan: Mapping[str, Any],
     invocation: Mapping[str, Any],
     result: Mapping[str, Any],
+    rollout_cursor_path: Path,
 ) -> dict[str, Any]:
     if path.exists() or path.is_symlink():
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_PROGRESS_EXISTS")
-    complete = result.get("decision") in {
+    decision = result.get("decision")
+    complete = decision in {
         "PASS_COMPLETE",
         "COMPLETE_WITH_RIGHT_CENSORING",
     }
+    resumable = decision == "PAUSED_RESUMABLE"
+    if not complete and not resumable:
+        outcome = "FAILED"
+    else:
+        outcome = "COMPLETE" if complete else "RESUMABLE"
     value = {
         "schema_version": PROGRESS_SCHEMA,
         "plan_sha256": plan["plan_sha256"],
         "invocation_sha256": invocation["invocation_sha256"],
-        "phase": "full_val",
+        "phase": invocation["kind"],
         "epoch_index": int(authority["epoch_index"]),
         "global_optimizer_steps": int(authority["global_optimizer_steps"]),
         "next_batch_offset": int(authority["total_batches"]),
         "total_batches": int(authority["total_batches"]),
-        "completed_units": int(result.get("entry_pair_cohort_size", 0)),
+        "completed_units": int(
+            result.get(
+                "entry_pair_cohort_size",
+                result.get("completed_entry_pair_count", 0),
+            )
+        ),
         "total_units": 5_508,
         "epoch_schedule_sha256": authority["epoch_schedule_sha256"],
         "selection_receipt_sha256": authority["gpu_batch_selection_artifact_sha256"],
         "checkpoint_pointer": dict(authority["final_checkpoint_pointer"]),
+        "rollout_cursor": {
+            "path": str(rollout_cursor_path),
+            "sha256": file_sha256(rollout_cursor_path),
+        },
         "terminal": True,
-        "outcome": "COMPLETE" if complete else "FAILED",
+        "outcome": outcome,
         "observed_utc": datetime.now(timezone.utc).isoformat(),
     }
     value["progress_sha256"] = campaign_sha256(value)
@@ -372,7 +410,10 @@ def run(
         final_train_checkpoint_authority_file_sha256,
     )
     plan, invocation = _campaign_context(
-        authority, progress_path=campaign_progress_path
+        authority,
+        authority_path=final_train_checkpoint_authority_path,
+        authority_file_sha256=final_train_checkpoint_authority_file_sha256,
+        progress_path=campaign_progress_path,
     )
     files = {name: Path(binding["path"]) for name, binding in launch["files"].items()}
     if (
@@ -567,14 +608,14 @@ def run(
         policy_batch_size=selected_batch_size,
         progress_interval_forwards=progress_interval_forwards,
     )
-    if result.get("decision") != "PAUSED_RESUMABLE":
-        _publish_campaign_progress(
-            path=campaign_progress_path,
-            authority=authority,
-            plan=plan,
-            invocation=invocation,
-            result=result,
-        )
+    _publish_campaign_progress(
+        path=campaign_progress_path,
+        authority=authority,
+        plan=plan,
+        invocation=invocation,
+        result=result,
+        rollout_cursor_path=rollout_progress_path,
+    )
     return result
 
 
@@ -645,6 +686,7 @@ def main(argv: list[str] | None = None) -> int:
         in {
             "PASS_COMPLETE",
             "COMPLETE_WITH_RIGHT_CENSORING",
+            "PAUSED_RESUMABLE",
         }
         else 75
     )

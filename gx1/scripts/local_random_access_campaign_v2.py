@@ -259,10 +259,27 @@ def begin_invocation(
     runtime = Path(plan["runtime_root"])
     invocation = action["invocation"]
     pointer = Path(invocation["checkpoint"]["pointer_path"])
-    if invocation["checkpoint"]["before_mode"] == "GENESIS":
+    before_mode = invocation["checkpoint"]["before_mode"]
+    rollout_cursor_before: str | None = None
+    if before_mode == "GENESIS":
         if pointer.exists() or pointer.is_symlink():
             raise RandomAccessCampaignError("GENESIS pointer already exists")
         pointer_before = "GENESIS"
+    elif before_mode == "FINAL_AUTHORITY":
+        authority = plan.get("checked_final_train_checkpoint_authority")
+        if (
+            not pointer.is_file()
+            or pointer.is_symlink()
+            or not isinstance(authority, Mapping)
+        ):
+            raise RandomAccessCampaignError("final authority pointer unavailable")
+        pointer_before = file_sha256(pointer)
+        if pointer_before != authority["final_checkpoint_pointer"]["sha256"]:
+            raise RandomAccessCampaignError("final authority pointer differs")
+        cursor = Path(invocation["rollout_cursor_path"])
+        if cursor.exists() or cursor.is_symlink():
+            raise RandomAccessCampaignError("initial rollout cursor must be absent")
+        rollout_cursor_before = "GENESIS"
     else:
         if not pointer.is_file() or pointer.is_symlink():
             raise RandomAccessCampaignError("resume pointer unavailable")
@@ -273,6 +290,15 @@ def begin_invocation(
             raise RandomAccessCampaignError(
                 "resume pointer differs from predecessor receipt"
             )
+        if invocation["kind"] == "full_val_window":
+            cursor = Path(invocation["rollout_cursor_path"])
+            if not cursor.is_file() or cursor.is_symlink():
+                raise RandomAccessCampaignError("rollout cursor unavailable")
+            rollout_cursor_before = file_sha256(cursor)
+            if rollout_cursor_before != prior["rollout_cursor_snapshot"]["sha256"]:
+                raise RandomAccessCampaignError(
+                    "rollout cursor differs from predecessor receipt"
+                )
     marker = {
         "schema_version": ACTIVE_SCHEMA,
         "plan_sha256": plan["plan_sha256"],
@@ -285,6 +311,8 @@ def begin_invocation(
         "pointer_before_sha256": pointer_before,
         "launcher_argv_sha256": invocation["launcher_argv_sha256"],
     }
+    if invocation["kind"] == "full_val_window":
+        marker["rollout_cursor_before_sha256"] = rollout_cursor_before
     marker["marker_sha256"] = canonical_sha256(marker)
     path = _active_path(runtime)
     _atomic_new(path, marker)
@@ -359,14 +387,19 @@ def record_invocation(
     success = trainer_guard_exit_code == 0 and progress_observer_exit_code == 0
     guard_path = Path(invocation["guard_log_path"])
     _require_guard_log(guard_path, success=success)
+    evidence_sources = {
+        "CHECKPOINT_POINTER.json": pointer,
+        "PROGRESS.json": progress_path,
+        "SIGNED_GUARD.log": guard_path,
+    }
+    rollout_cursor: Path | None = None
+    if invocation["kind"] == "full_val_window":
+        rollout_cursor = Path(invocation["rollout_cursor_path"])
+        evidence_sources["ROLLOUT_CURSOR.json"] = rollout_cursor
     snapshots = _snapshot_invocation_evidence(
         runtime=runtime,
         invocation_number=number,
-        sources={
-            "CHECKPOINT_POINTER.json": pointer,
-            "PROGRESS.json": progress_path,
-            "SIGNED_GUARD.log": guard_path,
-        },
+        sources=evidence_sources,
     )
     receipt = {
         "schema_version": RECEIPT_SCHEMA,
@@ -395,6 +428,17 @@ def record_invocation(
         "active_marker_sha256": file_sha256(active_path),
         "test_data_used": False,
     }
+    if invocation["kind"] == "full_val_window":
+        if rollout_cursor is None:
+            raise RandomAccessCampaignError("rollout cursor unavailable")
+        receipt["rollout_cursor_before_sha256"] = active.get(
+            "rollout_cursor_before_sha256"
+        )
+        receipt["rollout_cursor_after"] = {
+            "path": str(rollout_cursor),
+            "sha256": file_sha256(rollout_cursor),
+        }
+        receipt["rollout_cursor_snapshot"] = snapshots["ROLLOUT_CURSOR.json"]
     receipt["receipt_sha256"] = canonical_sha256(receipt)
     require_receipt(
         receipt,

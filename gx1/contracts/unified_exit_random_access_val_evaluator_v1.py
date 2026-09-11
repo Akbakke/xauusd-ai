@@ -775,6 +775,8 @@ def run_resumable_random_access_val_evaluation_v1(
                 "next_state_index": int(progress["next_state_index"]),
                 "next_entry_scan_position": int(progress["next_entry_scan_position"]),
                 "model_forward_count": int(progress["model_forward_count"]),
+                "completed_entry_pair_count": int((~active.any(axis=1)).sum()),
+                "completed_side_trade_count": int(active.size - active.sum()),
                 "progress_path": str(progress_path),
                 "progress_file_sha256": file_sha256(progress_path),
                 "test_data_used": False,
