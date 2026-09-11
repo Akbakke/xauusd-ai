@@ -703,6 +703,7 @@ def run(
         batch_size=arm_batch_size,
         sampler=_ParentSampler(parent_order, start, arm_batch_size),
         num_workers=0,
+        generator=torch.Generator().manual_seed(int(launch["seed"]) + arm_batch_size),
     )
 
     def checkpoint(*, next_batch_offset: int, complete_epoch: bool) -> None:

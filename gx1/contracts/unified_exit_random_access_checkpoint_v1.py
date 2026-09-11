@@ -147,6 +147,8 @@ def save_checkpoint_atomic(
     os.close(fd)
     try:
         torch.save(dict(value), tmp)
+        with open(tmp, "rb") as handle:
+            os.fsync(handle.fileno())
         os.replace(tmp, state_path)
         _fsync_directory(directory)
     finally:
@@ -216,6 +218,9 @@ def load_checkpoint_strict(
     if (
         not isinstance(state, dict)
         or state.get("schema_version") != SCHEMA_VERSION
+        or state.get("launch_manifest_sha256") != expected_launch_manifest_sha256
+        or state.get("selected_sampler_artifact_sha256")
+        != expected_selected_sampler_artifact_sha256
         or state.get("old_v1_progress_reused") is not False
         or state.get("test_data_used") is not False
         or state.get("global_step") != pointer["global_step"]

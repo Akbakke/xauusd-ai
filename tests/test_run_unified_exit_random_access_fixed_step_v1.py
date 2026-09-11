@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
 from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
@@ -63,3 +64,17 @@ def test_capped_runner_allowlists_only_exact_fixed_step_module() -> None:
         "random-access fixed-step smoke requires the exact attended CUDA command contract"
         in source
     )
+
+
+def test_dataloader_iterator_does_not_advance_model_dropout_rng() -> None:
+    torch.manual_seed(123)
+    expected = torch.rand(4)
+    torch.manual_seed(123)
+    loader = DataLoader(
+        TensorDataset(torch.arange(64)),
+        batch_size=16,
+        sampler=_ParentSampler(tuple(range(64)), batch_offset=0, batch_size=16),
+        generator=torch.Generator().manual_seed(999),
+    )
+    next(iter(loader))
+    assert torch.equal(torch.rand(4), expected)
