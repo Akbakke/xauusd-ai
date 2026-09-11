@@ -129,8 +129,10 @@ validate_target_command() {
   local trainer_reference=false hardware_smoke_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
-  local checkpoint_dir_count=0 launch_manifest_count=0 mode_count=0 arm_batch_size_count=0
-  local profile_value= execution_tier_value= mode_value= arm_batch_size_value=
+  local checkpoint_dir_count=0 launch_manifest_count=0 stage_count=0 arm_batch_size_count=0
+  local progress_path_count=0 train_session_count=0 max_optimizer_steps_count=0
+  local profile_value= execution_tier_value= stage_value= arm_batch_size_value=
+  local stage_requires_attended=false
   local -a target_args=("$@")
 
   case "$executable_basename" in
@@ -271,15 +273,27 @@ validate_target_command() {
       --launch-manifest)
         launch_manifest_count=$((launch_manifest_count + 1))
         ;;
-      --mode)
-        mode_count=$((mode_count + 1))
+      --stage)
+        stage_count=$((stage_count + 1))
         (( target_index + 1 < ${#target_args[@]} )) || exit 75
-        mode_value="${target_args[$((target_index + 1))]}"
+        stage_value="${target_args[$((target_index + 1))]}"
         ;;
       --arm-batch-size)
         arm_batch_size_count=$((arm_batch_size_count + 1))
         (( target_index + 1 < ${#target_args[@]} )) || exit 75
         arm_batch_size_value="${target_args[$((target_index + 1))]}"
+        ;;
+      --progress-path)
+        progress_path_count=$((progress_path_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
+        ;;
+      --train-session-manifest)
+        train_session_count=$((train_session_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
+        ;;
+      --max-optimizer-steps)
+        max_optimizer_steps_count=$((max_optimizer_steps_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || exit 75
         ;;
       --out_bundle_dir)
         out_bundle_dir_count=$((out_bundle_dir_count + 1))
@@ -298,9 +312,22 @@ validate_target_command() {
   fi
 
   if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]; then
-    if [[ "$ATTENDED_SMOKE" != true || "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $mode_count -ne 1       || $arm_batch_size_count -ne 1       || ( "$mode_value" != bootstrap && "$mode_value" != resume-probe )       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || ${#target_args[@]} -ne 13 ]]; then
-      echo "FATAL: random-access fixed-step smoke requires the exact attended CUDA command contract" >&2
+    local stage_shape_valid=false
+    if [[ "$stage_value" == smoke-arm && $train_session_count -eq 0       && $max_optimizer_steps_count -eq 0 && ${#target_args[@]} -eq 15 ]]; then
+      stage_shape_valid=true
+      stage_requires_attended=true
+    elif [[ ( "$stage_value" == reference-4         || "$stage_value" == resume-proof-first         || "$stage_value" == resume-proof-second )       && $train_session_count -eq 1 && $max_optimizer_steps_count -eq 0       && ${#target_args[@]} -eq 17 ]]; then
+      stage_shape_valid=true
+      stage_requires_attended=true
+    elif [[ "$stage_value" == epoch1-window && $train_session_count -eq 1       && $max_optimizer_steps_count -eq 1 && ${#target_args[@]} -eq 19 ]]; then
+      stage_shape_valid=true
+    fi
+    if [[ "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $stage_count -ne 1       || $arm_batch_size_count -ne 1 || $progress_path_count -ne 1       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || "$stage_shape_valid" != true       || ( "$stage_requires_attended" == true && "$ATTENDED_SMOKE" != true )       || ( "$stage_requires_attended" == false && "$ATTENDED_SMOKE" != false )       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
+      echo "FATAL: random-access fixed-step smoke/train requires the exact attended CUDA stage contract" >&2
       exit 75
+    fi
+    if [[ "$stage_requires_attended" == true ]]; then
+      TRAINER_ATTENDED_STAGE_REQUIRED=true
     fi
     return
   fi
@@ -690,6 +717,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256="$TRAINER_HOST_TELEMETRY_CERT_SHA256" \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_GPU_UUID="$TRAINER_HOST_TELEMETRY_GPU_UUID" \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS="$TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" \
+  --setenv=GX1_CAMPAIGN_PLAN_SHA256="${GX1_CAMPAIGN_PLAN_SHA256:-}" \
+  --setenv=GX1_CAMPAIGN_INVOCATION_SHA256="${GX1_CAMPAIGN_INVOCATION_SHA256:-}" \
   --setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=MKL_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=OPENBLAS_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \

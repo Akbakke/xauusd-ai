@@ -11,6 +11,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
 from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
     _FreshWeightEma,
     _ParentSampler,
+    _absolute_optimizer_step,
 )
 
 
@@ -61,7 +62,7 @@ def test_capped_runner_allowlists_only_exact_fixed_step_module() -> None:
     )
     assert 'if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]' in source
     assert (
-        "random-access fixed-step smoke requires the exact attended CUDA command contract"
+        "random-access fixed-step smoke/train requires the exact attended CUDA stage contract"
         in source
     )
 
@@ -78,3 +79,13 @@ def test_dataloader_iterator_does_not_advance_model_dropout_rng() -> None:
     )
     next(iter(loader))
     assert torch.equal(torch.rand(4), expected)
+
+
+def test_checkpoint_global_step_counts_optimizer_steps_not_writes() -> None:
+    assert _absolute_optimizer_step(
+        initial_global_step=77, start_batch_offset=128, next_batch_offset=192
+    ) == 141
+    with pytest.raises(RuntimeError, match="CHECKPOINT_CURSOR_INVALID"):
+        _absolute_optimizer_step(
+            initial_global_step=77, start_batch_offset=128, next_batch_offset=128
+        )

@@ -9088,7 +9088,11 @@ def train_epoch(
                 and _optimizer_steps_this_call >= int(session_max_optimizer_steps)
                 and _batch_i < len(loader)
             ):
-                if session_checkpoint_hook is not None and not session_checkpoint_every_optimizer_step:
+                if (
+                    session_checkpoint_hook is not None
+                    and not session_checkpoint_every_optimizer_step
+                    and not _checkpoint_interval_due
+                ):
                     session_checkpoint_hook(
                         next_batch_offset=_absolute_batch_i,
                         complete_epoch=False,

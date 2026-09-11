@@ -5,8 +5,12 @@ import argparse
 import copy
 import hashlib
 import json
+import os
 import subprocess
+import tempfile
+import time
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 import pandas as pd
@@ -35,6 +39,10 @@ from gx1.contracts.unified_exit_random_access_train_factory_v1 import (
 from gx1.contracts.unified_exit_selected_sampler_v1 import (
     file_sha256,
     require_selected_sampler_artifact,
+)
+from gx1.contracts.unified_exit_gpu_batch_selection_v1 import require_selection
+from gx1.contracts.unified_exit_train_session_manifest_v1 import (
+    require_train_session_manifest,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import UnifiedExitLifecycleCorpus
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -197,7 +205,6 @@ def require_launch_manifest(
                 source_repo=source_repo,
                 launch_manifest_path=launch_manifest_path,
                 checkpoint_dir=checkpoint_dir,
-                mode="bootstrap",
                 batch_size=batch_size,
             )
             for batch_size in value["batch_sizes"]
@@ -213,7 +220,6 @@ def _launch_command(
     source_repo: Path,
     launch_manifest_path: Path,
     checkpoint_dir: Path,
-    mode: str,
     batch_size: int,
 ) -> list[str]:
     return [
@@ -227,12 +233,14 @@ def _launch_command(
         "gx1.scripts.run_unified_exit_random_access_fixed_step_v1",
         "--launch-manifest",
         str(launch_manifest_path),
-        "--mode",
-        mode,
+        "--stage",
+        "smoke-arm",
         "--checkpoint-dir",
         str(checkpoint_dir / f"batch_{batch_size}"),
         "--arm-batch-size",
         str(batch_size),
+        "--progress-path",
+        str(checkpoint_dir / f"batch_{batch_size}" / "PROGRESS.json"),
         "--device",
         "cuda",
     ]
@@ -310,7 +318,6 @@ def build_launch_manifest(
                     source_repo=source_repo,
                     launch_manifest_path=launch_manifest_path,
                     checkpoint_dir=checkpoint_dir,
-                    mode="bootstrap",
                     batch_size=batch_size,
                 )
                 for batch_size in batch_sizes
@@ -379,6 +386,37 @@ class _FreshWeightEma:
                 raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_EMA_STATE_INVALID")
             self.shadow[name].copy_(tensor)
         self.steps = int(value["steps"])
+
+
+def _write_progress_atomic(path: Path, value: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = (
+        json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n"
+    ).encode()
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def _absolute_optimizer_step(
+    *, initial_global_step: int, start_batch_offset: int, next_batch_offset: int
+) -> int:
+    completed = next_batch_offset - start_batch_offset
+    if completed < 1 or initial_global_step < 0:
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_CHECKPOINT_CURSOR_INVALID")
+    return initial_global_step + completed
 
 
 class _ParentSampler(Sampler[int]):
@@ -461,18 +499,84 @@ def _model(
 def run(
     *,
     manifest_path: Path,
-    mode: str,
+    stage: str,
     checkpoint_dir: Path,
     device: torch.device,
     arm_batch_size: int,
+    progress_path: Path,
+    train_session_manifest_path: Path | None,
+    max_optimizer_steps: int | None,
+    plan_sha256: str,
+    invocation_sha256: str,
 ) -> dict[str, Any]:
     launch = require_launch_manifest(_read(manifest_path))
+    if any(
+        len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value)
+        for value in (plan_sha256, invocation_sha256)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_CAMPAIGN_BINDING_INVALID")
     files = {k: Path(v["path"]) for k, v in launch["files"].items()}
     selected = require_selected_sampler_artifact(_read(files["selected_sampler"]))
-    if arm_batch_size not in launch["batch_sizes"] or mode == "resume-probe":
+    if arm_batch_size not in launch["batch_sizes"]:
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_BATCH_ARM_INVALID")
-    expected_checkpoint_dir = Path(launch["checkpoint_dir"]) / f"batch_{arm_batch_size}"
-    if checkpoint_dir != expected_checkpoint_dir:
+    root_checkpoint_dir = Path(launch["checkpoint_dir"])
+    gpu_selection = None
+    if stage == "smoke-arm":
+        expected_checkpoint_dir = root_checkpoint_dir / f"batch_{arm_batch_size}"
+        expected_progress_path = expected_checkpoint_dir / "PROGRESS.json"
+        if train_session_manifest_path is not None or max_optimizer_steps is not None:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_STAGE_ARGUMENT_INVALID")
+    else:
+        if train_session_manifest_path is None:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_TRAIN_SESSION_REQUIRED")
+        session_phase = "epoch1" if stage == "epoch1-window" else "resume_proof"
+        train_session = require_train_session_manifest(
+            _read(train_session_manifest_path), expected_phase=session_phase
+        )
+        gpu_selection = require_selection(
+            _read(Path(train_session["gpu_batch_selection"]["path"]))
+        )
+        if (
+            train_session["prelaunch_manifest_sha256"] != launch["manifest_sha256"]
+            or train_session["source_commit"] != launch["source_commit"]
+            or train_session["gpu_batch_selection_artifact_sha256"]
+            != gpu_selection["artifact_sha256"]
+            or gpu_selection["launch_manifest_sha256"] != launch["manifest_sha256"]
+            or gpu_selection["selected_batch_size"] != arm_batch_size
+        ):
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_TRAIN_SESSION_INVALID")
+        if stage == "reference-4":
+            expected_checkpoint_dir = (
+                root_checkpoint_dir
+                / "comparison"
+                / f"reference_4_batch_{arm_batch_size}"
+            )
+            expected_progress_path = expected_checkpoint_dir / "PROGRESS.json"
+        elif stage in {"resume-proof-first", "resume-proof-second"}:
+            expected_checkpoint_dir = (
+                root_checkpoint_dir / "comparison" / f"split_batch_{arm_batch_size}"
+            )
+            suffix = "FIRST" if stage == "resume-proof-first" else "SECOND"
+            expected_progress_path = expected_checkpoint_dir / f"PROGRESS_{suffix}.json"
+        elif stage == "epoch1-window":
+            expected_checkpoint_dir = (
+                root_checkpoint_dir / f"epoch1_batch_{arm_batch_size}"
+            )
+            expected_progress_path = expected_checkpoint_dir / "PROGRESS.json"
+            if (
+                isinstance(max_optimizer_steps, bool)
+                or not isinstance(max_optimizer_steps, int)
+                or max_optimizer_steps < 1
+            ):
+                raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_EPOCH_WINDOW_INVALID")
+        else:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_STAGE_INVALID")
+        if stage != "epoch1-window" and max_optimizer_steps is not None:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_STAGE_ARGUMENT_INVALID")
+    if (
+        checkpoint_dir != expected_checkpoint_dir
+        or progress_path != expected_progress_path
+    ):
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_CHECKPOINT_DIR_INVALID")
     selected_root = selected["random_access_root"]
     if files["random_access_root"] != Path(selected_root["path"]):
@@ -611,7 +715,11 @@ def run(
         "online": canonical_model_state_sha256(source["model_state"]),
         "target": canonical_model_state_sha256(source["target_model_state"]),
     }
-    if mode == "bootstrap":
+    pointer_path = checkpoint_dir / "RESUME_POINTER.json"
+    bootstrap_stage = stage in {"smoke-arm", "reference-4", "resume-proof-first"} or (
+        stage == "epoch1-window" and not pointer_path.exists()
+    )
+    if bootstrap_stage:
         if checkpoint_dir.exists():
             raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_CHECKPOINT_DIR_EXISTS")
         online_receipt = bootstrap_random_access_v2_from_pretrained(
@@ -634,12 +742,14 @@ def run(
         weight_ema = _FreshWeightEma(model, float(launch["weight_ema_decay"]))
         start = 0
         receipts = {"online": online_receipt, "target": target_receipt}
-        steps = 3
+        steps = {"smoke-arm": 3, "reference-4": 4, "resume-proof-first": 3}.get(
+            stage, 0
+        )
         global_optimizer_steps = 0
         resume_probe = False
     else:
         progress = load_checkpoint_strict(
-            pointer_path=checkpoint_dir / "RESUME_POINTER.json",
+            pointer_path=pointer_path,
             model=model,
             target_model=target,
             optimizer=optimizer,
@@ -673,8 +783,30 @@ def run(
         ):
             raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_BOOTSTRAP_RECEIPT_INVALID")
         weight_ema.load_state_dict(progress["weight_ema_state"])
-        steps = 1
-        resume_probe = True
+        if stage == "resume-proof-second":
+            steps = 1
+            resume_probe = True
+        elif stage == "epoch1-window":
+            steps = 0
+            resume_probe = False
+        else:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_RESUME_STAGE_INVALID")
+    total_batches = (
+        int(gpu_selection["total_batches_per_epoch"])
+        if gpu_selection is not None
+        else -(-16384 // arm_batch_size)
+    )
+    if stage == "epoch1-window":
+        remaining = total_batches - start
+        if remaining < 1:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_EPOCH_ALREADY_COMPLETE")
+        steps = min(int(max_optimizer_steps), remaining)
+    checkpoint_interval = (
+        int(gpu_selection["checkpoint_interval_optimizer_steps"])
+        if stage == "epoch1-window"
+        else None
+    )
+    checkpoint_times: list[float] = []
     target.requires_grad_(False)
     target.eval()
     target_state_before = canonical_model_state_sha256(target.state_dict())
@@ -686,9 +818,18 @@ def run(
         generator=torch.Generator().manual_seed(int(launch["seed"]) + arm_batch_size),
     )
 
+    initial_global_optimizer_steps = global_optimizer_steps
+
     def checkpoint(*, next_batch_offset: int, complete_epoch: bool) -> None:
         nonlocal global_optimizer_steps
-        global_optimizer_steps += 1
+        global_optimizer_steps = _absolute_optimizer_step(
+            initial_global_step=initial_global_optimizer_steps,
+            start_batch_offset=start,
+            next_batch_offset=next_batch_offset,
+        )
+        if weight_ema.steps != global_optimizer_steps:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_EMA_CURSOR_MISMATCH")
+        checkpoint_times.append(time.perf_counter())
         state = build_checkpoint(
             model=model,
             target_model=target,
@@ -727,40 +868,120 @@ def run(
         session_max_optimizer_steps=steps,
         session_checkpoint_hook=checkpoint,
         session_exit_action_forward_chunk_rows=None,
-        session_checkpoint_every_optimizer_step=True,
-        session_log_label="RANDOM_ACCESS_SMOKE",
-        performance_warmup_optimizer_steps=1 if steps > 1 else 0,
+        session_checkpoint_every_optimizer_step=stage != "epoch1-window",
+        session_checkpoint_interval_optimizer_steps=checkpoint_interval,
+        session_log_label="RANDOM_ACCESS_FIXED_STEP",
+        performance_warmup_optimizer_steps=0,
         session_resume_probe=resume_probe,
     )
     if canonical_model_state_sha256(target.state_dict()) != target_state_before:
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_TARGET_CHANGED_WITHIN_EPOCH")
-    return {
-        "decision": "PASS",
-        "mode": mode,
-        "steps": steps,
-        "batch_size": arm_batch_size,
-        "checkpoint_dir": str(checkpoint_dir),
-        "stats": stats,
-        "test_data_used": False,
+    if (
+        global_optimizer_steps != initial_global_optimizer_steps + steps
+        or weight_ema.steps != global_optimizer_steps
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_OPTIMIZER_CURSOR_MISMATCH")
+    if stage == "smoke-arm":
+        if len(checkpoint_times) != 3 or checkpoint_times[-1] <= checkpoint_times[0]:
+            raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MEASUREMENT_MISSING")
+        measurement = {
+            "schema_version": "gx1_unified_exit_cuda_smoke_measurement_v1",
+            "launch_manifest_sha256": launch["manifest_sha256"],
+            "batch_size": arm_batch_size,
+            "warmup_optimizer_steps": 1,
+            "measured_optimizer_steps": 2,
+            "measured_entry_rows": 2 * arm_batch_size,
+            "transitions_per_entry": 4,
+            "measured_transition_count": 8 * arm_batch_size,
+            "measured_train_seconds": checkpoint_times[-1] - checkpoint_times[0],
+            "test_data_used": False,
+        }
+        measurement["measurement_sha256"] = _canonical(measurement)
+        _write_progress_atomic(
+            progress_path.with_name("SMOKE_MEASUREMENT.json"), measurement
+        )
+    completed = start + steps
+    progress_outcome = (
+        "COMPLETE"
+        if stage == "epoch1-window" and completed == total_batches
+        else "RESUMABLE"
+        if stage == "epoch1-window"
+        else "COMPLETE"
+    )
+    progress = {
+        "schema_version": "gx1_local_random_access_progress_v2",
+        "plan_sha256": plan_sha256,
+        "invocation_sha256": invocation_sha256,
+        "phase": {
+            "reference-4": "reference_run",
+            "smoke-arm": "smoke_arm",
+            "resume-proof-first": "resume_proof_first",
+            "resume-proof-second": "resume_proof_second",
+            "epoch1-window": "epoch1_window",
+        }[stage],
+        "epoch_index": 0,
+        "global_optimizer_steps": global_optimizer_steps,
+        "next_batch_offset": completed,
+        "total_batches": total_batches,
+        "completed_units": completed,
+        "total_units": total_batches,
+        "epoch_schedule_sha256": epoch_schedule_sha256,
+        "selection_receipt_sha256": gpu_selection["artifact_sha256"]
+        if gpu_selection is not None
+        else None,
+        "checkpoint_pointer": {
+            "path": str(pointer_path),
+            "sha256": file_sha256(pointer_path),
+        },
+        "terminal": True,
+        "outcome": progress_outcome,
+        "observed_utc": datetime.now(timezone.utc).isoformat(),
     }
+    progress["progress_sha256"] = _canonical(progress)
+    _write_progress_atomic(progress_path, progress)
+    return {**progress, "progress_path": str(progress_path), "stats": stats}
 
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--launch-manifest", type=Path, required=True)
-    p.add_argument("--mode", choices=("bootstrap", "resume-probe"), required=True)
+    p.add_argument(
+        "--stage",
+        choices=(
+            "smoke-arm",
+            "reference-4",
+            "resume-proof-first",
+            "resume-proof-second",
+            "epoch1-window",
+        ),
+        required=True,
+    )
     p.add_argument("--checkpoint-dir", type=Path, required=True)
     p.add_argument("--arm-batch-size", type=int, choices=(4, 8, 16), required=True)
+    p.add_argument("--progress-path", type=Path, required=True)
+    p.add_argument("--train-session-manifest", type=Path)
+    p.add_argument("--max-optimizer-steps", type=int)
     p.add_argument("--device", choices=("cpu", "cuda"), required=True)
     a = p.parse_args(argv)
     print(
         json.dumps(
             run(
                 manifest_path=a.launch_manifest.resolve(),
-                mode=a.mode,
+                stage=a.stage,
                 checkpoint_dir=a.checkpoint_dir.resolve(),
                 device=torch.device(a.device),
                 arm_batch_size=a.arm_batch_size,
+                progress_path=a.progress_path.resolve(),
+                train_session_manifest_path=(
+                    a.train_session_manifest.resolve()
+                    if a.train_session_manifest
+                    else None
+                ),
+                max_optimizer_steps=a.max_optimizer_steps,
+                plan_sha256=os.environ.get("GX1_CAMPAIGN_PLAN_SHA256", ""),
+                invocation_sha256=os.environ.get(
+                    "GX1_CAMPAIGN_INVOCATION_SHA256", ""
+                ),
             ),
             sort_keys=True,
             default=str,
