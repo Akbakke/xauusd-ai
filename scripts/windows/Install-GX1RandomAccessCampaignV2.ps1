@@ -6,7 +6,8 @@ param(
     [Parameter(Mandatory = $true)][string]$WindowsTaskUser,
     [string]$Distro = 'Ubuntu-22.04',
     [string]$LinuxUser = 'andre2',
-    [string]$TaskName = 'GX1RandomAccessCampaignV2'
+    [string]$TaskName = 'GX1RandomAccessCampaignV2',
+    [string]$CampaignControlRepo = $SourceRepo
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -35,6 +36,7 @@ $arguments = @(
     '-PlanJson', ('"' + $PlanJson + '"'),
     '-PlanFileSha256', $PlanFileSha256,
     '-SourceRepo', ('"' + $SourceRepo + '"'),
+    '-CampaignControlRepo', ('"' + $CampaignControlRepo + '"'),
     '-WindowsSourceRepo', ('"' + $WindowsSourceRepo + '"'),
     '-ExpectedControllerSha256', $controllerSha256,
     '-Distro', ('"' + $Distro + '"'),
@@ -69,6 +71,8 @@ if ($registered.Principal.UserId -cne $WindowsTaskUser -or
     task_name = $TaskName
     windows_task_user = $WindowsTaskUser
     logon_type = [string]$registered.Principal.LogonType
+    source_repo = $SourceRepo
+    campaign_control_repo = $CampaignControlRepo
     controller_path = $controller
     controller_file_sha256 = $controllerSha256
     legacy_wsl_ssh_bootstrap_disabled = ($null -eq $legacyWslTask -or [string]$legacyWslTask.State -ceq 'Disabled')

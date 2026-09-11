@@ -249,6 +249,12 @@ def inspect_campaign(
     *, plan_path: Path, plan_file_sha256: str, current_boot: Mapping[str, Any]
 ) -> dict[str, Any]:
     plan = _load_plan(plan_path, plan_file_sha256)
+    return _inspect_loaded_plan(plan=plan, current_boot=current_boot)
+
+
+def _inspect_loaded_plan(
+    *, plan: Mapping[str, Any], current_boot: Mapping[str, Any]
+) -> dict[str, Any]:
     require_clean_source(plan)
     runtime = Path(plan["runtime_root"])
     receipts = _receipts(runtime)
@@ -277,15 +283,13 @@ def begin_invocation(
     plan_file_sha256: str,
     current_boot: Mapping[str, Any],
 ) -> dict[str, Any]:
-    inspected = inspect_campaign(
-        plan_path=plan_path,
-        plan_file_sha256=plan_file_sha256,
-        current_boot=current_boot,
-    )
+    # Full VAL validates the checkpoint authority here; do not deserialize
+    # that authority twice before the controller's bounded metadata deadline.
+    plan = _load_plan(plan_path, plan_file_sha256)
+    inspected = _inspect_loaded_plan(plan=plan, current_boot=current_boot)
     action = inspected["action"]
     if action["decision"] != "LAUNCH":
         raise RandomAccessCampaignError("campaign has no admissible launch")
-    plan = _load_plan(plan_path, plan_file_sha256)
     runtime = Path(plan["runtime_root"])
     invocation = action["invocation"]
     pointer = Path(invocation["checkpoint"]["pointer_path"])
@@ -430,9 +434,17 @@ def record_invocation(
         expected_selection_receipt_sha256=plan["selection_artifact_sha256"],
         verify_file=True,
     )
+    success = trainer_guard_exit_code == 0 and progress_observer_exit_code == 0
+    if outcome == "AUTO":
+        if (
+            not success
+            or invocation["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
+            or progress["outcome"] not in {"COMPLETE", "RESUMABLE"}
+        ):
+            raise RandomAccessCampaignError("automatic success outcome is inadmissible")
+        outcome = progress["outcome"]
     if progress["outcome"] != outcome:
         raise RandomAccessCampaignError("progress outcome differs")
-    success = trainer_guard_exit_code == 0 and progress_observer_exit_code == 0
     guard_path = Path(invocation["guard_log_path"])
     _require_guard_log(guard_path, success=success)
     evidence_sources = {
@@ -591,6 +603,19 @@ def confirm_reboot(
     }
 
 
+def _require_running_cli(plan_path: Path, plan_file_sha256: str) -> None:
+    """Bind control code separately while model execution stays source-frozen."""
+    if file_sha256(plan_path) != plan_file_sha256:
+        raise RandomAccessCampaignError("plan file SHA-256 mismatch")
+    binding = _read(plan_path)["controller_sources"]["campaign_cli"]
+    running = Path(__file__).resolve()
+    if (
+        str(running) != binding["path"]
+        or file_sha256(running) != binding["sha256"]
+    ):
+        raise RandomAccessCampaignError("running campaign CLI differs from plan binding")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -605,7 +630,7 @@ def main(argv: list[str] | None = None) -> int:
     record.add_argument("--trainer-guard-exit-code", type=int, required=True)
     record.add_argument("--progress-observer-exit-code", type=int, required=True)
     record.add_argument(
-        "--outcome", choices=("COMPLETE", "RESUMABLE", "FAILED"), required=True
+        "--outcome", choices=("COMPLETE", "RESUMABLE", "FAILED", "AUTO"), required=True
     )
     confirm = sub.add_parser("confirm-reboot")
     confirm.add_argument("--plan-json", type=_absolute, required=True)
@@ -614,6 +639,7 @@ def main(argv: list[str] | None = None) -> int:
     confirm.add_argument("--shutdown-exit-code", type=int, required=True)
     args = parser.parse_args(argv)
     try:
+        _require_running_cli(args.plan_json, args.plan_file_sha256)
         if args.command in {"inspect", "begin", "prepare-reboot"}:
             boot = require_boot_identity(_read(args.boot_json))
             common = {

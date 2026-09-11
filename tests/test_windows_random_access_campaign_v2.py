@@ -177,7 +177,7 @@ def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
 
 
 
-def test_bootstrap_failure_is_recorded_once_before_active_without_masking() -> None:
+def test_bootstrap_failure_includes_begin_without_masking() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
     receipt_call = "Write-Gx1BootstrapErrorReceipt -Stage $bootstrapStage"
     begin = "$begin = Invoke-Gx1Json -Arguments @("
@@ -189,8 +189,9 @@ def test_bootstrap_failure_is_recorded_once_before_active_without_masking() -> N
     assert "Bootstrap error receipt controller path must be an absolute existing non-reparse file" in source
     assert "-ControllerPath $PSCommandPath" in source
     assert "Bootstrap error receipt already exists for this BootId and plan" in source
-    assert source.index("$bootstrapStage = 'mutex'") < source.index(receipt_call) < source.index(begin)
-    assert source.index("throw $bootstrapError", source.index(receipt_call)) < source.index(begin)
+    assert source.index("$bootstrapStage = 'mutex'") < source.index(begin) < source.index(receipt_call)
+    assert source.index("$bootstrapStage = 'begin_invocation'") < source.index(begin)
+    assert source.index("throw $bootstrapError", source.index(receipt_call)) > source.index(begin)
 
 def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
     source = HARDENING_TEST.read_text(encoding="utf-8")

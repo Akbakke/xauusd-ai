@@ -91,7 +91,12 @@ def _atomic_json(path: Path, value: Mapping[str, Any]) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def _sources(repo: Path, certificate: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+def _sources(
+    repo: Path, certificate: Path, *, controller_repo: Path | None = None
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    control = repo if controller_repo is None else controller_repo
+    if control != repo:
+        _source_commit(control)
     guards = {
         "runner": _binding(repo / "scripts/gx1_capped_run.sh"),
         "guard": _binding(repo / "scripts/gx1_guarded_trainer_exec.sh"),
@@ -99,9 +104,9 @@ def _sources(repo: Path, certificate: Path) -> tuple[dict[str, Any], dict[str, A
         "certificate": _binding(certificate),
     }
     controllers = {
-        "controller": _binding(repo / "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1"),
-        "observer": _binding(repo / "scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1"),
-        "campaign_cli": _binding(repo / "gx1/scripts/local_random_access_campaign_v2.py"),
+        "controller": _binding(control / "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1"),
+        "observer": _binding(control / "scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1"),
+        "campaign_cli": _binding(control / "gx1/scripts/local_random_access_campaign_v2.py"),
     }
     return guards, controllers
 
@@ -557,6 +562,7 @@ def materialize_full_val_campaign(
     max_model_forwards: int,
     max_materialized_state_views: int,
     max_wall_seconds: int,
+    controller_repo: Path | None = None,
 ) -> dict[str, Any]:
     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
         require_final_train_checkpoint_authority,
@@ -626,7 +632,9 @@ def materialize_full_val_campaign(
     boot = require_boot_identity(_read(prepared_boot_path))
     if file_sha256(prepared_boot_path) != prepared_boot_file_sha256:
         raise RandomAccessCampaignError("prepared boot file SHA-256 mismatch")
-    guards, controllers = _sources(repo, certificate_path)
+    guards, controllers = _sources(
+        repo, certificate_path, controller_repo=controller_repo
+    )
     plan = _base_plan(
         phase="full_val",
         campaign_id=f"GX1_RANDOM_ACCESS_FULL_VAL_{commit[:12]}",
@@ -657,6 +665,7 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
     )
     parser.add_argument("--source-repo", type=Path, required=True)
+    parser.add_argument("--controller-source-repo", type=Path)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--runtime-root", type=Path, required=True)
     parser.add_argument("--gpu-uuid", required=True)
@@ -748,6 +757,10 @@ def main(argv: list[str] | None = None) -> int:
             raise RandomAccessCampaignError("full-VAL inputs incomplete")
         result = materialize_full_val_campaign(
             **base,
+            controller_repo=(
+                args.controller_source_repo.resolve()
+                if args.controller_source_repo is not None else None
+            ),
             prior_campaign_path=args.prior_campaign.resolve(),
             prior_campaign_file_sha256=args.prior_campaign_file_sha256,
             selection_path=args.gpu_selection.resolve(),

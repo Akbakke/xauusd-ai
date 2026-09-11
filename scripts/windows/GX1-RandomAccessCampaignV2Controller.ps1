@@ -6,7 +6,8 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedControllerSha256,
     [string]$Distro = 'Ubuntu-22.04',
     [string]$LinuxUser = 'andre2',
-    [string]$Python = '.venv/bin/python'
+    [string]$Python = '.venv/bin/python',
+    [string]$CampaignControlRepo = $SourceRepo
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -16,7 +17,7 @@ function Invoke-Gx1Json {
         [ValidateRange(1, 30000)][int]$TimeoutMilliseconds = 30000
     )
     $result = Invoke-Gx1WslBounded -Arguments (@(
-        '--cd', $SourceRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
+        '--cd', $CampaignControlRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
     ) + $Arguments) -TimeoutMilliseconds $TimeoutMilliseconds
     $lines = @($result.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
     if ($result.ExitCode -ne 0 -or $lines.Count -ne 1) {
@@ -563,6 +564,11 @@ if ($status.action.decision -cne 'LAUNCH') { throw 'Campaign returned no admissi
 # leaves the campaign non-active and CUDA is never invoked.
 $bootstrapStage = 'telemetry_readiness'
 Confirm-Gx1SignedHostTelemetryReady -Status $status
+$bootstrapStage = 'begin_invocation'
+$begin = Invoke-Gx1Json -Arguments @(
+    'begin', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
+    '--boot-json', $boot.Linux
+)
 } catch {
     $bootstrapError = $_
     try {
@@ -570,10 +576,6 @@ Confirm-Gx1SignedHostTelemetryReady -Status $status
     } catch {}
     throw $bootstrapError
 }
-$begin = Invoke-Gx1Json -Arguments @(
-    'begin', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
-    '--boot-json', $boot.Linux
-)
 $invocation = $begin.invocation
 $argv = @($invocation.launcher_argv | ForEach-Object { [string]$_ })
 $progressWindows = Convert-Gx1WslPath -LinuxPath ([string]$invocation.progress_path)
@@ -632,7 +634,12 @@ $trainer.WaitForExit()
 $observer.WaitForExit()
 if ($null -eq $trainer.ExitCode -or $null -eq $observer.ExitCode) { throw 'Child process exit code unavailable' }
 $outcome = if ($trainer.ExitCode -eq 0 -and $observer.ExitCode -eq 0) {
-    [string]$invocation.expected_success_outcome
+    if ([string]$invocation.expected_success_outcome -ceq 'RESUMABLE_OR_COMPLETE') {
+        'AUTO' # The CLI resolves the validated terminal progress outcome.
+    }
+    else {
+        [string]$invocation.expected_success_outcome
+    }
 }
 else {
     'FAILED'

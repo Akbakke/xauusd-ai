@@ -905,8 +905,10 @@ def test_production_materializer_builds_acyclic_phase_plans(
         "gx1.contracts.unified_exit_final_train_checkpoint_authority_v1.require_final_train_checkpoint_authority",
         lambda value, verify_files=True: dict(value),
     )
+    control_repo, _, _, _ = _source(tmp_path / "control")
     phase3 = materialize_full_val_campaign(
         repo=repo,
+        controller_repo=control_repo,
         output=tmp_path / "phase3",
         runtime=tmp_path / "runtime-phase3",
         gpu_uuid="GPU-12345678-1234-1234-1234-123456789abc",
@@ -928,6 +930,15 @@ def test_production_materializer_builds_acyclic_phase_plans(
     )
     val_invocations = phase3["plan"]["checked_invocations"]
     assert phase3["plan"]["phase"] == "full_val"
+    assert phase3["plan"]["source_repo"] == str(repo)
+    assert phase3["plan"]["source_commit"] == commit
+    assert phase3["plan"]["controller_sources"]["campaign_cli"]["path"] == str(
+        control_repo / "gx1/scripts/local_random_access_campaign_v2.py"
+    )
+    assert all(
+        item["launcher_argv"][0] == str(repo / "scripts/gx1_capped_run.sh")
+        for item in val_invocations
+    )
     assert [item["kind"] for item in val_invocations] == [
         "full_val_window",
         "full_val_window",
@@ -944,11 +955,23 @@ def test_production_materializer_builds_acyclic_phase_plans(
 
     phase3_path = Path(phase3["path"])
     boot1 = _boot(101, 1)
-    begun = begin_invocation(
-        plan_path=phase3_path,
-        plan_file_sha256=phase3["sha256"],
-        current_boot=boot1,
-    )
+    import gx1.scripts.local_random_access_campaign_v2 as campaign_cli
+
+    load_calls = []
+    original_load = campaign_cli._load_plan
+
+    def counted_load(*args):
+        load_calls.append(args)
+        return original_load(*args)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(campaign_cli, "_load_plan", counted_load)
+        begun = begin_invocation(
+            plan_path=phase3_path,
+            plan_file_sha256=phase3["sha256"],
+            current_boot=boot1,
+        )
+    assert len(load_calls) == 1
     assert begun["invocation"]["window_index"] == 0
     cursor_path = Path(val_invocations[0]["rollout_cursor_path"])
     _write(cursor_path, {"next_state_index": 7})
@@ -981,12 +1004,21 @@ def test_production_materializer_builds_acyclic_phase_plans(
         "telemetry_owner=signed_windows_bridge event=telemetry\n"
         "event=exit child_status=0\n",
     )
+    with pytest.raises(RandomAccessCampaignError, match="automatic success outcome"):
+        record_invocation(
+            plan_path=phase3_path,
+            plan_file_sha256=phase3["sha256"],
+            trainer_guard_exit_code=7,
+            progress_observer_exit_code=0,
+            outcome="AUTO",
+        )
+    assert not (Path(phase3["plan"]["runtime_root"]) / "receipts").exists()
     first_receipt = record_invocation(
         plan_path=phase3_path,
         plan_file_sha256=phase3["sha256"],
         trainer_guard_exit_code=0,
         progress_observer_exit_code=0,
-        outcome="RESUMABLE",
+        outcome="AUTO",
     )["receipt"]
     snapshot_path = Path(first_receipt["rollout_cursor_snapshot"]["path"])
     assert snapshot_path.read_bytes() == cursor_path.read_bytes()
@@ -1036,7 +1068,7 @@ def test_production_materializer_builds_acyclic_phase_plans(
         plan_file_sha256=phase3["sha256"],
         trainer_guard_exit_code=0,
         progress_observer_exit_code=0,
-        outcome="COMPLETE",
+        outcome="AUTO",
     )
     final = inspect_campaign(
         plan_path=phase3_path,
@@ -1059,3 +1091,25 @@ def test_private_invocation_parents_are_created_without_output_files(
     linked.symlink_to(parent, target_is_directory=True)
     with pytest.raises(RandomAccessCampaignError, match="parent chain invalid"):
         _prepare_private_directory(linked / "child", label="guard")
+
+
+def test_running_control_cli_rejects_wrong_source_or_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import gx1.scripts.local_random_access_campaign_v2 as cli
+
+    source = tmp_path / "control.py"
+    source.write_text("control")
+    plan_path = tmp_path / "plan.json"
+    _write(plan_path, {"controller_sources": {"campaign_cli": _binding(source)}})
+    monkeypatch.setattr(cli, "__file__", str(source))
+    cli._require_running_cli(plan_path, file_sha256(plan_path))
+    source.write_text("different")
+    with pytest.raises(RandomAccessCampaignError, match="running campaign CLI"):
+        cli._require_running_cli(plan_path, file_sha256(plan_path))
+    source.write_text("control")
+    other = tmp_path / "other.py"
+    other.write_text("control")
+    monkeypatch.setattr(cli, "__file__", str(other))
+    with pytest.raises(RandomAccessCampaignError, match="running campaign CLI"):
+        cli._require_running_cli(plan_path, file_sha256(plan_path))
