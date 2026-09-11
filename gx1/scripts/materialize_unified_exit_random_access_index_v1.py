@@ -61,7 +61,7 @@ def _sealed_json(path: Path, value: dict[str, Any], key: str) -> None:
     )
 
 
-def _paths(root: Path, split: str) -> dict[str, Path]:
+def _paths(root: Path, split: str, final_bindings_dir: Path) -> dict[str, Path]:
     suffix = split.upper()
     return {
         "entry_parquet": root / "ENTRY_WINDOW" / f"{split}.parquet",
@@ -75,11 +75,9 @@ def _paths(root: Path, split: str) -> dict[str, Path]:
         "closure_authority": root
         / f"CLOSURE_AUTHORITY_{suffix}_V2"
         / "market_closure_authority.json",
-        "sequence_binding": root
-        / "FINAL_BINDINGS_V1"
+        "sequence_binding": final_bindings_dir
         / f"SPLIT_SEQUENCE_BINDING_{suffix}.json",
-        "first_state_bridge": root
-        / "FINAL_BINDINGS_V1"
+        "first_state_bridge": final_bindings_dir
         / f"FIRST_STATE_ENTRY_BRIDGE_{suffix}.json",
         "economic_authority": root
         / "ECONOMICS"
@@ -98,8 +96,9 @@ def _build_split(
     final_output_dir: Path,
     composite: dict[str, Any],
     final_bundle_path: Path,
+    final_bindings_dir: Path,
 ) -> dict[str, Any]:
-    paths = _paths(pilot_root, split)
+    paths = _paths(pilot_root, split, final_bindings_dir)
     if any(not path.is_file() or path.is_symlink() for path in paths.values()):
         raise RuntimeError(
             f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_SOURCE_MISSING"
@@ -249,11 +248,21 @@ def _build_split(
     return manifest
 
 
-def publish(*, pilot_root: Path, output_dir: Path) -> dict[str, Any]:
+def publish(
+    *,
+    pilot_root: Path,
+    output_dir: Path,
+    final_bindings_dir: Path | None = None,
+) -> dict[str, Any]:
     pilot_root = pilot_root.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
-    composite_path = pilot_root / "FINAL_BINDINGS_V1" / "COMPOSITE_NORMALIZATION.json"
-    final_bundle_path = pilot_root / "FINAL_BINDINGS_V1" / "FINAL_BINDINGS_BUNDLE.json"
+    bindings_dir = (
+        final_bindings_dir.expanduser().resolve()
+        if final_bindings_dir is not None
+        else pilot_root / "FINAL_BINDINGS_V1"
+    )
+    composite_path = bindings_dir / "COMPOSITE_NORMALIZATION.json"
+    final_bundle_path = bindings_dir / "FINAL_BINDINGS_BUNDLE.json"
     composite = require_composite_normalization_binding(_read_json(composite_path))
     final_bundle = _read_json(final_bundle_path)
     if (
@@ -285,6 +294,7 @@ def publish(*, pilot_root: Path, output_dir: Path) -> dict[str, Any]:
                 final_output_dir=output_dir,
                 composite=composite,
                 final_bundle_path=final_bundle_path,
+                final_bindings_dir=bindings_dir,
             )
             for split in ("train", "val")
         }
@@ -350,10 +360,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--final-bindings-dir", type=Path)
     args = parser.parse_args()
     print(
         json.dumps(
-            publish(pilot_root=args.pilot_root, output_dir=args.output_dir), indent=2
+            publish(
+                pilot_root=args.pilot_root,
+                output_dir=args.output_dir,
+                final_bindings_dir=args.final_bindings_dir,
+            ),
+            indent=2,
         )
     )
 
