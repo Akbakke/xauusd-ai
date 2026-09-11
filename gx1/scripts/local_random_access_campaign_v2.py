@@ -263,6 +263,8 @@ def inspect_campaign(
         "plan_sha256": plan["plan_sha256"],
         "action": action,
         "controller_sources": plan["controller_sources"],
+        "signed_guard_sources": plan["signed_guard_sources"],
+        "gpu_uuid": plan["gpu_uuid"],
         "policy": plan["policy"],
         "cuda_started": False,
         "test_authorized": False,

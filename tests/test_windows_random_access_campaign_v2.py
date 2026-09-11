@@ -101,3 +101,43 @@ def test_boot_identity_escapes_windows_path_only_at_wslpath_boundary() -> None:
     assert invocation in source
     assert source.index(assignment) < source.index(invocation)
     assert "wslpath -u $path" not in source
+
+
+def test_controller_refreshes_exact_v4_proxy_and_signed_probe_before_active() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    gate = "Confirm-Gx1SignedHostTelemetryReady -Status $status"
+    begin = "$begin = Invoke-Gx1Json -Arguments @("
+    assert gate in source
+    assert source.index(gate) < source.index(begin)
+    assert source.index(begin) < source.index("Start-Process -FilePath 'wsl.exe'")
+    assert "ACTIVE_INVOCATION.json" in source
+    assert (
+        'interface portproxy delete v4tov4 "listenaddress=$($Bridge.ListenAddress)" '
+        '"listenport=$($Bridge.ListenPort)" protocol=tcp'
+    ) in source
+    assert "interface portproxy add v4tov4" in source
+    assert '"connectaddress=$($Bridge.ConnectAddress)"' in source
+    assert '"connectport=$($Bridge.ConnectPort)"' in source
+    assert "New-NetFirewallRule" not in source
+    assert "nvidia-smi" not in source.lower()
+
+
+def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assert "C:\\ProgramData\\GX1\\HostTelemetryBridgeV4" not in source  # composed from ProgramData
+    assert "'GX1\\HostTelemetryBridgeV4'" in source
+    assert "'172.30.224.1'" in source
+    assert "'172.30.231.75'" in source
+    assert "'http://127.0.0.1:38127/gx1/v1/telemetry/'" in source
+    assert "'http://172.30.224.1:38128/gx1/v1/telemetry/'" in source
+    assert "'GX1HostTelemetryBridge'" in source
+    assert "Get-NetTCPConnection -State Listen -LocalPort 38127" in source
+    assert "Get-NetFirewallAddressFilter" in source
+    assert "Get-NetFirewallPortFilter" in source
+    assert "/usr/bin/sha256sum $bridge.QueryPath" in source
+    assert "$bridge.CertificateSha256 $bridge.GpuUuid '2'" in source
+    assert "foreach ($attempt in 1..12)" in source
+    assert "Start-Sleep -Seconds 2" in source
+    gate_call = source.index("Confirm-Gx1SignedHostTelemetryReady -Status $status")
+    begin_call = source.index("$begin = Invoke-Gx1Json -Arguments @(")
+    assert gate_call < begin_call

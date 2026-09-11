@@ -66,6 +66,181 @@ function Write-Gx1BootIdentity {
     if ($LASTEXITCODE -ne 0 -or $linux.Count -ne 1) { throw 'Boot identity path conversion failed' }
     return [pscustomobject]@{ Windows = $path; Linux = $linux[0]; Payload = $value }
 }
+function Test-Gx1PrivateIpv4 {
+    param([Parameter(Mandatory = $true)][string]$Address)
+    $parsed = $null
+    if (-not [Net.IPAddress]::TryParse($Address, [ref]$parsed) -or
+        $parsed.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork) {
+        return $false
+    }
+    $octets = $parsed.GetAddressBytes()
+    return ($octets[0] -eq 10 -or
+        ($octets[0] -eq 172 -and $octets[1] -ge 16 -and $octets[1] -le 31) -or
+        ($octets[0] -eq 192 -and $octets[1] -eq 168))
+}
+function Assert-Gx1HostTelemetryBridgeV4 {
+    param([Parameter(Mandatory = $true)][object]$Status)
+    $bridgeRoot = Join-Path $env:ProgramData 'GX1\HostTelemetryBridgeV4'
+    $configurationPath = Join-Path $bridgeRoot 'bridge-config.json'
+    $expectedServicePath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.ps1'
+    $expectedRunnerPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeRunner.ps1'
+    $expectedLogPath = Join-Path $bridgeRoot 'GX1-HostTelemetryBridgeService.log'
+    $expectedCertificateWindowsPath = Join-Path $bridgeRoot 'GX1HostTelemetryBridgePublic.pem'
+    $expectedCertificateWslPath = '/mnt/c/ProgramData/GX1/HostTelemetryBridgeV4/GX1HostTelemetryBridgePublic.pem'
+    $expectedQueryPath = $SourceRepo.TrimEnd('/') + '/scripts/gx1_host_telemetry_bridge_query.sh'
+    $expectedListenAddress = '172.30.224.1'
+    $expectedClientAddress = '172.30.231.75'
+    $expectedLoopbackEndpoint = 'http://127.0.0.1:38127/gx1/v1/telemetry/'
+    $expectedWslEndpoint = 'http://172.30.224.1:38128/gx1/v1/telemetry/'
+    $expectedTaskName = 'GX1HostTelemetryBridge'
+
+    foreach ($path in @($configurationPath, $expectedServicePath, $expectedRunnerPath, $expectedLogPath, $expectedCertificateWindowsPath)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or
+            ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'HostTelemetryBridgeV4 required file is missing or is a reparse point'
+        }
+    }
+    $configuration = Get-Content -LiteralPath $configurationPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $expectedConfigurationFields = @(
+        'certificate_thumbprint', 'expected_gpu_name', 'gpu_index', 'loopback_endpoint',
+        'runner_path', 'schema_version', 'service_log_path', 'service_path',
+        'wsl_client_address', 'wsl_endpoint', 'wsl_listen_address', 'wsl_proxy_port',
+        'wsl_transport'
+    )
+    $actualConfigurationFields = @($configuration.PSObject.Properties.Name | Sort-Object)
+    if ((Compare-Object -ReferenceObject $expectedConfigurationFields -DifferenceObject $actualConfigurationFields).Count -ne 0 -or
+        $configuration.schema_version -cne 'gx1_host_telemetry_bridge_install_v1' -or
+        $configuration.expected_gpu_name -cne 'NVIDIA GeForce RTX 3090' -or
+        [int]$configuration.gpu_index -ne 0 -or
+        $configuration.loopback_endpoint -cne $expectedLoopbackEndpoint -or
+        $configuration.wsl_endpoint -cne $expectedWslEndpoint -or
+        $configuration.wsl_listen_address -cne $expectedListenAddress -or
+        $configuration.wsl_client_address -cne $expectedClientAddress -or
+        [int]$configuration.wsl_proxy_port -ne 38128 -or
+        $configuration.wsl_transport -cne 'v4tov4_portproxy_to_windows_loopback' -or
+        -not [StringComparer]::OrdinalIgnoreCase.Equals([string]$configuration.service_path, $expectedServicePath) -or
+        -not [StringComparer]::OrdinalIgnoreCase.Equals([string]$configuration.runner_path, $expectedRunnerPath) -or
+        -not [StringComparer]::OrdinalIgnoreCase.Equals([string]$configuration.service_log_path, $expectedLogPath) -or
+        -not (Test-Gx1PrivateIpv4 -Address ([string]$configuration.wsl_listen_address)) -or
+        -not (Test-Gx1PrivateIpv4 -Address ([string]$configuration.wsl_client_address))) {
+        throw 'HostTelemetryBridgeV4 configuration differs from the exact campaign transport'
+    }
+
+    $queryBinding = $Status.signed_guard_sources.query
+    $certificateBinding = $Status.signed_guard_sources.certificate
+    if ($queryBinding.path -cne $expectedQueryPath -or
+        $certificateBinding.path -cne $expectedCertificateWslPath -or
+        $Status.gpu_uuid -notmatch '^GPU-[0-9a-fA-F-]{36}$' -or
+        (Get-FileHash -LiteralPath $expectedCertificateWindowsPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$certificateBinding.sha256) {
+        throw 'Host telemetry query, certificate, or GPU identity differs from the source-bound campaign'
+    }
+    $thumbprint = [string]$configuration.certificate_thumbprint
+    if ($thumbprint -notmatch '^[0-9A-F]{40}$') { throw 'Host telemetry certificate thumbprint is malformed' }
+    $signingCertificate = Get-Item -LiteralPath ("Cert:\LocalMachine\My\$thumbprint") -ErrorAction Stop
+    if (-not $signingCertificate.HasPrivateKey) { throw 'Host telemetry signing certificate has no private key' }
+
+    $task = Get-ScheduledTask -TaskName $expectedTaskName -ErrorAction Stop
+    $expectedPowerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $expectedTaskArguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$expectedRunnerPath`""
+    if ($task.State -ne 'Running' -or
+        $task.Principal.UserId -cne 'SYSTEM' -or
+        [string]$task.Principal.LogonType -cne 'ServiceAccount' -or
+        [string]$task.Principal.RunLevel -cne 'Highest' -or
+        @($task.Actions).Count -ne 1 -or
+        -not [StringComparer]::OrdinalIgnoreCase.Equals([string]$task.Actions[0].Execute, $expectedPowerShell) -or
+        [string]$task.Actions[0].Arguments -cne $expectedTaskArguments -or
+        @($task.Triggers).Count -ne 1 -or
+        $task.Triggers[0].CimClass.CimClassName -cne 'MSFT_TaskBootTrigger' -or
+        $task.Settings.StartWhenAvailable -ne $true -or
+        [string]$task.Settings.MultipleInstances -cne 'IgnoreNew') {
+        throw 'HostTelemetryBridgeV4 scheduled task assumptions differ'
+    }
+    $listeners = @(Get-NetTCPConnection -State Listen -LocalPort 38127 -ErrorAction Stop)
+    if ($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1') {
+        throw 'HostTelemetryBridgeV4 loopback listener is unavailable or widened'
+    }
+
+    $wslAddresses = @(& wsl.exe -d $Distro -u $LinuxUser -- /bin/hostname -I)
+    if ($LASTEXITCODE -ne 0 -or $wslAddresses.Count -ne 1 -or
+        -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
+        throw 'Current WSL client address differs from HostTelemetryBridgeV4 configuration'
+    }
+    $defaultRoutes = @(& wsl.exe -d $Distro -u $LinuxUser -- /usr/sbin/ip -4 route show default)
+    if ($LASTEXITCODE -ne 0 -or $defaultRoutes.Count -ne 1 -or
+        [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
+        $Matches[1] -cne $expectedListenAddress) {
+        throw 'Current WSL gateway differs from HostTelemetryBridgeV4 configuration'
+    }
+
+    $firewallRules = @(Get-NetFirewallRule -DisplayName 'GX1HostTelemetryBridge-Wsl-38128' -ErrorAction Stop)
+    if ($firewallRules.Count -ne 1 -or [string]$firewallRules[0].Enabled -cne 'True' -or
+        [string]$firewallRules[0].Direction -cne 'Inbound' -or
+        [string]$firewallRules[0].Action -cne 'Allow' -or
+        [string]$firewallRules[0].Profile -cne 'Any' -or
+        [string]$firewallRules[0].EdgeTraversalPolicy -cne 'Block') {
+        throw 'HostTelemetryBridgeV4 firewall rule assumptions differ'
+    }
+    $addressFilters = @($firewallRules[0] | Get-NetFirewallAddressFilter -ErrorAction Stop)
+    $portFilters = @($firewallRules[0] | Get-NetFirewallPortFilter -ErrorAction Stop)
+    if ($addressFilters.Count -ne 1 -or $portFilters.Count -ne 1 -or
+        [string]$addressFilters[0].LocalAddress -cne $expectedListenAddress -or
+        [string]$addressFilters[0].RemoteAddress -cne $expectedClientAddress -or
+        [string]$portFilters[0].Protocol -cne 'TCP' -or
+        [string]$portFilters[0].LocalPort -cne '38128') {
+        throw 'HostTelemetryBridgeV4 firewall scope differs'
+    }
+    return [pscustomobject]@{
+        Url = $expectedWslEndpoint
+        ListenAddress = $expectedListenAddress
+        ListenPort = 38128
+        ConnectAddress = '127.0.0.1'
+        ConnectPort = 38127
+        QueryPath = [string]$queryBinding.path
+        QuerySha256 = [string]$queryBinding.sha256
+        CertificatePath = [string]$certificateBinding.path
+        CertificateSha256 = [string]$certificateBinding.sha256
+        GpuUuid = [string]$Status.gpu_uuid
+    }
+}
+function Reset-Gx1HostTelemetryPortProxy {
+    param([Parameter(Mandatory = $true)][object]$Bridge)
+    $netsh = Join-Path $env:WINDIR 'System32\netsh.exe'
+    # Only the exact private V4 rule is touched. Missing-rule deletion is benign;
+    # the checked add and signed end-to-end probe below remain fail closed.
+    & $netsh interface portproxy delete v4tov4 "listenaddress=$($Bridge.ListenAddress)" "listenport=$($Bridge.ListenPort)" protocol=tcp 2>$null | Out-Null
+    $added = @(& $netsh interface portproxy add v4tov4 `
+        "listenaddress=$($Bridge.ListenAddress)" `
+        "listenport=$($Bridge.ListenPort)" `
+        "connectaddress=$($Bridge.ConnectAddress)" `
+        "connectport=$($Bridge.ConnectPort)" `
+        protocol=tcp 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Exact HostTelemetryBridgeV4 portproxy refresh failed: $(($added | Out-String).Trim())"
+    }
+}
+function Confirm-Gx1SignedHostTelemetryReady {
+    param([Parameter(Mandatory = $true)][object]$Status)
+    $bridge = Assert-Gx1HostTelemetryBridgeV4 -Status $Status
+    Reset-Gx1HostTelemetryPortProxy -Bridge $bridge
+
+    $queryHashOutput = @(& wsl.exe -d $Distro -u $LinuxUser -- /usr/bin/sha256sum $bridge.QueryPath)
+    if ($LASTEXITCODE -ne 0 -or $queryHashOutput.Count -ne 1 -or
+        [string]$queryHashOutput[0] -notmatch '^([0-9a-f]{64})  ' -or
+        $Matches[1] -cne $bridge.QuerySha256) {
+        throw 'Canonical host telemetry query no longer matches the inspected source binding'
+    }
+    foreach ($attempt in 1..12) {
+        $telemetry = @(& wsl.exe -d $Distro -u $LinuxUser -- $bridge.QueryPath `
+            $bridge.Url $bridge.CertificatePath $bridge.CertificateSha256 $bridge.GpuUuid '2')
+        $probeExitCode = $LASTEXITCODE
+        if ($probeExitCode -eq 0 -and $telemetry.Count -eq 1 -and
+            [string]$telemetry[0] -match '^[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+(?:\.[0-9]+)?,[0-9]+$') {
+            return
+        }
+        if ($attempt -lt 12) { Start-Sleep -Seconds 2 }
+    }
+    throw 'Canonical signed HostTelemetryBridgeV4 readiness probe failed after bounded retry'
+}
 function Request-Gx1PhysicalReboot {
     param([object]$Boot)
     $prepared = Invoke-Gx1Json -Arguments @(
@@ -126,6 +301,10 @@ if ($status.action.decision -ceq 'COMPLETE' -or $status.action.decision -like 'B
     exit 0
 }
 if ($status.action.decision -cne 'LAUNCH') { throw 'Campaign returned no admissible action' }
+# The readiness probe must precede begin: begin publishes ACTIVE_INVOCATION.json.
+# Any bridge, proxy, source, certificate, or signed-query failure therefore
+# leaves the campaign non-active and CUDA is never invoked.
+Confirm-Gx1SignedHostTelemetryReady -Status $status
 $begin = Invoke-Gx1Json -Arguments @(
     'begin', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
     '--boot-json', $boot.Linux

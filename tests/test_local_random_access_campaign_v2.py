@@ -581,14 +581,14 @@ def test_two_phase_sequence_and_selected_epoch_budget(tmp_path: Path) -> None:
         == "REBOOT_REQUIRED"
     )
     assert next_action(gpu, [], current_boot=_boot(101, 1))["kind"] == "smoke_arm"
-    assert (
-        inspect_campaign(
-            plan_path=gpu_path,
-            plan_file_sha256=file_sha256(gpu_path),
-            current_boot=_boot(101, 1),
-        )["action"]["decision"]
-        == "LAUNCH"
+    inspected = inspect_campaign(
+        plan_path=gpu_path,
+        plan_file_sha256=file_sha256(gpu_path),
+        current_boot=_boot(101, 1),
     )
+    assert inspected["action"]["decision"] == "LAUNCH"
+    assert inspected["signed_guard_sources"] == checked_gpu["signed_guard_sources"]
+    assert inspected["gpu_uuid"] == checked_gpu["gpu_uuid"]
     selected, _, invocations = _selected_plan(
         tmp_path, gpu, gpu_path, gpu_invocations, repo, commit, guards, controllers
     )
