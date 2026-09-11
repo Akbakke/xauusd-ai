@@ -69,6 +69,16 @@ def test_progress_sidecar_is_token_free_and_not_a_gpu_safety_owner() -> None:
     assert "KILL_AND_BLOCK" not in source
 
 
+def test_progress_sidecar_atomically_handles_new_and_existing_status() -> None:
+    source = OBSERVER.read_text(encoding="utf-8")
+    assert "$backup = $Path + '.backup.' + [guid]::NewGuid().ToString('N')" in source
+    assert "[IO.File]::Replace($temporary, $Path, $backup)" in source
+    assert "[IO.File]::Move($temporary, $Path)" in source
+    assert "[IO.File]::Replace($temporary, $Path, $null)" not in source
+    assert source.count("Remove-Item -LiteralPath $backup -Force") == 2
+    assert "if (Test-Path -LiteralPath $temporary)" in source
+
+
 def test_installer_uses_explicit_wsl_owner_and_startup_only() -> None:
     source = INSTALLER.read_text(encoding="utf-8")
     assert "New-ScheduledTaskTrigger -AtStartup" in source

@@ -8,6 +8,7 @@ import json
 import os
 import secrets
 import shutil
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -58,6 +59,33 @@ def _atomic_new(path: Path, value: Mapping[str, Any]) -> None:
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _prepare_private_directory(path: Path, *, label: str) -> None:
+    """Create a mutable-output parent without following directory symlinks."""
+    missing: list[Path] = []
+    cursor = path
+    while not cursor.exists() and not cursor.is_symlink():
+        missing.append(cursor)
+        if cursor.parent == cursor:
+            break
+        cursor = cursor.parent
+    for existing in (cursor, *cursor.parents):
+        info = existing.lstat()
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+            raise RandomAccessCampaignError(f"{label} parent chain invalid")
+    for directory in reversed(missing):
+        directory.mkdir(mode=0o700)
+        info = directory.lstat()
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+            raise RandomAccessCampaignError(f"{label} parent creation invalid")
+        os.chmod(directory, 0o700)
+    info = path.lstat()
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+        raise RandomAccessCampaignError(f"{label} parent invalid")
+    os.chmod(path, 0o700)
+    if stat.S_IMODE(path.lstat().st_mode) != 0o700:
+        raise RandomAccessCampaignError(f"{label} parent is not private")
 
 
 def _snapshot_invocation_evidence(
@@ -259,6 +287,16 @@ def begin_invocation(
     runtime = Path(plan["runtime_root"])
     invocation = action["invocation"]
     pointer = Path(invocation["checkpoint"]["pointer_path"])
+    progress_path = Path(invocation["progress_path"])
+    guard_path = Path(invocation["guard_log_path"])
+    for parent, label in (
+        (pointer.parent, "checkpoint"),
+        (progress_path.parent, "progress"),
+        (guard_path.parent, "guard"),
+    ):
+        _prepare_private_directory(parent, label=label)
+    if guard_path.exists() or guard_path.is_symlink():
+        raise RandomAccessCampaignError("fresh guard output already exists")
     before_mode = invocation["checkpoint"]["before_mode"]
     rollout_cursor_before: str | None = None
     if before_mode == "GENESIS":

@@ -29,6 +29,7 @@ from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
     canonical_sha256 as selection_sha256,
 )
 from gx1.scripts.local_random_access_campaign_v2 import (
+    _prepare_private_directory,
     begin_invocation,
     confirm_reboot,
     inspect_campaign,
@@ -639,6 +640,13 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
     )
     assert Path(active["active_marker"]["path"]).is_file()
     invocation = invocations[0]
+    for output_parent in (
+        Path(invocation["checkpoint"]["pointer_path"]).parent,
+        Path(invocation["progress_path"]).parent,
+        Path(invocation["guard_log_path"]).parent,
+    ):
+        assert output_parent.stat().st_mode & 0o777 == 0o700
+    assert not Path(invocation["guard_log_path"]).exists()
     pointer = Path(invocation["checkpoint"]["pointer_path"])
     _write(
         pointer,
@@ -999,3 +1007,18 @@ def test_production_materializer_builds_acyclic_phase_plans(
         current_boot=boot2,
     )
     assert final["action"]["decision"] == "COMPLETE"
+
+
+def test_private_invocation_parents_are_created_without_output_files(
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "new" / "checkpoint"
+    _prepare_private_directory(parent, label="checkpoint")
+    assert parent.is_dir()
+    assert parent.stat().st_mode & 0o777 == 0o700
+    assert list(parent.iterdir()) == []
+
+    linked = tmp_path / "linked"
+    linked.symlink_to(parent, target_is_directory=True)
+    with pytest.raises(RandomAccessCampaignError, match="parent chain invalid"):
+        _prepare_private_directory(linked / "child", label="guard")

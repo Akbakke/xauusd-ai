@@ -13,13 +13,21 @@ $ErrorActionPreference = 'Stop'
 function Write-Gx1AtomicJson {
     param([string]$Path, [object]$Value)
     $temporary = $Path + '.tmp.' + [guid]::NewGuid().ToString('N')
+    $backup = $Path + '.backup.' + [guid]::NewGuid().ToString('N')
     $payload = ($Value | ConvertTo-Json -Depth 12 -Compress) + [Environment]::NewLine
-    [IO.File]::WriteAllText($temporary, $payload, [Text.UTF8Encoding]::new($false))
-    if (Test-Path -LiteralPath $Path) {
-        [IO.File]::Replace($temporary, $Path, $null)
+    try {
+        [IO.File]::WriteAllText($temporary, $payload, [Text.UTF8Encoding]::new($false))
+        if (Test-Path -LiteralPath $Path) {
+            [IO.File]::Replace($temporary, $Path, $backup)
+            Remove-Item -LiteralPath $backup -Force
+        }
+        else {
+            [IO.File]::Move($temporary, $Path)
+        }
     }
-    else {
-        [IO.File]::Move($temporary, $Path)
+    finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+        if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
     }
 }
 function Read-Gx1Progress {
