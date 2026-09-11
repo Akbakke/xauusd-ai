@@ -136,6 +136,25 @@ def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
     assert "Get-NetFirewallPortFilter" in source
     assert "/usr/bin/sha256sum $bridge.QueryPath" in source
     assert "$bridge.CertificateSha256 $bridge.GpuUuid '2'" in source
+    assert "$deadlineMilliseconds = 60000" in source
+    assert "$nativeCallLimitMilliseconds = 8000" in source
+    assert "$process.WaitForExit($TimeoutMilliseconds)" in source
+    assert "$process.Kill()" in source
+    assert "[Diagnostics.Stopwatch]::StartNew()" in source
+    assert "WSL distro or user is unsafe for direct process arguments" in source
+    assert "HostTelemetryBridgeV4 boot readiness failed after bounded retry" in source
+    confirm_start = source.index("function Confirm-Gx1SignedHostTelemetryReady")
+    wait_call = source.index(
+        "Wait-Gx1HostTelemetryBridgeV4BootReady", confirm_start
+    )
+    exact_assert = source.index(
+        "$bridge = Assert-Gx1HostTelemetryBridgeV4 -Status $Status", confirm_start
+    )
+    proxy_refresh = source.index(
+        "Reset-Gx1HostTelemetryPortProxy -Bridge $bridge", confirm_start
+    )
+    signed_retry = source.index("foreach ($attempt in 1..12)", confirm_start)
+    assert wait_call < exact_assert < proxy_refresh < signed_retry
     assert "foreach ($attempt in 1..12)" in source
     assert "Start-Sleep -Seconds 2" in source
     gate_call = source.index("Confirm-Gx1SignedHostTelemetryReady -Status $status")

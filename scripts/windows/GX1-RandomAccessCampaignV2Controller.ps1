@@ -202,6 +202,95 @@ function Assert-Gx1HostTelemetryBridgeV4 {
         GpuUuid = [string]$Status.gpu_uuid
     }
 }
+function Invoke-Gx1NativeProcessBounded {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string]$Arguments,
+        [Parameter(Mandatory = $true)][int]$TimeoutMilliseconds
+    )
+    if ($TimeoutMilliseconds -le 0) { throw 'Native process timeout must be positive' }
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = $Arguments
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        if (-not $process.Start()) { throw "Failed to start bounded process: $FilePath" }
+        if (-not $process.WaitForExit($TimeoutMilliseconds)) {
+            try { $process.Kill() } catch {}
+            try { $process.WaitForExit() } catch {}
+            throw "Bounded process timed out after $($TimeoutMilliseconds)ms: $FilePath"
+        }
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+        return [pscustomobject]@{
+            ExitCode = [int]$process.ExitCode
+            StdOut = [string]$stdout
+            StdErr = [string]$stderr
+        }
+    } finally {
+        $process.Dispose()
+    }
+}
+function Wait-Gx1HostTelemetryBridgeV4BootReady {
+    # The telemetry service and campaign controller are independent boot tasks.
+    # Wait only for their dynamic boot state here; Assert below revalidates the
+    # complete immutable task, transport, source, certificate, and firewall shape.
+    $expectedTaskName = 'GX1HostTelemetryBridge'
+    $expectedClientAddress = '172.30.231.75'
+    $expectedListenAddress = '172.30.224.1'
+    $deadlineMilliseconds = 60000
+    $nativeCallLimitMilliseconds = 8000
+    if ($Distro -notmatch '^[A-Za-z0-9_.-]+$' -or $LinuxUser -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw 'WSL distro or user is unsafe for direct process arguments'
+    }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $lastFailure = 'boot readiness was not observed'
+    while ($clock.ElapsedMilliseconds -lt $deadlineMilliseconds) {
+        try {
+            $task = Get-ScheduledTask -TaskName $expectedTaskName -ErrorAction Stop
+            if ($task.State -ne 'Running') {
+                throw "telemetry task state is $($task.State)"
+            }
+            $listeners = @(Get-NetTCPConnection -State Listen -LocalPort 38127 -ErrorAction Stop)
+            if ($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1') {
+                throw 'loopback listener is not ready'
+            }
+
+            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
+            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
+            $wslBase = "-d $Distro -u $LinuxUser --"
+            $addressResult = Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -Arguments "$wslBase /bin/hostname -I" -TimeoutMilliseconds $callLimit
+            $wslAddresses = @($addressResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+            if ($addressResult.ExitCode -ne 0 -or $wslAddresses.Count -ne 1 -or
+                -not (([string]$wslAddresses[0]).Split(' ', [StringSplitOptions]::RemoveEmptyEntries) -ccontains $expectedClientAddress)) {
+                throw "WSL client address is not ready: $($addressResult.StdErr.Trim())"
+            }
+
+            $remaining = [int][Math]::Max(1, $deadlineMilliseconds - $clock.ElapsedMilliseconds)
+            $callLimit = [int][Math]::Min($nativeCallLimitMilliseconds, $remaining)
+            $routeResult = Invoke-Gx1NativeProcessBounded -FilePath (Join-Path $env:WINDIR 'System32\wsl.exe') -Arguments "$wslBase /usr/sbin/ip -4 route show default" -TimeoutMilliseconds $callLimit
+            $defaultRoutes = @($routeResult.StdOut -split '\r?\n' | Where-Object { $_ -cne '' })
+            if ($routeResult.ExitCode -ne 0 -or $defaultRoutes.Count -ne 1 -or
+                [string]$defaultRoutes[0] -notmatch '^default via ([0-9.]+) dev [A-Za-z0-9_.-]+(?: .*)?$' -or
+                $Matches[1] -cne $expectedListenAddress) {
+                throw "WSL gateway is not ready: $($routeResult.StdErr.Trim())"
+            }
+            return
+        } catch {
+            $lastFailure = $_.Exception.Message
+        }
+        $remaining = [int]($deadlineMilliseconds - $clock.ElapsedMilliseconds)
+        if ($remaining -gt 0) {
+            Start-Sleep -Milliseconds ([int][Math]::Min(2000, $remaining))
+        }
+    }
+    throw "HostTelemetryBridgeV4 boot readiness failed after bounded retry: $lastFailure"
+}
 function Reset-Gx1HostTelemetryPortProxy {
     param([Parameter(Mandatory = $true)][object]$Bridge)
     $netsh = Join-Path $env:WINDIR 'System32\netsh.exe'
@@ -220,6 +309,7 @@ function Reset-Gx1HostTelemetryPortProxy {
 }
 function Confirm-Gx1SignedHostTelemetryReady {
     param([Parameter(Mandatory = $true)][object]$Status)
+    Wait-Gx1HostTelemetryBridgeV4BootReady
     $bridge = Assert-Gx1HostTelemetryBridgeV4 -Status $Status
     Reset-Gx1HostTelemetryPortProxy -Bridge $bridge
 
