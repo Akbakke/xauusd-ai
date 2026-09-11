@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -12,6 +15,7 @@ from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
     _FreshWeightEma,
     _ParentSampler,
     _absolute_optimizer_step,
+    _bind_multi_tf_cache_from_source_bundle_metadata,
 )
 
 
@@ -121,3 +125,78 @@ def test_capped_runner_has_exact_non_attended_full_val_allowlist() -> None:
         "--compute-guard-max-wall-seconds",
     ):
         assert flag in source
+
+
+def _multi_tf_cache_metadata(tmp_path: Path) -> dict:
+    cache_dir = tmp_path / "MULTI_TF_V4_CACHE"
+    cache_dir.mkdir()
+    identity = "a" * 64
+    manifest_path = cache_dir / "manifest.json"
+    manifest_path.write_text(
+        json.dumps({"cache_identity_sha256": identity}, sort_keys=True)
+    )
+    return {
+        "multi_tf": {
+            "shared_cache_dir": str(cache_dir),
+            "shared_cache_manifest_path": str(manifest_path),
+            "shared_cache_manifest_sha256": hashlib.sha256(
+                manifest_path.read_bytes()
+            ).hexdigest(),
+            "shared_cache_identity_sha256": identity,
+        }
+    }
+
+
+def test_source_bundle_binds_exact_multi_tf_cache_before_dataset(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", raising=False)
+    metadata = _multi_tf_cache_metadata(tmp_path)
+    cache_dir = _bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+    assert cache_dir == tmp_path / "MULTI_TF_V4_CACHE"
+    assert cache_dir.is_absolute()
+    assert (
+        os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"]
+        == str(cache_dir)
+    )
+
+
+def test_multi_tf_cache_binding_fails_closed_when_missing_or_hash_mismatched(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", raising=False)
+    with pytest.raises(RuntimeError, match="CACHE_BINDING_MISSING"):
+        _bind_multi_tf_cache_from_source_bundle_metadata({"multi_tf": {}})
+    metadata = _multi_tf_cache_metadata(tmp_path)
+    metadata["multi_tf"]["shared_cache_manifest_sha256"] = "b" * 64
+    with pytest.raises(RuntimeError, match="CACHE_MANIFEST_MISMATCH"):
+        _bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+    assert "GX1_V10_MULTI_TF_V4_CACHE_DIR" not in os.environ
+
+
+def test_multi_tf_cache_binding_rejects_symlink_and_manifest_path_drift(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", raising=False)
+    metadata = _multi_tf_cache_metadata(tmp_path)
+    cache_dir = tmp_path / "MULTI_TF_V4_CACHE"
+    real_manifest = cache_dir / "manifest.real.json"
+    manifest_path = cache_dir / "manifest.json"
+    manifest_path.rename(real_manifest)
+    manifest_path.symlink_to(real_manifest)
+    metadata["multi_tf"]["shared_cache_manifest_sha256"] = hashlib.sha256(
+        real_manifest.read_bytes()
+    ).hexdigest()
+    with pytest.raises(RuntimeError, match="CACHE_PATH_INVALID"):
+        _bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+
+    manifest_path.unlink()
+    drifted = cache_dir / "other.json"
+    real_manifest.rename(drifted)
+    metadata["multi_tf"]["shared_cache_manifest_path"] = str(drifted)
+    metadata["multi_tf"]["shared_cache_manifest_sha256"] = hashlib.sha256(
+        drifted.read_bytes()
+    ).hexdigest()
+    with pytest.raises(RuntimeError, match="CACHE_PATH_INVALID"):
+        _bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+    assert "GX1_V10_MULTI_TF_V4_CACHE_DIR" not in os.environ

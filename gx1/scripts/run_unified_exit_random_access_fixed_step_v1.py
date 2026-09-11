@@ -75,6 +75,54 @@ def _read(path: Path) -> dict[str, Any]:
     return value
 
 
+def _bind_multi_tf_cache_from_source_bundle_metadata(
+    metadata: Mapping[str, Any],
+) -> Path:
+    """Bind the exact source-owned V4 MTF cache before dataset construction."""
+
+    multi_tf = metadata.get("multi_tf")
+    if not isinstance(multi_tf, Mapping):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MULTI_TF_CACHE_BINDING_MISSING")
+    cache_dir_raw = multi_tf.get("shared_cache_dir")
+    manifest_path_raw = multi_tf.get("shared_cache_manifest_path")
+    manifest_sha256 = multi_tf.get("shared_cache_manifest_sha256")
+    cache_identity_sha256 = multi_tf.get("shared_cache_identity_sha256")
+    if not all(
+        isinstance(value, str) and value
+        for value in (
+            cache_dir_raw,
+            manifest_path_raw,
+            manifest_sha256,
+            cache_identity_sha256,
+        )
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MULTI_TF_CACHE_BINDING_MISSING")
+    cache_dir = Path(cache_dir_raw)
+    manifest_path = Path(manifest_path_raw)
+    if (
+        not cache_dir.is_absolute()
+        or cache_dir.resolve() != cache_dir
+        or not cache_dir.is_dir()
+        or cache_dir.is_symlink()
+        or not manifest_path.is_absolute()
+        or manifest_path.resolve() != manifest_path
+        or not manifest_path.is_file()
+        or manifest_path.is_symlink()
+        or manifest_path != cache_dir / "manifest.json"
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MULTI_TF_CACHE_PATH_INVALID")
+    if (
+        len(manifest_sha256) != 64
+        or file_sha256(manifest_path) != manifest_sha256
+    ):
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MULTI_TF_CACHE_MANIFEST_MISMATCH")
+    manifest = _read(manifest_path)
+    if manifest.get("cache_identity_sha256") != cache_identity_sha256:
+        raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_MULTI_TF_CACHE_IDENTITY_MISMATCH")
+    os.environ["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_dir)
+    return cache_dir
+
+
 def _canonical(value: Any) -> str:
     return hashlib.sha256(
         json.dumps(
@@ -654,6 +702,7 @@ def run(
         raise RuntimeError("UNIFIED_EXIT_FIXED_STEP_SOURCE_NOT_CLEAN")
     _set_deterministic(int(launch["seed"]), device, "deterministic_fp32")
     meta = _read(files["source_bundle_metadata"])
+    _bind_multi_tf_cache_from_source_bundle_metadata(meta)
     child = require_composite_normalization_binding(
         _read(files["child_composite_normalization"])
     )
