@@ -173,6 +173,25 @@ def test_controller_fails_closed_on_exact_v4_host_or_source_mismatch() -> None:
     assert gate_call < begin_call
 
 
+
+def test_bootstrap_failure_is_recorded_once_before_active_without_masking() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    receipt_call = "Write-Gx1BootstrapErrorReceipt -Stage $bootstrapStage"
+    begin = "$begin = Invoke-Gx1Json -Arguments @("
+    assert "gx1_campaign_bootstrap_error_receipt_v1" in source
+    assert '"boot-$bootId-$PlanFileSha256.error.json"' in source
+    assert "exception_type = [string]$Exception.GetType().FullName" in source
+    assert "exception_message = [string]$Exception.Message" in source
+    assert "controller_sha256 = (Get-FileHash" in source
+    assert "Bootstrap error receipt controller path must be an absolute existing non-reparse file" in source
+    assert "-ControllerPath $PSCommandPath" in source
+    assert "Bootstrap error receipt already exists for this BootId and plan" in source
+    assert source.index("$bootstrapStage = 'mutex'") < source.index(receipt_call) < source.index(begin)
+    assert source.index("throw $bootstrapError", source.index(receipt_call)) < source.index(begin)
+    harness = HARDENING_TEST.read_text(encoding="utf-8")
+    assert "bootstrap error receipt lost exact error evidence" in harness
+    assert "bootstrap error receipt overwrite protection failed" in harness
+
 def test_windows_hardening_harness_covers_runtime_failure_modes() -> None:
     source = HARDENING_TEST.read_text(encoding="utf-8")
     assert "[Console]::Out.Write('x' * 200000)" in source

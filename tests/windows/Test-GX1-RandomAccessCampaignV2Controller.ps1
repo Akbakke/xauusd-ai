@@ -121,6 +121,38 @@ if (-not $nonExactRejected -or $script:recoveryCalls -ne 0) {
     throw 'non-wsl timeout entered recovery'
 }
 
+$bootstrapErrorRoot = Join-Path $env:TEMP ('gbe-' + [IO.Path]::GetRandomFileName())
+try {
+    $bootstrapException = [InvalidOperationException]::new('synthetic bootstrap failure')
+    $bootstrapReceiptPath = Write-Gx1BootstrapErrorReceipt `
+        -Stage 'initial_campaign_state' -Exception $bootstrapException `
+        -ControllerPath $PSCommandPath -ErrorRoot $bootstrapErrorRoot
+    $bootstrapReceiptSha256 = (Get-FileHash -LiteralPath $bootstrapReceiptPath -Algorithm SHA256).Hash
+    $bootstrapReceipt = Get-Content -LiteralPath $bootstrapReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($bootstrapReceipt.schema_version -cne 'gx1_campaign_bootstrap_error_receipt_v1' -or
+        $bootstrapReceipt.stage -cne 'initial_campaign_state' -or
+        $bootstrapReceipt.exception_type -cne 'System.InvalidOperationException' -or
+        $bootstrapReceipt.exception_message -cne 'synthetic bootstrap failure') {
+        throw 'bootstrap error receipt lost exact error evidence'
+    }
+    $overwriteRejected = $false
+    try {
+        Write-Gx1BootstrapErrorReceipt `
+            -Stage 'telemetry_readiness' -Exception ([Exception]::new('replacement')) `
+            -ControllerPath $PSCommandPath -ErrorRoot $bootstrapErrorRoot | Out-Null
+    } catch {
+        if ($_.Exception.Message -like 'Bootstrap error receipt already exists*') {
+            $overwriteRejected = $true
+        } else { throw }
+    }
+    if (-not $overwriteRejected -or
+        (Get-FileHash -LiteralPath $bootstrapReceiptPath -Algorithm SHA256).Hash -cne $bootstrapReceiptSha256) {
+        throw 'bootstrap error receipt overwrite protection failed'
+    }
+} finally {
+    Remove-Item -LiteralPath $bootstrapErrorRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 $intentRoot = Join-Path $env:TEMP ('gx1-wsl-recovery-' + [guid]::NewGuid().ToString('N'))
 try {
     $intent = New-Gx1WslRecoveryIntent -BootId 357 -FailureSignature 'Wsl/Service/E_UNEXPECTED' -RecoveryRoot $intentRoot

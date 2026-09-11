@@ -132,6 +132,48 @@ function Write-Gx1AtomicJson {
         if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
     }
 }
+function Write-Gx1BootstrapErrorReceipt {
+    param(
+        [Parameter(Mandatory = $true)][ValidatePattern('^[a-z0-9_]+$')][string]$Stage,
+        [Parameter(Mandatory = $true)][Exception]$Exception,
+        [string]$ControllerPath = $PSCommandPath,
+        [string]$ErrorRoot = (Join-Path $env:ProgramData 'GX1\RandomAccessCampaignV2\bootstrap-errors')
+    )
+    if ([string]::IsNullOrWhiteSpace($ControllerPath) -or
+        -not [IO.Path]::IsPathRooted($ControllerPath) -or
+        -not (Test-Path -LiteralPath $ControllerPath -PathType Leaf) -or
+        ((Get-Item -LiteralPath $ControllerPath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Bootstrap error receipt controller path must be an absolute existing non-reparse file'
+    }
+    $exactControllerPath = [IO.Path]::GetFullPath($ControllerPath)
+    $bootId = [long](Get-ItemProperty `
+        -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters' `
+        -Name BootId -ErrorAction Stop).BootId
+    New-Item -ItemType Directory -Path $ErrorRoot -Force | Out-Null
+    if (((Get-Item -LiteralPath $ErrorRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Bootstrap error receipt root must not be a reparse point'
+    }
+    $path = Join-Path $ErrorRoot "boot-$bootId-$PlanFileSha256.error.json"
+    if (Test-Path -LiteralPath $path) {
+        throw 'Bootstrap error receipt already exists for this BootId and plan'
+    }
+    $unsigned = [ordered]@{
+        schema_version = 'gx1_campaign_bootstrap_error_receipt_v1'
+        boot_id = $bootId
+        plan_file_sha256 = $PlanFileSha256
+        stage = $Stage
+        exception_type = [string]$Exception.GetType().FullName
+        exception_message = [string]$Exception.Message
+        observed_utc = [DateTimeOffset]::UtcNow.ToString('o')
+        controller_path = $exactControllerPath
+        controller_sha256 = (Get-FileHash -LiteralPath $exactControllerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $sealed = [ordered]@{}
+    foreach ($entry in $unsigned.GetEnumerator()) { $sealed[$entry.Key] = $entry.Value }
+    $sealed['receipt_sha256'] = Get-Gx1StringSha256 -Value ($unsigned | ConvertTo-Json -Depth 8 -Compress)
+    Write-Gx1AtomicJson -Path $path -Value $sealed
+    return $path
+}
 function Test-Gx1PrivateIpv4 {
     param([Parameter(Mandatory = $true)][string]$Address)
     $parsed = $null
@@ -673,12 +715,17 @@ function Request-Gx1PhysicalReboot {
         '--shutdown-exit-code', [string]$shutdownExit
     ))
 }
+$bootstrapStage = 'mutex'
+try {
 $campaignMutex = [Threading.Mutex]::new($false, 'Global\GX1RandomAccessCampaignV2WslBootstrap')
 if (-not $campaignMutex.WaitOne(0)) { throw 'Another GX1 WSL bootstrap owner is active' }
+$bootstrapStage = 'controller_identity'
 $controllerSourceRoot = Assert-Gx1EarlyControllerIdentity
+$bootstrapStage = 'initial_campaign_state'
 $initial = Get-Gx1InitialCampaignState
 $boot = $initial.Boot
 $status = $initial.Status
+$bootstrapStage = 'plan_source_validation'
 $controllerSourceRoot = [IO.Path]::GetFullPath($WindowsControllerSourceRoot).TrimEnd('\')
 if ($controllerSourceRoot -notmatch '^[Cc]:\\' -or
     -not (Test-Path -LiteralPath $controllerSourceRoot -PathType Container) -or
@@ -710,6 +757,7 @@ if ($status.policy.physical_power_limit_w -ne 160 -or
     $status.policy.human_status_seconds -ne 900) {
     throw 'Campaign safety policy differs'
 }
+$bootstrapStage = 'campaign_action'
 if ($status.action.decision -ceq 'REBOOT_REQUIRED') {
     Request-Gx1PhysicalReboot -Boot $boot
     exit 0
@@ -722,7 +770,15 @@ if ($status.action.decision -cne 'LAUNCH') { throw 'Campaign returned no admissi
 # The readiness probe must precede begin: begin publishes ACTIVE_INVOCATION.json.
 # Any bridge, proxy, source, certificate, or signed-query failure therefore
 # leaves the campaign non-active and CUDA is never invoked.
+$bootstrapStage = 'telemetry_readiness'
 Confirm-Gx1SignedHostTelemetryReady -Status $status
+} catch {
+    $bootstrapError = $_
+    try {
+        [void](Write-Gx1BootstrapErrorReceipt -Stage $bootstrapStage -Exception $bootstrapError.Exception -ControllerPath $PSCommandPath)
+    } catch {}
+    throw $bootstrapError
+}
 $begin = Invoke-Gx1Json -Arguments @(
     'begin', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
     '--boot-json', $boot.Linux
