@@ -51,6 +51,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
 )
+from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256 as campaign_sha256
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     EntryV10CtxDataset,
     JOINT_TASK_NAMES,
@@ -505,6 +506,14 @@ def _write_progress_atomic(path: Path, value: Mapping[str, Any]) -> None:
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def _write_campaign_progress(path: Path, value: Mapping[str, Any]) -> dict[str, Any]:
+    """Publish with the receiving campaign owner's canonical identity."""
+    progress = dict(value)
+    progress["progress_sha256"] = campaign_sha256(progress)
+    _write_progress_atomic(path, progress)
+    return progress
 
 
 def _absolute_optimizer_step(
@@ -1049,8 +1058,7 @@ def run(
         "outcome": progress_outcome,
         "observed_utc": datetime.now(timezone.utc).isoformat(),
     }
-    progress["progress_sha256"] = _canonical(progress)
-    _write_progress_atomic(progress_path, progress)
+    progress = _write_campaign_progress(progress_path, progress)
     return {**progress, "progress_path": str(progress_path), "stats": stats}
 
 

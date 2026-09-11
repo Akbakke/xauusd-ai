@@ -1,6 +1,36 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | short current status -->
 # GX1 status nå
 
+## Latest verified run and completion correction - 2026-09-11
+
+V20 on BootId 363 completed three actual CUDA optimizer steps at batch 4 and
+saved a checkpoint. The signed guard exited 0 at 17:03:57Z: peaks 51 C core,
+52 C memory, 132.55 W and 2488 MiB VRAM. CPU preflight took 228 seconds;
+the model stage took 13 seconds. Two measured post-warmup steps processed
+8 Entry rows / 32 transitions in 5.663114863 seconds. This short measurement
+includes smoke checkpoint overhead and is not qualified long-run throughput.
+
+Campaign registration did not complete. Three exact completion defects were
+verified: File.Replace is unsupported on the WSL UNC status path; Windows
+Start-Process returns null ExitCode unless Handle is retained before exit;
+and fixed-step progress used a no-LF digest while its campaign owner requires
+LF. Original V20 progress, checkpoint, measurements and ACTIVE marker remain
+unchanged. A source-identical terminal observer recheck returned 0, but the
+canonical record attempt rejected the wrong progress digest. No successful
+campaign receipt was created, and no progress was relabelled to force it.
+The scheduler is Disabled with zero retries. Exact evidence:
+LIFECYCLE_V2_LOCAL_PILOT_20260910/PRELAUNCH_EVIDENCE_V20_70884CBD_BOOT362/FAILED_REGISTRATION_READONLY.json.
+
+The correction stores reporter status on local Windows NTFS, retains both
+child process handles and rejects missing exit codes, and publishes fixed-step
+progress with the receiving campaign owner's hash function. The production
+publisher-to-campaign-record regression and Windows source tests passed
+(15 tests); the actual Windows harness passed local atomic replacement and
+exact child exit codes 0/7. Training calculations, sampler and features are
+unchanged. Commit this narrow successor, rebind and continue the guarded
+smoke path. Do not run another full suite or fabricate a V20 campaign PASS.
+
+
 ## Current operator goal and bootstrap correction - 2026-09-11
 
 Train toward positive cost-adjusted net Bps with the complete feature contract

@@ -46,12 +46,39 @@ foreach ($case in $comparisonCases) {
     }
 }
 
-# Run the controller's actual status-root assignment with distinct paths.
+# Execute the production placement and writer against the selected local backend.
 $statusRoot = [regex]::Match($source, '(?m)^\$runtimeWindows = [^\r\n]+')
 if (-not $statusRoot.Success) { throw 'observer status root was not found' }
-$statusRootOnly = [ScriptBlock]::Create("param(`$progressWindows, `$guardWindows)`n" + $statusRoot.Value + "`n`$runtimeWindows")
-$actualStatusRoot = & $statusRootOnly -progressWindows 'C:\gx1\checkpoints\batch_4\PROGRESS.json' -guardWindows 'C:\gx1\runtime\guard\invocation-0001.log'
-if ($actualStatusRoot -cne 'C:\gx1\runtime') { throw 'observer would claim the trainer checkpoint directory' }
+$statusRootOnly = [ScriptBlock]::Create("param(`$status)`n" + $statusRoot.Value + "`n`$runtimeWindows")
+$actualStatusRoot = & $statusRootOnly -status @{ plan_sha256 = ('d' * 64) }
+if (-not $actualStatusRoot.StartsWith('C:\') -or $actualStatusRoot.StartsWith('\\')) {
+    throw 'observer status would use an unsupported filesystem'
+}
+$observerSourceWsl = $ControllerSourceWsl.Replace('GX1-RandomAccessCampaignV2Controller.ps1', 'GX1-RandomAccessCampaignV2Progress.ps1')
+$observerSource = (@(& wsl.exe -d $DistroName -u $LinuxUserName -- /bin/cat $observerSourceWsl)) -join [Environment]::NewLine
+if ($LASTEXITCODE -ne 0) { throw 'observer source read failed' }
+$observerAst = [Management.Automation.Language.Parser]::ParseInput($observerSource, [ref]$parseTokens, [ref]$parseErrors)
+$writer = $observerAst.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Write-Gx1AtomicJson'}, $true)
+. ([ScriptBlock]::Create($writer.Extent.Text))
+$testRoot = Join-Path $actualStatusRoot ('diagnostic-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
+$statusPath = Join-Path $testRoot 'STATUS.json'
+Write-Gx1AtomicJson -Path $statusPath -Value @{ sequence = 1 }
+Write-Gx1AtomicJson -Path $statusPath -Value @{ sequence = 2 }
+if ((Get-Content -Raw -LiteralPath $statusPath | ConvertFrom-Json).sequence -ne 2) { throw 'second atomic status write failed' }
+
+# Start-Process without retaining Handle returns null ExitCode on the actual host.
+$trainer = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', '"Start-Sleep -Milliseconds 500; exit 0"') -PassThru -NoNewWindow
+$trainerRetention = [regex]::Match($source, '(?m)^\s*\$trainerHandle = [^\r\n]+')
+. ([ScriptBlock]::Create($trainerRetention.Value))
+$observer = Start-Process powershell.exe -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', '"Start-Sleep -Milliseconds 500; exit 7"') -PassThru -NoNewWindow
+$observerRetention = [regex]::Match($source, '(?m)^\$observerHandle = [^\r\n]+')
+. ([ScriptBlock]::Create($observerRetention.Value))
+$trainer.WaitForExit()
+$observer.WaitForExit()
+if ($null -eq $trainer.ExitCode -or $trainer.ExitCode -ne 0 -or $null -eq $observer.ExitCode -or $observer.ExitCode -ne 7) {
+    throw "child exit codes were not preserved exactly: trainer=$($trainer.ExitCode) observer=$($observer.ExitCode)"
+}
 
 $helperStart = $source.IndexOf('function Join-Gx1NativeArguments')
 $helperEnd = $source.IndexOf('function Reset-Gx1HostTelemetryPortProxy', $helperStart)
@@ -125,5 +152,5 @@ if ($script:bootCalls -ne 1 -or $script:inspectCalls -ne 1 -or $initial.Status.o
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS"
 )

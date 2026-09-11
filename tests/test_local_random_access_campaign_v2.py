@@ -652,7 +652,10 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
         pointer,
         {"schema_version": "gx1_unified_exit_random_access_fixed_step_pointer_v1"},
     )
-    progress = _seal(
+    from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import _write_campaign_progress
+
+    progress = _write_campaign_progress(
+        Path(invocation["progress_path"]),
         {
             "schema_version": PROGRESS_SCHEMA,
             "plan_sha256": plan["plan_sha256"],
@@ -661,9 +664,9 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
             "epoch_index": 0,
             "global_optimizer_steps": 3,
             "next_batch_offset": 3,
-            "total_batches": 3,
+            "total_batches": 4096,
             "completed_units": 3,
-            "total_units": 3,
+            "total_units": 4096,
             "epoch_schedule_sha256": "b" * 64,
             "selection_receipt_sha256": None,
             "checkpoint_pointer": _binding(pointer),
@@ -671,9 +674,7 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
             "outcome": "COMPLETE",
             "observed_utc": "2026-09-11T10:01:03+00:00",
         },
-        "progress_sha256",
     )
-    _write(Path(invocation["progress_path"]), progress)
     _write(
         Path(invocation["guard_log_path"]),
         "event=start telemetry_owner=signed_windows_bridge\n"

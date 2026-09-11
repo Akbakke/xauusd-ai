@@ -578,7 +578,9 @@ $invocation = $begin.invocation
 $argv = @($invocation.launcher_argv | ForEach-Object { [string]$_ })
 $progressWindows = Convert-Gx1WslPath -LinuxPath ([string]$invocation.progress_path)
 $guardWindows = Convert-Gx1WslPath -LinuxPath ([string]$invocation.guard_log_path)
-$runtimeWindows = Split-Path -Parent (Split-Path -Parent $guardWindows)
+# File.Replace is unsupported on WSL UNC shares; reporter status lives on NTFS.
+$runtimeWindows = Join-Path (Join-Path $env:ProgramData 'GX1\RandomAccessCampaignV2\status') ([string]$status.plan_sha256)
+New-Item -ItemType Directory -Path $runtimeWindows -Force | Out-Null
 $statusJson = Join-Path $runtimeWindows ('STATUS-{0}.json' -f $invocation.invocation_id)
 $humanJsonl = Join-Path $runtimeWindows 'HUMAN_STATUS.jsonl'
 if (Test-Path -LiteralPath $guardWindows) { throw 'Guard log already exists before invocation' }
@@ -604,6 +606,8 @@ try {
         "$priorWslEnv`:$campaignWslEnv"
     }
     $trainer = Start-Process -FilePath 'wsl.exe' -ArgumentList $trainerArguments -PassThru -NoNewWindow
+    # Retain the process handle before exit so ExitCode cannot become null.
+    $trainerHandle = $trainer.Handle
 }
 finally {
     $env:GX1_CAMPAIGN_PLAN_SHA256 = $priorPlanSha
@@ -623,8 +627,10 @@ $observer = Start-Process -FilePath 'powershell.exe' -ArgumentList @(
     '-StatusJson', $statusJson,
     '-HumanStatusJsonl', $humanJsonl
 ) -PassThru -NoNewWindow
+$observerHandle = $observer.Handle
 $trainer.WaitForExit()
 $observer.WaitForExit()
+if ($null -eq $trainer.ExitCode -or $null -eq $observer.ExitCode) { throw 'Child process exit code unavailable' }
 $outcome = if ($trainer.ExitCode -eq 0 -and $observer.ExitCode -eq 0) {
     [string]$invocation.expected_success_outcome
 }
