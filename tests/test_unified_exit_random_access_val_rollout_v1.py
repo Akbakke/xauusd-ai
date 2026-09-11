@@ -534,6 +534,7 @@ def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> No
         return result
 
     factory.mtf_materializer = mtf_materializer
+    factory.mtf_feature_dims = {tf: 1 for tf in MULTI_TF_TIMEFRAMES}
     adapter.state_provider = factory.materialize_state
     state_zero = factory.materialize_state(factory.entries[0], 0)
     assert state_zero["m1_local_history_x"].shape[0] == 480

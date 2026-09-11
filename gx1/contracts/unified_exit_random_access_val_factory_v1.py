@@ -14,6 +14,11 @@ import torch
 
 from gx1.contracts.unified_exit_dataset_adapter_v2 import _RangeExtrema
 from gx1.contracts.unified_exit_lifetime_summary_v1 import build_lifetime_summary
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM,
+    MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_SIGNAL_DIM,
+)
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     closure_intervals_by_gap_after_row,
     m1_clock_sha256,
@@ -28,6 +33,11 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     build_first_state_entry_bridge_witness,
     canonical_sha256,
+)
+from gx1.contracts.unified_exit_random_access_index_v1 import (
+    require_random_access_index,
+    require_random_access_index_manifest,
+    require_random_access_index_root,
 )
 from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     RandomAccessValRolloutAdapterV1,
@@ -77,6 +87,7 @@ class RandomAccessValStateFactoryV1:
         entry_rows: pd.DataFrame,
         child_m1: pd.DataFrame,
         successor_transition_counts: Sequence[int],
+        random_access_index: pd.DataFrame,
         first_state_bridge: Mapping[str, Any],
         sequence_binding: Mapping[str, Any],
         composite_normalization: Mapping[str, Any],
@@ -145,6 +156,9 @@ class RandomAccessValStateFactoryV1:
             "split_sequence_binding",
             "composite_normalization",
             "closure_authority",
+            "random_access_index",
+            "random_access_index_manifest",
+            "random_access_index_root",
         }
         if (
             set(hashes) != required_hashes
@@ -179,6 +193,30 @@ class RandomAccessValStateFactoryV1:
             or np.any(starts + counts >= len(self.times))
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_ENTRY_CLOCK_INVALID")
+        index = require_random_access_index(
+            random_access_index, expected_split="val"
+        ).reset_index(drop=True)
+        if (
+            len(index) != VAL_ENTRY_COHORT_SIZE
+            or not np.array_equal(
+                index["entry_time_ns"].to_numpy(dtype="<i8"), entry_times.asi8
+            )
+            or not np.array_equal(
+                index["first_state_time_ns"].to_numpy(dtype="<i8"),
+                first_state_times,
+            )
+            or not np.array_equal(
+                index["child_m1_start_row"].to_numpy(dtype="<i8"), starts
+            )
+            or not np.array_equal(
+                index["successor_transition_count"].to_numpy(dtype="<i8"), counts
+            )
+            or index["episode_binding_sha256"].tolist()
+            != bridge["first_state_episode_binding_sha256_by_entry"]
+            or index["entry_fill_binding_sha256"].tolist()
+            != bridge["entry_fill_binding_sha256_by_entry"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_INDEX_BINDING_INVALID")
         rebuilt_sequence = build_split_sequence_binding(
             split="val",
             entry_times=entry_times,
@@ -238,6 +276,21 @@ class RandomAccessValStateFactoryV1:
             != closure["artifact_sha256"]
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_PARENT_BINDING_INVALID")
+        if (
+            not np.array_equal(
+                index["parent_m1_start_row"].to_numpy(dtype="<i8"),
+                starts + parent_offset,
+            )
+            or not np.array_equal(
+                index["entry_bid"].to_numpy(dtype="<f8"),
+                np.asarray(self.child_m1["bid_open"], dtype="<f8")[starts],
+            )
+            or not np.array_equal(
+                index["entry_ask"].to_numpy(dtype="<f8"),
+                np.asarray(self.child_m1["ask_open"], dtype="<f8")[starts],
+            )
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_INDEX_PARENT_DRIFT")
         features = source_owner._m1_features
         self.signal = _readonly(features["signal"][feature_offset:feature_stop], "<f4")
         self.ctx_cont = _readonly(
@@ -246,6 +299,17 @@ class RandomAccessValStateFactoryV1:
         self.ctx_cat = _readonly(
             features["ctx_cat"][feature_offset:feature_stop], "<i8"
         )
+        if (
+            self.signal.shape != (len(self.times), MODEL_NATIVE_SIGNAL_DIM)
+            or self.ctx_cont.shape != (len(self.times), MODEL_NATIVE_CTX_CONT_DIM)
+            or self.ctx_cat.shape != (len(self.times), MODEL_NATIVE_CTX_CAT_DIM)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_FEATURE_SHAPE_INVALID")
+        base_contract = composite["base_feature_normalization"]["artifact"]["contract"]
+        self.mtf_feature_dims = {
+            tf: int(base_contract["surfaces"][f"mtf_{tf.lower()}"]["field_count"])
+            for tf in MULTI_TF_TIMEFRAMES
+        }
         required_prices = tuple(
             dict.fromkeys(
                 (
@@ -348,6 +412,9 @@ class RandomAccessValStateFactoryV1:
         split_sequence_binding_path: Path,
         composite_normalization_path: Path,
         closure_authority_path: Path,
+        random_access_index_path: Path,
+        random_access_index_manifest_path: Path,
+        random_access_index_root_path: Path,
         source_owner: Any,
         mtf_materializer: Callable[[np.ndarray], Mapping[str, np.ndarray]],
         economic_step_provider: Any,
@@ -365,6 +432,9 @@ class RandomAccessValStateFactoryV1:
             "split_sequence_binding": split_sequence_binding_path.expanduser().resolve(),
             "composite_normalization": composite_normalization_path.expanduser().resolve(),
             "closure_authority": closure_authority_path.expanduser().resolve(),
+            "random_access_index": random_access_index_path.expanduser().resolve(),
+            "random_access_index_manifest": random_access_index_manifest_path.expanduser().resolve(),
+            "random_access_index_root": random_access_index_root_path.expanduser().resolve(),
         }
         if any(not path.is_file() or path.is_symlink() for path in paths.values()):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_ARTIFACT_PATH_INVALID")
@@ -389,6 +459,31 @@ class RandomAccessValStateFactoryV1:
             or summary.get("test_accessed") is not False
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_ARTIFACT_BINDING_INVALID")
+        index = pd.read_parquet(paths["random_access_index"])
+        index_manifest = require_random_access_index_manifest(
+            _read_json(paths["random_access_index_manifest"], "INDEX_MANIFEST"),
+            expected_split="val",
+            index_frame=index,
+            index_path=paths["random_access_index"],
+            verify_sources=True,
+        )
+        index_root = require_random_access_index_root(
+            _read_json(paths["random_access_index_root"], "INDEX_ROOT")
+        )
+        root_val = index_root["splits"]["val"]
+        if (
+            root_val["index_parquet_path"] != str(paths["random_access_index"])
+            or root_val["index_parquet_sha256"] != hashes["random_access_index"]
+            or root_val["manifest_path"] != str(paths["random_access_index_manifest"])
+            or root_val["manifest_sha256"] != index_manifest["manifest_sha256"]
+            or index_manifest["source_bindings"]["first_state_bridge"]["sha256"]
+            != hashes["first_state_bridge"]
+            or index_manifest["source_bindings"]["sequence_binding"]["sha256"]
+            != hashes["split_sequence_binding"]
+            or index_manifest["source_bindings"]["composite_normalization"]["sha256"]
+            != hashes["composite_normalization"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_INDEX_ROOT_INVALID")
         counts = np.load(paths["successor_counts"], allow_pickle=False)
         if hashlib.sha256(
             np.ascontiguousarray(counts, dtype="<i8").tobytes()
@@ -398,6 +493,7 @@ class RandomAccessValStateFactoryV1:
             entry_rows=pd.read_parquet(paths["entry_parquet"]),
             child_m1=pd.read_parquet(paths["child_m1"]),
             successor_transition_counts=counts,
+            random_access_index=index,
             first_state_bridge=_read_json(paths["first_state_bridge"], "BRIDGE"),
             sequence_binding=_read_json(paths["split_sequence_binding"], "SEQUENCE"),
             composite_normalization=_read_json(
@@ -498,6 +594,7 @@ class RandomAccessValStateFactoryV1:
             gather = _readonly(mtf_raw[f"exit_mtf_gather_{suffix}"], "<i8")
             if (
                 history.ndim != 2
+                or history.shape[1] != self.mtf_feature_dims[tf]
                 or history_time.shape != (history.shape[0],)
                 or gather.shape != (1,)
                 or int(gather[0]) != history.shape[0] - 1
