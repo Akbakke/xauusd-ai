@@ -44,6 +44,7 @@ from gx1.contracts.unified_exit_random_access_checkpoint_v1 import (
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     require_random_access_index_manifest,
     require_random_access_index_root,
+    require_parent_entry_coordinate_equivalence,
 )
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     bind_preserved_v7_input_normalization,
@@ -466,7 +467,7 @@ def run(
         expected_split="val",
         index_frame=frame,
         index_path=index_path,
-        verify_sources=True,
+        verify_sources=False,
     )
     if (
         val_binding["index_parquet_sha256"] != file_sha256(index_path)
@@ -474,6 +475,15 @@ def run(
         or frame["entry_row_index"].astype("int64").tolist() != list(range(5_508))
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_INDEX_INVALID")
+    # The index predates the Entry-notional correction. Keep its immutable
+    # sources, and prove the launch-selected parent has exactly the same full
+    # clock and row coordinates before any model inference. This call also
+    # verifies all original index sources; no source check is skipped.
+    parent_coordinate_evidence = require_parent_entry_coordinate_equivalence(
+        index_manifest=index_manifest, index_frame=frame, expected_split="val",
+        parent_parquet=launch["files"]["entry_val_parquet"],
+        parent_manifest=launch["files"]["entry_val_manifest"],
+    )
     pointer = _read(checkpoint_pointer_path)
     epoch_index = int(pointer.get("epoch_index", -1))
     if "full_population_schedule" in authority:
@@ -542,13 +552,7 @@ def run(
         name.upper(): int(meta["multi_tf"][f"{name}_seq_len"])
         for name in ("m5", "m15", "h1", "h4", "d1")
     }
-    parent_val_path = _source_path(index_manifest, "parent_entry_parquet")
-    parent_val_manifest = _source_path(index_manifest, "parent_entry_manifest")
-    if (
-        files["entry_val_parquet"] != parent_val_path
-        or files["entry_val_manifest"] != parent_val_manifest
-    ):
-        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_SOURCE_INVALID")
+    parent_val_path = files["entry_val_parquet"]
     entry_dataset = EntryV10CtxDataset(
         parent_val_path,
         seq_len=int(meta["seq_len"]),
@@ -565,6 +569,7 @@ def run(
         device=device,
         batch_size=selected_batch_size,
     )
+    entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
     corpus = UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
         entry_parquets={

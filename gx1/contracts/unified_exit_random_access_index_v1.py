@@ -466,6 +466,67 @@ def require_random_access_index_manifest(
     return dict(value)
 
 
+def require_parent_entry_coordinate_equivalence(
+    *, index_manifest: Mapping[str, Any], index_frame: pd.DataFrame,
+    expected_split: str, parent_parquet: Mapping[str, str],
+    parent_manifest: Mapping[str, str],
+) -> dict[str, Any]:
+    """Bind a launch-selected parent to the index's exact existing coordinates.
+
+    This proves coordinate identity only. Model inputs and their feature/sequence
+    authorities continue to be selected and verified by the immutable launch.
+    A changed row count, clock, order or row mapping is never a compatible parent.
+    """
+    checked = require_random_access_index_manifest(
+        index_manifest, expected_split=expected_split, index_frame=index_frame,
+        verify_sources=True,
+    )
+    if checked["schema_version"] != RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION:
+        raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_COORDINATES_REQUIRE_V2")
+    paths = []
+    for binding in (parent_parquet, parent_manifest):
+        if not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}:
+            raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_BINDING_INVALID")
+        path = Path(binding["path"])
+        if (not path.is_absolute() or path.resolve() != path
+                or not path.is_file() or path.is_symlink()):
+            raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_BINDING_INVALID")
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for block in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(block)
+        if digest.hexdigest() != _sha(binding["sha256"], "PARENT_ENTRY_SOURCE"):
+            raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_BINDING_INVALID")
+        paths.append(path)
+    manifest = json.loads(paths[1].read_text())
+    if (manifest.get("output_data_path") != str(paths[0])
+            or manifest.get("extra", {}).get("pretest_test_guard", {}).get("test_accessed") is not False):
+        raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_MANIFEST_INVALID")
+    clock = _clock(pd.read_parquet(paths[0], columns=["time"])["time"], "LAUNCH_PARENT_ENTRY")
+    if (len(clock) != checked["parent_entry_source_rows"]
+            or _clock_sha256(clock) != checked["parent_entry_clock_sha256"]):
+        raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_COORDINATES_DIFFER")
+    evidence = {
+        "schema_version": "gx1_random_access_parent_entry_coordinates_v1",
+        "decision": "PASS_EXACT_COORDINATES",
+        "split": expected_split,
+        "index_manifest_sha256": checked["manifest_sha256"],
+        "recorded_parent_parquet": dict(checked["source_bindings"]["parent_entry_parquet"]),
+        "recorded_parent_manifest": dict(checked["source_bindings"]["parent_entry_manifest"]),
+        "launch_parent_parquet": dict(parent_parquet),
+        "launch_parent_manifest": dict(parent_manifest),
+        "parent_row_count": len(clock),
+        "entry_row_count": len(index_frame),
+        "entire_parent_clock_sha256": _clock_sha256(clock),
+        "parent_entry_mapping_sha256": checked["parent_entry_mapping_sha256"],
+        "row_coordinates_changed": False,
+        "model_input_authority": "separate_immutable_launch_bindings",
+        "test_data_used": False,
+    }
+    evidence["evidence_sha256"] = canonical_sha256(evidence)
+    return evidence
+
+
 def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ROOT_INVALID")
@@ -526,4 +587,5 @@ __all__ = (
     "require_random_access_index",
     "require_random_access_index_manifest",
     "require_random_access_index_root",
+    "require_parent_entry_coordinate_equivalence",
 )
