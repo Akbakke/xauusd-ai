@@ -6,6 +6,17 @@ import numpy as np
 import pytest
 import torch
 
+from gx1.contracts.unified_exit_random_access_checkpoint_v1 import (
+    canonical_sha256,
+    file_sha256,
+)
+from gx1.contracts.unified_exit_random_access_model_v1 import (
+    RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
+    RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+)
+from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
+    VAL_CHECKPOINT_BINDING_SCHEMA_VERSION,
+)
 from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
     PAUSE_SCHEMA_VERSION,
     RESULT_SCHEMA_VERSION,
@@ -39,17 +50,52 @@ def _with_route_outputs(model):
     return model
 
 
-def _checkpoint_binding(contract):
-    return {
-        "schema_version": "gx1_test_selected_v2_checkpoint_binding_v1",
+def _checkpoint_binding(contract, adapter, tmp_path):
+    checkpoint = tmp_path / "selected-v2.pt"
+    pointer = tmp_path / "RESUME_POINTER.json"
+    checkpoint.write_bytes(b"strict-v2-checkpoint")
+    pointer.write_text("{}")
+    checkpoint_sha = file_sha256(checkpoint)
+    adapter.contract["checkpoint_file_sha256"] = checkpoint_sha
+    adapter_contract = dict(adapter.contract)
+    adapter_contract.pop("contract_sha256")
+    adapter.contract["contract_sha256"] = canonical_sha256(adapter_contract)
+    contract["checkpoint_file_sha256"] = checkpoint_sha
+    contract["contract_sha256"] = adapter.contract["contract_sha256"]
+    value = {
+        "schema_version": VAL_CHECKPOINT_BINDING_SCHEMA_VERSION,
+        "decision": "PASS",
         "model_variant": "weight_ema",
+        "model_architecture_schema_version": RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+        "model_architecture_sha256": RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
         "model_state_sha256": contract["model_state_sha256"],
-        "checkpoint_file_sha256": contract["checkpoint_file_sha256"],
-        "checkpoint_path": "/immutable/selected-v2.pt",
-        "global_step": 1024,
+        "online_model_state_sha256": "1" * 64,
+        "target_model_state_sha256": "2" * 64,
+        "checkpoint_path": str(checkpoint),
+        "checkpoint_file_sha256": checkpoint_sha,
+        "checkpoint_pointer_path": str(pointer),
+        "checkpoint_pointer_file_sha256": file_sha256(pointer),
+        "checkpoint_pointer_sha256": "3" * 64,
+        "launch_manifest_sha256": "4" * 64,
+        "selected_sampler_artifact_sha256": "5" * 64,
+        "bootstrap_source_receipt_sha256": "6" * 64,
+        "base_normalization_sha256": "7" * 64,
+        "summary_normalization_sha256": "8" * 64,
+        "batch_size": 16,
+        "epoch_schedule_sha256": "9" * 64,
         "epoch_index": 0,
+        "next_batch_offset": 1024,
+        "global_step": 1024,
+        "weight_ema_decay": 1.0 - 1.0 / 1024.0,
+        "weight_ema_steps": 1024,
+        "weight_ema_parameter_names_sha256": "a" * 64,
+        "online_buffers_preserved_exactly": True,
+        "rng_mutated": False,
+        "optimizer_or_scheduler_loaded": False,
         "test_data_used": False,
     }
+    value["binding_sha256"] = canonical_sha256(value)
+    return value
 
 
 def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
@@ -60,7 +106,7 @@ def test_full_cohort_pause_resume_is_semantically_exact(tmp_path) -> None:
         counts=counts,
     )
     model = _with_route_outputs(model)
-    binding = _checkpoint_binding(contract)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
     progress = tmp_path / "progress.json"
     result = tmp_path / "result.json"
 
@@ -131,9 +177,9 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
         thresholds=thresholds,
         counts=counts,
     )
-    binding = _checkpoint_binding(contract)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
     binding["model_variant"] = "online"
-    with pytest.raises(RuntimeError, match="EXECUTION_BINDING"):
+    with pytest.raises(RuntimeError, match="CHECKPOINT_BINDING"):
         run_resumable_random_access_val_evaluation_v1(
             model=model,
             entry_decision_representations=representations,
@@ -146,6 +192,8 @@ def test_checkpoint_variant_and_route_evidence_fail_closed(tmp_path) -> None:
         )
 
     binding["model_variant"] = "weight_ema"
+    binding.pop("binding_sha256")
+    binding["binding_sha256"] = canonical_sha256(binding)
     with pytest.raises(RuntimeError, match="ROUTE_OUTPUT"):
         run_resumable_random_access_val_evaluation_v1(
             model=model,

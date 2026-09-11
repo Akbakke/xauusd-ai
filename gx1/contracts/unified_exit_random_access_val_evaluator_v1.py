@@ -24,6 +24,9 @@ from gx1.contracts.unified_exit_random_access_model_v1 import (
 from gx1.contracts.unified_exit_random_access_training_v1 import (
     collate_random_access_states_v1,
 )
+from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
+    require_selected_weight_ema_checkpoint_binding_v1,
+)
 from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     VAL_ENTRY_COHORT_SIZE,
     RandomAccessValRolloutAdapterV1,
@@ -284,7 +287,12 @@ def _accumulate_slice(
     trade["economic_slice_count"] += 1
 
 
-def _accumulate_routes(accumulators: dict[str, Any], output: Mapping[str, Any]) -> None:
+def _accumulate_routes(
+    accumulators: dict[str, Any],
+    output: Mapping[str, Any],
+    *,
+    active_side_mask: np.ndarray | None = None,
+) -> None:
     for name in _ROUTE_KEYS:
         tensor = output.get(name)
         if (
@@ -295,6 +303,11 @@ def _accumulate_routes(accumulators: dict[str, Any], output: Mapping[str, Any]) 
         ):
             raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_OUTPUT_INVALID:{name}")
         values = tensor.detach().to(dtype=torch.float64, device="cpu")
+        if active_side_mask is not None:
+            mask = np.asarray(active_side_mask, dtype=np.bool_)
+            if values.ndim < 3 or tuple(values.shape[:2]) != tuple(mask.shape):
+                raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SIDE_SHAPE_INVALID:{name}")
+            values = values[torch.from_numpy(mask)]
         if bool((values < -1e-8).any().item()) or bool(
             (values > 1.0 + 1e-6).any().item()
         ):
@@ -379,6 +392,25 @@ def _accumulate_q(
         diagnostics["exit_now_action_count"] += exit_now
         diagnostics["hold_action_count_by_side"][side] += hold
         diagnostics["exit_now_action_count_by_side"][side] += exit_now
+
+
+def accumulate_route_diagnostics_v1(
+    accumulators: dict[str, Any],
+    output: Mapping[str, Any],
+    *,
+    active_side_mask: np.ndarray | None = None,
+) -> None:
+    """Accumulate bounded observation-only route evidence from one model call."""
+
+    _accumulate_routes(accumulators, output, active_side_mask=active_side_mask)
+
+
+def finalize_route_diagnostics_v1(
+    accumulators: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Finalize observation-only route evidence without importance claims."""
+
+    return _finalize_routes(accumulators)
 
 
 def _finalize_routes(accumulators: Mapping[str, Any]) -> dict[str, Any]:
@@ -581,12 +613,14 @@ def run_resumable_random_access_val_evaluation_v1(
     """Evaluate both sides, pausing only at a fully committed state boundary."""
 
     contract = require_random_access_val_rollout_contract(adapter.contract)
-    checkpoint_binding_sha = canonical_sha256(checkpoint_binding)
+    checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
+        checkpoint_binding
+    )
+    checkpoint_binding_sha = checked_checkpoint["binding_sha256"]
     if (
-        checkpoint_binding.get("model_variant") != "weight_ema"
-        or checkpoint_binding.get("model_state_sha256")
-        != contract["model_state_sha256"]
-        or checkpoint_binding.get("checkpoint_file_sha256")
+        checked_checkpoint["model_variant"] != "weight_ema"
+        or checked_checkpoint["model_state_sha256"] != contract["model_state_sha256"]
+        or checked_checkpoint["checkpoint_file_sha256"]
         != contract["checkpoint_file_sha256"]
         or model.training
         or getattr(model, "unified_exit_random_access_architecture_version", None)
@@ -705,9 +739,13 @@ def run_resumable_random_access_val_evaluation_v1(
             or not bool(valid.all().item())
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_MODEL_OUTPUT_INVALID")
-        _accumulate_routes(progress["route_accumulators"], output)
-        actions = torch.argmax(q, dim=2).detach().cpu().numpy()
         active_rows_before = active[active_entries].copy()
+        _accumulate_routes(
+            progress["route_accumulators"],
+            output,
+            active_side_mask=active_rows_before,
+        )
+        actions = torch.argmax(q, dim=2).detach().cpu().numpy()
         _accumulate_q(
             progress["q_diagnostics"],
             q=q,
@@ -793,7 +831,7 @@ def run_resumable_random_access_val_evaluation_v1(
     result = _finalize_result(
         progress,
         adapter=adapter,
-        checkpoint_binding=checkpoint_binding,
+        checkpoint_binding=checked_checkpoint,
         entry_route_diagnostics=entry_route_diagnostics,
         guard_reason=guard_reason,
     )
@@ -812,7 +850,9 @@ __all__ = (
     "PAUSE_SCHEMA_VERSION",
     "PROGRESS_SCHEMA_VERSION",
     "RESULT_SCHEMA_VERSION",
+    "accumulate_route_diagnostics_v1",
     "canonical_sha256",
+    "finalize_route_diagnostics_v1",
     "file_sha256",
     "run_resumable_random_access_val_evaluation_v1",
 )
