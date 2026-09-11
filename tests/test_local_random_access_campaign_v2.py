@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import subprocess
 from pathlib import Path
 
@@ -31,6 +33,10 @@ from gx1.scripts.local_random_access_campaign_v2 import (
     prepare_reboot,
     record_invocation,
 )
+from gx1.scripts.materialize_local_random_access_campaign_v2 import (
+    materialize_gpu_selection_campaign,
+    materialize_selected_training_campaign,
+)
 
 
 def _write(path: Path, value: object) -> None:
@@ -45,6 +51,16 @@ def _write(path: Path, value: object) -> None:
 def _seal(value: dict, key: str) -> dict:
     result = dict(value)
     result[key] = canonical_sha256(result)
+    return result
+
+
+def _seal_manifest(value: dict) -> dict:
+    result = dict(value)
+    result["manifest_sha256"] = hashlib.sha256(
+        json.dumps(
+            result, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    ).hexdigest()
     return result
 
 
@@ -70,6 +86,14 @@ def _source(tmp_path: Path) -> tuple[Path, str, dict, dict]:
     python = repo / ".venv/bin/python"
     _write(runner, "#!/bin/sh\n")
     _write(python, "#!/bin/sh\n")
+    for relative in (
+        "scripts/gx1_guarded_trainer_exec.sh",
+        "scripts/gx1_host_telemetry_bridge_query.sh",
+        "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1",
+        "scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1",
+        "gx1/scripts/local_random_access_campaign_v2.py",
+    ):
+        _write(repo / relative, relative)
     guards = {}
     for name in ("runner", "guard", "query", "certificate"):
         path = runner if name == "runner" else repo / f"evidence/{name}.bin"
@@ -121,6 +145,9 @@ def _invocation(
     prelaunch = tmp_path / "PRELAUNCH.json"
     if not prelaunch.exists():
         _write(prelaunch, {"manifest_sha256": "a" * 64})
+    session = tmp_path / "TRAIN_SESSION.json"
+    if not session.exists():
+        _write(session, {"manifest_sha256": "d" * 64})
     outer = [
         str(repo / "scripts/gx1_capped_run.sh"),
         "--class",
@@ -148,6 +175,11 @@ def _invocation(
             if kind != "full_val"
             else []
         ),
+        *(
+            ["--train-session-manifest", str(session)]
+            if kind not in {"smoke_arm", "full_val"}
+            else []
+        ),
         "--device",
         "cuda",
         "--invocation",
@@ -166,6 +198,12 @@ def _invocation(
             else None,
             "prelaunch_manifest_sha256": "a" * 64
             if kind != "full_val"
+            else None,
+            "train_session_manifest": _binding(session)
+            if kind not in {"smoke_arm", "full_val"}
+            else None,
+            "train_session_manifest_sha256": "d" * 64
+            if kind not in {"smoke_arm", "full_val"}
             else None,
             "test_data_used": False,
         },
@@ -464,17 +502,6 @@ def _selected_plan(
             1,
             2,
         ),
-        (
-            "full_val",
-            None,
-            "COMPLETE",
-            "PREVIOUS_RECEIPT_AFTER",
-            5,
-            "READ_ONLY",
-            epoch,
-            0,
-            0,
-        ),
     ]
     values, bindings = [], []
     for number, args in enumerate(definitions, 1):
@@ -543,7 +570,6 @@ def test_two_phase_sequence_and_selected_epoch_budget(tmp_path: Path) -> None:
         "resume_proof_second",
         "epoch1_window",
         "epoch1_window",
-        "full_val",
     ]
     assert sum(x["optimizer_step_budget"] for x in invocations[3:5]) == 1024
     bad = dict(gpu_invocations[2])
@@ -679,3 +705,110 @@ def test_active_without_receipt_blocks_recovery(tmp_path: Path) -> None:
     begin_invocation(plan_path=plan_path, plan_file_sha256=sha, current_boot=boot)
     with pytest.raises(RandomAccessCampaignError, match="RECOVERY_RECEIPT_REQUIRED"):
         inspect_campaign(plan_path=plan_path, plan_file_sha256=sha, current_boot=boot)
+
+
+def test_production_materializer_builds_acyclic_phase_plans(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, commit, guards, _ = _source(tmp_path)
+    boot_path = tmp_path / "BOOT.json"
+    _write(boot_path, _boot(100, 0))
+    launch = _seal_manifest(
+        {
+            "schema_version": "gx1_unified_exit_random_access_cuda_smoke_launch_v2",
+            "decision": "PASS_GPU_SMOKE_MATRIX_ELIGIBLE",
+            "source_repo": str(repo),
+            "source_commit": commit,
+            "checkpoint_dir": str(tmp_path / "checkpoints"),
+            "test_data_used": False,
+        }
+    )
+    launch_path = tmp_path / "PRELAUNCH.json"
+    _write(launch_path, launch)
+    phase1 = materialize_gpu_selection_campaign(
+        repo=repo,
+        output=tmp_path / "phase1",
+        runtime=tmp_path / "runtime-phase1",
+        gpu_uuid="GPU-12345678-1234-1234-1234-123456789abc",
+        prepared_boot_path=boot_path,
+        prepared_boot_file_sha256=file_sha256(boot_path),
+        prelaunch_path=launch_path,
+        prelaunch_file_sha256=file_sha256(launch_path),
+        certificate_path=Path(guards["certificate"]["path"]),
+    )
+    checked_phase1 = phase1["plan"]
+    assert [item["batch_size"] for item in checked_phase1["checked_invocations"]] == [
+        4,
+        8,
+        16,
+    ]
+    assert all(
+        item["launcher_argv"][:7]
+        == [
+            str(repo / "scripts/gx1_capped_run.sh"),
+            "--class",
+            "trainer",
+            "--mem",
+            "20G",
+            "--swap",
+            "512M",
+        ]
+        for item in checked_phase1["checked_invocations"]
+    )
+
+    selection = {
+        "artifact_sha256": "e" * 64,
+        "source_commit": commit,
+        "launch_manifest_sha256": launch["manifest_sha256"],
+        "selected_batch_size": 16,
+        "entry_pairs_per_epoch": 16384,
+        "transition_budget_per_epoch": 65536,
+        "total_batches_per_epoch": 1024,
+        "test_data_used": False,
+    }
+    selection_path = tmp_path / "SELECTION.json"
+    _write(selection_path, selection)
+    resume_session = _seal_manifest({"test_data_used": False})
+    epoch_session = _seal_manifest({"test_data_used": False})
+    resume_path = tmp_path / "RESUME_SESSION.json"
+    epoch_path = tmp_path / "EPOCH_SESSION.json"
+    _write(resume_path, resume_session)
+    _write(epoch_path, epoch_session)
+    monkeypatch.setattr(
+        "gx1.scripts.materialize_local_random_access_campaign_v2.require_selection",
+        lambda value, verify_files=True: dict(value),
+    )
+    monkeypatch.setattr(
+        "gx1.contracts.unified_exit_gpu_batch_selection_v1.require_selection",
+        lambda value, verify_files=True: dict(value),
+    )
+    phase2 = materialize_selected_training_campaign(
+        repo=repo,
+        output=tmp_path / "phase2",
+        runtime=tmp_path / "runtime-phase2",
+        gpu_uuid="GPU-12345678-1234-1234-1234-123456789abc",
+        prepared_boot_path=boot_path,
+        prepared_boot_file_sha256=file_sha256(boot_path),
+        prelaunch_path=launch_path,
+        prelaunch_file_sha256=file_sha256(launch_path),
+        certificate_path=Path(guards["certificate"]["path"]),
+        prior_campaign_path=Path(phase1["path"]),
+        prior_campaign_file_sha256=phase1["sha256"],
+        selection_path=selection_path,
+        selection_file_sha256=file_sha256(selection_path),
+        resume_session_path=resume_path,
+        resume_session_file_sha256=file_sha256(resume_path),
+        epoch_session_path=epoch_path,
+        epoch_session_file_sha256=file_sha256(epoch_path),
+        epoch_window_steps=64,
+    )
+    invocations = phase2["plan"]["checked_invocations"]
+    assert [item["kind"] for item in invocations[:3]] == [
+        "reference_run",
+        "resume_proof_first",
+        "resume_proof_second",
+    ]
+    assert len(invocations[3:]) == 16
+    assert all(item["kind"] == "epoch1_window" for item in invocations[3:])
+    assert invocations[-1]["expected_success_outcome"] == "COMPLETE"
+    assert sum(item["optimizer_step_budget"] for item in invocations[3:]) == 1024

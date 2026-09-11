@@ -331,6 +331,8 @@ def require_invocation(
                 "launcher_argv_sha256",
                 "prelaunch_manifest",
                 "prelaunch_manifest_sha256",
+                "train_session_manifest",
+                "train_session_manifest_sha256",
                 "test_data_used",
                 "artifact_sha256",
             }
@@ -348,6 +350,8 @@ def require_invocation(
             if (
                 execution["prelaunch_manifest"] is not None
                 or execution["prelaunch_manifest_sha256"] is not None
+                or execution["train_session_manifest"] is not None
+                or execution["train_session_manifest_sha256"] is not None
                 or "--launch-manifest" in result["launcher_argv"]
             ):
                 raise RandomAccessCampaignError("full VAL prelaunch binding forbidden")
@@ -373,6 +377,40 @@ def require_invocation(
                 != prelaunch_binding["path"]
             ):
                 raise RandomAccessCampaignError("prelaunch manifest provenance invalid")
+            if kind == "smoke_arm":
+                if (
+                    execution["train_session_manifest"] is not None
+                    or execution["train_session_manifest_sha256"] is not None
+                    or "--train-session-manifest" in result["launcher_argv"]
+                ):
+                    raise RandomAccessCampaignError(
+                        "smoke arm train-session binding forbidden"
+                    )
+            else:
+                session_binding = require_binding(
+                    execution["train_session_manifest"],
+                    label="train session manifest",
+                    verify_file=True,
+                )
+                session = read_bound_json(
+                    Path(session_binding["path"]), session_binding["sha256"]
+                )
+                session_sha = _sha(
+                    execution["train_session_manifest_sha256"],
+                    "train session manifest artifact",
+                )
+                if (
+                    session.get("manifest_sha256") != session_sha
+                    or "--train-session-manifest" not in result["launcher_argv"]
+                    or result["launcher_argv"][
+                        result["launcher_argv"].index("--train-session-manifest")
+                        + 1
+                    ]
+                    != session_binding["path"]
+                ):
+                    raise RandomAccessCampaignError(
+                        "train session manifest provenance invalid"
+                    )
     result["invocation_sha256"] = claimed
     return result
 
@@ -399,7 +437,7 @@ def _require_sequence(
             ):
                 raise RandomAccessCampaignError("smoke-arm sequence invalid")
     elif phase == "selected_training":
-        if selected_batch_size not in (4, 8, 16) or len(invocations) < 5:
+        if selected_batch_size not in (4, 8, 16) or len(invocations) < 4:
             raise RandomAccessCampaignError("selected training sequence invalid")
         reference, first, second = invocations[:3]
         if (
@@ -430,7 +468,7 @@ def _require_sequence(
             or second["expected_success_outcome"] != "COMPLETE"
         ):
             raise RandomAccessCampaignError("resume-proof second sequence invalid")
-        epoch = list(invocations[3:-1])
+        epoch = list(invocations[3:])
         if not epoch or any(item["kind"] != "epoch1_window" for item in epoch):
             raise RandomAccessCampaignError("epoch1 window sequence invalid")
         count = len(epoch)
@@ -461,18 +499,6 @@ def _require_sequence(
                 != epoch[offset - 1]["checkpoint"]["pointer_path"]
             ):
                 raise RandomAccessCampaignError("epoch1 checkpoint predecessor invalid")
-        val = invocations[-1]
-        if (
-            val["kind"] != "full_val"
-            or val["batch_size"] != selected_batch_size
-            or val["checkpoint"]["before_mode"] != "PREVIOUS_RECEIPT_AFTER"
-            or val["checkpoint"]["predecessor_invocation_number"]
-            != epoch[-1]["invocation_number"]
-            or val["checkpoint"]["pointer_path"]
-            != epoch[-1]["checkpoint"]["pointer_path"]
-            or val["checkpoint"]["write_mode"] != "READ_ONLY"
-        ):
-            raise RandomAccessCampaignError("full VAL sequence invalid")
     else:
         raise RandomAccessCampaignError("campaign phase invalid")
     for number, item in enumerate(invocations, 1):
