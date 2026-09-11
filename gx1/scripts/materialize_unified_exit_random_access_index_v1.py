@@ -89,7 +89,7 @@ def _schedule_stream_sha256(
         samples = schedule_random_access_epoch(
             sampler_contract=contract,
             epoch_index=epoch_index,
-            successor_transition_count_by_entry=counts,
+            successor_transition_count_by_entry=[int(value) for value in counts],
         )
         for sample in samples:
             digest.update(canonical_sha256(sample).encode("ascii"))
