@@ -54,3 +54,66 @@ def test_resumable_window_is_successful_guard_exit(monkeypatch, tmp_path) -> Non
         "60",
     ]
     assert main(common) == 0
+
+
+def test_campaign_context_separates_file_and_internal_sha(monkeypatch, tmp_path) -> None:
+    plan_path = (tmp_path / "CAMPAIGN_PLAN.json").resolve()
+    plan_path.write_text("{}")
+    progress_path = (tmp_path / "PROGRESS.json").resolve()
+    authority_path = (tmp_path / "AUTHORITY.json").resolve()
+    invocation = {
+        "invocation_sha256": "i" * 64,
+        "kind": "full_val_window",
+        "progress_path": str(progress_path),
+        "checkpoint": {"pointer_path": str(tmp_path / "POINTER.json")},
+    }
+    authority = {
+        "selected_batch_size": 16,
+        "source_commit": "c" * 40,
+        "final_checkpoint_pointer": {"path": str(tmp_path / "POINTER.json")},
+    }
+    plan = {
+        "plan_sha256": "p" * 64,
+        "phase": "full_val",
+        "final_train_checkpoint_authority": {
+            "path": str(authority_path),
+            "sha256": "a" * 64,
+        },
+        "selected_batch_size": 16,
+        "source_commit": "c" * 40,
+        "checked_invocations": [invocation],
+    }
+    observed = {}
+
+    def fake_read(path, expected_sha256):
+        observed["path"] = path
+        observed["expected_sha256"] = expected_sha256
+        return {}
+
+    monkeypatch.setattr(cli, "read_bound_json", fake_read)
+    monkeypatch.setattr(cli, "require_plan", lambda _value, verify_files=True: plan)
+    monkeypatch.setenv("GX1_CAMPAIGN_PLAN_PATH", str(plan_path))
+    monkeypatch.setenv("GX1_CAMPAIGN_PLAN_FILE_SHA256", "f" * 64)
+    monkeypatch.setenv("GX1_CAMPAIGN_PLAN_SHA256", "p" * 64)
+    monkeypatch.setenv("GX1_CAMPAIGN_INVOCATION_SHA256", "i" * 64)
+    checked, selected = cli._campaign_context(
+        authority,
+        authority_path=authority_path,
+        authority_file_sha256="a" * 64,
+        progress_path=progress_path,
+    )
+    assert checked is plan
+    assert selected is invocation
+    assert observed == {
+        "path": plan_path,
+        "expected_sha256": "f" * 64,
+    }
+
+    monkeypatch.setenv("GX1_CAMPAIGN_PLAN_SHA256", "x" * 64)
+    with pytest.raises(RuntimeError, match="CAMPAIGN_SHA_INVALID"):
+        cli._campaign_context(
+            authority,
+            authority_path=authority_path,
+            authority_file_sha256="a" * 64,
+            progress_path=progress_path,
+        )

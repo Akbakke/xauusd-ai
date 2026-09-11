@@ -122,16 +122,23 @@ def _campaign_context(
     progress_path: Path,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     plan_sha256 = os.environ.get("GX1_CAMPAIGN_PLAN_SHA256")
+    plan_file_sha256 = os.environ.get("GX1_CAMPAIGN_PLAN_FILE_SHA256")
     plan_path_raw = os.environ.get("GX1_CAMPAIGN_PLAN_PATH")
-    if not isinstance(plan_sha256, str) or not isinstance(plan_path_raw, str):
+    if (
+        not isinstance(plan_sha256, str)
+        or not isinstance(plan_file_sha256, str)
+        or not isinstance(plan_path_raw, str)
+    ):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_ENV_INVALID")
     plan_path = Path(plan_path_raw)
     if not plan_path.is_absolute() or plan_path.resolve() != plan_path:
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_PATH_INVALID")
     plan = require_plan(
-        read_bound_json(plan_path, plan_sha256),
+        read_bound_json(plan_path, plan_file_sha256),
         verify_files=True,
     )
+    if plan["plan_sha256"] != plan_sha256:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_CAMPAIGN_SHA_INVALID")
     invocation_sha256 = os.environ.get("GX1_CAMPAIGN_INVOCATION_SHA256")
     matches = [
         item
