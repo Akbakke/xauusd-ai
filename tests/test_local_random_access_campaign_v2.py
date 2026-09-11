@@ -17,7 +17,9 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     canonical_bytes,
     canonical_sha256,
     file_sha256,
+    fresh_boot,
     next_action,
+    require_boot_identity,
     require_plan,
     require_receipt,
 )
@@ -75,6 +77,40 @@ def _boot(number: int, minute: int) -> dict:
         },
         "identity_sha256",
     )
+
+
+def test_windows_round_trip_seven_digit_boot_timestamp_is_strict_utc() -> None:
+    actual = _seal(
+        {
+            "schema_version": BOOT_SCHEMA,
+            "computer_name": "GX1-3090",
+            "last_boot_utc": "2026-09-10T15:58:05.5000000+00:00",
+            "boot_id": 731,
+        },
+        "identity_sha256",
+    )
+    checked = require_boot_identity(actual)
+    assert checked["last_boot_utc"] == "2026-09-10T15:58:05.5000000+00:00"
+    assert checked["identity_sha256"] == actual["identity_sha256"]
+    prior = _seal(
+        {
+            **{key: value for key, value in actual.items() if key != "identity_sha256"},
+            "last_boot_utc": "2026-09-09T15:58:05.5000000+00:00",
+            "boot_id": 730,
+        },
+        "identity_sha256",
+    )
+    assert fresh_boot(actual, prior)
+    for malformed in (
+        "2026-09-10T15:58:05.50000000+00:00",
+        "2026-09-10T15:58:05.5000000+01:00",
+    ):
+        broken = dict(actual)
+        broken["last_boot_utc"] = malformed
+        broken.pop("identity_sha256")
+        broken["identity_sha256"] = canonical_sha256(broken)
+        with pytest.raises(RandomAccessCampaignError, match="UTC timestamp invalid"):
+            require_boot_identity(broken)
 
 
 def _binding(path: Path) -> dict:

@@ -67,8 +67,25 @@ def _sha(value: Any, label: str) -> str:
 def _utc(value: Any, label: str) -> datetime:
     if not isinstance(value, str):
         raise RandomAccessCampaignError(f"{label} UTC timestamp invalid")
+    if re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{8,}(?:Z|\+00:00)",
+        value,
+    ):
+        raise RandomAccessCampaignError(f"{label} UTC timestamp invalid")
+    # PowerShell/.NET round-trip format emits seven fractional digits (100 ns),
+    # while Python 3.10 accepts at most six. Preserve the original string for
+    # identity hashing and truncate only the value used for time comparison.
+    match = re.fullmatch(
+        r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d{7})(Z|\+00:00)",
+        value,
+    )
+    parse_value = (
+        f"{match.group(1)}.{match.group(2)[:6]}{match.group(3)}"
+        if match is not None
+        else value
+    )
     try:
-        result = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        result = datetime.fromisoformat(parse_value.replace("Z", "+00:00"))
     except ValueError as exc:
         raise RandomAccessCampaignError(f"{label} UTC timestamp invalid") from exc
     if result.tzinfo is None or result.utcoffset() != timedelta(0):
