@@ -329,6 +329,8 @@ def require_invocation(
                 "python_module",
                 "source_commit",
                 "launcher_argv_sha256",
+                "prelaunch_manifest",
+                "prelaunch_manifest_sha256",
                 "test_data_used",
                 "artifact_sha256",
             }
@@ -342,6 +344,35 @@ def require_invocation(
             or execution.get("artifact_sha256") != canonical_sha256(unsigned)
         ):
             raise RandomAccessCampaignError("execution manifest binding invalid")
+        if kind == "full_val":
+            if (
+                execution["prelaunch_manifest"] is not None
+                or execution["prelaunch_manifest_sha256"] is not None
+                or "--launch-manifest" in result["launcher_argv"]
+            ):
+                raise RandomAccessCampaignError("full VAL prelaunch binding forbidden")
+        else:
+            prelaunch_binding = require_binding(
+                execution["prelaunch_manifest"],
+                label="prelaunch manifest",
+                verify_file=True,
+            )
+            prelaunch = read_bound_json(
+                Path(prelaunch_binding["path"]), prelaunch_binding["sha256"]
+            )
+            prelaunch_sha = _sha(
+                execution["prelaunch_manifest_sha256"],
+                "prelaunch manifest artifact",
+            )
+            if (
+                prelaunch.get("manifest_sha256") != prelaunch_sha
+                or "--launch-manifest" not in result["launcher_argv"]
+                or result["launcher_argv"][
+                    result["launcher_argv"].index("--launch-manifest") + 1
+                ]
+                != prelaunch_binding["path"]
+            ):
+                raise RandomAccessCampaignError("prelaunch manifest provenance invalid")
     result["invocation_sha256"] = claimed
     return result
 
@@ -761,6 +792,7 @@ def require_receipt(
         "progress_observer_exit_code",
         "pointer_before_sha256",
         "checkpoint_pointer_after",
+        "checkpoint_pointer_snapshot",
         "progress",
         "guard_log",
         "guard_decision",
@@ -811,10 +843,14 @@ def require_receipt(
             raise RandomAccessCampaignError("GENESIS pointer-before invalid")
     else:
         _sha(before, "pointer before")
+    # The logical after-binding keeps the canonical live pointer path for
+    # resume/final-authority consumers.  It is intentionally not rehashed:
+    # later invocations atomically replace that file.  The immutable snapshot
+    # below is the byte evidence for this receipt.
     result["checkpoint_pointer_after"] = require_binding(
         result["checkpoint_pointer_after"],
         label="checkpoint pointer after",
-        verify_file=verify_files,
+        verify_file=False,
     )
     if (
         result["checkpoint_pointer_after"]["path"]
@@ -823,6 +859,16 @@ def require_receipt(
         raise RandomAccessCampaignError(
             "checkpoint pointer path differs from invocation"
         )
+    result["checkpoint_pointer_snapshot"] = require_binding(
+        result["checkpoint_pointer_snapshot"],
+        label="checkpoint pointer snapshot",
+        verify_file=verify_files,
+    )
+    if (
+        result["checkpoint_pointer_snapshot"]["sha256"]
+        != result["checkpoint_pointer_after"]["sha256"]
+    ):
+        raise RandomAccessCampaignError("checkpoint pointer snapshot differs")
     _sha(result.get("active_marker_sha256"), "active marker")
     expected_guard_decision = "PASS" if success and outcome != "FAILED" else "FAILED"
     if (
@@ -834,18 +880,35 @@ def require_receipt(
         result["progress"], label="progress receipt", verify_file=verify_files
     )
     if verify_files:
-        require_progress(
+        # The immutable progress bytes bind the logical live pointer and its
+        # digest. Rehashing that mutable path would invalidate older receipts
+        # after a legitimate continuation.
+        progress = require_progress(
             read_bound_json(
                 Path(result["progress"]["path"]), result["progress"]["sha256"]
             ),
             plan_sha256=plan_sha256,
             invocation=invocation,
             expected_selection_receipt_sha256=selection,
-            verify_file=True,
+            verify_file=False,
         )
+        if progress["checkpoint_pointer"] != result["checkpoint_pointer_after"]:
+            raise RandomAccessCampaignError("progress checkpoint evidence differs")
     result["guard_log"] = require_binding(
         result["guard_log"], label="signed guard log", verify_file=verify_files
     )
+    snapshot_root = Path(result["checkpoint_pointer_snapshot"]["path"]).parent
+    expected_snapshot_root_name = f"invocation-{invocation['invocation_number']:04d}"
+    if (
+        snapshot_root.name != expected_snapshot_root_name
+        or Path(result["checkpoint_pointer_snapshot"]["path"]).name
+        != "CHECKPOINT_POINTER.json"
+        or Path(result["progress"]["path"]) != snapshot_root / "PROGRESS.json"
+        or Path(result["guard_log"]["path"]) != snapshot_root / "SIGNED_GUARD.log"
+        or result["checkpoint_pointer_snapshot"]["path"]
+        == result["checkpoint_pointer_after"]["path"]
+    ):
+        raise RandomAccessCampaignError("immutable invocation evidence layout invalid")
     result["receipt_sha256"] = claimed
     return result
 

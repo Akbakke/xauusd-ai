@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import secrets
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -56,6 +58,61 @@ def _atomic_new(path: Path, value: Mapping[str, Any]) -> None:
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _snapshot_invocation_evidence(
+    *, runtime: Path, invocation_number: int, sources: Mapping[str, Path]
+) -> dict[str, dict[str, str]]:
+    """Atomically publish exact, immutable evidence bytes for one invocation."""
+    evidence_root = runtime / "invocation-evidence"
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    if evidence_root.is_symlink() or not evidence_root.is_dir():
+        raise RandomAccessCampaignError("invocation evidence root invalid")
+    destination = evidence_root / f"invocation-{invocation_number:04d}"
+    if destination.exists() or destination.is_symlink():
+        raise RandomAccessCampaignError("invocation evidence collision")
+    staging = evidence_root / (
+        f".invocation-{invocation_number:04d}.{secrets.token_hex(8)}.tmp"
+    )
+    staging.mkdir(mode=0o700)
+    digests: dict[str, str] = {}
+    try:
+        for name, source in sources.items():
+            if not source.is_file() or source.is_symlink():
+                raise RandomAccessCampaignError(f"{name} evidence unavailable")
+            before = file_sha256(source)
+            target = staging / name
+            copied = hashlib.sha256()
+            with source.open("rb") as reader, target.open("xb") as writer:
+                for block in iter(lambda: reader.read(1024 * 1024), b""):
+                    copied.update(block)
+                    writer.write(block)
+                writer.flush()
+                os.fsync(writer.fileno())
+            if copied.hexdigest() != before or file_sha256(source) != before:
+                raise RandomAccessCampaignError(
+                    f"{name} evidence changed while being snapshotted"
+                )
+            os.chmod(target, 0o400)
+            digests[name] = before
+        directory_fd = os.open(staging, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        os.replace(staging, destination)
+        root_fd = os.open(evidence_root, os.O_RDONLY)
+        try:
+            os.fsync(root_fd)
+        finally:
+            os.close(root_fd)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return {
+        name: {"path": str(destination / name), "sha256": digest}
+        for name, digest in digests.items()
+    }
 
 
 def _receipts(runtime: Path) -> list[dict[str, Any]]:
@@ -302,6 +359,15 @@ def record_invocation(
     success = trainer_guard_exit_code == 0 and progress_observer_exit_code == 0
     guard_path = Path(invocation["guard_log_path"])
     _require_guard_log(guard_path, success=success)
+    snapshots = _snapshot_invocation_evidence(
+        runtime=runtime,
+        invocation_number=number,
+        sources={
+            "CHECKPOINT_POINTER.json": pointer,
+            "PROGRESS.json": progress_path,
+            "SIGNED_GUARD.log": guard_path,
+        },
+    )
     receipt = {
         "schema_version": RECEIPT_SCHEMA,
         "plan_sha256": plan["plan_sha256"],
@@ -321,8 +387,9 @@ def record_invocation(
             "path": str(pointer),
             "sha256": pointer_after,
         },
-        "progress": {"path": str(progress_path), "sha256": file_sha256(progress_path)},
-        "guard_log": {"path": str(guard_path), "sha256": file_sha256(guard_path)},
+        "checkpoint_pointer_snapshot": snapshots["CHECKPOINT_POINTER.json"],
+        "progress": snapshots["PROGRESS.json"],
+        "guard_log": snapshots["SIGNED_GUARD.log"],
         "guard_decision": "PASS" if success and outcome != "FAILED" else "FAILED",
         "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
         "active_marker_sha256": file_sha256(active_path),

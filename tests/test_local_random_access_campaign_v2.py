@@ -17,6 +17,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     file_sha256,
     next_action,
     require_plan,
+    require_receipt,
 )
 from gx1.contracts.unified_exit_gpu_batch_selection_v1 import (
     build_arm_receipt,
@@ -117,6 +118,9 @@ def _invocation(
     windows: int = 0,
 ) -> tuple[dict, dict]:
     manifest = tmp_path / runtime.name / "manifests" / f"{number:04d}.json"
+    prelaunch = tmp_path / "PRELAUNCH.json"
+    if not prelaunch.exists():
+        _write(prelaunch, {"manifest_sha256": "a" * 64})
     outer = [
         str(repo / "scripts/gx1_capped_run.sh"),
         "--class",
@@ -139,6 +143,11 @@ def _invocation(
         str(repo / ".venv/bin/python"),
         "-m",
         "gx1.scripts.fixture_executor",
+        *(
+            ["--launch-manifest", str(prelaunch)]
+            if kind != "full_val"
+            else []
+        ),
         "--device",
         "cuda",
         "--invocation",
@@ -152,6 +161,12 @@ def _invocation(
             "python_module": "gx1.scripts.fixture_executor",
             "source_commit": commit,
             "launcher_argv_sha256": canonical_sha256(argv),
+            "prelaunch_manifest": _binding(prelaunch)
+            if kind != "full_val"
+            else None,
+            "prelaunch_manifest_sha256": "a" * 64
+            if kind != "full_val"
+            else None,
             "test_data_used": False,
         },
         "artifact_sha256",
@@ -310,6 +325,18 @@ def _selection(
             "progress_sha256",
         )
         _write(progress, progress_value)
+        snapshot_root = (
+            Path(gpu["runtime_root"])
+            / "invocation-evidence"
+            / f"invocation-{number:04d}"
+        )
+        snapshot_root.mkdir(parents=True)
+        pointer_snapshot = snapshot_root / "CHECKPOINT_POINTER.json"
+        progress_snapshot = snapshot_root / "PROGRESS.json"
+        guard_snapshot = snapshot_root / "SIGNED_GUARD.log"
+        pointer_snapshot.write_bytes(pointer.read_bytes())
+        progress_snapshot.write_bytes(progress.read_bytes())
+        guard_snapshot.write_bytes(guard.read_bytes())
         campaign_receipt = _seal(
             {
                 "schema_version": RECEIPT_SCHEMA,
@@ -327,8 +354,9 @@ def _selection(
                 "progress_observer_exit_code": 0,
                 "pointer_before_sha256": "GENESIS",
                 "checkpoint_pointer_after": _binding(pointer),
-                "progress": _binding(progress),
-                "guard_log": _binding(guard),
+                "checkpoint_pointer_snapshot": _binding(pointer_snapshot),
+                "progress": _binding(progress_snapshot),
+                "guard_log": _binding(guard_snapshot),
                 "guard_decision": "PASS",
                 "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
                 "active_marker_sha256": "c" * 64,
@@ -599,7 +627,26 @@ def test_atomic_receipt_archive_and_reboot_receipt(tmp_path: Path) -> None:
     )
     assert recorded["receipt"]["pointer_before_sha256"] == "GENESIS"
     assert recorded["receipt"]["checkpoint_pointer_after"]["path"] == str(pointer)
+    assert Path(
+        recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]
+    ).read_bytes() == pointer.read_bytes()
+    assert Path(recorded["receipt"]["progress"]["path"]).name == "PROGRESS.json"
     assert recorded["receipt"]["guard_decision"] == "PASS"
+    original_snapshot = Path(
+        recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]
+    ).read_bytes()
+    _write(pointer, {"schema_version": "later-continuation"})
+    _write(Path(invocation["progress_path"]), {"later": True})
+    checked_invocation = require_plan(plan)["checked_invocations"][0]
+    require_receipt(
+        recorded["receipt"],
+        plan_sha256=plan["plan_sha256"],
+        invocation=checked_invocation,
+        verify_files=True,
+    )
+    assert Path(
+        recorded["receipt"]["checkpoint_pointer_snapshot"]["path"]
+    ).read_bytes() == original_snapshot
     assert not (Path(plan["runtime_root"]) / "ACTIVE_INVOCATION.json").exists()
     assert (
         Path(plan["runtime_root"]) / "active-archive/invocation-0001.json"
