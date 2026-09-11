@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)][string]$PlanJson,
     [Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-f]{64}$')][string]$PlanFileSha256,
     [Parameter(Mandatory = $true)][string]$SourceRepo,
-    [Parameter(Mandatory = $true)][string]$WindowsSourceRepo,
+    [Parameter(Mandatory = $true)][Alias('WindowsSourceRepo')][string]$WindowsControllerSourceRoot,
     [string]$Distro = 'Ubuntu-22.04',
     [string]$LinuxUser = 'andre2',
     [string]$Python = '.venv/bin/python'
@@ -70,16 +70,30 @@ $status = Invoke-Gx1Json -Arguments @(
     'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
     '--boot-json', $boot.Linux
 )
-$expectedWindowsRepo = Convert-Gx1WslPath -LinuxPath $SourceRepo
-if ([IO.Path]::GetFullPath($expectedWindowsRepo).TrimEnd('\') -cne [IO.Path]::GetFullPath($WindowsSourceRepo).TrimEnd('\')) {
-    throw 'WindowsSourceRepo does not map to the exact source-bound WSL repository'
+$controllerSourceRoot = [IO.Path]::GetFullPath($WindowsControllerSourceRoot).TrimEnd('\')
+if ($controllerSourceRoot -notmatch '^[Cc]:\\' -or
+    -not (Test-Path -LiteralPath $controllerSourceRoot -PathType Container) -or
+    ((Get-Item -LiteralPath $controllerSourceRoot -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'Windows controller source root must be an existing local C: directory without a reparse point'
 }
 $controllerBinding = $status.controller_sources.controller
 $observerBinding = $status.controller_sources.observer
-$observerSource = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
+$expectedControllerSource = Join-Path $controllerSourceRoot 'scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1'
+$observerSource = Join-Path $controllerSourceRoot 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
+foreach ($source in @($expectedControllerSource, $observerSource)) {
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf) -or
+        ((Get-Item -LiteralPath $source -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Windows controller staging source is unavailable or is a reparse point'
+    }
+}
+if (-not [StringComparer]::OrdinalIgnoreCase.Equals(
+        [IO.Path]::GetFullPath($PSCommandPath),
+        [IO.Path]::GetFullPath($expectedControllerSource))) {
+    throw 'Running campaign controller is outside the explicit staging root'
+}
 if ((Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$controllerBinding.sha256 -or
     (Get-FileHash -LiteralPath $observerSource -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$observerBinding.sha256) {
-    throw 'Campaign controller source differs from immutable plan binding'
+    throw 'Campaign controller or observer differs from immutable plan binding'
 }
 if ($status.policy.physical_power_limit_w -ne 160 -or
     $status.policy.maximum_actual_power_draw_w -ne 170 -or
@@ -139,7 +153,7 @@ finally {
     $env:GX1_CAMPAIGN_GUARD_LOG_PATH = $priorGuardLogPath
     $env:WSLENV = $priorWslEnv
 }
-$observerScript = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
+$observerScript = Join-Path $controllerSourceRoot 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
 $observer = Start-Process -FilePath 'powershell.exe' -ArgumentList @(
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', $observerScript,
     '-TrainerProcessId', [string]$trainer.Id,

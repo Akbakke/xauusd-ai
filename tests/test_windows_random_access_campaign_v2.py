@@ -26,6 +26,20 @@ def test_controller_uses_physical_reboot_and_transactional_cli() -> None:
     assert "nvidia-smi -pl" not in source.lower()
 
 
+def test_controller_accepts_only_plan_bound_local_windows_staging() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assert "[Alias('WindowsSourceRepo')]" in source
+    assert "WindowsControllerSourceRoot" in source
+    assert "Windows controller source root must be an existing local C:" in source
+    assert "[IO.FileAttributes]::ReparsePoint" in source
+    assert "expectedControllerSource" in source
+    assert "Running campaign controller is outside the explicit staging root" in source
+    assert "controllerBinding.sha256" in source
+    assert "observerBinding.sha256" in source
+    assert "does not map to the exact source-bound WSL repository" not in source
+    assert "Convert-Gx1WslPath -LinuxPath ([string]$invocation.progress_path)" in source
+
+
 def test_progress_sidecar_is_token_free_and_not_a_gpu_safety_owner() -> None:
     source = OBSERVER.read_text(encoding="utf-8")
     lowered = source.lower()
