@@ -5,8 +5,11 @@ import pytest
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     RANDOM_ACCESS_INDEX_SCHEMA_VERSION,
     build_random_access_index,
+    build_random_access_index_v2,
     canonical_sha256,
     index_stream_sha256,
+    parent_entry_mapping_sha256,
+    require_random_access_index,
     require_random_access_index_manifest,
 )
 
@@ -44,6 +47,52 @@ def test_index_is_one_entry_row_with_exact_parent_child_coordinates():
     assert frame["right_censored"].tolist() == [True, True]
     assert frame["economic_terminal"].tolist() == [False, False]
     assert len(set(frame["row_identity_sha256"])) == 2
+
+
+def test_v2_index_maps_child_entry_to_exact_parent_entry_row():
+    parent_m1 = pd.date_range("2026-01-01", periods=30, freq="min", tz="UTC")
+    child_m1 = parent_m1[5:25]
+    entry = pd.DatetimeIndex(
+        [child_m1[5] - pd.Timedelta(minutes=5), child_m1[9] - pd.Timedelta(minutes=5)]
+    )
+    parent_entry = pd.DatetimeIndex(
+        [parent_m1[0], parent_m1[2], entry[0], parent_m1[7], entry[1], parent_m1[12]]
+    )
+    frame, offset = build_random_access_index_v2(
+        split="train",
+        entry_times=entry,
+        parent_entry_times=parent_entry,
+        child_m1_times=child_m1,
+        parent_m1_times=parent_m1,
+        successor_transition_counts=[3, 4],
+        entry_bid=[100.0, 101.0],
+        entry_ask=[100.1, 101.1],
+        episode_binding_sha256_by_entry=[SHA_A, SHA_B],
+        entry_fill_binding_sha256_by_entry=[SHA_B, SHA_A],
+    )
+    assert offset == 5
+    assert frame["parent_entry_row_index"].tolist() == [2, 4]
+    assert require_random_access_index(frame) is frame
+    assert len(parent_entry_mapping_sha256(frame)) == 64
+
+
+def test_v2_index_rejects_missing_parent_entry_clock_match():
+    parent_m1 = pd.date_range("2026-01-01", periods=30, freq="min", tz="UTC")
+    child_m1 = parent_m1[5:25]
+    entry = [child_m1[5] - pd.Timedelta(minutes=5)]
+    with pytest.raises(RuntimeError, match="PARENT_ENTRY_INVALID"):
+        build_random_access_index_v2(
+            split="train",
+            entry_times=entry,
+            parent_entry_times=[parent_m1[1]],
+            child_m1_times=child_m1,
+            parent_m1_times=parent_m1,
+            successor_transition_counts=[3],
+            entry_bid=[100.0],
+            entry_ask=[100.1],
+            episode_binding_sha256_by_entry=[SHA_A],
+            entry_fill_binding_sha256_by_entry=[SHA_B],
+        )
 
 
 def test_index_rejects_out_of_range_successor_without_duration_cap():

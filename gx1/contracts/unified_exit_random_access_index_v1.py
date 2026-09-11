@@ -14,7 +14,11 @@ import pandas as pd
 
 RANDOM_ACCESS_INDEX_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_v1"
 RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_root_v1"
-RANDOM_ACCESS_INDEX_COLUMNS = (
+RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_v2"
+RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION = (
+    "gx1_unified_exit_random_access_index_root_v2"
+)
+RANDOM_ACCESS_INDEX_V1_COLUMNS = (
     "entry_row_index",
     "entry_time_ns",
     "first_state_time_ns",
@@ -30,6 +34,13 @@ RANDOM_ACCESS_INDEX_COLUMNS = (
     "entry_fill_binding_sha256",
     "row_identity_sha256",
 )
+RANDOM_ACCESS_INDEX_V2_COLUMNS = (
+    "entry_row_index",
+    "parent_entry_row_index",
+    *RANDOM_ACCESS_INDEX_V1_COLUMNS[1:],
+)
+# Backward-compatible public name for immutable V1-V3 evidence.
+RANDOM_ACCESS_INDEX_COLUMNS = RANDOM_ACCESS_INDEX_V1_COLUMNS
 _SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -66,9 +77,89 @@ def _clock(values: Sequence[Any], label: str) -> pd.DatetimeIndex:
 
 
 def _row_identity(record: Mapping[str, Any]) -> str:
-    return canonical_sha256(
-        {key: record[key] for key in RANDOM_ACCESS_INDEX_COLUMNS[:-1]}
+    columns = (
+        RANDOM_ACCESS_INDEX_V2_COLUMNS
+        if "parent_entry_row_index" in record
+        else RANDOM_ACCESS_INDEX_V1_COLUMNS
     )
+    return canonical_sha256({key: record[key] for key in columns[:-1]})
+
+
+def _clock_sha256(clock: pd.DatetimeIndex) -> str:
+    return hashlib.sha256(
+        np.ascontiguousarray(clock.asi8, dtype="<i8").tobytes()
+    ).hexdigest()
+
+
+def parent_entry_mapping_sha256(frame: pd.DataFrame) -> str:
+    """Bind child id, exact parent id/time and existing episode/fill identity."""
+
+    checked = require_random_access_index(frame)
+    if "parent_entry_row_index" not in checked:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_PARENT_ENTRY_MISSING")
+    digest = hashlib.sha256()
+    for row in checked.itertuples(index=False):
+        digest.update(
+            json.dumps(
+                {
+                    "entry_row_index": int(row.entry_row_index),
+                    "parent_entry_row_index": int(row.parent_entry_row_index),
+                    "entry_time_ns": int(row.entry_time_ns),
+                    "episode_binding_sha256": row.episode_binding_sha256,
+                    "entry_fill_binding_sha256": row.entry_fill_binding_sha256,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("ascii")
+        )
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def build_random_access_index_v2(
+    *,
+    split: str,
+    entry_times: Sequence[Any],
+    parent_entry_times: Sequence[Any],
+    child_m1_times: Sequence[Any],
+    parent_m1_times: Sequence[Any],
+    successor_transition_counts: Sequence[int],
+    entry_bid: Sequence[float],
+    entry_ask: Sequence[float],
+    episode_binding_sha256_by_entry: Sequence[str],
+    entry_fill_binding_sha256_by_entry: Sequence[str],
+) -> tuple[pd.DataFrame, int]:
+    """Build V2 with an exact child-to-parent Entry row mapping."""
+
+    legacy, parent_m1_offset = build_random_access_index(
+        split=split,
+        entry_times=entry_times,
+        child_m1_times=child_m1_times,
+        parent_m1_times=parent_m1_times,
+        successor_transition_counts=successor_transition_counts,
+        entry_bid=entry_bid,
+        entry_ask=entry_ask,
+        episode_binding_sha256_by_entry=episode_binding_sha256_by_entry,
+        entry_fill_binding_sha256_by_entry=entry_fill_binding_sha256_by_entry,
+    )
+    child_entry = _clock(entry_times, "ENTRY")
+    parent_entry = _clock(parent_entry_times, "PARENT_ENTRY")
+    parent_rows = np.searchsorted(parent_entry.asi8, child_entry.asi8).astype(
+        "<i8", copy=False
+    )
+    if (
+        np.any(parent_rows < 0)
+        or np.any(parent_rows >= len(parent_entry))
+        or not np.array_equal(parent_entry.asi8[parent_rows], child_entry.asi8)
+        or len(np.unique(parent_rows)) != len(parent_rows)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_PARENT_ENTRY_INVALID")
+    frame = legacy.copy()
+    frame.insert(1, "parent_entry_row_index", parent_rows)
+    for position, row in enumerate(frame.to_dict(orient="records")):
+        frame.at[position, "row_identity_sha256"] = _row_identity(row)
+    return frame.loc[:, RANDOM_ACCESS_INDEX_V2_COLUMNS], parent_m1_offset
 
 
 def build_random_access_index(
@@ -173,11 +264,17 @@ def require_random_access_index(
 ) -> pd.DataFrame:
     if (
         not isinstance(frame, pd.DataFrame)
-        or tuple(frame.columns) != RANDOM_ACCESS_INDEX_COLUMNS
+        or tuple(frame.columns)
+        not in {RANDOM_ACCESS_INDEX_V1_COLUMNS, RANDOM_ACCESS_INDEX_V2_COLUMNS}
         or frame.empty
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SCHEMA_INVALID")
     population = len(frame)
+    parent_entry_rows = (
+        frame["parent_entry_row_index"].to_numpy(dtype="<i8")
+        if "parent_entry_row_index" in frame
+        else None
+    )
     if (
         not np.array_equal(
             frame["entry_row_index"].to_numpy(dtype="<i8"),
@@ -191,6 +288,14 @@ def require_random_access_index(
         )
         or np.any(frame["parent_m1_start_row"].to_numpy(dtype="<i8") < 0)
         or np.any(frame["child_m1_start_row"].to_numpy(dtype="<i8") < 0)
+        or (
+            parent_entry_rows is not None
+            and (
+                np.any(parent_entry_rows < 0)
+                or len(np.unique(parent_entry_rows)) != population
+                or np.any(np.diff(parent_entry_rows) <= 0)
+            )
+        )
         or np.any(frame["successor_transition_count"].to_numpy(dtype="<i8") < 1)
         or not np.array_equal(
             frame["lifecycle_state_count"].to_numpy(dtype="<i8"),
@@ -232,7 +337,11 @@ def require_random_access_index_manifest(
     claimed = data.pop("manifest_sha256", None)
     sources = value.get("source_bindings")
     if (
-        value.get("schema_version") != RANDOM_ACCESS_INDEX_SCHEMA_VERSION
+        value.get("schema_version")
+        not in {
+            RANDOM_ACCESS_INDEX_SCHEMA_VERSION,
+            RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
+        }
         or value.get("decision") != "PASS"
         or value.get("split") != expected_split
         or value.get("storage_granularity") != "one_row_per_entry"
@@ -246,6 +355,34 @@ def require_random_access_index_manifest(
         or claimed != canonical_sha256(data)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_MANIFEST_INVALID")
+    is_v2 = value["schema_version"] == RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION
+    if is_v2:
+        required_sources = {
+            "entry_parquet",
+            "entry_manifest",
+            "parent_entry_parquet",
+            "parent_entry_manifest",
+        }
+        for key in (
+            "child_entry_clock_sha256",
+            "parent_entry_clock_sha256",
+            "parent_entry_row_indices_sha256",
+            "parent_entry_mapping_sha256",
+            "parent_entry_source_sha256",
+            "parent_entry_manifest_sha256",
+        ):
+            _sha(value.get(key), key.upper())
+        if (
+            not required_sources <= set(sources)
+            or value.get("parent_entry_source_sha256")
+            != sources["parent_entry_parquet"].get("sha256")
+            or value.get("parent_entry_manifest_sha256")
+            != sources["parent_entry_manifest"].get("sha256")
+            or isinstance(value.get("parent_entry_source_rows"), bool)
+            or not isinstance(value.get("parent_entry_source_rows"), int)
+            or value["parent_entry_source_rows"] < value.get("entry_row_count", 0)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_PARENT_ENTRY_INVALID")
     for binding in sources.values():
         if (
             not isinstance(binding, Mapping)
@@ -274,6 +411,42 @@ def require_random_access_index_manifest(
                 != binding["sha256"]
             ):
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SOURCE_INVALID")
+        if is_v2:
+            child_entry = _clock(
+                pd.read_parquet(sources["entry_parquet"]["path"], columns=["time"])[
+                    "time"
+                ],
+                "ENTRY",
+            )
+            parent_entry = _clock(
+                pd.read_parquet(
+                    sources["parent_entry_parquet"]["path"], columns=["time"]
+                )["time"],
+                "PARENT_ENTRY",
+            )
+            if (
+                index_frame is None
+                or "parent_entry_row_index" not in index_frame
+                or _clock_sha256(child_entry) != value["child_entry_clock_sha256"]
+                or _clock_sha256(parent_entry) != value["parent_entry_clock_sha256"]
+                or len(parent_entry) != value["parent_entry_source_rows"]
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_RANDOM_ACCESS_INDEX_PARENT_ENTRY_INVALID"
+                )
+            parent_rows = np.ascontiguousarray(
+                index_frame["parent_entry_row_index"].to_numpy(dtype="<i8")
+            )
+            if (
+                hashlib.sha256(parent_rows.tobytes()).hexdigest()
+                != value["parent_entry_row_indices_sha256"]
+                or not np.array_equal(parent_entry.asi8[parent_rows], child_entry.asi8)
+                or parent_entry_mapping_sha256(index_frame)
+                != value["parent_entry_mapping_sha256"]
+            ):
+                raise RuntimeError(
+                    "UNIFIED_EXIT_RANDOM_ACCESS_INDEX_PARENT_ENTRY_INVALID"
+                )
     if index_frame is not None:
         checked = require_random_access_index(
             index_frame, expected_split=expected_split
@@ -283,6 +456,11 @@ def require_random_access_index_manifest(
             or int(checked["successor_transition_count"].sum())
             != value.get("successor_transition_total")
             or index_stream_sha256(checked) != value.get("index_stream_sha256")
+            or (
+                is_v2
+                and parent_entry_mapping_sha256(checked)
+                != value.get("parent_entry_mapping_sha256")
+            )
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_MANIFEST_MISMATCH")
     return dict(value)
@@ -295,7 +473,11 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
     claimed = data.pop("root_sha256", None)
     splits = value.get("splits")
     if (
-        value.get("schema_version") != RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION
+        value.get("schema_version")
+        not in {
+            RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION,
+            RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
+        }
         or value.get("decision") != "PASS"
         or value.get("allowed_splits") != ["train", "val"]
         or value.get("storage_granularity") != "one_row_per_entry"
@@ -307,16 +489,40 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
         or claimed != canonical_sha256(data)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ROOT_INVALID")
+    if value["schema_version"] == RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION:
+        equivalence = value.get("predecessor_equivalence")
+        if (
+            not isinstance(equivalence, Mapping)
+            or set(equivalence)
+            != {
+                "path",
+                "sha256",
+                "receipt_sha256",
+                "benchmark_receipt_transfer_to_v4_authorized",
+            }
+            or not Path(str(equivalence.get("path", ""))).is_absolute()
+            or equivalence.get("benchmark_receipt_transfer_to_v4_authorized")
+            is not True
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_EQUIVALENCE_INVALID")
+        _sha(equivalence.get("sha256"), "EQUIVALENCE_FILE")
+        _sha(equivalence.get("receipt_sha256"), "EQUIVALENCE_RECEIPT")
     return dict(value)
 
 
 __all__ = (
     "RANDOM_ACCESS_INDEX_COLUMNS",
+    "RANDOM_ACCESS_INDEX_V1_COLUMNS",
+    "RANDOM_ACCESS_INDEX_V2_COLUMNS",
+    "RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION",
+    "RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION",
     "RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION",
     "RANDOM_ACCESS_INDEX_SCHEMA_VERSION",
     "build_random_access_index",
+    "build_random_access_index_v2",
     "canonical_sha256",
     "index_stream_sha256",
+    "parent_entry_mapping_sha256",
     "require_random_access_index",
     "require_random_access_index_manifest",
     "require_random_access_index_root",

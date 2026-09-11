@@ -24,13 +24,18 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
     require_split_sequence_binding,
 )
 from gx1.contracts.unified_exit_random_access_index_v1 import (
-    RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION,
-    RANDOM_ACCESS_INDEX_SCHEMA_VERSION,
-    build_random_access_index,
+    RANDOM_ACCESS_INDEX_V1_COLUMNS,
+    RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
+    RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
+    build_random_access_index_v2,
     canonical_sha256,
     index_stream_sha256,
+    parent_entry_mapping_sha256,
     require_random_access_index_manifest,
     require_random_access_index_root,
+)
+from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+    schedule_random_access_epoch,
 )
 
 
@@ -59,6 +64,120 @@ def _sealed_json(path: Path, value: dict[str, Any], key: str) -> None:
         json.dumps(payload, sort_keys=True, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
+
+
+def _semantic_stream_sha256(frame: pd.DataFrame) -> str:
+    columns = tuple(
+        name for name in RANDOM_ACCESS_INDEX_V1_COLUMNS if name != "row_identity_sha256"
+    )
+    digest = __import__("hashlib").sha256()
+    for row in frame.loc[:, columns].itertuples(index=False, name=None):
+        digest.update(
+            json.dumps(list(row), separators=(",", ":"), allow_nan=False).encode(
+                "ascii"
+            )
+        )
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def _schedule_stream_sha256(
+    *, contract: dict[str, Any], counts: np.ndarray, epochs: int
+) -> str:
+    digest = __import__("hashlib").sha256()
+    for epoch_index in range(epochs):
+        samples = schedule_random_access_epoch(
+            sampler_contract=contract,
+            epoch_index=epoch_index,
+            successor_transition_count_by_entry=counts,
+        )
+        for sample in samples:
+            digest.update(canonical_sha256(sample).encode("ascii"))
+            digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def _build_equivalence_receipt(
+    *,
+    predecessor_root_path: Path,
+    manifests: dict[str, dict[str, Any]],
+    output_dir: Path,
+    stage: Path,
+    final_bundle: dict[str, Any],
+) -> dict[str, Any]:
+    predecessor = require_random_access_index_root(_read_json(predecessor_root_path))
+    split_proofs: dict[str, Any] = {}
+    train_counts: np.ndarray | None = None
+    for split in ("train", "val"):
+        old_path = Path(predecessor["splits"][split]["index_parquet_path"])
+        old = pd.read_parquet(old_path)
+        new = pd.read_parquet(stage / f"{split}.random_access_index.parquet")
+        old_semantic = _semantic_stream_sha256(old)
+        new_semantic = _semantic_stream_sha256(new)
+        if (
+            old_semantic != new_semantic
+            or len(old) != len(new)
+            or not np.array_equal(
+                old["successor_transition_count"].to_numpy(dtype="<i8"),
+                new["successor_transition_count"].to_numpy(dtype="<i8"),
+            )
+        ):
+            raise RuntimeError(
+                f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_SEMANTIC_DRIFT"
+            )
+        if split == "train":
+            train_counts = new["successor_transition_count"].to_numpy(dtype="<i8")
+        split_proofs[split] = {
+            "row_count": len(new),
+            "unchanged_semantic_columns": list(
+                name
+                for name in RANDOM_ACCESS_INDEX_V1_COLUMNS
+                if name != "row_identity_sha256"
+            ),
+            "predecessor_semantic_stream_sha256": old_semantic,
+            "successor_semantic_stream_sha256": new_semantic,
+            "semantic_streams_byte_identical": True,
+            "added_columns": ["parent_entry_row_index"],
+            "successor_manifest_sha256": manifests[split]["manifest_sha256"],
+        }
+    if train_counts is None:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_EQUIVALENCE_INVALID")
+    candidate_set = final_bundle["sampler_benchmark_candidates"]
+    schedules = []
+    for candidate in candidate_set["candidates"]:
+        contract = candidate["sampler_contract"]
+        entries_per_epoch = int(contract["entry_pairs_per_epoch"])
+        cycle_epochs = -(-len(train_counts) // entries_per_epoch)
+        stream = _schedule_stream_sha256(
+            contract=contract, counts=train_counts, epochs=cycle_epochs
+        )
+        schedules.append(
+            {
+                "sampler_contract_sha256": contract["contract_sha256"],
+                "source_lineage_sha256": contract["source_lineage_sha256"],
+                "transition_budget_per_epoch": contract["transition_budget_per_epoch"],
+                "population_cycle_epochs": cycle_epochs,
+                "predecessor_schedule_stream_sha256": stream,
+                "successor_schedule_stream_sha256": stream,
+                "schedule_streams_byte_identical": True,
+            }
+        )
+    receipt = {
+        "schema_version": "gx1_unified_exit_random_access_index_v3_to_v4_equivalence_v1",
+        "decision": "PASS",
+        "predecessor_root": _binding(predecessor_root_path),
+        "predecessor_root_sha256": predecessor["root_sha256"],
+        "successor_output_dir": str(output_dir),
+        "split_proofs": split_proofs,
+        "sampler_candidate_set_sha256": candidate_set["candidate_set_sha256"],
+        "sampled_transition_schedules": schedules,
+        "only_parent_entry_coordinate_and_binding_fields_added": True,
+        "benchmark_receipt_transfer_to_v4_authorized": True,
+        "selection_uses_outcome_values": False,
+        "test_accessed": False,
+    }
+    receipt["receipt_sha256"] = canonical_sha256(receipt)
+    return receipt
 
 
 def _paths(root: Path, split: str, final_bindings_dir: Path) -> dict[str, Path]:
@@ -114,6 +233,12 @@ def _build_split(
     child = pd.read_parquet(paths["m1_child"], columns=["time", "bid_open", "ask_open"])
     parent_path = Path(str(child_manifest.get("parent_m1_path", "")))
     parent_manifest_path = Path(str(child_manifest.get("parent_m1_manifest_path", "")))
+    parent_entry_binding = entry_manifest.get("source_parquet", {})
+    parent_entry_manifest_binding = entry_manifest.get("source_manifest", {})
+    parent_entry_path = Path(str(parent_entry_binding.get("path", "")))
+    parent_entry_manifest_path = Path(
+        str(parent_entry_manifest_binding.get("path", ""))
+    )
     if (
         entry_manifest.get("decision") != "PASS"
         or entry_manifest.get("split") != split
@@ -127,6 +252,9 @@ def _build_split(
         or child_manifest.get("parent_m1_sha256") != file_sha256(parent_path)
         or child_manifest.get("parent_m1_manifest_sha256")
         != file_sha256(parent_manifest_path)
+        or parent_entry_binding.get("sha256") != file_sha256(parent_entry_path)
+        or parent_entry_manifest_binding.get("sha256")
+        != file_sha256(parent_entry_manifest_path)
         or summary.get("decision") != "PASS"
         or summary.get("split") != split
         or summary.get("test_accessed") is not False
@@ -176,6 +304,7 @@ def _build_split(
             f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_TERMINAL_INVALID"
         )
     parent = pd.read_parquet(parent_path, columns=["time"])
+    parent_entries = pd.read_parquet(parent_entry_path, columns=["time"])
     entry_clock = pd.DatetimeIndex(pd.to_datetime(entries["time"], utc=True)).as_unit(
         "ns"
     )
@@ -184,9 +313,13 @@ def _build_split(
     )
     first_state = entry_clock.asi8 + 300_000_000_000
     starts = np.searchsorted(child_clock.asi8, first_state)
-    frame, parent_offset = build_random_access_index(
+    parent_entry_clock = pd.DatetimeIndex(
+        pd.to_datetime(parent_entries["time"], utc=True)
+    ).as_unit("ns")
+    frame, parent_offset = build_random_access_index_v2(
         split=split,
         entry_times=entry_clock,
+        parent_entry_times=parent_entry_clock,
         child_m1_times=child_clock,
         parent_m1_times=pd.DatetimeIndex(pd.to_datetime(parent["time"], utc=True)),
         successor_transition_counts=counts,
@@ -197,17 +330,36 @@ def _build_split(
         ],
         entry_fill_binding_sha256_by_entry=bridge["entry_fill_binding_sha256_by_entry"],
     )
+    parent_entry_rows = np.ascontiguousarray(
+        frame["parent_entry_row_index"].to_numpy(dtype="<i8")
+    )
+    parent_entry_rows_sha256 = (
+        __import__("hashlib").sha256(parent_entry_rows.tobytes()).hexdigest()
+    )
+    child_entry_clock_sha256 = (
+        __import__("hashlib")
+        .sha256(np.ascontiguousarray(entry_clock.asi8, dtype="<i8").tobytes())
+        .hexdigest()
+    )
+    if parent_entry_rows_sha256 != entry_manifest.get(
+        "source_row_indices_sha256"
+    ) or child_entry_clock_sha256 != entry_manifest.get("clock_sha256"):
+        raise RuntimeError(
+            f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_PARENT_ENTRY_MAPPING_INVALID"
+        )
     parquet_path = output_dir / f"{split}.random_access_index.parquet"
     frame.to_parquet(parquet_path, index=False)
     source_bindings = {name: _binding(path) for name, path in paths.items()}
     source_bindings["parent_m1"] = _binding(parent_path)
     source_bindings["parent_m1_manifest"] = _binding(parent_manifest_path)
+    source_bindings["parent_entry_parquet"] = _binding(parent_entry_path)
+    source_bindings["parent_entry_manifest"] = _binding(parent_entry_manifest_path)
     source_bindings["composite_normalization"] = _binding(
-        pilot_root / "FINAL_BINDINGS_V1" / "COMPOSITE_NORMALIZATION.json"
+        final_bindings_dir / "COMPOSITE_NORMALIZATION.json"
     )
     source_bindings["final_bindings_bundle"] = _binding(final_bundle_path)
     manifest = {
-        "schema_version": RANDOM_ACCESS_INDEX_SCHEMA_VERSION,
+        "schema_version": RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
         "decision": "PASS",
         "split": split,
         "dataset_run_id": authority["dataset_run_id"],
@@ -217,6 +369,15 @@ def _build_split(
         "parent_m1_source_sha256": child_manifest["parent_m1_sha256"],
         "m1_source_sha256": child_manifest["output_parquet_sha256"],
         "entry_binding_sha256": sequence["binding_sha256"],
+        "child_entry_clock_sha256": child_entry_clock_sha256,
+        "parent_entry_clock_sha256": __import__("hashlib")
+        .sha256(np.ascontiguousarray(parent_entry_clock.asi8, dtype="<i8").tobytes())
+        .hexdigest(),
+        "parent_entry_source_rows": len(parent_entry_clock),
+        "parent_entry_source_sha256": parent_entry_binding["sha256"],
+        "parent_entry_manifest_sha256": parent_entry_manifest_binding["sha256"],
+        "parent_entry_row_indices_sha256": parent_entry_rows_sha256,
+        "parent_entry_mapping_sha256": parent_entry_mapping_sha256(frame),
         "gap_classification_source_sha256": summary["closure_authority_sha256"],
         "split_end_utc": authority["coverage_end_utc"],
         "index_parquet_path": str(
@@ -253,6 +414,7 @@ def publish(
     pilot_root: Path,
     output_dir: Path,
     final_bindings_dir: Path | None = None,
+    predecessor_root_path: Path,
 ) -> dict[str, Any]:
     pilot_root = pilot_root.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
@@ -298,8 +460,26 @@ def publish(
             )
             for split in ("train", "val")
         }
+        predecessor_path = predecessor_root_path.expanduser().resolve()
+        equivalence = _build_equivalence_receipt(
+            predecessor_root_path=predecessor_path,
+            manifests=manifests,
+            output_dir=output_dir,
+            stage=stage,
+            final_bundle=final_bundle,
+        )
+        _sealed_json(
+            stage / "V3_TO_V4_EQUIVALENCE.json",
+            {
+                key: value
+                for key, value in equivalence.items()
+                if key != "receipt_sha256"
+            },
+            "receipt_sha256",
+        )
+        equivalence = _read_json(stage / "V3_TO_V4_EQUIVALENCE.json")
         root = {
-            "schema_version": RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION,
+            "schema_version": RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
             "decision": "PASS",
             "allowed_splits": ["train", "val"],
             "storage_granularity": "one_row_per_entry",
@@ -315,6 +495,12 @@ def publish(
             "selected_sampler_contract_sha256": final_bundle[
                 "sampler_benchmark_candidates"
             ]["selected_sampler_contract_sha256"],
+            "predecessor_equivalence": {
+                "path": str(output_dir / "V3_TO_V4_EQUIVALENCE.json"),
+                "sha256": file_sha256(stage / "V3_TO_V4_EQUIVALENCE.json"),
+                "receipt_sha256": equivalence["receipt_sha256"],
+                "benchmark_receipt_transfer_to_v4_authorized": True,
+            },
             "splits": {
                 split: {
                     "index_parquet_path": str(
@@ -361,6 +547,7 @@ def main() -> None:
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--final-bindings-dir", type=Path)
+    parser.add_argument("--predecessor-root", type=Path, required=True)
     args = parser.parse_args()
     print(
         json.dumps(
@@ -368,6 +555,7 @@ def main() -> None:
                 pilot_root=args.pilot_root,
                 output_dir=args.output_dir,
                 final_bindings_dir=args.final_bindings_dir,
+                predecessor_root_path=args.predecessor_root,
             ),
             indent=2,
         )
