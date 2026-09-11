@@ -5,6 +5,8 @@ import copy
 import pytest
 import torch
 
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+from gx1.contracts.unified_exit_legacy_state_v1 import RETIRED_STATIC_EXIT_STATE_KEYS
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
     bind_preserved_v7_input_normalization,
@@ -120,7 +122,10 @@ def test_random_access_model_batch_matches_independent_state_calls() -> None:
         )
 
 
-def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict() -> None:
+@pytest.mark.parametrize("with_retired_static_exit", [False, True])
+def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict(
+    with_retired_static_exit: bool,
+) -> None:
     torch.manual_seed(3)
     model = _make_model(dropout=0.0)
     full = copy.deepcopy(model.state_dict())
@@ -142,8 +147,22 @@ def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict() -> None:
     new_before = {
         name: value.clone() for name, value in full.items() if name not in old
     }
+    if with_retired_static_exit:
+        old.update({
+            name: torch.tensor([float(index)])
+            for index, name in enumerate(sorted(RETIRED_STATIC_EXIT_STATE_KEYS))
+        })
+    source_digest = canonical_model_state_sha256(old)
     receipt = bootstrap_random_access_v2_from_pretrained(model, old)
     assert receipt["decision"] == "PASS"
+    assert receipt["source_pretrained_state_sha256"] == source_digest
+    assert canonical_model_state_sha256(old) == source_digest
+    assert receipt["reused_state_key_count"] == len(full) - len(new_before)
+    assert receipt["retired_state_keys"] == (
+        sorted(RETIRED_STATIC_EXIT_STATE_KEYS) if with_retired_static_exit else []
+    )
+    for name in set(full) - set(new_before):
+        assert torch.equal(model.state_dict()[name], old[name])
     assert receipt["architecture_schema_version"] == RANDOM_ACCESS_MODEL_SCHEMA_VERSION
     assert torch.equal(
         model.state_dict()["head_exit_action.weight"],
@@ -180,3 +199,29 @@ def test_bootstrap_explicitly_binds_preserved_v7_normalization() -> None:
         bind_preserved_v7_input_normalization(model, old_contract)
         == old_contract["contract_sha256"]
     )
+
+
+@pytest.mark.parametrize("corruption", ["partial_retirement", "unknown_extra", "missing_live", "tensor_shape"])
+def test_bootstrap_rejects_unreviewed_key_or_tensor_changes(corruption: str) -> None:
+    from gx1.contracts.unified_exit_random_access_model_v1 import _new_state_keys
+
+    model = _make_model(dropout=0.0)
+    new_keys = set(_new_state_keys(model))
+    old = {
+        name: value.clone()
+        for name, value in model.state_dict().items()
+        if name not in new_keys
+    }
+    old.update({name: torch.ones(1) for name in RETIRED_STATIC_EXIT_STATE_KEYS})
+    if corruption == "partial_retirement":
+        del old[sorted(RETIRED_STATIC_EXIT_STATE_KEYS)[0]]
+    elif corruption == "unknown_extra":
+        old["exit_path_encoder.layers.99.norm1.weight"] = torch.ones(1)
+    elif corruption == "missing_live":
+        del old["head_exit_action.weight"]
+    else:
+        old["head_exit_action.weight"] = torch.ones(1)
+    before = canonical_model_state_sha256(model.state_dict())
+    with pytest.raises(RuntimeError, match="BOOTSTRAP_(KEYSET|TENSOR)_INVALID"):
+        bootstrap_random_access_v2_from_pretrained(model, old)
+    assert canonical_model_state_sha256(model.state_dict()) == before

@@ -39,6 +39,9 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import torch
 
+from gx1.contracts.unified_exit_legacy_state_v1 import (
+    RETIRED_STATIC_EXIT_STATE_KEYS as _SOURCE_SUCCESSOR_RETIRED_STATE_KEYS,
+)
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
 
@@ -138,47 +141,6 @@ _EXACT_STATE_SUCCESSOR_REQUIRED_PATHS = frozenset(
         "scripts/gx1_guarded_trainer_exec.sh",
     }
 )
-
-
-def _source_successor_retired_state_keys() -> frozenset[str]:
-    encoder_suffixes = (
-        "self_attn.in_proj_weight",
-        "self_attn.in_proj_bias",
-        "self_attn.out_proj.weight",
-        "self_attn.out_proj.bias",
-        "linear1.weight",
-        "linear1.bias",
-        "linear2.weight",
-        "linear2.bias",
-        "norm1.weight",
-        "norm1.bias",
-        "norm2.weight",
-        "norm2.bias",
-    )
-    return frozenset(
-        [
-            f"exit_path_encoder.layers.{layer}.{suffix}"
-            for layer in range(2)
-            for suffix in encoder_suffixes
-        ]
-        + [
-            "exit_entry_query_norm.weight",
-            "exit_entry_query_norm.bias",
-            "exit_entry_path_attention.in_proj_weight",
-            "exit_entry_path_attention.in_proj_bias",
-            "exit_entry_path_attention.out_proj.weight",
-            "exit_entry_path_attention.out_proj.bias",
-            "exit_fuse.0.weight",
-            "exit_fuse.0.bias",
-            "exit_fuse.1.weight",
-            "exit_fuse.1.bias",
-            "exit_fuse.4.weight",
-            "exit_fuse.4.bias",
-        ]
-    )
-
-
-_SOURCE_SUCCESSOR_RETIRED_STATE_KEYS = _source_successor_retired_state_keys()
 
 
 def _state_component_sha256(value: Any) -> str:

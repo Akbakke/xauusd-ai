@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+from gx1.contracts.unified_exit_legacy_state_v1 import RETIRED_STATIC_EXIT_STATE_KEYS
 
 RANDOM_ACCESS_MODEL_SCHEMA_VERSION = "gx1_unified_exit_random_access_model_v1"
 RANDOM_ACCESS_MODEL_SCHEMA_SHA256 = hashlib.sha256(
@@ -67,8 +68,17 @@ def bootstrap_random_access_v2_from_pretrained(
     if new_keys.intersection(incoming):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BOOTSTRAP_REQUIRES_V1_STATE")
     expected_old = set(current) - new_keys
-    if set(incoming) != expected_old:
+    retired = set(incoming) - expected_old
+    if (
+        expected_old - set(incoming)
+        or (retired and retired != RETIRED_STATIC_EXIT_STATE_KEYS)
+        or retired.intersection(current)
+    ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BOOTSTRAP_KEYSET_INVALID")
+    # Historical pre-successor checkpoints carry exactly the reviewed retired
+    # static Exit modules. Reject partial retirement or any unknown extra key;
+    # keep the full source digest while reusing every current backbone tensor.
+    reusable = {name: incoming[name] for name in expected_old}
     for name in expected_old:
         value = incoming[name]
         expected = current[name]
@@ -83,7 +93,7 @@ def bootstrap_random_access_v2_from_pretrained(
     initialized_before = canonical_model_state_sha256(
         {name: current[name] for name in sorted(new_keys)}
     )
-    merged = {**current, **incoming}
+    merged = {**current, **reusable}
     model.load_state_dict(merged, strict=True)
     restored = _require_model(model)
     initialized_after = canonical_model_state_sha256(
@@ -100,7 +110,11 @@ def bootstrap_random_access_v2_from_pretrained(
         "source_pretrained_state_sha256": canonical_model_state_sha256(incoming),
         "initialized_v2_state_sha256": initialized_after,
         "resulting_v2_state_sha256": canonical_model_state_sha256(restored),
-        "reused_state_key_count": len(incoming),
+        "reused_state_key_count": len(reusable),
+        "retired_state_keys": sorted(retired),
+        "retired_state_sha256": canonical_model_state_sha256(
+            {name: incoming[name] for name in sorted(retired)}
+        ) if retired else None,
         "initialized_state_keys": sorted(new_keys),
         "old_checkpoint_is_v2_resume": False,
         "strict_v2_restore_required_after_bootstrap": True,
