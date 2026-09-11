@@ -40,6 +40,23 @@ def test_controller_accepts_only_plan_bound_local_windows_staging() -> None:
     assert "Convert-Gx1WslPath -LinuxPath ([string]$invocation.progress_path)" in source
 
 
+def test_boot_identity_atomically_replaces_existing_destination_with_backup() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assert "$backup = $path + '.backup.' + [guid]::NewGuid().ToString('N')" in source
+    assert "[IO.File]::Replace($temporary, $path, $backup)" in source
+    assert "[IO.File]::Replace($temporary, $path, $null)" not in source
+    assert source.count("Remove-Item -LiteralPath $backup -Force") == 2
+
+
+def test_boot_identity_atomically_moves_new_destination_and_cleans_temp() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    existing = source.index("if (Test-Path -LiteralPath $path)")
+    replace = source.index("[IO.File]::Replace($temporary, $path, $backup)")
+    move = source.index("[IO.File]::Move($temporary, $path)")
+    cleanup = source.index("if (Test-Path -LiteralPath $temporary)")
+    assert existing < replace < move < cleanup
+
+
 def test_progress_sidecar_is_token_free_and_not_a_gpu_safety_owner() -> None:
     source = OBSERVER.read_text(encoding="utf-8")
     lowered = source.lower()

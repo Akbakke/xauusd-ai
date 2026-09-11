@@ -44,8 +44,21 @@ function Write-Gx1BootIdentity {
         identity_sha256 = $digest
     }
     $temporary = $path + '.tmp.' + [guid]::NewGuid().ToString('N')
-    [IO.File]::WriteAllText($temporary, (($value | ConvertTo-Json -Compress) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
-    if (Test-Path -LiteralPath $path) { [IO.File]::Replace($temporary, $path, $null) } else { [IO.File]::Move($temporary, $path) }
+    $backup = $path + '.backup.' + [guid]::NewGuid().ToString('N')
+    try {
+        [IO.File]::WriteAllText($temporary, (($value | ConvertTo-Json -Compress) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
+        if (Test-Path -LiteralPath $path) {
+            [IO.File]::Replace($temporary, $path, $backup)
+            Remove-Item -LiteralPath $backup -Force
+        }
+        else {
+            [IO.File]::Move($temporary, $path)
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+        if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
+    }
     $linux = @(& wsl.exe -d $Distro -u $LinuxUser -- wslpath -u $path)
     if ($LASTEXITCODE -ne 0 -or $linux.Count -ne 1) { throw 'Boot identity path conversion failed' }
     return [pscustomobject]@{ Windows = $path; Linux = $linux[0]; Payload = $value }
