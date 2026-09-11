@@ -476,3 +476,73 @@ def test_compute_guard_marks_truncation_and_contract_tamper_fails() -> None:
     bad["capacity_or_512_is_terminal"] = True
     with pytest.raises(RuntimeError, match="VAL_CONTRACT_INVALID"):
         require_random_access_val_rollout_contract(bad)
+
+
+def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> None:
+    from gx1.contracts.unified_exit_dataset_adapter_v2 import _RangeExtrema
+    from gx1.contracts.unified_exit_random_access_val_factory_v1 import (
+        RandomAccessValStateFactoryV1,
+    )
+    from gx1.models.entry_v10.direction_decision_contract import (
+        UNIFIED_EXIT_PATH_PRICE_FIELDS,
+    )
+
+    thresholds = np.ones((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32)
+    counts = np.full(VAL_ENTRY_COHORT_SIZE, 2, dtype=np.int64)
+    model, representations, adapter, _contract = _fixture(
+        thresholds=thresholds,
+        counts=counts,
+    )
+    factory = RandomAccessValStateFactoryV1.__new__(RandomAccessValStateFactoryV1)
+    factory.entries = adapter.entries
+    factory.starts = np.full(VAL_ENTRY_COHORT_SIZE, 479, dtype=np.int64)
+    factory.times = adapter.times
+    size = len(factory.times)
+    base = np.linspace(100.0, 100.2, size, dtype=np.float64)
+    factory.prices = {
+        name: _readonly(
+            base
+            + (
+                0.02
+                if name.startswith("ask_")
+                else 0.0
+                if name.startswith("bid_")
+                else 0.01
+            ),
+            "<f8",
+        )
+        for name in UNIFIED_EXIT_PATH_PRICE_FIELDS
+    }
+    factory.prices["volume"] = _readonly(np.ones(size), "<f8")
+    factory.ranges = {
+        "bid_high": _RangeExtrema(factory.prices["bid_high"], maximum=True),
+        "bid_low": _RangeExtrema(factory.prices["bid_low"], maximum=False),
+        "ask_low": _RangeExtrema(factory.prices["ask_low"], maximum=False),
+        "ask_high": _RangeExtrema(factory.prices["ask_high"], maximum=True),
+    }
+    factory.signal = _readonly(np.zeros((size, 1)), "<f4")
+    factory.ctx_cont = _readonly(np.maximum(np.arange(size) - 479, 0)[:, None], "<f4")
+    factory.ctx_cat = _readonly(np.zeros((size, 1)), "<i8")
+
+    def mtf_materializer(_times):
+        result = {}
+        for tf in MULTI_TF_TIMEFRAMES:
+            suffix = tf.lower()
+            result[f"exit_mtf_history_{suffix}"] = np.zeros((1, 1), dtype=np.float32)
+            result[f"exit_mtf_history_time_ns_{suffix}"] = np.ones(1, dtype=np.int64)
+            result[f"exit_mtf_gather_{suffix}"] = np.zeros(1, dtype=np.int64)
+        return result
+
+    factory.mtf_materializer = mtf_materializer
+    adapter.state_provider = factory.materialize_state
+    state_zero = factory.materialize_state(factory.entries[0], 0)
+    assert state_zero["m1_local_history_x"].shape[0] == 480
+    assert state_zero["trade_path_length"] == 1
+    result = run_random_access_val_rollout(
+        model=model,
+        entry_decision_representations=representations,
+        adapter=adapter,
+    )
+    assert result["decision"] == "PASS_COMPLETE"
+    assert result["exited_side_trade_count"] == 11_016
+    assert result["max_decision_state_index"] == 1
