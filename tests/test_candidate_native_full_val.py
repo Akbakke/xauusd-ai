@@ -221,3 +221,61 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
         assert result["best_policy_pnl"] == 2.0
     assert result["last_epoch"] == epoch_count and result["epochs_since_improve"] == 5
     assert result["early_stopped"] is True
+
+
+@pytest.mark.parametrize("step_limit", [None, 1])
+def test_cuda_lifecycle_dispatch_preserves_no_nested_chunk(monkeypatch, step_limit):
+    """CPU fixture exercises CUDA control flow, not CUDA computation."""
+    from types import SimpleNamespace
+
+    class LifecycleReached(Exception):
+        pass
+
+    dataset = object.__new__(trainer.EntryV10CtxDataset)
+    dataset._unified_exit_lifecycle_v2 = object()
+    value = torch.zeros(1, 2)
+
+    class Transfer:
+        def to(self, device, **kwargs):
+            assert device.type == "cuda"
+            return value
+
+    class Loader:
+        def __init__(self):
+            self.dataset = dataset
+
+        def __len__(self):
+            return 1
+
+        def __iter__(self):
+            yield {
+                **{key: Transfer() for key in ("seq_x", "snap_x", "ctx_cont", "ctx_cat")},
+                "entry_row_index": torch.tensor([0]),
+            }
+
+    model = torch.nn.Linear(2, 2)
+    target = copy.deepcopy(model).requires_grad_(False)
+    optimizer = torch.optim.SGD(model.parameters(), lr=.01)
+    monkeypatch.setattr(trainer, "_synchronized_exit_profile_clock", lambda device: 0.0)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda device: None)
+    monkeypatch.setattr(trainer, "_multi_tf_kwargs_from_batch", lambda *args: {})
+    monkeypatch.setattr(
+        trainer, "_model_forward_fp32",
+        lambda *args, **kwargs: {trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY: value},
+    )
+
+    def reached(**kwargs):
+        assert kwargs["dataset"] is dataset
+        raise LifecycleReached
+
+    monkeypatch.setattr(trainer, "_episode_native_exit_train_v2", reached)
+    with pytest.raises(LifecycleReached):
+        trainer.train_epoch(
+            model, target, Loader(), optimizer, SimpleNamespace(type="cuda"),
+            grad_accum_steps=1, task_supervision_observed={}, task_gradient_observed={},
+            session_max_optimizer_steps=step_limit,
+            session_checkpoint_hook=lambda **kwargs: None,
+            session_checkpoint_interval_optimizer_steps=64,
+            session_exit_action_forward_chunk_rows=None,
+            session_log_label="NATIVE_CUDA_DISPATCH_TEST",
+        )

@@ -9085,7 +9085,10 @@ def train_epoch(
                 profile_timing=_profile_timing,
                 exit_action_forward_chunk_rows=(
                     session_exit_action_forward_chunk_rows
-                    if session_max_optimizer_steps is not None
+                    if (
+                        session_max_optimizer_steps is not None
+                        or getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
+                    )
                     else (
                         (
                             unified_exit_chunk_rows(
