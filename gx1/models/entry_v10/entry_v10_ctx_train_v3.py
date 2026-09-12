@@ -12701,9 +12701,9 @@ def _run_resumable_candidate_training(
                 ),
                 session_checkpoint_hook=_checkpoint_train_step,
                 session_exit_action_forward_chunk_rows=(
-                    exit_chunk_rows
-                    if device.type == "cuda"
-                    else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS
+                    None
+                    if getattr(train_ds, "_unified_exit_lifecycle_v2", None) is not None
+                    else (exit_chunk_rows if device.type == "cuda" else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS)
                 ),
                 session_checkpoint_every_optimizer_step=False,
                 session_checkpoint_interval_optimizer_steps=(

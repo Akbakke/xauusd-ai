@@ -101,6 +101,7 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
     class Rows(torch.utils.data.Dataset):
         def __init__(self, count):
             self.count = count
+            self._unified_exit_lifecycle_v2 = object()
 
         def __len__(self):
             return self.count
@@ -122,6 +123,7 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
     paused_once = False
 
     def train(model, target, loader, optimizer, device, **kwargs):
+        assert kwargs["session_exit_action_forward_chunk_rows"] is None
         train_epochs.append(loader.dataset.epoch)
         for offset, rows in enumerate(loader, start=1):
             optimizer.zero_grad(set_to_none=True)
