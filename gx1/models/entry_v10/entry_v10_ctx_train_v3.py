@@ -855,7 +855,9 @@ def _guard_no_rl() -> None:
                 "[ENTRY_V10_CTX_RL_FORBIDDEN] gx1.rl must not be imported. "
                 f"Found: {mod}"
             )
-        if "legacy" in mod and mod.startswith("gx1."):
+        # Retired checkpoint field names are metadata, not legacy execution.
+        if ("legacy" in mod and mod.startswith("gx1.")
+                and mod != "gx1.contracts.unified_exit_legacy_state_v1"):
             raise RuntimeError(
                 "[ENTRY_V10_CTX_LEGACY_FORBIDDEN] gx1 legacy must not be imported. "
                 f"Found: {mod}"
