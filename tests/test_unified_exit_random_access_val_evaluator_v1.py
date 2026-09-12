@@ -40,12 +40,12 @@ def _with_route_outputs(model, seen_batch_sizes=None):
             seen_batch_sizes.append(batch)
         result.update(
             {
-                "exit_specialist_gate": torch.full((batch, 2, 3), 1.0 / 3.0),
-                "exit_tf_gate": torch.full((batch, 2, 2), 0.5),
+                "exit_specialist_gate": torch.full((batch, 1, 3), 1.0 / 3.0),
+                "exit_tf_gate": torch.full((batch, 1, 2), 0.5),
                 "exit_family_tf_cooperation_gate": torch.full(
-                    (batch, 2, 2, 3), 1.0 / 6.0
+                    (batch, 1, 2, 3), 1.0 / 6.0
                 ),
-                "exit_family_tf_feature_gate": torch.full((batch, 2, 2, 3), 1.5),
+                "exit_family_tf_feature_gate": torch.full((batch, 1, 2, 3), 1.5),
             }
         )
         return result
@@ -352,3 +352,23 @@ def test_saturated_feature_gates_remain_visible_quality_failures() -> None:
     assert quality["saturated_element_fraction"] == 0.5
     assert quality["open_range_quality_pass"] is False
     assert quality["candidate_admission_claimed"] is False
+
+
+def test_native_shared_routes_count_active_states_once() -> None:
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        accumulate_route_diagnostics_v1, finalize_route_diagnostics_v1,
+    )
+    routes = {
+        "exit_specialist_gate": torch.full((4, 1, 8), 1.0 / 8),
+        "exit_tf_gate": torch.full((4, 1, 5), 1.0 / 5),
+        "exit_family_tf_cooperation_gate": torch.full((4, 1, 5, 8), 1.0 / 40),
+        "exit_family_tf_feature_gate": torch.ones(4, 1, 5, 176),
+    }
+    mask = np.asarray([[True, True], [True, False], [False, True], [False, False]])
+    accumulators = {}
+    accumulate_route_diagnostics_v1(accumulators, routes, active_side_mask=mask)
+    for raw in finalize_route_diagnostics_v1(accumulators)["routes"].values():
+        assert raw["batch_row_count"] == 3
+        assert raw["observation_unit"] == "active_entry_state_shared_by_sides"
+    with pytest.raises(RuntimeError, match="ROUTE_SHARED_STATE_SHAPE_INVALID"):
+        accumulate_route_diagnostics_v1({}, {**routes, "exit_tf_gate": torch.ones(4, 2, 5) / 5}, active_side_mask=mask)

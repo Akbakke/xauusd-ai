@@ -37,7 +37,7 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
     unique_active_exit_actions,
 )
 
-PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v2"
+PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v3"
 RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v2"
 PAUSE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_pause_v1"
 _ROUTE_KEYS = (
@@ -311,11 +311,23 @@ def _accumulate_routes(
         ):
             raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_OUTPUT_INVALID:{name}")
         values = tensor.detach().to(dtype=torch.float64, device="cpu")
+        observation_unit = "entry_row"
         if active_side_mask is not None:
             mask = np.asarray(active_side_mask, dtype=np.bool_)
-            if values.ndim < 3 or tuple(values.shape[:2]) != tuple(mask.shape):
-                raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SIDE_SHAPE_INVALID:{name}")
-            values = values[torch.from_numpy(mask)]
+            # Native Exit routes describe one shared market state. Only the
+            # action Q values carry a LONG/SHORT axis. Count that state once
+            # while either side is active, never duplicate it for both sides.
+            if (
+                mask.shape != (values.shape[0], 2)
+                or values.ndim < 3
+                or values.shape[1] != 1
+            ):
+                raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SHARED_STATE_SHAPE_INVALID:{name}")
+            active_entries = mask.any(axis=1)
+            if not bool(active_entries.any()):
+                raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_NO_ACTIVE_STATE:{name}")
+            values = values[:, 0][torch.from_numpy(active_entries)]
+            observation_unit = "active_entry_state_shared_by_sides"
         if name == "exit_family_tf_feature_gate":
             # FP32 2 * sigmoid can round to exactly 0 or 2. Observe these
             # finite endpoints and report saturation below. Admission/runtime
@@ -343,6 +355,7 @@ def _accumulate_routes(
         if observed is None:
             observed = {
                 "shape_tail": list(values.shape[1:]),
+                "observation_unit": observation_unit,
                 "batch_row_count": 0,
                 "element_count": 0,
                 "sum": 0.0,
@@ -355,6 +368,8 @@ def _accumulate_routes(
                 "saturated_upper_element_count": 0,
             }
             accumulators[name] = observed
+        if observed.get("observation_unit") != observation_unit:
+            raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_OBSERVATION_UNIT_DRIFT:{name}")
         if observed["shape_tail"] != list(values.shape[1:]):
             raise RuntimeError(f"UNIFIED_EXIT_VAL_ROUTE_SHAPE_DRIFT:{name}")
         if name == "exit_family_tf_feature_gate":
@@ -446,6 +461,7 @@ def _finalize_routes(accumulators: Mapping[str, Any]) -> dict[str, Any]:
         variance = max(0.0, float(raw["sumsq"]) / count - mean * mean)
         result[name] = {
             "shape_tail": list(raw["shape_tail"]),
+            "observation_unit": raw["observation_unit"],
             "batch_row_count": rows,
             "element_count": count,
             "mean": mean,
