@@ -547,6 +547,7 @@ def _write_full_val_invocation(
     max_model_forwards: int,
     max_materialized_state_views: int,
     max_wall_seconds: int,
+    val_index_revision_root: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     progress_path = runtime / "progress" / f"full-val-window-{number:04d}.json"
     argv = _full_val_launcher(
@@ -577,6 +578,8 @@ def _write_full_val_invocation(
         "train_session_manifest_sha256": None,
         "test_data_used": False,
     }
+    if val_index_revision_root is not None:
+        execution["val_index_revision_root"] = dict(val_index_revision_root)
     execution["artifact_sha256"] = canonical_sha256(execution)
     execution_path = output / "execution-manifests" / f"invocation-{number:04d}.json"
     _atomic_json(execution_path, execution)
@@ -641,6 +644,8 @@ def materialize_full_val_campaign(
     max_materialized_state_views: int,
     max_wall_seconds: int,
     controller_repo: Path | None = None,
+    val_index_revision_root_path: Path | None = None,
+    val_index_revision_root_file_sha256: str | None = None,
 ) -> dict[str, Any]:
     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
         require_final_train_checkpoint_authority, FULL_POPULATION_SCHEMA_VERSION,
@@ -680,6 +685,18 @@ def materialize_full_val_campaign(
         raise RandomAccessCampaignError("full VAL authority provenance invalid")
     launch_path = Path(authority["launch_manifest"]["path"])
     launch = _require_manifest(launch_path, authority["launch_manifest"]["sha256"])
+    revision_binding = None
+    if (val_index_revision_root_path is None) != (val_index_revision_root_file_sha256 is None):
+        raise RandomAccessCampaignError("full VAL revision inputs incomplete")
+    if val_index_revision_root_path is not None:
+        from gx1.contracts.unified_exit_random_access_index_v1 import require_val_index_revision_root
+        revision_binding = _binding(val_index_revision_root_path.resolve())
+        if revision_binding["sha256"] != val_index_revision_root_file_sha256:
+            raise RandomAccessCampaignError("full VAL revision file SHA-256 mismatch")
+        require_val_index_revision_root(
+            _read(Path(revision_binding["path"])),
+            expected_predecessor=launch["files"]["random_access_root"],
+        )
     pointer_path = Path(authority["final_checkpoint_pointer"]["path"])
     batch = int(authority["selected_batch_size"])
     rollout_path = runtime / "rollout" / "ROLLOUT_PROGRESS.json"
@@ -709,6 +726,7 @@ def materialize_full_val_campaign(
             max_model_forwards=max_model_forwards,
             max_materialized_state_views=max_materialized_state_views,
             max_wall_seconds=max_wall_seconds,
+            val_index_revision_root=revision_binding,
         )
         for number in range(1, window_count + 1)
     ]
@@ -773,6 +791,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--epoch-window-steps", type=int, default=64)
     parser.add_argument("--final-train-checkpoint-authority", type=Path)
     parser.add_argument("--final-train-checkpoint-authority-file-sha256")
+    parser.add_argument("--val-index-revision-root", type=Path)
+    parser.add_argument("--val-index-revision-root-file-sha256")
     parser.add_argument("--full-val-window-count", type=int)
     parser.add_argument("--max-forwards-per-window", type=int)
     parser.add_argument("--progress-interval-forwards", type=int, default=64)
@@ -780,6 +800,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compute-guard-max-materialized-state-views", type=int)
     parser.add_argument("--compute-guard-max-wall-seconds", type=int)
     args = parser.parse_args(argv)
+    if args.phase != "full-val" and (args.val_index_revision_root is not None
+                                     or args.val_index_revision_root_file_sha256 is not None):
+        parser.error("VAL index revision is only valid for --phase full-val")
     base = dict(
         repo=args.source_repo.resolve(),
         output=args.output_root.resolve(),
@@ -878,6 +901,8 @@ def main(argv: list[str] | None = None) -> int:
             final_authority_file_sha256=(
                 args.final_train_checkpoint_authority_file_sha256
             ),
+            val_index_revision_root_path=args.val_index_revision_root,
+            val_index_revision_root_file_sha256=args.val_index_revision_root_file_sha256,
             window_count=args.full_val_window_count,
             max_forwards_per_window=args.max_forwards_per_window,
             progress_interval_forwards=args.progress_interval_forwards,

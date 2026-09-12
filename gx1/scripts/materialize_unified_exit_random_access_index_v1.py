@@ -25,6 +25,8 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
 )
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     RANDOM_ACCESS_INDEX_V1_COLUMNS,
+    VAL_REVISION_ROOT_SCHEMA_VERSION,
+    require_val_index_revision_root,
     RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
     RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
     build_random_access_index_v2,
@@ -216,8 +218,15 @@ def _build_split(
     composite: dict[str, Any],
     final_bundle_path: Path,
     final_bindings_dir: Path,
+    source_overrides: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
     paths = _paths(pilot_root, split, final_bindings_dir)
+    if source_overrides is not None:
+        if split != "val" or set(source_overrides) != {
+            "summary_manifest", "successor_counts", "closure_authority"
+        }:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OVERRIDE_INVALID")
+        paths.update(source_overrides)
     if any(not path.is_file() or path.is_symlink() for path in paths.values()):
         raise RuntimeError(
             f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_SOURCE_MISSING"
@@ -542,16 +551,121 @@ def publish(
         raise
 
 
+def publish_val_revision(
+    *, pilot_root: Path, output_dir: Path, final_bindings_dir: Path,
+    predecessor_root_path: Path,
+) -> dict[str, Any]:
+    """Rebuild only corrected VAL lifecycle bindings; preserve the seed TRAIN root."""
+    pilot_root = pilot_root.expanduser().resolve()
+    output_dir = output_dir.expanduser().resolve()
+    bindings_dir = final_bindings_dir.expanduser().resolve()
+    predecessor_path = predecessor_root_path.expanduser().resolve()
+    if output_dir.exists() or output_dir.is_symlink():
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OUTPUT_EXISTS")
+    predecessor_binding = _binding(predecessor_path)
+    old = require_random_access_index_root(_read_json(predecessor_path))
+    composite_path = bindings_dir / "COMPOSITE_NORMALIZATION.json"
+    bundle_path = bindings_dir / "FINAL_BINDINGS_BUNDLE.json"
+    composite = require_composite_normalization_binding(_read_json(composite_path))
+    bundle = _read_json(bundle_path)
+    recipe_path = Path(bundle["recipe_path"])
+    recipe = _read_json(recipe_path)
+    if (file_sha256(recipe_path) != bundle["recipe_file_sha256"]
+            or recipe["recipe_sha256"] != bundle["recipe_sha256"]
+            or recipe["recipe_sha256"] != canonical_sha256(
+                {k: v for k, v in recipe.items() if k != "recipe_sha256"})
+            or bundle.get("decision") != "BLOCKED_PENDING_TRAIN_ONLY_SAMPLER_BENCHMARK"
+            or bundle.get("val_fit_rows") != 0
+            or bundle.get("test_fit_rows") != 0
+            or bundle.get("test_accessed") is not False
+            or composite["composite_normalization_sha256"] != old["composite_normalization_sha256"]):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_RECIPE_INVALID")
+    overrides = {}
+    for name in ("summary_manifest", "successor_counts", "closure_authority"):
+        binding = recipe["splits"]["val"][name]
+        path = Path(binding["path"])
+        if not path.is_absolute() or path.is_symlink() or _binding(path) != binding:
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_SOURCE_INVALID")
+        overrides[name] = path
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
+    try:
+        manifest = _build_split(
+            pilot_root=pilot_root, split="val", output_dir=stage,
+            final_output_dir=output_dir, composite=composite,
+            final_bundle_path=bundle_path, final_bindings_dir=bindings_dir,
+            source_overrides=overrides,
+        )
+        frame = pd.read_parquet(stage / "val.random_access_index.parquet")
+        require_random_access_index_manifest(
+            manifest, expected_split="val", index_frame=frame, verify_sources=True,
+        )
+        old_manifest = require_random_access_index_manifest(
+            _read_json(Path(old["splits"]["val"]["manifest_path"])), expected_split="val",
+        )
+        old_path = Path(old["splits"]["val"]["index_parquet_path"])
+        old_frame = pd.read_parquet(old_path)
+        require_random_access_index_manifest(
+            old_manifest, expected_split="val", index_frame=old_frame,
+            index_path=old_path, verify_sources=True,
+        )
+        changed_columns = {
+            "successor_transition_count", "lifecycle_state_count",
+            # The fill witness includes the episode hash, which binds the calendar.
+            # Compare actual entry quotes and all row coordinates below.
+            "episode_binding_sha256", "entry_fill_binding_sha256", "row_identity_sha256",
+        }
+        unchanged_columns = [name for name in frame.columns if name not in changed_columns]
+        if (len(frame) != 5508 or list(frame.columns) != list(old_frame.columns)
+                or not frame[unchanged_columns].equals(old_frame[unchanged_columns])
+                or (frame["successor_transition_count"] < old_frame["successor_transition_count"]).any()):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_COORDINATE_OR_FILL_DRIFT")
+        root = {k: v for k, v in old.items()
+                if k not in {"root_sha256", "predecessor_equivalence"}}
+        root.update(
+            schema_version=VAL_REVISION_ROOT_SCHEMA_VERSION,
+            final_bindings_bundle_sha256=bundle["bundle_sha256"],
+            val_data_revision={"predecessor_root": predecessor_binding,
+                               "predecessor_root_sha256": old["root_sha256"],
+                               "changed_split": "val"},
+            splits={"train": old["splits"]["train"], "val": {
+                "index_parquet_path": str(output_dir / "val.random_access_index.parquet"),
+                "index_parquet_sha256": manifest["index_parquet_sha256"],
+                "manifest_path": str(output_dir / "val.manifest.json"),
+                "manifest_sha256": manifest["manifest_sha256"],
+                "entry_row_count": manifest["entry_row_count"],
+                "successor_transition_total": manifest["successor_transition_total"],
+            }},
+        )
+        # Validate the exact staged manifest before the atomic directory publish.
+        staged_root = json.loads(json.dumps(root))
+        staged_root["splits"]["val"]["manifest_path"] = str(stage / "val.manifest.json")
+        staged_root["root_sha256"] = canonical_sha256(staged_root)
+        require_val_index_revision_root(staged_root, expected_predecessor=predecessor_binding)
+        _sealed_json(stage / "ROOT.json", root, "root_sha256")
+        require_random_access_index_root(_read_json(stage / "ROOT.json"))
+        os.replace(stage, output_dir)
+        return require_val_index_revision_root(
+            _read_json(output_dir / "ROOT.json"), expected_predecessor=predecessor_binding,
+        )
+    except Exception:
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--final-bindings-dir", type=Path)
     parser.add_argument("--predecessor-root", type=Path, required=True)
+    parser.add_argument("--val-only-revision", action="store_true")
     args = parser.parse_args()
+    if args.val_only_revision and args.final_bindings_dir is None:
+        parser.error("VAL revision requires --final-bindings-dir")
     print(
         json.dumps(
-            publish(
+            (publish_val_revision if args.val_only_revision else publish)(
                 pilot_root=args.pilot_root,
                 output_dir=args.output_dir,
                 final_bindings_dir=args.final_bindings_dir,

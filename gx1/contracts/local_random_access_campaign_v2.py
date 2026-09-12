@@ -347,7 +347,7 @@ def require_invocation(
         separator = result["launcher_argv"].index("--")
         target_module = result["launcher_argv"][separator + 3]
         if (
-            set(execution)
+            (set(execution) - ({"val_index_revision_root"} if kind == "full_val_window" else set()))
             != {
                 "schema_version",
                 "decision",
@@ -396,6 +396,21 @@ def require_invocation(
                 != prelaunch_binding["path"]
             ):
                 raise RandomAccessCampaignError("full VAL launch binding invalid")
+            if "val_index_revision_root" in execution:
+                revision_binding = require_binding(
+                    execution["val_index_revision_root"],
+                    label="full VAL revised index root", verify_file=True,
+                )
+                revised_root = read_bound_json(
+                    Path(revision_binding["path"]), revision_binding["sha256"]
+                )
+                if (revised_root.get("schema_version")
+                        != "gx1_unified_exit_random_access_val_revision_root_v1"
+                        or revised_root.get("val_data_revision", {}).get("predecessor_root")
+                        != prelaunch.get("files", {}).get("random_access_root")
+                        or revised_root.get("test_accessed") is not False):
+                    raise RandomAccessCampaignError("full VAL revised index seed drift")
+                result["val_index_revision_root"] = revision_binding
             if result["launcher_argv"].count("--rollout-progress-path") != 1:
                 raise RandomAccessCampaignError("full VAL rollout cursor missing")
             result["rollout_cursor_path"] = str(
@@ -886,6 +901,11 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 None if full_session is None else full_session["remaining_optimizer_steps"]
             ),
         )
+        if phase == "full_val" and any(
+            item.get("val_index_revision_root") != invocations[0].get("val_index_revision_root")
+            for item in invocations
+        ):
+            raise RandomAccessCampaignError("full VAL revision differs across windows")
         if full_session is not None:
             for item in invocations:
                 execution = read_bound_json(

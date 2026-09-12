@@ -44,6 +44,7 @@ from gx1.contracts.unified_exit_random_access_checkpoint_v1 import (
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     require_random_access_index_manifest,
     require_random_access_index_root,
+    require_val_index_revision_root,
     require_parent_entry_coordinate_equivalence,
 )
 from gx1.contracts.unified_exit_random_access_model_v1 import (
@@ -499,7 +500,15 @@ def run(
     selected_batch_size = int(authority["selected_batch_size"])
     selected = require_selected_sampler_artifact(_read(files["selected_sampler"]))
     root_path = files["random_access_root"]
-    root = require_random_access_index_root(_read(root_path))
+    revision_binding = invocation.get("val_index_revision_root")
+    if revision_binding is not None:
+        root_path = Path(revision_binding["path"])
+        root = require_val_index_revision_root(
+            read_bound_json(root_path, revision_binding["sha256"]),
+            expected_predecessor=launch["files"]["random_access_root"],
+        )
+    else:
+        root = require_random_access_index_root(_read(root_path))
     val_binding = root["splits"]["val"]
     index_path = Path(val_binding["index_parquet_path"])
     index_manifest_path = Path(val_binding["manifest_path"])

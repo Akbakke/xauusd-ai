@@ -574,6 +574,16 @@ def _finalize_result(
         if censored
         else "PASS_COMPLETE"
     )
+    # Full coverage is distinct from completion of every counterfactual side.
+    # The policy owner still withholds Bps if any actually selected trade is censored.
+    rollout_complete = all(
+        row["status"] == "EXITED" or row["status"].startswith("RIGHT_CENSORED_")
+        for row in outcomes
+    )
+    policy_metrics = coupled_entry_exit_policy_metrics(
+        entry_policy=entry_policy_decisions, trade_outcomes=outcomes,
+        full_cohort_authoritative=rollout_complete,
+    )
     result = {
         "schema_version": RESULT_SCHEMA_VERSION,
         "decision": decision,
@@ -635,13 +645,10 @@ def _finalize_result(
         ),
         "entry_gate_and_feature_route_diagnostics": dict(entry_route_diagnostics),
         "entry_policy_decisions": dict(entry_policy_decisions),
-        "entry_exit_policy_metrics": coupled_entry_exit_policy_metrics(
-            entry_policy=entry_policy_decisions, trade_outcomes=outcomes,
-            full_cohort_authoritative=truncated == 0 and censored == 0,
-        ),
+        "entry_exit_policy_metrics": policy_metrics,
         "compute_guard_triggered": guard_reason,
-        "rollout_execution_complete": truncated == 0,
-        "full_cohort_policy_metrics_authoritative": truncated == 0 and censored == 0,
+        "rollout_execution_complete": rollout_complete,
+        "full_cohort_policy_metrics_authoritative": policy_metrics["full_cohort_authoritative"],
         "resume_semantics": {
             "progress_saved_after_complete_state_decision": True,
             "replayed_unsaved_work_can_only_be_read_only": True,
@@ -711,15 +718,20 @@ def require_random_access_val_evaluation_result_v1(
         entry_row_indices=list(range(VAL_ENTRY_COHORT_SIZE)),
         checkpoint_binding_sha256=checkpoint_binding_sha256,
     )
-    authoritative = all(row["status"] == "EXITED" for row in outcomes)
+    rollout_complete = all(
+        row["status"] == "EXITED" or str(row["status"]).startswith("RIGHT_CENSORED_")
+        for row in outcomes
+    )
     metrics = coupled_entry_exit_policy_metrics(
         entry_policy=policy, trade_outcomes=outcomes,
-        full_cohort_authoritative=authoritative,
+        full_cohort_authoritative=rollout_complete,
     )
     if (
         execution.get("entry_policy_sha256") != policy["policy_sha256"]
         or result.get("entry_exit_policy_metrics") != metrics
-        or result.get("full_cohort_policy_metrics_authoritative") is not authoritative
+        or result.get("rollout_execution_complete") is not rollout_complete
+        or result.get("full_cohort_policy_metrics_authoritative")
+        is not metrics["full_cohort_authoritative"]
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_POLICY_INVALID")
     result["semantic_result_sha256"] = claimed

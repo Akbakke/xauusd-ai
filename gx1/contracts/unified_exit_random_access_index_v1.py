@@ -18,6 +18,8 @@ RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_v2
 RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_index_root_v2"
 )
+VAL_REVISION_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_revision_root_v1"
+
 RANDOM_ACCESS_INDEX_V1_COLUMNS = (
     "entry_row_index",
     "entry_time_ns",
@@ -538,6 +540,7 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
         not in {
             RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION,
             RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
+            VAL_REVISION_ROOT_SCHEMA_VERSION,
         }
         or value.get("decision") != "PASS"
         or value.get("allowed_splits") != ["train", "val"]
@@ -568,7 +571,107 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_EQUIVALENCE_INVALID")
         _sha(equivalence.get("sha256"), "EQUIVALENCE_FILE")
         _sha(equivalence.get("receipt_sha256"), "EQUIVALENCE_RECEIPT")
+    if value["schema_version"] == VAL_REVISION_ROOT_SCHEMA_VERSION:
+        revision = value.get("val_data_revision")
+        if (
+            not isinstance(revision, Mapping)
+            or set(revision) != {"predecessor_root", "predecessor_root_sha256", "changed_split"}
+            or revision.get("changed_split") != "val"
+            or "predecessor_equivalence" in value
+        ):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_SCOPE_INVALID")
+        predecessor = revision.get("predecessor_root")
+        if (not isinstance(predecessor, Mapping)
+                or set(predecessor) != {"path", "sha256"}
+                or not Path(str(predecessor.get("path", ""))).is_absolute()):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_PREDECESSOR_INVALID")
+        _sha(predecessor.get("sha256"), "VAL_REVISION_PREDECESSOR_FILE")
+        _sha(revision.get("predecessor_root_sha256"), "VAL_REVISION_PREDECESSOR")
     return dict(value)
+
+
+def require_val_index_revision_root(
+    value: Mapping[str, Any], *, expected_predecessor: Mapping[str, str],
+) -> dict[str, Any]:
+    """Admit a VAL-only data correction against the immutable seed TRAIN root."""
+    from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import file_sha256
+
+    root = require_random_access_index_root(value)
+    revision = root.get("val_data_revision", {})
+    if (root["schema_version"] != VAL_REVISION_ROOT_SCHEMA_VERSION
+            or revision.get("predecessor_root") != dict(expected_predecessor)):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_SEED_INVALID")
+
+    def read(binding: Mapping[str, str]) -> dict[str, Any]:
+        path = Path(binding["path"])
+        if (not path.is_absolute() or path.is_symlink() or not path.is_file()
+                or file_sha256(path) != binding["sha256"]):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_SOURCE_INVALID")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    old = require_random_access_index_root(read(expected_predecessor))
+    unchanged = (
+        "allowed_splits", "storage_granularity", "full_prefix_states_stored",
+        "chunk_pointers_stored", "composite_normalization_sha256",
+        "sampler_selection_status", "selected_sampler_contract_sha256", "test_accessed",
+    )
+    if (old["schema_version"] != RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION
+            or revision["predecessor_root_sha256"] != old["root_sha256"]
+            or root["splits"]["train"] != old["splits"]["train"]
+            or any(root[key] != old[key] for key in unchanged)):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_TRAIN_DRIFT")
+    manifests = []
+    for current in (old, root):
+        split = current["splits"]["val"]
+        path = Path(split["manifest_path"])
+        if not path.is_absolute() or path.is_symlink() or not path.is_file():
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_MANIFEST_INVALID")
+        manifest = require_random_access_index_manifest(
+            json.loads(path.read_text(encoding="utf-8")), expected_split="val",
+        )
+        if (split["manifest_sha256"] != manifest["manifest_sha256"]
+                or split["index_parquet_sha256"] != manifest["index_parquet_sha256"]
+                or split["index_parquet_path"] != manifest["index_parquet_path"]
+                or split["entry_row_count"] != manifest["entry_row_count"]
+                or split["successor_transition_total"] != manifest["successor_transition_total"]):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_MANIFEST_INVALID")
+        manifests.append(manifest)
+    before, after = manifests
+    changed_sources = {
+        "summary_manifest", "successor_counts", "closure_authority",
+        "sequence_binding", "first_state_bridge", "final_bindings_bundle",
+    }
+    old_sources, new_sources = before["source_bindings"], after["source_bindings"]
+    if (set(old_sources) != set(new_sources)
+            or any(old_sources[name]["sha256"] != new_sources[name]["sha256"]
+                   for name in old_sources if name not in changed_sources)
+            or after["entry_row_count"] != before["entry_row_count"]
+            or any(after[key] != before[key] for key in (
+                "parent_entry_row_indices_sha256", "child_entry_clock_sha256",
+                "parent_entry_clock_sha256", "parent_entry_source_rows",
+            ))
+            or after["composite_normalization_sha256"] != old["composite_normalization_sha256"]):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_INPUT_DRIFT")
+    old_bundle = read(old_sources["final_bindings_bundle"])
+    new_bundle = read(new_sources["final_bindings_bundle"])
+    for bundle, current in ((old_bundle, old), (new_bundle, root)):
+        if (bundle["bundle_sha256"] != current["final_bindings_bundle_sha256"]
+                or bundle["bundle_sha256"] != canonical_sha256(
+                    {k: v for k, v in bundle.items() if k != "bundle_sha256"})):
+            raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_BUNDLE_INVALID")
+    if (any(old_bundle[key] != new_bundle[key]
+            for key in ("sampler_benchmark_candidates", "composite_normalization"))
+            or any(old_bundle[key]["train"] != new_bundle[key]["train"]
+                   for key in ("split_sequence_bindings", "first_state_entry_bridges"))):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_TRAIN_BUNDLE_DRIFT")
+    old_recipe = read({"path": old_bundle["recipe_path"], "sha256": old_bundle["recipe_file_sha256"]})
+    new_recipe = read({"path": new_bundle["recipe_path"], "sha256": new_bundle["recipe_file_sha256"]})
+    def train_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
+        return {**{k: v for k, v in recipe.items() if k not in {"recipe_sha256", "splits"}},
+                "splits": {"train": recipe["splits"]["train"]}}
+    if train_recipe(old_recipe) != train_recipe(new_recipe):
+        raise RuntimeError("UNIFIED_EXIT_VAL_REVISION_TRAIN_RECIPE_DRIFT")
+    return root
 
 
 __all__ = (
