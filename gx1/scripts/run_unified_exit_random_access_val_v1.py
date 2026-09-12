@@ -401,6 +401,16 @@ def _entry_representations(
     return torch.cat(representations, dim=0), diagnostics, torch.cat(entry_q_values, dim=0)
 
 
+def _load_val_economics_readiness(path: Path) -> dict[str, Any]:
+    """Validate the raw artifact, preserving its exact input schema for owners."""
+
+    readiness = _read(path)
+    require_unified_exit_unbounded_training_readiness(
+        readiness, context="UNIFIED_EXIT_RANDOM_ACCESS_VAL_CLI",
+    )
+    return readiness
+
+
 def _build_provider(
     *,
     frame: pd.DataFrame,
@@ -626,10 +636,7 @@ def run(
         dataset_run_id=str(launch["dataset_run_id"]),
         splits=("train", "val"),
     )
-    readiness = require_unified_exit_unbounded_training_readiness(
-        _read(files["economics_readiness"]),
-        context="UNIFIED_EXIT_RANDOM_ACCESS_VAL_CLI",
-    )
+    readiness = _load_val_economics_readiness(files["economics_readiness"])
     provider = _build_provider(
         frame=frame,
         manifest=index_manifest,

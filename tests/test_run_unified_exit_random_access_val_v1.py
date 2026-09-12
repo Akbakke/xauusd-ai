@@ -118,3 +118,19 @@ def test_campaign_context_separates_file_and_internal_sha(monkeypatch, tmp_path)
             authority_file_sha256="a" * 64,
             progress_path=progress_path,
         )
+
+
+def test_val_readiness_keeps_raw_artifact_for_provider(monkeypatch, tmp_path):
+    path = tmp_path / "READINESS.json"
+    path.write_text('{"schema_version":"raw-owner-input","test_data_used":false}')
+    observed = []
+
+    def validate(value, *, context):
+        observed.append((dict(value), context))
+        return {**value, "validated_annual_continuous_hurdle_rate": 0.03}
+
+    monkeypatch.setattr(cli, "require_unified_exit_unbounded_training_readiness", validate)
+    readiness = cli._load_val_economics_readiness(path)
+    assert observed == [(readiness, "UNIFIED_EXIT_RANDOM_ACCESS_VAL_CLI")]
+    assert readiness == {"schema_version": "raw-owner-input", "test_data_used": False}
+    assert "validated_annual_continuous_hurdle_rate" not in readiness
