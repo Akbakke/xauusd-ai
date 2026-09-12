@@ -24,12 +24,32 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     file_sha256,
     next_action,
     require_boot_identity,
+    require_binding,
     require_clean_source,
     require_plan,
     require_progress,
     require_receipt,
     require_receipt_chain,
 )
+
+
+def _initial_val_cursor_before(
+    cursor: Path, initial: Mapping[str, Any] | None
+) -> str:
+    if initial is None:
+        if cursor.exists() or cursor.is_symlink():
+            raise RandomAccessCampaignError("initial rollout cursor must be absent")
+        return "GENESIS"
+    bound = require_binding(
+        initial, label="immutable initial VAL cursor", verify_file=True
+    )
+    if (
+        not cursor.is_file() or cursor.is_symlink()
+        or cursor.resolve() == Path(bound["path"]).resolve()
+        or file_sha256(cursor) != bound["sha256"]
+    ):
+        raise RandomAccessCampaignError("initial rollout cursor differs from bound snapshot")
+    return bound["sha256"]
 
 
 def _absolute(value: str) -> Path:
@@ -329,9 +349,9 @@ def begin_invocation(
         if pointer_before != authority["final_checkpoint_pointer"]["sha256"]:
             raise RandomAccessCampaignError("final authority pointer differs")
         cursor = Path(invocation["rollout_cursor_path"])
-        if cursor.exists() or cursor.is_symlink():
-            raise RandomAccessCampaignError("initial rollout cursor must be absent")
-        rollout_cursor_before = "GENESIS"
+        rollout_cursor_before = _initial_val_cursor_before(
+            cursor, invocation.get("initial_val_cursor")
+        )
     else:
         if not pointer.is_file() or pointer.is_symlink():
             raise RandomAccessCampaignError("resume pointer unavailable")

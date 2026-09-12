@@ -144,7 +144,7 @@ def materialize_prospective_cost_policy(
             {
                 "schema_version": PROSPECTIVE_COST_POLICY_SCHEMA_VERSION,
                 "decision": POLICY_DECISION,
-                "policy_scope": "prospective_one_year_train_and_fixed_val_sensitivity",
+                "policy_scope": "prospective_train_and_fixed_val_sensitivity",
                 "historical_cost_truth_qualified": False,
                 "economics_pass_claimed": False,
                 "preregistered_at_utc": prereg.isoformat(),

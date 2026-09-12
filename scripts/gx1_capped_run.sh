@@ -36,6 +36,7 @@ JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 RANDOM_ACCESS_FIXED_STEP_MODULE=gx1.scripts.run_unified_exit_random_access_fixed_step_v1
 RANDOM_ACCESS_VAL_MODULE=gx1.scripts.run_unified_exit_random_access_val_v1
+NATIVE_CANDIDATE_WINDOW_MODULE=gx1.scripts.run_unified_exit_native_candidate_window_v1
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
 # CUDA producer routes are intentionally enumerated rather than accepting an
 # arbitrary module.  Both are read-only, TRAIN/VAL-only evidence producers;
@@ -161,7 +162,7 @@ validate_target_command() {
   esac
 
   for target_arg in "$@"; do
-    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_FIXED_STEP_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_VAL_MODULE"* ]]; then
+    if [[ "$target_arg" == *"$CANONICAL_TRAINER_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_FIXED_STEP_MODULE"*       || "$target_arg" == *"$RANDOM_ACCESS_VAL_MODULE"*       || "$target_arg" == *"$NATIVE_CANDIDATE_WINDOW_MODULE"* ]]; then
       trainer_reference=true
     fi
     if [[ "$target_arg" == *"$ATTENDED_HARDWARE_SMOKE_MODULE"* ]]; then
@@ -246,10 +247,35 @@ validate_target_command() {
   [[ "$module" == "$CANONICAL_TRAINER_MODULE" \
     || "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" \
     || "$module" == "$RANDOM_ACCESS_VAL_MODULE" \
+    || "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" \
     || "$module" == "$ATTENDED_HARDWARE_SMOKE_MODULE" ]] || {
     echo "FATAL: trainer class permits only the canonical trainer or attended hardware smoke module" >&2
     exit 75
   }
+  if [[ "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" ]]; then
+    require_campaign_plan_environment
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false \
+      || ${#target_args[@]} -ne 9 \
+      || "${target_args[3]}" != --window-policy \
+      || "${target_args[4]}" != /* || ! -f "${target_args[4]}" || -L "${target_args[4]}" \
+      || "${target_args[5]}" != --window-policy-file-sha256 \
+      || ! "${target_args[6]}" =~ ^[0-9a-f]{64}$ \
+      || "${target_args[7]}" != --progress-path || "${target_args[8]}" != /* \
+      || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$ \
+      || "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" != /* ]]; then
+      echo "FATAL: native candidate requires the exact guarded campaign window" >&2
+      exit 75
+    fi
+    [[ "$(readlink -f "${target_args[4]}")" == "${target_args[4]}" \
+      && "$(/usr/bin/sha256sum "${target_args[4]}" | /usr/bin/awk '{print $1}')" == "${target_args[6]}" ]] || exit 75
+    # Operator-authorized native main training; legacy invocations retain their limits.
+    TRAINER_GPU_MAX_POWER_LIMIT_W=300
+    TRAINER_GPU_MAX_POWER_DRAW_W=310
+    TRAINER_GPU_MAX_CORE_TEMP_C=85
+    TRAINER_DEVICE=cuda
+    TRAINER_OUT_BUNDLE_DIR="${target_args[8]}"
+    return
+  fi
   if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]; then
     require_campaign_plan_environment
     local -a val_flags=(

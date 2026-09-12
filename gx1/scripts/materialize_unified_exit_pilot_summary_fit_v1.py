@@ -99,7 +99,8 @@ def materialize(
     m1_sha = _sha(m1_path)
     if (
         admission.get("decision") != "PASS"
-        or child["rows"] not in {65_295, 5_508}
+        or type(child["rows"]) is not int or child["rows"] < 1
+        or (split == "val" and child["rows"] != 5_508)
         or _sha(Path(child["parquet_path"])) != child["parquet_sha256"]
         or m1_manifest.get("split") != split
         or m1_manifest.get("output_parquet_sha256") != m1_sha
@@ -120,6 +121,11 @@ def materialize(
     entry_times = pd.DatetimeIndex(
         pq.read_table(child["parquet_path"], columns=["time"])["time"].to_pandas()
     ).as_unit("ns")
+    # The admitted child determines TRAIN scope, including the full five-year view.
+    # Verify its complete physical row population instead of a pilot-size constant.
+    if (len(entry_times) != child["rows"] or entry_times.hasnans
+            or not entry_times.is_unique or not entry_times.is_monotonic_increasing):
+        raise RuntimeError("PILOT_SUMMARY_ADMITTED_ENTRY_POPULATION_INVALID")
     starts = np.searchsorted(times.asi8, entry_times.asi8 + 300_000_000_000)
     if np.any(starts >= len(times)) or not np.array_equal(times.asi8[starts], entry_times.asi8 + 300_000_000_000):
         raise RuntimeError("PILOT_SUMMARY_FIRST_STATE_INVALID")

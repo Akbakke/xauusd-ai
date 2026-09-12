@@ -28,6 +28,7 @@ from gx1.contracts.unified_exit_random_access_index_v1 import (
     VAL_REVISION_ROOT_SCHEMA_VERSION,
     require_val_index_revision_root,
     RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
+    FULL_POPULATION_ROOT_SCHEMA_VERSION,
     RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
     build_random_access_index_v2,
     canonical_sha256,
@@ -423,8 +424,12 @@ def publish(
     pilot_root: Path,
     output_dir: Path,
     final_bindings_dir: Path | None = None,
-    predecessor_root_path: Path,
+    predecessor_root_path: Path | None = None,
+    full_train_population: bool = False,
 ) -> dict[str, Any]:
+    if (type(full_train_population) is not bool
+            or full_train_population == (predecessor_root_path is not None)):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_POPULATION_OR_PREDECESSOR_REQUIRED")
     pilot_root = pilot_root.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
     bindings_dir = (
@@ -469,26 +474,45 @@ def publish(
             )
             for split in ("train", "val")
         }
-        predecessor_path = predecessor_root_path.expanduser().resolve()
-        equivalence = _build_equivalence_receipt(
-            predecessor_root_path=predecessor_path,
-            manifests=manifests,
-            output_dir=output_dir,
-            stage=stage,
-            final_bundle=final_bundle,
-        )
-        _sealed_json(
-            stage / "V3_TO_V4_EQUIVALENCE.json",
-            {
-                key: value
-                for key, value in equivalence.items()
-                if key != "receipt_sha256"
-            },
-            "receipt_sha256",
-        )
-        equivalence = _read_json(stage / "V3_TO_V4_EQUIVALENCE.json")
+        if full_train_population:
+            train = manifests["train"]
+            if train["entry_row_count"] != train["parent_entry_source_rows"]:
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FULL_TRAIN_POPULATION_INCOMPLETE")
+            origin = {"full_train_population": {
+                "entry_row_count": train["entry_row_count"],
+                "parent_entry_source_rows": train["parent_entry_source_rows"],
+                "train_manifest_sha256": train["manifest_sha256"],
+            }}
+        else:
+            if predecessor_root_path is None:
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PREDECESSOR_REQUIRED")
+            predecessor_path = predecessor_root_path.expanduser().resolve()
+            equivalence = _build_equivalence_receipt(
+                predecessor_root_path=predecessor_path,
+                manifests=manifests,
+                output_dir=output_dir,
+                stage=stage,
+                final_bundle=final_bundle,
+            )
+            _sealed_json(
+                stage / "V3_TO_V4_EQUIVALENCE.json",
+                {
+                    key: value
+                    for key, value in equivalence.items()
+                    if key != "receipt_sha256"
+                },
+                "receipt_sha256",
+            )
+            equivalence = _read_json(stage / "V3_TO_V4_EQUIVALENCE.json")
+            origin = {"predecessor_equivalence": {
+                "path": str(output_dir / "V3_TO_V4_EQUIVALENCE.json"),
+                "sha256": file_sha256(stage / "V3_TO_V4_EQUIVALENCE.json"),
+                "receipt_sha256": equivalence["receipt_sha256"],
+                "benchmark_receipt_transfer_to_v4_authorized": True,
+            }}
         root = {
-            "schema_version": RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
+            "schema_version": (FULL_POPULATION_ROOT_SCHEMA_VERSION if full_train_population
+                               else RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION),
             "decision": "PASS",
             "allowed_splits": ["train", "val"],
             "storage_granularity": "one_row_per_entry",
@@ -504,12 +528,7 @@ def publish(
             "selected_sampler_contract_sha256": final_bundle[
                 "sampler_benchmark_candidates"
             ]["selected_sampler_contract_sha256"],
-            "predecessor_equivalence": {
-                "path": str(output_dir / "V3_TO_V4_EQUIVALENCE.json"),
-                "sha256": file_sha256(stage / "V3_TO_V4_EQUIVALENCE.json"),
-                "receipt_sha256": equivalence["receipt_sha256"],
-                "benchmark_receipt_transfer_to_v4_authorized": True,
-            },
+            **origin,
             "splits": {
                 split: {
                     "index_parquet_path": str(
@@ -658,9 +677,13 @@ def main() -> None:
     parser.add_argument("--pilot-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--final-bindings-dir", type=Path)
-    parser.add_argument("--predecessor-root", type=Path, required=True)
+    parser.add_argument("--predecessor-root", type=Path)
+    parser.add_argument("--full-train-population", action="store_true")
     parser.add_argument("--val-only-revision", action="store_true")
     args = parser.parse_args()
+    if (args.full_train_population == (args.predecessor_root is not None)
+            or (args.val_only_revision and args.full_train_population)):
+        parser.error("Choose --full-train-population or --predecessor-root; VAL revisions require a predecessor")
     if args.val_only_revision and args.final_bindings_dir is None:
         parser.error("VAL revision requires --final-bindings-dir")
     print(
@@ -670,6 +693,7 @@ def main() -> None:
                 output_dir=args.output_dir,
                 final_bindings_dir=args.final_bindings_dir,
                 predecessor_root_path=args.predecessor_root,
+                **({"full_train_population": args.full_train_population} if not args.val_only_revision else {}),
             ),
             indent=2,
         )

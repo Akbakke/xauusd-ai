@@ -7,7 +7,9 @@ import json
 import math
 import re
 import time
+import weakref
 from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import numpy as np
@@ -539,8 +541,9 @@ class RandomAccessValRolloutAdapterV1:
         self.objective = objective
         self.normalization = normalization
         self.state_provider = state_provider
+        self._state_hash_pool: ThreadPoolExecutor | None = None
 
-    def materialize_state(
+    def _materialize_unsealed_state(
         self, entry_row_index: int, state_index: int
     ) -> dict[str, Any]:
         if entry_row_index not in self._entry_by_index:
@@ -611,15 +614,39 @@ class RandomAccessValRolloutAdapterV1:
             "economic_terminal": False,
             "test_data_used": False,
         }
+        return result
+
+    def materialize_state(
+        self, entry_row_index: int, state_index: int
+    ) -> dict[str, Any]:
+        result = self._materialize_unsealed_state(entry_row_index, state_index)
         result["state_envelope_sha256"] = _canonical_sha256(result)
         return result
 
     def materialize_active_batch(
         self, entry_row_indices: Sequence[int], state_index: int
     ) -> list[dict[str, Any]]:
-        return [
-            self.materialize_state(entry, state_index) for entry in entry_row_indices
+        if len(entry_row_indices) <= 1:
+            return [
+                self.materialize_state(entry, state_index)
+                for entry in entry_row_indices
+            ]
+        # State providers keep their original serial order. Only hashing the
+        # completed, immutable envelopes runs concurrently; SHA-256 releases
+        # the GIL for the large array buffers observed in the VAL profile.
+        envelopes = [
+            self._materialize_unsealed_state(entry, state_index)
+            for entry in entry_row_indices
         ]
+        if self._state_hash_pool is None:
+            self._state_hash_pool = ThreadPoolExecutor(
+                max_workers=4, thread_name_prefix="gx1-val-hash"
+            )
+            weakref.finalize(self, self._state_hash_pool.shutdown, wait=False)
+        digests = list(self._state_hash_pool.map(_canonical_sha256, envelopes))
+        for envelope, digest in zip(envelopes, digests):
+            envelope["state_envelope_sha256"] = digest
+        return envelopes
 
     def compose_selected_action(
         self,

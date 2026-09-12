@@ -545,8 +545,10 @@ if ((Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInv
     (Get-FileHash -LiteralPath $observerSource -Algorithm SHA256).Hash.ToLowerInvariant() -cne [string]$observerBinding.sha256) {
     throw 'Campaign controller or observer differs from immutable plan binding'
 }
-if ($status.policy.physical_power_limit_w -ne 160 -or
-    $status.policy.maximum_actual_power_draw_w -ne 170 -or
+$legacyPower = $status.policy.physical_power_limit_w -eq 160 -and $status.policy.maximum_actual_power_draw_w -eq 170 -and -not $status.policy.automatic_power_limit_change
+$nativePower = $status.policy.physical_power_limit_w -eq 300 -and $status.policy.maximum_actual_power_draw_w -eq 310 -and $status.policy.maximum_core_temperature_c -eq 85 -and $status.policy.automatic_power_limit_change
+if ($nativePower -and ($status.policy.power_reduction_core_temperature_c -ne 80 -or $status.policy.reduced_power_limit_w -ne 200)) { throw 'Native thermal reduction policy differs' }
+if ((-not $legacyPower -and -not $nativePower) -or
     $status.policy.signed_local_telemetry_seconds -ne 1 -or
     $status.policy.human_status_seconds -ne 900) {
     throw 'Campaign safety policy differs'

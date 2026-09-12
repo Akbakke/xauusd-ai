@@ -19,10 +19,6 @@ import pyarrow.parquet as pq
 
 from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import (
     STAGE_RECEIPT_SCHEMA_VERSION,
-    TRAIN_END,
-    TRAIN_START,
-    VAL_END,
-    VAL_START,
     _canonical_sha256,
     _sha256_file,
     build_pilot_readiness,
@@ -123,8 +119,8 @@ def materialize_pilot_entry_window(
     if output != pilot_root.expanduser().resolve() / "ENTRY_WINDOW":
         raise RuntimeError("PILOT_ENTRY_WINDOW_OUTPUT_PATH_INVALID")
     windows = {
-        "train": (TRAIN_START, TRAIN_END),
-        "val": (VAL_START, VAL_END),
+        split: (window["start_utc"], window["end_utc_exclusive"])
+        for split, window in plan["windows"].items()
     }
     preview = {
         "schema_version": ROOT_SCHEMA_VERSION,

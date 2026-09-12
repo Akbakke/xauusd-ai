@@ -776,6 +776,13 @@ class UnifiedExitDatasetAdapterV2:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
         return binding["selected_entry_order"]
 
+    def random_access_full_population_schedule_v1(self) -> dict[str, Any]:
+        """Read the current schedule without sampling or rebuilding an epoch."""
+        binding = self._random_access_train
+        if binding is None or not binding.get("full_population_mode"):
+            raise RuntimeError("UNIFIED_EXIT_FULL_POPULATION_EPOCH_NOT_BOUND")
+        return dict(binding["full_population_schedule"])
+
     def set_full_population_epoch_index(self, epoch_index: int) -> dict[str, Any]:
         """Select all TRAIN Entry pairs without changing the transition sampler."""
         if (
@@ -931,7 +938,7 @@ class UnifiedExitDatasetAdapterV2:
         }
 
     def set_epoch_index(self, epoch_index: int) -> None:
-        """Select the outcome-blind TRAIN chunk schedule for one epoch."""
+        """Advance TRAIN while preserving its explicitly selected coverage mode."""
 
         if (
             self._manifest["split"] != "train"
@@ -940,9 +947,9 @@ class UnifiedExitDatasetAdapterV2:
             or epoch_index < 0
         ):
             raise RuntimeError("UNIFIED_EXIT_DATASET_V2_EPOCH_INVALID")
+        if epoch_index == self._epoch_index:
+            return
         self._epoch_index = epoch_index
-        if self._random_access_train is not None:
-            self._random_access_train["full_population_mode"] = False
         self._prepare_random_access_epoch()
 
     def require_pack(self, value: Mapping[str, Any]) -> dict[str, Any]:

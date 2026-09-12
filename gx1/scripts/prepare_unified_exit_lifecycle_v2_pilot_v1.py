@@ -298,6 +298,48 @@ def _optional_child_admission(
     return {"path": str(path), "sha256": digest, "payload": value}
 
 
+def _entry_window_scope(
+    recipe: Mapping[str, Any], train_manifest: Mapping[str, Any],
+    *, dataset_run_id: str,
+) -> dict[str, Any]:
+    """Resolve full TRAIN adoption from the bound source, never an environment flag."""
+    scope = recipe.get("lifecycle_v2_data_scope")
+    if scope is None:
+        return {
+            "run_id": PILOT_RUN_ID,
+            "dataset_run_id": f"{dataset_run_id}__PILOT_20250601_20260630",
+            "train_start": TRAIN_START,
+            "full_train": False,
+        }
+    if (
+        not isinstance(scope, Mapping)
+        or set(scope) != {"schema_version", "train_coverage", "run_id"}
+        or scope.get("schema_version") != "gx1_lifecycle_v2_full_train_data_scope_v1"
+        or scope.get("train_coverage") != "entire_bound_train"
+        or not isinstance(scope.get("run_id"), str)
+        or not 1 <= len(scope["run_id"]) <= 160
+        or any(not (c.isascii() and (c.isalnum() or c in "_-")) for c in scope["run_id"])
+    ):
+        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_SCOPE_INVALID")
+    try:
+        source_window = train_manifest["splits"]["train"]
+        start = pd.Timestamp(source_window["start"])
+        end = pd.Timestamp(source_window["end"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_SOURCE_WINDOW_INVALID") from exc
+    if (
+        pd.isna(start) or pd.isna(end) or start.tzinfo is None or end.tzinfo is None
+        or not start < end <= pd.Timestamp(TRAIN_END)
+    ):
+        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_SOURCE_WINDOW_INVALID")
+    return {
+        "run_id": scope["run_id"],
+        "dataset_run_id": f"{dataset_run_id}__FULL_TRAIN_{_canonical_sha256(scope)[:12]}",
+        "train_start": start.tz_convert("UTC").isoformat(),
+        "full_train": True,
+    }
+
+
 def build_pilot_readiness(
     *,
     source_recipe_path: Path,
@@ -350,10 +392,13 @@ def build_pilot_readiness(
         is not False
     ):
         raise RuntimeError("PILOT_SOURCE_ENTRY_LINEAGE_INVALID")
+    scope = _entry_window_scope(recipe, train_manifest, dataset_run_id=dataset_run_id)
+    train_start = scope["train_start"]
+    run_id = scope["run_id"]
     selections = {
         "train": _window_selection(
             Path(source["train_parquet"]["path"]),
-            start=TRAIN_START,
+            start=train_start,
             end=TRAIN_END,
             label="TRAIN",
         ),
@@ -364,17 +409,21 @@ def build_pilot_readiness(
             label="VAL",
         ),
     }
+    if scope["full_train"] and (
+        selections["train"]["selected_rows"] != selections["train"]["source_rows"]
+    ):
+        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_POPULATION_INCOMPLETE")
     m1_source = _m1_binding(train_manifest, val_manifest)
-    pilot_dataset_run_id = f"{dataset_run_id}__PILOT_20250601_20260630"
+    pilot_dataset_run_id = scope["dataset_run_id"]
     pilot_binding = {
         "schema_version": SCHEMA_VERSION,
-        "pilot_run_id": PILOT_RUN_ID,
+        "pilot_run_id": run_id,
         "pilot_dataset_run_id": pilot_dataset_run_id,
         "source_recipe_sha256": source_recipe_sha256,
         "source_bindings": source,
         "m1_source_binding": m1_source,
         "windows": {
-            "train": {"start_utc": TRAIN_START, "end_utc_exclusive": TRAIN_END},
+            "train": {"start_utc": train_start, "end_utc_exclusive": TRAIN_END},
             "val": {"start_utc": VAL_START, "end_utc_exclusive": VAL_END},
         },
         "selection_bindings": selections,
@@ -476,7 +525,7 @@ def build_pilot_readiness(
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "decision": "PASS" if not blocked else "BLOCKED",
-        "pilot_run_id": PILOT_RUN_ID,
+        "pilot_run_id": run_id,
         "source_recipe": {
             "path": str(source_recipe_path),
             "sha256": source_recipe_sha256,
@@ -485,7 +534,7 @@ def build_pilot_readiness(
         "dataset_run_id": dataset_run_id,
         "pilot_dataset_run_id": pilot_dataset_run_id,
         "windows": {
-            "train": {"start_utc": TRAIN_START, "end_utc_exclusive": TRAIN_END},
+            "train": {"start_utc": train_start, "end_utc_exclusive": TRAIN_END},
             "val": {"start_utc": VAL_START, "end_utc_exclusive": VAL_END},
         },
         "source_bindings": source,

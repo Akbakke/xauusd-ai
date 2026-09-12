@@ -12,12 +12,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import file_sha256
+
 RANDOM_ACCESS_INDEX_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_v1"
 RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_root_v1"
 RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION = "gx1_unified_exit_random_access_index_v2"
 RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_index_root_v2"
 )
+FULL_POPULATION_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_full_population_root_v1"
 VAL_REVISION_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_revision_root_v1"
 
 RANDOM_ACCESS_INDEX_V1_COLUMNS = (
@@ -399,7 +402,7 @@ def require_random_access_index_manifest(
             not resolved.is_file()
             or resolved.is_symlink()
             or str(resolved) != value.get("index_parquet_path")
-            or hashlib.sha256(resolved.read_bytes()).hexdigest()
+            or file_sha256(resolved)
             != value.get("index_parquet_sha256")
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_FILE_INVALID")
@@ -409,7 +412,7 @@ def require_random_access_index_manifest(
             if (
                 not resolved.is_file()
                 or resolved.is_symlink()
-                or hashlib.sha256(resolved.read_bytes()).hexdigest()
+                or file_sha256(resolved)
                 != binding["sha256"]
             ):
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SOURCE_INVALID")
@@ -541,6 +544,7 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
             RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION,
             RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
             VAL_REVISION_ROOT_SCHEMA_VERSION,
+            FULL_POPULATION_ROOT_SCHEMA_VERSION,
         }
         or value.get("decision") != "PASS"
         or value.get("allowed_splits") != ["train", "val"]
@@ -571,6 +575,23 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_EQUIVALENCE_INVALID")
         _sha(equivalence.get("sha256"), "EQUIVALENCE_FILE")
         _sha(equivalence.get("receipt_sha256"), "EQUIVALENCE_RECEIPT")
+    if value["schema_version"] == FULL_POPULATION_ROOT_SCHEMA_VERSION:
+        population = value.get("full_train_population")
+        train = splits.get("train")
+        if (
+            not isinstance(population, Mapping)
+            or set(population) != {"entry_row_count", "parent_entry_source_rows", "train_manifest_sha256"}
+            or not isinstance(train, Mapping)
+            or type(population.get("entry_row_count")) is not int
+            or population["entry_row_count"] < 1
+            or type(population.get("parent_entry_source_rows")) is not int
+            or population["parent_entry_source_rows"] != population["entry_row_count"]
+            or population["entry_row_count"] != train.get("entry_row_count")
+            or population["train_manifest_sha256"] != train.get("manifest_sha256")
+            or "predecessor_equivalence" in value or "val_data_revision" in value
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FULL_POPULATION_INVALID")
+        _sha(population["train_manifest_sha256"], "FULL_TRAIN_MANIFEST")
     if value["schema_version"] == VAL_REVISION_ROOT_SCHEMA_VERSION:
         revision = value.get("val_data_revision")
         if (
@@ -679,6 +700,7 @@ __all__ = (
     "RANDOM_ACCESS_INDEX_V1_COLUMNS",
     "RANDOM_ACCESS_INDEX_V2_COLUMNS",
     "RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION",
+    "FULL_POPULATION_ROOT_SCHEMA_VERSION",
     "RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION",
     "RANDOM_ACCESS_INDEX_ROOT_SCHEMA_VERSION",
     "RANDOM_ACCESS_INDEX_SCHEMA_VERSION",

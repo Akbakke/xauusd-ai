@@ -153,6 +153,8 @@ def _base_plan(
         "authority": {"test": False, "promotion": False, "paper": False, "live": False, "cloud_spend": False},
         "test_data_used": False,
     }
+    if phase == "native_candidate":
+        value["policy"].update(physical_power_limit_w=300, maximum_actual_power_draw_w=310, maximum_core_temperature_c=85, automatic_power_limit_change=True, power_reduction_core_temperature_c=80, reduced_power_limit_w=200)
     value["plan_sha256"] = canonical_sha256(value)
     return value
 
@@ -548,6 +550,7 @@ def _write_full_val_invocation(
     max_materialized_state_views: int,
     max_wall_seconds: int,
     val_index_revision_root: Mapping[str, str] | None = None,
+    initial_val_cursor: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     progress_path = runtime / "progress" / f"full-val-window-{number:04d}.json"
     argv = _full_val_launcher(
@@ -580,6 +583,10 @@ def _write_full_val_invocation(
     }
     if val_index_revision_root is not None:
         execution["val_index_revision_root"] = dict(val_index_revision_root)
+    if initial_val_cursor is not None:
+        if number != 1:
+            raise RandomAccessCampaignError("initial VAL cursor is first-invocation only")
+        execution["initial_val_cursor"] = dict(initial_val_cursor)
     execution["artifact_sha256"] = canonical_sha256(execution)
     execution_path = output / "execution-manifests" / f"invocation-{number:04d}.json"
     _atomic_json(execution_path, execution)
@@ -646,6 +653,8 @@ def materialize_full_val_campaign(
     controller_repo: Path | None = None,
     val_index_revision_root_path: Path | None = None,
     val_index_revision_root_file_sha256: str | None = None,
+    initial_val_cursor_path: Path | None = None,
+    initial_val_cursor_file_sha256: str | None = None,
 ) -> dict[str, Any]:
     from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
         require_final_train_checkpoint_authority, FULL_POPULATION_SCHEMA_VERSION,
@@ -700,6 +709,16 @@ def materialize_full_val_campaign(
     pointer_path = Path(authority["final_checkpoint_pointer"]["path"])
     batch = int(authority["selected_batch_size"])
     rollout_path = runtime / "rollout" / "ROLLOUT_PROGRESS.json"
+    initial_cursor_binding = None
+    if (initial_val_cursor_path is None) != (initial_val_cursor_file_sha256 is None):
+        raise RandomAccessCampaignError("initial VAL cursor binding incomplete")
+    if initial_val_cursor_path is not None:
+        initial_cursor_binding = _binding(initial_val_cursor_path)
+        if (
+            initial_cursor_binding["sha256"] != initial_val_cursor_file_sha256
+            or initial_val_cursor_path.resolve() == rollout_path.resolve()
+        ):
+            raise RandomAccessCampaignError("immutable initial VAL cursor binding invalid")
     result_path = runtime / "rollout" / "VAL_RESULT.json"
     # The capped runner writes its immutable-adjacent stdio before it starts
     # the evaluator. Its result parent must therefore already be private.
@@ -727,6 +746,7 @@ def materialize_full_val_campaign(
             max_materialized_state_views=max_materialized_state_views,
             max_wall_seconds=max_wall_seconds,
             val_index_revision_root=revision_binding,
+            initial_val_cursor=initial_cursor_binding if number == 1 else None,
         )
         for number in range(1, window_count + 1)
     ]
@@ -763,11 +783,112 @@ def materialize_full_val_campaign(
     return {"plan": checked, "path": str(plan_path), "sha256": file_sha256(plan_path)}
 
 
+def materialize_native_candidate_campaign(
+    *, repo: Path, output: Path, runtime: Path, gpu_uuid: str,
+    prepared_boot_path: Path, prepared_boot_file_sha256: str, certificate_path: Path,
+    prior_campaign_path: Path, prior_campaign_file_sha256: str,
+    selection_path: Path, selection_file_sha256: str,
+    recipe_path: Path, recipe_file_sha256: str, window_count: int,
+) -> dict[str, Any]:
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
+        require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy,
+    )
+    from gx1.scripts.local_random_access_campaign_v2 import _prepare_private_directory
+
+    commit = _source_commit(repo)
+    if output.exists() or output.is_symlink() or type(window_count) is not int or window_count < 1:
+        raise RandomAccessCampaignError("native campaign output/window count invalid")
+    recipe_binding = {"path": str(recipe_path), "sha256": recipe_file_sha256}
+    recipe, count = require_native_recipe_metadata(recipe_binding, source_repo=repo, source_commit=commit)
+    prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
+    selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)
+    if prior["selection_receipt"] != _binding(selection_path) or selection["selected_batch_size"] != 16:
+        raise RandomAccessCampaignError("native campaign measured selection differs")
+    require_native_completed_smoke(plan={
+        "final_train_checkpoint_authority": recipe["seed_authority"],
+        "selection_receipt": _binding(selection_path),
+    }, prior=prior, recipe=recipe)
+    boot = require_boot_identity(read_bound_json(prepared_boot_path, prepared_boot_file_sha256))
+    guards, controllers = _sources(repo, certificate_path)
+    target = Path(recipe["out_bundle_dir"])
+    session = target.parent / (".gx1-candidate-training-session." + target.name)
+    cursor = runtime / "native-candidate-cursor" / "RESUME_CURSOR.json"
+    if any(path.exists() or path.is_symlink() for path in (session, cursor.parent, runtime / "ACTIVE_INVOCATION.json")):
+        raise RandomAccessCampaignError("native campaign GENESIS paths already exist")
+    _prepare_private_directory(runtime / "progress", label="native campaign progress")
+    output.mkdir(parents=True)
+    invocations = []
+    for number in range(1, window_count + 1):
+        name = f"invocation-{number:04d}"
+        progress = runtime / "progress" / f"{name}.json"
+        policy = {
+            "schema_version": WINDOW_SCHEMA, "recipe": recipe_binding,
+            "invocation_number": number, "max_invocation_seconds": 5400,
+            "budget_path": str(runtime / "budgets" / f"{name}.json"),
+            "progress_path": str(progress), "campaign_cursor_path": str(cursor),
+            "training_session_directory": str(session), "test_data_used": False,
+        }
+        policy["policy_sha256"] = canonical_sha256(policy)
+        require_native_window_policy(policy)
+        policy_path = output / "window-policies" / f"{name}.json"
+        _atomic_json(policy_path, policy)
+        argv = [
+            str(repo / "scripts/gx1_capped_run.sh"), "--class", "trainer", "--mem", "20G", "--swap", "512M",
+            "--", str(repo / ".venv/bin/python"), "-m", NATIVE_MODULE,
+            "--window-policy", str(policy_path), "--window-policy-file-sha256", file_sha256(policy_path),
+            "--progress-path", str(progress),
+        ]
+        execution = {
+            "schema_version": EXECUTION_MANIFEST_SCHEMA, "decision": "PASS_EXACT_INVOCATION",
+            "invocation_kind": NATIVE_KIND, "python_module": NATIVE_MODULE, "source_commit": commit,
+            "launcher_argv_sha256": canonical_sha256(argv), "prelaunch_manifest": recipe_binding,
+            "prelaunch_manifest_sha256": recipe["recipe_sha256"], "train_session_manifest": _binding(policy_path),
+            "train_session_manifest_sha256": policy["policy_sha256"], "test_data_used": False,
+        }
+        execution["artifact_sha256"] = canonical_sha256(execution)
+        execution_path = output / "execution-manifests" / f"{name}.json"
+        _atomic_json(execution_path, execution)
+        invocation = {
+            "schema_version": INVOCATION_SCHEMA, "decision": "PASS", "invocation_number": number,
+            "invocation_id": name, "kind": NATIVE_KIND, "batch_size": 16, "epoch_index": None,
+            "window_index": number - 1, "window_count": window_count, "optimizer_step_budget": None,
+            "expected_success_outcome": "RESUMABLE_OR_COMPLETE", "source_commit": commit,
+            "execution_manifest": _binding(execution_path), "launcher_argv": argv,
+            "launcher_argv_sha256": canonical_sha256(argv), "progress_path": str(progress),
+            "guard_log_path": str(runtime / "guard" / f"{name}.log"),
+            "checkpoint": {
+                "pointer_path": str(cursor), "before_mode": "GENESIS" if number == 1 else "PREVIOUS_RECEIPT_AFTER",
+                "predecessor_invocation_number": None if number == 1 else number - 1, "write_mode": "ATOMIC_UPDATE",
+            },
+            "maximum_wall_seconds": 7200, "requires_fresh_windows_boot": True,
+            "signed_guard_only": True, "test_data_used": False,
+        }
+        invocation["invocation_sha256"] = canonical_sha256(invocation)
+        invocation_path = output / "invocations" / f"{name}.json"
+        _atomic_json(invocation_path, invocation)
+        invocations.append(_binding(invocation_path))
+    plan = _base_plan(
+        phase=NATIVE_PHASE, campaign_id=f"GX1_NATIVE_CANDIDATE_{commit[:12]}", repo=repo, commit=commit,
+        runtime=runtime, gpu_uuid=gpu_uuid, boot=boot, guards=guards, controllers=controllers,
+        prior=_binding(prior_campaign_path), selection=_binding(selection_path), selected_batch_size=16,
+        invocations=invocations, final_train_checkpoint_authority=recipe["seed_authority"],
+    )
+    plan.pop("plan_sha256")
+    plan.update(native_recipe=recipe_binding, entry_pairs_per_epoch=count, transitions_per_epoch=4 * count)
+    plan["plan_sha256"] = canonical_sha256(plan)
+    checked = require_plan(plan, verify_files=True)
+    path = output / "CAMPAIGN_PLAN.json"
+    _atomic_json(path, plan)
+    return {"plan": checked, "path": str(path), "sha256": file_sha256(path)}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",
-        choices=("gpu-selection", "resume-proof", "selected-training", "full-val", "full-year-continuation"),
+        choices=("gpu-selection", "resume-proof", "selected-training", "full-val", "full-year-continuation", "native-candidate"),
         required=True,
     )
     parser.add_argument("--source-repo", type=Path, required=True)
@@ -794,6 +915,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--val-index-revision-root", type=Path)
     parser.add_argument("--val-index-revision-root-file-sha256")
     parser.add_argument("--full-val-window-count", type=int)
+    parser.add_argument("--native-recipe", type=Path)
+    parser.add_argument("--native-recipe-file-sha256")
+    parser.add_argument("--native-window-count", type=int)
     parser.add_argument("--max-forwards-per-window", type=int)
     parser.add_argument("--progress-interval-forwards", type=int, default=64)
     parser.add_argument("--compute-guard-max-model-forwards", type=int)
@@ -819,6 +943,20 @@ def main(argv: list[str] | None = None) -> int:
             **base,
             prelaunch_path=args.prelaunch_manifest.resolve(),
             prelaunch_file_sha256=args.prelaunch_file_sha256,
+        )
+    elif args.phase == "native-candidate":
+        required = (
+            args.native_recipe, args.native_recipe_file_sha256, args.native_window_count,
+            args.prior_campaign, args.prior_campaign_file_sha256,
+            args.gpu_selection, args.gpu_selection_file_sha256,
+        )
+        if any(value is None for value in required):
+            raise RandomAccessCampaignError("native candidate inputs incomplete")
+        result = materialize_native_candidate_campaign(
+            **base, recipe_path=args.native_recipe.resolve(), recipe_file_sha256=args.native_recipe_file_sha256,
+            window_count=args.native_window_count,
+            prior_campaign_path=args.prior_campaign.resolve(), prior_campaign_file_sha256=args.prior_campaign_file_sha256,
+            selection_path=args.gpu_selection.resolve(), selection_file_sha256=args.gpu_selection_file_sha256,
         )
     elif args.phase == "full-year-continuation":
         required = (

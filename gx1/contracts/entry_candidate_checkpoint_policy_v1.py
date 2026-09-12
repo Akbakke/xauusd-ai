@@ -13,6 +13,7 @@ from typing import Any, Mapping, Sequence
 
 
 SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v3"
+COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v4"
 # The external candidate is permitted at most thirty complete TRAIN/VAL
 # epochs. This upper bound belongs in the frozen policy so a resumed process
 # cannot silently exceed the hash-bound candidate budget.
@@ -23,34 +24,66 @@ MINIMUM_EPOCHS_BEFORE_STOP = 1
 SAVE_TOP_K = 1
 EARLY_STOP_MIN_DELTA = 0.0
 CHECKPOINT_MONITOR = "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"
+COUPLED_NET_CHECKPOINT_MONITOR = "entry_exit_policy_metrics.mean_net_bps_per_entry"
 CHECKPOINT_MODE = "max"
 
 
-def checkpoint_policy_metadata() -> dict[str, Any]:
+def checkpoint_policy_metadata(
+    *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+) -> dict[str, Any]:
     """Return the exact external-candidate policy in JSON-safe form."""
 
+    if checkpoint_monitor not in {
+        CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR,
+    }:
+        raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": (
+            COUPLED_NET_SCHEMA_VERSION
+            if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
+            else SCHEMA_VERSION
+        ),
         "max_epochs": MAX_EPOCHS,
         "validation_frequency_epochs": VALIDATION_FREQUENCY_EPOCHS,
         "early_stop_patience": EARLY_STOP_PATIENCE,
         "minimum_epochs_before_stop": MINIMUM_EPOCHS_BEFORE_STOP,
         "save_top_k": SAVE_TOP_K,
         "early_stop_min_delta": EARLY_STOP_MIN_DELTA,
-        "checkpoint_monitor": CHECKPOINT_MONITOR,
+        "checkpoint_monitor": checkpoint_monitor,
         "checkpoint_mode": CHECKPOINT_MODE,
     }
 
 
 def require_checkpoint_policy(
-    value: Mapping[str, Any], *, context: str
+    value: Mapping[str, Any], *, context: str,
+    checkpoint_monitor: str = CHECKPOINT_MONITOR,
 ) -> dict[str, Any]:
     """Reject a recipe/session that drifts from the frozen candidate policy."""
 
-    expected = checkpoint_policy_metadata()
+    expected = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor)
     if not isinstance(value, Mapping) or dict(value) != expected:
         raise RuntimeError(f"[{context}_CHECKPOINT_POLICY_INVALID]")
     return expected
+
+
+def checkpoint_metric(
+    metrics: Mapping[str, Any], *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+) -> float:
+    """Read the selected metric without falling back to a different objective."""
+
+    checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor)
+    value: Any = metrics
+    for key in checkpoint_monitor.split("."):
+        if not isinstance(value, Mapping) or key not in value:
+            raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_METRIC_MISSING]")
+        value = value[key]
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+    ):
+        raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_METRIC_INVALID]")
+    return float(value)
 
 
 def metric_improved(*, candidate: float, best: float, min_delta: float) -> bool:
@@ -146,6 +179,8 @@ def retain_top_k(
 
 
 __all__ = [
+    "COUPLED_NET_SCHEMA_VERSION",
+    "COUPLED_NET_CHECKPOINT_MONITOR",
     "CHECKPOINT_MODE",
     "CHECKPOINT_MONITOR",
     "EARLY_STOP_MIN_DELTA",
@@ -155,6 +190,7 @@ __all__ = [
     "SAVE_TOP_K",
     "SCHEMA_VERSION",
     "VALIDATION_FREQUENCY_EPOCHS",
+    "checkpoint_metric",
     "checkpoint_policy_metadata",
     "metric_improved",
     "require_checkpoint_policy",

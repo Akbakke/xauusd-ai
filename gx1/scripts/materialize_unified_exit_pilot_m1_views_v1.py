@@ -21,9 +21,9 @@ import pyarrow.parquet as pq
 VIEW_SCHEMA_VERSION = "gx1_unified_exit_pilot_m1_child_view_v1"
 ROOT_SCHEMA_VERSION = "gx1_unified_exit_pilot_m1_child_view_root_v1"
 LOCAL_HISTORY_ROWS = 480
-SPLIT_WINDOWS = {
-    "train": ("2025-06-01T00:00:00+00:00", "2026-06-01T00:00:00+00:00", 65_295),
-    "val": ("2026-06-01T00:00:00+00:00", "2026-07-01T00:00:00+00:00", 5_508),
+SPLIT_ENDS = {
+    "train": "2026-06-01T00:00:00+00:00",
+    "val": "2026-07-01T00:00:00+00:00",
 }
 
 
@@ -72,13 +72,40 @@ def build_views(
         raise RuntimeError("PILOT_M1_VIEW_CLOCK_INVALID")
     manifests: dict[str, Any] = {}
     tables: dict[str, pa.Table] = {}
-    for split, (start_raw, end_raw, expected_entries) in SPLIT_WINDOWS.items():
+    for split, expected_end in SPLIT_ENDS.items():
         child = admission["splits"][split]
-        if child["rows"] != expected_entries or _sha(Path(child["parquet_path"])) != child["parquet_sha256"]:
+        manifest_path = Path(child["manifest_path"])
+        if (type(child["rows"]) is not int or child["rows"] < 1
+                or _sha(Path(child["parquet_path"])) != child["parquet_sha256"]
+                or _sha(manifest_path) != child["manifest_file_sha256"]):
             raise RuntimeError("PILOT_M1_VIEW_CHILD_INVALID")
+        child_manifest = _json(manifest_path)
+        if (child_manifest.get("schema_version") != "gx1_lifecycle_v2_pilot_entry_window_v1"
+                or child_manifest.get("decision") != "PASS"
+                or child_manifest.get("split") != split
+                or child_manifest.get("rows") != child["rows"]
+                or child_manifest.get("output_parquet_sha256") != child["parquet_sha256"]
+                or child_manifest.get("manifest_sha256") != child["manifest_contract_sha256"]
+                or child_manifest.get("manifest_sha256") != _canonical(
+                    {k: v for k, v in child_manifest.items() if k != "manifest_sha256"})
+                or child_manifest.get("test_accessed") is not False):
+            raise RuntimeError("PILOT_M1_VIEW_CHILD_MANIFEST_INVALID")
+        # The admitted Entry window owns the complete TRAIN fit population.
+        start_raw, end_raw = child_manifest["window_start_utc"], child_manifest["window_end_utc_exclusive"]
+        start, end = pd.Timestamp(start_raw), pd.Timestamp(end_raw)
+        if (start.tzinfo is None or end.tzinfo is None or not start < end
+                or end != pd.Timestamp(expected_end)
+                or (split == "val" and (start != pd.Timestamp(SPLIT_ENDS["train"]) or child["rows"] != 5508))):
+            raise RuntimeError("PILOT_M1_VIEW_ADMITTED_WINDOW_INVALID")
         entry_times = pd.DatetimeIndex(
             pq.read_table(child["parquet_path"], columns=["time"])["time"].to_pandas()
         ).as_unit("ns")
+        if (len(entry_times) != child["rows"] or entry_times.hasnans
+                or not entry_times.is_unique or not entry_times.is_monotonic_increasing
+                or entry_times[0] < start or entry_times[-1] >= end
+                or hashlib.sha256(np.asarray(entry_times.asi8, dtype="<i8").tobytes()).hexdigest()
+                != child["clock_sha256"]):
+            raise RuntimeError("PILOT_M1_VIEW_ADMITTED_CLOCK_INVALID")
         first_state_ns = int(entry_times.asi8[0] + 300_000_000_000)
         first_state_pos = int(np.searchsorted(times.asi8, first_state_ns))
         if first_state_pos >= len(times) or int(times.asi8[first_state_pos]) != first_state_ns or first_state_pos < LOCAL_HISTORY_ROWS - 1:

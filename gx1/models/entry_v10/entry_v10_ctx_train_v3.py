@@ -95,6 +95,9 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     joint_task_weighting_metadata,
 )
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    CHECKPOINT_MONITOR,
+    COUPLED_NET_CHECKPOINT_MONITOR,
+    checkpoint_metric,
     checkpoint_policy_metadata,
     metric_improved as candidate_metric_improved,
     require_checkpoint_policy,
@@ -1236,7 +1239,9 @@ _CANDIDATE_TRAINING_CHECKPOINT_INTERVAL_OPTIMIZER_STEPS = 64
 _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES = 64
 
 
-def _new_candidate_training_progress() -> dict[str, Any]:
+def _new_candidate_training_progress(
+    *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+) -> dict[str, Any]:
     """Create the only allowed initial full-candidate progress surface.
 
     This state is deliberately separate from model/optimizer state.  It holds
@@ -1254,7 +1259,9 @@ def _new_candidate_training_progress() -> dict[str, Any]:
             name: False for name in JOINT_TASK_NAMES
         },
         "checkpoint_selection": {
-            "checkpoint_policy": checkpoint_policy_metadata(),
+            "checkpoint_policy": checkpoint_policy_metadata(
+                checkpoint_monitor=checkpoint_monitor
+            ),
             "best_checkpoint": None,
             "best_state": None,
             "best_val": float("inf"),
@@ -1277,7 +1284,7 @@ def _new_candidate_training_progress() -> dict[str, Any]:
 
 
 def _require_candidate_training_progress(
-    value: Mapping[str, Any],
+    value: Mapping[str, Any], *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
 ) -> dict[str, Any]:
     """Validate progress before it can control a resumed candidate."""
 
@@ -1324,6 +1331,7 @@ def _require_candidate_training_progress(
         policy = require_checkpoint_policy(
             selection.get("checkpoint_policy", {}),
             context="CANDIDATE_TRAINING_SELECTION",
+            checkpoint_monitor=checkpoint_monitor,
         )
         top_k = retain_top_k(
             selection["top_k_checkpoints"], top_k=int(policy["save_top_k"])
@@ -1974,6 +1982,16 @@ class _CandidateTrainingSession:
     def contract_sha256(self) -> str:
         return self._contract_sha256
 
+    @property
+    def checkpoint_monitor(self) -> str:
+        policy = self._contract["training"]["checkpoint_policy"]
+        monitor = policy["checkpoint_monitor"]
+        require_checkpoint_policy(
+            policy, context="CANDIDATE_TRAINING_SESSION",
+            checkpoint_monitor=monitor,
+        )
+        return str(monitor)
+
     def _slot_path(self, slot: int) -> Path:
         if slot not in (0, 1):
             raise RuntimeError("[CANDIDATE_TRAINING_SLOT_INVALID]")
@@ -2056,7 +2074,7 @@ class _CandidateTrainingSession:
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
         state["training_progress"] = _require_candidate_training_progress(
-            state["training_progress"]
+            state["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
         )
         self.validate_top_k_checkpoints(
             state["training_progress"]["checkpoint_selection"][
@@ -2094,7 +2112,7 @@ class _CandidateTrainingSession:
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
         value["training_progress"] = _require_candidate_training_progress(
-            value["training_progress"]
+            value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
         )
         self.validate_top_k_checkpoints(
             value["training_progress"]["checkpoint_selection"][
@@ -2134,6 +2152,96 @@ class _CandidateTrainingSession:
             "complete": bool(value["complete"]),
         }
         _candidate_training_session_atomic_write_json(self._active_path, active)
+
+    def save_validation_checkpoint(self, *, model: nn.Module) -> dict[str, Any]:
+        """Keep one immutable EMA snapshot per epoch, separate from resume slots."""
+
+        if self._read_only:
+            raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_WRITE_FORBIDDEN]")
+        state = self.load_checkpoint()
+        if (
+            state is None or state["phase"] != "validation"
+            or state["next_batch_offset"] != 0 or state["complete"]
+            or state["global_optimizer_steps"] < 1
+            or not isinstance(state["weight_ema_state"], Mapping)
+        ):
+            raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_PHASE_INVALID]")
+        ema = state["weight_ema_state"]
+        online = state["model_state"]
+        target = state["target_model_state"]
+        parameter_names = sorted(name for name, _ in model.named_parameters())
+        if (
+            set(ema) != {"decay", "steps", "shadow"}
+            or ema["steps"] != state["global_optimizer_steps"]
+            or not 0.0 < float(ema["decay"]) < 1.0
+            or set(ema["shadow"]) != set(online)
+            or canonical_model_state_sha256(online)
+            != canonical_model_state_sha256(model.state_dict())
+        ):
+            raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_EMA_INVALID]")
+        buffers = {name: value for name, value in online.items() if name not in parameter_names}
+        if any(not torch.equal(ema["shadow"][name], value) for name, value in buffers.items()):
+            raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_BUFFER_DRIFT]")
+        payload = {
+            "schema_version": "gx1_candidate_validation_checkpoint_v1",
+            "session_contract_path": str(self._contract_path),
+            "session_contract_file_sha256": _sha256_file(self._contract_path),
+            "session_contract_sha256": self._contract_sha256,
+            "epoch_index": int(state["epoch_index"]),
+            "global_optimizer_steps": int(state["global_optimizer_steps"]),
+            "model_variant": "weight_ema",
+            "model_state": dict(ema["shadow"]),
+            "target_model_state": dict(target),
+            "online_model_state_sha256": canonical_model_state_sha256(online),
+            "model_state_sha256": canonical_model_state_sha256(ema["shadow"]),
+            "target_model_state_sha256": canonical_model_state_sha256(target),
+            "online_buffers": buffers,
+            "parameter_names": parameter_names,
+            "weight_ema_decay": float(ema["decay"]),
+            "weight_ema_steps": int(ema["steps"]),
+            "test_data_used": False,
+        }
+        directory = self._directory / "validation"
+        if directory.exists():
+            info = os.stat(directory, follow_symlinks=False)
+            if directory.is_symlink() or not directory.is_dir() or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_DIRECTORY_INVALID]")
+        else:
+            directory.mkdir(mode=0o700)
+            _fsync_directory(self._directory)
+        destination = directory / f"epoch_{int(state['epoch_index']) + 1:04d}.pt"
+        scalar_keys = set(payload) - {"model_state", "target_model_state", "online_buffers"}
+        if destination.exists() or destination.is_symlink():
+            if destination.is_symlink() or not destination.is_file():
+                raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_COLLISION]")
+            existing = torch.load(destination, map_location="cpu", weights_only=True)
+            if (
+                not isinstance(existing, Mapping) or set(existing) != set(payload)
+                or any(existing[key] != payload[key] for key in scalar_keys)
+                or canonical_model_state_sha256(existing["model_state"]) != payload["model_state_sha256"]
+                or canonical_model_state_sha256(existing["target_model_state"]) != payload["target_model_state_sha256"]
+                or set(existing["online_buffers"]) != set(buffers)
+                or any(not torch.equal(existing["online_buffers"][key], value) for key, value in buffers.items())
+            ):
+                raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_COLLISION]")
+        else:
+            fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=str(directory))
+            try:
+                os.close(fd)
+                torch.save(payload, temporary)
+                _fsync_regular_file(Path(temporary))
+                os.replace(temporary, destination)
+                _fsync_regular_file(destination)
+                _fsync_directory(directory)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+        return {
+            "path": str(destination), "sha256": _sha256_file(destination),
+            "session_contract_sha256": self._contract_sha256,
+            "epoch_index": payload["epoch_index"],
+            "global_optimizer_steps": payload["global_optimizer_steps"],
+        }
 
     def save_top_k_checkpoint(
         self,
@@ -5398,6 +5506,67 @@ def _finalize_unified_exit_gate_epoch(
     prefixed["exit_cooperation_gate_health_ok"] = not failures
     prefixed["exit_cooperation_gate_health_failures"] = list(failures)
     return prefixed, failures
+
+
+def _native_val_gate_health_stats(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Apply the existing candidate gate rules to native full-VAL observations.
+
+    Native rollout records each shared state once while either Exit side is active.
+    Entry records the complete
+    Entry cohort. Neither aggregate gate variance nor positive net Bps replaces
+    the per-feature liveness and saturation checks.
+    """
+
+    stats: dict[str, Any] = {}
+    for surface, widths, shape in (
+        ("entry", _MODEL_NATIVE_COOPERATION_GATE_WIDTHS, _MODEL_NATIVE_FEATURE_TF_GATE_SHAPE),
+        ("exit", _UNIFIED_EXIT_COOPERATION_GATE_WIDTHS, _UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE),
+    ):
+        evidence = result.get(f"{surface}_gate_and_feature_route_diagnostics")
+        if not isinstance(evidence, Mapping) or not isinstance(evidence.get("routes"), Mapping):
+            raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_EVIDENCE_MISSING]")
+        routes = evidence["routes"]
+        raw_stats: dict[str, Any] = {}
+        for name, width in {**widths, "family_tf_feature_gate": int(np.prod(shape))}.items():
+            raw = routes.get(f"exit_{name}")
+            if not isinstance(raw, Mapping):
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_EVIDENCE_MISSING]")
+            expected_unit = "entry_row" if surface == "entry" else "active_entry_state_shared_by_sides"
+            if raw.get("observation_unit") != expected_unit:
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_OBSERVATION_UNIT_INVALID]")
+            rows = raw.get("batch_row_count")
+            if type(rows) is not int or rows <= 0:
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_ROWS_INVALID]")
+            if name == "family_tf_feature_gate" and tuple(raw.get("shape_tail", ())) != tuple(shape):
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_SHAPE_INVALID]")
+            raw_stats[f"{name}_rows"] = rows
+            for field in ("mean_weight", "std_weight", "min_observed", "max_observed"):
+                values = np.asarray(raw.get(f"coordinate_{field}", ()), dtype=np.float64)
+                if values.shape != (width,) or not np.isfinite(values).all():
+                    raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_COORDINATES_INVALID]")
+                raw_stats[f"{name}_{field}"] = values.tolist()
+            if name == "family_tf_feature_gate":
+                raw_stats[f"{name}_min_std"] = min(raw_stats[f"{name}_std_weight"])
+            else:
+                entropy = raw.get("raw_entropy_mean")
+                if isinstance(entropy, bool) or not isinstance(entropy, (int, float)) or not math.isfinite(entropy):
+                    raise RuntimeError("[CANDIDATE_NATIVE_VAL_GATE_ENTROPY_INVALID]")
+                raw_stats[f"{name}_entropy_mean"] = float(entropy)
+                raw_stats[f"{name}_min_mean"] = min(raw_stats[f"{name}_mean_weight"])
+        failures = _cooperation_gate_health_failures(
+            raw_stats, gate_widths=widths, feature_gate_shape=shape,
+        )
+        prefix = "exit_" if surface == "exit" else ""
+        stats.update({f"{prefix}{key}": value for key, value in raw_stats.items()})
+        stats[f"{prefix}cooperation_gate_health_ok"] = not failures
+        stats[f"{prefix}cooperation_gate_health_failures"] = failures
+        if surface == "exit":
+            stats["exit_gate_evidence_schema_version"] = UNIFIED_EXIT_GATE_EVIDENCE_SCHEMA_VERSION
+            blocking, provisional = _candidate_static_exit_feature_gate_disposition(failures)
+            if provisional is not None:
+                stats["candidate_exit_static_feature_gate_diagnostic"] = provisional
+                stats["candidate_exit_gate_health_provisional_ok"] = not blocking
+    return stats
 
 
 _STATIC_FEATURE_GATE_FAILURE_PREFIX = "family_tf_feature_gate constant/dead indices="
@@ -10748,6 +10917,8 @@ def _candidate_training_session_contract(
     device_type: str,
     recipe_source_provenance: Mapping[str, Any],
     precision_policy: str = DETERMINISTIC_FP32,
+    checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    native_val_binding: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
@@ -10799,7 +10970,7 @@ def _candidate_training_session_contract(
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
     checkpoint_policy = {
-        **checkpoint_policy_metadata(),
+        **checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor),
         "max_epochs": int(epochs),
         "early_stop_patience": int(early_stopping_patience),
         "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
@@ -10808,7 +10979,8 @@ def _candidate_training_session_contract(
     }
     try:
         require_checkpoint_policy(
-            checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE"
+            checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE",
+            checkpoint_monitor=checkpoint_monitor
         )
     except RuntimeError as exc:
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]") from exc
@@ -10861,6 +11033,7 @@ def _candidate_training_session_contract(
             for name, path in artifact_paths.items()
         },
         "input_normalization_sha256": normalization_sha256,
+        **({"native_full_val": dict(native_val_binding)} if native_val_binding is not None else {}),
         "training": {
             "seed": int(seed),
             "batch_size": int(batch_size),
@@ -10899,6 +11072,7 @@ def _candidate_training_session_contract(
             **_training_precision_metadata(str(device_type), precision_policy),
         },
     }
+
 
 
 def _restore_candidate_training_checkpoint(
@@ -11936,6 +12110,139 @@ class _CandidateExecutionPaused(Exception):
         super().__init__("[CANDIDATE_EXECUTION_PAUSED] " + evidence["reason"])
         self.evidence = evidence
 
+def _candidate_training_epoch_order(
+    train_ds: EntryV10CtxDataset, *, epoch_index: int,
+) -> torch.Tensor:
+    """Use the bound native sampler for every row of a full TRAIN epoch."""
+
+    adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+    if getattr(adapter, "_random_access_train", None) is None:
+        return torch.randperm(len(train_ds), dtype=torch.int64)
+    index = getattr(adapter, "_native_random_access_index", None)
+    if not isinstance(index, pd.DataFrame) or len(index) != len(train_ds):
+        raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_FULL_TRAIN_INDEX_REQUIRED]")
+    children = index["entry_row_index"].to_numpy(dtype=np.int64)
+    parents = index["parent_entry_row_index"].to_numpy(dtype=np.int64)
+    expected = np.arange(len(train_ds), dtype=np.int64)
+    if (
+        not np.array_equal(np.sort(children), expected)
+        or not np.array_equal(np.sort(parents), expected)
+    ):
+        raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_FULL_TRAIN_COVERAGE_INVALID]")
+    schedule = adapter.set_full_population_epoch_index(int(epoch_index))
+    child_order = adapter.random_access_selected_entry_rows_v1()
+    if (
+        schedule["every_entry_pair_exactly_once"] is not True
+        or schedule["entry_pair_count"] != len(train_ds)
+        or schedule["epoch_index"] != int(epoch_index)
+        or len(child_order) != len(train_ds)
+        or not np.array_equal(np.sort(child_order), expected)
+    ):
+        raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_FULL_TRAIN_SCHEDULE_INVALID]")
+    parent_by_child = dict(zip(children.tolist(), parents.tolist()))
+    if train_ds._random_access_child_index_by_parent != dict(
+        zip(parents.tolist(), children.tolist())
+    ):
+        raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_DATASET_MAPPING_MISMATCH]")
+    return torch.tensor(
+        [parent_by_child[int(child)] for child in child_order], dtype=torch.int64,
+    )
+
+
+def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
+    """Bind native VAL sources and compute limits into the durable session."""
+
+    required = {
+        "frame", "state_factory", "parent_coordinate_evidence", "val_sequence_audit",
+        "max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards",
+    }
+    if not isinstance(context, Mapping) or set(context) != required:
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_INVALID]")
+    from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
+
+    factory = context["state_factory"]
+    if not isinstance(factory, RandomAccessValStateFactoryV1):
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_FACTORY_INVALID]")
+    frame = context["frame"]
+    children = frame["entry_row_index"].astype("int64").tolist()
+    parents = frame["parent_entry_row_index"].astype("int64").tolist()
+    if children != list(range(5508)) or len(set(parents)) != 5508:
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_COHORT_INVALID]")
+    limits = {key: context[key] for key in ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")}
+    if any(type(value) is not int or value <= 0 for value in limits.values()):
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
+    audit = Path(context["val_sequence_audit"]).resolve(strict=True)
+    return {
+        "schema_version": "gx1_candidate_native_full_val_context_v1",
+        "factory_receipt": dict(factory.factory_receipt),
+        "parent_coordinates_sha256": canonical_json_sha256({"children": children, "parents": parents}),
+        "parent_coordinate_evidence_sha256": canonical_json_sha256(context["parent_coordinate_evidence"]),
+        "sequence_source_audit": {"path": str(audit), "sha256": _sha256_file(audit)},
+        "compute_limits": limits,
+        "entry_q_target_semantics": "frozen_train_target_exit_first_state_values_long_short_flat",
+        "test_accessed": False,
+    }
+
+
+def _native_candidate_epoch_validation(
+    *, session: _CandidateTrainingSession, model: nn.Module, target_model: nn.Module,
+    weight_ema: _WeightEma, val_ds: EntryV10CtxDataset, device: torch.device,
+    batch_size: int, epoch_index: int, context: Mapping[str, Any],
+) -> dict[str, Any]:
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_validation_checkpoint_v1
+    from gx1.scripts.run_unified_exit_random_access_val_v1 import evaluate_bound_full_val_v1
+
+    snapshot = session.save_validation_checkpoint(model=model)
+    directory = session.directory / "native_val" / f"epoch_{epoch_index + 1:04d}"
+    modes = [(module, module.training) for module in model.modules()]
+    try:
+        model.eval()
+        with weight_ema.evaluating(model):
+            binding = bind_candidate_weight_ema_validation_checkpoint_v1(snapshot=snapshot, model=model)
+            return evaluate_bound_full_val_v1(
+                model=model, entry_dataset=val_ds, frame=context["frame"],
+                state_factory=context["state_factory"], checkpoint_binding=binding,
+                parent_coordinate_evidence=context["parent_coordinate_evidence"],
+                val_sequence_audit=Path(context["val_sequence_audit"]),
+                device=device, selected_batch_size=batch_size,
+                rollout_progress_path=directory / "ROLLOUT_PROGRESS.json",
+                result_path=directory / "VAL_RESULT.json",
+                max_forwards_this_invocation=context["max_model_forwards"],
+                progress_interval_forwards=context["progress_interval_forwards"],
+                compute_guard_max_model_forwards=context["max_model_forwards"],
+                compute_guard_max_materialized_state_views=context["max_state_views"],
+                compute_guard_max_wall_seconds=context["max_wall_seconds"],
+                candidate_target_model=target_model,
+            )
+    finally:
+        for module, training in modes:
+            module.training = training
+
+
+def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Record complete VAL; a censored selected policy remains ineligible for selection."""
+
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_complete_val_observation
+    require_complete_val_observation(result)
+    heads = result["entry_gate_and_feature_route_diagnostics"].get("candidate_active_head_evidence")
+    if not isinstance(heads, Mapping) or heads.get("target_model_state_sha256") != result["checkpoint_binding"]["target_model_state_sha256"]:
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_ACTIVE_HEAD_EVIDENCE_INVALID]")
+    stats = {
+        **heads, **_native_val_gate_health_stats(result),
+        "entry_exit_policy_metrics": dict(result["entry_exit_policy_metrics"]),
+        "unified_exit_full_trajectory_validation": dict(result),
+        "validation_loss_semantics": "entry_frozen_train_anchor_q_mse_only",
+    }
+    available = result["entry_exit_policy_metrics"]["full_cohort_authoritative"]
+    stats["native_checkpoint_metric_available"] = available
+    stats["checkpoint_selection_unavailable_reason"] = (
+        None if available else "selected_trade_right_censored_at_val_end"
+    )
+    if available:
+        checkpoint_metric(stats, checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)
+    return stats
+
+
 def _run_resumable_candidate_training(
     *,
     model: nn.Module,
@@ -11984,6 +12291,8 @@ def _run_resumable_candidate_training(
     execution_budget: Optional[Mapping[str, Any]] = None,
     execution_budget_sha256: Optional[str] = None,
     invocation_started_monotonic: Optional[float] = None,
+    checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    native_val_context: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -11999,6 +12308,15 @@ def _run_resumable_candidate_training(
         raise RuntimeError("[CANDIDATE_TRAINING_TRAIN_POPULATION_INVALID]")
     if len(val_ds) <= 0:
         raise RuntimeError("[CANDIDATE_TRAINING_VAL_POPULATION_INVALID]")
+    native_binding = None
+    if native_val_context is not None:
+        if checkpoint_monitor != COUPLED_NET_CHECKPOINT_MONITOR or weight_ema is None or execution_budget is None:
+            raise RuntimeError("[CANDIDATE_NATIVE_VAL_SESSION_CONFIGURATION_INVALID]")
+        native_binding = _native_candidate_val_context_binding(native_val_context)
+        if execution_budget.get("resume_probe_val_rows") is not None:
+            raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROBE_FORBIDDEN]")
+    elif checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR:
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_REQUIRED]")
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
         out_bundle_dir, gx1_data_override
     )
@@ -12036,6 +12354,8 @@ def _run_resumable_candidate_training(
             device_type=device.type,
             recipe_source_provenance=recipe_source_provenance,
             precision_policy=precision_policy,
+            checkpoint_monitor=checkpoint_monitor,
+            native_val_binding=native_binding,
         ),
     )
     train_checkpoint_interval = candidate_checkpoint_interval(precision_policy)
@@ -12067,11 +12387,11 @@ def _run_resumable_candidate_training(
     fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
 
     if restored_state is None:
-        epoch_order = torch.randperm(len(train_ds), dtype=torch.int64)
+        epoch_order = _candidate_training_epoch_order(train_ds, epoch_index=0)
         target_model = copy.deepcopy(model).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
-        progress = _new_candidate_training_progress()
+        progress = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor)
         phase = "train"
         epoch_index = 0
         next_batch_offset = 0
@@ -12092,8 +12412,15 @@ def _run_resumable_candidate_training(
             dataset_rows=len(train_ds),
         )
         epoch_order = restored["epoch_order"]
+        adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+        if getattr(adapter, "_random_access_train", None) is not None:
+            rebuilt_order = _candidate_training_epoch_order(
+                train_ds, epoch_index=int(restored["epoch_index"]),
+            )
+            if not torch.equal(epoch_order.cpu(), rebuilt_order):
+                raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_RESUME_ORDER_MISMATCH]")
         progress = _require_candidate_training_progress(
-            restored["training_progress"]
+            restored["training_progress"], checkpoint_monitor=checkpoint_monitor,
         )
         phase = str(restored["phase"])
         epoch_index = int(restored["epoch_index"])
@@ -12114,10 +12441,12 @@ def _run_resumable_candidate_training(
 
     def _pause_if_due(
         *, phase_value: str, epoch_value: int, batch_offset_value: int,
+        reason_override: Optional[str] = None,
+        native_val_pause: Optional[Mapping[str, Any]] = None,
     ) -> None:
         if execution_budget is None:
             return
-        reason = candidate_execution_pause_reason(
+        reason = reason_override or candidate_execution_pause_reason(
             execution_budget,
             global_optimizer_steps=int(global_optimizer_steps),
             completed_val_epochs=int(progress["checkpoint_selection"]["last_epoch"]),
@@ -12141,6 +12470,8 @@ def _run_resumable_candidate_training(
                 "bundle_written": False,
                 "test_accessed": False,
             }
+            if native_val_pause is not None:
+                evidence["native_val_pause"] = dict(native_val_pause)
             if "resume_probe_val_rows" in execution_budget:
                 if reason == "optimizer_step_ceiling" and phase_value == "train" and epoch_value == 0:
                     evidence["resume_validation_probe"] = _candidate_resume_validation_probe(
@@ -12197,7 +12528,9 @@ def _run_resumable_candidate_training(
                     lr_scheduler.state_dict() if lr_scheduler is not None else None
                 ),
                 "rng_state": _attended_session_rng_state(device=device),
-                "training_progress": _require_candidate_training_progress(progress),
+                "training_progress": _require_candidate_training_progress(
+                    progress, checkpoint_monitor=checkpoint_monitor
+                ),
                 "complete": bool(complete_value),
             }
         )
@@ -12229,7 +12562,9 @@ def _run_resumable_candidate_training(
         )
 
     def _result() -> dict[str, Any]:
-        checked = _require_candidate_training_progress(progress)
+        checked = _require_candidate_training_progress(
+            progress, checkpoint_monitor=checkpoint_monitor
+        )
         selection = dict(checked["checkpoint_selection"])
         return {
             **selection,
@@ -12296,6 +12631,14 @@ def _run_resumable_candidate_training(
                     batch_offset_value=next_batch_offset,
                     complete_value=False,
                 )
+                if native_val_context is not None:
+                    # Full VAL gets its own guarded invocation; its fixed wall
+                    # contract cannot inherit an almost-spent TRAIN window.
+                    _pause_if_due(
+                        phase_value=phase, epoch_value=epoch_index,
+                        batch_offset_value=0,
+                        reason_override="native_full_val_phase_boundary",
+                    )
                 continue
             train_ds.set_unified_exit_lifecycle_v2_epoch(int(epoch_index))
             train_loader = DataLoader(
@@ -12375,73 +12718,70 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_TRAINING_PHASE_INVALID]")
         if next_batch_offset > -(-len(val_ds) // int(batch_size)):
             raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_OFFSET_INVALID]")
-        val_loader = DataLoader(
-            val_ds,
-            batch_size=batch_size,
-            sampler=_ExactIndexSampler(
-                fixed_val_order,
-                batch_offset=next_batch_offset,
-                batch_size=batch_size,
-            ),
-            num_workers=num_workers,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            prefetch_factor=prefetch_factor,
-            generator=torch.Generator().manual_seed(int(seed)),
-        )
-        resume_validation_state = progress["validation_snapshot"]
-        if resume_validation_state is not None:
-            resume_validation_state = _restore_candidate_validation_snapshot(
-                resume_validation_state
+        if native_val_context is not None:
+            if next_batch_offset != 0 or progress["validation_snapshot"] is not None:
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROGRESS_INVALID]")
+            if native_val_context["max_wall_seconds"] >= execution_budget["max_invocation_seconds"]:
+                raise RuntimeError("[CANDIDATE_NATIVE_VAL_INVOCATION_TOO_SHORT]")
+            remaining = execution_budget["max_invocation_seconds"] - (time.monotonic() - invocation_started_monotonic)
+            if remaining < native_val_context["max_wall_seconds"] + 60:
+                _pause_if_due(
+                    phase_value="validation", epoch_value=epoch_index, batch_offset_value=0,
+                    reason_override="native_full_val_fresh_window_required",
+                )
+            native_result = _native_candidate_epoch_validation(
+                session=session, model=model, target_model=target_model,
+                weight_ema=weight_ema, val_ds=val_ds, device=device,
+                batch_size=batch_size, epoch_index=epoch_index, context=native_val_context,
             )
-
-        def _checkpoint_validation(
-            *, next_batch_offset: int, validation_snapshot: Mapping[str, Any]
-        ) -> None:
-            progress["validation_snapshot"] = dict(validation_snapshot)
-            _save(
-                phase_value="validation",
-                epoch_value=epoch_index,
-                batch_offset_value=int(next_batch_offset),
-                complete_value=False,
-            )
-
-        if weight_ema is None:
-            va_loss, auc, acc, val_short_to_long, val_stats = validate(
-                model,
-                target_model,
-                val_loader,
-                device,
-                collect_full_exit_trajectory=True,
-                resume_validation_state=resume_validation_state,
-                validation_batch_offset=next_batch_offset,
-                validation_checkpoint_interval_batches=(
-                    validation_checkpoint_interval
-                ),
-                validation_checkpoint_hook=_checkpoint_validation,
-                validation_session_log_label="CANDIDATE_TRAINING",
-                candidate_allow_static_feature_gates=True,
-            )
+            if native_result.get("decision") == "PAUSED_RESUMABLE":
+                rollout_path = session.directory / "native_val" / f"epoch_{epoch_index + 1:04d}" / "ROLLOUT_PROGRESS.json"
+                _pause_if_due(
+                    phase_value="validation", epoch_value=epoch_index, batch_offset_value=0,
+                    reason_override="native_full_val_window_complete",
+                    native_val_pause={
+                        "progress_path": str(rollout_path),
+                        "progress_sha256": _sha256_file(rollout_path),
+                        "pause": dict(native_result),
+                        "checkpoint_selection_advanced": False,
+                    },
+                )
+            val_stats = _native_candidate_validation_stats(native_result)
+            va_loss = float(val_stats["entry_action_q_raw_bps_mse_mean"])
+            acc = float(val_stats["entry_unique_target_action_agreement"])
         else:
-            raw_model_state = {
-                name: tensor.detach().cpu().clone()
-                for name, tensor in model.state_dict().items()
-            }
+            val_loader = DataLoader(
+                val_ds,
+                batch_size=batch_size,
+                sampler=_ExactIndexSampler(
+                    fixed_val_order,
+                    batch_offset=next_batch_offset,
+                    batch_size=batch_size,
+                ),
+                num_workers=num_workers,
+                pin_memory=pin_memory,
+                persistent_workers=persistent_workers,
+                prefetch_factor=prefetch_factor,
+                generator=torch.Generator().manual_seed(int(seed)),
+            )
+            resume_validation_state = progress["validation_snapshot"]
+            if resume_validation_state is not None:
+                resume_validation_state = _restore_candidate_validation_snapshot(
+                    resume_validation_state
+                )
 
-            def _checkpoint_ema_validation(
-                *, next_batch_offset: int,
-                validation_snapshot: Mapping[str, Any],
+            def _checkpoint_validation(
+                *, next_batch_offset: int, validation_snapshot: Mapping[str, Any]
             ) -> None:
-                model.load_state_dict(raw_model_state, strict=True)
-                try:
-                    _checkpoint_validation(
-                        next_batch_offset=next_batch_offset,
-                        validation_snapshot=validation_snapshot,
-                    )
-                finally:
-                    model.load_state_dict(weight_ema._shadow, strict=True)
+                progress["validation_snapshot"] = dict(validation_snapshot)
+                _save(
+                    phase_value="validation",
+                    epoch_value=epoch_index,
+                    batch_offset_value=int(next_batch_offset),
+                    complete_value=False,
+                )
 
-            with weight_ema.evaluating(model):
+            if weight_ema is None:
                 va_loss, auc, acc, val_short_to_long, val_stats = validate(
                     model,
                     target_model,
@@ -12453,22 +12793,62 @@ def _run_resumable_candidate_training(
                     validation_checkpoint_interval_batches=(
                         validation_checkpoint_interval
                     ),
-                    validation_checkpoint_hook=_checkpoint_ema_validation,
+                    validation_checkpoint_hook=_checkpoint_validation,
                     validation_session_log_label="CANDIDATE_TRAINING",
                     candidate_allow_static_feature_gates=True,
                 )
+            else:
+                raw_model_state = {
+                    name: tensor.detach().cpu().clone()
+                    for name, tensor in model.state_dict().items()
+                }
+
+                def _checkpoint_ema_validation(
+                    *, next_batch_offset: int,
+                    validation_snapshot: Mapping[str, Any],
+                ) -> None:
+                    model.load_state_dict(raw_model_state, strict=True)
+                    try:
+                        _checkpoint_validation(
+                            next_batch_offset=next_batch_offset,
+                            validation_snapshot=validation_snapshot,
+                        )
+                    finally:
+                        model.load_state_dict(weight_ema._shadow, strict=True)
+
+                with weight_ema.evaluating(model):
+                    va_loss, auc, acc, val_short_to_long, val_stats = validate(
+                        model,
+                        target_model,
+                        val_loader,
+                        device,
+                        collect_full_exit_trajectory=True,
+                        resume_validation_state=resume_validation_state,
+                        validation_batch_offset=next_batch_offset,
+                        validation_checkpoint_interval_batches=(
+                            validation_checkpoint_interval
+                        ),
+                        validation_checkpoint_hook=_checkpoint_ema_validation,
+                        validation_session_log_label="CANDIDATE_TRAINING",
+                        candidate_allow_static_feature_gates=True,
+                    )
 
         progress["validation_snapshot"] = None
         selection["last_epoch"] = int(epoch_index) + 1
         selection["last_val_stats"] = _candidate_snapshot_safe(dict(val_stats))
-        policy_pnl = float(
-            val_stats.get(
-                "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean",
-                float("nan"),
-            )
+        metric_available = not (
+            native_binding is not None
+            and val_stats.get("native_checkpoint_metric_available") is False
         )
+        policy_pnl = (
+            checkpoint_metric(val_stats, checkpoint_monitor=checkpoint_monitor)
+            if metric_available else None
+        )
+        if not metric_available:
+            log.info("[CANDIDATE_CHECKPOINT_INELIGIBLE] epoch=%d reason=%s",
+                     int(epoch_index) + 1, val_stats["checkpoint_selection_unavailable_reason"])
         improved = bool(
-            np.isfinite(policy_pnl)
+            policy_pnl is not None and np.isfinite(policy_pnl)
             and (
                 int(selection["best_epoch"]) < 0
                 or candidate_metric_improved(
@@ -12494,7 +12874,7 @@ def _run_resumable_candidate_training(
                 val_stats.get("candidate_exit_gate_health_provisional_ok", False)
             ),
         )
-        if admission_ok and np.isfinite(policy_pnl):
+        if admission_ok and policy_pnl is not None and np.isfinite(policy_pnl):
             full_trajectory = val_stats.get("unified_exit_full_trajectory_validation")
             if not isinstance(full_trajectory, Mapping):
                 raise RuntimeError("[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]")
@@ -12578,6 +12958,7 @@ def _run_resumable_candidate_training(
                         key.startswith("unified_exit_")
                         or key.startswith("exit_")
                         or key.startswith("candidate_")
+                        or key == "entry_exit_policy_metrics"
                     )
                 }
             )
@@ -12598,7 +12979,7 @@ def _run_resumable_candidate_training(
                 float(selection["best_val"]),
                 float(selection["best_policy_pnl"]),
                 float(acc),
-                ENTRY_CKPT_MONITOR,
+                checkpoint_monitor,
             )
         else:
             selection["epochs_since_improve"] = int(
@@ -12620,7 +13001,9 @@ def _run_resumable_candidate_training(
             )
             return _result()
         epoch_index += 1
-        epoch_order = torch.randperm(len(train_ds), dtype=torch.int64)
+        epoch_order = _candidate_training_epoch_order(
+            train_ds, epoch_index=epoch_index
+        )
         target_model = copy.deepcopy(model).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
@@ -12632,6 +13015,7 @@ def _run_resumable_candidate_training(
             batch_offset_value=next_batch_offset,
             complete_value=False,
         )
+
 
 
 def load_completed_candidate_epoch_for_seal(
@@ -12675,7 +13059,9 @@ def load_completed_candidate_epoch_for_seal(
     state = session.load_checkpoint()
     if state is None or not bool(state.get("complete", False)):
         raise RuntimeError("[CANDIDATE_EPOCH_SEAL_STATE_INVALID]")
-    progress = _require_candidate_training_progress(state["training_progress"])
+    progress = _require_candidate_training_progress(
+        state["training_progress"], checkpoint_monitor=session.checkpoint_monitor
+    )
     selection = dict(progress["checkpoint_selection"])
     if (
         int(selection["last_epoch"]) != int(completed_epoch)
@@ -12723,6 +13109,7 @@ def load_completed_candidate_epoch_for_seal(
         ),
         "session_directory": str(session.directory),
     }
+
 
 
 def run_train(

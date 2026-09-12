@@ -366,6 +366,11 @@ def _accumulate_routes(
                 "top_flat_index_count": [0] * flat.shape[1],
                 "saturated_lower_element_count": 0,
                 "saturated_upper_element_count": 0,
+                "coordinate_sum": [0.0] * flat.shape[1],
+                "coordinate_sumsq": [0.0] * flat.shape[1],
+                "coordinate_min": None,
+                "coordinate_max": None,
+                "raw_entropy_sum": 0.0,
             }
             accumulators[name] = observed
         if observed.get("observation_unit") != observation_unit:
@@ -379,6 +384,26 @@ def _accumulate_routes(
         observed["element_count"] += int(values.numel())
         observed["sum"] += float(values.sum().item())
         observed["sumsq"] += float((values * values).sum().item())
+        # Persist per-coordinate moments for the existing candidate gate-health
+        # rules. A global variance cannot show whether an individual feature
+        # is constant. Each active shared state contributes once to these observations.
+        for key, update in (
+            ("coordinate_sum", flat.sum(dim=0).numpy()),
+            ("coordinate_sumsq", flat.square().sum(dim=0).numpy()),
+        ):
+            observed[key] = (np.asarray(observed[key]) + update).tolist()
+        for key, update, combine in (
+            ("coordinate_min", flat.min(dim=0).values.numpy(), np.minimum),
+            ("coordinate_max", flat.max(dim=0).values.numpy(), np.maximum),
+        ):
+            observed[key] = (
+                update if observed[key] is None
+                else combine(np.asarray(observed[key]), update)
+            ).tolist()
+        clipped = flat.clamp(min=1e-12)
+        observed["raw_entropy_sum"] += float(
+            (-(clipped * clipped.log()).sum(dim=1).sum()).item()
+        )
         minimum = float(values.min().item())
         maximum = float(values.max().item())
         observed["min"] = (
@@ -459,6 +484,12 @@ def _finalize_routes(accumulators: Mapping[str, Any]) -> dict[str, Any]:
         rows = int(raw["batch_row_count"])
         mean = float(raw["sum"]) / count
         variance = max(0.0, float(raw["sumsq"]) / count - mean * mean)
+        coordinate_mean = np.asarray(raw["coordinate_sum"], dtype=np.float64) / rows
+        coordinate_variance = np.maximum(
+            np.asarray(raw["coordinate_sumsq"], dtype=np.float64) / rows
+            - np.square(coordinate_mean),
+            0.0,
+        )
         result[name] = {
             "shape_tail": list(raw["shape_tail"]),
             "observation_unit": raw["observation_unit"],
@@ -471,6 +502,11 @@ def _finalize_routes(accumulators: Mapping[str, Any]) -> dict[str, Any]:
             "mean_effective_route_count": float(raw["effective_route_count_sum"])
             / rows,
             "top_flat_index_count": list(raw["top_flat_index_count"]),
+            "coordinate_mean_weight": coordinate_mean.tolist(),
+            "coordinate_std_weight": np.sqrt(coordinate_variance).tolist(),
+            "coordinate_min_observed": list(raw["coordinate_min"]),
+            "coordinate_max_observed": list(raw["coordinate_max"]),
+            "raw_entropy_mean": float(raw["raw_entropy_sum"]) / rows,
         }
         if name == "exit_family_tf_feature_gate":
             lower = int(raw["saturated_lower_element_count"])

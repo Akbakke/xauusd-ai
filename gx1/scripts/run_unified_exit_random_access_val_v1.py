@@ -19,6 +19,9 @@ from torch.utils.data import DataLoader, Sampler
 from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
     build_entry_policy_decisions,
 )
+from gx1.contracts.entry_fitted_q_v1 import build_entry_fitted_q_targets
+from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+from gx1.contracts.unified_exit_random_access_training_v1 import collate_random_access_states_v1
 
 from gx1.contracts.local_random_access_campaign_v2 import (
     PROGRESS_SCHEMA,
@@ -73,6 +76,7 @@ from gx1.contracts.unified_exit_final_train_checkpoint_authority_v1 import (
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     require_unified_exit_unbounded_training_readiness,
+    unified_exit_first_state_side_values,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
@@ -81,6 +85,9 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     EntryV10CtxDataset,
     _model_forward_fp32,
     _multi_tf_kwargs_from_batch,
+    _new_active_head_epoch_accumulator,
+    _accumulate_active_head_epoch,
+    _active_head_epoch_diagnostics,
 )
 from gx1.scripts.run_unified_exit_random_access_fixed_step_v1 import (
     _bind_multi_tf_cache_from_source_bundle_metadata,
@@ -328,6 +335,39 @@ def _assert_clean_source(launch: Mapping[str, Any]) -> None:
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_SOURCE_NOT_CLEAN")
 
 
+def _candidate_anchor_targets(
+    *, target_model: torch.nn.Module, target_entry_output: Mapping[str, Any],
+    state_factory: RandomAccessValStateFactoryV1, child_rows: Sequence[int],
+    device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
+    """Use the same frozen first-state Exit values as the TRAIN Entry target."""
+
+    entries = [state_factory.entries[int(row)] for row in child_rows]
+    if [int(entry["entry_row_index"]) for entry in entries] != list(child_rows):
+        raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_ORDER_INVALID")
+    inputs = collate_random_access_states_v1(
+        [state_factory.materialize_state(entry, 0) for entry in entries],
+        normalization_artifact=state_factory.normalization, device=device,
+    )
+    inputs["entry_decision_representation"] = target_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
+    inputs["action_valid_mask"] = torch.ones((len(entries), 2, 2), dtype=torch.bool, device=device)
+    output = target_model.forward_exit_random_access_batch(**inputs)
+    q = output["exit_action_q_bps"]
+    valid = output["exit_action_valid_mask"]
+    if q.shape != (len(entries), 2, 2) or not torch.equal(valid, inputs["action_valid_mask"]):
+        raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_Q_INVALID")
+    values = unified_exit_first_state_side_values(
+        frozen_target_q_bps=q.unsqueeze(2), action_valid_mask=valid.unsqueeze(2),
+        state_valid_mask=torch.ones((len(entries), 2, 1), dtype=torch.bool, device=device),
+    )
+    return build_entry_fitted_q_targets(
+        frozen_exit_first_state_values_bps=values,
+        exit_side_valid_mask=torch.ones_like(values, dtype=torch.bool),
+        episode_pack_sha256=[entry["entry_episode_binding_sha256"] for entry in entries],
+        fill_binding_sha256=[entry["entry_fill_binding_sha256"] for entry in entries],
+    )
+
+
 def _entry_representations(
     *,
     model: torch.nn.Module,
@@ -335,14 +375,35 @@ def _entry_representations(
     parent_rows: Sequence[int],
     device: torch.device,
     batch_size: int,
+    candidate_target_model: torch.nn.Module | None = None,
+    candidate_state_factory: RandomAccessValStateFactoryV1 | None = None,
+    candidate_child_rows: Sequence[int] | None = None,
 ) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
     if len(parent_rows) != 5_508 or len(set(parent_rows)) != len(parent_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_MAPPING_INVALID")
+    candidate = candidate_target_model is not None
+    if candidate != (candidate_state_factory is not None) or candidate != (candidate_child_rows is not None):
+        raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_CONTEXT_INVALID")
+    if candidate and (
+        candidate_target_model.training
+        or any(p.requires_grad for p in candidate_target_model.parameters())
+        or len(candidate_child_rows) != len(parent_rows)
+        or set(candidate_child_rows) != set(range(len(parent_rows)))
+    ):
+        raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_NOT_FROZEN_OR_COHORT_INVALID")
+    active_heads = _new_active_head_epoch_accumulator() if candidate else None
+    anchor_bindings: list[str] = []
+    q_squared_error = 0.0
+    q_valid_cells = 0
+    unique_target_rows = 0
+    agreeing_rows = 0
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
         sampler=_ExactSampler(parent_rows),
         num_workers=0,
+        # Loader base-seed creation must not consume the training RNG.
+        generator=torch.Generator().manual_seed(0),
     )
     route_accumulators: dict[str, Any] = {}
     representations: list[torch.Tensor] = []
@@ -374,6 +435,32 @@ def _entry_representations(
             or not bool(torch.isfinite(entry_q).all().item())
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_CLI_ENTRY_Q_INVALID")
+        if candidate:
+            with torch.inference_mode():
+                target_output = _model_forward_fp32(
+                    candidate_target_model, seq_x, snap_x,
+                    ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+                    **_multi_tf_kwargs_from_batch(batch, device),
+                )
+                targets, target_valid, anchor_binding = _candidate_anchor_targets(
+                    target_model=candidate_target_model, target_entry_output=target_output,
+                    state_factory=candidate_state_factory,
+                    child_rows=candidate_child_rows[consumed:consumed + len(observed_rows)],
+                    device=device,
+                )
+                _accumulate_active_head_epoch(
+                    active_heads, model,
+                    {**output, "_entry_action_q_target": targets, "_entry_action_q_valid": target_valid},
+                    batch, device,
+                )
+                q_squared_error += float((entry_q[target_valid] - targets[target_valid]).double().square().sum().item())
+                q_valid_cells += int(target_valid.sum().item())
+                best_target = targets.masked_fill(~target_valid, -torch.inf).max(dim=1, keepdim=True).values
+                unique = ((targets == best_target) & target_valid).sum(dim=1) == 1
+                greedy = entry_q.masked_fill(~target_valid, -torch.inf).argmax(dim=1)
+                unique_target_rows += int(unique.sum().item())
+                agreeing_rows += int((unique & (greedy == targets.argmax(dim=1))).sum().item())
+                anchor_bindings.append(anchor_binding["binding_sha256"])
         entry_q_values.append(entry_q.detach().cpu())
         if (
             not isinstance(representation, torch.Tensor)
@@ -399,6 +486,19 @@ def _entry_representations(
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_ENTRY_COHORT_INCOMPLETE")
     diagnostics = finalize_route_diagnostics_v1(route_accumulators)
     diagnostics["surface"] = "entry_full_cohort_forward"
+    if candidate:
+        head_stats, _ = _active_head_epoch_diagnostics(active_heads)
+        diagnostics["candidate_active_head_evidence"] = {
+            **head_stats,
+            "entry_q_target_semantics": "frozen_train_target_exit_first_state_values_long_short_flat",
+            "target_model_state_sha256": canonical_model_state_sha256(candidate_target_model.state_dict()),
+            "anchor_batch_binding_sha256": anchor_bindings,
+            "entry_action_q_raw_bps_mse_mean": q_squared_error / q_valid_cells,
+            "entry_unique_target_rows": unique_target_rows,
+            "entry_unique_target_action_agreement": agreeing_rows / max(1, unique_target_rows),
+            "full_trajectory_bellman_loss_claimed": False,
+            "target_updated_from_val_or_test": False,
+        }
     return torch.cat(representations, dim=0), diagnostics, torch.cat(entry_q_values, dim=0)
 
 
@@ -452,6 +552,71 @@ def _build_provider(
         common_successor_transition_counts=counts,
         expected_successor_counts_sha256=summary["successor_counts_sha256"],
     )
+
+
+def evaluate_bound_full_val_v1(
+    *, model: torch.nn.Module, entry_dataset: EntryV10CtxDataset,
+    frame: pd.DataFrame, state_factory: RandomAccessValStateFactoryV1,
+    checkpoint_binding: Mapping[str, Any], parent_coordinate_evidence: Mapping[str, Any],
+    val_sequence_audit: Path, device: torch.device, selected_batch_size: int,
+    rollout_progress_path: Path, result_path: Path,
+    max_forwards_this_invocation: int, progress_interval_forwards: int,
+    compute_guard_max_model_forwards: int,
+    compute_guard_max_materialized_state_views: int,
+    compute_guard_max_wall_seconds: float,
+    candidate_target_model: torch.nn.Module | None = None,
+) -> dict[str, Any]:
+    """The shared full-cohort Entry/Exit evaluator for smoke and candidate epochs."""
+
+    parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
+    if candidate_target_model is not None and canonical_model_state_sha256(candidate_target_model.state_dict()) != checkpoint_binding["target_model_state_sha256"]:
+        raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_CHECKPOINT_MISMATCH")
+    representations, entry_routes, entry_q_values = _entry_representations(
+        model=model,
+        dataset=entry_dataset,
+        parent_rows=parent_rows,
+        device=device,
+        batch_size=selected_batch_size,
+        candidate_target_model=candidate_target_model,
+        candidate_state_factory=state_factory if candidate_target_model is not None else None,
+        candidate_child_rows=frame["entry_row_index"].astype("int64").tolist() if candidate_target_model is not None else None,
+    )
+    entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
+    entry_routes["sequence_source_reconstruction_audit"] = {
+        "path": str(val_sequence_audit), "sha256": file_sha256(val_sequence_audit),
+    }
+    contract, adapter = state_factory.bind_rollout(
+        entry_decision_representations=representations,
+        model_state_sha256=checkpoint_binding["model_state_sha256"],
+        checkpoint_file_sha256=checkpoint_binding["checkpoint_file_sha256"],
+        compute_guard_max_model_forwards=compute_guard_max_model_forwards,
+        compute_guard_max_materialized_state_views=(
+            compute_guard_max_materialized_state_views
+        ),
+        compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
+        resumable_wall_limit=True,
+    )
+    if contract["entry_pair_cohort_size"] != 5_508:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_COHORT_REQUIRED")
+    entry_policy = build_entry_policy_decisions(
+        predicted_q_bps=entry_q_values.numpy(),
+        entry_row_indices=frame["entry_row_index"].astype("int64").tolist(),
+        checkpoint_binding_sha256=checkpoint_binding["binding_sha256"],
+    )
+    result = run_resumable_random_access_val_evaluation_v1(
+        model=model,
+        entry_decision_representations=representations,
+        adapter=adapter,
+        checkpoint_binding=checkpoint_binding,
+        entry_route_diagnostics=entry_routes,
+        entry_policy_decisions=entry_policy,
+        progress_path=rollout_progress_path,
+        result_path=result_path,
+        max_forwards_this_invocation=max_forwards_this_invocation,
+        policy_batch_size=selected_batch_size,
+        progress_interval_forwards=progress_interval_forwards,
+    )
+    return result
 
 
 def run(
@@ -614,18 +779,6 @@ def run(
         multi_tf_closed_bar=True,
         sequence_source_audit_json=val_sequence_audit,
     )
-    parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
-    representations, entry_routes, entry_q_values = _entry_representations(
-        model=model,
-        dataset=entry_dataset,
-        parent_rows=parent_rows,
-        device=device,
-        batch_size=selected_batch_size,
-    )
-    entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
-    entry_routes["sequence_source_reconstruction_audit"] = {
-        "path": str(val_sequence_audit), "sha256": file_sha256(val_sequence_audit),
-    }
     corpus = UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
         entry_parquets={
@@ -674,36 +827,18 @@ def run(
         economic_step_manifest=provider.economic_exit_step_manifest,
         economics_objective_contract=readiness["economics_objective_contract"],
     )
-    contract, adapter = state_factory.bind_rollout(
-        entry_decision_representations=representations,
-        model_state_sha256=checkpoint_binding["model_state_sha256"],
-        checkpoint_file_sha256=checkpoint_binding["checkpoint_file_sha256"],
-        compute_guard_max_model_forwards=compute_guard_max_model_forwards,
-        compute_guard_max_materialized_state_views=(
-            compute_guard_max_materialized_state_views
-        ),
-        compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
-        resumable_wall_limit=True,
-    )
-    if contract["entry_pair_cohort_size"] != 5_508:
-        raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_COHORT_REQUIRED")
-    entry_policy = build_entry_policy_decisions(
-        predicted_q_bps=entry_q_values.numpy(),
-        entry_row_indices=frame["entry_row_index"].astype("int64").tolist(),
-        checkpoint_binding_sha256=checkpoint_binding["binding_sha256"],
-    )
-    result = run_resumable_random_access_val_evaluation_v1(
-        model=model,
-        entry_decision_representations=representations,
-        adapter=adapter,
-        checkpoint_binding=checkpoint_binding,
-        entry_route_diagnostics=entry_routes,
-        entry_policy_decisions=entry_policy,
-        progress_path=rollout_progress_path,
-        result_path=result_path,
+    result = evaluate_bound_full_val_v1(
+        model=model, entry_dataset=entry_dataset, frame=frame,
+        state_factory=state_factory, checkpoint_binding=checkpoint_binding,
+        parent_coordinate_evidence=parent_coordinate_evidence,
+        val_sequence_audit=val_sequence_audit, device=device,
+        selected_batch_size=selected_batch_size,
+        rollout_progress_path=rollout_progress_path, result_path=result_path,
         max_forwards_this_invocation=max_forwards_this_invocation,
-        policy_batch_size=selected_batch_size,
         progress_interval_forwards=progress_interval_forwards,
+        compute_guard_max_model_forwards=compute_guard_max_model_forwards,
+        compute_guard_max_materialized_state_views=compute_guard_max_materialized_state_views,
+        compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
     )
     _publish_campaign_progress(
         path=campaign_progress_path,

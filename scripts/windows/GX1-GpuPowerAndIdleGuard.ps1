@@ -109,6 +109,15 @@ function Test-Gx1NormalIdleSample {
     )
 }
 
+function Get-Gx1ThermalPowerLimit {
+    param([psobject]$Config, [psobject]$Sample)
+    # Latch down for this guard lifetime; normal rechecks never raise it again.
+    if ([int]$Config.power_limit_w -gt 200 -and [double]$Sample.core_temp_c -ge 80) {
+        return 200
+    }
+    return [int]$Config.power_limit_w
+}
+
 function Set-Gx1PowerLimit {
     param([Parameter(Mandatory = $true)][psobject]$Config)
 
@@ -270,6 +279,10 @@ function Invoke-Gx1GpuRecovery {
 }
 
 function Invoke-Gx1PolicySelfTest {
+    foreach ($case in @(@(300,79,300), @(300,80,200), @(300,85,200), @(200,70,200), @(160,85,160))) {
+        $actual = Get-Gx1ThermalPowerLimit -Config ([pscustomobject]@{power_limit_w=$case[0]}) -Sample ([pscustomobject]@{core_temp_c=$case[1]})
+        if ($actual -ne $case[2]) { throw 'Thermal power reduction policy mismatch' }
+    }
     $testConfig = [pscustomobject]@{
         idle_power_threshold_w = 60
         idle_memory_max_mib = 384
@@ -388,7 +401,7 @@ try {
     }
     if ([string]$config.expected_gpu_uuid -notmatch '^GPU-[0-9A-Fa-f-]+$' -or
         [string]$config.gpu_pnp_instance_id -notmatch '^PCI\\VEN_10DE&' -or
-        [int]$config.power_limit_w -lt 100 -or [int]$config.power_limit_w -gt 160 -or
+        [int]$config.power_limit_w -lt 100 -or [int]$config.power_limit_w -gt 300 -or
         [int]$config.sample_seconds -lt 1 -or
         [int]$config.idle_power_threshold_w -lt 40 -or [int]$config.idle_power_threshold_w -gt 120 -or
         [int]$config.idle_memory_max_mib -lt 128 -or [int]$config.idle_memory_max_mib -gt 2048 -or
@@ -471,6 +484,15 @@ while ($true) {
             }
         }
         $sample = Get-Gx1GpuSample -Config $config
+        if ($null -eq $benchmarkContext) {
+            $thermalLimit = Get-Gx1ThermalPowerLimit -Config $config -Sample $sample
+            if ($thermalLimit -lt [int]$config.power_limit_w) {
+                Write-Gx1GuardLog "THERMAL_POWER_REDUCTION core_temp_c=$($sample.core_temp_c) from_w=$($config.power_limit_w) to_w=$thermalLimit"
+                $config.power_limit_w = $thermalLimit
+                $sample = Set-Gx1PowerLimit -Config $config
+                $lastPowerLimitCheck = [datetime]::UtcNow
+            }
+        }
         if ($null -ne $benchmarkContext -and $benchmarkContext.Phase -eq 'active') {
             Assert-Gx1ExactBenchmarkTreatment -Scope $benchmarkContext.Scope -Sample $sample
             if ($scopedTreatmentRecheckDue) {

@@ -12,6 +12,7 @@ from typing import Any
 import torch
 from torch import nn
 
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import MAX_EPOCHS
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_random_access_checkpoint_v1 import (
     POINTER_SCHEMA,
@@ -40,10 +41,127 @@ def _equal_tensor(left: torch.Tensor, right: torch.Tensor) -> bool:
     )
 
 
+CANDIDATE_VAL_BINDING_SCHEMA_VERSION = "gx1_candidate_weight_ema_val_binding_v1"
+
+
+def require_candidate_weight_ema_val_binding_v1(
+    value: Mapping[str, Any], *, verify_files: bool = True,
+) -> dict[str, Any]:
+    expected = {
+        "schema_version", "decision", "model_variant",
+        "model_architecture_schema_version", "model_architecture_sha256",
+        "model_state_sha256", "target_model_state_sha256",
+        "online_model_state_sha256", "checkpoint_path", "checkpoint_file_sha256",
+        "session_contract_sha256", "session_contract_path", "session_contract_file_sha256",
+        "epoch_index", "global_step",
+        "weight_ema_decay", "weight_ema_steps", "parameter_names_sha256",
+        "online_buffers_preserved_exactly", "immutable_epoch_snapshot",
+        "test_data_used", "binding_sha256",
+    }
+    if not isinstance(value, Mapping) or set(value) != expected:
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
+    result = dict(value)
+    core = {key: item for key, item in result.items() if key != "binding_sha256"}
+    sha_keys = [key for key in result if key.endswith("sha256")]
+    if (
+        result["schema_version"] != CANDIDATE_VAL_BINDING_SCHEMA_VERSION
+        or result["decision"] != "PASS" or result["model_variant"] != "weight_ema"
+        or result["model_architecture_schema_version"] != RANDOM_ACCESS_MODEL_SCHEMA_VERSION
+        or result["model_architecture_sha256"] != RANDOM_ACCESS_MODEL_SCHEMA_SHA256
+        or any(not isinstance(result[key], str) or _SHA256.fullmatch(result[key]) is None for key in sha_keys)
+        or result["binding_sha256"] != canonical_sha256(core)
+        or type(result["epoch_index"]) is not int or not 0 <= result["epoch_index"] < MAX_EPOCHS
+        or type(result["global_step"]) is not int or result["global_step"] < 1
+        or type(result["weight_ema_steps"]) is not int or result["weight_ema_steps"] != result["global_step"]
+        or isinstance(result["weight_ema_decay"], bool)
+        or not isinstance(result["weight_ema_decay"], (int, float))
+        or not 0.0 < result["weight_ema_decay"] < 1.0
+        or result["online_buffers_preserved_exactly"] is not True
+        or result["immutable_epoch_snapshot"] is not True
+        or result["test_data_used"] is not False
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
+    path = Path(str(result["checkpoint_path"]))
+    if (
+        not path.is_absolute() or path.resolve() != path
+        or (verify_files and (not path.is_file() or path.is_symlink() or file_sha256(path) != result["checkpoint_file_sha256"]))
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
+    contract_path = Path(str(result["session_contract_path"]))
+    if (
+        not contract_path.is_absolute() or contract_path.resolve() != contract_path
+        or result["session_contract_file_sha256"] != result["session_contract_sha256"]
+        or (verify_files and (not contract_path.is_file() or contract_path.is_symlink() or file_sha256(contract_path) != result["session_contract_file_sha256"]))
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
+    return result
+
+
+def bind_candidate_weight_ema_validation_checkpoint_v1(
+    *, snapshot: Mapping[str, Any], model: nn.Module,
+) -> dict[str, Any]:
+    """Bind the actual EMA evaluator to its immutable canonical epoch snapshot."""
+
+    path = Path(str(snapshot["path"]))
+    if not path.is_absolute() or path.is_symlink() or not path.is_file() or file_sha256(path) != snapshot["sha256"]:
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_SNAPSHOT_INVALID")
+    value = torch.load(path, map_location="cpu", weights_only=True)
+    expected_keys = {
+        "schema_version", "session_contract_sha256", "session_contract_path",
+        "session_contract_file_sha256", "epoch_index", "global_optimizer_steps",
+        "model_variant", "model_state", "target_model_state", "online_model_state_sha256",
+        "model_state_sha256", "target_model_state_sha256", "online_buffers", "parameter_names",
+        "weight_ema_decay", "weight_ema_steps", "test_data_used",
+    }
+    if (
+        not isinstance(value, Mapping) or set(value) != expected_keys
+        or value["schema_version"] != "gx1_candidate_validation_checkpoint_v1"
+        or value["session_contract_sha256"] != snapshot["session_contract_sha256"]
+        or value["epoch_index"] != snapshot["epoch_index"]
+        or value["global_optimizer_steps"] != snapshot["global_optimizer_steps"]
+        or value["model_variant"] != "weight_ema" or value["test_data_used"] is not False
+        or model.training
+        or getattr(model, "unified_exit_random_access_architecture_version", None) != RANDOM_ACCESS_MODEL_SCHEMA_VERSION
+        or value["parameter_names"] != sorted(name for name, _ in model.named_parameters())
+        or set(value["model_state"]) != set(model.state_dict())
+        or canonical_model_state_sha256(value["model_state"]) != value["model_state_sha256"]
+        or canonical_model_state_sha256(model.state_dict()) != value["model_state_sha256"]
+        or canonical_model_state_sha256(value["target_model_state"]) != value["target_model_state_sha256"]
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_SNAPSHOT_INVALID")
+    buffers = {name: tensor for name, tensor in value["model_state"].items() if name not in value["parameter_names"]}
+    if (
+        set(buffers) != set(value["online_buffers"])
+        or any(not torch.equal(tensor, value["online_buffers"][name]) for name, tensor in buffers.items())
+        or bytes(value["model_state"]["unified_exit_random_access_architecture_sha256"].tolist()).hex() != RANDOM_ACCESS_MODEL_SCHEMA_SHA256
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_SNAPSHOT_BUFFER_INVALID")
+    result = {
+        "schema_version": CANDIDATE_VAL_BINDING_SCHEMA_VERSION, "decision": "PASS", "model_variant": "weight_ema",
+        "model_architecture_schema_version": RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+        "model_architecture_sha256": RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
+        "model_state_sha256": value["model_state_sha256"],
+        "target_model_state_sha256": value["target_model_state_sha256"],
+        "online_model_state_sha256": value["online_model_state_sha256"],
+        "checkpoint_path": str(path), "checkpoint_file_sha256": snapshot["sha256"],
+        "session_contract_sha256": value["session_contract_sha256"],
+        "session_contract_path": value["session_contract_path"],
+        "session_contract_file_sha256": value["session_contract_file_sha256"],
+        "epoch_index": value["epoch_index"], "global_step": value["global_optimizer_steps"],
+        "weight_ema_decay": value["weight_ema_decay"], "weight_ema_steps": value["weight_ema_steps"],
+        "parameter_names_sha256": canonical_sha256(value["parameter_names"]),
+        "online_buffers_preserved_exactly": True, "immutable_epoch_snapshot": True, "test_data_used": False,
+    }
+    result["binding_sha256"] = canonical_sha256(result)
+    return require_candidate_weight_ema_val_binding_v1(result)
+
+
 def require_selected_weight_ema_checkpoint_binding_v1(
     value: Mapping[str, Any], *, verify_files: bool = True
 ) -> dict[str, Any]:
     """Validate the immutable read-only EMA selection receipt."""
+    if isinstance(value, Mapping) and value.get("schema_version") == CANDIDATE_VAL_BINDING_SCHEMA_VERSION:
+        return require_candidate_weight_ema_val_binding_v1(value, verify_files=verify_files)
 
     expected_keys = {
         "schema_version",

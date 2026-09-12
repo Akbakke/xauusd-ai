@@ -120,7 +120,8 @@ def require_prospective_cost_policy(
     _utc(observed["preregistered_at_utc"], "PREREGISTERED")
     if (observed["schema_version"] != PROSPECTIVE_COST_POLICY_SCHEMA_VERSION
             or observed["decision"] != POLICY_DECISION
-            or observed["policy_scope"] != "prospective_one_year_train_and_fixed_val_sensitivity"
+            or observed["policy_scope"] not in {"prospective_one_year_train_and_fixed_val_sensitivity",
+                                                "prospective_train_and_fixed_val_sensitivity"}
             or observed["historical_cost_truth_qualified"] is not False
             or observed["economics_pass_claimed"] is not False
             or observed["validation_policy_selection_permitted"] is not False

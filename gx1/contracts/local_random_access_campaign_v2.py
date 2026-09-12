@@ -31,6 +31,7 @@ _KINDS = {
     "resume_proof_second",
     "epoch1_window",
     "full_val_window",
+    "native_candidate_window",
 }
 _SUCCESS_OUTCOMES = {"COMPLETE", "RESUMABLE"}
 _EXPECTED_SUCCESS_OUTCOMES = _SUCCESS_OUTCOMES | {"RESUMABLE_OR_COMPLETE"}
@@ -275,10 +276,12 @@ def require_invocation(
     if batch_size not in (4, 8, 16):
         raise RandomAccessCampaignError("invocation batch size invalid")
     for name in ("epoch_index", "window_index", "window_count"):
+        if name == "epoch_index" and kind == "native_candidate_window" and result[name] is None:
+            continue
         if type(result.get(name)) is not int or result[name] < 0:
             raise RandomAccessCampaignError(f"invocation {name} invalid")
     budget = result.get("optimizer_step_budget")
-    if kind == "full_val_window":
+    if kind in {"full_val_window", "native_candidate_window"}:
         if (
             budget is not None
             or result["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
@@ -347,7 +350,7 @@ def require_invocation(
         separator = result["launcher_argv"].index("--")
         target_module = result["launcher_argv"][separator + 3]
         if (
-            (set(execution) - ({"val_index_revision_root"} if kind == "full_val_window" else set()))
+            (set(execution) - ({"val_index_revision_root", "initial_val_cursor"} if kind == "full_val_window" else set()))
             != {
                 "schema_version",
                 "decision",
@@ -372,7 +375,33 @@ def require_invocation(
             or execution.get("artifact_sha256") != canonical_sha256(unsigned)
         ):
             raise RandomAccessCampaignError("execution manifest binding invalid")
-        if kind == "full_val_window":
+        if kind == "native_candidate_window":
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+                NATIVE_MODULE, require_native_window_policy, require_native_recipe_metadata,
+            )
+            recipe_binding = require_binding(execution["prelaunch_manifest"], label="native recipe")
+            recipe, _ = require_native_recipe_metadata(recipe_binding, source_repo=source_repo, source_commit=source_commit)
+            policy_binding = require_binding(execution["train_session_manifest"], label="native window policy")
+            policy = require_native_window_policy(read_bound_json(Path(policy_binding["path"]), policy_binding["sha256"]))
+            expected_args = [
+                str(source_repo / ".venv/bin/python"), "-m", NATIVE_MODULE,
+                "--window-policy", policy_binding["path"],
+                "--window-policy-file-sha256", policy_binding["sha256"],
+                "--progress-path", policy["progress_path"],
+            ]
+            if (
+                result["launcher_argv"][separator + 1:] != expected_args
+                or execution["prelaunch_manifest_sha256"] != recipe["recipe_sha256"]
+                or execution["train_session_manifest_sha256"] != policy["policy_sha256"]
+                or policy["recipe"] != recipe_binding
+                or policy["invocation_number"] != number
+                or policy["progress_path"] != result["progress_path"]
+                or policy["campaign_cursor_path"] != pointer_path
+            ):
+                raise RandomAccessCampaignError("native candidate window binding invalid")
+            result["native_recipe"] = recipe_binding
+            result["native_window_policy"] = policy
+        elif kind == "full_val_window":
             prelaunch_binding = require_binding(
                 execution["prelaunch_manifest"],
                 label="full VAL launch manifest",
@@ -411,6 +440,13 @@ def require_invocation(
                         or revised_root.get("test_accessed") is not False):
                     raise RandomAccessCampaignError("full VAL revised index seed drift")
                 result["val_index_revision_root"] = revision_binding
+            if "initial_val_cursor" in execution:
+                if result["invocation_number"] != 1:
+                    raise RandomAccessCampaignError("initial VAL cursor is first-invocation only")
+                result["initial_val_cursor"] = require_binding(
+                    execution["initial_val_cursor"],
+                    label="immutable initial VAL cursor", verify_file=True,
+                )
             if result["launcher_argv"].count("--rollout-progress-path") != 1:
                 raise RandomAccessCampaignError("full VAL rollout cursor missing")
             result["rollout_cursor_path"] = str(
@@ -576,6 +612,24 @@ def _require_sequence(
                 != epoch[offset - 1]["checkpoint"]["pointer_path"]
             ):
                 raise RandomAccessCampaignError("epoch1 checkpoint predecessor invalid")
+    elif phase == "native_candidate":
+        if selected_batch_size != 16 or not invocations:
+            raise RandomAccessCampaignError("native candidate sequence invalid")
+        first = invocations[0]
+        for offset, item in enumerate(invocations):
+            if (
+                item["kind"] != "native_candidate_window" or item["batch_size"] != 16
+                or item["epoch_index"] is not None or item["optimizer_step_budget"] is not None
+                or item["window_index"] != offset or item["window_count"] != len(invocations)
+                or item["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
+                or item["checkpoint"]["before_mode"] != ("GENESIS" if offset == 0 else "PREVIOUS_RECEIPT_AFTER")
+                or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
+                or item["checkpoint"]["pointer_path"] != first["checkpoint"]["pointer_path"]
+                or item["native_recipe"] != first["native_recipe"]
+                or item["maximum_wall_seconds"] != 7200
+                or (offset > 0 and item["checkpoint"]["predecessor_invocation_number"] != offset)
+            ):
+                raise RandomAccessCampaignError("native candidate sequence differs")
     elif phase == "full_val":
         if selected_batch_size not in (4, 8, 16) or not invocations:
             raise RandomAccessCampaignError("full VAL sequence invalid")
@@ -671,6 +725,8 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         "test_data_used",
         "plan_sha256",
     }
+    if isinstance(value, Mapping) and value.get("phase") == "native_candidate":
+        keys.add("native_recipe")
     if not isinstance(value, Mapping) or set(value) != keys:
         raise RandomAccessCampaignError("campaign plan fields differ")
     result = dict(value)
@@ -682,12 +738,12 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         or result.get("decision") != "PASS_PREPARED"
         or not isinstance(result.get("campaign_id"), str)
         or not result["campaign_id"]
-        or result.get("phase") not in {"gpu_selection", "resume_proof", "selected_training", "full_val"}
+        or result.get("phase") not in {"gpu_selection", "resume_proof", "selected_training", "full_val", "native_candidate"}
         or type(result.get("entry_pairs_per_epoch")) is not int
         or result["entry_pairs_per_epoch"] < 1
         or type(result.get("transitions_per_epoch")) is not int
         or result["transitions_per_epoch"] != 4 * result["entry_pairs_per_epoch"]
-        or (result.get("phase") not in {"selected_training", "full_val"} and result["entry_pairs_per_epoch"] != 16384)
+        or (result.get("phase") not in {"selected_training", "full_val", "native_candidate"} and result["entry_pairs_per_epoch"] != 16384)
         or not isinstance(result.get("source_commit"), str)
         or _COMMIT.fullmatch(result["source_commit"]) is None
         or not isinstance(result.get("gpu_uuid"), str)
@@ -711,6 +767,8 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         "fresh_physical_windows_boot_before_every_invocation": True,
         "automatic_power_limit_change": False,
     }
+    if result["phase"] == "native_candidate":
+        expected_policy.update(physical_power_limit_w=300, maximum_actual_power_draw_w=310, maximum_core_temperature_c=85, automatic_power_limit_change=True, power_reduction_core_temperature_c=80, reduced_power_limit_w=200)
     expected_authority = {
         "test": False,
         "promotion": False,
@@ -749,6 +807,14 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         for name, binding in controllers.items()
     }
     phase = result["phase"]
+    native_recipe = None
+    if phase == "native_candidate":
+        result["native_recipe"] = require_binding(result["native_recipe"], label="native campaign recipe", verify_file=verify_files)
+        if verify_files:
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_recipe_metadata
+            native_recipe, native_count = require_native_recipe_metadata(result["native_recipe"], source_repo=repo, source_commit=result["source_commit"])
+            if result["entry_pairs_per_epoch"] != native_count or result["selected_batch_size"] != 16:
+                raise RandomAccessCampaignError("native campaign full TRAIN population differs")
     full_session = None
     full_session_binding = None
     prefix_campaign = None
@@ -805,11 +871,12 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
                 {"selected_training"} if full_session is not None
                 else {"gpu_selection"} if phase == "resume_proof"
                 else {"gpu_selection", "resume_proof"} if phase == "selected_training"
+                else {"full_val"} if phase == "native_candidate"
                 else {"selected_training"}
             )
             if (
                 prior["phase"] not in expected_prior_phases
-                or (phase != "full_val" and prior["source_commit"] != (
+                or (phase not in {"full_val", "native_candidate"} and prior["source_commit"] != (
                     result["source_commit"] if full_session is None
                     else full_session["predecessor_source_commit"]
                 ))
@@ -824,7 +891,14 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         result["prior_campaign"] = prior_binding
         result["selection_receipt"] = selection_binding
         result["selection_artifact_sha256"] = selection["artifact_sha256"]
-        if phase in {"resume_proof", "selected_training"}:
+        if phase == "native_candidate":
+            result["final_train_checkpoint_authority"] = require_binding(
+                result["final_train_checkpoint_authority"], label="native seed authority", verify_file=verify_files,
+            )
+            if verify_files:
+                from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_completed_smoke
+                require_native_completed_smoke(plan=result, prior=prior, recipe=native_recipe)
+        elif phase in {"resume_proof", "selected_training"}:
             if result.get("final_train_checkpoint_authority") is not None:
                 raise RandomAccessCampaignError(
                     "selected training final authority forbidden"
@@ -906,6 +980,19 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             for item in invocations
         ):
             raise RandomAccessCampaignError("full VAL revision differs across windows")
+        if phase == "native_candidate":
+            output = Path(native_recipe["out_bundle_dir"])
+            session = output.parent / (".gx1-candidate-training-session." + output.name)
+            for item in invocations:
+                policy = item["native_window_policy"]
+                if (
+                    item["native_recipe"] != result["native_recipe"]
+                    or policy["training_session_directory"] != str(session)
+                    or policy["budget_path"] != str(runtime / "budgets" / f"{item['invocation_id']}.json")
+                    or policy["campaign_cursor_path"] != str(runtime / "native-candidate-cursor" / "RESUME_CURSOR.json")
+                    or item["progress_path"] != str(runtime / "progress" / f"{item['invocation_id']}.json")
+                ):
+                    raise RandomAccessCampaignError("native campaign output layout differs")
         if full_session is not None:
             for item in invocations:
                 execution = read_bound_json(
@@ -1000,7 +1087,7 @@ def require_progress(
         or result.get("plan_sha256") != plan_sha256
         or result.get("invocation_sha256") != invocation["invocation_sha256"]
         or result.get("phase") != invocation["kind"]
-        or result.get("epoch_index") != invocation["epoch_index"]
+        or (invocation["kind"] != "native_candidate_window" and result.get("epoch_index") != invocation["epoch_index"])
         or result.get("terminal") is not True
         or result.get("outcome") not in {"COMPLETE", "RESUMABLE", "FAILED"}
         or claimed != canonical_sha256(result)
@@ -1039,6 +1126,20 @@ def require_progress(
         )
         if result["rollout_cursor"]["path"] != invocation.get("rollout_cursor_path"):
             raise RandomAccessCampaignError("progress rollout cursor path differs")
+    if invocation["kind"] == "native_candidate_window":
+        if type(result["epoch_index"]) is not int or not 0 <= result["epoch_index"] < 30:
+            raise RandomAccessCampaignError("native progress epoch invalid")
+        if verify_file:
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_cursor
+            cursor = require_native_cursor(read_bound_json(
+                Path(result["checkpoint_pointer"]["path"]), result["checkpoint_pointer"]["sha256"],
+            ), expected_recipe=invocation["native_recipe"])
+            if cursor["outcome"] != result["outcome"] or any(
+                cursor["resume_state"][key] != result[key] for key in (
+                    "epoch_index", "global_optimizer_steps", "next_batch_offset", "epoch_schedule_sha256",
+                )
+            ):
+                raise RandomAccessCampaignError("native progress durable state differs")
     result["progress_sha256"] = claimed
     return result
 
@@ -1259,7 +1360,7 @@ def require_receipt_chain(
     checked: list[dict[str, Any]] = []
     for index, raw in enumerate(receipts):
         if (
-            checked_plan["phase"] == "full_val"
+            checked_plan["phase"] in {"full_val", "native_candidate"}
             and checked
             and checked[-1]["outcome"] == "COMPLETE"
         ):
@@ -1293,7 +1394,8 @@ def require_receipt_chain(
                 not isinstance(authority, Mapping)
                 or item["pointer_before_sha256"]
                 != authority["final_checkpoint_pointer"]["sha256"]
-                or item["rollout_cursor_before_sha256"] != "GENESIS"
+                or item["rollout_cursor_before_sha256"]
+                != invocation.get("initial_val_cursor", {}).get("sha256", "GENESIS")
             ):
                 raise RandomAccessCampaignError(
                     "initial full VAL authority/cursor binding differs"
@@ -1335,7 +1437,7 @@ def next_action(
     if checked_receipts and checked_receipts[-1]["outcome"] == "FAILED":
         return {"decision": "BLOCKED_FAILED_INVOCATION"}
     if (
-        checked_plan["phase"] == "full_val"
+        checked_plan["phase"] in {"full_val", "native_candidate"}
         and checked_receipts
         and checked_receipts[-1]["outcome"] == "COMPLETE"
     ):
@@ -1343,6 +1445,8 @@ def next_action(
     if len(checked_receipts) == len(invocations):
         if checked_plan["phase"] == "full_val":
             return {"decision": "BLOCKED_VAL_WINDOWS_EXHAUSTED"}
+        if checked_plan["phase"] == "native_candidate":
+            return {"decision": "BLOCKED_NATIVE_WINDOWS_EXHAUSTED"}
         return {"decision": "COMPLETE"}
     prior_boot = (
         checked_plan["prepared_windows_boot"]
