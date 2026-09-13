@@ -1,6 +1,24 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current status -->
 # Current GX1 status
 
+Verified 2026-09-13 21:40 UTC: V40 invocation 1 ended RESUMABLE with guard
+PASS and both exit codes 0. Invocation 2 resumed automatically on physical
+boot 410 and is running as PID 719; VAL reached 26,061,367 views. Workload
+clocks applied automatically at 21:15:53 on the new boot. No idle blocker,
+telemetry running, 57 C core / 66 C memory / 125 W. User now requires hourly
+model observations; automatic local guards keep their existing cadence.
+Earlier pending pause/boot observations below are historical.
+
+Verified running 2026-09-13 19:48 UTC: V40 PID 961 on boot 409 resumed all
+18,353,548 saved VAL views and advanced to 18,441,891. TRAIN stays 309/19,588.
+Actual GPU Q difference is zero; actions, dynamic state, economics/hashes agree.
+The corrected launcher applied clocks automatically at 19:43:38 after workload
+memory reached 530 MiB; idle blocker absent and telemetry task running.
+GPU 1395/9501 MHz, 55 C core / 64 C memory / 124 W under unchanged 300 W limit.
+The V40 first outer pause receipt, idle reset and next boot remain to be observed.
+Use handover_snapshot/VAL_PAUSEFIX_LIVE_VERIFICATION.json. Earlier prepared and
+failed startup observations below are historical. Continue sparse monitoring.
+
 Clock deployment correction, September 13: applying locks before GPU work
 triggered the unchanged high-idle keeper and blocked telemetry on boot 409.
 The launcher now applies clocks only after GPU memory exceeds the keeper's

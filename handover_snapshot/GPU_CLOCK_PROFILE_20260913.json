@@ -1,5 +1,5 @@
 {
-  "status": "WORKLOAD_GATED_LAUNCHER_INSTALLED_PENDING_RUNTIME",
+  "status": "AUTOMATIC_NEXT_BOOT_AND_RESUME_VERIFIED",
   "appliedUtc": "2026-09-13T18:17:41.3670283+00:00",
   "gpuUuid": "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29",
   "requestedGraphicsMhz": [
@@ -32,10 +32,14 @@
   "launcherWindowsPath": "C:\\Users\\Andre\\GX1FullTrainNative_f77dd273\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1",
   "launcherSha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a",
   "installationUtc": "2026-09-13T18:40:07.2562904+00:00",
-  "automaticBootApplicationVerified": false,
+  "automaticBootApplicationVerified": true,
   "previousLauncherAutomaticBootVerified": true,
   "applyOnlyWhenMemoryAboveMib": 384,
   "resetOnIdle": true,
   "clockPollingSeconds": 5,
-  "currentPlanFileSha256": "c7daa88eff3aba49891d8c890b76c8bfbaf6d695a34eb3cae9e459425e746fd9"
+  "currentPlanFileSha256": "c7daa88eff3aba49891d8c890b76c8bfbaf6d695a34eb3cae9e459425e746fd9",
+  "automaticWorkloadApplicationVerified": true,
+  "workloadApplicationUtc": "2026-09-13T21:15:53.6706387+00:00",
+  "nextBootApplicationPending": false,
+  "verifiedBootId": 410
 }
