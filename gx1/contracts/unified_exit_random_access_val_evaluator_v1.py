@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import copy
 import json
 import math
 import os
@@ -26,6 +27,8 @@ from gx1.contracts.unified_exit_random_access_model_v1 import (
 )
 from gx1.contracts.unified_exit_random_access_training_v1 import (
     collate_random_access_states_v1,
+    _collate_states,
+    _normalization_surface,
 )
 from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
     require_selected_weight_ema_checkpoint_binding_v1,
@@ -832,7 +835,12 @@ def _restore_cpu_pipeline_progress(origin, *, execution_contract, checkpoint_bin
     if cpu_pipeline_workers is None or set(origin) != {"path", "sha256"}:
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_ORIGIN_INVALID")
     prior_execution = {key: value for key, value in execution_contract.items()
-                       if key not in {"cpu_pipeline", "cpu_workers", "execution_contract_sha256"}}
+                       if key != "execution_contract_sha256"}
+    if prior_execution.get("cpu_pipeline") == "immutable_metadata_shared_path_v2":
+        prior_execution["cpu_pipeline"] = "compact_market_inputs_batched_economics_v1"
+    else:
+        prior_execution.pop("cpu_pipeline", None)
+        prior_execution.pop("cpu_workers", None)
     prior = read_bound_json(Path(origin["path"]), origin["sha256"])
     progress = _require_progress(prior, contract_sha256=canonical_sha256(prior_execution),
                                  checkpoint_binding_sha256=checkpoint_binding_sha)
@@ -847,6 +855,7 @@ def _verify_cpu_pipeline(*, model, adapter, rows, state_index, representations,
                          action_mask, active, requests, cache, workers):
     device = representations.device
     keys = [adapter._entry_by_index[row]["entry_m1_start_row"] + state_index for row in rows]
+    frozen_surface, _ = _normalization_surface(copy.deepcopy(adapter.normalization))
     # Start the bounded CPU pool before timing steady-state work.
     adapter.materialize_cached_active_batch(rows, state_index, cached_market_rows=set(cache), workers=workers)
 
@@ -857,15 +866,16 @@ def _verify_cpu_pipeline(*, model, adapter, rows, state_index, representations,
         envelopes = (adapter.materialize_cached_active_batch(rows, state_index, cached_market_rows=set(cache), workers=workers)
                      if compact else adapter.materialize_active_batch(rows, state_index))
         states = [envelope["state"] for envelope in envelopes]
-        inputs = collate_random_access_states_v1(
-            states, normalization_artifact=adapter.normalization, device=device,
-            _market_state_batch_positions=[] if compact else None,
-        )
+        inputs = (_collate_states(states, surface=frozen_surface, device=device,
+                                 _market_state_batch_positions=[]) if compact
+                  else collate_random_access_states_v1(
+                      states, normalization_artifact=adapter.normalization, device=device))
         inputs.update(entry_decision_representation=representations, action_valid_mask=action_mask)
         with torch.inference_mode():
             output = model.forward_exit_random_access_batch(
                 **inputs, _market_state_cache=cache, _market_state_keys=keys,
                 _market_state_batch_positions=[] if compact else None,
+                _share_identical_path=compact,
             )
         actions = unique_active_exit_actions(output["exit_action_q_bps"], active)
         steps = (adapter.compose_selected_actions(requests) if compact
@@ -927,6 +937,10 @@ def run_resumable_random_access_val_evaluation_v1(
     if cpu_pipeline_workers not in (None, 0, 4) or (cpu_pipeline_workers is not None and not cache_market_states):
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_PIPELINE_INVALID")
     pipeline_verified = cpu_pipeline_workers is None
+    # Own a private copy of the verified, frozen TRAIN normalization. Dynamic
+    # position values still pass the same collation and normalization owner.
+    frozen_surface = (_normalization_surface(copy.deepcopy(adapter.normalization))[0]
+                      if cpu_pipeline_workers is not None else None)
     contract = require_random_access_val_rollout_contract(adapter.contract)
     checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
         checkpoint_binding
@@ -947,7 +961,7 @@ def run_resumable_random_access_val_evaluation_v1(
         "test_data_used": False,
     }
     if cpu_pipeline_workers is not None:
-        execution_contract["cpu_pipeline"] = "compact_market_inputs_batched_economics_v1"
+        execution_contract["cpu_pipeline"] = "immutable_metadata_shared_path_v2"
         execution_contract["cpu_workers"] = cpu_pipeline_workers
     if cache_market_states:
         execution_contract["market_state_cache"] = "frozen_model_absolute_m1_row_v1"
@@ -1111,12 +1125,13 @@ def run_resumable_random_access_val_evaluation_v1(
                 if key not in market_state_cache:
                     missing.setdefault(key, position)
             market_positions = list(missing.values())
-        model_inputs = collate_random_access_states_v1(
-            states,
-            normalization_artifact=adapter.normalization,
-            device=entry_decision_representations.device,
+        model_inputs = (_collate_states(
+            states, surface=frozen_surface, device=entry_decision_representations.device,
             _market_state_batch_positions=market_positions,
-        )
+        ) if cpu_pipeline_workers is not None else collate_random_access_states_v1(
+            states, normalization_artifact=adapter.normalization,
+            device=entry_decision_representations.device,
+        ))
         selected = torch.as_tensor(
             active_entries,
             dtype=torch.long,
@@ -1139,6 +1154,7 @@ def run_resumable_random_access_val_evaluation_v1(
                            if cache_market_states else {})
         if cpu_pipeline_workers is not None:
             cache_arguments["_market_state_batch_positions"] = market_positions
+            cache_arguments["_share_identical_path"] = True
         with torch.inference_mode():
             output = model.forward_exit_random_access_batch(**model_inputs, **cache_arguments)
         if verify_batch:
@@ -1258,8 +1274,8 @@ def run_resumable_random_access_val_evaluation_v1(
         if not bool(active.any(axis=1)[progress["next_entry_scan_position"] :].any()):
             progress["next_state_index"] = state_index + 1
             progress["next_entry_scan_position"] = 0
-        progress["active_side_mask"] = active.tolist()
         if forwards_this_invocation % progress_interval_forwards == 0:
+            progress["active_side_mask"] = active.tolist()
             progress["elapsed_compute_seconds"] = float(
                 progress["elapsed_compute_seconds"]
             ) + (monotonic() - invocation_started)

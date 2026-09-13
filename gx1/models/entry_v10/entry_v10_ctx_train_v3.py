@@ -12098,8 +12098,28 @@ def _write_candidate_execution_pause_receipt(
         or not re.fullmatch(r"[0-9a-f]{64}", evidence["execution_budget_sha256"])
     ):
         raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_RECEIPT_INVALID]")
+    suffix = ""
+    native_pause = evidence.get("native_val_pause")
+    if native_pause is not None:
+        # Successive native VAL windows leave the TRAIN pointer unchanged,
+        # so their separately issued budgets can have identical contents.
+        # Bind each immutable receipt to its actual durable VAL progress too.
+        epoch = evidence.get("epoch_index")
+        if (not isinstance(native_pause, Mapping) or type(epoch) is not int or epoch < 0
+                or evidence.get("phase") != "validation"
+                or native_pause.get("decision") != "PAUSED_RESUMABLE"):
+            raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_VAL_RECEIPT_INVALID]")
+        progress_path = directory / "native_val" / f"epoch_{epoch + 1:04d}" / "ROLLOUT_PROGRESS.json"
+        progress_sha = native_pause.get("progress_file_sha256")
+        if (native_pause.get("progress_path") != str(progress_path)
+                or not isinstance(progress_sha, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", progress_sha)
+                or progress_path.is_symlink() or not progress_path.is_file()
+                or _sha256_file(progress_path) != progress_sha):
+            raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_VAL_RECEIPT_INVALID]")
+        suffix = "_" + progress_sha
     receipt = directory / (
-        "CANDIDATE_EXECUTION_PAUSE_" + evidence["execution_budget_sha256"] + ".json"
+        "CANDIDATE_EXECUTION_PAUSE_" + evidence["execution_budget_sha256"] + suffix + ".json"
     )
     if receipt.exists():
         if json.loads(receipt.read_bytes()) != dict(evidence):

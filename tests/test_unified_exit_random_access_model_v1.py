@@ -196,6 +196,50 @@ def test_market_cache_cannot_enter_training_or_gradient_path(training, grad_enab
                 **_inputs(), _market_state_cache={}, _market_state_keys=[101, 102, 103])
 
 
+@pytest.mark.parametrize("tail_rows", [5, 512])
+def test_shared_val_path_preserves_both_sides_and_encodes_once(tail_rows):
+    torch.manual_seed(20260913)
+    model = _make_model(dropout=0.0).eval()
+    inputs = _inputs()
+    lengths = torch.tensor([tail_rows, tail_rows - 2, tail_rows - 1])
+    path = torch.randn(3, 1, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM).expand(-1, 2, -1, -1).clone()
+    for row, length in enumerate(lengths):
+        path[row, :, length:] = 0
+    inputs.update(trade_path_tail_x=path, trade_path_lengths=lengths)
+    before = canonical_model_state_sha256(model.state_dict())
+    batches = []
+    hook = model.exit_episode_path_gru.register_forward_pre_hook(
+        lambda module, args: batches.append(args[0].shape[0]))
+    try:
+        with torch.inference_mode():
+            reference = model.forward_exit_random_access_batch(**inputs)
+            shared = model.forward_exit_random_access_batch(**inputs, _share_identical_path=True)
+    finally:
+        hook.remove()
+    assert batches == [6, 3]
+    for name in reference:
+        torch.testing.assert_close(shared[name], reference[name], atol=1e-4, rtol=0.0, msg=name)
+    assert torch.equal(shared["exit_action_q_bps"].argmax(-1), reference["exit_action_q_bps"].argmax(-1))
+    assert canonical_model_state_sha256(model.state_dict()) == before
+    # Side-specific summaries and heads remain independent.
+    assert not torch.equal(shared["exit_random_access_summary_state"][:, 0],
+                           shared["exit_random_access_summary_state"][:, 1])
+    inputs["trade_path_tail_x"][0, 1, 0, 0] += 1
+    with torch.inference_mode(), pytest.raises(RuntimeError, match="SHARED_PATH_REQUIRES_IDENTICAL_FROZEN_EVAL"):
+        model.forward_exit_random_access_batch(**inputs, _share_identical_path=True)
+
+
+@pytest.mark.parametrize("training,grad_enabled", [(True, False), (False, True)])
+def test_shared_path_cannot_change_training(training, grad_enabled):
+    model = _make_model(dropout=0.0).train(training)
+    inputs = _inputs()
+    inputs["trade_path_tail_x"][:, 1] = inputs["trade_path_tail_x"][:, 0]
+    with torch.set_grad_enabled(grad_enabled), pytest.raises(
+        RuntimeError, match="SHARED_PATH_REQUIRES_IDENTICAL_FROZEN_EVAL"
+    ):
+        model.forward_exit_random_access_batch(**inputs, _share_identical_path=True)
+
+
 @pytest.mark.parametrize("with_retired_static_exit", [False, True])
 def test_v1_bootstrap_is_explicit_once_then_v2_restore_is_strict(
     with_retired_static_exit: bool,

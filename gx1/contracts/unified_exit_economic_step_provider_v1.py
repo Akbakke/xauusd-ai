@@ -472,37 +472,45 @@ class LazyUnifiedExitEconomicStepProviderV1:
     def materialize_selected_actions(
         self, requests: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """Batch the immutable row lookup; retain exact scalar economic arithmetic."""
+        """Index immutable entry metadata once; retain scalar economic arithmetic."""
         if not requests:
             return []
+        rows_by_entry = getattr(self, "_val_entry_metadata", None)
+        if rows_by_entry is None:
+            if not self._rows.index.is_unique:
+                raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
+            # This provider owns one verified, fixed compact dataset. Tuples
+            # retain its scalar dtypes without pandas selection per batch.
+            columns = ("entry_m1_start_row", "long_lifecycle_state_count",
+                       "short_lifecycle_state_count", "long_economic_terminal",
+                       "short_economic_terminal")
+            rows_by_entry = dict(zip(
+                self._rows.index,
+                self._rows.loc[:, list(columns)].itertuples(index=False, name=None),
+            ))
+            self._val_entry_metadata = rows_by_entry
         identifiers = [request["entry_row_index"] for request in requests]
-        if any(type(index) is not int or index not in self._rows.index for index in identifiers):
+        if any(type(index) is not int or index not in rows_by_entry for index in identifiers):
             raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-        rows = self._rows.loc[identifiers]
-        if len(rows) != len(requests):
-            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-        columns = {name: rows[name].to_numpy() for name in (
-            "entry_m1_start_row", "long_lifecycle_state_count", "short_lifecycle_state_count",
-            "long_economic_terminal", "short_economic_terminal",
-        )}
         cache = getattr(self, "_val_hold_steps", None)
         if cache is None:
             cache = self._val_hold_steps = {}
         result = []
-        for position, request in enumerate(requests):
+        for request in requests:
             entry = request["entry_row_index"]
             side = request["side_index"]
             action = request["action"]
             index = request["state_index"]
             if side not in (0, 1) or action not in {"hold", "exit_now"} or type(index) is not int or index < 0:
                 raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-            count = int(columns[f"{_SIDES[side]}_lifecycle_state_count"][position])
+            row = rows_by_entry[entry]
+            count = int(row[1 + side])
             if index + 1 > (count if action == "exit_now" else count - 1):
                 raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-            entry_row = int(columns["entry_m1_start_row"][position]) - self._price_row_offset
+            entry_row = int(row[0]) - self._price_row_offset
             if entry_row < 0:
                 raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
-            terminal = bool(columns[f"{_SIDES[side]}_economic_terminal"][position])
+            terminal = bool(row[3 + side])
             key = (entry_row + index, side)
             if action == "hold" and key in cache:
                 step = cache[key]

@@ -2933,6 +2933,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _market_state_cache: Optional[dict] = None,
         _market_state_keys: Optional[Sequence[int]] = None,
         _market_state_batch_positions: Optional[Sequence[int]] = None,
+        _share_identical_path: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Evaluate independent sampled states with bounded causal tails."""
 
@@ -3063,17 +3064,29 @@ class EntryV10CtxHybridTransformer(nn.Module):
                                     for key in _market_state_keys], dim=0)
                     for name in first}
         d_model = int(self.cfg.d_model)
-        path_flat = trade_path_tail_x.reshape(
-            batch_size * 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM
-        )
+        if type(_share_identical_path) is not bool:
+            raise RuntimeError("UNIFIED_EXIT_SHARED_PATH_FLAG_INVALID")
+        if _share_identical_path and (
+            self.training or torch.is_grad_enabled()
+            or not torch.equal(trade_path_tail_x[:, 0], trade_path_tail_x[:, 1])
+        ):
+            raise RuntimeError("UNIFIED_EXIT_SHARED_PATH_REQUIRES_IDENTICAL_FROZEN_EVAL")
+        # The VAL factory supplies the same causal price path for both sides.
+        # Only this side-independent encoder is shared; fusion, summaries and
+        # the action heads still evaluate LONG and SHORT separately. TRAIN
+        # retains its original two-sided forward and gradient computation.
+        path_sides = 1 if _share_identical_path else 2
+        path_flat = (trade_path_tail_x[:, 0].contiguous() if _share_identical_path
+                     else trade_path_tail_x.reshape(
+                         batch_size * 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM))
         path_sequence, _ = self.exit_episode_path_gru(
             self.exit_path_proj(path_flat)
         )
-        side_lengths = trade_path_lengths[:, None].expand(-1, 2).reshape(-1)
+        side_lengths = trade_path_lengths[:, None].expand(-1, path_sides).reshape(-1)
         path_state = path_sequence[
-            torch.arange(batch_size * 2, device=path_sequence.device),
+            torch.arange(batch_size * path_sides, device=path_sequence.device),
             side_lengths.to(torch.long) - 1,
-        ].reshape(batch_size, 2, d_model)
+        ].reshape(batch_size, path_sides, d_model).expand(-1, 2, -1)
         summary_state = self.exit_random_access_summary_proj(
             normalized_lifetime_summary_x.to(path_state.dtype)
         )

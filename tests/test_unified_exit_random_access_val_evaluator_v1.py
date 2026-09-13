@@ -375,7 +375,8 @@ def test_native_shared_routes_count_active_states_once() -> None:
 
 
 @pytest.mark.parametrize('cache_market_states', [False, True])
-def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_market_states):
+@pytest.mark.parametrize("progress_interval", [1, 64])
+def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_market_states, progress_interval):
     counts = np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64)
     model, representations, adapter, contract = _fixture(
         thresholds=np.zeros((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32), counts=counts)
@@ -392,7 +393,7 @@ def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_
         adapter=adapter, checkpoint_binding=binding,
         entry_policy_decisions=_entry_policy(adapter, binding), entry_route_diagnostics={},
         progress_path=tmp_path/'progress.json', result_path=tmp_path/'result.json',
-        policy_batch_size=128, progress_interval_forwards=1,
+        policy_batch_size=128, progress_interval_forwards=progress_interval,
         cache_market_states=cache_market_states)
     paused = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=1)
     assert paused['decision'] == 'PAUSED_RESUMABLE'
@@ -442,13 +443,16 @@ def test_val_batch_rounding_guard_preserves_decisions(difference, change_action,
             check()
 
 
-def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift(tmp_path):
+@pytest.mark.parametrize("prior_pipeline", [False, True])
+def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift(tmp_path, prior_pipeline):
     from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
         _new_progress, _seal_progress, _restore_cpu_pipeline_progress,
     )
     old_execution = {"checkpoint_binding_sha256": "1" * 64, "rollout_contract_sha256": "2" * 64,
                      "entry_policy_sha256": "3" * 64, "policy_batch_size": 128,
                      "market_state_cache": "frozen_model_absolute_m1_row_v1"}
+    if prior_pipeline:
+        old_execution.update(cpu_pipeline="compact_market_inputs_batched_economics_v1", cpu_workers=4)
     before = _new_progress(contract_sha256=canonical_sha256(old_execution), checkpoint_binding_sha256="1" * 64)
     before.update(completed_invocation_count=1, materialized_state_view_count=128,
                   model_forward_count=1, next_entry_scan_position=128, elapsed_compute_seconds=0.5)
@@ -459,6 +463,8 @@ def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift
     path.write_text(json.dumps(before))
     origin = {"path": str(path), "sha256": file_sha256(path)}
     execution = {**old_execution, "cpu_pipeline": "compact_market_inputs_batched_economics_v1", "cpu_workers": 4}
+    if prior_pipeline:
+        execution["cpu_pipeline"] = "immutable_metadata_shared_path_v2"
     execution["execution_contract_sha256"] = canonical_sha256(execution)
     after, prior_sha = _restore_cpu_pipeline_progress(origin, execution_contract=execution,
         checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)
