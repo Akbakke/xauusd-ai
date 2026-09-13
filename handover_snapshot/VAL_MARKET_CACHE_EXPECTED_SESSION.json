@@ -1,0 +1,7 @@
+{
+  "expected_session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
+  "status": "EXPECTED_NOT_YET_OBSERVED",
+  "source_commit": "0e81f5b88fd28ea0b80b3bb5314599989f357e15",
+  "origin_checkpoint_index": 309,
+  "optimizer_steps_to_restore": 19588
+}

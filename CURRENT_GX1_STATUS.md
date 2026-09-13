@@ -1,25 +1,35 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current status -->
-# GX1 status — 2026-09-13
+# Current GX1 status
 
-The 267bb0c8 first-batch measurement (2026-09-13 08:14 UTC) used both
-TF32 flags disabled: 128-row inference 0.435893 s versus eight 16-row calls
-0.691886 s, 1.5873x. All 256 HOLD/EXIT choices matched. Maximum Q difference
-was 0.0000491143 Bps; local/MTF intermediate differences were <7.2e-7,
-path/summary differences zero. The default torch comparison nevertheless
-stopped before any VAL progress was committed. No TRAIN steps were lost.
+Current prepared source: 0e81f5b88fd28ea0b80b3bb5314599989f357e15 (/home/andre2/src/GX1_VAL_MARKET_CACHE_V37).
 
-Successor f40ec16f corrects that diagnostic: absolute Q limit 0.0001 Bps,
-zero relative allowance, still exact HOLD/EXIT action agreement. This is an
-explicit tolerance change based on the actual FP32 comparison, not a claim
-of bitwise equivalence. It continues to reject the earlier 0.03 Bps error.
-Three targeted cases pass: observed rounding accepted, larger drift rejected,
-changed action rejected even within the numeric allowance. Git hooks pass.
-PyTorch documents FP32 batch-versus-slice differences at
-https://docs.pytorch.org/docs/2.14/notes/numerical_accuracy.html#batched-computations-or-slice-computations .
+The user rejected the long VAL runtime. Read-only source inspection and the
+existing short profile found repeated market-only local/MTF encoding at the
+same absolute M1 row (330/341 model stack samples in that branch). This
+successor reuses those outputs within one frozen EMA VAL invocation. Entry
+token, trade path, lifetime MAE/MFE and Q/Exit evaluation remain per position.
+All June opportunities and both sides remain evaluated; no trade-age cap,
+confidence cutoff, precision reduction or feature/data omission was added.
+The cache is recreated for every invocation/epoch and excluded from TRAIN.
 
-The 1.5873x figure is one comparison of model inference, not full-VAL speed.
-New live progress and resource measurements remain required. The prepared
-campaign is handover_snapshot/VAL128_ROUNDING_PREPARED.json. The existing
-TRAIN checkpoint is restored again; no completed TRAIN or full smoke repeats.
+Eleven focused checks passed: cached/uncached Q/actions/routes, changed trade
+inputs with the same market row, mixed cache hits/misses, unchanged model
+state and TRAIN gradients, preserved checkpoint state, source restrictions,
+and full-cohort pause/resume with separate cache instances. Actual first-batch
+GPU cache-hit versus uncached comparison must also pass with identical actions
+and the existing absolute 0.0001 Bps limit before admitting production actions.
+Measured end-to-end speed is still pending. Do not claim a shorter finish time
+from the old linear closure-rate estimate; that estimate was withdrawn.
 
-Exact current binding: CURRENT_NATIVE_RUN.json. Read CURRENT_HANDOVER.md and use the read-only handover observer for current runtime status. TEST remains sealed. No final June score or live readiness is established.
+The previous f40ec16f campaign was deliberately disabled/stopped. Preserved
+TRAIN remains checkpoint 309 / 19,588 steps; the actual f40ec16f checkpoint SHA
+is 8079953fc0ffd3ea6fbf6a91bed8875adfb30128b3a8431431dde57f2d3c455d.
+Its archived partial VAL had 13,152 forwards / 1,659,288 views, progress SHA
+dbc413312f3e27b32ef7e55678ab020d126436ee6e39b90aea175dd3af7b7fc7.
+Original 2959cd09 TRAIN and its verified Mac backup are unchanged. The bound
+recipe explicitly permits only the inference-cache model-source addition
+when restoring that TRAIN. New VAL accumulators start fresh; no old partial
+VAL is represented as evaluated by the new source. See
+handover_snapshot/VAL_MARKET_CACHE_PREPARED.json and CURRENT_NATIVE_RUN.json.
+
+Observe the current runtime with scripts/gx1_handover.sh. TEST remains sealed; no final main-model June Bps or live readiness has been established.

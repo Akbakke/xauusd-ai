@@ -50,3 +50,5 @@ Exit-VAL batch to 128. The first production batch compares Q/actions and
 inference time with 16-row calls. Completed TRAIN state is preserved in a
 fresh session; June accumulators restart. See CURRENT_HANDOVER.md for the
 predecessor measurements, exact binding and scope of the runtime check.
+
+VAL market reuse: the evaluator owns one temporary cache per frozen-model invocation, keyed by absolute M1 row. The model reuses only local/MTF states and routing outputs; Entry token, path, summary and Q remain position-specific. No cache crosses weights/epochs or enters TRAIN. The actual cache comparison and timing are logged as VAL_MARKET_CACHE_VERIFIED.

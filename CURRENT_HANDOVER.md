@@ -1,6 +1,39 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current operational takeover -->
 # GX1 lifecycle-v2 takeover — 2026-09-13
 
+## Current market-cache successor
+
+Current prepared source: 0e81f5b88fd28ea0b80b3bb5314599989f357e15 (/home/andre2/src/GX1_VAL_MARKET_CACHE_V37).
+
+The user rejected the long VAL runtime. Read-only source inspection and the
+existing short profile found repeated market-only local/MTF encoding at the
+same absolute M1 row (330/341 model stack samples in that branch). This
+successor reuses those outputs within one frozen EMA VAL invocation. Entry
+token, trade path, lifetime MAE/MFE and Q/Exit evaluation remain per position.
+All June opportunities and both sides remain evaluated; no trade-age cap,
+confidence cutoff, precision reduction or feature/data omission was added.
+The cache is recreated for every invocation/epoch and excluded from TRAIN.
+
+Eleven focused checks passed: cached/uncached Q/actions/routes, changed trade
+inputs with the same market row, mixed cache hits/misses, unchanged model
+state and TRAIN gradients, preserved checkpoint state, source restrictions,
+and full-cohort pause/resume with separate cache instances. Actual first-batch
+GPU cache-hit versus uncached comparison must also pass with identical actions
+and the existing absolute 0.0001 Bps limit before admitting production actions.
+Measured end-to-end speed is still pending. Do not claim a shorter finish time
+from the old linear closure-rate estimate; that estimate was withdrawn.
+
+The previous f40ec16f campaign was deliberately disabled/stopped. Preserved
+TRAIN remains checkpoint 309 / 19,588 steps; the actual f40ec16f checkpoint SHA
+is 8079953fc0ffd3ea6fbf6a91bed8875adfb30128b3a8431431dde57f2d3c455d.
+Its archived partial VAL had 13,152 forwards / 1,659,288 views, progress SHA
+dbc413312f3e27b32ef7e55678ab020d126436ee6e39b90aea175dd3af7b7fc7.
+Original 2959cd09 TRAIN and its verified Mac backup are unchanged. The bound
+recipe explicitly permits only the inference-cache model-source addition
+when restoring that TRAIN. New VAL accumulators start fresh; no old partial
+VAL is represented as evaluated by the new source. See
+handover_snapshot/VAL_MARKET_CACHE_PREPARED.json and CURRENT_NATIVE_RUN.json.
+
 The full one-year smoke and full June VAL are complete. First full five-year
 TRAIN completed at 2026-09-13 04:35:21 UTC: 313,399 rows, 19,588 optimizer
 steps, checkpoint 309. That exact trained state is preserved on the host and
@@ -15,7 +48,7 @@ accumulators. This dated publication does not claim the new CUDA start or
 speedup: the live observer and VAL_BATCH_THROUGHPUT_VERIFIED log provide that
 subsequent evidence. No positive Bps, admitted model or live readiness is claimed.
 
-## Latest prepared successor and observed comparison
+## Prior batch-128 comparison
 
 The 267bb0c8 first-batch measurement (2026-09-13 08:14 UTC) used both
 TF32 flags disabled: 128-row inference 0.435893 s versus eight 16-row calls
@@ -63,18 +96,18 @@ Monitor about every 15 minutes and stay silent on ordinary healthy progress.
 
 ## Exact binding
 
-- Frozen source: /home/andre2/src/GX1_VAL_BATCH_V36
-- Commit: f40ec16f9980cf03b1a02d2579ee4c1c54b2e324
-- Frozen branch: fix/native-val-batch-roundoff-20260913
+- Frozen source: /home/andre2/src/GX1_VAL_MARKET_CACHE_V37
+- Commit: 0e81f5b88fd28ea0b80b3bb5314599989f357e15
+- Frozen branch: fix/native-val-market-cache-20260913
 - Data root (D): /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912
-- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_ROUNDING_F40EC16F_BOOT400
-- Plan: D/CAMPAIGN_NATIVE_VAL128_ROUNDING_F40EC16F_BOOT400/CAMPAIGN_PLAN.json
-- Plan file SHA: 068bd04c87dce00e49be81c24d61ab8deb0a5e220447b03b71ff1c2a532fced3
+- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_CACHE_0E81F5B8_BOOT402
+- Plan: D/CAMPAIGN_NATIVE_VAL128_CACHE_0E81F5B8_BOOT402/CAMPAIGN_PLAN.json
+- Plan file SHA: 0a3a0d1219bc7d1b198cf967164f7442c573e28987515a318df507904e91a2c2
 - Plan internal SHA: 75b09ea649c6e32aa753ace5bbd04e692e8fc41b2b6a040497976498732f1f79
-- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_ROUNDING_V7.json
-- Recipe file SHA: ebc7a1c4ba0859b7c031fb4f80303531fd291f9a84598a34de6c4275fb6b6f9d
-- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_ROUNDING_CANDIDATE_BUNDLE
-- Expected successor session contract SHA: 2e15fc9ad615bbc0b30b9c48b058e808077752dfd729fdfa6a4c71982606799d
+- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_CACHE_V8.json
+- Recipe file SHA: 25c4ec8e0fa715ffc994105b852c7ec7e9ac1c4d3ac468bf7f05c06431cf796b
+- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE
+- Expected successor session contract SHA: 9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200
 - Preserved TRAIN-origin state SHA: c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349
 - Epoch-1 VAL progress: S/native_val/epoch_0001/ROLLOUT_PROGRESS.json
 - Windows task: GX1RandomAccessCampaignV2

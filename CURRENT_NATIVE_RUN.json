@@ -1,18 +1,18 @@
 {
   "schema_version": "gx1_native_handover_binding_v1",
-  "source_repo": "/home/andre2/src/GX1_VAL_BATCH_V36",
-  "source_commit": "f40ec16f9980cf03b1a02d2579ee4c1c54b2e324",
-  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_ROUNDING_F40EC16F_BOOT400",
-  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_ROUNDING_CANDIDATE_BUNDLE",
-  "session_contract_sha256": "2e15fc9ad615bbc0b30b9c48b058e808077752dfd729fdfa6a4c71982606799d",
+  "source_repo": "/home/andre2/src/GX1_VAL_MARKET_CACHE_V37",
+  "source_commit": "0e81f5b88fd28ea0b80b3bb5314599989f357e15",
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_CACHE_0E81F5B8_BOOT402",
+  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE",
+  "session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
   "immutable_artifacts": {
     "campaign_plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_ROUNDING_F40EC16F_BOOT400/CAMPAIGN_PLAN.json",
-      "sha256": "068bd04c87dce00e49be81c24d61ab8deb0a5e220447b03b71ff1c2a532fced3"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_CACHE_0E81F5B8_BOOT402/CAMPAIGN_PLAN.json",
+      "sha256": "0a3a0d1219bc7d1b198cf967164f7442c573e28987515a318df507904e91a2c2"
     },
     "native_recipe": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_ROUNDING_V7.json",
-      "sha256": "ebc7a1c4ba0859b7c031fb4f80303531fd291f9a84598a34de6c4275fb6b6f9d"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_CACHE_V8.json",
+      "sha256": "25c4ec8e0fa715ffc994105b852c7ec7e9ac1c4d3ac468bf7f05c06431cf796b"
     },
     "random_access_index": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/ROOT.json",
@@ -60,6 +60,8 @@
     "pointer": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
       "sha256": "67f19cb9af5a792d8317a8e8a00c69e741714a94fe4326a151326b2410b3b726"
-    }
-  }
+    },
+    "inference_only_market_cache": true
+  },
+  "exit_val_market_cache": "frozen_model_absolute_m1_row_v1"
 }
