@@ -80,7 +80,8 @@ def _require_native_full_train_recipe(
         "val_limits", "initialization", "test_data_used", "recipe_sha256",
     }
     if (
-        set(recipe) != required or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
+        set(recipe) not in (required, required | {"candidate_resume_origin"})
+        or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != _INITIALIZATION
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
@@ -152,7 +153,11 @@ def _require_native_full_train_recipe(
         raise RuntimeError("NATIVE_FULL_TRAIN_CONTROLS_MISMATCH")
     limits = recipe["val_limits"]
     if (
-        set(limits) != {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"}
+        set(limits) not in (
+            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"},
+            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size"},
+        )
+        or limits.get("policy_batch_size", 16) not in (16, 128)
         or any(type(value) is not int or value <= 0 for value in limits.values())
         or limits["max_wall_seconds"] > 4_200
         or limits["progress_interval_forwards"] != 64
@@ -400,6 +405,7 @@ def _run_bound_full_train_candidate(
     weight_decay: float, grad_clip_norm: float,
     recipe_source_provenance: Mapping[str, Any], execution_budget: Mapping[str, Any],
     execution_budget_sha256: str, invocation_started_monotonic: float,
+    candidate_resume_origin: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Enter the existing durable coordinator after the outer launch checks."""
 
@@ -439,6 +445,7 @@ def _run_bound_full_train_candidate(
         execution_budget_sha256=execution_budget_sha256,
         invocation_started_monotonic=invocation_started_monotonic,
         checkpoint_monitor=trainer.COUPLED_NET_CHECKPOINT_MONITOR,
+        candidate_resume_origin=candidate_resume_origin,
     )
 
 
@@ -492,6 +499,7 @@ def run_guarded_native_candidate_invocation(
             recipe_source_provenance=provenance, execution_budget=budget,
             execution_budget_sha256=execution_budget_file_sha256,
             invocation_started_monotonic=started,
+            candidate_resume_origin=recipe.get("candidate_resume_origin"),
         )
     except trainer._CandidateExecutionPaused as paused:
         receipt = trainer._write_candidate_execution_pause_receipt(

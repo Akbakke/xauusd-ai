@@ -774,6 +774,42 @@ def require_random_access_val_evaluation_result_v1(
     return result
 
 
+def _verify_val_batch_throughput(model, inputs, output, forward_started: float) -> None:
+    """Check actual first-batch Q/actions and log measured inference throughput."""
+    q = output["exit_action_q_bps"]
+    if q.device.type == "cuda":
+        torch.cuda.synchronize(q.device)
+    large_seconds = time.monotonic() - forward_started
+    size = q.shape[0]
+
+    def sliced(value, start, stop):
+        if isinstance(value, torch.Tensor):
+            return value[start:stop] if value.ndim > 0 and value.shape[0] == size else value
+        if isinstance(value, Mapping):
+            return {key: sliced(item, start, stop) for key, item in value.items()}
+        return value
+
+    started = time.monotonic()
+    with torch.inference_mode():
+        reference = torch.cat([
+            model.forward_exit_random_access_batch(**sliced(inputs, start, start + 16))["exit_action_q_bps"]
+            for start in range(0, size, 16)
+        ])
+    if q.device.type == "cuda":
+        torch.cuda.synchronize(q.device)
+    reference_seconds = time.monotonic() - started
+    torch.testing.assert_close(q, reference)
+    active = np.ones((size, 2), dtype=np.bool_)
+    if not np.array_equal(unique_active_exit_actions(q, active), unique_active_exit_actions(reference, active)):
+        raise RuntimeError("UNIFIED_EXIT_VAL_BATCH_ACTION_MISMATCH")
+    print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_VERIFIED", "rows": size,
+        "policy_batch_size": 128, "reference_batch_size": 16,
+        "large_batch_seconds": large_seconds, "reference_seconds": reference_seconds,
+        "inference_speedup": reference_seconds / large_seconds,
+        "max_abs_q_difference_bps": float((q - reference).abs().max().item()),
+        "actions_equal": True, "training_or_data_changed": False}), flush=True)
+
+
 def run_resumable_random_access_val_evaluation_v1(
     *,
     model: nn.Module,
@@ -837,7 +873,7 @@ def run_resumable_random_access_val_evaluation_v1(
         or isinstance(max_forwards_this_invocation, bool)
         or max_forwards_this_invocation < 1
         or isinstance(policy_batch_size, bool)
-        or policy_batch_size not in (4, 8, 16)
+        or policy_batch_size not in (4, 8, 16, 128)
         or isinstance(progress_interval_forwards, bool)
         or progress_interval_forwards < 1
     ):
@@ -961,8 +997,14 @@ def run_resumable_random_access_val_evaluation_v1(
             dtype=torch.bool,
             device=entry_decision_representations.device,
         )
+        verify_batch = policy_batch_size == 128 and progress["model_forward_count"] == 0
+        if verify_batch and entry_decision_representations.device.type == "cuda":
+            torch.cuda.synchronize(entry_decision_representations.device)
+        forward_started = time.monotonic()
         with torch.inference_mode():
             output = model.forward_exit_random_access_batch(**model_inputs)
+        if verify_batch:
+            _verify_val_batch_throughput(model, model_inputs, output, forward_started)
         q = output.get("exit_action_q_bps")
         valid = output.get("exit_action_valid_mask")
         if (

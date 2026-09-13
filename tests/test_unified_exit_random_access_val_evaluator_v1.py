@@ -372,3 +372,25 @@ def test_native_shared_routes_count_active_states_once() -> None:
         assert raw["observation_unit"] == "active_entry_state_shared_by_sides"
     with pytest.raises(RuntimeError, match="ROUTE_SHARED_STATE_SHAPE_INVALID"):
         accumulate_route_diagnostics_v1({}, {**routes, "exit_tf_gate": torch.ones(4, 2, 5) / 5}, active_side_mask=mask)
+
+
+def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path):
+    counts = np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64)
+    model, representations, adapter, contract = _fixture(
+        thresholds=np.zeros((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32), counts=counts)
+    model = _with_route_outputs(model)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
+    arguments = dict(model=model, entry_decision_representations=representations,
+        adapter=adapter, checkpoint_binding=binding,
+        entry_policy_decisions=_entry_policy(adapter, binding), entry_route_diagnostics={},
+        progress_path=tmp_path/'progress.json', result_path=tmp_path/'result.json',
+        policy_batch_size=128, progress_interval_forwards=1)
+    paused = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=1)
+    assert paused['decision'] == 'PAUSED_RESUMABLE'
+    assert paused['next_entry_scan_position'] == 128
+    result = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=44)
+    assert result['decision'] == 'PASS_COMPLETE'
+    assert result['entry_pair_cohort_size'] == 5508
+    assert result['exited_side_trade_count'] == 11016
+    assert result['model_forward_count'] == 44
+    assert result['execution_contract']['policy_batch_size'] == 128

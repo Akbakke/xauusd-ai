@@ -565,6 +565,7 @@ def evaluate_bound_full_val_v1(
     compute_guard_max_materialized_state_views: int,
     compute_guard_max_wall_seconds: float,
     candidate_target_model: torch.nn.Module | None = None,
+    exit_policy_batch_size: int | None = None,
 ) -> dict[str, Any]:
     """The shared full-cohort Entry/Exit evaluator for smoke and candidate epochs."""
 
@@ -613,7 +614,7 @@ def evaluate_bound_full_val_v1(
         progress_path=rollout_progress_path,
         result_path=result_path,
         max_forwards_this_invocation=max_forwards_this_invocation,
-        policy_batch_size=selected_batch_size,
+        policy_batch_size=selected_batch_size if exit_policy_batch_size is None else exit_policy_batch_size,
         progress_interval_forwards=progress_interval_forwards,
     )
     return result

@@ -12161,7 +12161,7 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
         "frame", "state_factory", "parent_coordinate_evidence", "val_sequence_audit",
         "max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards",
     }
-    if not isinstance(context, Mapping) or set(context) != required:
+    if not isinstance(context, Mapping) or set(context) not in (required, required | {"policy_batch_size"}):
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_INVALID]")
     from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
 
@@ -12174,7 +12174,10 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
     if children != list(range(5508)) or len(set(parents)) != 5508:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_COHORT_INVALID]")
     limits = {key: context[key] for key in ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")}
-    if any(type(value) is not int or value <= 0 for value in limits.values()):
+    if "policy_batch_size" in context:
+        limits["policy_batch_size"] = context["policy_batch_size"]
+    if (any(type(value) is not int or value <= 0 for value in limits.values())
+            or limits.get("policy_batch_size", 16) not in (16, 128)):
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
     audit = Path(context["val_sequence_audit"]).resolve(strict=True)
     return {
@@ -12210,6 +12213,7 @@ def _native_candidate_epoch_validation(
                 parent_coordinate_evidence=context["parent_coordinate_evidence"],
                 val_sequence_audit=Path(context["val_sequence_audit"]),
                 device=device, selected_batch_size=batch_size,
+                exit_policy_batch_size=context.get("policy_batch_size", batch_size),
                 rollout_progress_path=directory / "ROLLOUT_PROGRESS.json",
                 result_path=directory / "VAL_RESULT.json",
                 max_forwards_this_invocation=context["max_model_forwards"],
@@ -12246,6 +12250,63 @@ def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, A
     if available:
         checkpoint_metric(stats, checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)
     return stats
+
+
+def _load_candidate_val_batch_successor_state(
+    *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Continue completed epoch-1 TRAIN in a fresh, explicitly bound VAL session.
+
+    Preserve all tensor/optimizer/EMA/scheduler/RNG and selection state. Only
+    provenance/output identity and the VAL batch geometry may differ. The old
+    session remains immutable; no old rollout accumulators enter the new VAL.
+    """
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+
+    if not isinstance(origin, Mapping) or set(origin) != {"contract", "pointer"}:
+        raise RuntimeError("[CANDIDATE_VAL_BATCH_ORIGIN_INVALID]")
+    contract = read_bound_json(Path(origin["contract"]["path"]), origin["contract"]["sha256"])
+    pointer = read_bound_json(Path(origin["pointer"]["path"]), origin["pointer"]["sha256"])
+    old = _CandidateTrainingSession(
+        out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True,
+    )
+    if (Path(origin["contract"]["path"]) != old._contract_path
+            or Path(origin["pointer"]["path"]) != old._active_path
+            or old.directory == session.directory
+            or pointer.get("session_contract_sha256") != old.contract_sha256):
+        raise RuntimeError("[CANDIDATE_VAL_BATCH_ORIGIN_BINDING_MISMATCH]")
+    previous, requested = copy.deepcopy(contract), copy.deepcopy(session._contract)
+    for item in (previous, requested):
+        for key in ("source_commit", "recipe_source_provenance", "out_bundle_dir", "run_id"):
+            item.pop(key)
+    previous_batch = previous["native_full_val"]["compute_limits"].pop("policy_batch_size", 16)
+    requested_batch = requested["native_full_val"]["compute_limits"].pop("policy_batch_size", 16)
+    if previous != requested or previous_batch != 16 or requested_batch != 128:
+        raise RuntimeError("[CANDIDATE_VAL_BATCH_TRAIN_CONTRACT_CHANGED]")
+    allowed = {
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+        "gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
+    }
+    before = contract["recipe_source_provenance"]["source_bindings"]
+    after = session._contract["recipe_source_provenance"]["source_bindings"]
+    if set(before) != set(after):
+        raise RuntimeError("[CANDIDATE_VAL_BATCH_SOURCE_CLOSURE_CHANGED]")
+    for key in before:
+        if before[key]["sha256"] != after[key]["sha256"] and not any(
+            after[key]["path"].endswith("/" + name) for name in allowed
+        ):
+            raise RuntimeError("[CANDIDATE_VAL_BATCH_MODEL_OR_DATA_SOURCE_CHANGED]")
+    state = old.load_checkpoint()
+    if (state is None or state["phase"] != "validation" or state["epoch_index"] != 0
+            or state["next_batch_offset"] != 0 or state["complete"]
+            or state["global_optimizer_steps"] <= 0
+            or state["training_progress"]["validation_snapshot"] is not None
+            or state["training_progress"]["checkpoint_selection"]["top_k_checkpoints"]):
+        raise RuntimeError("[CANDIDATE_VAL_BATCH_COMPLETED_FIRST_TRAIN_REQUIRED]")
+    state["session_contract_sha256"] = session.contract_sha256
+    return state
 
 
 def _run_resumable_candidate_training(
@@ -12298,6 +12359,7 @@ def _run_resumable_candidate_training(
     invocation_started_monotonic: Optional[float] = None,
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
     native_val_context: Optional[Mapping[str, Any]] = None,
+    candidate_resume_origin: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -12388,6 +12450,13 @@ def _run_resumable_candidate_training(
     elif execution_budget_sha256 is not None or invocation_started_monotonic is not None:
         raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_CONTEXT_MISMATCH]")
     restored_state = session.load_checkpoint()
+    if restored_state is None and candidate_resume_origin is not None:
+        restored_state = _load_candidate_val_batch_successor_state(
+            session=session, origin=candidate_resume_origin,
+        )
+        session.save_checkpoint(restored_state)
+        log.info("[CANDIDATE_VAL_BATCH_SUCCESSOR] restored_steps=%d epoch_index=%d phase=%s",
+                 restored_state["global_optimizer_steps"], restored_state["epoch_index"], restored_state["phase"])
     expected_train_batches = -(-len(train_ds) // int(batch_size))
     fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
 

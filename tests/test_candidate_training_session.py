@@ -815,3 +815,63 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
         "validation": int(interrupt_phase == "validation") + completed_epochs,
     }
     assert third["best_epoch"] == 1
+
+
+@pytest.mark.parametrize('fault', [None, 'train_batch', 'model_source'])
+def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
+    output = tmp_path / 'original'
+    contract = {
+        **_contract(), 'source_commit': 'a' * 40, 'run_id': 'original',
+        'recipe_source_provenance': _recipe_source_provenance(source_commit='a' * 40),
+        'out_bundle_dir': str(output),
+        'native_full_val': {'compute_limits': {'max_wall_seconds': 4200}},
+        'training': {'batch_size': 16, 'checkpoint_policy': trainer._new_candidate_training_progress(
+            checkpoint_monitor=trainer.COUPLED_NET_CHECKPOINT_MONITOR
+        )['checkpoint_selection']['checkpoint_policy']},
+    }
+    old = trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
+    model = torch.nn.Linear(3, 2)
+    target = copy.deepcopy(model)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+    ema = trainer._WeightEma(model, .5)
+    _step(model, optimizer)
+    ema.update(model)
+    state = _state(old, model, target, optimizer, ema, scheduler)
+    state.update(phase='validation', next_batch_offset=0,
+        training_progress=trainer._new_candidate_training_progress(checkpoint_monitor=trainer.COUPLED_NET_CHECKPOINT_MONITOR))
+    old.save_checkpoint(state)
+    origin = {role: {'path': str(path), 'sha256': trainer._sha256_file(path)}
+        for role, path in [('contract', old._contract_path), ('pointer', old._active_path)]}
+    destination = tmp_path / 'successor'
+    new_contract = copy.deepcopy(contract)
+    new_contract.update(source_commit='b' * 40, run_id='successor', out_bundle_dir=str(destination))
+    new_contract['native_full_val']['compute_limits']['policy_batch_size'] = 128
+    if fault == 'train_batch':
+        new_contract['training']['batch_size'] = 128
+    if fault == 'model_source':
+        new_contract['recipe_source_provenance']['source_bindings']['trainer'].update(
+            path='/repo/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py', sha256='c' * 64)
+    new = trainer._CandidateTrainingSession(out_bundle_dir=destination, contract=new_contract)
+    if fault:
+        with pytest.raises(RuntimeError, match='TRAIN_CONTRACT_CHANGED|MODEL_OR_DATA_SOURCE_CHANGED'):
+            trainer._load_candidate_val_batch_successor_state(session=new, origin=origin)
+    else:
+        restored = trainer._load_candidate_val_batch_successor_state(session=new, origin=origin)
+        assert restored['session_contract_sha256'] == new.contract_sha256
+        assert restored['phase'] == 'validation' and restored['global_optimizer_steps'] == 17
+        def identical(a, b):
+            if isinstance(a, torch.Tensor):
+                assert torch.equal(a, b)
+            elif isinstance(a, dict):
+                assert a.keys() == b.keys()
+                for key in a: identical(a[key], b[key])
+            elif isinstance(a, (tuple, list)):
+                assert len(a) == len(b)
+                for x, y in zip(a, b): identical(x, y)
+            else: assert a == b
+        for key in state:
+            if key != 'session_contract_sha256': identical(state[key], restored[key])
+        new.save_checkpoint(restored)
+        identical(restored, new.load_checkpoint())
+    assert trainer._sha256_file(old._active_path) == origin['pointer']['sha256']
