@@ -1,6 +1,8 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | stable lifecycle-v2 system map -->
 # GX1 system map
 
+Current runtime (2026-09-13): `39bdb3ce327b2ba408e43573b3e535fdc30bea06` at `/home/andre2/src/GX1_VAL_CPU_PIPELINE_V38`. Exact live bindings are in `CURRENT_NATIVE_RUN.json`. This successor adds compact market-input reuse, batched economics and four CPU preparation workers; trainer affinity is 0–18 with normal priority, inside the existing 20G/512M/128-task and GPU guards. It resumes the prior EMA snapshot and 1,344,280 verified VAL views. Older source/runtime references below are historical.
+
 Current operating state: `CURRENT_HANDOVER.md`. Immutable active source,
 plan, recipe and index: `CURRENT_NATIVE_RUN.json`. Source owners define shapes
 and semantics; observations in the dated audit are not replacement constants.

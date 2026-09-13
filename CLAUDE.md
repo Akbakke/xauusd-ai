@@ -1,7 +1,12 @@
-The user explicitly authorized the September 13 VAL throughput restart.
-Successor 0e81f5b8 preserves completed TRAIN and uses Exit-VAL batch 128 with invocation-local frozen-market reuse;
-TRAIN/Entry-VAL remain 16. This specific restart supersedes the earlier hold
-on performance changes. After the restart, return to sparse monitoring.
+The user explicitly authorized September 13 VAL performance items 1–4.
+Successor 39bdb3ce preserves completed TRAIN and resumes the existing EMA
+snapshot and saved VAL progress, after strict identity checks. It uses compact
+market-input reuse, batched economics, four CPU preparation workers and all
+19 WSL vCPUs with normal CPU priority. Parent numerical threads remain eight.
+This specific authorization supersedes older 0–7 affinity/no-worker restrictions
+below. Memory, temperature, power and one-heavy-job guards remain mandatory.
+Use CURRENT_NATIVE_RUN.json; do not launch the documentation checkout.
+After measured startup verification, return to sparse monitoring.
 
 ## Current operator scope — 2026-09-13
 

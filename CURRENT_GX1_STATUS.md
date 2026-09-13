@@ -1,35 +1,40 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current status -->
 # Current GX1 status
 
-Current prepared source: 0e81f5b88fd28ea0b80b3bb5314599989f357e15 (/home/andre2/src/GX1_VAL_MARKET_CACHE_V37).
+The user explicitly authorized VAL performance items 1–4 on 2026-09-13.
+Frozen source: 39bdb3ce327b2ba408e43573b3e535fdc30bea06 at /home/andre2/src/GX1_VAL_CPU_PIPELINE_V38.
+Branch: fix/native-val-cpu-pipeline-20260913 (pushed and remote HEAD verified).
+Use CURRENT_NATIVE_RUN.json for the exact recipe, campaign and runtime paths.
+The documentation checkout is not the training checkout.
 
-The user rejected the long VAL runtime. Read-only source inspection and the
-existing short profile found repeated market-only local/MTF encoding at the
-same absolute M1 row (330/341 model stack samples in that branch). This
-successor reuses those outputs within one frozen EMA VAL invocation. Entry
-token, trade path, lifetime MAE/MFE and Q/Exit evaluation remain per position.
-All June opportunities and both sides remain evaluated; no trade-age cap,
-confidence cutoff, precision reduction or feature/data omission was added.
-The cache is recreated for every invocation/epoch and excluded from TRAIN.
+The successor avoids rebuilding/copying cached market input, batches economic
+row lookup and reuses identical HOLD cost calculations, prepares dynamic
+position input with four CPU-only spawned workers inside the same capped job,
+and admits all 19 WSL vCPUs with normal CPU priority. Numerical libraries in
+the parent retain eight threads; workers have one. Data, features, all five
+timeframes/eight families, both VAL sides, FP32, TRAIN batch 16, Exit VAL batch
+128, 30-epoch maximum and patience 5 remain unchanged. No confidence cutoff,
+hold cap, reduced VAL cohort or precision relaxation was introduced.
 
-Eleven focused checks passed: cached/uncached Q/actions/routes, changed trade
-inputs with the same market row, mixed cache hits/misses, unchanged model
-state and TRAIN gradients, preserved checkpoint state, source restrictions,
-and full-cohort pause/resume with separate cache instances. Actual first-batch
-GPU cache-hit versus uncached comparison must also pass with identical actions
-and the existing absolute 0.0001 Bps limit before admitting production actions.
-Measured end-to-end speed is still pending. Do not claim a shorter finish time
-from the old linear closure-rate estimate; that estimate was withdrawn.
+The prior 0e81f5b8 window ended RESUMABLE with both process exit codes zero and
+guard PASS. It saved 1,344,280 views / 10,691 forwards, state cursor 244/640,
+progress SHA 96331710b34d464ce690a60edf9a6565fea21ecb803d9d36f9b1db7aab021b51.
+The new recipe binds that exact progress file and its existing immutable EMA
+snapshot. The evaluator admits those accumulators only when model checkpoint,
+Entry policy, data/rollout identity and prior execution contract still match.
+Only the CPU-execution contract identity changes. TRAIN remains checkpoint 309
+and 19,588 optimizer steps; no completed TRAIN or smoke is repeated.
 
-The previous f40ec16f campaign was deliberately disabled/stopped. Preserved
-TRAIN remains checkpoint 309 / 19,588 steps; the actual f40ec16f checkpoint SHA
-is 8079953fc0ffd3ea6fbf6a91bed8875adfb30128b3a8431431dde57f2d3c455d.
-Its archived partial VAL had 13,152 forwards / 1,659,288 views, progress SHA
-dbc413312f3e27b32ef7e55678ab020d126436ee6e39b90aea175dd3af7b7fc7.
-Original 2959cd09 TRAIN and its verified Mac backup are unchanged. The bound
-recipe explicitly permits only the inference-cache model-source addition
-when restoring that TRAIN. New VAL accumulators start fresh; no old partial
-VAL is represented as evaluated by the new source. See
-handover_snapshot/VAL_MARKET_CACHE_PREPARED.json and CURRENT_NATIVE_RUN.json.
+Nineteen focused cases passed, including unchanged TRAIN gradients, compact
+cache miss/hit/mixed model outputs/actions, CPU states around the 512-row
+boundary, exact costs/slice hashes across entries/sides, source rejection,
+checkpoint preservation and progress migration rejecting identity drift.
+Required source commit hooks passed. On the actual GPU, first-batch checks
+must additionally confirm states/actions/costs and report full batch pipeline
+time before claiming throughput improvement. Campaign is prepared; actual
+startup/resume and sustained throughput still require observation.
 
-Observe the current runtime with scripts/gx1_handover.sh. TEST remains sealed; no final main-model June Bps or live readiness has been established.
+Runtime limits remain 20 GiB RAM, 512 MiB swap, 128 tasks, 300 W driver cap,
+310 W draw stop, 85 C core / 80 C memory and 12 GiB VRAM. Signed local safety
+telemetry remains frequent; model observations approximately every 15 minutes.
+TEST stays sealed. Positive main-model net Bps and live readiness are unproven.
