@@ -1,0 +1,73 @@
+{
+  "decision": "PASS_PREPARED",
+  "plan_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_HOTPATH_1548DD7C_BOOT407/CAMPAIGN_PLAN.json",
+  "plan_file_sha256": "429a4e5db202375744cb961d40368dfed323984617175b8c37824d98da97816b",
+  "plan_sha256": "2fea3d8acc59ff700933fb26a128f72816af13c5928c5c7eeb20f4083bff395b",
+  "source_commit": "1548dd7c47d7f5a83ede4ccca1ef635b443d51f0",
+  "source_repo": "/home/andre2/src/GX1_VAL_HOTPATH_V39",
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_HOTPATH_V10.json",
+    "sha256": "8cee5ddc26bde7b6e420786baa0218bff34ccec7fc1026731bea820e09351399"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_HOTPATH_1548DD7C_BOOT407",
+  "entry_pairs_per_epoch": 313399,
+  "maximum_windows": 600,
+  "policy": {
+    "physical_power_limit_w": 300,
+    "maximum_actual_power_draw_w": 310,
+    "maximum_core_temperature_c": 85,
+    "maximum_memory_junction_temperature_c": 80,
+    "maximum_vram_mib": 12288,
+    "signed_local_telemetry_seconds": 1,
+    "human_status_seconds": 900,
+    "fresh_physical_windows_boot_before_every_invocation": true,
+    "automatic_power_limit_change": true,
+    "power_reduction_core_temperature_c": 80,
+    "reduced_power_limit_w": 200
+  },
+  "controller_sources": {
+    "controller": {
+      "path": "/home/andre2/src/GX1_VAL_HOTPATH_V39/scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1",
+      "sha256": "91a45151d108adccb0b2e5632993ae12f09e1baa6162ecc4092983bff062be25"
+    },
+    "observer": {
+      "path": "/home/andre2/src/GX1_VAL_HOTPATH_V39/scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1",
+      "sha256": "05f04f01916b5ecf2b9c4e95dbb3f71f2744dd6126caab4945263fa0e6f0fb30"
+    },
+    "campaign_cli": {
+      "path": "/home/andre2/src/GX1_VAL_HOTPATH_V39/gx1/scripts/local_random_access_campaign_v2.py",
+      "sha256": "6f9ff0874876c7fcd8e1a684450de6bc0d23f2a83707026cee718972bed1f7c6"
+    }
+  },
+  "resume_origin": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "3d6728bdb403a820551dd8f90e33cbe6c36dad33b8965b794f02152746bc640b"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "7407a9da8efc7d13936dc48d449a95f2858a98a2a09f566e5864af55c3b90720"
+    },
+    "inference_only_cpu_pipeline": true,
+    "val_progress": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/native_val/epoch_0001/ROLLOUT_PROGRESS.json",
+      "sha256": "b06d426e325458f532fe9046cfcda44a5afb75497b136c9a6484b17c3f09f217"
+    },
+    "validation_checkpoint": {
+      "epoch_index": 0,
+      "global_optimizer_steps": 19588,
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+      "session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
+      "sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20"
+    }
+  },
+  "training_batch_size": 16,
+  "exit_val_batch_size": 128,
+  "prior_train_steps_preserved": 19588,
+  "val_restarts_with_fresh_accumulators": false,
+  "prior_val_views_preserved": 13176595,
+  "prior_val_progress_sha256": "c5741efe45ef601301889876769d02863c82113f091611ae779a55a218de5d53",
+  "prepared_boot_id": 407,
+  "val_cpu_workers": 4,
+  "cpu_affinity": "0-18"
+}

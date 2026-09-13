@@ -1,12 +1,10 @@
-The user explicitly authorized September 13 VAL performance items 1–4.
-Successor 39bdb3ce preserves completed TRAIN and resumes the existing EMA
-snapshot and saved VAL progress, after strict identity checks. It uses compact
-market-input reuse, batched economics, four CPU preparation workers and all
-19 WSL vCPUs with normal CPU priority. Parent numerical threads remain eight.
-This specific authorization supersedes older 0–7 affinity/no-worker restrictions
-below. Memory, temperature, power and one-heavy-job guards remain mandatory.
-Use CURRENT_NATIVE_RUN.json; do not launch the documentation checkout.
-After measured startup verification, return to sparse monitoring.
+Current authorized successor: 1548dd7c47d7f5a83ede4ccca1ef635b443d51f0 at /home/andre2/src/GX1_VAL_HOTPATH_V39.
+The user authorized performance work beyond items 1–4 on September 13.
+This source also repairs the observed native VAL pause-receipt collision.
+Preserve the bound completed TRAIN, EMA snapshot and 13,176,595 saved VAL views.
+Use CURRENT_NATIVE_RUN.json; the documentation checkout is not executable source.
+One heavy job, sparse monitoring and existing quality/resource guards apply.
+Older source/authorization references below are historical.
 
 # GX1 takeover instructions
 

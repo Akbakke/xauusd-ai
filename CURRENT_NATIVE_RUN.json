@@ -1,18 +1,18 @@
 {
   "schema_version": "gx1_native_handover_binding_v1",
-  "source_repo": "/home/andre2/src/GX1_VAL_CPU_PIPELINE_V38",
-  "source_commit": "39bdb3ce327b2ba408e43573b3e535fdc30bea06",
-  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_CPU_PIPELINE_39BDB3CE_BOOT404",
-  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE",
-  "session_contract_sha256": "3d6728bdb403a820551dd8f90e33cbe6c36dad33b8965b794f02152746bc640b",
+  "source_repo": "/home/andre2/src/GX1_VAL_HOTPATH_V39",
+  "source_commit": "1548dd7c47d7f5a83ede4ccca1ef635b443d51f0",
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_HOTPATH_1548DD7C_BOOT407",
+  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_HOTPATH_CANDIDATE_BUNDLE",
+  "session_contract_sha256": "4354e374424b229637ed7f51c2a92f33dc7ffa50bdf4384c03d249c04c9803d9",
   "immutable_artifacts": {
     "campaign_plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_CPU_PIPELINE_39BDB3CE_BOOT404/CAMPAIGN_PLAN.json",
-      "sha256": "c97592b993248d1fb91e763278456ba0439247620be43815e1c39600690b65b9"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_HOTPATH_1548DD7C_BOOT407/CAMPAIGN_PLAN.json",
+      "sha256": "429a4e5db202375744cb961d40368dfed323984617175b8c37824d98da97816b"
     },
     "native_recipe": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_CPU_PIPELINE_V9.json",
-      "sha256": "fb2752b43fa1bbff2c62f59501e7828f648ed502149149e56cf34aa70a36b067"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_HOTPATH_V10.json",
+      "sha256": "8cee5ddc26bde7b6e420786baa0218bff34ccec7fc1026731bea820e09351399"
     },
     "random_access_index": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/ROOT.json",
@@ -58,24 +58,24 @@
   "exit_val_batch_size": 128,
   "training_resume_origin": {
     "contract": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
-      "sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "3d6728bdb403a820551dd8f90e33cbe6c36dad33b8965b794f02152746bc640b"
     },
     "pointer": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
-      "sha256": "49d582d5311495100df721bb3f7638b5d1fe0d4b1d6d462ff43118b61803ada1"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "7407a9da8efc7d13936dc48d449a95f2858a98a2a09f566e5864af55c3b90720"
     },
     "inference_only_cpu_pipeline": true,
     "val_progress": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/native_val/epoch_0001/ROLLOUT_PROGRESS.json",
-      "sha256": "866f873ef0cd3966642ab501c67d44b60ddb6eaabbc11d994b58352402b8ade0"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/native_val/epoch_0001/ROLLOUT_PROGRESS.json",
+      "sha256": "b06d426e325458f532fe9046cfcda44a5afb75497b136c9a6484b17c3f09f217"
     },
     "validation_checkpoint": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
-      "sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20",
-      "session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
       "epoch_index": 0,
-      "global_optimizer_steps": 19588
+      "global_optimizer_steps": 19588,
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+      "session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
+      "sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20"
     }
   },
   "exit_val_market_cache": "frozen_model_absolute_m1_row_v1"
