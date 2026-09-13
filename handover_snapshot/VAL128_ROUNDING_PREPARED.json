@@ -1,0 +1,56 @@
+{
+  "decision": "PASS_PREPARED",
+  "plan_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_ROUNDING_F40EC16F_BOOT400/CAMPAIGN_PLAN.json",
+  "plan_file_sha256": "068bd04c87dce00e49be81c24d61ab8deb0a5e220447b03b71ff1c2a532fced3",
+  "plan_sha256": "75b09ea649c6e32aa753ace5bbd04e692e8fc41b2b6a040497976498732f1f79",
+  "source_commit": "f40ec16f9980cf03b1a02d2579ee4c1c54b2e324",
+  "source_repo": "/home/andre2/src/GX1_VAL_BATCH_V36",
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_ROUNDING_V7.json",
+    "sha256": "ebc7a1c4ba0859b7c031fb4f80303531fd291f9a84598a34de6c4275fb6b6f9d"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_ROUNDING_F40EC16F_BOOT400",
+  "entry_pairs_per_epoch": 313399,
+  "maximum_windows": 600,
+  "policy": {
+    "physical_power_limit_w": 300,
+    "maximum_actual_power_draw_w": 310,
+    "maximum_core_temperature_c": 85,
+    "maximum_memory_junction_temperature_c": 80,
+    "maximum_vram_mib": 12288,
+    "signed_local_telemetry_seconds": 1,
+    "human_status_seconds": 900,
+    "fresh_physical_windows_boot_before_every_invocation": true,
+    "automatic_power_limit_change": true,
+    "power_reduction_core_temperature_c": 80,
+    "reduced_power_limit_w": 200
+  },
+  "controller_sources": {
+    "controller": {
+      "path": "/home/andre2/src/GX1_VAL_BATCH_V36/scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1",
+      "sha256": "91a45151d108adccb0b2e5632993ae12f09e1baa6162ecc4092983bff062be25"
+    },
+    "observer": {
+      "path": "/home/andre2/src/GX1_VAL_BATCH_V36/scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1",
+      "sha256": "05f04f01916b5ecf2b9c4e95dbb3f71f2744dd6126caab4945263fa0e6f0fb30"
+    },
+    "campaign_cli": {
+      "path": "/home/andre2/src/GX1_VAL_BATCH_V36/gx1/scripts/local_random_access_campaign_v2.py",
+      "sha256": "6f9ff0874876c7fcd8e1a684450de6bc0d23f2a83707026cee718972bed1f7c6"
+    }
+  },
+  "resume_origin": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "8adc1e9a78cc02b086e737b168287a1d673840172e95c09204291e42e0c01729"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "67f19cb9af5a792d8317a8e8a00c69e741714a94fe4326a151326b2410b3b726"
+    }
+  },
+  "training_batch_size": 16,
+  "exit_val_batch_size": 128,
+  "prior_train_steps_preserved": 19588,
+  "val_restarts_with_fresh_accumulators": true
+}

@@ -1,18 +1,18 @@
 {
   "schema_version": "gx1_native_handover_binding_v1",
-  "source_repo": "/home/andre2/src/GX1_VAL_FP32_V35",
-  "source_commit": "267bb0c8bfa573c4553a75a0789ca4568a0af4e2",
-  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_FP32_267BB0C8_BOOT399",
-  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_FP32_CANDIDATE_BUNDLE",
-  "session_contract_sha256": "710f8e9bb18fbc4209ade85968257e657d0ebecfa4ae0e65ef7915f84b0d2930",
+  "source_repo": "/home/andre2/src/GX1_VAL_BATCH_V36",
+  "source_commit": "f40ec16f9980cf03b1a02d2579ee4c1c54b2e324",
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_ROUNDING_F40EC16F_BOOT400",
+  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_ROUNDING_CANDIDATE_BUNDLE",
+  "session_contract_sha256": "2e15fc9ad615bbc0b30b9c48b058e808077752dfd729fdfa6a4c71982606799d",
   "immutable_artifacts": {
     "campaign_plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_FP32_267BB0C8_BOOT399/CAMPAIGN_PLAN.json",
-      "sha256": "c723e57d159baa111ddb3745a577bbd58155572997856a044a3361cf8ac6cc0d"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_ROUNDING_F40EC16F_BOOT400/CAMPAIGN_PLAN.json",
+      "sha256": "068bd04c87dce00e49be81c24d61ab8deb0a5e220447b03b71ff1c2a532fced3"
     },
     "native_recipe": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_FP32_V6.json",
-      "sha256": "f19dbd19adb389acc859278daa483c3f3df3959ce6ab09ed33a083f2645ffde7"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_ROUNDING_V7.json",
+      "sha256": "ebc7a1c4ba0859b7c031fb4f80303531fd291f9a84598a34de6c4275fb6b6f9d"
     },
     "random_access_index": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/ROOT.json",

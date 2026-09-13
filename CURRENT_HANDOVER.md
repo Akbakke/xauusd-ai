@@ -7,13 +7,36 @@ steps, checkpoint 309. That exact trained state is preserved on the host and
 in the verified Mac backup.
 
 At 07:01 UTC the user explicitly ordered a throughput restart. The old
-batch-16 VAL and Windows task were stopped. The successor 267bb0c8 source is pushed;
+batch-16 VAL and Windows task were stopped. The successor f40ec16f source is pushed;
 its guarded successor is prepared with Exit-VAL batch 128, TRAIN and Entry-VAL
 batch 16. It restores model/target, optimizer, EMA, scheduler, order, RNG and
 selection state from the completed TRAIN. June VAL starts with fresh
 accumulators. This dated publication does not claim the new CUDA start or
 speedup: the live observer and VAL_BATCH_THROUGHPUT_VERIFIED log provide that
 subsequent evidence. No positive Bps, admitted model or live readiness is claimed.
+
+## Latest prepared successor and observed comparison
+
+The 267bb0c8 first-batch measurement (2026-09-13 08:14 UTC) used both
+TF32 flags disabled: 128-row inference 0.435893 s versus eight 16-row calls
+0.691886 s, 1.5873x. All 256 HOLD/EXIT choices matched. Maximum Q difference
+was 0.0000491143 Bps; local/MTF intermediate differences were <7.2e-7,
+path/summary differences zero. The default torch comparison nevertheless
+stopped before any VAL progress was committed. No TRAIN steps were lost.
+
+Successor f40ec16f corrects that diagnostic: absolute Q limit 0.0001 Bps,
+zero relative allowance, still exact HOLD/EXIT action agreement. This is an
+explicit tolerance change based on the actual FP32 comparison, not a claim
+of bitwise equivalence. It continues to reject the earlier 0.03 Bps error.
+Three targeted cases pass: observed rounding accepted, larger drift rejected,
+changed action rejected even within the numeric allowance. Git hooks pass.
+PyTorch documents FP32 batch-versus-slice differences at
+https://docs.pytorch.org/docs/2.14/notes/numerical_accuracy.html#batched-computations-or-slice-computations .
+
+The 1.5873x figure is one comparison of model inference, not full-VAL speed.
+New live progress and resource measurements remain required. The prepared
+campaign is handover_snapshot/VAL128_ROUNDING_PREPARED.json. The existing
+TRAIN checkpoint is restored again; no completed TRAIN or full smoke repeats.
 
 ## Takeover
 
@@ -40,18 +63,18 @@ Monitor about every 15 minutes and stay silent on ordinary healthy progress.
 
 ## Exact binding
 
-- Frozen source: /home/andre2/src/GX1_VAL_FP32_V35
-- Commit: 267bb0c8bfa573c4553a75a0789ca4568a0af4e2
-- Frozen branch: fix/native-val-cudnn-fp32-20260913
+- Frozen source: /home/andre2/src/GX1_VAL_BATCH_V36
+- Commit: f40ec16f9980cf03b1a02d2579ee4c1c54b2e324
+- Frozen branch: fix/native-val-batch-roundoff-20260913
 - Data root (D): /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912
-- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_FP32_267BB0C8_BOOT399
-- Plan: D/CAMPAIGN_NATIVE_VAL128_FP32_267BB0C8_BOOT399/CAMPAIGN_PLAN.json
-- Plan file SHA: c723e57d159baa111ddb3745a577bbd58155572997856a044a3361cf8ac6cc0d
-- Plan internal SHA: f7bd97a4146e954cf5fdc391e4c81052ac04c4259daafa9c0ebd6f1b26d02ef1
-- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_FP32_V6.json
-- Recipe file SHA: f19dbd19adb389acc859278daa483c3f3df3959ce6ab09ed33a083f2645ffde7
-- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_FP32_CANDIDATE_BUNDLE
-- Expected successor session contract SHA: 710f8e9bb18fbc4209ade85968257e657d0ebecfa4ae0e65ef7915f84b0d2930
+- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_ROUNDING_F40EC16F_BOOT400
+- Plan: D/CAMPAIGN_NATIVE_VAL128_ROUNDING_F40EC16F_BOOT400/CAMPAIGN_PLAN.json
+- Plan file SHA: 068bd04c87dce00e49be81c24d61ab8deb0a5e220447b03b71ff1c2a532fced3
+- Plan internal SHA: 75b09ea649c6e32aa753ace5bbd04e692e8fc41b2b6a040497976498732f1f79
+- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_ROUNDING_V7.json
+- Recipe file SHA: ebc7a1c4ba0859b7c031fb4f80303531fd291f9a84598a34de6c4275fb6b6f9d
+- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_ROUNDING_CANDIDATE_BUNDLE
+- Expected successor session contract SHA: 2e15fc9ad615bbc0b30b9c48b058e808077752dfd729fdfa6a4c71982606799d
 - Preserved TRAIN-origin state SHA: c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349
 - Epoch-1 VAL progress: S/native_val/epoch_0001/ROLLOUT_PROGRESS.json
 - Windows task: GX1RandomAccessCampaignV2
