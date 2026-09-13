@@ -3353,6 +3353,9 @@ def _set_deterministic(
         # activation-retention path independently of the one-second hardware
         # guard.
         torch.backends.cuda.matmul.allow_tf32 = False
+        # cuDNN GRUs have a separate TF32 switch; matmul alone does not
+        # enforce the declared FP32 policy when a larger batch changes kernels.
+        torch.backends.cudnn.allow_tf32 = False
         if policy == DETERMINISTIC_BF16_HOPPER:
             capability = tuple(torch.cuda.get_device_capability(torch.cuda.current_device()))
             if capability < (9, 0) or not bool(torch.cuda.is_bf16_supported()):

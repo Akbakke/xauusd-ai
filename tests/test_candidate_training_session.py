@@ -875,3 +875,13 @@ def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
         new.save_checkpoint(restored)
         identical(restored, new.load_checkpoint())
     assert trainer._sha256_file(old._active_path) == origin['pointer']['sha256']
+
+
+def test_deterministic_fp32_disables_cudnn_and_matmul_tf32(monkeypatch):
+    monkeypatch.setattr(torch.cuda, 'manual_seed_all', lambda seed: None)
+    monkeypatch.setattr(torch.cuda, 'current_device', lambda: 0)
+    monkeypatch.setattr(torch.cuda, 'set_per_process_memory_fraction', lambda *args: None)
+    with torch.backends.cudnn.flags(allow_tf32=True):
+        trainer._set_deterministic(42, torch.device('cuda'))
+        assert torch.backends.cuda.matmul.allow_tf32 is False
+        assert torch.backends.cudnn.allow_tf32 is False
