@@ -1,6 +1,13 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current operational takeover -->
 # GX1 lifecycle-v2 takeover — 2026-09-13
 
+Clock deployment correction, September 13: applying locks before GPU work
+triggered the unchanged high-idle keeper and blocked telemetry on boot 409.
+The launcher now applies clocks only after GPU memory exceeds the keeper's
+384 MiB idle boundary and utilization is positive. It resets clocks when
+memory returns to idle and on controller exit. No guard limits were changed.
+Canonical keeper recovery and resumed startup must be verified from receipts.
+
 ## Current pause-envelope continuation
 
 Current source: 03592fe6f1113736d0499c35ef98a3d9267e558c at /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
