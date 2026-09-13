@@ -374,17 +374,26 @@ def test_native_shared_routes_count_active_states_once() -> None:
         accumulate_route_diagnostics_v1({}, {**routes, "exit_tf_gate": torch.ones(4, 2, 5) / 5}, active_side_mask=mask)
 
 
-def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path):
+@pytest.mark.parametrize('cache_market_states', [False, True])
+def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_market_states):
     counts = np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64)
     model, representations, adapter, contract = _fixture(
         thresholds=np.zeros((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32), counts=counts)
     model = _with_route_outputs(model)
+    caches = []
+    original = model.forward_exit_random_access_batch
+    def forward(**inputs):
+        if inputs.get('_market_state_cache') is not None:
+            caches.append(inputs['_market_state_cache'])
+        return original(**inputs)
+    model.forward_exit_random_access_batch = forward
     binding = _checkpoint_binding(contract, adapter, tmp_path)
     arguments = dict(model=model, entry_decision_representations=representations,
         adapter=adapter, checkpoint_binding=binding,
         entry_policy_decisions=_entry_policy(adapter, binding), entry_route_diagnostics={},
         progress_path=tmp_path/'progress.json', result_path=tmp_path/'result.json',
-        policy_batch_size=128, progress_interval_forwards=1)
+        policy_batch_size=128, progress_interval_forwards=1,
+        cache_market_states=cache_market_states)
     paused = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=1)
     assert paused['decision'] == 'PAUSED_RESUMABLE'
     assert paused['next_entry_scan_position'] == 128
@@ -394,6 +403,11 @@ def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path):
     assert result['exited_side_trade_count'] == 11016
     assert result['model_forward_count'] == 44
     assert result['execution_contract']['policy_batch_size'] == 128
+    if cache_market_states:
+        assert result['execution_contract']['market_state_cache'] == 'frozen_model_absolute_m1_row_v1'
+        assert len({id(cache) for cache in caches}) == 2
+    else:
+        assert not caches
 
 
 @pytest.mark.parametrize("difference,change_action,error", [

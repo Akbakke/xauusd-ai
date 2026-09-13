@@ -615,6 +615,7 @@ def evaluate_bound_full_val_v1(
         result_path=result_path,
         max_forwards_this_invocation=max_forwards_this_invocation,
         policy_batch_size=selected_batch_size if exit_policy_batch_size is None else exit_policy_batch_size,
+        cache_market_states=True,
         progress_interval_forwards=progress_interval_forwards,
     )
     return result

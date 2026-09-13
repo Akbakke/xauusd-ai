@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -120,6 +121,59 @@ def test_random_access_model_batch_matches_independent_state_calls() -> None:
         assert torch.allclose(
             batch_parameter.grad, loop_parameter.grad, rtol=2e-5, atol=2e-6
         )
+
+
+def test_market_cache_reuses_only_market_state_across_different_positions():
+    torch.manual_seed(20260913)
+    model = _make_model(dropout=0.0).eval()
+    before = canonical_model_state_sha256(model.state_dict())
+    inputs = _inputs()
+    cache = {}
+    with torch.inference_mode():
+        with patch.object(model, '_forward_exit_causal_episode',
+                          wraps=model._forward_exit_causal_episode) as scan:
+            cold = model.forward_exit_random_access_batch(
+                **inputs, _market_state_cache=cache, _market_state_keys=[101, 102, 103])
+            assert scan.call_count == 1
+            changed = copy.deepcopy(inputs)
+            changed['entry_decision_representation'] *= 0.5
+            changed['trade_path_tail_x'] *= 1.2
+            changed['normalized_lifetime_summary_x'] += 0.25
+            actual = model.forward_exit_random_access_batch(
+                **changed, _market_state_cache=cache, _market_state_keys=[101, 102, 103])
+            assert scan.call_count == 1  # No repeated market GRUs or gates.
+            assert not torch.equal(cold['exit_action_q_bps'], actual['exit_action_q_bps'])
+            order = torch.tensor([1, 0, 2])
+
+            def reorder(value):
+                if isinstance(value, dict):
+                    return {k: reorder(v) for k, v in value.items()}
+                return value.index_select(0, order)
+
+            mixed = {k: reorder(v) for k, v in changed.items()}
+            mixed_actual = model.forward_exit_random_access_batch(
+                **mixed, _market_state_cache=cache, _market_state_keys=[102, 101, 104])
+            assert scan.call_count == 2
+            assert scan.call_args.kwargs['exit_local_history_x'].shape[0] == 1
+        expected = model.forward_exit_random_access_batch(**changed)
+        mixed_expected = model.forward_exit_random_access_batch(**mixed)
+    for result, reference in ((actual, expected), (mixed_actual, mixed_expected)):
+        assert result.keys() == reference.keys()
+        for name in result:
+            torch.testing.assert_close(result[name], reference[name], atol=1e-5, rtol=1e-5, msg=name)
+        assert torch.equal(result['exit_action_q_bps'].argmax(-1),
+                           reference['exit_action_q_bps'].argmax(-1))
+    assert set(cache) == {101, 102, 103, 104}
+    assert canonical_model_state_sha256(model.state_dict()) == before
+
+
+@pytest.mark.parametrize('training,grad_enabled', [(True, False), (False, True)])
+def test_market_cache_cannot_enter_training_or_gradient_path(training, grad_enabled):
+    model = _make_model(dropout=0.0).train(training)
+    with torch.set_grad_enabled(grad_enabled):
+        with pytest.raises(RuntimeError, match='MARKET_CACHE_REQUIRES_FROZEN_EVAL'):
+            model.forward_exit_random_access_batch(
+                **_inputs(), _market_state_cache={}, _market_state_keys=[101, 102, 103])
 
 
 @pytest.mark.parametrize("with_retired_static_exit", [False, True])

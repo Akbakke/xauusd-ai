@@ -838,11 +838,18 @@ def run_resumable_random_access_val_evaluation_v1(
     result_path: Path,
     max_forwards_this_invocation: int,
     policy_batch_size: int,
+    cache_market_states: bool = False,
     progress_interval_forwards: int = 64,
     monotonic: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
     """Evaluate both sides, pausing only at a fully committed state boundary."""
 
+    if type(cache_market_states) is not bool:
+        raise RuntimeError("UNIFIED_EXIT_VAL_MARKET_CACHE_FLAG_INVALID")
+    # A fresh cache for this frozen EMA model and adapter only. Never carry
+    # cached tensors across an epoch, checkpoint change or resumed invocation.
+    market_state_cache = {} if cache_market_states else None
+    cache_verified = False
     contract = require_random_access_val_rollout_contract(adapter.contract)
     checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
         checkpoint_binding
@@ -862,6 +869,8 @@ def run_resumable_random_access_val_evaluation_v1(
         "progress_commit_semantics": "complete_policy_subbatch_only_v1",
         "test_data_used": False,
     }
+    if cache_market_states:
+        execution_contract["market_state_cache"] = "frozen_model_absolute_m1_row_v1"
     execution_contract["execution_contract_sha256"] = canonical_sha256(
         execution_contract
     )
@@ -1017,10 +1026,42 @@ def run_resumable_random_access_val_evaluation_v1(
         if verify_batch and entry_decision_representations.device.type == "cuda":
             torch.cuda.synchronize(entry_decision_representations.device)
         forward_started = time.monotonic()
+        cache_arguments = ({"_market_state_cache": market_state_cache,
+                            "_market_state_keys": [int(state["m1_row_index"]) for state in states]}
+                           if cache_market_states else {})
         with torch.inference_mode():
-            output = model.forward_exit_random_access_batch(**model_inputs)
+            output = model.forward_exit_random_access_batch(**model_inputs, **cache_arguments)
         if verify_batch:
             _verify_val_batch_throughput(model, model_inputs, output, forward_started)
+        if cache_market_states and not cache_verified:
+            # Compare an actual cache hit against an uncached same-shape call
+            # before accepting any actions from this invocation.
+            if entry_decision_representations.device.type == "cuda":
+                torch.cuda.synchronize(entry_decision_representations.device)
+            started = time.monotonic()
+            with torch.inference_mode():
+                cached = model.forward_exit_random_access_batch(**model_inputs, **cache_arguments)
+            if entry_decision_representations.device.type == "cuda":
+                torch.cuda.synchronize(entry_decision_representations.device)
+            cached_seconds = time.monotonic() - started
+            started = time.monotonic()
+            with torch.inference_mode():
+                reference = model.forward_exit_random_access_batch(**model_inputs)
+            if entry_decision_representations.device.type == "cuda":
+                torch.cuda.synchronize(entry_decision_representations.device)
+            reference_seconds = time.monotonic() - started
+            active_check = np.ones((len(states), 2), dtype=np.bool_)
+            if not np.array_equal(unique_active_exit_actions(cached["exit_action_q_bps"], active_check),
+                                  unique_active_exit_actions(reference["exit_action_q_bps"], active_check)):
+                raise RuntimeError("UNIFIED_EXIT_VAL_MARKET_CACHE_ACTION_MISMATCH")
+            for name, value in reference.items():
+                torch.testing.assert_close(cached[name], value, atol=1e-4, rtol=0.0, msg=name)
+            print(json.dumps({"event": "VAL_MARKET_CACHE_VERIFIED", "rows": len(states),
+                "cached_seconds": cached_seconds, "uncached_seconds": reference_seconds,
+                "inference_speedup": reference_seconds / cached_seconds,
+                "max_abs_q_difference_bps": float((cached["exit_action_q_bps"] - reference["exit_action_q_bps"]).abs().max().item()),
+                "actions_equal": True, "cached_market_rows": len(market_state_cache)}), flush=True)
+            cache_verified = True
         q = output.get("exit_action_q_bps")
         valid = output.get("exit_action_valid_mask")
         if (

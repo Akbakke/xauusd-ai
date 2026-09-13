@@ -817,7 +817,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     assert third["best_epoch"] == 1
 
 
-@pytest.mark.parametrize('fault', [None, 'train_batch', 'model_source'])
+@pytest.mark.parametrize('fault', [None, 'train_batch', 'model_source', 'market_cache_source', 'cache_data_source'])
 def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
     output = tmp_path / 'original'
     contract = {
@@ -849,11 +849,15 @@ def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
     new_contract['native_full_val']['compute_limits']['policy_batch_size'] = 128
     if fault == 'train_batch':
         new_contract['training']['batch_size'] = 128
-    if fault == 'model_source':
+    if fault in ('model_source', 'market_cache_source', 'cache_data_source'):
         new_contract['recipe_source_provenance']['source_bindings']['trainer'].update(
             path='/repo/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py', sha256='c' * 64)
+    if fault in ('market_cache_source', 'cache_data_source'):
+        origin['inference_only_market_cache'] = True
+    if fault == 'cache_data_source':
+        new_contract['recipe_source_provenance']['source_bindings']['trainer']['path'] = '/repo/gx1/features/htf_features.py'
     new = trainer._CandidateTrainingSession(out_bundle_dir=destination, contract=new_contract)
-    if fault:
+    if fault and fault != 'market_cache_source':
         with pytest.raises(RuntimeError, match='TRAIN_CONTRACT_CHANGED|MODEL_OR_DATA_SOURCE_CHANGED'):
             trainer._load_candidate_val_batch_successor_state(session=new, origin=origin)
     else:

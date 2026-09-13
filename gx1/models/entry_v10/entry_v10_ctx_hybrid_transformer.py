@@ -5,7 +5,7 @@ import math
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional, Tuple
+from typing import Dict, Mapping, Optional, Sequence, Tuple
 
 import torch
 import torch.nn as nn
@@ -2930,6 +2930,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         exit_mtf_gathers: Mapping[str, torch.Tensor],
         exit_mtf_history_lengths: Mapping[str, torch.Tensor],
         action_valid_mask: Optional[torch.Tensor] = None,
+        _market_state_cache: Optional[dict] = None,
+        _market_state_keys: Optional[Sequence[int]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Evaluate independent sampled states with bounded causal tails."""
 
@@ -2989,7 +2991,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             batch_size, 1, 1, 1
         ).expand(-1, 2, 1, UNIFIED_EXIT_PATH_FEATURE_DIM)
         current_path = trade_path_tail_x.gather(2, final_path_index)
-        base = self._forward_exit_causal_episode(
+        market_inputs = dict(
             entry_decision_representation=entry_decision_representation,
             exit_local_history_x=m1_local_history_x,
             exit_state_ctx_cat=state_ctx_cat.unsqueeze(1),
@@ -2998,9 +3000,51 @@ class EntryV10CtxHybridTransformer(nn.Module):
             exit_mtf_histories=exit_mtf_histories,
             exit_mtf_gathers=exit_mtf_gathers,
             exit_mtf_history_lengths=exit_mtf_history_lengths,
-            require_full_episode=False,
-            market_state_only=True,
         )
+        if _market_state_cache is None:
+            if _market_state_keys is not None:
+                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_KEYS_WITHOUT_CACHE")
+            base = self._forward_exit_causal_episode(
+                **market_inputs, require_full_episode=False, market_state_only=True,
+            )
+        else:
+            # This cache belongs to one frozen-model VAL invocation. Absolute
+            # M1 rows identify the same 480-bar/local-context/MTF inputs across
+            # different entries. Entry token, path and lifetime summary remain
+            # outside the cached market-only branch and are evaluated below.
+            if self.training or torch.is_grad_enabled():
+                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_REQUIRES_FROZEN_EVAL")
+            if (not isinstance(_market_state_cache, dict)
+                    or not isinstance(_market_state_keys, (list, tuple))
+                    or len(_market_state_keys) != batch_size
+                    or any(type(key) is not int or key < 0 for key in _market_state_keys)):
+                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_KEYS_INVALID")
+            missing = {}
+            for position, key in enumerate(_market_state_keys):
+                if key not in _market_state_cache:
+                    missing.setdefault(key, position)
+            if missing:
+                indices = torch.tensor(list(missing.values()), dtype=torch.long,
+                                       device=m1_local_history_x.device)
+
+                def select(value):
+                    if isinstance(value, Mapping):
+                        return {name: select(item) for name, item in value.items()}
+                    return value.index_select(0, indices)
+
+                fresh = self._forward_exit_causal_episode(
+                    **{name: select(value) for name, value in market_inputs.items()},
+                    require_full_episode=False, market_state_only=True,
+                )
+                for position, key in enumerate(missing):
+                    _market_state_cache[key] = {
+                        name: value[position:position + 1].detach()
+                        for name, value in fresh.items()
+                    }
+            first = _market_state_cache[_market_state_keys[0]]
+            base = {name: torch.cat([_market_state_cache[key][name]
+                                    for key in _market_state_keys], dim=0)
+                    for name in first}
         d_model = int(self.cfg.d_model)
         path_flat = trade_path_tail_x.reshape(
             batch_size * 2, tail_rows, UNIFIED_EXIT_PATH_FEATURE_DIM
