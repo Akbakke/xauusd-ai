@@ -394,3 +394,35 @@ def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path):
     assert result['exited_side_trade_count'] == 11016
     assert result['model_forward_count'] == 44
     assert result['execution_contract']['policy_batch_size'] == 128
+
+
+@pytest.mark.parametrize("difference,change_action,error", [
+    (4.92e-5, False, None),
+    (0.03, False, AssertionError),
+    (4.92e-5, True, RuntimeError),
+])
+def test_val_batch_rounding_guard_preserves_decisions(difference, change_action, error):
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        _verify_val_batch_throughput,
+    )
+
+    reference = torch.zeros((128, 2, 2), dtype=torch.float32)
+    reference[..., 1] = 1.0 if not change_action else 2e-5
+    actual = reference.clone()
+    actual[..., 0] += difference
+
+    class ReferenceModel:
+        def forward_exit_random_access_batch(self, *, values):
+            return {"exit_action_q_bps": values}
+
+    def check():
+        _verify_val_batch_throughput(
+            ReferenceModel(), {"values": reference},
+            {"exit_action_q_bps": actual}, 0.0,
+        )
+
+    if error is None:
+        check()
+    else:
+        with pytest.raises(error):
+            check()
