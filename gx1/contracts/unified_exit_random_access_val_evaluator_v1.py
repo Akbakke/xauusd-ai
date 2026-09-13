@@ -836,12 +836,16 @@ def _restore_cpu_pipeline_progress(origin, *, execution_contract, checkpoint_bin
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_ORIGIN_INVALID")
     prior_execution = {key: value for key, value in execution_contract.items()
                        if key != "execution_contract_sha256"}
-    if prior_execution.get("cpu_pipeline") == "immutable_metadata_shared_path_v2":
-        prior_execution["cpu_pipeline"] = "compact_market_inputs_batched_economics_v1"
-    else:
-        prior_execution.pop("cpu_pipeline", None)
-        prior_execution.pop("cpu_workers", None)
+    current_sha = canonical_sha256(prior_execution)
+    if execution_contract.get("execution_contract_sha256") != current_sha:
+        raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
     prior = read_bound_json(Path(origin["path"]), origin["sha256"])
+    if prior.get("contract_sha256") != current_sha:
+        if prior_execution.get("cpu_pipeline") == "immutable_metadata_shared_path_v2":
+            prior_execution["cpu_pipeline"] = "compact_market_inputs_batched_economics_v1"
+        else:
+            prior_execution.pop("cpu_pipeline", None)
+            prior_execution.pop("cpu_workers", None)
     progress = _require_progress(prior, contract_sha256=canonical_sha256(prior_execution),
                                  checkpoint_binding_sha256=checkpoint_binding_sha)
     if progress["completed_invocation_count"] < 1 or progress["materialized_state_view_count"] < 1:

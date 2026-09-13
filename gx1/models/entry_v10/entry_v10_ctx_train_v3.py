@@ -12081,6 +12081,15 @@ def _candidate_execution_budget_for_training(
     )
 
 
+def _native_candidate_val_pause_binding(rollout_path: Path, native_result: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "progress_path": str(rollout_path),
+        "progress_sha256": _sha256_file(rollout_path),
+        "pause": dict(native_result),
+        "checkpoint_selection_advanced": False,
+    }
+
+
 def _write_candidate_execution_pause_receipt(
     evidence: Mapping[str, Any], *, out_bundle_dir: Path, gx1_data_override: str,
 ) -> Path:
@@ -12105,13 +12114,18 @@ def _write_candidate_execution_pause_receipt(
         # so their separately issued budgets can have identical contents.
         # Bind each immutable receipt to its actual durable VAL progress too.
         epoch = evidence.get("epoch_index")
+        pause_result = native_pause.get("pause") if isinstance(native_pause, Mapping) else None
         if (not isinstance(native_pause, Mapping) or type(epoch) is not int or epoch < 0
                 or evidence.get("phase") != "validation"
-                or native_pause.get("decision") != "PAUSED_RESUMABLE"):
+                or not isinstance(pause_result, Mapping)
+                or pause_result.get("decision") != "PAUSED_RESUMABLE"
+                or native_pause.get("checkpoint_selection_advanced") is not False):
             raise RuntimeError("[CANDIDATE_EXECUTION_PAUSE_VAL_RECEIPT_INVALID]")
         progress_path = directory / "native_val" / f"epoch_{epoch + 1:04d}" / "ROLLOUT_PROGRESS.json"
-        progress_sha = native_pause.get("progress_file_sha256")
+        progress_sha = native_pause.get("progress_sha256")
         if (native_pause.get("progress_path") != str(progress_path)
+                or pause_result.get("progress_path") != str(progress_path)
+                or pause_result.get("progress_file_sha256") != progress_sha
                 or not isinstance(progress_sha, str)
                 or not re.fullmatch(r"[0-9a-f]{64}", progress_sha)
                 or progress_path.is_symlink() or not progress_path.is_file()
@@ -12860,12 +12874,7 @@ def _run_resumable_candidate_training(
                 _pause_if_due(
                     phase_value="validation", epoch_value=epoch_index, batch_offset_value=0,
                     reason_override="native_full_val_window_complete",
-                    native_val_pause={
-                        "progress_path": str(rollout_path),
-                        "progress_sha256": _sha256_file(rollout_path),
-                        "pause": dict(native_result),
-                        "checkpoint_selection_advanced": False,
-                    },
+                    native_val_pause=_native_candidate_val_pause_binding(rollout_path, native_result),
                 )
             val_stats = _native_candidate_validation_stats(native_result)
             va_loss = float(val_stats["entry_action_q_raw_bps_mse_mean"])

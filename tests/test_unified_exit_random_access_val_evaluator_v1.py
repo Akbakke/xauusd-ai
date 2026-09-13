@@ -443,7 +443,7 @@ def test_val_batch_rounding_guard_preserves_decisions(difference, change_action,
             check()
 
 
-@pytest.mark.parametrize("prior_pipeline", [False, True])
+@pytest.mark.parametrize("prior_pipeline", [False, True, "same_v2"])
 def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift(tmp_path, prior_pipeline):
     from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
         _new_progress, _seal_progress, _restore_cpu_pipeline_progress,
@@ -453,6 +453,8 @@ def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift
                      "market_state_cache": "frozen_model_absolute_m1_row_v1"}
     if prior_pipeline:
         old_execution.update(cpu_pipeline="compact_market_inputs_batched_economics_v1", cpu_workers=4)
+    if prior_pipeline == "same_v2":
+        old_execution["cpu_pipeline"] = "immutable_metadata_shared_path_v2"
     before = _new_progress(contract_sha256=canonical_sha256(old_execution), checkpoint_binding_sha256="1" * 64)
     before.update(completed_invocation_count=1, materialized_state_view_count=128,
                   model_forward_count=1, next_entry_scan_position=128, elapsed_compute_seconds=0.5)
@@ -476,6 +478,14 @@ def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift
     assert file_sha256(path) == origin["sha256"]
     for key in ("entry_policy_sha256", "rollout_contract_sha256", "checkpoint_binding_sha256"):
         changed = {**execution, key: "f" * 64}
+        with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):
+            _restore_cpu_pipeline_progress(origin, execution_contract=changed,
+                checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)
+
+    for key in ("entry_policy_sha256", "rollout_contract_sha256", "checkpoint_binding_sha256"):
+        changed = {k: v for k, v in execution.items() if k != "execution_contract_sha256"}
+        changed[key] = "f" * 64
+        changed["execution_contract_sha256"] = canonical_sha256(changed)
         with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):
             _restore_cpu_pipeline_progress(origin, execution_contract=changed,
                 checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)
