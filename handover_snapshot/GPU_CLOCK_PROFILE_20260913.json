@@ -1,0 +1,36 @@
+{
+  "status": "MEASURED_AND_INSTALLED_FOR_AUTOMATIC_START",
+  "appliedUtc": "2026-09-13T18:17:41.3670283+00:00",
+  "gpuUuid": "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29",
+  "requestedGraphicsMhz": [
+    1395,
+    1695
+  ],
+  "requestedMemoryMhz": 9751,
+  "actualGraphicsMhz": 1395,
+  "actualMemoryMhz": 9501,
+  "actualPstate": "P2",
+  "actualPowerWatts": 124.23,
+  "powerLimitWatts": 300,
+  "source": "https://docs.nvidia.com/nim/wsl2/1.0.0/benchmarking.html",
+  "nativePid": 728,
+  "trainingSourceUnchanged": true,
+  "requiresReapplicationAfterPhysicalReboot": true,
+  "resetCommands": [
+    "nvidia-smi.exe -i GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29 -rgc",
+    "nvidia-smi.exe -i GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29 -rmc"
+  ],
+  "measurement": {
+    "viewsPerSecond": 1527.6756501109055,
+    "addedViews": 1412820,
+    "computeSeconds": 924.8167304999806,
+    "fromUtc": "2026-09-13T18:18:22.822511+00:00",
+    "toUtc": "2026-09-13T18:33:30.675533+00:00",
+    "previousStableRate": 1076.7306608976926,
+    "ratio": 1.4188094623749739
+  },
+  "launcherWindowsPath": "C:\\Users\\Andre\\GX1FullTrainNative_f77dd273\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1",
+  "launcherSha256": "40aa3b7f95b539e09bd1159bb5a50519afc2b1cc02bb4d0db3c2dfae3e427855",
+  "installationUtc": "2026-09-13T18:40:07.2562904+00:00",
+  "automaticBootApplicationVerified": false
+}

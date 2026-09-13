@@ -1,35 +1,31 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current status -->
 # Current GX1 status
 
-Current prepared source: 1548dd7c47d7f5a83ede4ccca1ef635b443d51f0 at /home/andre2/src/GX1_VAL_HOTPATH_V39.
-Branch fix/native-val-hotpath-20260913 is pushed with exact remote HEAD verified.
-The user authorized further performance work after items 1–4 on September 13.
-Use CURRENT_NATIVE_RUN.json for all exact runtime and source bindings.
+Current source: 03592fe6f1113736d0499c35ef98a3d9267e558c at /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
+Branch fix/native-val-pause-envelope-20260913 is pushed; exact remote HEAD verified.
+Use CURRENT_NATIVE_RUN.json for current bindings. Older source references are historical.
 
-This successor validates a private copy of frozen normalization once, indexes
-immutable entry metadata once, converts the active mask only when saving,
-and encodes an identical LONG/SHORT price history once during frozen VAL.
-Side-specific summaries, fusion and Q decisions remain separate. TRAIN's
-forward and gradients, data, FP32, features, five timeframes/eight families,
-all 5,508 June entries/both sides, costs and batch sizes remain unchanged.
+V39 durably saved 18,353,548 VAL views / 145,254 forwards, cursor 3860/1444,
+then failed CANDIDATE_EXECUTION_PAUSE_VAL_RECEIPT_INVALID. This was a bug in
+the new receipt validator: the producer wraps its pause result. V40 validates
+that actual envelope and permits exact-contract continuation of saved v2 VAL.
+Three actual evaluator pauses now pass through the production envelope helper
+and receipt writer in one regression test. Five targeted cases and mandatory
+commit hooks passed. No numerical/performance model code changes in V40.
 
-V38 invocation 3 durably saved 13,176,595 views / 104,181 forwards at cursor
-2579/3992, then failed with CANDIDATE_EXECUTION_PAUSE_RECEIPT_CONFLICT.
-It must not be described as an outer guard PASS. Its complete VAL progress
-file is retained and explicitly bound as the new recipe's resume origin.
-TRAIN remains checkpoint 309 / 19,588 optimizer steps, using the same immutable
-EMA validation snapshot. The collision came from identical budget contents
-while the TRAIN pointer stayed fixed. Native VAL receipt names now also bind
-the verified saved progress-file SHA; existing receipts are never overwritten.
+All saved VAL progress, TRAIN checkpoint 309 / 19,588 steps and the same
+immutable EMA snapshot are explicitly bound and preserved. The failed V39
+window has no outer PASS receipt; never claim otherwise. No TRAIN/VAL prefix
+is repeated. Source is frozen; documentation checkout is not executable source.
 
-Fifteen targeted CPU cases and mandatory commit hooks passed. They cover
-short/full-length shared paths, side outputs/actions, TRAIN gradients,
-costs/slice hashes, pause/resume and identity drift, and three successive
-VAL receipts with the same budget and TRAIN pointer. Actual GPU parity,
-startup/resume and sustained throughput still require runtime observation.
+Measured V39 host GPU clock correction improved steady throughput from
+1,077 to 1,528 views/s (+41.9%), with identical Q/actions in runtime parity.
+Windows launcher reapplies 1395–1695 MHz graphics / requested 9751 MHz memory
+before the unchanged bound controller. Effective CUDA P2 memory was 9501 MHz.
+300 W, 85 C core, 80 C memory and all existing guards remain. Automatic
+application after physical reboot still needs the APPLIED.jsonl observation.
 
-The controller is prepared for the new source after the old process exited.
-No TRAIN/VAL prefix is repeated. Keep one heavy job, four CPU workers,
-19 available WSL threads, normal priority, all existing resource/GPU guards,
-and sparse observations. Max 30 epochs, June VAL each epoch, patience 5.
-TEST remains sealed; positive full-policy net Bps and live readiness unproven.
+Current deployment is PREPARED, not yet verified running. One heavy job,
+four CPU workers, CPU 0–18, sparse checks around 15 minutes. Full five-year
+TRAIN, June VAL each epoch, max 30 epochs/patience 5. TEST remains sealed.
+Full-policy positive net Bps and live readiness remain unproven; no reliable ETA.

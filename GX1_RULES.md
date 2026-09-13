@@ -1,10 +1,7 @@
-Current authorized successor: 1548dd7c47d7f5a83ede4ccca1ef635b443d51f0 at /home/andre2/src/GX1_VAL_HOTPATH_V39.
-The user authorized performance work beyond items 1–4 on September 13.
-This source also repairs the observed native VAL pause-receipt collision.
-Preserve the bound completed TRAIN, EMA snapshot and 13,176,595 saved VAL views.
-Use CURRENT_NATIVE_RUN.json; the documentation checkout is not executable source.
-One heavy job, sparse monitoring and existing quality/resource guards apply.
-Older source/authorization references below are historical.
+Current source: 03592fe6f1113736d0499c35ef98a3d9267e558c at /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
+Preserve completed TRAIN and 18,353,548 saved VAL views.
+Use CURRENT_NATIVE_RUN.json. Older source references below are historical.
+One heavy job, sparse checks, existing guards, no speculative changes.
 
 ## Current operator scope — 2026-09-13
 

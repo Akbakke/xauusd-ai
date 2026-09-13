@@ -1,18 +1,18 @@
 {
   "schema_version": "gx1_native_handover_binding_v1",
-  "source_repo": "/home/andre2/src/GX1_VAL_HOTPATH_V39",
-  "source_commit": "1548dd7c47d7f5a83ede4ccca1ef635b443d51f0",
-  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_HOTPATH_1548DD7C_BOOT407",
-  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_HOTPATH_CANDIDATE_BUNDLE",
-  "session_contract_sha256": "4354e374424b229637ed7f51c2a92f33dc7ffa50bdf4384c03d249c04c9803d9",
+  "source_repo": "/home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40",
+  "source_commit": "03592fe6f1113736d0499c35ef98a3d9267e558c",
+  "runtime_root": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_PAUSEFIX_03592FE6_BOOT408",
+  "training_session": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE",
+  "session_contract_sha256": "676fee85c03cce2c04fc51032ca7fe8db6d002444a3abc043ece72b978318cd2",
   "immutable_artifacts": {
     "campaign_plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_HOTPATH_1548DD7C_BOOT407/CAMPAIGN_PLAN.json",
-      "sha256": "429a4e5db202375744cb961d40368dfed323984617175b8c37824d98da97816b"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAMPAIGN_NATIVE_VAL128_PAUSEFIX_03592FE6_BOOT408/CAMPAIGN_PLAN.json",
+      "sha256": "c7daa88eff3aba49891d8c890b76c8bfbaf6d695a34eb3cae9e459425e746fd9"
     },
     "native_recipe": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_HOTPATH_V10.json",
-      "sha256": "8cee5ddc26bde7b6e420786baa0218bff34ccec7fc1026731bea820e09351399"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FULL_TRAIN_RECIPE_VAL128_PAUSEFIX_V11.json",
+      "sha256": "a933994feb9fca4ff23ad192a493861faa09fb2990e94d3d733130a52b57b07e"
     },
     "random_access_index": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/ROOT.json",
@@ -58,17 +58,17 @@
   "exit_val_batch_size": 128,
   "training_resume_origin": {
     "contract": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
-      "sha256": "3d6728bdb403a820551dd8f90e33cbe6c36dad33b8965b794f02152746bc640b"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_HOTPATH_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "4354e374424b229637ed7f51c2a92f33dc7ffa50bdf4384c03d249c04c9803d9"
     },
     "pointer": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
-      "sha256": "7407a9da8efc7d13936dc48d449a95f2858a98a2a09f566e5864af55c3b90720"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_HOTPATH_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "eef9816f6724dac524be32c6c1811810bef99b9bff04e3b2d10645813634d2c1"
     },
     "inference_only_cpu_pipeline": true,
     "val_progress": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CPU_PIPELINE_CANDIDATE_BUNDLE/native_val/epoch_0001/ROLLOUT_PROGRESS.json",
-      "sha256": "b06d426e325458f532fe9046cfcda44a5afb75497b136c9a6484b17c3f09f217"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_HOTPATH_CANDIDATE_BUNDLE/native_val/epoch_0001/ROLLOUT_PROGRESS.json",
+      "sha256": "a948d67539ed66cad05b3050b72c68156b99d692e76f78ceee2b5495e6b030d1"
     },
     "validation_checkpoint": {
       "epoch_index": 0,

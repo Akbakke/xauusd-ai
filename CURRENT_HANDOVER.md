@@ -1,6 +1,63 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | current operational takeover -->
 # GX1 lifecycle-v2 takeover — 2026-09-13
 
+## Current pause-envelope continuation
+
+Current source: 03592fe6f1113736d0499c35ef98a3d9267e558c at /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
+Branch fix/native-val-pause-envelope-20260913 is pushed; exact remote HEAD verified.
+Use CURRENT_NATIVE_RUN.json for current bindings. Older source references are historical.
+
+V39 durably saved 18,353,548 VAL views / 145,254 forwards, cursor 3860/1444,
+then failed CANDIDATE_EXECUTION_PAUSE_VAL_RECEIPT_INVALID. This was a bug in
+the new receipt validator: the producer wraps its pause result. V40 validates
+that actual envelope and permits exact-contract continuation of saved v2 VAL.
+Three actual evaluator pauses now pass through the production envelope helper
+and receipt writer in one regression test. Five targeted cases and mandatory
+commit hooks passed. No numerical/performance model code changes in V40.
+
+All saved VAL progress, TRAIN checkpoint 309 / 19,588 steps and the same
+immutable EMA snapshot are explicitly bound and preserved. The failed V39
+window has no outer PASS receipt; never claim otherwise. No TRAIN/VAL prefix
+is repeated. Source is frozen; documentation checkout is not executable source.
+
+Measured V39 host GPU clock correction improved steady throughput from
+1,077 to 1,528 views/s (+41.9%), with identical Q/actions in runtime parity.
+Windows launcher reapplies 1395–1695 MHz graphics / requested 9751 MHz memory
+before the unchanged bound controller. Effective CUDA P2 memory was 9501 MHz.
+300 W, 85 C core, 80 C memory and all existing guards remain. Automatic
+application after physical reboot still needs the APPLIED.jsonl observation.
+
+Current deployment is PREPARED, not yet verified running. One heavy job,
+four CPU workers, CPU 0–18, sparse checks around 15 minutes. Full five-year
+TRAIN, June VAL each epoch, max 30 epochs/patience 5. TEST remains sealed.
+Full-policy positive net Bps and live readiness remain unproven; no reliable ETA.
+
+## Measured Windows GPU clock profile
+
+Actual V39 startup/resume and GPU checks passed on boot 408. Q differences
+were zero; actions, dynamic states and economic steps/hashes matched. The old
+13,176,595 views were restored, and VAL reached 16,790,286 at 18:33 UTC.
+
+The code-only steady rate was 1,076.73 views/s, a small increase over V38.
+Windows clock management was then observed at P5, memory 810 MHz. Setting
+supported host-side clock locks in the SAME live run gave 1,527.68 views/s
+across the next 15-minute interval (+41.9%). Observed effective clocks were
+1395 MHz graphics / 9501 MHz memory (CUDA P2); requested ranges are 1395–1695
+and 9751 MHz. At 18:33 UTC the guard reported 57 C core, 66 C memory and
+approximately 126 W. The 300 W cap and every existing guard remain unchanged.
+No completion-time projection or main-policy Bps claim follows from this.
+
+The existing Windows task now calls scripts/windows/GX1-NativeClockProfileLauncher.ps1
+before the SAME hash-checked campaign controller with the SAME parameter set.
+It reapplies the clocks after ordinary reboots and resets driver clock defaults
+when the controller returns/errors; reboot itself also resets them. Installation
+preserved the currently running invocation. First automatic boot application
+still needs observation in C:/ProgramData/GX1/GpuClockProfile/APPLIED.jsonl.
+The saved task XML and install receipt are in that same directory. A new campaign
+installation can replace its task action: retain/reapply this launcher then.
+Use handover_snapshot/GPU_CLOCK_PROFILE_20260913.json for exact bindings and
+measurements, and the plan-specific Install-ClockProfile.ps1 for reconstruction.
+
 ## Current VAL hotpath successor
 
 Current prepared source: 1548dd7c47d7f5a83ede4ccca1ef635b443d51f0 at /home/andre2/src/GX1_VAL_HOTPATH_V39.
