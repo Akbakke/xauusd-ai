@@ -791,23 +791,33 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
 
     started = time.monotonic()
     with torch.inference_mode():
-        reference = torch.cat([
-            model.forward_exit_random_access_batch(**sliced(inputs, start, start + 16))["exit_action_q_bps"]
-            for start in range(0, size, 16)
-        ])
+        parts = [model.forward_exit_random_access_batch(**sliced(inputs, start, start + 16))
+                 for start in range(0, size, 16)]
+        reference = torch.cat([part["exit_action_q_bps"] for part in parts])
     if q.device.type == "cuda":
         torch.cuda.synchronize(q.device)
     reference_seconds = time.monotonic() - started
-    torch.testing.assert_close(q, reference)
     active = np.ones((size, 2), dtype=np.bool_)
-    if not np.array_equal(unique_active_exit_actions(q, active), unique_active_exit_actions(reference, active)):
-        raise RuntimeError("UNIFIED_EXIT_VAL_BATCH_ACTION_MISMATCH")
-    print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_VERIFIED", "rows": size,
+    actions_equal = np.array_equal(unique_active_exit_actions(q, active), unique_active_exit_actions(reference, active))
+    intermediate_differences = {}
+    for key in ("exit_random_access_path_state", "exit_random_access_summary_state",
+                "exit_random_access_local_state", "exit_random_access_mtf_state"):
+        if key in output and all(key in part for part in parts):
+            ref = torch.cat([part[key] for part in parts])
+            intermediate_differences[key] = float((output[key] - ref).abs().max().item())
+    print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_COMPARISON", "rows": size,
         "policy_batch_size": 128, "reference_batch_size": 16,
         "large_batch_seconds": large_seconds, "reference_seconds": reference_seconds,
         "inference_speedup": reference_seconds / large_seconds,
         "max_abs_q_difference_bps": float((q - reference).abs().max().item()),
-        "actions_equal": True, "training_or_data_changed": False}), flush=True)
+        "actions_equal": bool(actions_equal), "intermediate_max_abs_difference": intermediate_differences,
+        "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
+        "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32}), flush=True)
+    torch.testing.assert_close(q, reference)
+    if not actions_equal:
+        raise RuntimeError("UNIFIED_EXIT_VAL_BATCH_ACTION_MISMATCH")
+    print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_VERIFIED", "rows": size,
+        "inference_speedup": reference_seconds / large_seconds, "actions_equal": True}), flush=True)
 
 
 def run_resumable_random_access_val_evaluation_v1(
