@@ -7,7 +7,7 @@ steps, checkpoint 309. That exact trained state is preserved on the host and
 in the verified Mac backup.
 
 At 07:01 UTC the user explicitly ordered a throughput restart. The old
-batch-16 VAL and Windows task were stopped. The new f2b597f8 source is pushed;
+batch-16 VAL and Windows task were stopped. The successor 267bb0c8 source is pushed;
 its guarded successor is prepared with Exit-VAL batch 128, TRAIN and Entry-VAL
 batch 16. It restores model/target, optimizer, EMA, scheduler, order, RNG and
 selection state from the completed TRAIN. June VAL starts with fresh
@@ -40,18 +40,18 @@ Monitor about every 15 minutes and stay silent on ordinary healthy progress.
 
 ## Exact binding
 
-- Frozen source: /home/andre2/src/GX1_VAL_THROUGHPUT_V34
-- Commit: f2b597f8ff9a62a81dfb7106afd23b4ae74c894b
-- Frozen branch: fix/native-val-throughput-20260913
+- Frozen source: /home/andre2/src/GX1_VAL_FP32_V35
+- Commit: 267bb0c8bfa573c4553a75a0789ca4568a0af4e2
+- Frozen branch: fix/native-val-cudnn-fp32-20260913
 - Data root (D): /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912
-- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_F2B597F8_BOOT398
-- Plan: D/CAMPAIGN_NATIVE_VAL128_F2B597F8_BOOT398/CAMPAIGN_PLAN.json
-- Plan file SHA: 6e990eed1a6d8a3d4013fb0689ddbec92c05caa62d2a4d9f0f1caa046a0bcc46
-- Plan internal SHA: b995f4a3883ac7e099707b464649acc1ea36ad63d53e0a41cf463efef3f637b2
-- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_V5.json
-- Recipe file SHA: 1af1bec61ad9f794fc97964da19665f9de5f665dff6897e6488f09855f47f5fd
-- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CANDIDATE_BUNDLE
-- Expected successor session contract SHA: f7b0205ff969c863e81308db766dd323067d0dc3e2d0f615bd5728379dacda51
+- Runtime (R): /home/andre2/GX1_RUNS/UNIFIED_EXIT_FULL_TRAIN_VAL128_FP32_267BB0C8_BOOT399
+- Plan: D/CAMPAIGN_NATIVE_VAL128_FP32_267BB0C8_BOOT399/CAMPAIGN_PLAN.json
+- Plan file SHA: c723e57d159baa111ddb3745a577bbd58155572997856a044a3361cf8ac6cc0d
+- Plan internal SHA: f7bd97a4146e954cf5fdc391e4c81052ac04c4259daafa9c0ebd6f1b26d02ef1
+- Recipe: D/NATIVE_FULL_TRAIN_RECIPE_VAL128_FP32_V6.json
+- Recipe file SHA: f19dbd19adb389acc859278daa483c3f3df3959ce6ab09ed33a083f2645ffde7
+- Session (S): D/.gx1-candidate-training-session.FULL_TRAIN_VAL128_FP32_CANDIDATE_BUNDLE
+- Expected successor session contract SHA: 710f8e9bb18fbc4209ade85968257e657d0ebecfa4ae0e65ef7915f84b0d2930
 - Preserved TRAIN-origin state SHA: c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349
 - Epoch-1 VAL progress: S/native_val/epoch_0001/ROLLOUT_PROGRESS.json
 - Windows task: GX1RandomAccessCampaignV2
@@ -189,7 +189,7 @@ only for a named observed blocker, with the smallest fix and focused checks.
 ## Preservation
 
 The docs/lifecycle-v2-takeover-20260913 branch descends from the successor
-f2b597f8. Both the original 2959cd09 and successor f2b597f8 source branches
+267bb0c8. The original and both successor source branches
 have been pushed to origin. The running checkout stays frozen; this separate
 documentation checkout observes it. A local publication receipt records the
 actual docs commit and verified remote ref after push.
@@ -201,3 +201,23 @@ A Git push is not a full-machine backup; no full raw-data backup is claimed.
 Restore exact source/recipe/contracts before considering a guarded resume.
 Cleanup already reclaimed disk space; more cleanup/VHDX compaction is not
 part of this takeover task.
+
+## Precision correction after first batch-128 attempt
+
+The f2b597f8 attempt restored checkpoint 309 / 19,588 steps successfully,
+then stopped before any production VAL forward was committed. The same-row
+128-versus-16 comparison differed by up to 0.03000164 Bps (497/512 Q cells).
+No candidate score was admitted. Original TRAIN, both source checkouts and
+both sessions remain preserved.
+
+The declared FP32 setup disabled CUDA matmul TF32 but omitted the separate
+cuDNN recurrent-kernel flag. Successor 267bb0c8 explicitly disables both.
+This corrects an arithmetic-setting omission; old weights are retained,
+not represented as having been trained under newly verified cuDNN settings.
+The unchanged strict Q/action comparison and measured inference timing must
+pass on the actual new run before claiming the batching speedup. The first
+failure does not by itself prove which backend caused the numeric difference.
+Five focused checks and existing Git hooks passed. The new preparation is
+handover_snapshot/VAL128_FP32_PREPARED.json; all earlier snapshots are dated
+predecessor evidence. The expected new session binding is in
+handover_snapshot/VAL128_FP32_EXPECTED_SESSION.json and is not a live-start claim.

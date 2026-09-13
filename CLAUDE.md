@@ -1,5 +1,5 @@
 The user explicitly authorized the September 13 VAL throughput restart.
-Successor f2b597f8 preserves completed TRAIN and uses Exit-VAL batch 128;
+Successor 267bb0c8 preserves completed TRAIN and uses Exit-VAL batch 128;
 TRAIN/Entry-VAL remain 16. This specific restart supersedes the earlier hold
 on performance changes. After the restart, return to sparse monitoring.
 

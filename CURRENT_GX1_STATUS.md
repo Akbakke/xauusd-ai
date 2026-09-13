@@ -1,3 +1,7 @@
+Current prepared successor: 267bb0c8, explicit cuDNN and matmul FP32.
+The first f2b597f8 batch-128 comparison failed before VAL progress; TRAIN
+checkpoint 309 is preserved. Observe the new run before claiming speedup.
+
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | short current status -->
 # GX1 status
 
