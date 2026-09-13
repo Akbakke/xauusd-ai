@@ -1,0 +1,52 @@
+{
+  "schema_version": "gx1_checkpoint_backup_observation_v1",
+  "decision": "PASS",
+  "verified_utc": "2026-09-13T06:39:46.523193+00:00",
+  "destination": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/handover_stage/checkpoint_backup_20260913",
+  "source_commit": "2959cd09f34b20fe82f351f97f7b051b49918999",
+  "checkpoint": {
+    "checkpoint_index": 309,
+    "complete": false,
+    "epoch_index": 0,
+    "global_optimizer_steps": 19588,
+    "next_batch_offset": 0,
+    "phase": "validation",
+    "schema_version": "gx1_candidate_training_session_v1",
+    "session_contract_sha256": "8adc1e9a78cc02b086e737b168287a1d673840172e95c09204291e42e0c01729",
+    "slot": 0,
+    "state_sha256": "c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349"
+  },
+  "files": {
+    "BACKUP_SOURCE.json": {
+      "size_bytes": 1632,
+      "sha256": "51e8138b733eafc097de45ce3267ccd74690d52657703e50014489cef29b2059"
+    },
+    "CAMPAIGN_PLAN.json": {
+      "size_bytes": 139982,
+      "sha256": "6dac3df1d9d61d86cd3e26202a78f1f5cd4ca2c31a95c5cc19a93ff8881aa890"
+    },
+    "CANDIDATE_TRAINING_SESSION_CONTRACT.json": {
+      "size_bytes": 56005,
+      "sha256": "8adc1e9a78cc02b086e737b168287a1d673840172e95c09204291e42e0c01729"
+    },
+    "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json": {
+      "size_bytes": 369,
+      "sha256": "67f19cb9af5a792d8317a8e8a00c69e741714a94fe4326a151326b2410b3b726"
+    },
+    "NATIVE_FULL_TRAIN_RECIPE_DISPATCH_V4.json": {
+      "size_bytes": 65555,
+      "sha256": "c3332134facbf6bca3835cb7d9f57eaa9d57856fcdf27c5f0b35b6c2b5111819"
+    },
+    "ROOT.json": {
+      "size_bytes": 2151,
+      "sha256": "dbce286e2cb20cb8b0cb441fd60d6743a84a91ea2afdd549a817b8f351d842c7"
+    },
+    "candidate_training_state_slot_0.pt": {
+      "size_bytes": 195684041,
+      "sha256": "c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349"
+    }
+  },
+  "raw_data_included": false,
+  "val_runtime_included": false,
+  "restore_scope": "Epoch-1 TRAIN state and bound manifests only; restore the exact source, data, seed/normalization dependencies and validate through the existing controller before resuming. This is not a full-machine or exact in-flight VAL backup."
+}

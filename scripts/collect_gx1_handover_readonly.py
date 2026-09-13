@@ -3,7 +3,8 @@
 
 The collector executes only a fixed set of read-only git commands. Host/task,
 boot, probe, guard, process and GPU state must already exist as snapshot files.
-It cannot start, stop, resume, install, reboot or query training.
+The native-binding mode also reads process and small runtime metadata.
+Neither mode can start, stop, resume, install, reboot or load a model.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -208,7 +210,120 @@ def collect(
         raise
 
 
+def _native_processes(source: Path) -> list[dict[str, str]]:
+    result = subprocess.run(
+        ["ps", "-eo", "pid,ppid,etime,pcpu,rss,args"], check=True,
+        capture_output=True, text=True, timeout=15,
+    )
+    found = []
+    for line in result.stdout.splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) != 6:
+            continue
+        command = fields[5]
+        if command.startswith(str(source) + "/.venv/bin/python ") and (
+            "-m gx1.scripts.run_unified_exit_native_candidate_window_v1 " in command
+        ):
+            found.append(dict(zip(("pid", "ppid", "elapsed", "cpu_percent", "rss_kib"), fields[:5])))
+    return found
+
+
+def native_status(binding_path: Path, *, source_only: bool = False) -> dict[str, object]:
+    """Observe the explicit native run without touching model/data payloads.
+
+    This verifies small immutable bindings, not complete dataset/checkpoint bytes.
+    Mutable progress is an observation; the existing campaign owns resume validation.
+    """
+    binding_path = _regular_file(str(binding_path), label="native_binding")
+    binding = json.loads(binding_path.read_text())
+    if binding.get("schema_version") != "gx1_native_handover_binding_v1":
+        raise ValueError("invalid native handover binding schema")
+    source = _repo(binding["source_repo"])
+    commit = _git(source, "rev-parse", "HEAD")
+    if commit != binding["source_commit"]:
+        raise ValueError("native source commit mismatch")
+    dirty = _git(source, "status", "--porcelain=v1", "--untracked-files=all")
+    if dirty:
+        raise ValueError("native source is dirty")
+    verified = {}
+    for role, artifact in binding["immutable_artifacts"].items():
+        path = _regular_file(artifact["path"], label=role)
+        digest = _sha256(path)
+        if digest != artifact["sha256"]:
+            raise ValueError(f"native artifact hash mismatch: {role}")
+        verified[role] = {"path": str(path), "sha256": digest}
+    out = {
+        "schema_version": "gx1_native_handover_observation_v1",
+        "decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY",
+        "observed_utc": datetime.now(timezone.utc).isoformat(),
+        "source_repo": str(source), "source_commit": commit, "source_clean": True,
+        "immutable_artifacts_verified": verified, "test_accessed": False,
+        "state_payload_rehashed": False,
+    }
+    if source_only:
+        return out
+
+    def read_json(path: Path) -> dict | None:
+        if not path.exists():
+            return None
+        return json.loads(_regular_file(str(path), label="runtime_metadata").read_text())
+
+    runtime = _repo(binding["runtime_root"])
+    session = _repo(binding["training_session"])
+    pointer = read_json(session / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json")
+    if pointer is None:
+        raise ValueError("native training checkpoint pointer is missing")
+    if pointer.get("session_contract_sha256") != binding["session_contract_sha256"]:
+        raise ValueError("native session contract mismatch")
+    out["checkpoint"] = pointer
+    processes = _native_processes(source)
+    out["native_processes"] = processes
+    out["process_observation"] = "RUNNING" if processes else "NO_NATIVE_PROCESS_OBSERVED"
+    active = read_json(runtime / "ACTIVE_INVOCATION.json")
+    out["active_invocation"] = ({k: active.get(k) for k in
+        ("invocation_id", "invocation_number", "kind", "started_utc")} if active else None)
+    # Numeric ordering is display-only. It never selects a checkpoint for execution.
+    receipts = list((runtime / "receipts").glob("invocation-*.json"))
+    if receipts:
+        path = max(receipts, key=lambda p: int(p.stem.split("-")[-1]))
+        receipt = read_json(path)
+        out["latest_terminal_receipt"] = {k: receipt.get(k) for k in
+            ("invocation_number", "outcome", "trainer_guard_exit_code",
+             "progress_observer_exit_code", "guard_decision")}
+    if active:
+        invocation = active["invocation_id"]
+        if not invocation.startswith("invocation-") or not invocation[11:].isdigit():
+            raise ValueError("invalid native invocation id")
+        guard = runtime / "guard" / (invocation + ".log")
+        if guard.is_file():
+            with guard.open("rb") as handle:
+                handle.seek(max(0, guard.stat().st_size - 3000))
+                out["guard_tail"] = handle.read().decode(errors="replace").splitlines()[-3:]
+    if pointer["phase"] == "validation":
+        path = session / "native_val" / f"epoch_{pointer['epoch_index'] + 1:04d}" / "ROLLOUT_PROGRESS.json"
+        progress = read_json(path)
+        if progress:
+            out["native_val_progress"] = {k: value for k, value in progress.items()
+                if not isinstance(value, (list, dict))}
+            trades = [side for pair in progress.get("trade_accumulators", []) for side in pair]
+            statuses = {}
+            for trade in trades:
+                key = trade["status"]
+                statuses[key] = statuses.get(key, 0) + 1
+            out["simulated_side_status_counts"] = statuses
+            out["native_val_progress"]["updated_utc"] = datetime.fromtimestamp(
+                path.stat().st_mtime, timezone.utc).isoformat()
+    return out
+
+
 def main() -> int:
+    if "--native-binding" in sys.argv[1:]:
+        parser = argparse.ArgumentParser(description="Read-only native GX1 campaign observation")
+        parser.add_argument("--native-binding", required=True)
+        parser.add_argument("--source-only", action="store_true")
+        args = parser.parse_args()
+        print(json.dumps(native_status(Path(args.native_binding), source_only=args.source_only), indent=2))
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--output", required=True)

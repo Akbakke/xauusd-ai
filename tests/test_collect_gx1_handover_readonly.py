@@ -5,12 +5,14 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from scripts.collect_gx1_handover_readonly import (
     REQUIRED_ROLES,
     _parse_evidence,
     collect,
+    native_status,
 )
 
 
@@ -82,6 +84,36 @@ class HandoverCollectorTests(unittest.TestCase):
                 ).stdout,
                 "",
             )
+
+    def test_native_observation_checks_exact_binding_without_model_read(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo, evidence = self._fixture(root)
+            runtime, session = root / "runtime", root / "session"
+            runtime.mkdir()
+            session.mkdir()
+            pointer = {"session_contract_sha256": "session-digest", "phase": "train",
+                       "global_optimizer_steps": 17, "epoch_index": 0}
+            (session / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json").write_text(json.dumps(pointer))
+            artifact = evidence["campaign_plan"]
+            binding = {"schema_version": "gx1_native_handover_binding_v1",
+                       "source_repo": str(repo),
+                       "source_commit": subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip(),
+                       "runtime_root": str(runtime), "training_session": str(session),
+                       "session_contract_sha256": "session-digest",
+                       "immutable_artifacts": {"plan": {"path": str(artifact), "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}}}
+            path = root / "binding.json"
+            path.write_text(json.dumps(binding))
+            with patch("scripts.collect_gx1_handover_readonly._native_processes", return_value=[]):
+                observed = native_status(path)
+            self.assertEqual(observed["checkpoint"], pointer)
+            self.assertEqual(observed["process_observation"], "NO_NATIVE_PROCESS_OBSERVED")
+            self.assertFalse(observed["state_payload_rehashed"])
+            self.assertFalse(observed["test_accessed"])
+            self.assertNotIn("complete", observed)
+            artifact.write_text('{"changed":true}')
+            with self.assertRaisesRegex(ValueError, "artifact hash mismatch"):
+                native_status(path)
 
     def test_requires_every_role_and_rejects_test_path(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

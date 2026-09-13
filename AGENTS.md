@@ -1,406 +1,55 @@
-> **Exact local one-epoch successor — 2026-09-09:** The operator authorized
-> continuing the existing five-year candidate locally on the RTX 3090 with the
-> measured state-equivalent MTF batching optimization and the selected 200 W
-> treatment. Before CUDA execution, clean committed successor source, a fresh
-> exact recipe/gate, exact checkpoint-component migration and actual CPU
-> next-batch equivalence must pass. Every GPU invocation requires a fresh
-> single-use candidate budget and power scope, signed telemetry and the canonical
-> capped runner/watchdog. Restore 160 W and reboot the PC between invocations.
-> Stop after epoch 1 plus full VAL. TEST, production promotion, cloud spending,
-> feature/model-quality reductions and blind multi-epoch continuation stay closed.
+The user explicitly authorized the September 13 VAL throughput restart.
+Successor f2b597f8 preserves completed TRAIN and uses Exit-VAL batch 128;
+TRAIN/Entry-VAL remain 16. This specific restart supersedes the earlier hold
+on performance changes. After the restart, return to sparse monitoring.
 
-> **Local efficiency scope — 2026-09-08:** This isolated checkout implements
-> the operator-requested RTX 3090 TRAIN/VAL efficiency work at 160 W, including
-> bounded smoke comparisons, actual CUDA resume proof and staged candidate
-> continuation through one complete TRAIN epoch and full VAL. Candidate runs
-> require a separate immutable invocation budget, a fresh exact recipe/gate,
-> clean committed source, verified checkpoint identity and signed telemetry
-> through the canonical capped runner/watchdog. The original checkout, hold
-> and preserved sessions remain unchanged. TEST, spending and promotion remain
-> closed. A full blind 30-epoch run is outside this scope.
+# GX1 takeover instructions
 
-# GX1 agent handover
+Read `GX1_ARBEIDSMAAL.md`, `CURRENT_HANDOVER.md`, then `SYSTEM_MAP.md`.
+Run `bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`
+from this documentation checkout on the training host. They verify the small
+immutable bindings and observe the separate frozen training source/runtime.
+A cloned repo on another host needs the named artifacts restored first;
+missing files are missing evidence, not permission to start a new run.
 
-Read `GX1_RULES.md` first. It is binding.
+## Current operator scope — 2026-09-13
 
-## Operator override — guarded local smoke complete, hold restored, 2026-09-08
+The current instructions are in `GX1_ARBEIDSMAAL.md` and `CURRENT_HANDOVER.md`.
+The operator authorized the full local lifecycle-v2 campaign: full one-year
+TRAIN smoke plus full June VAL are complete; full five-year TRAIN now runs
+for up to 30 epochs, with full June VAL after each epoch and patience 5.
+TEST remains sealed; no paper/live, broker activity or external spending.
+Standing authorization covers ordinary necessary in-scope work; do not ask
+again for the same approval. The Windows controller owns automatic guarded
+pause/reboot/resume. The frozen active source is identified by
+`CURRENT_NATIVE_RUN.json`; never edit or rebind it for documentation.
 
-The one authorized source-current 32-row CUDA smoke completed successfully on
-the local GX1 RTX 3090 through the canonical capped runner. The guard exited
-with child status 0 after 350 seconds; its 286 signed samples peaked at 50 C
-core, 50 C memory, 158.83 W and 9417 MiB VRAM under the 160 W physical limit.
-The immutable bundle commit SHA-256 is
-`09e6c247a13b52caade71d5bc5e2bdf1af3376bf8fe8e5a0927a73430ff88448`
-under `LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z`.
-`pretraining_review_hold` is restored. Do not resume candidate training, repeat
-the smoke, run VAL, open TEST, start paper/live or purchase compute. Preserve
-both candidate sessions and unrelated agent work. Exact launch authority lives
-in `PROJECT_STATE_xau_direction_launch.json`; prose is not launch authority.
+Conserve tokens and time: one agent and one heavy job by default, approximately
+15-minute observations, silence on routine healthy progress, no minute polling.
+Fix only a concrete observed blocker with the smallest necessary change.
+No speculative refactors, repeated passed smokes/full suites, opportunistic
+benchmarks or extra cleanup. Targeted verification for a real change suffices.
+The completed September 12 three-agent audit was explicitly requested and is
+finished; it does not authorize continuing parallel agents.
 
-## Previous operator override — local pre-cloud package complete, 2026-09-07
+Current plan/recipe values supersede the old operational limits below: 300 W
+physical cap, 310 W actual-draw stop, 85 C core, 80 C memory junction, 12 GiB
+VRAM; the keeper reduces power to 200 W at 80 C core. These are local operating
+limits. Do not restore the obsolete 160/200 W policy or disable the campaign
+because an old paragraph says training is blocked. Earlier dated hold, retry,
+power, sampler and launch-state instructions below are historical for this
+campaign. Technical contracts still apply; source and runtime evidence outrank
+stale prose. `scripts/gx1_handover.sh` observes the explicit native binding;
+it neither authorizes nor starts training.
 
-The CPU repair/review, explicit source commit, source-bound successor recipe,
-checkpoint migration and actual next-batch equivalence are complete. External
-qualification remains pending. The exact post-commit recipe/session/transfer
-hashes live in the immutable external pre-cloud evidence beneath
-`SOURCE_STATE_SUCCESSOR_20260907T213749Z`; the continuation text below is
-historical.
+The historical architecture and evidence rules remain in `GX1_RULES.md`;
+its latest operator scope overrides earlier dated launch holds. Source owners
+own dimensions, feature order, economics and model decisions. No handwritten
+threshold or maximum holding period has been added. Never replace the learned
+policy while a bound evaluation is running.
 
-## Historical re-entry status — superseded by the review hold
-
-The operator approved controlled guard recovery and continued local training.
-The guard-only source repair and CPU transfer have passed: a new standard
-session preserves all 15 learning/progress components from checkpoint 125 /
-7936 steps; the original session remains untouched. Fresh recipes/readiness
-and the new candidate gate are verified. The incident hold is cleared only for
-this exact recovered continuation. Resolve its report and active session from
-`PROJECT_STATE_xau_direction_launch.json` and the current handoff.
-
-Read [the current handoff](docs/CURRENT_HANDOFF_20260903.md), then run
-`bash scripts/gx1_handover.sh --check` and `bash scripts/gx1_handover.sh`.
-The corrected five-year candidate's verified continuation uses full TRAIN/VAL, batch 8,
-maximum 30 epochs, early-stop patience 5. Exact progress belongs to the active
-launch-state session and its verified pointer, not a checkpoint copied here.
-
-The operator authorized the continuous local progression, including ordinary
-guarded resumptions of this exact candidate, without new per-step approvals.
-The new recovery gate supersedes the original incident hold. Canonical smoke, full VAL
-prediction, technical readiness and the new candidate gate are complete;
-do not repeat them or restart training from zero. The active recipe binds the
-repaired guard with every learning-source byte unchanged; the original recipe
-and stopped session remain historical evidence, not resume targets.
-
-Strict smoke quality remains FAIL on seven never-top-ranked specialists,
-although all eight routes are positive and state-varying on full VAL.
-Technical consistency is not candidate acceptance or evidence of trading edge.
-No admitted model exists. TEST, acceptance, paper/live, external spend and
-material model changes remain closed.
-
-Follow the current handoff for 15-minute follow-up and exact resume steps.
-Every launch/resume still requires clean source, exact recipe/gate/checkpoint
-identity and fresh signed 160 W telemetry. Hardware, telemetry, data or model
-failures stop progression; an expected guard time boundary alone is not a
-hardware failure. Never start a second heavy job to verify or commit docs while
-the trainer owns the lock.
-
-## Historical context (superseded as current status)
-
-`bash scripts/gx1_handover.sh` is the only source for the active candidate
-session position. It verifies the launch-state reference, recipe SHA/source
-closure identity, session contract, pointer and active state SHA at runtime;
-never treat a checkpoint number in this document as an operational command.
-For source hygiene, it permits only declared local runtime state and
-regenerable Python/pytest/ruff caches; any other ignored path blocks handover.
-
-**Operational override, 2026-08-30:**
-[`docs/CURRENT_AUDIT_STATUS_20260828.md`](docs/CURRENT_AUDIT_STATUS_20260828.md)
-was the short current-state companion to that historical handover. It controlled
-the then-next action: retain V46, keep background services stopped, preserve the
-checkpoint-640 candidate session, and do not start full training, TEST, demo
-or live automatically.
-The technical checkpoint bundle/reload parity and VAL-only journal are plumbing
-evidence only. The current source repair binds candidate Exit influence to the
-exact loaded model, VAL bytes, MTF cache and lifecycle; it binds the complete
-Exit trajectory to online and target states, while Entry gates remain strict.
-Candidate CUDA has executed 640 partial TRAIN batches under it. The first
-guarded window reached batch 576; a fresh process then proved exact state
-reload by resuming at 577 and checkpointing 640. A 20-minute guarded session
-can create resumable session evidence only: first VAL is after 31,004 TRAIN
-batches, so it cannot be called candidate evidence. Resume only the exact
-recipe/source-bound session through the executable handover, never by
-restarting a historical smoke or external run.
-
-The old checkpoint is retained historical evidence, not the current execution
-recipe. The separate V5 current-source 32-row technical smoke completed under
-the canonical CUDA guard and published its immutable bundle; CPU-only post-run
-audit remains required, and it has no candidate, TEST or execution authority.
-
-- Scope is offline XAUUSD only.
-- Architecture is fixed: the same eight code-owned feature implementations run
-  independently on local M5 for Entry and local M1 for Exit, in one model and
-  shared encoder. There is no combined pre-owner M1/M5 package.
-- Entry is one M5 sequence plus continuous and categorical context. **Every
-  dimension derives from `gx1/contracts/entry_model_native_signal_v1.py`; this
-  document restates none of them** (CLAUDE.md rule 4 — every count restated in
-  this repository has gone stale within days, and on 2026-08-15 all eight of
-  them in this file were wrong at once). Read them with:
-  `MODEL_NATIVE_SIGNAL_DIM`, `MODEL_NATIVE_BASE_SIGNAL_DIM`,
-  `MODEL_NATIVE_MANDATORY_SELECTED_FIELDS`,
-  `MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS`,
-  `model_native_context_contract_metadata()`, `MODEL_NATIVE_SEQ_LEN`, and
-  `htf_features.MULTI_TF_FEATURE_COUNT_V4`. The shape is: a frozen base block +
-  the mandatory causal families + the complete code-owned candidate remainder.
-  The contract keeps the raw local/MTF evidence and retires handwritten
-  scorebooks, the five regime composites, the `tf_agreement` auxiliary
-  objective/head and `signed_vol_z_20`.
-- Signal binds the exact causal candle geometry/relation/carry owner on local
-  and per-TF clocks; its width derives from
-  `gx1/features/entry_candle_primitives_v1.CANDLE_PRIMITIVE_FEATURE_NAMES`. The retained local SMC event block has six
-  exact displacement/depth/event/age outputs; neither is a scorebook vote.
-- Entry consumes one immutable native M5 feature surface across all splits;
-  exact contiguous timestamp views are required. Never restore per-split
-  inline reconstruction of the specialist fields.
-- Exit is the same feature contract at M1, a 480-bar M1 sequence, a dedicated
-  learned Entry-decision token (one learned projection of the exact six-block
-  pre-argmax decision source; widths owned by
-  `gx1/contracts/entry_decision_token_v1.py`, never restated here) and the
-  additive 15-field causal path.
-  Every result binds the frozen float32 token bytes and exact
-  M1/five-TF tensor bytes, clocks, cache, side, quotes, path and trade identity.
-- Entry context is closed M15/H1/H4/D1. Exit context is closed
-  M5/M15/H1/H4/D1. Build closed OHLCV bars before features; never resample
-  already computed M1 indicator values into a higher timeframe.
-- Every MTF lane has `MULTI_TF_FEATURE_COUNT_V4` ordered fields. Its three raw
-  tick-volume primitives
-  (`vol_z_20`, `vol_ratio_5_20`, `vol_pct_96`) are computed by the same volume
-  owner from that timeframe's closed OHLCV; volume aggregates by sum. The
-  local slices require earlier owner rows for the volume window, so Entry and
-  Exit request more native source rows than they slice; the exact counts derive
-  from the sequence lengths and the volume owner's window. No zero-filled warmup
-  or resampling of computed volume features is allowed.
-- The MTF matrix, cache-manifest, liveness, signal-split and mandatory-stack
-  schema versions are owned by their contracts and printed by
-  `bash scripts/gx1_handover.sh` under `feature_contracts:` — never restated
-  here. One
-  UTC trading-session clock phases H4 bars on 22/02/06/10/14/18 UTC and D1 at
-  22:00 UTC; the retired H4 00/04/... and D1 midnight grids are not
-  current-contract inputs.
-- Unique model argmax is the only Entry/Exit authority; ties fail closed. What
-  is argmaxed is `entry_action_q_bps` / `unified_exit_action` — expected return
-  in basis points, not calibrated probabilities (`entry_fitted_q_v1.py`).
-- The objective and recipe owners
-  (`gx1/contracts/entry_model_native_training_objective_v1.py`,
-  `gx1/contracts/entry_model_native_train_recipe_v1.py`) own their schema
-  versions, keys and flags; **execute them, this file restates none of them**.
-  Proven from source 2026-08-19: the sole decision loss is masked raw-bps MSE
-  on fitted-Q, task weights are learned by trainable homoscedastic
-  log-variance, and no cross-entropy holds decision authority — one masked BCE
-  survives on the `trendline_event` auxiliary head. The retired "objective v6 /
-  46-key recipe schema v5 / unweighted CE / pending Wave C" description was
-  false by 2026-08-19. Whether every static magnitude in the trainer is gone is
-  **not examined**; do not claim it either way.
-- There is no admitted model, recipe, edge, win-rate or PnL proof, and no
-  admitted dataset. V46 is the explicitly hash-bound audited research dataset:
-  its data, liveness, all-eight-specialist, source-backed sequence and
-  M1-decision-to-fill causality PASS evidence is verified by
-  `current_audited_dataset_evidence` in the launch state. It remains blocked
-  from admission because fitted-Q production economics lacks immutable
-  executable bid/ask, cost, financing, gap/terminal and portfolio evidence. The V28 (513)
-  and V29J (592) chains both ran GREEN but were retired
-  on 2026-08-14 through the retention owner: nothing was ever trained on
-  either, so neither could serve as the comparison baseline it was named as.
-  The evaluation reference is the coin-flip null; its magnitude is
-  substrate-specific and lives in
-  `HANDOVER_XAU_DIRECTION_REPAIR_20260714.md`, not here. V36 reached the
-  pre-dataset cross-surface audit and ended RED; cache v30 and overlap policy v3
-  repaired the scalar-byte and representation-alias defects it exposed. The
-  V37 then exposed an untrimmed honest Group-A causal warmup prefix; the shared
-  fail-closed prefix owner repaired it. V38 then exposed an unbounded lifecycle
-  representation; its compact pointer repair reconstructs the unchanged state
-  population from the hash-bound M1 clock. Fresh V39 proved that repair on the
-  full chain: TRAIN/VAL/TEST and compact lifecycle completed, and full-input
-  liveness passed. Post-build pretrain audit v5 ended RED because the retired
-  selected-side `y_bad_path` diagnostic is structurally zero whenever the
-  positive-PnL direction policy is coherent. Both side-specific sources were
-  live and the scalar had zero copy mismatches. Audit v6 makes this exemption
-  explicit while still requiring finite scalar bytes, exact copy identity and
-  live side sources; adversarial tests and a diagnostic V39 replay pass.
-  V35/V36/V37/V38/V39 products remain invalid resume/consumer input (rule 7).
-  No admitted dataset exists.
-- The current V46 feature/data/sequence evidence has passed technical
-  training-pipeline proof, but cannot claim prediction quality or edge. The
-  historical 32-row smoke successfully exercised CUDA bundle plumbing; it is
-  superseded as learning evidence by the fresh batch-8, 60-step one-epoch
-  probe. Its first materialization exposed an exact strict-reload defect: EMA
-  averaged every floating buffer, including immutable input-normalization
-  state. Commit `fad763af` confines EMA averaging to named parameters and
-  copies buffers exactly. Its focused CPU regression executes 60 updates,
-  exports, strictly reloads and validates the complete normalization state; a
-  second production partition test proves all eight local/MTF family branches
-  and every learned specialist-gate logit receive gradient after the
-  zero-initialized correction opens. The repaired probe completed under the
-  automatic guard and produced a fresh atomic bundle. The exact evaluator wrote
-  all 70,880 VAL predictions at 55 C / 155.63 W / 727 MiB. The bundle audit
-  passes data, lineage, shape, liveness and active-head checks but fails an old
-  *quality* heuristic: five families never top-rank and structure/swing averages
-  0.007619497 below a 0.01 floor. Neither condition is a valid prerequisite for
-  the first full candidate because a softmax has only one top rank per row and a
-  small smoke cannot establish economic relevance. The technical start contract
-  instead requires every family to be finite, positive, dynamic and connected
-  by actual gradients. Keep the strict quality audit for later candidate/OOS
-  qualification, but assess contribution with ablation and regime-sliced OOS,
-  not forced equal gate shares. The preregistered selective-edge decision is
-  FAIL. This proves no edge. The historical clean-source reports emitted
-  2026-08-28 passed under their then-current contract, but the current
-  candidate-readiness recheck is `NOT_READY_FOR_CANDIDATE_TRAINING`: the old
-  diagnostic bundle lacks required `recipe_source_provenance` in both metadata
-  and lock. It must be replaced by a fresh exported bundle; never patched or
-  relabelled in place. The source now contains a hash-bound, two-slot candidate
-  resume protocol for the
-  same 20-minute 220 W / 70 C / 12 GiB guarded window. It persists model,
-  fixed fitted-Q target, optimizer, EMA, scheduler, deterministic order/RNG,
-  selection state and an in-flight full-VAL accumulator. The protocol has
-  regression coverage but has not yet been accepted with a full candidate CUDA
-  run. It must first be committed, recipe-audited and dry-run against the exact
-  V46 evidence. Do not bypass the guard or mislabel a partial session as
-  candidate evidence. Resolve exact logs and the next decision from the
-  handover, never from an old run directory.
-- A smoke recipe's run lineage is validated from the small immutable reports
-  before any large TRAIN/VAL artifact binding. A mismatch must fail before a
-  recipe directory is created. Do not work around it with a new ad-hoc run ID:
-  use the run ID declared by current evidence, from a clean reviewed commit.
-- The clean-source CUDA-intended V46 smoke recipe passes at `78b00d66`, but
-  there is no `--execute` authority. A clean descendant is accepted only when
-  its exact byte-bound execution closure still matches; the validated command
-  is a bounded technical export only, never a candidate or edge claim.
-- Before candidate execution, a pre-candidate integration may use only the
-  explicit attended-smoke time window `[2024-12-01T00:00:00Z,
-  2025-06-01T00:00:00Z)` from V46 TRAIN. It is 32,289 chronological rows,
-  never a uniform TRAIN sample. Its recipe/session binds the UTC boundaries;
-  its terminal private report must prove exact liveness, all joint-task
-  supervision/gradients and parameter movement. It produces no bundle and has
-  no validation, TEST, backtest, candidate, demo or live authority.
-- The attended pre-candidate technical epoch is terminal: its hash-bound resume
-  pointer records `complete=true` at 4,037/4,037 optimizer steps over the
-  declared 32,289-row time window. Its terminal report is
-  `PASS_TECHNICAL_INTEGRATION_NOT_EDGE`: all ten joint tasks were supervised
-  and gradient-live, and model parameters moved. It has no bundle, VAL, TEST,
-  backtest, candidate, promotion, demo or live authority. The final short-window
-  Exit gate evidence is deliberately RED for ten gates that remained neutral
-  because their correctly routed raw MTF fields were constant in that six-month
-  window. Do not fake gate variation or waive the candidate gate: full V46
-  liveness and a fresh full-candidate gate audit must prove those paths before
-  candidate admission.
-- No tick-resolution feature, dataset, Exit evaluation or trading claim exists;
-  the current Exit input clock is native closed M1.
-- The TRAIN-fit squeeze owner and fail-closed six-clock artifact plumbing are
-  production-integrated in source, and six immutable TRAIN artifacts have been
-  fitted and admitted since 2026-08-18. **No manifest path or hash is restated
-  here** (rule 13): several six-clock sets exist on disk with different
-  `contract_sha256`, this file named a superseded one until 2026-08-19, and the
-  binding must be resolved from the run's own V4 cache manifest. The 2026-08-15
-  set fails closed at load. Rebuild caches/surfaces/dataset and retrain before
-  making any model or edge claim.
-- Canonical pair generation `53cba459...4668f7` (2026-08-20) is current source
-  authority. Resolve its complete identity and generation-local manifest from
-  `PROJECT_STATE_xau_direction_launch.json`; this file deliberately restates no
-  path or hash. Earlier generations remain history, not current build input.
-- The current-contract rebuild chain requires the explicit registry-fit window
-  inputs `--registry-fit-train-start`, `--registry-fit-train-end` and
-  `--registry-fit-inner-end`. The fit population is the closed interval
-  [start, end] with the inner boundary strictly inside it; the chain proves all
-  three equal its own split authority by exact timestamp before the next step
-  consumes either lane. `--level-tol-quantile-q` was retired and no longer
-  exists — passing it aborts the chain. Registry fits freeze into the hash-bound
-  build manifests with their exact TRAIN source provenance, including one
-  immutable-file-checked pointer to the pair generation; both lanes fail closed
-  without it. The level-registry runtime-population shadow is an
-  observation-only support check through the same state machine, not a second
-  implementation or a live/shadow-trading route.
-- V18 was invalid because training `run_id` equalled `dataset_run_id`; it was
-  stopped safely. Source/lifecycle fixes invalidate V8/V13/V18, and terminal
-  V34/V35/V36/V37/V38/V39 products are also forbidden resume input.
-
-## Takeover sequence
-
-```bash
-bash scripts/gx1_handover.sh --check
-bash scripts/gx1_handover.sh
-git status --short --untracked-files=all
-git worktree list --porcelain
-```
-
-The executable handover is the status owner. Do not infer state from old run
-directories. A registered dirty nested worktree may belong to another agent;
-do not modify or delete it.
-
-## Implementation discipline
-
-- Extend an existing owner instead of adding another implementation.
-- One formula, one ordered field contract and the shared normalization owner
-  serve native M5 and native M1. Exact Entry signal-manifest and native-source
-  lineage bind Exit; resolution-specific values stay separate.
-- ATR/spread TRAIN-rank state is retired by `entry_model_native_state_v2`.
-  Do not restore its NPZ, producer or fields. Current availability diagnostics,
-  TRAIN-only median/IQR/asinh input normalization and TRAIN-fit sizing ECDF
-  are distinct owners, not replacements for a missing rank sidecar.
-- No ambient environment flag may change feature bytes, dimensions, sampling,
-  objectives or model decisions. Recipe-owned values are exact and audited.
-- There is one deterministic FP32 trainer path. Feature producers use one
-  worker and DataLoaders use zero subprocess workers; do not add compile,
-  autocast, TF32, hardware-derived workers or soft performance fallbacks.
-- Candidate training uses the full TRAIN population. Smoke subsampling is an
-  explicit storage/compute profile and cannot authorize a candidate.
-- Calibration events are immutable, split-bound and retained across direction,
-  path and sizing stages. TEST cannot fit anything.
-- Position-size supervision is the masked exact ECDF rank of selected-side
-  path evidence fitted on TRAIN tradable rows only. VAL/TEST apply the frozen
-  ECDF; unmasked training is forbidden, and sizing has no direction authority.
-- M5 label horizons remain M5 bars even when outcomes are reconstructed from
-  M1; never count M1 rows as M5 bars.
-- Exit state probes must remain label-independent. Full non-tied long/short
-  trajectories are materializable in bounded chunks; probe-only checkpoint
-  validation cannot authorize a candidate.
-- Missing source, context, path, model or provenance is an error, never a
-  neutral value or fallback.
-
-## Machine safety
-
-Every heavy command uses `scripts/gx1_capped_run.sh`: 4G for audits/tests and
-at most 20G for the canonical trainer (raised from 10G 2026-08-09 on real
-batch=640 RSS measurement, see CLAUDE.md), CPU affinity 0-7 with eight
-numerical threads for the canonical trainer, 512 MiB swap, and one job at a
-time. Communicate before any run lasting more than a minute. Never launch live,
-paper, broker, dashboard, collector, notifier or adaptation work. Do not stop
-pre-existing processes unless the user explicitly authorizes that action.
-Canonical CUDA uses the signed Windows telemetry bridge and stops above
-65 C core, 80 C memory junction, 160 W configured physical limit, 170 W actual
-draw or 12 GiB resident VRAM. Missing or invalid signed telemetry also stops
-the process. Windows maintains the physical 160 W cap; the one-second guard
-is additional process protection. The guarded VAL evaluator uses these same
-limits. Historical 70 C / 220 W runs below do not define today's policy.
-A remote GPU
-may be prepared only as offline research from the frozen commit and V46 hashes,
-and only after explicit cost approval; it receives no broker credential or live
-route.
-
-The verified takeover environment is CPython 3.10.12 with the direct packages
-in `requirements.txt`. Do not reproduce the workstation by freezing unrelated
-packages from `.venv`.
-
-## Required verification before commit
-
-```bash
-git diff --check
-for script in scripts/*.sh; do bash -n "$script" || exit; done
-.venv/bin/python -m compileall -q gx1 tests
-scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
-  .venv/bin/python -m pytest -q
-```
-
-Inspect the exact diff and preserve unrelated user changes. No destructive Git
-commands. Generated-run cleanup must use the retention contract, not `rm`.
-
-## Historical implementation sequence — superseded by the review hold
-
-1. CPU review verification, corrected five-year TRAIN/VAL rebuild, all affected
-   audits and both new recipes/readiness are complete. Preserve these immutable
-   artifacts; do not repeat production or relabel historical CUDA evidence.
-2. Canonical smoke, full VAL prediction, post-run audit, technical readiness
-   and the new candidate gate are complete. The operator-approved full
-   candidate has a verified recovery session. Do not repeat preparation or restart from zero.
-3. The guard repair and exact state transfer are verified. Continue only the
-   new active source-bound recovery session, not the preserved original.
-   Monitor that exact session every 15 minutes. Preserve the signed
-   watchdog and all limits. On an expected time-boundary stop only, verify
-   the final guard log and checkpoint, finish pending status-only verification
-   and commit, then resume the same candidate after clean preflight and fresh
-   signed telemetry. Standing authorization covers this ordinary progression.
-4. A safety, telemetry, data, source or model failure stops progression. Diagnose
-   it without blind retries or gate weakening; seek new authority only if a
-   material scope change or external intervention is actually required.
-5. Candidate acceptance, TEST, calibration/replay requiring new authority,
-   paper and live remain separate later decisions. Production claims also need
-   executable prices, costs, financing, terminal and portfolio evidence.
-
-Run `bash scripts/gx1_handover.sh` whenever authority or status changes.
+For documentation/observer work, inspect the diff, run shell syntax and focused
+observer tests. Preserve installed Git hooks. Avoid a second heavy job while
+the trainer owns its lock; commit-time capped checks need a natural idle slot.
+Do not use a frozen training checkout for edits or commit a trained checkpoint,
+raw data, runtime logs, credentials or private configuration to Git.

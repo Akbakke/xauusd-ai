@@ -4,6 +4,25 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 REPO=$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)
+# The live lifecycle-v2 campaign has its own exact binding. This observer
+# never loads a model, starts/resumes training, or reads legacy launch state.
+if [[ -f "$REPO/CURRENT_NATIVE_RUN.json" ]]; then
+  case "${1:-}" in
+    ""|--check|--verbose|--source-only) ;;
+    -h|--help)
+      echo "Usage: scripts/gx1_handover.sh [--check|--verbose|--source-only]"
+      echo "Read-only native campaign observation; no execution authority."
+      exit 0 ;;
+    *) echo "Unsupported handover argument: $1" >&2; exit 2 ;;
+  esac
+  [[ $# -le 1 ]] || { echo "Expected at most one argument" >&2; exit 2; }
+  native_args=(--native-binding "$REPO/CURRENT_NATIVE_RUN.json")
+  [[ "${1:-}" != --source-only ]] || native_args+=(--source-only)
+  /usr/bin/python3 "$REPO/scripts/collect_gx1_handover_readonly.py" "${native_args[@]}"
+  [[ "${1:-}" != --verbose ]] || cat "$REPO/CURRENT_HANDOVER.md"
+  exit 0
+fi
+
 HANDOVER="$REPO/HANDOVER_XAU_DIRECTION_REPAIR_20260714.md"
 LAUNCH_STATE="$REPO/PROJECT_STATE_xau_direction_launch.json"
 PY="$REPO/.venv/bin/python"

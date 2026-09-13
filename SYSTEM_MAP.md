@@ -1,64 +1,52 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | stable lifecycle-v2 system map -->
 # GX1 system map
 
-This file is the stable map of the GX1 Entry Transformer V10 system. Runtime
-facts belong in `CURRENT_HANDOVER.md`; immutable hashes belong in a generated
-handover bundle.
+Current operating state: `CURRENT_HANDOVER.md`. Immutable active source,
+plan, recipe and index: `CURRENT_NATIVE_RUN.json`. Source owners define shapes
+and semantics; observations in the dated audit are not replacement constants.
+The documentation branch does not change the running source.
 
-## Authority order
-
-1. A reviewed `gx1_handover_bundle_v1` generated from the exact host state.
-2. `CURRENT_HANDOVER.md`, updated from the latest signed/read-only snapshot.
-3. Clean lifecycle-v2 source commit and its immutable authority manifests.
-4. Historical reports listed below. They describe what happened, but cannot
-   authorize a new run.
-
-TEST remains sealed. Nothing in this map grants training, reboot, task-enable,
-CUDA, promotion, live trading or cloud-spend authority.
-
-## System components
-
-| Component | Canonical responsibility | Required authority/evidence |
+| Component | Actual role | Source owner / evidence |
 |---|---|---|
-| Source | Lifecycle-v2 code and contracts | clean repo path, branch and commit |
-| Data | PRETEST TRAIN/VAL M1, MTF caches and Entry windows | data authority/manifest with exact file hashes and split limits |
-| Model | Entry V10 plus unbounded Exit model | model/contract authority bound to source and feature order |
-| Entry | Uses 480 local M1 rows at the first Exit state: 479 prior closed bars plus current post-fill bar | first-state witness and causal gather bindings |
-| Exit lifecycle | HOLD/EXIT_NOW only for open trades; no 512-bar forced exit | lifecycle-v2/index/closure authorities |
-| Exit memory | 1..512 post-entry rows as a rolling detail tail; lifetime may continue to the split end | random-access state-view and lifetime-summary contracts |
-| Features | 238 local signals, 71 continuous context fields, one categorical context field, 176 fields per MTF lane, eight feature families | exact registries, normalization and M5/M15/H1/H4/D1 gather hashes |
-| Economics | Side-correct executable PnL, cost policy, financing, closure-aware elapsed-time discount | frozen economics facts/policy and source receipts |
-| Sampling | Outcome-blind bounded random-access transitions from the full holding-time tail | selected sampler receipt and schedule SHA |
-| Training | Fixed-step TRAIN windows, target/online/optimizer/EMA/RNG resume | launch manifest, checkpoint pointer and equivalence receipts |
-| Campaign | Fresh physical Windows boot before each heavy invocation; atomic progress and receipts | campaign plan, task/boot evidence and controller hash |
-| Safety | Signed guard is the safety owner; sidecar status is observational | guard receipt/log plus process and GPU safety snapshots |
-| Validation | Full 5,508 Entry cohort, both sides, learned Exit on open trades only | final TRAIN authority, full-VAL campaign and rollout cursor receipts |
+| Prices | Native M1/M5 bid/ask OHLC; executable side and costs | bound source/index; `unified_exit_random_access_val_factory_v1.py` |
+| Features | Same eight owners on separate native clocks; TRAIN-fit normalization | `entry_model_native_signal_v1.py`, `htf_features.py`, bound manifests |
+| Entry | Native M5 sequence with closed M15/H1/H4/D1 context; LONG/SHORT/FLAT by unique Q argmax | `entry_fitted_q_v1.py` |
+| Exit | Closed M1 history plus M5/M15/H1/H4/D1 context, Entry-decision token, trade path and lifetime summary | lifecycle-v2 model and state factory |
+| Lifecycle | 480 local M1 history bars, at most 512 detailed post-entry tail bars; no 512-bar lifetime cap | `unified_exit_lifecycle_v2.py` |
+| MFE/MAE | Causal bid/ask extrema since fill and current executable PnL in lifetime summary | state factory `_summary`; not zero merely because trade is open |
+| Fill clock | Observe closed M5, fill at following M1 open; first Exit decision one M1 bar later | first-state bridge/index |
+| TRAIN | Full epoch Entry population; bounded outcome-blind sampled Exit transitions for both sides | full-population session, TRAIN factory, epoch sampler |
+| Optimization | Shared model, online/target, optimizer, learned task weights, EMA, scheduler, exact order and RNG | resumable candidate coordinator |
+| VAL | Entire June Entry cohort, both potential sides until learned EXIT or natural censoring | resumable random-access evaluator |
+| Selection | Couple actual Entry choice with learned Exit net Bps; full-cohort and quality gates | entry policy evaluator, checkpoint policy |
+| Early stop | June VAL after each epoch; maximum 30, patience 5 | exact recipe; terminal computation is not admission |
+| Campaign | Native windows, atomic pointer/receipts, fresh physical boot per invocation | Windows CampaignV2 controller and native candidate runner |
+| Safety | Local signed resource/GPU guard and power keeper | plan policy; controller, not Codex polling, owns safety |
+| Handover | Observe source, immutable small bindings, PID, checkpoint and VAL progress | `scripts/gx1_handover.sh` → existing collector native mode |
 
-## Current host boundary
+The 2026-09-12 audit observed 238 local signals, 71 continuous context fields,
+one categorical context field, and 176 MTF fields partitioned across eight
+families. Entry has 32 family/timeframe tokens; Exit has 40. Full wiring is
+verified; useful contribution from every route is not yet proven.
 
-The post-reboot snapshot binds BootId 359, boot time
-`2026-09-11T10:39:11.5000000Z`, and a successful one-shot probe at
-`2026-09-11T10:40:24.7603135Z`. Ubuntu `/bin/true` needed 14,070 ms on the first
-cold call; the following exact `wslpath` call needed 71 ms. `WSLService`,
-`vmcompute` and `hns` were running.
+TRAIN fitting spans 2021-06-01–2026-05-31; June 2026 is VAL. The smoke covered
+all eligible entries of 2025-06-01–2026-05-31. TEST is sealed. Existing base
+normalization v7 is deliberately preserved; full-TRAIN lifetime-summary fitting
+is separate. Never substitute a newer-looking normalization file.
 
-This identifies the immediate launch defect: the prior 8–10 second first-call
-budget was shorter than a healthy observed 14.07-second cold start. The narrow
-repair is one bounded 30-second allowance for the first cold WSL call, with no
-retry, terminate, shutdown or reset. The campaign remains disabled until its
-installed task has zero automatic retries and the source-bound controller is verified.
+A model forward is a batch calculation, not a trade. The 5,508 June entry
+opportunities produce 11,016 alternative long/short paths, not 11,016 account
+orders. Cohort net Bps is not a capital/concurrency-constrained portfolio
+backtest. Q agreement is not win rate or calibrated confidence. No manual
+confidence threshold, stop loss or maximum trade age was added.
 
-## Document disposition
+Source audit findings and limits are in `docs/audit_20260912/`. Old forced-512
+training, failed zero-step launches and disabled-bootstrap instructions are
+historical. `PROJECT_STATE_xau_direction_launch.json` belongs to the earlier
+launch owner; native takeover explicitly uses `CURRENT_NATIVE_RUN.json`.
 
-`DOC_INDEX.md` is the complete Markdown inventory and disposition authority.
-Canonical documents are the four current status/map/index files, `AGENTS.md`,
-`GX1_RULES.md`, `README.md`, the data/telemetry/worktree/integrity contracts,
-and the exact authority manifests. All other tracked Markdown is explicitly
-marked `HISTORICAL`, `SUPERSEDED` or `PRIVATE / REMOVE` there. Historical and
-superseded text cannot authorize training, reboot, task enable, CUDA, TEST,
-promotion, live trading or cloud spend.
-The post-reboot baseline was clean on branch
-`feature/unbounded-exit-lifecycle-v2-20260910`, commit
-`fb4f060d60d7017bf4188684cf5c0b5f05e110b4`; the successor source must be
-resolved and bound explicitly by the read-only collector. Data, model, checkpoint and
-campaign authority still require their exact manifest bindings before launch.
+The September 13 successor keeps TRAIN and Entry-VAL batch 16 and increases
+Exit-VAL batch to 128. The first production batch compares Q/actions and
+inference time with 16-row calls. Completed TRAIN state is preserved in a
+fresh session; June accumulators restart. See CURRENT_HANDOVER.md for the
+predecessor measurements, exact binding and scope of the runtime check.

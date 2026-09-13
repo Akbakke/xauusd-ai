@@ -1,0 +1,6 @@
+{
+  "expected_session_contract_sha256": "f7b0205ff969c863e81308db766dd323067d0dc3e2d0f615bd5728379dacda51",
+  "status": "DERIVED_FROM_EXACT_RECIPE_AND_UNCHANGED_TRAIN_CONTRACT_NOT_YET_OBSERVED",
+  "origin_checkpoint_index": 309,
+  "optimizer_steps_to_restore": 19588
+}

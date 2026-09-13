@@ -1,13 +1,17 @@
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | complete Markdown inventory -->
 # GX1 document index
 
-`CURRENT_HANDOVER.md` is the current operational status. A generated
-`gx1_handover_bundle_v1` and exact immutable source/data authorities outrank
-prose. This table is the complete tracked Markdown inventory at the lifecycle-v2
-handover; the class column is the authoritative disposition marker.
+`CURRENT_HANDOVER.md` describes the current operation. CURRENT_NATIVE_RUN.json
+binds the native source and artifacts; live controller-validated evidence
+outranks dated prose. A historical handover bundle does not supersede the
+explicit active binding. This table is the historical tracked Markdown inventory with current takeover additions; the class column is the authoritative disposition marker.
 
 | Document | Class | Purpose / authority |
 |---|---|---|
+| `GX1_ARBEIDSMAAL.md` | CANONICAL | Current operator objective and dated runtime observation |
+| `handover_snapshot/` | DATED EVIDENCE | Native/Windows observations and verified Mac checkpoint backup manifest |
+| `CURRENT_NATIVE_RUN.json` | CANONICAL | Explicit native source/runtime and small immutable artifact bindings |
+| `docs/audit_20260912/` | DATED EVIDENCE | Completed three-agent source/data/training/VAL audit and limits |
 | `AGENTS.md` | CANONICAL | Repository agent/workflow authority |
 | `GX1_RULES.md` | CANONICAL | Active offline scope and safety rules |
 | `README.md` | CANONICAL | Repository entry point and pointers |
@@ -39,7 +43,7 @@ handover; the class column is the authoritative disposition marker.
 | `docs/TRAIN_WINDOW_WIDENING_20260819.md` | HISTORICAL | Historical split-window derivation |
 | `docs/V29_EVENT_SURFACE_DESIGN_20260811.md` | HISTORICAL | Retired event-surface design |
 | `docs/V8_CANDIDATE_HOST_HANG_INCIDENT_20260901.md` | HISTORICAL | Historical host incident evidence |
-| `passord.md` | PRIVATE / REMOVE | Never index secrets into authority; migrate/purge separately |
+| `passord.md` | HISTORICAL | Workspace coordination marker; explicitly not a login password or launch authority |
 
 Historical and superseded documents are retained for evidence only. They cannot
 override `CURRENT_HANDOVER.md`, enable a task, authorize a reboot/CUDA/training

@@ -1,0 +1,21 @@
+{
+  "observed_utc": "2026-09-13T06:25:39.3704694+00:00",
+  "boot_id": 398,
+  "task_state": "Running",
+  "last_task_result": 267009,
+  "last_run_time": "2026-09-13T06:07:50.0000000Z",
+  "status_files": [
+    "HUMAN_STATUS.jsonl",
+    "STATUS-invocation-0001.json",
+    "STATUS-invocation-0002.json",
+    "STATUS-invocation-0003.json",
+    "STATUS-invocation-0004.json",
+    "STATUS-invocation-0005.json",
+    "STATUS-invocation-0006.json",
+    "STATUS-invocation-0007.json",
+    "STATUS-invocation-0008.json",
+    "STATUS-invocation-0009.json",
+    "STATUS-invocation-0010.json"
+  ],
+  "bootstrap_error": null
+}
