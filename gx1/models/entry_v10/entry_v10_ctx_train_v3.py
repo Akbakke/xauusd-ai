@@ -12266,7 +12266,9 @@ def _load_candidate_val_batch_successor_state(
     """
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
 
-    if not isinstance(origin, Mapping) or set(origin) != {"contract", "pointer"}:
+    if (not isinstance(origin, Mapping)
+            or set(origin) not in ({"contract", "pointer"}, {"contract", "pointer", "inference_only_market_cache"})
+            or ("inference_only_market_cache" in origin and origin["inference_only_market_cache"] is not True)):
         raise RuntimeError("[CANDIDATE_VAL_BATCH_ORIGIN_INVALID]")
     contract = read_bound_json(Path(origin["contract"]["path"]), origin["contract"]["sha256"])
     pointer = read_bound_json(Path(origin["pointer"]["path"]), origin["pointer"]["sha256"])
@@ -12292,6 +12294,10 @@ def _load_candidate_val_batch_successor_state(
         "gx1/scripts/run_unified_exit_random_access_val_v1.py",
         "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
     }
+    if origin.get("inference_only_market_cache") is True:
+        # Explicit recipe binding for the inference-only reuse path. Model
+        # parameters/architecture and the default TRAIN forward are unchanged.
+        allowed.add("gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py")
     before = contract["recipe_source_provenance"]["source_bindings"]
     after = session._contract["recipe_source_provenance"]["source_bindings"]
     if set(before) != set(after):
