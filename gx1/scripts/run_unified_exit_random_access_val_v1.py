@@ -566,6 +566,7 @@ def evaluate_bound_full_val_v1(
     compute_guard_max_wall_seconds: float,
     candidate_target_model: torch.nn.Module | None = None,
     exit_policy_batch_size: int | None = None,
+    resume_progress_origin: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The shared full-cohort Entry/Exit evaluator for smoke and candidate epochs."""
 
@@ -604,20 +605,25 @@ def evaluate_bound_full_val_v1(
         entry_row_indices=frame["entry_row_index"].astype("int64").tolist(),
         checkpoint_binding_sha256=checkpoint_binding["binding_sha256"],
     )
-    result = run_resumable_random_access_val_evaluation_v1(
-        model=model,
-        entry_decision_representations=representations,
-        adapter=adapter,
-        checkpoint_binding=checkpoint_binding,
-        entry_route_diagnostics=entry_routes,
-        entry_policy_decisions=entry_policy,
-        progress_path=rollout_progress_path,
-        result_path=result_path,
-        max_forwards_this_invocation=max_forwards_this_invocation,
-        policy_batch_size=selected_batch_size if exit_policy_batch_size is None else exit_policy_batch_size,
-        cache_market_states=True,
-        progress_interval_forwards=progress_interval_forwards,
-    )
+    try:
+        result = run_resumable_random_access_val_evaluation_v1(
+            model=model,
+            entry_decision_representations=representations,
+            adapter=adapter,
+            checkpoint_binding=checkpoint_binding,
+            entry_route_diagnostics=entry_routes,
+            entry_policy_decisions=entry_policy,
+            progress_path=rollout_progress_path,
+            result_path=result_path,
+            max_forwards_this_invocation=max_forwards_this_invocation,
+            policy_batch_size=selected_batch_size if exit_policy_batch_size is None else exit_policy_batch_size,
+            cache_market_states=True,
+            cpu_pipeline_workers=4,
+            resume_progress_origin=resume_progress_origin,
+            progress_interval_forwards=progress_interval_forwards,
+        )
+    finally:
+        state_factory.close_val_cpu_workers()
     return result
 
 

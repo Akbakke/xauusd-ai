@@ -703,7 +703,7 @@ def test_trainer_proof_uses_actual_cgroup_and_lock_with_existing_128_task_limit(
     files['/sys/fs/cgroup/gx1-cuda-test.scope/memory.high'] = str(20 * 1024**3)
     files['/sys/fs/cgroup/gx1-cuda-test.scope/pids.max'] = '128'
     monkeypatch.setattr(capped_execution.os, 'environ', env)
-    monkeypatch.setattr(capped_execution.os, 'sched_getaffinity', lambda _pid: set(range(8)))
+    monkeypatch.setattr(capped_execution.os, 'sched_getaffinity', lambda _pid: set(range(19)))
     monkeypatch.setattr(capped_execution.Path, 'read_text', lambda path, **kw: files[str(path)])
     calls = []
     def lock():

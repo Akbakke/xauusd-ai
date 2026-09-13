@@ -817,7 +817,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
     assert third["best_epoch"] == 1
 
 
-@pytest.mark.parametrize('fault', [None, 'train_batch', 'model_source', 'market_cache_source', 'cache_data_source'])
+@pytest.mark.parametrize('fault', [None, 'train_batch', 'model_source', 'market_cache_source', 'cache_data_source', 'cpu_pipeline', 'cpu_data_source'])
 def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
     output = tmp_path / 'original'
     contract = {
@@ -829,6 +829,8 @@ def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
             checkpoint_monitor=trainer.COUPLED_NET_CHECKPOINT_MONITOR
         )['checkpoint_selection']['checkpoint_policy']},
     }
+    if fault in ('cpu_pipeline', 'cpu_data_source'):
+        contract['native_full_val']['compute_limits']['policy_batch_size'] = 128
     old = trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
     model = torch.nn.Linear(3, 2)
     target = copy.deepcopy(model)
@@ -856,8 +858,14 @@ def test_val_batch_successor_preserves_completed_train_state(tmp_path, fault):
         origin['inference_only_market_cache'] = True
     if fault == 'cache_data_source':
         new_contract['recipe_source_provenance']['source_bindings']['trainer']['path'] = '/repo/gx1/features/htf_features.py'
+    if fault in ('cpu_pipeline', 'cpu_data_source'):
+        origin.update(inference_only_cpu_pipeline=True, validation_checkpoint={}, val_progress={})
+        new_contract['recipe_source_provenance']['source_bindings']['trainer'].update(
+            path='/repo/gx1/contracts/unified_exit_random_access_val_factory_v1.py', sha256='c' * 64)
+        if fault == 'cpu_data_source':
+            new_contract['recipe_source_provenance']['source_bindings']['trainer']['path'] = '/repo/gx1/features/htf_features.py'
     new = trainer._CandidateTrainingSession(out_bundle_dir=destination, contract=new_contract)
-    if fault and fault != 'market_cache_source':
+    if fault and fault not in ('market_cache_source', 'cpu_pipeline'):
         with pytest.raises(RuntimeError, match='TRAIN_CONTRACT_CHANGED|MODEL_OR_DATA_SOURCE_CHANGED'):
             trainer._load_candidate_val_batch_successor_state(session=new, origin=origin)
     else:

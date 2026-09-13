@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import multiprocessing
+import os
+from concurrent.futures import ProcessPoolExecutor
+from types import SimpleNamespace, MethodType
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -76,6 +80,23 @@ def _readonly(value: Any, dtype: str) -> np.ndarray:
         raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_NONFINITE")
     array.setflags(write=False)
     return array
+
+
+_VAL_CPU_FACTORY = None
+
+
+def _init_val_cpu_worker(payload: dict[str, Any]) -> None:
+    global _VAL_CPU_FACTORY
+    torch.set_num_threads(1)
+    factory = SimpleNamespace(**payload)
+    factory._summary = MethodType(RandomAccessValStateFactoryV1._summary, factory)
+    _VAL_CPU_FACTORY = factory
+
+
+def _materialize_val_cpu_chunk(requests: list[tuple[dict[str, Any], int]]) -> list[dict[str, Any]]:
+    return [RandomAccessValStateFactoryV1.materialize_state(
+        _VAL_CPU_FACTORY, entry, index, _omit_market=True,
+    ) for entry, index in requests]
 
 
 class RandomAccessValStateFactoryV1:
@@ -554,7 +575,7 @@ class RandomAccessValStateFactoryV1:
         )
 
     def materialize_state(
-        self, entry: Mapping[str, Any], state_index: int
+        self, entry: Mapping[str, Any], state_index: int, *, _omit_market: bool = False
     ) -> dict[str, Any]:
         entry_id = int(entry["entry_row_index"])
         if (
@@ -583,35 +604,37 @@ class RandomAccessValStateFactoryV1:
         )
         path = _readonly(np.stack([path_one, path_one]), "<f4")
         summaries = [self._summary(start, side, state_index) for side in range(2)]
-        mtf_raw = self.mtf_materializer(np.asarray([self.times.asi8[row]], dtype="<i8"))
-        mtf: dict[str, np.ndarray] = {}
-        for tf in MULTI_TF_TIMEFRAMES:
-            suffix = tf.lower()
-            history = _readonly(mtf_raw[f"exit_mtf_history_{suffix}"], "<f4")
-            history_time = _readonly(
-                mtf_raw[f"exit_mtf_history_time_ns_{suffix}"], "<i8"
-            )
-            gather = _readonly(mtf_raw[f"exit_mtf_gather_{suffix}"], "<i8")
-            if (
-                history.ndim != 2
-                or history.shape[1] != self.mtf_feature_dims[tf]
-                or history_time.shape != (history.shape[0],)
-                or gather.shape != (1,)
-                or int(gather[0]) != history.shape[0] - 1
-            ):
-                raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_MTF_INVALID")
-            mtf[f"exit_mtf_history_{suffix}"] = history
-            mtf[f"exit_mtf_history_time_ns_{suffix}"] = history_time
-            mtf[f"exit_mtf_gather_{suffix}"] = gather
+        mtf = None
+        if not _omit_market:
+            mtf_raw = self.mtf_materializer(np.asarray([self.times.asi8[row]], dtype="<i8"))
+            mtf: dict[str, np.ndarray] = {}
+            for tf in MULTI_TF_TIMEFRAMES:
+                suffix = tf.lower()
+                history = _readonly(mtf_raw[f"exit_mtf_history_{suffix}"], "<f4")
+                history_time = _readonly(
+                    mtf_raw[f"exit_mtf_history_time_ns_{suffix}"], "<i8"
+                )
+                gather = _readonly(mtf_raw[f"exit_mtf_gather_{suffix}"], "<i8")
+                if (
+                    history.ndim != 2
+                    or history.shape[1] != self.mtf_feature_dims[tf]
+                    or history_time.shape != (history.shape[0],)
+                    or gather.shape != (1,)
+                    or int(gather[0]) != history.shape[0] - 1
+                ):
+                    raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_MTF_INVALID")
+                mtf[f"exit_mtf_history_{suffix}"] = history
+                mtf[f"exit_mtf_history_time_ns_{suffix}"] = history_time
+                mtf[f"exit_mtf_gather_{suffix}"] = gather
         return {
             "state_index": state_index,
             "m1_row_index": row,
             "bar_start_time_ns": int(self.times.asi8[row]),
             "decision_time_ns": int(self.times.asi8[row] + _NS_PER_MINUTE),
             "m1_local_history_start_row": local_start,
-            "m1_local_history_x": _readonly(self.signal[local_start : row + 1], "<f4"),
-            "state_ctx_cont": _readonly(self.ctx_cont[row], "<f4"),
-            "state_ctx_cat": _readonly(self.ctx_cat[row], "<i8"),
+            "m1_local_history_x": None if _omit_market else _readonly(self.signal[local_start : row + 1], "<f4"),
+            "state_ctx_cont": None if _omit_market else _readonly(self.ctx_cont[row], "<f4"),
+            "state_ctx_cat": None if _omit_market else _readonly(self.ctx_cat[row], "<i8"),
             "trade_path_start_state_index": path_start,
             "trade_path_length": path_stop - path_start,
             "trade_path_tail_x": path,
@@ -623,6 +646,52 @@ class RandomAccessValStateFactoryV1:
             ],
             "mtf": mtf,
         }
+
+    def materialize_cached_cpu_batch(
+        self, requests: list[tuple[dict[str, Any], int]], *, workers: int,
+    ) -> list[dict[str, Any]]:
+        if workers not in (0, 4):
+            raise RuntimeError("UNIFIED_EXIT_VAL_CPU_WORKER_COUNT_INVALID")
+        if not requests:
+            return []
+        if workers == 0:
+            return [self.materialize_state(entry, index, _omit_market=True)
+                    for entry, index in requests]
+        if getattr(self, "_val_cpu_pool", None) is None:
+            payload = {name: getattr(self, name) for name in
+                       ("entries", "starts", "prices", "ranges", "times")}
+            self._val_cpu_pool = ProcessPoolExecutor(
+                max_workers=workers, mp_context=multiprocessing.get_context("spawn"),
+                initializer=_init_val_cpu_worker, initargs=(payload,),
+            )
+        chunk_size = max(1, (len(requests) + workers - 1) // workers)
+        chunks = [requests[i:i + chunk_size] for i in range(0, len(requests), chunk_size)]
+        # Spawn CPU-only workers with one numerical thread each. They inherit
+        # the same capped cgroup, affinity and heavy-job ownership as the parent.
+        names = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+        previous = {name: os.environ.get(name) for name in names}
+        try:
+            for name in names:
+                os.environ[name] = "1"
+            futures = [self._val_cpu_pool.submit(_materialize_val_cpu_chunk, chunk) for chunk in chunks]
+        finally:
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+        states = [state for future in futures for state in future.result()]
+        for state in states:
+            # ndarray pickling does not preserve the read-only flag.
+            state["trade_path_tail_x"].setflags(write=False)
+            state["lifetime_summary_x"].setflags(write=False)
+        return states
+
+    def close_val_cpu_workers(self) -> None:
+        pool = getattr(self, "_val_cpu_pool", None)
+        if pool is not None:
+            pool.shutdown(wait=True)
+            self._val_cpu_pool = None
 
     def materialize_transition(
         self, entry_row_index: int, state_index: int

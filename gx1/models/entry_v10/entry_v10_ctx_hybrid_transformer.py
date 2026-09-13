@@ -2932,15 +2932,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         action_valid_mask: Optional[torch.Tensor] = None,
         _market_state_cache: Optional[dict] = None,
         _market_state_keys: Optional[Sequence[int]] = None,
+        _market_state_batch_positions: Optional[Sequence[int]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Evaluate independent sampled states with bounded causal tails."""
 
         _assert_shape(
             "entry_decision_representation", entry_decision_representation, 2
         )
-        _assert_shape("m1_local_history_x", m1_local_history_x, 3)
-        _assert_shape("state_ctx_cat", state_ctx_cat, 2)
-        _assert_shape("state_ctx_cont", state_ctx_cont, 2)
         _assert_shape("trade_path_tail_x", trade_path_tail_x, 4)
         _assert_shape("trade_path_lengths", trade_path_lengths, 1)
         _assert_shape(
@@ -2952,12 +2950,6 @@ class EntryV10CtxHybridTransformer(nn.Module):
         tail_rows = int(trade_path_tail_x.shape[2])
         if (
             batch_size < 1
-            or tuple(m1_local_history_x.shape)
-            != (batch_size, EXIT_FEATURE_SEQUENCE_BARS, self._expected_seq_dim)
-            or tuple(state_ctx_cat.shape)
-            != (batch_size, self._expected_ctx_cat_dim)
-            or tuple(state_ctx_cont.shape)
-            != (batch_size, self._expected_ctx_cont_dim)
             or tuple(trade_path_tail_x.shape)
             != (
                 batch_size,
@@ -2976,12 +2968,43 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MODEL_INPUT_INVALID")
         for name, value in (
-            ("m1_local_history_x", m1_local_history_x),
-            ("state_ctx_cont", state_ctx_cont),
             ("trade_path_tail_x", trade_path_tail_x),
             ("normalized_lifetime_summary_x", normalized_lifetime_summary_x),
         ):
             _assert_finite(name, value)
+        compact = _market_state_batch_positions is not None
+        missing = {}
+        if _market_state_cache is not None:
+            if self.training or torch.is_grad_enabled():
+                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_REQUIRES_FROZEN_EVAL")
+            if (not isinstance(_market_state_cache, dict)
+                    or not isinstance(_market_state_keys, (list, tuple))
+                    or len(_market_state_keys) != batch_size
+                    or any(type(key) is not int or key < 0 for key in _market_state_keys)):
+                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_KEYS_INVALID")
+            for position, key in enumerate(_market_state_keys):
+                if key not in _market_state_cache:
+                    missing.setdefault(key, position)
+        elif compact or _market_state_keys is not None:
+            raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_KEYS_WITHOUT_CACHE")
+        if compact and (not isinstance(_market_state_batch_positions, (list, tuple))
+                        or list(_market_state_batch_positions) != list(missing.values())
+                        or any(type(p) is not int for p in _market_state_batch_positions)):
+            raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_BATCH_POSITIONS_INVALID")
+        market_batch_size = len(missing) if compact else batch_size
+        if market_batch_size:
+            if (not isinstance(m1_local_history_x, torch.Tensor)
+                    or tuple(m1_local_history_x.shape) != (market_batch_size, EXIT_FEATURE_SEQUENCE_BARS, self._expected_seq_dim)
+                    or not isinstance(state_ctx_cat, torch.Tensor)
+                    or tuple(state_ctx_cat.shape) != (market_batch_size, self._expected_ctx_cat_dim)
+                    or not isinstance(state_ctx_cont, torch.Tensor)
+                    or tuple(state_ctx_cont.shape) != (market_batch_size, self._expected_ctx_cont_dim)):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MODEL_INPUT_INVALID")
+            _assert_finite("m1_local_history_x", m1_local_history_x)
+            _assert_finite("state_ctx_cont", state_ctx_cont)
+        elif any(value is not None for value in (m1_local_history_x, state_ctx_cat, state_ctx_cont,
+                                                  exit_mtf_histories, exit_mtf_gathers, exit_mtf_history_lengths)):
+            raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_UNUSED_INPUTS_INVALID")
         padding = torch.arange(
             tail_rows, device=trade_path_tail_x.device
         )[None, :] >= trade_path_lengths[:, None]
@@ -2994,8 +3017,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         market_inputs = dict(
             entry_decision_representation=entry_decision_representation,
             exit_local_history_x=m1_local_history_x,
-            exit_state_ctx_cat=state_ctx_cat.unsqueeze(1),
-            exit_state_ctx_cont=state_ctx_cont.unsqueeze(1),
+            exit_state_ctx_cat=state_ctx_cat.unsqueeze(1) if market_batch_size else None,
+            exit_state_ctx_cont=state_ctx_cont.unsqueeze(1) if market_batch_size else None,
             exit_path_x=current_path,
             exit_mtf_histories=exit_mtf_histories,
             exit_mtf_gathers=exit_mtf_gathers,
@@ -3012,29 +3035,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
             # M1 rows identify the same 480-bar/local-context/MTF inputs across
             # different entries. Entry token, path and lifetime summary remain
             # outside the cached market-only branch and are evaluated below.
-            if self.training or torch.is_grad_enabled():
-                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_REQUIRES_FROZEN_EVAL")
-            if (not isinstance(_market_state_cache, dict)
-                    or not isinstance(_market_state_keys, (list, tuple))
-                    or len(_market_state_keys) != batch_size
-                    or any(type(key) is not int or key < 0 for key in _market_state_keys)):
-                raise RuntimeError("UNIFIED_EXIT_MARKET_CACHE_KEYS_INVALID")
-            missing = {}
-            for position, key in enumerate(_market_state_keys):
-                if key not in _market_state_cache:
-                    missing.setdefault(key, position)
             if missing:
                 indices = torch.tensor(list(missing.values()), dtype=torch.long,
-                                       device=m1_local_history_x.device)
+                                       device=entry_decision_representation.device)
 
                 def select(value):
                     if isinstance(value, Mapping):
                         return {name: select(item) for name, item in value.items()}
                     return value.index_select(0, indices)
 
+                if compact:
+                    market_inputs["entry_decision_representation"] = entry_decision_representation.index_select(0, indices)
+                    market_inputs["exit_path_x"] = current_path.index_select(0, indices)
+                    fresh_inputs = market_inputs
+                else:
+                    fresh_inputs = {name: select(value) for name, value in market_inputs.items()}
                 fresh = self._forward_exit_causal_episode(
-                    **{name: select(value) for name, value in market_inputs.items()},
-                    require_full_episode=False, market_state_only=True,
+                    **fresh_inputs, require_full_episode=False, market_state_only=True,
                 )
                 for position, key in enumerate(missing):
                     _market_state_cache[key] = {

@@ -440,3 +440,36 @@ def test_val_batch_rounding_guard_preserves_decisions(difference, change_action,
     else:
         with pytest.raises(error):
             check()
+
+
+def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift(tmp_path):
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        _new_progress, _seal_progress, _restore_cpu_pipeline_progress,
+    )
+    old_execution = {"checkpoint_binding_sha256": "1" * 64, "rollout_contract_sha256": "2" * 64,
+                     "entry_policy_sha256": "3" * 64, "policy_batch_size": 128,
+                     "market_state_cache": "frozen_model_absolute_m1_row_v1"}
+    before = _new_progress(contract_sha256=canonical_sha256(old_execution), checkpoint_binding_sha256="1" * 64)
+    before.update(completed_invocation_count=1, materialized_state_view_count=128,
+                  model_forward_count=1, next_entry_scan_position=128, elapsed_compute_seconds=0.5)
+    before["trade_accumulators"][0][0].update(hold_count=1, decision_count=1,
+        undiscounted_net_cash_pnl_bps=-0.5, economic_slice_stream_sha256="4" * 64)
+    before = _seal_progress(before)
+    path = tmp_path / "origin.json"
+    path.write_text(json.dumps(before))
+    origin = {"path": str(path), "sha256": file_sha256(path)}
+    execution = {**old_execution, "cpu_pipeline": "compact_market_inputs_batched_economics_v1", "cpu_workers": 4}
+    execution["execution_contract_sha256"] = canonical_sha256(execution)
+    after, prior_sha = _restore_cpu_pipeline_progress(origin, execution_contract=execution,
+        checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)
+    assert prior_sha == before["progress_sha256"]
+    assert after["contract_sha256"] == execution["execution_contract_sha256"]
+    for name in before:
+        if name not in {"contract_sha256", "progress_sha256"}:
+            assert after[name] == before[name]
+    assert file_sha256(path) == origin["sha256"]
+    for key in ("entry_policy_sha256", "rollout_contract_sha256", "checkpoint_binding_sha256"):
+        changed = {**execution, key: "f" * 64}
+        with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):
+            _restore_cpu_pipeline_progress(origin, execution_contract=changed,
+                checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)

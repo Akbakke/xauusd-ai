@@ -826,6 +826,78 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
         "inference_speedup": reference_seconds / large_seconds, "actions_equal": True}), flush=True)
 
 
+def _restore_cpu_pipeline_progress(origin, *, execution_contract, checkpoint_binding_sha,
+                                   cpu_pipeline_workers):
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+    if cpu_pipeline_workers is None or set(origin) != {"path", "sha256"}:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_ORIGIN_INVALID")
+    prior_execution = {key: value for key, value in execution_contract.items()
+                       if key not in {"cpu_pipeline", "cpu_workers", "execution_contract_sha256"}}
+    prior = read_bound_json(Path(origin["path"]), origin["sha256"])
+    progress = _require_progress(prior, contract_sha256=canonical_sha256(prior_execution),
+                                 checkpoint_binding_sha256=checkpoint_binding_sha)
+    if progress["completed_invocation_count"] < 1 or progress["materialized_state_view_count"] < 1:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_COMPLETED_WINDOW_REQUIRED")
+    prior_sha = progress["progress_sha256"]
+    progress["contract_sha256"] = execution_contract["execution_contract_sha256"]
+    return _seal_progress(progress), prior_sha
+
+
+def _verify_cpu_pipeline(*, model, adapter, rows, state_index, representations,
+                         action_mask, active, requests, cache, workers):
+    device = representations.device
+    keys = [adapter._entry_by_index[row]["entry_m1_start_row"] + state_index for row in rows]
+    # Start the bounded CPU pool before timing steady-state work.
+    adapter.materialize_cached_active_batch(rows, state_index, cached_market_rows=set(cache), workers=workers)
+
+    def execute(compact):
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        started = time.monotonic()
+        envelopes = (adapter.materialize_cached_active_batch(rows, state_index, cached_market_rows=set(cache), workers=workers)
+                     if compact else adapter.materialize_active_batch(rows, state_index))
+        states = [envelope["state"] for envelope in envelopes]
+        inputs = collate_random_access_states_v1(
+            states, normalization_artifact=adapter.normalization, device=device,
+            _market_state_batch_positions=[] if compact else None,
+        )
+        inputs.update(entry_decision_representation=representations, action_valid_mask=action_mask)
+        with torch.inference_mode():
+            output = model.forward_exit_random_access_batch(
+                **inputs, _market_state_cache=cache, _market_state_keys=keys,
+                _market_state_batch_positions=[] if compact else None,
+            )
+        actions = unique_active_exit_actions(output["exit_action_q_bps"], active)
+        steps = (adapter.compose_selected_actions(requests) if compact
+                 else [adapter.compose_selected_action(**request) for request in requests])
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        return time.monotonic() - started, states, output, actions, steps
+
+    reference = execute(False)
+    optimized = execute(True)
+    if not np.array_equal(reference[3], optimized[3]) or reference[4] != optimized[4]:
+        raise RuntimeError("UNIFIED_EXIT_VAL_CPU_PIPELINE_ACTION_OR_ECONOMICS_CHANGED")
+    for before, after in zip(reference[1], optimized[1]):
+        for name in before:
+            if name in {"m1_local_history_x", "state_ctx_cat", "state_ctx_cont", "mtf"}:
+                continue
+            if isinstance(before[name], np.ndarray):
+                np.testing.assert_array_equal(before[name], after[name])
+            elif before[name] != after[name]:
+                raise RuntimeError("UNIFIED_EXIT_VAL_CPU_PIPELINE_STATE_CHANGED")
+    for name, value in reference[2].items():
+        if isinstance(value, torch.Tensor):
+            torch.testing.assert_close(optimized[2][name], value, atol=1e-4, rtol=0.0, msg=name)
+    print("VAL_CPU_PIPELINE_VERIFIED " + json.dumps({
+        "rows": len(rows), "workers": workers, "reference_seconds": reference[0],
+        "optimized_seconds": optimized[0], "pipeline_speedup": reference[0] / optimized[0],
+        "actions_equal": True, "economic_steps_and_hashes_equal": True,
+        "dynamic_states_equal": True,
+        "max_abs_q_difference_bps": float((reference[2]["exit_action_q_bps"] - optimized[2]["exit_action_q_bps"]).abs().max().item()),
+    }), flush=True)
+
+
 def run_resumable_random_access_val_evaluation_v1(
     *,
     model: nn.Module,
@@ -839,6 +911,8 @@ def run_resumable_random_access_val_evaluation_v1(
     max_forwards_this_invocation: int,
     policy_batch_size: int,
     cache_market_states: bool = False,
+    cpu_pipeline_workers: int | None = None,
+    resume_progress_origin: Mapping[str, Any] | None = None,
     progress_interval_forwards: int = 64,
     monotonic: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
@@ -850,6 +924,9 @@ def run_resumable_random_access_val_evaluation_v1(
     # cached tensors across an epoch, checkpoint change or resumed invocation.
     market_state_cache = {} if cache_market_states else None
     cache_verified = False
+    if cpu_pipeline_workers not in (None, 0, 4) or (cpu_pipeline_workers is not None and not cache_market_states):
+        raise RuntimeError("UNIFIED_EXIT_VAL_CPU_PIPELINE_INVALID")
+    pipeline_verified = cpu_pipeline_workers is None
     contract = require_random_access_val_rollout_contract(adapter.contract)
     checked_checkpoint = require_selected_weight_ema_checkpoint_binding_v1(
         checkpoint_binding
@@ -869,6 +946,9 @@ def run_resumable_random_access_val_evaluation_v1(
         "progress_commit_semantics": "complete_policy_subbatch_only_v1",
         "test_data_used": False,
     }
+    if cpu_pipeline_workers is not None:
+        execution_contract["cpu_pipeline"] = "compact_market_inputs_batched_economics_v1"
+        execution_contract["cpu_workers"] = cpu_pipeline_workers
     if cache_market_states:
         execution_contract["market_state_cache"] = "frozen_model_absolute_m1_row_v1"
     execution_contract["execution_contract_sha256"] = canonical_sha256(
@@ -918,6 +998,19 @@ def run_resumable_random_access_val_evaluation_v1(
             contract_sha256=execution_contract["execution_contract_sha256"],
             checkpoint_binding_sha256=checkpoint_binding_sha,
         )
+    elif resume_progress_origin is not None:
+        progress, prior_sha = _restore_cpu_pipeline_progress(
+            resume_progress_origin, execution_contract=execution_contract,
+            checkpoint_binding_sha=checkpoint_binding_sha, cpu_pipeline_workers=cpu_pipeline_workers,
+        )
+        _atomic_json(progress_path, progress, replace=False)
+        print("VAL_CPU_PIPELINE_PROGRESS_RESTORED " + json.dumps({
+            "prior_progress_sha256": prior_sha,
+            "materialized_state_view_count": progress["materialized_state_view_count"],
+            "model_forward_count": progress["model_forward_count"],
+            "next_state_index": progress["next_state_index"],
+            "checkpoint_binding_sha256": checkpoint_binding_sha,
+        }), flush=True)
     else:
         progress = _seal_progress(
             _new_progress(
@@ -1002,12 +1095,27 @@ def run_resumable_random_access_val_evaluation_v1(
             adapter.entries[int(position)]["entry_row_index"]
             for position in active_entries
         ]
-        envelopes = adapter.materialize_active_batch(row_indices, state_index)
+        if cpu_pipeline_workers is None:
+            envelopes = adapter.materialize_active_batch(row_indices, state_index)
+        else:
+            envelopes = adapter.materialize_cached_active_batch(
+                row_indices, state_index, cached_market_rows=set(market_state_cache),
+                workers=cpu_pipeline_workers,
+            )
         states = [envelope["state"] for envelope in envelopes]
+        market_positions = None
+        if cpu_pipeline_workers is not None:
+            missing = {}
+            for position, state in enumerate(states):
+                key = int(state["m1_row_index"])
+                if key not in market_state_cache:
+                    missing.setdefault(key, position)
+            market_positions = list(missing.values())
         model_inputs = collate_random_access_states_v1(
             states,
             normalization_artifact=adapter.normalization,
             device=entry_decision_representations.device,
+            _market_state_batch_positions=market_positions,
         )
         selected = torch.as_tensor(
             active_entries,
@@ -1029,6 +1137,8 @@ def run_resumable_random_access_val_evaluation_v1(
         cache_arguments = ({"_market_state_cache": market_state_cache,
                             "_market_state_keys": [int(state["m1_row_index"]) for state in states]}
                            if cache_market_states else {})
+        if cpu_pipeline_workers is not None:
+            cache_arguments["_market_state_batch_positions"] = market_positions
         with torch.inference_mode():
             output = model.forward_exit_random_access_batch(**model_inputs, **cache_arguments)
         if verify_batch:
@@ -1040,7 +1150,7 @@ def run_resumable_random_access_val_evaluation_v1(
                 torch.cuda.synchronize(entry_decision_representations.device)
             started = time.monotonic()
             with torch.inference_mode():
-                cached = model.forward_exit_random_access_batch(**model_inputs, **cache_arguments)
+                cached = model.forward_exit_random_access_batch(**model_inputs, **{name: value for name, value in cache_arguments.items() if name != "_market_state_batch_positions"})
             if entry_decision_representations.device.type == "cuda":
                 torch.cuda.synchronize(entry_decision_representations.device)
             cached_seconds = time.monotonic() - started
@@ -1087,6 +1197,30 @@ def run_resumable_random_access_val_evaluation_v1(
             actions=actions,
             active_rows=active_rows_before,
         )
+        requests = []
+        request_keys = []
+        for position, raw_entry_position in enumerate(active_entries):
+            entry_position = int(raw_entry_position)
+            for side in range(2):
+                if not active[entry_position, side]:
+                    continue
+                action = "exit_now" if int(actions[position, side]) == 1 else "hold"
+                if action == "hold" and not envelopes[position]["successor_observed"]:
+                    continue
+                request_keys.append((entry_position, side))
+                requests.append({"entry_row_index": adapter.entries[entry_position]["entry_row_index"],
+                                 "side_index": side, "state_index": state_index, "action": action})
+        composed_steps = (adapter.compose_selected_actions(requests) if cpu_pipeline_workers is not None
+                          else [adapter.compose_selected_action(**request) for request in requests])
+        step_by_key = dict(zip(request_keys, composed_steps))
+        if not pipeline_verified:
+            _verify_cpu_pipeline(
+                model=model, adapter=adapter, rows=row_indices, state_index=state_index,
+                representations=model_inputs["entry_decision_representation"],
+                action_mask=model_inputs["action_valid_mask"], active=active[active_entries],
+                requests=requests, cache=market_state_cache, workers=cpu_pipeline_workers,
+            )
+            pipeline_verified = True
         progress["model_forward_count"] += 1
         progress["materialized_state_view_count"] += len(envelopes)
         forwards_this_invocation += 1
@@ -1099,14 +1233,7 @@ def run_resumable_random_access_val_evaluation_v1(
                 trade = progress["trade_accumulators"][entry_position][side]
                 trade["decision_count"] += 1
                 if int(actions[batch_position, side]) == 1:
-                    step, slice_sha = adapter.compose_selected_action(
-                        entry_row_index=adapter.entries[entry_position][
-                            "entry_row_index"
-                        ],
-                        side_index=side,
-                        state_index=state_index,
-                        action="exit_now",
-                    )
+                    step, slice_sha = step_by_key[(entry_position, side)]
                     _accumulate_slice(trade, step, slice_sha)
                     trade["status"] = "EXITED"
                     trade["exit_state_index"] = state_index
@@ -1115,14 +1242,7 @@ def run_resumable_random_access_val_evaluation_v1(
                     ]
                     active[entry_position, side] = False
                 elif envelope["successor_observed"]:
-                    step, slice_sha = adapter.compose_selected_action(
-                        entry_row_index=adapter.entries[entry_position][
-                            "entry_row_index"
-                        ],
-                        side_index=side,
-                        state_index=state_index,
-                        action="hold",
-                    )
+                    step, slice_sha = step_by_key[(entry_position, side)]
                     _accumulate_slice(trade, step, slice_sha)
                     trade["hold_count"] += 1
                     trade["hold_wall_clock_seconds"] += int(

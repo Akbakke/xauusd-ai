@@ -279,3 +279,25 @@ def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path) -> 
         == policy["executable_bid_ask"]["manifest"]["sha256"]
     )
     assert provider.parent_m1_row_offset == parent_offset
+
+
+@pytest.mark.parametrize("terminal", [False, True])
+def test_batched_val_economics_preserves_steps_costs_and_slice_hashes(terminal):
+    provider, readiness = _provider(economic_terminal=terminal)
+    other = provider._rows.copy()
+    other.index = [1]
+    other["entry_m1_start_row"] += 1
+    provider._rows = pd.concat([provider._rows, other])
+    requests = [{"entry_row_index": entry, "side_index": side, "action": action, "state_index": index}
+                for entry in (0, 1) for side in (0, 1) for action in ("hold", "exit_now")
+                for index in range(2 if action == "hold" else 3)]
+    reference = [provider(r["entry_row_index"], r["side_index"], r["action"], r["state_index"], r["state_index"] + 1)
+                 for r in requests]
+    for ordered in (requests, list(reversed(requests)), requests):
+        observed = provider.materialize_selected_actions(ordered)
+        expected = reference if ordered is requests else list(reversed(reference))
+        assert observed == expected
+        for actual, baseline in zip(observed, expected):
+            assert economics.compose_economic_step(actual["steps"][0], contract=readiness["economics_objective_contract"]) == economics.compose_economic_step(baseline["steps"][0], contract=readiness["economics_objective_contract"])
+    with pytest.raises(RuntimeError, match="SLICE_REQUEST_INVALID"):
+        provider.materialize_selected_actions([{**requests[0], "state_index": 3}])

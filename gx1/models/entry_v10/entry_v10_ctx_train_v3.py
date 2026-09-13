@@ -12203,7 +12203,10 @@ def _native_candidate_epoch_validation(
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_validation_checkpoint_v1
     from gx1.scripts.run_unified_exit_random_access_val_v1 import evaluate_bound_full_val_v1
 
-    snapshot = session.save_validation_checkpoint(model=model)
+    origin = getattr(session, "_native_val_optimization_origin", None) if epoch_index == 0 else None
+    # Reuse the immutable learned EMA snapshot. Its exact model binding and
+    # Entry policy identity let the existing VAL accumulators remain valid.
+    snapshot = origin["validation_checkpoint"] if origin is not None else session.save_validation_checkpoint(model=model)
     directory = session.directory / "native_val" / f"epoch_{epoch_index + 1:04d}"
     modes = [(module, module.training) for module in model.modules()]
     try:
@@ -12225,6 +12228,7 @@ def _native_candidate_epoch_validation(
                 compute_guard_max_materialized_state_views=context["max_state_views"],
                 compute_guard_max_wall_seconds=context["max_wall_seconds"],
                 candidate_target_model=target_model,
+                resume_progress_origin=origin["val_progress"] if origin is not None else None,
             )
     finally:
         for module, training in modes:
@@ -12266,7 +12270,9 @@ def _load_candidate_val_batch_successor_state(
     """
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
 
-    if (not isinstance(origin, Mapping)
+    cpu_origin_keys = {"contract", "pointer", "inference_only_cpu_pipeline", "validation_checkpoint", "val_progress"}
+    cpu_pipeline = isinstance(origin, Mapping) and set(origin) == cpu_origin_keys and origin.get("inference_only_cpu_pipeline") is True
+    if not cpu_pipeline and (not isinstance(origin, Mapping)
             or set(origin) not in ({"contract", "pointer"}, {"contract", "pointer", "inference_only_market_cache"})
             or ("inference_only_market_cache" in origin and origin["inference_only_market_cache"] is not True)):
         raise RuntimeError("[CANDIDATE_VAL_BATCH_ORIGIN_INVALID]")
@@ -12286,7 +12292,7 @@ def _load_candidate_val_batch_successor_state(
             item.pop(key)
     previous_batch = previous["native_full_val"]["compute_limits"].pop("policy_batch_size", 16)
     requested_batch = requested["native_full_val"]["compute_limits"].pop("policy_batch_size", 16)
-    if previous != requested or previous_batch != 16 or requested_batch != 128:
+    if previous != requested or previous_batch != (128 if cpu_pipeline else 16) or requested_batch != 128:
         raise RuntimeError("[CANDIDATE_VAL_BATCH_TRAIN_CONTRACT_CHANGED]")
     allowed = {
         "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
@@ -12294,10 +12300,18 @@ def _load_candidate_val_batch_successor_state(
         "gx1/scripts/run_unified_exit_random_access_val_v1.py",
         "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
     }
-    if origin.get("inference_only_market_cache") is True:
+    if origin.get("inference_only_market_cache") is True or cpu_pipeline:
         # Explicit recipe binding for the inference-only reuse path. Model
         # parameters/architecture and the default TRAIN forward are unchanged.
         allowed.add("gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py")
+    if cpu_pipeline:
+        allowed.update({
+            "gx1/contracts/unified_exit_random_access_val_factory_v1.py",
+            "gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
+            "gx1/contracts/unified_exit_random_access_training_v1.py",
+            "gx1/contracts/unified_exit_economic_step_provider_v1.py",
+            "gx1/contracts/gx1_capped_execution_v1.py", "scripts/gx1_capped_run.sh",
+        })
     before = contract["recipe_source_provenance"]["source_bindings"]
     after = session._contract["recipe_source_provenance"]["source_bindings"]
     if set(before) != set(after):
@@ -12458,6 +12472,10 @@ def _run_resumable_candidate_training(
         )
     elif execution_budget_sha256 is not None or invocation_started_monotonic is not None:
         raise RuntimeError("[CANDIDATE_EXECUTION_BUDGET_CONTEXT_MISMATCH]")
+    session._native_val_optimization_origin = (
+        candidate_resume_origin if candidate_resume_origin is not None
+        and candidate_resume_origin.get("inference_only_cpu_pipeline") is True else None
+    )
     restored_state = session.load_checkpoint()
     if restored_state is None and candidate_resume_origin is not None:
         restored_state = _load_candidate_val_batch_successor_state(

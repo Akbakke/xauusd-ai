@@ -123,24 +123,45 @@ def test_random_access_model_batch_matches_independent_state_calls() -> None:
         )
 
 
-def test_market_cache_reuses_only_market_state_across_different_positions():
+@pytest.mark.parametrize("compact", [False, True])
+def test_market_cache_reuses_only_market_state_across_different_positions(compact):
     torch.manual_seed(20260913)
     model = _make_model(dropout=0.0).eval()
     before = canonical_model_state_sha256(model.state_dict())
     inputs = _inputs()
     cache = {}
+    market_names = {"m1_local_history_x", "state_ctx_cat", "state_ctx_cont",
+                    "exit_mtf_histories", "exit_mtf_gathers", "exit_mtf_history_lengths"}
+    def evaluate(values, keys):
+        values = dict(values)
+        extra = {}
+        if compact:
+            missing = {}
+            for i, key in enumerate(keys):
+                if key not in cache:
+                    missing.setdefault(key, i)
+            positions = list(missing.values())
+            def select(value):
+                if not positions:
+                    return None
+                if isinstance(value, dict):
+                    return {name: select(item) for name, item in value.items()}
+                return value[positions]
+            for name in market_names:
+                values[name] = select(values[name])
+            extra["_market_state_batch_positions"] = positions
+        return model.forward_exit_random_access_batch(
+            **values, _market_state_cache=cache, _market_state_keys=keys, **extra)
     with torch.inference_mode():
         with patch.object(model, '_forward_exit_causal_episode',
                           wraps=model._forward_exit_causal_episode) as scan:
-            cold = model.forward_exit_random_access_batch(
-                **inputs, _market_state_cache=cache, _market_state_keys=[101, 102, 103])
+            cold = evaluate(inputs, [101, 102, 103])
             assert scan.call_count == 1
             changed = copy.deepcopy(inputs)
             changed['entry_decision_representation'] *= 0.5
             changed['trade_path_tail_x'] *= 1.2
             changed['normalized_lifetime_summary_x'] += 0.25
-            actual = model.forward_exit_random_access_batch(
-                **changed, _market_state_cache=cache, _market_state_keys=[101, 102, 103])
+            actual = evaluate(changed, [101, 102, 103])
             assert scan.call_count == 1  # No repeated market GRUs or gates.
             assert not torch.equal(cold['exit_action_q_bps'], actual['exit_action_q_bps'])
             order = torch.tensor([1, 0, 2])
@@ -151,8 +172,7 @@ def test_market_cache_reuses_only_market_state_across_different_positions():
                 return value.index_select(0, order)
 
             mixed = {k: reorder(v) for k, v in changed.items()}
-            mixed_actual = model.forward_exit_random_access_batch(
-                **mixed, _market_state_cache=cache, _market_state_keys=[102, 101, 104])
+            mixed_actual = evaluate(mixed, [102, 101, 104])
             assert scan.call_count == 2
             assert scan.call_args.kwargs['exit_local_history_x'].shape[0] == 1
         expected = model.forward_exit_random_access_batch(**changed)

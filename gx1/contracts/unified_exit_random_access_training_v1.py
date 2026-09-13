@@ -90,6 +90,7 @@ def _collate_states(
     *,
     surface: Mapping[str, Any],
     device: torch.device,
+    _market_state_batch_positions: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     if not states:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_EMPTY_STATE_BATCH")
@@ -106,37 +107,38 @@ def _collate_states(
     if summaries.shape != (len(states), 2, LIFETIME_SUMMARY_DIM):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUMMARY_SHAPE_INVALID")
     normalized = apply_surface_normalization(summaries, surface)
+    market_states = states if _market_state_batch_positions is None else [states[i] for i in _market_state_batch_positions]
     mtf_histories: dict[str, torch.Tensor] = {}
     mtf_gathers: dict[str, torch.Tensor] = {}
     mtf_lengths: dict[str, torch.Tensor] = {}
-    for tf in MULTI_TF_TIMEFRAMES:
+    for tf in MULTI_TF_TIMEFRAMES if market_states else ():
         suffix = tf.lower()
         histories = right_pad_arrays(
-            [state["mtf"][f"exit_mtf_history_{suffix}"] for state in states]
+            [state["mtf"][f"exit_mtf_history_{suffix}"] for state in market_states]
         )
         mtf_histories[suffix] = torch.from_numpy(histories["values"]).to(device)
         mtf_lengths[suffix] = torch.from_numpy(histories["lengths"]).to(device)
         mtf_gathers[suffix] = torch.from_numpy(
-            np.stack([state["mtf"][f"exit_mtf_gather_{suffix}"] for state in states])
+            np.stack([state["mtf"][f"exit_mtf_gather_{suffix}"] for state in market_states])
         ).to(device)
     return {
         "m1_local_history_x": torch.from_numpy(
-            np.stack([state["m1_local_history_x"] for state in states])
-        ).to(device),
+            np.stack([state["m1_local_history_x"] for state in market_states])
+        ).to(device) if market_states else None,
         "state_ctx_cat": torch.from_numpy(
-            np.stack([state["state_ctx_cat"] for state in states])
-        ).to(device),
+            np.stack([state["state_ctx_cat"] for state in market_states])
+        ).to(device) if market_states else None,
         "state_ctx_cont": torch.from_numpy(
-            np.stack([state["state_ctx_cont"] for state in states])
-        ).to(device),
+            np.stack([state["state_ctx_cont"] for state in market_states])
+        ).to(device) if market_states else None,
         "trade_path_tail_x": torch.from_numpy(
             np.ascontiguousarray(path["values"].transpose(0, 2, 1, 3))
         ).to(device),
         "trade_path_lengths": torch.from_numpy(path["lengths"]).to(device),
         "normalized_lifetime_summary_x": torch.from_numpy(normalized).to(device),
-        "exit_mtf_histories": mtf_histories,
-        "exit_mtf_gathers": mtf_gathers,
-        "exit_mtf_history_lengths": mtf_lengths,
+        "exit_mtf_histories": mtf_histories if market_states else None,
+        "exit_mtf_gathers": mtf_gathers if market_states else None,
+        "exit_mtf_history_lengths": mtf_lengths if market_states else None,
     }
 
 
@@ -145,11 +147,13 @@ def collate_random_access_states_v1(
     *,
     normalization_artifact: Mapping[str, Any],
     device: torch.device,
+    _market_state_batch_positions: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     """Public exact state-collation owner shared by TRAIN and VAL."""
 
     surface, _normalization_sha = _normalization_surface(normalization_artifact)
-    return _collate_states(states, surface=surface, device=device)
+    return _collate_states(states, surface=surface, device=device,
+                           _market_state_batch_positions=_market_state_batch_positions)
 
 
 def collate_random_access_training_items(

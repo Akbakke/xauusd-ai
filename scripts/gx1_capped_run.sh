@@ -92,10 +92,8 @@ TASKS_MAX=64
 # prevent the watchdog from spawning its next telemetry probe. Keep the
 # tighter audit cap, while retaining a finite trainer-specific ceiling.
 TRAINER_TASKS_MAX=128
-# V8's 0-15 affinity left only three WSL vCPUs for host/desktop activity during
-# the physical host hang. V9 permanently reserves 11 of WSL's 19 vCPUs and
-# limits the candidate to 0-7 / eight numerical workers. DataLoader workers
-# remain disabled by the model's fixed low-memory contract.
+# Audits keep their existing affinity. The authorized trainer uses all 19
+# WSL vCPUs while its numerical library remains bounded to eight threads.
 CPU_AFFINITY=0-7
 # Audit and producer processes retain one numerical worker so the hard
 # TasksMax=64 boundary continues to leave room for their own Python/Arrow
@@ -538,6 +536,7 @@ if [[ -n "$POWER_BENCHMARK_SCOPE_JSON" || -n "$POWER_BENCHMARK_SCOPE_SHA256" ]];
 fi
 
 if [[ "$JOB_CLASS" == trainer ]]; then
+  CPU_AFFINITY=0-18
   NUMERICAL_THREAD_COUNT=8
   TASKS_MAX="$TRAINER_TASKS_MAX"
 fi
@@ -778,6 +777,9 @@ verified_cpu_affinity="$GX1_CPU_AFFINITY"
 unset GX1_EXPECTED_MEMORY_BYTES GX1_EXPECTED_SWAP_BYTES GX1_EXPECTED_TASKS GX1_CPU_AFFINITY
 if [[ "$GX1_CAPPED_CLASS" == trainer || "$GX1_CUDA_PRODUCER_GUARD" == true ]]; then
   [[ -x "$GX1_GPU_GUARD_PATH" ]] || { echo "FATAL: guarded CUDA safety owner unavailable inside scope" >&2; exit 75; }
+  if [[ "$GX1_CAPPED_CLASS" == trainer ]]; then
+    exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 2 -n 4 /usr/bin/nice -n 0 "$GX1_GPU_GUARD_PATH" "$@"
+  fi
   exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$GX1_GPU_GUARD_PATH" "$@"
 fi
 exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$@"

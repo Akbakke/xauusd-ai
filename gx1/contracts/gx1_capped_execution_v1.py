@@ -395,7 +395,7 @@ def require_guarded_cuda_trainer_execution() -> dict[str, Any]:
     for name, expected in required.items():
         if os.environ.get(name) != expected:
             raise RuntimeError(f"[GX1_CUDA_TRAINER_ENV_INVALID] field={name}")
-    if os.sched_getaffinity(0) != set(range(8)):
+    if os.sched_getaffinity(0) != set(range(19)):
         raise RuntimeError("[GX1_CUDA_TRAINER_AFFINITY_INVALID]")
     proof = _require_capped_cgroup_limits(
         environ=os.environ, read_text=None, max_memory_bytes=_MAX_MEMORY_BYTES,

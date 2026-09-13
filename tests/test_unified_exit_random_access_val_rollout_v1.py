@@ -486,7 +486,7 @@ def test_compute_guard_marks_truncation_and_contract_tamper_fails() -> None:
         require_random_access_val_rollout_contract(bad)
 
 
-def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> None:
+def _production_factory_fixture(state_count=2):
     from gx1.contracts.unified_exit_dataset_adapter_v2 import _RangeExtrema
     from gx1.contracts.unified_exit_random_access_val_factory_v1 import (
         RandomAccessValStateFactoryV1,
@@ -496,7 +496,7 @@ def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> No
     )
 
     thresholds = np.ones((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32)
-    counts = np.full(VAL_ENTRY_COHORT_SIZE, 2, dtype=np.int64)
+    counts = np.full(VAL_ENTRY_COHORT_SIZE, state_count, dtype=np.int64)
     model, representations, adapter, _contract = _fixture(
         thresholds=thresholds,
         counts=counts,
@@ -544,6 +544,11 @@ def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> No
     factory.mtf_materializer = mtf_materializer
     factory.mtf_feature_dims = {tf: 1 for tf in MULTI_TF_TIMEFRAMES}
     adapter.state_provider = factory.materialize_state
+    return factory, adapter, model, representations
+
+
+def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> None:
+    factory, adapter, model, representations = _production_factory_fixture()
     state_zero = factory.materialize_state(factory.entries[0], 0)
     assert state_zero["m1_local_history_x"].shape[0] == 480
     assert state_zero["trade_path_length"] == 1
@@ -555,3 +560,28 @@ def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> No
     assert result["decision"] == "PASS_COMPLETE"
     assert result["exited_side_trade_count"] == 11_016
     assert result["max_decision_state_index"] == 1
+
+
+def test_compact_market_cpu_workers_preserve_states_across_512_boundary():
+    factory, adapter, _model, _representations = _production_factory_fixture(520)
+    try:
+        for index in (0, 1, 511, 512, 513):
+            entries = list(range(8))
+            baseline = adapter.materialize_active_batch(entries, index)
+            cached = adapter.materialize_cached_active_batch(
+                entries, index, cached_market_rows={479 + index}, workers=4,
+            )
+            for before, after in zip(baseline, cached):
+                for name, value in before["state"].items():
+                    if name in {"m1_local_history_x", "state_ctx_cat", "state_ctx_cont", "mtf"}:
+                        assert after["state"][name] is None
+                    elif isinstance(value, np.ndarray):
+                        np.testing.assert_array_equal(value, after["state"][name])
+                        assert not after["state"][name].flags.writeable
+                    else:
+                        assert after["state"][name] == value
+                for name in ("successor_observed", "right_censor_reason_if_hold", "transition_closure"):
+                    assert before[name] == after[name]
+        assert len(factory._val_cpu_pool._processes) == 4
+    finally:
+        factory.close_val_cpu_workers()

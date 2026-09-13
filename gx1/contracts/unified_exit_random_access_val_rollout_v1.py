@@ -385,7 +385,8 @@ def require_random_access_val_rollout_contract(
 
 
 def _require_state(
-    value: Mapping[str, Any], *, entry: Mapping[str, Any], state_index: int
+    value: Mapping[str, Any], *, entry: Mapping[str, Any], state_index: int,
+    _cached_market: bool = False,
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping) or set(value) != _STATE_KEYS:
         raise RuntimeError("UNIFIED_EXIT_VAL_STATE_SCHEMA_INVALID")
@@ -402,12 +403,14 @@ def _require_state(
         or state["m1_local_history_start_row"] != row - (M1_LOCAL_HISTORY_ROWS - 1)
         or state["trade_path_start_state_index"] != expected_path_start
         or state["trade_path_length"] != expected_path_length
-        or not isinstance(local, np.ndarray)
+        or (not _cached_market and (
+            not isinstance(local, np.ndarray)
         or local.dtype != np.dtype("float32")
         or local.ndim != 2
         or local.shape[0] != M1_LOCAL_HISTORY_ROWS
         or not np.isfinite(local).all()
         or local.flags.writeable
+        ))
         or not isinstance(path, np.ndarray)
         or path.dtype != np.dtype("float32")
         or path.ndim != 3
@@ -425,6 +428,11 @@ def _require_state(
         raise RuntimeError("UNIFIED_EXIT_VAL_STATE_INVALID")
     for digest in state["lifetime_summary_sha256_by_side"]:
         _require_sha(digest, "LIFETIME_SUMMARY")
+    if _cached_market:
+        if any(state[name] is not None for name in
+               ("m1_local_history_x", "state_ctx_cat", "state_ctx_cont", "mtf")):
+            raise RuntimeError("UNIFIED_EXIT_VAL_CACHED_MARKET_INPUT_INVALID")
+        return state
     mtf = state["mtf"]
     expected_mtf = {
         f"exit_mtf_{kind}_{tf.lower()}"
@@ -544,7 +552,8 @@ class RandomAccessValRolloutAdapterV1:
         self._state_hash_pool: ThreadPoolExecutor | None = None
 
     def _materialize_unsealed_state(
-        self, entry_row_index: int, state_index: int
+        self, entry_row_index: int, state_index: int, *,
+        _prepared_cached_state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if entry_row_index not in self._entry_by_index:
             raise RuntimeError("UNIFIED_EXIT_VAL_ENTRY_IDENTITY_INVALID")
@@ -557,9 +566,10 @@ class RandomAccessValRolloutAdapterV1:
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_STATE_INDEX_INVALID")
         state = _require_state(
-            self.state_provider(entry, state_index),
+            self.state_provider(entry, state_index) if _prepared_cached_state is None else _prepared_cached_state,
             entry=entry,
             state_index=state_index,
+            _cached_market=_prepared_cached_state is not None,
         )
         row = entry["entry_m1_start_row"] + state_index
         if state["bar_start_time_ns"] != int(self.times.asi8[row]) or state[
@@ -648,6 +658,30 @@ class RandomAccessValRolloutAdapterV1:
             envelope["state_envelope_sha256"] = digest
         return envelopes
 
+    def materialize_cached_active_batch(
+        self, entry_row_indices: Sequence[int], state_index: int, *,
+        cached_market_rows: set[int], workers: int,
+    ) -> list[dict[str, Any]]:
+        from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
+        factory = getattr(self.state_provider, "__self__", None)
+        if not isinstance(factory, RandomAccessValStateFactoryV1):
+            raise RuntimeError("UNIFIED_EXIT_VAL_CPU_FACTORY_REQUIRED")
+        hits = [entry for entry in entry_row_indices
+                if self._entry_by_index[entry]["entry_m1_start_row"] + state_index in cached_market_rows]
+        cached = factory.materialize_cached_cpu_batch(
+            [(self._entry_by_index[entry], state_index) for entry in hits], workers=workers,
+        )
+        prepared = dict(zip(hits, cached))
+        envelopes = [self._materialize_unsealed_state(
+            entry, state_index, _prepared_cached_state=prepared.get(entry),
+        ) for entry in entry_row_indices]
+        if self._state_hash_pool is None:
+            self._state_hash_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gx1-val-hash")
+            weakref.finalize(self, self._state_hash_pool.shutdown, wait=False)
+        for envelope, digest in zip(envelopes, self._state_hash_pool.map(_canonical_sha256, envelopes)):
+            envelope["state_envelope_sha256"] = digest
+        return envelopes
+
     def compose_selected_action(
         self,
         *,
@@ -665,6 +699,31 @@ class RandomAccessValRolloutAdapterV1:
             state_index,
             state_index + 1,
         )
+        return self._compose_selected_envelope(
+            envelope, entry_row_index=entry_row_index, side_index=side_index,
+            state_index=state_index, action=action,
+        )
+
+    def compose_selected_actions(self, requests: list[dict[str, Any]]) -> list[tuple[dict[str, Any], str]]:
+        batch = getattr(self.economic_step_provider, "materialize_selected_actions", None)
+        if batch is None:
+            return [self.compose_selected_action(**request) for request in requests]
+        envelopes = batch(requests)
+        if len(envelopes) != len(requests):
+            raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_BATCH_INVALID")
+        cache = getattr(self, "_val_composed_hold_cache", None)
+        if cache is None:
+            cache = self._val_composed_hold_cache = {}
+        objective_sha = _canonical_sha256(self.objective)
+        return [self._compose_selected_envelope(
+            envelope, **request, _hold_cache=cache, _objective_sha=objective_sha,
+        ) for request, envelope in zip(requests, envelopes)]
+
+    def _compose_selected_envelope(
+        self, envelope: Mapping[str, Any], *, entry_row_index: int, side_index: int,
+        state_index: int, action: str, _hold_cache: dict | None = None,
+        _objective_sha: str | None = None,
+    ) -> tuple[dict[str, Any], str]:
         if not isinstance(envelope, Mapping) or "slice_sha256" not in envelope:
             raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_SLICE_INVALID")
         raw = dict(envelope)
@@ -683,7 +742,13 @@ class RandomAccessValRolloutAdapterV1:
             != self.economic_step_manifest.get("economic_step_source_manifest_sha256")
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_SLICE_INVALID")
-        composed = compose_economic_step(raw["steps"][0], contract=self.objective)
+        cache_key = (_objective_sha, _canonical_sha256(raw["steps"][0])) if _hold_cache is not None and action == "hold" else None
+        if cache_key is not None and cache_key in _hold_cache:
+            composed = _hold_cache[cache_key]
+        else:
+            composed = compose_economic_step(raw["steps"][0], contract=self.objective)
+            if cache_key is not None:
+                _hold_cache[cache_key] = composed
         expected_kind = "HOLD" if action == "hold" else "EXIT_NOW"
         if composed["event_kind"] != expected_kind:
             raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_EVENT_INVALID")
