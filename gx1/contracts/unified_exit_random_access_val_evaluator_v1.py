@@ -810,12 +810,18 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
         "large_batch_seconds": large_seconds, "reference_seconds": reference_seconds,
         "inference_speedup": reference_seconds / large_seconds,
         "max_abs_q_difference_bps": float((q - reference).abs().max().item()),
-        "actions_equal": bool(actions_equal), "intermediate_max_abs_difference": intermediate_differences,
+        "actions_equal": bool(actions_equal), "q_absolute_tolerance_bps": 1e-4,
+        "intermediate_max_abs_difference": intermediate_differences,
         "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
         "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32}), flush=True)
-    torch.testing.assert_close(q, reference)
+    # Different FP32 batch shapes change reduction order. The real 128-row
+    # comparison with both TF32 backends disabled measured <=4.92e-5 Bps,
+    # <7.2e-7 intermediate-state error, and exactly identical actions.
+    # Bound rounding in Bps (no magnitude-dependent relative allowance);
+    # the observed 0.03 Bps reduced-precision regression still fails.
     if not actions_equal:
         raise RuntimeError("UNIFIED_EXIT_VAL_BATCH_ACTION_MISMATCH")
+    torch.testing.assert_close(q, reference, atol=1e-4, rtol=0.0)
     print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_VERIFIED", "rows": size,
         "inference_speedup": reference_seconds / large_seconds, "actions_equal": True}), flush=True)
 
