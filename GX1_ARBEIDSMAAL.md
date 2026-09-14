@@ -1,5 +1,14 @@
 # Gjeldende GX1-mål — 2026-09-14
 
+Brukerpresisering 2026-09-14: Kartlegg og mål hele den relevante Entry/Exit-kjeden,
+åtte familiers og tidsrammenes samarbeid, selektivitet/FLAT, risiko, data og drift.
+Kvalitet fremfor antall handler. Vurder også alternative regler/modeller/metoder,
+men gjør ingen unødvendig koding eller omskriving. Gjenbruk ferdige analyser,
+bevar én agent og én tung jobb, og lever prioriterte, etterprøvbare forslag.
+Første samlet leveranse: [docs/PROJECT_REVIEW_20260914.md](docs/PROJECT_REVIEW_20260914.md)
+med nye målebevis i handover_snapshot/PROJECT_AUDIT_METRICS_20260914.json.
+Forslagene er ikke en aktivering av neste trening eller valg av numeriske risikogrenser.
+
 Tren GX1 mot positiv kostnadsjustert netto Bps med hele feature-settet og samarbeid mellom timeframes og familier. Ett års TRAIN og full juni-VAL er fullført. Hovedløpet bruker hele femårsgrunnlaget, opptil 30 epocher, juni-VAL etter hver og early stopping med patience 5. TEST er forseglet; ingen live-/papirhandel eller ekstern spending.
 
 BRUKERBESTEMT STOPP: Full juni-VAL etter første femårs-epoch er ferdig. Ingen videre epoch før Entry/Exit, MAE/MFE, månedsslutt uten lukking og mulige Entry-filtre er analysert og forklart. Brukeren har samtidig godkjent lengre kjøreøkter, større VAL-batcher og mer parallell beregning, bare med bevart kvalitet. Disse tiltakene skal måles og verifiseres målrettet; ikke start nytt treningsløp som del av analysen.

@@ -1,5 +1,30 @@
 # GX1 overtakelse — 2026-09-14
 
+## Ny målt prosjektgjennomgang — 2026-09-14
+
+Brukeren har bestilt en bred, målt gjennomgang og prioriterte forbedringsforslag:
+selektiv Entry, markedsstyrt Exit og nyttig samarbeid mellom åtte familier/TF-er.
+Rapport: [docs/PROJECT_REVIEW_20260914.md](docs/PROJECT_REVIEW_20260914.md).
+Maskinbevis: handover_snapshot/PROJECT_AUDIT_METRICS_20260914.json.
+Analysegrunnlaget er første epochs uforanderlige EMA, ikke epoch 2.
+
+Nye funn: Entry-poolingen har 99,9977 % gjennomsnittsvekt på D1×SMC/likviditet;
+lokal familievekt har 99,7495 % på sesjon/regime. Attention blander signaler før
+vektingen, så dette er ikke bevis på null påvirkning fra øvrige ruter. 51 av 704
+Entry-featurekoordinater har minst én øvre metning; eksisterende gatekrav består
+ikke. Exit har langt bredere rutebruk og ingen observerte mettede featureporter.
+Begge handels-Q er positive på alle 5 508 innganger. Eksakt FLAT=0 ville ikke
+endret ett valg. Uavhengige valgte forløp overlapper med opptil 3 287 posisjoner;
+dagens mulighetsmetrikker er ikke en kronologisk kontostrategi.
+
+Anbefalt retning er konsistent markedsverdibasert økonomi med uttrykkelig risiko,
+selektivitet og avtalt posisjonsbruk. Ren flytting av belønning tidligere er ikke
+bevis på at HOLD-insentivet er rettet. Tallfestet risiko, eventuell posisjonsgrense
+og ny resultatmetrikk er fortsatt uavklart; NEXT_RUN_POLICY.json er uendret.
+Ingen modell-/runtimekode, vekter eller checkpoints er endret. Ingen ny trening,
+modellforward eller GPU-kjøring. Bare dokumentasjon og nye beregninger fra lagrede
+resultater; SHA-verifisert epoch-1-parameterinspeksjon ble gjort på CPU.
+
 Gjeldende arbeidskopi: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
 Kjør bash scripts/gx1_handover.sh --check. Scriptet viser verifisert historisk
 resultat, lagret checkpoint, faktisk prosessstatus og hvorfor neste løp er blokkert.

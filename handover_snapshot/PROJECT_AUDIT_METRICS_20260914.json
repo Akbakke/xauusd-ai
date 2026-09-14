@@ -1,0 +1,637 @@
+{
+  "schema_version": "gx1_project_audit_saved_val_v1",
+  "observed_utc": "2026-09-14T07:58:54.097581+00:00",
+  "inspected_source_commit": "033d62d6fde120f42ab48ebfd971229e42edcc58",
+  "input_files": {
+    "trade_review_20260914/VAL_RESULT_EPOCH_1.json": "eb78619b44ff8e6b2ac50a216d384672edd49bfb840a7c9d2c45245984cac48a",
+    "trade_review_20260914/ENTRY_EXIT_DIAGNOSTIC.json": "9c43f76a97660d4d3910969a003fd0690c6f91857d1a11d4116fa79902ffcc83"
+  },
+  "result_semantic_sha256": "2a722889a97e05406c13d33bc94d72bc439e3f4e575628a66496e0022da7fab7",
+  "checkpoint_binding": {
+    "binding_sha256": "72086724f67c5a0d8635eda7ef62a8071a554421a15e46509488a7b7d33a6a61",
+    "checkpoint_file_sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20",
+    "checkpoint_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+    "decision": "PASS",
+    "epoch_index": 0,
+    "global_step": 19588,
+    "immutable_epoch_snapshot": true,
+    "model_architecture_schema_version": "gx1_unified_exit_random_access_model_v1",
+    "model_architecture_sha256": "020cf4f8ef09f605fc45603f781f7b9eee27d1196a768a96acf6ae970f45fe67",
+    "model_state_sha256": "233e76e351712de996f7671e32531c47195f3764288a39adf4f0da7ea0afed0e",
+    "model_variant": "weight_ema",
+    "online_buffers_preserved_exactly": true,
+    "online_model_state_sha256": "a49958d68444595f3a1b627a4b665cd4e0a54bbdc456db6cc5ad6d69e9f6398b",
+    "parameter_names_sha256": "29c97299b06aced44a0d603230f3e6bbb6062356b6f42dc3a3634b781d5f7354",
+    "schema_version": "gx1_candidate_weight_ema_val_binding_v1",
+    "session_contract_file_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
+    "session_contract_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "session_contract_sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200",
+    "target_model_state_sha256": "8ef805892020ed212c4f19542e3f5d736daee4354f8f557667ae9ce226d7827e",
+    "test_data_used": false,
+    "weight_ema_decay": 0.9999489483357158,
+    "weight_ema_steps": 19588
+  },
+  "method": "Arithmetic on saved epoch-1 EMA outputs; no inference, training, threshold fitting or TEST access.",
+  "route_labels_source": "gx1/features/entry_specialist_feature_groups_v1.py:SPECIALIST_GROUPS; gx1/contracts/entry_exit_feature_base_v1.py:ENTRY/EXIT_MTF_CONTEXT_TIMEFRAMES; transformer timeframe-major flattening",
+  "routes": {
+    "entry": {
+      "exit_specialist_gate": {
+        "rows": 5508,
+        "dominant_route": "session_regime_encoder",
+        "dominant_mean_weight": 0.9974954144281153,
+        "dominant_top_count": 5508,
+        "mean_effective_route_count": 1.0120938304609752,
+        "coordinate_mean_weight": {
+          "structure_swing_encoder": 1.0432279690553709e-14,
+          "smc_liquidity_encoder": 0.0025045848780447743,
+          "trend_ema_encoder": 2.865970272194931e-14,
+          "vol_compression_encoder": 5.782696802101078e-22,
+          "momentum_flow_encoder": 8.090355467086405e-24,
+          "session_regime_encoder": 0.9974954144281153,
+          "chart_geometry_encoder": 2.1286663972983453e-16,
+          "price_action_candle_encoder": 2.583093002498994e-20
+        },
+        "causal_input_importance_claimed": false
+      },
+      "exit_tf_gate": {
+        "rows": 5508,
+        "dominant_route": "D1",
+        "dominant_mean_weight": 0.9835819862323043,
+        "dominant_top_count": 5457,
+        "mean_effective_route_count": 1.0435929242025226,
+        "coordinate_mean_weight": {
+          "M15": 4.1303023750219656e-08,
+          "H1": 0.016402584640784663,
+          "H4": 1.539012165456308e-05,
+          "D1": 0.9835819862323043
+        },
+        "causal_input_importance_claimed": false
+      },
+      "exit_family_tf_cooperation_gate": {
+        "rows": 5508,
+        "dominant_route": "D1:smc_liquidity_encoder",
+        "dominant_mean_weight": 0.9999768552935114,
+        "dominant_top_count": 5508,
+        "mean_effective_route_count": 1.0001804539180228,
+        "coordinate_mean_weight": {
+          "M15:structure_swing_encoder": 1.1424235276183728e-10,
+          "M15:smc_liquidity_encoder": 2.0242378267094564e-07,
+          "M15:trend_ema_encoder": 2.1517215302902037e-06,
+          "M15:vol_compression_encoder": 5.474558456971683e-17,
+          "M15:momentum_flow_encoder": 8.594791274044413e-18,
+          "M15:session_regime_encoder": 7.903601291326008e-18,
+          "M15:chart_geometry_encoder": 8.97422616685255e-17,
+          "M15:price_action_candle_encoder": 1.1946178293184945e-16,
+          "H1:structure_swing_encoder": 2.522592172636781e-10,
+          "H1:smc_liquidity_encoder": 1.640035106716205e-08,
+          "H1:trend_ema_encoder": 1.385435232593642e-07,
+          "H1:vol_compression_encoder": 5.6952168348256056e-21,
+          "H1:momentum_flow_encoder": 4.524566931541798e-14,
+          "H1:session_regime_encoder": 5.210209511907662e-18,
+          "H1:chart_geometry_encoder": 1.4860232797308832e-17,
+          "H1:price_action_candle_encoder": 4.802740392814762e-16,
+          "H4:structure_swing_encoder": 1.491160494758081e-09,
+          "H4:smc_liquidity_encoder": 2.064276175844709e-05,
+          "H4:trend_ema_encoder": 8.683156805690305e-25,
+          "H4:vol_compression_encoder": 3.256659207742504e-21,
+          "H4:momentum_flow_encoder": 5.597861474494188e-15,
+          "H4:session_regime_encoder": 6.514971425584463e-17,
+          "H4:chart_geometry_encoder": 3.1008896761531924e-18,
+          "H4:price_action_candle_encoder": 6.669248648002045e-17,
+          "D1:structure_swing_encoder": 3.066872774392584e-13,
+          "D1:smc_liquidity_encoder": 0.9999768552935114,
+          "D1:trend_ema_encoder": 1.0595507664761416e-09,
+          "D1:vol_compression_encoder": 4.455718226080154e-19,
+          "D1:momentum_flow_encoder": 7.234602345401643e-11,
+          "D1:session_regime_encoder": 3.5738132784285025e-16,
+          "D1:chart_geometry_encoder": 4.523126916699796e-12,
+          "D1:price_action_candle_encoder": 1.5010234199729106e-11
+        },
+        "causal_input_importance_claimed": false
+      },
+      "feature_gate": {
+        "quality": {
+          "candidate_admission_claimed": false,
+          "open_range_quality_pass": false,
+          "required_open_range": [
+            0.0,
+            2.0
+          ],
+          "saturated_element_fraction": 0.00634072547369116,
+          "saturated_lower_element_count": 0,
+          "saturated_upper_element_count": 24587
+        },
+        "saturated_coordinates": 51,
+        "coordinates_with_std_at_most_1e_6": 0,
+        "coordinate_count": 704
+      }
+    },
+    "exit": {
+      "exit_specialist_gate": {
+        "rows": 57845748,
+        "dominant_route": "vol_compression_encoder",
+        "dominant_mean_weight": 0.5347581187787843,
+        "dominant_top_count": 56246950,
+        "mean_effective_route_count": 3.6813640646831756,
+        "coordinate_mean_weight": {
+          "structure_swing_encoder": 0.011333499053287361,
+          "smc_liquidity_encoder": 0.027054288637003706,
+          "trend_ema_encoder": 0.0854112264764729,
+          "vol_compression_encoder": 0.5347581187787843,
+          "momentum_flow_encoder": 0.2287855724782265,
+          "session_regime_encoder": 0.09020570665045992,
+          "chart_geometry_encoder": 0.004852326903574406,
+          "price_action_candle_encoder": 0.01759926093680654
+        },
+        "causal_input_importance_claimed": false
+      },
+      "exit_tf_gate": {
+        "rows": 57845748,
+        "dominant_route": "D1",
+        "dominant_mean_weight": 0.2911523465589074,
+        "dominant_top_count": 57840532,
+        "mean_effective_route_count": 4.834034443666004,
+        "coordinate_mean_weight": {
+          "M5": 0.15129374323301098,
+          "M15": 0.16393419147925062,
+          "H1": 0.1846352066855332,
+          "H4": 0.2089845122157541,
+          "D1": 0.2911523465589074
+        },
+        "causal_input_importance_claimed": false
+      },
+      "exit_family_tf_cooperation_gate": {
+        "rows": 57845748,
+        "dominant_route": "D1:vol_compression_encoder",
+        "dominant_mean_weight": 0.08111160688469568,
+        "dominant_top_count": 41915642,
+        "mean_effective_route_count": 32.631515636845805,
+        "coordinate_mean_weight": {
+          "M5:structure_swing_encoder": 0.008688379550891242,
+          "M5:smc_liquidity_encoder": 0.019776020753333512,
+          "M5:trend_ema_encoder": 0.026729865500142086,
+          "M5:vol_compression_encoder": 0.036608275466770215,
+          "M5:momentum_flow_encoder": 0.01669746418594199,
+          "M5:session_regime_encoder": 0.02228666007397567,
+          "M5:chart_geometry_encoder": 0.01123202531874623,
+          "M5:price_action_candle_encoder": 0.009275052400822678,
+          "M15:structure_swing_encoder": 0.007685795934369407,
+          "M15:smc_liquidity_encoder": 0.01197819870536031,
+          "M15:trend_ema_encoder": 0.01568251525111952,
+          "M15:vol_compression_encoder": 0.059423451875663114,
+          "M15:momentum_flow_encoder": 0.022185588928968186,
+          "M15:session_regime_encoder": 0.020860182560160808,
+          "M15:chart_geometry_encoder": 0.012940695954390392,
+          "M15:price_action_candle_encoder": 0.013177762252643698,
+          "H1:structure_swing_encoder": 0.01600035623879077,
+          "H1:smc_liquidity_encoder": 0.020408437493138316,
+          "H1:trend_ema_encoder": 0.02466006838322887,
+          "H1:vol_compression_encoder": 0.046973009918125565,
+          "H1:momentum_flow_encoder": 0.02550931558046858,
+          "H1:session_regime_encoder": 0.026180975421723093,
+          "H1:chart_geometry_encoder": 0.013762480664122393,
+          "H1:price_action_candle_encoder": 0.01114056302936998,
+          "H4:structure_swing_encoder": 0.011163223946292032,
+          "H4:smc_liquidity_encoder": 0.018006967745848704,
+          "H4:trend_ema_encoder": 0.01485294020136691,
+          "H4:vol_compression_encoder": 0.07112766139844204,
+          "H4:momentum_flow_encoder": 0.03840101246603286,
+          "H4:session_regime_encoder": 0.027813607697439343,
+          "H4:chart_geometry_encoder": 0.01910801382231041,
+          "H4:price_action_candle_encoder": 0.008511084932545054,
+          "D1:structure_swing_encoder": 0.028142309212274574,
+          "D1:smc_liquidity_encoder": 0.04999594217813032,
+          "D1:trend_ema_encoder": 0.020536473227487032,
+          "D1:vol_compression_encoder": 0.08111160688469568,
+          "D1:momentum_flow_encoder": 0.03618144083489727,
+          "D1:session_regime_encoder": 0.02229516647020197,
+          "D1:chart_geometry_encoder": 0.033964268896417106,
+          "D1:price_action_candle_encoder": 0.018925138781305282
+        },
+        "causal_input_importance_claimed": false
+      },
+      "feature_gate": {
+        "quality": {
+          "candidate_admission_claimed": false,
+          "open_range_quality_pass": true,
+          "required_open_range": [
+            0.0,
+            2.0
+          ],
+          "saturated_element_fraction": 0.0,
+          "saturated_lower_element_count": 0,
+          "saturated_upper_element_count": 0
+        },
+        "saturated_coordinates": 0,
+        "coordinates_with_std_at_most_1e_6": 0,
+        "coordinate_count": 880
+      }
+    }
+  },
+  "active_heads": {
+    "dip/dip_pred": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 1503.215197150566,
+        "mean_absolute_error": 25.003257119608374,
+        "mean_squared_error": 1458.3438497198856,
+        "metric_type": "regression",
+        "pearson": 0.31614692046453857,
+        "prediction_mean": 33.98915322689959,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 21.7856758418699,
+        "spearman_rank_ic": 0.3306950801989577,
+        "target_mean": 30.170002433217434,
+        "target_nan_inf_count": 0,
+        "target_std": 38.77131925986741,
+        "mse_skill_vs_reported_constant_baseline": 0.029850248664154422
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508,
+      "metric_interpretation": "Trained with pinball quantile loss. Aggregate MSE against a constant mean is not the proper quantile-skill/calibration test; quantile coverage and pinball skill remain unmeasured."
+    },
+    "entry_action_q/entry_action_q_bps": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 21.532457032099682,
+        "mean_absolute_error": 2.349925447492656,
+        "mean_squared_error": 22.104680364192397,
+        "metric_type": "regression",
+        "pearson": 0.24785495209885883,
+        "prediction_mean": 0.7910734558031274,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 0.6413757286647819,
+        "spearman_rank_ic": -0.10378974862000505,
+        "target_mean": 2.0702070779140853,
+        "target_nan_inf_count": 0,
+        "target_std": 4.64030785962523,
+        "mse_skill_vs_reported_constant_baseline": -0.026574920420817216
+      },
+      "authority": "sole_raw_bps_entry_q",
+      "liveness_ok": true,
+      "rows": 5508
+    },
+    "forecast/forecast_pred": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 1089.6722421722554,
+        "mean_absolute_error": 20.743601548309396,
+        "mean_squared_error": 1098.9293875438686,
+        "metric_type": "regression",
+        "pearson": 0.017290856592903973,
+        "prediction_mean": 0.6180880796166388,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 1.3489041738054104,
+        "spearman_rank_ic": -0.03692692147884763,
+        "target_mean": -2.3781500157717375,
+        "target_nan_inf_count": 0,
+        "target_std": 33.01018391606226,
+        "mse_skill_vs_reported_constant_baseline": -0.008495348429871985
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508
+    },
+    "position_size/position_size_logit": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 0.10200812434689024,
+        "mean_absolute_error": 0.2693231609025459,
+        "mean_squared_error": 0.10001576871564326,
+        "metric_type": "regression",
+        "pearson": 0.15487947464156998,
+        "prediction_mean": 0.6256059978063727,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "sigmoid_probability",
+        "prediction_std": 0.07053129728762697,
+        "spearman_rank_ic": 0.23031776629544312,
+        "target_mean": 0.628900591770832,
+        "target_nan_inf_count": 0,
+        "target_std": 0.3193871073585943,
+        "mse_skill_vs_reported_constant_baseline": 0.019531342665136675
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5055
+    },
+    "side_mae/side_mae_bps": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 1008.6096241539115,
+        "mean_absolute_error": 20.31591431184597,
+        "mean_squared_error": 966.5419816281021,
+        "metric_type": "regression",
+        "pearson": 0.2745081425576542,
+        "prediction_mean": 27.49789027018052,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 9.26823137190954,
+        "spearman_rank_ic": 0.26773798312010383,
+        "target_mean": 33.29729517970232,
+        "target_nan_inf_count": 0,
+        "target_std": 31.758614959628066,
+        "mse_skill_vs_reported_constant_baseline": 0.04170854760690834
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508
+    },
+    "tail_risk/tail_risk_pred": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 3057.103500393371,
+        "mean_absolute_error": 66.70601319726732,
+        "mean_squared_error": 6618.856120438316,
+        "metric_type": "regression",
+        "pearson": 0.4204394015639439,
+        "prediction_mean": 109.54391248628436,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 51.80582371787828,
+        "spearman_rank_ic": 0.4658146057715662,
+        "target_mean": 52.215713190043324,
+        "target_nan_inf_count": 0,
+        "target_std": 55.29107975427294,
+        "mse_skill_vs_reported_constant_baseline": -1.1650742670592074
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508,
+      "metric_interpretation": "Trained with pinball quantile loss. Aggregate MSE against a constant mean is not the proper quantile-skill/calibration test; quantile coverage and pinball skill remain unmeasured."
+    },
+    "timing/timing_pred": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 0.10454421733444226,
+        "mean_absolute_error": 0.2150502108527277,
+        "mean_squared_error": 0.083327607753852,
+        "metric_type": "regression",
+        "pearson": 0.5189523185579258,
+        "prediction_mean": 0.2943628163637237,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 0.24245796861932378,
+        "spearman_rank_ic": 0.5069335402230669,
+        "target_mean": 0.331291165533869,
+        "target_nan_inf_count": 0,
+        "target_std": 0.3233329821321083,
+        "mse_skill_vs_reported_constant_baseline": 0.2029438846217313
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508
+    },
+    "trendline_event/trendline_event_logits": {
+      "metrics": {
+        "accuracy_at_0_5": 0.8584543607494921,
+        "auc": 0.8193887216074631,
+        "binary_cross_entropy": 0.3267578187848215,
+        "constant_prevalence_baseline_binary_cross_entropy": 0.41394981473028436,
+        "expected_calibration_error_10_bins": 0.012490603945318457,
+        "metric_type": "binary_classification",
+        "precision_at_0_5": 0.5827338129496403,
+        "prediction_mean": 0.14288121871692683,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "sigmoid_probability",
+        "prediction_std": 0.13917114284578871,
+        "recall_at_0_5": 0.08406850025947069,
+        "target_mean": 0.14500714876965912,
+        "target_nan_inf_count": 0,
+        "target_std": 0.35210804531472023
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 891
+    },
+    "vol_forecast/vol_forecast_pred": {
+      "metrics": {
+        "constant_mean_baseline_mean_squared_error": 19.242855423710328,
+        "mean_absolute_error": 2.3801932041710265,
+        "mean_squared_error": 14.806647375566213,
+        "metric_type": "regression",
+        "pearson": 0.5107619435264438,
+        "prediction_mean": 9.080939382610469,
+        "prediction_nan_inf_count": 0,
+        "prediction_space": "native",
+        "prediction_std": 2.9976479278336643,
+        "spearman_rank_ic": 0.6464871802771143,
+        "target_mean": 9.183979197914564,
+        "target_nan_inf_count": 0,
+        "target_std": 4.386667918102569,
+        "mse_skill_vs_reported_constant_baseline": 0.23053792955685704
+      },
+      "authority": "representation_only",
+      "liveness_ok": true,
+      "rows": 5508
+    }
+  },
+  "test_data_used": false,
+  "active_head_metric_limit": "Saved aggregate metrics may pool horizons/sides. Liveness is not predictive skill; baseline mean is a descriptive VAL reference, not an independently trained comparator.",
+  "entry_selectivity": {
+    "action_counts": {
+      "LONG": 4180,
+      "SHORT": 1328,
+      "FLAT": 0
+    },
+    "q_bps_by_action": {
+      "LONG": {
+        "count": 5508,
+        "min": 0.7770309448242188,
+        "p10": 0.9767255246639251,
+        "median": 1.2407534718513489,
+        "p90": 1.5340811491012574,
+        "max": 2.105907678604126,
+        "mean": 1.2505846003756285
+      },
+      "SHORT": {
+        "count": 5508,
+        "min": 0.2905830144882202,
+        "p10": 0.6222857415676117,
+        "median": 1.0232897400856018,
+        "p90": 1.8201106548309327,
+        "max": 2.9455068111419678,
+        "mean": 1.1312640365605433
+      },
+      "FLAT": {
+        "count": 5508,
+        "min": -0.07513293623924255,
+        "p10": -0.04871187210083008,
+        "median": -0.004981229081749916,
+        "p90": 0.02392387129366398,
+        "max": 0.052497975528240204,
+        "mean": -0.008628269526789597
+      }
+    },
+    "selected_q_bps": {
+      "count": 5508,
+      "min": 0.7770309448242188,
+      "p10": 0.9767255246639251,
+      "median": 1.2463348507881165,
+      "p90": 1.8312732696533205,
+      "max": 2.9455068111419678,
+      "mean": 1.3312805195324822
+    },
+    "selected_minus_flat_q_bps": {
+      "count": 5508,
+      "min": 0.7302081510424614,
+      "p10": 0.9574357818812131,
+      "median": 1.2493291683495045,
+      "p90": 1.8778570227324962,
+      "max": 3.007810167968273,
+      "mean": 1.3399087890592716
+    },
+    "rows_with_both_trade_q_above_zero": 5508,
+    "rows_with_best_trade_q_above_zero": 5508,
+    "actions_if_flat_were_exact_zero_only_diagnostic": {
+      "LONG": 4180,
+      "SHORT": 1328,
+      "FLAT": 0
+    }
+  },
+  "exposure_diagnostic": {
+    "semantics": "Saved independent trade intervals, entry M5 start+300 seconds, exit at recorded decision; naturally censored intervals count as open until observed month end. Not an account-aware policy evaluation.",
+    "peak_simultaneous_selected_intervals": 3287,
+    "first_peak_utc": "2026-06-30T14:05:00+00:00",
+    "single_position_chronological_admitted_rows": [
+      0
+    ],
+    "single_position_skipped_count": 5507,
+    "strategy_return_claimed": false
+  },
+  "epoch1_parameters": {
+    "schema_version": "gx1_epoch1_parameter_audit_v1",
+    "checkpoint_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+    "checkpoint_file_sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20",
+    "model_state_sha256": "233e76e351712de996f7671e32531c47195f3764288a39adf4f0da7ea0afed0e",
+    "epoch_index": 0,
+    "global_optimizer_steps": 19588,
+    "model_variant": "weight_ema",
+    "model_forward_count": 0,
+    "gpu_used": false,
+    "test_data_used": false,
+    "parameter_count": 9617497,
+    "parameter_tensor_count": 732,
+    "task_weights": {
+      "dip_bps": {
+        "log_variance": 1.6949963569641113,
+        "effective_precision": 0.1835998978875167
+      },
+      "dip_timing_fraction": {
+        "log_variance": -1.5486260652542114,
+        "effective_precision": 4.705001374880567
+      },
+      "entry_action_q": {
+        "log_variance": -2.102795362472534,
+        "effective_precision": 8.189029252670979
+      },
+      "forecast_return_bps": {
+        "log_variance": 2.296835422515869,
+        "effective_precision": 0.10057662315585181
+      },
+      "forward_volatility_bps": {
+        "log_variance": 0.3264220356941223,
+        "effective_precision": 0.7215006241512253
+      },
+      "position_size": {
+        "log_variance": -2.408351182937622,
+        "effective_precision": 11.115618406023563
+      },
+      "side_mae_bps": {
+        "log_variance": 2.265789270401001,
+        "effective_precision": 0.10374811689963626
+      },
+      "tail_risk_bps": {
+        "log_variance": 1.7562626600265503,
+        "effective_precision": 0.17268905700448178
+      },
+      "trendline_event": {
+        "log_variance": -1.1199151277542114,
+        "effective_precision": 3.064594093271971
+      },
+      "unified_exit_action": {
+        "log_variance": 1.4535984992980957,
+        "effective_precision": 0.23372770400509602
+      }
+    },
+    "input_dimensions": {
+      "input_norm_signal_center": [
+        238
+      ],
+      "input_norm_ctx_cont_center": [
+        71
+      ],
+      "input_norm_mtf_m5_center": [
+        176
+      ],
+      "input_norm_mtf_m15_center": [
+        176
+      ],
+      "input_norm_mtf_h1_center": [
+        176
+      ],
+      "input_norm_mtf_h4_center": [
+        176
+      ],
+      "input_norm_mtf_d1_center": [
+        176
+      ]
+    },
+    "tf_input_scales": {
+      "tf_input_scale_m5": 0.5381741523742676,
+      "tf_input_scale_m15": 0.5294055342674255,
+      "tf_input_scale_h1": 0.5853689312934875,
+      "tf_input_scale_h4": 0.6087384223937988,
+      "tf_input_scale_d1": 0.5382021069526672
+    },
+    "ema": {
+      "decay": 0.9999489483357158,
+      "steps": 19588,
+      "initial_shadow_coefficient_after_epoch": 0.36787005054317257
+    },
+    "limits": "Parameter magnitudes do not measure per-task gradient contribution or predictiveness. EMA coefficient is recurrence arithmetic, not a measured share of predictions."
+  },
+  "parameter_interpretation": "Learned task precisions scale different native-unit losses; their ratios are not gradient-contribution ratios and are not per-trade confidence.",
+  "takeover_observation": {
+    "observed_utc": "2026-09-14T07:52:19.987430+00:00",
+    "next_run": {
+      "decision": "BLOCKED",
+      "blocked_reasons": [
+        "operator_stop_not_resolved",
+        "risk_objective_missing",
+        "gpu_batch256_parity_missing",
+        "end_to_end_throughput_missing",
+        "resume_equivalence_missing"
+      ],
+      "canonical_source_repo": "/home/andre2/src/GX1_CURRENT",
+      "source_commit": "033d62d6fde120f42ab48ebfd971229e42edcc58",
+      "required_val_profile": {
+        "policy_batch_size": 256,
+        "cpu_pipeline_workers": 8,
+        "max_wall_seconds": 10800,
+        "progress_interval_forwards": 64
+      },
+      "native_invocation_seconds": 12000,
+      "outer_guard_seconds": 13800,
+      "policy_sha256": "13e421fc51aeb210b1e7a9416a3002ae7888fd7285959b3830568eca9cf1661a",
+      "training_started": false
+    },
+    "checkpoint": {
+      "checkpoint_index": 315,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 19908,
+      "next_batch_offset": 320,
+      "phase": "train",
+      "schema_version": "gx1_candidate_training_session_v1",
+      "session_contract_sha256": "676fee85c03cce2c04fc51032ca7fe8db6d002444a3abc043ece72b978318cd2",
+      "slot": 0,
+      "state_sha256": "2f70fe5a405a4ddcabd26de4bfc305e51c623a62ffc44514109c43c4fa27c502"
+    },
+    "process_observation": "NO_NATIVE_PROCESS_OBSERVED"
+  },
+  "known_limits": [
+    "No new model forward, backward, GPU benchmark or training.",
+    "Saved gate weights describe routing, not causal usefulness or interaction gain.",
+    "No raw auxiliary predictions persisted in the reviewed VAL result: quantile coverage and per-horizon calibration cannot be reconstructed from aggregate moments.",
+    "Independent opportunity evaluation is not chronological portfolio performance.",
+    "New risk preferences and revised objective are not yet quantitatively specified.",
+    "GPU batch256 parity, full-pipeline throughput and exact resume equivalence remain missing."
+  ]
+}
