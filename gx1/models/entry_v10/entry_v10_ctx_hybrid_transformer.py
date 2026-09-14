@@ -2934,6 +2934,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _market_state_keys: Optional[Sequence[int]] = None,
         _market_state_batch_positions: Optional[Sequence[int]] = None,
         _share_identical_path: bool = False,
+        liquidation_relative_values: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Evaluate independent sampled states with bounded causal tails."""
 
@@ -3113,6 +3114,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         )
         q_values = _forward_raw_q_head(self.head_exit_action, hidden)
+        if type(liquidation_relative_values) is not bool:
+            raise RuntimeError("UNIFIED_EXIT_VALUE_COORDINATES_INVALID")
+        if liquidation_relative_values:
+            from gx1.contracts.unified_exit_random_access_model_v1 import liquidation_relative_action_values
+            q_values = liquidation_relative_action_values(q_values)
         valid = (
             torch.ones_like(q_values, dtype=torch.bool)
             if action_valid_mask is None

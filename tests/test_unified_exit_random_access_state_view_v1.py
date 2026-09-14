@@ -123,7 +123,7 @@ def _sample(contract: dict, state_index: int) -> dict:
     return sample
 
 
-def _objective() -> dict:
+def _objective(reward_accounting="terminal_cash_v2") -> dict:
     hurdle = seal_train_fitted_capital_hurdle_artifact(
         {
             "schema_version": CAPITAL_HURDLE_SCHEMA_VERSION,
@@ -146,6 +146,7 @@ def _objective() -> dict:
         expected_train_fold_sha256="7" * 64,
         expected_source_lineage_sha256="8" * 64,
         policy_sha256="a" * 64,
+        reward_accounting=reward_accounting,
     )
 
 

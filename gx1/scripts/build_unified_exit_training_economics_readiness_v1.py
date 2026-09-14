@@ -12,6 +12,7 @@ from typing import Any
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION,
     MARK_TO_MARKET_REWARD_ACCOUNTING,
+    LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
     SECONDS_PER_YEAR,
     build_unified_exit_economics_objective_contract,
     seal_frozen_capital_hurdle_owner_artifact,
@@ -213,7 +214,8 @@ def build_training_economics_readiness(
     )
     readiness = {
         "schema_version": "gx1_unified_exit_training_economics_readiness_v3",
-        "mode": ("economics_objective_v3" if reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING
+        "mode": ("economics_objective_v4" if reward_accounting == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
+                 else "economics_objective_v3" if reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING
                  else "economics_objective_v2"),
         "capital_hurdle_artifact": hurdle,
         "economics_objective_contract": objective,
@@ -301,7 +303,7 @@ def main() -> int:
     parser.add_argument("--source-lineage-sha256", required=True)
     parser.add_argument("--policy-sha256", required=True)
     parser.add_argument("--reward-accounting", default="terminal_cash_v2",
-                        choices=("terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING))
+                        choices=("terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING))
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     result = build_training_economics_readiness(

@@ -23,6 +23,23 @@ _NEW_STATE_PREFIXES = (
 )
 
 
+def liquidation_relative_action_values(raw_q_bps: torch.Tensor) -> torch.Tensor:
+    """Reuse both head rows to learn HOLD advantage; EXIT_NOW is exactly zero.
+
+    The common raw level cancels. No liquidation price, future price or new
+    learned parameter enters this head. The economics owner reconstructs total
+    trade value for Entry using the observed first-state liquidation value.
+    """
+    if (not isinstance(raw_q_bps, torch.Tensor) or raw_q_bps.ndim < 2
+            or raw_q_bps.shape[-1] != 2 or raw_q_bps.dtype != torch.float32
+            or not bool(torch.isfinite(raw_q_bps).all().item())):
+        raise RuntimeError("UNIFIED_EXIT_LIQUIDATION_ADVANTAGE_HEAD_INVALID")
+    hold = raw_q_bps[..., 0] - raw_q_bps[..., 1]
+    if not bool(torch.isfinite(hold).all().item()):
+        raise RuntimeError("UNIFIED_EXIT_LIQUIDATION_ADVANTAGE_HEAD_INVALID")
+    return torch.stack((hold, torch.zeros_like(hold)), dim=-1)
+
+
 def _new_state_keys(model: nn.Module) -> tuple[str, ...]:
     return tuple(
         name

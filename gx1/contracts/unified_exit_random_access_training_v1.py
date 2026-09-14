@@ -36,6 +36,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 )
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
+    LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION,
     require_random_access_state_view,
 )
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
@@ -44,6 +45,7 @@ from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
 RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_train_batch_v1"
 )
+LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v2"
 RANDOM_ACCESS_ENTRY_BRIDGE_BATCH_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_entry_bridge_batch_v1"
 )
@@ -353,8 +355,14 @@ def collate_random_access_training_items(
     ]
     transition_views = [view for _sample, view in transitions]
     anchor_views = [view for _sample, view in anchors]
+    relative_flags = {view["schema_version"] == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
+                      for view in [*transition_views, *anchor_views]}
+    if len(relative_flags) != 1:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_VALUE_COORDINATES")
+    relative = relative_flags.pop()
     result = {
-        "schema_version": RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION,
+        "schema_version": (LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION if relative
+                           else RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION),
         "normalization_sha256": normalization_sha,
         "outer_batch_size": outer_batch_size,
         "selected_entry_count": len(items),
@@ -421,8 +429,15 @@ def collate_random_access_training_items(
         "entry_fill_binding_sha256": fill_hashes,
         "first_state_bridge_witness_sha256": witness_hashes,
     }
+    if relative:
+        result["liquidation_relative_values"] = True
+        result["liquidation_relative_reward_bps"] = torch.from_numpy(
+            np.stack([view["liquidation_relative_reward_bps"] for view in transition_views])
+        ).to(device)
+        result["entry_liquidation_value_bps"] = torch.from_numpy(
+            np.stack([view["current_liquidation_value_bps"] for view in anchor_views])
+        ).to(device)
     return result
-
 
 def run_random_access_training_step(
     *,
@@ -435,8 +450,14 @@ def run_random_access_training_step(
 ) -> dict[str, Any]:
     """One online forward, one frozen-target forward and one backward."""
 
-    if batch.get("schema_version") != RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION:
+    relative = batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
+    if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION}:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BATCH_INVALID")
+    coordinate_fields = {"liquidation_relative_values", "liquidation_relative_reward_bps", "entry_liquidation_value_bps"}
+    present = coordinate_fields.intersection(batch)
+    if ((relative and (present != coordinate_fields or batch["liquidation_relative_values"] is not True))
+            or (not relative and present)):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_VALUE_COORDINATES_INVALID")
     if target_model.training or any(
         parameter.requires_grad for parameter in target_model.parameters()
     ):
@@ -468,6 +489,13 @@ def run_random_access_training_step(
         (batch["successor_action_valid_mask"], batch["anchor_action_valid_mask"]),
         dim=0,
     )
+    relative = batch.get("liquidation_relative_values", False)
+    if type(relative) is not bool:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_VALUE_COORDINATES_INVALID")
+    if relative:
+        online_inputs["liquidation_relative_values"] = True
+        target_inputs["liquidation_relative_values"] = True
+    rewards = batch["liquidation_relative_reward_bps"] if relative else batch["immediate_reward_bps"]
     transition_count = batch["transition_count"]
     target_cache: dict[str, torch.Tensor] = {}
     online_cache: dict[str, Any] = {}
@@ -499,7 +527,7 @@ def run_random_access_training_step(
             )
         targets, valid = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=torch.zeros_like(successor_q).unsqueeze(2),
-            exit_now_reward_bps=batch["immediate_reward_bps"][..., 1].unsqueeze(2),
+            exit_now_reward_bps=rewards[..., 1].unsqueeze(2),
             action_valid_mask=action.unsqueeze(2),
             state_valid_mask=state_valid.unsqueeze(2),
             terminal_mask=terminal.unsqueeze(2),
@@ -510,7 +538,7 @@ def run_random_access_training_step(
             chunk_successor_action_valid_mask=batch["successor_action_valid_mask"],
             bellman_target_valid_mask=batch["bellman_target_valid_mask"].unsqueeze(2),
             successor_observed_mask=batch["successor_observed_mask"].unsqueeze(2),
-            hold_immediate_reward_bps=batch["immediate_reward_bps"][..., 0].unsqueeze(
+            hold_immediate_reward_bps=rewards[..., 0].unsqueeze(
                 2
             ),
             transition_discount=batch["elapsed_wall_clock_gamma"][:, None, None].expand(
@@ -544,6 +572,11 @@ def run_random_access_training_step(
             anchor_q.shape[:2] + (1,), dtype=torch.bool, device=anchor_q.device
         ),
     )
+    if relative:
+        liquidation = batch["entry_liquidation_value_bps"]
+        if liquidation.shape != first_values.shape or not bool(torch.isfinite(liquidation).all().item()):
+            raise RuntimeError("UNIFIED_EXIT_ENTRY_LIQUIDATION_ANCHOR_INVALID")
+        first_values = first_values + liquidation
     selected = batch["selected_entry_batch_index"]
     all_first_values = entry_decision_representations.new_zeros((outer, 2))
     all_side_valid = torch.zeros(
@@ -594,6 +627,7 @@ def run_random_access_training_step(
 __all__ = (
     "RANDOM_ACCESS_ENTRY_BRIDGE_BATCH_SCHEMA_VERSION",
     "RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION",
+    "LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION",
     "collate_random_access_states_v1",
     "collate_random_access_training_items",
     "run_random_access_training_step",

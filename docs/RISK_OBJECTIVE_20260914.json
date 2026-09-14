@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_operator_risk_objective_v1",
   "decision": "PASS",
-  "observed_utc": "2026-09-14T09:33:17.767165+00:00",
+  "observed_utc": "2026-09-14T11:30:05.445124+00:00",
   "operator_statement": "Ingen fast grense",
   "decision_scope": "economic risk definition; other training gates remain required",
-  "reward_accounting": "liquidation_value_increments_v1",
-  "economics_objective_schema": "gx1_unified_exit_economics_objective_v3",
+  "reward_accounting": "liquidation_advantage_v1",
+  "economics_objective_schema": "gx1_unified_exit_economics_objective_v4",
   "absolute_loss_limit_bps": null,
   "maximum_holding_seconds": null,
   "exit_principle": "Compare expected further executable net value with closing now, including costs; no fixed price-loss or time threshold.",
@@ -24,6 +24,10 @@
     {
       "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/MTM_VAL_VERIFICATION_20260914.json",
       "sha256": "3824b3c04d15d2ea7e24c0208432c5309df60f6ecb30916a6911d34e5d17e3d6"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/LIQUIDATION_RELATIVE_LEARNING_VERIFICATION_20260914.json",
+      "sha256": "281993a7f7052388a2298ece25b81a7a327be98ebe10d84774f0c9b5b124ad8d"
     }
   ],
   "risk_decision_does_not_prove": [
@@ -32,5 +36,7 @@
     "GPU256 parity",
     "end-to-end throughput",
     "resume/transition correctness"
-  ]
+  ],
+  "value_coordinates": "advantage_over_executable_liquidation_bps",
+  "physical_accounting": "Same liquidation-value increments, costs and financing as v3; only learned coordinates and direct target change."
 }

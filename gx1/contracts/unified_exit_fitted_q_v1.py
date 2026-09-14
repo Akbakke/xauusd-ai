@@ -19,6 +19,7 @@ import torch
 
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     MARK_TO_MARKET_REWARD_ACCOUNTING,
+    LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
     require_train_fitted_capital_hurdle_artifact,
     require_unified_exit_economics_objective_contract,
 )
@@ -347,7 +348,7 @@ def require_unified_exit_unbounded_training_readiness(
         set(observed) != expected_keys
         or observed.get("schema_version")
         != "gx1_unified_exit_training_economics_readiness_v3"
-        or observed.get("mode") not in {"economics_objective_v2", "economics_objective_v3"}
+        or observed.get("mode") not in {"economics_objective_v2", "economics_objective_v3", "economics_objective_v4"}
         or observed.get("proper_policy_certificate_sha256") is not None
         or observed.get("test_data_used") is not False
     ):
@@ -380,7 +381,9 @@ def require_unified_exit_unbounded_training_readiness(
             expected_source_lineage_sha256=observed["expected_source_lineage_sha256"],
             policy_sha256=observed["policy_sha256"],
             proper_policy_certificate=None,
-            reward_accounting=(MARK_TO_MARKET_REWARD_ACCOUNTING
+            reward_accounting=(LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
+                               if observed["mode"] == "economics_objective_v4"
+                               else MARK_TO_MARKET_REWARD_ACCOUNTING
                                if observed["mode"] == "economics_objective_v3"
                                else "terminal_cash_v2"),
         )

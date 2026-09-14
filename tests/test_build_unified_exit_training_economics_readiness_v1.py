@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from gx1.contracts.unified_exit_economics_objective_v2 import SECONDS_PER_YEAR, MARK_TO_MARKET_REWARD_ACCOUNTING
+from gx1.contracts.unified_exit_economics_objective_v2 import SECONDS_PER_YEAR, MARK_TO_MARKET_REWARD_ACCOUNTING, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import file_sha256
 from gx1.scripts.build_unified_exit_training_economics_readiness_v1 import (
     CAPITAL_HURDLE_METHOD_RECEIPT_SCHEMA_VERSION,
@@ -54,7 +54,7 @@ def _receipt(tmp_path: Path) -> Path:
     return path
 
 
-@pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING])
+@pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING])
 def test_builder_reads_rho_from_train_method_and_val_reuses_it(tmp_path: Path, reward_accounting) -> None:
     receipt_path = _receipt(tmp_path)
     train_path = (tmp_path / "train.economics_readiness.json").resolve()

@@ -1,5 +1,18 @@
 # Gjeldende GX1-mål — 2026-09-14
 
+Brukerens nyeste mål: Undersøk og rett konkrete læringsproblemer før stor trening.
+Prioriter selvstendig Entry-signal, selektive M5-innganger med målbar høyere-TF-
+kontekst og tydeligere Exit-læring. Bruk observerte TRAIN-utfall som lærer, uten
+å gjøre etterpåklok optimal Exit til live-input eller kopiere svake Q-verdier som
+fasit. H4/M15-samarbeid skal måles, ikke antas. Ingen bred regel-/modelljakt.
+Deretter korrekt checkpointovergang, GPU256-paritet, samlet fart og resume.
+Første avgrensede rettelse er nå verifisert: Exit-verdi relativt til kjent
+gjennomførbar lukking, med konsistent kostnadsforankring tilbake til Entry.
+143 unike målrettede CPU-tilfeller består; faktisk kalibrering er ikke bevist.
+Neste blokkering er eksplisitt ny økonomiovergang og begrenset native TRAIN-
+måling, deretter GPU256/totalfart/resume. To underagenter er nå autorisert.
+Ingen ny epoch eller GPU-kjøring er startet.
+
 RISIKO AVKLART: Brukeren har svart «Ingen fast grense». Ingen fast tapsgrense
 eller maksimal holdetid. Exit styres av forventet videre nettoverdi etter kostnad.
 Beslutningen er bundet i docs/RISK_OBJECTIVE_20260914.json og NEXT_RUN_POLICY.json.

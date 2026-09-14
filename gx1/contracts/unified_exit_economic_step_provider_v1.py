@@ -21,6 +21,7 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     ECONOMIC_STEP_SCHEMA_VERSION,
     MARK_TO_MARKET_REWARD_ACCOUNTING,
+    LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
     MARK_TO_MARKET_STEP_SCHEMA_VERSION,
     SECONDS_PER_YEAR,
 )
@@ -328,7 +329,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
         }
         self._authority_sha = authority["authority_sha256"]
         objective = readiness["economics_objective_contract"]
-        self._mark_to_market = objective.get("reward_accounting") == MARK_TO_MARKET_REWARD_ACCOUNTING
+        self._mark_to_market = objective.get("reward_accounting") in {MARK_TO_MARKET_REWARD_ACCOUNTING, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING}
         self._annual_hurdle_rate = float(objective["annual_continuous_hurdle_rate"])
         self._initial_financing_bps = tuple(
             -annual * (60.0 / SECONDS_PER_YEAR) if self._mark_to_market else 0.0

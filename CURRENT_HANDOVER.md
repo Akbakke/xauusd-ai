@@ -1,5 +1,45 @@
 # GX1 overtakelse — 2026-09-14
 
+## Læringsrettelse v4 verifisert — stor trening fortsatt sperret
+
+Exit lærer nå HOLD-fordelen over kjent gjennomførbar lukking. EXIT-fordelen er
+eksakt 0; HOLD-target inneholder faktisk prisendring, finansiering og risiko.
+Entry får første lukkeverdi etter kostnad + forventet positiv videreverdi mot
+FLAT=0. Ingen nye modellparametere, tapsterskler eller maksimal holdetid.
+Fysisk cash/MTM-regnskap er uendret fra v3; v2/v3 beholder gammel semantikk.
+Den nye økonomien er eksplisitt v4 og er ennå ikke aktivert i en recipe.
+
+143 unike målrettede CPU-tilfeller består etter én liten reparasjon av en
+eldre AST-testfixture. Ingen produksjonskode ble endret for fixturefeilen.
+Ny læring, kostnader, kausalitet, faktiske modelloutputs og syntetisk native
+VAL256 pause/resume er dekket. Se
+[LIQUIDATION_RELATIVE_LEARNING_VERIFICATION_20260914.json](handover_snapshot/LIQUIDATION_RELATIVE_LEARNING_VERIFICATION_20260914.json).
+Dette er ikke dokumentasjon på GPU-paritet, produksjonsresume eller lønnsomhet.
+
+Uavhengig forecast er faktiske brutto M5-close-returer K1/K5/K12/K24 med L1.
+Nye mål skiller horisontene (nominelt 5/25/60/120 min; markedsgap gir lengre
+veggklokketid). Forecast lærer delt representasjon, men er ikke en uavhengig
+handelsverdi-lærer. Entry-Q lærer fortsatt fra fryst Exit. Exit-gradient kan
+også nå Entry-Q gjennom Entry-token; skade eller nyttig balanse er ikke målt.
+Task-log-variance-gradient er ikke bevis for gradient til features/rutere.
+M5 har direkte/residuale veier, så D1-gate alene beviser ikke fravær av M5.
+Ingen TF er tvunget opp/ned. De gamle VAL-aggregatene inneholder ikke rå
+forecast-arrays til nye horisontmål; ingen gammel analyse er kjørt om igjen.
+
+Neste observerte blokkering: eksisterende origin godtar bare gammel epoch-1
+VAL16→128 / CPU128→128. Pointer315 står i TRAIN med 19 908 optimizersteg og
+kan ikke brukes med nytt mål eller batch256 via denne overføringen. Native
+wrapper forbyr legacy resume-probe. Minste videre arbeid er en eksplisitt
+hashbundet økonomiovergang og begrenset TRAIN-måling i samme native kjørevei.
+Mål targetfordeling/prediksjonsbias og reelle forecast/Entry/Exit-gradienter
+før ytterligere modelljustering. Resume sammenligner v4 uavbrutt mot v4
+pauset fra samme tilstand. Gamle 320 steg teller ikke som v4-femårsdekning.
+Nytt modellvalg må få tom best/top-k/patience/VAL-akkumulator; gammel historikk
+bevares. Ingen checkpoint er lastet om eller endret i denne rettelsen.
+
+Brukeren har nå tillatt underagenter. To avgrensede arbeidsstrømmer er brukt;
+kun root kjører tunge verifikasjoner, én jobb om gangen. TEST er forseglet.
+
 Brukeren har svart «Ingen fast grense». Risiko-/holdemålet er nå fastsatt i
 [docs/RISK_OBJECTIVE_20260914.json](docs/RISK_OBJECTIVE_20260914.json) og hash-bundet
 i NEXT_RUN_POLICY.json: ingen absolutt tapsgrense eller maksimal holdetid.

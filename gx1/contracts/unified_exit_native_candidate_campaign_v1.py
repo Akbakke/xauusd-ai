@@ -110,9 +110,9 @@ def require_complete_val_observation(result: Mapping[str, Any]) -> dict[str, Any
     )
 
     from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
-        RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION,
+        RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION,
     )
-    if result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION}:
+    if result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}:
         raise RuntimeError("NATIVE_CANDIDATE_VAL_SCHEMA_INVALID")
     outcomes = result.get("trade_outcomes")
     if (not isinstance(outcomes, list) or len(outcomes) != 11016
@@ -141,7 +141,11 @@ def require_complete_val_observation(result: Mapping[str, Any]) -> dict[str, Any
             or result.get("full_cohort_policy_metrics_authoritative")
             is not metrics["full_cohort_authoritative"]):
         raise RuntimeError("NATIVE_CANDIDATE_FULL_VAL_POLICY_METRICS_INVALID")
-    if result["schema_version"] == MARKED_RESULT_SCHEMA_VERSION:
+    relative = result["schema_version"] == LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION
+    if ((relative and result.get("exit_q_value_coordinates") != "advantage_over_executable_liquidation_bps")
+            or (not relative and "exit_q_value_coordinates" in result)):
+        raise RuntimeError("NATIVE_CANDIDATE_VAL_VALUE_COORDINATES_INVALID")
+    if result["schema_version"] in {MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}:
         marked = marked_entry_exit_policy_metrics(
             entry_policy=policy, trade_outcomes=outcomes, full_cohort_authoritative=True,
         )

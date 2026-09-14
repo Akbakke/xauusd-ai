@@ -10140,6 +10140,63 @@ def _active_head_component_validation_metrics(
             "spearman_rank_ic": _finite_pearson(rank_prediction, rank_target),
         }
     )
+    if component_name == "forecast_pred":
+        if prediction.ndim != 2 or prediction.shape[1] != len(FORECAST_HORIZONS):
+            raise RuntimeError("[ENTRY_FORECAST_HORIZON_DIAGNOSTIC_SHAPE_INVALID]")
+        horizons: list[dict[str, Any]] = []
+        for column, horizon in enumerate(FORECAST_HORIZONS):
+            observed = element_mask[:, column]
+            forecast = prediction[observed, column].astype(np.float64, copy=False)
+            realized = target[observed, column].astype(np.float64, copy=False)
+            # Zero is the sign boundary of the observed return, never a
+            # proposed trading threshold. Keep unchanged prices and zero
+            # predictions visible instead of silently dropping either.
+            predicted_sign = np.sign(forecast).astype(np.int64)
+            realized_sign = np.sign(realized).astype(np.int64)
+            confusion = np.zeros((3, 3), dtype=np.int64)
+            np.add.at(confusion, (realized_sign + 1, predicted_sign + 1), 1)
+            nonzero_target = realized_sign != 0
+            horizons.append(
+                {
+                    "target_column": f"y_forecast_ret_K{horizon}",
+                    "m5_bars_ahead": int(horizon),
+                    "nominal_horizon_minutes": int(horizon) * 5,
+                    "supervised_rows": int(observed.sum()),
+                    "regression_metrics": _active_head_component_validation_metrics(
+                        component_name="forecast_return_bps",
+                        prediction=prediction[:, column : column + 1],
+                        target=target[:, column : column + 1],
+                        element_mask=element_mask[:, column : column + 1],
+                    ) if forecast.size else None,
+                    "mean_prediction_minus_target_bps": (
+                        float(np.mean(forecast - realized)) if forecast.size else None
+                    ),
+                    "zero_return_baseline_mean_absolute_error_bps": (
+                        float(np.mean(np.abs(realized))) if realized.size else None
+                    ),
+                    "zero_return_baseline_mean_squared_error_bps2": (
+                        float(np.mean(realized ** 2)) if realized.size else None
+                    ),
+                    "sign_confusion_actual_rows_predicted_columns": confusion.tolist(),
+                    "actual_nonzero_rows": int(nonzero_target.sum()),
+                    "predicted_nonzero_rows": int(np.count_nonzero(predicted_sign)),
+                    "direction_accuracy_on_nonzero_targets": (
+                        float(np.mean(predicted_sign[nonzero_target] == realized_sign[nonzero_target]))
+                        if bool(nonzero_target.any())
+                        else None
+                    ),
+                }
+            )
+        result["forecast_horizon_diagnostics"] = {
+            "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+            "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+            "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+            "loss_semantics": "l1_conditional_median_not_direction_probability",
+            "exit_teacher_used": False,
+            "used_for_entry_selection": False,
+            "sign_order": ["down", "unchanged", "up"],
+            "horizons": horizons,
+        }
     return result
 
 
@@ -10503,7 +10560,7 @@ def _active_head_epoch_diagnostics(
 
     metrics = {
         "active_head_diagnostic_schema": (
-            "entry_model_native_active_head_epoch_diagnostics_v5"
+            "entry_model_native_active_head_epoch_diagnostics_v6"
         ),
         "minimum_supervised_rows": int(minimum_supervised_rows),
         "active_head_contract": list(MODEL_NATIVE_ACTIVE_HEADS),

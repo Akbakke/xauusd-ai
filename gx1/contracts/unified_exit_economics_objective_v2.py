@@ -20,12 +20,21 @@ import numpy as np
 ECONOMICS_OBJECTIVE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v2"
 MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v3"
 MARK_TO_MARKET_REWARD_ACCOUNTING = "liquidation_value_increments_v1"
+LIQUIDATION_ADVANTAGE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v4"
+LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING = "liquidation_advantage_v1"
 MARK_TO_MARKET_STEP_SCHEMA_VERSION = "gx1_exit_economic_step_v2"
 _MARK_TO_MARKET_FIELDS = {
     "reward_accounting": MARK_TO_MARKET_REWARD_ACCOUNTING,
     "hold_utility_adjustment": "(1-gamma)*successor_liquidation_value_bps",
     "initial_fill_financing": "charged_once_in_liquidation_value",
     "value_adjustment_is_cash_pnl": False,
+}
+_LIQUIDATION_ADVANTAGE_FIELDS = {
+    **_MARK_TO_MARKET_FIELDS,
+    "reward_accounting": LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
+    "model_value_coordinates": "advantage_over_executable_liquidation_bps",
+    "known_exit_advantage_bps": 0.0,
+    "entry_value_reconstruction": "first_liquidation_plus_maximum_action_advantage",
 }
 CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_train_fit_v1"
 FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_frozen_owner_v2"
@@ -462,7 +471,10 @@ def build_unified_exit_economics_objective_contract(
         "validation_or_test_may_fit_hurdle": False,
         "gamma_one_proper_policy_certificate": certificate_summary,
     }
-    if reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING:
+    if reward_accounting == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
+        payload.update(_LIQUIDATION_ADVANTAGE_FIELDS)
+        payload["schema_version"] = LIQUIDATION_ADVANTAGE_SCHEMA_VERSION
+    elif reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING:
         payload.update(_MARK_TO_MARKET_FIELDS)
         payload["schema_version"] = MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
     elif reward_accounting != "terminal_cash_v2":
@@ -499,10 +511,12 @@ def require_unified_exit_economics_objective_contract(
 def _require_runtime_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_OBJECTIVE_CONTRACT_INVALID")
-    marked = value.get("schema_version") == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
-    expected_keys = _OBJECTIVE_CONTRACT_KEYS | (set(_MARK_TO_MARKET_FIELDS) if marked else set())
+    relative = value.get("schema_version") == LIQUIDATION_ADVANTAGE_SCHEMA_VERSION
+    marked = relative or value.get("schema_version") == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+    fields = _LIQUIDATION_ADVANTAGE_FIELDS if relative else _MARK_TO_MARKET_FIELDS
+    expected_keys = _OBJECTIVE_CONTRACT_KEYS | (set(fields) if marked else set())
     if set(value) != expected_keys or (marked and any(
-        value.get(key) != expected for key, expected in _MARK_TO_MARKET_FIELDS.items()
+        value.get(key) != expected for key, expected in fields.items()
     )):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_OBJECTIVE_CONTRACT_INVALID")
     observed = dict(value)
@@ -510,7 +524,7 @@ def _require_runtime_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     if (
         _require_sha256(declared, label="OBJECTIVE_CONTRACT")
         != _canonical_sha256(observed)
-        or observed["schema_version"] != (MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION if marked else ECONOMICS_OBJECTIVE_SCHEMA_VERSION)
+        or observed["schema_version"] != (LIQUIDATION_ADVANTAGE_SCHEMA_VERSION if relative else MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION if marked else ECONOMICS_OBJECTIVE_SCHEMA_VERSION)
         or observed["target_unit"] != "bps_of_entry_notional"
         or observed["seconds_per_year"] != SECONDS_PER_YEAR
         or observed["discount_factor"]
@@ -595,7 +609,7 @@ def require_economic_step_inputs(
         "same_capital_hurdle_running_cost",
         "gap",
     }
-    marked = contract["schema_version"] == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+    marked = contract["schema_version"] in {MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION, LIQUIDATION_ADVANTAGE_SCHEMA_VERSION}
     if marked:
         expected_keys.add("successor_liquidation_value")
     if not isinstance(value, Mapping) or set(value) != expected_keys:
@@ -833,6 +847,8 @@ __all__ = (
     "ECONOMIC_PATH_SCHEMA_VERSION",
     "ECONOMIC_STEP_SCHEMA_VERSION",
     "ECONOMICS_OBJECTIVE_SCHEMA_VERSION",
+    "LIQUIDATION_ADVANTAGE_SCHEMA_VERSION",
+    "LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING",
     "MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION",
     "MARK_TO_MARKET_REWARD_ACCOUNTING",
     "MARK_TO_MARKET_STEP_SCHEMA_VERSION",

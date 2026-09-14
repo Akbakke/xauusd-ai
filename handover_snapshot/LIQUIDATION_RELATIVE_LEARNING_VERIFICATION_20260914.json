@@ -1,0 +1,72 @@
+{
+  "schema_version": "gx1_liquidation_relative_learning_verification_v1",
+  "decision": "PASS",
+  "observed_utc": "2026-09-14T11:30:05.445124+00:00",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "branch": "work/gx1-current",
+  "base_commit": "8eac8645202fd9f9fb775e8f902324fdc8a04ea8",
+  "modified_file_sha256": {
+    "gx1/contracts/entry_candidate_checkpoint_policy_v1.py": "12a2a65a52fba957a7b620f4b9fc4be6dd6ab4bf7820c3f0dd026f33d363c3c4",
+    "gx1/contracts/unified_exit_economic_step_provider_v1.py": "f01e5d6f5e9eb7f786cb404103e2afbae29582a4420083671ebd82f8d1613125",
+    "gx1/contracts/unified_exit_economics_objective_v2.py": "85c8f54fab03f23ad3c3576cc7ba0b8a704056deeee3846f1310da568ed6f6b6",
+    "gx1/contracts/unified_exit_fitted_q_v1.py": "799c565d168a868194d304e1b13391a6cdf9be4f90ba3720144fdbd2e4d48a52",
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "4582a0be78b2911d8f0497137d64bfc52cd7210a327f3caa5f9f76250de390b9",
+    "gx1/contracts/unified_exit_random_access_model_v1.py": "34fa09f03b2d83aac394c9b8e6ad68526d883aada3e65456a6e365465e35b8d8",
+    "gx1/contracts/unified_exit_random_access_state_view_v1.py": "c52466969e91599eaabab66145030a9554d2abeb38a4242a11d38d93fdbcc02c",
+    "gx1/contracts/unified_exit_random_access_training_v1.py": "fbfef0d443884997bb33ab5202126c4efe980a110ab6509f00c96cf8469fb2b6",
+    "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": "0ae90f7cfc7caab66dc09474518b686e0785af0a9197130e1fc342b6b06fb650",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "815bc668203c10c46ffc00fbc4c3d396b40eca03592ff6191ca18d57a57d6eff",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "17b8b71a813b9a1875a144aef61453ba81d0f63cb1955aac137cfae2fde3878d",
+    "gx1/scripts/build_unified_exit_training_economics_readiness_v1.py": "e79d72319f30ed4702955386ebe3ade798cb9e9ce365aeff93d4ac35b6731b84",
+    "gx1/scripts/run_unified_exit_random_access_val_v1.py": "4ca06be054dde7663f5313be98d1ad7b7f0c7c6f219b6e82bf8a010b57314081",
+    "tests/test_build_unified_exit_training_economics_readiness_v1.py": "eaa08d849b84457e6b5b79bc5e4578361a54cb3dba740c85f26fa425b7bbb406",
+    "tests/test_entry_forecast_horizon_diagnostics.py": "5715f866a02a5029bfed96d595caa8b324b577c116b4f39dc5fac7cfe1f15210",
+    "tests/test_entry_v10_train_defaults.py": "e0bd421652c3476afec9c7109ddd2077d4b629bf30c93649b3f3c7ea56e75d80",
+    "tests/test_liquidation_relative_learning_v1.py": "9eb78bcbfa46a187db4fb6a5aed141f6bf6647259f0b83d93c5f08ecb451ad3e",
+    "tests/test_liquidation_relative_val_v1.py": "9d290d931cfc2d171a312075fed3edbefe3dcc279138f7030f9a07dec292bf6c",
+    "tests/test_unified_exit_economic_step_provider_v1.py": "8ae721311b24159454571cf5c213fdccc6b151a122d7684cc45640e3a47cf5fe",
+    "tests/test_unified_exit_random_access_state_view_v1.py": "0f1d3b8b88d998755f4f8bd008b8af4b81244aecfc9a02299e47e4ef709942ca",
+    "tests/test_unified_exit_random_access_val_rollout_v1.py": "e773fd7d441792b01cd204e202cdc7fad5b4fc256ada76dc5c5852f2c4b55d09"
+  },
+  "initial_verification": {
+    "passed": 139,
+    "failed": 4,
+    "log": "handover_snapshot/gx1_liquidation_relative_initial_tests.log.gz",
+    "sha256": "8cf3920614a96b562e41fd520c15a9038dab3bf67df1ce4f2784a357b010edb2"
+  },
+  "observed_failure": "Four old AST call-site fixture cases omitted the existing dataset local; no production change was needed.",
+  "minimal_repair": "Provide legacy dataset context only in the affected AST fixture; rerun its five parameter cases.",
+  "repair_verification": {
+    "passed": 5,
+    "failed": 0,
+    "log": "handover_snapshot/gx1_liquidation_relative_fixture_repair.log",
+    "sha256": "f12860da758eeed470ae080368a484304fb74b9a4b8110ea37e29c89e069f76b",
+    "junit_xml": "handover_snapshot/gx1_liquidation_relative_fixture_repair.xml",
+    "junit_sha256": "dd5540ea42a17d971c10b0b4bfd05a9d63c190cd208d7139225b3e3a259b546c"
+  },
+  "unique_cases_passing_after_repair": 143,
+  "execution": "Sequential capped CPU audit jobs, 4 GiB RAM, 512 MiB swap, CPU 0-7, one numerical thread. No production GPU.",
+  "verified": [
+    "v4 physical cash and marked utility equal v3 for both sides, nonzero costs and declared closure",
+    "relative HOLD target is observed liquidation change plus financing minus risk; EXIT advantage is exactly zero",
+    "future-liquidation mutation changes labels while current input hash remains identical",
+    "TRAIN and VAL reconstruct Entry value by adding first executable liquidation exactly once; FLAT remains zero",
+    "opposite gradient directions for adverse and favorable synthetic moves; both raw head rows learn; frozen target receives no gradients",
+    "actual model legacy output exact equality and relative action-order preservation without parameter additions",
+    "malformed relative reward and dropped or inconsistent batch coordinates rejected",
+    "native v4 synthetic full-cohort VAL batch256 direct versus pause/resume preserves all outcomes, marked scores and diagnostics",
+    "independent forecast diagnostics separate K1/K5/K12/K24, preserve masks, zero returns, empty horizons and accumulator resume"
+  ],
+  "not_verified": [
+    "actual learned Entry selectivity or market direction quality",
+    "actual forecast/Entry/Exit gradient balance",
+    "production old-to-new checkpoint transition",
+    "production GPU256 parity",
+    "end-to-end throughput",
+    "production exact resume",
+    "profitability"
+  ],
+  "gpu_run": false,
+  "training_epoch_started": false,
+  "test_data_used": false
+}

@@ -187,6 +187,9 @@ class _Policy(nn.Module):
         hold = torch.where(state[:, None] < threshold, 2.0, 0.0) + self.bias
         exit_now = torch.where(state[:, None] >= threshold, 2.0, 0.0) + self.bias
         q = torch.stack((hold, exit_now), dim=2)
+        if inputs.get("liquidation_relative_values", False):
+            from gx1.contracts.unified_exit_random_access_model_v1 import liquidation_relative_action_values
+            q = liquidation_relative_action_values(q)
         return {
             "exit_action_q_bps": q,
             "exit_action_valid_mask": inputs["action_valid_mask"],
@@ -251,7 +254,7 @@ class _EconomicProvider:
                 "classification_artifact_sha256": "d" * 64,
             },
         }
-        if self.objective.get("reward_accounting") == economics.MARK_TO_MARKET_REWARD_ACCOUNTING:
+        if self.objective.get("reward_accounting") in {economics.MARK_TO_MARKET_REWARD_ACCOUNTING, economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING}:
             step["schema_version"] = economics.MARK_TO_MARKET_STEP_SCHEMA_VERSION
             step["successor_liquidation_value"] = component(100.0 * entry + side if action == "hold" else 0.0)
         result = {

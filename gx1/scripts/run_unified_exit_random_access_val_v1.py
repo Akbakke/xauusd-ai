@@ -341,6 +341,8 @@ def _candidate_anchor_targets(
     device: torch.device,
 ) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
     """Use the same frozen first-state Exit values as the TRAIN Entry target."""
+    from gx1.contracts.unified_exit_economics_objective_v2 import LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
+    relative = state_factory.economics_objective_contract.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
 
     entries = [state_factory.entries[int(row)] for row in child_rows]
     if [int(entry["entry_row_index"]) for entry in entries] != list(child_rows):
@@ -351,6 +353,8 @@ def _candidate_anchor_targets(
     )
     inputs["entry_decision_representation"] = target_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
     inputs["action_valid_mask"] = torch.ones((len(entries), 2, 2), dtype=torch.bool, device=device)
+    if relative:
+        inputs["liquidation_relative_values"] = True
     output = target_model.forward_exit_random_access_batch(**inputs)
     q = output["exit_action_q_bps"]
     valid = output["exit_action_valid_mask"]
@@ -360,6 +364,13 @@ def _candidate_anchor_targets(
         frozen_target_q_bps=q.unsqueeze(2), action_valid_mask=valid.unsqueeze(2),
         state_valid_mask=torch.ones((len(entries), 2, 1), dtype=torch.bool, device=device),
     )
+    if relative:
+        # Only the executable first-state close value is added. No future
+        # price or hindsight-best Exit is fed into the Entry prediction.
+        liquidation = [[float(state_factory.economic_step_provider.materialize_training_projection(
+            int(entry["entry_row_index"]), side, 0, 1, 0,
+        )["exit_reward_bps"][0]) for side in range(2)] for entry in entries]
+        values = values + torch.tensor(liquidation, dtype=values.dtype, device=values.device)
     return build_entry_fitted_q_targets(
         frozen_exit_first_state_values_bps=values,
         exit_side_valid_mask=torch.ones_like(values, dtype=torch.bool),

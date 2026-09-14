@@ -21,7 +21,9 @@ from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
     marked_entry_exit_policy_metrics,
 )
 
-from gx1.contracts.unified_exit_economics_objective_v2 import MARK_TO_MARKET_REWARD_ACCOUNTING
+from gx1.contracts.unified_exit_economics_objective_v2 import (
+    MARK_TO_MARKET_REWARD_ACCOUNTING, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
+)
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
@@ -45,6 +47,7 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
 PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v3"
 RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v2"
 MARKED_RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v3"
+LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v4"
 PAUSE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_pause_v1"
 _ROUTE_KEYS = (
     "exit_specialist_gate",
@@ -585,7 +588,8 @@ def _finalize_result(
     entry_policy_decisions: Mapping[str, Any],
     guard_reason: str | None,
 ) -> dict[str, Any]:
-    marked = adapter.objective.get("reward_accounting") == MARK_TO_MARKET_REWARD_ACCOUNTING
+    relative = adapter.objective.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
+    marked = relative or adapter.objective.get("reward_accounting") == MARK_TO_MARKET_REWARD_ACCOUNTING
     outcomes: list[dict[str, Any]] = []
     status_counts: dict[str, int] = {}
     for entry_position, entry in enumerate(adapter.entries):
@@ -661,7 +665,8 @@ def _finalize_result(
         full_cohort_authoritative=rollout_complete,
     )
     result = {
-        "schema_version": MARKED_RESULT_SCHEMA_VERSION if marked else RESULT_SCHEMA_VERSION,
+        "schema_version": LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION if relative else MARKED_RESULT_SCHEMA_VERSION if marked else RESULT_SCHEMA_VERSION,
+        **({"exit_q_value_coordinates": "advantage_over_executable_liquidation_bps"} if relative else {}),
         "decision": decision,
         "contract_sha256": adapter.contract["contract_sha256"],
         "checkpoint_binding": dict(checkpoint_binding),
@@ -760,7 +765,7 @@ def require_random_access_val_evaluation_result_v1(
     execution = result.get("execution_contract")
     outcomes = result.get("trade_outcomes")
     if (
-        result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION}
+        result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}
         or result.get("decision")
         not in {
             "PASS_COMPLETE",
@@ -815,7 +820,11 @@ def require_random_access_val_evaluation_result_v1(
         is not metrics["full_cohort_authoritative"]
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_POLICY_INVALID")
-    if result["schema_version"] == MARKED_RESULT_SCHEMA_VERSION:
+    relative = result["schema_version"] == LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION
+    if ((relative and result.get("exit_q_value_coordinates") != "advantage_over_executable_liquidation_bps")
+            or (not relative and "exit_q_value_coordinates" in result)):
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_VALUE_COORDINATES_INVALID")
+    if result["schema_version"] in {MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}:
         marked_metrics = marked_entry_exit_policy_metrics(
             entry_policy=policy, trade_outcomes=outcomes,
             full_cohort_authoritative=rollout_complete,
@@ -926,6 +935,8 @@ def _verify_cpu_pipeline(*, model, adapter, rows, state_index, representations,
                   else collate_random_access_states_v1(
                       states, normalization_artifact=adapter.normalization, device=device))
         inputs.update(entry_decision_representation=representations, action_valid_mask=action_mask)
+        if adapter.objective.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
+            inputs["liquidation_relative_values"] = True
         with torch.inference_mode():
             output = model.forward_exit_random_access_batch(
                 **inputs, _market_state_cache=cache, _market_state_keys=keys,
@@ -1200,6 +1211,8 @@ def run_resumable_random_access_val_evaluation_v1(
             dtype=torch.bool,
             device=entry_decision_representations.device,
         )
+        if adapter.objective.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
+            model_inputs["liquidation_relative_values"] = True
         verify_batch = policy_batch_size >= 128 and progress["model_forward_count"] == 0
         if verify_batch and entry_decision_representations.device.type == "cuda":
             torch.cuda.synchronize(entry_decision_representations.device)
@@ -1375,6 +1388,7 @@ __all__ = (
     "PROGRESS_SCHEMA_VERSION",
     "RESULT_SCHEMA_VERSION",
     "MARKED_RESULT_SCHEMA_VERSION",
+    "LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION",
     "accumulate_route_diagnostics_v1",
     "canonical_sha256",
     "finalize_route_diagnostics_v1",

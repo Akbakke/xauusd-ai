@@ -437,6 +437,7 @@ def test_smoke_exit_training_call_honors_policy_and_partial_batch(policy, rows, 
     value = next(item.value for item in calls[0].keywords if item.arg == "exit_action_forward_chunk_rows")
     actual = eval(compile(ast.Expression(value), str(TRAINER_PATH), "eval"), vars(trainer), {
         "device": torch.device(device), "batch_rows": rows,
+        "dataset": SimpleNamespace(_unified_exit_lifecycle_v2=None),
         "session_max_optimizer_steps": max_steps,
         "session_exit_action_forward_chunk_rows": explicit_chunk,
         "_TRAINING_PRECISION_POLICY": policy,

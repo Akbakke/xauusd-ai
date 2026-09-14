@@ -59,11 +59,11 @@ def checkpoint_policy_metadata(
 def native_checkpoint_monitor(objective: Mapping[str, Any]) -> str:
     """Bind native selection to the validated economic accounting mode."""
     from gx1.contracts.unified_exit_economics_objective_v2 import (
-        _require_runtime_contract, MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION,
+        _require_runtime_contract, MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION, LIQUIDATION_ADVANTAGE_SCHEMA_VERSION,
     )
     checked = _require_runtime_contract(objective)
     return (MARKED_NET_CHECKPOINT_MONITOR
-            if checked["schema_version"] == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+            if checked["schema_version"] in {MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION, LIQUIDATION_ADVANTAGE_SCHEMA_VERSION}
             else COUPLED_NET_CHECKPOINT_MONITOR)
 
 

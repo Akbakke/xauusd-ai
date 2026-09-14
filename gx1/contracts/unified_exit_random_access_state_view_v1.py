@@ -16,6 +16,7 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
 from gx1.contracts.entry_exit_feature_base_v1 import EXIT_MTF_CONTEXT_TIMEFRAMES
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     elapsed_wall_clock_gamma,
+    LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
 )
 from gx1.contracts.unified_exit_lifetime_summary_v1 import (
     LIFETIME_SUMMARY_DIM,
@@ -34,6 +35,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 
 
 RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v1"
+LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v2"
 EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
 M1_LOCAL_HISTORY_ROWS = 480
 TRADE_PATH_TAIL_MAX_ROWS = 512
@@ -424,7 +426,10 @@ def materialize_random_access_state_view(
 
     current = one_view(state_index, state_row)
     successor = one_view(successor_index, successor_row)
+    relative = economics_objective_contract.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
     rewards = np.empty((2, 2), dtype=np.float32)
+    liquidation = np.empty((2, 2), dtype=np.float64) if relative else None
+    physical_hold = np.empty(2, dtype=np.float64) if relative else None
     economics_hashes: list[dict[str, str]] = []
     fastpath = getattr(economic_step_provider, "materialize_training_projection", None)
     if (
@@ -436,12 +441,12 @@ def materialize_random_access_state_view(
     for side in range(2):
         projection = require_economic_training_projection(
             fastpath(
-                entry_row_index, side, state_index, state_index + 1, state_index + 1
+                entry_row_index, side, state_index, state_index + (2 if relative else 1), state_index + 1
             ),
             entry_row_index=entry_row_index,
             side_index=side,
             start_state_index=state_index,
-            stop_state_index=state_index + 1,
+            stop_state_index=state_index + (2 if relative else 1),
             hold_stop_state_index=state_index + 1,
             economic_manifest=economic_step_manifest,
         )
@@ -452,6 +457,9 @@ def materialize_random_access_state_view(
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_EVENT_INVALID")
         rewards[side, 0] = projection["hold_reward_bps"][0]
         rewards[side, 1] = projection["exit_reward_bps"][0]
+        if relative:
+            liquidation[side] = projection["exit_reward_bps"]
+            physical_hold[side] = projection["hold_reward_bps"][0]
         economics_hashes.append(
             {
                 "projection_sha256": projection["projection_sha256"],
@@ -486,7 +494,7 @@ def materialize_random_access_state_view(
         elapsed_wall_clock_seconds=closure["wall_clock_delta_seconds"],
     )
     view = {
-        "schema_version": RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION,
+        "schema_version": LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION,
         "action_order": list(EXIT_ACTION_ORDER),
         "sampler_contract_sha256": contract["contract_sha256"],
         "sample_identity_sha256": sample_identity_sha256,
@@ -520,6 +528,19 @@ def materialize_random_access_state_view(
         "capacity_or_tail_length_is_terminal": False,
         "test_data_used": False,
     }
+    if relative:
+        # Compute the change before FP32 conversion. Future liquidation belongs
+        # only to the successor target; it never enters current model inputs.
+        advantage_rewards = np.zeros((2, 2), dtype=np.float32)
+        advantage_rewards[:, 0] = physical_hold + gamma * liquidation[:, 1] - liquidation[:, 0]
+        for name, values in {
+            "liquidation_relative_reward_bps": advantage_rewards,
+            "current_liquidation_value_bps": liquidation[:, 0],
+            "successor_liquidation_value_bps": liquidation[:, 1],
+        }.items():
+            array = np.ascontiguousarray(values, dtype=np.float32)
+            array.setflags(write=False)
+            view[name] = array
     view["state_view_sha256"] = _structured_sha256(view)
     return view
 
@@ -550,6 +571,7 @@ def require_random_access_state_view(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_INVALID")
     observed = dict(value)
     claimed = observed.pop("state_view_sha256")
+    relative = observed.get("schema_version") == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
     required = {
         "schema_version",
         "action_order",
@@ -581,10 +603,12 @@ def require_random_access_state_view(
         "capacity_or_tail_length_is_terminal",
         "test_data_used",
     }
+    if relative:
+        required.update({"liquidation_relative_reward_bps", "current_liquidation_value_bps", "successor_liquidation_value_bps"})
     if (
         set(observed) != required
         or claimed != _structured_sha256(observed)
-        or observed["schema_version"] != RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION
+        or observed["schema_version"] != (LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION)
         or observed["action_order"] != list(EXIT_ACTION_ORDER)
         or observed["sampler_contract_sha256"] != contract["contract_sha256"]
         or observed["sample_identity_sha256"] != scheduled_identity
@@ -693,6 +717,17 @@ def require_random_access_state_view(
         "terminal_mask": (2,),
         "right_censored_mask": (2,),
     }
+    if relative:
+        shapes.update({"liquidation_relative_reward_bps": (2, 2),
+                       "current_liquidation_value_bps": (2,), "successor_liquidation_value_bps": (2,)})
+        for name in ("liquidation_relative_reward_bps", "current_liquidation_value_bps", "successor_liquidation_value_bps"):
+            array = observed[name]
+            if (not isinstance(array, np.ndarray) or array.shape != shapes[name]
+                    or array.dtype != np.dtype("float32") or not np.isfinite(array).all()):
+                raise RuntimeError("UNIFIED_EXIT_RELATIVE_STATE_VALUE_INVALID")
+        if (np.any(observed["liquidation_relative_reward_bps"][:, 1] != 0)
+                or not np.array_equal(observed["current_liquidation_value_bps"], observed["immediate_reward_bps"][:, 1])):
+            raise RuntimeError("UNIFIED_EXIT_RELATIVE_STATE_VALUE_INVALID")
     for name, shape in shapes.items():
         array = observed[name]
         if (
@@ -701,6 +736,17 @@ def require_random_access_state_view(
             or array.flags.writeable
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID")
+    if relative:
+        physical = observed["immediate_reward_bps"][:, 0].astype(np.float64)
+        current_l = observed["current_liquidation_value_bps"].astype(np.float64)
+        next_l = observed["successor_liquidation_value_bps"].astype(np.float64)
+        gamma = observed["elapsed_wall_clock_gamma"]
+        expected = physical + gamma * next_l - current_l
+        # Inputs are stored as FP32 after FP64 target construction. Bound the
+        # rounding error from those casts, including cancellation at large L.
+        tolerance = np.finfo(np.float32).eps * (np.abs(physical) + np.abs(gamma * next_l) + np.abs(current_l) + np.abs(expected))
+        if np.any(np.abs(observed["liquidation_relative_reward_bps"][:, 0] - expected) > tolerance):
+            raise RuntimeError("UNIFIED_EXIT_RELATIVE_REWARD_IDENTITY_INVALID")
     observed["state_view_sha256"] = claimed
     return observed
 
@@ -709,6 +755,7 @@ __all__ = (
     "EXIT_ACTION_ORDER",
     "M1_LOCAL_HISTORY_ROWS",
     "RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION",
+    "LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION",
     "TRADE_PATH_TAIL_MAX_ROWS",
     "materialize_random_access_state_view",
     "validate_random_access_m1_source_v1",

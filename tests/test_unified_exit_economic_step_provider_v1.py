@@ -59,7 +59,8 @@ def _readiness(policy_sha256: str, reward_accounting: str = "terminal_cash_v2") 
     )
     return {
         "schema_version": "gx1_unified_exit_training_economics_readiness_v3",
-        "mode": ("economics_objective_v3" if reward_accounting == economics.MARK_TO_MARKET_REWARD_ACCOUNTING else "economics_objective_v2"),
+        "mode": ("economics_objective_v4" if reward_accounting == economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING else
+                 "economics_objective_v3" if reward_accounting == economics.MARK_TO_MARKET_REWARD_ACCOUNTING else "economics_objective_v2"),
         "capital_hurdle_artifact": hurdle,
         "economics_objective_contract": objective,
         "expected_train_split_sha256": "1" * 64,
