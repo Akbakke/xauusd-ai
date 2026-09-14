@@ -1,0 +1,131 @@
+{
+  "schema_version": "gx1_pretraining_doublecheck_v1",
+  "observed_utc": "2026-09-14T10:02:17.980931+00:00",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "source_commit": "cb67cc719c25778ae9a6bdc2313e7965c003f536",
+  "source_clean_at_inspection": true,
+  "branch": "work/gx1-current",
+  "decision": "BLOCKED_FOR_TRAINING",
+  "method": "read-only source, binding and saved-evidence audit; scalar illustrative recurrence; no model forward or backward",
+  "policy_sha256": "404f502233d5d316fb54da6a420a7fe82deaa845d738abf4477578185265b2f6",
+  "training_enabled": false,
+  "required_val_profile": {
+    "policy_batch_size": 256,
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "progress_interval_forwards": 64
+  },
+  "risk_decision_verified": true,
+  "risk_statement": "Ingen fast grense",
+  "evidence_missing": [
+    "gpu_batch256_parity",
+    "end_to_end_throughput",
+    "resume_equivalence"
+  ],
+  "preserved_checkpoints": {
+    "epoch1_ema": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_CACHE_CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+      "sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20",
+      "global_optimizer_steps": 19588,
+      "rehash_passed": true
+    },
+    "stopped_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "2f70fe5a405a4ddcabd26de4bfc305e51c623a62ffc44514109c43c4fa27c502",
+      "checkpoint_index": 315,
+      "global_optimizer_steps": 19908,
+      "rehash_passed": true
+    }
+  },
+  "preserved_recipe_accounting": "economics_objective_v2",
+  "new_objective_selected_in_new_run": false,
+  "new_objective_trained_checkpoint_available": false,
+  "implementation_proofs": [
+    {
+      "path": "handover_snapshot/MTM_OBJECTIVE_VERIFICATION_20260914.json",
+      "sha256": "561975df42a33f42305de836ce7b7a34f5372471b589d3004feaa04f2430106a"
+    },
+    {
+      "path": "handover_snapshot/MTM_VAL_VERIFICATION_20260914.json",
+      "sha256": "3824b3c04d15d2ea7e24c0208432c5309df60f6ecb30916a6911d34e5d17e3d6"
+    },
+    {
+      "path": "handover_snapshot/MARKED_SELECTION_VERIFICATION_20260914.json",
+      "sha256": "786f2295ead412ea9da5691bfa86f7e54def227a51c113b4a78f4b6acf11e1eb"
+    }
+  ],
+  "reused_test_logs": [
+    {
+      "log": "handover_snapshot/gx1_mtm_targeted_tests.log",
+      "sha256": "2fc803174d90b454e5946b762d87101be3d572feb6a724e378f5c094f1ac2e71",
+      "passed_cases": 39
+    },
+    {
+      "log": "handover_snapshot/gx1_mtm_integration_tests.log",
+      "sha256": "1ceefa54d1462b220f83a42b40d58084b62a79187fa157b6412bd8e84cc77ef4",
+      "passed_cases": 3
+    },
+    {
+      "log": "handover_snapshot/gx1_mtm_nav_tests.log",
+      "sha256": "dfc79af46fbee852d0fb06b51ddf2b8121446b14ed3ddb2b85b6c77b21804979",
+      "passed_cases": 57
+    },
+    {
+      "log": "handover_snapshot/gx1_marked_selection_tests.log",
+      "sha256": "52a8045cae20d3c07f09d186546a9bf1b0ff825620bab33bd81297c0234ca324",
+      "passed_cases": 23
+    }
+  ],
+  "latest_verified_file_hashes_match": true,
+  "verified_file_count": 19,
+  "entry_and_architecture_unchanged_since_initial_audit": [
+    "gx1/contracts/entry_fitted_q_v1.py",
+    "gx1/contracts/unified_exit_random_access_training_v1.py",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "gx1/contracts/unified_exit_random_access_sampler_v1.py"
+  ],
+  "entry_selection": {
+    "policy": "argmax of predicted LONG SHORT FLAT Q",
+    "flat_target_bps": 0,
+    "trade_targets": "frozen Exit first-state values",
+    "independent_market_forecast_exists": true,
+    "calibrated_confidence_filter_added": false,
+    "learned_selectivity_demonstrated": false,
+    "single_position_rule_in_marked_selection": true,
+    "position_rule_in_training_targets": false
+  },
+  "exit_learning_signal": {
+    "objective_correction_mathematically_verified": true,
+    "learned_exit_improvement_verified": false,
+    "target_refresh": "once per full TRAIN epoch",
+    "bootstrap": "one successor state",
+    "annual_continuous_hurdle_rate": 0.09531017980432487,
+    "seconds_per_year": 31557600.0,
+    "one_minute_gamma": 0.9999998187881756,
+    "hold_mark_coefficient": 1.8121182443486816e-07,
+    "example_liquidation_bps": -100.0,
+    "example_incremental_hold_correction_bps": -1.8121182443486816e-05,
+    "example_initial_bootstrap_bps": 1.0,
+    "example_30_exact_tabular_backups_bps": 0.9994509296146853,
+    "example_conditions": "constant executable liquidation -100 Bps; zero SHORT carry/risk; exact tabular backup; no new price information",
+    "limitation": "Illustration of slow correction of optimistic continuation, not a forecast of neural learning. Shared approximation, other training states and price changes can change convergence.",
+    "recommended_comparison": "Existing total-value heads versus predicting continuation advantage above known executable liquidation; or measured multi-step credit assignment. Preserve economic identity and all inputs."
+  },
+  "cooperation": {
+    "architecture_connected": true,
+    "economic_usefulness_of_all_routes_proven": false,
+    "entry_pooling_concentration_and_gate_saturation_resolved": false
+  },
+  "operational_findings": {
+    "existing_val_migration_only_accepts_requested_batch128": true,
+    "existing_val_migration_forbids_training_contract_change": true,
+    "old_resume_is_not_new_objective_transition": true,
+    "next_run_policy_readiness_checked_by": "read-only handover collector; native entry uses its own bound campaign/recipe gates",
+    "new_risk_capacity_evidence_directly_consumed_by_native_launcher": false
+  },
+  "test_data_used": false,
+  "gpu_used": false,
+  "model_forward_count": 0,
+  "optimizer_steps_executed": 0,
+  "no_new_model_code_or_test_runs": true
+}

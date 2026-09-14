@@ -5,6 +5,11 @@ eller maksimal holdetid. Exit styres av forventet videre nettoverdi etter kostna
 Beslutningen er bundet i docs/RISK_OBJECTIVE_20260914.json og NEXT_RUN_POLICY.json.
 Øvrige måle-/treningsporter gjenstår; arbeidet fortsetter fra eksisterende rettelser.
 
+Siste dobbeltkontroll: docs/PRETRAINING_DOUBLECHECK_20260914.md. Vi er fortsatt
+ikke klare for en ny epoch. Prioriter læringssignal/selektivitet og målt Entry-
+svikt, deretter korrekt overgang og de avtalte GPU-/fart-/resume-portene.
+Ingen bred regeloptimalisering eller ny arkitektur er begrunnet.
+
 Nytt aktivt mål etter brukerbeskjed: Følg den prioriterte anbefalingen konkret mot
 positiv kostnadsjustert netto Bps. Entry må dokumentere selvstendig kvalitet mot
 observerte priser; en god Exit skal ikke være bevis for riktige innganger.
@@ -46,4 +51,4 @@ Ressurser: 20 GiB RAM, 512 MiB swap, 128 oppgaver, CPU 0–18; 300 W fysisk gren
 
 Further verified finding: SHORT HOLD has zero running financing/risk reward. With split-end censoring and no economic terminal, indefinite zero-reward HOLD can dominate voluntarily realizing a loss under the implemented objective. This is an objective-level incentive; more epochs alone are not a demonstrated remedy. Clarify intended economic holding/risk constraints before altering the objective. Full reasoning and evidence are in docs/ENTRY_EXIT_REVIEW_20260914.md. Preserve the stop.
 
-Eneste videre arbeidskopi er /home/andre2/src/GX1_CURRENT, branch work/gx1-current. NEXT_RUN_POLICY.json håndhever den avtalte fartprofilen og holder trening blokkert til risiko-, GPU-, totalfart- og resume-bevis er klare. Tidligere kodekopier er historiske, ikke alternative kjøreveier.
+Eneste videre arbeidskopi er /home/andre2/src/GX1_CURRENT, branch work/gx1-current. NEXT_RUN_POLICY.json beskriver avtalt fartprofil og beviskrav; handover-kontrollen viser blokkert til GPU-, totalfart- og resume-bevis er klare. Native start har egne bundne kampanjeporter; direkte håndheving av de nye bevisrollene må kontrolleres før neste kjøring. Tidligere kodekopier er historiske, ikke alternative kjøreveier.

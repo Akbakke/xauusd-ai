@@ -14,6 +14,32 @@ training_enabled=false beholdes til alle porter er klare.
 Målet om lønnsom trening er ikke oppnådd. Ubesvarte risikospørsmål i tidligere
 trinn nedenfor er historikk og gjelder ikke lenger.
 
+## Siste dobbeltkontroll: fortsatt ikke klar for ny epoch
+
+Brukeren har bedt om å kontrollere treningsklarhet, selektivitet, Exit-prinsipp
+og samarbeid på nytt. Samlet svar og prioritering står i
+[PRETRAINING_DOUBLECHECK_20260914.md](docs/PRETRAINING_DOUBLECHECK_20260914.md),
+med [maskinbevis](handover_snapshot/PRETRAINING_DOUBLECHECK_20260914.json).
+Begge checkpoints er hashet på nytt, og 19 siste kilde-/testhasher stemmer.
+Ingen beståtte tester ble gjentatt. Ingen modellforward, GPU eller trening.
+
+Selektiv Entry er ikke innlært av den nye én-posisjonsmålingen. Targets er
+fortsatt Exit-avledet handelsverdi mot FLAT=0; den uavhengige prisprognosen er
+fortsatt svak. Koblingene mellom familier/TF finnes, men Entry-konsentrasjon og
+metning består. Den nye økonomien er ikke brukt til å trene bevarte vekter.
+
+Ny konkret risiko for læringen: ett-stegs bootstrap og target frosset per epoch,
+mens v3 sin HOLD-korrigering ved −100 Bps bare er −0,0000181212 Bps per minutt.
+Den lagrede skalare illustrasjonen er ikke målt nevralt treningsutfall. Vurder
+direkte læring av videreverdi over kjent lukkeverdi eller bedre kredittildeling
+bare gjennom avgrenset sammenligning; ikke legg på vilkårlige regler.
+
+Eksisterende VAL-overføring krever fremdeles batch 128 og lik treningskontrakt.
+Dette er ingen overgang til nytt mål / batch 256. GPU-, fart- og resumeporter
+består. Handover sjekker NEXT_RUN_POLICY; native start har egne kampanjeporter,
+men leser ikke disse nye bevisrollene direkte. Kontroller binding/håndheving
+som del av neste native kjøring. Se rapportens prioriterte rekkefølge.
+
 ## Checkpointvalg følger nå hele den kronologiske nettoverdien
 
 Den observerte blokkeringen var at åpne valgte handler gjorde den gamle
