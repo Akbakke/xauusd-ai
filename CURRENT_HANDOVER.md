@@ -1,3 +1,92 @@
+# GX1 — gjeldende overtakelse 2026-09-14
+
+## Stoppet etter 16 kontrollsteg; ett år er neste større omfang
+
+Ingen trainer kjører. Kilde 7054ec8b74b4935031d8be77419ac1a3d4aa8426 fullførte
+ett native målevindu på boot 419 til checkpoint 2, epoch 0, offset/global 16.
+Guard PASS, trainer/observer/controller exit 0. GX1NativeLearningCalibration
+er deaktivert etter avslutning. Dette var 16 steg med batch 16, ingen full
+femårs-epoch eller VAL. Full trening er fortsatt training_enabled=false.
+
+Eksakt runtime:
+`/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_7054EC8B_BOOT418`.
+Recipe/dataartefakter:
+`/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_7054EC8B`.
+Planfil-SHA256: eebffe721aa1f980d62b3158013ee80ab0ca61d59d058c047591f43e18160d4e.
+Bevis: [NATIVE_ENTRY_BOUNDARY_OBSERVATION_20260914.json](handover_snapshot/NATIVE_ENTRY_BOUNDARY_OBSERVATION_20260914.json).
+
+På de fire undersøkte Entry-ruteparametrene har forecast fortsatt gradient
+(norm 0.00730036), mens Entry-Q og Exit-token ikke har forbindelse tilbake.
+De eksisterende loggmålene for første batchs prediksjoner, targets og forecast-
+gradient er eksakt like kontrollen på 34fd8997. Dette er ikke full tensor-/Adam-
+paritet, og sier ikke at hele den delte backbone er isolert fra Exit.
+
+Faktisk første batch viser HOLD-target mean 32.1241 Bps = reward mean 0.0288
++ frozen bootstrap mean 32.0953. Reward har absolutt mean 1.7169 Bps.
+Entry første gjennomførbare lukkeverdi har mean -5.6037 Bps; frozen
+fortsettelse legger til 7.4919 Bps. Ingen av de 16 target-radene velger FLAT.
+Dette avdekker avhengighet av gammel verdilærer. Det beviser ikke at all positiv
+fortsettelse er feil eller at én batch beskriver hele datasettet.
+
+## Minste læringsrettelse og neste verifikasjon
+
+Neste overgang bruker eksplisitt `exit_value_initialization=close_now_baseline_v1`.
+Bare `head_exit_action.weight` og `head_exit_action.bias` starter fra null i
+online, frozen target og EMA. Hele Adam-state for akkurat disse to parameterne
+fjernes, slik at også deres stegtellere starter riktig. Øvrige vekter, optimizer-
+tilstander, EMA-historikk, scheduler og RNG beholdes. Entry-Q beholdes og lærer
+mot den nye læreren. Varianten brukes bare før første destinasjonscheckpoint;
+resume skal gjenopprette tilstanden og aldri initialisere på nytt.
+
+Den kjente lukk-nå-policyen gir lærerens startverdi 0 ekstra Bps. Det er en
+konservativ initialisering for ny v4-fit, ingen maksimal holdetid, risiko-/
+prisgrense eller påstand om kalibrert HOLD-verdi. Fulltreningsbevis må bindes
+til samme variant; gamle preserve-bevis kan ikke godkjenne den nye starten.
+Faktisk GPU-kalibrering fra denne baselinen er ikke kjørt.
+
+48 målrettede CPU-tilfeller består, inkludert faktisk restored head → relativ
+forward → Bellman-target, Adam-oppdatering og bevart læring gjennom save/restore.
+Se [EXIT_BASELINE_TRANSITION_VERIFICATION_20260914.json](handover_snapshot/EXIT_BASELINE_TRANSITION_VERIFICATION_20260914.json).
+
+## Brukerens siste avgrensninger
+
+Ett år foretrekkes som første større læringsforsøk, ikke ny femårs-epoch nå.
+Anbefalt TRAIN: 2025-06-01 inklusiv til 2026-06-01 eksklusiv, deretter hele
+juni 2026 som VAL. Bruk CURRENT-bundne NOTIONAL-data. Eksisterende builder
+`materialize_lifecycle_v2_pilot_entry_window_v1` kan gjøre datoutvalget med alle
+kolonner/schema bevart; gammel pilotrot skal ikke brukes som erstatningsdata.
+Native population-/lineage-kontrakt, epochdekning og checkpointovergang krever
+en eksplisitt ettårsbinding før dette kan kjøres. Nødvendig eldre M5/MTF-kontekst
+skal beholdes. Ingen ny datofiltermekanisme eller separat runner er begrunnet.
+
+Gamle femårsvekter kan brukes som tydelig merket videre kalibrering. Et slikt
+forsøk er ikke trent bare på ett år, og juni er allerede brukt til utvikling.
+Det gir ikke et nytt uavhengig holdoutbevis. TEST forblir forseglet.
+
+Intradag er ønsket stil; M5 er ingen låst handelsvarighet eller eneste fokus.
+Behold alle 200 features, åtte familier og samarbeid mellom tidsrammer.
+Ingen fast taps-/holdetidsgrense. Kvalitet fremfor antall handler, og registrerte
+inputs/verdier/utfall skal gjøre hver beslutning etterprøvbar. Nye adaptive
+ML/RL-mekanismer krever målt gevinst på senere perioder; ingen bred modelljakt nå.
+
+Rekkefølge videre: verifiser den eksplisitte verdiinitialiseringen, bind ettårs-
+dekningen, dokumenter GPU256-paritet, samlet TRAIN+VAL-fart og uavbrutt/resume-
+likhet, og kjør deretter det avgrensede læringsforsøket. Behold native campaign,
+TRAIN 16, VAL 256, åtte CPU-arbeidere, tre timers VAL-vinduer og alle vakter.
+Ingen av de gjenstående portene er satt til PASS av dette notatet.
+
+Opprinnelig checkpoint 315 / 19 908 steg, første epochs juni-EMA og begge
+private v4-kontroller er bevart. Den tidligere kontrollen 16 → 32 dokumenterer
+faktisk gjenopptakelse, men ikke numerisk likhet med uavbrutt trening.
+Bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current, er gjeldende kode.
+
+---
+
+## Historiske arbeidsnotater
+
+Seksjonene nedenfor er tidligere status fra samme arbeid. Fremtidige handlinger
+og «ennå ikke målt»-formuleringer der er historikk; gjeldende status står over.
+
 # GX1 overtakelse — 2026-09-14
 
 ## Presis Entry-grense og target-dekomponering verifisert

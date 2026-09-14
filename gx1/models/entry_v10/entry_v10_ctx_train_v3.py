@@ -12606,11 +12606,13 @@ _CANDIDATE_ECONOMICS_TRANSITION_SOURCES = frozenset({
 
 def _load_candidate_economics_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
-    epoch_order: torch.Tensor,
+    epoch_order: torch.Tensor, model: Optional[nn.Module] = None,
+    optimizer: Optional[optim.Optimizer] = None,
 ) -> dict[str, Any]:
-    """Warm-start v4 from the stopped v2 state; never claim objective equivalence.
+    """Start v4 from stopped v2; an explicit variant resets only Exit values.
 
-    Optimizer/EMA internal counters are retained. The session step counter starts
+    Except for explicitly reset Exit-head Adam states, counters are retained.
+    Neither variant claims objective equivalence. The session step counter starts
     at zero because it counts complete TRAIN coverage under the new objective.
     The immutable receipt preserves the 19,908 earlier updates and old cursor.
     """
@@ -12627,9 +12629,15 @@ def _load_candidate_economics_successor_state(
         bound = require_binding(binding, label="economics transition", verify_file=True)
         return read_bound_json(Path(bound["path"]), bound["sha256"])
 
-    if (not isinstance(origin, Mapping) or set(origin) != {"schema_version", "contract", "pointer"}
-            or origin["schema_version"] != _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA):
+    origin_fields = {"schema_version", "contract", "pointer"}
+    if (not isinstance(origin, Mapping)
+            or set(origin) not in (origin_fields, origin_fields | {"exit_value_initialization"})
+            or origin["schema_version"] != _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA
+            or ("exit_value_initialization" in origin and (
+                type(origin["exit_value_initialization"]) is not str
+                or origin["exit_value_initialization"] != "close_now_baseline_v1"))):
         fail("ORIGIN_INVALID")
+    initialization = origin.get("exit_value_initialization")
     contract, pointer = read(origin["contract"]), read(origin["pointer"])
     old = _CandidateTrainingSession(out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True)
     if (Path(origin["contract"]["path"]) != old._contract_path
@@ -12665,7 +12673,12 @@ def _load_candidate_economics_successor_state(
     if ("next_run_policy" in before or "next_run_policy" not in after
             or Path(after["next_run_policy"]["path"]) != Path(after["source_repo"]) / "NEXT_RUN_POLICY.json"):
         fail("NEXT_RUN_POLICY_BINDING_INVALID")
-    read(after["next_run_policy"])
+    policy = read(after["next_run_policy"])
+    if (("exit_value_initialization" in policy and (
+            type(policy["exit_value_initialization"]) is not str
+            or policy["exit_value_initialization"] != "close_now_baseline_v1"))
+            or policy.get("exit_value_initialization") != initialization):
+        fail("EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH")
     old_sources, new_sources = before["source_bindings"], after["source_bindings"]
     if set(old_sources) != set(new_sources):
         fail("SOURCE_CLOSURE_CHANGED")
@@ -12750,6 +12763,89 @@ def _load_candidate_economics_successor_state(
                 fail("OPTIMIZER_COUNTER_INVALID")
             key = str(int(count))
             optimizer_steps[key] = optimizer_steps.get(key, 0) + 1
+    initialization_receipt = None
+    if initialization is not None:
+        if not isinstance(model, nn.Module) or not isinstance(optimizer, optim.AdamW):
+            fail("EXIT_INITIALIZATION_MODEL_OPTIMIZER_REQUIRED")
+        head_names = ("head_exit_action.weight", "head_exit_action.bias")
+        named = dict(model.named_parameters())
+        if (any(name not in named for name in head_names)
+                or named[head_names[0]].ndim != 2 or named[head_names[0]].shape[0] != 2
+                or named[head_names[1]].shape != (2,)):
+            fail("EXIT_INITIALIZATION_HEAD_INVALID")
+        # Serialized IDs bind by optimizer group position, exactly as load_state_dict.
+        # The live parameter object supplies its model name; state_dict key order does not.
+        names_by_identity = {id(parameter): name for name, parameter in named.items()}
+        saved_groups = state["optimizer_state"]["param_groups"]
+        if len(saved_groups) != len(optimizer.param_groups):
+            fail("EXIT_INITIALIZATION_OPTIMIZER_MAPPING_INVALID")
+        optimizer_ids = {}
+        seen_ids = set()
+        for live_group, saved_group in zip(optimizer.param_groups, saved_groups):
+            if len(live_group["params"]) != len(saved_group["params"]):
+                fail("EXIT_INITIALIZATION_OPTIMIZER_MAPPING_INVALID")
+            for parameter, saved_id in zip(live_group["params"], saved_group["params"]):
+                name = names_by_identity.get(id(parameter))
+                if (name is None or name in optimizer_ids or type(saved_id) is not int
+                        or saved_id in seen_ids):
+                    fail("EXIT_INITIALIZATION_OPTIMIZER_MAPPING_INVALID")
+                optimizer_ids[name] = saved_id
+                seen_ids.add(saved_id)
+        if any(name not in optimizer_ids for name in head_names):
+            fail("EXIT_INITIALIZATION_OPTIMIZER_MAPPING_INVALID")
+        value_states = {
+            "model_state": state["model_state"], "target_model_state": state["target_model_state"],
+            "weight_ema_state.shadow": state["weight_ema_state"]["shadow"],
+        }
+        changes = {}
+        for location, values in value_states.items():
+            changes[location] = {}
+            for name in head_names:
+                previous = values.get(name)
+                if (not isinstance(previous, torch.Tensor) or previous.shape != named[name].shape
+                        or previous.dtype != named[name].dtype
+                        or not bool(torch.isfinite(previous).all().item())):
+                    fail("EXIT_INITIALIZATION_HEAD_INVALID")
+                replacement = torch.zeros_like(previous)
+                changes[location][name] = {
+                    "before_sha256": canonical_model_state_sha256({name: previous}),
+                    "after_sha256": canonical_model_state_sha256({name: replacement}),
+                    "before_l2_norm": float(torch.linalg.vector_norm(previous.double()).item()),
+                    "before_minimum": float(previous.min().item()),
+                    "before_maximum": float(previous.max().item()),
+                    "after_all_values": 0.0,
+                }
+                values[name] = replacement
+        removed = {}
+        origin_optimizer_steps = dict(optimizer_steps)
+        for name in head_names:
+            saved_id = optimizer_ids[name]
+            previous = state["optimizer_state"]["state"].pop(saved_id, None)
+            if not isinstance(previous, Mapping) or not {"step", "exp_avg", "exp_avg_sq"} <= set(previous):
+                fail("EXIT_INITIALIZATION_ADAM_STATE_INVALID")
+            step = previous["step"]
+            count = float(step.item() if isinstance(step, torch.Tensor) else step)
+            removed[name] = {
+                "optimizer_state_id": saved_id, "previous_step": int(count),
+                "previous_state_fields": sorted(previous),
+                "previous_tensor_state_sha256": canonical_model_state_sha256({
+                    key: value for key, value in previous.items() if isinstance(value, torch.Tensor)
+                }),
+                "new_state": "absent_AdamW_lazy_initialization_from_step_zero",
+            }
+            key = str(int(count))
+            optimizer_steps[key] -= 1
+            if optimizer_steps[key] == 0:
+                del optimizer_steps[key]
+        initialization_receipt = {
+            "variant": initialization, "parameter_names": list(head_names),
+            "value_state_changes": changes, "removed_optimizer_states": removed,
+            "origin_optimizer_internal_step_histogram": origin_optimizer_steps,
+            "initial_hold_advantage_bps": 0.0, "known_exit_advantage_bps": 0.0,
+            "semantics": "conservative_new_v4_fit_from_close_now_value_baseline_not_fitted_HOLD_value",
+            "entry_q_reset": False, "encoder_reset": False,
+            "holding_or_risk_limit_added": False,
+        }
     receipt = {
         "schema_version": "gx1_candidate_economics_transition_receipt_v1",
         "transition": "v2_to_v4_warm_start_not_objective_equivalence",
@@ -12769,6 +12865,12 @@ def _load_candidate_economics_successor_state(
         "new_epoch_index": 0, "new_batch_offset": 0,
         "selection_and_validation_reset": True, "test_data_used": False,
     }
+    if initialization_receipt is not None:
+        receipt["transition"] = "v2_to_v4_close_now_baseline_initialization_not_objective_equivalence"
+        partial = ["model_state", "target_model_state", "optimizer_state", "weight_ema_state"]
+        receipt["preserved_state_fields"] = [name for name in receipt["preserved_state_fields"] if name not in partial]
+        receipt["partially_preserved_state_fields"] = partial
+        receipt["preservation_exceptions"] = initialization_receipt
     receipt_path = session.directory / _CANDIDATE_ECONOMICS_TRANSITION_RECEIPT
     if receipt_path.exists() or receipt_path.is_symlink():
         _candidate_training_session_read_json(receipt_path, label="ECONOMICS_TRANSITION")
@@ -13006,6 +13108,7 @@ def _run_resumable_candidate_training(
             restored_state = _load_candidate_economics_successor_state(
                 session=session, origin=candidate_resume_origin,
                 epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0),
+                model=model, optimizer=optimizer,
             )
         else:
             restored_state = _load_candidate_val_batch_successor_state(

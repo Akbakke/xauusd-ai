@@ -126,3 +126,73 @@ def test_missing_origin_cannot_fall_back_to_seed(scope, origin):
     recipe["candidate_resume_origin"] = origin
     with pytest.raises(RuntimeError, match="ECONOMICS_TRANSITION_ORIGIN_REQUIRED"):
         native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_declared_exit_baseline_is_bound_to_policy(scope):
+    policy, recipe, _, save = scope
+    recipe["candidate_resume_origin"]["exit_value_initialization"] = "close_now_baseline_v1"
+    with pytest.raises(RuntimeError, match="EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+    policy["exit_value_initialization"] = "close_now_baseline_v1"
+    save()
+    assert native.require_native_run_scope(recipe, invocation_number=1) == 16
+    assert native.require_native_run_scope(recipe, invocation_number=2) == 32
+    recipe["candidate_resume_origin"].pop("exit_value_initialization")
+    with pytest.raises(RuntimeError, match="EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+@pytest.mark.parametrize("value", [None, True, 0, {}, "unknown"])
+def test_unknown_or_untyped_origin_initialization_is_rejected(scope, value):
+    _, recipe, _, _ = scope
+    recipe["candidate_resume_origin"]["exit_value_initialization"] = value
+    with pytest.raises(RuntimeError, match="ECONOMICS_TRANSITION_ORIGIN_REQUIRED"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+@pytest.mark.parametrize("value", [None, True, 0, {}, "unknown"])
+def test_unknown_or_untyped_policy_initialization_is_rejected(scope, value):
+    policy, recipe, _, save = scope
+    policy["exit_value_initialization"] = value
+    save()
+    with pytest.raises(RuntimeError, match="EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_optional_initialization_does_not_allow_other_origin_fields(scope):
+    _, recipe, _, _ = scope
+    recipe["candidate_resume_origin"]["reset_encoder"] = True
+    with pytest.raises(RuntimeError, match="ECONOMICS_TRANSITION_ORIGIN_REQUIRED"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_full_training_baseline_cannot_reuse_preserve_variant_evidence(scope):
+    policy, recipe, write, save = scope
+    policy["exit_value_initialization"] = "close_now_baseline_v1"
+    recipe["candidate_resume_origin"]["exit_value_initialization"] = "close_now_baseline_v1"
+    policy["training_enabled"] = True
+    roles = ("checkpoint_transition", "learning_calibration", "gpu_batch256_parity",
+             "end_to_end_throughput", "resume_equivalence")
+    proof = {"decision": "PASS", "test_data_used": False,
+             "economics_objective_contract_sha256": "c" * 64, "source_bindings_sha256": "a" * 64,
+             "training_origin_pointer_sha256": recipe["candidate_resume_origin"]["pointer"]["sha256"],
+             "native_val_profile": recipe["val_limits"]}
+    for role in roles:
+        policy["required_evidence"][role] = write(role + ".json", {**proof, "evidence_role": role})
+    save()
+    with pytest.raises(RuntimeError, match="NEXT_RUN_EVIDENCE_NOT_PASS"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+    for role in roles:
+        policy["required_evidence"][role] = write(role + ".json", {
+            **proof, "evidence_role": role, "exit_value_initialization": "close_now_baseline_v1",
+        })
+    save()
+    assert native.require_native_run_scope(recipe, invocation_number=1) is None
+    for role in roles:
+        policy["required_evidence"][role] = write(role + ".json", {**proof, "evidence_role": role})
+        save()
+        with pytest.raises(RuntimeError, match="NEXT_RUN_EVIDENCE_NOT_PASS"):
+            native.require_native_run_scope(recipe, invocation_number=1)
+        policy["required_evidence"][role] = write(role + ".json", {
+            **proof, "evidence_role": role, "exit_value_initialization": "close_now_baseline_v1",
+        })

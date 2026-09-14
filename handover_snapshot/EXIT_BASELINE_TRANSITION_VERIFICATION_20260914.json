@@ -1,0 +1,59 @@
+{
+  "base_commit": "7054ec8b74b4935031d8be77419ac1a3d4aa8426",
+  "decision": "PASS_TARGETED_CPU_VERIFICATION",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "limits": {
+    "end_to_end_train_val_throughput_proven": false,
+    "full_epoch_training_started": false,
+    "gpu_run": false,
+    "gpu_val_batch256_parity_proven": false,
+    "learning_calibrated": false,
+    "profitability_proven": false,
+    "test_data_used": false,
+    "uninterrupted_versus_resumed_equivalence_proven": false
+  },
+  "logs": {
+    "log": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_exit_baseline_transition_20260914.log",
+      "sha256": "40a02fb397bdf51fb5b1d1acd96e356035a5cd213d547e7481eb4248bbe69bce"
+    },
+    "xml": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_exit_baseline_transition_20260914.xml",
+      "sha256": "64430566a443d3f53a56ce23a45afdd4a90588af5251386d02b7e74721492e3f"
+    }
+  },
+  "observed_utc": "2026-09-14T14:13:22.639706+00:00",
+  "pytest_counts": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 48
+  },
+  "schema_version": "gx1_exit_baseline_transition_verification_v1",
+  "tested_source_files": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+      "sha256": "0b515d7356f130e15737a9ca412a1abdfdb509086eabe7f5ae5ed12f8541693d"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+      "sha256": "0463f5c529cf4c83914ffc93468e7dc0a6823873e99a80ff131101aef5d48545"
+    },
+    "tests/test_candidate_economics_transition.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_candidate_economics_transition.py",
+      "sha256": "8a4c9b75806a8b853839d66396aab80e2e39ec9c2d5226b5b369ae0925ecd0a0"
+    },
+    "tests/test_native_learning_calibration_scope.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_learning_calibration_scope.py",
+      "sha256": "992ab84648492b02d7fdb80893276e5608fccc94a7322451c0142cb7194b9c01"
+    }
+  },
+  "verified": [
+    "Exit head only reset in online, frozen target and EMA; all other tensors and original checkpoint files preserved.",
+    "Complete Adam states, including step and AMSGrad state, removed only for the two parameters using actual optimizer-group/model identity mapping.",
+    "Restored baseline target forwarded through actual relative-value and Bellman owners yields HOLD=reward and EXIT=0 exactly.",
+    "An actual optimizer update starts reset head steps at 1; learned nonzero head and optimizer/EMA survive checkpoint save and restore.",
+    "Initialization is not reapplied to an existing destination checkpoint; transition receipt is crash-idempotent.",
+    "Policy variant and all full-training evidence roles must agree; old preserve evidence cannot admit baseline training."
+  ]
+}

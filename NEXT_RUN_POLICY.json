@@ -60,7 +60,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Full epoch training remains blocked. Only declared cumulative16/32 optimizer-step native TRAIN calibration is permitted before learning, GPU, throughput and resume evidence. No legacy runner, reduced VAL profile, reduced features/data/precision or TEST.",
+  "rule": "Full epoch training remains blocked. Only declared cumulative 16/32 optimizer-step native TRAIN calibration is enabled. The next transition initializes the Exit value head from the close-now baseline. One-year chronological TRAIN calibration is the intended next larger scope, but its data coverage and all remaining evidence gates must be bound first. No legacy runner, reduced VAL profile, reduced features/precision or TEST.",
   "native_learning_calibration": {
     "schema_version": "gx1_native_learning_calibration_scope_v1",
     "optimizer_step_ceilings": [
@@ -69,5 +69,6 @@
     ],
     "full_epoch_training_allowed": false,
     "test_data_used": false
-  }
+  },
+  "exit_value_initialization": "close_now_baseline_v1"
 }

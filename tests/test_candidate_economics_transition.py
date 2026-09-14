@@ -38,11 +38,16 @@ def _objective(relative, rho=0.1):
     )
 
 
-def _fixture(tmp_path, monkeypatch, fault=None):
+def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
+             policy_initialization="same_as_origin", model=None, optimizer=None):
     current = tmp_path / "CURRENT"
     current.mkdir()
     monkeypatch.setattr(trainer, "__file__", str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"))
-    policy = _write(current / "NEXT_RUN_POLICY.json", {"training_enabled": False})
+    policy_value = initialization if policy_initialization == "same_as_origin" else policy_initialization
+    policy = _write(current / "NEXT_RUN_POLICY.json", {
+        "training_enabled": False,
+        **({"exit_value_initialization": policy_value} if policy_value is not None else {}),
+    })
     outputs = [tmp_path / "old", tmp_path / "new"]
     source_roots = [tmp_path / "historic_source", current]
     source_names = ["gx1/models/entry_v10/entry_v10_ctx_train_v3.py", "gx1/features/htf_features.py"]
@@ -56,9 +61,10 @@ def _fixture(tmp_path, monkeypatch, fault=None):
         sources[1][source_names[1]]["path"] = str(source_roots[0] / source_names[1])
     if fault == "source_added":
         sources[1]["unexpected"] = {"path": str(current / "new.py"), "sha256": "f" * 64}
-    models = [torch.nn.Linear(3, 2)]
+    models = [torch.nn.Linear(3, 2) if model is None else model]
     target = copy.deepcopy(models[0])
-    optimizer = torch.optim.AdamW(models[0].parameters(), lr=0.01)
+    if optimizer is None:
+        optimizer = torch.optim.AdamW(models[0].parameters(), lr=0.01)
     optimizer.zero_grad()
     models[0](torch.ones(2, 3)).square().mean().backward()
     optimizer.step()
@@ -135,6 +141,8 @@ def _fixture(tmp_path, monkeypatch, fault=None):
             origin = {"schema_version": trainer._CANDIDATE_ECONOMICS_TRANSITION_SCHEMA,
                       "contract": {"path": str(session._contract_path), "sha256": trainer._sha256_file(session._contract_path)},
                       "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)}}
+            if initialization is not None:
+                origin["exit_value_initialization"] = initialization
     return sessions, origin
 
 
@@ -238,3 +246,192 @@ def test_economics_transition_rejects_changed_bound_pointer_bytes(tmp_path, monk
     old._active_path.write_bytes(old._active_path.read_bytes() + b" ")
     with pytest.raises(RandomAccessCampaignError, match="SHA"):
         trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.arange(313399))
+
+
+class _EconomicHeads(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = torch.nn.Linear(3, 3)
+        self.head_entry_action_q = torch.nn.Linear(3, 3)
+        self.head_exit_action = torch.nn.Linear(3, 2)
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        return torch.cat((self.head_entry_action_q(encoded), self.head_exit_action(encoded)), dim=-1)
+
+
+def _economic_model_optimizer():
+    model = _EconomicHeads()
+    named = dict(model.named_parameters())
+    # Deliberately interleave Exit with other parameters, unlike state_dict order.
+    groups = [["head_entry_action_q.bias", "head_exit_action.weight", "encoder.weight"],
+              ["encoder.bias", "head_exit_action.bias", "head_entry_action_q.weight"]]
+    optimizer = torch.optim.AdamW(
+        [{"params": [named[name] for name in group]} for group in groups], lr=.01, amsgrad=True,
+    )
+    return model, optimizer
+
+
+def test_exit_baseline_changes_only_bound_head_states_and_preserves_learned_values_on_resume(tmp_path, monkeypatch):
+    model, optimizer = _economic_model_optimizer()
+    (old, new), origin = _fixture(tmp_path, monkeypatch, initialization="close_now_baseline_v1",
+                                  model=model, optimizer=optimizer)
+    before = old.load_checkpoint()
+    live_model_before = copy.deepcopy(model.state_dict())
+    live_optimizer_before = copy.deepcopy(optimizer.state_dict())
+    before_rng = torch.get_rng_state().clone()
+    hashes = {path.name: trainer._sha256_file(path) for path in old.directory.iterdir() if path.is_file()}
+    order = torch.arange(313399, dtype=torch.int64)
+    state = trainer._load_candidate_economics_successor_state(
+        session=new, origin=origin, epoch_order=order, model=model, optimizer=optimizer,
+    )
+    assert torch.equal(torch.get_rng_state(), before_rng)
+    _identical(model.state_dict(), live_model_before)
+    _identical(optimizer.state_dict(), live_optimizer_before)
+    names = {"head_exit_action.weight", "head_exit_action.bias"}
+    for location in ("model_state", "target_model_state"):
+        for name, value in state[location].items():
+            if name in names:
+                assert torch.count_nonzero(value) == 0
+            else:
+                _identical(value, before[location][name])
+    for name, value in state["weight_ema_state"]["shadow"].items():
+        if name in names:
+            assert torch.count_nonzero(value) == 0
+        else:
+            _identical(value, before["weight_ema_state"]["shadow"][name])
+    assert state["weight_ema_state"]["steps"] == before["weight_ema_state"]["steps"] == 19908
+    assert state["weight_ema_state"]["decay"] == before["weight_ema_state"]["decay"]
+    expected_ids = {name: saved_id for live, saved in zip(optimizer.param_groups, before["optimizer_state"]["param_groups"])
+                    for parameter, saved_id in zip(live["params"], saved["params"])
+                    for name, named_parameter in model.named_parameters() if parameter is named_parameter and name in names}
+    assert set(expected_ids.values()) == {1, 4}
+    assert set(state["optimizer_state"]["state"]) == set(before["optimizer_state"]["state"]) - {1, 4}
+    for identifier, value in state["optimizer_state"]["state"].items():
+        _identical(value, before["optimizer_state"]["state"][identifier])
+    _identical(state["optimizer_state"]["param_groups"], before["optimizer_state"]["param_groups"])
+    for key in ("lr_scheduler_state", "rng_state"):
+        _identical(state[key], before[key])
+    receipt_path = new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT
+    receipt_bytes = receipt_path.read_bytes()
+    receipt = json.loads(receipt_bytes)
+    details = receipt["preservation_exceptions"]
+    assert details["variant"] == "close_now_baseline_v1"
+    assert details["encoder_reset"] is details["entry_q_reset"] is False
+    assert set(details["parameter_names"]) == names
+    assert details["origin_optimizer_internal_step_histogram"] == {"19908": 6}
+    assert receipt["optimizer_internal_step_histogram"] == {"19908": 4}
+    assert set(receipt["preserved_state_fields"]) == {"lr_scheduler_state", "rng_state"}
+    for name, detail in details["removed_optimizer_states"].items():
+        assert detail["optimizer_state_id"] == expected_ids[name]
+        assert detail["previous_step"] == 19908
+        assert set(detail["previous_state_fields"]) == {"step", "exp_avg", "exp_avg_sq", "max_exp_avg_sq"}
+    for location, values in details["value_state_changes"].items():
+        old_values = before["weight_ema_state"]["shadow"] if location.endswith(".shadow") else before[location]
+        for name, detail in values.items():
+            assert detail["before_sha256"] == trainer.canonical_model_state_sha256({name: old_values[name]})
+            assert detail["after_sha256"] == trainer.canonical_model_state_sha256({name: torch.zeros_like(old_values[name])})
+            assert detail["after_all_values"] == 0.0
+    repeated = trainer._load_candidate_economics_successor_state(
+        session=new, origin=origin, epoch_order=order, model=model, optimizer=optimizer,
+    )
+    _identical(repeated, state)
+    assert receipt_path.read_bytes() == receipt_bytes
+    assert {path.name: trainer._sha256_file(path) for path in old.directory.iterdir() if path.is_file()} == hashes
+    new.save_checkpoint(state)
+    target = copy.deepcopy(model)
+    ema = trainer._WeightEma(model, .5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+    trainer._restore_candidate_training_checkpoint(
+        new.load_checkpoint(), session=new, model=model, target_model=target, optimizer=optimizer,
+        weight_ema=ema, lr_scheduler=scheduler, device=torch.device("cpu"), dataset_rows=313399,
+    )
+    assert not any(parameter.requires_grad for parameter in target.parameters())
+    from gx1.contracts.unified_exit_random_access_model_v1 import liquidation_relative_action_values
+    from gx1.contracts.unified_exit_fitted_q_v1 import build_unified_exit_fitted_q_targets
+    successor_q = liquidation_relative_action_values(
+        target.head_exit_action(target.encoder(torch.arange(12, dtype=torch.float32).reshape(4, 3)))
+    ).reshape(2, 2, 2)
+    reward = torch.tensor([[[-2.0], [0.5]], [[0.0], [3.25]]])
+    q = successor_q.unsqueeze(2)
+    action_valid = torch.ones_like(q, dtype=torch.bool)
+    state_valid = torch.ones_like(reward, dtype=torch.bool)
+    bellman, valid = build_unified_exit_fitted_q_targets(
+        frozen_target_q_bps=q, exit_now_reward_bps=torch.zeros_like(reward),
+        action_valid_mask=action_valid, state_valid_mask=state_valid,
+        terminal_mask=torch.zeros_like(state_valid), terminal_reason_index=torch.zeros_like(reward, dtype=torch.int64),
+        chunk_successor_target_q_bps=successor_q,
+        chunk_successor_action_valid_mask=torch.ones_like(successor_q, dtype=torch.bool),
+        bellman_target_valid_mask=action_valid, successor_observed_mask=state_valid,
+        hold_immediate_reward_bps=reward, transition_discount=torch.full_like(reward, .9998),
+    )
+    assert bool(valid.all())
+    torch.testing.assert_close(bellman[..., 0], reward, rtol=0, atol=0)
+    torch.testing.assert_close(bellman[..., 1], torch.zeros_like(reward), rtol=0, atol=0)
+    # The ordinary AdamW update lazily restarts just the reset parameters at one.
+    optimizer.zero_grad()
+    model.head_exit_action(model.encoder(torch.ones(2, 3)))[:, 0].sum().backward()
+    optimizer.step()
+    optimizer.zero_grad()
+    ema.update(model)
+    for name, parameter in model.named_parameters():
+        if name in names:
+            assert float(optimizer.state[parameter]["step"]) == 1
+            assert torch.count_nonzero(parameter) > 0
+    continued = copy.deepcopy(state)
+    continued.update(checkpoint_index=2, next_batch_offset=1, global_optimizer_steps=1,
+                     model_state=copy.deepcopy(model.state_dict()), target_model_state=copy.deepcopy(target.state_dict()),
+                     optimizer_state=copy.deepcopy(optimizer.state_dict()), weight_ema_state=copy.deepcopy(ema.checkpoint_state()))
+    new.save_checkpoint(continued)
+    restored_model, restored_optimizer = _economic_model_optimizer()
+    restored_target = copy.deepcopy(restored_model)
+    restored_ema = trainer._WeightEma(restored_model, .5)
+    restored_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(restored_optimizer, T_max=30)
+    trainer._restore_candidate_training_checkpoint(
+        new.load_checkpoint(), session=new, model=restored_model, target_model=restored_target,
+        optimizer=restored_optimizer, weight_ema=restored_ema, lr_scheduler=restored_scheduler,
+        device=torch.device("cpu"), dataset_rows=313399,
+    )
+    _identical(restored_model.state_dict(), continued["model_state"])
+    _identical(restored_optimizer.state_dict(), continued["optimizer_state"])
+    _identical(restored_ema.checkpoint_state(), continued["weight_ema_state"])
+    with pytest.raises(RuntimeError, match="SESSION_BINDING_INVALID"):
+        trainer._load_candidate_economics_successor_state(
+            session=new, origin=origin, epoch_order=order, model=restored_model, optimizer=restored_optimizer,
+        )
+    assert receipt_path.read_bytes() == receipt_bytes
+
+
+@pytest.mark.parametrize("value", [None, True, 0, {}, "unknown"])
+def test_transition_rejects_invalid_initialization_variant(tmp_path, monkeypatch, value):
+    (_, new), origin = _fixture(tmp_path, monkeypatch)
+    origin["exit_value_initialization"] = value
+    with pytest.raises(RuntimeError, match="ORIGIN_INVALID"):
+        trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.arange(313399))
+
+
+@pytest.mark.parametrize("initialization,policy_initialization", [
+    ("close_now_baseline_v1", None), (None, "close_now_baseline_v1"),
+    ("close_now_baseline_v1", "unknown"), ("close_now_baseline_v1", True),
+])
+def test_transition_requires_policy_to_match_exact_initialization(tmp_path, monkeypatch, initialization, policy_initialization):
+    (_, new), origin = _fixture(tmp_path, monkeypatch, initialization=initialization,
+                               policy_initialization=policy_initialization)
+    with pytest.raises(RuntimeError, match="EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH"):
+        trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.arange(313399))
+    assert not (new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).exists()
+
+
+def test_baseline_requires_real_model_optimizer_mapping(tmp_path, monkeypatch):
+    model, optimizer = _economic_model_optimizer()
+    (_, new), origin = _fixture(tmp_path, monkeypatch, initialization="close_now_baseline_v1",
+                               model=model, optimizer=optimizer)
+    order = torch.arange(313399)
+    with pytest.raises(RuntimeError, match="MODEL_OPTIMIZER_REQUIRED"):
+        trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=order)
+    other_model, other_optimizer = _economic_model_optimizer()
+    with pytest.raises(RuntimeError, match="OPTIMIZER_MAPPING_INVALID"):
+        trainer._load_candidate_economics_successor_state(
+            session=new, origin=origin, epoch_order=order, model=model, optimizer=other_optimizer,
+        )
+    assert not (new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).exists()

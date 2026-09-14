@@ -83,15 +83,26 @@ def require_native_run_scope(
     """
     repo = Path(__file__).resolve().parents[2]
     origin = recipe.get("candidate_resume_origin")
-    if (not isinstance(origin, Mapping) or set(origin) != {"schema_version", "contract", "pointer"}
-            or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1"):
+    origin_fields = {"schema_version", "contract", "pointer"}
+    if (not isinstance(origin, Mapping)
+            or set(origin) not in (origin_fields, origin_fields | {"exit_value_initialization"})
+            or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1"
+            or ("exit_value_initialization" in origin and (
+                type(origin["exit_value_initialization"]) is not str
+                or origin["exit_value_initialization"] != "close_now_baseline_v1"))):
         raise RuntimeError("NATIVE_ECONOMICS_TRANSITION_ORIGIN_REQUIRED")
+    initialization = origin.get("exit_value_initialization")
     require_binding(origin["contract"], label="native origin contract")
     origin_pointer = require_binding(origin["pointer"], label="native origin pointer")
     binding = require_binding(recipe.get("next_run_policy"), label="next native run policy")
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    if (("exit_value_initialization" in policy and (
+            type(policy["exit_value_initialization"]) is not str
+            or policy["exit_value_initialization"] != "close_now_baseline_v1"))
+            or policy.get("exit_value_initialization") != initialization):
+        raise RuntimeError("NATIVE_EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH")
     profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                "max_wall_seconds": 10800, "progress_interval_forwards": 64}
     if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
@@ -130,6 +141,10 @@ def require_native_run_scope(
                     or proof.get("economics_objective_contract_sha256") != objective.get("contract_sha256")
                     or proof.get("source_bindings_sha256") != recipe.get("source_bindings_sha256")
                     or proof.get("training_origin_pointer_sha256") != origin_pointer["sha256"]
+                    or ("exit_value_initialization" in proof and (
+                        type(proof["exit_value_initialization"]) is not str
+                        or proof["exit_value_initialization"] != "close_now_baseline_v1"))
+                    or proof.get("exit_value_initialization") != initialization
                     or proof.get("native_val_profile") != profile):
                 raise RuntimeError("NATIVE_NEXT_RUN_EVIDENCE_NOT_PASS")
         ceiling = None

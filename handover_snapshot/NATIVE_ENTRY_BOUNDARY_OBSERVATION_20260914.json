@@ -1,0 +1,258 @@
+{
+  "boot_id": 419,
+  "decision": "BOUNDARY_AND_EXECUTION_PASS_VALUE_CALIBRATION_UNRESOLVED",
+  "diagnostics": {
+    "batch_offset": 1,
+    "entry": {
+      "by_action": {
+        "FLAT": {
+          "mean_absolute_error_bps": 0.003100639907643199,
+          "prediction_mean_bps": 0.0006224913522601128,
+          "prediction_minus_target_mean_bps": 0.0006224913522601128,
+          "target_mean_bps": 0.0,
+          "valid_row_count": 16
+        },
+        "LONG": {
+          "mean_absolute_error_bps": 1.9183324533514678,
+          "prediction_mean_bps": 1.6012129890732467,
+          "prediction_minus_target_mean_bps": -1.4450025749392807,
+          "target_mean_bps": 3.0462155640125275,
+          "valid_row_count": 16
+        },
+        "SHORT": {
+          "mean_absolute_error_bps": 1.257269762456417,
+          "prediction_mean_bps": 1.1246926560997963,
+          "prediction_minus_target_mean_bps": 0.39457427710294724,
+          "target_mean_bps": 0.7301183789968491,
+          "valid_row_count": 16
+        }
+      },
+      "prediction": {
+        "tied_row_count": 0,
+        "unique_greedy_count": {
+          "FLAT": 0,
+          "LONG": 9,
+          "SHORT": 7
+        }
+      },
+      "target": {
+        "tied_row_count": 0,
+        "unique_greedy_count": {
+          "FLAT": 0,
+          "LONG": 12,
+          "SHORT": 4
+        }
+      },
+      "target_decomposition_bps": {
+        "continuation_semantics": "max_valid_frozen_relative_action_value_with_EXIT_zero",
+        "continuation_source": "entry_target[selected_entry_batch_index,LONG_SHORT]-first_liquidation",
+        "first_executable_liquidation_bps": {
+          "maximum": 0.5484495162963867,
+          "mean": -5.603727087378502,
+          "mean_absolute": 5.669445186853409,
+          "minimum": -12.542375564575195,
+          "negative_count": 30,
+          "positive_count": 2,
+          "valid_cell_count": 32,
+          "zero_count": 0
+        },
+        "first_liquidation_source": "canonical_random_access_batch.entry_liquidation_value_bps",
+        "frozen_continuation_bps": {
+          "maximum": 12.669355392456055,
+          "mean": 7.49189405888319,
+          "mean_absolute": 7.49189405888319,
+          "minimum": 2.6663928031921387,
+          "negative_count": 0,
+          "positive_count": 32,
+          "valid_cell_count": 32,
+          "zero_count": 0
+        },
+        "source_counts": {
+          "anchored_valid_side_cells": 32,
+          "flat_zero_baseline_rows": 16,
+          "nonpositive_liquidation_positive_target_cells": 23,
+          "outer_entry_rows": 16,
+          "rows_without_first_anchor": 0,
+          "selected_first_anchor_rows": 16,
+          "valid_side_cells_without_first_anchor": 0
+        }
+      },
+      "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"
+    },
+    "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
+    "parameter_names": [
+      "family_tf_context_gate.weight",
+      "family_tf_context_gate.bias",
+      "family_tf_token_gate.weight",
+      "family_tf_token_gate.bias"
+    ],
+    "relative_hold_decomposition_bps": {
+      "bootstrap_source": "actual_fitted_Q_HOLD_target-minus-liquidation_relative_reward",
+      "frozen_bootstrap_bps": {
+        "maximum": 541.7957125902176,
+        "mean": 32.09529191418551,
+        "mean_absolute": 32.09529191418551,
+        "minimum": 0.0,
+        "negative_count": 0,
+        "positive_count": 115,
+        "valid_cell_count": 128,
+        "zero_count": 13
+      },
+      "liquidation_relative_reward_bps": {
+        "maximum": 16.43052101135254,
+        "mean": 0.028778740554116666,
+        "mean_absolute": 1.7168548608897254,
+        "minimum": -16.18576431274414,
+        "negative_count": 60,
+        "positive_count": 65,
+        "valid_cell_count": 128,
+        "zero_count": 3
+      },
+      "nonpositive_reward_positive_target_count": 57,
+      "reward_source": "canonical_random_access_batch.liquidation_relative_reward_bps.HOLD"
+    },
+    "relative_hold_target_bps": {
+      "maximum": 540.3448486328125,
+      "mean": 32.124070654739626,
+      "mean_absolute": 32.316729005542584,
+      "minimum": -4.991455554962158,
+      "negative_count": 6,
+      "positive_count": 122,
+      "valid_cell_count": 128,
+      "zero_count": 0
+    },
+    "report_only": true,
+    "routing_gradient_cosines": {
+      "entry_action_q__unified_exit_action": null,
+      "forecast_return_bps__entry_action_q": null,
+      "forecast_return_bps__unified_exit_action": null
+    },
+    "routing_task_gradients": {
+      "entry_action_q": {
+        "connected_parameter_names": [],
+        "connected_zero_parameter_names": [],
+        "l2_norm": null,
+        "loss_present": true,
+        "status": "unused",
+        "unused_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ]
+      },
+      "forecast_return_bps": {
+        "connected_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ],
+        "connected_zero_parameter_names": [],
+        "l2_norm": 0.007300360504118597,
+        "loss_present": true,
+        "status": "nonzero",
+        "unused_parameter_names": []
+      },
+      "unified_exit_action": {
+        "connected_parameter_names": [],
+        "connected_zero_parameter_names": [],
+        "l2_norm": null,
+        "loss_present": true,
+        "status": "unused",
+        "unused_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ]
+      }
+    },
+    "schema_version": "gx1_candidate_learning_diagnostics_v1",
+    "scope": "first_v4_batch_of_bounded_train_invocation",
+    "test_data_used": false
+  },
+  "economics_transition": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_7054EC8B/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+    "sha256": "4ad0749e603cf9f77b56ea00464724113e1df0fd34f6d2ddf240af33e7ec3c43"
+  },
+  "end_to_end_train_val_throughput_proven": false,
+  "epoch_index": 0,
+  "final_training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_7054EC8B/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "a4654c768cc62cd73dd13a0603e0eab7d642fd938c9962b805416f22fb4d39b5"
+  },
+  "final_training_state_sha256": "a6684b1655104b001d9d483fc03917009f752a362bce2b194a7448237d7d7a81",
+  "full_epoch_training_started": false,
+  "global_optimizer_steps": 16,
+  "gpu_val_batch256_parity_proven": false,
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_7054EC8B_BOOT418/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "28bb5a972f4b3f6529a213909ad225bc5f70170a63942975d2e620c74db7291b"
+  },
+  "hardware_observed": {
+    "maximum_core_temp_c": 53.0,
+    "maximum_memory_temp_c": 52.0,
+    "maximum_memory_used_mib": 8006.0,
+    "maximum_power_draw_w": 155.0
+  },
+  "interpretation": [
+    "Observed routing parameters receive forecast gradients and no Entry-Q or Exit-token gradients under v4.",
+    "HOLD target mean is 32.1241 Bps: reward mean 0.0288 plus inherited frozen bootstrap mean 32.0953. Reward absolute mean is 1.7169 Bps.",
+    "Entry first liquidation mean is -5.6037 Bps; inherited frozen continuation adds 7.4919 Bps. No target chooses FLAT in these 16 rows.",
+    "This identifies dependence on inherited values; positive continuation alone does not prove error or profitable continuation.",
+    "One first TRAIN batch cannot establish dataset-wide calibration or future trading quality. No value reset was performed."
+  ],
+  "learning_calibrated": false,
+  "observed_utc": "2026-09-14T13:59:28.889207+00:00",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_7054EC8B/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "eebffe721aa1f980d62b3158013ee80ab0ca61d59d058c047591f43e18160d4e"
+  },
+  "preserved_origin_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5"
+  },
+  "profitability_proven": false,
+  "progress": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_7054EC8B_BOOT418/invocation-evidence/invocation-0001/PROGRESS.json",
+    "sha256": "983fa5208ee04e35f372639b0f174b274b04c563f2af175ace950e3e49470d70"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_7054EC8B_BOOT418/receipts/invocation-0001.json",
+    "sha256": "0f1a22401b9bf4078dd46252ce2d425b925689d538aad9c76406b88e26352e23"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_7054EC8B/NATIVE_RECIPE.json",
+    "sha256": "030eb6bb638b8e2f064df5cb97d64cf037a52e19ac58dc283c9cfda43e0b5b7a"
+  },
+  "same_origin_first_batch_comparison": {
+    "exact_logged_values_equal": {
+      "entry_by_action": true,
+      "entry_prediction": true,
+      "entry_target": true,
+      "forecast_routing_gradient": true,
+      "relative_hold_target_bps": true
+    },
+    "previous_trainer_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/progress/.invocation-0001.json.trainer.MWQtUj9k.log",
+      "sha256": "b971412adbaa686e63b8cbdfdf715398658fccb4834b09b793d72151f870299a"
+    },
+    "scope": "Existing first-batch logged summaries and one gradient vector summary; not full tensor or optimizer-step parity."
+  },
+  "schema_version": "gx1_native_entry_boundary_calibration_observation_v1",
+  "source_commit": "7054ec8b74b4935031d8be77419ac1a3d4aa8426",
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_7054EC8B_BOOT418/progress/.invocation-0001.json.trainer.c7Eod7Tj.log",
+    "sha256": "a1b0c48a5a666b3d01268061c3ec8950100fb6f8622ed9ea4d3499a2b31415f3"
+  },
+  "uninterrupted_versus_resumed_equivalence_proven": false,
+  "windows_controller": {
+    "finite_campaign_exhaustion_is_full_training_completion": false,
+    "last_task_result": 0,
+    "state_after_completion": "Disabled",
+    "task_name": "GX1NativeLearningCalibration",
+    "verified_utc": "2026-09-14T13:57:17.6141335Z"
+  }
+}
