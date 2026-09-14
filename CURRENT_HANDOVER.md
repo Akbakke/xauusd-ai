@@ -27,3 +27,5 @@ active. Existing signed local guards retain their frequent safety measurements.
 TEST remains sealed; no live/paper trading, promotion or external spend.
 
 Capacity preparation: `2ab85a7548aa0e2132779de26066ecb4bc10c6f6` in `/home/andre2/src/GX1_VAL_CAPACITY_V41`. CPU-stage comparison measured +17.36% with eight workers/batch 128 and +24.65% with eight workers/batch 256, identical state bytes. GPU batch 256 and end-to-end speed remain unmeasured. Long windows are prepared (10,800-second VAL, 12,000-second native budget, 13,800-second independent guard); no new campaign or resume migration exists. Preserve the stop while Entry/Exit fixes are decided.
+
+Further verified finding: SHORT HOLD has zero running financing/risk reward. With split-end censoring and no economic terminal, indefinite zero-reward HOLD can dominate voluntarily realizing a loss under the implemented objective. This is an objective-level incentive; more epochs alone are not a demonstrated remedy. Clarify intended economic holding/risk constraints before altering the objective. Full reasoning and evidence are in docs/ENTRY_EXIT_REVIEW_20260914.md. Preserve the stop.

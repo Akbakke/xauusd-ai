@@ -54,5 +54,22 @@
       "target_std": 55.29107975427294
     }
   },
-  "interpretation": "Entry auxiliary MAE forecast is a fixed 95-minute target and cannot be interpreted as a bound on full-lifecycle drawdown. Exit still receives actual lifetime MAE/MFE. Technical active-head OK does not establish predictive quality. Q MSE is pooled across LONG/SHORT/FLAT training targets; not trading profitability. No model or target changed."
+  "interpretation": "Entry auxiliary MAE forecast is a fixed 95-minute target and cannot be interpreted as a bound on full-lifecycle drawdown. Exit still receives actual lifetime MAE/MFE. Technical active-head OK does not establish predictive quality. Q MSE is pooled across LONG/SHORT/FLAT training targets; not trading profitability. No model or target changed.",
+  "hold_incentive": {
+    "economics_readiness_sha256": "f17c5037154589bab16dc70b909aa6ddb959d17817575a5ae455f3fe14e17abf",
+    "train_cost_authority_sha256": "b5cfc8ebaf5b5116747266c667edbbf73f4b862f6c4259c4c0fa202fd1095e37",
+    "annual_continuous_hurdle_rate": 0.09531017980432493,
+    "weekly_discount_factor": 0.9981750518909419,
+    "long_financing_annual_cost_rate": 0.054,
+    "short_financing_annual_cost_rate": 0.0,
+    "hold_risk_annual_bps_long": 0.0,
+    "hold_risk_annual_bps_short": 0.0,
+    "hold_reward_formula": "-annual_financing_bps*elapsed_seconds/year - annual_risk_penalty_bps*elapsed_seconds/year",
+    "short_hold_immediate_reward_bps": 0.0,
+    "train_index_economic_terminal_count": 0,
+    "split_end_is_right_censor": true,
+    "sampler_uses_duration_buckets": true,
+    "inference": "Under the implemented discounted cash-flow objective, if indefinite HOLD is admissible, always holding a SHORT has zero future reward. It therefore dominates voluntarily realizing a negative EXIT reward. This is an objective-level incentive, not proof that the learned model is optimal or that all observed holds are caused by it. No realized-wealth/portfolio-return equivalence is claimed.",
+    "next_required_choice": "Define intended economic holding/risk constraints before changing the training objective. Do not impose arbitrary limits from June VAL or restart another epoch."
+  }
 }

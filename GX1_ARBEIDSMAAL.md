@@ -13,3 +13,5 @@ Sluttresultatet er bevart lokalt i trade_review_20260914/VAL_RESULT_EPOCH_1.json
 Én agent og én tung jobb. Kontroller én gang i timen, etter brukerens presisering 2026-09-13. Endre bare observerte blokkeringer og uttrykkelig bestilte tiltak. Stående autorisasjon gjelder. Bevar frosne kilder, fullførte resultater og lagret fremdrift.
 
 Ressurser: 20 GiB RAM, 512 MiB swap, 128 oppgaver, CPU 0–18; 300 W fysisk grense, 85 °C kjerne, 80 °C minne, 12 GiB VRAM. Keeper senker til 200 W ved 80 °C kjerne. Eksakte bindinger står i [CURRENT_NATIVE_RUN.json](handover_stage/CURRENT_NATIVE_RUN.json). Positiv samlet Bps, nyttig bidrag fra alle ruter og liveklarhet er ikke dokumentert.
+
+Further verified finding: SHORT HOLD has zero running financing/risk reward. With split-end censoring and no economic terminal, indefinite zero-reward HOLD can dominate voluntarily realizing a loss under the implemented objective. This is an objective-level incentive; more epochs alone are not a demonstrated remedy. Clarify intended economic holding/risk constraints before altering the objective. Full reasoning and evidence are in docs/ENTRY_EXIT_REVIEW_20260914.md. Preserve the stop.
