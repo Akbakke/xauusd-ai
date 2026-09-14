@@ -39,7 +39,7 @@ def _objective(relative, rho=0.1):
 
 
 def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
-             policy_initialization="same_as_origin", model=None, optimizer=None, native_calibration=None, population_scope=False):
+             policy_initialization="same_as_origin", model=None, optimizer=None, native_calibration=None, population_scope=False, changed_owner=None):
     current = tmp_path / "CURRENT"
     current.mkdir()
     monkeypatch.setattr(trainer, "__file__", str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"))
@@ -80,7 +80,7 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
         population_bindings = (parent_files, base_binding, selected_binding)
     outputs = [tmp_path / "old", tmp_path / "new"]
     source_roots = [tmp_path / "historic_source", current]
-    source_names = ["gx1/models/entry_v10/entry_v10_ctx_train_v3.py", "gx1/features/htf_features.py"]
+    source_names = [changed_owner or "gx1/models/entry_v10/entry_v10_ctx_train_v3.py", "gx1/features/htf_features.py"]
     sources = []
     for side in range(2):
         sources.append({name: {"path": str(source_roots[side] / name), "sha256": ("b" if side and index == 0 else "a") * 64}
@@ -153,6 +153,22 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
                                  "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=monitor)}}
         if population_bindings is not None:
             contract["artifacts"] = {"unified_exit_lifecycle_manifest": recipe["files"]["random_access_root"]}
+            factory = {
+                "schema_version": "gx1_unified_exit_random_access_val_factory_v1",
+                "decision": "PASS", "split": "val", "entry_pair_count": 5508,
+                "artifact_file_sha256": {
+                    "random_access_index_root": recipe["files"]["random_access_root"]["sha256"],
+                    "composite_normalization": "d" * 64,
+                }, "test_accessed": False,
+            }
+            if side and fault == "population_val_root":
+                factory["artifact_file_sha256"]["random_access_index_root"] = "e" * 64
+            if side and fault == "population_val_normalization":
+                factory["artifact_file_sha256"]["composite_normalization"] = "e" * 64
+            factory["factory_sha256"] = _sha(factory)
+            if side and fault == "population_val_seal":
+                factory["factory_sha256"] = "e" * 64
+            contract["native_full_val"]["factory_receipt"] = factory
         if side and fault == "training_changed":
             contract["training"]["learning_rate"] = .02
         session = trainer._CandidateTrainingSession(out_bundle_dir=outputs[side], contract=contract)
@@ -526,6 +542,9 @@ def test_economics_transition_changes_only_selection_root_and_preserves_all_stat
 
 @pytest.mark.parametrize("fault,order,error", [
     ("population_source", [313398, 313396, 313397], "POPULATION_SOURCE_ROOT_CHANGED"),
+    ("population_val_root", [313398, 313396, 313397], "POPULATION_VAL_FACTORY_BINDING_INVALID"),
+    ("population_val_seal", [313398, 313396, 313397], "POPULATION_VAL_FACTORY_BINDING_INVALID"),
+    ("population_val_normalization", [313398, 313396, 313397], "MODEL_DATA_OR_TRAINING_CHANGED"),
     ("data_changed", [313398, 313396, 313397], "MODEL_DATA_OR_TRAINING_CHANGED"),
     (None, [0, 1, 2], "FULL_EPOCH_ORDER_INVALID"),
 ])
@@ -533,3 +552,18 @@ def test_selection_transition_never_loosens_other_lineage_or_parent_ids(tmp_path
     (_, new), origin = _fixture(tmp_path, monkeypatch, fault=fault, population_scope=True)
     with pytest.raises(RuntimeError, match=error):
         trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.tensor(order))
+
+
+def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_path, monkeypatch):
+    owner = "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py"
+    (old, new), origin = _fixture(tmp_path, monkeypatch, changed_owner=owner)
+    before = old.load_checkpoint()
+    before_pointer = old._active_path.read_bytes()
+    state = trainer._load_candidate_economics_successor_state(
+        session=new, origin=origin, epoch_order=torch.arange(313399),
+    )
+    receipt = json.loads((new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).read_text())
+    assert receipt["changed_source_paths"] == [owner]
+    assert old._active_path.read_bytes() == before_pointer
+    for key in ("model_state", "target_model_state", "optimizer_state", "weight_ema_state", "lr_scheduler_state", "rng_state"):
+        _identical(state[key], before[key])

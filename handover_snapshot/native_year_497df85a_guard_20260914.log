@@ -1,0 +1,26 @@
+2026-09-14T15:08:22Z event=telemetry phase=preflight core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.55 power_limit_w=300 memory_used_mib=78
+2026-09-14T15:08:22Z event=start execution_mode=canonical device=cuda data_preflight_max_wall_seconds=13800 model_max_wall_seconds=13800 max_core_temp_c=85 max_memory_temp_c=80 max_power_limit_w=300 max_power_draw_w=310 max_memory_used_mib=12288 telemetry_owner=signed_windows_bridge
+2026-09-14T15:08:53Z event=heartbeat stage=canonical stage_elapsed_seconds=31 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.83 power_limit_w=300 memory_used_mib=78
+2026-09-14T15:09:23Z event=heartbeat stage=canonical stage_elapsed_seconds=61 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.81 power_limit_w=300 memory_used_mib=78
+2026-09-14T15:09:53Z event=heartbeat stage=canonical stage_elapsed_seconds=91 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.72 power_limit_w=300 memory_used_mib=78
+2026-09-14T15:10:23Z event=heartbeat stage=canonical stage_elapsed_seconds=121 core_temp_c=39 memory_temp_c=44 memory_observed=true power_draw_w=26.93 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:10:53Z event=heartbeat stage=canonical stage_elapsed_seconds=151 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=26.17 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:11:23Z event=heartbeat stage=canonical stage_elapsed_seconds=181 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.74 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:11:53Z event=heartbeat stage=canonical stage_elapsed_seconds=211 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=26.16 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:12:24Z event=heartbeat stage=canonical stage_elapsed_seconds=242 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=26.29 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:12:54Z event=heartbeat stage=canonical stage_elapsed_seconds=272 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=26.39 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:13:24Z event=heartbeat stage=canonical stage_elapsed_seconds=302 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.97 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:13:54Z event=heartbeat stage=canonical stage_elapsed_seconds=332 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.9 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:14:24Z event=heartbeat stage=canonical stage_elapsed_seconds=362 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.75 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:14:55Z event=heartbeat stage=canonical stage_elapsed_seconds=393 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=26.1 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:15:25Z event=heartbeat stage=canonical stage_elapsed_seconds=423 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.61 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:15:55Z event=heartbeat stage=canonical stage_elapsed_seconds=453 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.43 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:16:25Z event=heartbeat stage=canonical stage_elapsed_seconds=483 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.65 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:16:55Z event=heartbeat stage=canonical stage_elapsed_seconds=513 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.48 power_limit_w=300 memory_used_mib=334
+2026-09-14T15:17:26Z event=heartbeat stage=canonical stage_elapsed_seconds=544 core_temp_c=37 memory_temp_c=44 memory_observed=true power_draw_w=25.54 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:17:56Z event=heartbeat stage=canonical stage_elapsed_seconds=574 core_temp_c=36 memory_temp_c=44 memory_observed=true power_draw_w=25.03 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:18:26Z event=heartbeat stage=canonical stage_elapsed_seconds=604 core_temp_c=36 memory_temp_c=44 memory_observed=true power_draw_w=25.48 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:18:56Z event=heartbeat stage=canonical stage_elapsed_seconds=634 core_temp_c=36 memory_temp_c=44 memory_observed=true power_draw_w=26.1 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:19:26Z event=heartbeat stage=canonical stage_elapsed_seconds=664 core_temp_c=36 memory_temp_c=44 memory_observed=true power_draw_w=25.98 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:19:56Z event=heartbeat stage=canonical stage_elapsed_seconds=694 core_temp_c=36 memory_temp_c=44 memory_observed=true power_draw_w=25.81 power_limit_w=300 memory_used_mib=454
+2026-09-14T15:20:15Z event=exit child_status=1 stage=canonical telemetry_samples=582 peak_core_temp_c=48 peak_memory_temp_c=50 peak_power_draw_w=131.67 peak_memory_used_mib=454

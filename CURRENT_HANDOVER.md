@@ -1,3 +1,30 @@
+# GX1 — native overgang stoppet før trening, 2026-09-14
+
+Kilde497df85a nådde faktisk native checkpointovergang på fysisk boot420,
+men stoppet før første optimizersteg kl15:20:15UTC. Trainer/Windows-task exit1;
+task er deaktivert. Ingen destinasjonscheckpoint eller VAL er skrevet.
+Original315/19908 og alle eldre resultater er urørt. Full epoch-trening er av.
+
+Konkret blokkering: overgangslisten manglet den endrede modulen
+unified_exit_random_access_val_checkpoint_v1.py (EMA-offset/report-only snapshot).
+Akkurat denne owneren legges til; kontrollen mot andre kildeendringer beholdes.
+Sammenligning av de faktiske kontraktene avdekket også to avledede felt:
+VAL-fabrikkens indeksrot-filhash og dens egen kvitteringshash. Fabrikkens øvrige
+felt og begge normaliserte recipes er identiske. Rotbinding og kvitteringssegl
+verifiseres eksplisitt før akkurat disse to feltene normaliseres. Endringer i
+normalisering, VAL-data, sampler, modell eller andre felt skal fortsatt avvises.
+
+Se [NATIVE_YEAR_TRANSITION_BLOCKER_20260914.json](handover_snapshot/NATIVE_YEAR_TRANSITION_BLOCKER_20260914.json).
+Bare målrettede tilfeller for disse endringene er kjørt; tidligere171 beståtte
+kontroller gjenbrukes. Før ny GPU-start skal den faktiske kontraktovergangen
+gjenspilles på CPU med bevarte vekter i en separat diagnostisk destinasjon.
+Dette er ingen ny trening eller alternativ runner. Deretter bindes ny source
+til samme ettårsutvalg, reference32 og split16+16. Ingen fiveårs-epoch nå.
+
+---
+
+## Forrige overtakelse — historikk
+
 # GX1 — gjeldende overtakelse 2026-09-14
 
 ## Ettårsutvalg bundet; avgrenset native måling er neste handling

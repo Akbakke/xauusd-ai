@@ -1,0 +1,43 @@
+2026-09-14 15:10:11,632 [INFO] [TRAIN_DETERMINISTIC_MEMORY] fill_uninitialized_memory=True deterministic_algorithms=True
+2026-09-14 15:11:23,946 [INFO] [MEM_FIX] chunked pyarrow load of nested cols (bypass pandas)...
+2026-09-14 15:11:24,114 [INFO] [MEM_FIX] schema probe: seq=(N,96,238)  snap=(N,238)  ctx_cont=(N,71)  ctx_cat=(N,1)
+2026-09-14 15:11:25,385 [INFO] [SEQUENCE_SOURCE_RECONSTRUCTION] audit=/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260905T143732Z.json rows=313399 source_rows=470354 source_bytes=447.78 MB avoided_sequence_memmap_bytes=28.64 GB
+2026-09-14 15:11:25,537 [INFO] [DATASET_SCHEMA] advanced | rows=313399 samples=313399 time=[2021-06-01 00:00:00+00:00 .. 2026-05-29 14:50:00+00:00]
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF_CONTRACT] HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20 width=176 across 5 timeframes
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF] M5: 470,558 bars × 176 feats  range 2019-11-07 21:55:00+00:00 → 2026-06-30 23:55:00+00:00
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF] M15: 156,886 bars × 176 feats  range 2019-11-07 23:00:00+00:00 → 2026-06-30 23:45:00+00:00
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF] H1: 39,242 bars × 176 feats  range 2019-11-07 23:00:00+00:00 → 2026-06-30 23:00:00+00:00
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF] H4: 10,262 bars × 176 feats  range 2019-11-07 22:00:00+00:00 → 2026-06-30 18:00:00+00:00
+2026-09-14 15:11:43,040 [INFO] [MULTI_TF] D1: 1,713 bars × 176 feats  range 2019-11-07 22:00:00+00:00 → 2026-06-29 22:00:00+00:00
+2026-09-14 15:11:44,633 [INFO] [MEM_FIX] chunked pyarrow load of nested cols (bypass pandas)...
+2026-09-14 15:11:44,751 [INFO] [MEM_FIX] schema probe: seq=(N,96,238)  snap=(N,238)  ctx_cont=(N,71)  ctx_cat=(N,1)
+2026-09-14 15:11:44,774 [INFO] [SEQUENCE_SOURCE_RECONSTRUCTION] audit=/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_VAL_20260905T143732Z.json rows=5509 source_rows=470354 source_bytes=447.78 MB avoided_sequence_memmap_bytes=0.50 GB
+2026-09-14 15:11:44,849 [INFO] [DATASET_SCHEMA] advanced | rows=5509 samples=5509 time=[2026-05-31 23:55:00+00:00 .. 2026-06-30 14:55:00+00:00]
+2026-09-14 15:11:45,114 [INFO] [MULTI_TF_CONTRACT] HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20 width=176 across 5 timeframes
+2026-09-14 15:11:45,114 [INFO] [MULTI_TF] M5: 470,558 bars × 176 feats  range 2019-11-07 21:55:00+00:00 → 2026-06-30 23:55:00+00:00
+2026-09-14 15:11:45,114 [INFO] [MULTI_TF] M15: 156,886 bars × 176 feats  range 2019-11-07 23:00:00+00:00 → 2026-06-30 23:45:00+00:00
+2026-09-14 15:11:45,115 [INFO] [MULTI_TF] H1: 39,242 bars × 176 feats  range 2019-11-07 23:00:00+00:00 → 2026-06-30 23:00:00+00:00
+2026-09-14 15:11:45,115 [INFO] [MULTI_TF] H4: 10,262 bars × 176 feats  range 2019-11-07 22:00:00+00:00 → 2026-06-30 18:00:00+00:00
+2026-09-14 15:11:45,115 [INFO] [MULTI_TF] D1: 1,713 bars × 176 feats  range 2019-11-07 22:00:00+00:00 → 2026-06-29 22:00:00+00:00
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py", line 180, in <module>
+    raise SystemExit(main())
+  File "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py", line 173, in main
+    print(json.dumps(run_window(policy_path=args.window_policy,
+  File "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py", line 130, in run_window
+    result = native.run_guarded_native_candidate_invocation(
+  File "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py", line 518, in run_guarded_native_candidate_invocation
+    result = _run_bound_full_train_candidate(
+  File "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py", line 440, in _run_bound_full_train_candidate
+    return trainer._run_resumable_candidate_training(
+  File "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py", line 13247, in _run_resumable_candidate_training
+    restored_state = _load_candidate_economics_successor_state(
+  File "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py", line 12804, in _load_candidate_economics_successor_state
+    fail("UNAPPROVED_SOURCE_CHANGED")
+  File "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py", line 12685, in fail
+    raise RuntimeError(f"[CANDIDATE_ECONOMICS_TRANSITION_{label}]")
+RuntimeError: [CANDIDATE_ECONOMICS_TRANSITION_UNAPPROVED_SOURCE_CHANGED]

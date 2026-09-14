@@ -1,0 +1,81 @@
+{
+  "additional_real_contract_difference": [
+    "native_full_val.factory_receipt.artifact_file_sha256.random_access_index_root",
+    "native_full_val.factory_receipt.factory_sha256"
+  ],
+  "decision": "NATIVE_STOPPED_BEFORE_TRAINING",
+  "destination_checkpoint_written": false,
+  "failed_at_utc": "2026-09-14T15:20:15Z",
+  "gpu_parity_proven": false,
+  "learning_calibrated": false,
+  "logs": {
+    "guard": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/native_year_497df85a_guard_20260914.log",
+      "sha256": "ad21151e8c02238ce6bc093c9d842e6664041e2194c468d843cae92c9a6040f2"
+    },
+    "trainer": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/native_year_497df85a_trainer_20260914.log",
+      "sha256": "f6ea87103646d6ed4c945cac91274a4fc725d275f7bf35a8e068a71a26d23eda"
+    }
+  },
+  "observed_error": "CANDIDATE_ECONOMICS_TRANSITION_UNAPPROVED_SOURCE_CHANGED",
+  "optimizer_steps_completed": 0,
+  "original_checkpoint_315_preserved": true,
+  "other_normalized_real_recipe_and_contract_fields_identical": true,
+  "physical_boot_id": 420,
+  "profitability_proven": false,
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_497DF85A_REFERENCE_BOOT419",
+  "schema_version": "gx1_native_year_transition_blocker_v1",
+  "source_commit": "497df85a6e08a03a20554e2f17041aef406b5702",
+  "targeted_tests": [
+    {
+      "log": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_val_checkpoint_source_transition_20260914.log",
+        "sha256": "45558f06a36f60c3caa770b614e28f70bcf8f6a4fac901a866036b7014587b44"
+      },
+      "suites": [
+        {
+          "errors": "0",
+          "failures": "0",
+          "hostname": "Andre2",
+          "name": "pytest",
+          "skipped": "0",
+          "tests": "10",
+          "time": "4.219",
+          "timestamp": "2026-09-14T18:07:37.649931+02:00"
+        }
+      ],
+      "xml": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_val_checkpoint_source_transition_20260914.xml",
+        "sha256": "e314350e7f7084c4d038b9289436171b5d7a6f6b036c3164716db491ed3725ce"
+      }
+    },
+    {
+      "log": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_population_val_lineage_transition_20260914.log",
+        "sha256": "79e93ff4e02972952e321dff246cb1a72e2b728f66f260bcaeba2792349bf009"
+      },
+      "suites": [
+        {
+          "errors": "0",
+          "failures": "0",
+          "hostname": "Andre2",
+          "name": "pytest",
+          "skipped": "0",
+          "tests": "7",
+          "time": "3.221",
+          "timestamp": "2026-09-14T18:09:49.947931+02:00"
+        }
+      ],
+      "xml": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/gx1_population_val_lineage_transition_20260914.xml",
+        "sha256": "d600e05e0a1207c9696da8940449ae47cdb67ff107b4d0bb7d97a0b406c8d335"
+      }
+    }
+  ],
+  "test_data_used": false,
+  "trainer_exit_status": 1,
+  "unlisted_changed_owner": "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
+  "windows_task_disabled": true,
+  "windows_task_last_result": 1
+}

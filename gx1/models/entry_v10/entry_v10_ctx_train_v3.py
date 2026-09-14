@@ -12650,6 +12650,7 @@ _CANDIDATE_ECONOMICS_TRANSITION_SOURCES = frozenset({
     "gx1/contracts/unified_exit_random_access_index_v1.py",
     "gx1/contracts/unified_exit_random_access_state_view_v1.py",
     "gx1/contracts/unified_exit_random_access_training_v1.py",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
     "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
     "gx1/contracts/unified_exit_random_access_val_factory_v1.py",
     "gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
@@ -12787,6 +12788,18 @@ def _load_candidate_economics_successor_state(
         for recipe, item in zip(recipes, contracts):
             if item.get("artifacts", {}).get("unified_exit_lifecycle_manifest") != recipe["files"]["random_access_root"]:
                 fail("POPULATION_SESSION_ROOT_MISMATCH")
+            # The unchanged VAL factory receipt also binds the index-root file.
+            # Verify its seal and exact root binding before comparing every
+            # remaining field below; no normalization or VAL data may change.
+            factory = item.get("native_full_val", {}).get("factory_receipt")
+            if (not isinstance(factory, dict)
+                    or factory.get("factory_sha256") != canonical_json_sha256({
+                        k: v for k, v in factory.items() if k != "factory_sha256"})
+                    or factory.get("artifact_file_sha256", {}).get("random_access_index_root")
+                    != recipe["files"]["random_access_root"]["sha256"]):
+                fail("POPULATION_VAL_FACTORY_BINDING_INVALID")
+            factory.pop("factory_sha256")
+            factory["artifact_file_sha256"].pop("random_access_index_root")
     old_sources, new_sources = before["source_bindings"], after["source_bindings"]
     if set(old_sources) != set(new_sources):
         fail("SOURCE_CLOSURE_CHANGED")
