@@ -1,3 +1,9 @@
+> **2026-09-14 current operator state: TRAINING STOPPED after complete first-epoch June VAL.**
+> The Windows campaign task is disabled; no next epoch until Entry/Exit and MAE/MFE findings are resolved.
+> Use CURRENT_HANDOVER.md, GX1_ARBEIDSMAAL.md and docs/ENTRY_EXIT_REVIEW_20260914.md.
+> V40 remains frozen; V41 performance work is prepared only. Model monitoring is hourly when a long job is active.
+> Older operational observations below are historical.
+
 <!-- GX1_DOCUMENT_CLASS: CANONICAL | stable lifecycle-v2 system map -->
 # GX1 system map
 

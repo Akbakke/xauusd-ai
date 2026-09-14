@@ -42,7 +42,7 @@
     "maximum_memory_junction_temperature_c": 80,
     "maximum_vram_mib": 12288,
     "signed_local_telemetry_seconds": 1,
-    "human_status_seconds": 900,
+    "human_status_seconds": 3600,
     "fresh_physical_windows_boot_before_every_invocation": true,
     "automatic_power_limit_change": true,
     "power_reduction_core_temperature_c": 80,
@@ -78,5 +78,29 @@
       "sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20"
     }
   },
-  "exit_val_market_cache": "frozen_model_absolute_m1_row_v1"
+  "exit_val_market_cache": "frozen_model_absolute_m1_row_v1",
+  "observed_stop": {
+    "date_utc": "2026-09-14",
+    "reason": "User requires completed VAL diagnosis before next epoch",
+    "windows_task_state": "Disabled",
+    "windows_task_enabled": false,
+    "native_pid_723_exited": true,
+    "checkpoint_index": 315,
+    "epoch_index": 1,
+    "global_optimizer_steps": 19908,
+    "next_batch_offset": 320,
+    "invocation_7_outer_pass_claimed": false,
+    "full_val_semantic_result_sha256": "2a722889a97e05406c13d33bc94d72bc439e3f4e575628a66496e0022da7fab7",
+    "full_val_file": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/native_val/epoch_0001/VAL_RESULT.json",
+    "full_val_model_snapshot_file_sha256": "763e7d3d1876ffed033ab5fb58fc0f9c02de37e8ff93f9ef902732e1633a5e20"
+  },
+  "capacity_preparation": {
+    "source_repo": "/home/andre2/src/GX1_VAL_CAPACITY_V41",
+    "source_commit": "2ab85a7548aa0e2132779de26066ecb4bc10c6f6",
+    "branch": "perf/native-val-windows-20260914",
+    "active": false,
+    "gpu_batch256_verified": false,
+    "end_to_end_speed_measured": false,
+    "cpu_stage_evidence": "handover_snapshot/CPU_CAPACITY_RESULT_20260914.json"
+  }
 }

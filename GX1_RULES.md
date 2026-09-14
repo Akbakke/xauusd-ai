@@ -1,3 +1,9 @@
+> **2026-09-14 current operator state: TRAINING STOPPED after complete first-epoch June VAL.**
+> The Windows campaign task is disabled; no next epoch until Entry/Exit and MAE/MFE findings are resolved.
+> Use CURRENT_HANDOVER.md, GX1_ARBEIDSMAAL.md and docs/ENTRY_EXIT_REVIEW_20260914.md.
+> V40 remains frozen; V41 performance work is prepared only. Model monitoring is hourly when a long job is active.
+> Older operational observations below are historical.
+
 Current source: 03592fe6f1113736d0499c35ef98a3d9267e558c at /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
 Preserve completed TRAIN and 18,353,548 saved VAL views.
 Use CURRENT_NATIVE_RUN.json. Older source references below are historical.

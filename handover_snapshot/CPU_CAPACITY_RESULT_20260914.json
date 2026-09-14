@@ -1,0 +1,86 @@
+{
+  "scope": "CPU cached price-path and lifetime-summary stage only; not end-to-end VAL",
+  "cpu_affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "source_repo": "/home/andre2/src/GX1_VAL_CAPACITY_V41",
+  "input_files": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/val.random_access_index.parquet",
+      "sha256": "9893d83368d5b26c6149bf9acd1fdbdaad6988c7c461e2c3e1151c9650a6e476"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/M1_CHILD_VIEWS_V1/val.m1.parquet",
+      "sha256": "f805ae4041aad1f3676b3376911a986510f1c7fb70efd3fff649d5a74448424f"
+    }
+  ],
+  "views_per_repeat": 1024,
+  "state_bytes_sha256": "f6590767e1f19fcb60d1882ff209966f7fd056fc8a5ac2a88a56d5e517a8201f",
+  "arms": [
+    {
+      "workers": 4,
+      "batch": 128,
+      "seconds": [
+        0.12720437699954346,
+        0.12685047600007238,
+        0.12491230100022221,
+        0.1284062430004269,
+        0.12473540300015884
+      ],
+      "median_views_per_second": 8072.496314475128,
+      "pool_startup_seconds": 5.9683287360003305,
+      "identical_state_bytes": true
+    },
+    {
+      "workers": 4,
+      "batch": 256,
+      "seconds": [
+        0.1315499649999765,
+        0.1258397169995078,
+        0.12895281999954022,
+        0.12732701599998109,
+        0.126727402999677
+      ],
+      "median_views_per_second": 8042.283815087225,
+      "pool_startup_seconds": 5.9683287360003305,
+      "identical_state_bytes": true
+    },
+    {
+      "workers": 8,
+      "batch": 128,
+      "seconds": [
+        0.11757274299998244,
+        0.10264041200025531,
+        0.10192529800042394,
+        0.10934990199984895,
+        0.10808775900022738
+      ],
+      "median_views_per_second": 9473.783243094584,
+      "pool_startup_seconds": 11.954010065999682,
+      "identical_state_bytes": true
+    },
+    {
+      "workers": 8,
+      "batch": 256,
+      "seconds": [
+        0.1020995769995352,
+        0.1017661149999185,
+        0.09781189300065307,
+        0.09685824799998954,
+        0.10412670499954402
+      ],
+      "median_views_per_second": 10062.288414968185,
+      "pool_startup_seconds": 11.954010065999682,
+      "identical_state_bytes": true
+    }
+  ],
+  "model_loaded": false,
+  "test_data_used": false
+}

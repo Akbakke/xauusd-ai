@@ -1,13 +1,15 @@
-# Gjeldende GX1-mål — 2026-09-13
+# Gjeldende GX1-mål — 2026-09-14
 
 Tren GX1 mot positiv kostnadsjustert netto Bps med hele feature-settet og samarbeid mellom timeframes og familier. Ett års TRAIN og full juni-VAL er fullført. Hovedløpet bruker hele femårsgrunnlaget, opptil 30 epocher, juni-VAL etter hver og early stopping med patience 5. TEST er forseglet; ingen live-/papirhandel eller ekstern spending.
 
-Første femårs-TRAIN er fullført og bevart: 313 399 rader, 19 588 optimizersteg, checkpoint 309. Brukeren har godkjent videre effektivisering etter tiltak 1–4 uten kvalitetsreduksjon.
+BRUKERBESTEMT STOPP: Full juni-VAL etter første femårs-epoch er ferdig. Ingen videre epoch før Entry/Exit, MAE/MFE, månedsslutt uten lukking og mulige Entry-filtre er analysert og forklart. Brukeren har samtidig godkjent lengre kjøreøkter, større VAL-batcher og mer parallell beregning, bare med bevart kvalitet. Disse tiltakene skal måles og verifiseres målrettet; ikke start nytt treningsløp som del av analysen.
 
-Pushet kilde 03592fe6 i /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40 retter faktisk pauseformat og viderefører samme VAL-kontrakt. 18 353 548 vurderinger, hele TRAIN og samme EMA-checkpoint er bevart. Fem målrettede kontroller og obligatoriske Git-kontroller består. V39 feilet pausekvitteringen etter lagring; dette er ikke en fullført ytre kontroll.
+Windows-oppgaven GX1RandomAccessCampaignV2 er deaktivert og stoppet; native treningsprosess 723 er avsluttet. Automatikken hadde rukket å starte epoch 2 før stoppbeskjeden kom. Siste lagrede pointer er checkpoint 315, epoch_index 1, 19 908 optimizersteg / batch-offset 320. Første epochs uforanderlige EMA-snapshot (19 588 steg) og alle tidligere kilder er bevart. Kjørbar kilde er fortsatt 03592fe6 i /home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40.
 
-Målt stabil fart økte fra 1 077 til 1 528 vurderinger/s etter Windows-klokkeinnstilling (+42 %), ved identiske modellbeslutninger. Alle features, tidsrammer, familier, FP32, kostnader og ressursgrenser beholdes. Videreføring er startet. Klokker settes bare når GPU-arbeid er lastet, og tilbakestilles ved tomgang. Faktisk videreføring består: alle 18 353 548 vurderinger ble gjenbrukt, og VAL har passert 18,44 millioner. GPU-kontroll har null Q-avvik. Automatisk klokking ved arbeidsstart og fravær av tomgangsblokkering er bekreftet. Første nye pausekvittering har PASS, og ordinær omstart til boot 410 med automatisk videreføring og klokking er bekreftet. VAL har passert 26,06 millioner vurderinger. Ingen pålitelig sluttid er fastslått.
+Full VAL utførte 57 845 748 tilstandsvurderinger. Av 11 016 hypotetiske LONG/SHORT-forløp ble 7 472 lukket av modellen og 3 544 avkortet ved månedsslutt. Entry valgte 4 180 LONG, 1 328 SHORT og ingen FLAT; bare 2 227 av de 5 508 valgte handlene ble lukket, mens 3 281 ble avkortet. Full-policy netto Bps er derfor ikke autoritativt tilgjengelig. Ikke presenter positiv statistikk bare for lukkede vinnere som hele modellens lønnsomhet.
+
+Sluttresultatet er bevart lokalt i trade_review_20260914/VAL_RESULT_EPOCH_1.json og i den frosne native sesjonen. Analyse skal skille faktiske lærte Exit-resultater fra hypotetisk likvidering ved månedsslutt, og skille Entry-retning/timing fra Exit som slipper tidligere gevinst.
 
 Én agent og én tung jobb. Kontroller én gang i timen, etter brukerens presisering 2026-09-13. Endre bare observerte blokkeringer og uttrykkelig bestilte tiltak. Stående autorisasjon gjelder. Bevar frosne kilder, fullførte resultater og lagret fremdrift.
 
-Ressurser: 20 GiB RAM, 512 MiB swap, 128 oppgaver, CPU 0–18; 300 W fysisk grense, 85 °C kjerne, 80 °C minne, 12 GiB VRAM. Keeper senker til 200 W ved 80 °C kjerne. Eksakte bindinger står i CURRENT_NATIVE_RUN.json. Positiv samlet Bps, nyttig bidrag fra alle ruter og liveklarhet er ikke dokumentert.
+Ressurser: 20 GiB RAM, 512 MiB swap, 128 oppgaver, CPU 0–18; 300 W fysisk grense, 85 °C kjerne, 80 °C minne, 12 GiB VRAM. Keeper senker til 200 W ved 80 °C kjerne. Eksakte bindinger står i [CURRENT_NATIVE_RUN.json](handover_stage/CURRENT_NATIVE_RUN.json). Positiv samlet Bps, nyttig bidrag fra alle ruter og liveklarhet er ikke dokumentert.

@@ -260,6 +260,9 @@ def native_status(binding_path: Path, *, source_only: bool = False) -> dict[str,
         "immutable_artifacts_verified": verified, "test_accessed": False,
         "state_payload_rehashed": False,
     }
+    # Recorded operator intent is separate from live process observation.
+    out["recorded_operator_stop"] = binding.get("observed_stop")
+    out["capacity_preparation"] = binding.get("capacity_preparation")
     if source_only:
         return out
 
