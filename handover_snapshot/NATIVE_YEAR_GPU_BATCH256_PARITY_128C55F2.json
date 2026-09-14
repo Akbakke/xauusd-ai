@@ -1,0 +1,111 @@
+{
+  "actual_ema_checkpoint_binding": {
+    "binding_sha256": "cca0d6d56624047a39c15a79753ff2406e25c73a3a9f33f666062a328c4a79f7",
+    "checkpoint_file_sha256": "e18479f11e6a69af048a145b399cff3744d29c4e4ab3ed8d770926d32b2efdd9",
+    "checkpoint_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/validation/calibration_step_0032.pt",
+    "decision": "PASS",
+    "epoch_index": 0,
+    "global_step": 32,
+    "immutable_epoch_snapshot": false,
+    "model_architecture_schema_version": "gx1_unified_exit_random_access_model_v1",
+    "model_architecture_sha256": "020cf4f8ef09f605fc45603f781f7b9eee27d1196a768a96acf6ae970f45fe67",
+    "model_state_sha256": "98fab4419bc5718bac91b5bd11c8f3957c35fb65c910c69b56d43ea853bff7a1",
+    "model_variant": "weight_ema",
+    "online_buffers_preserved_exactly": true,
+    "online_model_state_sha256": "682c3a0094550c3ec57551a256937f3251b234c9df426484aa8b4eeb33fc201d",
+    "parameter_names_sha256": "29c97299b06aced44a0d603230f3e6bbb6062356b6f42dc3a3634b781d5f7354",
+    "report_only": true,
+    "schema_version": "gx1_candidate_weight_ema_val_binding_v1",
+    "session_contract_file_sha256": "134d63bd693abe678790beef026d271f021b34c56e8f117de563c064909ec55e",
+    "session_contract_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "session_contract_sha256": "134d63bd693abe678790beef026d271f021b34c56e8f117de563c064909ec55e",
+    "snapshot_purpose": "native_calibration_capacity",
+    "target_model_state_sha256": "28a6e4c0cf2bd49e454ca8070b3457bec289b3c9b3eddf00ec8396649e9ced9b",
+    "test_data_used": false,
+    "training_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "995d498631966c60d2fd21b4aa3a300edfe8978fb558c05201c1db3cc356e9ee",
+      "value": {
+        "checkpoint_index": 2,
+        "complete": false,
+        "epoch_index": 0,
+        "global_optimizer_steps": 32,
+        "next_batch_offset": 32,
+        "phase": "train",
+        "schema_version": "gx1_candidate_training_session_v1",
+        "session_contract_sha256": "134d63bd693abe678790beef026d271f021b34c56e8f117de563c064909ec55e",
+        "slot": 1,
+        "state_sha256": "e5458f89636bd768664ad455b404ae144eb0fbdf879c20e5e438a45c4adcb001"
+      }
+    },
+    "weight_ema_decay": 0.9999489483357158,
+    "weight_ema_history": {
+      "optimizer_step_offset": 19908,
+      "transition_receipt": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+        "sha256": "67502d259848937a17b5c53570b5ca95573fb0fa750acb588123a1808284ef86"
+      }
+    },
+    "weight_ema_steps": 19940
+  },
+  "capacity_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/calibration_step_0032/CAPACITY_OBSERVATION.json",
+    "sha256": "76963ac9c8c833bc26b7eef8329d31dfa98311136e6186aefeb3f12783179bb0"
+  },
+  "comparison": {
+    "actions_equal": true,
+    "cudnn_allow_tf32": false,
+    "event": "VAL_BATCH_THROUGHPUT_COMPARISON",
+    "inference_speedup": 3.3132260261660913,
+    "intermediate_max_abs_difference": {
+      "exit_random_access_local_state": 9.5367431640625e-07,
+      "exit_random_access_mtf_state": 4.76837158203125e-07,
+      "exit_random_access_path_state": 0.0,
+      "exit_random_access_summary_state": 0.0
+    },
+    "large_batch_seconds": 0.4503783090001434,
+    "matmul_allow_tf32": false,
+    "max_abs_q_difference_bps": 1.1641532182693481e-10,
+    "policy_batch_size": 256,
+    "q_absolute_tolerance_bps": 0.0001,
+    "reference_batch_size": 16,
+    "reference_seconds": 1.4922051349999492,
+    "rows": 256
+  },
+  "decision": "PASS",
+  "economics_objective_contract_sha256": "5df5968dbc89a92e07473b258663e0903f7b60016c54d8f8edabf4ef20614a27",
+  "evidence_role": "gpu_batch256_parity",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/receipts/invocation-0001.json",
+    "sha256": "e5d4a78d6e96e758d177cb990b9aa60ebdf6ab16caee6b4a689ea6ba333ba60b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+    "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+  },
+  "native_val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "predictive_calibration_proven": false,
+  "profitable_model_proven": false,
+  "schema_version": "gx1_native_year_readiness_evidence_v1",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/progress/.invocation-0001.json.trainer.K9zFhZEc.log",
+    "sha256": "eb9aafa443a1623acf15ee23ffa0206abad2cc79175bd51949636d7dcbd88378"
+  },
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708",
+  "verification": {
+    "actions_equal": true,
+    "event": "VAL_BATCH_THROUGHPUT_VERIFIED",
+    "inference_speedup": 3.3132260261660913,
+    "rows": 256
+  }
+}

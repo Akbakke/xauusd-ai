@@ -1,0 +1,58 @@
+{
+  "capacity_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/calibration_step_0032/CAPACITY_OBSERVATION.json",
+    "sha256": "76963ac9c8c833bc26b7eef8329d31dfa98311136e6186aefeb3f12783179bb0"
+  },
+  "decision": "PASS",
+  "economics_objective_contract_sha256": "5df5968dbc89a92e07473b258663e0903f7b60016c54d8f8edabf4ef20614a27",
+  "elapsed_before_val_seconds": 762.5264631990001,
+  "evidence_role": "end_to_end_throughput",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "full_june_completed": false,
+  "native_invocation_elapsed_seconds": 11707.448460693,
+  "native_optimizer_steps_completed": 32,
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/receipts/invocation-0001.json",
+    "sha256": "e5d4a78d6e96e758d177cb990b9aa60ebdf6ab16caee6b4a689ea6ba333ba60b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+    "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+  },
+  "native_val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "overall_relative_speedup_measured": false,
+  "predictive_calibration_proven": false,
+  "profitable_model_proven": false,
+  "same_invocation_pipeline_verification": {
+    "actions_equal": true,
+    "dynamic_states_equal": true,
+    "economic_steps_and_hashes_equal": true,
+    "max_abs_q_difference_bps": 0.0,
+    "optimized_seconds": 0.11948956900005214,
+    "pipeline_speedup": 5.068314582337049,
+    "reference_seconds": 0.6056107250001332,
+    "rows": 256,
+    "workers": 8
+  },
+  "schema_version": "gx1_native_year_readiness_evidence_v1",
+  "scope": "actual TRAIN32 plus one native VAL window; no extrapolated epoch runtime",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/progress/.invocation-0001.json.trainer.K9zFhZEc.log",
+    "sha256": "eb9aafa443a1623acf15ee23ffa0206abad2cc79175bd51949636d7dcbd88378"
+  },
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708",
+  "val_materialized_state_view_count": 18852969,
+  "val_model_forward_count": 75716,
+  "val_seconds_including_entry_setup": 10942.512369069,
+  "val_states_per_second_including_entry_setup": 1722.9104582318173,
+  "val_states_per_second_over_whole_native_invocation": 1610.3396964161425
+}

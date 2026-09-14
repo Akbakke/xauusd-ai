@@ -1,0 +1,62 @@
+{
+  "actual_resume_comparison": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_RESUME_EQUIVALENCE_128C55F2/RESULT.json",
+    "sha256": "6d53cb27005c4e1f821a487c5e05a7e547ee18769172ec56b6cba71be0b06831"
+  },
+  "decision": "PASS_TO_FIRST_LARGER_ONE_YEAR_LEARNING",
+  "first_complete_epoch_val_pending": true,
+  "full_june_report_window_completed": false,
+  "learning_signal_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/LEARNING_SIGNAL_OBSERVATION.json",
+    "sha256": "7f6a02621d9d3a152d5a8d3582d0bd1006fe666f37d5c0515fe23b1d163bade5"
+  },
+  "measured_source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "measurement_policy_archive": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/NEXT_RUN_POLICY_AT_MEASUREMENT.json",
+    "sha256": "42918e2d3ee764a49f5b7df483642dba713ef3d539d16123706d8169b4bc52cf"
+  },
+  "native_guard_receipts": [
+    "reference boot 421 PASS",
+    "split boot 422 PASS",
+    "split boot 423 PASS"
+  ],
+  "population": {
+    "full_parent_train_rows": 313399,
+    "selected_train_rows": 65295,
+    "train_end_exclusive": "2026-06-01",
+    "train_start_inclusive": "2025-06-01",
+    "val_rows": 5508
+  },
+  "profitable_model_proven": false,
+  "required_evidence": {
+    "checkpoint_transition": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/CHECKPOINT_TRANSITION.json",
+      "sha256": "bcb87e6a4eaab3570c3c20c530499129448afbae2aeca7b3ec3b2a3aecbd55cc"
+    },
+    "end_to_end_throughput": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/END_TO_END_THROUGHPUT.json",
+      "sha256": "e9745a79cccbeb7505bd4ebbd7f9f8b89ca34a58161aca1031251d3f37f4dd80"
+    },
+    "gpu_batch256_parity": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/GPU_BATCH256_PARITY.json",
+      "sha256": "5aaff62310755b0eb7b3f7ec2e2bac3b24f9c0d0447e0cc1dc107531d0f84405"
+    },
+    "learning_calibration": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/LEARNING_CALIBRATION.json",
+      "sha256": "09be51efffa3742cebd3ce3faa2ae3148ed35b26643df99d5b9066df47035f05"
+    },
+    "resume_equivalence": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/RESUME_EQUIVALENCE.json",
+      "sha256": "ec5f052557b2547d41795950691b87639f8445ee0e993e2c8107e34e8e47c4bb"
+    },
+    "risk_objective": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
+      "sha256": "6c899ffc37caaebcc5c5b7239de4bdc8cbb03f03ff64f7db6a9a6692d1e857c6"
+    }
+  },
+  "schema_version": "gx1_latest_year_learning_readiness_v1",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_code_changes_for_this_enablement": false,
+  "student_calibrated": false,
+  "test_data_used": false
+}

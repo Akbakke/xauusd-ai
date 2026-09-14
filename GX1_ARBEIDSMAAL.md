@@ -1,75 +1,66 @@
 # Gjeldende GX1-mål — 2026-09-14
 
-Få Entry og Exit til å lære riktig før større trening, og mål kostnadsjustert
-netto Bps ærlig. Prioriter selvstendig Entry-signal, selektivitet og tydelig
-Exit-læring. Ingen bred jakt på regler, EMA-varianter eller nye modeller.
+Få modellen til å lære selektive, retningsmessig gode Entries og Exit som
+realiserer best mulig kostnadsjustert nettoverdi. Første større læringsforsøk
+bruker ett år: TRAIN 2025-06-01 inklusiv til 2026-06-01 eksklusiv, med hele
+juni 2026 som VAL. Ingen ny femårs-epoch nå. Eksisterende ramme er opptil
+30 epocher, VAL hver epoch og early stopping med patience 5. Første komplette
+epoch og VAL skal vurderes før videre anbefaling om større treningsomfang.
 
-Brukerens siste presisering: ett år er ønsket første større læringsforsøk av
-hensyn til effektivitet. Anbefalt TRAIN er 2025-06-01 til 2026-06-01 eksklusiv,
-etterfulgt av hele juni 2026 som VAL. Bruk CURRENT-bundne data og native campaign.
-Ettårsdekning bindes som et datoutvalg på eksisterende full TRAIN-indeks.
-Full parenthistorikk, opprinnelige child-ID-er, prisbaner, features og alle
-normaliserings-/foldartefakter beholdes. Bare hvilke TRAIN-rader som teller
-i en ny epoch avgrenses. Ingen ny child-/summary-datakjede er nødvendig.
-Ettårsoppskriften er ennå ikke aktivert for hele epocher. Femårsvekter
-som initialisering skal merkes som videre kalibrering, ikke som en modell som
-bare har sett ett år. Juni er utviklings-VAL, ikke et nytt uavhengig holdoutbevis.
-TEST forblir forseglet. Ingen full femårs-epoch startes nå.
+Ettårsutvalget har 65 295 av 313 399 opprinnelige TRAIN-rader. Full parenthistorikk,
+child-ID-er, prisbaner, normalisering, alle 200 features, åtte familier og
+tidsrammer beholdes. Femårsvekter er initialisering; dette er videre kalibrering,
+ikke en modell som bare har sett ett år. Juni er gjenbrukt utviklings-VAL.
+TEST forblir forseglet.
 
-Intradag er ønsket stil; M5 er ingen pålagt handelsvarighet eller eneste tillatte
-fokus. Behold alle 200 features, åtte familier og samarbeid mellom tidsrammer.
-Høyere TF skal bidra målbart, ikke dominere bare fordi vi antar at den hjelper.
-Robust kvalitet er viktigere enn antall handler. Etterprøvbare registreringer
-av inngangsdata, modellverdier, beslutninger og senere utfall skal skille hva
-modellen visste ved beslutningen fra etterfølgende vurdering. Mer adaptiv ML/RL
-må begrunnes med bedre resultater på senere perioder uten læringslekkasje.
+Intradag er ønsket stil. M5 er ingen pålagt handelsvarighet eller eneste fokus.
+Kvalitet er viktigere enn antall handler. Høyere tidsrammer og familier skal
+bidra målbart. Bevar et selvstendig markeds-/forecastsignal for Entry og skill
+det fra Entry-handlingenes verdilærer. Ingen bred jakt på EMA-regler, terskler,
+nye modeller eller rammeverk før eksisterende læring er målt.
 
 Risiko er avklart: «Ingen fast grense». Ingen fast tapsgrense eller maksimal
 holdetid. Exit sammenligner forventet videre nettoverdi med gjennomførbar lukking.
-Bevar fysisk pris-/kostnadsregnskap, split-censoring og etterprøvbar verdsetting
-av åpne posisjoner. Ingen statistikk bare for lukkede vinnere kan kalles samlet
-lønnsomhet. Risikobindingen står i docs/RISK_OBJECTIVE_20260914.json.
+Bevar fysisk pris-/kostnadsregnskap, successor-semantikk og etterprøvbar
+verdsetting av åpne posisjoner. Lukkede vinnere alene er ikke samlet profitt.
+Risiko og v4-økonomimål er bundet i docs/RISK_OBJECTIVE_20260914.json.
 
-Gjeldende målt status:
+## Bekreftet beredskap
 
-- Første femårs-epoch og hele juni-VAL er bevart. Epoch 2 ble stoppet på
-  checkpoint 315, epoch_index 1, offset 320, totalt 19 908 optimizersteg.
-  Juni analyseres bare med første epochs uforanderlige EMA.
-- Av 5 508 valgte juni-handler ble 2 227 lukket og 3 281 avkortet ved månedsslutt.
-  Full-policy netto Bps fra denne kjøringen er ikke tilgjengelig.
-- Native v4-kontroll 34fd8997 fullførte 16 → 32 nye steg med guard PASS.
-  Faktisk checkpointovergang og resume er kjørt; numerisk resume-likhet er ikke bevist.
-- Native kontroll 7054ec8b fullførte 16 steg på boot 419 med guard PASS,
-  trainer/observer/controller exit 0. Ingen trainer kjører; Windows-task er deaktivert.
-  På de undersøkte Entry-rutene er Q/Exit-gradientene frakoblet, mens forecast
-  fortsatt lærer. Første batchs fremoververdier er uendret i eksisterende loggmål.
-- Samme batch viser HOLD-target mean 32.1241 Bps, hvorav arvet frozen bootstrap
-  er 32.0953 Bps. Faktisk reward har mean 0.0288 og absolutt mean 1.7169 Bps.
-  Dette viser avhengighet av gammel verdilærer, ikke at all fortsettelsesverdi er feil.
-  Selektivitet, kalibrering og lønnsomhet er fortsatt ikke dokumentert.
+Kilde 128c55f2 bestod faktisk native overgang og 32 sammenhengende mot 16+16
+steg over omstarter: alle 14 sammenlignede tilstandskomponenter er eksakt like.
+GPU256-paritet består med identiske handlinger. Absolutt samlet gjennomstrømning
+er dokumentert for TRAIN32 og ett fullt VAL-vindu. Eksisterende CPU-/cachebevis
+gjenbrukes. Ingen samlet relativ speedup eller fullført juniresultat hevdes.
 
-Minste rettelse er implementert med 48 beståtte målrettede CPU-tilfeller:
-en eksplisitt ny v4-initialisering av bare Exit-verdi-
-utgangen fra lukk-nå-baseline 0, konsistent i online, target, EMA og relevant Adam.
-Markedsencodere, Entry-Q og øvrig tilstand beholdes; gamle checkpoints røres ikke.
-Null er lærerens startpunkt, ikke en holdegrense eller bevist optimal verdi.
-Før større læring sammenlignes 32 uavbrutte native optimizersteg med 16+16 steg
-over fysiske booter fra samme baseline og ettårsutvalg. Et uforanderlig snapshot
-ved steg 32 kan måle den eksisterende hele-juni-VAL-profilen (256/8/10800).
-Dette er rapportering av kapasitet/paritet; snapshotet kan ikke velge checkpoint,
-flytte early stopping eller fremstilles som en fullført epoch. Historiske
-EMA-steg bindes med eksakt offset til den bevarte overgangspointeren.
-Alle nødvendige målebevis gjenstår til de faktisk er kjørt og godkjent.
+Ny Exit-head initialiseres eksplisitt til close_now_baseline_v1 i online,
+target, EMA og relevant Adam. Øvrige vekter og tilstander beholdes. Første
+lærerbatch velger FLAT13/LONG1/SHORT2; studenten FLAT0/LONG4/SHORT12. Gammelt
+positivt HOLD-bootstrap er borte fra startlæreren. Forecast-gradienten når de
+fire undersøkte Entry-rutene, mens Entry-Q/Exit-gradientene er frakoblet der.
+Dette åpner for første ettårslæring; modellen er ennå ikke dokumentert kalibrert
+eller profitabel. Den delte backbone er ikke fullstendig isolert fra Exit.
 
-Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
-Start/gjeninntreden: bash scripts/gx1_handover.sh --check; les CURRENT_HANDOVER.md
-og NEXT_RUN_POLICY.json. Full trening er fortsatt av. Bruk bare native campaign
-via gx1_capped_run.sh med TRAIN-batch 16, VAL-batch 256, åtte CPU-arbeidere,
-tre timers VAL-vinduer, FP32, eksisterende optimaliseringer og maskinvarevakter.
-Historiske kildekopier er avhengigheter og dokumentasjon, aldri reservekjørevei.
+NEXT_RUN_POLICY.json binder beståtte porter og aktiverer bare det avtalte
+ettårsutvalget. Se handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json.
+Målmodellen oppdateres etter komplett epoch og VAL. Neste bevis er faktisk
+læringsresultat: selektivitet, Entry-kvalitet, Exit-atferd og samlet cash pluss
+åpen verdi etter kostnader. Mer adaptiv ML/RL må begrunnes med bedre resultater
+på senere perioder uten læringslekkasje.
 
-Underagenter er uttrykkelig autorisert. Bare én tung jobb samtidig; root eier
-integrasjon, verifikasjon og oppstart. Ingen gjentatte beståtte tester uten ny
-relevant endring. Kontroller stabil langkjøring omtrent én gang i timen.
-Stående autorisasjon gjelder. Oppdater handover ved vesentlig endring og
-commit/push ferdig arbeid. Ingen live-/papirhandel, spending eller TEST-bruk.
+Første gamle femårs-epoch og juni-VAL er bevart. Epoch2 stoppet på checkpoint315,
+offset320, totalt19 908 steg. Gammel juni analyseres bare med første epochs EMA:
+2 227 lukkede og 3 281 HOLD ved månedsslutt av 5 508 valgte. Full-policy netto
+Bps fra den gamle kjøringen er ikke tilgjengelig. Alle originaler bevares.
+
+Eneste kodebase er /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Start/gjeninntreden: bash scripts/gx1_handover.sh --check, CURRENT_HANDOVER.md
+og NEXT_RUN_POLICY.json. Bruk bare native campaign via gx1_capped_run.sh:
+TRAIN16, VAL256, åtte CPU-arbeidere, tre timers VAL-vinduer, FP32, eksisterende
+optimaliseringer og maskinvarevakter. Historiske kildekopier er avhengigheter.
+
+Underagenter er uttrykkelig autorisert. Én tung jobb samtidig; root eier
+integrasjon, verifikasjon og oppstart. Gjenbruk beståtte tester og analyser.
+Kontroller stabil langkjøring omtrent hver time. Stående autorisasjon gjelder.
+Oppdater handover ved vesentlig endring og commit/push ferdig arbeid. Ingen
+live-/papirhandel, spending eller TEST-bruk.

@@ -43,35 +43,39 @@
     "val_cpu_workers": 8,
     "cpu_nice": 0
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
       "sha256": "6c899ffc37caaebcc5c5b7239de4bdc8cbb03f03ff64f7db6a9a6692d1e857c6"
     },
-    "gpu_batch256_parity": null,
-    "end_to_end_throughput": null,
-    "resume_equivalence": null,
-    "checkpoint_transition": null,
-    "learning_calibration": null
+    "gpu_batch256_parity": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/GPU_BATCH256_PARITY.json",
+      "sha256": "5aaff62310755b0eb7b3f7ec2e2bac3b24f9c0d0447e0cc1dc107531d0f84405"
+    },
+    "end_to_end_throughput": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/END_TO_END_THROUGHPUT.json",
+      "sha256": "e9745a79cccbeb7505bd4ebbd7f9f8b89ca34a58161aca1031251d3f37f4dd80"
+    },
+    "resume_equivalence": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/RESUME_EQUIVALENCE.json",
+      "sha256": "ec5f052557b2547d41795950691b87639f8445ee0e993e2c8107e34e8e47c4bb"
+    },
+    "checkpoint_transition": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/CHECKPOINT_TRANSITION.json",
+      "sha256": "bcb87e6a4eaab3570c3c20c530499129448afbae2aeca7b3ec3b2a3aecbd55cc"
+    },
+    "learning_calibration": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/LEARNING_CALIBRATION.json",
+      "sha256": "09be51efffa3742cebd3ce3faa2ae3148ed35b26643df99d5b9066df47035f05"
+    }
   },
   "cpu_stage_evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Full epoch training remains blocked. Finite native calibration compares 32 uninterrupted optimizer steps with 16+16 steps across physical boots, from the same close-now Exit baseline and bound latest-year TRAIN population. Only a report-only snapshot at step 32 may use the existing full-June native VAL evaluator at batch256/eight workers/10800 seconds. It cannot advance selection or early stopping. Parent data, normalization and full market history are preserved. All remaining evidence gates must pass before larger one-year learning. No legacy runner, reduced VAL profile, reduced features/precision or TEST.",
-  "native_learning_calibration": {
-    "schema_version": "gx1_native_learning_calibration_scope_v2",
-    "optimizer_step_ceilings": [
-      16,
-      32
-    ],
-    "full_epoch_training_allowed": false,
-    "test_data_used": false,
-    "reference_optimizer_step_ceiling": 32,
-    "native_report_only_val": true
-  },
+  "rule": "The native learning-signal, checkpoint-transition, GPU256, measured throughput and exact-resume readiness gates passed for the bound latest-year population. Enable larger learning on TRAIN 2025-06-01 inclusive through 2026-06-01 exclusive with full June 2026 VAL. Review the first complete epoch and VAL before recommending any broader training. Retain the existing ceiling of 30 epochs and patience 5; this does not authorize a new five-year TRAIN epoch. The first teacher batch is selective but student calibration and profitability are not proven. Keep all features, families, timeframes, FP32, costs, no fixed holding/loss limits, native guards and TEST seal. No legacy runner or repeated control campaign.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1"
 }

@@ -1,0 +1,205 @@
+{
+  "decision": "OBSERVED_LEARNING_SIGNAL_REQUIRES_REVIEW",
+  "economics_objective_contract_sha256": "5df5968dbc89a92e07473b258663e0903f7b60016c54d8f8edabf4ef20614a27",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "first_batch": {
+    "batch_offset": 1,
+    "entry": {
+      "by_action": {
+        "FLAT": {
+          "mean_absolute_error_bps": 0.007128586992621422,
+          "prediction_mean_bps": 0.003334637498483062,
+          "prediction_minus_target_mean_bps": 0.003334637498483062,
+          "target_mean_bps": 0.0,
+          "valid_row_count": 16
+        },
+        "LONG": {
+          "mean_absolute_error_bps": 7.2863671611994505,
+          "prediction_mean_bps": 0.8932839762419462,
+          "prediction_minus_target_mean_bps": 7.2863671611994505,
+          "target_mean_bps": -6.393083184957504,
+          "valid_row_count": 16
+        },
+        "SHORT": {
+          "mean_absolute_error_bps": 7.394324934110045,
+          "prediction_mean_bps": 1.243366351351142,
+          "prediction_minus_target_mean_bps": 6.399785911664367,
+          "target_mean_bps": -5.156419560313225,
+          "valid_row_count": 16
+        }
+      },
+      "prediction": {
+        "tied_row_count": 0,
+        "unique_greedy_count": {
+          "FLAT": 0,
+          "LONG": 4,
+          "SHORT": 12
+        }
+      },
+      "target": {
+        "tied_row_count": 0,
+        "unique_greedy_count": {
+          "FLAT": 13,
+          "LONG": 1,
+          "SHORT": 2
+        }
+      },
+      "target_decomposition_bps": {
+        "continuation_semantics": "max_valid_frozen_relative_action_value_with_EXIT_zero",
+        "continuation_source": "entry_target[selected_entry_batch_index,LONG_SHORT]-first_liquidation",
+        "first_executable_liquidation_bps": {
+          "maximum": 9.443042755126953,
+          "mean": -5.7747513726353645,
+          "mean_absolute": 6.591991104185581,
+          "minimum": -20.732013702392578,
+          "negative_count": 29,
+          "positive_count": 3,
+          "valid_cell_count": 32,
+          "zero_count": 0
+        },
+        "first_liquidation_source": "canonical_random_access_batch.entry_liquidation_value_bps",
+        "frozen_continuation_bps": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "mean_absolute": 0.0,
+          "minimum": 0.0,
+          "negative_count": 0,
+          "positive_count": 0,
+          "valid_cell_count": 32,
+          "zero_count": 32
+        },
+        "source_counts": {
+          "anchored_valid_side_cells": 32,
+          "flat_zero_baseline_rows": 16,
+          "nonpositive_liquidation_positive_target_cells": 0,
+          "outer_entry_rows": 16,
+          "rows_without_first_anchor": 0,
+          "selected_first_anchor_rows": 16,
+          "valid_side_cells_without_first_anchor": 0
+        }
+      },
+      "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"
+    },
+    "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
+    "parameter_names": [
+      "family_tf_context_gate.weight",
+      "family_tf_context_gate.bias",
+      "family_tf_token_gate.weight",
+      "family_tf_token_gate.bias"
+    ],
+    "relative_hold_decomposition_bps": {
+      "bootstrap_source": "actual_fitted_Q_HOLD_target-minus-liquidation_relative_reward",
+      "frozen_bootstrap_bps": {
+        "maximum": 0.0,
+        "mean": 0.0,
+        "mean_absolute": 0.0,
+        "minimum": 0.0,
+        "negative_count": 0,
+        "positive_count": 0,
+        "valid_cell_count": 128,
+        "zero_count": 128
+      },
+      "liquidation_relative_reward_bps": {
+        "maximum": 16.43052101135254,
+        "mean": -0.000928713139728643,
+        "mean_absolute": 2.6492648961866507,
+        "minimum": -16.18576431274414,
+        "negative_count": 64,
+        "positive_count": 63,
+        "valid_cell_count": 128,
+        "zero_count": 1
+      },
+      "nonpositive_reward_positive_target_count": 0,
+      "reward_source": "canonical_random_access_batch.liquidation_relative_reward_bps.HOLD"
+    },
+    "relative_hold_target_bps": {
+      "maximum": 16.43052101135254,
+      "mean": -0.000928713139728643,
+      "mean_absolute": 2.6492648961866507,
+      "minimum": -16.18576431274414,
+      "negative_count": 64,
+      "positive_count": 63,
+      "valid_cell_count": 128,
+      "zero_count": 1
+    },
+    "report_only": true,
+    "routing_gradient_cosines": {
+      "entry_action_q__unified_exit_action": null,
+      "forecast_return_bps__entry_action_q": null,
+      "forecast_return_bps__unified_exit_action": null
+    },
+    "routing_task_gradients": {
+      "entry_action_q": {
+        "connected_parameter_names": [],
+        "connected_zero_parameter_names": [],
+        "l2_norm": null,
+        "loss_present": true,
+        "status": "unused",
+        "unused_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ]
+      },
+      "forecast_return_bps": {
+        "connected_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ],
+        "connected_zero_parameter_names": [],
+        "l2_norm": 0.005304116640800595,
+        "loss_present": true,
+        "status": "nonzero",
+        "unused_parameter_names": []
+      },
+      "unified_exit_action": {
+        "connected_parameter_names": [],
+        "connected_zero_parameter_names": [],
+        "l2_norm": null,
+        "loss_present": true,
+        "status": "unused",
+        "unused_parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ]
+      }
+    },
+    "schema_version": "gx1_candidate_learning_diagnostics_v1",
+    "scope": "first_v4_batch_of_bounded_train_invocation",
+    "test_data_used": false
+  },
+  "full_june_completed": false,
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/receipts/invocation-0001.json",
+    "sha256": "e5d4a78d6e96e758d177cb990b9aa60ebdf6ab16caee6b4a689ea6ba333ba60b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+    "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+  },
+  "native_val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "predictive_calibration_proven": false,
+  "profitable_model_proven": false,
+  "schema_version": "gx1_native_year_readiness_evidence_v1",
+  "scope": "learning-signal and execution checks; first-year learning still required",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "student_calibrated": false,
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/progress/.invocation-0001.json.trainer.K9zFhZEc.log",
+    "sha256": "eb9aafa443a1623acf15ee23ffa0206abad2cc79175bd51949636d7dcbd88378"
+  },
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708"
+}

@@ -1,0 +1,72 @@
+{
+  "decision": "PASS",
+  "economics_objective_contract_sha256": "5df5968dbc89a92e07473b258663e0903f7b60016c54d8f8edabf4ef20614a27",
+  "evidence_role": "learning_calibration",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "first_student_actions": {
+    "FLAT": 0,
+    "LONG": 4,
+    "SHORT": 12
+  },
+  "first_teacher_actions": {
+    "FLAT": 13,
+    "LONG": 1,
+    "SHORT": 2
+  },
+  "full_june_completed": false,
+  "measured_learning_signal": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/LEARNING_SIGNAL_OBSERVATION.json",
+    "sha256": "7f6a02621d9d3a152d5a8d3582d0bd1006fe666f37d5c0515fe23b1d163bade5"
+  },
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/receipts/invocation-0001.json",
+    "sha256": "e5d4a78d6e96e758d177cb990b9aa60ebdf6ab16caee6b4a689ea6ba333ba60b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+    "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+  },
+  "native_val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "observed_blockers_addressed": [
+    "First measured teacher batch offers FLAT for 13 of 16 entries",
+    "Obsolete positive Exit continuation is absent from the initialized frozen teacher",
+    "Measured HOLD targets equal liquidation-relative rewards at zero bootstrap",
+    "Independent forecast gradients reach the four inspected Entry routing parameters while Entry Q and Exit gradients do not"
+  ],
+  "predictive_calibration_proven": false,
+  "profitable_model_proven": false,
+  "review": {
+    "all_feature_family_timeframe_usefulness_proven": false,
+    "decision": "Proceed to first complete latest-year TRAIN epoch and full June VAL; no further observed learning-signal code blocker",
+    "entry_action_values_still_use_frozen_exit_value_teacher": true,
+    "entry_representation_has_independent_forecast_signal": true,
+    "evaluation": "Development calibration from five-year pretrained weights; reused June VAL is not independent holdout evidence",
+    "lower_shared_backbone_fully_isolated": false,
+    "next_measurement": "Complete cost-adjusted cash plus open-position valuation, entry selectivity and exit behavior after actual learning",
+    "predictive_calibration_proven": false,
+    "profitable_model_proven": false,
+    "reviewers": [
+      "root",
+      "entry_calibration"
+    ],
+    "student_still_overtrades_in_first_batch": true,
+    "target_refresh": "Existing coordinator refreshes the target model after the complete epoch and VAL"
+  },
+  "schema_version": "gx1_native_year_readiness_evidence_v1",
+  "scope": "Readiness for the first larger latest-year learning experiment; not a calibrated or profitable student",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "student_calibrated": false,
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/progress/.invocation-0001.json.trainer.K9zFhZEc.log",
+    "sha256": "eb9aafa443a1623acf15ee23ffa0206abad2cc79175bd51949636d7dcbd88378"
+  },
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708"
+}

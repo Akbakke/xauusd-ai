@@ -1,0 +1,39 @@
+{
+  "actual_cpu_replay": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/ACTUAL_TRANSITION_CPU_REPLAY/RESULT.json",
+    "sha256": "eeecfa9b9e6beafc64e692b51ec4f2b6d7f6a4d730dc647afb3bae2e8f643479"
+  },
+  "actual_native_transition": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+    "sha256": "67502d259848937a17b5c53570b5ca95573fb0fa750acb588123a1808284ef86"
+  },
+  "decision": "PASS",
+  "economics_objective_contract_sha256": "5df5968dbc89a92e07473b258663e0903f7b60016c54d8f8edabf4ef20614a27",
+  "evidence_role": "checkpoint_transition",
+  "exit_value_initialization": "close_now_baseline_v1",
+  "native_optimizer_steps_completed": 32,
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/receipts/invocation-0001.json",
+    "sha256": "e5d4a78d6e96e758d177cb990b9aa60ebdf6ab16caee6b4a689ea6ba333ba60b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+    "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+  },
+  "native_val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "only_declared_exit_head_states_reset": true,
+  "original_checkpoint_315_preserved": true,
+  "predictive_calibration_proven": false,
+  "profitable_model_proven": false,
+  "schema_version": "gx1_native_year_readiness_evidence_v1",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "test_data_used": false,
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708"
+}

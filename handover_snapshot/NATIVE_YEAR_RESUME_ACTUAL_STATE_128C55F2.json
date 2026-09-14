@@ -1,0 +1,247 @@
+{
+  "arms": {
+    "reference": {
+      "checkpoint_pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "995d498631966c60d2fd21b4aa3a300edfe8978fb558c05201c1db3cc356e9ee"
+      },
+      "checkpoint_state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
+        "sha256": "e5458f89636bd768664ad455b404ae144eb0fbdf879c20e5e438a45c4adcb001"
+      },
+      "receipts": [
+        {
+          "active_marker_sha256": "66081a9b8c2c37027add8557283c0d1639c71807a64213001f86e81cd08d99d0",
+          "boot": {
+            "boot_id": 421,
+            "computer_name": "ANDRE2",
+            "identity_sha256": "cbb6531f72f8bb8c1453594f5c82f341e1af5aa001bcf937b37107f61e2ee5c5",
+            "last_boot_utc": "2026-09-14T16:23:44.5000000Z",
+            "schema_version": "gx1_windows_boot_identity_v1"
+          },
+          "checkpoint_pointer_after": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/native-candidate-cursor/RESUME_CURSOR.json",
+            "sha256": "3ac1008a712a439b9c7628137adc8afc7469e5059eb8eda01f0ddacaf32b27d8"
+          },
+          "checkpoint_pointer_snapshot": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json",
+            "sha256": "3ac1008a712a439b9c7628137adc8afc7469e5059eb8eda01f0ddacaf32b27d8"
+          },
+          "finished_utc": "2026-09-14T19:42:00.162384+00:00",
+          "guard_decision": "PASS",
+          "guard_log": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+            "sha256": "e5dcc5acfd936eff93a7c62d1b8e15301a571ef5372fe6ffe8621458a3effb24"
+          },
+          "invocation_id": "invocation-0001",
+          "invocation_number": 1,
+          "invocation_sha256": "c88adcef5669afdd25189c6a37736e08421e97ea1819123a7502cb2ab7bb8827",
+          "kind": "native_candidate_window",
+          "outcome": "RESUMABLE",
+          "plan_sha256": "9024b23c6158fa38deafda3ff4b31f8b145d23eaf7f1beaabf5e49c0a947cd17",
+          "pointer_before_sha256": "GENESIS",
+          "progress": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/invocation-evidence/invocation-0001/PROGRESS.json",
+            "sha256": "8edde8e9204c4b5e255f990e31c232ca507f7d3f9f46ace8c55be8e1fad904fa"
+          },
+          "progress_observer_exit_code": 0,
+          "receipt_sha256": "1e77eff3b277c24fd110bcc1ca76ff3019898c405f04bdeb41c004fc6eab3b3b",
+          "schema_version": "gx1_local_random_access_invocation_receipt_v2",
+          "selection_receipt_sha256": "c43bd622f27034c2c056953d7e2090062dabbdfa0c78d9753669e0065641d13f",
+          "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
+          "started_utc": "2026-09-14T16:27:05.019893+00:00",
+          "test_data_used": false,
+          "trainer_guard_exit_code": 0
+        }
+      ],
+      "session_contract_sha256": "134d63bd693abe678790beef026d271f021b34c56e8f117de563c064909ec55e"
+    },
+    "split": {
+      "checkpoint_pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "d8925f84dd46a19cf4c30e59eafbfbc62b09bc3b4dfd09dba55b2003b42fe266"
+      },
+      "checkpoint_state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "3fed772434aeb94fe0681e01b382004251e05a5be777251e88a17afafe5dfbd0"
+      },
+      "receipts": [
+        {
+          "active_marker_sha256": "f674d4388bb60c58519be2ba3e015d7d94282eab44551b100039c6590dbd8f2e",
+          "boot": {
+            "boot_id": 422,
+            "computer_name": "ANDRE2",
+            "identity_sha256": "66b1917ef8541f837707d4f8be1389e51780393f2da84393dbea304793d151cc",
+            "last_boot_utc": "2026-09-14T19:55:49.5000000Z",
+            "schema_version": "gx1_windows_boot_identity_v1"
+          },
+          "checkpoint_pointer_after": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/native-candidate-cursor/RESUME_CURSOR.json",
+            "sha256": "f63b578ed3fe0efd7cfc36b4f84a12e20816f5124f80f37d4c3c68d899dc2e28"
+          },
+          "checkpoint_pointer_snapshot": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json",
+            "sha256": "f63b578ed3fe0efd7cfc36b4f84a12e20816f5124f80f37d4c3c68d899dc2e28"
+          },
+          "finished_utc": "2026-09-14T20:12:57.604904+00:00",
+          "guard_decision": "PASS",
+          "guard_log": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+            "sha256": "da9a4dc2828186244f78d150690c04e52c64daf023bf7aa0e5ffb08f2ba9d180"
+          },
+          "invocation_id": "invocation-0001",
+          "invocation_number": 1,
+          "invocation_sha256": "7e5c203304d9419b37895a3a31ad5a695437663d0481267a2f828dd43652f1d7",
+          "kind": "native_candidate_window",
+          "outcome": "RESUMABLE",
+          "plan_sha256": "80d1d0a4e20fdbfde27ae551492e5ec33e1ad281fd43cf31a25f1ff6552d669f",
+          "pointer_before_sha256": "GENESIS",
+          "progress": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0001/PROGRESS.json",
+            "sha256": "7ef83989f68f467b525c38ddaff09165fa64149510d754b5ff2b5115dda4f62d"
+          },
+          "progress_observer_exit_code": 0,
+          "receipt_sha256": "460da04c5ffd52948feffbe45178d0d5114f440462bebdd1a5ed155befe71c6b",
+          "schema_version": "gx1_local_random_access_invocation_receipt_v2",
+          "selection_receipt_sha256": "c43bd622f27034c2c056953d7e2090062dabbdfa0c78d9753669e0065641d13f",
+          "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
+          "started_utc": "2026-09-14T19:59:10.892143+00:00",
+          "test_data_used": false,
+          "trainer_guard_exit_code": 0
+        },
+        {
+          "active_marker_sha256": "6f4bec0c4970f499141be35cd4805ab22f0a60ec9273004a7a3c41bc4456d92d",
+          "boot": {
+            "boot_id": 423,
+            "computer_name": "ANDRE2",
+            "identity_sha256": "2a7408eb5e8b011510dd6aa912d4c7e3a2035e4aa308e8065dcbd92aaa3edbab",
+            "last_boot_utc": "2026-09-14T20:16:13.5000000Z",
+            "schema_version": "gx1_windows_boot_identity_v1"
+          },
+          "checkpoint_pointer_after": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/native-candidate-cursor/RESUME_CURSOR.json",
+            "sha256": "109c11d4108e4c520d6243b795b07776593127b0e0db9e4d26ccc6e703cec2e2"
+          },
+          "checkpoint_pointer_snapshot": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0002/CHECKPOINT_POINTER.json",
+            "sha256": "109c11d4108e4c520d6243b795b07776593127b0e0db9e4d26ccc6e703cec2e2"
+          },
+          "finished_utc": "2026-09-14T20:31:55.933357+00:00",
+          "guard_decision": "PASS",
+          "guard_log": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0002/SIGNED_GUARD.log",
+            "sha256": "eb4aa1b14e86e6ba5180bd2a5a035f26166b3e0e7b5e10559b63da7574b5a1d9"
+          },
+          "invocation_id": "invocation-0002",
+          "invocation_number": 2,
+          "invocation_sha256": "3962c1dec9f79cb11ebd888fcf09dacbc9f1cba759e0c87080382c1c3f68e055",
+          "kind": "native_candidate_window",
+          "outcome": "RESUMABLE",
+          "plan_sha256": "80d1d0a4e20fdbfde27ae551492e5ec33e1ad281fd43cf31a25f1ff6552d669f",
+          "pointer_before_sha256": "f63b578ed3fe0efd7cfc36b4f84a12e20816f5124f80f37d4c3c68d899dc2e28",
+          "progress": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421/invocation-evidence/invocation-0002/PROGRESS.json",
+            "sha256": "446207d510c5eb0b618811d519cfe7ba6d7506c93e9eb7576d286470c2385ab6"
+          },
+          "progress_observer_exit_code": 0,
+          "receipt_sha256": "bad2b4c5da6b3b86fb7a3be18d4a4bd8ffa5153f536da5fb0d2d6b0e502e44ee",
+          "schema_version": "gx1_local_random_access_invocation_receipt_v2",
+          "selection_receipt_sha256": "c43bd622f27034c2c056953d7e2090062dabbdfa0c78d9753669e0065641d13f",
+          "signed_guard_telemetry_owner": "gx1_guarded_trainer_exec.sh",
+          "started_utc": "2026-09-14T20:19:33.090058+00:00",
+          "test_data_used": false,
+          "trainer_guard_exit_code": 0
+        }
+      ],
+      "session_contract_sha256": "db8500a3892db63a85fd4a75b854e4f95eb715e1885b5d6b2074db2b88ffcf52"
+    }
+  },
+  "compared_components": {
+    "complete": {
+      "equal": true,
+      "reference": "8f697e241351bbbc59a307f5f140bd8efac8417a03a2e1eb3a36d26648fcadb0",
+      "split": "8f697e241351bbbc59a307f5f140bd8efac8417a03a2e1eb3a36d26648fcadb0"
+    },
+    "epoch_index": {
+      "equal": true,
+      "reference": "a77bdd9eb2536e0edbf1a7e063108475bcc69acc237eab7754dee7a5fdfd6982",
+      "split": "a77bdd9eb2536e0edbf1a7e063108475bcc69acc237eab7754dee7a5fdfd6982"
+    },
+    "epoch_order": {
+      "equal": true,
+      "reference": "b55cdcc6e451c30000c3698f05d98f7fb07a3b81b7443fbc1fc90b26b75f4d37",
+      "split": "b55cdcc6e451c30000c3698f05d98f7fb07a3b81b7443fbc1fc90b26b75f4d37"
+    },
+    "global_optimizer_steps": {
+      "equal": true,
+      "reference": "32d20d3efacbd22e965aa681475a93c7139744f3e2b2a9c5d7e29a76733bcf12",
+      "split": "32d20d3efacbd22e965aa681475a93c7139744f3e2b2a9c5d7e29a76733bcf12"
+    },
+    "lr_scheduler_state": {
+      "equal": true,
+      "reference": "9e2a2462b09887b55cd0ff24b13dfde028237f8d64f9963607194943776ac84b",
+      "split": "9e2a2462b09887b55cd0ff24b13dfde028237f8d64f9963607194943776ac84b"
+    },
+    "model_state": {
+      "equal": true,
+      "reference": "6e2fbf4159deaa7f9651b99c3cb06d4a01f4571c0de215a6874330900b6dd026",
+      "split": "6e2fbf4159deaa7f9651b99c3cb06d4a01f4571c0de215a6874330900b6dd026"
+    },
+    "next_batch_offset": {
+      "equal": true,
+      "reference": "32d20d3efacbd22e965aa681475a93c7139744f3e2b2a9c5d7e29a76733bcf12",
+      "split": "32d20d3efacbd22e965aa681475a93c7139744f3e2b2a9c5d7e29a76733bcf12"
+    },
+    "optimizer_state": {
+      "equal": true,
+      "reference": "2fc821ae559351b6544d17e900a7dd33bada07b7bfb2d7bb8612a185d0d4ba2e",
+      "split": "2fc821ae559351b6544d17e900a7dd33bada07b7bfb2d7bb8612a185d0d4ba2e"
+    },
+    "phase": {
+      "equal": true,
+      "reference": "126d4a695a793f5a9f78601672ab44b118d3c17155780ce91510dcded4ca0284",
+      "split": "126d4a695a793f5a9f78601672ab44b118d3c17155780ce91510dcded4ca0284"
+    },
+    "rng_state": {
+      "equal": true,
+      "reference": "4a6203fed9fb0cad963e7a661c00c7bc4f11345c5087c6214680c510bdc66617",
+      "split": "4a6203fed9fb0cad963e7a661c00c7bc4f11345c5087c6214680c510bdc66617"
+    },
+    "schema_version": {
+      "equal": true,
+      "reference": "056d21a5f27ac471f2b1d9e8e21abf7f0fe47d6ba0134f385e8ef903a046ad87",
+      "split": "056d21a5f27ac471f2b1d9e8e21abf7f0fe47d6ba0134f385e8ef903a046ad87"
+    },
+    "target_model_state": {
+      "equal": true,
+      "reference": "7423e4bebad73b55b97dce20dc095ccc4f8aa814c5b4aee4d235386f5c9ef514",
+      "split": "7423e4bebad73b55b97dce20dc095ccc4f8aa814c5b4aee4d235386f5c9ef514"
+    },
+    "training_progress": {
+      "equal": true,
+      "reference": "59b959e05fb0d059b72b3f18881391afb83541e3ac044f5016df4bddd9cde643",
+      "split": "59b959e05fb0d059b72b3f18881391afb83541e3ac044f5016df4bddd9cde643"
+    },
+    "weight_ema_state": {
+      "equal": true,
+      "reference": "dc6fe3c2774ee4576267f0c53ebcdf1f52bf5379e775e25dd68cea9f4bd804c0",
+      "split": "dc6fe3c2774ee4576267f0c53ebcdf1f52bf5379e775e25dd68cea9f4bd804c0"
+    }
+  },
+  "comparison": "32 uninterrupted versus 16+16 across physical Windows boots",
+  "decision": "PASS",
+  "difference_keys": {},
+  "different_components": [],
+  "excluded_identity_fields": {
+    "checkpoint_index": "reference has one save boundary; split has two",
+    "session_contract_sha256": "distinct immutable arm recipes and output directories"
+  },
+  "exit_value_initialization": "close_now_baseline_v1",
+  "gpu_used_by_comparison": false,
+  "schema_version": "gx1_actual_native_resume_equivalence_v1",
+  "source_bindings_sha256": "105c6b77546c066b00c2ed4ec13bd132af29fe6a79f24931b52ed7a995510b11",
+  "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "test_data_used": false,
+  "training_origin_pointer_sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5",
+  "training_population_root_sha256": "1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708"
+}
