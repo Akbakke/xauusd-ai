@@ -93,5 +93,14 @@
   "archive_sha256": "96f2f7d7e1e5b8947072d4044e7787379fcae12ef05db32d91fcc74172ae3bb4",
   "every_archived_file_verified_before_deletion": true,
   "preserved_result_directory": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/trade_review_20260914",
-  "training_started": false
+  "training_started": false,
+  "temporary_archive_deleted": true,
+  "temporary_archive_deleted_bytes": 191204259,
+  "archive_status": "DELETED_AFTER_COMPLETED_RESULTS_PRESERVED_AND_DUPLICATE_CHECKPOINT_VERIFIED",
+  "preserved_earlier_completed_results": [
+    "/Users/andrekildalbakke/GX1_ARCHIVE/CLEANUP_20260914/COMPLETED_RESULTS_20260910/report.json",
+    "/Users/andrekildalbakke/GX1_ARCHIVE/CLEANUP_20260914/COMPLETED_RESULTS_20260910/report.md"
+  ],
+  "duplicate_checkpoint_original": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+  "duplicate_checkpoint_verified_sha256": "c5efc4aaea602bf725139fffe0081629bad607e770f0b5cad4f1ef1e9e294349"
 }
