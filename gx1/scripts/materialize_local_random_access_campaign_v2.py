@@ -819,7 +819,7 @@ def materialize_native_candidate_campaign(
         raise RandomAccessCampaignError("native campaign GENESIS paths already exist")
     _prepare_private_directory(runtime / "progress", label="native campaign progress")
     output.mkdir(parents=True)
-    invocation_seconds = 12000 if recipe["val_limits"]["max_wall_seconds"] > 4200 else 5400
+    invocation_seconds = 12000
     invocations = []
     for number in range(1, window_count + 1):
         name = f"invocation-{number:04d}"

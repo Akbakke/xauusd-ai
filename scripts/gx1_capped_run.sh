@@ -242,15 +242,13 @@ validate_target_command() {
     exit 75
   fi
   module="${3:-}"
-  [[ "$module" == "$CANONICAL_TRAINER_MODULE" \
-    || "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" \
-    || "$module" == "$RANDOM_ACCESS_VAL_MODULE" \
-    || "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" \
+  [[ "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" \
     || "$module" == "$ATTENDED_HARDWARE_SMOKE_MODULE" ]] || {
-    echo "FATAL: trainer class permits only the canonical trainer or attended hardware smoke module" >&2
+    echo "FATAL: retired training route; use the current native campaign and NEXT_RUN_POLICY.json" >&2
     exit 75
   }
   if [[ "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" ]]; then
+    /usr/bin/python3 "$REPO_ROOT/scripts/collect_gx1_handover_readonly.py" --require-next-run || exit 78
     require_campaign_plan_environment
     if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false \
       || ${#target_args[@]} -ne 9 \
@@ -268,7 +266,7 @@ validate_target_command() {
       && "$(/usr/bin/sha256sum "${target_args[4]}" | /usr/bin/awk '{print $1}')" == "${target_args[6]}" ]] || exit 75
     # Read the hash-bound window; callers cannot supply a free-form guard timeout.
     local native_seconds
-    native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] == "gx1_native_candidate_window_policy_v1" and type(n) is int and n in (5400,12000); print(n)' "${target_args[4]}") || exit 75
+    native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] == "gx1_native_candidate_window_policy_v1" and type(n) is int and n == 12000; print(n)' "${target_args[4]}") || exit 75
     TRAINER_MAX_WALL_SECONDS=$((native_seconds + 1800))
     TRAINER_MODEL_MAX_WALL_SECONDS=$TRAINER_MAX_WALL_SECONDS
     # Operator-authorized native main training; legacy invocations retain their limits.
@@ -278,53 +276,6 @@ validate_target_command() {
     TRAINER_DEVICE=cuda
     TRAINER_OUT_BUNDLE_DIR="${target_args[8]}"
     return
-  fi
-  if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]; then
-    require_campaign_plan_environment
-    local -a val_flags=(
-      --launch-manifest
-      --final-train-checkpoint-authority
-      --final-train-checkpoint-authority-file-sha256
-      --checkpoint-pointer
-      --progress-path
-      --rollout-progress-path
-      --result-path
-      --device
-      --max-forwards-this-invocation
-      --progress-interval-forwards
-      --compute-guard-max-model-forwards
-      --compute-guard-max-materialized-state-views
-      --compute-guard-max-wall-seconds
-    )
-    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false       || ${#target_args[@]} -ne 29       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$       || "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" != /* ]]; then
-      echo "FATAL: random-access full VAL requires the exact guarded campaign contract" >&2
-      exit 75
-    fi
-    for ((val_index = 0; val_index < ${#val_flags[@]}; val_index++)); do
-      flag_position=$((3 + 2 * val_index))
-      value_position=$((flag_position + 1))
-      [[ "${target_args[$flag_position]}" == "${val_flags[$val_index]}" ]] || {
-        echo "FATAL: random-access full VAL argument order differs" >&2
-        exit 75
-      }
-      val_value="${target_args[$value_position]}"
-      [[ -n "$val_value" && "$val_value" != -* ]] || exit 75
-      if (( val_index <= 6 && val_index != 2 )); then
-        [[ "$val_value" == /* ]] || exit 75
-      elif (( val_index >= 8 )); then
-        [[ "$val_value" =~ ^[1-9][0-9]*$ ]] || exit 75
-      fi
-    done
-    [[ "${target_args[8]}" =~ ^[0-9a-f]{64}$       && "${target_args[18]}" == cuda ]] || exit 75
-    TRAINER_DEVICE=cuda
-    TRAINER_OUT_BUNDLE_DIR="${target_args[16]}"
-    return
-  fi
-
-  if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]] \
-    && (( trainer_flag_count != 1 )); then
-    echo "FATAL: trainer class requires the canonical --train mode exactly once" >&2
-    exit 75
   fi
   for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
     if [[ "${target_args[$target_index]}" == "--device" ]]; then
@@ -399,56 +350,6 @@ validate_target_command() {
     || [[ "$TRAINER_DEVICE" != cpu && "$TRAINER_DEVICE" != cuda ]]; then
     echo "FATAL: trainer class requires exactly one canonical --device cpu|cuda" >&2
     exit 75
-  fi
-
-  if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]; then
-    require_campaign_plan_environment
-    local stage_shape_valid=false
-    if [[ "$stage_value" == smoke-arm && $train_session_count -eq 0       && $max_optimizer_steps_count -eq 0 && ${#target_args[@]} -eq 15 ]]; then
-      stage_shape_valid=true
-      stage_requires_attended=true
-    elif [[ ( "$stage_value" == reference-4         || "$stage_value" == resume-proof-first         || "$stage_value" == resume-proof-second )       && $train_session_count -eq 1 && $max_optimizer_steps_count -eq 0       && ${#target_args[@]} -eq 17 ]]; then
-      stage_shape_valid=true
-      stage_requires_attended=true
-    elif [[ "$stage_value" == epoch1-window && $train_session_count -eq 1       && $max_optimizer_steps_count -eq 1 && ${#target_args[@]} -eq 19 ]]; then
-      stage_shape_valid=true
-    fi
-    if [[ "$TRAINER_DEVICE" != cuda       || $trainer_flag_count -ne 0 || $hardware_smoke_flag_count -ne 0       || $profile_count -ne 0 || $execution_tier_count -ne 0       || $checkpoint_dir_count -ne 1 || "$TRAINER_OUT_BUNDLE_DIR" != /*       || $launch_manifest_count -ne 1 || $stage_count -ne 1       || $arm_batch_size_count -ne 1 || $progress_path_count -ne 1       || ( "$arm_batch_size_value" != 4 && "$arm_batch_size_value" != 8         && "$arm_batch_size_value" != 16 )       || "$stage_shape_valid" != true       || ( "$stage_requires_attended" == true && "$ATTENDED_SMOKE" != true )       || ( "$stage_requires_attended" == false && "$ATTENDED_SMOKE" != false )       || ! "${GX1_CAMPAIGN_PLAN_SHA256:-}" =~ ^[0-9a-f]{64}$       || ! "${GX1_CAMPAIGN_INVOCATION_SHA256:-}" =~ ^[0-9a-f]{64}$       || "${GX1_CAMPAIGN_GUARD_LOG_PATH:-}" != /* ]]; then
-      echo "FATAL: random-access fixed-step smoke/train requires the exact attended CUDA stage contract" >&2
-      exit 75
-    fi
-    if [[ "$stage_requires_attended" == true ]]; then
-      TRAINER_ATTENDED_STAGE_REQUIRED=true
-    fi
-    return
-  fi
-
-  if [[ "$module" == "$CANONICAL_TRAINER_MODULE" ]]; then
-    if (( out_bundle_dir_count != 1 )) || [[ "$TRAINER_OUT_BUNDLE_DIR" != /* ]]; then
-      echo "FATAL: trainer class requires one absolute --out_bundle_dir" >&2
-      exit 75
-    fi
-    if [[ "$ATTENDED_SMOKE" == true ]]; then
-      if [[ $profile_count -ne 1 || "$profile_value" != smoke \
-        || $execution_tier_count -ne 1 ]]; then
-        echo "FATAL: attended smoke is reserved for one smoke command with one attended execution tier" >&2
-        exit 75
-      fi
-      case "$TRAINER_DEVICE:$execution_tier_value" in
-        cuda:attended_only|cpu:attended_cpu_only) ;;
-        *)
-          echo "FATAL: attended CUDA requires --execution-tier attended_only; attended CPU requires attended_cpu_only" >&2
-          exit 75
-          ;;
-      esac
-    fi
-    if [[ "$ATTENDED_SMOKE" == true ]]; then
-      # Only the exact canonical trainer can advance from the complete
-      # data-preflight into the separately bounded model phase. The hardware
-      # smoke intentionally remains a standalone telemetry diagnostic.
-      TRAINER_ATTENDED_STAGE_REQUIRED=true
-    fi
-    return
   fi
 
   # This is intentionally a separate target, not a shortcut into canonical

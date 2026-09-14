@@ -1,265 +1,76 @@
-<!-- GX1_DOCUMENT_CLASS: CANONICAL | current operational status -->
-# GX1 current handover
+# GX1 overtakelse — 2026-09-14
 
-## Latest verified run and completion correction - 2026-09-11
+Gjeldende arbeidskopi: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Kjør bash scripts/gx1_handover.sh --check. Scriptet viser verifisert historisk
+resultat, lagret checkpoint, faktisk prosessstatus og hvorfor neste løp er blokkert.
+Det starter ingenting og har ingen gammel reservevei.
 
-V20 on BootId 363 completed three actual CUDA optimizer steps at batch 4 and
-saved a checkpoint. The signed guard exited 0 at 17:03:57Z: peaks 51 C core,
-52 C memory, 132.55 W and 2488 MiB VRAM. CPU preflight took 228 seconds;
-the model stage took 13 seconds. Two measured post-warmup steps processed
-8 Entry rows / 32 transitions in 5.663114863 seconds. This short measurement
-includes smoke checkpoint overhead and is not qualified long-run throughput.
+## Fullført kjøring og resultater
 
-Campaign registration did not complete. Three exact completion defects were
-verified: File.Replace is unsupported on the WSL UNC status path; Windows
-Start-Process returns null ExitCode unless Handle is retained before exit;
-and fixed-step progress used a no-LF digest while its campaign owner requires
-LF. Original V20 progress, checkpoint, measurements and ACTIVE marker remain
-unchanged. A source-identical terminal observer recheck returned 0, but the
-canonical record attempt rejected the wrong progress digest. No successful
-campaign receipt was created, and no progress was relabelled to force it.
-The scheduler is Disabled with zero retries. Exact evidence:
-LIFECYCLE_V2_LOCAL_PILOT_20260910/PRELAUNCH_EVIDENCE_V20_70884CBD_BOOT362/FAILED_REGISTRATION_READONLY.json.
+Full femårs-TRAIN epoch 1 og full juni-2026 VAL er ferdig. Brukerstopp gjelder.
+Windows-kampanjeoppgaven er fjernet; ingen videre epoch startes automatisk.
+Epoch 2 startet før stoppbeskjeden og rakk 320 lagrede steg: checkpoint 315,
+epoch_index 1, totalt 19 908 steg. Første epochs EMA ved 19 588 steg er uforanderlig.
+Siste kjøring var fra frosset kilde 03592fe6; denne skal ikke redigeres.
+COMPLETED_RUN.json binder nøyaktige kilder, checkpoints og hele resultatfilen.
+Invokasjon 7 ble manuelt avsluttet; den skal ikke omtales som en ytre PASS.
 
-The correction stores reporter status on local Windows NTFS, retains both
-child process handles and rejects missing exit codes, and publishes fixed-step
-progress with the receiving campaign owner's hash function. The production
-publisher-to-campaign-record regression and Windows source tests passed
-(15 tests); the actual Windows harness passed local atomic replacement and
-exact child exit codes 0/7. Training calculations, sampler and features are
-unchanged. Commit this narrow successor, rebind and continue the guarded
-smoke path. Do not run another full suite or fabricate a V20 campaign PASS.
+VAL: 57 845 748 tilstandsvurderinger / 467 371 forwards. 7 472 av 11 016
+hypotetiske sideforløp ble lukket; 3 544 nådde månedsslutt med HOLD.
+Entry valgte 4 180 LONG / 1 328 SHORT / 0 FLAT. Av 5 508 valgte handler ble
+2 227 lukket og 3 281 avkortet ved månedsslutt. Full-policy netto Bps er utilgjengelig.
+Hypotetisk månedssluttslukking av åpne valgte handler gir −312,90 Bps per handel;
+dette er diagnostikk, ikke lært Exit eller porteføljeavkastning. Verste netto MAE −1 369,27 Bps.
 
+## Hva analysen betyr for neste steg
 
-## Current operator goal and bootstrap correction - 2026-09-11
+72,42 % av valgte månedssluttåpne handler hadde først +20 netto Bps og senere
+under −20 uten lukking; rundt 89 % hadde største MFE før verste MAE.
+Høyeste 10 % Q-margin ga fortsatt −218,62 Bps i samme hypotetiske sluttberegning.
+Entry-MAE-hodet gjelder 95 minutter og har ingen direkte beslutningsmyndighet.
+Exit mottar faktisk akkumulert MFE/MAE. Entry-Q-MSE var 2,66 % svakere enn konstant baseline.
+SHORT-HOLD har null løpende finansiering og risikostraff. Innen dagens mål kan
+ubestemt HOLD derfor dominere frivillig tapsrealisering. Flere epocher alene er
+ikke dokumentert som løsningen. Avklar ønsket økonomisk holdetid og risikoramme,
+og gjør så den minste nødvendige endringen i eksisterende økonomimål.
+Ingen terskel, risikogrense eller modellmål er foreløpig endret.
+Hele analysen og presiseringene står i docs/ENTRY_EXIT_REVIEW_20260914.md.
 
-Train toward positive cost-adjusted net Bps with the complete feature contract
-and learned cooperation across all eight families and timeframes. First run
-the one-year TRAIN smoke (2025-06-01 through 2026-05-31), then full June VAL.
-After required smoke/resume readiness, the operator authorizes up to 30 epochs
-with early stopping. Use one heavy process, targeted checks only, and no
-repeated full suites. TEST remains sealed. The selected random-access epoch
-contains 16,384 Entry pairs / 65,536 transitions; it is not a full pass through
-the 65,295 eligible one-year entries. Report that sampling definition honestly.
+## Én vei for neste kjøring
 
-V19 on BootId 362 passed cold WSL, checkpoint-directory ownership and the
-CPU-to-model guard transition. It stopped before any optimizer step at
-UNIFIED_EXIT_RANDOM_ACCESS_BOOTSTRAP_KEYSET_INVALID. Its frozen checkpoint
-contains the exact 36 static Exit keys retired by the established source-state
-successor. All 758 retained tensors match current names/shapes/dtypes. The
-scheduler is Disabled with zero retries; preserve the failed V19 ACTIVE marker.
-Exact failure evidence lives in
-LIFECYCLE_V2_LOCAL_PILOT_20260910/PRELAUNCH_EVIDENCE_V19_2D8C4DDB_BOOT361/FAILED_SMOKE_READONLY.json.
+NEXT_RUN_POLICY.json krever VAL-batch 256, åtte CPU-arbeidere og 10 800 sekunders
+VAL-vinduer, 12 000 sekunders native budsjett og 13 800 sekunders ytre vakt.
+Bevar market-cache, metadatacache, delt prissti for sider, batched økonomi,
+FP32 uten TF32 og den laststyrte GPU-clock-launcheren. Alle features/familier/TF-er beholdes.
+Målt CPU-trinn: +17,36 % med åtte arbeidere/batch 128, +24,65 % med batch 256;
+identiske tilstandsbytes, fem repetisjoner, CPU 0–7. Dette er ikke GPU-/totalfart.
+Før trening kreves risikoavklaring, faktisk GPU-paritet på 256, målt samlet fart
+og eksakt resume-likhet. Profilen er ikke aktivert; ingen ny kampanje er laget.
+Eksisterende kilde-/data-/checkpoint-/guardporter gjelder i tillegg.
 
-The bootstrap now shares the existing exact retirement-key owner with the old
-migration tool. It rejects partial retirement, unknown keys and missing or
-incompatible live tensors; preserves the full old source digest; strictly loads
-all retained weights and retains new v2 initialization. No loose restore or
-optimizer migration is introduced: this is the declared fresh v2 warm start.
-Thirteen targeted tests passed. The actual frozen online and target checkpoint
-both passed CPU bootstrap, exact retained-tensor checks, preserved v7 input
-normalization and strict v2 restore. The proof is BOOTSTRAP_SUCCESSOR_CPU_READONLY.json
-beside the failure snapshot. Commit clean source and rebind before guarded CUDA.
+30 epocher med patience 5 er fortsatt sluttmålet når dette er klart. TEST er
+forseglet, ingen live/papir. Én tung jobb og timesvis modellobservasjon.
+300 W / 85 C kjerne / 80 C minne / 12 GiB VRAM / 20 GiB RAM / 512 MiB swap.
 
-Efficiency audit: old no-fill FP32's measured 12.5% gain is not active in the
-current deterministic_fp32 fixed-step executor. The selected sampler's 1,072.45
-seconds measures CPU materialization/collation only, not GPU training or VAL.
-No new GPU throughput or positive-Bps result exists yet. Fewer sampled rows and
-unbounded Exit semantics change the learning problem; do not label the entire
-old/new time difference as quality-preserving acceleration.
+## Opprydding og bevaring
 
+28 gamle arbeidskopier er fjernet. Gjeldende kilde er GX1_CURRENT.
+Elleve historiske kilde-/runtimekopier er beholdt fordi checkpoint- og datahistorikken
+binder dem, eller fordi de eier Git/kjøremiljøet. De er ikke alternative oppstartsveier.
+Ingen treningsdata, modellvekter, fullførte resultater eller checkpoints er slettet.
+Gamle oppstartsnotater, ferdigbrukte forberedelsesbindinger og alternative
+treningsgrener i den felles kjøreinnpakningen er fjernet fra gjeldende kilde.
+Importerte moduler med gamle navn beholdes når feature- eller modellkoden bruker dem.
 
-Earlier probe evidence from `gx1_post_reboot_handover_snapshot_v1`, observed
-`2026-09-11T10:54:04.2445771Z`. Snapshot file SHA-256:
-`6c9228f1116a26b2d1037b63648a0f404bd9695425dbfaac68d567f18d9ed446`.
+Gjenoppretting av fjernet kildemateriale: /home/andre2/GX1_ARCHIVE/CLEANUP_20260914/ALL_REFS.bundle.
+Unike lokale endringer er lagret privat utenfor aktivt prosjekt.
+Kvitteringer står i handover_snapshot/WORKTREE_CLEANUP_20260914.json,
+CLEANUP_CODE_REMOVALS.json og TASK_RETIREMENT_20260914.json.
+Arkivet skal ikke brukes som en alternativ treningskilde.
 
-## Decision
-
-**BLOCK_TRAINING_PENDING_VERIFIED_STARTUP_OWNERSHIP_SUCCESSOR.**
-BootId 361 began at 2026-09-11T15:57:48.5000000Z. V18 bound clean source
-747111162705a8f7e8b10df4b0ede641cf4431ab and passed Windows cold-start,
-strict bridge configuration and signed telemetry checks. Its first smoke
-invocation began at 15:59:23.577665Z and stopped at 16:03:15Z.
-
-The exact trainer exception was UNIFIED_EXIT_FIXED_STEP_CHECKPOINT_DIR_EXISTS:
-campaign begin created the same fresh directory the bootstrap trainer must own.
-No optimizer step, resume pointer or terminal progress was produced. The
-scheduler is Disabled with zero retries and no candidate process remains.
-The unresolved V18 ACTIVE marker is preserved as failed evidence; never delete
-it to retry this plan, and do not treat it as a currently running process.
-
-The correction leaves fresh checkpoint-directory creation to the trainer and
-places observer status under runtime_root. The fixed-step CUDA smoke now uses
-the existing private-FIFO notification after CPU checkpoint verification and
-before model construction, so the guard enforces its separate model budget.
-The next producer also had a circular dependency: it required an epoch session
-before the resume proof that authorizes that session. The existing 4-step
-reference and 3+1 proof now form a resume-proof campaign; the subsequent
-selected-training campaign contains only epoch windows and requires the
-completed equivalence-bound epoch manifest.
-
-Targeted CPU tests: 32 passed. The actual Windows hardening harness also passes,
-including observer_checkpoint_isolation=PASS. The operator reprioritized direct
-progress to one year / one epoch over repeated broad suites. The fourth full
-suite was interrupted: 683 tests and 14 subtests passed in 176.24 seconds before
-SIGINT; this is partial verification, not a full PASS. Use the passing targeted
-checks for these concrete startup fixes. Do not repeat the full suite merely
-because a commit is due. Source must be committed and rebound before launch.
-
-V18 plan file SHA-256:
-b45bd3c8cb7f01f2e0c6e03122d33e4be258589bc7cd90afdd980b39003dbe81.
-Exact immutable failure snapshot:
-LIFECYCLE_V2_LOCAL_PILOT_20260910/PRELAUNCH_EVIDENCE_V18_74711116_BOOT360/FAILED_SMOKE_READONLY.json.
-Trainer log SHA-256:
-f03ef6e951e632f717f26a5449ffc018293f058815cb617d3234e278209083d8.
-Guard log SHA-256:
-de28ab6bf59f25454e86352381b1c67f4266a6967f0a423ff31034eea2cc1e1b.
-The logs are bound by that snapshot. Guard peaks were 51 C core, 52 C memory,
-132.48 W draw and 490 MiB resident VRAM, with the physical limit at 160 W.
-
-## Earlier context
-
-
-- The old five-year epoch 1 is preserved as immutable historical evidence:
-  313,399 TRAIN rows, 39,175 optimizer steps, 5,509 Entry VAL rows and
-  5,632,000 Exit states. It projected 14.48 hours per old epoch. Entry and Exit
-  were economically negative, so blind continuation stopped.
-- Epoch 1 proved full feature plumbing and gradient contact, but not causal
-  feature importance or trading edge. The Entry specialist gate collapsed
-  heavily toward volatility and H4 while generic routes still carried all
-  fields. Exit contributed about 92.2% of joint VAL loss and could backpropagate
-  into the Entry token.
-- The old checkpoint learned a forced terminal at Exit state 512 and is
-  historical only. It is not a direct resume checkpoint for the repaired
-  learning problem.
-- Lifecycle v2 keeps 480 rows of local M1 history at the first Exit decision,
-  uses at most 512 post-entry rows as a rolling detail tail, preserves lifetime
-  summaries and exact t/t+1 successors, and has no maximum trade lifetime or
-  capacity-forced EXIT. TRAIN uses bounded outcome-blind random-access samples;
-  VAL rolls open trades until learned EXIT or reports compute truncation.
-- The lifecycle-v2 mechanics, data/index/normalization/economics bindings,
-  fixed-step training, resume proof, campaign receipts and full-VAL path were
-  developed and CPU-tested. The post-reboot baseline was clean on
-  `feature/unbounded-exit-lifecycle-v2-20260910` at
-  `fb4f060d60d7017bf4188684cf5c0b5f05e110b4`; the successor source must be
-  rebound to its exact clean commit by the collector before launch authority.
-- Historical probe BootId 359 began at `2026-09-11T10:39:11.5000000Z`. The one-shot probe passed
-  at `10:40:24.7603135Z`: cold Ubuntu `/bin/true` took 14,070 ms and returned 0;
-  exact `wslpath` took 71 ms and returned `/mnt/c/ProgramData/GX1`.
-- `WSLService`, `vmcompute` and `hns` were running. The probe task is Disabled,
-  returned 0 and has zero automatic retries. The campaign and legacy WSL
-  bootstrap are Disabled. `GX1LifecycleV2PilotResume` is absent.
-- The corrected installer was exercised on the actual host and verified
-  `RestartCount=0`, S4U owner `Andre`, exact V17 source/plan identity and the
-  one-minute startup trigger. The task was disabled after the BootId 360
-  bootstrap failure. Its result 1 is not a CUDA/training result.
-- The observed 14.07-second healthy cold call explains the earlier 8–10 second
-  campaign timeout failures. Use one 30-second timeout for the first cold WSL
-  call, with zero retry, terminate, shutdown or reset. Later calls keep their
-  normal short bound.
-- No ACTIVE file, guard file, trainer process or CUDA process existed. The
-  original snapshot's GPU fields were null. A later canonical signed
-  preinstall query (recorded 14:34:18Z) verified 37 C core, 44 C memory,
-  22.59 W draw, 160 W limit and 78 MiB used. Live guard checks still apply
-  to every future invocation.
-- The Codex heartbeat remains paused. The probe reboot is complete; do not
-  request another reboot for this diagnosis.
-- The simple staged probe can call only bounded Ubuntu-22.04 `/bin/true` and
-  `wslpath`. It cannot call trainer, guard, CUDA, GPU tools, WSL recovery,
-  shutdown or reboot. Its local staged source hashes are recorded below; the
-  installed Windows bytes must be rehashed independently.
-
-## Required post-reboot evidence
-
-The probe boundary has passed. Run the read-only handover collector with one
-exact file for every role: `data_authority`, `model_authority`,
-`checkpoint_authority`, `campaign_plan`, `task_status`, `boot_status`,
-`probe_status`, `guard_status`, `process_status`, and `gpu_safety_status`.
-Snapshot files may state that an object is absent; absence must be explicit and
-machine-readable.
-
-The current snapshot can supply the boot/task/probe/guard/process safety roles,
-and the later canonical signed query supplies the GPU measurement. Complete
-data/model/checkpoint/plan authority must still be bound to the successor commit. A snapshot that explicitly records `null` stays unknown; it is not a
-PASS by absence.
-
-
-## Prior committed baseline verification
-
-- The prior committed baseline suite passed: **4,666 tests and 14 subtests**,
-  in 1,230.05 seconds, under the capped audit wrapper (4 GiB memory, 512 MiB
-  swap, CPU 0-7, one numerical thread). Bash syntax, Python compilation and
-  `git diff --check` also pass. No CUDA or candidate training job was launched.
-- Exact results: `/tmp/gx1_lifecycle_v2_bridge_count_final_20260911.log` and
-  `/tmp/gx1_lifecycle_v2_bridge_count_final_20260911.xml` on the WSL host.
-- The earlier suites imported some test helpers from the original checkout.
-  `tests/__init__.py` now binds helpers to this checkout, and `.venv` is a
-  physical local environment with the existing dependencies. The original
-  checkout and its environment were not changed.
-- Current pretest launch recipes require all eight lifecycle-v2 artifact
-  bindings. Immutable older recipes are still rejected; they were not patched
-  or admitted. Staging/session fixtures now implement the epoch setter.
-- The trainer accepts the four exact campaign identity environment fields
-  already verified by the capped runner. Episode teacher targets exclude a
-  final HOLD without an observed successor; the legal HOLD action remains
-  available and no forced terminal is introduced. Native usefulness analysis
-  preserves that distinction and validates the episode seal separately from
-  its economics-readiness sidecar.
-- The collector/controller targeted suite and actual Windows PowerShell
-  hardening harness passed, including 200,000-byte stdout/stderr drain,
-  bounded timeout and `one_shot_initial_state=PASS`.
-- The actual PowerShell boot-identity parameter admits the 30,000 ms cold
-  call. The real parameter-block regression accepts that value and rejects
-  0 and 30,001 ms without executing host writes. The Windows harness passes
-  with `boot_identity_parameter_binding=PASS`.
-- The actual Windows harness also proves empty, missing-field and extra-field
-  configuration comparisons under strict mode. The complete real
-  `Confirm-Gx1SignedHostTelemetryReady` path passed on BootId 360 without
-  candidate start or reboot.
-- The previous handover task is archived and its duplicate test run was
-  interrupted. Only this takeover may advance the work; one heavy job at a
-  time. The interrupted duplicate log is not verification evidence.
-
-The ten-role V18 bundle passed with source 747111162705a8f7e8b10df4b0ede641cf4431ab,
-bundle SHA-256 46895a69b75023d1242ea4f879c8bdb1386e81933a5d7a748134fe6d78727de1.
-It is historical capture evidence, not authority for the pending successor.
-
-The ten-role V17 handover bundle was captured with clean source
-`2de8ff8af31a9d61567de2c799923cf1b821735a` before this attempt. It remains
-historical evidence, not authority for the corrected controller. Its bundle
-SHA-256 is `5c56ac833bca77f469525fb50fb1c5fe478d196a97a8a89a61558d1ff6b09d59`.
-
-## Next action
-
-Commit the targeted-verified startup-ownership correction. Preserve V18 as failed, then use a new output/runtime root and the
-actual prepared BootId 361. Only the canonical controller may request the
-next physical reboot and sequential smoke invocations. After GPU selection,
-use --phase resume-proof first; build the epoch session only after real 4 versus
-3+1 equivalence passes, then materialize selected-training against that proof
-plan. The TRAIN 2025-06-01 through 2026-05-31 and full June-2026 VAL objective,
-TEST seal and hardware guards are unchanged.
-
-1. Verify the committed successor is clean with `gx1_handover.sh --source-only`.
-   Rebind the existing smoke recipes and campaign plan to that exact commit
-   and the corrected controller/installer hashes.
-2. Collect exact host/GPU status, install the source-bound controller and
-   verify zero task retries. Do not launch until every existing guard passes.
-3. Bind the exact data, model, checkpoint and current campaign-plan authorities.
-4. Generate `gx1_handover_bundle_v1` with
-   `scripts/collect_gx1_handover_readonly.py`, binding the expected clean
-   branch and commit explicitly.
-5. If any check is missing or inconsistent, keep the campaign disabled and fix
-   that single gate before any launch decision.
-
-## Local evidence hashes
-
-These identify only the current Mac copies:
-
-- Old epoch-1 final report: `39a2696f665caa1e484ef2537e8a8512f186904ab3b15647fbe20140e7b7d13a`
-- Epoch-1 system audit: `935e458de064e05e91c3514267026b552743bb0a38f438ea6df27d364646c930`
-- Boot 358 pre-run audit: `32b020b0575bddac87c75401a3345fa0e3fad1607262416ba0aad0c6540489d2`
-- Staged simple probe: `7943ebfcf2cb68e2dcd269f00d99ba11a23931d5ff3b8739d759cb4f8d584c30`
-- Staged simple-probe installer: `efe66c5e9de35afeb30d96612f2203d4b13c44d3757d748712e0a7d20002262d`
-- Staged RestartCount-removal patch: `f3e016068ffff56c4131a388b019e596596b7a05b7d6baf7172ac14c1b9eaa08`
-- Post-reboot snapshot: `6c9228f1116a26b2d1037b63648a0f404bd9695425dbfaac68d567f18d9ed446`
-- Installed probe evidence: `14befaaaeb9e8a290afbc60af5fc2d79a65bdb3b6e5e79fdf9c928b04205fcaa`
+Mac-arbeidsområdet er også ryddet: 85 gamle toppnivåfiler/-mapper, 798 filer
+og 252 889 123 byte er fjernet fra aktivt prosjekt etter kontrollert arkivering.
+Hele trade_review_20260914 med VAL-resultat og analyser er beholdt.
+Privat arkiv: /Users/andrekildalbakke/GX1_ARCHIVE/CLEANUP_20260914.
+På Mac brukes bare ./handover.sh (--check eller --verbose); den leser GX1_CURRENT
+via SSH og starter aldri trening. Scriptets versjonerte kilde er scripts/macos/gx1_takeover.sh.

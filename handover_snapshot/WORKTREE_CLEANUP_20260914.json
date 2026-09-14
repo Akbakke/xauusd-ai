@@ -1,0 +1,253 @@
+{
+  "removed_worktrees": [
+    {
+      "path": "/home/andre2/src/GX1_ENGINE/.claude/worktrees/agent-a2d9628082ffbec3a",
+      "head": "d7f08c00737c6e906c371f0628cd96897fabfd22",
+      "branch": "refs/heads/worktree-agent-a2d9628082ffbec3a",
+      "uncommitted_backup": "/home/andre2/GX1_ARCHIVE/CLEANUP_20260914/agent-a2d9628082ffbec3a.uncommitted.tar.gz",
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_ENGINE_a60_hold",
+      "head": "a60ba6e5cde44559b49d18218fc44baa0fa53774",
+      "branch": null,
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_ENGINE_attended_e76",
+      "head": "e76f994ee8aa421f7f65250fe8a856d85a7fb2d0",
+      "branch": null,
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_ENGINE_challenger_hold",
+      "head": "592db447d5095c0b500f8af50b6a538202d17302",
+      "branch": null,
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_EPOCH1_SYSTEM_REPAIR",
+      "head": "327fdab7355dc3e0e38436cc8908ef7c88a04545",
+      "branch": "refs/heads/audit/epoch1-system-repair-20260910",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_FULL_TRAIN_NATIVE_GUARD_V31",
+      "head": "3741352dfb68a1f939aa8acd97966a007bbc300f",
+      "branch": "refs/heads/fix/native-import-guard-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_FULL_TRAIN_NATIVE_LIFECYCLE_V32",
+      "head": "9be98ecc85e4f3042a872020e33c4dc4af222e33",
+      "branch": "refs/heads/fix/native-lifecycle-chunk-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_FULL_YEAR_VAL_V25",
+      "head": "95852292fce7fc8e027f948b48d34f4d4650fbc4",
+      "branch": "refs/heads/fix/full-year-val-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_GATE_DIAGNOSTICS",
+      "head": "3f8fb55e0ecb04a60890fef9e94f381c45822d97",
+      "branch": "refs/heads/audit/epoch1-gate-diagnostics-20260910",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_HANDOVER_20260913",
+      "head": "669432ca3e507e03839575dad2c7ccbd1fb525f8",
+      "branch": "refs/heads/docs/lifecycle-v2-takeover-20260913",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_CAMPAIGN_COORDINATOR",
+      "head": "0e395616d7d450f0a5a76ed2de775869d5a04ea7",
+      "branch": "refs/heads/infra/local-campaign-coordinator-20260910",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_EFFICIENCY",
+      "head": "0f137166d20dfd3fa110f07cdfd62dcdfad8c5b0",
+      "branch": "refs/heads/optimize/local-3090-efficiency-20260908",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_NEXT_EXPERIMENTS",
+      "head": "062082372a14cf017226b8c0efa315412e91de06",
+      "branch": "refs/heads/optimize/local-3090-next-experiments-20260909",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_ONE_EPOCH_SUCCESSOR",
+      "head": "cbae4aff4962bc7d1640492190b02a5a77357eed",
+      "branch": "refs/heads/optimize/local-3090-one-epoch-successor-20260909",
+      "uncommitted_backup": "/home/andre2/GX1_ARCHIVE/CLEANUP_20260914/GX1_LOCAL_ONE_EPOCH_SUCCESSOR.uncommitted.tar.gz",
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_POWER_BENCHMARK",
+      "head": "3d9035d78042dbbc9f138a5857ab82acfc14d322",
+      "branch": "refs/heads/optimize/local-3090-power-benchmark-20260909",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_LOCAL_SYNC_OPTIMIZATION",
+      "head": "4a55c5aa000d87a0bee08f70be8f566ccbce256e",
+      "branch": "refs/heads/optimize/local-3090-target-entry-core-20260909",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_SCOPED_KEEPER_LIFECYCLE",
+      "head": "b92916303bc38a143c812bd6a427024a5de7a5db",
+      "branch": "refs/heads/optimize/scoped-keeper-lifecycle-20260910",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_SHARED_NORMALIZATION_CURRENT",
+      "head": "2a6beb59c2f07e4c872c9496bb7184f40831fae7",
+      "branch": "refs/heads/optimize/shared-normalization-current-20260910",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_SHARED_NORMALIZATION_EXPERIMENT",
+      "head": "8dc6b12f348125c6831645c965f7ce2d86f3544d",
+      "branch": "refs/heads/optimize/shared-normalization-cache-20260909",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_STAGED_FEATURE_SCREEN",
+      "head": "fd147dee4ba3c0c2b9c6dcef94f86f33eb302842",
+      "branch": "refs/heads/optimize/staged-feature-screen-20260909",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_BATCH_V36",
+      "head": "f40ec16f9980cf03b1a02d2579ee4c1c54b2e324",
+      "branch": "refs/heads/fix/native-val-batch-roundoff-20260913",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_ECONOMICS_V29",
+      "head": "1ae5bd548957b584c59e7c377e2b8a5f94c43778",
+      "branch": "refs/heads/fix/val-economics-binding-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_FP32_V35",
+      "head": "267bb0c8bfa573c4553a75a0789ca4568a0af4e2",
+      "branch": "refs/heads/fix/native-val-cudnn-fp32-20260913",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_GATE_OBSERVATION_V28",
+      "head": "769ba5cb434fd0c4830187f69faaf03df0815f6a",
+      "branch": "refs/heads/fix/val-gate-observation-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_GATE_V27",
+      "head": "84dd17d81b60ada8232c1a11b6b25135f6aca9a5",
+      "branch": "refs/heads/fix/val-feature-gate-range-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_HOLIDAY_V32",
+      "head": "734ccfe82c8f1b6a6031e79a95526a25b86c4382",
+      "branch": "refs/heads/fix/val-holiday-binding-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_PARENT_V26",
+      "head": "59de4cbcc2b12beb531bf66eb5e5db4abd589be6",
+      "branch": "refs/heads/fix/val-parent-binding-20260912",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_THROUGHPUT_V34",
+      "head": "f2b597f8ff9a62a81dfb7106afd23b4ae74c894b",
+      "branch": "refs/heads/fix/native-val-throughput-20260913",
+      "uncommitted_backup": null,
+      "source_recovery": "ALL_REFS.bundle"
+    }
+  ],
+  "retained_worktrees": [
+    {
+      "path": "/home/andre2/src/GX1_ENGINE",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_FULL_TRAIN_NATIVE_DISPATCH_V33",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_FULL_TRAIN_NATIVE_V30",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_CAPACITY_V41",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_CONTROL_V22",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_CPU_PIPELINE_V38",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_HOTPATH_V39",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_MARKET_CACHE_V37",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_PAUSE_ENVELOPE_V40",
+      "reason": "bound source/runtime or live process directory"
+    },
+    {
+      "path": "/home/andre2/src/GX1_VAL_SHARED_ROUTES_V31",
+      "reason": "bound source/runtime or live process directory"
+    }
+  ],
+  "removed_count": 28,
+  "retained_count": 11,
+  "protected_data_roots": [
+    "/home/andre2/GX1_DATA",
+    "/home/andre2/GX1_RUNS"
+  ],
+  "test_data_used": false
+}

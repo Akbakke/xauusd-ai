@@ -1,0 +1,59 @@
+{
+  "schema_version": "gx1_next_native_run_policy_v1",
+  "canonical_source_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1",
+  "required_val_profile": {
+    "policy_batch_size": 256,
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "progress_interval_forwards": 64
+  },
+  "native_invocation_seconds": 12000,
+  "outer_guard_seconds": 13800,
+  "train_batch_size": 16,
+  "precision": "float32",
+  "tf32_allowed": false,
+  "mandatory_optimizations": [
+    "frozen_market_state_cache",
+    "immutable_metadata_cache",
+    "shared_side_price_path",
+    "batched_economics",
+    "eight_cpu_workers",
+    "workload_only_gpu_clock_profile"
+  ],
+  "gpu_clock_launcher": {
+    "path": "/home/andre2/src/GX1_CURRENT/scripts/windows/GX1-NativeClockProfileLauncher.ps1",
+    "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
+  },
+  "limits": {
+    "physical_power_limit_w": 300,
+    "maximum_actual_power_draw_w": 310,
+    "maximum_core_temperature_c": 85,
+    "maximum_memory_junction_temperature_c": 80,
+    "maximum_vram_mib": 12288,
+    "signed_local_telemetry_seconds": 1,
+    "human_status_seconds": 3600,
+    "fresh_physical_windows_boot_before_every_invocation": true,
+    "automatic_power_limit_change": true,
+    "power_reduction_core_temperature_c": 80,
+    "reduced_power_limit_w": 200,
+    "cpu_affinity": "0-18",
+    "numerical_threads": 8,
+    "val_cpu_workers": 8,
+    "cpu_nice": 0
+  },
+  "training_enabled": false,
+  "required_evidence": {
+    "risk_objective": null,
+    "gpu_batch256_parity": null,
+    "end_to_end_throughput": null,
+    "resume_equivalence": null
+  },
+  "cpu_stage_evidence": {
+    "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
+    "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
+  },
+  "completed_run_record": "COMPLETED_RUN.json",
+  "rule": "No legacy fallback, no reduction of features/data/precision/costs. No epoch until risk objective and capacity/resume evidence are resolved."
+}

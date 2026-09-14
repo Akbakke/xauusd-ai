@@ -1,0 +1,415 @@
+{
+  "observed_utc": "2026-09-14T05:51:14.278394+00:00",
+  "result_semantic_sha256": "2a722889a97e05406c13d33bc94d72bc439e3f4e575628a66496e0022da7fab7",
+  "selected_policy_metrics": {
+    "checkpoint_binding_sha256": "72086724f67c5a0d8635eda7ef62a8071a554421a15e46509488a7b7d33a6a61",
+    "entry_decision_count": 5508,
+    "flat_count": 0,
+    "flat_return_bps": 0.0,
+    "full_cohort_authoritative": false,
+    "long_count": 4180,
+    "mean_net_bps_per_entry": null,
+    "mean_net_bps_per_selected_trade": null,
+    "net_bps_sum": null,
+    "policy_sha256": "ff1f7c4e772b8d2f966731a29e2b56e925896c7301ad109f56a43e96afb3238b",
+    "positive_net_bps_observed": false,
+    "selected_exited_count": 2227,
+    "selected_non_exited_count": 3281,
+    "selected_trade_count": 5508,
+    "semantics": "equal_notional_independent_entry_opportunities_not_portfolio_return",
+    "short_count": 1328,
+    "test_data_used": false
+  },
+  "max_closed_net_bps_reconstruction_difference": 1.7621459846850485e-12,
+  "risk_penalty_annual_bps_by_side": {
+    "long": 0.0,
+    "short": 0.0
+  },
+  "definitions": [
+    "Excursions use executable M1 closing quotes; intraminute extremes/order are not observed.",
+    "Net quote path subtracts exact bound spread/slippage/commission and accrued financing.",
+    "For censored paths the final net value assumes liquidation at the last June quote; this is a diagnostic counterfactual, not a learned Exit or authoritative policy return.",
+    "Confidence subsets are descriptive, chosen on this VAL and not independently validated.",
+    "Independent equal-notional opportunities are not a portfolio backtest."
+  ],
+  "summary": {
+    "selected_all": {
+      "n": 5508,
+      "statuses": {
+        "RIGHT_CENSORED_SPLIT_END": 3281,
+        "EXITED": 2227
+      },
+      "sides": {
+        "LONG": 4180,
+        "SHORT": 1328
+      },
+      "diagnostic_liquidation_mean_bps": -312.90132604805194,
+      "diagnostic_liquidation_win_pct": 40.68627450980392,
+      "median_hold_hours": 169.825,
+      "max_hold_hours": 719.9,
+      "median_net_mae_bps": -449.923642714277,
+      "worst_net_mae_bps": -1369.2655392406587,
+      "median_net_mfe_bps": 93.63359967103818,
+      "mae_before_mfe_pct": 45.334059549745824,
+      "q_mean_bps": 1.3312805195324822,
+      "margin_min_bps": 0.00014162063598632812,
+      "profit20_before_worst_mae_pct": 59.58605664488017,
+      "profit20_then_below_minus20_pct": 65.0326797385621,
+      "profit50_before_worst_mae_pct": 39.21568627450981,
+      "profit50_then_below_minus20_pct": 47.421931735657225,
+      "profit100_before_worst_mae_pct": 11.147421931735657,
+      "profit100_then_below_minus20_pct": 13.72549019607843,
+      "fixed_15m": {
+        "n": 5508,
+        "mean_bps": -6.345944842677912,
+        "win_pct": 32.02614379084967
+      },
+      "fixed_60m": {
+        "n": 5508,
+        "mean_bps": -8.388389318189093,
+        "win_pct": 38.925199709513436
+      },
+      "fixed_240m": {
+        "n": 5171,
+        "mean_bps": -18.47273768351678,
+        "win_pct": 38.71591568362019
+      }
+    },
+    "selected_closed": {
+      "n": 2227,
+      "statuses": {
+        "EXITED": 2227
+      },
+      "sides": {
+        "SHORT": 1127,
+        "LONG": 1100
+      },
+      "diagnostic_liquidation_mean_bps": 125.6193925324197,
+      "diagnostic_liquidation_win_pct": 100.0,
+      "median_hold_hours": 35.38333333333333,
+      "max_hold_hours": 330.71666666666664,
+      "median_net_mae_bps": -60.303163412650775,
+      "worst_net_mae_bps": -880.0557018447333,
+      "median_net_mfe_bps": 126.26472797698173,
+      "mae_before_mfe_pct": 96.18320610687023,
+      "q_mean_bps": 1.4915243492674604,
+      "margin_min_bps": 0.00023818016052246094,
+      "profit20_before_worst_mae_pct": 47.956892680736416,
+      "profit20_then_below_minus20_pct": 54.15356982487651,
+      "profit50_before_worst_mae_pct": 28.5136955545577,
+      "profit50_then_below_minus20_pct": 36.59631791647957,
+      "profit100_before_worst_mae_pct": 5.074090704984283,
+      "profit100_then_below_minus20_pct": 7.139649753030984,
+      "fixed_15m": {
+        "n": 2227,
+        "mean_bps": -3.701014609931675,
+        "win_pct": 40.99685675797036
+      },
+      "fixed_60m": {
+        "n": 2227,
+        "mean_bps": 1.0002000024627002,
+        "win_pct": 53.30040413111809
+      },
+      "fixed_240m": {
+        "n": 2091,
+        "mean_bps": 9.297368581635295,
+        "win_pct": 60.11477761836442
+      }
+    },
+    "selected_censored": {
+      "n": 3281,
+      "statuses": {
+        "RIGHT_CENSORED_SPLIT_END": 3281
+      },
+      "sides": {
+        "LONG": 3080,
+        "SHORT": 201
+      },
+      "diagnostic_liquidation_mean_bps": -610.5501039446416,
+      "diagnostic_liquidation_win_pct": 0.42669917708015853,
+      "median_hold_hours": 303.81666666666666,
+      "max_hold_hours": 719.9,
+      "median_net_mae_bps": -804.9693682215856,
+      "worst_net_mae_bps": -1369.2655392406587,
+      "median_net_mfe_bps": 60.158531289115416,
+      "mae_before_mfe_pct": 10.819871990246876,
+      "q_mean_bps": 1.2225139822512274,
+      "margin_min_bps": 0.00014162063598632812,
+      "profit20_before_worst_mae_pct": 67.4794270039622,
+      "profit20_then_below_minus20_pct": 72.41694605303262,
+      "profit50_before_worst_mae_pct": 46.479731789088696,
+      "profit50_then_below_minus20_pct": 54.7698872295032,
+      "profit100_before_worst_mae_pct": 15.269734836939957,
+      "profit100_then_below_minus20_pct": 18.1956720512039,
+      "fixed_15m": {
+        "n": 3281,
+        "mean_bps": -8.141208368531576,
+        "win_pct": 25.93721426394392
+      },
+      "fixed_60m": {
+        "n": 3281,
+        "mean_bps": -14.760955126507147,
+        "win_pct": 29.16793660469369
+      },
+      "fixed_240m": {
+        "n": 3080,
+        "mean_bps": -37.32575463170931,
+        "win_pct": 24.18831168831169
+      }
+    },
+    "selected_LONG": {
+      "n": 4180,
+      "statuses": {
+        "RIGHT_CENSORED_SPLIT_END": 3080,
+        "EXITED": 1100
+      },
+      "sides": {
+        "LONG": 4180
+      },
+      "diagnostic_liquidation_mean_bps": -443.484755430487,
+      "diagnostic_liquidation_win_pct": 26.65071770334928,
+      "median_hold_hours": 208.35833333333335,
+      "max_hold_hours": 719.9,
+      "median_net_mae_bps": -602.5039186797243,
+      "worst_net_mae_bps": -1369.2655392406587,
+      "median_net_mfe_bps": 80.1529729715518,
+      "mae_before_mfe_pct": 30.43062200956938,
+      "q_mean_bps": 1.186307889379953,
+      "margin_min_bps": 0.00014162063598632812,
+      "profit20_before_worst_mae_pct": 58.4688995215311,
+      "profit20_then_below_minus20_pct": 62.51196172248804,
+      "profit50_before_worst_mae_pct": 40.26315789473684,
+      "profit50_then_below_minus20_pct": 45.21531100478469,
+      "profit100_before_worst_mae_pct": 12.392344497607656,
+      "profit100_then_below_minus20_pct": 14.066985645933014,
+      "fixed_15m": {
+        "n": 4180,
+        "mean_bps": -6.640480808676873,
+        "win_pct": 29.066985645933013
+      },
+      "fixed_60m": {
+        "n": 4180,
+        "mean_bps": -9.388693705542767,
+        "win_pct": 36.26794258373206
+      },
+      "fixed_240m": {
+        "n": 3940,
+        "mean_bps": -20.962628714707368,
+        "win_pct": 36.370558375634516
+      }
+    },
+    "selected_SHORT": {
+      "n": 1328,
+      "statuses": {
+        "EXITED": 1127,
+        "RIGHT_CENSORED_SPLIT_END": 201
+      },
+      "sides": {
+        "SHORT": 1328
+      },
+      "diagnostic_liquidation_mean_bps": 98.12181764063632,
+      "diagnostic_liquidation_win_pct": 84.8644578313253,
+      "median_hold_hours": 129.90833333333333,
+      "max_hold_hours": 330.71666666666664,
+      "median_net_mae_bps": -250.47281757327497,
+      "worst_net_mae_bps": -880.0557018447333,
+      "median_net_mfe_bps": 125.63217291343665,
+      "mae_before_mfe_pct": 92.24397590361446,
+      "q_mean_bps": 1.7875949728740268,
+      "margin_min_bps": 0.000886082649230957,
+      "profit20_before_worst_mae_pct": 63.102409638554214,
+      "profit20_then_below_minus20_pct": 72.96686746987952,
+      "profit50_before_worst_mae_pct": 35.91867469879518,
+      "profit50_then_below_minus20_pct": 54.36746987951807,
+      "profit100_before_worst_mae_pct": 7.228915662650603,
+      "profit100_then_below_minus20_pct": 12.650602409638553,
+      "fixed_15m": {
+        "n": 1328,
+        "mean_bps": -5.418866275000457,
+        "win_pct": 41.34036144578313
+      },
+      "fixed_60m": {
+        "n": 1328,
+        "mean_bps": -5.239840870042738,
+        "win_pct": 47.28915662650602
+      },
+      "fixed_240m": {
+        "n": 1231,
+        "mean_bps": -10.503468257935207,
+        "win_pct": 46.222583265637695
+      }
+    },
+    "selected_censored_opposite_closed": 3175,
+    "confidence_slices_posthoc_not_validated_strategy": {
+      "100": {
+        "n": 5508,
+        "statuses": {
+          "EXITED": 2227,
+          "RIGHT_CENSORED_SPLIT_END": 3281
+        },
+        "sides": {
+          "SHORT": 1328,
+          "LONG": 4180
+        },
+        "diagnostic_liquidation_mean_bps": -312.901326048052,
+        "diagnostic_liquidation_win_pct": 40.68627450980392,
+        "median_hold_hours": 169.825,
+        "max_hold_hours": 719.9,
+        "median_net_mae_bps": -449.923642714277,
+        "worst_net_mae_bps": -1369.2655392406587,
+        "median_net_mfe_bps": 93.63359967103818,
+        "mae_before_mfe_pct": 45.334059549745824,
+        "q_mean_bps": 1.3312805195324822,
+        "margin_min_bps": 0.00014162063598632812,
+        "profit20_before_worst_mae_pct": 59.58605664488017,
+        "profit20_then_below_minus20_pct": 65.0326797385621,
+        "profit50_before_worst_mae_pct": 39.21568627450981,
+        "profit50_then_below_minus20_pct": 47.421931735657225,
+        "profit100_before_worst_mae_pct": 11.147421931735657,
+        "profit100_then_below_minus20_pct": 13.72549019607843,
+        "fixed_15m": {
+          "n": 5508,
+          "mean_bps": -6.345944842677912,
+          "win_pct": 32.02614379084967
+        },
+        "fixed_60m": {
+          "n": 5508,
+          "mean_bps": -8.388389318189093,
+          "win_pct": 38.925199709513436
+        },
+        "fixed_240m": {
+          "n": 5171,
+          "mean_bps": -18.47273768351678,
+          "win_pct": 38.71591568362019
+        }
+      },
+      "50": {
+        "n": 2754,
+        "statuses": {
+          "EXITED": 964,
+          "RIGHT_CENSORED_SPLIT_END": 1790
+        },
+        "sides": {
+          "SHORT": 652,
+          "LONG": 2102
+        },
+        "diagnostic_liquidation_mean_bps": -404.80328347285916,
+        "diagnostic_liquidation_win_pct": 35.07625272331155,
+        "median_hold_hours": 207.52499999999998,
+        "max_hold_hours": 719.7333333333333,
+        "median_net_mae_bps": -608.4078919371295,
+        "worst_net_mae_bps": -1366.3370014405982,
+        "median_net_mfe_bps": 85.71723495083626,
+        "mae_before_mfe_pct": 39.687726942628906,
+        "q_mean_bps": 1.3339689070319645,
+        "margin_min_bps": 0.27217113971710205,
+        "profit20_before_worst_mae_pct": 53.95787944807552,
+        "profit20_then_below_minus20_pct": 58.56935366739288,
+        "profit50_before_worst_mae_pct": 33.514887436456064,
+        "profit50_then_below_minus20_pct": 40.95860566448802,
+        "profit100_before_worst_mae_pct": 10.312273057371097,
+        "profit100_then_below_minus20_pct": 11.837327523602033,
+        "fixed_15m": {
+          "n": 2754,
+          "mean_bps": -6.565345043088939,
+          "win_pct": 30.501089324618736
+        },
+        "fixed_60m": {
+          "n": 2754,
+          "mean_bps": -9.501325828415919,
+          "win_pct": 35.911401597676104
+        },
+        "fixed_240m": {
+          "n": 2558,
+          "mean_bps": -19.311650384216623,
+          "win_pct": 37.02111024237686
+        }
+      },
+      "25": {
+        "n": 1377,
+        "statuses": {
+          "EXITED": 555,
+          "RIGHT_CENSORED_SPLIT_END": 822
+        },
+        "sides": {
+          "SHORT": 483,
+          "LONG": 894
+        },
+        "diagnostic_liquidation_mean_bps": -400.17684123704265,
+        "diagnostic_liquidation_win_pct": 40.305010893246184,
+        "median_hold_hours": 308.9,
+        "max_hold_hours": 702.0666666666667,
+        "median_net_mae_bps": -719.3510981138176,
+        "worst_net_mae_bps": -1357.808519983334,
+        "median_net_mfe_bps": 90.27117461130447,
+        "mae_before_mfe_pct": 43.13725490196079,
+        "q_mean_bps": 1.4350197335560424,
+        "margin_min_bps": 0.3680986166000366,
+        "profit20_before_worst_mae_pct": 57.08061002178649,
+        "profit20_then_below_minus20_pct": 59.840232389251995,
+        "profit50_before_worst_mae_pct": 35.07625272331155,
+        "profit50_then_below_minus20_pct": 40.95860566448802,
+        "profit100_before_worst_mae_pct": 10.021786492374728,
+        "profit100_then_below_minus20_pct": 10.820624546114741,
+        "fixed_15m": {
+          "n": 1377,
+          "mean_bps": -6.742529590742924,
+          "win_pct": 30.93681917211329
+        },
+        "fixed_60m": {
+          "n": 1377,
+          "mean_bps": -10.371125886316781,
+          "win_pct": 35.72984749455338
+        },
+        "fixed_240m": {
+          "n": 1270,
+          "mean_bps": -21.48075699943587,
+          "win_pct": 34.488188976377955
+        }
+      },
+      "10": {
+        "n": 551,
+        "statuses": {
+          "EXITED": 356,
+          "RIGHT_CENSORED_SPLIT_END": 195
+        },
+        "sides": {
+          "SHORT": 346,
+          "LONG": 205
+        },
+        "diagnostic_liquidation_mean_bps": -218.62209561758382,
+        "diagnostic_liquidation_win_pct": 64.60980036297642,
+        "median_hold_hours": 169.73333333333332,
+        "max_hold_hours": 701.2333333333333,
+        "median_net_mae_bps": -426.52185363091826,
+        "worst_net_mae_bps": -1356.5403963455553,
+        "median_net_mfe_bps": 120.59086682637302,
+        "mae_before_mfe_pct": 68.96551724137932,
+        "q_mean_bps": 1.7722957361415164,
+        "margin_min_bps": 0.4626842141151428,
+        "profit20_before_worst_mae_pct": 59.16515426497278,
+        "profit20_then_below_minus20_pct": 63.70235934664247,
+        "profit50_before_worst_mae_pct": 33.03085299455535,
+        "profit50_then_below_minus20_pct": 42.28675136116153,
+        "profit100_before_worst_mae_pct": 6.715063520871143,
+        "profit100_then_below_minus20_pct": 7.985480943738657,
+        "fixed_15m": {
+          "n": 551,
+          "mean_bps": -7.569227150394656,
+          "win_pct": 38.65698729582577
+        },
+        "fixed_60m": {
+          "n": 551,
+          "mean_bps": -12.794434972825215,
+          "win_pct": 39.56442831215971
+        },
+        "fixed_240m": {
+          "n": 509,
+          "mean_bps": -19.04869371423602,
+          "win_pct": 38.31041257367387
+        }
+      }
+    }
+  },
+  "full_report_file_sha256": "9c43f76a97660d4d3910969a003fd0690c6f91857d1a11d4116fa79902ffcc83"
+}

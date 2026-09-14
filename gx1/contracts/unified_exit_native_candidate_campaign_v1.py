@@ -38,6 +38,9 @@ def require_native_recipe_metadata(
         or recipe.get("source_repo") != str(source_repo)
         or recipe.get("source_commit") != source_commit
         or recipe.get("recipe_sha256") != native_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
+        or any(recipe.get("val_limits", {}).get(k) != v for k, v in
+               {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+                "max_wall_seconds": 10800, "progress_interval_forwards": 64}.items())
         or controls.get("epochs") != 30 or controls.get("batch_size") != 16
         or controls.get("early_stopping_patience") != 5
         or controls.get("checkpoint_monitor") != "entry_exit_policy_metrics.mean_net_bps_per_entry"
@@ -77,7 +80,7 @@ def require_native_window_policy(value: Any, *, verify_files: bool = True) -> di
         or value["schema_version"] != WINDOW_SCHEMA or value["test_data_used"] is not False
         or type(value["invocation_number"]) is not int or value["invocation_number"] < 1
         or type(value["max_invocation_seconds"]) is not int
-        or value["max_invocation_seconds"] not in (5400, 12000)
+        or value["max_invocation_seconds"] != 12000
         or value["policy_sha256"] != canonical_sha256({k: v for k, v in value.items() if k != "policy_sha256"})
     ):
         raise RuntimeError("NATIVE_CANDIDATE_WINDOW_POLICY_INVALID")

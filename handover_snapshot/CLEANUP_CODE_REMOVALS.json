@@ -1,0 +1,63 @@
+{
+  "removed_obsolete_preparation_files": [
+    "handover_snapshot/VAL128_EXPECTED_SESSION.json",
+    "handover_snapshot/VAL_CPU_PIPELINE_EXPECTED_SESSION.json",
+    "handover_snapshot/VAL_CPU_PIPELINE_PREPARED.json",
+    "handover_snapshot/VAL_PAUSEFIX_PREPARED.json",
+    "handover_snapshot/WINDOWS_OBSERVATION.json",
+    "handover_snapshot/VAL128_FP32_EXPECTED_SESSION.json",
+    "handover_snapshot/NATIVE_OBSERVATION.json",
+    "handover_snapshot/VAL128_ROUNDING_PREPARED.json",
+    "handover_snapshot/VAL_MARKET_CACHE_PREPARED.json",
+    "handover_snapshot/VAL128_FP32_PREPARED.json",
+    "handover_snapshot/VAL_HOTPATH_EXPECTED_SESSION.json",
+    "handover_snapshot/VAL_MARKET_CACHE_EXPECTED_SESSION.json",
+    "handover_snapshot/VAL_PAUSEFIX_LIVE_VERIFICATION.json",
+    "handover_snapshot/VAL128_ROUNDING_EXPECTED_SESSION.json",
+    "handover_snapshot/VAL_PAUSEFIX_EXPECTED_SESSION.json",
+    "handover_snapshot/BACKUP_MANIFEST.json",
+    "handover_snapshot/VAL128_PREPARED.json",
+    "handover_snapshot/VAL_HOTPATH_PREPARED.json",
+    "CURRENT_NATIVE_RUN.json"
+  ],
+  "retired_code": [
+    "legacy handover shell fallback",
+    "legacy evidence-bundle CLI",
+    "direct trainer/fixed-step/separate-VAL launch branches"
+  ],
+  "preserved": [
+    "all model/data/checkpoint contracts",
+    "full result and EMA",
+    "active source dependencies",
+    "resource and GPU guard measurements"
+  ],
+  "test_data_used": false,
+  "removed_obsolete_documents": [
+    "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md",
+    "docs/CURRENT_AUDIT_STATUS_20260828.md",
+    "docs/CURRENT_HANDOFF_20260903.md",
+    "docs/FULL_YEAR_TRAINING_20260911.md",
+    "docs/VAL_CONTROL_REPAIR_20260911.md",
+    "docs/REPO_CLEANUP_CANDIDATES_20260903.md"
+  ],
+  "retired_viewer_tests": [
+    "_assert_explicit_review_hold",
+    "test_handover_hold_checker_distinguishes_absent_from_malformed",
+    "_source_only_repo",
+    "_run_source_only",
+    "test_source_only_handover_reuses_hygiene_without_opening_held_history",
+    "test_source_only_handover_fails_closed_on_source_hygiene",
+    "test_source_only_handover_preserves_regenerable_cache_allowlist",
+    "test_runtime_review_hold_reports_exact_recovery_and_blocks_all_execution",
+    "test_handover_viewer_points_to_current_xau_direction_repair_truth",
+    "test_handover_authority_fingerprint_includes_current_pair_manifest",
+    "test_handover_authority_fingerprint_covers_every_markdown_file",
+    "test_handover_viewer_prints_current_goal",
+    "test_takeover_documents_state_the_current_shared_m5_m1_boundary",
+    "test_handover_verbose_mode_is_explicit_and_prints_exact_full_handover",
+    "test_handover_check_mode_is_minimal_and_path_order_hash_bound",
+    "test_control_surface_handover_alias_uses_current_handover_viewer",
+    "test_control_surface_handover_alias_exposes_minimal_resume_check"
+  ],
+  "replacement_coverage": "test_collect_gx1_handover_readonly and current control alias tests"
+}

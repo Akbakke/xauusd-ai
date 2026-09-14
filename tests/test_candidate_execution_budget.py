@@ -145,7 +145,7 @@ def test_native_long_window_policy_is_explicit_and_hash_bound(tmp_path):
                 budget_path=str(tmp_path / "budget.json"), progress_path=str(tmp_path / "progress.json"),
                 campaign_cursor_path=str(tmp_path / "cursor.json"), training_session_directory=str(tmp_path / "session"),
                 test_data_used=False)
-    for seconds in (5400, 12000):
+    for seconds in (12000,):
         policy = {**base, "max_invocation_seconds": seconds}
         policy["policy_sha256"] = canonical_sha256(policy)
         assert require_native_window_policy(policy, verify_files=False)["max_invocation_seconds"] == seconds
