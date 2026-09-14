@@ -1,5 +1,10 @@
 # GX1 overtakelse — 2026-09-14
 
+Videre arbeid venter på brukerens risikosvar. De avklaringsuavhengige økonomi-
+og målerettelsene er verifisert og pushet til 2938eab3. Ingen ny epoch eller
+GPU-kampanje startes før det avtalte risiko-/holdemålet er fastsatt. Målet om
+lønnsom trening er ikke oppnådd; øvrige porter er spesifisert nedenfor.
+
 ## Native måling av åpen verdi og posisjonsbruk er forberedt
 
 Den inaktive MTM-varianten har nå et eget native resultatformat v3. Ved naturlig
@@ -66,8 +71,9 @@ Loggene er bevart ved siden av beviset. Ingen modellforward, GPU eller trening.
 Dette er ikke bevis på lært Exit-forbedring, godt Entry-signal eller lønnsomhet.
 V3 er ikke eksakt resume av det gamle optimaliseringsproblemet. Gamle bindings-
 kontrakter og standard v2-adferd er bevart for historisk etterprøvbarhet.
-Åpen NAV og kronologisk full-policy-score er fortsatt ikke implementert/aktivert;
-eksisterende full-policy-resultat for juni forblir utilgjengelig.
+Dette første 42-testtrinnet omfattet ikke åpen NAV eller kronologisk score.
+Neste verifiserte trinn øverst i handover har disse målingene implementert, men
+ikke aktivert som opptaks-/early-stopping-regel. Gammel juni-score er uendret.
 Neste arbeid er å fullføre denne evaluerings-/posisjonsavtalen, avklare risiko
 og bevare Entrys selvstendige kvalitetskrav før ny kilde-/checkpointovergang
 og de påkrevde GPU256-/totalfart-/resume-målingene. Ingen beståtte tester gjentas
