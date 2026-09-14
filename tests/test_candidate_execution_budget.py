@@ -77,6 +77,17 @@ class BudgetTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.load()
 
+    def test_long_window_only_for_explicit_native_recipe(self):
+        self.recipe.update(schema_version="gx1_unified_exit_random_access_full_train_recipe_v1",
+                           val_limits={"max_wall_seconds": 10800})
+        changed = {**self.budget, "max_invocation_seconds": 12000}
+        self.assertEqual(self.load(changed), changed)
+        with self.assertRaises(ValueError):
+            self.load({**changed, "max_invocation_seconds": 12001})
+        self.recipe["val_limits"]["max_wall_seconds"] = 4200
+        with self.assertRaises(ValueError):
+            self.load(changed)
+
     def test_exact_progress_boundaries_and_continuation(self):
         def reason(steps, epochs=0, elapsed=1):
             return candidate_execution_pause_reason(
@@ -121,3 +132,26 @@ class BudgetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_native_long_window_policy_is_explicit_and_hash_bound(tmp_path):
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        WINDOW_SCHEMA, require_native_window_policy,
+    )
+    from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
+    import pytest
+    base = dict(schema_version=WINDOW_SCHEMA, recipe={"path": str(tmp_path / "recipe.json"), "sha256": "1" * 64},
+                invocation_number=1, max_invocation_seconds=5400,
+                budget_path=str(tmp_path / "budget.json"), progress_path=str(tmp_path / "progress.json"),
+                campaign_cursor_path=str(tmp_path / "cursor.json"), training_session_directory=str(tmp_path / "session"),
+                test_data_used=False)
+    for seconds in (5400, 12000):
+        policy = {**base, "max_invocation_seconds": seconds}
+        policy["policy_sha256"] = canonical_sha256(policy)
+        assert require_native_window_policy(policy, verify_files=False)["max_invocation_seconds"] == seconds
+        with pytest.raises(RuntimeError, match="WINDOW_POLICY_INVALID"):
+            require_native_window_policy({**policy, "max_invocation_seconds": 5400 if seconds == 12000 else 12000}, verify_files=False)
+    invalid = {**base, "max_invocation_seconds": 12001}
+    invalid["policy_sha256"] = canonical_sha256(invalid)
+    with pytest.raises(RuntimeError, match="WINDOW_POLICY_INVALID"):
+        require_native_window_policy(invalid, verify_files=False)

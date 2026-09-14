@@ -12198,7 +12198,7 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
         "frame", "state_factory", "parent_coordinate_evidence", "val_sequence_audit",
         "max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards",
     }
-    if not isinstance(context, Mapping) or set(context) not in (required, required | {"policy_batch_size"}):
+    if not isinstance(context, Mapping) or set(context) not in (required, required | {"policy_batch_size"}, required | {"policy_batch_size", "cpu_pipeline_workers"}):
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_INVALID]")
     from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
 
@@ -12211,10 +12211,12 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
     if children != list(range(5508)) or len(set(parents)) != 5508:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_COHORT_INVALID]")
     limits = {key: context[key] for key in ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")}
-    if "policy_batch_size" in context:
-        limits["policy_batch_size"] = context["policy_batch_size"]
+    for key in ("policy_batch_size", "cpu_pipeline_workers"):
+        if key in context:
+            limits[key] = context[key]
     if (any(type(value) is not int or value <= 0 for value in limits.values())
-            or limits.get("policy_batch_size", 16) not in (16, 128)):
+            or limits.get("policy_batch_size", 16) not in (16, 128, 256)
+            or limits.get("cpu_pipeline_workers", 4) not in (4, 8)):
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
     audit = Path(context["val_sequence_audit"]).resolve(strict=True)
     return {
@@ -12254,6 +12256,7 @@ def _native_candidate_epoch_validation(
                 val_sequence_audit=Path(context["val_sequence_audit"]),
                 device=device, selected_batch_size=batch_size,
                 exit_policy_batch_size=context.get("policy_batch_size", batch_size),
+                cpu_pipeline_workers=context.get("cpu_pipeline_workers", 4),
                 rollout_progress_path=directory / "ROLLOUT_PROGRESS.json",
                 result_path=directory / "VAL_RESULT.json",
                 max_forwards_this_invocation=context["max_model_forwards"],

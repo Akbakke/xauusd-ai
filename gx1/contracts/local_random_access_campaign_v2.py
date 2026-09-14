@@ -293,7 +293,8 @@ def require_invocation(
     if result["expected_success_outcome"] not in _EXPECTED_SUCCESS_OUTCOMES:
         raise RandomAccessCampaignError("expected outcome invalid")
     maximum_wall = result.get("maximum_wall_seconds")
-    if type(maximum_wall) is not int or not 1 <= maximum_wall <= 7200:
+    wall_ceiling = 13800 if kind == "native_candidate_window" else 7200
+    if type(maximum_wall) is not int or not 1 <= maximum_wall <= wall_ceiling:
         raise RandomAccessCampaignError("invocation wall bound invalid")
     result["execution_manifest"] = require_binding(
         result["execution_manifest"],
@@ -394,6 +395,7 @@ def require_invocation(
                 or execution["prelaunch_manifest_sha256"] != recipe["recipe_sha256"]
                 or execution["train_session_manifest_sha256"] != policy["policy_sha256"]
                 or policy["recipe"] != recipe_binding
+                or maximum_wall != policy["max_invocation_seconds"] + 1800
                 or policy["invocation_number"] != number
                 or policy["progress_path"] != result["progress_path"]
                 or policy["campaign_cursor_path"] != pointer_path
@@ -626,7 +628,8 @@ def _require_sequence(
                 or item["checkpoint"]["write_mode"] != "ATOMIC_UPDATE"
                 or item["checkpoint"]["pointer_path"] != first["checkpoint"]["pointer_path"]
                 or item["native_recipe"] != first["native_recipe"]
-                or item["maximum_wall_seconds"] != 7200
+                or item["maximum_wall_seconds"] != first["maximum_wall_seconds"]
+                or item["maximum_wall_seconds"] != item["native_window_policy"]["max_invocation_seconds"] + 1800
                 or (offset > 0 and item["checkpoint"]["predecessor_invocation_number"] != offset)
             ):
                 raise RandomAccessCampaignError("native candidate sequence differs")

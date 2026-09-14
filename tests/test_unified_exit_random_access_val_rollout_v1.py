@@ -562,14 +562,15 @@ def test_production_state_factory_feeds_full_cohort_learned_exit_rollout() -> No
     assert result["max_decision_state_index"] == 1
 
 
-def test_compact_market_cpu_workers_preserve_states_across_512_boundary():
+@pytest.mark.parametrize("workers", [4, 8])
+def test_compact_market_cpu_workers_preserve_states_across_512_boundary(workers):
     factory, adapter, _model, _representations = _production_factory_fixture(520)
     try:
         for index in (0, 1, 511, 512, 513):
             entries = list(range(8))
             baseline = adapter.materialize_active_batch(entries, index)
             cached = adapter.materialize_cached_active_batch(
-                entries, index, cached_market_rows={479 + index}, workers=4,
+                entries, index, cached_market_rows={479 + index}, workers=workers,
             )
             for before, after in zip(baseline, cached):
                 for name, value in before["state"].items():
@@ -582,6 +583,6 @@ def test_compact_market_cpu_workers_preserve_states_across_512_boundary():
                         assert after["state"][name] == value
                 for name in ("successor_observed", "right_censor_reason_if_hold", "transition_closure"):
                     assert before[name] == after[name]
-        assert len(factory._val_cpu_pool._processes) == 4
+        assert len(factory._val_cpu_pool._processes) == workers
     finally:
         factory.close_val_cpu_workers()

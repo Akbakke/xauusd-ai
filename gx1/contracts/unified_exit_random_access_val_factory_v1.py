@@ -650,7 +650,7 @@ class RandomAccessValStateFactoryV1:
     def materialize_cached_cpu_batch(
         self, requests: list[tuple[dict[str, Any], int]], *, workers: int,
     ) -> list[dict[str, Any]]:
-        if workers not in (0, 4):
+        if workers not in (0, 4, 8):
             raise RuntimeError("UNIFIED_EXIT_VAL_CPU_WORKER_COUNT_INVALID")
         if not requests:
             return []

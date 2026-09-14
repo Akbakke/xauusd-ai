@@ -819,13 +819,14 @@ def materialize_native_candidate_campaign(
         raise RandomAccessCampaignError("native campaign GENESIS paths already exist")
     _prepare_private_directory(runtime / "progress", label="native campaign progress")
     output.mkdir(parents=True)
+    invocation_seconds = 12000 if recipe["val_limits"]["max_wall_seconds"] > 4200 else 5400
     invocations = []
     for number in range(1, window_count + 1):
         name = f"invocation-{number:04d}"
         progress = runtime / "progress" / f"{name}.json"
         policy = {
             "schema_version": WINDOW_SCHEMA, "recipe": recipe_binding,
-            "invocation_number": number, "max_invocation_seconds": 5400,
+            "invocation_number": number, "max_invocation_seconds": invocation_seconds,
             "budget_path": str(runtime / "budgets" / f"{name}.json"),
             "progress_path": str(progress), "campaign_cursor_path": str(cursor),
             "training_session_directory": str(session), "test_data_used": False,
@@ -862,7 +863,7 @@ def materialize_native_candidate_campaign(
                 "pointer_path": str(cursor), "before_mode": "GENESIS" if number == 1 else "PREVIOUS_RECEIPT_AFTER",
                 "predecessor_invocation_number": None if number == 1 else number - 1, "write_mode": "ATOMIC_UPDATE",
             },
-            "maximum_wall_seconds": 7200, "requires_fresh_windows_boot": True,
+            "maximum_wall_seconds": invocation_seconds + 1800, "requires_fresh_windows_boot": True,
             "signed_guard_only": True, "test_data_used": False,
         }
         invocation["invocation_sha256"] = canonical_sha256(invocation)

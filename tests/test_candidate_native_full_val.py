@@ -69,6 +69,8 @@ def test_native_val_pause_restores_online_weights_and_training_mode(tmp_path, mo
     def paused(**kwargs):
         assert not any(module.training for module in kwargs["model"].modules())
         assert canonical_model_state_sha256(kwargs["model"].state_dict()) == canonical_model_state_sha256(ema._shadow)
+        assert kwargs["cpu_pipeline_workers"] == 8
+        assert kwargs["exit_policy_batch_size"] == 256
         assert kwargs["candidate_target_model"] is target
         assert kwargs["checkpoint_binding"]["target_model_state_sha256"] == before_target
         calls.append(kwargs["result_path"])
@@ -76,6 +78,7 @@ def test_native_val_pause_restores_online_weights_and_training_mode(tmp_path, mo
 
     monkeypatch.setattr(cli, "evaluate_bound_full_val_v1", paused)
     context = {"frame": None, "state_factory": None, "parent_coordinate_evidence": {}, "val_sequence_audit": tmp_path / "audit.json", "max_model_forwards": 100, "max_state_views": 100, "max_wall_seconds": 60, "progress_interval_forwards": 16}
+    context.update(policy_batch_size=256, cpu_pipeline_workers=8)
     result = trainer._native_candidate_epoch_validation(session=session, model=model, target_model=target, weight_ema=ema, val_ds=None, device=torch.device("cpu"), batch_size=2, epoch_index=0, context=context)
     assert result["decision"] == "PAUSED_RESUMABLE"
     assert calls == [session.directory / "native_val" / "epoch_0001" / "VAL_RESULT.json"]
@@ -279,3 +282,23 @@ def test_cuda_lifecycle_dispatch_preserves_no_nested_chunk(monkeypatch, step_lim
             session_exit_action_forward_chunk_rows=None,
             session_log_label="NATIVE_CUDA_DISPATCH_TEST",
         )
+
+
+def test_capacity_limits_are_bound_to_native_session(tmp_path):
+    import pandas as pd
+    from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
+    factory = RandomAccessValStateFactoryV1.__new__(RandomAccessValStateFactoryV1)
+    factory.factory_receipt = {"fixture": True}
+    audit = tmp_path / "audit.json"
+    audit.write_text("{}")
+    context = dict(frame=pd.DataFrame({"entry_row_index": range(5508), "parent_entry_row_index": range(5508)}),
+                   state_factory=factory, parent_coordinate_evidence={}, val_sequence_audit=audit,
+                   max_model_forwards=100, max_state_views=100, max_wall_seconds=10800,
+                   progress_interval_forwards=64, policy_batch_size=256, cpu_pipeline_workers=8)
+    bound = trainer._native_candidate_val_context_binding(context)
+    assert bound["compute_limits"]["cpu_pipeline_workers"] == 8
+    assert bound["compute_limits"]["policy_batch_size"] == 256
+    assert bound["compute_limits"]["max_wall_seconds"] == 10800
+    for key, value in (("cpu_pipeline_workers", 9), ("policy_batch_size", 512)):
+        with pytest.raises(RuntimeError, match="LIMITS_INVALID"):
+            trainer._native_candidate_val_context_binding({**context, key: value})

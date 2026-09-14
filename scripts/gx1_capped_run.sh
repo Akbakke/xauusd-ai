@@ -266,6 +266,11 @@ validate_target_command() {
     fi
     [[ "$(readlink -f "${target_args[4]}")" == "${target_args[4]}" \
       && "$(/usr/bin/sha256sum "${target_args[4]}" | /usr/bin/awk '{print $1}')" == "${target_args[6]}" ]] || exit 75
+    # Read the hash-bound window; callers cannot supply a free-form guard timeout.
+    local native_seconds
+    native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] == "gx1_native_candidate_window_policy_v1" and type(n) is int and n in (5400,12000); print(n)' "${target_args[4]}") || exit 75
+    TRAINER_MAX_WALL_SECONDS=$((native_seconds + 1800))
+    TRAINER_MODEL_MAX_WALL_SECONDS=$TRAINER_MAX_WALL_SECONDS
     # Operator-authorized native main training; legacy invocations retain their limits.
     TRAINER_GPU_MAX_POWER_LIMIT_W=300
     TRAINER_GPU_MAX_POWER_DRAW_W=310

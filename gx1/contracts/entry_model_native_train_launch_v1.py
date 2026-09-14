@@ -912,9 +912,12 @@ def require_candidate_execution_budget(
     if epoch_ceiling is not None and epoch_ceiling > recipe['trainer_cli']['epochs']:
         raise ValueError('[CANDIDATE_EXECUTION_BUDGET_EPOCH_CEILING_INVALID]')
     seconds = budget['max_invocation_seconds']
-    # Explicit invocation policy leaves 30 minutes inside the independent 2h
-    # guard for preflight and completing a durable checkpoint boundary.
-    if type(seconds) is not int or not 1 <= seconds <= 5400:
+    # Native long windows retain 30 minutes inside the independent guard.
+    # Other recipe types retain their original 90-minute invocation ceiling.
+    native_long = (recipe.get('schema_version') == 'gx1_unified_exit_random_access_full_train_recipe_v1'
+                   and recipe.get('val_limits', {}).get('max_wall_seconds', 0) > 4200)
+    ceiling = 12000 if native_long else 5400
+    if type(seconds) is not int or not 1 <= seconds <= ceiling:
         raise ValueError('[CANDIDATE_EXECUTION_BUDGET_WALL_LIMIT_INVALID]')
     if 'resume_probe_val_rows' in budget:
         probe_rows = budget['resume_probe_val_rows']

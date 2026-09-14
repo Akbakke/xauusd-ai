@@ -77,7 +77,7 @@ def require_native_window_policy(value: Any, *, verify_files: bool = True) -> di
         or value["schema_version"] != WINDOW_SCHEMA or value["test_data_used"] is not False
         or type(value["invocation_number"]) is not int or value["invocation_number"] < 1
         or type(value["max_invocation_seconds"]) is not int
-        or value["max_invocation_seconds"] != 5400
+        or value["max_invocation_seconds"] not in (5400, 12000)
         or value["policy_sha256"] != canonical_sha256({k: v for k, v in value.items() if k != "policy_sha256"})
     ):
         raise RuntimeError("NATIVE_CANDIDATE_WINDOW_POLICY_INVALID")

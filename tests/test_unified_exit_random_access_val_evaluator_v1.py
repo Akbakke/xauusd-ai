@@ -376,7 +376,8 @@ def test_native_shared_routes_count_active_states_once() -> None:
 
 @pytest.mark.parametrize('cache_market_states', [False, True])
 @pytest.mark.parametrize("progress_interval", [1, 64])
-def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_market_states, progress_interval):
+@pytest.mark.parametrize("policy_batch_size", [128, 256])
+def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_market_states, progress_interval, policy_batch_size):
     counts = np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64)
     model, representations, adapter, contract = _fixture(
         thresholds=np.zeros((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32), counts=counts)
@@ -393,17 +394,17 @@ def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_
         adapter=adapter, checkpoint_binding=binding,
         entry_policy_decisions=_entry_policy(adapter, binding), entry_route_diagnostics={},
         progress_path=tmp_path/'progress.json', result_path=tmp_path/'result.json',
-        policy_batch_size=128, progress_interval_forwards=progress_interval,
+        policy_batch_size=policy_batch_size, progress_interval_forwards=progress_interval,
         cache_market_states=cache_market_states)
     paused = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=1)
     assert paused['decision'] == 'PAUSED_RESUMABLE'
-    assert paused['next_entry_scan_position'] == 128
+    assert paused['next_entry_scan_position'] == policy_batch_size
     result = run_resumable_random_access_val_evaluation_v1(**arguments, max_forwards_this_invocation=44)
     assert result['decision'] == 'PASS_COMPLETE'
     assert result['entry_pair_cohort_size'] == 5508
     assert result['exited_side_trade_count'] == 11016
-    assert result['model_forward_count'] == 44
-    assert result['execution_contract']['policy_batch_size'] == 128
+    assert result['model_forward_count'] == (5508 + policy_batch_size - 1) // policy_batch_size
+    assert result['execution_contract']['policy_batch_size'] == policy_batch_size
     if cache_market_states:
         assert result['execution_contract']['market_state_cache'] == 'frozen_model_absolute_m1_row_v1'
         assert len({id(cache) for cache in caches}) == 2

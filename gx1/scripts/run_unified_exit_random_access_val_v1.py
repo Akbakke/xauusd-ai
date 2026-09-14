@@ -566,6 +566,7 @@ def evaluate_bound_full_val_v1(
     compute_guard_max_wall_seconds: float,
     candidate_target_model: torch.nn.Module | None = None,
     exit_policy_batch_size: int | None = None,
+    cpu_pipeline_workers: int = 4,
     resume_progress_origin: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The shared full-cohort Entry/Exit evaluator for smoke and candidate epochs."""
@@ -618,7 +619,7 @@ def evaluate_bound_full_val_v1(
             max_forwards_this_invocation=max_forwards_this_invocation,
             policy_batch_size=selected_batch_size if exit_policy_batch_size is None else exit_policy_batch_size,
             cache_market_states=True,
-            cpu_pipeline_workers=4,
+            cpu_pipeline_workers=cpu_pipeline_workers,
             resume_progress_origin=resume_progress_origin,
             progress_interval_forwards=progress_interval_forwards,
         )

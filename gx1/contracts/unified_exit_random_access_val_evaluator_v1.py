@@ -809,7 +809,7 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
             ref = torch.cat([part[key] for part in parts])
             intermediate_differences[key] = float((output[key] - ref).abs().max().item())
     print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_COMPARISON", "rows": size,
-        "policy_batch_size": 128, "reference_batch_size": 16,
+        "policy_batch_size": size, "reference_batch_size": 16,
         "large_batch_seconds": large_seconds, "reference_seconds": reference_seconds,
         "inference_speedup": reference_seconds / large_seconds,
         "max_abs_q_difference_bps": float((q - reference).abs().max().item()),
@@ -938,7 +938,7 @@ def run_resumable_random_access_val_evaluation_v1(
     # cached tensors across an epoch, checkpoint change or resumed invocation.
     market_state_cache = {} if cache_market_states else None
     cache_verified = False
-    if cpu_pipeline_workers not in (None, 0, 4) or (cpu_pipeline_workers is not None and not cache_market_states):
+    if cpu_pipeline_workers not in (None, 0, 4, 8) or (cpu_pipeline_workers is not None and not cache_market_states):
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_PIPELINE_INVALID")
     pipeline_verified = cpu_pipeline_workers is None
     # Own a private copy of the verified, frozen TRAIN normalization. Dynamic
@@ -996,7 +996,7 @@ def run_resumable_random_access_val_evaluation_v1(
         or isinstance(max_forwards_this_invocation, bool)
         or max_forwards_this_invocation < 1
         or isinstance(policy_batch_size, bool)
-        or policy_batch_size not in (4, 8, 16, 128)
+        or policy_batch_size not in (4, 8, 16, 128, 256)
         or isinstance(progress_interval_forwards, bool)
         or progress_interval_forwards < 1
     ):
@@ -1149,7 +1149,7 @@ def run_resumable_random_access_val_evaluation_v1(
             dtype=torch.bool,
             device=entry_decision_representations.device,
         )
-        verify_batch = policy_batch_size == 128 and progress["model_forward_count"] == 0
+        verify_batch = policy_batch_size >= 128 and progress["model_forward_count"] == 0
         if verify_batch and entry_decision_representations.device.type == "cuda":
             torch.cuda.synchronize(entry_decision_representations.device)
         forward_started = time.monotonic()

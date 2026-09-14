@@ -156,10 +156,12 @@ def _require_native_full_train_recipe(
         set(limits) not in (
             {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"},
             {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size"},
+            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size", "cpu_pipeline_workers"},
         )
-        or limits.get("policy_batch_size", 16) not in (16, 128)
+        or limits.get("policy_batch_size", 16) not in (16, 128, 256)
+        or limits.get("cpu_pipeline_workers", 4) not in (4, 8)
         or any(type(value) is not int or value <= 0 for value in limits.values())
-        or limits["max_wall_seconds"] > 4_200
+        or limits["max_wall_seconds"] > 10_800
         or limits["progress_interval_forwards"] != 64
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_VAL_WINDOW_INVALID")
