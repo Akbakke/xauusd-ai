@@ -43,3 +43,11 @@ På 1 024 identiske tilstander fra juniprisene var CPU-trinnet cirka 17 % rasker
 Kilder: `VAL_RESULT_EPOCH_1.json`, `ENTRY_EXIT_DIAGNOSTIC.json`, `ENTRY_EXIT_SUMMARY.json`, `handover_snapshot/CPU_CAPACITY_RESULT_20260914.json`. Ingen TEST-data er brukt.
 
 Forberedt kilde: `2ab85a7548aa0e2132779de26066ecb4bc10c6f6` i `/home/andre2/src/GX1_VAL_CAPACITY_V41`, branch `perf/native-val-windows-20260914`. Ikke aktivert eller migrert. Før eventuell bruk kreves kildebundet profil og målt GPU-paritet/gjennomstrømning; ingen ny treningsstart er autorisert som del av denne analysen.
+
+## Presisering av risikomål og prediksjonskvalitet
+
+Det kildebundne MAE-hodet på Entry lærer størrelsen på ugunstig bevegelse de neste **19 M5-barene, altså 95 minutter**, fra faktiske M1-priser. Dette er en hjelpeoppgave uten direkte beslutningsmyndighet; prognosen er ingen maksimal tapsgrense for en handel som beholdes i flere dager. Exit får samtidig faktisk akkumulert MFE og MAE for hele handelen i sitt livstidssammendrag. Vi har derfor ikke grunnlag for å si at Exit mangler disse opplysningene.
+
+På full juni-VAL var Entry-Q sin samlede MSE over LONG/SHORT/FLAT **22,1047**, mot **21,5325** for en konstant gjennomsnittsbaseline (2,66 % svakere). Dette gjelder det bundne Q-treningsmålet, ikke realisert handelsavkastning. De grønne aktiv-hode-flaggene bekrefter teknisk gyldighet/variasjon; de beviser ikke god prediksjon. Verken Q-filtre eller MAE-prognosen bør behandles som ferdig kalibrerte risikogarantier.
+
+Kildebevis er lagret i `handover_snapshot/RISK_HEAD_SCOPE_20260914.json`: bundet VAL-manifest `3eb41d34…`, `entry_causal_m1_target_policy_v1.materialize_causal_m1_auxiliary_outcomes`, `_side_mae_auxiliary_loss` og Exit-fabrikkens `_summary`. Ingen ny trening, testkjøring eller modellendring var nødvendig for denne presiseringen.
