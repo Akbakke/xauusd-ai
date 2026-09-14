@@ -2304,15 +2304,18 @@ class _CandidateTrainingSession:
         }
         _candidate_training_session_atomic_write_json(self._active_path, active)
 
-    def save_validation_checkpoint(self, *, model: nn.Module) -> dict[str, Any]:
-        """Keep one immutable EMA snapshot per epoch, separate from resume slots."""
+    def save_validation_checkpoint(self, *, model: nn.Module, report_only: bool = False) -> dict[str, Any]:
+        """Keep an immutable epoch EMA or explicitly authorized calibration snapshot."""
 
+        if type(report_only) is not bool:
+            raise RuntimeError("[CANDIDATE_VALIDATION_CHECKPOINT_REPORT_ONLY_INVALID]")
         if self._read_only:
             raise RuntimeError("[CANDIDATE_TRAINING_READ_ONLY_WRITE_FORBIDDEN]")
         state = self.load_checkpoint()
         if (
-            state is None or state["phase"] != "validation"
-            or state["next_batch_offset"] != 0 or state["complete"]
+            state is None or state["phase"] != ("train" if report_only else "validation")
+            or state["next_batch_offset"] != (32 if report_only else 0) or state["complete"]
+            or (report_only and (state["epoch_index"] != 0 or state["global_optimizer_steps"] != 32))
             or state["global_optimizer_steps"] < 1
             or not isinstance(state["weight_ema_state"], Mapping)
         ):
@@ -2321,9 +2324,15 @@ class _CandidateTrainingSession:
         online = state["model_state"]
         target = state["target_model_state"]
         parameter_names = sorted(name for name, _ in model.named_parameters())
+        from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_history_v1
+        history = bind_candidate_weight_ema_history_v1(
+            session_contract_path=self._contract_path, session_contract_sha256=self._contract_sha256,
+        )
+        offset = history["optimizer_step_offset"] if history is not None else 0
         if (
             set(ema) != {"decay", "steps", "shadow"}
-            or ema["steps"] != state["global_optimizer_steps"]
+            or type(ema["steps"]) is not int
+            or ema["steps"] != state["global_optimizer_steps"] + offset
             or not 0.0 < float(ema["decay"]) < 1.0
             or set(ema["shadow"]) != set(online)
             or canonical_model_state_sha256(online)
@@ -2352,6 +2361,23 @@ class _CandidateTrainingSession:
             "weight_ema_steps": int(ema["steps"]),
             "test_data_used": False,
         }
+        if history is not None:
+            payload["weight_ema_history"] = history
+        if report_only:
+            from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import require_candidate_report_only_val_scope_v1
+            pointer = _candidate_training_session_read_json(self._active_path, label="REPORT_ONLY_TRAIN_POINTER")
+            if any(pointer.get(key) != state[key] for key in (
+                "session_contract_sha256", "checkpoint_index", "phase", "epoch_index",
+                "next_batch_offset", "global_optimizer_steps", "complete",
+            )):
+                raise RuntimeError("[CANDIDATE_REPORT_ONLY_TRAIN_POINTER_MISMATCH]")
+            training_pointer = {"path": str(self._active_path), "sha256": _sha256_file(self._active_path), "value": pointer}
+            require_candidate_report_only_val_scope_v1(
+                session_contract_path=self._contract_path, session_contract_sha256=self._contract_sha256,
+                training_pointer=training_pointer,
+            )
+            payload.update(snapshot_purpose="native_calibration_capacity", report_only=True,
+                           immutable_epoch_snapshot=False, training_pointer=training_pointer)
         directory = self._directory / "validation"
         if directory.exists():
             info = os.stat(directory, follow_symlinks=False)
@@ -2360,7 +2386,7 @@ class _CandidateTrainingSession:
         else:
             directory.mkdir(mode=0o700)
             _fsync_directory(self._directory)
-        destination = directory / f"epoch_{int(state['epoch_index']) + 1:04d}.pt"
+        destination = directory / ("calibration_step_0032.pt" if report_only else f"epoch_{int(state['epoch_index']) + 1:04d}.pt")
         scalar_keys = set(payload) - {"model_state", "target_model_state", "online_buffers"}
         if destination.exists() or destination.is_symlink():
             if destination.is_symlink() or not destination.is_file():
@@ -11361,6 +11387,7 @@ def _restore_candidate_training_checkpoint(
     lr_scheduler: Optional[optim.lr_scheduler.LRScheduler],
     device: torch.device,
     dataset_rows: int,
+    parent_population: Optional[torch.Tensor] = None,
 ) -> dict[str, Any]:
     """Restore one exact candidate step boundary; no partial gradients exist."""
 
@@ -11378,14 +11405,15 @@ def _restore_candidate_training_checkpoint(
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_SCHEMA_INVALID]")
     order = state.get("epoch_order")
+    expected_parents = _candidate_training_parent_rows(dataset_rows, parent_population)
     if (
         not isinstance(order, torch.Tensor)
         or order.dtype != torch.int64
         or order.ndim != 1
-        or int(order.numel()) != int(dataset_rows)
+        or int(order.numel()) != int(expected_parents.numel())
         or not torch.equal(
             torch.sort(order.detach().cpu()).values,
-            torch.arange(int(dataset_rows)),
+            expected_parents,
         )
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ORDER_INVALID]")
@@ -12419,20 +12447,43 @@ class _CandidateExecutionPaused(Exception):
         super().__init__("[CANDIDATE_EXECUTION_PAUSED] " + evidence["reason"])
         self.evidence = evidence
 
+def _candidate_training_parent_rows(
+    dataset_rows: int, parent_population: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """Validate the physical parent ids that define one complete native epoch."""
+    if type(dataset_rows) is not int or dataset_rows < 1:
+        raise RuntimeError("[CANDIDATE_TRAINING_PARENT_POPULATION_INVALID]")
+    if parent_population is None:
+        return torch.arange(dataset_rows, dtype=torch.int64)
+    if (not isinstance(parent_population, torch.Tensor) or parent_population.dtype != torch.int64
+            or parent_population.ndim != 1 or not 0 < parent_population.numel() <= dataset_rows):
+        raise RuntimeError("[CANDIDATE_TRAINING_PARENT_POPULATION_INVALID]")
+    parents = torch.sort(parent_population.detach().cpu()).values
+    if (int(parents[0]) < 0 or int(parents[-1]) >= dataset_rows
+            or int(torch.unique(parents).numel()) != int(parents.numel())):
+        raise RuntimeError("[CANDIDATE_TRAINING_PARENT_POPULATION_INVALID]")
+    return parents
+
+
 def _candidate_training_epoch_order(
     train_ds: EntryV10CtxDataset, *, epoch_index: int,
+    parent_population: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Use the bound native sampler for every row of a full TRAIN epoch."""
 
+    expected_parents = _candidate_training_parent_rows(len(train_ds), parent_population)
+    population_rows = len(train_ds)
     adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
     if getattr(adapter, "_random_access_train", None) is None:
+        if parent_population is not None:
+            raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_POPULATION_OWNER_REQUIRED]")
         return torch.randperm(len(train_ds), dtype=torch.int64)
     index = getattr(adapter, "_native_random_access_index", None)
-    if not isinstance(index, pd.DataFrame) or len(index) != len(train_ds):
+    if not isinstance(index, pd.DataFrame) or len(index) != population_rows:
         raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_FULL_TRAIN_INDEX_REQUIRED]")
     children = index["entry_row_index"].to_numpy(dtype=np.int64)
     parents = index["parent_entry_row_index"].to_numpy(dtype=np.int64)
-    expected = np.arange(len(train_ds), dtype=np.int64)
+    expected = np.arange(population_rows, dtype=np.int64)
     if (
         not np.array_equal(np.sort(children), expected)
         or not np.array_equal(np.sort(parents), expected)
@@ -12442,9 +12493,9 @@ def _candidate_training_epoch_order(
     child_order = adapter.random_access_selected_entry_rows_v1()
     if (
         schedule["every_entry_pair_exactly_once"] is not True
-        or schedule["entry_pair_count"] != len(train_ds)
+        or schedule["entry_pair_count"] != population_rows
         or schedule["epoch_index"] != int(epoch_index)
-        or len(child_order) != len(train_ds)
+        or len(child_order) != population_rows
         or not np.array_equal(np.sort(child_order), expected)
     ):
         raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_FULL_TRAIN_SCHEDULE_INVALID]")
@@ -12453,9 +12504,12 @@ def _candidate_training_epoch_order(
         zip(parents.tolist(), children.tolist())
     ):
         raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_DATASET_MAPPING_MISMATCH]")
-    return torch.tensor(
-        [parent_by_child[int(child)] for child in child_order], dtype=torch.int64,
-    )
+    ordered_parents = np.asarray([parent_by_child[int(child)] for child in child_order], dtype=np.int64)
+    if parent_population is not None:
+        ordered_parents = ordered_parents[np.isin(ordered_parents, expected_parents.numpy())]
+    if not np.array_equal(np.sort(ordered_parents), expected_parents.numpy()):
+        raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_BOUND_POPULATION_INVALID]")
+    return torch.as_tensor(ordered_parents.copy(), dtype=torch.int64)
 
 
 def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
@@ -12543,6 +12597,10 @@ def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, A
     """Select complete, objective-bound VAL; marked scores include open liquidation value."""
 
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_complete_val_observation
+    checkpoint = result.get("checkpoint_binding", {})
+    if (isinstance(checkpoint, Mapping) and (
+            checkpoint.get("report_only") is True or checkpoint.get("snapshot_purpose") == "native_calibration_capacity")):
+        raise RuntimeError("[CANDIDATE_REPORT_ONLY_VAL_NOT_SELECTABLE]")
     require_complete_val_observation(result)
     heads = result["entry_gate_and_feature_route_diagnostics"].get("candidate_active_head_evidence")
     if not isinstance(heads, Mapping) or heads.get("target_model_state_sha256") != result["checkpoint_binding"]["target_model_state_sha256"]:
@@ -12589,6 +12647,7 @@ _CANDIDATE_ECONOMICS_TRANSITION_SOURCES = frozenset({
     "gx1/contracts/unified_exit_fitted_q_v1.py",
     "gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
     "gx1/contracts/unified_exit_random_access_model_v1.py",
+    "gx1/contracts/unified_exit_random_access_index_v1.py",
     "gx1/contracts/unified_exit_random_access_state_view_v1.py",
     "gx1/contracts/unified_exit_random_access_training_v1.py",
     "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
@@ -12631,13 +12690,16 @@ def _load_candidate_economics_successor_state(
 
     origin_fields = {"schema_version", "contract", "pointer"}
     if (not isinstance(origin, Mapping)
-            or set(origin) not in (origin_fields, origin_fields | {"exit_value_initialization"})
+            or not origin_fields <= set(origin) <= origin_fields | {"exit_value_initialization", "train_population_scope"}
             or origin["schema_version"] != _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA
             or ("exit_value_initialization" in origin and (
                 type(origin["exit_value_initialization"]) is not str
-                or origin["exit_value_initialization"] != "close_now_baseline_v1"))):
+                or origin["exit_value_initialization"] != "close_now_baseline_v1"))
+            or ("train_population_scope" in origin and origin["train_population_scope"] != "latest_year_2025_2026_v1")):
+
         fail("ORIGIN_INVALID")
     initialization = origin.get("exit_value_initialization")
+    population_scope = origin.get("train_population_scope")
     contract, pointer = read(origin["contract"]), read(origin["pointer"])
     old = _CandidateTrainingSession(out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True)
     if (Path(origin["contract"]["path"]) != old._contract_path
@@ -12679,6 +12741,52 @@ def _load_candidate_economics_successor_state(
             or policy["exit_value_initialization"] != "close_now_baseline_v1"))
             or policy.get("exit_value_initialization") != initialization):
         fail("EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH")
+    if policy.get("train_population_scope") != population_scope:
+        fail("TRAIN_POPULATION_POLICY_MISMATCH")
+    for recipe in recipes:
+        control = recipe.get("native_calibration")
+        if "native_calibration" in recipe and (
+                not isinstance(control, Mapping) or set(control) != {"schema_version", "arm", "report_only_val"}
+                or control.get("schema_version") != "gx1_native_learning_calibration_run_v1"
+                or control.get("arm") not in {"reference", "split"}
+                or type(control.get("report_only_val")) is not bool):
+            fail("NATIVE_CALIBRATION_INVALID")
+    population_transition = None
+    selected_parent_rows = None
+    if population_scope is not None:
+        from gx1.contracts.unified_exit_random_access_index_v1 import (
+            require_latest_year_index_root, latest_year_selected_entry_rows,
+        )
+        files_before, files_after = before["files"], after["files"]
+        expected_parents = {split: {
+            "parquet": files_before[f"entry_{split}_parquet"],
+            "manifest": files_before[f"entry_{split}_manifest"],
+        } for split in ("train", "val")}
+        selected_root = require_latest_year_index_root(
+            read(files_after["random_access_root"]), expected_parent_bindings=expected_parents,
+        )
+        population = selected_root["latest_year_population"]
+        if population["source_root"] != files_before["random_access_root"]:
+            fail("POPULATION_SOURCE_ROOT_CHANGED")
+        frame = pd.read_parquet(selected_root["splits"]["train"]["index_parquet_path"])
+        selected_children = latest_year_selected_entry_rows(frame, split="train")
+        selected_parent_rows = torch.as_tensor(frame["parent_entry_row_index"].to_numpy(dtype=np.int64)[selected_children].copy())
+        proof = population["splits"]["train"]
+        population_transition = {
+            "scope": population_scope, "source_root": population["source_root"],
+            "source_root_sha256": population["source_root_sha256"],
+            "selection_root": files_after["random_access_root"],
+            "selection_root_sha256": selected_root["root_sha256"],
+            "old_epoch_entry_row_count": proof["index_entry_row_count"],
+            "new_epoch_entry_row_count": proof["selected_entry_row_count"],
+            "physical_parent_entry_row_count": proof["parent_entry_source_rows"],
+            "selected_child_entry_row_indices_sha256": proof["selected_child_entry_row_indices_sha256"],
+            "selected_parent_entry_row_indices_sha256": proof["selected_parent_entry_row_indices_sha256"],
+            "data_normalization_fold_and_val_artifacts_unchanged": True,
+        }
+        for recipe, item in zip(recipes, contracts):
+            if item.get("artifacts", {}).get("unified_exit_lifecycle_manifest") != recipe["files"]["random_access_root"]:
+                fail("POPULATION_SESSION_ROOT_MISMATCH")
     old_sources, new_sources = before["source_bindings"], after["source_bindings"]
     if set(old_sources) != set(new_sources):
         fail("SOURCE_CLOSURE_CHANGED")
@@ -12731,9 +12839,12 @@ def _load_candidate_economics_successor_state(
         fail("VAL_CAPACITY_CHANGED")
     normalized_recipes = copy.deepcopy(recipes)
     for recipe, item in zip(normalized_recipes, contracts):
-        for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy"):
+        for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy", "native_calibration"):
             recipe.pop(key, None)
         recipe["files"].pop("economics_readiness")
+        if population_transition is not None:
+            recipe["files"].pop("random_access_root")
+            item["artifacts"].pop("unified_exit_lifecycle_manifest")
         recipe["trainer_cli"].pop("checkpoint_monitor")
         recipe.pop("val_limits")
         for key in ("source_commit", "recipe_source_provenance", "out_bundle_dir", "run_id"):
@@ -12749,10 +12860,16 @@ def _load_candidate_economics_successor_state(
     old_batch = contract["training"]["batch_size"]
     if old_batch != 16 or (old_order.numel() + old_batch - 1) // old_batch + 320 != 19908:
         fail("OLD_FULL_TRAIN_COVERAGE_INVALID")
+    expected_new_parents = torch.arange(old_order.numel(), dtype=torch.int64)
+    if population_transition is not None:
+        if (population_transition["old_epoch_entry_row_count"] != old_order.numel()
+                or population_transition["physical_parent_entry_row_count"] != old_order.numel()):
+            fail("OLD_FULL_TRAIN_COVERAGE_INVALID")
+        expected_new_parents = _candidate_training_parent_rows(int(old_order.numel()), selected_parent_rows)
     if (not isinstance(epoch_order, torch.Tensor) or epoch_order.dtype != torch.int64
             or epoch_order.ndim != 1 or not isinstance(old_order, torch.Tensor)
-            or epoch_order.numel() != old_order.numel()
-            or not torch.equal(torch.sort(epoch_order.cpu()).values, torch.arange(old_order.numel()))):
+            or epoch_order.numel() != expected_new_parents.numel()
+            or not torch.equal(torch.sort(epoch_order.cpu()).values, expected_new_parents)):
         fail("FULL_EPOCH_ORDER_INVALID")
     optimizer_steps: dict[str, int] = {}
     for parameter_state in state["optimizer_state"]["state"].values():
@@ -12855,6 +12972,7 @@ def _load_candidate_economics_successor_state(
         "old_objective_sha256": old_objective["contract_sha256"],
         "new_objective_sha256": new_objective["contract_sha256"],
         "old_val_profile": before["val_limits"], "new_val_profile": after["val_limits"],
+        "old_native_calibration": before.get("native_calibration"), "new_native_calibration": after.get("native_calibration"),
         "changed_source_paths": sorted(changed_sources),
         "preserved_state_fields": ["model_state", "target_model_state", "optimizer_state", "weight_ema_state", "lr_scheduler_state", "rng_state"],
         "optimizer_internal_step_histogram": optimizer_steps,
@@ -12865,6 +12983,9 @@ def _load_candidate_economics_successor_state(
         "new_epoch_index": 0, "new_batch_offset": 0,
         "selection_and_validation_reset": True, "test_data_used": False,
     }
+    if population_transition is not None:
+        receipt["train_population_transition"] = population_transition
+        receipt["counter_semantics"] = "new_bound_train_population_coverage_prior_19908_updates_retained_in_origin"
     if initialization_receipt is not None:
         receipt["transition"] = "v2_to_v4_close_now_baseline_initialization_not_objective_equivalence"
         partial = ["model_state", "target_model_state", "optimizer_state", "weight_ema_state"]
@@ -13020,7 +13141,25 @@ def _run_resumable_candidate_training(
     a new model or resetting checkpoint selection.
     """
 
-    if int(effective_train_rows) != len(train_ds) or len(train_ds) <= 0:
+    parent_population = None
+    if (candidate_resume_origin is not None
+            and candidate_resume_origin.get("train_population_scope") == "latest_year_2025_2026_v1"):
+        from gx1.contracts.unified_exit_random_access_index_v1 import require_latest_year_index_root, latest_year_selected_entry_rows
+        population_root = require_latest_year_index_root(
+            json.loads(Path(unified_exit_lifecycle_manifest_path).read_text(encoding="utf-8")),
+            expected_parent_bindings={split: {
+                "parquet": {"path": str(Path(path).resolve()), "sha256": _sha256_file(Path(path))},
+                "manifest": {"path": str(Path(path).resolve().with_suffix(".manifest.json")),
+                             "sha256": _sha256_file(Path(path).with_suffix(".manifest.json"))},
+            } for split, path in (("train", train_parquet), ("val", val_parquet))},
+        )
+        population_index = pd.read_parquet(
+            population_root["splits"]["train"]["index_parquet_path"],
+        )
+        selected_children = latest_year_selected_entry_rows(population_index, split="train")
+        parent_population = torch.as_tensor(population_index["parent_entry_row_index"].to_numpy(dtype=np.int64)[selected_children].copy())
+    expected_parents = _candidate_training_parent_rows(len(train_ds), parent_population)
+    if int(effective_train_rows) != int(expected_parents.numel()):
         raise RuntimeError("[CANDIDATE_TRAINING_TRAIN_POPULATION_INVALID]")
     if len(val_ds) <= 0:
         raise RuntimeError("[CANDIDATE_TRAINING_VAL_POPULATION_INVALID]")
@@ -13107,7 +13246,7 @@ def _run_resumable_candidate_training(
         if candidate_resume_origin.get("schema_version") == _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA:
             restored_state = _load_candidate_economics_successor_state(
                 session=session, origin=candidate_resume_origin,
-                epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0),
+                epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population),
                 model=model, optimizer=optimizer,
             )
         else:
@@ -13117,11 +13256,11 @@ def _run_resumable_candidate_training(
         session.save_checkpoint(restored_state)
         log.info("[CANDIDATE_VAL_BATCH_SUCCESSOR] restored_steps=%d epoch_index=%d phase=%s",
                  restored_state["global_optimizer_steps"], restored_state["epoch_index"], restored_state["phase"])
-    expected_train_batches = -(-len(train_ds) // int(batch_size))
+    expected_train_batches = -(-int(effective_train_rows) // int(batch_size))
     fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
 
     if restored_state is None:
-        epoch_order = _candidate_training_epoch_order(train_ds, epoch_index=0)
+        epoch_order = _candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population)
         target_model = copy.deepcopy(model).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
@@ -13143,13 +13282,13 @@ def _run_resumable_candidate_training(
             weight_ema=weight_ema,
             lr_scheduler=lr_scheduler,
             device=device,
-            dataset_rows=len(train_ds),
+            dataset_rows=len(train_ds), parent_population=parent_population,
         )
         epoch_order = restored["epoch_order"]
         adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
         if getattr(adapter, "_random_access_train", None) is not None:
             rebuilt_order = _candidate_training_epoch_order(
-                train_ds, epoch_index=int(restored["epoch_index"]),
+                train_ds, epoch_index=int(restored["epoch_index"]), parent_population=parent_population,
             )
             if not torch.equal(epoch_order.cpu(), rebuilt_order):
                 raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_RESUME_ORDER_MISMATCH]")
@@ -13733,7 +13872,7 @@ def _run_resumable_candidate_training(
             return _result()
         epoch_index += 1
         epoch_order = _candidate_training_epoch_order(
-            train_ds, epoch_index=epoch_index
+            train_ds, epoch_index=epoch_index, parent_population=parent_population,
         )
         target_model = copy.deepcopy(model).to(device)
         target_model.requires_grad_(False)

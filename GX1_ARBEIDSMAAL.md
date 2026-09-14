@@ -7,7 +7,11 @@ Exit-læring. Ingen bred jakt på regler, EMA-varianter eller nye modeller.
 Brukerens siste presisering: ett år er ønsket første større læringsforsøk av
 hensyn til effektivitet. Anbefalt TRAIN er 2025-06-01 til 2026-06-01 eksklusiv,
 etterfulgt av hele juni 2026 som VAL. Bruk CURRENT-bundne data og native campaign.
-Dette er ennå ikke en aktivert eller ferdig bundet ettårsoppskrift. Femårsvekter
+Ettårsdekning bindes som et datoutvalg på eksisterende full TRAIN-indeks.
+Full parenthistorikk, opprinnelige child-ID-er, prisbaner, features og alle
+normaliserings-/foldartefakter beholdes. Bare hvilke TRAIN-rader som teller
+i en ny epoch avgrenses. Ingen ny child-/summary-datakjede er nødvendig.
+Ettårsoppskriften er ennå ikke aktivert for hele epocher. Femårsvekter
 som initialisering skal merkes som videre kalibrering, ikke som en modell som
 bare har sett ett år. Juni er utviklings-VAL, ikke et nytt uavhengig holdoutbevis.
 TEST forblir forseglet. Ingen full femårs-epoch startes nå.
@@ -49,8 +53,13 @@ en eksplisitt ny v4-initialisering av bare Exit-verdi-
 utgangen fra lukk-nå-baseline 0, konsistent i online, target, EMA og relevant Adam.
 Markedsencodere, Entry-Q og øvrig tilstand beholdes; gamle checkpoints røres ikke.
 Null er lærerens startpunkt, ikke en holdegrense eller bevist optimal verdi.
-Deretter skal ettårsdekning bindes korrekt, GPU-paritet med VAL 256, samlet fart
-og uavbrutt-versus-gjenopptatt likhet verifiseres før det større læringsforsøket.
+Før større læring sammenlignes 32 uavbrutte native optimizersteg med 16+16 steg
+over fysiske booter fra samme baseline og ettårsutvalg. Et uforanderlig snapshot
+ved steg 32 kan måle den eksisterende hele-juni-VAL-profilen (256/8/10800).
+Dette er rapportering av kapasitet/paritet; snapshotet kan ikke velge checkpoint,
+flytte early stopping eller fremstilles som en fullført epoch. Historiske
+EMA-steg bindes med eksakt offset til den bevarte overgangspointeren.
+Alle nødvendige målebevis gjenstår til de faktisk er kjørt og godkjent.
 
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
 Start/gjeninntreden: bash scripts/gx1_handover.sh --check; les CURRENT_HANDOVER.md

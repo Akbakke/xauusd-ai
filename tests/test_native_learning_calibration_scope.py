@@ -196,3 +196,67 @@ def test_full_training_baseline_cannot_reuse_preserve_variant_evidence(scope):
         policy["required_evidence"][role] = write(role + ".json", {
             **proof, "evidence_role": role, "exit_value_initialization": "close_now_baseline_v1",
         })
+
+
+def _measured_scope(policy, recipe, save, *, arm="reference", report=True):
+    policy["native_learning_calibration"].update(
+        schema_version="gx1_native_learning_calibration_scope_v2",
+        reference_optimizer_step_ceiling=32, native_report_only_val=True,
+    )
+    recipe["native_calibration"] = {
+        "schema_version": "gx1_native_learning_calibration_run_v1",
+        "arm": arm, "report_only_val": report,
+    }
+    save()
+
+
+@pytest.mark.parametrize("arm,ceilings", [("reference", [32]), ("split", [16, 32])])
+def test_measured_native_arms_have_exact_finite_boundaries(scope, arm, ceilings):
+    policy, recipe, _, save = scope
+    _measured_scope(policy, recipe, save, arm=arm, report=arm == "reference")
+    for invocation, ceiling in enumerate(ceilings, start=1):
+        assert native.require_native_run_scope(recipe, invocation_number=invocation) == ceiling
+        assert native.require_native_run_scope(recipe, execution_budget={
+            "stop_after_optimizer_steps": ceiling, "stop_after_completed_val_epochs": None,
+            "max_invocation_seconds": 12000,
+        }) == ceiling
+    with pytest.raises(RuntimeError, match="CALIBRATION_INVOCATION_INVALID"):
+        native.require_native_run_scope(recipe, invocation_number=len(ceilings) + 1)
+    for ceiling in [None, True, 8, 33] + ([16] if arm == "reference" else []):
+        with pytest.raises(RuntimeError, match="CALIBRATION_STEP_CEILING_INVALID"):
+            native.require_native_run_scope(recipe, execution_budget={"stop_after_optimizer_steps": ceiling})
+
+
+@pytest.mark.parametrize("field,value", [
+    ("arm", "other"), ("arm", True), ("report_only_val", 1),
+    ("schema_version", "other"), ("unused", True),
+])
+def test_measured_native_arm_rejects_untyped_or_extra_fields(scope, field, value):
+    policy, recipe, _, save = scope
+    _measured_scope(policy, recipe, save)
+    recipe["native_calibration"][field] = value
+    with pytest.raises(RuntimeError, match="CALIBRATION_RUN_INVALID"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_old_scope_cannot_authorize_report_only_val(scope):
+    _, recipe, _, _ = scope
+    recipe["native_calibration"] = {
+        "schema_version": "gx1_native_learning_calibration_run_v1",
+        "arm": "reference", "report_only_val": True,
+    }
+    with pytest.raises(RuntimeError, match="CALIBRATION_SCOPE_REQUIRED"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_measured_scope_requires_declared_arm_and_cannot_enable_full_training(scope):
+    policy, recipe, _, save = scope
+    _measured_scope(policy, recipe, save)
+    calibration = recipe.pop("native_calibration")
+    with pytest.raises(RuntimeError, match="CALIBRATION_SCOPE_REQUIRED"):
+        native.require_native_run_scope(recipe, invocation_number=1)
+    recipe["native_calibration"] = calibration
+    policy["training_enabled"] = True
+    save()
+    with pytest.raises(RuntimeError, match="CALIBRATION_CANNOT_ENABLE_FULL_TRAINING"):
+        native.require_native_run_scope(recipe, invocation_number=1)

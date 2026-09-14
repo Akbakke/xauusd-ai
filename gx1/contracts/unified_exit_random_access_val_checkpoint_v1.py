@@ -44,6 +44,106 @@ def _equal_tensor(left: torch.Tensor, right: torch.Tensor) -> bool:
 CANDIDATE_VAL_BINDING_SCHEMA_VERSION = "gx1_candidate_weight_ema_val_binding_v1"
 
 
+def bind_candidate_weight_ema_history_v1(
+    *, session_contract_path: Path, session_contract_sha256: str,
+) -> dict[str, Any] | None:
+    """Bind retained EMA updates to the immutable economics transition origin."""
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+
+    contract = read_bound_json(session_contract_path, session_contract_sha256)
+    provenance = contract.get("recipe_source_provenance")
+    if provenance is None:
+        return None
+    recipe = read_bound_json(Path(provenance["recipe_audit_path"]), provenance["recipe_audit_sha256"])
+    origin = recipe.get("candidate_resume_origin")
+    if not isinstance(origin, Mapping) or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1":
+        return None
+    old_contract = require_binding(origin["contract"], label="EMA history origin contract", verify_file=True)
+    pointer_binding = require_binding(origin["pointer"], label="EMA history origin pointer", verify_file=True)
+    pointer = read_bound_json(Path(pointer_binding["path"]), pointer_binding["sha256"])
+    receipt_path = session_contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json"
+    receipt_binding = require_binding(
+        {"path": str(receipt_path), "sha256": file_sha256(receipt_path)},
+        label="EMA history transition receipt", verify_file=True,
+    )
+    receipt = read_bound_json(receipt_path, receipt_binding["sha256"])
+    offset = receipt.get("ema_internal_steps")
+    cursor = receipt.get("origin_cursor")
+    if (receipt.get("schema_version") != "gx1_candidate_economics_transition_receipt_v1"
+            or receipt.get("destination_session_contract_sha256") != session_contract_sha256
+            or receipt.get("origin") != origin
+            or receipt.get("origin_state_sha256") != pointer.get("state_sha256")
+            or pointer.get("session_contract_sha256") != old_contract["sha256"]
+            or not isinstance(cursor, Mapping) or set(cursor) != {
+                "checkpoint_index", "phase", "epoch_index", "next_batch_offset", "global_optimizer_steps", "complete"}
+            or any(pointer.get(key) != value or type(pointer.get(key)) is not type(value) for key, value in cursor.items())
+            or type(offset) is not int or offset < 1
+            or type(pointer.get("global_optimizer_steps")) is not int
+            or offset != pointer["global_optimizer_steps"]
+            or type(receipt.get("new_objective_global_optimizer_steps")) is not int
+            or receipt["new_objective_global_optimizer_steps"] != 0):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
+    return {"optimizer_step_offset": offset, "transition_receipt": receipt_binding}
+
+
+def _require_candidate_ema_history_offset(value: Any, *, contract_path: Path) -> int:
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding
+
+    if (not isinstance(value, Mapping) or set(value) != {"optimizer_step_offset", "transition_receipt"}
+            or type(value["optimizer_step_offset"]) is not int or value["optimizer_step_offset"] < 1):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
+    binding = require_binding(value["transition_receipt"], label="EMA history receipt", verify_file=False)
+    if Path(binding["path"]) != contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json":
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
+    return value["optimizer_step_offset"]
+
+
+def require_candidate_report_only_val_scope_v1(
+    *, session_contract_path: Path, session_contract_sha256: str,
+    training_pointer: Mapping[str, Any], verify_files: bool = True,
+) -> None:
+    """Authorize only the bound calibration's exact saved TRAIN-32 snapshot."""
+    from gx1.contracts.local_random_access_campaign_v2 import (
+        read_bound_json, require_binding, canonical_sha256 as pointer_file_sha256,
+    )
+
+    error = "UNIFIED_EXIT_CANDIDATE_REPORT_ONLY_VAL_SCOPE_INVALID"
+    if not isinstance(training_pointer, Mapping) or set(training_pointer) != {"path", "sha256", "value"}:
+        raise RuntimeError(error)
+    source = require_binding({key: training_pointer[key] for key in ("path", "sha256")},
+                             label="report-only TRAIN pointer", verify_file=False)
+    pointer = training_pointer["value"]
+    required = {"schema_version", "session_contract_sha256", "slot", "checkpoint_index", "state_sha256",
+                "phase", "epoch_index", "next_batch_offset", "global_optimizer_steps", "complete"}
+    if (Path(source["path"]) != session_contract_path.parent / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
+            or not isinstance(pointer, Mapping) or set(pointer) != required
+            or pointer_file_sha256(pointer) != source["sha256"]
+            or pointer["schema_version"] != "gx1_candidate_training_session_v1"
+            or pointer["session_contract_sha256"] != session_contract_sha256
+            or pointer["phase"] != "train" or pointer["complete"] is not False
+            or any(type(pointer[key]) is not int or pointer[key] != wanted for key, wanted in {
+                "epoch_index": 0, "next_batch_offset": 32, "global_optimizer_steps": 32}.items())
+            or type(pointer["checkpoint_index"]) is not int or pointer["checkpoint_index"] < 1
+            or type(pointer["slot"]) is not int or pointer["slot"] not in (0, 1)
+            or not isinstance(pointer["state_sha256"], str) or _SHA256.fullmatch(pointer["state_sha256"]) is None):
+        raise RuntimeError(error)
+    if verify_files:
+        contract = read_bound_json(session_contract_path, session_contract_sha256)
+        provenance = contract.get("recipe_source_provenance", {})
+        if not isinstance(provenance, Mapping) or not {"recipe_audit_path", "recipe_audit_sha256"} <= set(provenance):
+            raise RuntimeError(error)
+        recipe = read_bound_json(Path(provenance["recipe_audit_path"]), provenance["recipe_audit_sha256"])
+        calibration = recipe.get("native_calibration")
+        if (not isinstance(calibration, Mapping) or set(calibration) != {"schema_version", "arm", "report_only_val"}
+                or calibration["schema_version"] != "gx1_native_learning_calibration_run_v1"
+                or type(calibration["arm"]) is not str or calibration["arm"] not in {"reference", "split"}
+                or calibration["report_only_val"] is not True
+                or any(recipe.get("val_limits", {}).get(key) != wanted for key, wanted in {
+                    "policy_batch_size": 256, "cpu_pipeline_workers": 8,
+                    "max_wall_seconds": 10800, "progress_interval_forwards": 64}.items())):
+            raise RuntimeError(error)
+
+
 def require_candidate_weight_ema_val_binding_v1(
     value: Mapping[str, Any], *, verify_files: bool = True,
 ) -> dict[str, Any]:
@@ -58,9 +158,18 @@ def require_candidate_weight_ema_val_binding_v1(
         "online_buffers_preserved_exactly", "immutable_epoch_snapshot",
         "test_data_used", "binding_sha256",
     }
+    if isinstance(value, Mapping) and "weight_ema_history" in value:
+        expected.add("weight_ema_history")
+    report_fields = {"snapshot_purpose", "report_only", "training_pointer"}
+    report_only = isinstance(value, Mapping) and bool(set(value) & report_fields)
+    if report_only:
+        expected |= report_fields
     if not isinstance(value, Mapping) or set(value) != expected:
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
     result = dict(value)
+    offset = (_require_candidate_ema_history_offset(
+        result["weight_ema_history"], contract_path=Path(str(result["session_contract_path"]))
+    ) if "weight_ema_history" in result else 0)
     core = {key: item for key, item in result.items() if key != "binding_sha256"}
     sha_keys = [key for key in result if key.endswith("sha256")]
     if (
@@ -72,12 +181,15 @@ def require_candidate_weight_ema_val_binding_v1(
         or result["binding_sha256"] != canonical_sha256(core)
         or type(result["epoch_index"]) is not int or not 0 <= result["epoch_index"] < MAX_EPOCHS
         or type(result["global_step"]) is not int or result["global_step"] < 1
-        or type(result["weight_ema_steps"]) is not int or result["weight_ema_steps"] != result["global_step"]
+        or type(result["weight_ema_steps"]) is not int or result["weight_ema_steps"] != result["global_step"] + offset
         or isinstance(result["weight_ema_decay"], bool)
         or not isinstance(result["weight_ema_decay"], (int, float))
         or not 0.0 < result["weight_ema_decay"] < 1.0
         or result["online_buffers_preserved_exactly"] is not True
-        or result["immutable_epoch_snapshot"] is not True
+        or result["immutable_epoch_snapshot"] is not (False if report_only else True)
+        or (report_only and (result["report_only"] is not True
+            or result["snapshot_purpose"] != "native_calibration_capacity"
+            or result["epoch_index"] != 0 or result["global_step"] != 32))
         or result["test_data_used"] is not False
     ):
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
@@ -94,6 +206,19 @@ def require_candidate_weight_ema_val_binding_v1(
         or (verify_files and (not contract_path.is_file() or contract_path.is_symlink() or file_sha256(contract_path) != result["session_contract_file_sha256"]))
     ):
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_BINDING_INVALID")
+    if report_only:
+        if path.name != "calibration_step_0032.pt" or path.parent != contract_path.parent / "validation":
+            raise RuntimeError("UNIFIED_EXIT_CANDIDATE_REPORT_ONLY_VAL_SCOPE_INVALID")
+        require_candidate_report_only_val_scope_v1(
+            session_contract_path=contract_path, session_contract_sha256=result["session_contract_sha256"],
+            training_pointer=result["training_pointer"], verify_files=verify_files,
+        )
+    elif path.name == "calibration_step_0032.pt":
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_REPORT_ONLY_VAL_SCOPE_INVALID")
+    if verify_files and result.get("weight_ema_history") != bind_candidate_weight_ema_history_v1(
+        session_contract_path=contract_path, session_contract_sha256=result["session_contract_sha256"],
+    ):
+        raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     return result
 
 
@@ -113,6 +238,12 @@ def bind_candidate_weight_ema_validation_checkpoint_v1(
         "model_state_sha256", "target_model_state_sha256", "online_buffers", "parameter_names",
         "weight_ema_decay", "weight_ema_steps", "test_data_used",
     }
+    if isinstance(value, Mapping) and "weight_ema_history" in value:
+        expected_keys.add("weight_ema_history")
+    report_fields = {"snapshot_purpose", "report_only", "training_pointer", "immutable_epoch_snapshot"}
+    report_only = isinstance(value, Mapping) and bool(set(value) & report_fields)
+    if report_only:
+        expected_keys |= report_fields
     if (
         not isinstance(value, Mapping) or set(value) != expected_keys
         or value["schema_version"] != "gx1_candidate_validation_checkpoint_v1"
@@ -150,8 +281,12 @@ def bind_candidate_weight_ema_validation_checkpoint_v1(
         "epoch_index": value["epoch_index"], "global_step": value["global_optimizer_steps"],
         "weight_ema_decay": value["weight_ema_decay"], "weight_ema_steps": value["weight_ema_steps"],
         "parameter_names_sha256": canonical_sha256(value["parameter_names"]),
-        "online_buffers_preserved_exactly": True, "immutable_epoch_snapshot": True, "test_data_used": False,
+        "online_buffers_preserved_exactly": True, "immutable_epoch_snapshot": not report_only, "test_data_used": False,
     }
+    if "weight_ema_history" in value:
+        result["weight_ema_history"] = value["weight_ema_history"]
+    if report_only:
+        result.update({key: value[key] for key in report_fields})
     result["binding_sha256"] = canonical_sha256(result)
     return require_candidate_weight_ema_val_binding_v1(result)
 

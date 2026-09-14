@@ -1,0 +1,272 @@
+[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
+[capped_run] cmd: .venv/bin/python -m pytest -q --tb=short --junitxml=/tmp/gx1_year_native_verification_20260914.xml tests/test_unified_exit_latest_year_index_v1.py tests/test_unified_exit_random_access_index_v1.py tests/test_candidate_training_session.py tests/test_candidate_economics_transition.py tests/test_candidate_native_full_val.py tests/test_native_learning_calibration_scope.py tests/test_native_calibration_val_window.py
+[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
+FFFFFFFFFF....F......................................................... [ 42%]
+..............................FF........................................ [ 84%]
+...........................                                              [100%]
+=================================== FAILURES ===================================
+______ test_latest_year_selects_original_full_ids_and_inherits_full_june _______
+tests/test_unified_exit_latest_year_index_v1.py:106: in test_latest_year_selects_original_full_ids_and_inherits_full_june
+    fixture = _fixture(tmp_path)
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row[train] _
+tests/test_unified_exit_latest_year_index_v1.py:121: in test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row
+    fixture = _fixture(tmp_path, omit_split=split)
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row[val] _
+tests/test_unified_exit_latest_year_index_v1.py:121: in test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row
+    fixture = _fixture(tmp_path, omit_split=split)
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+__ test_latest_year_rejects_another_launch_parent_even_with_same_coordinates ___
+tests/test_unified_exit_latest_year_index_v1.py:127: in test_latest_year_rejects_another_launch_parent_even_with_same_coordinates
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+______________ test_latest_year_rejects_changed_source_root_bytes ______________
+tests/test_unified_exit_latest_year_index_v1.py:136: in test_latest_year_rejects_changed_source_root_bytes
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+____ test_latest_year_rejects_other_scope_or_data_even_after_rehash[window] ____
+tests/test_unified_exit_latest_year_index_v1.py:145: in test_latest_year_rejects_other_scope_or_data_even_after_rehash
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_latest_year_rejects_other_scope_or_data_even_after_rehash[mixed_origin] _
+tests/test_unified_exit_latest_year_index_v1.py:145: in test_latest_year_rejects_other_scope_or_data_even_after_rehash
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_latest_year_rejects_other_scope_or_data_even_after_rehash[wrong_schema] _
+tests/test_unified_exit_latest_year_index_v1.py:145: in test_latest_year_rejects_other_scope_or_data_even_after_rehash
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_latest_year_rejects_other_scope_or_data_even_after_rehash[normalization] _
+tests/test_unified_exit_latest_year_index_v1.py:145: in test_latest_year_rejects_other_scope_or_data_even_after_rehash
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_ test_latest_year_rejects_other_scope_or_data_even_after_rehash[selected_ids] _
+tests/test_unified_exit_latest_year_index_v1.py:145: in test_latest_year_rejects_other_scope_or_data_even_after_rehash
+    root = _root(_fixture(tmp_path))
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+____ test_publisher_latest_year_writes_only_root_without_materializing_data ____
+tests/test_unified_exit_latest_year_index_v1.py:168: in test_publisher_latest_year_writes_only_root_without_materializing_data
+    fixture = _fixture(tmp_path)
+tests/test_unified_exit_latest_year_index_v1.py:40: in _fixture
+    parent = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).as_unit("ns")
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:1104: in to_datetime
+    result = convert_listlike(argc, format)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:435: in _convert_listlike_datetimes
+    return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+.venv/lib/python3.10/site-packages/pandas/core/tools/datetimes.py:469: in _array_strptime_with_fallback
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+pandas/_libs/tslibs/strptime.pyx:501: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:451: in pandas._libs.tslibs.strptime.array_strptime
+    ???
+pandas/_libs/tslibs/strptime.pyx:583: in pandas._libs.tslibs.strptime._parse_with_format
+    ???
+E   ValueError: time data "2026-06-01" doesn't match format "%Y-%m-%d %H:%M", at position 1. You might want to try:
+E       - passing `format` if your strings have a consistent format;
+E       - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+E       - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+_________ test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[None] _________
+tests/test_candidate_native_full_val.py:298: in test_cuda_lifecycle_dispatch_preserves_no_nested_chunk
+    trainer.train_epoch(
+gx1/models/entry_v10/training_kernel_profile.py:141: in wrapped
+    return function(*args, **kwargs)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:9091: in train_epoch
+    entry_gradient_boundary_kwargs = _entry_training_gradient_boundary_kwargs(dataset)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:3248: in _entry_training_gradient_boundary_kwargs
+    raise RuntimeError("[ENTRY_TRAIN_ECONOMICS_READINESS_MISSING]")
+E   RuntimeError: [ENTRY_TRAIN_ECONOMICS_READINESS_MISSING]
+__________ test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[1] ___________
+tests/test_candidate_native_full_val.py:298: in test_cuda_lifecycle_dispatch_preserves_no_nested_chunk
+    trainer.train_epoch(
+gx1/models/entry_v10/training_kernel_profile.py:141: in wrapped
+    return function(*args, **kwargs)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:9091: in train_epoch
+    entry_gradient_boundary_kwargs = _entry_training_gradient_boundary_kwargs(dataset)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:3248: in _entry_training_gradient_boundary_kwargs
+    raise RuntimeError("[ENTRY_TRAIN_ECONOMICS_READINESS_MISSING]")
+E   RuntimeError: [ENTRY_TRAIN_ECONOMICS_READINESS_MISSING]
+=========================== short test summary info ============================
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_selects_original_full_ids_and_inherits_full_june
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row[train]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_same_endpoints_and_self_consistent_hashes_cannot_hide_missing_interior_row[val]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_another_launch_parent_even_with_same_coordinates
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_changed_source_root_bytes
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_other_scope_or_data_even_after_rehash[window]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_other_scope_or_data_even_after_rehash[mixed_origin]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_other_scope_or_data_even_after_rehash[wrong_schema]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_other_scope_or_data_even_after_rehash[normalization]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_latest_year_rejects_other_scope_or_data_even_after_rehash[selected_ids]
+FAILED tests/test_unified_exit_latest_year_index_v1.py::test_publisher_latest_year_writes_only_root_without_materializing_data
+FAILED tests/test_candidate_native_full_val.py::test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[None]
+FAILED tests/test_candidate_native_full_val.py::test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[1]

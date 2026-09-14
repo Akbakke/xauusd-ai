@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 
 import pytest
 import torch
@@ -20,8 +22,18 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from tests.test_candidate_training_session import _contract, _state, _step
 
 
-def _epoch_boundary(tmp_path):
+def _epoch_boundary(tmp_path, *, native_calibration=None):
     contract = _contract()
+    if native_calibration is not None:
+        recipe_path = tmp_path / "report-recipe.json"
+        recipe_path.write_text(json.dumps({
+            "native_calibration": native_calibration,
+            "val_limits": {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+                           "max_wall_seconds": 10800, "progress_interval_forwards": 64},
+        }))
+        contract["recipe_source_provenance"] = {
+            "recipe_audit_path": str(recipe_path), "recipe_audit_sha256": trainer._sha256_file(recipe_path),
+        }
     contract["training"] = {"checkpoint_policy": checkpoint_policy_metadata(checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)}
     session = trainer._CandidateTrainingSession(out_bundle_dir=tmp_path.resolve() / "CANDIDATE", contract=contract)
     model = torch.nn.Sequential(torch.nn.Linear(3, 4), torch.nn.BatchNorm1d(4), torch.nn.Dropout(.25), torch.nn.Linear(4, 2))
@@ -36,6 +48,9 @@ def _epoch_boundary(tmp_path):
     ema.update(model)
     state = _state(session, model, target, optimizer, ema, scheduler)
     state.update(phase="validation", next_batch_offset=0, global_optimizer_steps=1)
+    if native_calibration is not None:
+        state.update(phase="train", next_batch_offset=32, global_optimizer_steps=32)
+        state["weight_ema_state"]["steps"] = ema._steps = 32
     state["training_progress"] = trainer._new_candidate_training_progress(checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)
     session.save_checkpoint(state)
     return session, model, target, ema, state
@@ -241,8 +256,19 @@ def test_cuda_lifecycle_dispatch_preserves_no_nested_chunk(monkeypatch, step_lim
     class LifecycleReached(Exception):
         pass
 
+    from tests.test_unified_exit_dataset_adapter_v2 import _readiness
+    from gx1.contracts.unified_exit_fitted_q_v1 import require_unified_exit_unbounded_training_readiness
+
+    readiness = require_unified_exit_unbounded_training_readiness(
+        _readiness(), context="CUDA_LIFECYCLE_DISPATCH_FIXTURE",
+    )
     dataset = object.__new__(trainer.EntryV10CtxDataset)
-    dataset._unified_exit_lifecycle_v2 = object()
+    dataset._unified_exit_lifecycle_v2 = SimpleNamespace(
+        _readiness=readiness,
+        random_access_training_bindings_v1=lambda: {
+            "economics_objective_contract_sha256": readiness["economics_objective_contract"]["contract_sha256"],
+        },
+    )
     value = torch.zeros(1, 2)
 
     class Transfer:
@@ -408,3 +434,142 @@ def test_native_campaign_recipe_binds_monitor_to_economics(tmp_path, marked):
     binding = bound("recipe.json", recipe, "recipe_sha256")
     with pytest.raises(RuntimeError, match="RECIPE_METADATA_INVALID"):
         require_native_recipe_metadata(binding, source_repo=tmp_path, source_commit="b" * 40)
+
+
+def _transition_epoch_boundary(tmp_path, monkeypatch, initialization):
+    from tests.test_candidate_economics_transition import _fixture, _economic_model_optimizer
+
+    model, optimizer = _economic_model_optimizer()
+    model.unified_exit_random_access_architecture_version = RANDOM_ACCESS_MODEL_SCHEMA_VERSION
+    model.register_buffer("unified_exit_random_access_architecture_sha256", torch.tensor(
+        list(bytes.fromhex(RANDOM_ACCESS_MODEL_SCHEMA_SHA256)), dtype=torch.uint8,
+    ))
+    (old, session), origin = _fixture(tmp_path, monkeypatch, initialization=initialization,
+                                     model=model, optimizer=optimizer)
+    state = trainer._load_candidate_economics_successor_state(
+        session=session, origin=origin, epoch_order=torch.arange(313399), model=model, optimizer=optimizer,
+    )
+    state.update(phase="validation", next_batch_offset=0, global_optimizer_steps=1)
+    state["weight_ema_state"]["steps"] += 1
+    model.load_state_dict(state["model_state"])
+    ema = trainer._WeightEma(model, .5)
+    ema.restore_checkpoint_state(state["weight_ema_state"], model=model)
+    session.save_checkpoint(state)
+    return old, session, model, ema, state
+
+
+@pytest.mark.parametrize("initialization", [None, "close_now_baseline_v1"])
+def test_transition_ema_offset_is_exact_and_bound_through_snapshot_and_reader(tmp_path, monkeypatch, initialization):
+    old, session, model, ema, state = _transition_epoch_boundary(tmp_path, monkeypatch, initialization)
+    origin_hashes = {path.name: trainer._sha256_file(path) for path in old.directory.iterdir() if path.is_file()}
+    snapshot = session.save_validation_checkpoint(model=model)
+    model.eval()
+    with ema.evaluating(model):
+        binding = bind_candidate_weight_ema_validation_checkpoint_v1(snapshot=snapshot, model=model)
+    assert binding["weight_ema_steps"] == 19909
+    assert binding["global_step"] == 1
+    assert binding["weight_ema_history"]["optimizer_step_offset"] == 19908
+    assert binding["immutable_epoch_snapshot"] is True
+    receipt = session.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT
+    assert binding["weight_ema_history"]["transition_receipt"] == {
+        "path": str(receipt), "sha256": trainer._sha256_file(receipt),
+    }
+    saved = torch.load(snapshot["path"], map_location="cpu", weights_only=True)
+    assert saved["weight_ema_history"] == binding["weight_ema_history"]
+    state.update(checkpoint_index=2, phase="train", epoch_index=1)
+    session.save_checkpoint(state)
+    assert require_candidate_weight_ema_val_binding_v1(binding) == binding
+    assert {path.name: trainer._sha256_file(path) for path in old.directory.iterdir() if path.is_file()} == origin_hashes
+    from gx1.contracts.unified_exit_random_access_checkpoint_v1 import canonical_sha256
+    for delta in (-1, 1):
+        changed = copy.deepcopy(binding)
+        changed["weight_ema_steps"] += delta
+        changed["binding_sha256"] = canonical_sha256({key: value for key, value in changed.items() if key != "binding_sha256"})
+        with pytest.raises(RuntimeError, match="VAL_BINDING_INVALID"):
+            require_candidate_weight_ema_val_binding_v1(changed)
+    # Removing the history and making the counters equal cannot downgrade a transitioned snapshot.
+    changed = copy.deepcopy(binding)
+    changed.pop("weight_ema_history")
+    changed["weight_ema_steps"] = changed["global_step"]
+    changed["binding_sha256"] = canonical_sha256({key: value for key, value in changed.items() if key != "binding_sha256"})
+    with pytest.raises(RuntimeError, match="EMA_HISTORY_INVALID"):
+        require_candidate_weight_ema_val_binding_v1(changed)
+
+
+@pytest.mark.parametrize("field,value", [("ema_internal_steps", 19907), ("destination_session_contract_sha256", "f" * 64)])
+def test_snapshot_rejects_history_not_bound_to_origin_or_destination(tmp_path, monkeypatch, field, value):
+    _, session, model, _, _ = _transition_epoch_boundary(tmp_path, monkeypatch, None)
+    receipt_path = session.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT
+    receipt = json.loads(receipt_path.read_text())
+    receipt[field] = value
+    receipt_path.write_text(json.dumps(receipt))
+    with pytest.raises(RuntimeError, match="EMA_HISTORY_INVALID"):
+        session.save_validation_checkpoint(model=model)
+
+
+def test_snapshot_without_transition_keeps_strict_equal_ema_counter(tmp_path):
+    session, model, _, _, state = _epoch_boundary(tmp_path)
+    state["weight_ema_state"]["steps"] += 1
+    state["checkpoint_index"] = 2
+    session.save_checkpoint(state)
+    with pytest.raises(RuntimeError, match="CHECKPOINT_EMA_INVALID"):
+        session.save_validation_checkpoint(model=model)
+
+
+@pytest.mark.parametrize("arm", ["reference", "split"])
+def test_report_only_train32_snapshot_is_bound_immutable_and_not_selectable(tmp_path, arm):
+    calibration = {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": arm, "report_only_val": True}
+    session, model, _target, ema, state = _epoch_boundary(tmp_path, native_calibration=calibration)
+    before_pointer = session._active_path.read_bytes()
+    before_model = canonical_model_state_sha256(model.state_dict())
+    before_rng = torch.get_rng_state().clone()
+    with pytest.raises(RuntimeError, match="CHECKPOINT_PHASE_INVALID"):
+        session.save_validation_checkpoint(model=model)
+    snapshot = session.save_validation_checkpoint(model=model, report_only=True)
+    assert Path(snapshot["path"]).name == "calibration_step_0032.pt"
+    assert session.save_validation_checkpoint(model=model, report_only=True) == snapshot
+    saved = torch.load(snapshot["path"], map_location="cpu", weights_only=True)
+    assert saved["report_only"] is True and saved["immutable_epoch_snapshot"] is False
+    assert saved["snapshot_purpose"] == "native_calibration_capacity"
+    assert saved["training_pointer"]["value"] == json.loads(before_pointer)
+    assert session._active_path.read_bytes() == before_pointer
+    assert canonical_model_state_sha256(model.state_dict()) == before_model
+    assert torch.equal(torch.get_rng_state(), before_rng)
+    model.eval()
+    with ema.evaluating(model):
+        binding = bind_candidate_weight_ema_validation_checkpoint_v1(snapshot=snapshot, model=model)
+    assert binding["report_only"] is True and binding["immutable_epoch_snapshot"] is False
+    with pytest.raises(RuntimeError, match="REPORT_ONLY_VAL_NOT_SELECTABLE"):
+        trainer._native_candidate_validation_stats({"checkpoint_binding": binding})
+    state.update(checkpoint_index=2, next_batch_offset=33, global_optimizer_steps=33)
+    state["weight_ema_state"]["steps"] = 33
+    session.save_checkpoint(state)
+    # The embedded actual TRAIN-32 pointer remains verifiable after resume advances its source.
+    assert require_candidate_weight_ema_val_binding_v1(binding) == binding
+    from gx1.contracts.unified_exit_random_access_checkpoint_v1 import canonical_sha256
+    changed = copy.deepcopy(binding)
+    changed["training_pointer"]["value"]["global_optimizer_steps"] = 31
+    changed["binding_sha256"] = canonical_sha256({key: value for key, value in changed.items() if key != "binding_sha256"})
+    with pytest.raises(RuntimeError, match="REPORT_ONLY_VAL_SCOPE_INVALID"):
+        require_candidate_weight_ema_val_binding_v1(changed)
+
+
+@pytest.mark.parametrize("field,value", [("arm", "other"), ("report_only_val", False), ("schema_version", "other")])
+def test_report_only_snapshot_requires_exact_recipe_scope(tmp_path, field, value):
+    calibration = {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": "reference", "report_only_val": True}
+    calibration[field] = value
+    session, model, _, _, _ = _epoch_boundary(tmp_path, native_calibration=calibration)
+    with pytest.raises(RuntimeError, match="REPORT_ONLY_VAL_SCOPE_INVALID"):
+        session.save_validation_checkpoint(model=model, report_only=True)
+
+
+@pytest.mark.parametrize("field,value", [("phase", "validation"), ("epoch_index", 1),
+                                         ("global_optimizer_steps", 31), ("next_batch_offset", 31)])
+def test_report_only_snapshot_requires_exact_saved_train32_cursor(tmp_path, field, value):
+    calibration = {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": "split", "report_only_val": True}
+    session, model, _, _, state = _epoch_boundary(tmp_path, native_calibration=calibration)
+    state[field] = value
+    state["checkpoint_index"] = 2
+    session.save_checkpoint(state)
+    with pytest.raises(RuntimeError, match="CHECKPOINT_PHASE_INVALID"):
+        session.save_validation_checkpoint(model=model, report_only=True)

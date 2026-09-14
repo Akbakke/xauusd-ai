@@ -39,7 +39,7 @@ def _objective(relative, rho=0.1):
 
 
 def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
-             policy_initialization="same_as_origin", model=None, optimizer=None):
+             policy_initialization="same_as_origin", model=None, optimizer=None, native_calibration=None, population_scope=False):
     current = tmp_path / "CURRENT"
     current.mkdir()
     monkeypatch.setattr(trainer, "__file__", str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"))
@@ -47,7 +47,37 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
     policy = _write(current / "NEXT_RUN_POLICY.json", {
         "training_enabled": False,
         **({"exit_value_initialization": policy_value} if policy_value is not None else {}),
+        **({"train_population_scope": "latest_year_2025_2026_v1"} if population_scope else {}),
     })
+    population_bindings = None
+    if population_scope:
+        # The selection-root owner has its own file/clock/unchanged-source tests.
+        # Isolate the trainer transition against that already-validated boundary.
+        import numpy as np
+        import pandas as pd
+        from gx1.contracts import unified_exit_random_access_index_v1 as population_owner
+        parent_files = {f"entry_{split}_{kind}": {"path": str(tmp_path / f"same_{split}_{kind}"), "sha256": "8" * 64}
+                        for split in ("train", "val") for kind in ("parquet", "manifest")}
+        base_binding = _write(tmp_path / "full_root.json", {"root_sha256": "5" * 64})
+        rows = np.arange(313399, dtype=np.int64)
+        frame_path = tmp_path / "full_index.parquet"
+        pd.DataFrame({"entry_row_index": rows, "parent_entry_row_index": rows}).to_parquet(frame_path, index=False)
+        proof = {"index_entry_row_count": 313399, "selected_entry_row_count": 3, "parent_entry_source_rows": 313399,
+                 "selected_child_entry_row_indices_sha256": hashlib.sha256(rows[-3:].tobytes()).hexdigest(),
+                 "selected_parent_entry_row_indices_sha256": hashlib.sha256(rows[-3:].tobytes()).hexdigest()}
+        selected_root = {"root_sha256": "6" * 64,
+                         "latest_year_population": {"source_root": base_binding, "source_root_sha256": "5" * 64, "splits": {"train": proof}},
+                         "splits": {"train": {"index_parquet_path": str(frame_path)}}}
+        if fault == "population_source":
+            selected_root["latest_year_population"]["source_root"] = {**base_binding, "sha256": "f" * 64}
+        def checked_population(value, *, expected_parent_bindings):
+            assert expected_parent_bindings == {split: {kind: parent_files[f"entry_{split}_{kind}"] for kind in ("parquet", "manifest")} for split in ("train", "val")}
+            assert value == selected_root
+            return value
+        monkeypatch.setattr(population_owner, "require_latest_year_index_root", checked_population)
+        monkeypatch.setattr(population_owner, "latest_year_selected_entry_rows", lambda frame, split: frame["entry_row_index"].to_numpy()[-3:])
+        selected_binding = _write(tmp_path / "selection_root.json", selected_root)
+        population_bindings = (parent_files, base_binding, selected_binding)
     outputs = [tmp_path / "old", tmp_path / "new"]
     source_roots = [tmp_path / "historic_source", current]
     source_names = ["gx1/models/entry_v10/entry_v10_ctx_train_v3.py", "gx1/features/htf_features.py"]
@@ -102,8 +132,13 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
                   "files": {"economics_readiness": econ_binding, "train": {"path": str(tmp_path / "unchanged.parquet"), "sha256": "7" * 64}},
                   "trainer_cli": {"batch_size": 16, "checkpoint_monitor": monitor},
                   "val_limits": limits, "test_data_used": False, "dataset_run_id": "frozen"}
+        if population_bindings is not None:
+            parent_files, base_binding, selected_binding = population_bindings
+            recipe["files"].update(parent_files, random_access_root=selected_binding if side else base_binding)
         if side:
             recipe.update(candidate_resume_origin=origin, next_run_policy=policy)
+        if side and native_calibration is not None:
+            recipe["native_calibration"] = native_calibration
         if side and fault == "data_changed":
             recipe["files"]["train"]["sha256"] = "9" * 64
         recipe["recipe_sha256"] = _sha(recipe)
@@ -116,6 +151,8 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
                     "native_full_val": {"compute_limits": limits, "same_factory": "bound"},
                     "training": {"batch_size": 16, "learning_rate": .01,
                                  "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=monitor)}}
+        if population_bindings is not None:
+            contract["artifacts"] = {"unified_exit_lifecycle_manifest": recipe["files"]["random_access_root"]}
         if side and fault == "training_changed":
             contract["training"]["learning_rate"] = .02
         session = trainer._CandidateTrainingSession(out_bundle_dir=outputs[side], contract=contract)
@@ -143,6 +180,8 @@ def _fixture(tmp_path, monkeypatch, fault=None, *, initialization=None,
                       "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)}}
             if initialization is not None:
                 origin["exit_value_initialization"] = initialization
+            if population_scope:
+                origin["train_population_scope"] = "latest_year_2025_2026_v1"
     return sessions, origin
 
 
@@ -435,3 +474,62 @@ def test_baseline_requires_real_model_optimizer_mapping(tmp_path, monkeypatch):
             session=new, origin=origin, epoch_order=order, model=model, optimizer=other_optimizer,
         )
     assert not (new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).exists()
+
+
+@pytest.mark.parametrize("arm,report_only", [("reference", False), ("split", True)])
+def test_economics_transition_calibration_arm_is_bound_operational_control(tmp_path, monkeypatch, arm, report_only):
+    control = {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": arm, "report_only_val": report_only}
+    (old, new), origin = _fixture(tmp_path, monkeypatch, native_calibration=control)
+    state = trainer._load_candidate_economics_successor_state(
+        session=new, origin=origin, epoch_order=torch.arange(313399, dtype=torch.int64),
+    )
+    _identical(state["model_state"], old.load_checkpoint()["model_state"])
+    receipt = json.loads((new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).read_text())
+    assert receipt["new_native_calibration"] == control
+
+
+@pytest.mark.parametrize("control", [
+    {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": "other", "report_only_val": True},
+    {"schema_version": "gx1_native_learning_calibration_run_v1", "arm": "split", "report_only_val": 1},
+])
+def test_economics_transition_rejects_unbounded_calibration_controls(tmp_path, monkeypatch, control):
+    (_, new), origin = _fixture(tmp_path, monkeypatch, native_calibration=control)
+    with pytest.raises(RuntimeError, match="NATIVE_CALIBRATION_INVALID"):
+        trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.arange(313399, dtype=torch.int64))
+
+
+def test_economics_transition_changes_only_selection_root_and_preserves_all_states(tmp_path, monkeypatch):
+    (old, new), origin = _fixture(tmp_path, monkeypatch, population_scope=True)
+    before = old.load_checkpoint()
+    order = torch.tensor([313398, 313396, 313397])
+    state = trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=order)
+    receipt = json.loads((new.directory / trainer._CANDIDATE_ECONOMICS_TRANSITION_RECEIPT).read_text())
+    proof = receipt["train_population_transition"]
+    assert (proof["old_epoch_entry_row_count"], proof["new_epoch_entry_row_count"], proof["physical_parent_entry_row_count"]) == (313399, 3, 313399)
+    assert proof["data_normalization_fold_and_val_artifacts_unchanged"] is True
+    assert torch.equal(state["epoch_order"], order)
+    assert state["global_optimizer_steps"] == state["epoch_index"] == state["next_batch_offset"] == 0
+    for field in receipt["preserved_state_fields"]:
+        _identical(state[field], before[field])
+    model = torch.nn.Linear(3, 2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    ema = trainer._WeightEma(model, .5)
+    restored = trainer._restore_candidate_training_checkpoint(
+        state, session=new, model=model, target_model=copy.deepcopy(model), optimizer=optimizer,
+        weight_ema=ema, lr_scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30),
+        device=torch.device("cpu"), dataset_rows=313399, parent_population=order,
+    )
+    assert restored["epoch_order"].tolist() == order.tolist()
+    assert all(float(item["step"]) == 19908 for item in optimizer.state.values())
+    assert ema._steps == 19908
+
+
+@pytest.mark.parametrize("fault,order,error", [
+    ("population_source", [313398, 313396, 313397], "POPULATION_SOURCE_ROOT_CHANGED"),
+    ("data_changed", [313398, 313396, 313397], "MODEL_DATA_OR_TRAINING_CHANGED"),
+    (None, [0, 1, 2], "FULL_EPOCH_ORDER_INVALID"),
+])
+def test_selection_transition_never_loosens_other_lineage_or_parent_ids(tmp_path, monkeypatch, fault, order, error):
+    (_, new), origin = _fixture(tmp_path, monkeypatch, fault=fault, population_scope=True)
+    with pytest.raises(RuntimeError, match=error):
+        trainer._load_candidate_economics_successor_state(session=new, origin=origin, epoch_order=torch.tensor(order))

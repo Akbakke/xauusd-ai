@@ -14,6 +14,9 @@ from gx1.contracts.local_random_access_campaign_v2 import (
 )
 from gx1.contracts.unified_exit_random_access_sampler_v1 import canonical_sha256 as native_sha256
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import native_checkpoint_monitor
+from gx1.contracts.unified_exit_random_access_index_v1 import (
+    LATEST_YEAR_ROOT_SCHEMA_VERSION, require_random_access_index_root,
+)
 
 
 CURSOR_SCHEMA = "gx1_native_candidate_campaign_cursor_v1"
@@ -58,6 +61,9 @@ def require_native_recipe_metadata(
         or root.get("root_sha256") != native_sha256({k: v for k, v in root.items() if k != "root_sha256"})
     ):
         raise RuntimeError("NATIVE_CANDIDATE_INDEX_ROOT_METADATA_INVALID")
+    latest_year = root.get("schema_version") == LATEST_YEAR_ROOT_SCHEMA_VERSION
+    if latest_year:
+        require_random_access_index_root(root)
     split = root["splits"]["train"]
     path = Path(split["manifest_path"])
     manifest = read_bound_json(path, file_sha256(path))
@@ -66,10 +72,27 @@ def require_native_recipe_metadata(
         manifest.get("manifest_sha256") != split["manifest_sha256"]
         or manifest.get("manifest_sha256") != native_sha256({k: v for k, v in manifest.items() if k != "manifest_sha256"})
         or type(count) is not int or count < 1
-        or manifest.get("parent_entry_source_rows") != count
+        or (not latest_year and manifest.get("parent_entry_source_rows") != count)
+        or (latest_year and split.get("entry_row_count") != count)
     ):
         raise RuntimeError("NATIVE_CANDIDATE_FULL_POPULATION_METADATA_INVALID")
+    if latest_year:
+        count = root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
     return recipe, count
+
+
+def require_native_calibration_run(recipe: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The two finite native arms compare 32 uninterrupted versus 16+16 steps."""
+    if "native_calibration" not in recipe:
+        return None
+    value = recipe["native_calibration"]
+    if (not isinstance(value, Mapping) or set(value) != {
+            "schema_version", "arm", "report_only_val"}
+            or value["schema_version"] != "gx1_native_learning_calibration_run_v1"
+            or type(value["arm"]) is not str or value["arm"] not in {"reference", "split"}
+            or type(value["report_only_val"]) is not bool):
+        raise RuntimeError("NATIVE_CALIBRATION_RUN_INVALID")
+    return dict(value)
 
 
 def require_native_run_scope(
@@ -84,14 +107,20 @@ def require_native_run_scope(
     repo = Path(__file__).resolve().parents[2]
     origin = recipe.get("candidate_resume_origin")
     origin_fields = {"schema_version", "contract", "pointer"}
-    if (not isinstance(origin, Mapping)
-            or set(origin) not in (origin_fields, origin_fields | {"exit_value_initialization"})
+    optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
+    if (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
+            or set(origin) - origin_fields - optional_origin_fields
+            or ("train_population_scope" in origin and (
+                type(origin["train_population_scope"]) is not str
+                or origin["train_population_scope"] != "latest_year_2025_2026_v1"))
             or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1"
             or ("exit_value_initialization" in origin and (
                 type(origin["exit_value_initialization"]) is not str
                 or origin["exit_value_initialization"] != "close_now_baseline_v1"))):
         raise RuntimeError("NATIVE_ECONOMICS_TRANSITION_ORIGIN_REQUIRED")
     initialization = origin.get("exit_value_initialization")
+    calibration = require_native_calibration_run(recipe)
+    population = origin.get("train_population_scope")
     require_binding(origin["contract"], label="native origin contract")
     origin_pointer = require_binding(origin["pointer"], label="native origin pointer")
     binding = require_binding(recipe.get("next_run_policy"), label="next native run policy")
@@ -103,6 +132,16 @@ def require_native_run_scope(
             or policy["exit_value_initialization"] != "close_now_baseline_v1"))
             or policy.get("exit_value_initialization") != initialization):
         raise RuntimeError("NATIVE_EXIT_VALUE_INITIALIZATION_POLICY_MISMATCH")
+    if (("train_population_scope" in policy and (
+            type(policy["train_population_scope"]) is not str
+            or policy["train_population_scope"] != "latest_year_2025_2026_v1"))
+            or policy.get("train_population_scope") != population):
+        raise RuntimeError("NATIVE_TRAIN_POPULATION_POLICY_MISMATCH")
+    if population is not None:
+        root_binding = require_binding(recipe.get("files", {}).get("random_access_root"), label="native training population")
+        root = require_random_access_index_root(read_bound_json(Path(root_binding["path"]), root_binding["sha256"]))
+        if root["schema_version"] != LATEST_YEAR_ROOT_SCHEMA_VERSION:
+            raise RuntimeError("NATIVE_LATEST_YEAR_POPULATION_REQUIRED")
     profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                "max_wall_seconds": 10800, "progress_interval_forwards": 64}
     if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
@@ -132,6 +171,8 @@ def require_native_run_scope(
             or objective.get("schema_version") != risk["economics_objective_schema"]):
         raise RuntimeError("NATIVE_NEXT_RUN_RISK_OBJECTIVE_INVALID")
     if policy.get("training_enabled") is True:
+        if calibration is not None:
+            raise RuntimeError("NATIVE_CALIBRATION_CANNOT_ENABLE_FULL_TRAINING")
         for role in ("checkpoint_transition", "learning_calibration", "gpu_batch256_parity",
                      "end_to_end_throughput", "resume_equivalence"):
             proof_binding = require_binding(evidence.get(role), label=f"native {role}")
@@ -145,20 +186,31 @@ def require_native_run_scope(
                         type(proof["exit_value_initialization"]) is not str
                         or proof["exit_value_initialization"] != "close_now_baseline_v1"))
                     or proof.get("exit_value_initialization") != initialization
+                    or proof.get("training_population_root_sha256") != recipe.get("files", {}).get("random_access_root", {}).get("sha256")
                     or proof.get("native_val_profile") != profile):
                 raise RuntimeError("NATIVE_NEXT_RUN_EVIDENCE_NOT_PASS")
         ceiling = None
     elif policy.get("training_enabled") is False:
         scope = policy.get("native_learning_calibration")
-        if (not isinstance(scope, Mapping) or set(scope) != {
-                "schema_version", "optimizer_step_ceilings", "full_epoch_training_allowed", "test_data_used"}
-                or scope["schema_version"] != "gx1_native_learning_calibration_scope_v1"
-                or scope["optimizer_step_ceilings"] != [16, 32]
+        old_scope = {
+            "schema_version": "gx1_native_learning_calibration_scope_v1",
+            "optimizer_step_ceilings": [16, 32],
+            "full_epoch_training_allowed": False, "test_data_used": False,
+        }
+        measured_scope = {
+            **old_scope, "schema_version": "gx1_native_learning_calibration_scope_v2",
+            "reference_optimizer_step_ceiling": 32, "native_report_only_val": True,
+        }
+        if (not isinstance(scope, Mapping)
+                or scope not in (old_scope, measured_scope)
                 or any(type(x) is not int for x in scope["optimizer_step_ceilings"])
                 or scope["full_epoch_training_allowed"] is not False
-                or scope["test_data_used"] is not False):
+                or scope["test_data_used"] is not False
+                or (calibration is None) != (scope == old_scope)
+                or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = scope["optimizer_step_ceilings"]
+        ceilings = ([32] if calibration is not None and calibration["arm"] == "reference"
+                    else scope["optimizer_step_ceilings"])
         if invocation_number is not None:
             if type(invocation_number) is not int or not 1 <= invocation_number <= len(ceilings):
                 raise RuntimeError("NATIVE_CALIBRATION_INVOCATION_INVALID")

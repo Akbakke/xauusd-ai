@@ -22,6 +22,11 @@ RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION = (
 )
 FULL_POPULATION_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_full_population_root_v1"
 VAL_REVISION_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_revision_root_v1"
+LATEST_YEAR_ROOT_SCHEMA_VERSION = "gx1_unified_exit_random_access_latest_year_root_v1"
+LATEST_YEAR_WINDOWS = {
+    "train": {"start_utc": "2025-06-01T00:00:00+00:00", "end_utc_exclusive": "2026-06-01T00:00:00+00:00"},
+    "val": {"start_utc": "2026-06-01T00:00:00+00:00", "end_utc_exclusive": "2026-07-01T00:00:00+00:00"},
+}
 
 RANDOM_ACCESS_INDEX_V1_COLUMNS = (
     "entry_row_index",
@@ -532,6 +537,135 @@ def require_parent_entry_coordinate_equivalence(
     return evidence
 
 
+def _latest_year_binding(binding: Any, *, verify_file: bool = False) -> Path:
+    if (not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}
+            or not isinstance(binding.get("path"), str)):
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_BINDING_INVALID")
+    path = Path(binding["path"])
+    _sha(binding["sha256"], "LATEST_YEAR_BINDING")
+    if (not path.is_absolute() or (verify_file and (
+            path.is_symlink() or path.resolve() != path or not path.is_file()
+            or file_sha256(path) != binding["sha256"]))):
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_BINDING_INVALID")
+    return path
+
+
+def latest_year_selected_entry_rows(frame: pd.DataFrame, *, split: str) -> np.ndarray:
+    """Return original child ids in the one fixed chronological TRAIN/VAL scope."""
+    if split not in LATEST_YEAR_WINDOWS:
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_SPLIT_INVALID")
+    checked = require_random_access_index(frame, expected_split=split)
+    window = LATEST_YEAR_WINDOWS[split]
+    times = checked["entry_time_ns"].to_numpy(dtype="<i8")
+    keep = ((times >= pd.Timestamp(window["start_utc"]).value)
+            & (times < pd.Timestamp(window["end_utc_exclusive"]).value))
+    return checked.loc[keep, "entry_row_index"].to_numpy(dtype="<i8", copy=True)
+
+
+def build_latest_year_population(*, source_root_binding: Mapping[str, str]) -> dict[str, Any]:
+    """Bind a subset of immutable full-index ids without rewriting any data.
+
+    Full Entry/Exit indices, parent context, normalization and economic fold
+    remain exactly the source root's. Only the TRAIN epoch population changes.
+    """
+    source_path = _latest_year_binding(source_root_binding, verify_file=True)
+    source = require_random_access_index_root(json.loads(source_path.read_text(encoding="utf-8")))
+    if source["schema_version"] != FULL_POPULATION_ROOT_SCHEMA_VERSION:
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_FULL_ROOT_REQUIRED")
+    proofs = {}
+    for split, window in LATEST_YEAR_WINDOWS.items():
+        binding = source["splits"][split]
+        manifest_path = Path(binding["manifest_path"])
+        if not manifest_path.is_absolute() or manifest_path.is_symlink() or not manifest_path.is_file():
+            raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_INDEX_MANIFEST_INVALID")
+        index_path = _latest_year_binding({"path": binding["index_parquet_path"], "sha256": binding["index_parquet_sha256"]}, verify_file=True)
+        frame = pd.read_parquet(index_path)
+        manifest = require_random_access_index_manifest(
+            json.loads(manifest_path.read_text(encoding="utf-8")), expected_split=split,
+            index_frame=frame, index_path=index_path,
+        )
+        if (manifest["schema_version"] != RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION
+                or manifest["manifest_sha256"] != binding["manifest_sha256"]
+                or manifest["entry_row_count"] != binding["entry_row_count"]
+                or manifest["successor_transition_total"] != binding["successor_transition_total"]
+                or pd.Timestamp(manifest.get("split_end_utc")) != pd.Timestamp(window["end_utc_exclusive"])):
+            raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_INDEX_MANIFEST_INVALID")
+        sources = manifest["source_bindings"]
+        parent_path = _latest_year_binding(sources["parent_entry_parquet"], verify_file=True)
+        parent_manifest_path = _latest_year_binding(sources["parent_entry_manifest"], verify_file=True)
+        child_path = _latest_year_binding(sources["entry_parquet"], verify_file=True)
+        parent_manifest = json.loads(parent_manifest_path.read_text(encoding="utf-8"))
+        parent_clock = _clock(pd.read_parquet(parent_path, columns=["time"])["time"], "LATEST_YEAR_PARENT")
+        child_clock = _clock(pd.read_parquet(child_path, columns=["time"])["time"], "LATEST_YEAR_CHILD")
+        full_parents = frame["parent_entry_row_index"].to_numpy(dtype="<i8")
+        selected_children = latest_year_selected_entry_rows(frame, split=split)
+        expected_parents = np.flatnonzero(
+            (parent_clock >= pd.Timestamp(window["start_utc"]))
+            & (parent_clock < pd.Timestamp(window["end_utc_exclusive"]))
+        ).astype("<i8", copy=False)
+        selected_parents = full_parents[selected_children]
+        selected_times = frame["entry_time_ns"].to_numpy(dtype="<i8")[selected_children]
+        if (expected_parents.size == 0 or np.any(full_parents >= len(parent_clock))
+                or not np.array_equal(selected_parents, expected_parents)
+                or not np.array_equal(selected_times, parent_clock.asi8[expected_parents])
+                or not np.array_equal(frame["entry_time_ns"].to_numpy(dtype="<i8"), child_clock.asi8)
+                or not np.array_equal(parent_clock.asi8[full_parents], child_clock.asi8)
+                or len(parent_clock) != manifest["parent_entry_source_rows"]
+                or _clock_sha256(parent_clock) != manifest["parent_entry_clock_sha256"]
+                or _clock_sha256(child_clock) != manifest["child_entry_clock_sha256"]
+                or hashlib.sha256(np.ascontiguousarray(full_parents).tobytes()).hexdigest() != manifest["parent_entry_row_indices_sha256"]
+                or parent_manifest.get("output_data_path") != str(parent_path)
+                or parent_manifest.get("extra", {}).get("pretest_test_guard", {}).get("test_accessed") is not False
+                or (split == "val" and len(selected_children) != len(frame))):
+            raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_COMPLETE_SELECTION_INVALID")
+        if split == "train":
+            parent_window = parent_manifest.get("splits", {}).get("train", {})
+            parent_end = pd.Timestamp(parent_window.get("end"))
+            if (pd.Timestamp(parent_window.get("start")) != pd.Timestamp("2021-06-01T00:00:00Z")
+                    or parent_end.tzinfo is None
+                    or not pd.Timestamp("2026-05-31T00:00:00Z") <= parent_end <= pd.Timestamp("2026-06-01T00:00:00Z")
+                    or not np.array_equal(np.sort(full_parents), np.arange(len(parent_clock), dtype="<i8"))
+                    or len(selected_children) >= len(frame)):
+                raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_FULL_PARENT_REQUIRED")
+        proofs[split] = {
+            **window, "selected_entry_row_count": len(selected_children),
+            "index_entry_row_count": len(frame), "parent_entry_source_rows": len(parent_clock),
+            "parent_entry_parquet": dict(sources["parent_entry_parquet"]),
+            "parent_entry_manifest": dict(sources["parent_entry_manifest"]),
+            "selected_child_entry_row_indices_sha256": hashlib.sha256(np.ascontiguousarray(selected_children).tobytes()).hexdigest(),
+            "selected_parent_entry_row_indices_sha256": hashlib.sha256(np.ascontiguousarray(selected_parents).tobytes()).hexdigest(),
+            "selected_entry_clock_sha256": hashlib.sha256(np.ascontiguousarray(selected_times).tobytes()).hexdigest(),
+        }
+    return {
+        "source_root": dict(source_root_binding), "source_root_sha256": source["root_sha256"],
+        "splits": proofs, "selection_uses_outcome_values": False, "test_accessed": False,
+    }
+
+
+def require_latest_year_index_root(
+    value: Mapping[str, Any], *, expected_parent_bindings: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Recheck complete date selection and exact immutable full-root inheritance."""
+    root = require_random_access_index_root(value)
+    if root["schema_version"] != LATEST_YEAR_ROOT_SCHEMA_VERSION:
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_ROOT_REQUIRED")
+    population = root["latest_year_population"]
+    if expected_parent_bindings is not None and (
+            set(expected_parent_bindings) != {"train", "val"}
+            or any(expected_parent_bindings[split] != {
+                "parquet": population["splits"][split]["parent_entry_parquet"],
+                "manifest": population["splits"][split]["parent_entry_manifest"],
+            } for split in ("train", "val"))):
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_LAUNCH_PARENT_MISMATCH")
+    rebuilt = build_latest_year_population(source_root_binding=population["source_root"])
+    source = json.loads(Path(population["source_root"]["path"]).read_text(encoding="utf-8"))
+    old_common = {k: v for k, v in source.items() if k not in {"schema_version", "root_sha256", "full_train_population"}}
+    new_common = {k: v for k, v in root.items() if k not in {"schema_version", "root_sha256", "latest_year_population"}}
+    if rebuilt != population or old_common != new_common:
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_POPULATION_DRIFT")
+    return root
+
+
 def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ROOT_INVALID")
@@ -545,6 +679,7 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
             RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
             VAL_REVISION_ROOT_SCHEMA_VERSION,
             FULL_POPULATION_ROOT_SCHEMA_VERSION,
+            LATEST_YEAR_ROOT_SCHEMA_VERSION,
         }
         or value.get("decision") != "PASS"
         or value.get("allowed_splits") != ["train", "val"]
@@ -557,6 +692,37 @@ def require_random_access_index_root(value: Mapping[str, Any]) -> dict[str, Any]
         or claimed != canonical_sha256(data)
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ROOT_INVALID")
+    if value["schema_version"] == LATEST_YEAR_ROOT_SCHEMA_VERSION:
+        population = value.get("latest_year_population")
+        if (not isinstance(population, Mapping)
+                or set(population) != {"source_root", "source_root_sha256", "splits", "selection_uses_outcome_values", "test_accessed"}
+                or population.get("selection_uses_outcome_values") is not False
+                or population.get("test_accessed") is not False
+                or not isinstance(population.get("splits"), Mapping)
+                or set(population["splits"]) != {"train", "val"}
+                or any(key in value for key in ("full_train_population", "predecessor_equivalence", "val_data_revision"))):
+            raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_POPULATION_INVALID")
+        _latest_year_binding(population["source_root"])
+        _sha(population["source_root_sha256"], "LATEST_YEAR_SOURCE_ROOT")
+        for split, window in LATEST_YEAR_WINDOWS.items():
+            proof = population["splits"][split]
+            if (not isinstance(proof, Mapping) or not isinstance(splits[split], Mapping) or set(proof) != {
+                    *window, "selected_entry_row_count", "index_entry_row_count", "parent_entry_source_rows",
+                    "parent_entry_parquet", "parent_entry_manifest", "selected_child_entry_row_indices_sha256",
+                    "selected_parent_entry_row_indices_sha256", "selected_entry_clock_sha256"}
+                    or any(proof.get(key) != expected for key, expected in window.items())
+                    or any(type(proof.get(key)) is not int or proof[key] < 1 for key in ("selected_entry_row_count", "index_entry_row_count", "parent_entry_source_rows"))
+                    or not proof["selected_entry_row_count"] <= proof["index_entry_row_count"] <= proof["parent_entry_source_rows"]
+                    or (split == "train" and proof["selected_entry_row_count"] == proof["index_entry_row_count"])
+                    or (split == "val" and proof["selected_entry_row_count"] != proof["index_entry_row_count"])
+                    or proof["index_entry_row_count"] != splits[split].get("entry_row_count")):
+                raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_POPULATION_INVALID")
+            for key in ("parent_entry_parquet", "parent_entry_manifest"):
+                _latest_year_binding(proof[key])
+            for key in ("selected_child_entry_row_indices_sha256", "selected_parent_entry_row_indices_sha256", "selected_entry_clock_sha256"):
+                _sha(proof[key], "LATEST_YEAR_POPULATION")
+    elif "latest_year_population" in value:
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_ROOT_REQUIRED")
     if value["schema_version"] == RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION:
         equivalence = value.get("predecessor_equivalence")
         if (

@@ -1,5 +1,53 @@
 # GX1 — gjeldende overtakelse 2026-09-14
 
+## Ettårsutvalg bundet; avgrenset native måling er neste handling
+
+Ingen trainer kjører. Windows-task GX1NativeLearningCalibration er deaktivert;
+siste native boot er 419 og siste fullførte kontroll er 7054ec8b/16 steg.
+Full epoch-trening forblir training_enabled=false. Ingen femårs-epoch startes nå.
+
+Ettårsutvalget er publisert i:
+`/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/LATEST_YEAR_TRAIN_POPULATION_20260914/ROOT.json`
+Fil-SHA256: 1350d75bb72fa1b1f961b93d34120e426406ee1b514db7dc35353b220ede1708.
+TRAIN 2025-06-01 inklusiv til 2026-06-01 eksklusiv har 65 295 av 313 399
+eksisterende rader; hele juni-VAL beholder 5 508. Bare ROOT.json er skrevet.
+Alle opprinnelige child-/parent-ID-er, datafiler, prisbaner, normalisering,
+foldartefakter, sampler og M5/MTF-historikk beholdes. Epochordenen filtreres til
+hele det bundne ettårsutvalget; batchantall og restore følger denne dekningen.
+
+171 unike målrettede CPU-tilfeller består. Første kjøring hadde 13 fixturefeil
+(datoformat og en eldre dispatch-fixture); bare berørte tilfeller ble rettet
+og kjørt på nytt. Bevis:
+[Årsutvalg og native kontrakter](handover_snapshot/LATEST_YEAR_NATIVE_VERIFICATION_20260914.json).
+Dette er CPU-/kontraktbevis, ikke GPU-paritet, fart, læringskvalitet eller profitt.
+
+Neste kildebundne måling bruker samme bevarte v2-origin315/19908 og eksplisitt
+close_now_baseline_v1 i begge armer: reference32 sammenhengende optimizersteg,
+deretter split16+16 med fysisk reboot mellom vinduene. Ny schema-v2-policy
+binder armene og ettårsutvalget. Resume skal sammenlignes mot faktiske lagrede
+modell-, target-, Adam-, EMA-, scheduler-, RNG- og rekkefølgetilstander.
+Exit-baseline resettes bare én gang ved ny overgang.
+
+Reference32 kan kjøre den eksisterende hele-juni native VAL-evaluatoren fra
+et uforanderlig report-only snapshot ved steg32, med VAL256/8arbeidere/10800s.
+Det snapshotet kan ikke velge checkpoint eller flytte early stopping.
+Eksakt EMA-historikkoffset19908 bindes til overgangsreceipt og gammelpointer;
+nye objective-steg og historiske EMA-steg blandes ikke sammen.
+Eksisterende evaluator måler faktisk GPU-batchparitet og pipeline/fart.
+Hvis native-vinduet ikke har hele VAL-budsjettet igjen, hoppes målingen over
+med uttrykkelig manglende bevis; profilen skal ikke forkortes.
+
+Før GPU-start skal denne kilden committes/pushes og nye recipe/planfiler
+bindes til den. Full ettårslæring krever fortsatt alle målte porter.
+Gamle femårsvekter er videre kalibrering, juni er utviklings-VAL, og TEST
+forblir forseglet. Opprinnelige checkpoints og første epochs juni-EMA er urørt.
+
+---
+
+## Tidligere overtakelsesnotater — historikk
+
+# GX1 — gjeldende overtakelse 2026-09-14
+
 ## Stoppet etter 16 kontrollsteg; ett år er neste større omfang
 
 Ingen trainer kjører. Kilde 7054ec8b74b4935031d8be77419ac1a3d4aa8426 fullførte

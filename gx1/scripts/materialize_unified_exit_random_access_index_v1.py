@@ -29,6 +29,9 @@ from gx1.contracts.unified_exit_random_access_index_v1 import (
     require_val_index_revision_root,
     RANDOM_ACCESS_INDEX_V2_ROOT_SCHEMA_VERSION,
     FULL_POPULATION_ROOT_SCHEMA_VERSION,
+    LATEST_YEAR_ROOT_SCHEMA_VERSION,
+    build_latest_year_population,
+    require_latest_year_index_root,
     RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
     build_random_access_index_v2,
     canonical_sha256,
@@ -419,6 +422,29 @@ def _build_split(
     return manifest
 
 
+def _publish_latest_year_selection(*, output_dir: Path, source_root_path: Path) -> dict[str, Any]:
+    """Publish only a selection root; every existing data binding remains intact."""
+    source_root_path = source_root_path.expanduser().resolve()
+    population = build_latest_year_population(source_root_binding=_binding(source_root_path))
+    source = require_random_access_index_root(_read_json(source_root_path))
+    root = {k: v for k, v in source.items() if k not in {"root_sha256", "full_train_population"}}
+    root.update(schema_version=LATEST_YEAR_ROOT_SCHEMA_VERSION, latest_year_population=population)
+    root["root_sha256"] = canonical_sha256(root)
+    require_latest_year_index_root(root)
+    output_dir = output_dir.expanduser().resolve()
+    if output_dir.exists() or output_dir.is_symlink():
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OUTPUT_EXISTS")
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
+    try:
+        _sealed_json(stage / "ROOT.json", {k: v for k, v in root.items() if k != "root_sha256"}, "root_sha256")
+        os.replace(stage, output_dir)
+    except Exception:
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
+    return root
+
+
 def publish(
     *,
     pilot_root: Path,
@@ -426,10 +452,16 @@ def publish(
     final_bindings_dir: Path | None = None,
     predecessor_root_path: Path | None = None,
     full_train_population: bool = False,
+    latest_year_population: bool = False,
+    population_source_root_path: Path | None = None,
 ) -> dict[str, Any]:
-    if (type(full_train_population) is not bool
-            or full_train_population == (predecessor_root_path is not None)):
+    if (type(full_train_population) is not bool or type(latest_year_population) is not bool
+            or int(full_train_population) + int(latest_year_population) + int(predecessor_root_path is not None) != 1):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_POPULATION_OR_PREDECESSOR_REQUIRED")
+    if latest_year_population != (population_source_root_path is not None):
+        raise RuntimeError("UNIFIED_EXIT_LATEST_YEAR_SOURCE_ROOT_REQUIRED")
+    if latest_year_population:
+        return _publish_latest_year_selection(output_dir=output_dir, source_root_path=population_source_root_path)
     pilot_root = pilot_root.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
     bindings_dir = (
@@ -679,11 +711,15 @@ def main() -> None:
     parser.add_argument("--final-bindings-dir", type=Path)
     parser.add_argument("--predecessor-root", type=Path)
     parser.add_argument("--full-train-population", action="store_true")
+    parser.add_argument("--latest-year-population", action="store_true")
+    parser.add_argument("--population-source-root", type=Path)
     parser.add_argument("--val-only-revision", action="store_true")
     args = parser.parse_args()
-    if (args.full_train_population == (args.predecessor_root is not None)
-            or (args.val_only_revision and args.full_train_population)):
-        parser.error("Choose --full-train-population or --predecessor-root; VAL revisions require a predecessor")
+    if (int(args.full_train_population) + int(args.latest_year_population) + int(args.predecessor_root is not None) != 1
+            or (args.val_only_revision and (args.full_train_population or args.latest_year_population))):
+        parser.error("Choose --full-train-population, --latest-year-population or --predecessor-root; VAL revisions require a predecessor")
+    if args.latest_year_population != (args.population_source_root is not None):
+        parser.error("--latest-year-population requires --population-source-root exclusively")
     if args.val_only_revision and args.final_bindings_dir is None:
         parser.error("VAL revision requires --final-bindings-dir")
     print(
@@ -693,7 +729,7 @@ def main() -> None:
                 output_dir=args.output_dir,
                 final_bindings_dir=args.final_bindings_dir,
                 predecessor_root_path=args.predecessor_root,
-                **({"full_train_population": args.full_train_population} if not args.val_only_revision else {}),
+                **({"full_train_population": args.full_train_population, "latest_year_population": args.latest_year_population, "population_source_root_path": args.population_source_root} if not args.val_only_revision else {}),
             ),
             indent=2,
         )

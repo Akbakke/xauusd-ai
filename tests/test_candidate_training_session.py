@@ -902,3 +902,64 @@ def test_deterministic_fp32_disables_cudnn_and_matmul_tf32(monkeypatch):
         trainer._set_deterministic(42, torch.device('cuda'))
         assert torch.backends.cuda.matmul.allow_tf32 is False
         assert torch.backends.cudnn.allow_tf32 is False
+
+
+class _ChildPopulationDataset:
+    def __init__(self):
+        import pandas as pd
+        from types import SimpleNamespace
+        self._random_access_child_index_by_parent = {row: row for row in range(6)}
+        self._unified_exit_lifecycle_v2 = SimpleNamespace(
+            _random_access_train={"configured": True},
+            _native_random_access_index=pd.DataFrame({"entry_row_index": range(6), "parent_entry_row_index": range(6)}),
+            set_full_population_epoch_index=lambda epoch: {"every_entry_pair_exactly_once": True, "entry_pair_count": 6, "epoch_index": epoch},
+            random_access_selected_entry_rows_v1=lambda: [5, 0, 2, 4, 3, 1],
+        )
+
+    def __len__(self):
+        return 6
+
+
+def test_candidate_child_population_order_filters_full_schedule_without_reindexing():
+    dataset = _ChildPopulationDataset()
+    order = trainer._candidate_training_epoch_order(
+        dataset, epoch_index=4, parent_population=torch.tensor([2, 3, 5]),
+    )
+    assert order.tolist() == [5, 2, 3]
+    assert list(trainer._ExactIndexSampler(order, batch_offset=1, batch_size=2)) == [3]
+    assert trainer._candidate_training_epoch_order(dataset, epoch_index=4).tolist() == [5, 0, 2, 4, 3, 1]
+    dataset._unified_exit_lifecycle_v2._native_random_access_index.loc[1, "parent_entry_row_index"] = 2
+    with pytest.raises(RuntimeError, match="COVERAGE_INVALID"):
+        trainer._candidate_training_epoch_order(dataset, epoch_index=4, parent_population=torch.tensor([2, 3, 5]))
+
+
+@pytest.mark.parametrize("parents", [[2, 2, 5], [2, 3, 6]])
+def test_candidate_child_population_rejects_duplicate_or_outside_parent(parents):
+    with pytest.raises(RuntimeError, match="POPULATION_INVALID"):
+        trainer._candidate_training_epoch_order(
+            _ChildPopulationDataset(), epoch_index=0, parent_population=torch.tensor(parents),
+        )
+
+
+def test_candidate_child_population_restore_preserves_state_and_requires_exact_bound_set(tmp_path):
+    session = trainer._CandidateTrainingSession(out_bundle_dir=tmp_path / "child", contract=_contract())
+    model = torch.nn.Linear(3, 2)
+    target = copy.deepcopy(model)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+    ema = trainer._WeightEma(model, .5)
+    _step(model, optimizer)
+    ema.update(model)
+    state = _state(session, model, target, optimizer, ema, scheduler)
+    state["epoch_order"] = torch.tensor([5, 2, 3])
+    session.save_checkpoint(state)
+    saved = session.load_checkpoint()
+    kwargs = dict(session=session, model=model, target_model=target, optimizer=optimizer,
+                  weight_ema=ema, lr_scheduler=scheduler, device=torch.device("cpu"), dataset_rows=6)
+    restored = trainer._restore_candidate_training_checkpoint(saved, parent_population=torch.tensor([2, 3, 5]), **kwargs)
+    assert restored["epoch_order"].tolist() == [5, 2, 3]
+    assert restored["global_optimizer_steps"] == 17
+    assert all(float(item["step"]) == 1 for item in optimizer.state.values())
+    for wrong in (None, torch.tensor([1, 3, 5])):
+        with pytest.raises(RuntimeError, match="CHECKPOINT_ORDER_INVALID"):
+            trainer._restore_candidate_training_checkpoint(saved, parent_population=wrong, **kwargs)

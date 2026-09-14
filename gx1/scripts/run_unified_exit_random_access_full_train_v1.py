@@ -82,7 +82,8 @@ def _require_native_full_train_recipe(
         "next_run_policy",
     }
     if (
-        set(recipe) not in (required, required | {"candidate_resume_origin"})
+        not required <= set(recipe)
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != _INITIALIZATION
@@ -91,6 +92,8 @@ def _require_native_full_train_recipe(
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_INVALID")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
+    require_native_calibration_run(recipe)
     repo = Path(recipe["source_repo"])
     if repo != Path(__file__).resolve().parents[2]:
         raise RuntimeError("NATIVE_FULL_TRAIN_EXECUTION_SOURCE_INVALID")
@@ -261,6 +264,16 @@ def _build_bound_full_train_components(
     )
     root_path = files["random_access_root"]
     root = val.require_random_access_index_root(val._read(root_path))
+    from gx1.contracts.unified_exit_random_access_index_v1 import (
+        LATEST_YEAR_ROOT_SCHEMA_VERSION, require_latest_year_index_root,
+    )
+    latest_year = root["schema_version"] == LATEST_YEAR_ROOT_SCHEMA_VERSION
+    if latest_year:
+        require_latest_year_index_root(root, expected_parent_bindings={
+            split: {"parquet": file_bindings[f"entry_{split}_parquet"],
+                    "manifest": file_bindings[f"entry_{split}_manifest"]}
+            for split in ("train", "val")
+        })
     train_binding = root["splits"]["train"]
     train_index = val.pd.read_parquet(
         Path(train_binding["index_parquet_path"]),
@@ -269,7 +282,7 @@ def _build_bound_full_train_components(
     children = train_index["entry_row_index"].astype("int64").tolist()
     parents = train_index["parent_entry_row_index"].astype("int64").tolist()
     if (
-        children != list(range(len(datasets["train"])))
+        children != list(range(len(train_index)))
         or sorted(parents) != list(range(len(datasets["train"])))
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_ENTIRE_PARENT_POPULATION_REQUIRED")
@@ -395,6 +408,8 @@ def _build_bound_full_train_components(
         "input_normalization": old_norm, "metadata": meta, "per_tf_seq_lens": per_tf,
         "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
         "full_population_schedule": schedule,
+        "effective_train_rows": (root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
+                                 if latest_year else len(datasets["train"])),
         "unified_exit_lifecycle_evidence": {
             "schema_version": "gx1_native_candidate_input_lineage_v1",
             "root_manifest_sha256": root["root_sha256"],
@@ -428,7 +443,7 @@ def _run_bound_full_train_candidate(
             "native_val_context", "input_normalization", "per_tf_seq_lens",
             "unified_exit_lifecycle_evidence",
         )},
-        device=device, effective_train_rows=len(components["train_ds"]),
+        device=device, effective_train_rows=components["effective_train_rows"],
         batch_size=16, num_workers=0, pin_memory=True,
         persistent_workers=False, prefetch_factor=None,
         epochs=30, early_stopping_patience=5, early_stopping_min_delta=0.0,
@@ -512,6 +527,15 @@ def run_guarded_native_candidate_invocation(
             candidate_resume_origin=recipe.get("candidate_resume_origin"),
         )
     except trainer._CandidateExecutionPaused as paused:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
+        calibration = require_native_calibration_run(recipe)
+        if (calibration is not None and calibration["report_only_val"]
+                and paused.evidence["reason"] == "optimizer_step_ceiling"
+                and paused.evidence["global_optimizer_steps"] == 32):
+            paused.evidence["native_calibration_validation"] = _run_native_calibration_validation(
+                components=components, recipe=recipe, output=output, device=device,
+                invocation_started=started, pause_evidence=paused.evidence,
+            )
         receipt = trainer._write_candidate_execution_pause_receipt(
             paused.evidence, out_bundle_dir=output,
             gx1_data_override=recipe["gx1_data_root"],
@@ -533,6 +557,119 @@ def run_guarded_native_candidate_invocation(
         "resume_state": _native_resume_state(components=components, output=output),
         "bundle_written": False, "test_data_used": False,
     }
+
+
+def _run_native_calibration_validation(
+    *, components: Mapping[str, Any], recipe: Mapping[str, Any], output: Path,
+    device: torch.device, invocation_started: float, pause_evidence: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Measure one normal native VAL window from a frozen partial-TRAIN snapshot.
+
+    This never advances selection or training. The existing evaluator owns
+    batch-256 parity, CPU-pipeline verification and the three-hour VAL budget.
+    """
+    import copy
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
+        bind_candidate_weight_ema_validation_checkpoint_v1,
+    )
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+
+    calibration = require_native_calibration_run(recipe)
+    if (calibration is None or not calibration["report_only_val"]
+            or device.type != "cuda" or pause_evidence.get("phase") != "train"
+            or any(type(pause_evidence.get(key)) is not int or pause_evidence[key] != wanted
+                   for key, wanted in {"epoch_index": 0, "next_batch_offset": 32, "global_optimizer_steps": 32}.items())):
+        raise RuntimeError("NATIVE_CALIBRATION_VAL_SCOPE_INVALID")
+    elapsed = time.monotonic() - invocation_started
+    context = components["native_val_context"]
+    profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+               "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    if any(context.get(key) != wanted or recipe.get("val_limits", {}).get(key) != wanted
+           for key, wanted in profile.items()):
+        raise RuntimeError("NATIVE_CALIBRATION_VAL_PROFILE_MISMATCH")
+    if elapsed + context["max_wall_seconds"] + 60 >= 12000:
+        return {"executed": False, "reason": "insufficient_remaining_native_window",
+                "elapsed_before_val_seconds": elapsed, "report_only": True}
+    directory = Path(pause_evidence["session_directory"])
+    contract_path = directory / trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME
+    contract = val._read(contract_path)
+    session = trainer._CandidateTrainingSession(out_bundle_dir=output, contract=contract)
+    provenance = contract["recipe_source_provenance"]
+    bound_recipe = read_bound_json(Path(provenance["recipe_audit_path"]), provenance["recipe_audit_sha256"])
+    if (require_native_calibration_run(bound_recipe) != calibration
+            or any(bound_recipe.get("val_limits", {}).get(key) != wanted for key, wanted in profile.items())):
+        raise RuntimeError("NATIVE_CALIBRATION_VAL_RECIPE_MISMATCH")
+    report_directory = directory / "native_val" / "calibration_step_0032"
+    report_path = report_directory / "CAPACITY_OBSERVATION.json"
+    if report_path.exists() or report_path.is_symlink():
+        raise RuntimeError("NATIVE_CALIBRATION_VAL_OBSERVATION_EXISTS")
+    pointer_before = val.file_sha256(session._active_path)
+    if pointer_before != pause_evidence["active_pointer_sha256"]:
+        raise RuntimeError("NATIVE_CALIBRATION_VAL_POINTER_MISMATCH")
+    state = session.load_checkpoint()
+    model, ema = components["model"], components["weight_ema"]
+    target = copy.deepcopy(model).to(device)
+    target.load_state_dict(state["target_model_state"], strict=True)
+    target.requires_grad_(False)
+    target.eval()
+    snapshot = session.save_validation_checkpoint(model=model, report_only=True)
+    modes = [(module, module.training) for module in model.modules()]
+    rng = trainer._attended_session_rng_state(device=device)
+    val_started = time.monotonic()
+    try:
+        model.eval()
+        with ema.evaluating(model):
+            binding = bind_candidate_weight_ema_validation_checkpoint_v1(snapshot=snapshot, model=model)
+            result = val.evaluate_bound_full_val_v1(
+                model=model, entry_dataset=components["val_ds"], frame=context["frame"],
+                state_factory=context["state_factory"], checkpoint_binding=binding,
+                parent_coordinate_evidence=context["parent_coordinate_evidence"],
+                val_sequence_audit=Path(context["val_sequence_audit"]), device=device,
+                selected_batch_size=16, exit_policy_batch_size=context["policy_batch_size"],
+                cpu_pipeline_workers=context["cpu_pipeline_workers"],
+                rollout_progress_path=report_directory / "ROLLOUT_PROGRESS.json",
+                result_path=report_directory / "VAL_RESULT.json",
+                max_forwards_this_invocation=context["max_model_forwards"],
+                progress_interval_forwards=context["progress_interval_forwards"],
+                compute_guard_max_model_forwards=context["max_model_forwards"],
+                compute_guard_max_materialized_state_views=context["max_state_views"],
+                compute_guard_max_wall_seconds=context["max_wall_seconds"],
+                candidate_target_model=target,
+            )
+    finally:
+        for module, training in modes:
+            module.training = training
+        trainer._restore_attended_session_rng_state(rng, device=device)
+        if val.file_sha256(session._active_path) != pointer_before:
+            raise RuntimeError("NATIVE_CALIBRATION_VAL_CHANGED_TRAINING_POINTER")
+    progress_path = report_directory / "ROLLOUT_PROGRESS.json"
+    observed = val._read(progress_path)
+    seconds = time.monotonic() - val_started
+    report = {
+        "schema_version": "gx1_native_calibration_val_observation_v1",
+        "decision": "OBSERVATION_REQUIRES_REVIEW", "report_only": True,
+        "native_calibration": calibration, "training_pointer_sha256": pointer_before,
+        "snapshot": snapshot, "checkpoint_binding": binding,
+        "native_val_profile": {key: context[key] for key in (
+            "policy_batch_size", "cpu_pipeline_workers", "max_wall_seconds", "progress_interval_forwards")},
+        "elapsed_before_val_seconds": elapsed, "native_val_seconds": seconds,
+        "native_invocation_elapsed_seconds": time.monotonic() - invocation_started,
+        "optimizer_steps_this_reference": 32 if calibration["arm"] == "reference" else 16,
+        "global_optimizer_steps": 32, "val_decision": result["decision"],
+        "model_forward_count": observed["model_forward_count"],
+        "materialized_state_view_count": observed["materialized_state_view_count"],
+        "val_states_per_second_including_entry_setup": observed["materialized_state_view_count"] / seconds,
+        "val_progress": {"path": str(progress_path), "sha256": val.file_sha256(progress_path)},
+        "checkpoint_selection_advanced": False, "learning_calibrated": False,
+        "profitability_proven": False, "test_data_used": False,
+    }
+    trainer._candidate_training_session_atomic_write_json(report_path, report)
+    print(json.dumps({"event": "NATIVE_CALIBRATION_VAL_WINDOW_COMPLETED",
+                      "path": str(report_path), "sha256": val.file_sha256(report_path),
+                      "native_val_seconds": seconds, "decision": result["decision"]}), flush=True)
+    return {"executed": True, "path": str(report_path), "sha256": val.file_sha256(report_path),
+            "report_only": True, "checkpoint_selection_advanced": False}
 
 
 def _native_resume_state(*, components: Mapping[str, Any], output: Path) -> dict[str, Any]:
