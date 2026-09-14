@@ -29,6 +29,7 @@ from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
     require_selected_weight_ema_checkpoint_binding_v1,
 )
 from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import RESULT_SCHEMA_VERSION
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import native_checkpoint_monitor
 
 
 NATIVE_FULL_TRAIN_RECIPE_SCHEMA = "gx1_unified_exit_random_access_full_train_recipe_v1"
@@ -144,7 +145,9 @@ def _require_native_full_train_recipe(
         "precision_policy": "deterministic_fp32", "seed": seed_launch["seed"],
         "learning_rate": seed_launch["learning_rate"], "weight_decay": seed_launch["weight_decay"],
         "grad_clip_norm": float(trainer._GRAD_CLIP_NORM),
-        "checkpoint_monitor": trainer.COUPLED_NET_CHECKPOINT_MONITOR,
+        "checkpoint_monitor": native_checkpoint_monitor(
+            val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
+        ),
     }
     if (
         recipe["trainer_cli"] != controls
@@ -446,7 +449,9 @@ def _run_bound_full_train_candidate(
         precision_policy="deterministic_fp32", execution_budget=execution_budget,
         execution_budget_sha256=execution_budget_sha256,
         invocation_started_monotonic=invocation_started_monotonic,
-        checkpoint_monitor=trainer.COUPLED_NET_CHECKPOINT_MONITOR,
+        checkpoint_monitor=native_checkpoint_monitor(
+            val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
+        ),
         candidate_resume_origin=candidate_resume_origin,
     )
 

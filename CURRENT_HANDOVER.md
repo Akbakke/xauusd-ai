@@ -1,9 +1,46 @@
 # GX1 overtakelse — 2026-09-14
 
-Videre arbeid venter på brukerens risikosvar. De avklaringsuavhengige økonomi-
-og målerettelsene er verifisert og pushet til 2938eab3. Ingen ny epoch eller
-GPU-kampanje startes før det avtalte risiko-/holdemålet er fastsatt. Målet om
-lønnsom trening er ikke oppnådd; øvrige porter er spesifisert nedenfor.
+Brukeren har svart «Ingen fast grense». Risiko-/holdemålet er nå fastsatt i
+[docs/RISK_OBJECTIVE_20260914.json](docs/RISK_OBJECTIVE_20260914.json) og hash-bundet
+i NEXT_RUN_POLICY.json: ingen absolutt tapsgrense eller maksimal holdetid.
+Exit sammenligner forventet videre nettoverdi med lukking nå.
+Videre arbeid er gjenopptatt. Økonomi-/målerettelsene er verifisert til 2938eab3.
+En fast posisjon om gangen følger den tidligere anbefalingen; Entry vurderes
+ved ledig posisjon. Treningsfasit er fortsatt per handelsmulighet, og global
+optimalisering av fremtidig kapitalbruk er ikke bevist.
+Checkpointmål v5 er implementert og verifisert nedenfor. GPU256-, totalfart-
+og faktisk resume-bevis samt korrekt overgang til ny økonomi gjenstår;
+training_enabled=false beholdes til alle porter er klare.
+Målet om lønnsom trening er ikke oppnådd. Ubesvarte risikospørsmål i tidligere
+trinn nedenfor er historikk og gjelder ikke lenger.
+
+## Checkpointvalg følger nå hele den kronologiske nettoverdien
+
+Den observerte blokkeringen var at åpne valgte handler gjorde den gamle
+checkpointscoren utilgjengelig. Eksplisitt MTM-økonomi v3 er nå koblet til
+checkpoint-policy v5: kontantresultat pluss gjennomførbar åpen verdi etter
+kostnader, kronologisk med én fast posisjon. Patience 5 og høyst 30 epocher
+er beholdt. Gamle økonomikontrakter beholder gammel score.
+
+Recipe, native kampanje og trener binder samme monitor til økonomikontrakten.
+Native kontroll rekonstruerer målingen fra samtlige 11 016 sideforløp før
+bruk; verken endrede summer, ufullstendig VAL, ikke-endelige tall eller en
+gammel resultatschema med innskutt ny score aksepteres. Resultatfilen er
+fortsatt et uforandret målebevis; kopien i treningens utvalgsstatistikk angir
+eksplisitt used_for_early_stopping=true. Ingen modell-EXIT fabrikkeres.
+
+23 målrettede CPU-tilfeller besto i én capped jobb. En syntetisk hel måned
+med åpen valgt tapsposisjon gir −30 Bps og sperrer 5 507 overlappende innganger.
+Den eksisterende durable koordinatoren ble prøvd med pause/resume og patience
+5 for begge monitorer, og velger den kronologiske vinneren selv når gammel
+score foretrekker en annen epoch. Dette er styringsbevis, ikke modellresultat
+eller produksjonsresume. Se
+[MARKED_SELECTION_VERIFICATION_20260914.json](handover_snapshot/MARKED_SELECTION_VERIFICATION_20260914.json).
+
+Ingen GPU eller ny epoch er startet. Neste arbeid er en eksplisitt, bevart
+overgang fra gammel checkpointøkonomi, deretter de avtalte GPU256-, totalfart-
+og resume-målingene. Entrys uavhengige markedsprognose og gate-kollaps er fortsatt
+uløste kvalitetsfunn; ny økonomi alene beviser ikke at disse er rettet.
 
 ## Native måling av åpen verdi og posisjonsbruk er forberedt
 

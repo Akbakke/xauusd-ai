@@ -1,5 +1,10 @@
 # Gjeldende GX1-mål — 2026-09-14
 
+RISIKO AVKLART: Brukeren har svart «Ingen fast grense». Ingen fast tapsgrense
+eller maksimal holdetid. Exit styres av forventet videre nettoverdi etter kostnad.
+Beslutningen er bundet i docs/RISK_OBJECTIVE_20260914.json og NEXT_RUN_POLICY.json.
+Øvrige måle-/treningsporter gjenstår; arbeidet fortsetter fra eksisterende rettelser.
+
 Nytt aktivt mål etter brukerbeskjed: Følg den prioriterte anbefalingen konkret mot
 positiv kostnadsjustert netto Bps. Entry må dokumentere selvstendig kvalitet mot
 observerte priser; en god Exit skal ikke være bevis for riktige innganger.
@@ -10,10 +15,11 @@ del 2E av prosjektgjennomgangen. Årsaken til svakt signal er fortsatt uavklart.
 En eksplisitt, inaktiv v3-kandidat for markedsverdibasert økonomi er implementert
 og verifisert med 42 målrettede CPU-tilfeller; se CURRENT_HANDOVER.md.
 Native v3-evaluering har nå separat åpen markedsverdi og en kontroll av én
-posisjon om gangen; 57 målrettede tester besto. Dette er ikke aktivert som
-treningsregel eller early-stopping-metrikk, og dokumenterer ikke lønnsomhet.
-Ingen nye risikogrenser eller endret treningsmål er aktivert. Spørsmålet om
-markedsstyrt Exit alene eller en absolutt tapsgrense er sendt brukeren og ubesvart.
+posisjon om gangen; 57 målrettede tester besto. Kronologisk nettoverdi er nå
+koblet til eksplisitt checkpoint-policy v5 med patience 5; 23 nye målrettede
+tilfeller besto. Risikovalg er avklart øverst. Ingen ny kampanje er aktivert;
+produksjonsovergang, GPU-paritet, samlet fart og resume samt Entry-kvalitet
+gjenstår. Dette dokumenterer ikke lønnsomhet.
 
 Brukerpresisering 2026-09-14: Kartlegg og mål hele den relevante Entry/Exit-kjeden,
 åtte familiers og tidsrammenes samarbeid, selektivitet/FLAT, risiko, data og drift.

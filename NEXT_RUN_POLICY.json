@@ -45,7 +45,10 @@
   },
   "training_enabled": false,
   "required_evidence": {
-    "risk_objective": null,
+    "risk_objective": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
+      "sha256": "eee9a87b30268de9a3a1068c06ff0f530d58b69fbb9b6998a13c8dd9addec691"
+    },
     "gpu_batch256_parity": null,
     "end_to_end_throughput": null,
     "resume_equivalence": null

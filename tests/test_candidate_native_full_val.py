@@ -7,6 +7,7 @@ import torch
 
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     COUPLED_NET_CHECKPOINT_MONITOR,
+    MARKED_NET_CHECKPOINT_MONITOR,
     checkpoint_policy_metadata,
 )
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
@@ -92,8 +93,9 @@ def test_native_val_pause_restores_online_weights_and_training_mode(tmp_path, mo
     assert progress["epochs_since_improve"] == 0
 
 
+@pytest.mark.parametrize("monitor", [COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR])
 @pytest.mark.parametrize("censoring", ["none", "first_epoch", "all_epochs"])
-def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_path, monkeypatch, censoring):
+def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_path, monkeypatch, censoring, monitor):
     """Exercise the real coordinator/session, using small optimizer steps and a rollout stub."""
     import hashlib
     import json
@@ -115,7 +117,7 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
         def set_unified_exit_lifecycle_v2_epoch(self, epoch):
             self.epoch = epoch
 
-    policy = checkpoint_policy_metadata(checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)
+    policy = checkpoint_policy_metadata(checkpoint_monitor=monitor)
     contract = {**_contract(), "training": {"checkpoint_policy": policy}, "native_full_val": {"fixture": True}}
     monkeypatch.setattr(trainer, "_candidate_training_session_contract", lambda **kwargs: copy.deepcopy(contract))
     monkeypatch.setattr(trainer, "_native_candidate_val_context_binding", lambda context: {"fixture": True})
@@ -148,7 +150,12 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
         available = not (censoring == "all_epochs" or (censoring == "first_epoch" and epoch == 0))
         best_epoch_index = 1 if censoring == "first_epoch" else 0
         return {"decision": "PASS_COMPLETE" if available else "COMPLETE_WITH_RIGHT_CENSORING", "fixture_stats": {
-            "entry_exit_policy_metrics": {"mean_net_bps_per_entry": (2.0 if epoch == best_epoch_index else 1.0) if available else None},
+            "entry_exit_policy_metrics": {"mean_net_bps_per_entry": (2.0 if epoch == best_epoch_index else (100.0 if monitor == MARKED_NET_CHECKPOINT_MONITOR else 1.0)) if available else None},
+            "native_checkpoint_monitor": monitor,
+            "marked_policy_evaluation": {"single_position_replay": {
+                "full_cohort_authoritative": available,
+                "net_cash_plus_open_value_bps_sum": (2.0 if epoch == best_epoch_index else -10.0) if available else None,
+            }},
             "native_checkpoint_metric_available": available,
             "checkpoint_selection_unavailable_reason": None if available else "selected_trade_right_censored_at_val_end",
             # Gross ranking deliberately prefers later epochs.
@@ -195,7 +202,7 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
                 unified_exit_lifecycle_evidence={"splits": {"train": {"lifecycle_manifest_sha256": "b" * 64}}, "root_manifest_sha256": "c" * 64},
                 recipe_source_provenance={}, precision_policy=trainer.DETERMINISTIC_FP32,
                 execution_budget=budget, execution_budget_sha256=hashlib.sha256(str(invocation).encode()).hexdigest(), invocation_started_monotonic=time.monotonic(),
-                checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR,
+                checkpoint_monitor=monitor,
                 native_val_context={"frame": None, "state_factory": None, "parent_coordinate_evidence": {}, "val_sequence_audit": artifacts["val"], "max_model_forwards": 100, "max_state_views": 100, "max_wall_seconds": 10, "progress_interval_forwards": 16},
             )
         except trainer._CandidateExecutionPaused as pause:
@@ -302,3 +309,102 @@ def test_capacity_limits_are_bound_to_native_session(tmp_path):
     for key, value in (("cpu_pipeline_workers", 9), ("policy_batch_size", 512)):
         with pytest.raises(RuntimeError, match="LIMITS_INVALID"):
             trainer._native_candidate_val_context_binding({**context, key: value})
+
+
+def _complete_selection_result(marked):
+    import numpy as np
+    from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
+        build_entry_policy_decisions, coupled_entry_exit_policy_metrics, marked_entry_exit_policy_metrics,
+    )
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION
+    binding = "a" * 64
+    policy = build_entry_policy_decisions(
+        predicted_q_bps=np.tile(np.array([[2, 1, 0]], dtype=np.float32), (5508, 1)),
+        entry_row_indices=list(range(5508)), checkpoint_binding_sha256=binding,
+    )
+    outcomes = []
+    for row in range(5508):
+        for side in (0, 1):
+            closed = side == 1
+            outcomes.append({"entry_row_index": row, "side_index": side,
+                "status": "EXITED" if closed else "RIGHT_CENSORED_SPLIT_END",
+                "entry_fill_time_ns": 100 + row * 10,
+                "exit_decision_time_ns": 110 + row * 10 if closed else None,
+                "undiscounted_net_cash_pnl_bps": 200.0 if closed else -1.0,
+                "valuation": {"remaining_liquidation_value_bps": 0.0 if closed else -29.0,
+                    "net_cash_plus_open_value_bps": 200.0 if closed else -30.0,
+                    "valuation_time_ns": 110 + row * 10 if closed else 100000,
+                    "model_exit_executed": closed}})
+    result = {"schema_version": MARKED_RESULT_SCHEMA_VERSION if marked else RESULT_SCHEMA_VERSION,
+        "decision": "COMPLETE_WITH_RIGHT_CENSORING", "test_data_used": False,
+        "rollout_execution_complete": True, "entry_pair_cohort_size": 5508,
+        "side_trade_count": 11016, "exited_side_trade_count": 5508,
+        "right_censored_side_trade_count": 5508, "compute_truncated_side_trade_count": 0,
+        "checkpoint_binding_sha256": binding, "checkpoint_binding": {"target_model_state_sha256": binding},
+        "entry_gate_and_feature_route_diagnostics": {"candidate_active_head_evidence": {"target_model_state_sha256": binding}},
+        "trade_outcomes": outcomes, "entry_policy_decisions": policy,
+        "entry_exit_policy_metrics": coupled_entry_exit_policy_metrics(entry_policy=policy, trade_outcomes=outcomes, full_cohort_authoritative=True),
+        "full_cohort_policy_metrics_authoritative": False}
+    if marked:
+        result["marked_policy_evaluation"] = marked_entry_exit_policy_metrics(
+            entry_policy=policy, trade_outcomes=outcomes, full_cohort_authoritative=True)
+    return result
+
+
+@pytest.mark.parametrize("marked", [False, True])
+def test_native_selection_reconstructs_complete_value_without_forcing_exit(monkeypatch, marked):
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import checkpoint_metric
+    monkeypatch.setattr(trainer, "_native_val_gate_health_stats", lambda result: {})
+    result = _complete_selection_result(marked)
+    stats = trainer._native_candidate_validation_stats(result)
+    assert stats["native_checkpoint_metric_available"] is marked
+    assert result["entry_exit_policy_metrics"]["mean_net_bps_per_entry"] is None
+    monitor = MARKED_NET_CHECKPOINT_MONITOR if marked else COUPLED_NET_CHECKPOINT_MONITOR
+    assert stats["native_checkpoint_monitor"] == monitor
+    if marked:
+        assert checkpoint_metric(stats, checkpoint_monitor=monitor) == -30.0
+        replay = stats["marked_policy_evaluation"]["single_position_replay"]
+        assert replay["executed_trade_count"] == 1 and replay["skipped_while_position_open_count"] == 5507
+        assert replay["open_position_count"] == 1 and replay["model_exited_count"] == 0
+        assert stats["marked_policy_evaluation"]["used_for_early_stopping"] is True
+        assert result["marked_policy_evaluation"]["used_for_early_stopping"] is False
+        result["marked_policy_evaluation"]["single_position_replay"]["net_cash_plus_open_value_bps_sum"] = 200.0
+        with pytest.raises(RuntimeError, match="MARKED_VAL_METRICS_INVALID"):
+            trainer._native_candidate_validation_stats(result)
+    else:
+        result["marked_policy_evaluation"] = {}
+        with pytest.raises(RuntimeError, match="MARKED_VAL_SCHEMA_MISMATCH"):
+            trainer._native_candidate_validation_stats(result)
+
+
+@pytest.mark.parametrize("marked", [False, True])
+def test_native_campaign_recipe_binds_monitor_to_economics(tmp_path, marked):
+    import hashlib
+    import json
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_recipe_metadata, native_sha256
+    from tests.test_unified_exit_economics_objective_v2 import _contract as objective_contract
+    def bound(name, data, digest=None):
+        if digest:
+            data[digest] = native_sha256(data)
+        path = tmp_path / name
+        path.write_text(json.dumps(data))
+        return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    economics = bound("economics.json", {"economics_objective_contract": objective_contract(
+        reward_accounting="liquidation_value_increments_v1" if marked else "terminal_cash_v2")})
+    manifest = {"entry_row_count": 313399, "parent_entry_source_rows": 313399}
+    manifest_binding = bound("train.json", manifest, "manifest_sha256")
+    root = bound("root.json", {"decision": "PASS", "allowed_splits": ["train", "val"], "test_accessed": False,
+        "splits": {"train": {"manifest_path": manifest_binding["path"], "manifest_sha256": manifest["manifest_sha256"]}}}, "root_sha256")
+    monitor = MARKED_NET_CHECKPOINT_MONITOR if marked else COUPLED_NET_CHECKPOINT_MONITOR
+    recipe = {"schema_version": "gx1_unified_exit_random_access_full_train_recipe_v1", "profile": "candidate",
+        "test_data_used": False, "source_repo": str(tmp_path), "source_commit": "b" * 40,
+        "val_limits": {"policy_batch_size": 256, "cpu_pipeline_workers": 8, "max_wall_seconds": 10800, "progress_interval_forwards": 64},
+        "trainer_cli": {"epochs": 30, "batch_size": 16, "early_stopping_patience": 5, "checkpoint_monitor": monitor},
+        "files": {"economics_readiness": economics, "random_access_root": root}}
+    binding = bound("recipe.json", recipe, "recipe_sha256")
+    assert require_native_recipe_metadata(binding, source_repo=tmp_path, source_commit="b" * 40)[1] == 313399
+    recipe["trainer_cli"]["checkpoint_monitor"] = COUPLED_NET_CHECKPOINT_MONITOR if marked else MARKED_NET_CHECKPOINT_MONITOR
+    del recipe["recipe_sha256"]
+    binding = bound("recipe.json", recipe, "recipe_sha256")
+    with pytest.raises(RuntimeError, match="RECIPE_METADATA_INVALID"):
+        require_native_recipe_metadata(binding, source_repo=tmp_path, source_commit="b" * 40)

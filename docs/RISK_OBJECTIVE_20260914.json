@@ -1,0 +1,36 @@
+{
+  "schema_version": "gx1_operator_risk_objective_v1",
+  "decision": "PASS",
+  "observed_utc": "2026-09-14T09:33:17.767165+00:00",
+  "operator_statement": "Ingen fast grense",
+  "decision_scope": "economic risk definition; other training gates remain required",
+  "reward_accounting": "liquidation_value_increments_v1",
+  "economics_objective_schema": "gx1_unified_exit_economics_objective_v3",
+  "absolute_loss_limit_bps": null,
+  "maximum_holding_seconds": null,
+  "exit_principle": "Compare expected further executable net value with closing now, including costs; no fixed price-loss or time threshold.",
+  "risk_utility_policy": "Preserve existing source-owned penalties; no new arbitrary penalty coefficient.",
+  "cost_policy": "Preserve bound bid/ask, round-trip execution costs and financing; include first fill-minute once.",
+  "position_policy": "One fixed-notional XAUUSD position at a time, no pyramiding; Entry chooses only when no position is open.",
+  "position_policy_basis": "User requested continuation with the prioritized recommendation and realistic position use; no live capital allocation.",
+  "checkpoint_metric_proposal": "marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum",
+  "independent_entry_quality_required": true,
+  "test_data_used": false,
+  "implementation_evidence": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/MTM_OBJECTIVE_VERIFICATION_20260914.json",
+      "sha256": "561975df42a33f42305de836ce7b7a34f5372471b589d3004feaa04f2430106a"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/MTM_VAL_VERIFICATION_20260914.json",
+      "sha256": "3824b3c04d15d2ea7e24c0208432c5309df60f6ecb30916a6911d34e5d17e3d6"
+    }
+  ],
+  "risk_decision_does_not_prove": [
+    "Entry predictive quality",
+    "profitability",
+    "GPU256 parity",
+    "end-to-end throughput",
+    "resume/transition correctness"
+  ]
+}

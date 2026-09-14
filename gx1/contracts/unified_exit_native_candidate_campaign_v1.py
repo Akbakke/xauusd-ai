@@ -13,6 +13,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     canonical_sha256, file_sha256, read_bound_json, require_binding,
 )
 from gx1.contracts.unified_exit_random_access_sampler_v1 import canonical_sha256 as native_sha256
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import native_checkpoint_monitor
 
 
 CURSOR_SCHEMA = "gx1_native_candidate_campaign_cursor_v1"
@@ -32,6 +33,9 @@ def require_native_recipe_metadata(
     checked = require_binding(binding, label="native recipe")
     recipe = read_bound_json(Path(checked["path"]), checked["sha256"])
     controls = recipe.get("trainer_cli", {})
+    economics_binding = require_binding(recipe.get("files", {}).get("economics_readiness"), label="native economics readiness")
+    economics = read_bound_json(Path(economics_binding["path"]), economics_binding["sha256"])
+    monitor = native_checkpoint_monitor(economics["economics_objective_contract"])
     if (
         recipe.get("schema_version") != "gx1_unified_exit_random_access_full_train_recipe_v1"
         or recipe.get("profile") != "candidate" or recipe.get("test_data_used") is not False
@@ -43,7 +47,7 @@ def require_native_recipe_metadata(
                 "max_wall_seconds": 10800, "progress_interval_forwards": 64}.items())
         or controls.get("epochs") != 30 or controls.get("batch_size") != 16
         or controls.get("early_stopping_patience") != 5
-        or controls.get("checkpoint_monitor") != "entry_exit_policy_metrics.mean_net_bps_per_entry"
+        or controls.get("checkpoint_monitor") != monitor
     ):
         raise RuntimeError("NATIVE_CANDIDATE_RECIPE_METADATA_INVALID")
     root_binding = require_binding(recipe["files"]["random_access_root"], label="native index root")
@@ -102,8 +106,14 @@ def require_complete_val_observation(result: Mapping[str, Any]) -> dict[str, Any
     from collections import Counter
     from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
         require_entry_policy_decisions, coupled_entry_exit_policy_metrics,
+        marked_entry_exit_policy_metrics,
     )
 
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION,
+    )
+    if result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION}:
+        raise RuntimeError("NATIVE_CANDIDATE_VAL_SCHEMA_INVALID")
     outcomes = result.get("trade_outcomes")
     if (not isinstance(outcomes, list) or len(outcomes) != 11016
             or any(not isinstance(row, Mapping) for row in outcomes)):
@@ -131,6 +141,14 @@ def require_complete_val_observation(result: Mapping[str, Any]) -> dict[str, Any
             or result.get("full_cohort_policy_metrics_authoritative")
             is not metrics["full_cohort_authoritative"]):
         raise RuntimeError("NATIVE_CANDIDATE_FULL_VAL_POLICY_METRICS_INVALID")
+    if result["schema_version"] == MARKED_RESULT_SCHEMA_VERSION:
+        marked = marked_entry_exit_policy_metrics(
+            entry_policy=policy, trade_outcomes=outcomes, full_cohort_authoritative=True,
+        )
+        if result.get("marked_policy_evaluation") != marked:
+            raise RuntimeError("NATIVE_CANDIDATE_MARKED_VAL_METRICS_INVALID")
+    elif "marked_policy_evaluation" in result:
+        raise RuntimeError("NATIVE_CANDIDATE_MARKED_VAL_SCHEMA_MISMATCH")
     return dict(result)
 
 

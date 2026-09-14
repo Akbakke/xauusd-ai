@@ -1,0 +1,43 @@
+{
+  "schema_version": "gx1_marked_checkpoint_selection_verification_v1",
+  "observed_utc": "2026-09-14T09:45:38.293077+00:00",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "branch": "work/gx1-current",
+  "base_commit": "cb86e309b2836ce59feebaf1114d140c9c5d0b0f",
+  "modified_file_sha256": {
+    "gx1/contracts/entry_candidate_checkpoint_policy_v1.py": "f0792ba75d7b433734a4ec0a22ccae1f49b3cfcc6b402bcbcf099fba62376d0b",
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "80b7f0acf61f0918ffc8dc36dc34ffcd3a265de85401074380406cdee82108a4",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "f7d1c1820c2b0dfc9c205aeda90f7d211cdd152632391e4d6db59ab6106164d8",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "c82c7ccb36828e4a45ad387973ad37bbba0268a7a78ae52da026a8c4c2be33c3",
+    "tests/test_candidate_native_full_val.py": "60502324ee43b5214286657a8b294f6f5b549496760fe641c11261bb702f5c63",
+    "tests/test_entry_candidate_checkpoint_policy.py": "0ee86f5512db551895fae63c187ac7ba9678e76ab14768ce5dff86fa2eea993a"
+  },
+  "test_log": "handover_snapshot/gx1_marked_selection_tests.log",
+  "test_log_sha256": "52a8045cae20d3c07f09d186546a9bf1b0ff825620bab33bd81297c0234ca324",
+  "passed_cases": 23,
+  "exit_code": 0,
+  "test_command": ".venv/bin/python -m pytest -q tests/test_entry_candidate_checkpoint_policy.py tests/test_candidate_checkpoint_policy_proof.py tests/test_candidate_native_full_val.py",
+  "execution": "one capped CPU audit job, 4 GiB RAM, 512 MiB swap, CPU 0-7, one numerical thread",
+  "checkpoint_policy_schema": "gx1_entry_candidate_checkpoint_policy_v5",
+  "checkpoint_monitor": "marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum",
+  "verified": [
+    "old and new accounting bind distinct monitors; changed objective hashes rejected",
+    "complete 5508-entry synthetic month counts first open position -30 Bps and suppresses 5507 overlapping entries",
+    "fabricated marked scores and old-schema marked metric injection rejected",
+    "incomplete and nonfinite metrics cannot fall back to closed-only or gross scores",
+    "real durable coordinator with mocked model/VAL resumes before next epoch and retains chronological winner despite higher alternative score",
+    "patience 5, 30 epoch maximum, unavailable-score handling and legacy monitor retained"
+  ],
+  "not_verified": [
+    "production checkpoint objective transition",
+    "production GPU batch256 parity",
+    "end-to-end throughput",
+    "production exact resume",
+    "independent Entry learning quality",
+    "learned profitability"
+  ],
+  "gpu_run": false,
+  "training_epoch_started": false,
+  "test_data_used": false,
+  "decision": "PASS"
+}

@@ -14,6 +14,7 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v3"
 COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v4"
+MARKED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v5"
 # The external candidate is permitted at most thirty complete TRAIN/VAL
 # epochs. This upper bound belongs in the frozen policy so a resumed process
 # cannot silently exceed the hash-bound candidate budget.
@@ -25,6 +26,7 @@ SAVE_TOP_K = 1
 EARLY_STOP_MIN_DELTA = 0.0
 CHECKPOINT_MONITOR = "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"
 COUPLED_NET_CHECKPOINT_MONITOR = "entry_exit_policy_metrics.mean_net_bps_per_entry"
+MARKED_NET_CHECKPOINT_MONITOR = "marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum"
 CHECKPOINT_MODE = "max"
 
 
@@ -34,13 +36,13 @@ def checkpoint_policy_metadata(
     """Return the exact external-candidate policy in JSON-safe form."""
 
     if checkpoint_monitor not in {
-        CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR,
+        CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR,
     }:
         raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
     return {
         "schema_version": (
-            COUPLED_NET_SCHEMA_VERSION
-            if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
+            MARKED_NET_SCHEMA_VERSION if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR
+            else COUPLED_NET_SCHEMA_VERSION if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
             else SCHEMA_VERSION
         ),
         "max_epochs": MAX_EPOCHS,
@@ -52,6 +54,17 @@ def checkpoint_policy_metadata(
         "checkpoint_monitor": checkpoint_monitor,
         "checkpoint_mode": CHECKPOINT_MODE,
     }
+
+
+def native_checkpoint_monitor(objective: Mapping[str, Any]) -> str:
+    """Bind native selection to the validated economic accounting mode."""
+    from gx1.contracts.unified_exit_economics_objective_v2 import (
+        _require_runtime_contract, MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION,
+    )
+    checked = _require_runtime_contract(objective)
+    return (MARKED_NET_CHECKPOINT_MONITOR
+            if checked["schema_version"] == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+            else COUPLED_NET_CHECKPOINT_MONITOR)
 
 
 def require_checkpoint_policy(
@@ -72,6 +85,11 @@ def checkpoint_metric(
     """Read the selected metric without falling back to a different objective."""
 
     checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor)
+    if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR:
+        marked = metrics.get("marked_policy_evaluation", {})
+        replay = marked.get("single_position_replay", {}) if isinstance(marked, Mapping) else {}
+        if not isinstance(replay, Mapping) or replay.get("full_cohort_authoritative") is not True:
+            raise RuntimeError("[ENTRY_CANDIDATE_MARKED_CHECKPOINT_INCOMPLETE]")
     value: Any = metrics
     for key in checkpoint_monitor.split("."):
         if not isinstance(value, Mapping) or key not in value:
@@ -179,6 +197,9 @@ def retain_top_k(
 
 
 __all__ = [
+    "MARKED_NET_SCHEMA_VERSION",
+    "MARKED_NET_CHECKPOINT_MONITOR",
+    "native_checkpoint_monitor",
     "COUPLED_NET_SCHEMA_VERSION",
     "COUPLED_NET_CHECKPOINT_MONITOR",
     "CHECKPOINT_MODE",

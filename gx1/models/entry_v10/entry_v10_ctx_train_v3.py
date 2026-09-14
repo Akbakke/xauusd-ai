@@ -97,6 +97,7 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     CHECKPOINT_MONITOR,
     COUPLED_NET_CHECKPOINT_MONITOR,
+    MARKED_NET_CHECKPOINT_MONITOR,
     checkpoint_metric,
     checkpoint_policy_metadata,
     metric_improved as candidate_metric_improved,
@@ -12273,7 +12274,7 @@ def _native_candidate_epoch_validation(
 
 
 def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, Any]:
-    """Record complete VAL; a censored selected policy remains ineligible for selection."""
+    """Select complete, objective-bound VAL; marked scores include open liquidation value."""
 
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_complete_val_observation
     require_complete_val_observation(result)
@@ -12286,13 +12287,25 @@ def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, A
         "unified_exit_full_trajectory_validation": dict(result),
         "validation_loss_semantics": "entry_frozen_train_anchor_q_mse_only",
     }
+    monitor = COUPLED_NET_CHECKPOINT_MONITOR
     available = result["entry_exit_policy_metrics"]["full_cohort_authoritative"]
+    if "marked_policy_evaluation" in result:
+        monitor = MARKED_NET_CHECKPOINT_MONITOR
+        # The immutable evaluator artifact is measurement-only. This copy is
+        # explicitly admitted to the native selection/early-stopping policy.
+        stats["marked_policy_evaluation"] = {
+            **result["marked_policy_evaluation"], "used_for_early_stopping": True,
+        }
+        available = stats["marked_policy_evaluation"]["single_position_replay"]["full_cohort_authoritative"]
+    stats["native_checkpoint_monitor"] = monitor
     stats["native_checkpoint_metric_available"] = available
     stats["checkpoint_selection_unavailable_reason"] = (
-        None if available else "selected_trade_right_censored_at_val_end"
+        None if available else ("incomplete_marked_policy_valuation"
+                               if monitor == MARKED_NET_CHECKPOINT_MONITOR
+                               else "selected_trade_right_censored_at_val_end")
     )
     if available:
-        checkpoint_metric(stats, checkpoint_monitor=COUPLED_NET_CHECKPOINT_MONITOR)
+        checkpoint_metric(stats, checkpoint_monitor=monitor)
     return stats
 
 
@@ -12437,12 +12450,12 @@ def _run_resumable_candidate_training(
         raise RuntimeError("[CANDIDATE_TRAINING_VAL_POPULATION_INVALID]")
     native_binding = None
     if native_val_context is not None:
-        if checkpoint_monitor != COUPLED_NET_CHECKPOINT_MONITOR or weight_ema is None or execution_budget is None:
+        if checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR} or weight_ema is None or execution_budget is None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_SESSION_CONFIGURATION_INVALID]")
         native_binding = _native_candidate_val_context_binding(native_val_context)
         if execution_budget.get("resume_probe_val_rows") is not None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROBE_FORBIDDEN]")
-    elif checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR:
+    elif checkpoint_monitor in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_REQUIRED]")
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
         out_bundle_dir, gx1_data_override
@@ -12969,6 +12982,8 @@ def _run_resumable_candidate_training(
         progress["validation_snapshot"] = None
         selection["last_epoch"] = int(epoch_index) + 1
         selection["last_val_stats"] = _candidate_snapshot_safe(dict(val_stats))
+        if native_binding is not None and val_stats.get("native_checkpoint_monitor") != checkpoint_monitor:
+            raise RuntimeError("[CANDIDATE_NATIVE_CHECKPOINT_OBJECTIVE_MISMATCH]")
         metric_available = not (
             native_binding is not None
             and val_stats.get("native_checkpoint_metric_available") is False
@@ -13091,7 +13106,7 @@ def _run_resumable_candidate_training(
                         key.startswith("unified_exit_")
                         or key.startswith("exit_")
                         or key.startswith("candidate_")
-                        or key == "entry_exit_policy_metrics"
+                        or key in {"entry_exit_policy_metrics", "marked_policy_evaluation", "native_checkpoint_monitor"}
                     )
                 }
             )
