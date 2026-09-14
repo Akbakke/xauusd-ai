@@ -1,5 +1,31 @@
 # GX1 overtakelse — 2026-09-14
 
+## Aktivt lønnsomhetsmål og uavhengig Entry-kontroll
+
+Brukeren har bestilt videre arbeid etter anbefalingen og presisert at Entry må
+kunne velge riktige innganger selvstendig. Ny aritmetikk fra allerede lagrede
+epoch-1-forløp er bevart i
+[ENTRY_INDEPENDENT_QUALITY_20260914.json](handover_snapshot/ENTRY_INDEPENDENT_QUALITY_20260914.json).
+Ved 60 minutter ga valgte innganger −8,3884 netto Bps i gjennomsnitt; valgt side
+var best av LONG/SHORT på 47,9484 % av 5 508 rader. Ved 240 minutter var tallene
+−18,4727 Bps og 42,2162 % på 5 171 felles gyldige rader. Dette er faste
+diagnosehorisonter uavhengig av Exit-tid, ikke modellens handelsresultat,
+holdetidsgrenser eller en fasit fra etterpåklok optimal Exit.
+
+Kodekontroll på ren 2b6b7b51 bekrefter at Entry-Q-target er første tilstands
+frosne Exit-verdi for begge sider, med FLAT=0. Exit sender også gradienter inn
+i Entry-representasjonen. Det separate forecast-hodet lærer observerte
+close-til-close-returer ved 5/25/60/120 minutter; det velger ikke handel direkte.
+Exit-avledet Q er derfor ikke selvstendig bevis på markedsretning. Svakt
+Entry-signal må undersøkes før nye modeller/hoder, og før stor trening kan
+begrunnes som løsning. Ingen kausal feil i gradientdelingen er ennå påvist.
+
+Neste risikoavklaring er sendt brukeren: markedsstyrt Exit uten absolutt
+tapsgrense, eller en brukeroppgitt Bps-grense. Ingen svar er mottatt ennå.
+Økonomi-/targetkode og NEXT_RUN_POLICY.json er uendret; ingen ny epoch er startet.
+Seneste handover --check, 08:21:14 UTC, viste ingen native prosess og uendret
+checkpoint 315 / 19 908 steg. GPU256-, totalfart- og resume-bevis mangler fortsatt.
+
 ## Ny målt prosjektgjennomgang — 2026-09-14
 
 Brukeren har bestilt en bred, målt gjennomgang og prioriterte forbedringsforslag:

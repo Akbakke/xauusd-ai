@@ -1,5 +1,15 @@
 # Gjeldende GX1-mål — 2026-09-14
 
+Nytt aktivt mål etter brukerbeskjed: Følg den prioriterte anbefalingen konkret mot
+positiv kostnadsjustert netto Bps. Entry må dokumentere selvstendig kvalitet mot
+observerte priser; en god Exit skal ikke være bevis for riktige innganger.
+Bevar samarbeidet, men skill markedsprognose fra Exit-avledet handelsverdi.
+Eksisterende prognosemål skal undersøkes før nye modeller eller hoder bygges.
+Målt uavhengig Entry-kvalitet og den eksakte treningskoblingen er dokumentert i
+del 2E av prosjektgjennomgangen. Årsaken til svakt signal er fortsatt uavklart.
+Ingen nye risikogrenser eller endret treningsmål er aktivert. Spørsmålet om
+markedsstyrt Exit alene eller en absolutt tapsgrense er sendt brukeren og ubesvart.
+
 Brukerpresisering 2026-09-14: Kartlegg og mål hele den relevante Entry/Exit-kjeden,
 åtte familiers og tidsrammenes samarbeid, selektivitet/FLAT, risiko, data og drift.
 Kvalitet fremfor antall handler. Vurder også alternative regler/modeller/metoder,

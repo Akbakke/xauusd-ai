@@ -83,6 +83,58 @@ De rapporterte regresjonsmålene kan blande sider og horisonter. Konstant gjenno
 
 Entry-MAE gjelder 95 minutter og er ikke en tapsgrense for flerdagers handler. «Tillitsfull handel» må skilles fra både denne prognosen og lærte oppgavevekter.
 
+### E. Entry må måles mot markedet uavhengig av Exit
+
+Brukeren har etter gjennomgangen uttrykkelig bestilt videre konkret arbeid og
+presisert at Exit ikke skal måtte reparere systematisk dårlige innganger.
+En ny beregning gjenbruker de allerede lagrede LONG/SHORT-prisstiene fra første
+epochs EMA. Ingen ny inferens, terskeltilpasning eller trening er gjort.
+Bevis: [ENTRY_INDEPENDENT_QUALITY_20260914.json](../handover_snapshot/ENTRY_INDEPENDENT_QUALITY_20260914.json).
+
+| Fast diagnosehorisont | Felles gyldige rader | Valgt sides gjennomsnittlige netto Bps | Valgt side best av LONG/SHORT |
+|---|---:|---:|---:|
+| 15 minutter | 5 508 | −6,3459 | 49,0378 % |
+| 60 minutter | 5 508 | −8,3884 | 47,9484 % |
+| 240 minutter | 5 171 | −18,4727 | 42,2162 % |
+
+Dette måler utfallet av de faktiske Entry-valgene ved forhåndsvalgte horisonter,
+uten å bruke modellens Exit-tid. Det er ikke samlet policy-PnL eller bevis på at
+den beste horisonten kan handles. Andelen beste side er en sammenligning av to
+observerte nettoforløp, ikke en kalibrert sannsynlighet eller et universelt krav
+om 50 % treff. Avkastningens størrelse, kostnader og markedsfordeling teller også.
+Gjennomsnittet for valgte innganger er negativt i alle de lagrede kalenderdelene
+ved alle tre horisonter. Dette er én utviklings-VAL, ikke flere uavhengige tester.
+
+For 60 minutter gir alltid LONG −8,5966 Bps, alltid SHORT −2,5746 og FLAT 0.
+Entry er marginalt bedre enn alltid LONG, men svakere enn de to andre faste
+referansene. Ved 240 minutter er alltid SHORT positiv på det felles utvalget;
+det gir ikke grunnlag for å velge en SHORT-regel ut fra juni i ettertid.
+
+Den aktuelle koden ble kontrollert på ren `2b6b7b51`:
+
+- `entry_fitted_q_v1.py:252–316` setter LONG/SHORT-target lik detached første
+  Exit-tilstandsverdier og FLAT-target lik null. Dette er Exit-avledet
+  handelsverdi, ikke en uavhengig markedsfasit.
+- `unified_exit_random_access_training_v1.py:534–583` bygger broen fra det
+  frosne Exit-nettet. `entry_v10_ctx_train_v3.py:9201–9206` fører dessuten
+  Exit-gradienter tilbake til Entry-representasjonen. Detached targets betyr
+  derfor ikke at hele Entry er gradientmessig isolert fra Exit.
+- `build_entry_v10_ctx_training_dataset_v3.py:521–533` lager faktiske fremtidige
+  close-til-close-returer for K=1/5/12/24 M5-bars (5/25/60/120 minutter).
+  `entry_v10_ctx_train_v3.py:476–489` trener eksisterende forecast-hode med L1
+  mot disse etikettene. Dette er prisprognoser uten full handelskostnad og har
+  ingen selvstendig myndighet til å velge LONG/SHORT/FLAT.
+
+**Anbefaling:** Behold økonomisk samarbeid, men krev selvstendig målbar
+Entry-kvalitet. Avdekk først svikten i eksisterende prisprognose og representasjon;
+ikke opprett et duplisert forecast-hode eller gjør frakobling av Exit-gradienter
+til en uprøvd standardløsning. Rå Q kan verken bevise retningssignal eller trygg
+inngang når fasiten selv bygger på den feilende Exit-økonomien. Separat
+markedssupervisjon finnes allerede, men nytten er foreløpig svak. Kontroller
+horisontvis signal og relevant gradient-/inputpåvirkning med eksisterende eiere
+når tillatt måleprofil er klar. Ingen årsakssammenheng mellom delingen og svakt
+signal er ennå målt; ingen nye treningsmål er aktivert.
+
 ## 3. Økonomimålet må korrigeres konsistent
 
 Det eksisterende funnet består: SHORT-HOLD gir null løpende belønning, tapsrealisering gir negativ belønning, og ingen økonomisk slutt tvinger tapet inn. Mer trening alene dokumenterer ingen løsning. [Ferdig Entry/Exit-analyse](ENTRY_EXIT_REVIEW_20260914.md).
@@ -124,7 +176,7 @@ Dagens EMA-koeffisient etter én full epoch er omtrent 0,36787 på initial EMA-t
 | P1 | Robusthet gjennom tid | Bruk forhåndsbestemte kronologiske fit-/kalibreringsvinduer innen TRAIN for nye forsøk. Juni er brukt utviklings-VAL; TEST forblir forseglet |
 | P1 | Kostnads- og gapsensitivitet | Gjenbruk bundet bid/ask og tillatte slippage-scenarier. Sammenlign eldre TRAIN med mange gap mot nyere sammenhengende perioder; ikke syntetiser ukjente priser |
 | P2 | Enkle sammenligningsmodeller | En forhåndsdefinert EMA/momentum-regel, regularisert lineær modell eller gradientboostede trær på samme kausale data kan teste om kompleksiteten gir merverdi. De erstatter ikke alle features i hovedmodellen |
-| P2 | Direkte prediksjon av fremtidig side/nettoverdi før beslutning | Sammenlign observerbare path-/retur-targets mot dagens Exit-bootstrap som egen kontroll. Kan avdekke om svikt sitter i signal eller verdilæring; må unngå hindsight-optimal Exit som urealistisk fasit |
+| P0 | Selvstendig Entry-kvalitet mot faktiske priser | Fast-horisontkontroll er utført i del 2E. Undersøk eksisterende forecast-signal før nye hoder, og skill prisfasit fra Exit-bootstrap; ingen hindsight-optimal Exit som urealistisk fasit |
 | P2 | Fordeling av fremtidig verdi | Kvantil-/distributional Q kan gi informasjon om nedside utover et gjennomsnitt. Vurder først om eksisterende risikohoder kan brukes riktig; nytt hode krever ny evidens |
 | P2 | Hysterese, hendelsesbaserte innganger eller re-entry-regel | Vurder ved målt re-entry-churn etter økonomirettelsen. Færre bars eller fast cooldown velges ikke fordi juni ser bedre ut |
 | P2 | Tap-/gradientbalansering og mindre negativ deling | Mål oppgavevise gradienter før GradNorm, endret loss eller delvis separasjon av representasjoner. Ikke anta at alle hjelpeoppgaver hjelper Entry |
