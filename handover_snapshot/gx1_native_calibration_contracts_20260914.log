@@ -1,0 +1,239 @@
+[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
+[capped_run] cmd: .venv/bin/python -m pytest -q --tb=short --junitxml=/tmp/gx1_native_calibration_contracts_20260914.xml tests/test_candidate_economics_transition.py tests/test_candidate_learning_diagnostics.py tests/test_native_learning_calibration_scope.py tests/test_candidate_training_session.py tests/test_candidate_native_full_val.py
+[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
+........................FF.FFFF..FF.FFFFFFFFFFFFFF...................... [ 94%]
+....                                                                     [100%]
+=================================== FAILURES ===================================
+_____________ test_candidate_session_round_trips_exact_torch_state _____________
+tests/test_candidate_training_session.py:117: in test_candidate_session_round_trips_exact_torch_state
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_session_refuses_contract_and_state_tampering __________
+tests/test_candidate_training_session.py:181: in test_candidate_session_refuses_contract_and_state_tampering
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_session_refuses_state_without_active_pointer __________
+tests/test_candidate_training_session.py:249: in test_candidate_session_refuses_state_without_active_pointer
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_____ test_candidate_session_rejects_missing_optimizer_or_early_stop_state _____
+tests/test_candidate_training_session.py:285: in test_candidate_session_rejects_missing_optimizer_or_early_stop_state
+    session.save_checkpoint(missing_early_stop)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_____ test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering ______
+tests/test_candidate_training_session.py:317: in test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+______ test_candidate_read_only_published_destination_preserves_all_bytes ______
+tests/test_candidate_training_session.py:382: in test_candidate_read_only_published_destination_preserves_all_bytes
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+____ test_candidate_read_only_writers_reject_before_arguments_or_io[False] _____
+tests/test_candidate_training_session.py:414: in test_candidate_read_only_writers_reject_before_arguments_or_io
+    output, contract, _writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_____ test_candidate_read_only_writers_reject_before_arguments_or_io[True] _____
+tests/test_candidate_training_session.py:414: in test_candidate_read_only_writers_reject_before_arguments_or_io
+    output, contract, _writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_refuses_symlink_traversal[ancestor] _________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+__________ test_candidate_read_only_refuses_symlink_traversal[output] __________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_refuses_symlink_traversal[session] __________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+__________ test_candidate_read_only_refuses_symlink_traversal[top_k] ___________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+__________ test_candidate_read_only_refuses_symlink_traversal[state] ___________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+__________ test_candidate_read_only_refuses_symlink_traversal[active] __________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_refuses_symlink_traversal[contract] _________
+tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_keeps_existing_tamper_checks[state] _________
+tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_keeps_existing_tamper_checks[top_k] _________
+tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+________ test_candidate_read_only_keeps_existing_tamper_checks[pointer] ________
+tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+______ test_candidate_read_only_requires_private_real_paths[permissions] _______
+tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+_________ test_candidate_read_only_requires_private_real_paths[owner] __________
+tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+______ test_candidate_read_only_requires_private_real_paths[output_file] _______
+tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+______ test_candidate_read_only_requires_private_real_paths[invalid_mode] ______
+tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'
+=========================== short test summary info ============================
+FAILED tests/test_candidate_training_session.py::test_candidate_session_round_trips_exact_torch_state
+FAILED tests/test_candidate_training_session.py::test_candidate_session_refuses_contract_and_state_tampering
+FAILED tests/test_candidate_training_session.py::test_candidate_session_refuses_state_without_active_pointer
+FAILED tests/test_candidate_training_session.py::test_candidate_session_rejects_missing_optimizer_or_early_stop_state
+FAILED tests/test_candidate_training_session.py::test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_published_destination_preserves_all_bytes
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_writers_reject_before_arguments_or_io[False]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_writers_reject_before_arguments_or_io[True]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[ancestor]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[output]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[session]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[top_k]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[state]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[active]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_refuses_symlink_traversal[contract]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_keeps_existing_tamper_checks[state]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_keeps_existing_tamper_checks[top_k]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_keeps_existing_tamper_checks[pointer]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_requires_private_real_paths[permissions]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_requires_private_real_paths[owner]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_requires_private_real_paths[output_file]
+FAILED tests/test_candidate_training_session.py::test_candidate_read_only_requires_private_real_paths[invalid_mode]

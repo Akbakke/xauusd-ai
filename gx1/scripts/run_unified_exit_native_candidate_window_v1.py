@@ -17,7 +17,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
 )
 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
     NATIVE_KIND, NATIVE_PHASE, build_native_cursor, require_native_cursor,
-    require_native_window_policy,
+    require_native_window_policy, require_native_run_scope,
 )
 from gx1.scripts import local_random_access_campaign_v2 as campaign
 from gx1.scripts import run_unified_exit_random_access_full_train_v1 as native
@@ -116,13 +116,15 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
     progress_path = Path(policy["progress_path"])
     if progress_path.exists() or progress_path.is_symlink():
         raise RuntimeError("NATIVE_CANDIDATE_WINDOW_PROGRESS_EXISTS")
+    recipe = read_bound_json(Path(policy["recipe"]["path"]), policy["recipe"]["sha256"])
+    step_ceiling = require_native_run_scope(recipe, invocation_number=policy["invocation_number"])
     budget_path = Path(policy["budget_path"])
     campaign._prepare_private_directory(budget_path.parent, label="native window budget")
     campaign._atomic_new(budget_path, {
         "schema_version": native.launch_owner.CANDIDATE_EXECUTION_BUDGET_SCHEMA,
         "recipe_json": policy["recipe"]["path"], "recipe_sha256": policy["recipe"]["sha256"],
         "expected_active_pointer_sha256": expected_pointer,
-        "stop_after_optimizer_steps": None, "stop_after_completed_val_epochs": None,
+        "stop_after_optimizer_steps": step_ceiling, "stop_after_completed_val_epochs": None,
         "max_invocation_seconds": policy["max_invocation_seconds"],
     })
     result = native.run_guarded_native_candidate_invocation(

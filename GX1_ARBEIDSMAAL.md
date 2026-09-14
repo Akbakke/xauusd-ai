@@ -9,8 +9,10 @@ Deretter korrekt checkpointovergang, GPU256-paritet, samlet fart og resume.
 Første avgrensede rettelse er nå verifisert: Exit-verdi relativt til kjent
 gjennomførbar lukking, med konsistent kostnadsforankring tilbake til Entry.
 143 unike målrettede CPU-tilfeller består; faktisk kalibrering er ikke bevist.
-Neste blokkering er eksplisitt ny økonomiovergang og begrenset native TRAIN-
-måling, deretter GPU256/totalfart/resume. To underagenter er nå autorisert.
+Økonomiovergang og begrenset native TRAIN-måling er nå implementert med
+79 ytterligere målrettede kontrakttilfeller. Faktisk overgang/måling er ikke kjørt.
+Neste handling er bundet v4-recipe og kontrollforsøk16/32 optimizersteg, deretter
+rapporterende native GPU256/totalfart/resume. To underagenter er nå autorisert.
 Ingen ny epoch eller GPU-kjøring er startet.
 
 RISIKO AVKLART: Brukeren har svart «Ingen fast grense». Ingen fast tapsgrense

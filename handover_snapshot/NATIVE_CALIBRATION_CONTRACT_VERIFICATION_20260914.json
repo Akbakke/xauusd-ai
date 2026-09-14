@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_native_calibration_contract_verification_v1",
+  "decision": "PASS",
+  "observed_utc": "2026-09-14T11:49:10.825004+00:00",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "base_commit": "f8953d4e673dd1949853dd2eef9fd2be8151969e",
+  "modified_file_sha256": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "1f2d55d443eb88cd0f82f9c30fe886425b2608b474b779b16ee8036f4168b6cd",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "eb846579fa7574e8e4bfc9627c0f833b87bfa5b46f724eb5fbbe40832e85d1cd",
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py": "c5b5c41070da79a393d8db53bd2d2aa9b31bde682722d8aa2497d437788a251f",
+    "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": "844c83242781bbab5165eb307595bdac68fc7480daaf5acefd84a6ceea7f51ec",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "905d2ed5eb2723cafa5a69bec6ef3c23dc8deb84565c4b24f09977852abf51b5",
+    "tests/test_candidate_economics_transition.py": "67b03af1daa5a63e13307dd7fbca47a359033a88f4730dcad7570e2d9aeb04e5",
+    "tests/test_candidate_learning_diagnostics.py": "e90cb1f3415b389a26977a2e162dc34a5128e8b018274d45ed7cbccdcb3fc78b",
+    "tests/test_candidate_training_session.py": "32985189000dbb8a55a4aa1ffb7744084c41c53cbd766a06e537d49675125636",
+    "tests/test_native_learning_calibration_scope.py": "0fd7b0cb51d6e327716c00c5bb742744b968bc42779ccf89e73b6d2ec163036d"
+  },
+  "test_artifacts": {
+    "contracts_log": {
+      "path": "handover_snapshot/gx1_native_calibration_contracts_20260914.log",
+      "sha256": "bfe0e5c9224fe6389b0b196fe77abc8e688da98975121ae776b2dff690d94f18"
+    },
+    "contracts_xml": {
+      "path": "handover_snapshot/gx1_native_calibration_contracts_20260914.xml",
+      "sha256": "812f147307121cfb181b2b1c9613b2c2b41e7946d95eadd78d12e91550e0d597"
+    },
+    "repair_log": {
+      "path": "handover_snapshot/gx1_native_calibration_repair_20260914.log",
+      "sha256": "bf39ba1a2de7c9522e9f1e7787fc2d0d3b605676b78beba0b7919642635dd4c1"
+    },
+    "repair_xml": {
+      "path": "handover_snapshot/gx1_native_calibration_repair_20260914.xml",
+      "sha256": "95b92b94f7c76ef6a2a6595862b55509d34f76e75a4329ac2546ed9774ddd44c"
+    }
+  },
+  "initial": {
+    "passed": 54,
+    "failed": 22
+  },
+  "repair_and_scope_recheck": {
+    "passed": 34,
+    "failed": 0
+  },
+  "unique_cases_passing_after_repair": 79,
+  "fixture_repair": "Five lines add the current checkpoint-policy field to the existing legacy session fixture. No production workaround.",
+  "review_fix": "Native execution requires a bound non-null economics-transition origin; missing origins cannot fall back to the old smoke seed.",
+  "verified": [
+    "v2 checkpoint315/global19908 origin is hash bound, read only and restricted to explicit source/objective/profile changes",
+    "synthetic state passes real restore with model/target/Adam/EMA/scheduler/RNG preserved including internal19908 counters",
+    "new economics starts full epoch0/offset0/sessionglobal0; immutable receipt preserves prior progress and resets model selection",
+    "repeated transition before first save is idempotent; changed recipe/data/objective/source/pointer/receipt/order rejected",
+    "bounded first-v4-batch diagnostics measure actual weighted task gradients to shared Entry route parameters without extra forwards",
+    "diagnostics preserve parameter grads and RNG, distinguish disconnected from connected zero and handle masks/ties",
+    "native materializer/window/fulltrain bind NEXT_RUN_POLICY and enforce cumulative16/32 TRAIN measurement ceilings",
+    "full training still requires PASS role evidence bound to actual objective, source closure, origin and VAL profile",
+    "existing checkpoint persistence/tamper/read-only and native coordinator behavior preserved"
+  ],
+  "not_verified": [
+    "actual checkpoint315 transition on production tensors",
+    "actual learned calibration/selectivity",
+    "production GPU256 parity",
+    "total throughput",
+    "production uninterrupted-versus-resumed equality",
+    "profitability"
+  ],
+  "known_remaining_integration": [
+    "Bound16/32 TRAIN windows cannot produce full native VAL; report-only native VAL capacity phase remains to be connected after learning measurement.",
+    "Changing bound NEXT_RUN_POLICY changes recipe identity. Preserve calibration as a control experiment; full v4 can start from the same immutable old checkpoint. No automatic transfer of32 experimental steps is claimed."
+  ],
+  "gpu_run": false,
+  "training_epoch_started": false,
+  "test_data_used": false
+}

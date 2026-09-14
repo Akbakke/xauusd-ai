@@ -1,5 +1,46 @@
 # GX1 overtakelse — 2026-09-14
 
+## Native kalibreringsvei forberedt — ingen GPU startet
+
+Ny eksplisitt økonomiovergang godtar bare den bevarte v2-origin checkpoint315 /
+19 908 optimizersteg, og skriver til en ny privat v4-session. Modell, target,
+Adam, EMA, scheduler og RNG beholdes. Ny full femårsdekning begynner ved
+epoch0/offset0/global0; gammel steghistorikk og interne tellere bevares i et
+uforanderlig overgangsbevis. Gammelt best/top-k/patience/VAL nullstilles for
+nytt mål. Dette er kontrollert initialisering, ikke v2-v4 resultatlikhet.
+
+79 unike målrettede tilfeller består i denne runden, inkludert reell restore-
+kode med syntetisk state og beholdte interne tellere19 908. En eksisterende
+session-testfixture trengte dagens checkpoint-policy (fem linjer); ingen
+produksjonsomgåelse. Bevis:
+[NATIVE_CALIBRATION_CONTRACT_VERIFICATION_20260914.json](handover_snapshot/NATIVE_CALIBRATION_CONTRACT_VERIFICATION_20260914.json).
+
+Første v4-batch i en begrenset TRAIN-invocation kan nå måle faktiske vektede
+forecast-/Entry-Q-/Exit-gradienter på de samme Entry-ruterparametrene, norm og
+cosinus, samt Entry-target/prediksjonsfordeling/bias og HOLD-targets. Målingen
+bruker eksisterende grafer, bevarer .grad/RNG og følger logg/pause-statistikk.
+Den er en avgrenset læringskontroll, ikke bevis for fremtidig lønnsomhet.
+
+NEXT_RUN_POLICY er nå håndhevet i native materializer/window/fulltrain. Når
+stor trening er av, tillates bare deklarert kalibrering med kumulative16/32
+optimizersteg. Dette er operative målegrenser, ingen handelsgrenser. TRAIN16,
+VAL256/8 arbeidere/10 800 sekunder og alle maskinvarevakter er bevart.
+Manglende origin kan ikke falle tilbake til gammelt smoke-seed. Oppstart av
+full trening krever også bundne overgangs-/kalibreringsbevis; feltene er NULL.
+
+Neste handling er å binde faktisk v4-readiness/recipe og gjøre overgangen og
+den begrensede TRAIN-målingen i godkjent native kampanje etter fersk fysisk
+boot. Ingen recipe, kampanje, checkpointovergang eller GPU-kjøring er ennå
+aktivert for dette. Handover BLOCK gjelder fortsatt full trening.
+
+Etter at TRAIN-målingen er tolket, gjenstår eksplisitt rapporterende native
+VAL-kapasitetsfase:16/32 TRAIN når ingen hel epoch/VAL og kan ikke produsere
+GPU256-/totalfartbevis alene. Deretter må uavbrutt v4 sammenlignes med gjenopptatt
+v4 fra samme tilstand. Endring av den bundne NEXT_RUN_POLICY endrer recipe-
+identitet; kalibreringssessionen bevares som kontrollforsøk. Full v4-trening
+kan starte fra samme uforanderlige gamle checkpoint. Ingen overføring av32
+prøvesteg eller produksjonsresume er ennå dokumentert.
+
 ## Læringsrettelse v4 verifisert — stor trening fortsatt sperret
 
 Exit lærer nå HOLD-fordelen over kjent gjennomførbar lukking. EXIT-fordelen er

@@ -51,12 +51,23 @@
     },
     "gpu_batch256_parity": null,
     "end_to_end_throughput": null,
-    "resume_equivalence": null
+    "resume_equivalence": null,
+    "checkpoint_transition": null,
+    "learning_calibration": null
   },
   "cpu_stage_evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "No legacy fallback, no reduction of features/data/precision/costs. No epoch until risk objective and capacity/resume evidence are resolved."
+  "rule": "Full epoch training remains blocked. Only declared cumulative16/32 optimizer-step native TRAIN calibration is permitted before learning, GPU, throughput and resume evidence. No legacy runner, reduced VAL profile, reduced features/data/precision or TEST.",
+  "native_learning_calibration": {
+    "schema_version": "gx1_native_learning_calibration_scope_v1",
+    "optimizer_step_ceilings": [
+      16,
+      32
+    ],
+    "full_epoch_training_allowed": false,
+    "test_data_used": false
+  }
 }

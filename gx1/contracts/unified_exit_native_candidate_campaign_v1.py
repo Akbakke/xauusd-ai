@@ -72,6 +72,99 @@ def require_native_recipe_metadata(
     return recipe, count
 
 
+def require_native_run_scope(
+    recipe: Mapping[str, Any], *, invocation_number: int | None = None,
+    execution_budget: Mapping[str, Any] | None = None,
+) -> int | None:
+    """Enforce the operator's bound readiness policy before native model work.
+
+    The sole pre-training exception is a finite, declared TRAIN calibration.
+    It uses the normal native session, production profile and machine guards.
+    """
+    repo = Path(__file__).resolve().parents[2]
+    origin = recipe.get("candidate_resume_origin")
+    if (not isinstance(origin, Mapping) or set(origin) != {"schema_version", "contract", "pointer"}
+            or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1"):
+        raise RuntimeError("NATIVE_ECONOMICS_TRANSITION_ORIGIN_REQUIRED")
+    require_binding(origin["contract"], label="native origin contract")
+    origin_pointer = require_binding(origin["pointer"], label="native origin pointer")
+    binding = require_binding(recipe.get("next_run_policy"), label="next native run policy")
+    if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+               "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
+            or policy.get("canonical_source_repo") != str(repo)
+            or policy.get("canonical_branch") != "work/gx1-current"
+            or policy.get("training_module") != NATIVE_MODULE
+            or policy.get("required_val_profile") != profile
+            or any(recipe.get("val_limits", {}).get(k) != v for k, v in profile.items())
+            or policy.get("train_batch_size") != 16
+            or recipe.get("trainer_cli", {}).get("batch_size") != 16
+            or policy.get("precision") != "float32" or policy.get("tf32_allowed") is not False
+            or policy.get("native_invocation_seconds") != 12000
+            or policy.get("outer_guard_seconds") != 13800):
+        raise RuntimeError("NATIVE_NEXT_RUN_PROFILE_INVALID")
+    evidence = policy.get("required_evidence", {})
+    risk_binding = require_binding(evidence.get("risk_objective"), label="native risk objective")
+    risk = read_bound_json(Path(risk_binding["path"]), risk_binding["sha256"])
+    econ_binding = require_binding(recipe.get("files", {}).get("economics_readiness"), label="native economics")
+    economics = read_bound_json(Path(econ_binding["path"]), econ_binding["sha256"])
+    objective = economics.get("economics_objective_contract", {})
+    if (risk.get("decision") != "PASS" or risk.get("test_data_used") is not False
+            or risk.get("maximum_holding_seconds") is not None
+            or risk.get("absolute_loss_limit_bps") is not None
+            or risk.get("reward_accounting") != "liquidation_advantage_v1"
+            or risk.get("economics_objective_schema") != "gx1_unified_exit_economics_objective_v4"
+            or objective.get("reward_accounting") != risk["reward_accounting"]
+            or objective.get("schema_version") != risk["economics_objective_schema"]):
+        raise RuntimeError("NATIVE_NEXT_RUN_RISK_OBJECTIVE_INVALID")
+    if policy.get("training_enabled") is True:
+        for role in ("checkpoint_transition", "learning_calibration", "gpu_batch256_parity",
+                     "end_to_end_throughput", "resume_equivalence"):
+            proof_binding = require_binding(evidence.get(role), label=f"native {role}")
+            proof = read_bound_json(Path(proof_binding["path"]), proof_binding["sha256"])
+            if (proof.get("decision") != "PASS" or proof.get("test_data_used") is not False
+                    or proof.get("evidence_role") != role
+                    or proof.get("economics_objective_contract_sha256") != objective.get("contract_sha256")
+                    or proof.get("source_bindings_sha256") != recipe.get("source_bindings_sha256")
+                    or proof.get("training_origin_pointer_sha256") != origin_pointer["sha256"]
+                    or proof.get("native_val_profile") != profile):
+                raise RuntimeError("NATIVE_NEXT_RUN_EVIDENCE_NOT_PASS")
+        ceiling = None
+    elif policy.get("training_enabled") is False:
+        scope = policy.get("native_learning_calibration")
+        if (not isinstance(scope, Mapping) or set(scope) != {
+                "schema_version", "optimizer_step_ceilings", "full_epoch_training_allowed", "test_data_used"}
+                or scope["schema_version"] != "gx1_native_learning_calibration_scope_v1"
+                or scope["optimizer_step_ceilings"] != [16, 32]
+                or any(type(x) is not int for x in scope["optimizer_step_ceilings"])
+                or scope["full_epoch_training_allowed"] is not False
+                or scope["test_data_used"] is not False):
+            raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
+        ceilings = scope["optimizer_step_ceilings"]
+        if invocation_number is not None:
+            if type(invocation_number) is not int or not 1 <= invocation_number <= len(ceilings):
+                raise RuntimeError("NATIVE_CALIBRATION_INVOCATION_INVALID")
+            ceiling = ceilings[invocation_number - 1]
+        elif execution_budget is not None:
+            ceiling = execution_budget.get("stop_after_optimizer_steps")
+            if type(ceiling) is not int or ceiling not in ceilings:
+                raise RuntimeError("NATIVE_CALIBRATION_STEP_CEILING_INVALID")
+        else:
+            raise RuntimeError("NATIVE_CALIBRATION_BOUNDARY_REQUIRED")
+    else:
+        raise RuntimeError("NATIVE_NEXT_RUN_ENABLEMENT_INVALID")
+    if execution_budget is not None and (
+            execution_budget.get("stop_after_optimizer_steps") != ceiling
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_NEXT_RUN_BUDGET_INVALID")
+    return ceiling
+
+
 def require_native_window_policy(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
     """Bind a window to one recipe and private campaign output paths."""
     fields = {

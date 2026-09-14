@@ -429,6 +429,111 @@ def _joint_task_loss(
     return total, stats
 
 
+def _candidate_learning_diagnostics(
+    *, model: nn.Module, weighted_losses: Mapping[str, Optional[torch.Tensor]],
+    entry_prediction: torch.Tensor, entry_target: torch.Tensor,
+    entry_valid: torch.Tensor, hold_target: torch.Tensor, hold_valid: torch.Tensor,
+) -> dict[str, Any]:
+    """Observe actual task gradients on one shared Entry routing surface.
+
+    autograd.grad retains the existing graph and does not accumulate into .grad.
+    Missing connectivity and connected zero gradients are reported separately.
+    """
+    prefixes = ("family_tf_context_gate.", "family_tf_token_gate.")
+    named = [(name, parameter) for name, parameter in model.named_parameters()
+             if name.startswith(prefixes) and parameter.requires_grad]
+    parameters = tuple(parameter for _name, parameter in named)
+    vectors: dict[str, torch.Tensor] = {}
+    evidence: dict[str, Any] = {}
+    for task, loss in weighted_losses.items():
+        if loss is not None and (loss.numel() != 1 or not bool(torch.isfinite(loss).all().item())):
+            raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_LOSS_INVALID]")
+        gradients = (torch.autograd.grad(loss, parameters, retain_graph=True, allow_unused=True)
+                     if parameters and loss is not None and loss.requires_grad
+                     else (None,) * len(parameters))
+        parts = [gradient.detach().cpu().double().reshape(-1) if gradient is not None
+                 else torch.zeros(parameter.numel(), dtype=torch.float64)
+                 for gradient, parameter in zip(gradients, parameters)]
+        vector = torch.cat(parts) if parts else torch.empty(0, dtype=torch.float64)
+        if not bool(torch.isfinite(vector).all().item()):
+            raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_GRADIENT_NONFINITE]")
+        norm = float(torch.linalg.vector_norm(vector).item())
+        connected = [name for (name, _parameter), gradient in zip(named, gradients) if gradient is not None]
+        zero = [name for ((name, _parameter), gradient, part) in zip(named, gradients, parts)
+                if gradient is not None and not bool(torch.count_nonzero(part).item())]
+        vectors[task] = vector
+        evidence[task] = {
+            "l2_norm": norm if norm > 0.0 else None,
+            "status": "nonzero" if norm > 0.0 else "connected_zero" if connected else "unused",
+            "connected_parameter_names": connected,
+            "connected_zero_parameter_names": zero,
+            "unused_parameter_names": [name for name, _parameter in named if name not in connected],
+            "loss_present": loss is not None,
+        }
+    cosines = {}
+    tasks = list(weighted_losses)
+    for index, first in enumerate(tasks):
+        for second in tasks[index + 1:]:
+            a, b = evidence[first]["l2_norm"], evidence[second]["l2_norm"]
+            cosines[f"{first}__{second}"] = (
+                max(-1.0, min(1.0, float(torch.dot(vectors[first], vectors[second]).item()) / (a * b)))
+                if a is not None and b is not None else None
+            )
+    prediction, target = (value.detach().cpu().double() for value in (entry_prediction, entry_target))
+    valid = entry_valid.detach().cpu()
+    if (prediction.ndim != 2 or prediction.shape[1] != 3 or prediction.shape != target.shape
+            or valid.shape != target.shape or valid.dtype != torch.bool
+            or not bool(valid.any(dim=1).all().item())
+            or not bool(torch.isfinite(prediction[valid]).all().item())
+            or not bool(torch.isfinite(target[valid]).all().item())):
+        raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_ENTRY_INVALID]")
+    actions = ("LONG", "SHORT", "FLAT")
+
+    def choices(values: torch.Tensor) -> dict[str, Any]:
+        masked = values.masked_fill(~valid, -torch.inf)
+        winners = masked.eq(masked.amax(dim=1, keepdim=True)) & valid
+        unique = winners.sum(dim=1) == 1
+        return {"unique_greedy_count": {name: int((winners[:, index] & unique).sum().item())
+                                        for index, name in enumerate(actions)},
+                "tied_row_count": int((~unique).sum().item())}
+
+    per_action = {}
+    for index, name in enumerate(actions):
+        mask = valid[:, index]
+        count = int(mask.sum().item())
+        bias = prediction[mask, index] - target[mask, index]
+        per_action[name] = {
+            "valid_row_count": count,
+            "prediction_mean_bps": float(prediction[mask, index].mean().item()) if count else None,
+            "target_mean_bps": float(target[mask, index].mean().item()) if count else None,
+            "prediction_minus_target_mean_bps": float(bias.mean().item()) if count else None,
+            "mean_absolute_error_bps": float(bias.abs().mean().item()) if count else None,
+        }
+    hold = hold_target.detach().cpu().double()
+    hold_mask = hold_valid.detach().cpu()
+    if hold.shape != hold_mask.shape or hold_mask.dtype != torch.bool:
+        raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_HOLD_INVALID]")
+    hold = hold[hold_mask]
+    if not bool(torch.isfinite(hold).all().item()):
+        raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_HOLD_INVALID]")
+    return {
+        "schema_version": "gx1_candidate_learning_diagnostics_v1", "report_only": True,
+        "parameter_names": [name for name, _parameter in named],
+        "routing_task_gradients": evidence, "routing_gradient_cosines": cosines,
+        "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
+        "entry": {"prediction": choices(prediction), "target": choices(target), "by_action": per_action,
+                  "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"},
+        "relative_hold_target_bps": {
+            "valid_cell_count": int(hold.numel()), "positive_count": int((hold > 0).sum().item()),
+            "negative_count": int((hold < 0).sum().item()), "zero_count": int((hold == 0).sum().item()),
+            "mean": float(hold.mean().item()) if hold.numel() else None,
+            "mean_absolute": float(hold.abs().mean().item()) if hold.numel() else None,
+            "minimum": float(hold.min().item()) if hold.numel() else None,
+            "maximum": float(hold.max().item()) if hold.numel() else None,
+        }, "test_data_used": False,
+    }
+
+
 def _observe_joint_task_weight_gradients(
     model: nn.Module,
     observed: dict[str, bool],
@@ -7222,6 +7327,11 @@ def _episode_native_exit_train_v2(
         outcome["target_forward_calls"]
     )
     stats["random_access_backward_calls"] = int(outcome["backward_calls"])
+    if batch.get("liquidation_relative_values") is True:
+        stats["random_access_value_coordinates"] = "advantage_over_executable_liquidation_bps"
+        # Detached views only; summarize once in a bounded native invocation.
+        stats["_relative_hold_target_bps"] = outcome["targets"][..., 0]
+        stats["_relative_hold_target_valid"] = outcome["valid_mask"][..., 0]
     return (
         outcome["entry_gradients"],
         {**stats, "raw_loss": float(outcome["raw_loss"].cpu().item())},
@@ -8980,6 +9090,7 @@ def train_epoch(
     _first_batch_logged = False
     _batch_i = 0
     _optimizer_steps_this_call = 0
+    _learning_diagnostics: Optional[dict[str, Any]] = None
     _performance_start: Optional[float] = None
     _performance_end: Optional[float] = None
     _performance_rows = 0
@@ -9204,6 +9315,28 @@ def train_epoch(
             scaled_main_loss = scaled_main_loss + (
                 entry_representations * exit_entry_gradients
             ).sum()
+        if (session_max_optimizer_steps is not None and _learning_diagnostics is None
+                and unified_exit_stats.get("random_access_value_coordinates")
+                == "advantage_over_executable_liquidation_bps"):
+            weighted_tasks = {
+                name: torch.exp(-model.task_log_variances[name]) * task_losses[name] / float(_accum_steps)
+                if name in task_losses else None
+                for name in ("forecast_return_bps", "entry_action_q")
+            }
+            weighted_tasks["unified_exit_action"] = (
+                (entry_representations * exit_entry_gradients).sum() if exit_supervised else None
+            )
+            _learning_diagnostics = _candidate_learning_diagnostics(
+                model=model, weighted_losses=weighted_tasks,
+                entry_prediction=entry_action_q_bps, entry_target=entry_action_q_targets,
+                entry_valid=entry_action_q_valid,
+                hold_target=unified_exit_stats["_relative_hold_target_bps"],
+                hold_valid=unified_exit_stats["_relative_hold_target_valid"],
+            )
+            _learning_diagnostics.update(batch_offset=_absolute_batch_i,
+                                         scope="first_v4_batch_of_bounded_train_invocation")
+            log.info("[CANDIDATE_LEARNING_DIAGNOSTICS] %s",
+                     json.dumps(_learning_diagnostics, sort_keys=True, allow_nan=False))
         _main_backward_started = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
@@ -9304,6 +9437,8 @@ def train_epoch(
                         "partial": True,
                         "batches_completed": _absolute_batch_i,
                         "optimizer_steps_this_session": _optimizer_steps_this_call,
+                        **({"candidate_learning_diagnostics": _learning_diagnostics}
+                           if _learning_diagnostics is not None else {}),
                     },
                     False,
                 )
@@ -9453,6 +9588,8 @@ def train_epoch(
             for name in JOINT_TASK_NAMES
         }
     )
+    if _learning_diagnostics is not None:
+        stats["candidate_learning_diagnostics"] = _learning_diagnostics
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     exit_gate_stats, _exit_gate_failures = _finalize_unified_exit_gate_epoch(
@@ -12366,6 +12503,214 @@ def _native_candidate_validation_stats(result: Mapping[str, Any]) -> dict[str, A
     return stats
 
 
+_CANDIDATE_ECONOMICS_TRANSITION_SCHEMA = "gx1_candidate_economics_transition_origin_v1"
+_CANDIDATE_ECONOMICS_TRANSITION_RECEIPT = "CANDIDATE_ECONOMICS_TRANSITION.json"
+# Only the measured economics/diagnostics/native execution changes may differ.
+# Unchanged feature, target, normalization and architecture-owner bytes remain bound.
+_CANDIDATE_ECONOMICS_TRANSITION_SOURCES = frozenset({
+    "gx1/contracts/entry_candidate_checkpoint_policy_v1.py",
+    "gx1/contracts/entry_model_native_train_launch_v1.py",
+    "gx1/contracts/local_random_access_campaign_v2.py",
+    "gx1/contracts/unified_exit_economic_step_provider_v1.py",
+    "gx1/contracts/unified_exit_economics_objective_v2.py",
+    "gx1/contracts/unified_exit_entry_policy_evaluation_v1.py",
+    "gx1/contracts/unified_exit_fitted_q_v1.py",
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+    "gx1/contracts/unified_exit_random_access_model_v1.py",
+    "gx1/contracts/unified_exit_random_access_state_view_v1.py",
+    "gx1/contracts/unified_exit_random_access_training_v1.py",
+    "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
+    "gx1/contracts/unified_exit_random_access_val_factory_v1.py",
+    "gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py",
+    "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+    "gx1/scripts/run_unified_exit_random_access_val_v1.py",
+    "scripts/gx1_capped_run.sh",
+})
+
+
+def _load_candidate_economics_successor_state(
+    *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
+    epoch_order: torch.Tensor,
+) -> dict[str, Any]:
+    """Warm-start v4 from the stopped v2 state; never claim objective equivalence.
+
+    Optimizer/EMA internal counters are retained. The session step counter starts
+    at zero because it counts complete TRAIN coverage under the new objective.
+    The immutable receipt preserves the 19,908 earlier updates and old cursor.
+    """
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+    from gx1.contracts.unified_exit_economics_objective_v2 import (
+        _require_runtime_contract, _LIQUIDATION_ADVANTAGE_FIELDS,
+        ECONOMICS_OBJECTIVE_SCHEMA_VERSION, LIQUIDATION_ADVANTAGE_SCHEMA_VERSION,
+    )
+
+    def fail(label: str) -> None:
+        raise RuntimeError(f"[CANDIDATE_ECONOMICS_TRANSITION_{label}]")
+
+    def read(binding: Mapping[str, Any]) -> dict[str, Any]:
+        bound = require_binding(binding, label="economics transition", verify_file=True)
+        return read_bound_json(Path(bound["path"]), bound["sha256"])
+
+    if (not isinstance(origin, Mapping) or set(origin) != {"schema_version", "contract", "pointer"}
+            or origin["schema_version"] != _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA):
+        fail("ORIGIN_INVALID")
+    contract, pointer = read(origin["contract"]), read(origin["pointer"])
+    old = _CandidateTrainingSession(out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True)
+    if (Path(origin["contract"]["path"]) != old._contract_path
+            or Path(origin["pointer"]["path"]) != old._active_path
+            or old.directory == session.directory or session._active_path.exists()
+            or any(session._slot_path(slot).exists() for slot in (0, 1))
+            or pointer.get("session_contract_sha256") != old.contract_sha256):
+        fail("SESSION_BINDING_INVALID")
+    expected_cursor = {"checkpoint_index": 315, "phase": "train", "epoch_index": 1,
+                       "next_batch_offset": 320, "global_optimizer_steps": 19908, "complete": False}
+    if any(pointer.get(key) != value or type(pointer.get(key)) is not type(value)
+           for key, value in expected_cursor.items()):
+        fail("STOPPED_CURSOR_INVALID")
+    contracts = (copy.deepcopy(contract), copy.deepcopy(session._contract))
+    recipes = []
+    for item in contracts:
+        provenance = item["recipe_source_provenance"]
+        recipe = read({"path": provenance["recipe_audit_path"], "sha256": provenance["recipe_audit_sha256"]})
+        if (recipe.get("recipe_sha256") != hashlib.sha256(json.dumps(
+                {k: v for k, v in recipe.items() if k != "recipe_sha256"},
+                sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+                or recipe["source_commit"] != item["source_commit"]
+                or recipe["source_bindings"] != provenance["source_bindings"]
+                or recipe["source_bindings_sha256"] != provenance["source_bindings_sha256"]
+                or recipe["out_bundle_dir"] != item["out_bundle_dir"]
+                or recipe["run_id"] != item["run_id"] or recipe.get("test_data_used") is not False):
+            fail("RECIPE_BINDING_INVALID")
+        recipes.append(recipe)
+    before, after = recipes
+    if (Path(after["source_repo"]) != Path(__file__).resolve().parents[3]
+            or after.get("candidate_resume_origin") != dict(origin)):
+        fail("CANONICAL_RECIPE_REQUIRED")
+    if ("next_run_policy" in before or "next_run_policy" not in after
+            or Path(after["next_run_policy"]["path"]) != Path(after["source_repo"]) / "NEXT_RUN_POLICY.json"):
+        fail("NEXT_RUN_POLICY_BINDING_INVALID")
+    read(after["next_run_policy"])
+    old_sources, new_sources = before["source_bindings"], after["source_bindings"]
+    if set(old_sources) != set(new_sources):
+        fail("SOURCE_CLOSURE_CHANGED")
+    changed_sources = []
+    for key, previous in old_sources.items():
+        requested = new_sources[key]
+        try:
+            relative = Path(previous["path"]).relative_to(before["source_repo"])
+        except ValueError:
+            fail("SOURCE_PATH_INVALID")
+        if Path(requested["path"]) != Path(after["source_repo"]) / relative:
+            fail("SOURCE_PATH_INVALID")
+        if previous["sha256"] != requested["sha256"]:
+            if relative.as_posix() not in _CANDIDATE_ECONOMICS_TRANSITION_SOURCES:
+                fail("UNAPPROVED_SOURCE_CHANGED")
+            changed_sources.append(relative.as_posix())
+    old_readiness = read(before["files"]["economics_readiness"])
+    new_readiness = read(after["files"]["economics_readiness"])
+    old_objective = _require_runtime_contract(old_readiness["economics_objective_contract"])
+    new_objective = _require_runtime_contract(new_readiness["economics_objective_contract"])
+    if (old_objective["schema_version"] != ECONOMICS_OBJECTIVE_SCHEMA_VERSION
+            or new_objective["schema_version"] != LIQUIDATION_ADVANTAGE_SCHEMA_VERSION
+            or old_readiness["mode"] != "economics_objective_v2"
+            or new_readiness["mode"] != "economics_objective_v4"):
+        fail("OBJECTIVE_VERSION_INVALID")
+    old_common = {k: v for k, v in old_objective.items() if k not in {"schema_version", "contract_sha256"}}
+    new_common = {k: v for k, v in new_objective.items()
+                  if k not in {"schema_version", "contract_sha256", *_LIQUIDATION_ADVANTAGE_FIELDS}}
+    if old_common != new_common or (
+        {k: v for k, v in old_readiness.items() if k not in {"mode", "economics_objective_contract"}}
+        != {k: v for k, v in new_readiness.items() if k not in {"mode", "economics_objective_contract"}}
+    ):
+        fail("ECONOMIC_PARAMETERS_CHANGED")
+    for recipe, item, monitor in zip(recipes, contracts, (COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR)):
+        if recipe["trainer_cli"]["checkpoint_monitor"] != monitor or item["training"]["checkpoint_policy"] != checkpoint_policy_metadata(checkpoint_monitor=monitor):
+            fail("MONITOR_INVALID")
+        limits = recipe["val_limits"]
+        if item["native_full_val"]["compute_limits"] != limits:
+            fail("VAL_BINDING_INVALID")
+    requested_limits = dict(after["val_limits"])
+    if any(requested_limits.get(key) != value or type(requested_limits.get(key)) is not type(value)
+           for key, value in {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+                             "max_wall_seconds": 10800, "progress_interval_forwards": 64}.items()):
+        fail("VAL_PROFILE_INVALID")
+    old_limits = dict(before["val_limits"])
+    for limits in (old_limits, requested_limits):
+        for key in ("policy_batch_size", "cpu_pipeline_workers", "max_wall_seconds"):
+            limits.pop(key, None)
+    if old_limits != requested_limits:
+        fail("VAL_CAPACITY_CHANGED")
+    normalized_recipes = copy.deepcopy(recipes)
+    for recipe, item in zip(normalized_recipes, contracts):
+        for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy"):
+            recipe.pop(key, None)
+        recipe["files"].pop("economics_readiness")
+        recipe["trainer_cli"].pop("checkpoint_monitor")
+        recipe.pop("val_limits")
+        for key in ("source_commit", "recipe_source_provenance", "out_bundle_dir", "run_id"):
+            item.pop(key)
+        item["training"].pop("checkpoint_policy")
+        item["native_full_val"].pop("compute_limits")
+    if normalized_recipes[0] != normalized_recipes[1] or contracts[0] != contracts[1]:
+        fail("MODEL_DATA_OR_TRAINING_CHANGED")
+    state = old.load_checkpoint()
+    if state is None or any(state.get(key) != value for key, value in expected_cursor.items()):
+        fail("STATE_CURSOR_INVALID")
+    old_order = state["epoch_order"]
+    old_batch = contract["training"]["batch_size"]
+    if old_batch != 16 or (old_order.numel() + old_batch - 1) // old_batch + 320 != 19908:
+        fail("OLD_FULL_TRAIN_COVERAGE_INVALID")
+    if (not isinstance(epoch_order, torch.Tensor) or epoch_order.dtype != torch.int64
+            or epoch_order.ndim != 1 or not isinstance(old_order, torch.Tensor)
+            or epoch_order.numel() != old_order.numel()
+            or not torch.equal(torch.sort(epoch_order.cpu()).values, torch.arange(old_order.numel()))):
+        fail("FULL_EPOCH_ORDER_INVALID")
+    optimizer_steps: dict[str, int] = {}
+    for parameter_state in state["optimizer_state"]["state"].values():
+        step = parameter_state.get("step")
+        if step is not None:
+            count = float(step.item() if isinstance(step, torch.Tensor) else step)
+            if not math.isfinite(count) or count < 0 or not count.is_integer():
+                fail("OPTIMIZER_COUNTER_INVALID")
+            key = str(int(count))
+            optimizer_steps[key] = optimizer_steps.get(key, 0) + 1
+    receipt = {
+        "schema_version": "gx1_candidate_economics_transition_receipt_v1",
+        "transition": "v2_to_v4_warm_start_not_objective_equivalence",
+        "origin": dict(origin), "origin_cursor": expected_cursor,
+        "origin_state_sha256": pointer["state_sha256"],
+        "destination_session_contract_sha256": session.contract_sha256,
+        "old_objective_sha256": old_objective["contract_sha256"],
+        "new_objective_sha256": new_objective["contract_sha256"],
+        "old_val_profile": before["val_limits"], "new_val_profile": after["val_limits"],
+        "changed_source_paths": sorted(changed_sources),
+        "preserved_state_fields": ["model_state", "target_model_state", "optimizer_state", "weight_ema_state", "lr_scheduler_state", "rng_state"],
+        "optimizer_internal_step_histogram": optimizer_steps,
+        "ema_internal_steps": state["weight_ema_state"]["steps"],
+        "new_objective_global_optimizer_steps": 0,
+        "counter_semantics": "new_full_train_coverage_prior_19908_updates_retained_in_origin",
+        "new_epoch_order_sha256": hashlib.sha256(epoch_order.cpu().contiguous().numpy().tobytes()).hexdigest(),
+        "new_epoch_index": 0, "new_batch_offset": 0,
+        "selection_and_validation_reset": True, "test_data_used": False,
+    }
+    receipt_path = session.directory / _CANDIDATE_ECONOMICS_TRANSITION_RECEIPT
+    if receipt_path.exists() or receipt_path.is_symlink():
+        _candidate_training_session_read_json(receipt_path, label="ECONOMICS_TRANSITION")
+        if receipt_path.read_bytes() != _candidate_training_session_json_bytes(receipt):
+            fail("RECEIPT_MISMATCH")
+    else:
+        _candidate_training_session_atomic_write_json(receipt_path, receipt)
+    state.update(session_contract_sha256=session.contract_sha256, checkpoint_index=1,
+                 phase="train", epoch_index=0, next_batch_offset=0, global_optimizer_steps=0,
+                 epoch_order=epoch_order.detach().cpu().clone(), complete=False,
+                 training_progress=_new_candidate_training_progress(checkpoint_monitor=MARKED_NET_CHECKPOINT_MONITOR))
+    return state
+
+
 def _load_candidate_val_batch_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -12585,9 +12930,15 @@ def _run_resumable_candidate_training(
     )
     restored_state = session.load_checkpoint()
     if restored_state is None and candidate_resume_origin is not None:
-        restored_state = _load_candidate_val_batch_successor_state(
-            session=session, origin=candidate_resume_origin,
-        )
+        if candidate_resume_origin.get("schema_version") == _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA:
+            restored_state = _load_candidate_economics_successor_state(
+                session=session, origin=candidate_resume_origin,
+                epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0),
+            )
+        else:
+            restored_state = _load_candidate_val_batch_successor_state(
+                session=session, origin=candidate_resume_origin,
+            )
         session.save_checkpoint(restored_state)
         log.info("[CANDIDATE_VAL_BATCH_SUCCESSOR] restored_steps=%d epoch_index=%d phase=%s",
                  restored_state["global_optimizer_steps"], restored_state["epoch_index"], restored_state["phase"])

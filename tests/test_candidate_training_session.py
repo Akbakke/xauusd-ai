@@ -30,6 +30,11 @@ def _contract(*, nonce: str = "a") -> dict[str, object]:
             "live": False,
         },
         "nonce": nonce,
+        "training": {
+            "checkpoint_policy": trainer.checkpoint_policy_metadata(
+                checkpoint_monitor=trainer.CHECKPOINT_MONITOR
+            ),
+        },
     }
 
 

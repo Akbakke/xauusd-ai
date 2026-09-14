@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="22" skipped="0" tests="76" time="22.065" timestamp="2026-09-14T13:44:05.470062+02:00" hostname="Andre2"><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_preserves_states_resets_coverage_and_is_crash_idempotent" time="1.022" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[cursor-STOPPED_CURSOR_INVALID]" time="0.042" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[unapproved_source-UNAPPROVED_SOURCE_CHANGED]" time="0.045" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[source_path-SOURCE_PATH_INVALID]" time="0.042" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[source_added-SOURCE_CLOSURE_CHANGED]" time="0.045" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[risk_changed-ECONOMIC_PARAMETERS_CHANGED]" time="0.043" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[objective_version-OBJECTIVE_VERSION_INVALID]" time="0.042" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[training_changed-MODEL_DATA_OR_TRAINING_CHANGED]" time="0.047" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[data_changed-MODEL_DATA_OR_TRAINING_CHANGED]" time="0.045" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_unapproved_changes[val_profile-VAL_PROFILE_INVALID]" time="0.049" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_receipt_and_order_tampering" time="0.125" /><testcase classname="tests.test_candidate_economics_transition" name="test_economics_transition_rejects_changed_bound_pointer_bytes" time="0.042" /><testcase classname="tests.test_candidate_learning_diagnostics" name="test_actual_weighted_route_gradients_retain_graph_grad_buffers_and_rng" time="0.004" /><testcase classname="tests.test_candidate_learning_diagnostics" name="test_connected_zero_unused_and_absent_are_distinct_and_keep_grad_none" time="0.002" /><testcase classname="tests.test_candidate_learning_diagnostics" name="test_entry_choice_bias_and_relative_hold_summary_respect_masks_and_ties" time="0.001" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_stopped_project_permits_only_declared_native_calibration" time="0.009" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_calibration_cannot_enable_short_or_legacy_val_probe[max_invocation_seconds-60]" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_calibration_cannot_enable_short_or_legacy_val_probe[stop_after_completed_val_epochs-1]" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_calibration_cannot_enable_short_or_legacy_val_probe[resume_probe_val_rows-32]" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_policy_file_changed_after_recipe_binding_is_rejected" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_enabling_full_training_does_not_skip_missing_measurements" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_full_training_requires_each_measurement_bound_to_actual_objective_and_source" time="0.010" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_no_calibration_scope_means_no_training" time="0.002" /><testcase classname="tests.test_native_learning_calibration_scope" name="test_old_economics_cannot_be_reinterpreted_as_v4" time="0.002" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_round_trips_exact_torch_state" time="0.009"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:117: in test_candidate_session_round_trips_exact_torch_state
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_refuses_contract_and_state_tampering" time="0.009"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:181: in test_candidate_session_refuses_contract_and_state_tampering
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_legacy_resume_requires_recipe_source_closure" time="0.007" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_refuses_state_without_active_pointer" time="0.008"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:249: in test_candidate_session_refuses_state_without_active_pointer
+    session.save_checkpoint(_state(session, model, target_model, optimizer, ema, scheduler))
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_rejects_missing_optimizer_or_early_stop_state" time="0.008"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:285: in test_candidate_session_rejects_missing_optimizer_or_early_stop_state
+    session.save_checkpoint(missing_early_stop)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering" time="0.020"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:317: in test_candidate_session_keeps_hash_bound_top_k_and_rejects_tampering
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_published_destination_preserves_all_bytes" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:382: in test_candidate_read_only_published_destination_preserves_all_bytes
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_missing_session_creates_nothing[False]" time="0.002" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_missing_session_creates_nothing[True]" time="0.002" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_writers_reject_before_arguments_or_io[False]" time="0.021"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:414: in test_candidate_read_only_writers_reject_before_arguments_or_io
+    output, contract, _writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_writers_reject_before_arguments_or_io[True]" time="0.021"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:414: in test_candidate_read_only_writers_reject_before_arguments_or_io
+    output, contract, _writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_requires_exact_contract_without_legacy_substitution" time="0.008" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[ancestor]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[output]" time="0.020"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[session]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[top_k]" time="0.020"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[state]" time="0.020"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[active]" time="0.018"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_refuses_symlink_traversal[contract]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:454: in test_candidate_read_only_refuses_symlink_traversal
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_keeps_existing_tamper_checks[state]" time="0.018"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_keeps_existing_tamper_checks[top_k]" time="0.020"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_keeps_existing_tamper_checks[pointer]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:481: in test_candidate_read_only_keeps_existing_tamper_checks
+    output, contract, writer, state = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_requires_private_real_paths[permissions]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_requires_private_real_paths[owner]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_requires_private_real_paths[output_file]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_read_only_requires_private_real_paths[invalid_mode]" time="0.019"><failure message="KeyError: 'training'">tests/test_candidate_training_session.py:505: in test_candidate_read_only_requires_private_real_paths
+    output, contract, writer, _state_value = _read_only_session_fixture(tmp_path)
+tests/test_candidate_training_session.py:363: in _read_only_session_fixture
+    session.save_checkpoint(state)
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2223: in save_checkpoint
+    value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+gx1/models/entry_v10/entry_v10_ctx_train_v3.py:2095: in checkpoint_monitor
+    policy = self._contract["training"]["checkpoint_policy"]
+E   KeyError: 'training'</failure></testcase><testcase classname="tests.test_candidate_training_session" name="test_candidate_validation_snapshot_uses_only_weights_only_safe_values" time="0.001" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session[train]" time="0.976" /><testcase classname="tests.test_candidate_training_session" name="test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session[validation]" time="1.020" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[None]" time="0.062" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[train_batch]" time="0.034" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[model_source]" time="0.030" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[market_cache_source]" time="0.059" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[cache_data_source]" time="0.032" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[cpu_pipeline]" time="0.057" /><testcase classname="tests.test_candidate_training_session" name="test_val_batch_successor_preserves_completed_train_state[cpu_data_source]" time="0.033" /><testcase classname="tests.test_candidate_training_session" name="test_deterministic_fp32_disables_cudnn_and_matmul_tf32" time="0.002" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_val_snapshot_survives_resume_slot_advance" time="0.104" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_val_pause_restores_online_weights_and_training_mode" time="0.072" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[none-entry_exit_policy_metrics.mean_net_bps_per_entry]" time="1.105" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[none-marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum]" time="1.135" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[first_epoch-entry_exit_policy_metrics.mean_net_bps_per_entry]" time="1.418" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[first_epoch-marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum]" time="1.425" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[all_epochs-entry_exit_policy_metrics.mean_net_bps_per_entry]" time="0.898" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_coordinator_resumes_val_before_next_epoch_and_selects_net[all_epochs-marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum]" time="0.766" /><testcase classname="tests.test_candidate_native_full_val" name="test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[None]" time="0.001" /><testcase classname="tests.test_candidate_native_full_val" name="test_cuda_lifecycle_dispatch_preserves_no_nested_chunk[1]" time="0.001" /><testcase classname="tests.test_candidate_native_full_val" name="test_capacity_limits_are_bound_to_native_session" time="0.004" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_selection_reconstructs_complete_value_without_forcing_exit[False]" time="0.063" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_selection_reconstructs_complete_value_without_forcing_exit[True]" time="0.217" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_campaign_recipe_binds_monitor_to_economics[False]" time="0.005" /><testcase classname="tests.test_candidate_native_full_val" name="test_native_campaign_recipe_binds_monitor_to_economics[True]" time="0.003" /></testsuite></testsuites>

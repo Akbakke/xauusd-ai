@@ -79,6 +79,7 @@ def _require_native_full_train_recipe(
         "gx1_data_root", "out_bundle_dir", "files", "seed_launch",
         "seed_authority", "smoke_full_val", "trainer_cli", "recipe_env",
         "val_limits", "initialization", "test_data_used", "recipe_sha256",
+        "next_run_policy",
     }
     if (
         set(recipe) not in (required, required | {"candidate_resume_origin"})
@@ -481,6 +482,8 @@ def run_guarded_native_candidate_invocation(
         or recipe["val_limits"]["max_wall_seconds"] + 60 >= budget["max_invocation_seconds"]
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_INVOCATION_BUDGET_INVALID")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
+    require_native_run_scope(recipe, execution_budget=budget)
     controls = recipe["trainer_cli"]
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")

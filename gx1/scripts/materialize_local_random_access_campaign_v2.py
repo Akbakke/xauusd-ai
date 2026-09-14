@@ -793,7 +793,7 @@ def materialize_native_candidate_campaign(
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
-        require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy,
+        require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy, require_native_run_scope,
     )
     from gx1.scripts.local_random_access_campaign_v2 import _prepare_private_directory
 
@@ -802,6 +802,10 @@ def materialize_native_candidate_campaign(
         raise RandomAccessCampaignError("native campaign output/window count invalid")
     recipe_binding = {"path": str(recipe_path), "sha256": recipe_file_sha256}
     recipe, count = require_native_recipe_metadata(recipe_binding, source_repo=repo, source_commit=commit)
+    for number in range(1, window_count + 1):
+        ceiling = require_native_run_scope(recipe, invocation_number=number)
+        if ceiling is not None and ceiling >= (count + 15) // 16:
+            raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")
     prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
     selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)
     if prior["selection_receipt"] != _binding(selection_path) or selection["selected_batch_size"] != 16:
