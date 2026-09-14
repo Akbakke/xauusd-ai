@@ -1,0 +1,51 @@
+{
+  "base_commit": "34fd8997a98fb2c0be9f7298a6a88018b3b4949f",
+  "decision": "PASS",
+  "failed": 0,
+  "modified_file_sha256": {
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "eb5f60d824eaf8c60cbfdddc9388dc3561963ef11f8cb5f9703cfac801c12f19",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "ca049ffcb24cdfca5a7c11acddafc23717e467c5b377912eb851648f4dd5b1d4",
+    "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1": "b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea",
+    "tests/test_candidate_learning_diagnostics.py": "8da0bcc19e6aab6b153a301ccc0af026149b6583ccf7c192f5c969ebeed6318c",
+    "tests/test_entry_liquidation_gradient_boundaries.py": "8f759e7ebd921918b89a24b4ed031eb19670e83350c61a6f8dd9ba0bc8aa1759"
+  },
+  "not_verified": [
+    "new gradient boundaries and target decomposition on actual TRAIN tensors",
+    "value teacher calibration, selectivity and profitability",
+    "GPU VAL256 parity, full TRAIN+VAL throughput and uninterrupted-resumed numerical equality"
+  ],
+  "observed_utc": "2026-09-14T13:28:00.411330+00:00",
+  "passed": 37,
+  "schema_version": "gx1_entry_learning_boundaries_verification_v1",
+  "test_artifacts": {
+    "gx1_entry_gradient_boundaries_20260914.log": {
+      "path": "handover_snapshot/gx1_entry_gradient_boundaries_20260914.log",
+      "sha256": "ebe2997c483897fc6127911f906af1a8d5c119391d2dcc6a4cac9439ba55772d"
+    },
+    "gx1_entry_gradient_boundaries_20260914.xml": {
+      "path": "handover_snapshot/gx1_entry_gradient_boundaries_20260914.xml",
+      "sha256": "08d8b2f1ebe82d626112d3f923b31e650753267adc88d6c62d76c7c70d2643b0"
+    },
+    "gx1_learning_target_decomposition_20260914.log": {
+      "path": "handover_snapshot/gx1_learning_target_decomposition_20260914.log",
+      "sha256": "b5ec03971948b71d1d8568546f780be81ce5c3ea7a60543fb5f142dffcad2ab2"
+    },
+    "gx1_learning_target_decomposition_20260914.xml": {
+      "path": "handover_snapshot/gx1_learning_target_decomposition_20260914.xml",
+      "sha256": "d2713262b2fca6a304062d74054c1121c661c377951bc36e50f8aa3d54a0d3a7"
+    }
+  },
+  "test_counts": {
+    "gx1_entry_gradient_boundaries_20260914": 24,
+    "gx1_learning_target_decomposition_20260914": 13
+  },
+  "test_data_used": false,
+  "verified": [
+    "v4 and legacy full-input-width Entry forward tensors are exactly equal and model state is unchanged",
+    "v4 Q and Exit token losses stop before upstream Entry representations while mixers/heads/token projection remain trainable",
+    "observed forecast and side-MAE heads still train M5,MTF and Entry routes",
+    "online v4 flag derives from validated economics and matching adapter binding; legacy receives no new keyword",
+    "HOLD reward/bootstrap and Entry first-liquidation/continuation use actual detached canonical batch tensors with masks and selected-row mapping",
+    "controller terminal BLOCKED/COMPLETE ends without a reboot, unknown action is rejected"
+  ]
+}

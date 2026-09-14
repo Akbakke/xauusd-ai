@@ -662,9 +662,12 @@ $after = Invoke-Gx1Json -Arguments @(
     'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
     '--boot-json', $boot.Linux
 )
-if ($after.action.decision -eq 'COMPLETE') {
-    $recorded | ConvertTo-Json -Depth 16 -Compress
+# Respect the inspected terminal/block decision after the last bounded window,
+# just as the pre-launch branch does. Exhausted windows never request a reboot.
+if ($after.action.decision -ceq 'COMPLETE' -or $after.action.decision -like 'BLOCKED*') {
+    $after | ConvertTo-Json -Depth 16 -Compress
     exit 0
 }
+if ($after.action.decision -cne 'REBOOT_REQUIRED') { throw 'Campaign returned no admissible reboot' }
 Request-Gx1PhysicalReboot -Boot $boot
 $recorded | ConvertTo-Json -Depth 16 -Compress

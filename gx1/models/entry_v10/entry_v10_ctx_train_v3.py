@@ -433,6 +433,8 @@ def _candidate_learning_diagnostics(
     *, model: nn.Module, weighted_losses: Mapping[str, Optional[torch.Tensor]],
     entry_prediction: torch.Tensor, entry_target: torch.Tensor,
     entry_valid: torch.Tensor, hold_target: torch.Tensor, hold_valid: torch.Tensor,
+    hold_reward: torch.Tensor, entry_first_liquidation: torch.Tensor,
+    entry_anchor_indices: torch.Tensor,
 ) -> dict[str, Any]:
     """Observe actual task gradients on one shared Entry routing surface.
 
@@ -509,27 +511,68 @@ def _candidate_learning_diagnostics(
             "prediction_minus_target_mean_bps": float(bias.mean().item()) if count else None,
             "mean_absolute_error_bps": float(bias.abs().mean().item()) if count else None,
         }
-    hold = hold_target.detach().cpu().double()
+    def summary(values: torch.Tensor) -> dict[str, Any]:
+        return {
+            "valid_cell_count": int(values.numel()), "positive_count": int((values > 0).sum().item()),
+            "negative_count": int((values < 0).sum().item()), "zero_count": int((values == 0).sum().item()),
+            "mean": float(values.mean().item()) if values.numel() else None,
+            "mean_absolute": float(values.abs().mean().item()) if values.numel() else None,
+            "minimum": float(values.min().item()) if values.numel() else None,
+            "maximum": float(values.max().item()) if values.numel() else None,
+        }
+
+    hold, reward = (value.detach().cpu().double() for value in (hold_target, hold_reward))
     hold_mask = hold_valid.detach().cpu()
-    if hold.shape != hold_mask.shape or hold_mask.dtype != torch.bool:
+    if hold.shape != hold_mask.shape or reward.shape != hold.shape or hold_mask.dtype != torch.bool:
         raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_HOLD_INVALID]")
-    hold = hold[hold_mask]
-    if not bool(torch.isfinite(hold).all().item()):
+    hold, reward = hold[hold_mask], reward[hold_mask]
+    if not bool(torch.isfinite(hold).all().item()) or not bool(torch.isfinite(reward).all().item()):
         raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_HOLD_INVALID]")
+    anchors = entry_anchor_indices.detach().cpu()
+    liquidation = entry_first_liquidation.detach().cpu().double()
+    if (anchors.ndim != 1 or anchors.dtype != torch.int64
+            or liquidation.shape != (anchors.numel(), 2)
+            or anchors.unique().numel() != anchors.numel()
+            or bool(((anchors < 0) | (anchors >= target.shape[0])).any().item())
+            or not bool(torch.isfinite(liquidation).all().item())):
+        raise RuntimeError("[CANDIDATE_LEARNING_DIAGNOSTIC_ENTRY_ANCHORS_INVALID]")
+    anchor_valid = valid.index_select(0, anchors)[:, :2]
+    anchor_target = target.index_select(0, anchors)[:, :2]
+    # Both operands come from the actual fitted-Q bridge; no market-price reconstruction.
+    continuation = anchor_target - liquidation
+    entry_decomposition = {
+        "first_executable_liquidation_bps": summary(liquidation[anchor_valid]),
+        "frozen_continuation_bps": summary(continuation[anchor_valid]),
+        "first_liquidation_source": "canonical_random_access_batch.entry_liquidation_value_bps",
+        "continuation_source": "entry_target[selected_entry_batch_index,LONG_SHORT]-first_liquidation",
+        "continuation_semantics": "max_valid_frozen_relative_action_value_with_EXIT_zero",
+        "source_counts": {
+            "outer_entry_rows": int(target.shape[0]),
+            "selected_first_anchor_rows": int(anchors.numel()),
+            "rows_without_first_anchor": int(target.shape[0] - anchors.numel()),
+            "anchored_valid_side_cells": int(anchor_valid.sum().item()),
+            "valid_side_cells_without_first_anchor": int(valid[:, :2].sum().item() - anchor_valid.sum().item()),
+            "flat_zero_baseline_rows": int((valid[:, 2] & target[:, 2].eq(0)).sum().item()),
+            "nonpositive_liquidation_positive_target_cells": int(
+                ((liquidation <= 0) & (anchor_target > 0) & anchor_valid).sum().item()
+            ),
+        },
+    }
     return {
         "schema_version": "gx1_candidate_learning_diagnostics_v1", "report_only": True,
         "parameter_names": [name for name, _parameter in named],
         "routing_task_gradients": evidence, "routing_gradient_cosines": cosines,
         "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
         "entry": {"prediction": choices(prediction), "target": choices(target), "by_action": per_action,
-                  "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"},
-        "relative_hold_target_bps": {
-            "valid_cell_count": int(hold.numel()), "positive_count": int((hold > 0).sum().item()),
-            "negative_count": int((hold < 0).sum().item()), "zero_count": int((hold == 0).sum().item()),
-            "mean": float(hold.mean().item()) if hold.numel() else None,
-            "mean_absolute": float(hold.abs().mean().item()) if hold.numel() else None,
-            "minimum": float(hold.min().item()) if hold.numel() else None,
-            "maximum": float(hold.max().item()) if hold.numel() else None,
+                  "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes",
+                  "target_decomposition_bps": entry_decomposition},
+        "relative_hold_target_bps": summary(hold),
+        "relative_hold_decomposition_bps": {
+            "liquidation_relative_reward_bps": summary(reward),
+            "frozen_bootstrap_bps": summary(hold - reward),
+            "nonpositive_reward_positive_target_count": int(((reward <= 0) & (hold > 0)).sum().item()),
+            "reward_source": "canonical_random_access_batch.liquidation_relative_reward_bps.HOLD",
+            "bootstrap_source": "actual_fitted_Q_HOLD_target-minus-liquidation_relative_reward",
         }, "test_data_used": False,
     }
 
@@ -3163,6 +3206,27 @@ def _model_forward_fp32(
     elif torch.is_tensor(out) and out.is_floating_point():
         out = out.float()
     return out
+
+
+def _entry_training_gradient_boundary_kwargs(dataset: "EntryV10CtxDataset") -> dict[str, bool]:
+    """Derive the online Entry boundary only from the canonical v4 objective."""
+    from gx1.contracts.unified_exit_economics_objective_v2 import (
+        _require_runtime_contract, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
+    )
+
+    adapter = getattr(dataset, "_unified_exit_lifecycle_v2", None)
+    if adapter is None:
+        return {}
+    readiness = getattr(adapter, "_readiness", None)
+    if not isinstance(readiness, Mapping):
+        raise RuntimeError("[ENTRY_TRAIN_ECONOMICS_READINESS_MISSING]")
+    objective = _require_runtime_contract(readiness.get("economics_objective_contract"))
+    if objective.get("reward_accounting") != LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
+        return {}
+    bindings = adapter.random_access_training_bindings_v1()
+    if bindings.get("economics_objective_contract_sha256") != objective["contract_sha256"]:
+        raise RuntimeError("[ENTRY_TRAIN_ECONOMICS_BINDING_MISMATCH]")
+    return {"liquidation_relative_values": True}
 
 
 def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
@@ -7332,6 +7396,9 @@ def _episode_native_exit_train_v2(
         # Detached views only; summarize once in a bounded native invocation.
         stats["_relative_hold_target_bps"] = outcome["targets"][..., 0]
         stats["_relative_hold_target_valid"] = outcome["valid_mask"][..., 0]
+        stats["_relative_hold_reward_bps"] = batch["liquidation_relative_reward_bps"][..., 0].detach()
+        stats["_entry_first_liquidation_bps"] = batch["entry_liquidation_value_bps"].detach()
+        stats["_entry_anchor_indices"] = batch["selected_entry_batch_index"].detach()
     return (
         outcome["entry_gradients"],
         {**stats, "raw_loss": float(outcome["raw_loss"].cpu().item())},
@@ -8995,6 +9062,7 @@ def train_epoch(
     dataset = getattr(loader, "dataset", None)
     if not isinstance(dataset, EntryV10CtxDataset):
         raise RuntimeError("[UNIFIED_EXIT_TRAIN_DATASET_INVALID]")
+    entry_gradient_boundary_kwargs = _entry_training_gradient_boundary_kwargs(dataset)
     _accum_steps = int(grad_accum_steps)
     if _accum_steps < 1:
         raise RuntimeError(
@@ -9149,6 +9217,7 @@ def train_epoch(
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
             **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+            **entry_gradient_boundary_kwargs,
         )
         _profile_entry_online_forward = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
@@ -9332,6 +9401,9 @@ def train_epoch(
                 entry_valid=entry_action_q_valid,
                 hold_target=unified_exit_stats["_relative_hold_target_bps"],
                 hold_valid=unified_exit_stats["_relative_hold_target_valid"],
+                hold_reward=unified_exit_stats["_relative_hold_reward_bps"],
+                entry_first_liquidation=unified_exit_stats["_entry_first_liquidation_bps"],
+                entry_anchor_indices=unified_exit_stats["_entry_anchor_indices"],
             )
             _learning_diagnostics.update(batch_offset=_absolute_batch_i,
                                          scope="first_v4_batch_of_bounded_train_invocation")

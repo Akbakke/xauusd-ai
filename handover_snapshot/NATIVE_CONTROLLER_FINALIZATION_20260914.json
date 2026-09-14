@@ -1,0 +1,19 @@
+{
+  "both_window_receipts_guard_pass": true,
+  "calibration_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_34FD8997/CALIBRATION_OBSERVATION.json",
+    "sha256": "6fbc206a9e40b18c55e80f6ec977d743c21e034e6d3932cc83b26c75ed4afbd6"
+  },
+  "cause": "next_action returns BLOCKED_NATIVE_WINDOWS_EXHAUSTED for the completed finite windows; post-record controller branch failed to honor BLOCKED before requesting reboot",
+  "decision": "BOUNDED_WINDOWS_SAVED_CONTROLLER_FINALIZATION_ERROR",
+  "error": "campaign complete; reboot not required",
+  "full_training_complete": false,
+  "no_new_reboot_after_last_window": true,
+  "observed_utc": "2026-09-14T13:12:41.8805242Z",
+  "schema_version": "gx1_native_controller_finalization_failure_v1",
+  "source_commit": "34fd8997a98fb2c0be9f7298a6a88018b3b4949f",
+  "steps_saved": 32,
+  "test_data_used": false,
+  "windows_task_final_state": "Disabled",
+  "windows_task_result": 1
+}

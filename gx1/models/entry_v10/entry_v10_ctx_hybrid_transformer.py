@@ -1836,10 +1836,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
     def _project_entry_decision_token(
         self,
         components: Mapping[str, torch.Tensor],
+        *,
+        liquidation_relative_values: bool = False,
     ) -> torch.Tensor:
-        """Apply the sole learned projection to the exact assembled source."""
+        """Keep the v4 Exit projection trainable without rewriting Entry."""
 
+        if type(liquidation_relative_values) is not bool:
+            raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
         source = self._assemble_entry_decision_token_source(components)
+        if liquidation_relative_values:
+            source = source.detach()
         rows = int(source.shape[0])
         token = self.entry_decision_token(source)
         if tuple(token.shape) != (rows, ENTRY_DECISION_TOKEN_DIM):
@@ -3672,7 +3678,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_h1: torch.Tensor,
         seq_h4: torch.Tensor,
         seq_d1: torch.Tensor,
+        liquidation_relative_values: bool = False,
     ) -> Dict[str, torch.Tensor]:
+        if type(liquidation_relative_values) is not bool:
+            raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
             seq_x=seq_x,
             snap_x=snap_x,
@@ -3701,6 +3710,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         entry_q_joint_source = torch.cat(
             (z_v3, z, mtf_repr, global_context_h), dim=1
         )
+        # In v4 the observed-market auxiliary targets own this Entry
+        # representation; the Exit-derived Q teacher still trains its mixer
+        # and action head. Forward values and every input path are unchanged.
+        if liquidation_relative_values:
+            entry_q_joint_source = entry_q_joint_source.detach()
         entry_q_joint_hidden = nn.functional.gelu(
             self.entry_q_joint_in(
                 self.entry_q_joint_norm(entry_q_joint_source)
@@ -3744,7 +3758,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "entry_action_q_bps": entry_action_q_bps,
         }
         entry_decision_representation = self._project_entry_decision_token(
-            entry_token_components
+            entry_token_components,
+            liquidation_relative_values=liquidation_relative_values,
         )
         entry_decision_token_source = (
             self._assemble_entry_decision_token_source(

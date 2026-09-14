@@ -1,0 +1,341 @@
+{
+  "actual_resume_from_16_to_32_executed": true,
+  "checkpoint_transition_executed": true,
+  "decision": "BOUNDED_EXECUTION_PASS_LEARNING_NOT_CALIBRATED",
+  "economics_transition": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_34FD8997/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+    "sha256": "2b99483d60a54674223283abfd57edfa51ba201e77b61e7f76d060620db2a348"
+  },
+  "end_to_end_train_val_throughput_proven": false,
+  "final_training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_34FD8997/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "0b05580929a4d375db793cc1bd774d995b708b86e1f6943efa1d9f7d2274d2ea"
+  },
+  "final_training_state_sha256": "b1e60247120261b15c8b13e231ac44ee4075858076f0ee0f38cbcc5648dddf8b",
+  "full_epoch_training_started": false,
+  "gpu_val_batch256_parity_proven": false,
+  "interpretation": [
+    "Entry-Q routing gradients oppose forecast in both observed batches and have about103x and252x larger norm.",
+    "Exit routing conflict changes sign across the two observed batches; no general Exit harm is established.",
+    "Both16-row Entry target batches have zero FLAT. Both128-cell HOLD target batches have122 positive cells.",
+    "Targets use the same frozen old-value warm start; price reward versus bootstrap and first-liquidation versus continuation are not yet separated.",
+    "This measures two gate modules and three weighted task gradients, not all auxiliary losses, all parameters, Adam updates or dataset-wide quality."
+  ],
+  "learning_calibrated": false,
+  "observed_utc": "2026-09-14T13:13:48.589627+00:00",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_34FD8997/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "b5d0ab603d2b54d2e1ce95c38ac5ce6acc56208461d85807aa6819de97b48755"
+  },
+  "preserved_origin_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5"
+  },
+  "profitability_proven": false,
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_34FD8997/NATIVE_RECIPE.json",
+    "sha256": "2c4a1bc2afcc32cba9c862c357d15f54d4ac6c5194c235fc26161e75ea3ae54e"
+  },
+  "schema_version": "gx1_native_learning_calibration_observation_v1",
+  "source_commit": "34fd8997a98fb2c0be9f7298a6a88018b3b4949f",
+  "test_data_used": false,
+  "uninterrupted_versus_resumed_equivalence_proven": false,
+  "windows": [
+    {
+      "boot_id": 417,
+      "cursor_after_sha256": "5b751f89e427415716b9c3779b1d82e9c6984a02356e6abe84ef6c0ed69f840d",
+      "cursor_snapshot": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json",
+        "sha256": "5b751f89e427415716b9c3779b1d82e9c6984a02356e6abe84ef6c0ed69f840d"
+      },
+      "diagnostics": {
+        "batch_offset": 1,
+        "entry": {
+          "by_action": {
+            "FLAT": {
+              "mean_absolute_error_bps": 0.003100639907643199,
+              "prediction_mean_bps": 0.0006224913522601128,
+              "prediction_minus_target_mean_bps": 0.0006224913522601128,
+              "target_mean_bps": 0.0,
+              "valid_row_count": 16
+            },
+            "LONG": {
+              "mean_absolute_error_bps": 1.9183324533514678,
+              "prediction_mean_bps": 1.6012129890732467,
+              "prediction_minus_target_mean_bps": -1.4450025749392807,
+              "target_mean_bps": 3.0462155640125275,
+              "valid_row_count": 16
+            },
+            "SHORT": {
+              "mean_absolute_error_bps": 1.257269762456417,
+              "prediction_mean_bps": 1.1246926560997963,
+              "prediction_minus_target_mean_bps": 0.39457427710294724,
+              "target_mean_bps": 0.7301183789968491,
+              "valid_row_count": 16
+            }
+          },
+          "prediction": {
+            "tied_row_count": 0,
+            "unique_greedy_count": {
+              "FLAT": 0,
+              "LONG": 9,
+              "SHORT": 7
+            }
+          },
+          "target": {
+            "tied_row_count": 0,
+            "unique_greedy_count": {
+              "FLAT": 0,
+              "LONG": 12,
+              "SHORT": 4
+            }
+          },
+          "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"
+        },
+        "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
+        "parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ],
+        "relative_hold_target_bps": {
+          "maximum": 540.3448486328125,
+          "mean": 32.124070654739626,
+          "mean_absolute": 32.316729005542584,
+          "minimum": -4.991455554962158,
+          "negative_count": 6,
+          "positive_count": 122,
+          "valid_cell_count": 128,
+          "zero_count": 0
+        },
+        "report_only": true,
+        "routing_gradient_cosines": {
+          "entry_action_q__unified_exit_action": 0.35266397935529953,
+          "forecast_return_bps__entry_action_q": -0.5220803880495,
+          "forecast_return_bps__unified_exit_action": -0.8906969069274954
+        },
+        "routing_task_gradients": {
+          "entry_action_q": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 0.7524412302886856,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          },
+          "forecast_return_bps": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 0.007300360504118597,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          },
+          "unified_exit_action": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 0.04268539142664352,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          }
+        },
+        "schema_version": "gx1_candidate_learning_diagnostics_v1",
+        "scope": "first_v4_batch_of_bounded_train_invocation",
+        "test_data_used": false
+      },
+      "entry_q_to_forecast_routing_gradient_norm_ratio": 103.06905116044416,
+      "epoch_index": 0,
+      "epoch_schedule_sha256": "362acffbc7b687084e9188f5457ab9d864f23d95a139c80571cb6660e08f1b3e",
+      "exit_to_forecast_routing_gradient_norm_ratio": 5.847025143835292,
+      "finished_utc": "2026-09-14T12:54:21.327627+00:00",
+      "global_optimizer_steps": 16,
+      "guard_decision": "PASS",
+      "hardware_observed": {
+        "maximum_core_temp_c": 51.0,
+        "maximum_memory_temp_c": 52.0,
+        "maximum_memory_used_mib": 8006.0,
+        "maximum_power_draw_w": 154.94
+      },
+      "invocation_number": 1,
+      "pointer_before_sha256": "GENESIS",
+      "progress": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/invocation-evidence/invocation-0001/PROGRESS.json",
+        "sha256": "c6fad2b2d86f3b06a9156a6628e887f9bc6f9ce2f21d4d4a7bcbc0503a270903"
+      },
+      "receipt": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/receipts/invocation-0001.json",
+        "sha256": "6827ecd2a09dc52e2a13408f013da9017157d0ff319afdd14ccfbe46793ad9a5"
+      },
+      "started_utc": "2026-09-14T12:43:42.571185+00:00",
+      "trainer_log": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/progress/.invocation-0001.json.trainer.MWQtUj9k.log",
+        "sha256": "b971412adbaa686e63b8cbdfdf715398658fccb4834b09b793d72151f870299a"
+      }
+    },
+    {
+      "boot_id": 418,
+      "cursor_after_sha256": "8445c511f91941b5b309b79dd291c0e0f9d17a4daa77bc6947e70f8a4a363c22",
+      "cursor_snapshot": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/invocation-evidence/invocation-0002/CHECKPOINT_POINTER.json",
+        "sha256": "8445c511f91941b5b309b79dd291c0e0f9d17a4daa77bc6947e70f8a4a363c22"
+      },
+      "diagnostics": {
+        "batch_offset": 17,
+        "entry": {
+          "by_action": {
+            "FLAT": {
+              "mean_absolute_error_bps": 0.002467786311171949,
+              "prediction_mean_bps": 0.0007031165296211839,
+              "prediction_minus_target_mean_bps": 0.0007031165296211839,
+              "target_mean_bps": 0.0,
+              "valid_row_count": 16
+            },
+            "LONG": {
+              "mean_absolute_error_bps": 1.5273153595626354,
+              "prediction_mean_bps": 2.2760684080421925,
+              "prediction_minus_target_mean_bps": -1.213520746678114,
+              "target_mean_bps": 3.4895891547203064,
+              "valid_row_count": 16
+            },
+            "SHORT": {
+              "mean_absolute_error_bps": 1.0634639039635658,
+              "prediction_mean_bps": 1.1665320917963982,
+              "prediction_minus_target_mean_bps": 0.701464869081974,
+              "target_mean_bps": 0.46506722271442413,
+              "valid_row_count": 16
+            }
+          },
+          "prediction": {
+            "tied_row_count": 0,
+            "unique_greedy_count": {
+              "FLAT": 0,
+              "LONG": 14,
+              "SHORT": 2
+            }
+          },
+          "target": {
+            "tied_row_count": 0,
+            "unique_greedy_count": {
+              "FLAT": 0,
+              "LONG": 15,
+              "SHORT": 1
+            }
+          },
+          "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes"
+        },
+        "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
+        "parameter_names": [
+          "family_tf_context_gate.weight",
+          "family_tf_context_gate.bias",
+          "family_tf_token_gate.weight",
+          "family_tf_token_gate.bias"
+        ],
+        "relative_hold_target_bps": {
+          "maximum": 227.601806640625,
+          "mean": 21.972048352006823,
+          "mean_absolute": 22.17081799963489,
+          "minimum": -2.975672483444214,
+          "negative_count": 6,
+          "positive_count": 122,
+          "valid_cell_count": 128,
+          "zero_count": 0
+        },
+        "report_only": true,
+        "routing_gradient_cosines": {
+          "entry_action_q__unified_exit_action": -0.3148378855514518,
+          "forecast_return_bps__entry_action_q": -0.21721647199968394,
+          "forecast_return_bps__unified_exit_action": 0.37753860792123484
+        },
+        "routing_task_gradients": {
+          "entry_action_q": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 1.0381613464667643,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          },
+          "forecast_return_bps": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 0.004120966672725242,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          },
+          "unified_exit_action": {
+            "connected_parameter_names": [
+              "family_tf_context_gate.weight",
+              "family_tf_context_gate.bias",
+              "family_tf_token_gate.weight",
+              "family_tf_token_gate.bias"
+            ],
+            "connected_zero_parameter_names": [],
+            "l2_norm": 0.02034199050498219,
+            "loss_present": true,
+            "status": "nonzero",
+            "unused_parameter_names": []
+          }
+        },
+        "schema_version": "gx1_candidate_learning_diagnostics_v1",
+        "scope": "first_v4_batch_of_bounded_train_invocation",
+        "test_data_used": false
+      },
+      "entry_q_to_forecast_routing_gradient_norm_ratio": 251.92180110018128,
+      "epoch_index": 0,
+      "epoch_schedule_sha256": "362acffbc7b687084e9188f5457ab9d864f23d95a139c80571cb6660e08f1b3e",
+      "exit_to_forecast_routing_gradient_norm_ratio": 4.936218154739358,
+      "finished_utc": "2026-09-14T13:11:03.097453+00:00",
+      "global_optimizer_steps": 32,
+      "guard_decision": "PASS",
+      "hardware_observed": {
+        "maximum_core_temp_c": 53.0,
+        "maximum_memory_temp_c": 56.0,
+        "maximum_memory_used_mib": 8006.0,
+        "maximum_power_draw_w": 159.08
+      },
+      "invocation_number": 2,
+      "pointer_before_sha256": "5b751f89e427415716b9c3779b1d82e9c6984a02356e6abe84ef6c0ed69f840d",
+      "progress": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/invocation-evidence/invocation-0002/PROGRESS.json",
+        "sha256": "d8d8fdfa36f51e5de11f0193c5cac37348b94e8047b3ecbac505a92881a710ce"
+      },
+      "receipt": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/receipts/invocation-0002.json",
+        "sha256": "653eeaaf04f6c4d37627927b97c0355511dada013ffa88e63a8f70e598027126"
+      },
+      "started_utc": "2026-09-14T13:00:58.517030+00:00",
+      "trainer_log": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416/progress/.invocation-0002.json.trainer.9iUwRy26.log",
+        "sha256": "fb173c72622c7dc599eefa0a6b01292e0de0495b3e2a8d76bcb4da39ebb8c86b"
+      }
+    }
+  ]
+}

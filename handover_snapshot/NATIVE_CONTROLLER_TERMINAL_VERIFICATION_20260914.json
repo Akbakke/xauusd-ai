@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "decision": "COMPLETE",
+      "invalid": true,
+      "terminal": true
+    },
+    {
+      "decision": "BLOCKED_NATIVE_WINDOWS_EXHAUSTED",
+      "invalid": true,
+      "terminal": true
+    },
+    {
+      "decision": "BLOCKED_VAL_WINDOWS_EXHAUSTED",
+      "invalid": true,
+      "terminal": true
+    },
+    {
+      "decision": "BLOCKED_FAILED_INVOCATION",
+      "invalid": true,
+      "terminal": true
+    },
+    {
+      "decision": "REBOOT_REQUIRED",
+      "invalid": false,
+      "terminal": false
+    },
+    {
+      "decision": "LAUNCH",
+      "invalid": true,
+      "terminal": false
+    },
+    {
+      "decision": "UNKNOWN",
+      "invalid": true,
+      "terminal": false
+    }
+  ],
+  "controller_launched": false,
+  "controller_sha256": "b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea",
+  "decision": "PASS",
+  "observed_utc": "2026-09-14T13:20:01.3562020+00:00",
+  "powershell_version": "5.1.26100.9444",
+  "reboot_requested": false,
+  "test_data_used": false
+}

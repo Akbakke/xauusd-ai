@@ -1,5 +1,67 @@
 # GX1 overtakelse — 2026-09-14
 
+## Presis Entry-grense og target-dekomponering verifisert
+
+37 målrettede tilfeller består. Alle konfigurerte produksjonsbredder har eksakt
+forwardparitet mellom legacy og v4. Q-mixer/head og tokenprojeksjon har fortsatt
+gradient, mens Q/Exit-token stopper før Entry-representasjonen. Forecast og
+side-MAE lærer fortsatt M5/MTF/ruter. Onlineflagget bindes til validert v4-
+økonomikontrakt; ingen valgfri operatorinnstilling eller endrede features.
+Faktisk lavere delt Exit-backbone og gamle Adam-momenter er fortsatt delt/bevart.
+Se [ENTRY_LEARNING_BOUNDARIES_VERIFICATION_20260914.json](handover_snapshot/ENTRY_LEARNING_BOUNDARIES_VERIFICATION_20260914.json).
+
+Den eksisterende første-batchrapporten bruker nå faktisk HOLD-reward og
+target-minus-reward, og faktisk Lfirst pluss target-minus-Lfirst for Entry,
+med masker/indeksmapping. Ingen nye forwards, targetreset, tapsvekter eller
+handelsgrenser. Den faktiske dekomponeringen er ennå ikke målt.
+
+Kontrollerens minimale terminalrettelse består også7 faktiske predikattilfeller
+på Windows PowerShell5.1 uten launcher/reboot. BLOCKED_NATIVE_WINDOWS_EXHAUSTED
+er en stoppbeslutning, ikke fullført stortrening, og skal ikke bestille reboot.
+Neste måling trenger bare ett normalt native-vindu til16 optimizersteg fra
+samme bevarte v2-origin. Kilden må committes og ny recipe/plan bindes først.
+Den allerede fullførte kontrollen16→32 beholdes; ingen ny full epoch/VAL startes.
+
+## Native kalibrering fullført til32 — læring fortsatt ikke kalibrert
+
+Frosset kilde34fd8997 fullførte godkjente native-vinduer til16 og32 steg på
+fysiske booter417/418. Begge receipts har guardPASS og trainer/observer exit0.
+Det andre vinduet brukte nøyaktig det første vinduets lagrede cursor og samme
+epochplan. Faktisk v2-origin315/19908-overgang og gjenopptakelse16→32 er kjørt.
+Ny v4-session står på checkpoint3, epoch0/offset32; gammel pointer315 er uendret.
+Dette er ikke uavbrutt-versus-gjenopptatt likhet, full VAL256-paritet eller lønnsomhet.
+
+Maskinvarevaktens observerte maksimum var53C kjerne,56C minne,159.08W og8006MiB.
+Dette gjelder bare den korte TRAIN-kontrollen. GPU256/total TRAIN+VAL-fart
+er ennå ikke målt. All gammel trening, epoch1-EMA og kontrollforsøket er bevart.
+Kampanjens runtime:
+`/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_34FD8997_BOOT416`.
+Bevis: [NATIVE_LEARNING_CALIBRATION_OBSERVATION_20260914.json](handover_snapshot/NATIVE_LEARNING_CALIBRATION_OBSERVATION_20260914.json).
+
+To faktiske16-raders batcher viser Entry-Q/prognose gradientnormforhold103.07
+og251.92 på de to Entry-rutermodulene, med cosinus−0.522 og−0.217.
+Forecast/Exit-konflikten skifter fra−0.891 til+0.378; generell Exit-skade er
+ikke bevist. Begge Entry-target-batcher har0 FLAT, og begge HOLD-batcher har
+122/128 positive targets. Dette er samme frozen-target-iterasjon, ikke hele
+datasettet eller netto Adam-update. Andre auxiliary-loss og gamle momenter inngår
+ikke i den lokale sammenlikningen. Arvet bootstrap versus faktisk prisendring
+er ennå ikke skilt i målingen.
+
+Neste minste læringsrettelse er å stoppe Q-lossens tilbakeføring før Q-mixeren
+og Exit-tokenens tilbakeføring før tokenprojeksjonen, bare i eksplisitt v4.
+Q-mixer/head og tokenprojeksjon skal fortsatt trenes; forwardverdier/parametre
+og legacy-modus beholdes. Lavere delte projeksjoner lærer fortsatt av direkte
+Exit. Parallelt utvides den eksisterende første-batchrapporten med faktisk
+r_deltaL/bootstrapping og første lukkeverdi/fortsettelse, uten nye forwards.
+Ingen vilkårlig terskel, TF-tvang, verdiheadreset eller stor trening nå.
+
+Etter siste kvittering ba Windows-kontrolleren feilaktig om reboot ved
+BLOCKED_NATIVE_WINDOWS_EXHAUSTED og fikk 'campaign complete; reboot not required'.
+Task avsluttet med1 og er deaktivert. Begge lagrede vinduer er intakte.
+Minste driftsrettelse er å respektere samme COMPLETE/BLOCKED-terminalgren etter
+record som allerede brukes før launch, og bare bestille reboot ved REBOOT_REQUIRED.
+Full trening er fortsatt training_enabled=false; de gamle bevisrollene er NULL.
+
 ## Første native kalibreringsforsøk stoppet før GPU — oppstartskobling rettes
 
 Forsøk på ee4693e2 nådde fysisk boot416 og publiserte ACTIVE_INVOCATION,

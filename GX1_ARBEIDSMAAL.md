@@ -6,6 +6,7 @@ kontekst og tydeligere Exit-læring. Bruk observerte TRAIN-utfall som lærer, ut
 å gjøre etterpåklok optimal Exit til live-input eller kopiere svake Q-verdier som
 fasit. H4/M15-samarbeid skal måles, ikke antas. Ingen bred regel-/modelljakt.
 Deretter korrekt checkpointovergang, GPU256-paritet, samlet fart og resume.
+Siste rettelse beskytter Entry-spesifikke representasjoner fra Q/Exit-token-tilbakeføring;37 målrettede tilfeller består. Neste native-vindu16 måler faktisk pris-/kostnadsreward versus arvet bootstrap.
 Første avgrensede rettelse er nå verifisert: Exit-verdi relativt til kjent
 gjennomførbar lukking, med konsistent kostnadsforankring tilbake til Entry.
 143 unike målrettede CPU-tilfeller består; faktisk kalibrering er ikke bevist.
@@ -13,7 +14,7 @@ gjennomførbar lukking, med konsistent kostnadsforankring tilbake til Entry.
 79 ytterligere målrettede kontrakttilfeller. Faktisk overgang/måling er ikke kjørt.
 Neste handling er bundet v4-recipe og kontrollforsøk16/32 optimizersteg, deretter
 rapporterende native GPU256/totalfart/resume. To underagenter er nå autorisert.
-Ingen ny epoch eller GPU-kjøring er startet. Første native kalibreringsforsøk
+Native TRAIN-kontroll16→32 er nå fullført på34fd8997; ingen full epoch er startet. Læringskalibrering og GPU256/totalfart/resume-likhet gjenstår. Første native kalibreringsforsøk
 på ee4693e2 feilet i ytre readiness-kontroll før guard/session/optimizer.
 Oppstartskoblingen til godkjent16/32-scope rettes; gammelt forsøk bevares.
 Neste forsøk må bruke ny kildebinding og fersk fysisk boot.
