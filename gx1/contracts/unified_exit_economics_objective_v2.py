@@ -18,6 +18,15 @@ import numpy as np
 
 
 ECONOMICS_OBJECTIVE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v2"
+MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION = "gx1_unified_exit_economics_objective_v3"
+MARK_TO_MARKET_REWARD_ACCOUNTING = "liquidation_value_increments_v1"
+MARK_TO_MARKET_STEP_SCHEMA_VERSION = "gx1_exit_economic_step_v2"
+_MARK_TO_MARKET_FIELDS = {
+    "reward_accounting": MARK_TO_MARKET_REWARD_ACCOUNTING,
+    "hold_utility_adjustment": "(1-gamma)*successor_liquidation_value_bps",
+    "initial_fill_financing": "charged_once_in_liquidation_value",
+    "value_adjustment_is_cash_pnl": False,
+}
 CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_train_fit_v1"
 FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION = "gx1_exit_capital_hurdle_frozen_owner_v2"
 PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION = "gx1_exit_absorbing_policy_certificate_v1"
@@ -396,6 +405,7 @@ def build_unified_exit_economics_objective_contract(
     expected_source_lineage_sha256: str,
     policy_sha256: str,
     proper_policy_certificate: Mapping[str, Any] | None = None,
+    reward_accounting: str = "terminal_cash_v2",
 ) -> dict[str, Any]:
     hurdle = require_train_fitted_capital_hurdle_artifact(
         capital_hurdle_artifact,
@@ -452,6 +462,11 @@ def build_unified_exit_economics_objective_contract(
         "validation_or_test_may_fit_hurdle": False,
         "gamma_one_proper_policy_certificate": certificate_summary,
     }
+    if reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING:
+        payload.update(_MARK_TO_MARKET_FIELDS)
+        payload["schema_version"] = MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+    elif reward_accounting != "terminal_cash_v2":
+        raise RuntimeError("UNIFIED_EXIT_ECONOMICS_REWARD_ACCOUNTING_INVALID")
     payload["contract_sha256"] = _canonical_sha256(payload)
     return payload
 
@@ -465,6 +480,7 @@ def require_unified_exit_economics_objective_contract(
     expected_source_lineage_sha256: str,
     policy_sha256: str,
     proper_policy_certificate: Mapping[str, Any] | None = None,
+    reward_accounting: str = "terminal_cash_v2",
 ) -> dict[str, Any]:
     expected = build_unified_exit_economics_objective_contract(
         capital_hurdle_artifact=capital_hurdle_artifact,
@@ -473,6 +489,7 @@ def require_unified_exit_economics_objective_contract(
         expected_source_lineage_sha256=expected_source_lineage_sha256,
         policy_sha256=policy_sha256,
         proper_policy_certificate=proper_policy_certificate,
+        reward_accounting=reward_accounting,
     )
     if not isinstance(value, Mapping) or dict(value) != expected:
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_OBJECTIVE_CONTRACT_INVALID")
@@ -480,14 +497,20 @@ def require_unified_exit_economics_objective_contract(
 
 
 def _require_runtime_contract(value: Mapping[str, Any]) -> dict[str, Any]:
-    if not isinstance(value, Mapping) or set(value) != _OBJECTIVE_CONTRACT_KEYS:
+    if not isinstance(value, Mapping):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMICS_OBJECTIVE_CONTRACT_INVALID")
+    marked = value.get("schema_version") == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+    expected_keys = _OBJECTIVE_CONTRACT_KEYS | (set(_MARK_TO_MARKET_FIELDS) if marked else set())
+    if set(value) != expected_keys or (marked and any(
+        value.get(key) != expected for key, expected in _MARK_TO_MARKET_FIELDS.items()
+    )):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_OBJECTIVE_CONTRACT_INVALID")
     observed = dict(value)
     declared = observed.pop("contract_sha256")
     if (
         _require_sha256(declared, label="OBJECTIVE_CONTRACT")
         != _canonical_sha256(observed)
-        or observed["schema_version"] != ECONOMICS_OBJECTIVE_SCHEMA_VERSION
+        or observed["schema_version"] != (MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION if marked else ECONOMICS_OBJECTIVE_SCHEMA_VERSION)
         or observed["target_unit"] != "bps_of_entry_notional"
         or observed["seconds_per_year"] != SECONDS_PER_YEAR
         or observed["discount_factor"]
@@ -572,11 +595,14 @@ def require_economic_step_inputs(
         "same_capital_hurdle_running_cost",
         "gap",
     }
+    marked = contract["schema_version"] == MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION
+    if marked:
+        expected_keys.add("successor_liquidation_value")
     if not isinstance(value, Mapping) or set(value) != expected_keys:
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_SCHEMA_INVALID")
     observed = dict(value)
     if (
-        observed["schema_version"] != ECONOMIC_STEP_SCHEMA_VERSION
+        observed["schema_version"] != (MARK_TO_MARKET_STEP_SCHEMA_VERSION if marked else ECONOMIC_STEP_SCHEMA_VERSION)
         or observed["event_kind"] not in _EVENT_KINDS
     ):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_POLICY_INVALID")
@@ -649,6 +675,14 @@ def require_economic_step_inputs(
             nonnegative=True,
         ),
     }
+    if marked:
+        mark = _complete_component(
+            observed["successor_liquidation_value"],
+            label="SUCCESSOR_LIQUIDATION_VALUE", nonnegative=False,
+        )
+        if observed["event_kind"] != "HOLD" and mark["value_bps"] != 0.0:
+            raise RuntimeError("UNIFIED_EXIT_ECONOMICS_NON_HOLD_VALUE_ADJUSTMENT")
+        components["successor_liquidation_value"] = mark
     running_capital = components["same_capital_hurdle_running_cost"]
     if (
         contract.get("same_capital_hurdle_running_cost_allowed") is not False
@@ -658,7 +692,7 @@ def require_economic_step_inputs(
     ):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_CAPITAL_COST_DOUBLE_COUNTED")
     return {
-        "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
+        "schema_version": observed["schema_version"],
         "event_kind": observed["event_kind"],
         "interval_start_time_ns": int(start),
         "interval_end_time_ns": int(end),
@@ -684,6 +718,12 @@ def compose_economic_step(
         contract=contract,
         elapsed_wall_clock_seconds=step["elapsed_wall_clock_seconds"],
     )
+    if "successor_liquidation_value" in step:
+        # Q is liquidation value plus expected discounted future value changes.
+        # HOLD: -cost + (1-gamma)*L_next + gamma*Q_next.
+        # Subtracting L_now gives delta L - cost + gamma*(Q_next-L_next).
+        # This changes the old terminal-cash objective; it is not extra cash.
+        utility += (1.0 - gamma) * step["successor_liquidation_value"]["value_bps"]
     if not all(math.isfinite(value) for value in (net_cash, utility, gamma)):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
     return {
@@ -778,6 +818,9 @@ __all__ = (
     "ECONOMIC_PATH_SCHEMA_VERSION",
     "ECONOMIC_STEP_SCHEMA_VERSION",
     "ECONOMICS_OBJECTIVE_SCHEMA_VERSION",
+    "MARK_TO_MARKET_OBJECTIVE_SCHEMA_VERSION",
+    "MARK_TO_MARKET_REWARD_ACCOUNTING",
+    "MARK_TO_MARKET_STEP_SCHEMA_VERSION",
     "PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION",
     "SECONDS_PER_YEAR",
     "build_unified_exit_economics_objective_contract",

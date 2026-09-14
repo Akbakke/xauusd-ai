@@ -1,0 +1,4 @@
+[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
+[capped_run] cmd: .venv/bin/python -m pytest -q tests/test_unified_exit_economics_objective_v2.py tests/test_unified_exit_economic_step_provider_v1.py tests/test_build_unified_exit_training_economics_readiness_v1.py tests/test_unified_exit_fitted_q_v1.py tests/test_entry_fitted_q_v1.py
+[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
+.......................................                                  [100%]

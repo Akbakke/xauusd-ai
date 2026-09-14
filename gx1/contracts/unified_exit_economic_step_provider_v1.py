@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,8 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
 )
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     ECONOMIC_STEP_SCHEMA_VERSION,
+    MARK_TO_MARKET_REWARD_ACCOUNTING,
+    MARK_TO_MARKET_STEP_SCHEMA_VERSION,
     SECONDS_PER_YEAR,
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
@@ -324,6 +327,13 @@ class LazyUnifiedExitEconomicStepProviderV1:
             for name in REQUIRED_COMPONENTS
         }
         self._authority_sha = authority["authority_sha256"]
+        objective = readiness["economics_objective_contract"]
+        self._mark_to_market = objective.get("reward_accounting") == MARK_TO_MARKET_REWARD_ACCOUNTING
+        self._annual_hurdle_rate = float(objective["annual_continuous_hurdle_rate"])
+        self._initial_financing_bps = tuple(
+            -annual * (60.0 / SECONDS_PER_YEAR) if self._mark_to_market else 0.0
+            for annual in self._financing_cost_annual_bps
+        )
         self._capital_hurdle_sha = readiness["economics_objective_contract"][
             "capital_hurdle_artifact_sha256"
         ]
@@ -512,18 +522,22 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
             terminal = bool(row[3 + side])
             key = (entry_row + index, side)
+            entry_price = float(self._prices[("ask_open", "bid_open")[side]][entry_row + self._price_row_offset])
             if action == "hold" and key in cache:
                 step = cache[key]
+                if self._mark_to_market:
+                    # Costs can be shared across entries; liquidation value cannot.
+                    step = {**step, **self._value_step_fields(entry_price, entry_row + index, side, action)}
             else:
                 step = self._step(
-                    entry_price=float(self._prices[("ask_open", "bid_open")[side]][entry_row + self._price_row_offset]),
+                    entry_price=entry_price,
                     state_row=entry_row + index, side_index=side, action=action,
                     event_kind=("ECONOMIC_TERMINAL" if action == "exit_now" and terminal and index == count - 1
                                 else "EXIT_NOW" if action == "exit_now" else "HOLD"),
                 )
                 if action == "hold":
-                    # HOLD has zero price cashflow; its costs depend only on
-                    # side and the absolute interval, never on entry price.
+                    # Share absolute-interval cash costs. The MTM field is
+                    # recomputed for each entry on cache reuse above.
                     cache[key] = step
             envelope = {
                 "schema_version": ECONOMIC_STEP_SLICE_SCHEMA_VERSION,
@@ -595,7 +609,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
             gross = (exit_price - entry_price) / entry_price * 10_000.0
         else:
             gross = (entry_price - exit_price) / entry_price * 10_000.0
-        exit_reward = gross + 0.0
+        exit_reward = gross + self._initial_financing_bps[side_index]
         exit_reward = exit_reward - self._commission_total[side_index]
         exit_reward = exit_reward - self._slippage_total[side_index]
         exit_reward = exit_reward - 0.0
@@ -622,6 +636,15 @@ class LazyUnifiedExitEconomicStepProviderV1:
         hold_reward = hold_reward - 0.0
         hold_reward = hold_reward - 0.0
         hold_reward = np.ascontiguousarray(hold_reward - risk_penalty, dtype="<f8")
+        if self._mark_to_market:
+            next_value = self._liquidation_value_bps(entry_price, hold_rows + 1, side_index)
+            # Use the scalar owner's math.exp arithmetic for byte-identical targets.
+            durations, inverse = np.unique(elapsed_seconds, return_inverse=True)
+            gamma = np.asarray([
+                math.exp(-self._annual_hurdle_rate * int(seconds) / SECONDS_PER_YEAR)
+                for seconds in durations
+            ], dtype=np.float64)[inverse]
+            hold_reward = np.ascontiguousarray(hold_reward + (1.0 - gamma) * next_value, dtype="<f8")
         if not np.isfinite(hold_reward).all():
             raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
         hold_events = np.full(hold_reward.shape, 1, dtype="u1")
@@ -641,6 +664,27 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 "economic_step_source_manifest_sha256": (self._source_manifest_sha256),
             }
         )
+
+    def _liquidation_value_bps(
+        self, entry_price: float, state_rows: int | np.ndarray, side_index: int,
+    ) -> float | np.ndarray:
+        """Executable value; earlier HOLD financing is already in the cash ledger."""
+        prices = self._prices[("bid_close", "ask_close")[side_index]][state_rows + self._price_row_offset]
+        gross = ((prices - entry_price) if side_index == 0 else (entry_price - prices)) / entry_price * 10_000.0
+        value = gross + self._initial_financing_bps[side_index]
+        return value - self._commission_total[side_index] - self._slippage_total[side_index]
+
+    def _value_step_fields(
+        self, entry_price: float, state_row: int, side_index: int, action: str,
+    ) -> dict[str, Any]:
+        if not self._mark_to_market:
+            return {}
+        value = (self._liquidation_value_bps(entry_price, state_row + 1, side_index)
+                 if action == "hold" else 0.0)
+        return {
+            "schema_version": MARK_TO_MARKET_STEP_SCHEMA_VERSION,
+            "successor_liquidation_value": _component(value, self._source_manifest_sha256),
+        }
 
     def _step(
         self,
@@ -664,6 +708,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
             )
             return {
                 "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
+                **self._value_step_fields(entry_price, state_row, side_index, action),
                 "event_kind": event_kind,
                 "interval_start_time_ns": decision_ns,
                 "interval_end_time_ns": decision_ns,
@@ -674,7 +719,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 "execution_slippage": _component(
                     self._slippage_total[side_index], hashes["execution_slippage"]
                 ),
-                "financing_or_swap": _component(0.0, hashes["financing_or_swap"]),
+                "financing_or_swap": _component(self._initial_financing_bps[side_index], hashes["financing_or_swap"]),
                 "guaranteed_execution_fee": _component(
                     0.0, hashes["guaranteed_execution_fee"]
                 ),
@@ -705,6 +750,7 @@ class LazyUnifiedExitEconomicStepProviderV1:
         )
         return {
             "schema_version": ECONOMIC_STEP_SCHEMA_VERSION,
+            **self._value_step_fields(entry_price, state_row, side_index, action),
             "event_kind": event_kind,
             "interval_start_time_ns": decision_ns,
             "interval_end_time_ns": next_decision_ns,

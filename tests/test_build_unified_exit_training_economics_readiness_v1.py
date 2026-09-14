@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from gx1.contracts.unified_exit_economics_objective_v2 import SECONDS_PER_YEAR
+from gx1.contracts.unified_exit_economics_objective_v2 import SECONDS_PER_YEAR, MARK_TO_MARKET_REWARD_ACCOUNTING
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import file_sha256
 from gx1.scripts.build_unified_exit_training_economics_readiness_v1 import (
     CAPITAL_HURDLE_METHOD_RECEIPT_SCHEMA_VERSION,
@@ -54,7 +54,8 @@ def _receipt(tmp_path: Path) -> Path:
     return path
 
 
-def test_builder_reads_rho_from_train_method_and_val_reuses_it(tmp_path: Path) -> None:
+@pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING])
+def test_builder_reads_rho_from_train_method_and_val_reuses_it(tmp_path: Path, reward_accounting) -> None:
     receipt_path = _receipt(tmp_path)
     train_path = (tmp_path / "train.economics_readiness.json").resolve()
     result = build_training_economics_readiness(
@@ -65,6 +66,7 @@ def test_builder_reads_rho_from_train_method_and_val_reuses_it(tmp_path: Path) -
         source_lineage_sha256="3" * 64,
         policy_sha256="4" * 64,
         publish=True,
+        reward_accounting=reward_accounting,
     )
     assert result["validated_annual_continuous_hurdle_rate"] == math.log1p(0.10)
     val = build_val_economics_reference(

@@ -7,6 +7,8 @@ Bevar samarbeidet, men skill markedsprognose fra Exit-avledet handelsverdi.
 Eksisterende prognosemål skal undersøkes før nye modeller eller hoder bygges.
 Målt uavhengig Entry-kvalitet og den eksakte treningskoblingen er dokumentert i
 del 2E av prosjektgjennomgangen. Årsaken til svakt signal er fortsatt uavklart.
+En eksplisitt, inaktiv v3-kandidat for markedsverdibasert økonomi er implementert
+og verifisert med 42 målrettede CPU-tilfeller; se CURRENT_HANDOVER.md.
 Ingen nye risikogrenser eller endret treningsmål er aktivert. Spørsmålet om
 markedsstyrt Exit alene eller en absolutt tapsgrense er sendt brukeren og ubesvart.
 

@@ -1,5 +1,40 @@
 # GX1 overtakelse — 2026-09-14
 
+## Verifisert økonomirettelse, ennå ikke aktivert
+
+I GX1_CURRENT er en eksplisitt kandidat for markedsverdibasert økonomi nå
+implementert i eksisterende økonomieier, provider, readiness-validator og bygger.
+Velges som reward_accounting=liquidation_value_increments_v1, kontrakt v3.
+Ingen ny recipe/kampanje er opprettet, NEXT_RUN_POLICY.json er uendret og
+trening er fortsatt stoppet. Risikospørsmålet er ubesvart.
+
+Q-feltene beholdes. Med L som gjennomførbar lukkeverdi og V som neste valgte
+Q-verdi er HOLD-target = -finansiering - risikostraff + (1-gamma)*L_neste
++ gamma*V_neste. Relativt til lukking nå er dette endring i L, fratrukket
+kostnad/risiko, pluss diskontert videreverdi. Ved konstant pris og null kostnad
+beholder ubestemt HOLD tapets negative verdi; det gamle målet ga null.
+Dette gir likegyldighet ved helt flat pris, ikke en påtvunget Exit eller
+vilkårlig holdetid. Første minutt LONG-finansiering er med én gang i v3.
+
+42 målrettede CPU-tilfeller besto i to sekvensielle capped audit-jobber (39 + 3).
+De dekker regnskapsidentitet med markedsgap, begge sider, scalar/vector FP32-bytes,
+Entry-avhengig VAL-cache, naturlig manglende successor, native Bellman til Entry,
+separat kontant-/utility-regnskap i VAL, ny bygger/VAL-binding og parent-offset.
+Bevis med eksakte kilde-/logghasher:
+[MTM_OBJECTIVE_VERIFICATION_20260914.json](handover_snapshot/MTM_OBJECTIVE_VERIFICATION_20260914.json).
+Loggene er bevart ved siden av beviset. Ingen modellforward, GPU eller trening.
+
+Dette er ikke bevis på lært Exit-forbedring, godt Entry-signal eller lønnsomhet.
+V3 er ikke eksakt resume av det gamle optimaliseringsproblemet. Gamle bindings-
+kontrakter og standard v2-adferd er bevart for historisk etterprøvbarhet.
+Åpen NAV og kronologisk full-policy-score er fortsatt ikke implementert/aktivert;
+eksisterende full-policy-resultat for juni forblir utilgjengelig.
+Neste arbeid er å fullføre denne evaluerings-/posisjonsavtalen, avklare risiko
+og bevare Entrys selvstendige kvalitetskrav før ny kilde-/checkpointovergang
+og de påkrevde GPU256-/totalfart-/resume-målingene. Ingen beståtte tester gjentas
+uten ny relevant endring eller feil.
+
+
 ## Aktivt lønnsomhetsmål og uavhengig Entry-kontroll
 
 Brukeren har bestilt videre arbeid etter anbefalingen og presisert at Entry må

@@ -11,6 +11,7 @@ from typing import Any
 
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION,
+    MARK_TO_MARKET_REWARD_ACCOUNTING,
     SECONDS_PER_YEAR,
     build_unified_exit_economics_objective_contract,
     seal_frozen_capital_hurdle_owner_artifact,
@@ -168,6 +169,7 @@ def build_training_economics_readiness(
     source_lineage_sha256: str,
     policy_sha256: str,
     publish: bool,
+    reward_accounting: str = "terminal_cash_v2",
 ) -> dict[str, Any]:
     """Create readiness; rho is accepted only from the bound TRAIN method receipt."""
 
@@ -207,10 +209,12 @@ def build_training_economics_readiness(
         expected_train_fold_sha256=train_fold_sha256,
         expected_source_lineage_sha256=source_lineage_sha256,
         policy_sha256=policy_sha256,
+        reward_accounting=reward_accounting,
     )
     readiness = {
         "schema_version": "gx1_unified_exit_training_economics_readiness_v3",
-        "mode": "economics_objective_v2",
+        "mode": ("economics_objective_v3" if reward_accounting == MARK_TO_MARKET_REWARD_ACCOUNTING
+                 else "economics_objective_v2"),
         "capital_hurdle_artifact": hurdle,
         "economics_objective_contract": objective,
         "expected_train_split_sha256": train_split_sha256,
@@ -296,6 +300,8 @@ def main() -> int:
     parser.add_argument("--train-fold-sha256", required=True)
     parser.add_argument("--source-lineage-sha256", required=True)
     parser.add_argument("--policy-sha256", required=True)
+    parser.add_argument("--reward-accounting", default="terminal_cash_v2",
+                        choices=("terminal_cash_v2", MARK_TO_MARKET_REWARD_ACCOUNTING))
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     result = build_training_economics_readiness(
@@ -306,6 +312,7 @@ def main() -> int:
         source_lineage_sha256=args.source_lineage_sha256,
         policy_sha256=args.policy_sha256,
         publish=args.publish,
+        reward_accounting=args.reward_accounting,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

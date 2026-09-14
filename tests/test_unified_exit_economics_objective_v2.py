@@ -62,7 +62,7 @@ def _certificate(transition=None) -> dict:
     )
 
 
-def _contract(rho: float = 0.10, certificate=None) -> dict:
+def _contract(rho: float = 0.10, certificate=None, reward_accounting="terminal_cash_v2") -> dict:
     return owner.build_unified_exit_economics_objective_contract(
         capital_hurdle_artifact=_hurdle(rho),
         expected_train_split_sha256=TRAIN_SPLIT,
@@ -70,6 +70,7 @@ def _contract(rho: float = 0.10, certificate=None) -> dict:
         expected_source_lineage_sha256=SOURCE_LINEAGE,
         policy_sha256=POLICY,
         proper_policy_certificate=certificate,
+        reward_accounting=reward_accounting,
     )
 
 
@@ -317,3 +318,75 @@ def test_discounted_continuation_uses_incremental_utility_and_elapsed_gamma() ->
     assert owner.discounted_continuation_target_bps(
         step=step, successor_utility_bps=3.0
     ) == pytest.approx(expected)
+
+
+def _marked_step(*, successor_value=0.0, **kwargs):
+    step = _step(**kwargs)
+    step["schema_version"] = owner.MARK_TO_MARKET_STEP_SCHEMA_VERSION
+    step["successor_liquidation_value"] = _component(successor_value)
+    return step
+
+
+def test_marked_contract_is_explicit_and_requires_observed_successor_value():
+    legacy = _contract()
+    contract = _contract(reward_accounting=owner.MARK_TO_MARKET_REWARD_ACCOUNTING)
+    assert contract["contract_sha256"] != legacy["contract_sha256"]
+    assert "reward_accounting" not in legacy
+    kwargs = dict(event="HOLD", start=1_000_000_000, end=61_000_000_000,
+                  hurdle_sha256=contract["capital_hurdle_artifact_sha256"], gross=0.0)
+    with pytest.raises(RuntimeError, match="STEP_SCHEMA_INVALID"):
+        owner.compose_economic_step(_step(**kwargs), contract=contract)
+    marked = _marked_step(**kwargs, successor_value=-100.0)
+    with pytest.raises(RuntimeError, match="STEP_SCHEMA_INVALID"):
+        owner.compose_economic_step(marked, contract=legacy)
+    marked["successor_liquidation_value"]["status"] = "MISSING"
+    with pytest.raises(RuntimeError, match="SUCCESSOR_LIQUIDATION_VALUE_INCOMPLETE"):
+        owner.compose_economic_step(marked, contract=contract)
+
+
+@pytest.mark.parametrize("values", [(-8.0, 16.0, -12.0, -35.0), (-8.0, -16.0, 12.0, 35.0)])
+def test_marked_path_matches_discounted_value_changes_without_double_counting(values):
+    contract = _contract(reward_accounting=owner.MARK_TO_MARKET_REWARD_ACCOUNTING)
+    hurdle = contract["capital_hurdle_artifact_sha256"]
+    t = 1_000_000_000
+    steps = [_marked_step(event="ENTRY", start=t, end=t, hurdle_sha256=hurdle, gross=0.0)]
+    expected = values[0]
+    discount = 1.0
+    financing_total = 0.0
+    for i, seconds in enumerate((60, 172800, 60)):
+        financing, risk = -0.03 * seconds / 60.0, 0.01 * seconds / 60.0
+        nxt = t + seconds * 1_000_000_000
+        steps.append(_marked_step(event="HOLD", start=t, end=nxt,
+                                  hurdle_sha256=hurdle, gross=0.0,
+                                  financing=financing, risk=risk,
+                                  successor_value=values[i + 1]))
+        expected += discount * (values[i + 1] - values[i] + financing - risk)
+        financing_total += financing
+        discount *= owner.elapsed_wall_clock_gamma(contract=contract, elapsed_wall_clock_seconds=seconds)
+        t = nxt
+    steps.append(_marked_step(event="EXIT_NOW", start=t, end=t, hurdle_sha256=hurdle,
+                              gross=values[-1] + 7.02, commission=3.0, slippage=4.0,
+                              financing=-0.02))
+    result = owner.evaluate_economic_path(steps, contract=contract)
+    assert result["discounted_risk_adjusted_utility_bps"] == pytest.approx(expected, abs=1e-11)
+    assert result["undiscounted_net_cash_pnl_bps"] == pytest.approx(values[-1] + financing_total, abs=1e-11)
+    # Cash remains an undiscounted ledger, distinct from the learning objective.
+    assert result["discounted_risk_adjusted_utility_bps"] != result["undiscounted_net_cash_pnl_bps"]
+
+
+def test_unrealized_loss_no_longer_disappears_under_indefinite_zero_cost_hold():
+    legacy = _contract()
+    contract = _contract(reward_accounting=owner.MARK_TO_MARKET_REWARD_ACCOUNTING)
+    loss = -100.0
+    kwargs = dict(event="HOLD", start=1_000_000_000, end=61_000_000_000,
+                  hurdle_sha256=contract["capital_hurdle_artifact_sha256"], gross=0.0)
+    old = owner.compose_economic_step(_step(**kwargs), contract=legacy)
+    new = owner.compose_economic_step(_marked_step(**kwargs, successor_value=loss), contract=contract)
+    gamma = new["continuation_gamma"]
+    assert old["undiscounted_risk_adjusted_utility_increment_bps"] / (1.0 - gamma) == 0.0
+    assert new["undiscounted_risk_adjusted_utility_increment_bps"] / (1.0 - gamma) == pytest.approx(loss)
+    # Flat prices and zero costs create indifference, not a mandatory exit rule.
+    assert owner.discounted_continuation_target_bps(step=new, successor_utility_bps=loss) == pytest.approx(loss)
+    # A declining successor makes HOLD strictly worse than realizing now.
+    falling = owner.compose_economic_step(_marked_step(**kwargs, successor_value=loss - 1.0), contract=contract)
+    assert owner.discounted_continuation_target_bps(step=falling, successor_utility_bps=loss - 1.0) < loss

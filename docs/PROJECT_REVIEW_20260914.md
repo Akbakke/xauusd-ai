@@ -155,6 +155,60 @@ Jeg anbefaler ikke en vilkårlig maksimal holdetid som hovedløsning. Vi trenger
 
 Den tidligere observerte første-minutt-feilen i LONG-finansiering er omtrent **0,001026694 Bps per handel**. Den er liten og forklarer ikke tapene. Når økonomieieren uansett må endres, bør dette intervallet behandles riktig fra fill, samtidig i Entry-target og evaluering. Ingen gammel resultatfil skal overskrives.
 
+### Implementert kandidat etter nytt arbeidsmål
+
+Den observerte økonomifeilen er nå rettet i en eksplisitt, **inaktiv** kandidat
+i eksisterende kode. Regnskapsvalget heter
+`liquidation_value_increments_v1` og er bundet til økonomikontrakt v3 og
+økonomisteg v2. Byggeren krever et eksplisitt valg. Eksisterende v2-kontrakter,
+standardadferd, frosne resultater og checkpoints er ikke ommerket.
+
+La L_t være gjennomførbar netto lukkeverdi fra fill, inklusive tur-retur-
+kostnad og første minutts finansiering, men eksklusive finansiering allerede
+ført ved tidligere HOLD. La f_t være neste intervalls finansieringskostnad,
+r_t det eksisterende risikofradraget, og V_neste beste lovlige Q ved successor.
+Q-feltene beholder verdiskalaen; ingen hoder eller features er erstattet:
+
+```text
+Q_exit(t) = L_t
+Q_hold(t) = -f_t - r_t + (1-gamma_t)*L_neste + gamma_t*V_neste
+
+Q_hold(t) - L_t
+  = (L_neste - L_t) - f_t - r_t + gamma_t*(V_neste - L_neste)
+```
+
+Dermed sammenlignes HOLD med forventet videre prisendring, kostnad og risiko,
+uten at realisering av et gammelt tap i seg selv gjør HOLD bedre. For en
+avsluttet sti er den diskonterte målsummen eksakt L_0 pluss diskonterte
+verdiendringer minus finansiering/risiko. Kontantresultatet summeres separat
+uten denne ikke-kontante korreksjonen. Ingen gevinst eller kostnad telles
+to ganger. Den tidligere manglende første-minutt-finansieringen er inkludert
+én gang i v3, i både Exit-target, videre Entry-verdi og evalueringsregnskap.
+
+En konstant posisjonsverdi på -100 Bps gir fortsatt -100 ved ubestemt kostnadsfri
+HOLD, mens det gamle målet gir null for denne policyen. Ved flat pris og null
+kostnad er HOLD og EXIT likeverdige; dette er ingen ny maksimal holdetid.
+Et videre prisfall gjør HOLD dårligere dersom fortsettelsesverdien gjenspeiler
+fallet. Modellen må fortsatt lære dette riktig. Ved eksisterende årlige
+diskonteringsrate er korreksjonen per M1 liten; vi har ikke bevist raskere
+kredittildeling eller løst Entrys svake markedssignal.
+
+42 målrettede tilfeller besto under eksisterende 4 GiB audit-vakt, CPU 0–7,
+én numerisk tråd. Først 39 relevante tilfeller, deretter bare tre nye
+integrasjonstilfeller. Verifikasjon omfatter regnskapsidentitet med lukkeintervall,
+begge sider, riktig én-gangs-finansiering, byte-identiske FP32-belønninger i
+scalar/vector-banen, Entry-avhengig cache, bevart naturlig censurering,
+Bellman→Entry-bro, VAL-regnskap og v3-byggerens TRAIN-/VAL-binding.
+[Maskinbevis og kilde-/logghasher](../handover_snapshot/MTM_OBJECTIVE_VERIFICATION_20260914.json).
+
+**Gjenstår før bruk:** Full-policy-evalueringen må fortsatt få eksplisitt åpen
+markedsverdi og kronologisk posisjons-/resultatdefinisjon. Å legge sluttmarken til
+måleresultatet skal ikke late som modellen valgte EXIT, og naturlig avkorting
+skal ikke gjøres til terminal i treningsfasiten. Risikoavklaring og korrekt
+overføring til nytt optimaliseringsmål gjenstår, sammen med GPU256-paritet,
+samlet fart og resume-bevis. NEXT_RUN_POLICY.json er uendret; ingen trening,
+ny inferens eller TEST-tilgang er brukt til denne rettelsen.
+
 ## 4. Læringsforløp og alternative metoder
 
 En full epoch har 313 399 Entry-par og fire samplede Exit-overganger per par, begge sider, pluss første-tilstandsanker. Dette er 1 253 596 samplede overgangstilstander; ikke alle mulige minutter av alle handler. Sampleren har allerede aldersgrupper og ingen påvist uniform-minutt-feil.
