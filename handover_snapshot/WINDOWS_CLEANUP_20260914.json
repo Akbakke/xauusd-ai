@@ -1,0 +1,572 @@
+{
+  "deleted_count": 108,
+  "deleted_bytes": 39724887,
+  "deleted_files": [
+    {
+      "name": "GX1-CURRENT-HANDOVER-20260914.tar.gz",
+      "bytes": 45186,
+      "sha256": "d440efb1565b5bea9dda97b5559b1d32dcb1febfa535ab71a91debc925eb197b"
+    },
+    {
+      "name": "GX1-GpuPowerAndIdleGuard.stage.ps1",
+      "bytes": 20561,
+      "sha256": "c681a91d96ba4960e230063d13c89eea216b8a53f6b0c1b69342eb5a7b6ffaa2"
+    },
+    {
+      "name": "GX1-GpuPowerAndIdleGuard.stage2.ps1",
+      "bytes": 20562,
+      "sha256": "b6f29f467c53f42789d049e3d0130bc849981265d6a01f20ce64ffdbdaad0946"
+    },
+    {
+      "name": "GX1-InstallAndStart-val-pausefix.ps1",
+      "bytes": 5950,
+      "sha256": "e7576f192cd12a5b3d63678961fb7e9655d512f547fc5260a6029a868fa56b9d"
+    },
+    {
+      "name": "GX1-InstallAndStartHotpath.ps1",
+      "bytes": 4610,
+      "sha256": "1074f2a0f4772258e27ab9c8a2f0ac8d7198231c79d5e9e50eb0fc1708700bc6"
+    },
+    {
+      "name": "GX1-InstallAndStartVal128.ps1",
+      "bytes": 4600,
+      "sha256": "80df9c5bc418aa2974f2b302c0cd4767aae5e86051bf36d288011eb5422c5027"
+    },
+    {
+      "name": "GX1-InstallAndStartVal128Cache.ps1",
+      "bytes": 4616,
+      "sha256": "c82a7549149012d20bca3d075d12c0b8a4bf74b750f1bccbee2d8e8a25b6b49a"
+    },
+    {
+      "name": "GX1-InstallAndStartVal128CpuPipeline.ps1",
+      "bytes": 4630,
+      "sha256": "d2ba136edf4d5088573756646954f960076c1b3c3e1cea1dbf1ce783d14fbf6a"
+    },
+    {
+      "name": "GX1-InstallAndStartVal128Fp32.ps1",
+      "bytes": 4598,
+      "sha256": "6e0114e4911c861cf4d6f7244f32549d07d9ffd4786aa32801d543036a6bc729"
+    },
+    {
+      "name": "GX1-InstallAndStartVal128Rounding.ps1",
+      "bytes": 4608,
+      "sha256": "1805f8e9cc4a641f5968254c0d3ed42c4e34aa1282af4248219427631028d085"
+    },
+    {
+      "name": "GX1-InstallClockProfile.ps1",
+      "bytes": 3315,
+      "sha256": "7ae7600463065db2abc2228ac85df80d3893019eba965d1a9d9c9de3158d97e6"
+    },
+    {
+      "name": "GX1-LOCAL-CLEANUP-20260914.json",
+      "bytes": 3998,
+      "sha256": "81df26257a1a0b696569722e63c6393b9cbc9db7ae29813ef7fa2989bebf9bfe"
+    },
+    {
+      "name": "GX1-LocalCampaignController.ps1",
+      "bytes": 10104,
+      "sha256": "8b97a572f6fde13de788d193e70065efd8da5788aa8f813c186bce13ac4237c4"
+    },
+    {
+      "name": "GX1-LocalInvocationFinalizer.ps1",
+      "bytes": 8369,
+      "sha256": "3f0161fbd3d94226302a00b9b52c9219fa1ab25f12d1a5cc38090e2abd1c8c85"
+    },
+    {
+      "name": "GX1-MacHandover-20260914.sh",
+      "bytes": 595,
+      "sha256": "8065a9524ffee604cace4706922fba039100105ebae09c920d47d0d5db3ab300"
+    },
+    {
+      "name": "GX1-NativeClockProfileLauncher-workload.ps1",
+      "bytes": 4066,
+      "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
+    },
+    {
+      "name": "GX1-NativeClockProfileLauncher.ps1",
+      "bytes": 2707,
+      "sha256": "40aa3b7f95b539e09bd1159bb5a50519afc2b1cc02bb4d0db3c2dfae3e427855"
+    },
+    {
+      "name": "GX1-RecoverAndStart-clock-profile.ps1",
+      "bytes": 4580,
+      "sha256": "263423fa373f4263e9dfb8fc3d0f07ee4107914bd63e973ca2bc3778d977a724"
+    },
+    {
+      "name": "GX1-VerifySettledAndStart.ps1",
+      "bytes": 4170,
+      "sha256": "1d45c4b06dbac1b0ac6b0b94846480d09f1f7ff4feb0668a6f1425686ae8e15f"
+    },
+    {
+      "name": "GX1-benchmark-val-cpu-20260914.py",
+      "bytes": 4620,
+      "sha256": "d9a56402a23c3e07240c40a371e1a77e7ffab77a6bf1150978e00a778aeeb076"
+    },
+    {
+      "name": "GX1-build-current-20260914.py",
+      "bytes": 22602,
+      "sha256": "6af54ff047c23fa6aca4ebf4aa5e0fa0be4b86dc44a70ae4f231c28a3e2e6030"
+    },
+    {
+      "name": "GX1-check-actual-val-origin.py",
+      "bytes": 1686,
+      "sha256": "9840a7112d3a7fa6352e6ca87c52aa934f87760b23f3ef6577353b358ba507ec"
+    },
+    {
+      "name": "GX1-clock-publication-20260913.log",
+      "bytes": 338,
+      "sha256": "e56cfe2b61460de3db4bae5b8d3d48c4fffeb1cf8d8f34f96f8870e2e50236c6"
+    },
+    {
+      "name": "GX1-clock-takeover-update.tar",
+      "bytes": 61440,
+      "sha256": "fdf63e7607e793e828bc67e613709a25c3e1c6bcff587f8faa63d921ce847ab7"
+    },
+    {
+      "name": "GX1-clock-workload-docs.tar",
+      "bytes": 61440,
+      "sha256": "d08cde51b3cebb2658db139c53552f50a4c31f55cb36f437bb21c4dea133a261"
+    },
+    {
+      "name": "GX1-closed-trade-review-20260914.json",
+      "bytes": 3794076,
+      "sha256": "437681fedd5f88f3cc9fd20f1f9910011078b74c8ab165fa74523b6d65315758"
+    },
+    {
+      "name": "GX1-cpu-pipeline-live-observation.json",
+      "bytes": 2658,
+      "sha256": "673f3231963978fa0210eb64ad97ffa1d664a1c8bd8b49832198e4407a1be920"
+    },
+    {
+      "name": "GX1-current-tests-20260914.py",
+      "bytes": 5168,
+      "sha256": "40bfcc9c0f565a158b065d4d5861656fe77e36896bce99a5ace32bfc0f0bc709"
+    },
+    {
+      "name": "GX1-derive-hotpath-session.py",
+      "bytes": 982,
+      "sha256": "5f7291eb0b6db736aedf81727e2013f87d70ea58fb819a8629360b9dd550044b"
+    },
+    {
+      "name": "GX1-derive-val-pausefix-session.py",
+      "bytes": 979,
+      "sha256": "9b393fbcc06406a9aaabdb0b4e20e38ce19e2132357a4bd895b7fc9a3c1d2f8b"
+    },
+    {
+      "name": "GX1-derive-val128-cache-session.py",
+      "bytes": 957,
+      "sha256": "09a5f4798b1bd9a859f444aa05d87008efc6565910ddced0c3773107889e2952"
+    },
+    {
+      "name": "GX1-derive-val128-cpu-pipeline-session.py",
+      "bytes": 984,
+      "sha256": "59761b78be50312f294c71af9eea4677340173d4d9ac9fa8ed90619a376fe6d2"
+    },
+    {
+      "name": "GX1-derive-val128-rounding-session.py",
+      "bytes": 963,
+      "sha256": "e326c1246e2c58f0236c57ad300344f4481a84b8b5f14e9909a883e06614d6f3"
+    },
+    {
+      "name": "GX1-diagnose-entry-exit-20260914.py",
+      "bytes": 8029,
+      "sha256": "cf80545d0b864cef0f36ac0c48f7f978433d06f048b328d5c0d96b6bb8e12108"
+    },
+    {
+      "name": "GX1-doc-publication-20260913.log",
+      "bytes": 103,
+      "sha256": "f8b85b410c12537a377d3bddbf8194a380c432f972ba8d1ee7fa533c6a4de5c4"
+    },
+    {
+      "name": "GX1-entry-exit-diagnostic-20260914.json",
+      "bytes": 10635420,
+      "sha256": "9c43f76a97660d4d3910969a003fd0690c6f91857d1a11d4116fa79902ffcc83"
+    },
+    {
+      "name": "GX1-full-val-result-epoch1-20260914.json",
+      "bytes": 13050676,
+      "sha256": "eb78619b44ff8e6b2ac50a216d384672edd49bfb840a7c9d2c45245984cac48a"
+    },
+    {
+      "name": "GX1-handover-base-20260913.tar",
+      "bytes": 184320,
+      "sha256": "eaa64063e61f4f5877e565f1f6fde3de132baba4e5a904c2795cc4bed2593c14"
+    },
+    {
+      "name": "GX1-handover-final-update-20260913.tar",
+      "bytes": 276480,
+      "sha256": "85862d71ccb83dc4aa63594add7ad60559a6412c4abf82a7d90b5f77dee8c3e3"
+    },
+    {
+      "name": "GX1-handover-fp32-update.tar",
+      "bytes": 102400,
+      "sha256": "f7964e69478939bff5cee32282d6b34ab32f9048353a58fde65e99fd8ebeedd5"
+    },
+    {
+      "name": "GX1-handover-successor-update.tar",
+      "bytes": 276480,
+      "sha256": "2787b19e51e00b9d2bd3e6adb9cc6d101854009fffd274dda60e3aeaca1b89a1"
+    },
+    {
+      "name": "GX1-handover-update-20260913.tar",
+      "bytes": 256000,
+      "sha256": "91bd081eb35b4ca895506a5d16991e3ca385eeff5fbbdb397a8b410503389a11"
+    },
+    {
+      "name": "GX1-market-cache-live-observation.json",
+      "bytes": 3451,
+      "sha256": "953748bc9088f8da500a8532697feb1d396e0d7d19f8cee7380b744509f9acfa"
+    },
+    {
+      "name": "GX1-native-handover-observation-20260913.json",
+      "bytes": 3643,
+      "sha256": "1b18601ac428d6c238beacfacd4f29db49c12bb485569efb4d4233eda8b76597"
+    },
+    {
+      "name": "GX1-native-val128-cache-prepared.json",
+      "bytes": 2870,
+      "sha256": "eb06fa3bea1ea223cecc43b8de261ed3272683139f05a5dd3ac6cde3692647ce"
+    },
+    {
+      "name": "GX1-native-val128-cpu-pipeline-prepared.json",
+      "bytes": 3802,
+      "sha256": "f170f8003aa9b45ce450f50afab49c0d71439b490526e6c83db7640ca9261147"
+    },
+    {
+      "name": "GX1-native-val128-fp32-prepared.json",
+      "bytes": 2794,
+      "sha256": "4a52e1a63429db7c59c812b760713d24b2bd309b69fbc084e924535669db29e2"
+    },
+    {
+      "name": "GX1-native-val128-hotpath-prepared.json",
+      "bytes": 3916,
+      "sha256": "65aa545c8cadcd483b709e803e029629f178caacc178192c2a27fed149b3c9b3"
+    },
+    {
+      "name": "GX1-native-val128-pausefix-prepared.json",
+      "bytes": 3932,
+      "sha256": "8f0e1aa937b00111f1608af99fe1993553166d1a0a5fb5822f66a2d7de2da651"
+    },
+    {
+      "name": "GX1-native-val128-prepared.json",
+      "bytes": 2803,
+      "sha256": "d0c23a93b402a49e64f4a794001f7bf89e16b5ed26741b5bd263f21a3feb05e4"
+    },
+    {
+      "name": "GX1-native-val128-rounding-prepared.json",
+      "bytes": 2810,
+      "sha256": "2aa892275e238f46cf887ceb05e886f335b3f28fff6eddc3f651bc013033ed1b"
+    },
+    {
+      "name": "GX1-patch-capacity-20260914.py",
+      "bytes": 8621,
+      "sha256": "395ae47ce1c5dcf5b18691d3861a94af45e08ea3fe026b4ee40c9d95430d3415"
+    },
+    {
+      "name": "GX1-pausefix-live-docs.tar",
+      "bytes": 20480,
+      "sha256": "1cfdbc1d3921eaec075568d89ae2e5b4c873598ebc5e9c72ccafc34a951b6178"
+    },
+    {
+      "name": "GX1-pausefix-publication-20260913.log",
+      "bytes": 1095,
+      "sha256": "656d974dffafef926a6d36516f00a39b27a00cf40f9b0f7cf599adb9d697326d"
+    },
+    {
+      "name": "GX1-prepare-hotpath.py",
+      "bytes": 5257,
+      "sha256": "0b7c3c30a533248ea44f5844b3d8d633e24ae73affd9893db84ee7dacbdbc6eb"
+    },
+    {
+      "name": "GX1-prepare-val-pausefix.py",
+      "bytes": 5368,
+      "sha256": "834214efed661307547a5919b91275b748036ea044f3e8e8ac1e203cdb4d4682"
+    },
+    {
+      "name": "GX1-prepare-val128-cache-campaign.py",
+      "bytes": 4387,
+      "sha256": "238196f9272807a84e0023e790378040cedd85c1fc4a03a47b81859627c278c6"
+    },
+    {
+      "name": "GX1-prepare-val128-cache.log",
+      "bytes": 3206,
+      "sha256": "71b07db02a3f40c1e8b9cb00944c7d2067063ca247494231d499b988119ec641"
+    },
+    {
+      "name": "GX1-prepare-val128-campaign.py",
+      "bytes": 4267,
+      "sha256": "c5ca985d971af83c7d465ff8931137533a2bf3bb8505e2381903c062c090f7f3"
+    },
+    {
+      "name": "GX1-prepare-val128-cpu-pipeline-campaign.py",
+      "bytes": 5157,
+      "sha256": "fe435b9e9d7cab4684578790744433b6477d0a31b919a306af20507ae8eed998"
+    },
+    {
+      "name": "GX1-prepare-val128-fp32-campaign.py",
+      "bytes": 4301,
+      "sha256": "26092ef83f41f48a4a0880a57e016fb7bf12b79af45a024c3ece12024a75fb99"
+    },
+    {
+      "name": "GX1-prepare-val128-rounding-campaign.py",
+      "bytes": 4334,
+      "sha256": "75f74e70af04d1e61b0ff9524ca6801ae2d9cf8da2c4796709784bdfe84ac35b"
+    },
+    {
+      "name": "GX1-prepare-val128-rounding.log",
+      "bytes": 3156,
+      "sha256": "7c0728ac00c5b3cc758cabf53ea17d689282d3b8b750ee027b16013742cb150a"
+    },
+    {
+      "name": "GX1-publish-at-native-pause-20260913.sh",
+      "bytes": 1873,
+      "sha256": "24437f9c9a4b9c42fab5beb1a9a09bfdd4c0cbdebc0aeda49f29361fba25e80c"
+    },
+    {
+      "name": "GX1-publish-clock-at-native-pause.sh",
+      "bytes": 1879,
+      "sha256": "454e627ce56944e0b2193218ca4207ade1ecd473e8f9c7458b2340bab2cc3445"
+    },
+    {
+      "name": "GX1-publish-pausefix-at-native-pause.sh",
+      "bytes": 1891,
+      "sha256": "673190eb4da80a9bbd34419e09f0ac694d5918d6326af89374a1cc946ec039e7"
+    },
+    {
+      "name": "GX1-resume-verified-docs.tar",
+      "bytes": 30720,
+      "sha256": "78ab4e668e48b37b6d40fad253f573fd00da0a1f79dc1272cb81ab4294d2a648"
+    },
+    {
+      "name": "GX1-retire-task-20260914.ps1",
+      "bytes": 1030,
+      "sha256": "225a0bb1ba4858ab00896aecdcd84e5df925029d87c96b521306c039a4eb7d83"
+    },
+    {
+      "name": "GX1-retire-worktrees-20260914.py",
+      "bytes": 3688,
+      "sha256": "95686767befb0b869c5d70a11a33b6994d354d68c6ac3286e13cad0543326023"
+    },
+    {
+      "name": "GX1-review-closed-20260914.py",
+      "bytes": 4753,
+      "sha256": "0c89197d7c78c66b52e469d6b9664f6b66ccb2602c6b2e47d58c01f99dd07f3c"
+    },
+    {
+      "name": "GX1-risk-head-scope-20260914.json",
+      "bytes": 4065,
+      "sha256": "b23369d09de199021313f98347d1a889f8c85fe56587dc2e51eef79f7c3b891c"
+    },
+    {
+      "name": "GX1-stop-handover-20260914.tar",
+      "bytes": 112640,
+      "sha256": "06b8a150618f6f7c89a4a28fdac784476d89a4e5fa9d8c55513d0cf11cabd378"
+    },
+    {
+      "name": "GX1-stop-handover-verification-20260914.json",
+      "bytes": 3942,
+      "sha256": "8011febbd5abd3dde28d79bf7c8d3b63d58406ffa6391778e1b7e84dbfc836f3"
+    },
+    {
+      "name": "GX1-throughput-edit-base.tar",
+      "bytes": 849920,
+      "sha256": "7a881338c9c4df0e93db1868f91a4971cfcff183f7e1a6cfff7378bf0915caa4"
+    },
+    {
+      "name": "GX1-throughput-test-base.tar",
+      "bytes": 61440,
+      "sha256": "d9a9b1ae59d3cdb52b167d1d25fc049b40ac3cc3c3467d6963e2acbd7332a0ed"
+    },
+    {
+      "name": "GX1-throughput-update.tar",
+      "bytes": 921600,
+      "sha256": "71f00a98a822b7ca297fb4501a323bdf61349a02863f5e8825a3d0632cf0a142"
+    },
+    {
+      "name": "GX1-trade-review-scope-20260914.md",
+      "bytes": 7571,
+      "sha256": "f35f7f76bf322d617e13c7c6d821a1392486450f2f62d22000a919ad8726de32"
+    },
+    {
+      "name": "GX1-update-stop-handover-20260914.py",
+      "bytes": 5662,
+      "sha256": "6283a5bfd46eb475cb0bc70a178d39ed0abfbbdbfd1a3959752886ad0dce0ca2"
+    },
+    {
+      "name": "GX1-val-cache-source-observation.json",
+      "bytes": 1190,
+      "sha256": "db8b06617a85dae78611d06dcfa310899ada0a06d058ad2741fe734c87180de5"
+    },
+    {
+      "name": "GX1-val-cpu-capacity-20260914.json",
+      "bytes": 2359,
+      "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
+    },
+    {
+      "name": "GX1-val-cpu-pipeline-base.tar",
+      "bytes": 296960,
+      "sha256": "54ef7c893917bd68b0cb2b38f433d721ec883472f21554c48f96798b5640ba20"
+    },
+    {
+      "name": "GX1-val-cpu-pipeline-profile-20260913.txt",
+      "bytes": 281840,
+      "sha256": "3b6ec59b2870f17c5eaa8e37fa03a57fb994cc97b894fdbe2d6ecb6956a528b0"
+    },
+    {
+      "name": "GX1-val-cpu-pipeline-takeover.tar",
+      "bytes": 174080,
+      "sha256": "4c5cbe1bf6170a7eaefdb36bc8097b8e9176383826d0000a32f95d9fb81ca4ba"
+    },
+    {
+      "name": "GX1-val-cpu-pipeline-update.tar",
+      "bytes": 1465344,
+      "sha256": "b3adf3de75efd0c95a6a5a2d2b17017888f651941626da664103a4017c18dffd"
+    },
+    {
+      "name": "GX1-val-cpu-resume-tests.tar",
+      "bytes": 96768,
+      "sha256": "80779515f1138f4c667fec771ff66fa3c7a53eddab12fda2c6384156ceee5d85"
+    },
+    {
+      "name": "GX1-val-fp32-fix.tar",
+      "bytes": 829440,
+      "sha256": "32e2af75da49cab9aafe01447e5291707cd1171a85ed944d6d0b59ccae979efb"
+    },
+    {
+      "name": "GX1-val-hotpath-current-boot.json",
+      "bytes": 140,
+      "sha256": "9f87eadf4b06694a64355c84ba5178034c7552df97e4c37e5d2de676b70d03da"
+    },
+    {
+      "name": "GX1-val-hotpath-takeover.tar",
+      "bytes": 174080,
+      "sha256": "0756770caca55fea246ca8d2743e18bd3eeecc78fa8b0c60b07569daa0e2c619"
+    },
+    {
+      "name": "GX1-val-hotpath-update.tar",
+      "bytes": 1064960,
+      "sha256": "54aecffee3f2ee30777c93af585a3b397c87b387b23af5d2ed94b32cdb9ee2bc"
+    },
+    {
+      "name": "GX1-val-market-cache-base.tar",
+      "bytes": 1085440,
+      "sha256": "92b3ef661928cf303aed46cefb07784a3c17fc99137000a444d74338f5c1526d"
+    },
+    {
+      "name": "GX1-val-market-cache-profile.txt",
+      "bytes": 300572,
+      "sha256": "2e0345006887f501c556dfe40176beb2bf0996e6dda2a5a9c6246c716f78036c"
+    },
+    {
+      "name": "GX1-val-market-cache-update.tar",
+      "bytes": 1075200,
+      "sha256": "2a54f406c27232ce3942c4b86c5325d987ce2deab48ce81d151e6465b2d43bc1"
+    },
+    {
+      "name": "GX1-val-pausefix-current-boot.json",
+      "bytes": 140,
+      "sha256": "d0473479ac6ea13ad6691d2ad384c8b72453a646628faa902556c78e52c1de9b"
+    },
+    {
+      "name": "GX1-val-pausefix-takeover.tar",
+      "bytes": 184320,
+      "sha256": "9b7adb9a5746f32dd5e3602b0b54e2cd3ffdb87fc0aa948a9309e59868332bad"
+    },
+    {
+      "name": "GX1-val-pausefix-update.tar",
+      "bytes": 839680,
+      "sha256": "1ec43c35d9af3b4e11dd46c301c96902d4adbbfc34ae8f1f3f18defb26ae4169"
+    },
+    {
+      "name": "GX1-val-profile-20260913.txt",
+      "bytes": 220757,
+      "sha256": "147404f31061948e94acc5776cc532bf2a1cfe928a4b1c94e1e12ab65bdc5700"
+    },
+    {
+      "name": "GX1-val128-cache-expected-session.json",
+      "bytes": 54499,
+      "sha256": "9483ef74b3f29bbc39525b8b23cd98195552831fd5b9378cdde96dd93942c200"
+    },
+    {
+      "name": "GX1-val128-cache-takeover.tar",
+      "bytes": 112640,
+      "sha256": "a394510dc7d2cc2b6417a682b73bcc6256d2b59a82b1027f5d53af1be6c30fb2"
+    },
+    {
+      "name": "GX1-val128-cpu-pipeline-expected-session.json",
+      "bytes": 54520,
+      "sha256": "3d6728bdb403a820551dd8f90e33cbe6c36dad33b8965b794f02152746bc640b"
+    },
+    {
+      "name": "GX1-val128-expected-session-contract.json",
+      "bytes": 54168,
+      "sha256": "ad67468c57265a31443c9ec6a0d3b04812c0eb0e84058220fe55321be7716b91"
+    },
+    {
+      "name": "GX1-val128-fp32-expected-contract.json",
+      "bytes": 53248,
+      "sha256": "710f8e9bb18fbc4209ade85968257e657d0ebecfa4ae0e65ef7915f84b0d2930"
+    },
+    {
+      "name": "GX1-val128-fp32-source-observation.json",
+      "bytes": 1180,
+      "sha256": "9e0cff41bc41a4852b431e3032540aed41837ccd7f386373df2b52e292585b9c"
+    },
+    {
+      "name": "GX1-val128-hotpath-expected-session.json",
+      "bytes": 53726,
+      "sha256": "4354e374424b229637ed7f51c2a92f33dc7ffa50bdf4384c03d249c04c9803d9"
+    },
+    {
+      "name": "GX1-val128-live-observation.json",
+      "bytes": 2633,
+      "sha256": "eaee4f235963f734fd77df1439058225038e28e6b8aff2451aeae01202c464e0"
+    },
+    {
+      "name": "GX1-val128-pausefix-expected-session.json",
+      "bytes": 54821,
+      "sha256": "676fee85c03cce2c04fc51032ca7fe8db6d002444a3abc043ece72b978318cd2"
+    },
+    {
+      "name": "GX1-val128-rounding-expected-session.json",
+      "bytes": 53416,
+      "sha256": "2e15fc9ad615bbc0b30b9c48b058e808077752dfd729fdfa6a4c71982606799d"
+    },
+    {
+      "name": "GX1-val128-rounding-takeover.tar",
+      "bytes": 112640,
+      "sha256": "e47479d05b2a77f29e4dc1da72ff7048b1f2e83034de238b4b0913b46d4784a4"
+    },
+    {
+      "name": "GX1-val128-source-observation.json",
+      "bytes": 1176,
+      "sha256": "8b5db65ce76acc44285449ad7ebae333eb2f4912f4a78e3fbc9036066af2cc1f"
+    }
+  ],
+  "preserved_runtime_references": {
+    "GX1-WslColdBootProbe.ps1": [
+      "GX1WslColdBootProbe scheduled diagnostic"
+    ],
+    "GX1-GpuPowerLimit.config.json": [
+      "/mnt/c/Users/Andre/GX1FullTrainNative_f77dd273/scripts/windows/GX1-GpuPowerAndIdleGuard.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/GX1-ApplyGpuPowerLimit.pre_candidate_fd147dee.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/GX1-ApplyGpuPowerLimit.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/Archive/keeper-fix-20260910T083147Z/GX1-ApplyGpuPowerLimit.ps1"
+    ],
+    "GX1-GpuPowerLimit.log": [
+      "/mnt/c/Users/Andre/GX1FullTrainNative_f77dd273/scripts/windows/GX1-GpuPowerAndIdleGuard.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/GX1-ApplyGpuPowerLimit.pre_candidate_fd147dee.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/GX1-ApplyGpuPowerLimit.ps1",
+      "/mnt/c/ProgramData/GX1/GpuPowerLimit/Archive/keeper-fix-20260910T083147Z/GX1-ApplyGpuPowerLimit.ps1"
+    ]
+  },
+  "duplicate_results_verified_against_preserved_mac_files": {
+    "GX1-full-val-result-epoch1-20260914.json": "eb78619b44ff8e6b2ac50a216d384672edd49bfb840a7c9d2c45245984cac48a",
+    "GX1-entry-exit-diagnostic-20260914.json": "9c43f76a97660d4d3910969a003fd0690c6f91857d1a11d4116fa79902ffcc83",
+    "GX1-closed-trade-review-20260914.json": "437681fedd5f88f3cc9fd20f1f9910011078b74c8ab165fa74523b6d65315758",
+    "GX1-risk-head-scope-20260914.json": "b23369d09de199021313f98347d1a889f8c85fe56587dc2e51eef79f7c3b891c"
+  },
+  "retired_campaign_xml_deleted": true,
+  "active_guard_tasks_unchanged": true,
+  "training_started": false
+}

@@ -71,6 +71,12 @@ Arkivet skal ikke brukes som en alternativ treningskilde.
 Mac-arbeidsområdet er også ryddet: 85 gamle toppnivåfiler/-mapper, 798 filer
 og 252 889 123 byte er fjernet fra aktivt prosjekt etter kontrollert arkivering.
 Hele trade_review_20260914 med VAL-resultat og analyser er beholdt.
-Privat arkiv: /Users/andrekildalbakke/GX1_ARCHIVE/CLEANUP_20260914.
+Det midlertidige Mac-arkivet er slettet etter brukerpresisering. Bare tidligere
+fullført resultatrapport er beholdt utenfor prosjektet. Den dupliserte checkpoint-
+filen var SHA256-identisk med bevart original på treningsmaskinen.
 På Mac brukes bare ./handover.sh (--check eller --verbose); den leser GX1_CURRENT
 via SSH og starter aldri trening. Scriptets versjonerte kilde er scripts/macos/gx1_takeover.sh.
+
+Windows: 108 gamle overføringsfiler, engangsscript og oppstartsvarianter er slettet.
+Resultatduplikater var identiske med bevarte resultater. Gammel kampanje-XML er
+også slettet. Aktive vakter og refererte runtimefiler er beholdt.
