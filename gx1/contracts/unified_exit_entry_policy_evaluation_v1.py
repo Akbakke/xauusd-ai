@@ -121,3 +121,103 @@ def coupled_entry_exit_policy_metrics(
         "flat_return_bps": 0.0,
         "test_data_used": False,
     }
+
+
+
+def marked_entry_exit_policy_metrics(
+    *, entry_policy: Mapping[str, Any], trade_outcomes: Sequence[Mapping[str, Any]],
+    full_cohort_authoritative: bool,
+) -> dict[str, Any]:
+    """Report observed liquidation NAV and a fixed-notional one-position replay.
+
+    This reports the proposed execution rule; it does not change Entry targets
+    or authorize checkpoint selection. Unknown gaps cannot stand in for month end.
+    """
+    original = coupled_entry_exit_policy_metrics(
+        entry_policy=entry_policy, trade_outcomes=trade_outcomes,
+        full_cohort_authoritative=full_cohort_authoritative,
+    )
+    lookup = {(o["entry_row_index"], o["side_index"]): o for o in trade_outcomes}
+    row_ids, actions = entry_policy["entry_row_indices"], entry_policy["action_indices"]
+    times = []
+    for row in row_ids:
+        time = lookup[row, 0].get("entry_fill_time_ns")
+        if type(time) is not int or time <= 0 or lookup[row, 1].get("entry_fill_time_ns") != time:
+            raise RuntimeError("UNIFIED_EXIT_MARKED_ENTRY_CLOCK_INVALID")
+        times.append(time)
+    if times != sorted(times):
+        raise RuntimeError("UNIFIED_EXIT_MARKED_ENTRY_ORDER_INVALID")
+    selected = [lookup[row, side] for row, side in zip(row_ids, actions) if side != 2]
+
+    def total_for(outcomes):
+        values, complete = [], full_cohort_authoritative
+        for outcome in outcomes:
+            mark = outcome.get("valuation")
+            if not isinstance(mark, Mapping):
+                raise RuntimeError("UNIFIED_EXIT_MARKED_VALUATION_MISSING")
+            value = mark.get("net_cash_plus_open_value_bps")
+            remaining = mark.get("remaining_liquidation_value_bps")
+            eligible = outcome["status"] in {"EXITED", "RIGHT_CENSORED_SPLIT_END"}
+            if eligible:
+                if (value is None or remaining is None or not np.isfinite(value)
+                    or not np.isfinite(remaining)
+                    or value != float(outcome["undiscounted_net_cash_pnl_bps"]) + remaining):
+                    raise RuntimeError("UNIFIED_EXIT_MARKED_ACCOUNTING_INVALID")
+                if (type(mark.get("valuation_time_ns")) is not int
+                    or mark["valuation_time_ns"] < outcome["entry_fill_time_ns"]
+                    or mark.get("model_exit_executed") is not (outcome["status"] == "EXITED")):
+                    raise RuntimeError("UNIFIED_EXIT_MARKED_VALUATION_INVALID")
+                if outcome["status"] == "EXITED" and (remaining != 0.0 or mark["valuation_time_ns"] != outcome.get("exit_decision_time_ns")):
+                    raise RuntimeError("UNIFIED_EXIT_MARKED_REALIZED_VALUE_INVALID")
+                values.append(float(value))
+            else:
+                complete = False
+        return (float(sum(values)) if complete else None), bool(complete)
+
+    independent_total, independent_complete = total_for(selected)
+    executed, occupied_until, skipped = [], -1, 0
+    for row, side, time in zip(row_ids, actions, times):
+        if side == 2:
+            continue
+        if occupied_until is None or time < occupied_until:
+            skipped += 1
+            continue
+        outcome = lookup[row, side]
+        executed.append(outcome)
+        # EXIT is processed before an Entry fill at the same timestamp.
+        if outcome["status"] == "EXITED":
+            occupied_until = outcome.get("exit_decision_time_ns")
+            if type(occupied_until) is not int or occupied_until < time:
+                raise RuntimeError("UNIFIED_EXIT_MARKED_EXIT_CLOCK_INVALID")
+        else:
+            occupied_until = None
+    chronological_total, chronological_complete = total_for(executed)
+    return {
+        "schema_version": "gx1_entry_exit_marked_policy_metrics_v1",
+        "policy_sha256": original["policy_sha256"],
+        "checkpoint_binding_sha256": original["checkpoint_binding_sha256"],
+        "valuation_basis": "observed_executable_liquidation_value_after_costs",
+        "model_exit_fabricated": False,
+        "used_for_early_stopping": False,
+        "independent_opportunities": {
+            "semantics": "equal_notional_opportunities_not_portfolio_return",
+            "full_cohort_authoritative": independent_complete,
+            "net_cash_plus_open_value_bps_sum": independent_total,
+            "mean_bps_per_entry_opportunity": independent_total / len(row_ids) if independent_complete else None,
+            "selected_trade_count": len(selected),
+        },
+        "single_position_replay": {
+            "semantics": "single_position_fixed_notional_bps_not_compounded_account_return",
+            "execution_order": "exit_before_entry_at_equal_timestamp_then_entry_row_order",
+            "position_rule_trained": False,
+            "full_cohort_authoritative": chronological_complete,
+            "net_cash_plus_open_value_bps_sum": chronological_total,
+            "executed_entry_row_indices": [o["entry_row_index"] for o in executed],
+            "executed_trade_count": len(executed),
+            "skipped_while_position_open_count": skipped,
+            "entry_flat_decision_count": actions.count(2),
+            "model_exited_count": sum(o["status"] == "EXITED" for o in executed),
+            "open_position_count": int(bool(executed) and executed[-1]["status"] != "EXITED"),
+        },
+        "test_data_used": False,
+    }

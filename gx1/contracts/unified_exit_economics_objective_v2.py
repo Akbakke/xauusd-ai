@@ -702,6 +702,23 @@ def require_economic_step_inputs(
     }
 
 
+def revalue_marked_hold_step(
+    step: Mapping[str, Any], *, successor_liquidation_value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Reuse verified interval costs without sharing an entry-specific mark."""
+    if step.get("schema_version") != MARK_TO_MARKET_STEP_SCHEMA_VERSION or step.get("event_kind") != "HOLD":
+        raise RuntimeError("UNIFIED_EXIT_ECONOMICS_MARKED_HOLD_REQUIRED")
+    mark = _complete_component(successor_liquidation_value,
+                               label="SUCCESSOR_LIQUIDATION_VALUE", nonnegative=False)
+    # Start from cash and risk, not a previously adjusted utility (no drift).
+    utility = step["undiscounted_net_cash_pnl_increment_bps"] - step["risk_utility_penalty_bps"]
+    utility += (1.0 - step["continuation_gamma"]) * mark["value_bps"]
+    if not math.isfinite(utility):
+        raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
+    return {**step, "successor_liquidation_value": mark,
+            "undiscounted_risk_adjusted_utility_increment_bps": float(utility)}
+
+
 def compose_economic_step(
     value: Mapping[str, Any], *, contract: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -718,15 +735,9 @@ def compose_economic_step(
         contract=contract,
         elapsed_wall_clock_seconds=step["elapsed_wall_clock_seconds"],
     )
-    if "successor_liquidation_value" in step:
-        # Q is liquidation value plus expected discounted future value changes.
-        # HOLD: -cost + (1-gamma)*L_next + gamma*Q_next.
-        # Subtracting L_now gives delta L - cost + gamma*(Q_next-L_next).
-        # This changes the old terminal-cash objective; it is not extra cash.
-        utility += (1.0 - gamma) * step["successor_liquidation_value"]["value_bps"]
     if not all(math.isfinite(value) for value in (net_cash, utility, gamma)):
         raise RuntimeError("UNIFIED_EXIT_ECONOMICS_STEP_RESULT_NONFINITE")
-    return {
+    result = {
         **step,
         "undiscounted_net_cash_pnl_increment_bps": float(net_cash),
         "risk_utility_penalty_bps": float(risk_penalty),
@@ -734,6 +745,10 @@ def compose_economic_step(
         "continuation_gamma": float(gamma),
         "capital_hurdle_applied_via_discount_only": True,
     }
+    if "successor_liquidation_value" in step and step["event_kind"] == "HOLD":
+        # Q = current liquidation value + discounted future value changes.
+        return revalue_marked_hold_step(result, successor_liquidation_value=step["successor_liquidation_value"])
+    return result
 
 
 def discounted_continuation_target_bps(
@@ -825,6 +840,7 @@ __all__ = (
     "SECONDS_PER_YEAR",
     "build_unified_exit_economics_objective_contract",
     "compose_economic_step",
+    "revalue_marked_hold_step",
     "discounted_continuation_target_bps",
     "elapsed_wall_clock_gamma",
     "evaluate_economic_path",

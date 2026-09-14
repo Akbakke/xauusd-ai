@@ -209,6 +209,41 @@ overføring til nytt optimaliseringsmål gjenstår, sammen med GPU256-paritet,
 samlet fart og resume-bevis. NEXT_RUN_POLICY.json er uendret; ingen trening,
 ny inferens eller TEST-tilgang er brukt til denne rettelsen.
 
+### Native evaluering og cache — neste verifiserte trinn
+
+Den inaktive økonomivarianten har nå native resultat v3 med en separat
+valuation for hver posisjon. Ved split-slutt er nettoverdien bokført cash pluss
+gjennomførbar gjenværende lukkeverdi. For utility legges den samme sluttverdien
+til med akkumulert diskontering. EXIT-markørene og cash-ledgeren endres ikke:
+en siste prisobservasjon er ikke et modellvalgt salg. Ukjente datagap og
+ufullstendig beregning kan ikke oppgraderes til komplett månedsscore.
+
+Det rapporteres både uavhengige muligheters markerte verdi og en kronologisk
+kontroll med én fast posisjon om gangen. Kontrollen behandler kjent EXIT før
+Entry ved samme klokke, uten pyramidering eller rentesrente, og teller modellens
+FLAT separat fra muligheter som ble blokkert av en opptatt posisjon. Den er
+uttrykkelig ikke innført i treningsfasiten eller early stopping. Endelig avtale
+for posisjonsbruk, kapitalens alternativverdi og resultatvalg gjenstår.
+
+En nødvendig følgefeil i cache ble også rettet: inngangsavhengig mark kunne gi
+én ferdigberegnet HOLD-cacheoppføring per inngang og intervall. Nå gjenbrukes
+bare felles intervallkostnader, og marken beregnes på nytt. En regresjon med
+400 forespørsler, 100 innganger, to sider og to intervaller ga to oppføringer
+med eksakt likhet mot scalar-banen i begge rekkefølger. Faktisk minnebruk og
+samlet gjennomstrømning på full VAL er fortsatt ikke målt.
+
+57 målrettede CPU-tester besto, inklusive syntetisk native batch256 pause/resume
+med åpne tap, ukjent gap og compute-avkorting. Et kontrolltilfelle med to lukkede
+gevinster og ett åpent tap ender på -13,5 Bps; en overlappende +1000 Bps-handel
+får ikke plass og kan ikke forbedre resultatet. Dette er en syntetisk test av
+korrekt beregning, ikke GX1-avkastning. Resultatvalidatoren avviser endrede
+summer selv når ytre JSON-hash er beregnet på nytt.
+[Kilde-/loggbundet bevis](../handover_snapshot/MTM_VAL_VERIFICATION_20260914.json).
+
+Ingen treningsaktivering, ny analyse av det faktiske GX1-checkpointet eller
+TEST-tilgang er gjort. V2-resultater og gammel juni-score beholder sin opprinnelige
+betydning. Risikoavklaring og de øvrige portene gjelder fortsatt.
+
 ## 4. Læringsforløp og alternative metoder
 
 En full epoch har 313 399 Entry-par og fire samplede Exit-overganger per par, begge sider, pluss første-tilstandsanker. Dette er 1 253 596 samplede overgangstilstander; ikke alle mulige minutter av alle handler. Sampleren har allerede aldersgrupper og ingen påvist uniform-minutt-feil.

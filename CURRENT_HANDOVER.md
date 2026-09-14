@@ -1,5 +1,44 @@
 # GX1 overtakelse — 2026-09-14
 
+## Native måling av åpen verdi og posisjonsbruk er forberedt
+
+Den inaktive MTM-varianten har nå et eget native resultatformat v3. Ved naturlig
+avkorting måles gjennomførbar lukkeverdi ved siste observerte beslutningsklokke,
+inklusive kostnader. Denne legges til kontantbokføringen i en separat
+valuation, uten å opprette EXIT, endre HOLD-status eller ommerke cash-ledgeren.
+Diskontert utility får tilsvarende sluttverdi. Gammel juni-score forblir uendret.
+Ukjent kildegap og ufullstendig beregning gir fortsatt ingen komplett NAV-score.
+
+Ny marked_policy_evaluation rapporterer både uavhengige muligheter og en
+kronologisk kontroll med én fast posisjon om gangen, uten pyramidering eller
+rentesrente. EXIT behandles før ny inngang ved lik klokke. Den skiller modellens
+FLAT fra handler som ikke får plass mens en posisjon er åpen. Kontrollen endrer
+ikke Entry-targets eller faktisk opptaksregel; position_rule_trained=false og
+used_for_early_stopping=false er eksplisitt. Avtalen må fullføres før trening.
+
+En konkret cachefeil fra det nye inngangsavhengige økonomimålet er rettet:
+ferdigberegnede HOLD-steg deler nå bare intervallkostnader. Inngangens mark
+beregnes på nytt uten å øke cache per handel. 400 syntetiske forespørsler over
+to intervaller ga to cacheoppføringer med eksakt scalar-/slice-likhet, også
+ved omvendt rekkefølge. Dette er ikke en måling av total GPU-/CPU-fart.
+
+57 målrettede tilfeller besto i én capped audit-jobb. De omfatter den endrede
+økonomikomposisjonen, cache, tap i åpne posisjoner, overlapp, samtidige klokker,
+datagap, compute-guard og syntetisk native VAL med batch 256 og pause/resume.
+Resultatvalidatoren rekonstruerer også den nye metrikken og avviser endrede summer.
+Bevis: [MTM_VAL_VERIFICATION_20260914.json](handover_snapshot/MTM_VAL_VERIFICATION_20260914.json),
+med bevart logg og eksakte kildehasher. Tidligere 42-testbevis gjelder sin angitte
+kilde; denne runden dekker de nå endrede eierne. Ingen fullsuite eller faktisk
+GX1-modellanalyse, GPU, ny juni-VAL eller trening ble kjørt.
+
+Fortsatt uavklart: brukerens risikovalg er ubesvart (markedsstyrt Exit alene
+eller også en brukeroppgitt absolutt tapsgrense). Ingen risikogrense er valgt.
+Før videre kampanje må risiko-/posisjons-/resultatavtalen fastsettes, Entrys
+selvstendige kvalitet undersøkes, og eksplisitt overgang fra gamle checkpoints
+til nytt mål samt GPU256-paritet, samlet fart og faktisk resume dokumenteres.
+NEXT_RUN_POLICY.json er uendret. Ingen ny recipe/kampanje er aktivert.
+
+
 ## Verifisert økonomirettelse, ennå ikke aktivert
 
 I GX1_CURRENT er en eksplisitt kandidat for markedsverdibasert økonomi nå

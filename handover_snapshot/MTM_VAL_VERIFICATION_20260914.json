@@ -1,0 +1,82 @@
+{
+  "schema_version": "gx1_mtm_val_verification_v1",
+  "observed_utc": "2026-09-14T09:14:58.260876+00:00",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "branch": "work/gx1-current",
+  "base_commit": "6e365caede9b68441b3d24cf21c55ba93717da02",
+  "modified_file_sha256": {
+    "gx1/contracts/unified_exit_economics_objective_v2.py": "7e29fbaed0b8e3a2c3d6aa3dee6f232cb7afa44efa4248c316da974bf2bc4a53",
+    "gx1/contracts/unified_exit_entry_policy_evaluation_v1.py": "a8c838500968d3d4226edfdf26718848e0e8a984a11bfdd1f4fb6c65e2b28d03",
+    "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": "94bcf0eb03518ac80d25a48666eacdf2b18169d5993ef3b7c8d7d0609212d66b",
+    "gx1/contracts/unified_exit_random_access_val_rollout_v1.py": "050af0ba76a388f8c5edae52815e5eb0ce27088b130637d8ad492ca36d41b9cb",
+    "tests/test_unified_exit_entry_policy_evaluation_v1.py": "fe8f61da594ed10656435a93d3053962d1254c5bd135df24acc235e6ce3a8a5a",
+    "tests/test_unified_exit_random_access_val_evaluator_v1.py": "2b24c025c6c9eccfda5baa71c7b95bb10dcc4b16ec5cc817bbfed6a5048fd867",
+    "tests/test_unified_exit_random_access_val_rollout_v1.py": "c0d2d43ad6f19dd8fc06f50c96099f32e68a89f0b983489992a8a8fb5a076ab7"
+  },
+  "test_log": "handover_snapshot/gx1_mtm_nav_tests.log",
+  "test_log_sha256": "dfc79af46fbee852d0fb06b51ddf2b8121446b14ed3ddb2b85b6c77b21804979",
+  "passed_cases": 57,
+  "exit_code": 0,
+  "test_command": ".venv/bin/python -m pytest -q tests/test_unified_exit_economics_objective_v2.py tests/test_unified_exit_economic_step_provider_v1.py tests/test_unified_exit_entry_policy_evaluation_v1.py tests/test_unified_exit_random_access_val_rollout_v1.py::test_marked_hold_cache_is_bounded_by_intervals_not_entry_prices tests/test_unified_exit_random_access_val_evaluator_v1.py",
+  "execution": "one capped CPU audit job, 4 GiB RAM, 512 MiB swap, CPU 0-7, one numerical thread",
+  "new_result_schema": "gx1_unified_exit_random_access_val_evaluation_v3",
+  "cache_regression": {
+    "request_count": 400,
+    "distinct_entry_ids": 100,
+    "sides": 2,
+    "intervals": 2,
+    "observed_cache_entries": 2,
+    "orders_checked": [
+      "forward",
+      "reverse",
+      "forward"
+    ],
+    "scalar_equivalence": "exact Python structures and slice hashes"
+  },
+  "synthetic_chronological_example": {
+    "executed_entry_rows": [
+      0,
+      3,
+      4
+    ],
+    "skipped_entry_rows": [
+      1
+    ],
+    "skipped_trade_value_bps": 1000.0,
+    "net_cash_plus_open_value_bps": -13.5,
+    "model_flat_count": 1,
+    "closed_count": 2,
+    "open_count": 1,
+    "is_trained_model_performance": false
+  },
+  "verified": [
+    "new objective reward/scalar/vector regression",
+    "entry-dependent composed cache remains bounded by interval costs",
+    "closed cash plus open executable liquidation value",
+    "open mark does not create EXIT or alter cash ledger",
+    "single fixed-notional position, exit before entry at same clock",
+    "raw FLAT distinguished from trades skipped during occupation",
+    "unknown source gap and incomplete compute withhold complete NAV",
+    "native synthetic VAL at batch256 pause/resume and marked result validation",
+    "changed marked totals rejected by result validator",
+    "legacy v2 evaluation preserved"
+  ],
+  "candidate_mode_activated": false,
+  "early_stopping_changed": false,
+  "position_rule_trained": false,
+  "real_gx1_model_evaluated": false,
+  "gpu_used": false,
+  "training_launched": false,
+  "test_data_used": false,
+  "next_run_policy_sha256": "13e421fc51aeb210b1e7a9416a3002ae7888fd7285959b3830568eca9cf1661a",
+  "still_required": [
+    "user risk choice",
+    "training/selection agreement for position and marked metric",
+    "independent Entry quality and calibration",
+    "new-objective checkpoint transition",
+    "GPU256 parity",
+    "end-to-end throughput",
+    "production resume equivalence",
+    "training and valid positive net Bps"
+  ]
+}

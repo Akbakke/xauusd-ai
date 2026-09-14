@@ -9,6 +9,9 @@ Målt uavhengig Entry-kvalitet og den eksakte treningskoblingen er dokumentert i
 del 2E av prosjektgjennomgangen. Årsaken til svakt signal er fortsatt uavklart.
 En eksplisitt, inaktiv v3-kandidat for markedsverdibasert økonomi er implementert
 og verifisert med 42 målrettede CPU-tilfeller; se CURRENT_HANDOVER.md.
+Native v3-evaluering har nå separat åpen markedsverdi og en kontroll av én
+posisjon om gangen; 57 målrettede tester besto. Dette er ikke aktivert som
+treningsregel eller early-stopping-metrikk, og dokumenterer ikke lønnsomhet.
 Ingen nye risikogrenser eller endret treningsmål er aktivert. Spørsmålet om
 markedsstyrt Exit alene eller en absolutt tapsgrense er sendt brukeren og ubesvart.
 

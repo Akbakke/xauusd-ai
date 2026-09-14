@@ -64,7 +64,7 @@ def _readonly(value: object, dtype: str) -> np.ndarray:
     return result
 
 
-def _objective() -> dict:
+def _objective(reward_accounting="terminal_cash_v2") -> dict:
     hurdle = economics.seal_train_fitted_capital_hurdle_artifact(
         {
             "schema_version": economics.CAPITAL_HURDLE_SCHEMA_VERSION,
@@ -87,6 +87,7 @@ def _objective() -> dict:
         expected_train_fold_sha256="2" * 64,
         expected_source_lineage_sha256="3" * 64,
         policy_sha256="5" * 64,
+        reward_accounting=reward_accounting,
     )
 
 
@@ -233,7 +234,7 @@ class _EconomicProvider:
             "event_kind": "HOLD" if action == "hold" else "EXIT_NOW",
             "interval_start_time_ns": start_ns,
             "interval_end_time_ns": end_ns,
-            "gross_price_cashflow": component(0.0 if action == "hold" else 10.0 + side),
+            "gross_price_cashflow": component(0.0 if action == "hold" else getattr(self, "exit_gross_override", 10.0 + side)),
             "commission": component(0.0 if action == "hold" else 1.0),
             "execution_slippage": component(0.0),
             "financing_or_swap": component(-0.1 if action == "hold" else 0.0),
@@ -250,6 +251,9 @@ class _EconomicProvider:
                 "classification_artifact_sha256": "d" * 64,
             },
         }
+        if self.objective.get("reward_accounting") == economics.MARK_TO_MARKET_REWARD_ACCOUNTING:
+            step["schema_version"] = economics.MARK_TO_MARKET_STEP_SCHEMA_VERSION
+            step["successor_liquidation_value"] = component(100.0 * entry + side if action == "hold" else 0.0)
         result = {
             "schema_version": "gx1_unified_exit_economic_step_slice_v1",
             "entry_row_index": entry,
@@ -295,11 +299,11 @@ def _state_provider(entry, state_index):
     }
 
 
-def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000):
+def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000, reward_accounting="terminal_cash_v2"):
     tail_rows = max(counts)
     clock = _clock(gap=gap, tail_rows=tail_rows)
     closure = _closure(clock, gap=gap)
-    objective = _objective()
+    objective = _objective(reward_accounting)
     normalization = _normalization()
     model = _Policy().eval()
     representations = torch.as_tensor(thresholds, dtype=torch.float32)
@@ -586,3 +590,25 @@ def test_compact_market_cpu_workers_preserve_states_across_512_boundary(workers)
         assert len(factory._val_cpu_pool._processes) == workers
     finally:
         factory.close_val_cpu_workers()
+
+
+
+def test_marked_hold_cache_is_bounded_by_intervals_not_entry_prices():
+    _, _, adapter, _ = _fixture(
+        thresholds=np.ones((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.float32),
+        counts=np.full(VAL_ENTRY_COHORT_SIZE, 3, dtype=np.int64),
+        reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING,
+    )
+    provider = adapter.economic_step_provider
+    provider.materialize_selected_actions = lambda requests: [
+        provider(r["entry_row_index"], r["side_index"], r["action"], r["state_index"], r["state_index"] + 1)
+        for r in requests]
+    requests = [dict(entry_row_index=entry, side_index=side, state_index=state, action="hold")
+                for entry in range(100) for side in (0, 1) for state in (0, 1)]
+    reference = [adapter.compose_selected_action(**r) for r in requests]
+    assert len({x[0]["undiscounted_risk_adjusted_utility_increment_bps"] for x in reference}) == 200
+    for batch in (requests, requests[::-1], requests):
+        observed = adapter.compose_selected_actions(batch)
+        assert observed == (reference if batch is requests else reference[::-1])
+        # Both sides in this fixture have identical interval cash costs.
+        assert len(adapter._val_composed_hold_cache) == 2

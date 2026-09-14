@@ -490,3 +490,56 @@ def test_cpu_pipeline_migration_preserves_all_progress_and_rejects_binding_drift
         with pytest.raises(RuntimeError, match="PROGRESS_INVALID"):
             _restore_cpu_pipeline_progress(origin, execution_contract=changed,
                 checkpoint_binding_sha="1" * 64, cpu_pipeline_workers=4)
+
+
+
+@pytest.mark.parametrize("gap, max_forwards, complete", [(None, 1000, True), ("unknown", 1000, False), (None, 1, False)])
+def test_marked_native_result_values_open_loss_without_executing_exit(tmp_path, gap, max_forwards, complete):
+    import copy
+    from gx1.contracts.unified_exit_economics_objective_v2 import MARK_TO_MARKET_REWARD_ACCOUNTING
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
+        MARKED_RESULT_SCHEMA_VERSION, require_random_access_val_evaluation_result_v1,
+    )
+    thresholds = np.full((VAL_ENTRY_COHORT_SIZE, 2), 100.0, dtype=np.float32)
+    thresholds[1, 0] = -1.0
+    model, representations, adapter, contract = _fixture(
+        thresholds=thresholds, counts=np.ones(VAL_ENTRY_COHORT_SIZE, dtype=np.int64),
+        gap=gap, max_forwards=max_forwards, reward_accounting=MARK_TO_MARKET_REWARD_ACCOUNTING,
+    )
+    adapter.economic_step_provider.exit_gross_override = -40.0
+    model = _with_route_outputs(model)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
+    kwargs = dict(model=model, entry_decision_representations=representations,
+                  adapter=adapter, checkpoint_binding=binding,
+                  entry_policy_decisions=_entry_policy(adapter, binding),
+                  entry_route_diagnostics={}, progress_path=tmp_path/"progress.json",
+                  result_path=tmp_path/"result.json", policy_batch_size=256,
+                  progress_interval_forwards=16)
+    if max_forwards > 1:
+        paused = run_resumable_random_access_val_evaluation_v1(**kwargs, max_forwards_this_invocation=1)
+        assert paused["schema_version"] == PAUSE_SCHEMA_VERSION
+    result = run_resumable_random_access_val_evaluation_v1(**kwargs, max_forwards_this_invocation=100)
+    assert result["schema_version"] == MARKED_RESULT_SCHEMA_VERSION
+    first = result["trade_outcomes"][0]
+    assert first["exit_state_index"] is None and first["exit_decision_time_ns"] is None
+    assert first["valuation"]["model_exit_executed"] is False
+    assert first["undiscounted_net_cash_pnl_bps"] == 0.0
+    assert first["valuation"]["remaining_liquidation_value_bps"] == -41.0
+    assert first["valuation"]["net_cash_plus_open_value_bps"] == -41.0
+    marked = result["marked_policy_evaluation"]
+    assert marked["single_position_replay"]["executed_entry_row_indices"] == [0]
+    assert marked["single_position_replay"]["open_position_count"] == 1
+    assert marked["single_position_replay"]["full_cohort_authoritative"] is complete
+    assert marked["single_position_replay"]["net_cash_plus_open_value_bps_sum"] == (-41.0 if complete else None)
+    assert marked["independent_opportunities"]["net_cash_plus_open_value_bps_sum"] == (-41.0*VAL_ENTRY_COHORT_SIZE if complete else None)
+    assert result["entry_exit_policy_metrics"]["net_bps_sum"] is None
+    validation = dict(rollout_contract_sha256=result["contract_sha256"],
+                      checkpoint_binding_sha256=binding["binding_sha256"],
+                      execution_contract_sha256=result["execution_contract_sha256"])
+    assert require_random_access_val_evaluation_result_v1(result, **validation) == result
+    changed = copy.deepcopy(result)
+    changed["marked_policy_evaluation"]["single_position_replay"]["net_cash_plus_open_value_bps_sum"] = 100.0
+    changed.pop("semantic_result_sha256")
+    changed["semantic_result_sha256"] = canonical_sha256(changed)
+    with pytest.raises(RuntimeError, match="RESULT_MARKED_POLICY_INVALID"):
+        require_random_access_val_evaluation_result_v1(changed, **validation)

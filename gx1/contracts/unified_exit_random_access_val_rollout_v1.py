@@ -20,6 +20,7 @@ from torch import nn
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     compose_economic_step,
+    revalue_marked_hold_step,
     elapsed_wall_clock_gamma,
 )
 from gx1.contracts.unified_exit_lifetime_summary_v1 import LIFETIME_SUMMARY_DIM
@@ -742,9 +743,17 @@ class RandomAccessValRolloutAdapterV1:
             != self.economic_step_manifest.get("economic_step_source_manifest_sha256")
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_SLICE_INVALID")
-        cache_key = (_objective_sha, _canonical_sha256(raw["steps"][0])) if _hold_cache is not None and action == "hold" else None
+        cache_step = raw["steps"][0]
+        mark = cache_step.get("successor_liquidation_value")
+        if isinstance(mark, Mapping) and action == "hold":
+            # Cache interval costs once. Entry-specific marks must not multiply
+            # cache size by the number of overlapping counterfactual entries.
+            cache_step = {**cache_step, "successor_liquidation_value": {**mark, "value_bps": 0.0}}
+        cache_key = (_objective_sha, _canonical_sha256(cache_step)) if _hold_cache is not None and action == "hold" else None
         if cache_key is not None and cache_key in _hold_cache:
             composed = _hold_cache[cache_key]
+            if isinstance(mark, Mapping):
+                composed = revalue_marked_hold_step(composed, successor_liquidation_value=mark)
         else:
             composed = compose_economic_step(raw["steps"][0], contract=self.objective)
             if cache_key is not None:

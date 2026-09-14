@@ -18,8 +18,10 @@ import torch
 from torch import nn
 from gx1.contracts.unified_exit_entry_policy_evaluation_v1 import (
     require_entry_policy_decisions, coupled_entry_exit_policy_metrics,
+    marked_entry_exit_policy_metrics,
 )
 
+from gx1.contracts.unified_exit_economics_objective_v2 import MARK_TO_MARKET_REWARD_ACCOUNTING
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.contracts.unified_exit_random_access_model_v1 import (
     RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
@@ -42,6 +44,7 @@ from gx1.contracts.unified_exit_random_access_val_rollout_v1 import (
 
 PROGRESS_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_progress_v3"
 RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v2"
+MARKED_RESULT_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_evaluation_v3"
 PAUSE_SCHEMA_VERSION = "gx1_unified_exit_random_access_val_pause_v1"
 _ROUTE_KEYS = (
     "exit_specialist_gate",
@@ -542,6 +545,36 @@ def _quantiles(values: Sequence[float]) -> dict[str, float | None]:
     }
 
 
+def _observed_trade_valuation(trade, *, adapter, entry):
+    """Mark a censored position without accumulating or recording an EXIT action."""
+    status = trade["status"]
+    remaining, time_ns, slice_sha = None, None, None
+    if status == "EXITED":
+        remaining, time_ns = 0.0, int(trade["exit_decision_time_ns"])
+    elif status in {"RIGHT_CENSORED_SPLIT_END", "RIGHT_CENSORED_UNKNOWN_SOURCE_GAP"}:
+        index = int(trade["decision_count"]) - 1
+        if index < 0:
+            raise RuntimeError("UNIFIED_EXIT_MARKED_BOUNDARY_STATE_INVALID")
+        step, slice_sha = adapter.compose_selected_action(
+            entry_row_index=entry["entry_row_index"], side_index=trade["side_index"],
+            state_index=index, action="exit_now",
+        )
+        remaining = float(step["undiscounted_net_cash_pnl_increment_bps"])
+        time_ns = int(step["interval_end_time_ns"])
+        expected_time = int(adapter.times.asi8[entry["entry_m1_start_row"] + index]) + 60_000_000_000
+        if time_ns != expected_time or (status == "RIGHT_CENSORED_SPLIT_END" and time_ns != int(adapter.times.asi8[-1]) + 60_000_000_000):
+            raise RuntimeError("UNIFIED_EXIT_MARKED_BOUNDARY_CLOCK_INVALID")
+    return {
+        "schema_version": "gx1_observed_position_valuation_v1",
+        "valuation_time_ns": time_ns,
+        "remaining_liquidation_value_bps": remaining,
+        "net_cash_plus_open_value_bps": (float(trade["undiscounted_net_cash_pnl_bps"]) + remaining if remaining is not None else None),
+        "discounted_utility_plus_open_value_bps": (float(trade["discounted_risk_adjusted_utility_bps"]) + float(trade["continuation_discount"]) * remaining if remaining is not None else None),
+        "valuation_slice_sha256": slice_sha,
+        "model_exit_executed": status == "EXITED",
+    }
+
+
 def _finalize_result(
     progress: Mapping[str, Any],
     *,
@@ -552,6 +585,7 @@ def _finalize_result(
     entry_policy_decisions: Mapping[str, Any],
     guard_reason: str | None,
 ) -> dict[str, Any]:
+    marked = adapter.objective.get("reward_accounting") == MARK_TO_MARKET_REWARD_ACCOUNTING
     outcomes: list[dict[str, Any]] = []
     status_counts: dict[str, int] = {}
     for entry_position, entry in enumerate(adapter.entries):
@@ -564,6 +598,9 @@ def _finalize_result(
                 "economic_terminal": False,
                 "capacity_or_512_terminal": False,
             }
+            if marked:
+                row["entry_fill_time_ns"] = int(adapter.times.asi8[entry["entry_m1_start_row"]])
+                row["valuation"] = _observed_trade_valuation(row, adapter=adapter, entry=entry)
             row["outcome_sha256"] = canonical_sha256(row)
             outcomes.append(row)
             status_counts[row["status"]] = status_counts.get(row["status"], 0) + 1
@@ -624,7 +661,7 @@ def _finalize_result(
         full_cohort_authoritative=rollout_complete,
     )
     result = {
-        "schema_version": RESULT_SCHEMA_VERSION,
+        "schema_version": MARKED_RESULT_SCHEMA_VERSION if marked else RESULT_SCHEMA_VERSION,
         "decision": decision,
         "contract_sha256": adapter.contract["contract_sha256"],
         "checkpoint_binding": dict(checkpoint_binding),
@@ -695,6 +732,11 @@ def _finalize_result(
         },
         "test_data_used": False,
     }
+    if marked:
+        result["marked_policy_evaluation"] = marked_entry_exit_policy_metrics(
+            entry_policy=entry_policy_decisions, trade_outcomes=outcomes,
+            full_cohort_authoritative=rollout_complete,
+        )
     semantic = dict(result)
     semantic.pop("semantic_result_sha256", None)
     result["semantic_result_sha256"] = canonical_sha256(semantic)
@@ -718,7 +760,7 @@ def require_random_access_val_evaluation_result_v1(
     execution = result.get("execution_contract")
     outcomes = result.get("trade_outcomes")
     if (
-        result.get("schema_version") != RESULT_SCHEMA_VERSION
+        result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION}
         or result.get("decision")
         not in {
             "PASS_COMPLETE",
@@ -773,6 +815,15 @@ def require_random_access_val_evaluation_result_v1(
         is not metrics["full_cohort_authoritative"]
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_POLICY_INVALID")
+    if result["schema_version"] == MARKED_RESULT_SCHEMA_VERSION:
+        marked_metrics = marked_entry_exit_policy_metrics(
+            entry_policy=policy, trade_outcomes=outcomes,
+            full_cohort_authoritative=rollout_complete,
+        )
+        if result.get("marked_policy_evaluation") != marked_metrics:
+            raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_MARKED_POLICY_INVALID")
+    elif "marked_policy_evaluation" in result:
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_MARKED_SCHEMA_INVALID")
     result["semantic_result_sha256"] = claimed
     return result
 
@@ -1323,6 +1374,7 @@ __all__ = (
     "PAUSE_SCHEMA_VERSION",
     "PROGRESS_SCHEMA_VERSION",
     "RESULT_SCHEMA_VERSION",
+    "MARKED_RESULT_SCHEMA_VERSION",
     "accumulate_route_diagnostics_v1",
     "canonical_sha256",
     "finalize_route_diagnostics_v1",
