@@ -1,0 +1,4 @@
+[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
+[capped_run] cmd: .venv/bin/python -m pytest -q --tb=short --junitxml=/tmp/gx1_native_startup_gate_20260914.xml tests/test_collect_gx1_handover_readonly.py tests/test_native_learning_calibration_scope.py
+[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
+......................................                                   [100%]

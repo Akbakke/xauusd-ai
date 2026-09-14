@@ -1,0 +1,33 @@
+{
+  "actual_calibration_measured": false,
+  "base_commit": "ee4693e25f61d0f91ef212bbc0a24786c2bef825",
+  "decision": "PASS",
+  "failed": 0,
+  "gpu_started": false,
+  "modified_file_sha256": {
+    "scripts/collect_gx1_handover_readonly.py": "5155ac7e6b4d8933b9c1646a2ce5e5e65c8814609c980d597f207b08f24da028",
+    "scripts/gx1_capped_run.sh": "1639496c0751b3eef706e0252db911d53b4a0c3d3634b0960c4660baa05fab9f",
+    "tests/test_collect_gx1_handover_readonly.py": "f6244d0345ec63747ab85f66828facd21c3eb71819890b543b33fa0f8a364966"
+  },
+  "observed_utc": "2026-09-14T12:30:57.647939+00:00",
+  "passed": 38,
+  "schema_version": "gx1_native_startup_gate_verification_v1",
+  "test_artifacts": {
+    "log": {
+      "path": "handover_snapshot/gx1_native_startup_gate_20260914.log",
+      "sha256": "61403178369f45bfa13385262e53a90a1d20100fa2abbb2fc79251d45dac1d2a"
+    },
+    "xml": {
+      "path": "handover_snapshot/gx1_native_startup_gate_20260914.xml",
+      "sha256": "1da8e152cd0e154ab7f3ba193b518420585ba1c8a5a8d205db1cd00d3d0fe991"
+    }
+  },
+  "test_data_used": false,
+  "verified": [
+    "actual native scope owner permits only bound 16/32 calibration when full training is disabled",
+    "window/recipe/policy hash tampering rejected",
+    "full training requires all bound proof roles with native_val_profile",
+    "dirty source, wrong branch, changed clock, changed risk and malformed CLI bindings rejected",
+    "unbound readiness remains blocked; retired routes rejected before GPU"
+  ]
+}

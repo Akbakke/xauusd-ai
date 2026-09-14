@@ -13,7 +13,10 @@ gjennomførbar lukking, med konsistent kostnadsforankring tilbake til Entry.
 79 ytterligere målrettede kontrakttilfeller. Faktisk overgang/måling er ikke kjørt.
 Neste handling er bundet v4-recipe og kontrollforsøk16/32 optimizersteg, deretter
 rapporterende native GPU256/totalfart/resume. To underagenter er nå autorisert.
-Ingen ny epoch eller GPU-kjøring er startet.
+Ingen ny epoch eller GPU-kjøring er startet. Første native kalibreringsforsøk
+på ee4693e2 feilet i ytre readiness-kontroll før guard/session/optimizer.
+Oppstartskoblingen til godkjent16/32-scope rettes; gammelt forsøk bevares.
+Neste forsøk må bruke ny kildebinding og fersk fysisk boot.
 
 RISIKO AVKLART: Brukeren har svart «Ingen fast grense». Ingen fast tapsgrense
 eller maksimal holdetid. Exit styres av forventet videre nettoverdi etter kostnad.

@@ -53,14 +53,20 @@ def _git(repo: Path, *args: str) -> str:
     return completed.stdout.rstrip("\n")
 
 
-def next_run_readiness(repo: Path) -> dict:
-    """Report the one current route; this never launches or grants evidence."""
+def next_run_readiness(
+    repo: Path, *, native_window_policy: Path | None = None,
+    native_window_policy_file_sha256: str | None = None,
+) -> dict:
+    """Report readiness; a calibration exception requires its exact native window."""
+    if (native_window_policy is None) != (native_window_policy_file_sha256 is None):
+        raise ValueError("NEXT_RUN_NATIVE_WINDOW_BINDING_PAIR_REQUIRED")
     path = _regular_file(str(repo / "NEXT_RUN_POLICY.json"), label="next_run_policy")
     policy = json.loads(path.read_text())
     expected = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                 "max_wall_seconds": 10800, "progress_interval_forwards": 64}
     if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
             or policy.get("canonical_source_repo") != str(repo.resolve())
+            or policy.get("canonical_branch") != "work/gx1-current"
             or policy.get("required_val_profile") != expected
             or policy.get("native_invocation_seconds") != 12000
             or policy.get("outer_guard_seconds") != 13800
@@ -74,30 +80,65 @@ def next_run_readiness(repo: Path) -> dict:
     reasons = []
     if _git(repo, "status", "--porcelain=v1", "--untracked-files=all"):
         reasons.append("source_not_clean_committed")
-    if policy.get("training_enabled") is not True:
-        reasons.append("operator_stop_not_resolved")
-    evidence = policy.get("required_evidence", {})
-    for role in ("risk_objective", "gpu_batch256_parity", "end_to_end_throughput", "resume_equivalence"):
-        item = evidence.get(role)
-        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
-            reasons.append(role + "_missing")
-            continue
-        proof_path = _regular_file(item["path"], label=role)
-        if _sha256(proof_path) != item["sha256"]:
-            raise ValueError("NEXT_RUN_EVIDENCE_HASH_MISMATCH: " + role)
-        proof = json.loads(proof_path.read_text())
-        if proof.get("decision") != "PASS" or proof.get("test_data_used") is not False:
-            reasons.append(role + "_not_passed")
-        if role != "risk_objective" and proof.get("required_val_profile") != expected:
-            reasons.append(role + "_profile_mismatch")
     clock = policy["gpu_clock_launcher"]
     if _sha256(_regular_file(clock["path"], label="clock_launcher")) != clock["sha256"]:
         raise ValueError("NEXT_RUN_CLOCK_LAUNCHER_MISMATCH")
+    native_scope = None
+    if native_window_policy is not None:
+        # These contract owners use only the standard library at import time.
+        # Also support direct execution of this script, outside Python -m.
+        import sys
+        source_root = str(Path(__file__).resolve().parents[1])
+        if source_root not in sys.path:
+            sys.path.insert(0, source_root)
+        from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+        from gx1.contracts.unified_exit_random_access_sampler_v1 import canonical_sha256 as native_sha256
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+            require_native_window_policy, require_native_run_scope,
+        )
+        window_path = _regular_file(str(native_window_policy), label="native_window_policy")
+        window = require_native_window_policy(read_bound_json(window_path, native_window_policy_file_sha256))
+        recipe_path = _regular_file(window["recipe"]["path"], label="native_recipe")
+        recipe = read_bound_json(recipe_path, window["recipe"]["sha256"])
+        if (recipe.get("schema_version") != "gx1_unified_exit_random_access_full_train_recipe_v1"
+                or recipe.get("profile") != "candidate" or recipe.get("test_data_used") is not False
+                or recipe.get("source_repo") != str(repo.resolve()) or recipe.get("source_commit") != head
+                or recipe.get("recipe_sha256") != native_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})):
+            raise ValueError("NEXT_RUN_NATIVE_RECIPE_IDENTITY_INVALID")
+        # The same owner enforces risk, bounded calibration and all full-run
+        # evidence roles; do not duplicate its proof/profile interpretation.
+        ceiling = require_native_run_scope(recipe, invocation_number=window["invocation_number"])
+        native_scope = {"invocation_number": window["invocation_number"],
+                        "optimizer_step_ceiling": ceiling,
+                        "full_epoch_training_allowed": ceiling is None,
+                        "window_policy_file_sha256": native_window_policy_file_sha256}
+    else:
+        # An unbound handover remains observation-only, including when the
+        # policy has declared a bounded learning measurement permissible.
+        reasons.append("native_window_binding_required")
+        if policy.get("training_enabled") is not True:
+            reasons.append("operator_stop_not_resolved")
+        evidence = policy.get("required_evidence", {})
+        for role in ("risk_objective", "checkpoint_transition", "learning_calibration",
+                     "gpu_batch256_parity", "end_to_end_throughput", "resume_equivalence"):
+            item = evidence.get(role)
+            if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+                reasons.append(role + "_missing")
+                continue
+            proof_path = _regular_file(item["path"], label=role)
+            if _sha256(proof_path) != item["sha256"]:
+                raise ValueError("NEXT_RUN_EVIDENCE_HASH_MISMATCH: " + role)
+            proof = json.loads(proof_path.read_text())
+            if proof.get("decision") != "PASS" or proof.get("test_data_used") is not False:
+                reasons.append(role + "_not_passed")
+            if role != "risk_objective" and proof.get("native_val_profile") != expected:
+                reasons.append(role + "_profile_mismatch")
     return {"decision": "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES" if not reasons else "BLOCKED",
             "blocked_reasons": reasons, "canonical_source_repo": str(repo),
             "source_commit": head, "required_val_profile": expected,
             "native_invocation_seconds": 12000, "outer_guard_seconds": 13800,
-            "policy_sha256": _sha256(path), "training_started": False}
+            "policy_sha256": _sha256(path), "training_started": False,
+            **({"native_window_scope": native_scope} if native_scope is not None else {})}
 
 
 def _native_processes(source: Path) -> list[dict[str, str]]:
@@ -229,10 +270,19 @@ def main() -> int:
     parser.add_argument("--native-binding", type=Path)
     parser.add_argument("--source-only", action="store_true")
     parser.add_argument("--require-next-run", action="store_true")
+    parser.add_argument("--native-window-policy", type=Path)
+    parser.add_argument("--native-window-policy-file-sha256")
     args = parser.parse_args()
+    if (args.native_window_policy is None) != (args.native_window_policy_file_sha256 is None):
+        parser.error("--native-window-policy and --native-window-policy-file-sha256 are required together")
+    if args.native_window_policy is not None and not args.require_next_run:
+        parser.error("a native window requires --require-next-run")
     repo = Path(__file__).resolve().parents[1]
     if args.require_next_run:
-        result = next_run_readiness(repo)
+        result = next_run_readiness(
+            repo, native_window_policy=args.native_window_policy,
+            native_window_policy_file_sha256=args.native_window_policy_file_sha256,
+        )
         print(json.dumps(result, indent=2))
         return 0 if result["decision"] == "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES" else 78
     if args.native_binding is None:

@@ -1,5 +1,31 @@
 # GX1 overtakelse — 2026-09-14
 
+## Første native kalibreringsforsøk stoppet før GPU — oppstartskobling rettes
+
+Forsøk på ee4693e2 nådde fysisk boot416 og publiserte ACTIVE_INVOCATION,
+men den ytre capped-kontrollen krevde fortsatt fulltreningsbevis også for
+godkjent kalibrering16/32. Målt read-only exit78: operator_stop_not_resolved,
+gpu_batch256_parity_missing, end_to_end_throughput_missing og resume_equivalence_missing.
+Windows-observeren meldte umiddelbart avsluttet trainer; controllerens etterfølgende
+record feilet fordi ingen ny checkpointpointer fantes. Dette er ikke en treningsfeil.
+
+Ingen guardlogg, privat treningssession eller optimizersteg ble opprettet.
+Originalpointer315/19 908 er uendret. GX1NativeLearningCalibration er deaktivert
+før nytt kildebundet forsøk. Feilet runtime og reboot-/ACTIVE-bevis bevares:
+`/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_EE4693E2_BOOT415`.
+Se [NATIVE_CALIBRATION_STARTUP_FAILURE_20260914.json](handover_snapshot/NATIVE_CALIBRATION_STARTUP_FAILURE_20260914.json).
+
+38 målrettede kontroller består: [NATIVE_STARTUP_GATE_VERIFICATION_20260914.json](handover_snapshot/NATIVE_STARTUP_GATE_VERIFICATION_20260914.json).
+
+Minste rettelse lar eksisterende capped-preflight kontrollere det konkrete
+hashbundne native-vinduet gjennom samme scope-owner som materializer og trainer.
+Uten et gyldig avgrenset vindu er full trening fortsatt sperret. Ingen
+maskinvaregrense eller læringskode endres. Etter målrettet verifikasjon og commit
+må recipe/plan bindes til ny kilde, ny runtime og fersk fysisk boot; det feilede
+forsøket skal ikke overskrives eller få et konstruert fullføringsbevis.
+
+Tidligere status nedenfor beskriver den forberedte koden før første oppstart.
+
 ## Native kalibreringsvei forberedt — ingen GPU startet
 
 Ny eksplisitt økonomiovergang godtar bare den bevarte v2-origin checkpoint315 /

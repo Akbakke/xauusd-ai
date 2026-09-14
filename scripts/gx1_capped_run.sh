@@ -248,7 +248,6 @@ validate_target_command() {
     exit 75
   }
   if [[ "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" ]]; then
-    /usr/bin/python3 "$REPO_ROOT/scripts/collect_gx1_handover_readonly.py" --require-next-run || exit 78
     require_campaign_plan_environment
     if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false \
       || ${#target_args[@]} -ne 9 \
@@ -264,6 +263,11 @@ validate_target_command() {
     fi
     [[ "$(readlink -f "${target_args[4]}")" == "${target_args[4]}" \
       && "$(/usr/bin/sha256sum "${target_args[4]}" | /usr/bin/awk '{print $1}')" == "${target_args[6]}" ]] || exit 75
+    # The bound native window owns the finite calibration exception; an unbound
+    # readiness check still blocks full training until its evidence is present.
+    (cd "$REPO_ROOT" && "$CANONICAL_TRAINER_PYTHON" -m scripts.collect_gx1_handover_readonly \
+      --require-next-run --native-window-policy "${target_args[4]}" \
+      --native-window-policy-file-sha256 "${target_args[6]}") || exit 78
     # Read the hash-bound window; callers cannot supply a free-form guard timeout.
     local native_seconds
     native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] == "gx1_native_candidate_window_policy_v1" and type(n) is int and n == 12000; print(n)' "${target_args[4]}") || exit 75

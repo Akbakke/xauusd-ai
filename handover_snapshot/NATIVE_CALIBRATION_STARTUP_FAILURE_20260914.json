@@ -1,0 +1,64 @@
+{
+  "active_invocation": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_V4_LEARNING_CALIBRATION_EE4693E2_BOOT415/ACTIVE_INVOCATION.json",
+    "sha256": "7263cf7c14ab01dbf9cc1cf26aae27dbd80cd9f2954fc89b04137e5e07077d39"
+  },
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_V4_LEARNING_CALIBRATION_20260914_EE4693E2/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "df59ef1b0407455952f1a6bf320fac09b4c0830d11a003313ec280494fd2582b"
+  },
+  "decision": "FAILED_BEFORE_TRAINER_GUARD",
+  "gpu_training_started": false,
+  "guard_log_exists": false,
+  "guard_parent_exists": true,
+  "new_training_session_exists": false,
+  "observed_blocker": "capped preflight used full-training readiness without native calibration scope",
+  "optimizer_steps_completed": 0,
+  "original_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5"
+  },
+  "original_pointer_unchanged": true,
+  "preservation": "Failed runtime including ACTIVE and reboot receipts retained. No campaign record fabricated; new source-bound attempt must use a fresh runtime and physical boot.",
+  "read_only_preflight_reproduction": {
+    "blocked_reasons": [
+      "operator_stop_not_resolved",
+      "gpu_batch256_parity_missing",
+      "end_to_end_throughput_missing",
+      "resume_equivalence_missing"
+    ],
+    "exit_code": 78
+  },
+  "schema_version": "gx1_native_calibration_startup_failure_v1",
+  "source_commit": "ee4693e25f61d0f91ef212bbc0a24786c2bef825",
+  "test_data_used": false,
+  "windows_observation": {
+    "boot_id": 416,
+    "errors": [
+      {
+        "event_id": 4100,
+        "message_summary": "Error Message = Random-access campaign command failed; exit_code=2; stdout={\"error\": \"checkpoint pointer after invocation unavailable\", \"ok\": false}",
+        "observed_utc": "2026-09-14T12:11:57.4447815Z"
+      },
+      {
+        "event_id": 4100,
+        "message_summary": "Error Message = Random-access campaign command failed; exit_code=2; stdout={\"error\": \"checkpoint pointer after invocation unavailable\", \"ok\": false}",
+        "observed_utc": "2026-09-14T12:11:57.2025072Z"
+      },
+      {
+        "event_id": 4100,
+        "message_summary": "Error Message = Random-access campaign command failed; exit_code=2; stdout={\"error\": \"checkpoint pointer after invocation unavailable\", \"ok\": false}",
+        "observed_utc": "2026-09-14T12:11:57.1995181Z"
+      },
+      {
+        "event_id": 4100,
+        "message_summary": "Error Message = Trainer exited without terminal random-access progress receipt",
+        "observed_utc": "2026-09-14T12:11:07.9777509Z"
+      }
+    ],
+    "last_task_result": 1,
+    "observed_utc": "2026-09-14T12:25:39.4145519+00:00",
+    "task_name": "GX1NativeLearningCalibration",
+    "task_state": "Disabled"
+  }
+}
