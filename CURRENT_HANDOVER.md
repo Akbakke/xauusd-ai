@@ -1,3 +1,24 @@
+# Gjeldende arbeid — vanlig TRAIN til neste VAL, 2026-09-16
+
+Lærbarhetskontrollen er avsluttet og bevart. Neste kjøring forberedes fra
+originalt IKKE-replay checkpoint95/global5777/epoch1offset1696. Den bruker de
+2385 gjenstående ekte TRAIN-batchene og full juni utviklings-VAL. Stopp etter
+completed_val_epochs2/global8162 før neste epoch og automatisk omstart.
+
+Konkret blokkering var at eksisterende origin-/budsjettbinding kun tillot den
+avsluttede repetisjonskontrollen. Fem eksisterende eiere er justert for eksakt
+95-overgang, eksisterende completed-VAL-budsjett og kampanjestopp ved VAL-grensen.
+Modell, tap, optimizerberegning, sampler, risiko og data er uendret. Ingen ny
+kjøring er startet; faktisk CPU-overføring av95 og planbinding gjenstår.
+
+Målrettet verifikasjon:268 tester bestod første gang. Én eldre test antok at
+original95 aldri kunne brukes til vanlig fortsettelse; den kontrollerer nå at
+95 fortsatt avvises under gammel fixed64-policy, og bestod ved målrettet omkjøring.
+269 ulike testtilfeller består. Tekniske bevis fra128c55f2 gjenbrukes med sine
+opprinnelige kilde-/checkpointbindinger, ikke som ny måling på dagens kilde.
+Neste resultat skal avgjøre faktisk Entry-/Exit-kvalitet og netto økonomi på VAL.
+TEST forblir forseglet. Ingen ytterligere epoch uten resultatvurdering.
+
 # Gjeldende status — Entry lærer selektive valg, 2026-09-16
 
 Native fortsettelse99→115 er ferdig på frossen kilde b493e585.1024 nye

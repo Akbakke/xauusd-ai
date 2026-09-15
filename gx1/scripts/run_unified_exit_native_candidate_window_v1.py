@@ -17,7 +17,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
 )
 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
     NATIVE_KIND, NATIVE_PHASE, build_native_cursor, require_native_cursor,
-    require_native_window_policy, require_native_run_scope,
+    require_native_window_policy, require_native_run_scope, native_completed_val_ceiling,
 )
 from gx1.scripts import local_random_access_campaign_v2 as campaign
 from gx1.scripts import run_unified_exit_random_access_full_train_v1 as native
@@ -124,7 +124,8 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
         "schema_version": native.launch_owner.CANDIDATE_EXECUTION_BUDGET_SCHEMA,
         "recipe_json": policy["recipe"]["path"], "recipe_sha256": policy["recipe"]["sha256"],
         "expected_active_pointer_sha256": expected_pointer,
-        "stop_after_optimizer_steps": step_ceiling, "stop_after_completed_val_epochs": None,
+        "stop_after_optimizer_steps": step_ceiling,
+        "stop_after_completed_val_epochs": native_completed_val_ceiling(recipe),
         "max_invocation_seconds": policy["max_invocation_seconds"],
     })
     result = native.run_guarded_native_candidate_invocation(

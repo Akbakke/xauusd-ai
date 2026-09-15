@@ -1445,6 +1445,22 @@ def next_action(
         and checked_receipts[-1]["outcome"] == "COMPLETE"
     ):
         return {"decision": "COMPLETE"}
+    if checked_plan["phase"] == "native_candidate" and checked_receipts:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+            native_completed_val_ceiling, require_native_run_scope, require_native_cursor,
+        )
+        recipe_binding = checked_plan["native_recipe"]
+        recipe = read_bound_json(Path(recipe_binding["path"]), recipe_binding["sha256"])
+        val_ceiling = native_completed_val_ceiling(recipe)
+        if val_ceiling is not None:
+            require_native_run_scope(recipe)
+            binding = checked_receipts[-1]["checkpoint_pointer_snapshot"]
+            cursor = require_native_cursor(read_bound_json(Path(binding["path"]), binding["sha256"]),
+                                           expected_recipe=recipe_binding)
+            state = cursor["resume_state"]
+            if state["epoch_index"] >= val_ceiling:
+                # The training session remains resumable; only this bounded run is done.
+                return {"decision": "BLOCKED_NATIVE_VAL_REVIEW_REQUIRED"}
     if len(checked_receipts) == len(invocations):
         if checked_plan["phase"] == "full_val":
             return {"decision": "BLOCKED_VAL_WINDOWS_EXHAUSTED"}

@@ -173,10 +173,18 @@ def test_origin_rejects_any_changed_input(learnability_origin, artifact):
     ("TRAINING_CONTINUATION_SCHEMA", "require_training_continuation_origin"),
     ("OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA", "require_optimizer_procedure_origin"),
 ])
-def test_new_origin_cannot_escape_into_old_production_or_control_authority(learnability_origin, old_schema, validator):
+def test_new_origin_cannot_escape_into_old_production_or_control_authority(learnability_origin, learnability_scope, old_schema, validator):
     changed = {k: v for k, v in learnability_origin.items() if k != "cohort"}
     changed["schema_version"] = getattr(native, old_schema)
-    with pytest.raises(RuntimeError): getattr(native, validator)(changed)
+    if old_schema == "TRAINING_CONTINUATION_SCHEMA":
+        # Non-replay95 is now admissible, but its old fixed64 policy is not.
+        native.require_training_continuation_origin(changed)
+        recipe = copy.deepcopy(learnability_scope[1])
+        recipe["candidate_resume_origin"] = changed
+        with pytest.raises(RuntimeError, match="CONTINUATION_VAL_SCOPE_INVALID"):
+            native.require_native_run_scope(recipe, invocation_number=1)
+    else:
+        with pytest.raises(RuntimeError): getattr(native, validator)(changed)
 
 
 def test_real_transition_preserves_every_state_and_declares_replay(tmp_path, monkeypatch):
@@ -462,5 +470,141 @@ def test_actual_continued_transition_preserves_state_and_declares_new_bound(tmp_
     assert receipt['replay_policy']['repeats'] == 256
     assert receipt['production_continuation_allowed'] is False
     assert receipt['state_preserved'] is True and receipt['optimizer_procedure_changed'] is False
+    new.save_checkpoint(state)
+    _identical(new.load_checkpoint(), state)
+
+
+
+@pytest.fixture
+def real_train_scope(learnability_scope):
+    policy, recipe, write, save = learnability_scope
+    origin = recipe["candidate_resume_origin"]
+    origin.pop("cohort")
+    origin["schema_version"] = native.TRAINING_CONTINUATION_SCHEMA
+    policy["native_learning_calibration"] = {
+        "schema_version": "gx1_native_training_continuation_scope_v2",
+        "stop_after_completed_val_epochs": 2,
+        "full_epoch_training_allowed": True, "test_data_used": False,
+    }
+    for role in ("checkpoint_transition", "learning_calibration", "gpu_batch256_parity",
+                 "end_to_end_throughput", "resume_equivalence"):
+        policy["required_evidence"][role] = write(role + ".json", {
+            "decision": "PASS", "test_data_used": False, "evidence_role": role,
+            "economics_objective_contract_sha256": "c" * 64,
+            "exit_value_initialization": "close_now_baseline_v1",
+            "training_population_root_sha256": recipe["files"]["random_access_root"]["sha256"],
+            "native_val_profile": recipe["val_limits"],
+        })
+    save()
+    return policy, recipe, write, save
+
+
+def test_real_train_resumes95_through_next_complete_val(real_train_scope):
+    from gx1.contracts.entry_model_native_train_launch_v1 import candidate_execution_pause_reason
+    _, recipe, _, _ = real_train_scope
+    assert native.require_training_continuation_origin(recipe["candidate_resume_origin"])
+    assert native.native_completed_val_ceiling(recipe) == 2
+    for invocation in (1, 2, 8):
+        assert native.require_native_run_scope(recipe, invocation_number=invocation) is None
+    budget = {"stop_after_optimizer_steps": None, "stop_after_completed_val_epochs": 2,
+              "max_invocation_seconds": 12000}
+    assert native.require_native_run_scope(recipe, execution_budget=budget) is None
+    assert candidate_execution_pause_reason(budget, global_optimizer_steps=8162,
+        completed_val_epochs=1, elapsed_seconds=100) is None
+    assert candidate_execution_pause_reason(budget, global_optimizer_steps=8162,
+        completed_val_epochs=2, elapsed_seconds=100) == "completed_val_epoch_ceiling"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("stop_after_optimizer_steps", 8162), ("stop_after_optimizer_steps", 8163),
+    ("stop_after_completed_val_epochs", None), ("stop_after_completed_val_epochs", 1),
+    ("stop_after_completed_val_epochs", 3), ("stop_after_completed_val_epochs", 2.0),
+    ("max_invocation_seconds", 60), ("resume_probe_val_rows", 32),
+])
+def test_real_train_rejects_budget_that_skips_or_exceeds_val(real_train_scope, field, value):
+    _, recipe, _, _ = real_train_scope
+    budget = {"stop_after_optimizer_steps": None, "stop_after_completed_val_epochs": 2,
+              "max_invocation_seconds": 12000, field: value}
+    with pytest.raises(RuntimeError, match="NEXT_RUN_BUDGET_INVALID"):
+        native.require_native_run_scope(recipe, execution_budget=budget)
+
+
+@pytest.mark.parametrize("fault", ["unbounded", "old_scope", "extra_epoch", "wrong_origin", "missing_gate"])
+def test_real_train_cannot_reinterpret_old_or_replay_authority(real_train_scope, continuation_origin, fault):
+    policy, recipe, _, save = real_train_scope
+    if fault == "unbounded": policy["training_enabled"] = True
+    elif fault == "old_scope": policy["native_learning_calibration"]["schema_version"] = "gx1_native_training_continuation_scope_v1"
+    elif fault == "extra_epoch": policy["native_learning_calibration"]["stop_after_completed_val_epochs"] = 3
+    elif fault == "wrong_origin": recipe["candidate_resume_origin"] = continuation_origin
+    else: policy["required_evidence"].pop("gpu_batch256_parity")
+    save()
+    with pytest.raises(RuntimeError): native.require_native_run_scope(recipe, invocation_number=1)
+
+
+def test_real_train_rejects_diagnostic99_origin(continued_learnability_origin):
+    origin = copy.deepcopy(continued_learnability_origin)
+    origin.pop("cohort")
+    origin["schema_version"] = native.TRAINING_CONTINUATION_SCHEMA
+    with pytest.raises(RuntimeError, match="ORIGIN_HASH_MISMATCH"):
+        native.require_training_continuation_origin(origin)
+
+
+def test_real_train_window_carries_val_ceiling_to_existing_execution_budget(real_train_scope, monkeypatch, tmp_path):
+    from gx1.scripts import run_unified_exit_native_candidate_window_v1 as window
+    _, recipe, _, _ = real_train_scope
+    recipe_binding = _write(tmp_path / "window-recipe.json", recipe)
+    policy = {"recipe": recipe_binding, "invocation_number": 1,
+              "progress_path": str(tmp_path / "progress.json"),
+              "budget_path": str(tmp_path / "budget.json"), "max_invocation_seconds": 12000}
+    monkeypatch.setattr(window.native.trainer, "_require_cuda_trainer_guard_execution", lambda **_: None)
+    monkeypatch.setattr(window, "_context", lambda *_: (policy, {}, {}, {}))
+    monkeypatch.setattr(window, "_expected_training_pointer", lambda **_: "a" * 64)
+    def capture(path, value):
+        assert path == Path(policy["budget_path"])
+        assert value["stop_after_completed_val_epochs"] == 2
+        assert value["stop_after_optimizer_steps"] is None
+        native.require_native_run_scope(recipe, execution_budget=value)
+        raise RuntimeError("budget_captured_before_training")
+    monkeypatch.setattr(window.campaign, "_atomic_new", capture)
+    with pytest.raises(RuntimeError, match="budget_captured_before_training"):
+        window.run_window(policy_path=tmp_path / "policy.json", policy_file_sha256="a" * 64,
+                          progress_path=Path(policy["progress_path"]))
+
+
+@pytest.mark.parametrize("phase,epoch,expected", [
+    ("train", 1, "LAUNCH"), ("validation", 1, "LAUNCH"),
+    ("train", 2, "BLOCKED_NATIVE_VAL_REVIEW_REQUIRED"),
+])
+def test_real_train_campaign_stops_before_reboot_after_val(real_train_scope, monkeypatch, tmp_path, phase, epoch, expected):
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    _, recipe, _, _ = real_train_scope
+    binding = _write(tmp_path / "campaign-recipe.json", recipe)
+    snapshot = _write(tmp_path / "cursor.json", {"resume_state": {"phase": phase, "epoch_index": epoch}})
+    receipts = [{"outcome": "RESUMABLE", "boot": {}, "checkpoint_pointer_snapshot": snapshot}]
+    invocations = [{}, {"invocation_number": 2, "invocation_id": "invocation-0002", "kind": "native_candidate_window"}]
+    plan = {"phase": "native_candidate", "checked_invocations": invocations,
+            "invocations": [{}, {}], "native_recipe": binding}
+    monkeypatch.setattr(campaign, "require_receipt_chain", lambda *a, **k: receipts)
+    monkeypatch.setattr(campaign, "fresh_boot", lambda *a: True)
+    monkeypatch.setattr(native, "require_native_cursor", lambda value, **_: value)
+    assert campaign.next_action(plan, receipts, current_boot={})["decision"] == expected
+
+
+def test_real_train_actual_state_transition_preserves_all_components(tmp_path, monkeypatch):
+    monkeypatch.setattr(native, "TRAINING_CONTINUATION_ORIGIN_CURSOR", native.ENTRY_LEARNABILITY_ORIGIN_CURSOR)
+    (old, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch, continuation=True)
+    for suffix, value in [("CONTRACT_SHA256", origin["contract"]["sha256"]),
+                          ("POINTER_SHA256", origin["pointer"]["sha256"]),
+                          ("STATE_SHA256", native.TRAINING_CONTINUATION_ORIGIN_STATE_SHA256)]:
+        monkeypatch.setattr(native, "ENTRY_LEARNABILITY_ORIGIN_" + suffix, value)
+    before = old.load_checkpoint()
+    state = trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    for key in before.keys() - {"session_contract_sha256"}: _identical(state[key], before[key])
+    receipt = json.loads((new.directory / native.TRAINING_CONTINUATION_RECEIPT_NAME).read_text())
+    assert receipt["origin_cursor"] == native.ENTRY_LEARNABILITY_ORIGIN_CURSOR
+    assert receipt["ema_internal_steps"] == 25685
+    assert receipt["state_preserved"] is True and receipt["optimizer_procedure_changed"] is False
+    assert "changed_sample_history" not in receipt and "target_model_refreshed" not in receipt
+    assert not (new.directory / native.ENTRY_LEARNABILITY_RECEIPT_NAME).exists()
     new.save_checkpoint(state)
     _identical(new.load_checkpoint(), state)

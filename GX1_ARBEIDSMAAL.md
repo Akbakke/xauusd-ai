@@ -8,7 +8,9 @@ ikke generalisering/profitt. Ingen ny taps-/modell-/gradientendring er innført.
 Avslutt fixed64-øvelsen. Forbered neste avgrensede native kontroll på ekte
 ettårs-TRAIN fra bevart ikke-replay95, frem til neste fulle juni utviklings-VAL.
 Gjenbruk tekniske bevis og profil; juster bare nødvendig resume-/sourcebinding.
-Ikke promoter115 eller tell replay som årsdekning. Ingen ny kjøring er startet.
+Ikke promoter115 eller tell replay som årsdekning. Avgrenset95→neste fulle VAL
+forberedes nå; ingen ny kjøring er startet. Stopp ved completed_val_epochs2
+før neste epoch/omstart. Se nyeste CURRENT_HANDOVER.md.
 Vurder faktisk policyøkonomi før enda en epoch; TEST forblir forseglet.
 Se CURRENT_HANDOVER.md og RUNNING_NATIVE_CALIBRATION.json.
 

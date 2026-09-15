@@ -60,8 +60,8 @@ def bind_candidate_weight_ema_history_v1(
         OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
         OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256, require_optimizer_procedure_origin,
-        TRAINING_CONTINUATION_SCHEMA, TRAINING_CONTINUATION_ORIGIN_CURSOR,
-        TRAINING_CONTINUATION_ORIGIN_STATE_SHA256, TRAINING_CONTINUATION_RECEIPT_NAME,
+        TRAINING_CONTINUATION_SCHEMA, training_continuation_control,
+        TRAINING_CONTINUATION_RECEIPT_NAME,
         TRAINING_CONTINUATION_RECEIPT_SCHEMA, require_training_continuation_origin,
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
@@ -90,8 +90,8 @@ def bind_candidate_weight_ema_history_v1(
             receipt_schema = FQI_TARGET_REFRESH_RECEIPT_SCHEMA
         elif continuation:
             require_training_continuation_origin(origin)
-            origin_cursor = TRAINING_CONTINUATION_ORIGIN_CURSOR
-            origin_state_sha = TRAINING_CONTINUATION_ORIGIN_STATE_SHA256
+            origin_cursor = training_continuation_control(origin)["cursor"]
+            origin_state_sha = training_continuation_control(origin)["state_sha256"]
             receipt_name = TRAINING_CONTINUATION_RECEIPT_NAME
             receipt_schema = TRAINING_CONTINUATION_RECEIPT_SCHEMA
         else:

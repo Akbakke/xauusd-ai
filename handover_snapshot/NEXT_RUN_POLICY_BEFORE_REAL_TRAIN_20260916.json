@@ -75,14 +75,16 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Permit one bounded native continuation from immutable non-replay checkpoint95/global5777/epoch1offset1696. Use the original one-year TRAIN order for the remaining2385 optimizer steps to global8162, then complete June development VAL. Stop at completed_val_epochs2 before any next epoch or automatic reboot. Diagnostic99/115 and their exhausted plans are never production origins. Preserve model, all200 features/eight families/timeframes, targets at transition, optimizer, EMA, scheduler, RNG, costs and existing guards. No new loss, model, threshold or holding limit. Reuse unchanged historical technical evidence without rewriting its source or origin bindings; verify the actual95 state transfer. Only native campaign with TRAIN16/VAL256/8CPU/3h windows. Whole campaign continuation remains disabled; review actual policy economics including open positions before further training. TEST remains sealed.",
+  "rule": "Whole epochs remain blocked. The completed fixed64 diagnostic95-to99 is preserved and its plan is exhausted. Permit exactly one new private continuation from immutable checkpoint99/global6033/epoch1offset1952 to global7057/offset2976, at most1024 additional optimizer steps. Replay the identical64 entries256 further times; keep the original stored epoch_order and frozen teacherONLINE91. Same model, forward/loss/backward/optimizer mathematics, clipping, Adam, EMA, scheduler and RNG at transition. These are diagnostic steps, not new annual coverage, and checkpoints remain forbidden for production continuation. This follows measured continued Entry error improvement at retained checkpoint98 versus99; no plateau or profitability claim. Do not change L1/MSE, gradient boundaries, targets, class weights, thresholds or holding limits in this control. Use only the existing guarded native campaign, batch16 TRAIN and prescribed VAL256/8CPU/3h profile; no VAL or TEST is executed here. One heavy job. After terminal run, compare99-to115 using the already cached64 inputs and fixed teacher91 targets. Preserve all earlier origins and results. No automatic whole-epoch continuation or arbitrary fit pass threshold.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "native_learning_calibration": {
-    "schema_version": "gx1_native_training_continuation_scope_v2",
-    "stop_after_completed_val_epochs": 2,
-    "full_epoch_training_allowed": true,
+    "schema_version": "gx1_native_entry_learnability_scope_v1",
+    "additional_optimizer_step_ceilings": [
+      1024
+    ],
+    "full_epoch_training_allowed": false,
     "test_data_used": false
   }
 }

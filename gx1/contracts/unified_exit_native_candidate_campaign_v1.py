@@ -100,6 +100,27 @@ ENTRY_LEARNABILITY_CONTINUATION_REPLAY_POLICY = {
 }
 
 
+def training_continuation_control(origin: Any) -> dict[str, Any]:
+    """Preserve stopped87; admit non-replay95 only through its next complete VAL."""
+    through_val = (isinstance(origin, Mapping) and isinstance(origin.get("contract"), Mapping)
+                   and origin["contract"].get("sha256") == ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256)
+    return {
+        "contract_sha256": ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_CONTRACT_SHA256,
+        "pointer_sha256": ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256,
+        "state_sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
+        "cursor": dict(ENTRY_LEARNABILITY_ORIGIN_CURSOR if through_val else TRAINING_CONTINUATION_ORIGIN_CURSOR),
+        "completed_val_ceiling": 2 if through_val else None,
+    }
+
+
+def native_completed_val_ceiling(recipe: Mapping[str, Any]) -> int | None:
+    """Used only together with require_native_run_scope's bound policy checks."""
+    origin = recipe.get("candidate_resume_origin")
+    if isinstance(origin, Mapping) and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA:
+        return training_continuation_control(origin)["completed_val_ceiling"]
+    return None
+
+
 def entry_learnability_control(origin: Any = None) -> dict[str, Any]:
     """Select one of the two immutable controls; origin validation binds all hashes."""
     continued = (isinstance(origin, Mapping) and isinstance(origin.get("contract"), Mapping)
@@ -217,7 +238,7 @@ def require_fqi_target_refresh_origin(
 def require_training_continuation_origin(
     origin: Any, *, verify_files: bool = True,
 ) -> dict[str, Any]:
-    """Admit only stopped checkpoint87, with the already applied procedure."""
+    """Admit immutable stopped87 or non-replay95 with the same learning state."""
     fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
               "train_population_scope", "gradient_clipping_policy"}
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
@@ -227,18 +248,19 @@ def require_training_continuation_origin(
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_INVALID")
+    control = training_continuation_control(origin)
     contract = require_binding(origin["contract"], label="continuation origin contract", verify_file=verify_files)
     pointer = require_binding(origin["pointer"], label="continuation origin pointer", verify_file=verify_files)
-    if (contract["sha256"] != TRAINING_CONTINUATION_ORIGIN_CONTRACT_SHA256
-            or pointer["sha256"] != TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256):
+    if (contract["sha256"] != control["contract_sha256"]
+            or pointer["sha256"] != control["pointer_sha256"]):
         raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_HASH_MISMATCH")
     if verify_files:
         current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
         expected = {
-            **TRAINING_CONTINUATION_ORIGIN_CURSOR,
+            **control["cursor"],
             "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
             "session_contract_sha256": contract["sha256"],
-            "state_sha256": TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
+            "state_sha256": control["state_sha256"],
         }
         if (set(current) != set(expected)
                 or any(current.get(k) != v or type(current.get(k)) is not type(v)
@@ -246,7 +268,7 @@ def require_training_continuation_origin(
             raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_CURSOR_INVALID")
         require_binding({
             "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
-            "sha256": TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
+            "sha256": control["state_sha256"],
         }, label="continuation origin state", verify_file=True)
     return dict(origin)
 
@@ -401,6 +423,7 @@ def require_native_run_scope(
                 type(origin["exit_value_initialization"]) is not str
                 or origin["exit_value_initialization"] != "close_now_baseline_v1"))):
         raise RuntimeError("NATIVE_ECONOMICS_TRANSITION_ORIGIN_REQUIRED")
+    completed_val_ceiling = native_completed_val_ceiling(recipe)
     initialization = origin.get("exit_value_initialization")
     calibration = require_native_calibration_run(recipe)
     population = origin.get("train_population_scope")
@@ -478,6 +501,33 @@ def require_native_run_scope(
                     or proof.get("native_val_profile") != profile):
                 raise RuntimeError("NATIVE_NEXT_RUN_EVIDENCE_NOT_PASS")
         ceiling = None
+    elif policy.get("training_enabled") is False and completed_val_ceiling is not None:
+        expected_scope = {
+            "schema_version": "gx1_native_training_continuation_scope_v2",
+            "stop_after_completed_val_epochs": 2,
+            "full_epoch_training_allowed": True, "test_data_used": False,
+        }
+        scope = policy.get("native_learning_calibration")
+        if (scope != expected_scope or type(scope.get("stop_after_completed_val_epochs")) is not int
+                or scope.get("full_epoch_training_allowed") is not True
+                or scope.get("test_data_used") is not False):
+            raise RuntimeError("NATIVE_TRAINING_CONTINUATION_VAL_SCOPE_INVALID")
+        if invocation_number is not None and (type(invocation_number) is not int or invocation_number < 1):
+            raise RuntimeError("NATIVE_CALIBRATION_INVOCATION_INVALID")
+        # Reuse the measured technical gates with unchanged model/data/economics.
+        # Their historical source/origin bindings remain historical, never rewritten.
+        for role in ("checkpoint_transition", "learning_calibration", "gpu_batch256_parity",
+                     "end_to_end_throughput", "resume_equivalence"):
+            proof_binding = require_binding(evidence.get(role), label=f"native reused {role}")
+            proof = read_bound_json(Path(proof_binding["path"]), proof_binding["sha256"])
+            if (proof.get("decision") != "PASS" or proof.get("test_data_used") is not False
+                    or proof.get("evidence_role") != role
+                    or proof.get("economics_objective_contract_sha256") != objective.get("contract_sha256")
+                    or proof.get("exit_value_initialization") != initialization
+                    or proof.get("training_population_root_sha256") != recipe.get("files", {}).get("random_access_root", {}).get("sha256")
+                    or proof.get("native_val_profile") != profile):
+                raise RuntimeError("NATIVE_CONTINUATION_REUSED_EVIDENCE_NOT_PASS")
+        ceiling = None
     elif policy.get("training_enabled") is False:
         scope = policy.get("native_learning_calibration")
         old_scope = {
@@ -553,7 +603,8 @@ def require_native_run_scope(
         raise RuntimeError("NATIVE_NEXT_RUN_ENABLEMENT_INVALID")
     if execution_budget is not None and (
             execution_budget.get("stop_after_optimizer_steps") != ceiling
-            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") != completed_val_ceiling
+            or (completed_val_ceiling is not None and type(execution_budget.get("stop_after_completed_val_epochs")) is not int)
             or execution_budget.get("max_invocation_seconds") != 12000
             or "resume_probe_val_rows" in execution_budget):
         raise RuntimeError("NATIVE_NEXT_RUN_BUDGET_INVALID")

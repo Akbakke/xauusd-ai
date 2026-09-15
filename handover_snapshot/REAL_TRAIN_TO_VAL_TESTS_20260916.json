@@ -1,0 +1,28 @@
+{
+  "decision": "PASS_TARGETED_SCOPE_AND_STATE_TESTS",
+  "distinct_tests_passed": 269,
+  "first_attempt_passed": 268,
+  "first_attempt_stale_scope_assertions": 1,
+  "corrected_assertions_passed": 1,
+  "unchanged_numeric_functions": [
+    "train_epoch",
+    "_episode_native_exit_train_v2",
+    "_optimizer_step_with_finite_gradients",
+    "dip_forecast_task_losses",
+    "_joint_task_loss",
+    "_model_forward_fp32"
+  ],
+  "logs": [
+    {
+      "path": "/tmp/gx1_real_train_tests_20260916.log",
+      "sha256": "a9a53625f79be77dfd4dedc5f857b42c75cb70411028d5d905c2c0ab2e1f1729"
+    },
+    {
+      "path": "/tmp/gx1_real_train_corrected_test_20260916.log",
+      "sha256": "79865c54c78775187da3cdad3f438fd1f6fecd7846020e55e1fea6d68d77cff9"
+    }
+  ],
+  "test_data_used": false,
+  "gpu_used": false,
+  "training_started": false
+}

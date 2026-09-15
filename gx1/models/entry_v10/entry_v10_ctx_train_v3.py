@@ -13131,7 +13131,7 @@ def _load_candidate_economics_successor_state(
 def _load_candidate_optimizer_procedure_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Admit only clipping85, continuation87, refresh91, or fixed-cohort replay95."""
+    """Restore an immutable admitted origin; preserve its model and training state."""
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         OPTIMIZER_PROCEDURE_TRANSITION_POLICY, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
@@ -13139,8 +13139,8 @@ def _load_candidate_optimizer_procedure_successor_state(
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
         require_optimizer_procedure_origin, require_native_run_scope,
-        TRAINING_CONTINUATION_SCHEMA, TRAINING_CONTINUATION_ORIGIN_CURSOR,
-        TRAINING_CONTINUATION_ORIGIN_STATE_SHA256, TRAINING_CONTINUATION_RECEIPT_NAME,
+        TRAINING_CONTINUATION_SCHEMA, training_continuation_control,
+        TRAINING_CONTINUATION_RECEIPT_NAME,
         TRAINING_CONTINUATION_RECEIPT_SCHEMA, require_training_continuation_origin,
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
@@ -13178,8 +13178,8 @@ def _load_candidate_optimizer_procedure_successor_state(
         receipt_schema = FQI_TARGET_REFRESH_RECEIPT_SCHEMA
     elif continuation:
         origin = require_training_continuation_origin(origin)
-        origin_cursor = TRAINING_CONTINUATION_ORIGIN_CURSOR
-        origin_state_sha = TRAINING_CONTINUATION_ORIGIN_STATE_SHA256
+        origin_cursor = training_continuation_control(origin)["cursor"]
+        origin_state_sha = training_continuation_control(origin)["state_sha256"]
         receipt_name = TRAINING_CONTINUATION_RECEIPT_NAME
         receipt_schema = TRAINING_CONTINUATION_RECEIPT_SCHEMA
     else:
@@ -13241,6 +13241,11 @@ def _load_candidate_optimizer_procedure_successor_state(
         "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
         "gx1/scripts/materialize_local_random_access_campaign_v2.py",
     }
+    if continuation and training_continuation_control(origin)["completed_val_ceiling"] is not None:
+        allowed.update({
+            "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+            "gx1/contracts/local_random_access_campaign_v2.py",
+        })
     old_sources, new_sources = before["source_bindings"], after["source_bindings"]
     if set(old_sources) != set(new_sources):
         fail("SOURCE_CLOSURE_CHANGED")
