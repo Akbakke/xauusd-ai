@@ -1,24 +1,21 @@
-## Brukerpresisering 2026-09-15
+## Brukerpresisering og gjeldende neste arbeid — 2026-09-15
 
-Ingen videre epoch før den målte Entry/Exit-svakheten er undersøkt med faktiske
-TRAIN-targets, prediksjoner og læringssignal, og en eventuell konkret justering er
-begrunnet/verifisert. Ikke fortsett bare fordi ingen kodefeil ble funnet. Native-
-trening er stoppet. Etter begrunnet klipperettelse er32 kontrollsteg ferdige på
-checkpoint87/epoch2offset1184/global5265. Paret TRAIN-måling er blandet: Exit-MSE
-øker, Entry er fortsatt64FLAT. To-stegs targetprobe er også ferdig;236/256SHORT-
-mål forblir identiske på grunn av den svake frosne EXIT-policyen. Ingen slik
-treningsendring innføres nå. Gradientkontrollen er også ferdig: samlet signal
-støtter forecast på alle fire faste TRAIN-batcher; Entry-private encodere og
-beskyttede ruter er uten Exit-gradient. Ingen ny gradient-/arkitekturrettelse
-begrunnes. Neste er én avgrenset native critic-/lærerkontroll: bedre tilpasning
-mot faste targets før en oppdatert verdilærer tas i bruk. Frekvensen for
-læreroppdatering er en kandidat til kontrollert justering, ikke bevist løsning.
-Ny kontroll er avgrenset til 256 native steg fra87/global5265 til5521, med
-uendrede faste targets og full tilstandsbevaring. Smal videreføringskode og143
-målrettede regresjoner er ferdige; faktisk CPU-overføring og native kjøring
-gjenstår. Se handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json og
-handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json. Ingen nye hele
-epocher, blind læreroppdatering eller gjentakelse av fullført diagnostikk. Ingen fast grense.
+Ingen videre hel epoch før den målte læringssvakheten er håndtert. Native256-
+kontrollen og paret CPU-evaluering er ferdige: checkpoint91/global5521, guard
+PASS/trainer0/observer0, Windows-task Disabled. Alle checkpoints er bevart.
+HOLD-MSE falt svakt på begge sider, men LONG er fortsatt svakere enn null;
+SHORT velger256/256HOLD, Entry64FLAT. Dette er fire faste TRAIN-batcher, ikke
+kalibrering eller profittbevis. Ikke krev at en forventningsverdiprediksjon skal
+treffe fortegnet på hvert stokastisk enkeltutfall.
+
+Neste konkrete justering er én eksplisitt bundet oppdatering av FQI-verdilæreren
+fra bevart ONLINE91, uavhengig av full epoch og VAL. Dette skal undersøke treg
+videreføring av fremtidig verdi. Gammel lærer og øvrige tilstander bevares;
+smal checkpointovergang verifiseres før ny avgrenset native læringskontroll.
+Ingen permanent oppdateringsfrekvens eller hel epoch er godkjent av resultatet.
+Ikke gjenta ferdige gradient-/to-stegs-/fit-kontroller. Ingen ny arkitektur,
+vilkårlig lossendring eller fast risiko-/holdegrense. Se CURRENT_HANDOVER.md og
+handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json.
 
 # Gjeldende GX1-mål — 2026-09-14
 
@@ -64,8 +61,8 @@ Dette åpner for første ettårslæring; modellen er ennå ikke dokumentert kali
 eller profitabel. Den delte backbone er ikke fullstendig isolert fra Exit.
 
 De beståtte tekniske portene gjelder det avtalte ettårsutvalget. Gjeldende
-NEXT_RUN_POLICY.json blokkerer nye hele epocher. Bare eksplisitt bundet kontroll
-på16/32 ekstra steg var tillatt; denne er ferdig og skal ikke kjøres på nytt.
+NEXT_RUN_POLICY.json blokkerer nye hele epocher. Både16+16-kontrollen og den senere256-stegskontrollen er ferdige;
+ingen av planene skal kjøres på nytt.
 Faktisk overgang/resume består. Neste arbeid gjelder fortsatt læringssignalet,
 med resultater i handover_snapshot/EXIT_CLIP_PAIRED_TRAIN_RESULT_20260915.json.
 Se handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json; eldre tekniske porter

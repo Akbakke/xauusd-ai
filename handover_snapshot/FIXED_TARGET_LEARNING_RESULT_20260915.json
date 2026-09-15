@@ -1,0 +1,777 @@
+{
+  "adam_step_delta_counts": {
+    "256": 726
+  },
+  "all_four_exact_checkpoint87_replays_passed": true,
+  "arms": {
+    "AFTER5521": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 2.031321282556746,
+        "mse_bps2": 10.760206231834175,
+        "prediction_mean_bps": -3.8294185781269334,
+        "prediction_positive": 56,
+        "sign_accuracy": 0.6354166666666666,
+        "sign_accuracy_nonzero_targets": 0.953125,
+        "target_mean_bps": -3.82506185490638,
+        "target_positive": 6,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.079263931450744,
+        "zero_baseline_mse_bps2": 32.68577418038467
+      },
+      "entry_target_actions": {
+        "FLAT": 58,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 3,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.640625,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": 0.06177654273051303,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 139.00513268303663,
+              "mean_absolute_error": 7.199348439622554,
+              "mean_squared_error": 130.46754194394956,
+              "metric_type": "regression",
+              "pearson": 0.5370347714104368,
+              "prediction_mean": 0.18398924253415316,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.7148534124054967,
+              "spearman_rank_ic": 0.30347985347985346,
+              "target_mean": 0.12221269980364013,
+              "target_nan_inf_count": 0,
+              "target_std": 11.790043794788748
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                19
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                4,
+                0,
+                30
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 7.356068057051743,
+            "zero_return_baseline_mean_squared_error_bps2": 139.02006862702993
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.375,
+              "always_up_accuracy": 0.625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.703125,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": -4.690996052348055,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 489.36680692880867,
+              "mean_absolute_error": 15.572935200878419,
+              "mean_squared_error": 414.28844066555104,
+              "metric_type": "regression",
+              "pearson": 0.502179114160909,
+              "prediction_mean": -1.4157656357856467,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 5.978078413127571,
+              "spearman_rank_ic": 0.2812728937728938,
+              "target_mean": 3.275230416562408,
+              "target_nan_inf_count": 0,
+              "target_std": 22.12163662410195
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                12
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                7,
+                0,
+                33
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 17.173350541386753,
+            "zero_return_baseline_mean_squared_error_bps2": 500.0939412103843
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.234375,
+              "always_up_accuracy": 0.765625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.734375,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": -15.408280056435615,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 899.0277607130547,
+              "mean_absolute_error": 23.814850550610572,
+              "mean_squared_error": 858.830113780511,
+              "metric_type": "regression",
+              "pearson": 0.5754244162686288,
+              "prediction_mean": -3.772202081978321,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 12.773755096865031,
+              "spearman_rank_ic": 0.32316849816849813,
+              "target_mean": 11.636077974457294,
+              "target_nan_inf_count": 0,
+              "target_std": 29.983791633365094
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                4
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                13,
+                0,
+                36
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 26.629435988608748,
+            "zero_return_baseline_mean_squared_error_bps2": 1034.4260713407048
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.703125,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -27.403617900738027,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2631.4922187268185,
+              "mean_absolute_error": 36.428322278836276,
+              "mean_squared_error": 2867.1184955236395,
+              "metric_type": "regression",
+              "pearson": 0.44268561791187677,
+              "prediction_mean": -6.033635847212281,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 22.106426691568853,
+              "spearman_rank_ic": 0.22619047619047614,
+              "target_mean": 21.369982053525746,
+              "target_nan_inf_count": 0,
+              "target_std": 51.298072271059254
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                15,
+                0,
+                10
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                9,
+                0,
+                30
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 39.99698987510055,
+            "zero_return_baseline_mean_squared_error_bps2": 3088.168351694831
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 2.044791246490604,
+        "mse_bps2": 135.19416049145627,
+        "prediction_mean_bps": 0.026092642076946504,
+        "prediction_positive": 286,
+        "sign_accuracy": 0.76171875,
+        "sign_accuracy_nonzero_targets": 0.5275590551181102,
+        "target_mean_bps": 0.02841060980608745,
+        "target_positive": 258,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 2.0354338268898573,
+        "zero_baseline_mse_bps2": 135.17803228598044
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 4.101067213403439,
+          "mse_bps2": 274.3377383377296,
+          "predicted_actions": {
+            "EXIT": 226,
+            "HOLD": 30,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": -0.07064963260563673,
+          "prediction_positive": 30,
+          "sign_accuracy": 0.5390625,
+          "sign_accuracy_nonzero_targets": 0.5390625,
+          "target_actions": {
+            "EXIT": 128,
+            "HOLD": 128,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.4068241732311435,
+          "target_positive": 128,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.105818853713572,
+          "zero_baseline_mse_bps2": 274.04628826234574
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 4.078097772558976,
+          "mse_bps2": 266.4389036280954,
+          "predicted_actions": {
+            "EXIT": 0,
+            "HOLD": 256,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.17502020091342274,
+          "prediction_positive": 256,
+          "sign_accuracy": 0.5078125,
+          "sign_accuracy_nonzero_targets": 0.5158730158730159,
+          "target_actions": {
+            "EXIT": 122,
+            "HOLD": 130,
+            "INVALID": 0,
+            "TIED": 4
+          },
+          "target_mean_bps": 0.5204666124554933,
+          "target_positive": 130,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.035916453845857,
+          "zero_baseline_mse_bps2": 266.6658408815762
+        }
+      }
+    },
+    "BEFORE87": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 2.00214434004738,
+        "mse_bps2": 10.635081627533397,
+        "prediction_mean_bps": -3.8194204589138585,
+        "prediction_positive": 45,
+        "sign_accuracy": 0.6354166666666666,
+        "sign_accuracy_nonzero_targets": 0.953125,
+        "target_mean_bps": -3.82506185490638,
+        "target_positive": 6,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.079263931450744,
+        "zero_baseline_mse_bps2": 32.68577418038467
+      },
+      "entry_target_actions": {
+        "FLAT": 58,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 3,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.59375,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": -0.12140684713085648,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 139.00513268303663,
+              "mean_absolute_error": 7.1701456957816845,
+              "mean_squared_error": 129.08636133045738,
+              "metric_type": "regression",
+              "pearson": 0.47021911002219535,
+              "prediction_mean": 0.0008058526727836579,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.9830531594109388,
+              "spearman_rank_ic": 0.28273809523809523,
+              "target_mean": 0.12221269980364013,
+              "target_nan_inf_count": 0,
+              "target_std": 11.790043794788748
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                13,
+                0,
+                17
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                9,
+                0,
+                25
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 7.356068057051743,
+            "zero_return_baseline_mean_squared_error_bps2": 139.02006862702993
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.375,
+              "always_up_accuracy": 0.625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.625,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": -4.412248367792927,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 489.36680692880867,
+              "mean_absolute_error": 15.801177373621613,
+              "mean_squared_error": 426.4571648132003,
+              "metric_type": "regression",
+              "pearson": 0.48230003128869864,
+              "prediction_mean": -1.1370179512305185,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 5.0607314705493565,
+              "spearman_rank_ic": 0.2496336996336996,
+              "target_mean": 3.275230416562408,
+              "target_nan_inf_count": 0,
+              "target_std": 22.12163662410195
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                12
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                12,
+                0,
+                28
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 17.173350541386753,
+            "zero_return_baseline_mean_squared_error_bps2": 500.0939412103843
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.234375,
+              "always_up_accuracy": 0.765625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.6875,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": -14.088728009024635,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 899.0277607130547,
+              "mean_absolute_error": 24.32388129667379,
+              "mean_squared_error": 866.0791257234607,
+              "metric_type": "regression",
+              "pearson": 0.5614218358600441,
+              "prediction_mean": -2.452650034567341,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 9.627468081554,
+              "spearman_rank_ic": 0.34029304029304025,
+              "target_mean": 11.636077974457294,
+              "target_nan_inf_count": 0,
+              "target_std": 29.983791633365094
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                4
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                16,
+                0,
+                33
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 26.629435988608748,
+            "zero_return_baseline_mean_squared_error_bps2": 1034.4260713407048
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.609375,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -24.78000090381829,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2631.4922187268185,
+              "mean_absolute_error": 36.34348429477541,
+              "mean_squared_error": 2888.6543779040776,
+              "metric_type": "regression",
+              "pearson": 0.3725130526638273,
+              "prediction_mean": -3.410018850292545,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 16.232520031844867,
+              "spearman_rank_ic": 0.1877289377289377,
+              "target_mean": 21.369982053525746,
+              "target_nan_inf_count": 0,
+              "target_std": 51.298072271059254
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                15,
+                0,
+                10
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                15,
+                0,
+                24
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 39.99698987510055,
+            "zero_return_baseline_mean_squared_error_bps2": 3088.168351694831
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 2.028656980100095,
+        "mse_bps2": 136.00102164105397,
+        "prediction_mean_bps": 0.021320214250408753,
+        "prediction_positive": 301,
+        "sign_accuracy": 0.7666015625,
+        "sign_accuracy_nonzero_targets": 0.5374015748031497,
+        "target_mean_bps": 0.02841060980608745,
+        "target_positive": 258,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 2.0354338268898573,
+        "zero_baseline_mse_bps2": 135.17803228598044
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 4.085661081790022,
+          "mse_bps2": 275.7125521896882,
+          "predicted_actions": {
+            "EXIT": 167,
+            "HOLD": 89,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.03684502782198251,
+          "prediction_positive": 89,
+          "sign_accuracy": 0.54296875,
+          "sign_accuracy_nonzero_targets": 0.54296875,
+          "target_actions": {
+            "EXIT": 128,
+            "HOLD": 128,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.4068241732311435,
+          "target_positive": 128,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.105818853713572,
+          "zero_baseline_mse_bps2": 274.04628826234574
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 4.0289668386103585,
+          "mse_bps2": 268.2915343745275,
+          "predicted_actions": {
+            "EXIT": 44,
+            "HOLD": 212,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.0484358291796525,
+          "prediction_positive": 212,
+          "sign_accuracy": 0.5234375,
+          "sign_accuracy_nonzero_targets": 0.5317460317460317,
+          "target_actions": {
+            "EXIT": 122,
+            "HOLD": 130,
+            "INVALID": 0,
+            "TIED": 4
+          },
+          "target_mean_bps": 0.5204666124554933,
+          "target_positive": 130,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.035916453845857,
+          "zero_baseline_mse_bps2": 266.6658408815762
+        }
+      }
+    }
+  },
+  "backward_executed": false,
+  "binding": {
+    "after": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+      },
+      "cursor": {
+        "checkpoint_index": 91,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5521,
+        "next_batch_offset": 1440,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+      }
+    },
+    "next_run_policy": {
+      "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+      "sha256": "b05c792fa976fb63344cd474f7096ba65f56a160ac80b1f8d5a37d238a44387e"
+    },
+    "output_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915",
+    "schema_version": "gx1_fixed_target_learning_evaluator_binding_v1",
+    "source_commit": "da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5",
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_CONTINUATION.json",
+      "sha256": "01c2f7890def5958d8366fc4e85b091fac82c2dd7610e23117e31756850adefd"
+    }
+  },
+  "binding_sha256": "807bfebc9d900e75c808159d0b127644e81bbc88ab403b4445100f73d4b2f512",
+  "checkpoint_bindings": {
+    "AFTER5521": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+      },
+      "cursor": {
+        "checkpoint_index": 91,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5521,
+        "next_batch_offset": 1440,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+      }
+    },
+    "BEFORE87": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "1f8f3e3a81c3563f93e2c17ed436a36260c76728ff5b78e813d7ee73bb77ec93"
+      },
+      "cursor": {
+        "checkpoint_index": 87,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5265,
+        "next_batch_offset": 1184,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "49c48c14c9cd0820ddaaa62b8bef35d4eaccc5c86301c5494ee1d88537501c61"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292"
+      }
+    }
+  },
+  "decision": "FIXED_TRAIN_TARGET_FIT_OBSERVED",
+  "elapsed_seconds": 38.25427159200012,
+  "ema_history": {
+    "optimizer_step_offset": 19908,
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_CONTINUATION.json",
+      "sha256": "01c2f7890def5958d8366fc4e85b091fac82c2dd7610e23117e31756850adefd"
+    }
+  },
+  "ema_steps_before_after": [
+    25173,
+    25429
+  ],
+  "frozen_target_forward_calls": 0,
+  "frozen_target_state_sha256_unchanged": "db64044e81acf8722139566c5c173601947ea92e83027c9e540afa1cc9256572",
+  "gpu_used": false,
+  "interpretation": "Raw target fit on the same fixed TRAIN cohort under paired no_grad CPU replay; not profit, held-out generalization, GPU/gradient parity, or authority to promote a teacher.",
+  "model_mode": "train; all parameters frozen; torch.no_grad; identical diagnostic dropout seeds",
+  "model_state_sha256": {
+    "AFTER5521": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+    "BEFORE87": "19ee91a4abec8f37925a3dc88139d14d590880ec695632a230a2d52e8b445980"
+  },
+  "one_model": true,
+  "operator_script_sha256": "1638c2efdbf4bcc6690ed217d26685db95f8fa46f666d56ce96f43005b48f710",
+  "optimizer_constructed_or_stepped": false,
+  "original_evidence": {
+    "cache_bindings": [
+      {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_00_INPUTS.pt",
+        "sha256": "d59899f686a726cb76c9df40edf2c5509dbe3948645ca0beb977ce014529a72c"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_01_INPUTS.pt",
+        "sha256": "8cc143264e79118b0b019a7b385d69c52230409e07a54c598eab8e386c33c422"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_02_INPUTS.pt",
+        "sha256": "1ade4cfbdc046e428283ba9f94552ebe1a34389212a41a1e4404afb8fceffcc5"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_03_INPUTS.pt",
+        "sha256": "3fde8163f526028ae8a1e2b2f732f60e2f273b1e0abcb9f32722b42c38278fe4"
+      }
+    ],
+    "paired_result_sha256": "30d88d4de85f22be85060f981ec1e4feed63cedff9e7ab6bf61ec626cac48303",
+    "replay_details_sha256": [
+      "959b0e8855a7ae24ee076db1a52866df952c45453308181173caeb4fff8ace3e",
+      "57b16904e66958854147de6ed59963696037a1969fb744a6e304ffc74a1b69af",
+      "46ed0955dec271029bbbda9bee3233e77c9db3448bc1bb68e105bb076e4f4931",
+      "aaa537c089d9b4227279503f9c27f421850a3443402455e5020ae3892418bd5f"
+    ],
+    "v3_result_sha256": "f23cd8d8593a70fccbfe538248213f106e6a8ad393bcb58272834950484646dd",
+    "v3_review_sha256": "d50afbd134236eea81dde86c54ed4a5e0ee4c5ac8e293e542bf194046eb9ec01"
+  },
+  "peak_rss_kib": 2279356,
+  "preserved_state_digest": {
+    "epoch_order": "84813100efc927211156cf485cfe2334a70bed8c50236e4372f32c78d8fbfa65",
+    "lr_scheduler_state": "a803f0d19b11d0db2addf6476db4905ce40952d48d96518336d46044cf8af3a9"
+  },
+  "profitability_or_heldout_improvement_proven": false,
+  "schema_version": "gx1_fixed_target_learning_observation_v1",
+  "source_bindings_sha256": "dd30973280e1311774ea9b5a3e092c4f9a635fea66a64684628657a71340bff6",
+  "source_checkpoint_cache_targets_policy_and_process_rng_preserved": true,
+  "target_promotion_performed": false,
+  "test_data_used": false,
+  "train_only": true,
+  "uninterrupted_resume_equivalence_claimed": false,
+  "val_evaluated": false
+}

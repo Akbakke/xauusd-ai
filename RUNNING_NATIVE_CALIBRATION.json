@@ -1,39 +1,37 @@
 {
   "schema_version": "gx1_running_native_calibration_v1",
-  "status": "PREPARING_BOUNDED_NATIVE_FIXED_TARGET_FIT_FROM_CHECKPOINT87",
+  "status": "FIXED_TARGET_CONTROL_AND_CPU_EVALUATION_COMPLETE",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
+  "source_commit": "da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5",
   "source_frozen_until_native_measurements_finish": false,
-  "arm": "exit_clipping_control",
+  "arm": "fixed_target_fit",
   "whole_epoch_training_enabled": false,
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "plan": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/CAMPAIGN/CAMPAIGN_PLAN.json",
-    "sha256": "f246d49716b227977ddb79d316eac7e9e110c590552df0398786a08a15efd38e"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "8d0cd757ecc42e46d76efa5566e98948613023dba675a8b2d41a6ce483fd81e3"
   },
   "recipe": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/NATIVE_RECIPE.json",
-    "sha256": "9d37470d9d6549bd9d88f120e7af0aed4c3af119e1b46c2b9ef0ea178edf248e"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/NATIVE_RECIPE.json",
+    "sha256": "a4c341986cda68af9e5527f037ece99eedb6bd0b501e22cb4a5cb0029d80098d"
   },
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE_BOOT432",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
-  "source_bindings_sha256": "6d93dbd9ac5bcdeb54451c2247b782a5f3fdc8ee5cb9721ae951b5c1d9ff5bfe",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FIXED_TARGET_FIT_DA7AE15D_BOOT434",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "dd30973280e1311774ea9b5a3e092c4f9a635fea66a64684628657a71340bff6",
   "origin": {
-    "checkpoint_index": 85,
+    "checkpoint_index": 87,
     "epoch_index": 1,
-    "next_batch_offset": 1152,
-    "global_optimizer_steps": 5233,
-    "state_sha256": "9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974",
-    "pointer_sha256": "d265ce2cba4f494eb818870093d8cb9834be974e2113729232f1ffdcd070ebb7"
+    "next_batch_offset": 1184,
+    "global_optimizer_steps": 5265,
+    "state_sha256": "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292",
+    "pointer_sha256": "49c48c14c9cd0820ddaaa62b8bef35d4eaccc5c86301c5494ee1d88537501c61"
   },
   "additional_optimizer_step_ceilings": [
-    16,
-    32
+    256
   ],
   "absolute_optimizer_step_ceilings": [
-    5249,
-    5265
+    5521
   ],
   "train_batch_size": 16,
   "selected_train_rows": 65295,
@@ -48,177 +46,78 @@
   "val_execution_expected": false,
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_enabled": false,
-  "prepared_boot_id": 432,
-  "launch_observation": "No active heavy/native job. Capped CPU gradient V3 completed exit0. Windows task Disabled, Enabled=false, LastTaskResult=0 verified after completion.",
-  "state_preservation_cpu": {
-    "decision": "PASS_STATE_PRESERVATION_ONLY",
-    "compared_components": 15,
-    "all_exact": true,
-    "original_unchanged": true,
-    "result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/ACTUAL_CHECKPOINT85_CPU_REPLAY.json",
-      "sha256": "65dcba18a4b65cd798051171a00848d49d315c456fc7e7eceb4b7e838b0d6270"
-    }
-  },
-  "native_checkpoint_restore_proven": true,
-  "current_native_resume_proven": true,
-  "learning_improvement_proven": false,
-  "profitability_proven": false,
-  "historical_technical_evidence": "handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json",
-  "old_stopped_campaign_record": "handover_snapshot/RUNNING_BEFORE_CLIP_CONTROL_20260915.json",
-  "first_epoch_val": "handover_snapshot/EPOCH1_FULL_VAL_20260915.json",
-  "learning_diagnostic": "handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json",
-  "current_policy_sha256": "b05c792fa976fb63344cd474f7096ba65f56a160ac80b1f8d5a37d238a44387e",
-  "automation_id": "gx1-timekontroll",
-  "human_check_interval_seconds": 3600,
-  "test_data_used": false,
-  "next_action": "Complete the exact87 state-preserving continuation in the four existing native owners and targeted regressions. Then verify actual87 CPU state preservation, materialize a new private native plan with ceiling5521, and run one guarded native invocation. Keep teacher, optimizer procedure and full-epoch block unchanged. After terminal success run the cached fixed-target evaluator; do not repeat completed gradient, n-step or16+16 controls.",
-  "reboot_requested_utc": "2026-09-15T14:50:44.7418699Z",
-  "checkpoint85_cpu_replay_operator_note": "Initial generic JSON digest could not encode a nonfinite reporting value; reused existing typed checkpoint verifier. All15 state fields except session identity match exactly.",
   "windows_task_observed_state": "Disabled",
-  "physical_boot_utc": "2026-09-15T14:51:38.5000000Z",
-  "windows_task_started_utc": "2026-09-15T14:52:51.0000000Z",
+  "prepared_boot_id": 434,
+  "physical_boot_id": 435,
+  "physical_boot_utc": "2026-09-15T17:46:52.5000000Z",
+  "windows_task_started_utc": "2026-09-15T17:49:14.0000000Z",
   "native_observation": {
     "native_pid": null,
     "guard_pid": null,
     "phase": "terminal",
     "guard_error_observed": false
   },
-  "completed_invocation1": {
+  "launch_observation": "Completed native invocation on boot435; checkpoint91/global5521. Guard PASS, trainer0, observer0. Windows task Disabled, native and guard processes absent at terminal observation.",
+  "state_preservation_cpu": {
+    "decision": "PASS_STATE_PRESERVATION_ONLY",
+    "compared_components": 15,
+    "all_exact": true,
+    "original_unchanged": true,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/ACTUAL_CHECKPOINT87_CPU_REPLAY.json",
+      "sha256": "92fa7099b046e394483d2aeb3acc2083bcf24c0ed1d8874f3523fb44bce367d9"
+    }
+  },
+  "native_checkpoint_restore_proven": true,
+  "current_native_resume_proven": false,
+  "learning_improvement_proven": false,
+  "profitability_proven": false,
+  "preparation_result": "handover_snapshot/FIXED_TARGET_FIT_PREPARATION_20260915.json",
+  "targeted_verification": "handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json",
+  "prior_completed_control_record": "handover_snapshot/RUNNING_BEFORE_FIXED_TARGET_FIT_20260915.json",
+  "current_policy_sha256": "b05c792fa976fb63344cd474f7096ba65f56a160ac80b1f8d5a37d238a44387e",
+  "automation_id": "gx1-timekontroll",
+  "human_check_interval_seconds": 3600,
+  "test_data_used": false,
+  "next_action": "Prepare one explicit SHA-bound FQI target refresh from preserved ONLINE checkpoint91, decoupled from full epoch/VAL. This is an experimental teacher update, not approval of its economic quality. Preserve the old teacher, model, Adam, EMA, RNG, order, economic targets and all checkpoints; record the sole intended target-state change. Verify the narrow checkpoint transition before any new bounded native learning control. Current 256-step plan is exhausted; do not restart it. No full epoch, repeated completed diagnostics, new architecture/loss, arbitrary hold/risk caps, or TEST.",
+  "windows_task_disabled_utc": "2026-09-15T18:16:51.6692648Z",
+  "completed_invocation": {
     "guard_decision": "PASS",
     "trainer_guard_exit_code": 0,
     "progress_observer_exit_code": 0,
     "outcome": "RESUMABLE",
-    "checkpoint_index": 86,
+    "checkpoint_index": 91,
     "epoch_index": 1,
-    "next_batch_offset": 1168,
-    "global_optimizer_steps": 5249,
-    "additional_optimizer_steps": 16
-  },
-  "windows_task_disabled_utc": "2026-09-15T15:33:20.3688993Z",
-  "completed_invocation2": {
-    "guard_decision": "PASS",
-    "trainer_guard_exit_code": 0,
-    "progress_observer_exit_code": 0,
-    "outcome": "RESUMABLE",
-    "checkpoint_index": 87,
-    "epoch_index": 1,
-    "next_batch_offset": 1184,
-    "global_optimizer_steps": 5265,
-    "additional_optimizer_steps": 32,
-    "state_sha256": "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292"
-  },
-  "control_result": {
-    "path": "handover_snapshot/EXIT_CLIP_CONTROL_RESULT_20260915.json",
-    "sha256": "64d40ac966a55eb15f4b901d10fe9bfccd79eac75546b494c638f5a6c5f78aae"
-  },
-  "paired_cpu_observation": {
-    "exec_session_id": 14079,
-    "script": "/tmp/gx1_clip_control_paired_train_cpu.py",
-    "script_sha256": "f9967943338c23f5d091e8247aa6c138b70364044ab5153113fa9a789a311dab",
-    "log": "/tmp/gx1_clip_control_paired_train_cpu_20260915.log",
-    "optimizer_steps": 0,
-    "test_data_used": false,
-    "status": "COMPLETE",
-    "process_exit_code": 0,
-    "result": {
-      "path": "handover_snapshot/EXIT_CLIP_PAIRED_TRAIN_RESULT_20260915.json",
-      "sha256": "30d88d4de85f22be85060f981ec1e4feed63cedff9e7ab6bf61ec626cac48303"
-    },
-    "elapsed_seconds": 410.16201694300025
-  },
-  "latest_source_head": "f718d576196da0a0def11b83474e1d4d607c99c1",
-  "two_step_target_probe": {
-    "exec_session_id": 22935,
-    "script": "/tmp/gx1_two_step_target_probe_cpu.py",
-    "script_sha256": "e2d97d5485cc227165a6cd3531b055a694ab5fdb468de1f7de81fa1dae1b0421",
-    "log": "/tmp/gx1_two_step_target_probe_cpu_20260915.log",
-    "source_commit": "2c593aa7cdae0f5f960304d227f919c6de772ab4",
-    "optimizer_steps": 0,
-    "gpu_used": false,
-    "test_data_used": false,
-    "output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/TWO_STEP_TARGET_PROBE_CPU_20260915",
-    "status": "COMPLETE",
-    "process_exit_code": 0,
-    "result": {
-      "path": "handover_snapshot/TWO_STEP_TARGET_PROBE_20260915.json",
-      "sha256": "46bb73a49b2fef2a9d7b5a845222677939d31ab385563fa58111dccb352c4df4"
-    },
-    "elapsed_seconds": 401.31969901499997
-  },
-  "shared_task_gradient_probe_failed_cross_mode": {
-    "status": "FAILED_BEFORE_GRADIENTS",
-    "exec_session_id": 41038,
-    "pid": null,
-    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
-    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
-    "script_sha256": "2bfbd0ae1d789a33844ca24fd7d8a54ae0cd64367921e486571992429212fe99",
-    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915.log",
-    "optimizer_steps": 0,
-    "gpu_used": false,
-    "test_data_used": false,
-    "process_exit_code": 1,
-    "failure": "Exact EntryQ cross-mode comparison failed: preserved no_grad forward versus native CPU checkpointed grad forward. No gradient measurement completed and no weights updated."
-  },
-  "shared_task_gradient_probe_v2_failed": {
-    "status": "FAILED_BEFORE_GRADIENTS",
-    "exec_session_id": 42739,
-    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
-    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
-    "script_sha256": "a05d6793cf65e67b0d77dfc6283dabb68fc57e198cbdc2e90ed837c81522521d",
-    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915_v2.log",
-    "optimizer_steps": 0,
-    "gpu_used": false,
-    "test_data_used": false,
-    "exact_no_grad_anchor_then_native_grad_comparison": true,
-    "process_exit_code": 1,
-    "failure": "Exact no_grad EntryQ anchor mismatch; cross-mode branch alone does not explain replay mismatch."
-  },
-  "shared_task_gradient_probe": {
-    "status": "COMPLETE",
-    "exec_session_id": 75741,
-    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
-    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
-    "script_sha256": "8268285154c8ddbb509ee7373801982cd8b7745031c2d2fb521ef90202578138",
-    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915_v3.log",
-    "optimizer_steps": 0,
-    "gpu_used": false,
-    "test_data_used": false,
-    "purpose": "Preserve exact materialized inputs and output/RNG differences before assertion; match original frozen parameter flags in no_grad anchor and restore flags before native CPU gradient path.",
-    "process_exit_code": 0,
-    "elapsed_seconds": 436.92603917999986,
-    "peak_rss_kib": 12697500,
-    "result": {
-      "path": "handover_snapshot/SHARED_TASK_GRADIENT_RESULT_20260915.json",
-      "sha256": "f23cd8d8593a70fccbfe538248213f106e6a8ad393bcb58272834950484646dd"
-    },
-    "review": {
-      "path": "handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json",
-      "sha256": "d50afbd134236eea81dde86c54ed4a5e0ee4c5ac8e293e542bf194046eb9ec01"
-    },
-    "all_four_no_grad_anchors_exact": true,
-    "all_four_forecast_dot_total_positive": true,
-    "source_checkpoint_policy_schedule_model_rng_preserved": true
-  },
-  "pending_fixed_target_fit": {
-    "status": "TARGETED_TESTS_PASS_ACTUAL_STATE_REPLAY_PENDING",
-    "origin_checkpoint": 87,
-    "origin_global_optimizer_steps": 5265,
-    "origin_epoch_index": 1,
-    "origin_batch_offset": 1184,
+    "next_batch_offset": 1440,
+    "global_optimizer_steps": 5521,
     "additional_optimizer_steps": 256,
-    "absolute_optimizer_step_ceiling": 5521,
-    "expected_final_batch_offset": 1440,
-    "next_epoch_boundary": 8162,
-    "frozen_teacher_changed": false,
-    "optimizer_procedure_changed": false,
-    "whole_epoch_allowed": false,
-    "planned_train_examples": 4096,
-    "train_batch_size": 16,
+    "state_sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21",
+    "started_utc": "2026-09-15T17:51:08.686732+00:00",
+    "finished_utc": "2026-09-15T18:11:05.787388+00:00",
+    "native_invocation_seconds": 1197.100656
+  },
+  "fixed_target_cpu_evaluation": {
+    "status": "COMPLETE",
+    "exec_session_id": 30580,
+    "process_exit_code": 0,
+    "script": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/OPERATOR_SCRIPT.py",
+      "sha256": "1638c2efdbf4bcc6690ed217d26685db95f8fa46f666d56ce96f43005b48f710"
+    },
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/RUN.log",
+      "sha256": "d10c5f8b81559cae80a907961ccd695f5af5bd33d7d3c51e75ba49fdf2025f56"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/RESULT.json",
+      "sha256": "49d1463244336c527bb4842e78a0bb05abbdf9753a134a415e5f7080063e6d4a"
+    },
+    "binding_sha256": "807bfebc9d900e75c808159d0b127644e81bbc88ab403b4445100f73d4b2f512",
+    "elapsed_seconds": 38.25427159200012,
+    "peak_rss_kib": 2279356,
+    "optimizer_steps": 0,
     "test_data_used": false,
-    "native_launch_allowed_yet": false,
-    "preserved_policy": "handover_snapshot/NEXT_RUN_POLICY_BEFORE_FIXED_TARGET_FIT_20260915.json",
-    "evaluation": "Same four SHA-bound TRAIN batches/targets, exact checkpoint87 no_grad replay followed by after-state replay; per-side importance-weighted HOLD MSE/MAE, zero baseline, sign/actions, Entry targets/actions and four forecast horizons. TRAIN fit only, no automatic teacher promotion or profitability claim.",
-    "targeted_verification": "handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json"
-  }
+    "initial_operator_failure": "First attempt exited1 before model execution because source bindings also contain file metadata. Operator verifier was corrected to check their path/SHA pair; original failed script/log preserved beside the run. No production change."
+  },
+  "completed_control_review": "handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json"
 }

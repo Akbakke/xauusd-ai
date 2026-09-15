@@ -1,0 +1,46 @@
+{
+  "absolute_optimizer_step_ceilings": [
+    5521
+  ],
+  "additional_optimizer_step_ceilings": [
+    256
+  ],
+  "decision": "PASS_BOUNDED_FIXED_TARGET_FIT_PREPARED",
+  "elapsed_seconds": 174.9102796370007,
+  "frozen_teacher_changed": false,
+  "learning_improvement_proven": false,
+  "next_epoch_boundary": 8162,
+  "origin_checkpoint_index": 87,
+  "origin_optimizer_steps": 5265,
+  "peak_rss_kib": 1660676,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "8d0cd757ecc42e46d76efa5566e98948613023dba675a8b2d41a6ce483fd81e3"
+  },
+  "prepared_boot_id": 434,
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/NATIVE_RECIPE.json",
+    "sha256": "a4c341986cda68af9e5527f037ece99eedb6bd0b501e22cb4a5cb0029d80098d"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FIXED_TARGET_FIT_DA7AE15D_BOOT434",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "dd30973280e1311774ea9b5a3e092c4f9a635fea66a64684628657a71340bff6",
+  "source_commit": "da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "state_replay": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/ACTUAL_CHECKPOINT87_CPU_REPLAY.json",
+    "sha256": "92fa7099b046e394483d2aeb3acc2083bcf24c0ed1d8874f3523fb44bce367d9"
+  },
+  "test_data_used": false,
+  "train_rows": 65295,
+  "training_started": false,
+  "val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 84049614,
+    "max_state_views": 84049614,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "whole_epoch_training_allowed": false
+}

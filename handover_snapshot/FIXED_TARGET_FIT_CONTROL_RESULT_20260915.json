@@ -1,0 +1,114 @@
+{
+  "adam_step_delta_counts": {
+    "256": 726
+  },
+  "after": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+    },
+    "cursor": {
+      "checkpoint_index": 91,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 5521,
+      "next_batch_offset": 1440,
+      "phase": "train"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+    },
+    "state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+    }
+  },
+  "all_four_checkpoint87_exact_replays": true,
+  "before": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "1f8f3e3a81c3563f93e2c17ed436a36260c76728ff5b78e813d7ee73bb77ec93"
+    },
+    "cursor": {
+      "checkpoint_index": 87,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 5265,
+      "next_batch_offset": 1184,
+      "phase": "train"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "49c48c14c9cd0820ddaaa62b8bef35d4eaccc5c86301c5494ee1d88537501c61"
+    },
+    "state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292"
+    }
+  },
+  "cpu_to_native_contract_only_differences": [
+    "out_bundle_dir",
+    "recipe_source_provenance",
+    "run_id"
+  ],
+  "cpu_to_native_provenance_only_differences": [
+    "recipe_audit_path",
+    "recipe_audit_sha256"
+  ],
+  "cpu_transition": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/ACTUAL_CHECKPOINT87_CPU_REPLAY.json",
+    "sha256": "92fa7099b046e394483d2aeb3acc2083bcf24c0ed1d8874f3523fb44bce367d9"
+  },
+  "cpu_transition_components_exact": 15,
+  "decision": "CONTROL_COMPLETE_NO_FULL_EPOCH_OR_TEACHER_PROMOTION",
+  "ema_steps_before_after": [
+    25173,
+    25429
+  ],
+  "evaluation_exit_code": 0,
+  "evaluation_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/RUN.log",
+    "sha256": "d10c5f8b81559cae80a907961ccd695f5af5bd33d7d3c51e75ba49fdf2025f56"
+  },
+  "evaluation_peak_rss_kib": 2279356,
+  "evaluation_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/RESULT.json",
+    "sha256": "49d1463244336c527bb4842e78a0bb05abbdf9753a134a415e5f7080063e6d4a"
+  },
+  "evaluation_script": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/OPERATOR_SCRIPT.py",
+    "sha256": "1638c2efdbf4bcc6690ed217d26685db95f8fa46f666d56ce96f43005b48f710"
+  },
+  "evaluation_seconds": 38.25427159200012,
+  "frozen_target_preserved": true,
+  "guard": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_FIXED_TARGET_FIT_DA7AE15D_BOOT434/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "02aef76efed8fe4f19897c8c543e0ef4a1140a07f6a11cd85005ebdbecc60365"
+  },
+  "guard_decision": "PASS",
+  "interpretation": [
+    "Both HOLD MSE values fell; LONG remains worse than zero, SHORT only slightly beats zero. Both MAE values worsened.",
+    "SHORT predicts HOLD for all256 measured states; Entry stays64FLAT versus teacher58FLAT/3LONG/3SHORT.",
+    "Realized one-step target signs are not an oracle for expected-value actions; these four TRAIN cohorts cannot establish calibration or generalization.",
+    "No basis for declaring profitability or blindly promoting checkpoint91 to teacher. Completed control must not be repeated."
+  ],
+  "native_checkpoint_restore_proven": true,
+  "native_invocation_seconds": 1197.100656,
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_FIXED_TARGET_FIT_DA7AE15D_BOOT434/receipts/invocation-0001.json",
+    "sha256": "6e19ebc384a274bf11c0c303de06ba30c67708c96cbe720c1b49c83fab480d99"
+  },
+  "native_receipt_semantic_sha256": "5c92fb328afbafa1f63a9dbc1e2f321e61d53cc0d4bea6df7031c5af3bcf39e6",
+  "native_steps_per_second_including_startup_and_observer": 0.21385002064521463,
+  "progress_observer_exit_code": 0,
+  "schema_version": "gx1_fixed_target_fit_control_review_v1",
+  "side_fit": {},
+  "source_commit": "da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5",
+  "teacher_promoted": false,
+  "test_data_used": false,
+  "throughput_scope": "One 256-step TRAIN-only invocation; setup and observer included, physical reboot excluded. No relative speedup or VAL throughput claim.",
+  "trainer_guard_exit_code": 0,
+  "uninterrupted_resume_equivalence_claimed": false,
+  "whole_epoch_training_enabled": false
+}

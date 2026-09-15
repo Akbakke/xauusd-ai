@@ -1,0 +1,59 @@
+{
+  "all_preserved_fields_exact": true,
+  "contract_construction": "Original complete native contract; only source/run/output/provenance identity changed. Guarded invocation must independently construct the same contract.",
+  "cpu_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/CPU_REPLAY_RECIPE.json",
+    "sha256": "895ec7fc1ba05ec6d3239ea724fbb32a2accf87af30773a77a152cad66b978ce"
+  },
+  "decision": "PASS_STATE_PRESERVATION_ONLY",
+  "destination_contract": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CPU_REPLAY_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "sha256": "93d42c55db920a541dd9a186f4d186d6c2c81d9ee4539bab0ebbd53dd03e37f0"
+  },
+  "frozen_teacher_changed": false,
+  "full_native_restore_and_learning_proven": false,
+  "gpu_used": false,
+  "optimizer_procedure_changed": false,
+  "optimizer_steps_executed": 0,
+  "origin": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "1f8f3e3a81c3563f93e2c17ed436a36260c76728ff5b78e813d7ee73bb77ec93"
+    },
+    "exit_value_initialization": "close_now_baseline_v1",
+    "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "49c48c14c9cd0820ddaaa62b8bef35d4eaccc5c86301c5494ee1d88537501c61"
+    },
+    "schema_version": "gx1_candidate_training_continuation_origin_v1",
+    "train_population_scope": "latest_year_2025_2026_v1"
+  },
+  "original_checkpoint_unchanged": true,
+  "preserved_state_digests": {
+    "checkpoint_index": "0f6a655b683f9899d9c011169b6dbf0441ac7de841afc03ac6225230bbdbc881",
+    "complete": "8f697e241351bbbc59a307f5f140bd8efac8417a03a2e1eb3a36d26648fcadb0",
+    "epoch_index": "13aaa720a36e7abdb795d99d25318d34f1baceb461077584bf2030024308594d",
+    "epoch_order": "b55cdcc6e451c30000c3698f05d98f7fb07a3b81b7443fbc1fc90b26b75f4d37",
+    "global_optimizer_steps": "3180e00ee4a654b4f34fa46c639694e6df3fd36cc641ea89bfdb0107c8c17e22",
+    "lr_scheduler_state": "faca7944b467aedbdbbcd518105f1f10764b022a841b607d57d0f5b792864505",
+    "model_state": "86106393752e95ecfeda96fc679c923a0c3a05254a53b955933a990ce9011206",
+    "next_batch_offset": "b1f4d99b24f9334e593220157771f44514e3eb253e6bbff388b9e79f2bcb8062",
+    "optimizer_state": "d459fb5a0c37df8d436042048c622036ace87bfbcb6b2f55b2d5af7026b986fa",
+    "phase": "126d4a695a793f5a9f78601672ab44b118d3c17155780ce91510dcded4ca0284",
+    "rng_state": "96aeb0745588a2da56c2b045c2f56f415abb6360b3ac1f0dbbcd2b4beeb19577",
+    "schema_version": "056d21a5f27ac471f2b1d9e8e21abf7f0fe47d6ba0134f385e8ef903a046ad87",
+    "target_model_state": "391c0a807ca33078be6772fdc38684c7c822e8b4e45eca7c410dfd692952cb40",
+    "training_progress": "a11c63979d5fe509f9ac3e02e020b039ca1f42844e23acb9bfd6810ac21886d1",
+    "weight_ema_state": "ae05fa935108d629c9b31a11f666f4ea14afa20af6f21624044939ea692486ac"
+  },
+  "source_commit": "da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5",
+  "test_data_used": false,
+  "weight_ema_history": {
+    "optimizer_step_offset": 19908,
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CPU_REPLAY_BUNDLE/CANDIDATE_TRAINING_CONTINUATION.json",
+      "sha256": "1a32f8f97d195210720fee857aca739fa883f1f9513d6223934faea498a593b9"
+    }
+  }
+}

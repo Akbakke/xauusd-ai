@@ -1,22 +1,59 @@
-## Pågående neste kontroll — 2026-09-15
+# Gjeldende status — kontroll ferdig, trening stoppet, 2026-09-15
 
-Én ny native kontroll forberedes fra checkpoint87/global5265: 256 optimizersteg,
-til global5521/epoch_index1/offset1440, under epochgrensen8162. Frosne lærermål,
-treningsprosedyre, datarekkefølge og alle optimizer-/EMA-tilstander beholdes.
-Dette er ikke en hel epoch eller en læreroppdatering. Gjeldende policy har fortsatt
-training_enabled=false og tillater bare den nye eksakt bundne kontrollen når
-implementasjon, målrettede tester, faktisk CPU-tilstandsoverføring og ny native plan
-består. Den gamle16+16-planen skal ikke kjøres igjen. Samme fire faste TRAIN-batcher
-måles før/etter mot egne targets og nullbaseline; modellens lønnsomhet utledes ikke
-fra denne kontrollen. Se pending_fixed_target_fit i RUNNING_NATIVE_CALIBRATION.json.
-Den smale videreføringen er implementert i de fire eksisterende eierne. Alle
-143 målrettede regresjoner består; bevaring, ugyldige endringer, kvitteringskjede,
-EMA-historikk og stopp før epochslutt er dekket. Se
-handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json. Faktisk CPU-overføring
-av checkpoint87, ny plan og native kjøring gjenstår. Ingen modell-/lossendring.
-Ingen aktiv tung jobb; Windows-task er fortsatt deaktivert.
+Eneste kodebase er /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Den avsluttede kontrollens frosne kilde er da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5.
+Checkpoint91 har global5521, epoch_index1, next_batch_offset1440. Original87
+er bevart. Ingen aktiv tung jobb; Windows-task er Disabled. NEXT_RUN_POLICY.json
+har training_enabled=false. Den eneste tillatte256-stegskontrollen er brukt opp.
+Ingen restart, hel epoch eller automatisk læreroppdatering er tillatt fra den planen.
 
-# GX1 — stoppet; native kontroll bestått, læring fortsatt utilstrekkelig, 2026-09-15
+Native256 steg tok1197.100656sekunder inkludert oppstart og observer, uten fysisk
+reboot. Guard PASS, trainer0, observer0. Alle726 Adamtilstander økte256 steg;
+EMA25173→25429. Frossen lærer, scheduler og datarekkefølge er bevart. Faktisk
+CPU-overføring bevarte alle15 tilstandskomponenter. CPU- og native-kontraktene
+avviker bare i run/output/recipe-identitet. Dette er faktisk checkpointoverføring,
+ikke en ny sammenhengende-mot-delt-resume-likhetsmåling eller relativ speedup.
+De143 målrettede regresjonene gjenbrukes; ingen ny fullsuite.
+
+Paret CPU-evaluering er ferdig på38.254272sekunder, peak2279356KiB, exit0.
+Samme64 TRAIN-rader og256 HOLD-celler per side, identiske targets/dropoutfrø;
+alle fire checkpoint87-referanser reproduseres eksakt. Ingen autograd, optimizer,
+GPU, VAL eller TEST. Endelig operatørskript/logg og en tidligere bindingsfeil
+før modelleksekvering er bevart. Se:
+- handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json
+- handover_snapshot/FIXED_TARGET_LEARNING_RESULT_20260915.json
+- RUNNING_NATIVE_CALIBRATION.json
+
+## Læringsresultat og neste konkrete justering
+
+HOLD-MSE LONG275.713→274.338, nullbaseline274.046; SHORT268.292→266.439,
+nullbaseline266.666. MAE forverres på begge sider. SHORT HOLD212→256 av256;
+LONG HOLD89→30. Entry er fortsatt64FLAT mot lærer58FLAT/3LONG/3SHORT.
+Dette viser endret tilpasning, ikke dokumentert selektivitet eller lønnsomhet.
+Realiserte ettstegsfortegn er ingen feilfri fasit for forventningsverdi. Verken
+MAE eller handlingssamsvar alene avgjør om en økonomisk policy er god.
+
+Sekvensinput er allerede til stede. Den konkrete begrensningen i lærersløyfen
+er én successor-backup mot frosne verdier, med ny ONLINE-lærer først etter full
+epoch og VAL (entry_v10_ctx_train_v3.py, native epoch-overgang). Flere pass mot
+samme lærer gjør ikke denne verdipropageringen raskere. Tidligere to-stegsprobe
+og gradientkontroll er ferdige og skal ikke gjentas.
+
+Neste anbefalte rettelse er én eksplisitt SHA-bundet FQI-læreroppdatering fra
+bevart ONLINE91, frigjort fra full epoch/VAL, før videre avgrenset læringskontroll.
+Dette er en kontrollert læringshypotese, ikke godkjenning av lærerens kvalitet.
+Bevar gammel lærer og alle øvrige tilstander; kvitter bare tilsiktet target-kopi.
+Verifiser smal overgang/resume før eventuell ny native kontroll. Ingen permanent
+«hver256»-regel er besluttet. Ingen endring i MSE, økonomi, EMA, Adam, arkitektur,
+risiko eller holdetid begrunnes av disse resultatene. Ikke klipp legitime store
+utfall for å pynte på fit. Nye hele epocher forblir blokkert.
+
+TRAIN er fortsatt ett år, alle200features/åtte familier/tidsrammer beholdes,
+og TEST er forseglet. Nativeprofil TRAIN16/VAL256/8arbeidere/3timersVAL og vakter
+beholdes. Historikken nedenfor gjelder avsluttede kontroller, ikke gjeldende
+oppstartstillatelse. Nye oppstartsplaner må bindes til gjeldende kilde og policy.
+
+## Historikk: GX1 — stoppet; native kontroll bestått, læring fortsatt utilstrekkelig, 2026-09-15
 
 Eneste kilde er /home/andre2/src/GX1_CURRENT, branch work/gx1-current,
 rettelsen er pushet i6ffd03ee13e28fd7ef84e65946ece1b038142166, med utgangspunkt
