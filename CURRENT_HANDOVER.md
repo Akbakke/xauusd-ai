@@ -16,6 +16,7 @@ Se handover_snapshot/EXIT_CLIP_CONTROL_RESULT_20260915.json. Paret CPU-måling a
 samme TRAIN-input før85/etter87 er ferdig på410.16s, uten optimizer/VAL/TEST.
 Se RUNNING_NATIVE_CALIBRATION.json for plan og runtime. Optimizerkontrollens kilderevisjon
 er6ffd03ee; to-stegsproben brukte2c593aa7 med identiske produksjonsbindingsfiler.
+Gradientkontrollen er også ferdig på kilde194bb596, uten produksjonsendring.
 Ingen aktiv jobb; dokumentasjon kan oppdateres.
 TRAIN er 2025-06-01 inklusiv til 2026-06-01 eksklusiv:65 295rader/4081steg per
 hel epoch. Hele juni2026 er utviklings-VAL. Ingen ny femårs-epoch. TEST er forseglet.
@@ -115,18 +116,48 @@ transformerencodere; Exit sin nåværende sekvensrute bruker egne GRU-er og
 familieattention. Dette er eksisterende arkitektur, ikke en ny endring. Sekvenshistorikk er
 ikke det samme som hvilken framtidig økonomi treningsmålet overfører bakover.
 
-Neste konkrete kontroll er eventuell konkurranse mellom faktiske vektede Exit-
-og markeds-/forecastgradienter på delte inputprojeksjoner, kontekstlag og MTF-
-featureporter (ikke automatisk hele Entry-transformeren). Entry-Q og Exit-tokenet har
-allerede detach-grenser mot Entry-representasjonen i
-entry_v10_ctx_hybrid_transformer.py:1848/3717, men Exit sin egen markedsrute bruker
-felles seq_proj/specialist_proj/kontekst/MTF-projeksjoner, se2419/2431/2452/2593/2648.
-Fire Entry-rutingparametere er målt beskyttet; det beviser
-ikke full isolasjon av de delte parameterne. Mål faktisk bidrag/konflikt før en
-slik rettelse. Ikke hev at delt backbone i seg selv beviser skadelig interferens.
-Gjenbruk de samme TRAIN-bindingene og fullført VAL; ingen bred modell-/regeljakt.
-Windows-task er bekreftet Disabled, ingen aktiv jobb. Hele epocher fortsatt
-blokkert. TEST og all tidligere evidens er bevart.
+Gradientkontrollen er nå FERDIG: V3, CPU 436.926 s, peak 12 697 500 KiB,
+exit0 under eksisterende producer 20G/512M. Samme fire TRAIN-batcher, checkpoint87,
+faste SHA-bundne targets og native loss-vekting. Ingen optimizer, GPU, VAL eller
+TEST. Alle fire originale no_grad-ankre reproduseres eksakt; native CPU-gradientbane
+har maksimalt 9.5367e-7 Bps prognoseavvik, ingen endrede Entry-/Exit-handlinger,
+eksakt slutt-RNG og identiske rå forecast-/Exit-tap. Dette er ikke GPU-paritet.
+Kilde, policy, checkpoints, modell, targets og sampleplan er bevart.
+
+Faktisk Exit-/forecast-overlapp finnes på 138 parameterobjekter. Cosinus er
+−0.01193, −0.02251, +0.04800 og +0.01727. Exit-norm på denne støtten er
+0.001308/0.000700/0.054388/0.001666 mot forecast 0.823/0.340/0.385/2.716.
+Samlet dot(forecast, non-Exit + komplett Exit) er positiv i alle fire batcher:
+19.563314, 3.042481, 9.281150, 110.414097. Alle 324 Entry-private encoderparametere
+og fire beskyttede rutingsparametere er uten Exit-gradient. Exit-tokenets
+reinjeksjon når bare fire parametere i tokenprojeksjonen. Lokale gruppekonflikter
+finnes, men disse målingene støtter ikke at Exit samlet ødelegger forecast-læringen.
+Rå gradientgeometri er ikke bevis om faktisk Adam-steg, generalisering eller profitt.
+
+Behold arkitektur, gradientgrenser, tapsvekter og eksisterende clipping. Denne
+gradientdiagnosegrenen er avsluttet og skal ikke gjentas. Se
+handover_snapshot/SHARED_TASK_GRADIENT_RESULT_20260915.json og
+handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json. Råbatcher, eksakte
+inputcacher, skript og logg er bevart under OPERATOR_OBSERVATIONS/
+SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3. Inputcachene gjør nye relevante
+avgrensede kontroller mulige uten å laste hele korpus på nytt.
+
+V1 og V2 stoppet før gradientmåling ved krav om eksakt EntryQ-replay. V3
+reproduserte eksplisitt originaloperatørens frosne parameterflagg i no_grad-ankeret
+og gjenopprettet native flagg før gradientuttak. Alle fire ankrene bestod da.
+Lavnivåårsaken til tidligere avvik er ikke isolert; ingen produksjonsfeil eller
+korrigert GPU-paritet hevdes. Feillogger/skript er bevart, ikke overskrevet.
+
+Neste arbeid er én avgrenset native læringskontroll rettet mot Exit-critic og
+verdilæreren. Definer kontrollen fra checkpoint87 med eksisterende TRAIN-evidens:
+vis først bedre tilpasning mot faste targets før en oppdatert lærer tas i bruk.
+Dagens lærer oppdateres først etter hel epoch og full VAL; dette er en mulig
+flaskehals for videreføring av verdi gjennom etterfølgere, ikke en bevist eneste
+rotårsak. Hyppigere læreroppdatering må måles kontrollert og skal ikke innføres
+blindt. Ingen ny full epoch, målfrekvensendring eller gjentakelse av ferdig
+32-stegskontroll følger automatisk av denne rapporten. Bruk eksisterende native
+campaign/profil/vakter; ingen alternativ treningsløype, brede regel-/modelltester
+eller vilkårlige risiko-/holdetidsgrenser. Windows-task er Disabled. TEST er bevart.
 
 Metodebakgrunn: policy-evaluering med fler-stegsretur og off-policy-korreksjon,
 Munos mfl., https://arxiv.org/html/1606.02647v2 (seksjon1–2). Vår to-stegsprobe

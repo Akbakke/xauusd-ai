@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_running_native_calibration_v1",
-  "status": "STOPPED_TWO_STEP_PROBE_COMPLETE_NO_TRAINING_CHANGE",
+  "status": "SHARED_TASK_GRADIENT_COMPLETE_NO_ARCHITECTURE_CHANGE_JUSTIFIED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
@@ -49,7 +49,7 @@
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_enabled": false,
   "prepared_boot_id": 432,
-  "launch_observation": "Both bounded native windows complete with guard PASS, trainer/observer exit0. No native process remains. Paired CPU TRAIN observation is running.",
+  "launch_observation": "No active heavy/native job. Capped CPU gradient V3 completed exit0. Windows task Disabled, Enabled=false, LastTaskResult=0 verified after completion.",
   "state_preservation_cpu": {
     "decision": "PASS_STATE_PRESERVATION_ONLY",
     "compared_components": 15,
@@ -72,7 +72,7 @@
   "automation_id": "gx1-timekontroll",
   "human_check_interval_seconds": 3600,
   "test_data_used": false,
-  "next_action": "No active job. Two-step probe is complete and must not be repeated. It preserves the weak frozen SHORT policy:236/256 unique EXIT yield exactly unchanged targets; only20 extend. Do not implement n-step/anchor/EMA changes from this observation. Reuse existing full VAL and all completed diagnostics. Next isolate whether actual weighted Exit gradients compete with independent market/forecast learning on the shared input projections, context modules and MTF feature gates (the four checked Entry routing parameters are already protected; Entry Transformer and Exit GRU temporal modules are distinct). Quantify task gradients on the same bound TRAIN batches before any further production change; do not confuse shared parameters with proven harmful interference. Whole epochs and Windows triggers remain disabled; TEST sealed.",
+  "next_action": "Finish this gradient-diagnosis branch. Preserve existing architecture, gradient boundaries, task weighting and clipping. Define one bounded native critic/teacher learning control from checkpoint87 using existing TRAIN evidence; first require improved fit against fixed targets before promoting a refreshed teacher. Existing teacher refresh only after complete epoch/VAL is a candidate propagation bottleneck, not a proven sole cause. No whole epoch, production target-cadence change or old control rerun is authorized by this result alone.",
   "reboot_requested_utc": "2026-09-15T14:50:44.7418699Z",
   "checkpoint85_cpu_replay_operator_note": "Initial generic JSON digest could not encode a nonfinite reporting value; reused existing typed checkpoint verifier. All15 state fields except session identity match exactly.",
   "windows_task_observed_state": "Disabled",
@@ -127,7 +127,7 @@
     },
     "elapsed_seconds": 410.16201694300025
   },
-  "latest_source_head": "2c593aa7cdae0f5f960304d227f919c6de772ab4",
+  "latest_source_head": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
   "two_step_target_probe": {
     "exec_session_id": 22935,
     "script": "/tmp/gx1_two_step_target_probe_cpu.py",
@@ -145,5 +145,59 @@
       "sha256": "46bb73a49b2fef2a9d7b5a845222677939d31ab385563fa58111dccb352c4df4"
     },
     "elapsed_seconds": 401.31969901499997
+  },
+  "shared_task_gradient_probe_failed_cross_mode": {
+    "status": "FAILED_BEFORE_GRADIENTS",
+    "exec_session_id": 41038,
+    "pid": null,
+    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
+    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
+    "script_sha256": "2bfbd0ae1d789a33844ca24fd7d8a54ae0cd64367921e486571992429212fe99",
+    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915.log",
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_data_used": false,
+    "process_exit_code": 1,
+    "failure": "Exact EntryQ cross-mode comparison failed: preserved no_grad forward versus native CPU checkpointed grad forward. No gradient measurement completed and no weights updated."
+  },
+  "shared_task_gradient_probe_v2_failed": {
+    "status": "FAILED_BEFORE_GRADIENTS",
+    "exec_session_id": 42739,
+    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
+    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
+    "script_sha256": "a05d6793cf65e67b0d77dfc6283dabb68fc57e198cbdc2e90ed837c81522521d",
+    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915_v2.log",
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_data_used": false,
+    "exact_no_grad_anchor_then_native_grad_comparison": true,
+    "process_exit_code": 1,
+    "failure": "Exact no_grad EntryQ anchor mismatch; cross-mode branch alone does not explain replay mismatch."
+  },
+  "shared_task_gradient_probe": {
+    "status": "COMPLETE",
+    "exec_session_id": 75741,
+    "source_commit": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
+    "script": "/tmp/gx1_shared_task_gradient_probe_cpu.py",
+    "script_sha256": "8268285154c8ddbb509ee7373801982cd8b7745031c2d2fb521ef90202578138",
+    "log": "/tmp/gx1_shared_task_gradient_probe_cpu_20260915_v3.log",
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_data_used": false,
+    "purpose": "Preserve exact materialized inputs and output/RNG differences before assertion; match original frozen parameter flags in no_grad anchor and restore flags before native CPU gradient path.",
+    "process_exit_code": 0,
+    "elapsed_seconds": 436.92603917999986,
+    "peak_rss_kib": 12697500,
+    "result": {
+      "path": "handover_snapshot/SHARED_TASK_GRADIENT_RESULT_20260915.json",
+      "sha256": "f23cd8d8593a70fccbfe538248213f106e6a8ad393bcb58272834950484646dd"
+    },
+    "review": {
+      "path": "handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json",
+      "sha256": "d50afbd134236eea81dde86c54ed4a5e0ee4c5ac8e293e542bf194046eb9ec01"
+    },
+    "all_four_no_grad_anchors_exact": true,
+    "all_four_forecast_dot_total_positive": true,
+    "source_checkpoint_policy_schedule_model_rng_preserved": true
   }
 }

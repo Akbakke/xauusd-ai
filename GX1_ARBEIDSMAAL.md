@@ -7,8 +7,14 @@ trening er stoppet. Etter begrunnet klipperettelse er32 kontrollsteg ferdige på
 checkpoint87/epoch2offset1184/global5265. Paret TRAIN-måling er blandet: Exit-MSE
 øker, Entry er fortsatt64FLAT. To-stegs targetprobe er også ferdig;236/256SHORT-
 mål forblir identiske på grunn av den svake frosne EXIT-policyen. Ingen slik
-treningsendring innføres nå. Neste er å måle eventuell gradientkonkurranse på
-delte input-/kontekst-/MTF-parametere. Hele epocher forblir blokkert. Ingen fast grense.
+treningsendring innføres nå. Gradientkontrollen er også ferdig: samlet signal
+støtter forecast på alle fire faste TRAIN-batcher; Entry-private encodere og
+beskyttede ruter er uten Exit-gradient. Ingen ny gradient-/arkitekturrettelse
+begrunnes. Neste er én avgrenset native critic-/lærerkontroll: bedre tilpasning
+mot faste targets før en oppdatert verdilærer tas i bruk. Frekvensen for
+læreroppdatering er en kandidat til kontrollert justering, ikke bevist løsning.
+Se handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json. Ingen nye hele
+epocher, blind læreroppdatering eller gjentakelse av fullført diagnostikk. Ingen fast grense.
 
 # Gjeldende GX1-mål — 2026-09-14
 
