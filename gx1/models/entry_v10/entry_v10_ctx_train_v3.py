@@ -1517,6 +1517,37 @@ def _require_candidate_training_progress(
     return progress
 
 
+def _candidate_entry_learnability_order(
+    epoch_order: torch.Tensor, *, cohort: Mapping[str, Any],
+    epoch_index: int, next_batch_offset: int,
+) -> torch.Tensor:
+    """Overlay only this finite diagnostic's loader; never alter saved year order."""
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        ENTRY_LEARNABILITY_REPLAY_POLICY, require_entry_learnability_cohort,
+    )
+    from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
+
+    cohort = require_entry_learnability_cohort(cohort)
+    policy = ENTRY_LEARNABILITY_REPLAY_POLICY
+    if (type(epoch_index) is not int or epoch_index != policy["epoch_index"]
+            or type(next_batch_offset) is not int
+            or not policy["batch_offset_start"] <= next_batch_offset <= policy["batch_offset_end"]
+            or not isinstance(epoch_order, torch.Tensor) or epoch_order.dtype != torch.int64
+            or epoch_order.ndim != 1
+            or epoch_order.numel() <= policy["batch_offset_end"] * 16):
+        raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_REPLAY_SCOPE_INVALID]")
+    original = epoch_order.detach().cpu().contiguous()
+    if _structured_sha256(original.numpy()) != cohort["epoch_order_sha256"]:
+        raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_ORDER_HASH_MISMATCH]")
+    selected = torch.cat([original[offset * 16:(offset + 1) * 16]
+                          for offset in policy["native_batch_offsets"]])
+    if selected.tolist() != cohort["parent_rows"]:
+        raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_PARENT_ORDER_MISMATCH]")
+    loader_order = original.clone()
+    loader_order[policy["batch_offset_start"] * 16:policy["batch_offset_end"] * 16] = selected.repeat(policy["repeats"])
+    return loader_order
+
+
 class _ExactIndexSampler(Sampler[int]):
     """Yield one persisted order without consuming any additional RNG state."""
 
@@ -11417,6 +11448,7 @@ def _restore_candidate_training_checkpoint(
     dataset_rows: int,
     parent_population: Optional[torch.Tensor] = None,
     fqi_target_refresh_origin: Optional[Mapping[str, Any]] = None,
+    entry_learnability_origin: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Restore one exact candidate step boundary; no partial gradients exist."""
 
@@ -11446,6 +11478,37 @@ def _restore_candidate_training_checkpoint(
         )
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ORDER_INVALID]")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        ENTRY_LEARNABILITY_RECEIPT_NAME, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+        ENTRY_LEARNABILITY_STEP_CEILING, ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
+        require_entry_learnability_origin,
+    )
+    if (session.directory / ENTRY_LEARNABILITY_RECEIPT_NAME).exists() and entry_learnability_origin is None:
+        raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_PRODUCTION_RESUME_FORBIDDEN]")
+    if entry_learnability_origin is not None:
+        from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+        from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+        from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_history_v1
+        origin = require_entry_learnability_origin(entry_learnability_origin)
+        cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
+        _candidate_entry_learnability_order(order, cohort=cohort,
+            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"])
+        if (state["phase"] != "train" or state["complete"] is not False
+                or type(state["global_optimizer_steps"]) is not int
+                or state["global_optimizer_steps"] != ENTRY_LEARNABILITY_ORIGIN_CURSOR["global_optimizer_steps"]
+                   + state["next_batch_offset"] - ENTRY_LEARNABILITY_ORIGIN_CURSOR["next_batch_offset"]
+                or state["global_optimizer_steps"] > ENTRY_LEARNABILITY_STEP_CEILING
+                or canonical_model_state_sha256(state["target_model_state"]) != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256):
+            raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_STATE_INVALID]")
+        history = bind_candidate_weight_ema_history_v1(
+            session_contract_path=session._contract_path, session_contract_sha256=session.contract_sha256)
+        if (not isinstance(history, Mapping)
+                or Path(history["transition_receipt"]["path"]) != session.directory / ENTRY_LEARNABILITY_RECEIPT_NAME):
+            raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_RECEIPT_MISSING]")
+        receipt_binding = history["transition_receipt"]
+        receipt = read_bound_json(Path(receipt_binding["path"]), receipt_binding["sha256"])
+        if receipt.get("origin") != origin:
+            raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_RECEIPT_ORIGIN_MISMATCH]")
     model_state = state.get("model_state")
     target_state = state.get("target_model_state")
     optimizer_state = state.get("optimizer_state")
@@ -13067,7 +13130,7 @@ def _load_candidate_economics_successor_state(
 def _load_candidate_optimizer_procedure_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Admit only the measured clipping85, continuation87, or FQI-refresh91 case."""
+    """Admit only clipping85, continuation87, refresh91, or fixed-cohort replay95."""
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         OPTIMIZER_PROCEDURE_TRANSITION_POLICY, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
@@ -13081,6 +13144,10 @@ def _load_candidate_optimizer_procedure_successor_state(
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
         FQI_TARGET_REFRESH_RECEIPT_SCHEMA, require_fqi_target_refresh_origin,
+        ENTRY_LEARNABILITY_SCHEMA, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+        ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256, ENTRY_LEARNABILITY_RECEIPT_NAME,
+        ENTRY_LEARNABILITY_RECEIPT_SCHEMA, ENTRY_LEARNABILITY_REPLAY_POLICY,
+        ENTRY_LEARNABILITY_TARGET_MODEL_SHA256, require_entry_learnability_origin,
     )
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
         bind_candidate_weight_ema_history_v1,
@@ -13095,7 +13162,14 @@ def _load_candidate_optimizer_procedure_successor_state(
 
     continuation = origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
     target_refresh = origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA
-    if target_refresh:
+    entry_learnability = origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA
+    if entry_learnability:
+        origin = require_entry_learnability_origin(origin)
+        origin_cursor = ENTRY_LEARNABILITY_ORIGIN_CURSOR
+        origin_state_sha = ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256
+        receipt_name = ENTRY_LEARNABILITY_RECEIPT_NAME
+        receipt_schema = ENTRY_LEARNABILITY_RECEIPT_SCHEMA
+    elif target_refresh:
         origin = require_fqi_target_refresh_origin(origin)
         origin_cursor = FQI_TARGET_REFRESH_ORIGIN_CURSOR
         origin_state_sha = FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256
@@ -13150,7 +13224,7 @@ def _load_candidate_optimizer_procedure_successor_state(
         fail("CANONICAL_RECIPE_REQUIRED")
     require_native_run_scope(after)
     previous, requested = contracts
-    if continuation or target_refresh:
+    if continuation or target_refresh or entry_learnability:
         if (previous["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
                 or requested["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
                 or previous["training"].get("grad_clip_norm") != 1.0
@@ -13182,7 +13256,7 @@ def _load_candidate_optimizer_procedure_successor_state(
             if relative not in allowed:
                 fail("UNAPPROVED_SOURCE_CHANGED")
             changed_sources.append(relative)
-    if not (continuation or target_refresh) and "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" not in changed_sources:
+    if not (continuation or target_refresh or entry_learnability) and "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" not in changed_sources:
         fail("CHANGED_TRAINER_REQUIRED")
     normalized_recipes = copy.deepcopy(recipes)
     for recipe, item in zip(normalized_recipes, contracts):
@@ -13204,6 +13278,22 @@ def _load_candidate_optimizer_procedure_successor_state(
     if (not isinstance(history, Mapping) or history.get("optimizer_step_offset") != 19908
             or state.get("weight_ema_state", {}).get("steps") != state["global_optimizer_steps"] + 19908):
         fail("EMA_HISTORY_INVALID")
+    replay_evidence = {}
+    if entry_learnability:
+        from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+        cohort = read(origin["cohort"])
+        _candidate_entry_learnability_order(state["epoch_order"], cohort=cohort,
+            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"])
+        if canonical_model_state_sha256(state["target_model_state"]) != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256:
+            fail("ENTRY_LEARNABILITY_TARGET_CHANGED")
+        replay_evidence = {
+            "changed_sample_history": True, "production_continuation_allowed": False,
+            "data_coverage_advanced": False,
+            "replay_policy": {**copy.deepcopy(ENTRY_LEARNABILITY_REPLAY_POLICY),
+                              "epoch_order_sha256": cohort["epoch_order_sha256"],
+                              "selected_sample_plan_sha256": cohort["selected_sample_plan_sha256"]},
+            "fixed_teacher_model_state_sha256": ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
+        }
     changed_state_fields = {"session_contract_sha256"}
     refresh_evidence = {}
     if target_refresh:
@@ -13235,9 +13325,9 @@ def _load_candidate_optimizer_procedure_successor_state(
         "preserved_state_fields": sorted(set(state) - changed_state_fields),
         "changed_source_paths": sorted(changed_sources),
         "gradient_clipping_policy": _GRAD_CLIP_POLICY,
-        "state_preserved": not target_refresh, "optimizer_procedure_changed": not (continuation or target_refresh),
+        "state_preserved": not target_refresh, "optimizer_procedure_changed": not (continuation or target_refresh or entry_learnability),
         "identical_future_trajectory_claimed": False, "test_data_used": False,
-        **refresh_evidence,
+        **refresh_evidence, **replay_evidence,
     }
     receipt_path = session.directory / receipt_name
     if receipt_path.exists() or receipt_path.is_symlink():
@@ -13497,6 +13587,7 @@ def _run_resumable_candidate_training(
             "gx1_candidate_optimizer_procedure_transition_v1",
             "gx1_candidate_training_continuation_origin_v1",
             "gx1_candidate_fqi_target_refresh_origin_v1",
+            "gx1_candidate_entry_learnability_origin_v1",
         }:
             restored_state = _load_candidate_optimizer_procedure_successor_state(
                 session=session, origin=candidate_resume_origin,
@@ -13537,6 +13628,8 @@ def _run_resumable_candidate_training(
             dataset_rows=len(train_ds), parent_population=parent_population,
             fqi_target_refresh_origin=(candidate_resume_origin if candidate_resume_origin is not None
                 and candidate_resume_origin.get("schema_version") == "gx1_candidate_fqi_target_refresh_origin_v1" else None),
+            entry_learnability_origin=(candidate_resume_origin if candidate_resume_origin is not None
+                and candidate_resume_origin.get("schema_version") == "gx1_candidate_entry_learnability_origin_v1" else None),
         )
         epoch_order = restored["epoch_order"]
         adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
@@ -13768,11 +13861,40 @@ def _run_resumable_candidate_training(
                     )
                 continue
             train_ds.set_unified_exit_lifecycle_v2_epoch(int(epoch_index))
+            loader_order = epoch_order
+            if (candidate_resume_origin is not None and candidate_resume_origin.get("schema_version")
+                    == "gx1_candidate_entry_learnability_origin_v1"):
+                from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+                from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+                    ENTRY_LEARNABILITY_STEP_CEILING, require_entry_learnability_origin,
+                )
+                from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
+                origin = require_entry_learnability_origin(candidate_resume_origin)
+                cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
+                if (batch_size != 16 or grad_accum_steps != 1 or execution_budget is None
+                        or execution_budget.get("stop_after_optimizer_steps") != ENTRY_LEARNABILITY_STEP_CEILING):
+                    raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_BUDGET_INVALID]")
+                loader_order = _candidate_entry_learnability_order(epoch_order, cohort=cohort,
+                    epoch_index=epoch_index, next_batch_offset=next_batch_offset)
+                adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+                random_access = getattr(adapter, "_random_access_train", None)
+                if (not isinstance(random_access, Mapping) or adapter._epoch_index != 1
+                        or random_access["full_population_schedule"]["epoch_index"] != 1
+                        or [train_ds._random_access_child_index_by_parent[parent] for parent in cohort["parent_rows"]]
+                           != cohort["child_rows"]):
+                    raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_NATIVE_MAPPING_INVALID]")
+                sample_plan = {str(row): {"samples": random_access["samples_by_entry"][row],
+                                         "anchor": random_access["anchors_by_entry"][row]}
+                               for row in cohort["child_rows"]}
+                if _structured_sha256(sample_plan) != cohort["selected_sample_plan_sha256"]:
+                    raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_SAMPLE_PLAN_MISMATCH]")
+                log.info("[CANDIDATE_ENTRY_LEARNABILITY_REPLAY] offset=%d ceiling=%d cohort_sha256=%s data_coverage_advanced=0",
+                         next_batch_offset, ENTRY_LEARNABILITY_STEP_CEILING, origin["cohort"]["sha256"])
             train_loader = DataLoader(
                 train_ds,
                 batch_size=batch_size,
                 sampler=_ExactIndexSampler(
-                    epoch_order,
+                    loader_order,
                     batch_offset=next_batch_offset,
                     batch_size=batch_size,
                 ),

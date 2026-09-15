@@ -1,0 +1,35 @@
+{
+  "actual_checkpoint95_transfer_proven": false,
+  "actual_native_learning_proven": false,
+  "decision": "PASS_TARGETED_VERIFICATION",
+  "exec_session_id": 83689,
+  "execution": "Existing capped audit4GiB/512MiB; no GPU or production training",
+  "log": {
+    "path": "/tmp/gx1_entry_learnability_tests_20260915.log",
+    "sha256": "766bea0726ecbf8eee0fab5c58fddd9865bb2e42e17d9022dfa146816f3433b5"
+  },
+  "passed_tests": 216,
+  "process_exit_code": 0,
+  "profitability_proven": false,
+  "schema_version": "gx1_native_entry_learnability_verification_v1",
+  "scope": [
+    "Finite origin95 and6033 admission",
+    "Exact64row ephemeral replay order, immutable original and resume suffixes",
+    "No production or old-scope escape",
+    "Actual serialized tiny checkpoint preservation and crash retry",
+    "Frozen teacher/explicit receipt restore gate",
+    "EMA95-91-87-85 lineage and tamper rejection",
+    "Full-epoch boundary refusal",
+    "Previous affected transition and ordinary restore regressions"
+  ],
+  "source_base_commit": "d80af6d900302f432bec6882d8d6d2d21258efe5",
+  "test_data_used": false,
+  "verified_working_files": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "a97ee80d74229d0d8eea984a4813ff694be9591280a987cae5ca7b04089f7280",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "a25e7d0fb2f195d4c8dbc626d1c14e259089ec8a9032ce35c918057b3c1b14a2",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "a3bdf200dceed9ae40b160e23a6a1e4c47e08b2882142339911ebfdb34bdb223",
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py": "91fb890327efa8e8ba84aa71416e5cb597df41e77d8d455ee8185d50a63ab018",
+    "tests/test_candidate_economics_transition.py": "d150cfea82ef712238f591826be3b82f55408dd154e5230bcd56f31be4945d89",
+    "tests/test_native_entry_learnability.py": "fda7ab62763b323ec689cb95732a45a5d947a6e783ec8b8b47a83b77996e6ada"
+  }
+}

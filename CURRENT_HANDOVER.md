@@ -1,4 +1,24 @@
-# Gjeldende status — FQI-kontroll og korrekt TRAIN-måling ferdige, 2026-09-15
+# Gjeldende status — avgrenset native lærbarhetskontroll, 2026-09-15
+
+Brukerpresisering: jobb direkte mot faktisk læring, ikke mer kode enn nødvendig.
+Den neste kontrollen gjentar64 allerede bundne TRAIN-innganger64ganger med
+samme kombinerte native trening. Bare flyktig loader-rekkefølge endres; ingen
+Q-only-modus eller endring i modell, tapsfunksjoner, teacher91 eller optimizer.
+Original checkpoint95/global5777/epoch1offset1696 bevares. Én privat kontroll
+stopper påglobal6033/offset1952; den teller ikke som ny årsdekning, og kontroll-
+checkpoints har ingen produksjonsfortsettelse. Hele epocher, VAL og TEST er sperret.
+
+216 målrettede tester består (session83689/exit0), inkludert gammel overgang,
+ny origin/replay/resume/EMA og sperrer. Se handover_snapshot/ENTRY_LEARNABILITY_TESTS_20260915.json.
+Neste er commit/push av verifisert kilde, faktisk CPU-overføring av95 med alle
+15komponenter og origin/order bevart, deretter én guarded native256stegskontroll.
+Etterpå brukes eksisterende64 input/targetcacher til identisk paret95→99-måling.
+Ingen ny kohort-/anchoranalyse. Én tung jobb; ingen aktiv trening ved denne commit.
+Dette tester lokal tilpasningsevne, ikke en perfekt lærer eller profitabel policy.
+Eneste kodebase GX1_CURRENT/work/gx1-current. RUNNING_NATIVE_CALIBRATION.json
+inneholder fersk operativ status; historiske kjøringer nedenfor er avsluttet.
+
+## Avsluttet FQI-kontroll og korrekt TRAIN-måling, 2026-09-15
 
 Eneste kilde er /home/andre2/src/GX1_CURRENT, work/gx1-current. Frossen kilde for
 fullførte målinger var f11c1dbeef12721bef58449dfac37fd735f4694f. Checkpoint95 har

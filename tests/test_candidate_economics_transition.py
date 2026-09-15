@@ -569,7 +569,7 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
         _identical(state[key], before[key])
 
 
-def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False):
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
     from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
     current = tmp_path / "CURRENT"
@@ -578,13 +578,15 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
     # The exact deployed85 origin and finite native authority are independently
     # checked by scope-owner tests. Here use real tiny serialized sessions to
     # test preservation and the trainer's recipe/source/contract boundary.
-    validator = ("require_fqi_target_refresh_origin" if target_refresh else
+    validator = ("require_entry_learnability_origin" if entry_learnability else
+                 "require_fqi_target_refresh_origin" if target_refresh else
                  "require_training_continuation_origin" if continuation else "require_optimizer_procedure_origin")
     monkeypatch.setattr(scope, validator, lambda origin: dict(origin))
-    monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 5777 if target_refresh else 5521 if continuation else 5265)
-    cursor = (scope.FQI_TARGET_REFRESH_ORIGIN_CURSOR if target_refresh else
+    monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 6033 if entry_learnability else 5777 if target_refresh else 5521 if continuation else 5265)
+    cursor = (scope.ENTRY_LEARNABILITY_ORIGIN_CURSOR if entry_learnability else
+              scope.FQI_TARGET_REFRESH_ORIGIN_CURSOR if target_refresh else
               scope.TRAINING_CONTINUATION_ORIGIN_CURSOR if continuation else scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR)
-    preserve_procedure = continuation or target_refresh
+    preserve_procedure = continuation or target_refresh or entry_learnability
     inherited = {"optimizer_step_offset": 19908, "transition_receipt": {"path": "bound_old_receipt", "sha256": "a" * 64}}
     monkeypatch.setattr(val_checkpoint, "bind_candidate_weight_ema_history_v1", lambda **kwargs: inherited)
     sessions = []
@@ -649,12 +651,17 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             if fault == "ema_steps": state["weight_ema_state"]["steps"] -= 1
             session.save_checkpoint(state)
             pointer = json.loads(session._active_path.read_text())
-            monkeypatch.setattr(scope, "FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256" if target_refresh else "TRAINING_CONTINUATION_ORIGIN_STATE_SHA256" if continuation else "OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256", pointer["state_sha256"])
-            origin = {"schema_version": scope.FQI_TARGET_REFRESH_SCHEMA if target_refresh else scope.TRAINING_CONTINUATION_SCHEMA if continuation else scope.OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA,
+            monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256" if entry_learnability else "FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256" if target_refresh else "TRAINING_CONTINUATION_ORIGIN_STATE_SHA256" if continuation else "OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256", pointer["state_sha256"])
+            origin = {"schema_version": scope.ENTRY_LEARNABILITY_SCHEMA if entry_learnability else scope.FQI_TARGET_REFRESH_SCHEMA if target_refresh else scope.TRAINING_CONTINUATION_SCHEMA if continuation else scope.OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA,
                       "contract": {"path": str(session._contract_path), "sha256": trainer._sha256_file(session._contract_path)},
                       "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)},
                       "exit_value_initialization": "close_now_baseline_v1", "train_population_scope": "latest_year_2025_2026_v1",
                       "gradient_clipping_policy": trainer._GRAD_CLIP_POLICY}
+            if entry_learnability:
+                from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+                assert cohort_factory is not None
+                monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_TARGET_MODEL_SHA256", canonical_model_state_sha256(state["target_model_state"]))
+                origin["cohort"] = _write(tmp_path / "cohort.json", cohort_factory(state["epoch_order"]))
     return sessions, origin
 
 

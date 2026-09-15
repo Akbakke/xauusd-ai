@@ -65,6 +65,88 @@ FQI_TARGET_REFRESH_ORIGIN_CURSOR = {
 FQI_TARGET_REFRESH_STEP_CEILING = 5777
 
 
+ENTRY_LEARNABILITY_SCHEMA = "gx1_candidate_entry_learnability_origin_v1"
+ENTRY_LEARNABILITY_RECEIPT_NAME = "CANDIDATE_ENTRY_LEARNABILITY.json"
+ENTRY_LEARNABILITY_RECEIPT_SCHEMA = "gx1_candidate_entry_learnability_receipt_v1"
+ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256 = "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
+ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256 = "f508837dfdbc06615fbad52bd824d89f8750944b57a77ca5a13bab1d4798acf8"
+ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256 = "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+ENTRY_LEARNABILITY_ORIGIN_CURSOR = {
+    "checkpoint_index": 95, "phase": "train", "epoch_index": 1,
+    "next_batch_offset": 1696, "global_optimizer_steps": 5777, "complete": False,
+}
+ENTRY_LEARNABILITY_STEP_CEILING = 6033
+ENTRY_LEARNABILITY_COHORT_SHA256 = "1cea9754bf115b75fc3267337b919feeffd0c0a8fd2d7509f2254eba2a4da889"
+ENTRY_LEARNABILITY_TARGET_MODEL_SHA256 = "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81"
+ENTRY_LEARNABILITY_REPLAY_POLICY = {
+    "epoch_index": 1, "native_batch_offsets": [1440, 1525, 1610, 1695],
+    "batch_offset_start": 1696, "batch_offset_end": 1952,
+    "repeats": 64, "parent_row_count": 64,
+}
+
+
+def require_entry_learnability_cohort(value: Any) -> dict[str, Any]:
+    """Validate the supplied bound cohort; the origin owns its immutable file SHA."""
+    if not isinstance(value, Mapping):
+        raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_COHORT_INVALID")
+    policy = ENTRY_LEARNABILITY_REPLAY_POLICY
+    if (type(value.get("epoch_index")) is not int or value["epoch_index"] != policy["epoch_index"]
+            or type(value.get("full_training_epoch_index")) is not int
+            or value["full_training_epoch_index"] != policy["epoch_index"]
+            or value.get("actual_native_batch_offsets") != policy["native_batch_offsets"]
+            or any(not isinstance(value.get(key), str) or len(value[key]) != 64
+                   or any(char not in "0123456789abcdef" for char in value[key])
+                   for key in ("epoch_order_sha256", "selected_sample_plan_sha256"))
+            or value.get("selection_uses_losses_or_outcomes") is not False
+            or value.get("replacement_of_unfavorable_rows_allowed") is not False
+            or any(not isinstance(value.get(key), list) or len(value[key]) != policy["parent_row_count"]
+                   or any(type(row) is not int or row < 0 for row in value[key])
+                   or len(set(value[key])) != len(value[key]) for key in ("parent_rows", "child_rows"))):
+        raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_COHORT_INVALID")
+    return dict(value)
+
+
+def require_entry_learnability_origin(
+    origin: Any, *, verify_files: bool = True,
+) -> dict[str, Any]:
+    """Admit only checkpoint95 for the immutable four-batch joint-loss replay."""
+    fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
+              "train_population_scope", "gradient_clipping_policy", "cohort"}
+    if (type(verify_files) is not bool or not isinstance(origin, Mapping)
+            or set(origin) != fields
+            or origin.get("schema_version") != ENTRY_LEARNABILITY_SCHEMA
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
+            or origin.get("exit_value_initialization") != "close_now_baseline_v1"
+            or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
+        raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_INVALID")
+    contract = require_binding(origin["contract"], label="Entry learnability origin contract", verify_file=verify_files)
+    pointer = require_binding(origin["pointer"], label="Entry learnability origin pointer", verify_file=verify_files)
+    if (contract["sha256"] != ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256
+            or pointer["sha256"] != ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256):
+        raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_HASH_MISMATCH")
+    cohort = require_binding(origin["cohort"], label="Entry learnability cohort", verify_file=verify_files)
+    if cohort["sha256"] != ENTRY_LEARNABILITY_COHORT_SHA256:
+        raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_COHORT_HASH_MISMATCH")
+    if verify_files:
+        require_entry_learnability_cohort(read_bound_json(Path(cohort["path"]), cohort["sha256"]))
+        current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
+        expected = {
+            **ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+            "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
+            "session_contract_sha256": contract["sha256"],
+            "state_sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+        }
+        if (set(current) != set(expected)
+                or any(current.get(k) != v or type(current.get(k)) is not type(v)
+                       for k, v in expected.items())):
+            raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_CURSOR_INVALID")
+        require_binding({
+            "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
+            "sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+        }, label="Entry learnability origin state", verify_file=True)
+    return dict(origin)
+
+
 def require_fqi_target_refresh_origin(
     origin: Any, *, verify_files: bool = True,
 ) -> dict[str, Any]:
@@ -266,7 +348,11 @@ def require_native_run_scope(
                     and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA)
     target_refresh = (isinstance(origin, Mapping)
                       and origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA)
-    if optimizer_transition:
+    entry_learnability = (isinstance(origin, Mapping)
+                          and origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA)
+    if entry_learnability:
+        require_entry_learnability_origin(origin)
+    elif optimizer_transition:
         require_optimizer_procedure_origin(origin)
     elif continuation:
         require_training_continuation_origin(origin)
@@ -274,7 +360,7 @@ def require_native_run_scope(
         require_fqi_target_refresh_origin(origin)
     origin_fields = {"schema_version", "contract", "pointer"}
     optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
-    if not (optimizer_transition or continuation or target_refresh) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
+    if not (optimizer_transition or continuation or target_refresh or entry_learnability) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
             or set(origin) - origin_fields - optional_origin_fields
             or ("train_population_scope" in origin and (
                 type(origin["train_population_scope"]) is not str
@@ -293,7 +379,7 @@ def require_native_run_scope(
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
-    if (optimizer_transition or continuation or target_refresh) and (
+    if (optimizer_transition or continuation or target_refresh or entry_learnability) and (
             policy.get("training_enabled") is not False
             or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or calibration is not None):
@@ -383,13 +469,15 @@ def require_native_run_scope(
             "full_epoch_training_allowed": False, "test_data_used": False,
         }
         refresh_scope = {**continuation_scope, "schema_version": "gx1_native_fqi_target_refresh_scope_v1"}
-        if continuation or target_refresh:
-            expected_scope = refresh_scope if target_refresh else continuation_scope
+        replay_scope = {**continuation_scope, "schema_version": "gx1_native_entry_learnability_scope_v1"}
+        if continuation or target_refresh or entry_learnability:
+            expected_scope = replay_scope if entry_learnability else refresh_scope if target_refresh else continuation_scope
             if (scope != expected_scope or not isinstance(scope, Mapping)
                     or scope.get("full_epoch_training_allowed") is not False
                     or scope.get("test_data_used") is not False
                     or any(type(x) is not int for x in scope["additional_optimizer_step_ceilings"])):
-                raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_CALIBRATION_SCOPE_INVALID" if target_refresh
+                raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_CALIBRATION_SCOPE_INVALID" if entry_learnability
+                                   else "NATIVE_FQI_TARGET_REFRESH_CALIBRATION_SCOPE_INVALID" if target_refresh
                                    else "NATIVE_TRAINING_CONTINUATION_CALIBRATION_SCOPE_INVALID")
         elif optimizer_transition:
             if (scope != optimizer_scope or not isinstance(scope, Mapping)
@@ -405,7 +493,8 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
+        ceilings = ([ENTRY_LEARNABILITY_STEP_CEILING] if entry_learnability else
+                    [FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
                     [TRAINING_CONTINUATION_STEP_CEILING] if continuation else
                     ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta
                       for delta in scope["additional_optimizer_step_ceilings"]]
@@ -420,7 +509,7 @@ def require_native_run_scope(
             ceiling = execution_budget.get("stop_after_optimizer_steps")
             if type(ceiling) is not int or ceiling not in ceilings:
                 raise RuntimeError("NATIVE_CALIBRATION_STEP_CEILING_INVALID")
-        elif optimizer_transition or continuation or target_refresh:
+        elif optimizer_transition or continuation or target_refresh or entry_learnability:
             # Metadata/state-transition validation only. The actual native
             # window still supplies its invocation or execution budget.
             ceiling = max(ceilings)

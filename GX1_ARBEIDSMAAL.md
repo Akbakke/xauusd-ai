@@ -1,23 +1,13 @@
 ## Gjeldende neste arbeid — 2026-09-15
 
-FQI-læreroppdateringen og256 native steg er ferdige på checkpoint95/global5777.
-169 målrettede tester, faktisk CPU-targetkopi og native guard/trainer/observer
-består. Ny korrekt paretCPU-måling på64faktiske TRAIN-rader overalle12måneder
-viser Exit-MSE ned1.5083%, men bare0.2229% bedre enn nullbaseline. Entry er64FLAT
-mot lærer55FLAT/3LONG/6SHORT. Dette er et begrenset TRAIN-fit-resultat, ingen
-heldout- eller profittgevinst. Alle tunge jobber er ferdige; videre trening er
-stoppet og planen brukt opp. Ingen ny læreroppdatering eller hel epoch nå.
-De ni oversette lærer-inngangene er gjennomgått: FLAT er nær0, LONG/SHORT ligger
-omtrent på felles negativt nivå. Ni rader står allerede for87.69% av EntryQ-feilen.
-Eksakt cache-dekomponering viser at kun0.43594% av positiv lærerverdi på disse ni
-kommer fra videre HOLD, resten fra første lukkingsverdi. Ingen perfekt profittfasit.
-Neste anbefaling er en avgrenset lærbarhetskontroll av eksisterende EntryQ på
-samme64bundne inputs med fast lærer/uendret MSE; eventuell optimizerkjøring må ha
-ny eksplisitt native plan og eksisterende vakter. Ingen produksjonsendring,
-klassevekter eller hel epoch er besluttet. Ingen gjentatte gamle prober,
-shuffle-/lossendring eller vilkårlige grenser. Se CURRENT_HANDOVER.md,
-RUNNING_NATIVE_CALIBRATION.json og ACTUAL_WINDOW_PAIRED_TRAIN_REVIEW_20260915.json
-i handover_snapshot. Oppdater dokumentasjon og commit/push ferdig arbeid.
+Kjør én avgrenset native lærbarhetskontroll: samme64bundne TRAIN-innganger
+64ganger, samme kombinerte trening og teacher91, original95 bevart. Kun flyktig
+loader-rekkefølge endres.216målrettede tester består; faktiskCPU-overføring og
+én native256stegskjøring tilglobal6033 gjenstår. Gjenbruk deretter cachet paret
+95→99-evaluering. Ingen Q-only, modell/lossendring, klassevekter, VAL/TEST eller
+hele epocher. Kontrollsteg er ikke ny årsdekning eller produksjonsfortsettelse.
+Bruker minner uttrykkelig om å prioritere faktisk læring og unngå mer kode enn
+nødvendig. Se CURRENT_HANDOVER.md og RUNNING_NATIVE_CALIBRATION.json.
 
 # Gjeldende GX1-mål — 2026-09-14
 

@@ -17,135 +17,55 @@
   "automation_id": "gx1-timekontroll",
   "human_check_interval_seconds": 3600,
   "test_data_used": false,
-  "status": "FQI_CONTROL_COMPLETE_ENTRY_CONDITIONAL_FIT_UNRESOLVED",
-  "source_commit": "f11c1dbeef12721bef58449dfac37fd735f4694f",
+  "status": "NATIVE_FIXED_COHORT_LEARNABILITY_TESTS_PASS_PREPARATION_PENDING",
+  "source_commit": null,
   "source_frozen_until_native_measurements_finish": false,
-  "arm": "fqi_target_refresh",
+  "arm": "entry_learnability_fixed_cohort",
   "whole_epoch_training_enabled": false,
   "origin": {
     "contract": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
-      "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
-    },
-    "cursor": {
-      "checkpoint_index": 91,
-      "complete": false,
-      "epoch_index": 1,
-      "global_optimizer_steps": 5521,
-      "next_batch_offset": 1440,
-      "phase": "train"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
     },
     "pointer": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
-      "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "f508837dfdbc06615fbad52bd824d89f8750944b57a77ca5a13bab1d4798acf8"
     },
     "state": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
-      "sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+    },
+    "cursor": {
+      "checkpoint_index": 95,
+      "epoch_index": 1,
+      "phase": "train",
+      "next_batch_offset": 1696,
+      "global_optimizer_steps": 5777,
+      "complete": false
     }
   },
   "additional_optimizer_step_ceilings": [
     256
   ],
   "absolute_optimizer_step_ceilings": [
-    5777
+    6033
   ],
   "val_execution_expected": false,
   "windows_task_enabled": false,
   "windows_task_observed_state": "Disabled",
   "native_observation": {
-    "phase": "terminal",
+    "phase": "not_started",
     "native_pid": null,
     "guard_pid": null,
     "guard_error_observed": false
   },
-  "current_policy_sha256": "2973b783e19cc9bf487c7426756b894f6f9c4ed5b995cbf941935bd9d8b9feb8",
-  "targeted_verification": "handover_snapshot/FQI_TARGET_REFRESH_TESTS_20260915.json",
-  "prior_completed_control_record": "handover_snapshot/RUNNING_BEFORE_FQI_TARGET_REFRESH_20260915.json",
-  "preparation": {
-    "status": "COMPLETE",
-    "exec_session_id": 5590,
-    "script": "/tmp/gx1_prepare_fqi_target_refresh.py",
-    "script_sha256": "e334aae1bc2ce628a00146f1c27d5790a6d76a395e917d913166176a7da723fc",
-    "log": "/tmp/gx1_prepare_fqi_target_refresh_20260915.log",
-    "process_exit_code": 0,
-    "elapsed_seconds": 178.90504415600026,
-    "result": "handover_snapshot/FQI_TARGET_REFRESH_PREPARATION_20260915.json"
-  },
+  "prior_completed_control_record": "handover_snapshot/RUNNING_BEFORE_ENTRY_LEARNABILITY_20260915.json",
   "learning_improvement_proven": false,
   "profitability_proven": false,
-  "next_action": "Prepare a bounded learnability check of existing EntryQ on same64 bound native TRAIN inputs, fixed teacher and unchanged MSE, preserving all55FLAT rows. First establish explicit native guarded scope for any optimizer execution; no alternative trainer, old-plan restart, whole epoch or production-model change is decided. Existing nine-row review and cached anchor decomposition are complete and must not be repeated. Teacher continuation contributes only0.43594% of positive targets on those nine; student predominantly reproduces shared negative value level. Neither perfectteacher nor generalization/profit is proven. All jobs terminal; commit/push finished work.",
-  "plan": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/CAMPAIGN/CAMPAIGN_PLAN.json",
-    "sha256": "feac27b14e9500e5691269500cd68cfbd6007070bdbcd44e99ef5173f076632e"
-  },
-  "recipe": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/NATIVE_RECIPE.json",
-    "sha256": "35ac9a326b4d9bf1681464861e7150a61235475dd65b5fd6540a1dfb7b8475c0"
-  },
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FQI_TARGET_REFRESH_F11C1DBE_BOOT435",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
-  "source_bindings_sha256": "faa7dd592faa5da7d49cb970c4759d7d0b572731b7ed8b25ab228f1a5f081167",
-  "prepared_boot_id": 435,
-  "state_preservation_cpu": {
-    "decision": "PASS_EXPLICIT_TARGET_REFRESH_OTHER_STATE_PRESERVED",
-    "target_copy_exact": true,
-    "other_components_compared": 14,
-    "all_other_components_exact": true,
-    "original_unchanged": true,
-    "result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/ACTUAL_CHECKPOINT91_FQI_REFRESH.json",
-      "sha256": "9dd5c4f425af5b39eac1efd11e98ef7e6dab0806fdd22d98aff0e533c39a04a2"
-    }
-  },
-  "target_measurement": {
-    "status": "COMPLETE",
-    "exec_session_id": 50933,
-    "phase": "targets",
-    "script": "/tmp/gx1_fqi_target_refresh_evaluator_cpu.py",
-    "script_sha256": "88b1790232c40d4fd057f95de3ced20da810c69529bd5e2430b75e8de60f172a",
-    "binding_sha256": "329a3d80a04a43118ac28e1c817649e84a864d285a2528d34202131fbc42c33c",
-    "log": "/tmp/gx1_fqi_target_preflight_cpu_20260915.log",
-    "process_exit_code": 0,
-    "elapsed_seconds": 20.387206115000026,
-    "result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/RESULT.json",
-      "sha256": "4ddb626d989c5916bd8532da042654d7db7592580170c88cf299d56772d9806e"
-    }
-  },
-  "windows_task_started_utc": "2026-09-15T18:57:28.7273407Z",
-  "physical_boot_utc": "2026-09-15T18:54:23.5000000Z",
-  "operator_launch_note": "First operator precheck stopped before task enable because a parsed local DateTime was compared to UTC ticks. Measured original parse19:46+02 vs prior17:46UTC; corrected comparison uses DateTimeOffset.UtcDateTime. Fresh physical boot18:54UTC confirmed; no additional reboot or native retry.",
-  "physical_boot_id": 436,
+  "next_action": "Commit/push verifiedsource; run existing adapted CPUpreparation once to prove actual95 state/teacher/order preservation and exact64x64 overlay, then one guarded native256step control to6033. Follow prescribed native profile and fresh boot. Reuse cached paired95/99 evaluator after terminal run. No further model/loss/framework changes or repeated pastanalyses.",
   "windows_task_disabled_utc": "2026-09-15T19:23:46.9785475Z",
-  "completed_invocation": {
-    "guard_decision": "PASS",
-    "trainer_guard_exit_code": 0,
-    "progress_observer_exit_code": 0,
-    "outcome": "RESUMABLE",
-    "checkpoint_index": 95,
-    "epoch_index": 1,
-    "next_batch_offset": 1696,
-    "global_optimizer_steps": 5777,
-    "additional_optimizer_steps": 256,
-    "state_sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe",
-    "started_utc": "2026-09-15T18:59:22.175070+00:00",
-    "finished_utc": "2026-09-15T19:19:16.859046+00:00",
-    "native_invocation_seconds": 1194.683976
-  },
-  "after_target_evaluation": {
-    "status": "COMPLETE",
-    "exec_session_id": 31237,
-    "exit_code": 0,
-    "elapsed_seconds": 24.634584728999926,
-    "result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915/RESULT.json",
-      "sha256": "73fcd2b35139b4c8b7b74fbe14f31604cee474e9fc1f6b60ff9d65d0d8a0d3da"
-    }
-  },
   "completed_control_review": "handover_snapshot/FQI_TARGET_REFRESH_CONTROL_RESULT_20260915.json",
-  "native_checkpoint_restore_proven": true,
-  "actual_refreshed_target_retained_for_256_steps": true,
+  "native_checkpoint_restore_proven": false,
   "current_native_resume_equivalence_proven": false,
   "actual_window_paired_evaluation_failed_attempt": {
     "status": "FAILED_BEFORE_FIRST_FORWARD",
@@ -200,5 +120,31 @@
     "model_constructed": false,
     "result": "handover_snapshot/ACTUAL_WINDOW_ENTRY_ANCHOR_DECOMPOSITION_20260915.json",
     "result_sha256": "8bdea061bf70c7d8ad4dd2f1899ffe36c89c1921e74c8062539471f9b08e8af9"
-  }
+  },
+  "source_base_commit": "d80af6d900302f432bec6882d8d6d2d21258efe5",
+  "replay_cohort": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/COHORT.json",
+    "sha256": "1cea9754bf115b75fc3267337b919feeffd0c0a8fd2d7509f2254eba2a4da889"
+  },
+  "replay_scope": {
+    "original_native_batch_offsets": [
+      1440,
+      1525,
+      1610,
+      1695
+    ],
+    "entry_rows": 64,
+    "passes": 64,
+    "ephemeral_batch_offset_start": 1696,
+    "ephemeral_batch_offset_stop_exclusive": 1952,
+    "original_epoch_order_preserved": true,
+    "same_combined_native_losses": true,
+    "q_only_mode": false,
+    "changed_sample_history": true,
+    "data_coverage_advanced": false,
+    "production_continuation_allowed": false,
+    "teacher_online_checkpoint": 91
+  },
+  "targeted_verification": "handover_snapshot/ENTRY_LEARNABILITY_TESTS_20260915.json",
+  "current_policy_sha256": "9727df1be7752d69ec9b21d265fe7611d2c6a31958b67a9c8c4fd686d96a7eab"
 }

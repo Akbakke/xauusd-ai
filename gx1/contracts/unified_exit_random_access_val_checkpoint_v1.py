@@ -66,12 +66,23 @@ def bind_candidate_weight_ema_history_v1(
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
         FQI_TARGET_REFRESH_RECEIPT_SCHEMA, require_fqi_target_refresh_origin,
+        ENTRY_LEARNABILITY_SCHEMA, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+        ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256, ENTRY_LEARNABILITY_RECEIPT_NAME,
+        ENTRY_LEARNABILITY_RECEIPT_SCHEMA, ENTRY_LEARNABILITY_REPLAY_POLICY,
+        ENTRY_LEARNABILITY_TARGET_MODEL_SHA256, require_entry_learnability_origin,
     )
     continuation = isinstance(origin, Mapping) and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
     target_refresh = isinstance(origin, Mapping) and origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA
+    entry_learnability = isinstance(origin, Mapping) and origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA
     if isinstance(origin, Mapping) and origin.get("schema_version") in {
-            OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, TRAINING_CONTINUATION_SCHEMA, FQI_TARGET_REFRESH_SCHEMA}:
-        if target_refresh:
+            OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, TRAINING_CONTINUATION_SCHEMA, FQI_TARGET_REFRESH_SCHEMA, ENTRY_LEARNABILITY_SCHEMA}:
+        if entry_learnability:
+            require_entry_learnability_origin(origin)
+            origin_cursor = ENTRY_LEARNABILITY_ORIGIN_CURSOR
+            origin_state_sha = ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256
+            receipt_name = ENTRY_LEARNABILITY_RECEIPT_NAME
+            receipt_schema = ENTRY_LEARNABILITY_RECEIPT_SCHEMA
+        elif target_refresh:
             require_fqi_target_refresh_origin(origin)
             origin_cursor = FQI_TARGET_REFRESH_ORIGIN_CURSOR
             origin_state_sha = FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256
@@ -103,6 +114,18 @@ def bind_candidate_weight_ema_history_v1(
         cursor = receipt.get("origin_cursor")
         required_preserved = {"model_state", "target_model_state", "optimizer_state", "weight_ema_state",
                               "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"}
+        if entry_learnability:
+            cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
+            replay_policy = {**ENTRY_LEARNABILITY_REPLAY_POLICY,
+                             "epoch_order_sha256": cohort["epoch_order_sha256"],
+                             "selected_sample_plan_sha256": cohort["selected_sample_plan_sha256"]}
+        if entry_learnability and (
+                receipt.get("changed_sample_history") is not True
+                or receipt.get("production_continuation_allowed") is not False
+                or receipt.get("data_coverage_advanced") is not False
+                or receipt.get("replay_policy") != replay_policy
+                or receipt.get("fixed_teacher_model_state_sha256") != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256):
+            raise RuntimeError("UNIFIED_EXIT_CANDIDATE_ENTRY_LEARNABILITY_RECEIPT_INVALID")
         if target_refresh:
             required_preserved.remove("target_model_state")
             if (receipt.get("target_model_refreshed") is not True
@@ -128,7 +151,7 @@ def bind_candidate_weight_ema_history_v1(
                 or type(receipt.get("ema_internal_steps")) is not int
                 or receipt["ema_internal_steps"] != origin_cursor["global_optimizer_steps"] + inherited["optimizer_step_offset"]
                 or receipt.get("state_preserved") is not (not target_refresh)
-                or receipt.get("optimizer_procedure_changed") is not (not (continuation or target_refresh))
+                or receipt.get("optimizer_procedure_changed") is not (not (continuation or target_refresh or entry_learnability))
                 or receipt.get("identical_future_trajectory_claimed") is not False
                 or not isinstance(preserved, list) or any(type(x) is not str for x in preserved)
                 or len(preserved) != len(set(preserved))
@@ -175,12 +198,14 @@ def _require_candidate_ema_history_offset(value: Any, *, contract_path: Path) ->
     binding = require_binding(value["transition_receipt"], label="EMA history receipt", verify_file=False)
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME, TRAINING_CONTINUATION_RECEIPT_NAME, FQI_TARGET_REFRESH_RECEIPT_NAME,
+        ENTRY_LEARNABILITY_RECEIPT_NAME,
     )
     if Path(binding["path"]) not in {
             contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json",
             contract_path.parent / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
             contract_path.parent / TRAINING_CONTINUATION_RECEIPT_NAME,
-            contract_path.parent / FQI_TARGET_REFRESH_RECEIPT_NAME}:
+            contract_path.parent / FQI_TARGET_REFRESH_RECEIPT_NAME,
+            contract_path.parent / ENTRY_LEARNABILITY_RECEIPT_NAME}:
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     return value["optimizer_step_offset"]
 
