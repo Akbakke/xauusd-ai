@@ -56,6 +56,48 @@ def bind_candidate_weight_ema_history_v1(
         return None
     recipe = read_bound_json(Path(provenance["recipe_audit_path"]), provenance["recipe_audit_sha256"])
     origin = recipe.get("candidate_resume_origin")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
+        OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
+        OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256, require_optimizer_procedure_origin,
+    )
+    if isinstance(origin, Mapping) and origin.get("schema_version") == OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA:
+        require_optimizer_procedure_origin(origin)
+        inherited = bind_candidate_weight_ema_history_v1(
+            session_contract_path=Path(origin["contract"]["path"]),
+            session_contract_sha256=origin["contract"]["sha256"],
+        )
+        receipt_path = session_contract_path.parent / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME
+        receipt_binding = require_binding(
+            {"path": str(receipt_path), "sha256": file_sha256(receipt_path)},
+            label="optimizer procedure EMA history receipt", verify_file=True,
+        )
+        receipt = read_bound_json(receipt_path, receipt_binding["sha256"])
+        preserved = receipt.get("preserved_state_fields")
+        cursor = receipt.get("origin_cursor")
+        if (inherited is None or inherited.get("optimizer_step_offset") != 19908
+                or receipt.get("schema_version") != OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA
+                or receipt.get("destination_session_contract_sha256") != session_contract_sha256
+                or receipt.get("origin") != origin
+                or not isinstance(cursor, Mapping) or set(cursor) != set(OPTIMIZER_PROCEDURE_ORIGIN_CURSOR)
+                or any(cursor.get(k) != v or type(cursor.get(k)) is not type(v)
+                       for k, v in OPTIMIZER_PROCEDURE_ORIGIN_CURSOR.items())
+                or receipt.get("origin_state_sha256") != OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256
+                or receipt.get("inherited_weight_ema_history") != inherited
+                or type(receipt.get("global_optimizer_steps")) is not int
+                or receipt["global_optimizer_steps"] != 5233
+                or type(receipt.get("ema_internal_steps")) is not int
+                or receipt["ema_internal_steps"] != 5233 + inherited["optimizer_step_offset"]
+                or receipt.get("state_preserved") is not True
+                or receipt.get("optimizer_procedure_changed") is not True
+                or receipt.get("identical_future_trajectory_claimed") is not False
+                or not isinstance(preserved, list) or any(type(x) is not str for x in preserved)
+                or len(preserved) != len(set(preserved))
+                or not {"model_state", "target_model_state", "optimizer_state", "weight_ema_state",
+                        "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"} <= set(preserved)):
+            raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
+        return {"optimizer_step_offset": inherited["optimizer_step_offset"],
+                "transition_receipt": receipt_binding}
     if not isinstance(origin, Mapping) or origin.get("schema_version") != "gx1_candidate_economics_transition_origin_v1":
         return None
     old_contract = require_binding(origin["contract"], label="EMA history origin contract", verify_file=True)
@@ -93,7 +135,10 @@ def _require_candidate_ema_history_offset(value: Any, *, contract_path: Path) ->
             or type(value["optimizer_step_offset"]) is not int or value["optimizer_step_offset"] < 1):
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     binding = require_binding(value["transition_receipt"], label="EMA history receipt", verify_file=False)
-    if Path(binding["path"]) != contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json":
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME
+    if Path(binding["path"]) not in {
+            contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json",
+            contract_path.parent / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME}:
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     return value["optimizer_step_offset"]
 

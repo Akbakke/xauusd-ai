@@ -43,7 +43,7 @@
     "val_cpu_workers": 8,
     "cpu_nice": 0
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75,7 +75,17 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "The native learning-signal, checkpoint-transition, GPU256, measured throughput and exact-resume readiness gates passed for the bound latest-year population. Enable larger learning on TRAIN 2025-06-01 inclusive through 2026-06-01 exclusive with full June 2026 VAL. Review the first complete epoch and VAL before recommending any broader training. Retain the existing ceiling of 30 epochs and patience 5; this does not authorize a new five-year TRAIN epoch. The first teacher batch is selective but student calibration and profitability are not proven. Keep all features, families, timeframes, FP32, costs, no fixed holding/loss limits, native guards and TEST seal. No legacy runner or repeated control campaign.",
+  "rule": "Further complete epochs remain blocked after the user stop on 2026-09-15. The fixed epoch1 TRAIN diagnostic measured Exit side bias and a shared gradient-clipping budget dominated by task-weight adaptation. Permit only the explicitly bound checkpoint85 state-preserving optimizer-procedure transition and native controls of 16 or 32 additional steps under the existing guards, after targeted verification. Keep economic targets and loss, model/target/Adam/EMA/RNG/scheduler/progress and all original results intact. Measure actual learning before any new full epoch. No arbitrary hold/loss limits, EMA reset, TEST access or automatic whole-epoch restart. Historical inference and hardware evidence do not override this block.",
   "exit_value_initialization": "close_now_baseline_v1",
-  "train_population_scope": "latest_year_2025_2026_v1"
+  "train_population_scope": "latest_year_2025_2026_v1",
+  "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+  "native_learning_calibration": {
+    "schema_version": "gx1_native_optimizer_procedure_calibration_scope_v1",
+    "additional_optimizer_step_ceilings": [
+      16,
+      32
+    ],
+    "full_epoch_training_allowed": false,
+    "test_data_used": false
+  }
 }

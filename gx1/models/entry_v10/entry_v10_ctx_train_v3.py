@@ -3209,6 +3209,7 @@ def _entry_fitted_q_movement_proof(
 # V12.2: grad-clip norm + weight-decay set at runtime via CLI flag. Module-level
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
+_GRAD_CLIP_POLICY = "separate_model_and_task_weights_v1"
 _WEIGHT_DECAY: float = 1e-5
 # Below the outer guard's 12 GiB observation boundary. An unsafe
 # activation-retention run fails locally as CUDA OOM before it can reserve
@@ -6094,12 +6095,37 @@ def _optimizer_step_with_finite_gradients(
     optimizer: optim.Optimizer,
     weight_ema: Optional["_WeightEma"] = None,
 ) -> torch.Tensor:
-    """Reject a nonfinite norm before mutation; return the existing pre-clip norm."""
+    """Clip prediction and task-weight gradients separately after a finite guard.
+
+    A large loss-weight gradient must not consume the prediction parameters'
+    clipping budget. Both groups retain the existing cap. The returned norm
+    covers all gradients before clipping, for the existing diagnostics.
+    """
 
     with kernel_profile_range("gradient_clip_and_finite_guard"):
-        gradient_norm = torch.nn.utils.clip_grad_norm_(
-            model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
+        task_weights = getattr(model, "task_log_variances", None)
+        task_weight_ids = (
+            {id(parameter) for parameter in task_weights.parameters()}
+            if task_weights is not None else set()
         )
+        groups = ([], [])
+        for parameter in model.parameters():
+            if parameter.grad is not None:
+                groups[int(id(parameter) in task_weight_ids)].append(parameter)
+        active_groups = [group for group in groups if group]
+        group_norms = [
+            torch.nn.utils.get_total_norm([parameter.grad for parameter in group])
+            for group in active_groups
+        ]
+        # Check both groups, including FP32 norm overflow, before changing any
+        # gradient, optimizer state, parameter or EMA value.
+        gradient_norm = torch.nn.utils.get_total_norm(
+            group_norms, error_if_nonfinite=True
+        )
+        for group, group_norm in zip(active_groups, group_norms):
+            torch.nn.utils.clip_grads_with_norm_(
+                group, _GRAD_CLIP_NORM, group_norm
+            )
     with kernel_profile_range("AdamW"):
         optimizer.step()
     with kernel_profile_range("zero_grad"):
@@ -9738,6 +9764,7 @@ def train_epoch(
             "batch_losses": _performance_losses,
             "gradient_norms_pre_clip": torch.stack(_performance_gradient_norms).cpu().tolist(),
             "gradient_clip_norm": _GRAD_CLIP_NORM,
+            "gradient_clip_policy": _GRAD_CLIP_POLICY,
             "nonfinite_gradient_policy": "raise_before_optimizer_step",
         }, sort_keys=True, allow_nan=False))
     return total / max(1, n), stats, True
@@ -11341,6 +11368,7 @@ def _candidate_training_session_contract(
             "epochs": int(epochs),
             "grad_accum_steps": int(grad_accum_steps),
             "grad_clip_norm": float(grad_clip_norm),
+            "gradient_clipping_policy": _GRAD_CLIP_POLICY,
             "weight_decay": float(weight_decay),
             "learning_rate": float(lr),
             "dropout": float(dropout),
@@ -13019,6 +13047,140 @@ def _load_candidate_economics_successor_state(
     return state
 
 
+def _load_candidate_optimizer_procedure_successor_state(
+    *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Preserve stopped checkpoint85; change only the bound clipping procedure."""
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        OPTIMIZER_PROCEDURE_TRANSITION_POLICY, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
+        OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256,
+        OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
+        OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
+        require_optimizer_procedure_origin, require_native_run_scope,
+    )
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
+        bind_candidate_weight_ema_history_v1,
+    )
+
+    def fail(label: str) -> None:
+        raise RuntimeError(f"[CANDIDATE_OPTIMIZER_PROCEDURE_TRANSITION_{label}]")
+
+    def read(binding: Mapping[str, Any]) -> dict[str, Any]:
+        checked = require_binding(binding, label="optimizer transition", verify_file=True)
+        return read_bound_json(Path(checked["path"]), checked["sha256"])
+
+    origin = require_optimizer_procedure_origin(origin)
+    contract, pointer = read(origin["contract"]), read(origin["pointer"])
+    old = _CandidateTrainingSession(
+        out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True,
+    )
+    if (Path(origin["contract"]["path"]) != old._contract_path
+            or Path(origin["pointer"]["path"]) != old._active_path
+            or old.directory == session.directory or session._active_path.exists()
+            or any(session._slot_path(slot).exists() for slot in (0, 1))
+            or pointer.get("session_contract_sha256") != old.contract_sha256
+            or pointer.get("state_sha256") != OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256):
+        fail("SESSION_BINDING_INVALID")
+    contracts = (copy.deepcopy(contract), copy.deepcopy(session._contract))
+    recipes = []
+    for item in contracts:
+        provenance = item["recipe_source_provenance"]
+        recipe = read({"path": provenance["recipe_audit_path"], "sha256": provenance["recipe_audit_sha256"]})
+        semantic_sha = hashlib.sha256(json.dumps(
+            {k: v for k, v in recipe.items() if k != "recipe_sha256"},
+            sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+        ).encode()).hexdigest()
+        if (recipe.get("recipe_sha256") != semantic_sha
+                or recipe["source_commit"] != item["source_commit"]
+                or recipe["source_bindings"] != provenance["source_bindings"]
+                or recipe["source_bindings_sha256"] != provenance["source_bindings_sha256"]
+                or recipe["out_bundle_dir"] != item["out_bundle_dir"]
+                or recipe["run_id"] != item["run_id"] or recipe.get("test_data_used") is not False):
+            fail("RECIPE_BINDING_INVALID")
+        recipes.append(recipe)
+    before, after = recipes
+    canonical = Path(__file__).resolve().parents[3]
+    if (Path(before["source_repo"]) != canonical or Path(after["source_repo"]) != canonical
+            or after.get("candidate_resume_origin") != origin
+            or "native_calibration" in before or "native_calibration" in after
+            or _GRAD_CLIP_POLICY != OPTIMIZER_PROCEDURE_TRANSITION_POLICY):
+        fail("CANONICAL_RECIPE_REQUIRED")
+    require_native_run_scope(after)
+    previous, requested = contracts
+    if ("gradient_clipping_policy" in previous["training"]
+            or requested["training"].pop("gradient_clipping_policy", None) != _GRAD_CLIP_POLICY
+            or requested["training"].get("grad_clip_norm") != 1.0):
+        fail("CLIPPING_POLICY_INVALID")
+    allowed = {
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+        "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
+        "gx1/scripts/materialize_local_random_access_campaign_v2.py",
+    }
+    old_sources, new_sources = before["source_bindings"], after["source_bindings"]
+    if set(old_sources) != set(new_sources):
+        fail("SOURCE_CLOSURE_CHANGED")
+    changed_sources = []
+    for key, bound in old_sources.items():
+        try:
+            relative = Path(bound["path"]).relative_to(canonical).as_posix()
+        except ValueError:
+            fail("SOURCE_PATH_INVALID")
+        new = new_sources[key]
+        if new["path"] != bound["path"]:
+            fail("SOURCE_PATH_INVALID")
+        if new["sha256"] != bound["sha256"]:
+            if relative not in allowed:
+                fail("UNAPPROVED_SOURCE_CHANGED")
+            changed_sources.append(relative)
+    if "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" not in changed_sources:
+        fail("CHANGED_TRAINER_REQUIRED")
+    normalized_recipes = copy.deepcopy(recipes)
+    for recipe, item in zip(normalized_recipes, contracts):
+        for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy"):
+            recipe.pop(key, None)
+        for key in ("source_commit", "recipe_source_provenance", "out_bundle_dir", "run_id"):
+            item.pop(key)
+    if normalized_recipes[0] != normalized_recipes[1] or previous != requested:
+        fail("MODEL_DATA_OR_TRAINING_CHANGED")
+    state = old.load_checkpoint()
+    if (state is None or any(state.get(k) != v or type(state.get(k)) is not type(v)
+                             for k, v in OPTIMIZER_PROCEDURE_ORIGIN_CURSOR.items())
+            or state["training_progress"]["validation_snapshot"] is not None
+            or state["training_progress"]["checkpoint_selection"]["top_k_checkpoints"]):
+        fail("STOPPED_STATE_INVALID")
+    history = bind_candidate_weight_ema_history_v1(
+        session_contract_path=old._contract_path, session_contract_sha256=old.contract_sha256,
+    )
+    if (not isinstance(history, Mapping) or history.get("optimizer_step_offset") != 19908
+            or state.get("weight_ema_state", {}).get("steps") != state["global_optimizer_steps"] + 19908):
+        fail("EMA_HISTORY_INVALID")
+    receipt = {
+        "schema_version": OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
+        "origin": origin, "origin_cursor": dict(OPTIMIZER_PROCEDURE_ORIGIN_CURSOR),
+        "origin_state_sha256": pointer["state_sha256"],
+        "destination_session_contract_sha256": session.contract_sha256,
+        "inherited_weight_ema_history": history,
+        "ema_internal_steps": state["weight_ema_state"]["steps"],
+        "global_optimizer_steps": state["global_optimizer_steps"],
+        "preserved_state_fields": sorted(set(state) - {"session_contract_sha256"}),
+        "changed_source_paths": sorted(changed_sources),
+        "gradient_clipping_policy": _GRAD_CLIP_POLICY,
+        "state_preserved": True, "optimizer_procedure_changed": True,
+        "identical_future_trajectory_claimed": False, "test_data_used": False,
+    }
+    receipt_path = session.directory / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME
+    if receipt_path.exists() or receipt_path.is_symlink():
+        _candidate_training_session_read_json(receipt_path, label="OPTIMIZER_PROCEDURE_TRANSITION")
+        if receipt_path.read_bytes() != _candidate_training_session_json_bytes(receipt):
+            fail("RECEIPT_MISMATCH")
+    else:
+        _candidate_training_session_atomic_write_json(receipt_path, receipt)
+    state["session_contract_sha256"] = session.contract_sha256
+    return state
+
+
 def _load_candidate_val_batch_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -13261,6 +13423,10 @@ def _run_resumable_candidate_training(
                 session=session, origin=candidate_resume_origin,
                 epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population),
                 model=model, optimizer=optimizer,
+            )
+        elif candidate_resume_origin.get("schema_version") == "gx1_candidate_optimizer_procedure_transition_v1":
+            restored_state = _load_candidate_optimizer_procedure_successor_state(
+                session=session, origin=candidate_resume_origin,
             )
         else:
             restored_state = _load_candidate_val_batch_successor_state(

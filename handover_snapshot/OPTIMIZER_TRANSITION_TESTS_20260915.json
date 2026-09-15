@@ -1,0 +1,47 @@
+{
+  "actual_checkpoint85_replay_still_required": true,
+  "corrected_test_fixture_cases_passed": 7,
+  "decision": "PASS_TARGETED_TRANSITION_TESTS",
+  "final_cases_passed": 134,
+  "fixture_correction": "last_epoch and last_val_stats belong to checkpoint_selection; no production guard relaxed",
+  "initial_cases_passed": 127,
+  "native_or_optimizer_training_executed": false,
+  "source_file_bindings": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+      "sha256": "91aaa2e0baa935ed41bfe82d07a153c3e03d2961702f973496872d74856ba93d"
+    },
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
+      "sha256": "8a7f594604f8c8e33fec580b12e5aa5e5299f7d69608093fd34d2e8c61a9b856"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+      "sha256": "3f07df420d01017b20990cbf29d59097e0f37bc96c01528b7b469746d74d9d5b"
+    },
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_local_random_access_campaign_v2.py",
+      "sha256": "104b2f4524c200b67f2bb872d0fd27408d5625e991ef02732529fb19f846409f"
+    }
+  },
+  "test_data_used": false,
+  "test_logs": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/gx1_optimizer_transition_tests_20260915.log",
+      "sha256": "a16499241dab5eaa7e5ca5a626127bc6aa27f38a9a165e7e697c22b377a4b179"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/gx1_optimizer_transition_tests_20260915.xml",
+      "sha256": "324b29efc6d9b7063d6b535b7d44a02add5ff2db5615b850aa955151d46a9dd2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/gx1_optimizer_transition_retry_20260915.log",
+      "sha256": "49c8bc2cc03d93b8d23c145ca66299b04b089cb776ee582dc4563a5945b17e86"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/gx1_optimizer_transition_retry_20260915.xml",
+      "sha256": "c4e7e98a07665b39a8aeb4ec6744ebd3d9ce444f338ec300b783deaa74917d31"
+    }
+  ],
+  "whole_epoch_training_allowed": false
+}

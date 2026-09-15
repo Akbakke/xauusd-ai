@@ -1,3 +1,10 @@
+## Brukerpresisering 2026-09-15
+
+Ingen videre epoch før den målte Entry/Exit-svakheten er undersøkt med faktiske
+TRAIN-targets, prediksjoner og læringssignal, og en eventuell konkret justering er
+begrunnet/verifisert. Ikke fortsett bare fordi ingen kodefeil ble funnet. Native-
+trening er stoppet på checkpoint85/epoch2offset1152/global5233. Ingen fast grense.
+
 # Gjeldende GX1-mål — 2026-09-14
 
 Få modellen til å lære selektive, retningsmessig gode Entries og Exit som
@@ -41,8 +48,11 @@ fire undersøkte Entry-rutene, mens Entry-Q/Exit-gradientene er frakoblet der.
 Dette åpner for første ettårslæring; modellen er ennå ikke dokumentert kalibrert
 eller profitabel. Den delte backbone er ikke fullstendig isolert fra Exit.
 
-NEXT_RUN_POLICY.json binder beståtte porter og aktiverer bare det avtalte
-ettårsutvalget. Se handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json.
+De beståtte tekniske portene gjelder det avtalte ettårsutvalget. Gjeldende
+NEXT_RUN_POLICY.json blokkerer nye hele epocher. Bare eksplisitt bundet kontroll
+på16/32 ekstra steg kan kjøres etter verifisert optimizer-/checkpointovergang.
+Se handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json; eldre tekniske porter
+er bevart i handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json.
 Målmodellen oppdateres etter komplett epoch og VAL. Neste bevis er faktisk
 læringsresultat: selektivitet, Entry-kvalitet, Exit-atferd og samlet cash pluss
 åpen verdi etter kostnader. Mer adaptiv ML/RL må begrunnes med bedre resultater

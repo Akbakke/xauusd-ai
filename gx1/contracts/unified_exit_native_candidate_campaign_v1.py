@@ -26,6 +26,60 @@ NATIVE_MODULE = "gx1.scripts.run_unified_exit_native_candidate_window_v1"
 WINDOW_SCHEMA = "gx1_native_candidate_window_policy_v1"
 
 
+OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA = "gx1_candidate_optimizer_procedure_transition_v1"
+OPTIMIZER_PROCEDURE_TRANSITION_POLICY = "separate_model_and_task_weights_v1"
+OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME = "CANDIDATE_OPTIMIZER_PROCEDURE_TRANSITION.json"
+OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA = "gx1_candidate_optimizer_procedure_transition_receipt_v1"
+OPTIMIZER_PROCEDURE_ORIGIN_CONTRACT_SHA256 = "19a1286b2c6e977246a8b2f890c8295489135586eb05b194ebf71418c8b47d4c"
+OPTIMIZER_PROCEDURE_ORIGIN_POINTER_SHA256 = "d265ce2cba4f494eb818870093d8cb9834be974e2113729232f1ffdcd070ebb7"
+OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256 = "9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974"
+OPTIMIZER_PROCEDURE_ORIGIN_CURSOR = {
+    "checkpoint_index": 85, "phase": "train", "epoch_index": 1,
+    "next_batch_offset": 1152, "global_optimizer_steps": 5233, "complete": False,
+}
+
+
+def require_optimizer_procedure_origin(
+    origin: Any, *, verify_files: bool = True,
+) -> dict[str, Any]:
+    """Admit only the measured, stopped checkpoint85 for a procedure change.
+
+    Historical Exit initialization is a lineage declaration, never a request
+    to initialize it again. The trainer owns destination/source/state checks.
+    """
+    fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
+              "train_population_scope", "gradient_clipping_policy"}
+    if (type(verify_files) is not bool or not isinstance(origin, Mapping)
+            or set(origin) != fields
+            or origin.get("schema_version") != OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
+            or origin.get("exit_value_initialization") != "close_now_baseline_v1"
+            or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
+        raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_ORIGIN_INVALID")
+    contract = require_binding(origin["contract"], label="optimizer origin contract", verify_file=verify_files)
+    pointer = require_binding(origin["pointer"], label="optimizer origin pointer", verify_file=verify_files)
+    if (contract["sha256"] != OPTIMIZER_PROCEDURE_ORIGIN_CONTRACT_SHA256
+            or pointer["sha256"] != OPTIMIZER_PROCEDURE_ORIGIN_POINTER_SHA256):
+        raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_ORIGIN_HASH_MISMATCH")
+    if verify_files:
+        current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
+        expected = {
+            **OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
+            "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
+            "session_contract_sha256": contract["sha256"],
+            "state_sha256": OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256,
+        }
+        if (set(current) != set(expected)
+                or any(current.get(k) != v or type(current.get(k)) is not type(v)
+                       for k, v in expected.items())):
+            raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_ORIGIN_CURSOR_INVALID")
+        require_binding({
+            "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
+            "sha256": OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256,
+        }, label="optimizer origin state", verify_file=True)
+    return dict(origin)
+
+
 def require_native_recipe_metadata(
     binding: Mapping[str, str], *, source_repo: Path, source_commit: str,
 ) -> tuple[dict[str, Any], int]:
@@ -106,9 +160,13 @@ def require_native_run_scope(
     """
     repo = Path(__file__).resolve().parents[2]
     origin = recipe.get("candidate_resume_origin")
+    optimizer_transition = (isinstance(origin, Mapping)
+                            and origin.get("schema_version") == OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA)
+    if optimizer_transition:
+        require_optimizer_procedure_origin(origin)
     origin_fields = {"schema_version", "contract", "pointer"}
     optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
-    if (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
+    if not optimizer_transition and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
             or set(origin) - origin_fields - optional_origin_fields
             or ("train_population_scope" in origin and (
                 type(origin["train_population_scope"]) is not str
@@ -127,6 +185,11 @@ def require_native_run_scope(
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    if optimizer_transition and (
+            policy.get("training_enabled") is not False
+            or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
+            or calibration is not None):
+        raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_BOUNDED_TRAIN_ONLY_REQUIRED")
     if (("exit_value_initialization" in policy and (
             type(policy["exit_value_initialization"]) is not str
             or policy["exit_value_initialization"] != "close_now_baseline_v1"))
@@ -201,7 +264,18 @@ def require_native_run_scope(
             **old_scope, "schema_version": "gx1_native_learning_calibration_scope_v2",
             "reference_optimizer_step_ceiling": 32, "native_report_only_val": True,
         }
-        if (not isinstance(scope, Mapping)
+        optimizer_scope = {
+            "schema_version": "gx1_native_optimizer_procedure_calibration_scope_v1",
+            "additional_optimizer_step_ceilings": [16, 32],
+            "full_epoch_training_allowed": False, "test_data_used": False,
+        }
+        if optimizer_transition:
+            if (scope != optimizer_scope or not isinstance(scope, Mapping)
+                    or scope.get("full_epoch_training_allowed") is not False
+                    or scope.get("test_data_used") is not False
+                    or any(type(x) is not int for x in scope["additional_optimizer_step_ceilings"])):
+                raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_CALIBRATION_SCOPE_INVALID")
+        elif (not isinstance(scope, Mapping)
                 or scope not in (old_scope, measured_scope)
                 or any(type(x) is not int for x in scope["optimizer_step_ceilings"])
                 or scope["full_epoch_training_allowed"] is not False
@@ -209,8 +283,11 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([32] if calibration is not None and calibration["arm"] == "reference"
-                    else scope["optimizer_step_ceilings"])
+        ceilings = ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta
+                     for delta in scope["additional_optimizer_step_ceilings"]]
+                    if optimizer_transition else
+                    ([32] if calibration is not None and calibration["arm"] == "reference"
+                     else scope["optimizer_step_ceilings"]))
         if invocation_number is not None:
             if type(invocation_number) is not int or not 1 <= invocation_number <= len(ceilings):
                 raise RuntimeError("NATIVE_CALIBRATION_INVOCATION_INVALID")
@@ -219,6 +296,10 @@ def require_native_run_scope(
             ceiling = execution_budget.get("stop_after_optimizer_steps")
             if type(ceiling) is not int or ceiling not in ceilings:
                 raise RuntimeError("NATIVE_CALIBRATION_STEP_CEILING_INVALID")
+        elif optimizer_transition:
+            # Metadata/state-transition validation only. The actual native
+            # window still supplies its invocation or execution budget.
+            ceiling = max(ceilings)
         else:
             raise RuntimeError("NATIVE_CALIBRATION_BOUNDARY_REQUIRED")
     else:

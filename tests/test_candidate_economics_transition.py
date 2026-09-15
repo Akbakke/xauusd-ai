@@ -567,3 +567,117 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
     assert old._active_path.read_bytes() == before_pointer
     for key in ("model_state", "target_model_state", "optimizer_state", "weight_ema_state", "lr_scheduler_state", "rng_state"):
         _identical(state[key], before[key])
+
+
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
+    from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
+    current = tmp_path / "CURRENT"
+    current.mkdir()
+    monkeypatch.setattr(trainer, "__file__", str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"))
+    # The exact deployed85 origin and finite native authority are independently
+    # checked by scope-owner tests. Here use real tiny serialized sessions to
+    # test preservation and the trainer's recipe/source/contract boundary.
+    monkeypatch.setattr(scope, "require_optimizer_procedure_origin", lambda origin: dict(origin))
+    monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 5265)
+    inherited = {"optimizer_step_offset": 19908, "transition_receipt": {"path": "bound_old_receipt", "sha256": "a" * 64}}
+    monkeypatch.setattr(val_checkpoint, "bind_candidate_weight_ema_history_v1", lambda **kwargs: inherited)
+    sessions = []
+    origin = None
+    model = torch.nn.Linear(3, 2)
+    target = copy.deepcopy(model)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    model(torch.ones(2, 3)).sum().backward()
+    optimizer.step()
+    ema = trainer._WeightEma(model, .99)
+    ema._steps = 25141
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+    for side in (0, 1):
+        sources = {
+            "trainer": {"path": str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"), "sha256": str(side + 1) * 64},
+            "model": {"path": str(current / "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"), "sha256": "3" * 64},
+        }
+        if side and fault == "model_source":
+            sources["model"]["sha256"] = "4" * 64
+        recipe = {"source_repo": str(current), "source_commit": str(side + 1) * 40,
+                  "source_bindings": sources, "source_bindings_sha256": _sha(sources),
+                  "out_bundle_dir": str(tmp_path / f"clip_bundle{side}"), "run_id": f"clip{side}",
+                  "test_data_used": False, "files": {"data": "unchanged"},
+                  "trainer_cli": {"batch_size": 16}, "val_limits": {"policy_batch_size": 256, "cpu_pipeline_workers": 8, "max_wall_seconds": 10800}}
+        if side:
+            recipe.update(candidate_resume_origin=origin, next_run_policy={"path": "bound_by_scope", "sha256": "5" * 64})
+        if side and fault == "data":
+            recipe["files"]["data"] = "changed"
+        recipe["recipe_sha256"] = _sha(recipe)
+        bound_recipe = _write(tmp_path / f"clip_recipe{side}.json", recipe)
+        contract = {"schema_version": trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+                    "authority": {"test": False}, "source_commit": recipe["source_commit"],
+                    "out_bundle_dir": recipe["out_bundle_dir"], "run_id": recipe["run_id"],
+                    "recipe_source_provenance": {"recipe_audit_path": bound_recipe["path"], "recipe_audit_sha256": bound_recipe["sha256"], "source_bindings": sources, "source_bindings_sha256": _sha(sources)},
+                    "native_full_val": {"compute_limits": recipe["val_limits"]},
+                    "training": {"batch_size": 16, "grad_clip_norm": 1.0, "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=trainer.MARKED_NET_CHECKPOINT_MONITOR)}}
+        if side:
+            contract["training"]["gradient_clipping_policy"] = trainer._GRAD_CLIP_POLICY
+        if side and fault == "clip_cap":
+            contract["training"]["grad_clip_norm"] = 2.0
+        if side and fault == "batch":
+            contract["training"]["batch_size"] = 8
+        session = trainer._CandidateTrainingSession(out_bundle_dir=Path(recipe["out_bundle_dir"]), contract=contract)
+        sessions.append(session)
+        if side == 0:
+            progress = trainer._new_candidate_training_progress(checkpoint_monitor=trainer.MARKED_NET_CHECKPOINT_MONITOR)
+            progress["checkpoint_selection"].update(last_epoch=1, last_val_stats={"negative_marked_bps": -1235.8772})
+            state = {"schema_version": trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
+                     "session_contract_sha256": session.contract_sha256,
+                     **scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
+                     "epoch_order": torch.arange(65295, dtype=torch.int64).flip(0),
+                     "model_state": model.state_dict(), "target_model_state": target.state_dict(),
+                     "optimizer_state": optimizer.state_dict(), "weight_ema_state": ema.checkpoint_state(),
+                     "lr_scheduler_state": scheduler.state_dict(),
+                     "rng_state": trainer._attended_session_rng_state(device=torch.device("cpu")),
+                     "training_progress": progress}
+            if fault == "cursor": state["next_batch_offset"] += 1
+            if fault == "ema_steps": state["weight_ema_state"]["steps"] -= 1
+            session.save_checkpoint(state)
+            pointer = json.loads(session._active_path.read_text())
+            monkeypatch.setattr(scope, "OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256", pointer["state_sha256"])
+            origin = {"schema_version": scope.OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA,
+                      "contract": {"path": str(session._contract_path), "sha256": trainer._sha256_file(session._contract_path)},
+                      "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)},
+                      "exit_value_initialization": "close_now_baseline_v1", "train_population_scope": "latest_year_2025_2026_v1",
+                      "gradient_clipping_policy": trainer._GRAD_CLIP_POLICY}
+    return sessions, origin
+
+
+def test_optimizer_transition_preserves_entire_stopped_state_and_crash_retry(tmp_path, monkeypatch):
+    (old, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch)
+    before = old.load_checkpoint()
+    hashes = {p.name: trainer._sha256_file(p) for p in old.directory.iterdir() if p.is_file()}
+    state = trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    assert state["session_contract_sha256"] == new.contract_sha256
+    for key in before.keys() - {"session_contract_sha256"}:
+        _identical(state[key], before[key])
+    receipt_path = new.directory / "CANDIDATE_OPTIMIZER_PROCEDURE_TRANSITION.json"
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["state_preserved"] and receipt["optimizer_procedure_changed"]
+    assert receipt["identical_future_trajectory_claimed"] is False
+    assert receipt["inherited_weight_ema_history"]["optimizer_step_offset"] == 19908
+    assert receipt["ema_internal_steps"] == 25141
+    repeated = trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    _identical(state, repeated)
+    new.save_checkpoint(state)
+    _identical(new.load_checkpoint(), state)
+    assert hashes == {p.name: trainer._sha256_file(p) for p in old.directory.iterdir() if p.is_file()}
+
+
+@pytest.mark.parametrize("fault,expected", [
+    ("model_source", "UNAPPROVED_SOURCE_CHANGED"), ("data", "MODEL_DATA_OR_TRAINING_CHANGED"),
+    ("batch", "MODEL_DATA_OR_TRAINING_CHANGED"), ("clip_cap", "CLIPPING_POLICY_INVALID"),
+    ("cursor", "STOPPED_STATE_INVALID"), ("ema_steps", "EMA_HISTORY_INVALID"),
+])
+def test_optimizer_transition_rejects_unrelated_change(tmp_path, monkeypatch, fault, expected):
+    (old, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch, fault)
+    with pytest.raises(RuntimeError, match=expected):
+        trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    assert not new._active_path.exists()
+    assert not (new.directory / "CANDIDATE_OPTIMIZER_PROCEDURE_TRANSITION.json").exists()

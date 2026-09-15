@@ -1,64 +1,93 @@
-# GX1 — klar for første større ettårslæring, 2026-09-14
+# GX1 — stoppet; konkret læringsrettelse verifisert, 2026-09-15
 
-Ingen trainer kjører. Windows-task GX1NativeLearningCalibration er Disabled,
-siste controller exit 0; fysisk boot 423. NEXT_RUN_POLICY.json aktiverer nå
-ettårsutvalget etter fullførte native målinger. Neste handling er å binde en
-ren, pushet kilde til ny native recipe og campaign, deretter starte på fersk
-fysisk boot. Ingen ny femårs-epoch nå.
+Eneste kilde er /home/andre2/src/GX1_CURRENT, branch work/gx1-current,
+utgangspunkt pushet commit9cd29a2f57a0880e33c6c0a61b279deb7c15b981.
+NEXT_RUN_POLICY.json har training_enabled=false. En smal rettelse i optimizerens
+gradientklipping er gjort og målrettet testet. Gammel policy er arkivert uendret.
+Ingen lagrede modellvekter eller checkpoints er endret. Ingen aktiv trening.
+TRAIN er 2025-06-01 inklusiv til 2026-06-01 eksklusiv:65 295rader/4081steg per
+hel epoch. Hele juni2026 er utviklings-VAL. Ingen ny femårs-epoch. TEST er forseglet.
 
-TRAIN er 2025-06-01 inklusiv til 2026-06-01 eksklusiv: 65 295 av 313 399
-opprinnelige rader. Hele juni-VAL beholder 5 508 rader. Full parenthistorikk,
-normalisering, alle 200 features, åtte familier og tidsrammer beholdes.
-Modellen videreføres fra femårsfortrening; juni er utviklings-VAL og TEST er
-forseglet. Eksisterende øvre ramme er 30 epocher, VAL hver epoch og patience 5.
-Første komplette ettårs-epoch og juni-VAL er neste økonomiske vurderingspunkt.
+## Stoppet etter brukerens korrigering
 
-## Ferdige porter — kilde 128c55f2
+Brukeren avviste videre epoch2-trening før læringsproblemet er målt og en konkret
+justering er begrunnet. Ingen automatisk gjenopptakelse er tillatt på grunnlag av
+forrige anbefaling. «Ingen kodefeil funnet» er ikke tilstrekkelig læringsbevis.
 
-- Faktisk checkpointovergang og separat CPU-gjenspilling består. Original
-  checkpoint 315 / 19 908 steg er uendret. Bare den avtalte Exit-utgangen og
-  tilhørende Adam-tilstander nullstilles ved ny v4-overgang; øvrig tilstand bevares.
-- Reference 32 steg på boot 421 og split 16 + 16 på boot 422/423 har guard PASS,
-  trainer/observer/controller exit 0. Faktiske typed digests er identiske for
-  alle 14 sammenlignede komponenter, inkludert modell, target, Adam, EMA,
-  scheduler, RNG og treningsrekkefølge. Bare session-/checkpoint-identitet er ulik.
-- GPU-batch 256 gir identiske handlinger, største Q-avvik 1.1641532182693481e-10
-  Bps og målt inferensspeedup 3.313226 mot evaluatorens referanseoppsplitting.
-- Reference-vinduet behandlet 18 852 969 VAL-tilstander på 10 942.512 sekunder
-  inkludert oppsett, 1 722.91 tilstander/s. Native total var 11 707.448 sekunder
-  inkludert TRAIN32. Samlet relativ speedup er ikke målt. Hele juni er ikke
-  fullført i dette kapasitetssnapshotet; det kan ikke velge checkpoint.
-- Første lærerbatch velger FLAT 13 / LONG 1 / SHORT 2. Studenten velger fortsatt
-  FLAT 0 / LONG 4 / SHORT 12. Frozen HOLD-bootstrap er 0 og HOLD-target følger
-  faktisk relativ reward. Forecast-gradient når de fire undersøkte Entry-rutene,
-  mens Entry-Q/Exit-gradientene ikke gjør det. Dette er læringsberedskap,
-  ikke bevis på kalibrering, profitt eller nyttig samarbeid mellom alle features.
+Windows-taskens fremtidige triggere ble deaktivert13:45:44UTC. Guard726 fikkTERM
+13:46:26UTC og stoppet nativePID781. Prosessen er bekreftet borte. Siste checkpoint85
+ble SHA-verifisert: epoch_index1,offset1152,global5233,slot0,
+stateSHA9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974.
+Dette er operatørstopp, ikke en normal native-vindusfullføring eller guardPASS.
+Alle checkpoints/resultater er bevart. RUNNING_NATIVE_CALIBRATION.json binder
+stoppkvittering og prosess-/checkpointbevis. CPU-diagnostikk og tester er ferdige.
 
-Bevis og begrensninger:
-[Samlet beredskap](handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json)
-og de tilhørende NATIVE_YEAR_*_128C55F2.json-filene. Originale native artifacts
-ligger under LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2.
-Målmodellen oppdateres først etter komplett epoch og VAL. Første epoch lærer
-derfor mot den frosne startlæreren; prediktiv kalibrering må måles etter trening.
+## Målt læringsproblem og minste rettelse
 
-## Neste kjøring
+Fire forhåndsvalgte TRAIN-batcher à16 er målt med bevarte epoch1 ONLINE-/targetvekter,
+native targets og isolert Exit-backward. 410.50sekunder, exit0, ingen optimizer/CUDA/
+TEST; checkpoint-, modell- og policybevaring består. Ikke historisk RNG-gjenspilling.
+På256 HOLD-celler per side er LONG255 positive prediksjoner mot120 positive targets;
+SHORT20 mot128. HOLD-MSE er274.928/267.108, mot nullbaseline274.571/266.658.
+Dette er et fast TRAIN-utvalg, ikke fullårsfit eller generalisering. ONLINE Entry
+velger64FLAT, læreren58FLAT/3LONG/3SHORT. Selektivitet er ikke ferdig kalibrert.
 
-Bruk ny ordinær native recipe uten native_calibration, med samme v4-økonomimål,
-close_now_baseline_v1 og bundet ettårsrot. Start fra den bevarte v2-origin315;
-ikke innfør en ny overgang fra de private kontrollsesjonene. Kontrollvekter
-og rapporter beholdes. Numerisk kilde er uendret etter de beståtte målingene.
+Exit-gradienten når head/backbone. I batchen med størst feil bruker tapsvektens
+gradient83.58% av kvadrert samlet norm. Felles klipping begrenser derfor også
+modellens læring. Rettelsen klipper modell og task_log_variances separat, begge
+med eksisterende cap1, etter samlet finite-kontroll. Økonomiske targets, tap,
+Adam/EMA-tilstand og risiko er uendret. Ingen crash-targets fjernes eller klippes.
+109 målrettede optimizer-/profiler-tester består, inkludert8 nye regresjoner.
+Ytterligere134 overgangs-/session-/EMA-/campaign-tester består etter retting
+av7 nye fixturetilfeller. Se handover_snapshot/OPTIMIZER_TRANSITION_TESTS_20260915.json.
+Se handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json for råbevis og hasher.
+Dette beviser mekanisk rettelse, ikke at Exit-biasen er løst eller modellen profitabel.
 
-Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current, via native
-campaign og gx1_capped_run.sh. TRAIN16, VAL256, åtte CPU-arbeidere, tre timers
-VAL-vinduer, FP32 og alle eksisterende maskinvarevakter beholdes. Start med
-bash scripts/gx1_handover.sh --check. Historiske kildekopier er avhengigheter.
+En smal overgang fra checkpoint85 er under målrettet verifikasjon. Den bevarer
+modell/target/Adam/EMA/RNG/scheduler/progress og binder ny klippepolicy eksplisitt.
+NEXT_RUN_POLICY.json tillater bare16/32 ekstra steg for denne kontrollen; hele
+epocher forblir blokkert. Neste er faktisk tilstandsovergang og avgrenset native
+læring/resume før ny beslutning om hel epoch.
+Gamle recipe/policy-bindinger skal ikke omskrives eller brukes til automatisk restart.
 
-Ingen fast holde-/tapsgrense. Vurder samlet kostnadsjustert cash og åpen verdi,
-selektivitet og Exit-atferd. Den gamle junistatistikken for 2 227 lukkede av
-5 508 handler er ikke samlet profitt; 3 281 var HOLD ved månedsslutt.
-Bruk bare første gamle epochs uforanderlige EMA ved sammenligning med gammel juni.
+## Første ettårs-resultat og avgrenset ONLINE/EMA-sammenligning
 
-Én tung jobb samtidig; root eier oppstart og commits. Underagenter er autorisert.
-Kontroller stabil drift omtrent hver time. Lokal RUNNING_NATIVE_CALIBRATION.json
-og CURRENT_HANDOVER.md får faktisk runtime/plan etter oppstart. Ikke gjenta
-beståtte målinger eller endre frosset kilde mens kampanjen kjører.
+Hele juniVAL er ferdig og klart negativt. Entry valgte4207LONG/1301SHORT/0FLAT.
+Én-posisjonsreplay beholdt første handel til månedsslutt:0modell-exits,1åpen,
+5507hoppet over. Kostnadsjustert cash pluss åpen verdi er−1235.8772Bps på fast
+nominelt beløp, ikke sammensatt kontoavkastning. Uavhengige entrymuligheter har
+snitt−495.3189Bps, ikke porteføljeresultat. Lukkede vinnere er ikke samlet profitt.
+Kontrafaktisk lukkes alle5508SHORT vedstate0; LONG785EXIT og4723HOLD tilsplit-end.
+Retningsprognosen treffer omtrent48–51% på5–60minutter i denne måneden.
+Se handover_snapshot/EPOCH1_FULL_VAL_20260915.json. FullVAL71 315 567tilstandsvisninger/
+291294forwards/42449.66beregningssekunder; samlet relativ speedup er ikke målt.
+
+Bevarteepoch1-vekter ble sammenlignet på samme CPU-input: ONLINEvelgerFLAT påalle8
+fasteEntries; EMA7LONG/1SHORT. Exit har samme sidehandlinger ibegge på10tilstander.
+EMA beholder81.19% parametervekting fra start etter4081steg, men forklarer ikke
+Exit-skjevheten alene. Ingen EMA-policy er endret. Åtte rader er ikke full ONLINE-VAL.
+
+CPU-sanity forblir REVIEW_EMA_REFERENCE_MISMATCH: CPUbatch8 mot GPUEntrybatch16 har
+max0.00012672Bps Q-avvik. Alle8EMA-handlinger matcher; minstemarginEMA0.20565Bps/
+ONLINE4.48361Bps. Ingen konkret input-/normaliseringsfeil funnet. Det kvalitative
+sammeCPU-funnet er tydelig, men numerisk paritetPASS og lønnsomhet hevdes ikke.
+Toleransen er uendret; ingen gjentatt kjøring er nødvendig for dette funnet.
+Se handover_snapshot/EPOCH1_ONLINE_EMA_COMPARE_20260915.json.
+
+## Bevarte porter og arbeidsregler
+
+Native porter på128c55f2 er bestått: faktisk overgang fra original315, GPU256-
+paritet, målt absolutt fart og eksakt32mot16+16 resume på14tilstandskomponenter.
+Dette er historiske bevis fra før optimizerrettelsen. Gjenbruk uendrede inferensbevis;
+ny optimizer-/checkpointovergang må verifiseres før videre trening.
+Gamle femårsresultater/original315og19 908steg er bevart; gammel juni analyseres
+bare med første gamle epochs uforanderlige EMA. Gamle kildekopier er avhengigheter.
+
+Ingen fast holde-/tapsgrense. Bevar alle200features,familier,tidsrammer,kostnader,
+successor-semantikk og checkpoints. Én tung jobb samtidig; underagenter er autorisert
+for avgrenset arbeid, men ingen sideoppgaver under venting. Stabil drift sjekkes
+omtrent hver time. Stående autorisasjon gjelder. Ingen TEST/live/papir/spending.
+
+Oppdater handover ved vesentlig endring og commit/push ferdig rettelse med bevis.
+Resultatbevis og alle gamle kjøringer bevares. Eldre driftsdetaljer er bevart i
+handover_snapshot/CURRENT_HANDOVER_BEFORE_EPOCH2_RESUME_20260915.md.

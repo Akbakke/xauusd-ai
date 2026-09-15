@@ -692,3 +692,58 @@ def test_wave_c_and_full_exit_population_source_guards() -> None:
     assert 'episode["exit_now_reward_bps"]' in trainer_source
     assert "cross_entropy(selected_logits" not in trainer_source
     assert 'episode["exit_state_valid_mask"]' in trainer_source
+
+
+@pytest.mark.parametrize("prediction_scale,task_scale", [(1.0, 60.0), (10.0, 0.25)])
+def test_task_weights_have_separate_gradient_clip_budget(
+    prediction_scale: float, task_scale: float,
+) -> None:
+    model = _TaskWeights()
+    model.register_parameter("prediction", torch.nn.Parameter(torch.zeros(2)))
+    optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+    ema = trainer._WeightEma(model, 0.5)
+    model.prediction.grad = torch.tensor([3.0, 4.0]) * prediction_scale
+    task = model.task_log_variances["unified_exit_action"]
+    task.grad = torch.tensor(task_scale)
+    norm = trainer._optimizer_step_with_finite_gradients(
+        model=model, optimizer=optimizer, weight_ema=ema,
+    )
+    assert float(norm) == pytest.approx(((5 * prediction_scale) ** 2 + task_scale ** 2) ** 0.5)
+    # The prediction update keeps its own full clipping budget even when the
+    # scalar's gradient is much larger; a small scalar gradient is not clipped
+    # merely because the prediction gradient exceeds the cap.
+    torch.testing.assert_close(model.prediction, torch.tensor([-0.6, -0.8]))
+    assert float(task) == pytest.approx(-min(task_scale, 1.0), abs=2e-6)
+    assert ema.steps == 1
+    assert all(parameter.grad is None for parameter in model.parameters())
+    for name, parameter in model.task_log_variances.items():
+        if name != "unified_exit_action":
+            assert float(parameter) == 0.0
+
+
+@pytest.mark.parametrize("bad_group", ["prediction", "task_weight"])
+@pytest.mark.parametrize("bad_gradient", [float("nan"), float("inf"), 1e30])
+def test_separate_clip_checks_all_groups_before_any_mutation(
+    bad_group: str, bad_gradient: float,
+) -> None:
+    model = _TaskWeights()
+    model.register_parameter("prediction", torch.nn.Parameter(torch.zeros(2)))
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    ema = trainer._WeightEma(model, 0.5)
+    model.prediction.grad = torch.tensor([3.0, 4.0])
+    model.task_log_variances["unified_exit_action"].grad = torch.tensor(60.0)
+    bad = model.prediction if bad_group == "prediction" else model.task_log_variances["unified_exit_action"]
+    bad.grad.fill_(bad_gradient)
+    initial = copy.deepcopy(model.state_dict())
+    gradients = {name: p.grad.clone() for name, p in model.named_parameters() if p.grad is not None}
+    with pytest.raises(RuntimeError, match="non-finite"):
+        trainer._optimizer_step_with_finite_gradients(
+            model=model, optimizer=optimizer, weight_ema=ema,
+        )
+    assert not optimizer.state
+    assert ema.steps == 0
+    for name, parameter in model.named_parameters():
+        assert torch.equal(parameter, initial[name])
+        assert torch.equal(ema.state_dict_clone()[name], initial[name])
+        if name in gradients:
+            torch.testing.assert_close(parameter.grad, gradients[name], rtol=0, atol=0, equal_nan=True)

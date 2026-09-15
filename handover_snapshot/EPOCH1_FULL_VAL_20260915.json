@@ -1,0 +1,151 @@
+{
+  "checkpoint_binding": {
+    "binding_sha256": "6893886f492afd7e829b537e4ef5f4e70cddbb5f5ae9ca399386e4bfadecd493",
+    "checkpoint_file_sha256": "3cb80f32e1eb21b81e388f135a85d4726940fc6a8d0189b93f344052ee5ba24c",
+    "checkpoint_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE/validation/epoch_0001.pt",
+    "decision": "PASS",
+    "epoch_index": 0,
+    "global_step": 4081,
+    "immutable_epoch_snapshot": true,
+    "model_architecture_schema_version": "gx1_unified_exit_random_access_model_v1",
+    "model_architecture_sha256": "020cf4f8ef09f605fc45603f781f7b9eee27d1196a768a96acf6ae970f45fe67",
+    "model_state_sha256": "e54248557bc50a1bc4ca2021026c0944ee232c06bf2363308002c6f9659400ce",
+    "model_variant": "weight_ema",
+    "online_buffers_preserved_exactly": true,
+    "online_model_state_sha256": "db64044e81acf8722139566c5c173601947ea92e83027c9e540afa1cc9256572",
+    "parameter_names_sha256": "29c97299b06aced44a0d603230f3e6bbb6062356b6f42dc3a3634b781d5f7354",
+    "schema_version": "gx1_candidate_weight_ema_val_binding_v1",
+    "session_contract_file_sha256": "19a1286b2c6e977246a8b2f890c8295489135586eb05b194ebf71418c8b47d4c",
+    "session_contract_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "session_contract_sha256": "19a1286b2c6e977246a8b2f890c8295489135586eb05b194ebf71418c8b47d4c",
+    "target_model_state_sha256": "28a6e4c0cf2bd49e454ca8070b3457bec289b3c9b3eddf00ec8396649e9ced9b",
+    "test_data_used": false,
+    "weight_ema_decay": 0.9999489483357158,
+    "weight_ema_history": {
+      "optimizer_step_offset": 19908,
+      "transition_receipt": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+        "sha256": "d7666ee7851cc881c059fe1bcbb76e3ea2c1a156af3a8c285665a405a9b292c1"
+      }
+    },
+    "weight_ema_steps": 23989
+  },
+  "code_defect_proven": false,
+  "decision": "COMPLETE_NEGATIVE_REVIEW_BEFORE_FURTHER_WINDOWS",
+  "entry_calibration": {
+    "entry_action_q_raw_bps_mse_mean": 42.82626856016817,
+    "entry_q_target_semantics": "frozen_train_target_exit_first_state_values_long_short_flat",
+    "entry_unique_target_action_agreement": 0.08950617283950617,
+    "entry_unique_target_rows": 5508,
+    "target_updated_from_val_or_test": false
+  },
+  "entry_exit_policy_metrics": {
+    "checkpoint_binding_sha256": "6893886f492afd7e829b537e4ef5f4e70cddbb5f5ae9ca399386e4bfadecd493",
+    "entry_decision_count": 5508,
+    "flat_count": 0,
+    "flat_return_bps": 0.0,
+    "full_cohort_authoritative": false,
+    "long_count": 4207,
+    "mean_net_bps_per_entry": null,
+    "mean_net_bps_per_selected_trade": null,
+    "net_bps_sum": null,
+    "policy_sha256": "53eb39dbd54349ea35c7ab9f1f24914d53b897922f3fd18f068054244d740033",
+    "positive_net_bps_observed": false,
+    "selected_exited_count": 1389,
+    "selected_non_exited_count": 4119,
+    "selected_trade_count": 5508,
+    "semantics": "equal_notional_independent_entry_opportunities_not_portfolio_return",
+    "short_count": 1301,
+    "test_data_used": false
+  },
+  "independent_forecast": {
+    "exit_teacher_used": false,
+    "horizons": [
+      {
+        "constant_mean_baseline_mean_squared_error": 102.30374717224976,
+        "direction_accuracy_on_nonzero_targets": 0.5039069598400873,
+        "mean_squared_error": 102.28667961371725,
+        "nominal_horizon_minutes": 5,
+        "pearson": 0.026200108376288483
+      },
+      {
+        "constant_mean_baseline_mean_squared_error": 517.7273606933453,
+        "direction_accuracy_on_nonzero_targets": 0.5118939531505357,
+        "mean_squared_error": 519.1279011105745,
+        "nominal_horizon_minutes": 25,
+        "pearson": -0.01787278887060795
+      },
+      {
+        "constant_mean_baseline_mean_squared_error": 1210.1994686833564,
+        "direction_accuracy_on_nonzero_targets": 0.4783950617283951,
+        "mean_squared_error": 1224.3020195873573,
+        "nominal_horizon_minutes": 60,
+        "pearson": 0.011086816877124532
+      },
+      {
+        "constant_mean_baseline_mean_squared_error": 2514.395968340394,
+        "direction_accuracy_on_nonzero_targets": 0.44498910675381265,
+        "mean_squared_error": 2548.878004498079,
+        "nominal_horizon_minutes": 120,
+        "pearson": 0.11008756760399348
+      }
+    ],
+    "loss_semantics": "l1_conditional_median_not_direction_probability",
+    "scope": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock"
+  },
+  "input_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/epoch_0001/VAL_RESULT.json",
+    "sha256": "d12b2f3e6cbf8302d65c16b698da37ecc39b468b253d3e36a8bf955b866b7bd6"
+  },
+  "marked_policy_evaluation": {
+    "checkpoint_binding_sha256": "6893886f492afd7e829b537e4ef5f4e70cddbb5f5ae9ca399386e4bfadecd493",
+    "independent_opportunities": {
+      "full_cohort_authoritative": true,
+      "mean_bps_per_entry_opportunity": -495.31894529631955,
+      "net_cash_plus_open_value_bps_sum": -2728216.750692128,
+      "selected_trade_count": 5508,
+      "semantics": "equal_notional_opportunities_not_portfolio_return"
+    },
+    "model_exit_fabricated": false,
+    "policy_sha256": "53eb39dbd54349ea35c7ab9f1f24914d53b897922f3fd18f068054244d740033",
+    "schema_version": "gx1_entry_exit_marked_policy_metrics_v1",
+    "single_position_replay": {
+      "entry_flat_decision_count": 0,
+      "executed_entry_row_indices": [
+        0
+      ],
+      "executed_trade_count": 1,
+      "execution_order": "exit_before_entry_at_equal_timestamp_then_entry_row_order",
+      "full_cohort_authoritative": true,
+      "model_exited_count": 0,
+      "net_cash_plus_open_value_bps_sum": -1235.8772001441498,
+      "open_position_count": 1,
+      "position_rule_trained": false,
+      "semantics": "single_position_fixed_notional_bps_not_compounded_account_return",
+      "skipped_while_position_open_count": 5507
+    },
+    "test_data_used": false,
+    "used_for_early_stopping": false,
+    "valuation_basis": "observed_executable_liquidation_value_after_costs"
+  },
+  "model_or_training_executed_by_this_observation": false,
+  "observed_utc": "2026-09-15T12:49:01.609908+00:00",
+  "profitability_proven": false,
+  "schema_version": "gx1_completed_year_epoch1_learning_observation_v1",
+  "semantic_result_sha256": "f87feb9f0a1e48448d5b9c5e16d238d2988d806b0adf197666333eca99cda7aa",
+  "source_commit": "9cd29a2f57a0880e33c6c0a61b279deb7c15b981",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "status_counts": {
+    "EXITED": 6293,
+    "RIGHT_CENSORED_SPLIT_END": 4723
+  },
+  "test_data_used": false,
+  "throughput": {
+    "elapsed_compute_seconds": 42449.66063510201,
+    "materialized_state_view_count": 71315567,
+    "model_forward_count": 291294,
+    "relative_total_speedup_claimed": false,
+    "state_views_per_compute_second": 1680.0032304858644
+  },
+  "windows_task_future_triggers_disabled_utc": "2026-09-15T12:36:56Z"
+}

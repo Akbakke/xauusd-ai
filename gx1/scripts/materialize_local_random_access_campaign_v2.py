@@ -794,6 +794,7 @@ def materialize_native_candidate_campaign(
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
         require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy, require_native_run_scope,
+        OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
     )
     from gx1.scripts.local_random_access_campaign_v2 import _prepare_private_directory
 
@@ -804,7 +805,10 @@ def materialize_native_candidate_campaign(
     recipe, count = require_native_recipe_metadata(recipe_binding, source_repo=repo, source_commit=commit)
     for number in range(1, window_count + 1):
         ceiling = require_native_run_scope(recipe, invocation_number=number)
-        if ceiling is not None and ceiling >= (count + 15) // 16:
+        epoch_stop = (count + 15) // 16
+        if recipe.get("candidate_resume_origin", {}).get("schema_version") == OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA:
+            epoch_stop *= OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["epoch_index"] + 1
+        if ceiling is not None and ceiling >= epoch_stop:
             raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")
     prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
     selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)

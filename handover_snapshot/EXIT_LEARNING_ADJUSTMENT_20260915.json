@@ -1,0 +1,162 @@
+{
+  "change": {
+    "all_group_finite_check_before_any_mutation": true,
+    "economic_targets_and_loss_unchanged": true,
+    "existing_cap_retained_for_both_groups": true,
+    "no_optimizer_or_ema_reset": true,
+    "optimizer_helper": "gx1/models/entry_v10/entry_v10_ctx_train_v3.py::_optimizer_step_with_finite_gradients",
+    "policy": "separate_model_and_task_weights_v1"
+  },
+  "decision": "CLIPPING_CORRECTION_UNIT_VERIFIED_TRAINING_REMAINS_BLOCKED",
+  "diagnostic_checkpoint_index": 66,
+  "diagnostic_elapsed_seconds": 410.49581494999984,
+  "diagnostic_peak_rss_kib": 12949216,
+  "diagnostic_process_exit_code": 0,
+  "diagnostic_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915/RESULT.json",
+    "sha256": "71f028c7fb548f8b9ea7ddbdd3ff13b7dd709051f819b4c3e531aca26c906db6"
+  },
+  "diagnostic_script": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915/gx1_epoch1_train_exit_diagnostic.py",
+    "sha256": "775f94546fca7c1666698061ed7525c1c0427a7b7cd98eba11254582d36a18f7"
+  },
+  "diagnostic_source_commit": "9cd29a2f57a0880e33c6c0a61b279deb7c15b981",
+  "entry_online_actions": {
+    "FLAT": 64,
+    "LONG": 0,
+    "SHORT": 0,
+    "TIED": 0
+  },
+  "entry_teacher_actions": {
+    "FLAT": 58,
+    "LONG": 3,
+    "SHORT": 3,
+    "TIED": 0
+  },
+  "exit_bias_fixed_proven": false,
+  "gradient_scope": "Isolated native Exit loss with Entry-token reinjection and Exit log-variance term; not combined all-task training gradient",
+  "largest_loss_batch_gradient": {
+    "adam_parameter_update_ratio_claimed": false,
+    "combined_norm": 65.6800576123753,
+    "existing_cap_per_group": 1.0,
+    "model_norm": 26.61369163952585,
+    "new_model_clip_factor": 0.037574643005940114,
+    "old_combined_clip_factor": 0.015225321370398141,
+    "raw_clipped_model_gradient_ratio": 2.4679047549692243,
+    "source": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915/BATCH_02.json",
+      "sha256": "5ea300210220ba75ac0e5a8cf68326b25622b625210e836213b6ff17b6ecf2cf"
+    },
+    "task_weight_squared_norm_fraction": 0.8358113276608793,
+    "task_weights_norm": 60.04649353027344
+  },
+  "next_required": [
+    "Explicit source and optimizer-policy checkpoint transition preserving checkpoint85 state",
+    "Bounded actual learning measurement before deciding on another complete epoch"
+  ],
+  "profitability_proven": false,
+  "sample": {
+    "chronological_train_rank_starts": [
+      0,
+      21760,
+      43520,
+      65264
+    ],
+    "entries": 64,
+    "valid_hold_cells_per_side": 256
+  },
+  "schema_version": "gx1_exit_learning_adjustment_observation_v1",
+  "scope": "four predetermined chronological TRAIN batches; not full-year loss or calibrated edge evidence",
+  "side_fit": {
+    "LONG": {
+      "hold_prediction_bps": {
+        "absmean": 0.15911054762000276,
+        "count": 256,
+        "max": 0.9264323115348816,
+        "mean": 0.1590109702610789,
+        "min": -0.012745901942253113,
+        "negative": 1,
+        "positive": 255,
+        "zero": 0
+      },
+      "hold_target_bps": {
+        "absmean": 4.08994288392114,
+        "count": 256,
+        "max": 92.18392181396484,
+        "mean": -0.566420850477698,
+        "min": -237.8505096435547,
+        "negative": 136,
+        "positive": 120,
+        "zero": 0
+      },
+      "leave_one_batch_out_side_constant": {
+        "weighted_mae_bps": 4.1582393281428836,
+        "weighted_mse_bps2": 275.0716636627726
+      },
+      "online": {
+        "weighted_mae_bps": 4.0913332992595315,
+        "weighted_mse_bps2": 274.9283755840949
+      },
+      "unique_sign_agreement": 0.46484375,
+      "zero_close_now": {
+        "weighted_mae_bps": 4.08994288392114,
+        "weighted_mse_bps2": 274.5709301203145
+      }
+    },
+    "SHORT": {
+      "hold_prediction_bps": {
+        "absmean": 0.10271608298353385,
+        "count": 256,
+        "max": 0.20542959868907928,
+        "mean": -0.09062895055103581,
+        "min": -0.6275122761726379,
+        "negative": 236,
+        "positive": 20,
+        "zero": 0
+      },
+      "hold_target_bps": {
+        "absmean": 4.035102429785184,
+        "count": 256,
+        "max": 234.6127166748047,
+        "mean": 0.5143950684723677,
+        "min": -90.36019897460938,
+        "negative": 123,
+        "positive": 128,
+        "zero": 5
+      },
+      "leave_one_batch_out_side_constant": {
+        "weighted_mae_bps": 4.119403920018764,
+        "weighted_mse_bps2": 267.2276723550698
+      },
+      "online": {
+        "weighted_mae_bps": 4.0302243836194975,
+        "weighted_mse_bps2": 267.10800749688053
+      },
+      "unique_sign_agreement": 0.4860557768924303,
+      "zero_close_now": {
+        "weighted_mae_bps": 4.035102429785184,
+        "weighted_mse_bps2": 266.65766275740964
+      }
+    }
+  },
+  "test_data_used": false,
+  "training_enabled": false,
+  "verification": {
+    "capped_class": "audit",
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/gx1_separate_clip_tests_20260915.log",
+      "sha256": "0cec40c2e561fe01faace46c1f81e61081374239dac8b3b047f917a311d82fcb"
+    },
+    "memory_max": "4G",
+    "new_regression_cases": 8,
+    "passed_test_cases": 109,
+    "process_exit_code": 0,
+    "swap_max": "512M",
+    "test_files": [
+      "tests/test_entry_joint_task_weighting.py",
+      "tests/test_entry_training_kernel_profile.py",
+      "tests/test_candidate_resume_probe.py",
+      "tests/test_entry_training_uninitialized_fill.py"
+    ]
+  }
+}
