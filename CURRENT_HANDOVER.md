@@ -1,22 +1,53 @@
-# Gjeldende status — avgrenset native lærbarhetskontroll, 2026-09-15
+# Gjeldende status — lærbarhetskontroll ferdig, 2026-09-15
 
-Brukerpresisering: jobb direkte mot faktisk læring, ikke mer kode enn nødvendig.
-Den neste kontrollen gjentar64 allerede bundne TRAIN-innganger64ganger med
-samme kombinerte native trening. Bare flyktig loader-rekkefølge endres; ingen
-Q-only-modus eller endring i modell, tapsfunksjoner, teacher91 eller optimizer.
-Original checkpoint95/global5777/epoch1offset1696 bevares. Én privat kontroll
-stopper påglobal6033/offset1952; den teller ikke som ny årsdekning, og kontroll-
-checkpoints har ingen produksjonsfortsettelse. Hele epocher, VAL og TEST er sperret.
+Frossen målekilde var GX1_CURRENT/work/gx1-current, commit6c9328d6.
+Én native kontroll gjentok de samme64 faktiske TRAIN-inngangene64ganger med
+uendret kombinert trening og fast lærer91. Checkpoint95/global5777 ble bevart;
+privat checkpoint99/global6033/epoch1offset1952 er diagnostisk og skal ikke
+fortsette produksjonstrening. Original epoch_order er uendret; ingen ny årsdekning.
 
-216 målrettede tester består (session83689/exit0), inkludert gammel overgang,
-ny origin/replay/resume/EMA og sperrer. Se handover_snapshot/ENTRY_LEARNABILITY_TESTS_20260915.json.
-Neste er commit/push av verifisert kilde, faktisk CPU-overføring av95 med alle
-15komponenter og origin/order bevart, deretter én guarded native256stegskontroll.
-Etterpå brukes eksisterende64 input/targetcacher til identisk paret95→99-måling.
-Ingen ny kohort-/anchoranalyse. Én tung jobb; ingen aktiv trening ved denne commit.
-Dette tester lokal tilpasningsevne, ikke en perfekt lærer eller profitabel policy.
-Eneste kodebase GX1_CURRENT/work/gx1-current. RUNNING_NATIVE_CALIBRATION.json
-inneholder fersk operativ status; historiske kjøringer nedenfor er avsluttet.
+Native kjøring tok1199.510192s inkludert oppstart/observer, uten fysisk reboot.
+GuardPASS, trainer0, observer0, Windows-task Disabled21:17:36UTC; prosessene
+764/709/658 er terminale. Planen er uttømt. Ingen tung jobb er aktiv.
+216 målrettede tester og normal commit-hook bestod før kjøringen. Faktisk
+CPU-overføring bevarte alle15 komponenter. Alle726 Adamtilstander økte256;
+EMA25685→25941, historikkoffset19908 og lærer91 beholdt. Dette er ikke en ny
+kontinuerlig-mot-delt-resume-verifikasjon; tidligere relevante bevis gjenbrukes.
+
+Paret CPU-evaluering95→99 er ferdig (session57439/exit0,41.761691s,
+peak2266684KiB). Fire opprinnelige95-referanser ble gjenskapt bitidentisk;
+begge modeller brukte samme cached inputs/targets og diagnostiske dropoutfrø.
+Ingen ny korpus-/lærerberegning, optimizer, backward, GPU, VAL eller TEST i evalueringen.
+
+Målt på det gjentatte TRAIN-utvalget:
+- Exit-MSE6.888519→0.342115: ned95.0335%. HOLD/EXIT stemmer med lærerens
+  unike preferanse i88.6719% LONG- og90.2344% SHORT-tilfeller.
+- Forecast-retning ved nominelle5/25/60/120min:56.25/60.94/54.69/54.69%
+  →67.19/70.31/84.38/89.06%. Dette er L1-returanslag, ikke kalibrerte sannsynligheter.
+- Entry-Q-MSE19.576542→17.321052: ned11.5214%, men fortsatt64FLAT mot
+  lærer55FLAT/3LONG/6SHORT. Ingen av de ni lærerforetrukne handlene velges.
+
+Dette viser lokal læring i Exit og markedsprognosene; Entry-handlingenes
+økonomiske skille henger etter. Ingen generalisering eller lønnsomhet er bevist.
+Entry-mikser/head endrer vekter, LR er9.890738e-5 og Entry-tapsvekten er
+2.02215→1.95647, altså ikke slått av. Koden stopper fortsatt Entry-Q-gradienten
+før markedsrepresentasjonen. Forecast lærer M5-close-retur over5–120min;
+Entry-verdien inkluderer første M1-lukking pluss svak videreverdi fra lærer91.
+Ulike fortegn mellom disse målene beviser ikke tidsfeil.30av256 observerte
+Bellman-overganger er state0; ikke påstå at første tilstand aldri trenes.
+Ingen lagret native tapskurve finnes i95/98/99; ikke påstå platå/konvergens.
+
+Neste prioritet er å isolere Entry-representasjonens læring av økonomimålet,
+med selvstendig markedssignal og fortsatt skjerming mot Exit-bootstrap.
+Avgrens én presis target-/gradienthypotese før ny kodeendring; gjenbruk denne
+kontrollen og eksisterende native vakter. Ikke innfør terskler/klassevekter,
+bytt modell, gjenta fullførte prober eller start en hel epoch på dette grunnlaget.
+Ingen ny produksjonsendring eller neste treningsplan er bestemt.
+
+Bevis: handover_snapshot/ENTRY_LEARNABILITY_CONTROL_REVIEW_20260915.json,
+ENTRY_LEARNABILITY_PAIRED_RESULT_20260915.json og tilhørende native receipt,
+checkpoint-/forecastgjennomgang. Operatører og logger er bevart under
+NATIVE_ENTRY_LEARNABILITY_6C9328D6. RUNNING_NATIVE_CALIBRATION.json er operativ status.
 
 ## Avsluttet FQI-kontroll og korrekt TRAIN-måling, 2026-09-15
 

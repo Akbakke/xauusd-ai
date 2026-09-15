@@ -1,0 +1,89 @@
+{
+  "schema_version": "gx1_entry_learnability_control_review_v1",
+  "source_commit": "6c9328d6819c24ab1a4717b2b1c691c476facfa5",
+  "native_elapsed_seconds_including_startup_and_observer_excluding_reboot": 1199.510192,
+  "native_guard_decision": "PASS",
+  "native_trainer_exit_code": 0,
+  "native_observer_exit_code": 0,
+  "cpu_evaluator_elapsed_seconds": 41.76169115499988,
+  "cpu_evaluator_exit_code": 0,
+  "cpu_evaluator_peak_rss_kib": 2266684,
+  "paired_result_sha256": "bc8971972996149522f9bb047e2e05e7787ee9a6b12a4a514ec006387f52d2c9",
+  "entry_mse_before": 19.576541984817954,
+  "entry_mse_after": 17.321052009087783,
+  "entry_mse_reduction_percent": 11.521391150078264,
+  "exit_full_two_action_mse_before": 6.8885190905944,
+  "exit_full_two_action_mse_after": 0.3421151480682933,
+  "exit_mse_reduction_percent": 95.03354576551267,
+  "entry_actions_before": {
+    "FLAT": 64,
+    "INVALID": 0,
+    "LONG": 0,
+    "SHORT": 0,
+    "TIED": 0
+  },
+  "entry_actions_after": {
+    "FLAT": 64,
+    "INVALID": 0,
+    "LONG": 0,
+    "SHORT": 0,
+    "TIED": 0
+  },
+  "teacher_actions": {
+    "FLAT": 55,
+    "INVALID": 0,
+    "LONG": 3,
+    "SHORT": 6,
+    "TIED": 0
+  },
+  "forecast_direction_accuracy_before": [
+    0.5625,
+    0.609375,
+    0.546875,
+    0.546875
+  ],
+  "forecast_direction_accuracy_after": [
+    0.671875,
+    0.703125,
+    0.84375,
+    0.890625
+  ],
+  "forecast_nominal_horizons_minutes": [
+    5,
+    25,
+    60,
+    120
+  ],
+  "same_64_train_entries_repeated": 64,
+  "all_four_checkpoint95_references_reproduced_bitwise": true,
+  "adam_step_delta_counts": {
+    "256": 726
+  },
+  "ema_steps_before": 25685,
+  "ema_steps_after": 25941,
+  "all_original_state_and_teacher_preserved_at_transition": true,
+  "original_epoch_order_unchanged": true,
+  "new_continuous_vs_split_resume_equivalence_claimed": false,
+  "entry_parameters_changed": true,
+  "entry_task_precision_before": 2.0221515356039053,
+  "entry_task_precision_after": 1.956465518203973,
+  "optimizer_lr_unchanged": 9.890738003669029e-05,
+  "source_review": {
+    "entry_encoder_gradient_from_entry_q": "blocked by existing detach; Entry mixer/head still trained",
+    "independent_forecast_target": "M5 close return over 1/5/12/24 bars, L1, before execution costs",
+    "entry_target": "first M1 liquidation plus frozen teacher continuation; not the same timestamp/price horizon as M5 forecasts",
+    "sampling_first_state": "30 of256 sampled Bellman transitions are state0; no claim that anchors never receive supervision",
+    "causal_root_proven": false
+  },
+  "limitations": [
+    "Deliberate repeated TRAIN exposure; no held-out improvement or profitability evidence.",
+    "Entry action fit improved11.52percent but still64FLAT; no proof of convergence or inability to learn with more steps.",
+    "No new arbitrary selection threshold, class weighting, model, or production loss change.",
+    "Persisted95/98/99 training_progress has no numeric native loss accumulators; do not invent an intra-run learning curve."
+  ],
+  "production_continuation_allowed": false,
+  "data_coverage_advanced": false,
+  "val_evaluated": false,
+  "test_data_used": false,
+  "next_priority": "Isolate Entry economic representation learning, preserving independent market supervision and excluding Exit-bootstrap gradients from it. Specify one causal target/gradient hypothesis before changing code; reuse fixed64 evidence and existing native safeguards. No full epoch or repeat of completed probes."
+}

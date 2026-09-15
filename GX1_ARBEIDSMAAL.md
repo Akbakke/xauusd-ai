@@ -1,13 +1,16 @@
 ## Gjeldende neste arbeid — 2026-09-15
 
-Kjør én avgrenset native lærbarhetskontroll: samme64bundne TRAIN-innganger
-64ganger, samme kombinerte trening og teacher91, original95 bevart. Kun flyktig
-loader-rekkefølge endres.216målrettede tester består; faktiskCPU-overføring og
-én native256stegskjøring tilglobal6033 gjenstår. Gjenbruk deretter cachet paret
-95→99-evaluering. Ingen Q-only, modell/lossendring, klassevekter, VAL/TEST eller
-hele epocher. Kontrollsteg er ikke ny årsdekning eller produksjonsfortsettelse.
-Bruker minner uttrykkelig om å prioritere faktisk læring og unngå mer kode enn
-nødvendig. Se CURRENT_HANDOVER.md og RUNNING_NATIVE_CALIBRATION.json.
+Lærbarhetskontrollen95→99 er ferdig: Exit-feil ned95.03%, bedre selvstendige
+markedsprognoser, men Entry-feil bare ned11.52% og fortsatt64FLAT mot lærerens
+9handelsmuligheter. Dette er gjentatte TRAIN-data, ikke generalisering/profitt.
+Alle originale checkpoints/resultater er bevart. Ingen aktiv tung jobb; siste
+plan er uttømt, Windows-task Disabled.99 er diagnostisk, ikke produksjonsresume.
+
+Neste prioritet: isoler Entry sin læring av økonomimålet uten å la Exit-bootstrap
+styre det selvstendige markedssignalet. Avgrens én konkret target-/gradienthypotese
+før kode. Ingen ny modell, vilkårlige terskler, full epoch eller gjentatte prober.
+Gjenbruk ferdige tester,64input/targetcacher og de målte før/etter-resultatene.
+Se CURRENT_HANDOVER.md og RUNNING_NATIVE_CALIBRATION.json.
 
 # Gjeldende GX1-mål — 2026-09-14
 

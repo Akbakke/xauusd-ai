@@ -1,0 +1,3211 @@
+{
+  "adam_step_delta_counts": {
+    "256": 726
+  },
+  "all_four_checkpoint95_references_reproduced_bitwise": true,
+  "arms": {
+    "AFTER99": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 1.8645635823825917,
+        "mse_bps2": 17.321052009087783,
+        "prediction_mean_bps": -3.787690190215168,
+        "prediction_positive": 31,
+        "sign_accuracy": 0.6197916666666666,
+        "sign_accuracy_nonzero_targets": 0.9296875,
+        "target_mean_bps": -3.824222521856427,
+        "target_positive": 9,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.429827637660007,
+        "zero_baseline_mse_bps2": 41.67543998271436
+      },
+      "entry_target_actions": {
+        "FLAT": 55,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 6,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.5625,
+              "always_up_accuracy": 0.4375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.671875,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": 1.2229505633295048,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 78.61011229194442,
+              "mean_absolute_error": 5.500781199923949,
+              "mean_squared_error": 68.9724420360188,
+              "metric_type": "regression",
+              "pearson": 0.5045123426406628,
+              "prediction_mean": -0.4534953457477968,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 1.4939358513301018,
+              "spearman_rank_ic": 0.5045787545787546,
+              "target_mean": -1.6764459090773016,
+              "target_nan_inf_count": 0,
+              "target_std": 8.866234391890641
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                25,
+                0,
+                11
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                10,
+                0,
+                18
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 6.16333857527934,
+            "zero_return_baseline_mean_squared_error_bps2": 81.42058317800644
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.703125,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": 1.565914360806346,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 243.57268940329385,
+              "mean_absolute_error": 8.78684546565637,
+              "mean_squared_error": 133.58664363549346,
+              "metric_type": "regression",
+              "pearson": 0.6963529165039238,
+              "prediction_mean": 5.678945902269334,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 8.48624232323664,
+              "spearman_rank_ic": 0.5828296703296703,
+              "target_mean": 4.113031541462988,
+              "target_nan_inf_count": 0,
+              "target_std": 15.606815479247963
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                13
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                6,
+                0,
+                33
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 10.845355310477316,
+            "zero_return_baseline_mean_squared_error_bps2": 260.4897178643633
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.515625,
+              "always_up_accuracy": 0.484375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.84375,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": 0.7258357281680219,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 698.0980338810646,
+              "mean_absolute_error": 10.03373404283775,
+              "mean_squared_error": 246.19318736905538,
+              "metric_type": "regression",
+              "pearson": 0.8150859572871905,
+              "prediction_mean": 2.763668816012796,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 18.16532601487609,
+              "spearman_rank_ic": 0.836584249084249,
+              "target_mean": 2.037833087844774,
+              "target_nan_inf_count": 0,
+              "target_std": 26.421544880666318
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                26,
+                0,
+                7
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                3,
+                0,
+                28
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 18.19002681481652,
+            "zero_return_baseline_mean_squared_error_bps2": 702.2507975749795
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.4375,
+              "always_up_accuracy": 0.5625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.890625,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": 1.4929593866690993,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 1137.8852048125252,
+              "mean_absolute_error": 13.183500920422375,
+              "mean_squared_error": 303.82721845692816,
+              "metric_type": "regression",
+              "pearson": 0.859210875315707,
+              "prediction_mean": 5.8309447737410665,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 27.04708015790415,
+              "spearman_rank_ic": 0.8513736263736262,
+              "target_mean": 4.337985387071967,
+              "target_nan_inf_count": 0,
+              "target_std": 33.73255408077671
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                25,
+                0,
+                3
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                4,
+                0,
+                32
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 26.96083496697247,
+            "zero_return_baseline_mean_squared_error_bps2": 1156.7033220309752
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 0.27869814079235766,
+        "mse_bps2": 0.3421151480682933,
+        "prediction_mean_bps": 0.021184104776693857,
+        "prediction_positive": 263,
+        "sign_accuracy": 0.947265625,
+        "sign_accuracy_nonzero_targets": 0.89453125,
+        "target_mean_bps": 0.016580933639943396,
+        "target_positive": 261,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 1.2026366043241978,
+        "zero_baseline_mse_bps2": 6.903907033179591
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 0.55389106543862,
+          "mse_bps2": 0.6853857949257691,
+          "predicted_actions": {
+            "EXIT": 123,
+            "HOLD": 133,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.1813403131745872,
+          "prediction_positive": 133,
+          "sign_accuracy": 0.88671875,
+          "sign_accuracy_nonzero_targets": 0.88671875,
+          "target_actions": {
+            "EXIT": 120,
+            "HOLD": 136,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.31593475317095,
+          "target_positive": 136,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 2.428758567568366,
+          "zero_baseline_mse_bps2": 14.100363625959814
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 0.5609014977308107,
+          "mse_bps2": 0.6830747973474043,
+          "predicted_actions": {
+            "EXIT": 126,
+            "HOLD": 130,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": -0.09660389406781178,
+          "prediction_positive": 130,
+          "sign_accuracy": 0.90234375,
+          "sign_accuracy_nonzero_targets": 0.90234375,
+          "target_actions": {
+            "EXIT": 131,
+            "HOLD": 125,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.2496110186111764,
+          "target_positive": 125,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 2.3817878497284255,
+          "zero_baseline_mse_bps2": 13.51526450675855
+        }
+      }
+    },
+    "BEFORE95": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 2.0259602792502847,
+        "mse_bps2": 19.576541984817954,
+        "prediction_mean_bps": -3.8053120584130133,
+        "prediction_positive": 34,
+        "sign_accuracy": 0.6197916666666666,
+        "sign_accuracy_nonzero_targets": 0.9296875,
+        "target_mean_bps": -3.824222521856427,
+        "target_positive": 9,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.429827637660007,
+        "zero_baseline_mse_bps2": 41.67543998271436
+      },
+      "entry_target_actions": {
+        "FLAT": 55,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 6,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.5625,
+              "always_up_accuracy": 0.4375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.5625,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": 1.700994692335371,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 78.61011229194442,
+              "mean_absolute_error": 6.076807166973595,
+              "mean_squared_error": 78.77982385312244,
+              "metric_type": "regression",
+              "pearson": 0.28911272393221843,
+              "prediction_mean": 0.024548783258069307,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.6019522287293559,
+              "spearman_rank_ic": 0.2094322344322344,
+              "target_mean": -1.6764459090773016,
+              "target_nan_inf_count": 0,
+              "target_std": 8.866234391890641
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                18,
+                0,
+                18
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                10,
+                0,
+                18
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 6.16333857527934,
+            "zero_return_baseline_mean_squared_error_bps2": 81.42058317800644
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.609375,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": -3.209173283772543,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 243.57268940329385,
+              "mean_absolute_error": 10.573133730329573,
+              "mean_squared_error": 233.51402348657928,
+              "metric_type": "regression",
+              "pearson": 0.36825958503262995,
+              "prediction_mean": 0.9038582576904446,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 2.187207583563029,
+              "spearman_rank_ic": 0.3148351648351648,
+              "target_mean": 4.113031541462988,
+              "target_nan_inf_count": 0,
+              "target_std": 15.606815479247963
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                13
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                12,
+                0,
+                27
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 10.845355310477316,
+            "zero_return_baseline_mean_squared_error_bps2": 260.4897178643633
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.515625,
+              "always_up_accuracy": 0.484375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.546875,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": -1.8373037530109286,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 698.0980338810646,
+              "mean_absolute_error": 18.267646511550993,
+              "mean_squared_error": 689.645595028441,
+              "metric_type": "regression",
+              "pearson": 0.14231864556752144,
+              "prediction_mean": 0.2005293348338455,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 5.280663407103079,
+              "spearman_rank_ic": 0.14148351648351645,
+              "target_mean": 2.037833087844774,
+              "target_nan_inf_count": 0,
+              "target_std": 26.421544880666318
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                16,
+                0,
+                17
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                12,
+                0,
+                19
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 18.19002681481652,
+            "zero_return_baseline_mean_squared_error_bps2": 702.2507975749795
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.4375,
+              "always_up_accuracy": 0.5625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.546875,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -5.1312943790107965,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 1137.8852048125252,
+              "mean_absolute_error": 25.87492010369897,
+              "mean_squared_error": 1084.8329720785675,
+              "metric_type": "regression",
+              "pearson": 0.2643292411116455,
+              "prediction_mean": -0.7933089919388294,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 8.567838667354374,
+              "spearman_rank_ic": 0.21080586080586078,
+              "target_mean": 4.337985387071967,
+              "target_nan_inf_count": 0,
+              "target_std": 33.73255408077671
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                15,
+                0,
+                13
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                16,
+                0,
+                20
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 26.96083496697247,
+            "zero_return_baseline_mean_squared_error_bps2": 1156.7033220309752
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 1.2037997631191502,
+        "mse_bps2": 6.8885190905944,
+        "prediction_mean_bps": 0.02320922461740338,
+        "prediction_positive": 404,
+        "sign_accuracy": 0.7490234375,
+        "sign_accuracy_nonzero_targets": 0.498046875,
+        "target_mean_bps": 0.016580933639943396,
+        "target_positive": 261,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 1.2026366043241978,
+        "zero_baseline_mse_bps2": 6.903907033179591
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 2.4225821468953654,
+          "mse_bps2": 13.961132452900431,
+          "predicted_actions": {
+            "EXIT": 57,
+            "HOLD": 199,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.04949916954319633,
+          "prediction_positive": 199,
+          "sign_accuracy": 0.51171875,
+          "sign_accuracy_nonzero_targets": 0.51171875,
+          "target_actions": {
+            "EXIT": 120,
+            "HOLD": 136,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.31593475317095,
+          "target_positive": 136,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 2.428758567568366,
+          "zero_baseline_mse_bps2": 14.100363625959814
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 2.392616905581235,
+          "mse_bps2": 13.592943909477173,
+          "predicted_actions": {
+            "EXIT": 51,
+            "HOLD": 205,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.043337728926417185,
+          "prediction_positive": 205,
+          "sign_accuracy": 0.484375,
+          "sign_accuracy_nonzero_targets": 0.484375,
+          "target_actions": {
+            "EXIT": 131,
+            "HOLD": 125,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.2496110186111764,
+          "target_positive": 125,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 2.3817878497284255,
+          "zero_baseline_mse_bps2": 13.51526450675855
+        }
+      }
+    }
+  },
+  "backward_executed": false,
+  "binding": {
+    "after": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "e208ed4d094f743aa764c23d7074fcc98b49f8b69649469fe99cc02ccf5df0ff"
+      },
+      "cursor": {
+        "checkpoint_index": 99,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 6033,
+        "next_batch_offset": 1952,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "9b84ab0e830b41a89afaf52b1e482f04bb417ef3a418d2595ca64f8c5c0bacbf"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "f513a0931c8b4620baf15dfed99f04a6e3f6042d576515ca599640c9d24cd4aa"
+      }
+    },
+    "next_run_policy": {
+      "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+      "sha256": "9727df1be7752d69ec9b21d265fe7611d2c6a31958b67a9c8c4fd686d96a7eab"
+    },
+    "output_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/OPERATOR_OBSERVATIONS/FIXED64_PAIRED95_99_CPU_20260915",
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/NATIVE_RECIPE.json",
+      "sha256": "4b5f7a6fce54df0a0669cc5b14b140aa136e0172cac78ca2aa27488150165ac3"
+    },
+    "schema_version": "gx1_entry_learnability_evaluator_binding_v1",
+    "source_commit": "6c9328d6819c24ab1a4717b2b1c691c476facfa5",
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ENTRY_LEARNABILITY.json",
+      "sha256": "de8445ee73712207447391695b3430c1e95cd2d436e71947784672a64f5a3c91"
+    }
+  },
+  "binding_sha256": "76cd9028e8e5cf60770db03ad30fd621b94cb15eb67cc6d8e10e9e7163f78117",
+  "changed_source_paths": [
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+  ],
+  "checkpoint_bindings": {
+    "AFTER99": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "e208ed4d094f743aa764c23d7074fcc98b49f8b69649469fe99cc02ccf5df0ff"
+      },
+      "cursor": {
+        "checkpoint_index": 99,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 6033,
+        "next_batch_offset": 1952,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "9b84ab0e830b41a89afaf52b1e482f04bb417ef3a418d2595ca64f8c5c0bacbf"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "f513a0931c8b4620baf15dfed99f04a6e3f6042d576515ca599640c9d24cd4aa"
+      }
+    },
+    "BEFORE95": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
+      },
+      "cursor": {
+        "checkpoint_index": 95,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5777,
+        "next_batch_offset": 1696,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "f508837dfdbc06615fbad52bd824d89f8750944b57a77ca5a13bab1d4798acf8"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+      }
+    }
+  },
+  "corpus_reloaded": false,
+  "data_coverage_advanced": false,
+  "decision": "FIXED64_ENTRY_LEARNABILITY_OBSERVED",
+  "elapsed_seconds": 41.76169115499988,
+  "ema_history": {
+    "optimizer_step_offset": 19908,
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_LEARNABILITY_6C9328D6/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ENTRY_LEARNABILITY.json",
+      "sha256": "de8445ee73712207447391695b3430c1e95cd2d436e71947784672a64f5a3c91"
+    }
+  },
+  "entry_learning": {
+    "groups": {
+      "teacher_flat_55": {
+        "arms": {
+          "AFTER99": {
+            "actions": {
+              "FLAT": 55,
+              "LONG": 0,
+              "SHORT": 0,
+              "TIED": 0
+            },
+            "matches_teacher_preference": 55,
+            "teacher_preferred_margin_max_bps": 6.349816683679819,
+            "teacher_preferred_margin_mean_bps": 4.849658425812694,
+            "teacher_preferred_margin_min_bps": 2.045689210295677
+          },
+          "BEFORE95": {
+            "actions": {
+              "FLAT": 55,
+              "LONG": 0,
+              "SHORT": 0,
+              "TIED": 0
+            },
+            "matches_teacher_preference": 55,
+            "teacher_preferred_margin_max_bps": 6.256890337914228,
+            "teacher_preferred_margin_mean_bps": 5.487274227731607,
+            "teacher_preferred_margin_min_bps": 4.662838812917471
+          }
+        },
+        "rows": 55
+      },
+      "teacher_trade_9": {
+        "arms": {
+          "AFTER99": {
+            "actions": {
+              "FLAT": 9,
+              "LONG": 0,
+              "SHORT": 0,
+              "TIED": 0
+            },
+            "matches_teacher_preference": 0,
+            "teacher_preferred_margin_max_bps": -3.2629394084215164,
+            "teacher_preferred_margin_mean_bps": -5.126691564917564,
+            "teacher_preferred_margin_min_bps": -7.93474958371371
+          },
+          "BEFORE95": {
+            "actions": {
+              "FLAT": 9,
+              "LONG": 0,
+              "SHORT": 0,
+              "TIED": 0
+            },
+            "matches_teacher_preference": 0,
+            "teacher_preferred_margin_max_bps": -4.923782456666231,
+            "teacher_preferred_margin_mean_bps": -5.937581162899733,
+            "teacher_preferred_margin_min_bps": -6.6134033389389515
+          }
+        },
+        "rows": 9
+      }
+    },
+    "interpretation": "Groups are fixed cached teacher preferences, not proof that taking or skipping a trade would make money.",
+    "rows": [
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.067053767852485,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.73879337310791,
+              -4.079833030700684,
+              -0.012779262848198414
+            ],
+            "teacher_preferred_action_margin_bps": 4.067053767852485
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.802179042249918,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.7909417152404785,
+              -5.982581615447998,
+              0.011237327009439468
+            ],
+            "teacher_preferred_action_margin_bps": 5.802179042249918
+          }
+        },
+        "batch": 0,
+        "child_row": 267986,
+        "entry_time_ns": 1758162900000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 267986,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.466701507568359,
+          -3.9272854328155518,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.579015538096428,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.323292255401611,
+              -5.544773578643799,
+              0.03424195945262909
+            ],
+            "teacher_preferred_action_margin_bps": 5.579015538096428
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.693075228482485,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.693992614746094,
+              -6.132923603057861,
+              -0.0009173862636089325
+            ],
+            "teacher_preferred_action_margin_bps": 5.693075228482485
+          }
+        },
+        "batch": 0,
+        "child_row": 287973,
+        "entry_time_ns": 1767915600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 287973,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.614786624908447,
+          -5.53923225402832,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -3.348782766610384,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -3.371777296066284,
+              -6.053981304168701,
+              -0.022994529455900192
+            ],
+            "teacher_preferred_action_margin_bps": 3.348782766610384
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.177978973835707,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.219135761260986,
+              -5.2615742683410645,
+              -0.04115678742527962
+            ],
+            "teacher_preferred_action_margin_bps": 5.177978973835707
+          }
+        },
+        "batch": 0,
+        "child_row": 307960,
+        "entry_time_ns": 1777533000000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 307960,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -1.8886573314666748,
+          -8.496922492980957,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.613210022449493,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.635775566101074,
+              -6.956761837005615,
+              -0.02256554365158081
+            ],
+            "teacher_preferred_action_margin_bps": -5.613210022449493
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.050172466784716,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -6.081209182739258,
+              -6.338996887207031,
+              -0.03103671595454216
+            ],
+            "teacher_preferred_action_margin_bps": -6.050172466784716
+          }
+        },
+        "batch": 0,
+        "child_row": 253275,
+        "entry_time_ns": 1751258700000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 253275,
+        "teacher_preferred_action": "LONG",
+        "teacher_q_bps": [
+          3.9825186729431152,
+          -16.77635383605957,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.335591975599527,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.376335144042969,
+              -6.300935745239258,
+              -0.04074316844344139
+            ],
+            "teacher_preferred_action_margin_bps": 5.335591975599527
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.906888451427221,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.934579849243164,
+              -5.957647800445557,
+              -0.027691397815942764
+            ],
+            "teacher_preferred_action_margin_bps": 5.906888451427221
+          }
+        },
+        "batch": 0,
+        "child_row": 273262,
+        "entry_time_ns": 1760629200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 273262,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.342426300048828,
+          -4.393165588378906,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.418922687880695,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.413400173187256,
+              -6.341956615447998,
+              0.005522514693439007
+            ],
+            "teacher_preferred_action_margin_bps": 5.418922687880695
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.1495738215744495,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.138758182525635,
+              -6.373611927032471,
+              0.010815639048814774
+            ],
+            "teacher_preferred_action_margin_bps": 5.1495738215744495
+          }
+        },
+        "batch": 0,
+        "child_row": 293249,
+        "entry_time_ns": 1770390600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 293249,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -1.5356231927871704,
+          -9.55723762512207,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.640382896177471,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.719358921051025,
+              -4.642898082733154,
+              -0.002515186555683613
+            ],
+            "teacher_preferred_action_margin_bps": 4.640382896177471
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.136891465634108,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.146224498748779,
+              -5.38142204284668,
+              -0.009333033114671707
+            ],
+            "teacher_preferred_action_margin_bps": 5.136891465634108
+          }
+        },
+        "batch": 0,
+        "child_row": 313236,
+        "entry_time_ns": 1780017600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 313236,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -9.961294174194336,
+          -1.5645649433135986,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.144395760260522,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.147621154785156,
+              -6.070592403411865,
+              -0.0032253945246338844
+            ],
+            "teacher_preferred_action_margin_bps": 5.144395760260522
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.433317406103015,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.422277450561523,
+              -5.894346237182617,
+              0.011039955541491508
+            ],
+            "teacher_preferred_action_margin_bps": 5.433317406103015
+          }
+        },
+        "batch": 0,
+        "child_row": 258551,
+        "entry_time_ns": 1753750800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 258551,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.5953240394592285,
+          -3.923759937286377,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.749791629612446,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -7.139793395996094,
+              -4.686924934387207,
+              0.0628666952252388
+            ],
+            "teacher_preferred_action_margin_bps": -4.749791629612446
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.72629090026021,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.79857063293457,
+              -5.700883388519287,
+              0.025407511740922928
+            ],
+            "teacher_preferred_action_margin_bps": -5.72629090026021
+          }
+        },
+        "batch": 0,
+        "child_row": 278538,
+        "entry_time_ns": 1763108400000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 278538,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -11.750017166137695,
+          0.5660703778266907,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.854697014205158,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.8652119636535645,
+              -6.430249214172363,
+              -0.010514949448406696
+            ],
+            "teacher_preferred_action_margin_bps": 4.854697014205158
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.677532818168402,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.658893585205078,
+              -6.254179954528809,
+              0.018639232963323593
+            ],
+            "teacher_preferred_action_margin_bps": 5.677532818168402
+          }
+        },
+        "batch": 0,
+        "child_row": 298525,
+        "entry_time_ns": 1773044400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 298525,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -8.511944770812988,
+          -2.7964513301849365,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.438724879175425,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.570330619812012,
+              -5.478951930999756,
+              -0.040227051824331284
+            ],
+            "teacher_preferred_action_margin_bps": 5.438724879175425
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.204035233706236,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.46991491317749,
+              -5.206715106964111,
+              -0.0026798732578754425
+            ],
+            "teacher_preferred_action_margin_bps": 5.204035233706236
+          }
+        },
+        "batch": 0,
+        "child_row": 263827,
+        "entry_time_ns": 1756216800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 263827,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.0976738929748535,
+          -5.580423831939697,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.323407161980867,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.644446849822998,
+              -4.28792667388916,
+              0.03548048809170723
+            ],
+            "teacher_preferred_action_margin_bps": 4.323407161980867
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.451771002262831,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.764562129974365,
+              -5.443912029266357,
+              0.007858972996473312
+            ],
+            "teacher_preferred_action_margin_bps": 5.451771002262831
+          }
+        },
+        "batch": 0,
+        "child_row": 283814,
+        "entry_time_ns": 1765801800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 283814,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.863802433013916,
+          -5.516311168670654,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -3.2629394084215164,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -3.1841022968292236,
+              -5.7970194816589355,
+              0.07883711159229279
+            ],
+            "teacher_preferred_action_margin_bps": -3.2629394084215164
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.923782456666231,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -4.911962032318115,
+              -5.612273216247559,
+              0.011820424348115921
+            ],
+            "teacher_preferred_action_margin_bps": -4.923782456666231
+          }
+        },
+        "batch": 0,
+        "child_row": 303801,
+        "entry_time_ns": 1775613300000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 303801,
+        "teacher_preferred_action": "LONG",
+        "teacher_q_bps": [
+          18.097064971923828,
+          -28.66465950012207,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.129736549220979,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.117124080657959,
+              -6.534255027770996,
+              0.01261246856302023
+            ],
+            "teacher_preferred_action_margin_bps": 5.129736549220979
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.720208119601011,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.713395118713379,
+              -5.747793674468994,
+              0.00681300088763237
+            ],
+            "teacher_preferred_action_margin_bps": 5.720208119601011
+          }
+        },
+        "batch": 0,
+        "child_row": 249116,
+        "entry_time_ns": 1749147600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 249116,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.760896682739258,
+          -5.713771343231201,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.33995250146836,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.8907999992370605,
+              -5.338286399841309,
+              0.0016661016270518303
+            ],
+            "teacher_preferred_action_margin_bps": 5.33995250146836
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.059199821203947,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.073176860809326,
+              -5.690885543823242,
+              -0.013977039605379105
+            ],
+            "teacher_preferred_action_margin_bps": 5.059199821203947
+          }
+        },
+        "batch": 0,
+        "child_row": 269103,
+        "entry_time_ns": 1758709200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 269103,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -9.370054244995117,
+          -1.6179362535476685,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.965060893446207,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.657798767089844,
+              -4.947494029998779,
+              0.01756686344742775
+            ],
+            "teacher_preferred_action_margin_bps": 4.965060893446207
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.988131154328585,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.137589931488037,
+              -5.98642635345459,
+              0.0017048008739948273
+            ],
+            "teacher_preferred_action_margin_bps": 5.988131154328585
+          }
+        },
+        "batch": 0,
+        "child_row": 289090,
+        "entry_time_ns": 1768461900000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 289090,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.10245418548584,
+          -5.230541229248047,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.999845161102712,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.012717247009277,
+              -6.705997943878174,
+              -0.01287208590656519
+            ],
+            "teacher_preferred_action_margin_bps": 4.999845161102712
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.969744618982077,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.969973087310791,
+              -5.993415832519531,
+              -0.00022846832871437073
+            ],
+            "teacher_preferred_action_margin_bps": 5.969744618982077
+          }
+        },
+        "batch": 1,
+        "child_row": 284219,
+        "entry_time_ns": 1765942500000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 284219,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -3.5613350868225098,
+          -8.02103042602539,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -2.045689210295677,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -2.0740966796875,
+              -7.277482509613037,
+              -0.028407469391822815
+            ],
+            "teacher_preferred_action_margin_bps": 2.045689210295677
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.669942911714315,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.666661739349365,
+              -5.642965793609619,
+              0.00328117236495018
+            ],
+            "teacher_preferred_action_margin_bps": 4.669942911714315
+          }
+        },
+        "batch": 1,
+        "child_row": 304206,
+        "entry_time_ns": 1775744400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 304206,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -2.3661048412323,
+          -7.4702582359313965,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.154979955404997,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.643334865570068,
+              -5.133975505828857,
+              0.02100444957613945
+            ],
+            "teacher_preferred_action_margin_bps": 5.154979955404997
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.582717377692461,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.569039821624756,
+              -6.169463157653809,
+              0.013677556067705154
+            ],
+            "teacher_preferred_action_margin_bps": 5.582717377692461
+          }
+        },
+        "batch": 1,
+        "child_row": 249521,
+        "entry_time_ns": 1749461100000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 249521,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.526110649108887,
+          -4.585823059082031,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.046345832757652,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.733438968658447,
+              -5.053913116455078,
+              -0.007567283697426319
+            ],
+            "teacher_preferred_action_margin_bps": 5.046345832757652
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.509936612099409,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.508721351623535,
+              -5.869384765625,
+              0.0012152604758739471
+            ],
+            "teacher_preferred_action_margin_bps": 5.509936612099409
+          }
+        },
+        "batch": 1,
+        "child_row": 269508,
+        "entry_time_ns": 1758849900000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 269508,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.5669660568237305,
+          -5.101523399353027,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.90465350728482,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.262171745300293,
+              -5.9129743576049805,
+              -0.008320850320160389
+            ],
+            "teacher_preferred_action_margin_bps": 5.90465350728482
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.828052815049887,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.8302154541015625,
+              -5.931721210479736,
+              -0.0021626390516757965
+            ],
+            "teacher_preferred_action_margin_bps": 5.828052815049887
+          }
+        },
+        "batch": 1,
+        "child_row": 289495,
+        "entry_time_ns": 1768593000000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 289495,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.852277755737305,
+          -5.997303009033203,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.884231518022716,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -7.70142936706543,
+              -4.880070209503174,
+              0.004161308519542217
+            ],
+            "teacher_preferred_action_margin_bps": -4.884231518022716
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.78656367585063,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.795140266418457,
+              -5.802911758422852,
+              -0.008576590567827225
+            ],
+            "teacher_preferred_action_margin_bps": -5.794335167855024
+          }
+        },
+        "batch": 1,
+        "child_row": 309482,
+        "entry_time_ns": 1778220000000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 309482,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -12.628150939941406,
+          1.4371556043624878,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.050211828202009,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.163510322570801,
+              -4.075523853302002,
+              -0.025312025099992752
+            ],
+            "teacher_preferred_action_margin_bps": 4.050211828202009
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.588089291006327,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.599908828735352,
+              -5.620218753814697,
+              -0.011819537729024887
+            ],
+            "teacher_preferred_action_margin_bps": 5.588089291006327
+          }
+        },
+        "batch": 1,
+        "child_row": 254797,
+        "entry_time_ns": 1751962200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 254797,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.344600677490234,
+          -5.1239142417907715,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.397037003189325,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.013532638549805,
+              -4.3804450035095215,
+              0.01659199967980385
+            ],
+            "teacher_preferred_action_margin_bps": 4.397037003189325
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.69152008369565,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.188266277313232,
+              -5.685838222503662,
+              0.005681861191987991
+            ],
+            "teacher_preferred_action_margin_bps": 5.69152008369565
+          }
+        },
+        "batch": 1,
+        "child_row": 274784,
+        "entry_time_ns": 1761316200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 274784,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -10.979427337646484,
+          -0.2451438009738922,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.303971853107214,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.921542167663574,
+              -4.347588539123535,
+              -0.04361668601632118
+            ],
+            "teacher_preferred_action_margin_bps": 4.303971853107214
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.18922771140933,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.196634769439697,
+              -6.0330729484558105,
+              -0.007407058030366898
+            ],
+            "teacher_preferred_action_margin_bps": 5.18922771140933
+          }
+        },
+        "batch": 1,
+        "child_row": 294771,
+        "entry_time_ns": 1771250400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 294771,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -3.560650587081909,
+          -7.5943169593811035,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.647518392652273,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.588849067687988,
+              -4.610759258270264,
+              0.036759134382009506
+            ],
+            "teacher_preferred_action_margin_bps": 4.647518392652273
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.269749324768782,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.774415016174316,
+              -5.277267932891846,
+              -0.007518608123064041
+            ],
+            "teacher_preferred_action_margin_bps": 5.269749324768782
+          }
+        },
+        "batch": 1,
+        "child_row": 260073,
+        "entry_time_ns": 1754437800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 260073,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.336121559143066,
+          -5.137794494628906,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.081907014362514,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.087502479553223,
+              -6.193475723266602,
+              -0.005595465190708637
+            ],
+            "teacher_preferred_action_margin_bps": 5.081907014362514
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.601787198334932,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.587712287902832,
+              -5.902235507965088,
+              0.014074910432100296
+            ],
+            "teacher_preferred_action_margin_bps": 5.601787198334932
+          }
+        },
+        "batch": 1,
+        "child_row": 280060,
+        "entry_time_ns": 1763974200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 280060,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.575516223907471,
+          -5.551074981689453,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.341757211834192,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.698573589324951,
+              -5.366358280181885,
+              -0.02460106834769249
+            ],
+            "teacher_preferred_action_margin_bps": 5.341757211834192
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.762052934616804,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.7972893714904785,
+              -5.766970157623291,
+              -0.004917223006486893
+            ],
+            "teacher_preferred_action_margin_bps": 5.762052934616804
+          }
+        },
+        "batch": 1,
+        "child_row": 300047,
+        "entry_time_ns": 1773731400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 300047,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.493603706359863,
+          -5.069812297821045,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.480205815285444,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.964223861694336,
+              -4.456495761871338,
+              0.02371005341410637
+            ],
+            "teacher_preferred_action_margin_bps": 4.480205815285444
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.752207960933447,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.133310317993164,
+              -4.759297847747803,
+              -0.00708988681435585
+            ],
+            "teacher_preferred_action_margin_bps": 4.752207960933447
+          }
+        },
+        "batch": 1,
+        "child_row": 265349,
+        "entry_time_ns": 1756920600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 265349,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.903672695159912,
+          -4.847705841064453,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.761306527070701,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.452706336975098,
+              -4.7762532234191895,
+              -0.01494669634848833
+            ],
+            "teacher_preferred_action_margin_bps": 4.761306527070701
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.997229691594839,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.435286521911621,
+              -4.987470626831055,
+              0.009759064763784409
+            ],
+            "teacher_preferred_action_margin_bps": 4.997229691594839
+          }
+        },
+        "batch": 1,
+        "child_row": 285336,
+        "entry_time_ns": 1766488800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 285336,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.893129348754883,
+          -6.540909767150879,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.119251724332571,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.85305118560791,
+              -4.149986743927002,
+              -0.030735019594430923
+            ],
+            "teacher_preferred_action_margin_bps": 4.119251724332571
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.41816845163703,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.504353046417236,
+              -5.442389965057373,
+              -0.0242215134203434
+            ],
+            "teacher_preferred_action_margin_bps": 5.41816845163703
+          }
+        },
+        "batch": 1,
+        "child_row": 305323,
+        "entry_time_ns": 1776300300000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 305323,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.311172962188721,
+          -7.050858020782471,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.966785684227943,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.941040515899658,
+              -6.200081825256348,
+              0.025745168328285217
+            ],
+            "teacher_preferred_action_margin_bps": 5.966785684227943
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.926597844809294,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.939080715179443,
+              -6.04000997543335,
+              -0.012482870370149612
+            ],
+            "teacher_preferred_action_margin_bps": 5.926597844809294
+          }
+        },
+        "batch": 1,
+        "child_row": 250638,
+        "entry_time_ns": 1749834600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 250638,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.4579033851623535,
+          -6.400607585906982,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.44556091260165,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -6.430723190307617,
+              -7.919911861419678,
+              0.014837722294032574
+            ],
+            "teacher_preferred_action_margin_bps": -7.93474958371371
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.989926841109991,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.979383945465088,
+              -6.422410488128662,
+              0.010542895644903183
+            ],
+            "teacher_preferred_action_margin_bps": -6.432953383773565
+          }
+        },
+        "batch": 2,
+        "child_row": 300452,
+        "entry_time_ns": 1773872100000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 300452,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -25.7535457611084,
+          11.348061561584473,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.518504100851715,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.597652435302734,
+              -5.507555961608887,
+              0.010948139242827892
+            ],
+            "teacher_preferred_action_margin_bps": 5.518504100851715
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.376608949154615,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.3550848960876465,
+              -5.358788967132568,
+              0.021524053066968918
+            ],
+            "teacher_preferred_action_margin_bps": 5.376608949154615
+          }
+        },
+        "batch": 2,
+        "child_row": 265754,
+        "entry_time_ns": 1757061300000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 265754,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.748283386230469,
+          -5.165450096130371,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.157640601508319,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.095355033874512,
+              -5.164123058319092,
+              -0.006482456810772419
+            ],
+            "teacher_preferred_action_margin_bps": 5.157640601508319
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.790534902364016,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.8987717628479,
+              -5.800426959991455,
+              -0.009892057627439499
+            ],
+            "teacher_preferred_action_margin_bps": 5.790534902364016
+          }
+        },
+        "batch": 2,
+        "child_row": 285741,
+        "entry_time_ns": 1766727600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 285741,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.083944320678711,
+          -6.452263832092285,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.108159963041544,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -6.926022529602051,
+              -5.046131134033203,
+              0.062028829008340836
+            ],
+            "teacher_preferred_action_margin_bps": -5.108159963041544
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.682369727641344,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.720410346984863,
+              -6.651443958282471,
+              -0.03804061934351921
+            ],
+            "teacher_preferred_action_margin_bps": -6.6134033389389515
+          }
+        },
+        "batch": 2,
+        "child_row": 305728,
+        "entry_time_ns": 1776431400000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 305728,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -17.945829391479492,
+          7.144698143005371,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.366768945008516,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.867132186889648,
+              -4.3900580406188965,
+              -0.023289095610380173
+            ],
+            "teacher_preferred_action_margin_bps": 4.366768945008516
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.97803395614028,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.996100425720215,
+              -5.972962379455566,
+              0.005071576684713364
+            ],
+            "teacher_preferred_action_margin_bps": 5.97803395614028
+          }
+        },
+        "batch": 2,
+        "child_row": 251043,
+        "entry_time_ns": 1750148100000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 251043,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -3.9419760704040527,
+          -8.46462345123291,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.750233246944845,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.756153583526611,
+              -6.232472896575928,
+              -0.005920336581766605
+            ],
+            "teacher_preferred_action_margin_bps": 4.750233246944845
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.215578284114599,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.220964431762695,
+              -5.5426716804504395,
+              -0.005386147648096085
+            ],
+            "teacher_preferred_action_margin_bps": 5.215578284114599
+          }
+        },
+        "batch": 2,
+        "child_row": 271030,
+        "entry_time_ns": 1759709700000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 271030,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.7948784828186035,
+          -6.1009087562561035,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.349816683679819,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.8952178955078125,
+              -6.371038913726807,
+              -0.021222230046987534
+            ],
+            "teacher_preferred_action_margin_bps": 6.349816683679819
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.491619985550642,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.472398281097412,
+              -6.58649206161499,
+              0.019221704453229904
+            ],
+            "teacher_preferred_action_margin_bps": 5.491619985550642
+          }
+        },
+        "batch": 2,
+        "child_row": 291017,
+        "entry_time_ns": 1769471400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 291017,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.902005672454834,
+          -7.473221302032471,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.508733461610973,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -7.792688369750977,
+              -4.499667644500732,
+              0.00906581711024046
+            ],
+            "teacher_preferred_action_margin_bps": -4.508733461610973
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.927013870328665,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.92184591293335,
+              -5.975330352783203,
+              0.00516795739531517
+            ],
+            "teacher_preferred_action_margin_bps": -5.980498310178518
+          }
+        },
+        "batch": 2,
+        "child_row": 311004,
+        "entry_time_ns": 1779079800000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 311004,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -20.397680282592773,
+          9.642376899719238,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.256527396850288,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.374755382537842,
+              -5.269134521484375,
+              -0.012607124634087086
+            ],
+            "teacher_preferred_action_margin_bps": 5.256527396850288
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.289328057318926,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.483119487762451,
+              -5.278670310974121,
+              0.010657746344804764
+            ],
+            "teacher_preferred_action_margin_bps": 5.289328057318926
+          }
+        },
+        "batch": 2,
+        "child_row": 256319,
+        "entry_time_ns": 1752649200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 256319,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -2.98262357711792,
+          -7.694952011108398,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.1462015537545085,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.620774269104004,
+              -5.133888244628906,
+              0.012313309125602245
+            ],
+            "teacher_preferred_action_margin_bps": 5.1462015537545085
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.138455372303724,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.159199237823486,
+              -6.140356063842773,
+              -0.0019006915390491486
+            ],
+            "teacher_preferred_action_margin_bps": 6.138455372303724
+          }
+        },
+        "batch": 2,
+        "child_row": 276306,
+        "entry_time_ns": 1762179600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 276306,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.316319942474365,
+          -6.0166192054748535,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.667633316479623,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.653843402862549,
+              -6.844794750213623,
+              0.01378991361707449
+            ],
+            "teacher_preferred_action_margin_bps": 4.667633316479623
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.007187020033598,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.996676921844482,
+              -6.122761249542236,
+              0.010510098189115524
+            ],
+            "teacher_preferred_action_margin_bps": 5.007187020033598
+          }
+        },
+        "batch": 2,
+        "child_row": 296293,
+        "entry_time_ns": 1771946400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 296293,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -1.6294052600860596,
+          -9.779243469238281,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.5442376201972365,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.549335479736328,
+              -6.183910846710205,
+              -0.005097859539091587
+            ],
+            "teacher_preferred_action_margin_bps": 5.5442376201972365
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.542160417884588,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.7079057693481445,
+              -5.535432815551758,
+              0.006727602332830429
+            ],
+            "teacher_preferred_action_margin_bps": 5.542160417884588
+          }
+        },
+        "batch": 2,
+        "child_row": 261595,
+        "entry_time_ns": 1755124800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 261595,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.566854953765869,
+          -7.380304336547852,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.018480155616999,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.992648124694824,
+              -6.2346625328063965,
+              0.025832030922174454
+            ],
+            "teacher_preferred_action_margin_bps": 6.018480155616999
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.903455201536417,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.912217140197754,
+              -6.036059856414795,
+              -0.008761938661336899
+            ],
+            "teacher_preferred_action_margin_bps": 5.903455201536417
+          }
+        },
+        "batch": 2,
+        "child_row": 281582,
+        "entry_time_ns": 1764697800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 281582,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.669449329376221,
+          -6.000164031982422,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.255808795802295,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -6.44575309753418,
+              -6.246528625488281,
+              0.009280170314013958
+            ],
+            "teacher_preferred_action_margin_bps": -6.255808795802295
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.655688192695379,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.654155731201172,
+              -6.177814960479736,
+              0.0015324614942073822
+            ],
+            "teacher_preferred_action_margin_bps": -6.179347421973944
+          }
+        },
+        "batch": 2,
+        "child_row": 301569,
+        "entry_time_ns": 1774418400000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 301569,
+        "teacher_preferred_action": "SHORT",
+        "teacher_q_bps": [
+          -12.504764556884766,
+          0.4811285436153412,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.18424404785037,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.257543087005615,
+              -4.1591010093688965,
+              0.025143038481473923
+            ],
+            "teacher_preferred_action_margin_bps": 4.18424404785037
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.096148017793894,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.135068416595459,
+              -5.093740463256836,
+              0.0024075545370578766
+            ],
+            "teacher_preferred_action_margin_bps": 5.096148017793894
+          }
+        },
+        "batch": 2,
+        "child_row": 266871,
+        "entry_time_ns": 1757607600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 266871,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.474328994750977,
+          -4.392384052276611,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.103930715471506,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.3559675216674805,
+              -4.139533996582031,
+              -0.03560328111052513
+            ],
+            "teacher_preferred_action_margin_bps": 4.103930715471506
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.897886883467436,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.203988075256348,
+              -5.892111778259277,
+              0.005775105208158493
+            ],
+            "teacher_preferred_action_margin_bps": 5.897886883467436
+          }
+        },
+        "batch": 2,
+        "child_row": 286858,
+        "entry_time_ns": 1767360300000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 286858,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.063841819763184,
+          -5.481961250305176,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.485301207751036,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.371596336364746,
+              -5.468661308288574,
+              0.01663989946246147
+            ],
+            "teacher_preferred_action_margin_bps": 5.485301207751036
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.442191947251558,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.428889751434326,
+              -6.014893054962158,
+              0.013302195817232132
+            ],
+            "teacher_preferred_action_margin_bps": 5.442191947251558
+          }
+        },
+        "batch": 3,
+        "child_row": 262000,
+        "entry_time_ns": 1755255900000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 262000,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.277491569519043,
+          -4.7932305335998535,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.81414698716253,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.8215837478637695,
+              -6.269066333770752,
+              -0.007436760701239109
+            ],
+            "teacher_preferred_action_margin_bps": 4.81414698716253
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.677955884486437,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.6772966384887695,
+              -5.8687334060668945,
+              0.0006592459976673126
+            ],
+            "teacher_preferred_action_margin_bps": 5.677955884486437
+          }
+        },
+        "batch": 3,
+        "child_row": 281987,
+        "entry_time_ns": 1764838500000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 281987,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.195667266845703,
+          -6.242645740509033,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -3.8225997015833855,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -3.833718776702881,
+              -7.931525707244873,
+              -0.011119075119495392
+            ],
+            "teacher_preferred_action_margin_bps": -3.8225997015833855
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.737447019666433,
+            "matches_teacher_preference": false,
+            "q_bps": [
+              -5.7518310546875,
+              -6.637259483337402,
+              -0.014384035021066666
+            ],
+            "teacher_preferred_action_margin_bps": -5.737447019666433
+          }
+        },
+        "batch": 3,
+        "child_row": 301974,
+        "entry_time_ns": 1774549500000000000,
+        "group": "teacher_trade_9",
+        "parent_row": 301974,
+        "teacher_preferred_action": "LONG",
+        "teacher_q_bps": [
+          5.439016342163086,
+          -18.242961883544922,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.878033418208361,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.8953633308410645,
+              -5.759575366973877,
+              -0.01732991263270378
+            ],
+            "teacher_preferred_action_margin_bps": 4.878033418208361
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.238487560302019,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.246557235717773,
+              -5.4480814933776855,
+              -0.008069675415754318
+            ],
+            "teacher_preferred_action_margin_bps": 5.238487560302019
+          }
+        },
+        "batch": 3,
+        "child_row": 267276,
+        "entry_time_ns": 1757921100000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 267276,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.138516902923584,
+          -6.3163299560546875,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.078487786464393,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.695272922515869,
+              -6.067699909210205,
+              0.01078787725418806
+            ],
+            "teacher_preferred_action_margin_bps": 6.078487786464393
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.145885247737169,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.153390884399414,
+              -6.243150234222412,
+              -0.007505636662244797
+            ],
+            "teacher_preferred_action_margin_bps": 6.145885247737169
+          }
+        },
+        "batch": 3,
+        "child_row": 287263,
+        "entry_time_ns": 1767673800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 287263,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.866779804229736,
+          -6.036423683166504,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.025851432234049,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.538323402404785,
+              -4.043723106384277,
+              -0.0178716741502285
+            ],
+            "teacher_preferred_action_margin_bps": 4.025851432234049
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.662838812917471,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.656583309173584,
+              -5.4861884117126465,
+              0.006255503743886948
+            ],
+            "teacher_preferred_action_margin_bps": 4.662838812917471
+          }
+        },
+        "batch": 3,
+        "child_row": 307250,
+        "entry_time_ns": 1777291200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 307250,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.934983253479004,
+          -4.102819442749023,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.702642756514251,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.190981864929199,
+              -5.701026439666748,
+              0.0016163168475031853
+            ],
+            "teacher_preferred_action_margin_bps": 5.702642756514251
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.720602046698332,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.724198341369629,
+              -5.938324928283691,
+              -0.0035962946712970734
+            ],
+            "teacher_preferred_action_margin_bps": 5.720602046698332
+          }
+        },
+        "batch": 3,
+        "child_row": 252565,
+        "entry_time_ns": 1750844100000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 252565,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -6.949042320251465,
+          -4.496979236602783,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.064915154129267,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.022625923156738,
+              -5.650226593017578,
+              0.04228923097252846
+            ],
+            "teacher_preferred_action_margin_bps": 5.064915154129267
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.737448122352362,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.1232008934021,
+              -5.754046440124512,
+              -0.01659831777215004
+            ],
+            "teacher_preferred_action_margin_bps": 5.737448122352362
+          }
+        },
+        "batch": 3,
+        "child_row": 272552,
+        "entry_time_ns": 1760397000000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 272552,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -7.597423553466797,
+          -3.5922868251800537,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -3.931729592382908,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -3.891871213912964,
+              -5.995443820953369,
+              0.039858378469944
+            ],
+            "teacher_preferred_action_margin_bps": 3.931729592382908
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -6.256890337914228,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.2555251121521,
+              -7.297769546508789,
+              0.00136522576212883
+            ],
+            "teacher_preferred_action_margin_bps": 6.256890337914228
+          }
+        },
+        "batch": 3,
+        "child_row": 292539,
+        "entry_time_ns": 1770148800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 292539,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -10.47622013092041,
+          -1.3283835649490356,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -2.9960668636485934,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.616209983825684,
+              -2.991413116455078,
+              0.004653747193515301
+            ],
+            "teacher_preferred_action_margin_bps": 2.9960668636485934
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.124235402792692,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.140905380249023,
+              -5.46598482131958,
+              -0.016669977456331253
+            ],
+            "teacher_preferred_action_margin_bps": 5.124235402792692
+          }
+        },
+        "batch": 3,
+        "child_row": 312526,
+        "entry_time_ns": 1779775800000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 312526,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -8.17125129699707,
+          -2.2997310161590576,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.558646354824305,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.115276336669922,
+              -4.617020130157471,
+              -0.05837377533316612
+            ],
+            "teacher_preferred_action_margin_bps": 4.558646354824305
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.692247938364744,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.789178371429443,
+              -5.695771217346191,
+              -0.00352327898144722
+            ],
+            "teacher_preferred_action_margin_bps": 5.692247938364744
+          }
+        },
+        "batch": 3,
+        "child_row": 257841,
+        "entry_time_ns": 1753336200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 257841,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.717297554016113,
+          -5.84541654586792,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.69080928247422,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -7.499188423156738,
+              -4.697960376739502,
+              -0.007151094265282154
+            ],
+            "teacher_preferred_action_margin_bps": 4.69080928247422
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.521132003515959,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.519107341766357,
+              -5.5655364990234375,
+              0.002024661749601364
+            ],
+            "teacher_preferred_action_margin_bps": 5.521132003515959
+          }
+        },
+        "batch": 3,
+        "child_row": 277828,
+        "entry_time_ns": 1762866600000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 277828,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -10.183258056640625,
+          -1.6623090505599976,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.773667883127928,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.766387939453125,
+              -5.7405104637146,
+              0.03315741941332817
+            ],
+            "teacher_preferred_action_margin_bps": 5.773667883127928
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.876249153167009,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -4.8570427894592285,
+              -5.8923468589782715,
+              0.019206363707780838
+            ],
+            "teacher_preferred_action_margin_bps": 4.876249153167009
+          }
+        },
+        "batch": 3,
+        "child_row": 297815,
+        "entry_time_ns": 1772633400000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 297815,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -1.929727554321289,
+          -9.135303497314453,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.0198250114917755,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.023434638977051,
+              -4.977311611175537,
+              0.0425134003162384
+            ],
+            "teacher_preferred_action_margin_bps": 5.0198250114917755
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -4.971879165619612,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.017539978027344,
+              -4.957880973815918,
+              0.013998191803693771
+            ],
+            "teacher_preferred_action_margin_bps": 4.971879165619612
+          }
+        },
+        "batch": 3,
+        "child_row": 263117,
+        "entry_time_ns": 1755802200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 263117,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.168890476226807,
+          -5.274205684661865,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.4576441971585155,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -6.523200988769531,
+              -5.457904815673828,
+              -0.00026061851531267166
+            ],
+            "teacher_preferred_action_margin_bps": 5.4576441971585155
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.5442229844629765,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.53885555267334,
+              -5.848818778991699,
+              0.005367431789636612
+            ],
+            "teacher_preferred_action_margin_bps": 5.5442229844629765
+          }
+        },
+        "batch": 3,
+        "child_row": 283104,
+        "entry_time_ns": 1765387200000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 283104,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -5.024176120758057,
+          -5.855775356292725,
+          0.0
+        ]
+      },
+      {
+        "arms": {
+          "AFTER99": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -3.3020359948277473,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -3.3367183208465576,
+              -6.97924280166626,
+              -0.03468232601881027
+            ],
+            "teacher_preferred_action_margin_bps": 3.3020359948277473
+          },
+          "BEFORE95": {
+            "action": "FLAT",
+            "best_trade_minus_flat_bps": -5.303011503070593,
+            "matches_teacher_preference": true,
+            "q_bps": [
+              -5.315890312194824,
+              -6.516289710998535,
+              -0.012878809124231339
+            ],
+            "teacher_preferred_action_margin_bps": 5.303011503070593
+          }
+        },
+        "batch": 3,
+        "child_row": 303091,
+        "entry_time_ns": 1775112300000000000,
+        "group": "teacher_flat_55",
+        "parent_row": 303091,
+        "teacher_preferred_action": "FLAT",
+        "teacher_q_bps": [
+          -4.044506072998047,
+          -8.05586051940918,
+          0.0
+        ]
+      }
+    ]
+  },
+  "frozen_target_forward_calls": 0,
+  "frozen_teacher_model_state_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "gpu_used": false,
+  "historical_gpu_rng_replay_claimed": false,
+  "interpretation": "Fit after deliberate repeated TRAIN exposure to the fixed64 cohort. Both students use identical cached CPU targets from ONLINE91 and paired diagnostic dropout. Nine teacher trade preferences and55 teacher FLAT preferences are not realized-profit labels or held-out evidence.",
+  "model_state_sha256": {
+    "AFTER99": "0aaeeadae3ff40c3411b4b2e32c61e06b821ad7f9eba3dccd207f753d9d842a5",
+    "BEFORE95": "355a9cc134a83aac47a3a6f099fb3f0e48c686abe02c093789f85094ccb85813"
+  },
+  "native_gpu_and_cpu_target_bitidentity_claimed": false,
+  "one_model": true,
+  "operator_script_sha256": "e3233a4148686c5621316f41fd2af3eddda02365b7660e1bba7c627baa9c2880",
+  "optimizer_constructed_or_stepped": false,
+  "original_epoch_order_sha256_unchanged": "84813100efc927211156cf485cfe2334a70bed8c50236e4372f32c78d8fbfa65",
+  "peak_rss_kib": 2266684,
+  "production_continuation_allowed": false,
+  "profitability_or_heldout_improvement_proven": false,
+  "reference_batch_sha256": [
+    "a573ee5902259412911f9fcb5058a7b81dac7d698cae36a568d66ef1334996fd",
+    "47a06742f6f550d45b36340662799483eb72a39e15d9c949f7930f4f2e28711b",
+    "addb8a4c2561cd881fe550a84b1137b69f43b1dcef2e4d3b74ca4090dad56c13",
+    "c5aa2672e2a8e987b37a25d7554fb1c3adf19986b58dcac5a6722ee788305422"
+  ],
+  "reference_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/RESULT.json",
+    "sha256": "aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa"
+  },
+  "replay_policy": {
+    "batch_offset_end": 1952,
+    "batch_offset_start": 1696,
+    "epoch_index": 1,
+    "epoch_order_sha256": "84813100efc927211156cf485cfe2334a70bed8c50236e4372f32c78d8fbfa65",
+    "native_batch_offsets": [
+      1440,
+      1525,
+      1610,
+      1695
+    ],
+    "parent_row_count": 64,
+    "repeats": 64,
+    "selected_sample_plan_sha256": "4d06c8ca56f00ba237168df12bf3ae36fc2359d160e1292a1641b280d61ca1a9"
+  },
+  "schema_version": "gx1_entry_learnability_observation_v1",
+  "source_bindings_sha256": "5926e306c15013ae89198df40be0730d7ff271da9975b8c33bb12cd628434a2c",
+  "source_checkpoints_inputs_targets_policy_models_and_process_rng_preserved": true,
+  "target_promotion_performed": false,
+  "test_data_used": false,
+  "train_only": true,
+  "val_evaluated": false
+}

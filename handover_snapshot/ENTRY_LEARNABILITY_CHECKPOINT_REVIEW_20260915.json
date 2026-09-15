@@ -1,0 +1,201 @@
+{
+  "entry_q_parameters": {
+    "entry_q_joint_in.bias": {
+      "after_l2": 0.2789120674133301,
+      "before_l2": 0.29009971022605896,
+      "change_l2": 0.059181272983551025,
+      "max_absolute_change": 0.01346038281917572
+    },
+    "entry_q_joint_in.weight": {
+      "after_l2": 15.527486801147461,
+      "before_l2": 15.428842544555664,
+      "change_l2": 2.2912895679473877,
+      "max_absolute_change": 0.0584716796875
+    },
+    "entry_q_joint_norm.bias": {
+      "after_l2": 1.1960558891296387,
+      "before_l2": 1.1388370990753174,
+      "change_l2": 0.14191769063472748,
+      "max_absolute_change": 0.01918121427297592
+    },
+    "entry_q_joint_norm.weight": {
+      "after_l2": 23.101207733154297,
+      "before_l2": 23.009878158569336,
+      "change_l2": 0.24391019344329834,
+      "max_absolute_change": 0.04460585117340088
+    },
+    "head_entry_action_q.bias": {
+      "after_l2": 0.03374577686190605,
+      "before_l2": 0.032060932368040085,
+      "change_l2": 0.003774479264393449,
+      "max_absolute_change": 0.003017270937561989
+    },
+    "head_entry_action_q.weight": {
+      "after_l2": 2.5548782348632812,
+      "before_l2": 2.3334991931915283,
+      "change_l2": 0.46281734108924866,
+      "max_absolute_change": 0.08088420331478119
+    }
+  },
+  "optimizer_groups": {
+    "AFTER99": [
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": null,
+        "fused": null,
+        "initial_lr": 0.0001,
+        "lr": 9.890738003669029e-05,
+        "maximize": false,
+        "parameter_count": 722,
+        "weight_decay": 0.0001
+      },
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": null,
+        "fused": null,
+        "initial_lr": 0.0001,
+        "lr": 9.890738003669029e-05,
+        "maximize": false,
+        "parameter_count": 10,
+        "weight_decay": 0.0
+      }
+    ],
+    "BEFORE95": [
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": null,
+        "fused": null,
+        "initial_lr": 0.0001,
+        "lr": 9.890738003669029e-05,
+        "maximize": false,
+        "parameter_count": 722,
+        "weight_decay": 0.0001
+      },
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": null,
+        "fused": null,
+        "initial_lr": 0.0001,
+        "lr": 9.890738003669029e-05,
+        "maximize": false,
+        "parameter_count": 10,
+        "weight_decay": 0.0
+      }
+    ]
+  },
+  "scope": "Checkpoint-only review of observed Entry action fit gap; no forwards, gradients, optimizer or GPU",
+  "task_weights": {
+    "AFTER99": {
+      "dip_bps": {
+        "log_variance": 1.92326819896698,
+        "precision": 0.14612860351950646
+      },
+      "dip_timing_fraction": {
+        "log_variance": -1.6555628776550293,
+        "precision": 5.236026335090447
+      },
+      "entry_action_q": {
+        "log_variance": -0.6711395382881165,
+        "precision": 1.956465518203973
+      },
+      "forecast_return_bps": {
+        "log_variance": 2.7334139347076416,
+        "precision": 0.06499701490317253
+      },
+      "forward_volatility_bps": {
+        "log_variance": 0.3544050455093384,
+        "precision": 0.7015907336194349
+      },
+      "position_size": {
+        "log_variance": -2.4944143295288086,
+        "precision": 12.114636255739462
+      },
+      "side_mae_bps": {
+        "log_variance": 2.7092127799987793,
+        "precision": 0.06658920644243094
+      },
+      "tail_risk_bps": {
+        "log_variance": 1.9050999879837036,
+        "precision": 0.14880776289008477
+      },
+      "trendline_event": {
+        "log_variance": -1.2571107149124146,
+        "precision": 3.5152502405261608
+      },
+      "unified_exit_action": {
+        "log_variance": 2.1408278942108154,
+        "precision": 0.11755747756807605
+      }
+    },
+    "BEFORE95": {
+      "dip_bps": {
+        "log_variance": 1.9577218294143677,
+        "precision": 0.14117968624197924
+      },
+      "dip_timing_fraction": {
+        "log_variance": -1.6052602529525757,
+        "precision": 4.979155273992626
+      },
+      "entry_action_q": {
+        "log_variance": -0.704162061214447,
+        "precision": 2.0221515356039053
+      },
+      "forecast_return_bps": {
+        "log_variance": 2.773359537124634,
+        "precision": 0.062451842632289055
+      },
+      "forward_volatility_bps": {
+        "log_variance": 0.39407801628112793,
+        "precision": 0.674301447697001
+      },
+      "position_size": {
+        "log_variance": -2.4511687755584717,
+        "precision": 11.601898813767626
+      },
+      "side_mae_bps": {
+        "log_variance": 2.7551753520965576,
+        "precision": 0.06359786667169219
+      },
+      "tail_risk_bps": {
+        "log_variance": 1.9434479475021362,
+        "precision": 0.14320931932296813
+      },
+      "trendline_event": {
+        "log_variance": -1.2180085182189941,
+        "precision": 3.3804489232971506
+      },
+      "unified_exit_action": {
+        "log_variance": 2.172595977783203,
+        "precision": 0.1138815987485246
+      }
+    }
+  }
+}
