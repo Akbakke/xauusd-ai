@@ -1,3 +1,27 @@
+# Gjeldende neste arbeid — fortsett samme læringskontroll fra99
+
+Ny avgrenset CPU-observasjon av beholdt checkpoint98 er ferdig, session1529/exit0,
+7.9742s. Samme64cachedTRAIN-inputs og samme diagnostiske dropout. Entry-MSE
+95:19.576542 →98:17.918624 →99:17.321052; alle64 fortsattFLAT. Siste64 oppdateringer
+reduserte feilen0.597572. Dette støtter videre avgrenset innlæring; ingen påvist
+konvergens/platå. Ingen tidligere forwards/evalueringer ble gjentatt. Operatør og
+logg er bevart under den avsluttede64-kontrollen; resultat i handover_snapshot.
+
+Hypotesen om L1-median kontra forventningsverdi er ikke bekreftet som årsak.
+Ikke endre forecast-tap, gradientgrenser eller modell nå. Fortsett nøyaktig samme
+kombinerte læring fra99/global6033 til høyst7057:1024 ekstra optimizersteg på
+samme64innganger,256 videre repetisjoner. Frossen lærer91, original epoch_order,
+alle checkpoints og modell-/optimizer-/EMA-/RNG-tilstand ved overgang bevares.
+Dette er ingen ny årsdekning; diagnostiske checkpoints er ikke produksjonsresume.
+
+236 målrettede tester består. Bare tre eksisterende eiere for kjøregrense,
+loader/resume og EMA-historikk er justert. AST-verifikasjon viser seks numeriske
+forward/loss/backward/optimizer-eiere uendret. Ingen refaktorering eller ny modell.
+Neste: commit/push, én faktiskCPU-overføring av99, deretter én native guarded
+kjøring fra frisk fysisk boot. Ingen aktiv tung jobb ved denne commit. Gjenbruk
+cachet99-resultat for paret99→115 etter kjøringen; hele epocher/VAL/TEST sperret.
+Se RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json.
+
 # Gjeldende status — lærbarhetskontroll ferdig, 2026-09-15
 
 Frossen målekilde var GX1_CURRENT/work/gx1-current, commit6c9328d6.

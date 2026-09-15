@@ -321,3 +321,146 @@ def test_materializer_keeps_control_before_full_epoch(learnability_scope, tmp_pa
             selection_file_sha256="a" * 64, recipe_path=tmp_path / "recipe.json", recipe_file_sha256="a" * 64, window_count=1,
         )
     assert not (tmp_path / "uncreated").exists() and not (tmp_path / "uncreated-runtime").exists()
+
+
+@pytest.fixture
+def continued_learnability_origin(learnability_origin, tmp_path, monkeypatch):
+    directory = tmp_path / 'stopped99'
+    directory.mkdir()
+    recipe = _write(tmp_path / 'stopped99-recipe.json', {'candidate_resume_origin': learnability_origin})
+    contract = _write(directory / 'CANDIDATE_TRAINING_SESSION_CONTRACT.json', {
+        'recipe_source_provenance': {'recipe_audit_path': recipe['path'], 'recipe_audit_sha256': recipe['sha256']},
+    })
+    inherited = ema.bind_candidate_weight_ema_history_v1(
+        session_contract_path=Path(learnability_origin['contract']['path']),
+        session_contract_sha256=learnability_origin['contract']['sha256'])
+    cohort = json.loads(Path(learnability_origin['cohort']['path']).read_text())
+    _write(directory / native.ENTRY_LEARNABILITY_RECEIPT_NAME, {
+        'schema_version': native.ENTRY_LEARNABILITY_RECEIPT_SCHEMA,
+        'origin': learnability_origin, 'origin_cursor': native.ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+        'origin_state_sha256': native.ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+        'destination_session_contract_sha256': contract['sha256'],
+        'inherited_weight_ema_history': inherited, 'ema_internal_steps': 25685,
+        'global_optimizer_steps': 5777, 'state_preserved': True,
+        'optimizer_procedure_changed': False, 'identical_future_trajectory_claimed': False,
+        'changed_sample_history': True, 'data_coverage_advanced': False, 'production_continuation_allowed': False,
+        'fixed_teacher_model_state_sha256': native.ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
+        'replay_policy': {**native.ENTRY_LEARNABILITY_REPLAY_POLICY,
+            'epoch_order_sha256': cohort['epoch_order_sha256'],
+            'selected_sample_plan_sha256': cohort['selected_sample_plan_sha256']},
+        'preserved_state_fields': ['model_state', 'target_model_state', 'optimizer_state', 'weight_ema_state',
+            'lr_scheduler_state', 'rng_state', 'epoch_order', 'training_progress'],
+    })
+    state = directory / 'candidate_training_state_slot_0.pt'
+    state.write_bytes(b'scope fixture99; no native tensor deserialization')
+    state_sha = native.file_sha256(state)
+    pointer = _write(directory / 'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json', {
+        **native.ENTRY_LEARNABILITY_CONTINUATION_CURSOR,
+        'schema_version': 'gx1_candidate_training_session_v1', 'slot': 0,
+        'session_contract_sha256': contract['sha256'], 'state_sha256': state_sha,
+    })
+    for suffix, value in [('CONTRACT_SHA256', contract['sha256']), ('POINTER_SHA256', pointer['sha256']), ('STATE_SHA256', state_sha)]:
+        monkeypatch.setattr(native, 'ENTRY_LEARNABILITY_CONTINUATION_' + suffix, value)
+    return {**learnability_origin, 'contract': contract, 'pointer': pointer}
+
+
+@pytest.fixture
+def continued_learnability_scope(learnability_scope, continued_learnability_origin):
+    policy, recipe, write, save = learnability_scope
+    recipe['candidate_resume_origin'] = continued_learnability_origin
+    policy['native_learning_calibration']['additional_optimizer_step_ceilings'] = [1024]
+    save()
+    return policy, recipe, write, save
+
+
+def test_continued_scope_binds99_without_reinterpreting95(continued_learnability_scope, learnability_origin):
+    policy, recipe, _, save = continued_learnability_scope
+    assert native.require_native_run_scope(recipe, invocation_number=1) == 7057
+    assert native.entry_learnability_control(learnability_origin)['step_ceiling'] == 6033
+    assert native.entry_learnability_control(recipe['candidate_resume_origin'])['cursor']['checkpoint_index'] == 99
+    with pytest.raises(RuntimeError, match='INVOCATION_INVALID'):
+        native.require_native_run_scope(recipe, invocation_number=2)
+    recipe['candidate_resume_origin'] = learnability_origin
+    save()
+    with pytest.raises(RuntimeError, match='CALIBRATION_SCOPE_INVALID'):
+        native.require_native_run_scope(recipe)
+    policy['native_learning_calibration']['additional_optimizer_step_ceilings'] = [256]
+    save()
+    assert native.require_native_run_scope(recipe) == 6033
+
+
+@pytest.mark.parametrize('ceiling', [6033, 7056, 7058, 8162, True])
+def test_continued_scope_rejects_wrong_budget(continued_learnability_scope, ceiling):
+    _, recipe, _, _ = continued_learnability_scope
+    with pytest.raises(RuntimeError, match='STEP_CEILING_INVALID'):
+        native.require_native_run_scope(recipe, execution_budget={'stop_after_optimizer_steps': ceiling})
+
+
+@pytest.mark.parametrize('offset', [1952, 1953, 2208, 2975, 2976])
+def test_continued_replay_preserves_order_and_remaining_suffix(offset):
+    order = torch.arange(65295, dtype=torch.int64).flip(0)
+    original, rng = order.clone(), torch.get_rng_state().clone()
+    cohort = _cohort(order)
+    origin = {'contract': {'sha256': native.ENTRY_LEARNABILITY_CONTINUATION_CONTRACT_SHA256}}
+    replay = trainer._candidate_entry_learnability_order(order, cohort=cohort, epoch_index=1, next_batch_offset=offset, origin=origin)
+    expected = torch.tensor(cohort['parent_rows'], dtype=torch.int64).repeat(256)
+    assert torch.equal(order, original) and torch.equal(torch.get_rng_state(), rng)
+    assert replay.data_ptr() != order.data_ptr()
+    assert torch.equal(replay[:1952*16], original[:1952*16])
+    assert torch.equal(replay[2976*16:], original[2976*16:])
+    assert torch.equal(replay[1952*16:2976*16], expected)
+    assert list(trainer._ExactIndexSampler(replay, batch_offset=offset, batch_size=16))[:(2976-offset)*16] == expected[(offset-1952)*16:].tolist()
+
+
+@pytest.mark.parametrize('offset', [1951, 2977, True, 1952.0])
+def test_continued_replay_rejects_wrong_cursor(offset):
+    order = torch.arange(65295, dtype=torch.int64)
+    origin = {'contract': {'sha256': native.ENTRY_LEARNABILITY_CONTINUATION_CONTRACT_SHA256}}
+    with pytest.raises(RuntimeError):
+        trainer._candidate_entry_learnability_order(order, cohort=_cohort(order), epoch_index=1, next_batch_offset=offset, origin=origin)
+
+
+@pytest.mark.parametrize('artifact', ['contract', 'pointer', 'state'])
+def test_continued_origin_rejects_changed_checkpoint(continued_learnability_origin, artifact):
+    origin = continued_learnability_origin
+    path = Path(origin['pointer']['path']).parent / 'candidate_training_state_slot_0.pt' if artifact == 'state' else Path(origin[artifact]['path'])
+    path.write_bytes(path.read_bytes() + b' ')
+    with pytest.raises(RuntimeError): native.require_entry_learnability_origin(origin)
+
+
+def test_continued_history_retains_old95_receipt(continued_learnability_origin, learnability_origin):
+    origin = continued_learnability_origin
+    assert native.require_entry_learnability_origin(origin) == origin
+    history = ema.bind_candidate_weight_ema_history_v1(
+        session_contract_path=Path(origin['contract']['path']), session_contract_sha256=origin['contract']['sha256'])
+    assert history['optimizer_step_offset'] == 19908
+    receipt_path = Path(history['transition_receipt']['path'])
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt['origin'] == learnability_origin
+    assert receipt['replay_policy']['batch_offset_end'] == 1952
+    _write(receipt_path, {**receipt, 'replay_policy': native.ENTRY_LEARNABILITY_CONTINUATION_REPLAY_POLICY})
+    with pytest.raises(RuntimeError):
+        ema.bind_candidate_weight_ema_history_v1(
+            session_contract_path=Path(origin['contract']['path']), session_contract_sha256=origin['contract']['sha256'])
+
+
+def test_actual_continued_transition_preserves_state_and_declares_new_bound(tmp_path, monkeypatch):
+    old_cursor = native.ENTRY_LEARNABILITY_ORIGIN_CURSOR
+    monkeypatch.setattr(native, 'ENTRY_LEARNABILITY_ORIGIN_CURSOR', native.ENTRY_LEARNABILITY_CONTINUATION_CURSOR)
+    (old, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch, entry_learnability=True, cohort_factory=_cohort)
+    monkeypatch.setattr(native, 'ENTRY_LEARNABILITY_ORIGIN_CURSOR', old_cursor)
+    for suffix, value in [('CONTRACT_SHA256', origin['contract']['sha256']), ('POINTER_SHA256', origin['pointer']['sha256']), ('STATE_SHA256', native.ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256)]:
+        monkeypatch.setattr(native, 'ENTRY_LEARNABILITY_CONTINUATION_' + suffix, value)
+    before = old.load_checkpoint()
+    state = trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    for key in before.keys() - {'session_contract_sha256'}: _identical(state[key], before[key])
+    receipt = json.loads((new.directory / native.ENTRY_LEARNABILITY_RECEIPT_NAME).read_text())
+    assert receipt['origin_cursor'] == native.ENTRY_LEARNABILITY_CONTINUATION_CURSOR
+    assert receipt['ema_internal_steps'] == 25941
+    assert receipt['replay_policy']['batch_offset_start'] == 1952
+    assert receipt['replay_policy']['batch_offset_end'] == 2976
+    assert receipt['replay_policy']['repeats'] == 256
+    assert receipt['production_continuation_allowed'] is False
+    assert receipt['state_preserved'] is True and receipt['optimizer_procedure_changed'] is False
+    new.save_checkpoint(state)
+    _identical(new.load_checkpoint(), state)

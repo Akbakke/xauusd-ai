@@ -66,9 +66,8 @@ def bind_candidate_weight_ema_history_v1(
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
         FQI_TARGET_REFRESH_RECEIPT_SCHEMA, require_fqi_target_refresh_origin,
-        ENTRY_LEARNABILITY_SCHEMA, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
-        ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256, ENTRY_LEARNABILITY_RECEIPT_NAME,
-        ENTRY_LEARNABILITY_RECEIPT_SCHEMA, ENTRY_LEARNABILITY_REPLAY_POLICY,
+        ENTRY_LEARNABILITY_SCHEMA, entry_learnability_control,
+        ENTRY_LEARNABILITY_RECEIPT_NAME, ENTRY_LEARNABILITY_RECEIPT_SCHEMA,
         ENTRY_LEARNABILITY_TARGET_MODEL_SHA256, require_entry_learnability_origin,
     )
     continuation = isinstance(origin, Mapping) and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
@@ -78,8 +77,9 @@ def bind_candidate_weight_ema_history_v1(
             OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, TRAINING_CONTINUATION_SCHEMA, FQI_TARGET_REFRESH_SCHEMA, ENTRY_LEARNABILITY_SCHEMA}:
         if entry_learnability:
             require_entry_learnability_origin(origin)
-            origin_cursor = ENTRY_LEARNABILITY_ORIGIN_CURSOR
-            origin_state_sha = ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256
+            control = entry_learnability_control(origin)
+            origin_cursor = control["cursor"]
+            origin_state_sha = control["state_sha256"]
             receipt_name = ENTRY_LEARNABILITY_RECEIPT_NAME
             receipt_schema = ENTRY_LEARNABILITY_RECEIPT_SCHEMA
         elif target_refresh:
@@ -116,7 +116,7 @@ def bind_candidate_weight_ema_history_v1(
                               "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"}
         if entry_learnability:
             cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
-            replay_policy = {**ENTRY_LEARNABILITY_REPLAY_POLICY,
+            replay_policy = {**control["replay_policy"],
                              "epoch_order_sha256": cohort["epoch_order_sha256"],
                              "selected_sample_plan_sha256": cohort["selected_sample_plan_sha256"]}
         if entry_learnability and (

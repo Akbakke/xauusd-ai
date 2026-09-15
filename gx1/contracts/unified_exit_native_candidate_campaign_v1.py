@@ -85,6 +85,35 @@ ENTRY_LEARNABILITY_REPLAY_POLICY = {
 }
 
 
+# Continuation of the completed fixed64 diagnostic, never production coverage.
+ENTRY_LEARNABILITY_CONTINUATION_CONTRACT_SHA256 = "e208ed4d094f743aa764c23d7074fcc98b49f8b69649469fe99cc02ccf5df0ff"
+ENTRY_LEARNABILITY_CONTINUATION_POINTER_SHA256 = "9b84ab0e830b41a89afaf52b1e482f04bb417ef3a418d2595ca64f8c5c0bacbf"
+ENTRY_LEARNABILITY_CONTINUATION_STATE_SHA256 = "f513a0931c8b4620baf15dfed99f04a6e3f6042d576515ca599640c9d24cd4aa"
+ENTRY_LEARNABILITY_CONTINUATION_CURSOR = {
+    "checkpoint_index": 99, "phase": "train", "epoch_index": 1,
+    "next_batch_offset": 1952, "global_optimizer_steps": 6033, "complete": False,
+}
+ENTRY_LEARNABILITY_CONTINUATION_STEP_CEILING = 7057
+ENTRY_LEARNABILITY_CONTINUATION_REPLAY_POLICY = {
+    **ENTRY_LEARNABILITY_REPLAY_POLICY, "batch_offset_start": 1952,
+    "batch_offset_end": 2976, "repeats": 256,
+}
+
+
+def entry_learnability_control(origin: Any = None) -> dict[str, Any]:
+    """Select one of the two immutable controls; origin validation binds all hashes."""
+    continued = (isinstance(origin, Mapping) and isinstance(origin.get("contract"), Mapping)
+                 and origin["contract"].get("sha256") == ENTRY_LEARNABILITY_CONTINUATION_CONTRACT_SHA256)
+    return {
+        "contract_sha256": ENTRY_LEARNABILITY_CONTINUATION_CONTRACT_SHA256 if continued else ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256,
+        "pointer_sha256": ENTRY_LEARNABILITY_CONTINUATION_POINTER_SHA256 if continued else ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256,
+        "state_sha256": ENTRY_LEARNABILITY_CONTINUATION_STATE_SHA256 if continued else ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+        "cursor": dict(ENTRY_LEARNABILITY_CONTINUATION_CURSOR if continued else ENTRY_LEARNABILITY_ORIGIN_CURSOR),
+        "step_ceiling": ENTRY_LEARNABILITY_CONTINUATION_STEP_CEILING if continued else ENTRY_LEARNABILITY_STEP_CEILING,
+        "replay_policy": dict(ENTRY_LEARNABILITY_CONTINUATION_REPLAY_POLICY if continued else ENTRY_LEARNABILITY_REPLAY_POLICY),
+    }
+
+
 def require_entry_learnability_cohort(value: Any) -> dict[str, Any]:
     """Validate the supplied bound cohort; the origin owns its immutable file SHA."""
     if not isinstance(value, Mapping):
@@ -109,7 +138,7 @@ def require_entry_learnability_cohort(value: Any) -> dict[str, Any]:
 def require_entry_learnability_origin(
     origin: Any, *, verify_files: bool = True,
 ) -> dict[str, Any]:
-    """Admit only checkpoint95 for the immutable four-batch joint-loss replay."""
+    """Admit only the bound95 or99 origin for its finite four-batch replay."""
     fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
               "train_population_scope", "gradient_clipping_policy", "cohort"}
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
@@ -121,8 +150,9 @@ def require_entry_learnability_origin(
         raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_INVALID")
     contract = require_binding(origin["contract"], label="Entry learnability origin contract", verify_file=verify_files)
     pointer = require_binding(origin["pointer"], label="Entry learnability origin pointer", verify_file=verify_files)
-    if (contract["sha256"] != ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256
-            or pointer["sha256"] != ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256):
+    control = entry_learnability_control(origin)
+    if (contract["sha256"] != control["contract_sha256"]
+            or pointer["sha256"] != control["pointer_sha256"]):
         raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_HASH_MISMATCH")
     cohort = require_binding(origin["cohort"], label="Entry learnability cohort", verify_file=verify_files)
     if cohort["sha256"] != ENTRY_LEARNABILITY_COHORT_SHA256:
@@ -131,10 +161,10 @@ def require_entry_learnability_origin(
         require_entry_learnability_cohort(read_bound_json(Path(cohort["path"]), cohort["sha256"]))
         current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
         expected = {
-            **ENTRY_LEARNABILITY_ORIGIN_CURSOR,
+            **control["cursor"],
             "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
             "session_contract_sha256": contract["sha256"],
-            "state_sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+            "state_sha256": control["state_sha256"],
         }
         if (set(current) != set(expected)
                 or any(current.get(k) != v or type(current.get(k)) is not type(v)
@@ -142,7 +172,7 @@ def require_entry_learnability_origin(
             raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_CURSOR_INVALID")
         require_binding({
             "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
-            "sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256,
+            "sha256": control["state_sha256"],
         }, label="Entry learnability origin state", verify_file=True)
     return dict(origin)
 
@@ -352,6 +382,7 @@ def require_native_run_scope(
                           and origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA)
     if entry_learnability:
         require_entry_learnability_origin(origin)
+        replay_control = entry_learnability_control(origin)
     elif optimizer_transition:
         require_optimizer_procedure_origin(origin)
     elif continuation:
@@ -470,6 +501,9 @@ def require_native_run_scope(
         }
         refresh_scope = {**continuation_scope, "schema_version": "gx1_native_fqi_target_refresh_scope_v1"}
         replay_scope = {**continuation_scope, "schema_version": "gx1_native_entry_learnability_scope_v1"}
+        if entry_learnability:
+            replay_scope["additional_optimizer_step_ceilings"] = [
+                replay_control["step_ceiling"] - replay_control["cursor"]["global_optimizer_steps"]]
         if continuation or target_refresh or entry_learnability:
             expected_scope = replay_scope if entry_learnability else refresh_scope if target_refresh else continuation_scope
             if (scope != expected_scope or not isinstance(scope, Mapping)
@@ -493,7 +527,7 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([ENTRY_LEARNABILITY_STEP_CEILING] if entry_learnability else
+        ceilings = ([replay_control["step_ceiling"]] if entry_learnability else
                     [FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
                     [TRAINING_CONTINUATION_STEP_CEILING] if continuation else
                     ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta

@@ -1,0 +1,23 @@
+{
+  "decision": "PASS",
+  "tests_passed": 236,
+  "session_id": 45796,
+  "exit_code": 0,
+  "log_sha256": "428b38436d0613ebc28d8034b30f7594650fe13f9d50183288341353ccc04bcf",
+  "numerical_owners_ast_unchanged": [
+    "train_epoch",
+    "_episode_native_exit_train_v2",
+    "_optimizer_step_with_finite_gradients",
+    "dip_forecast_task_losses",
+    "_joint_task_loss",
+    "_model_forward_fp32"
+  ],
+  "source_sha256": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "b1696b04b094b5e0a65afcb1cd4e749c916bc8f8182b80dbffe29569293eff30",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "372bd68814f7fe636637ed7eb09fef87253cfdc18771b4af3cddf132ae5c0879",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "a100d1f61b55fe855a1f68f0f3321b861b8840c5f5875b8582f761df1341435c",
+    "tests/test_native_entry_learnability.py": "396bb8c2a22a6bdbf7aaa7a549bfdfa3f9c5d7edcfa1b1be0e706d6e6d3ab469"
+  },
+  "actual99_cpu_and_native_restore_pending": true,
+  "no_optimizer_or_gpu_steps": true
+}

@@ -75,14 +75,14 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Whole epochs remain blocked. The completed fixed64 diagnostic95-to99 is preserved and its plan is exhausted. Permit exactly one new private continuation from immutable checkpoint99/global6033/epoch1offset1952 to global7057/offset2976, at most1024 additional optimizer steps. Replay the identical64 entries256 further times; keep the original stored epoch_order and frozen teacherONLINE91. Same model, forward/loss/backward/optimizer mathematics, clipping, Adam, EMA, scheduler and RNG at transition. These are diagnostic steps, not new annual coverage, and checkpoints remain forbidden for production continuation. This follows measured continued Entry error improvement at retained checkpoint98 versus99; no plateau or profitability claim. Do not change L1/MSE, gradient boundaries, targets, class weights, thresholds or holding limits in this control. Use only the existing guarded native campaign, batch16 TRAIN and prescribed VAL256/8CPU/3h profile; no VAL or TEST is executed here. One heavy job. After terminal run, compare99-to115 using the already cached64 inputs and fixed teacher91 targets. Preserve all earlier origins and results. No automatic whole-epoch continuation or arbitrary fit pass threshold.",
+  "rule": "Whole epochs remain blocked. Completed FQI control ends at checkpoint95/global5777; never restart its exhausted plan. Permit exactly one new private native fixed-cohort learnability control from that immutable checkpoint, ending at global6033 after256 additional optimizer steps. Replay the same four actual epoch1 TRAIN batches at original offsets1440,1525,1610,1695, bound by the preserved COHORT SHA1cea9754bf115b75fc3267337b919feeffd0c0a8fd2d7509f2254eba2a4da889. Repeat their64 entries64 times only in an ephemeral loader order at batch offsets1696..1952; retain the original stored epoch_order, frozen teacherONLINE91, model, combined native losses, gradient boundaries, Adam, EMA, scheduler and RNG. Record changed sample history honestly: these are diagnostic optimizer steps, not new annual data coverage. Diagnostic checkpoints are not approved for production continuation. No Q-only mode, class weights, target refresh, model/loss/economic/risk/holding-time change, VAL or TEST. Original95 remains preserved. Use existing native campaign, batch16 TRAIN, prescribed VAL256 profile, capped execution and all hardware guards. Afterward reuse saved64 inputs and frozen targets for paired CPU evaluation before95/after99; establish local fit only, never profitability or heldout generalization. No arbitrary fit pass threshold or automatic whole-epoch continuation.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "native_learning_calibration": {
     "schema_version": "gx1_native_entry_learnability_scope_v1",
     "additional_optimizer_step_ceilings": [
-      1024
+      256
     ],
     "full_epoch_training_allowed": false,
     "test_data_used": false

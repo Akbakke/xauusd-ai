@@ -1519,16 +1519,16 @@ def _require_candidate_training_progress(
 
 def _candidate_entry_learnability_order(
     epoch_order: torch.Tensor, *, cohort: Mapping[str, Any],
-    epoch_index: int, next_batch_offset: int,
+    epoch_index: int, next_batch_offset: int, origin: Optional[Mapping[str, Any]] = None,
 ) -> torch.Tensor:
     """Overlay only this finite diagnostic's loader; never alter saved year order."""
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
-        ENTRY_LEARNABILITY_REPLAY_POLICY, require_entry_learnability_cohort,
+        entry_learnability_control, require_entry_learnability_cohort,
     )
     from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
 
     cohort = require_entry_learnability_cohort(cohort)
-    policy = ENTRY_LEARNABILITY_REPLAY_POLICY
+    policy = entry_learnability_control(origin)["replay_policy"]
     if (type(epoch_index) is not int or epoch_index != policy["epoch_index"]
             or type(next_batch_offset) is not int
             or not policy["batch_offset_start"] <= next_batch_offset <= policy["batch_offset_end"]
@@ -11479,8 +11479,8 @@ def _restore_candidate_training_checkpoint(
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_CHECKPOINT_ORDER_INVALID]")
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
-        ENTRY_LEARNABILITY_RECEIPT_NAME, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
-        ENTRY_LEARNABILITY_STEP_CEILING, ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
+        ENTRY_LEARNABILITY_RECEIPT_NAME, entry_learnability_control,
+        ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
         require_entry_learnability_origin,
     )
     if (session.directory / ENTRY_LEARNABILITY_RECEIPT_NAME).exists() and entry_learnability_origin is None:
@@ -11490,14 +11490,15 @@ def _restore_candidate_training_checkpoint(
         from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
         from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_history_v1
         origin = require_entry_learnability_origin(entry_learnability_origin)
+        control = entry_learnability_control(origin)
         cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
         _candidate_entry_learnability_order(order, cohort=cohort,
-            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"])
+            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"], origin=origin)
         if (state["phase"] != "train" or state["complete"] is not False
                 or type(state["global_optimizer_steps"]) is not int
-                or state["global_optimizer_steps"] != ENTRY_LEARNABILITY_ORIGIN_CURSOR["global_optimizer_steps"]
-                   + state["next_batch_offset"] - ENTRY_LEARNABILITY_ORIGIN_CURSOR["next_batch_offset"]
-                or state["global_optimizer_steps"] > ENTRY_LEARNABILITY_STEP_CEILING
+                or state["global_optimizer_steps"] != control["cursor"]["global_optimizer_steps"]
+                   + state["next_batch_offset"] - control["cursor"]["next_batch_offset"]
+                or state["global_optimizer_steps"] > control["step_ceiling"]
                 or canonical_model_state_sha256(state["target_model_state"]) != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256):
             raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_STATE_INVALID]")
         history = bind_candidate_weight_ema_history_v1(
@@ -13144,9 +13145,8 @@ def _load_candidate_optimizer_procedure_successor_state(
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
         FQI_TARGET_REFRESH_RECEIPT_SCHEMA, require_fqi_target_refresh_origin,
-        ENTRY_LEARNABILITY_SCHEMA, ENTRY_LEARNABILITY_ORIGIN_CURSOR,
-        ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256, ENTRY_LEARNABILITY_RECEIPT_NAME,
-        ENTRY_LEARNABILITY_RECEIPT_SCHEMA, ENTRY_LEARNABILITY_REPLAY_POLICY,
+        ENTRY_LEARNABILITY_SCHEMA, entry_learnability_control,
+        ENTRY_LEARNABILITY_RECEIPT_NAME, ENTRY_LEARNABILITY_RECEIPT_SCHEMA,
         ENTRY_LEARNABILITY_TARGET_MODEL_SHA256, require_entry_learnability_origin,
     )
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
@@ -13165,8 +13165,9 @@ def _load_candidate_optimizer_procedure_successor_state(
     entry_learnability = origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA
     if entry_learnability:
         origin = require_entry_learnability_origin(origin)
-        origin_cursor = ENTRY_LEARNABILITY_ORIGIN_CURSOR
-        origin_state_sha = ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256
+        control = entry_learnability_control(origin)
+        origin_cursor = control["cursor"]
+        origin_state_sha = control["state_sha256"]
         receipt_name = ENTRY_LEARNABILITY_RECEIPT_NAME
         receipt_schema = ENTRY_LEARNABILITY_RECEIPT_SCHEMA
     elif target_refresh:
@@ -13283,13 +13284,13 @@ def _load_candidate_optimizer_procedure_successor_state(
         from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
         cohort = read(origin["cohort"])
         _candidate_entry_learnability_order(state["epoch_order"], cohort=cohort,
-            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"])
+            epoch_index=state["epoch_index"], next_batch_offset=state["next_batch_offset"], origin=origin)
         if canonical_model_state_sha256(state["target_model_state"]) != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256:
             fail("ENTRY_LEARNABILITY_TARGET_CHANGED")
         replay_evidence = {
             "changed_sample_history": True, "production_continuation_allowed": False,
             "data_coverage_advanced": False,
-            "replay_policy": {**copy.deepcopy(ENTRY_LEARNABILITY_REPLAY_POLICY),
+            "replay_policy": {**copy.deepcopy(control["replay_policy"]),
                               "epoch_order_sha256": cohort["epoch_order_sha256"],
                               "selected_sample_plan_sha256": cohort["selected_sample_plan_sha256"]},
             "fixed_teacher_model_state_sha256": ENTRY_LEARNABILITY_TARGET_MODEL_SHA256,
@@ -13866,16 +13867,17 @@ def _run_resumable_candidate_training(
                     == "gx1_candidate_entry_learnability_origin_v1"):
                 from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
                 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
-                    ENTRY_LEARNABILITY_STEP_CEILING, require_entry_learnability_origin,
+                    entry_learnability_control, require_entry_learnability_origin,
                 )
                 from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
                 origin = require_entry_learnability_origin(candidate_resume_origin)
+                control = entry_learnability_control(origin)
                 cohort = read_bound_json(Path(origin["cohort"]["path"]), origin["cohort"]["sha256"])
                 if (batch_size != 16 or grad_accum_steps != 1 or execution_budget is None
-                        or execution_budget.get("stop_after_optimizer_steps") != ENTRY_LEARNABILITY_STEP_CEILING):
+                        or execution_budget.get("stop_after_optimizer_steps") != control["step_ceiling"]):
                     raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_BUDGET_INVALID]")
                 loader_order = _candidate_entry_learnability_order(epoch_order, cohort=cohort,
-                    epoch_index=epoch_index, next_batch_offset=next_batch_offset)
+                    epoch_index=epoch_index, next_batch_offset=next_batch_offset, origin=origin)
                 adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
                 random_access = getattr(adapter, "_random_access_train", None)
                 if (not isinstance(random_access, Mapping) or adapter._epoch_index != 1
@@ -13889,7 +13891,7 @@ def _run_resumable_candidate_training(
                 if _structured_sha256(sample_plan) != cohort["selected_sample_plan_sha256"]:
                     raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_SAMPLE_PLAN_MISMATCH]")
                 log.info("[CANDIDATE_ENTRY_LEARNABILITY_REPLAY] offset=%d ceiling=%d cohort_sha256=%s data_coverage_advanced=0",
-                         next_batch_offset, ENTRY_LEARNABILITY_STEP_CEILING, origin["cohort"]["sha256"])
+                         next_batch_offset, control["step_ceiling"], origin["cohort"]["sha256"])
             train_loader = DataLoader(
                 train_ds,
                 batch_size=batch_size,
