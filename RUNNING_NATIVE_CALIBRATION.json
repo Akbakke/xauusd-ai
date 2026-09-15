@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_running_native_calibration_v1",
-  "status": "STOPPED_FULL_EPOCH_BLOCKED_AFTER_MIXED_LEARNING_RESULT",
+  "status": "STOPPED_TWO_STEP_PROBE_COMPLETE_NO_TRAINING_CHANGE",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
@@ -72,7 +72,7 @@
   "automation_id": "gx1-timekontroll",
   "human_check_interval_seconds": 3600,
   "test_data_used": false,
-  "next_action": "No active job; Windows task Disabled; whole epochs blocked. Reuse completed evidence. Define a narrow policy-consistent multi-step Exit target check with frozen bootstrap, preserving intermediate EXIT, actual BID/ASK/costs and successor semantics without hindsight-max targets. First establish whether the weak frozen policy can provide a useful signal before implementation or launch. No forced Entry activity, arbitrary risk/hold limits, old campaign restart or repeated completed VAL/tests. The completed32-step before/after does not isolate clipping causality or prove learning/generalization/profit.",
+  "next_action": "No active job. Two-step probe is complete and must not be repeated. It preserves the weak frozen SHORT policy:236/256 unique EXIT yield exactly unchanged targets; only20 extend. Do not implement n-step/anchor/EMA changes from this observation. Reuse existing full VAL and all completed diagnostics. Next isolate whether actual weighted Exit gradients compete with independent market/forecast learning on the shared input projections, context modules and MTF feature gates (the four checked Entry routing parameters are already protected; Entry Transformer and Exit GRU temporal modules are distinct). Quantify task gradients on the same bound TRAIN batches before any further production change; do not confuse shared parameters with proven harmful interference. Whole epochs and Windows triggers remain disabled; TEST sealed.",
   "reboot_requested_utc": "2026-09-15T14:50:44.7418699Z",
   "checkpoint85_cpu_replay_operator_note": "Initial generic JSON digest could not encode a nonfinite reporting value; reused existing typed checkpoint verifier. All15 state fields except session identity match exactly.",
   "windows_task_observed_state": "Disabled",
@@ -126,5 +126,24 @@
       "sha256": "30d88d4de85f22be85060f981ec1e4feed63cedff9e7ab6bf61ec626cac48303"
     },
     "elapsed_seconds": 410.16201694300025
+  },
+  "latest_source_head": "2c593aa7cdae0f5f960304d227f919c6de772ab4",
+  "two_step_target_probe": {
+    "exec_session_id": 22935,
+    "script": "/tmp/gx1_two_step_target_probe_cpu.py",
+    "script_sha256": "e2d97d5485cc227165a6cd3531b055a694ab5fdb468de1f7de81fa1dae1b0421",
+    "log": "/tmp/gx1_two_step_target_probe_cpu_20260915.log",
+    "source_commit": "2c593aa7cdae0f5f960304d227f919c6de772ab4",
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_data_used": false,
+    "output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/TWO_STEP_TARGET_PROBE_CPU_20260915",
+    "status": "COMPLETE",
+    "process_exit_code": 0,
+    "result": {
+      "path": "handover_snapshot/TWO_STEP_TARGET_PROBE_20260915.json",
+      "sha256": "46bb73a49b2fef2a9d7b5a845222677939d31ab385563fa58111dccb352c4df4"
+    },
+    "elapsed_seconds": 401.31969901499997
   }
 }

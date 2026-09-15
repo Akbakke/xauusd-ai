@@ -14,8 +14,9 @@ Gjenopptakelsen over to fysiske booter består; alle726 Adamtilstander økte16 p
 vindu, EMA25141→25157→25173. Ikke ny32-sammenhengende-mot16+16-likhetsmåling.
 Se handover_snapshot/EXIT_CLIP_CONTROL_RESULT_20260915.json. Paret CPU-måling av
 samme TRAIN-input før85/etter87 er ferdig på410.16s, uten optimizer/VAL/TEST.
-Se RUNNING_NATIVE_CALIBRATION.json for plan og runtime. Kontrollens kilderevisjon
-er6ffd03ee. Ingen aktiv jobb; dokumentasjon kan oppdateres.
+Se RUNNING_NATIVE_CALIBRATION.json for plan og runtime. Optimizerkontrollens kilderevisjon
+er6ffd03ee; to-stegsproben brukte2c593aa7 med identiske produksjonsbindingsfiler.
+Ingen aktiv jobb; dokumentasjon kan oppdateres.
 TRAIN er 2025-06-01 inklusiv til 2026-06-01 eksklusiv:65 295rader/4081steg per
 hel epoch. Hele juni2026 er utviklings-VAL. Ingen ny femårs-epoch. TEST er forseglet.
 
@@ -87,14 +88,50 @@ unified_exit_random_access_training_v1.py:564. Læreren kopieres fra ONLINE før
 etter komplett epoch/VAL i entry_v10_ctx_train_v3.py:14052–14058.32-stegskontrollen
 endret derfor ingen frozen targets; forverret MSE beviser ikke en bedre lærer.
 
-Neste smale undersøkelse er policy-konsistent fler-stegsavkastning med frossen
-bootstrap. Den må bevare EXIT underveis, faktisk BID/ASK/kostnader og ekte
-successor/terminal-semantikk, uten etterpåklok maksimering over framtidsutfall.
-Backup-lengde er en læringsinnstilling, ingen maksimal holdetid. Bruk de allerede
-bestemte TRAIN-radene og baselinene; spesifiser først om signalet faktisk kan
-bedres med den svake frosne policyen før kode eller kjøring. Ingen slik rettelse
-eller kontroll er startet. Ikke tving Entry til flere handler eller start hel epoch.
-Windows-task Disabled15:33:20UTC. TEST og all tidligere evidens er bevart.
+To-stegsundersøkelsen er nå FERDIG, CPU401.32s/peak8 462 888KiB/exit0. Den brukte
+samme64 TRAIN-rader/256 HOLD-celler per side og samme frozen teacher. Ingen
+optimizer, ONLINE-forward, GPU, VAL, TEST eller produksjonsendring. Opprinnelige
+inputs og alle fire originale target-SHA-er ble reprodusert eksakt; kilde,
+checkpoint, RNG, sampleplan, policy og modellvekter er bevart.
+
+Resultat: LONG254 unik HOLD og2 unik EXIT ved første successor; SHORT20 HOLD
+og236 EXIT. Ingen ties, reelle terminaler eller manglende neste tilstand i dette
+utvalget. EXIT-grenen gir eksakt samme mål. Derfor kan flere steg med samme
+frosne policy ikke tilføre videre reward i236/256SHORT-tilfellene. Ingen n-stegs-
+treningsendring er begrunnet eller innført. Backup-lengde er ingen holdegrense.
+
+Med identiske bevarte ONLINE87-prediksjoner mot et annet mål går LONG-MSE
+275.713→191.065, men målspredningen faller16.549→13.828Bps og nullbaseline
+274.046→191.353; MAE øker4.086→5.448. Dette er endrede targets, ikke læringsgevinst.
+SHORT-MSE268.292→268.621. Ingen optimal n, generalisering eller profitt er bevist.
+Se handover_snapshot/TWO_STEP_TARGET_PROBE_20260915.json. Råbatchene og
+operatørskriptet ligger i kjøringens OPERATOR_OBSERVATIONS/TWO_STEP_TARGET_PROBE_CPU_20260915.
+
+Nær-Entry-supervisjon mangler ikke:34 av256 sampled states erstate0,60 erstate1–15
+og162 senere. State0 har egen bucket. Ingen ombygging av no-loss-ankeret nå.
+Sekvensinput er også til stede: Entry96 historiske basebars og egne HTF-sekvenser;
+Exit480 historiske M1-bars og kausale MTF-/trade-path-inputs. Entry bruker
+transformerencodere; Exit sin nåværende sekvensrute bruker egne GRU-er og
+familieattention. Dette er eksisterende arkitektur, ikke en ny endring. Sekvenshistorikk er
+ikke det samme som hvilken framtidig økonomi treningsmålet overfører bakover.
+
+Neste konkrete kontroll er eventuell konkurranse mellom faktiske vektede Exit-
+og markeds-/forecastgradienter på delte inputprojeksjoner, kontekstlag og MTF-
+featureporter (ikke automatisk hele Entry-transformeren). Entry-Q og Exit-tokenet har
+allerede detach-grenser mot Entry-representasjonen i
+entry_v10_ctx_hybrid_transformer.py:1848/3717, men Exit sin egen markedsrute bruker
+felles seq_proj/specialist_proj/kontekst/MTF-projeksjoner, se2419/2431/2452/2593/2648.
+Fire Entry-rutingparametere er målt beskyttet; det beviser
+ikke full isolasjon av de delte parameterne. Mål faktisk bidrag/konflikt før en
+slik rettelse. Ikke hev at delt backbone i seg selv beviser skadelig interferens.
+Gjenbruk de samme TRAIN-bindingene og fullført VAL; ingen bred modell-/regeljakt.
+Windows-task er bekreftet Disabled, ingen aktiv jobb. Hele epocher fortsatt
+blokkert. TEST og all tidligere evidens er bevart.
+
+Metodebakgrunn: policy-evaluering med fler-stegsretur og off-policy-korreksjon,
+Munos mfl., https://arxiv.org/html/1606.02647v2 (seksjon1–2). Vår to-stegsprobe
+fulgte en frossen greedy-policy og valgte aldri den beste realiserte exit-tiden
+i etterkant; ingen generell konvergensgaranti for GX1 ble utledet fra artikkelen.
 
 ## Første ettårs-resultat og avgrenset ONLINE/EMA-sammenligning
 

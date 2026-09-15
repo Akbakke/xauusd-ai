@@ -5,7 +5,10 @@ TRAIN-targets, prediksjoner og læringssignal, og en eventuell konkret justering
 begrunnet/verifisert. Ikke fortsett bare fordi ingen kodefeil ble funnet. Native-
 trening er stoppet. Etter begrunnet klipperettelse er32 kontrollsteg ferdige på
 checkpoint87/epoch2offset1184/global5265. Paret TRAIN-måling er blandet: Exit-MSE
-øker, Entry er fortsatt64FLAT. Hele epocher forblir blokkert. Ingen fast grense.
+øker, Entry er fortsatt64FLAT. To-stegs targetprobe er også ferdig;236/256SHORT-
+mål forblir identiske på grunn av den svake frosne EXIT-policyen. Ingen slik
+treningsendring innføres nå. Neste er å måle eventuell gradientkonkurranse på
+delte input-/kontekst-/MTF-parametere. Hele epocher forblir blokkert. Ingen fast grense.
 
 # Gjeldende GX1-mål — 2026-09-14
 
