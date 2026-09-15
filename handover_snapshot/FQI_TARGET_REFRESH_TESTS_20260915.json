@@ -1,0 +1,23 @@
+{
+  "actual_checkpoint_cpu_replay_pending": true,
+  "actual_gpu_learning_pending": true,
+  "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- .venv/bin/python -m pytest -q tests/test_native_fqi_target_refresh.py tests/test_candidate_economics_transition.py tests/test_native_training_continuation.py tests/test_native_optimizer_procedure_scope.py tests/test_native_learning_calibration_scope.py tests/test_candidate_training_session.py::test_candidate_session_round_trips_exact_torch_state tests/test_candidate_training_session.py::test_candidate_child_population_restore_preserves_state_and_requires_exact_bound_set",
+  "count_evidence": "169 dot outcomes and successful process exit; pytest configuration suppresses final summary",
+  "decision": "PASS_TARGETED_TRANSITION_AND_RESTORE_TESTS",
+  "log_sha256": "a8b04eba70db31a610be362cacde66591f133b4e73dca8f7e7b27eb8aac1abbb",
+  "pytest_exit_code": 0,
+  "pytest_passed": 169,
+  "schema_version": "gx1_fqi_target_refresh_verification_v1",
+  "source_base_commit": "377719971b7024f9b32cd6e603ddbcea3e2be97c",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "test_data_used": false,
+  "tested_file_sha256": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "1597ddaec354eeefcb43920cbcb307d2503a03a4f38e1730cb0a8b489f143027",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "0765fcf8ee7a06d2029618f5786bc5b6503409cd9f44d5ce42df992fff608bb8",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "b9b698bf5630fb94fde13e9f42a63cb5b87b064e1191fcdc02c967efa2ed09bb",
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py": "401a05c7d612eabef9c996acad909210854aa5e6799c706e0e00e75c82082fda",
+    "tests/test_candidate_economics_transition.py": "079751f5eae8f696c81ee204beaa454179e24f420113ed10b53626656b52b1d1",
+    "tests/test_native_fqi_target_refresh.py": "da2ae2f6ab7f1b4099f7c2500fae2958753f367c21b360c6d61bdd1594e1c70c"
+  },
+  "verified_utc": "2026-09-15T18:45:49.924299+00:00"
+}

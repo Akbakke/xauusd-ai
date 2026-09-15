@@ -52,6 +52,56 @@ TRAINING_CONTINUATION_ORIGIN_CURSOR = {
 TRAINING_CONTINUATION_STEP_CEILING = 5521
 
 
+FQI_TARGET_REFRESH_SCHEMA = "gx1_candidate_fqi_target_refresh_origin_v1"
+FQI_TARGET_REFRESH_RECEIPT_NAME = "CANDIDATE_FQI_TARGET_REFRESH.json"
+FQI_TARGET_REFRESH_RECEIPT_SCHEMA = "gx1_candidate_fqi_target_refresh_receipt_v1"
+FQI_TARGET_REFRESH_ORIGIN_CONTRACT_SHA256 = "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+FQI_TARGET_REFRESH_ORIGIN_POINTER_SHA256 = "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256 = "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+FQI_TARGET_REFRESH_ORIGIN_CURSOR = {
+    "checkpoint_index": 91, "phase": "train", "epoch_index": 1,
+    "next_batch_offset": 1440, "global_optimizer_steps": 5521, "complete": False,
+}
+FQI_TARGET_REFRESH_STEP_CEILING = 5777
+
+
+def require_fqi_target_refresh_origin(
+    origin: Any, *, verify_files: bool = True,
+) -> dict[str, Any]:
+    """Admit only stopped checkpoint91 for one explicit online-to-target copy."""
+    fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
+              "train_population_scope", "gradient_clipping_policy"}
+    if (type(verify_files) is not bool or not isinstance(origin, Mapping)
+            or set(origin) != fields
+            or origin.get("schema_version") != FQI_TARGET_REFRESH_SCHEMA
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
+            or origin.get("exit_value_initialization") != "close_now_baseline_v1"
+            or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
+        raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_ORIGIN_INVALID")
+    contract = require_binding(origin["contract"], label="FQI refresh origin contract", verify_file=verify_files)
+    pointer = require_binding(origin["pointer"], label="FQI refresh origin pointer", verify_file=verify_files)
+    if (contract["sha256"] != FQI_TARGET_REFRESH_ORIGIN_CONTRACT_SHA256
+            or pointer["sha256"] != FQI_TARGET_REFRESH_ORIGIN_POINTER_SHA256):
+        raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_ORIGIN_HASH_MISMATCH")
+    if verify_files:
+        current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
+        expected = {
+            **FQI_TARGET_REFRESH_ORIGIN_CURSOR,
+            "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
+            "session_contract_sha256": contract["sha256"],
+            "state_sha256": FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256,
+        }
+        if (set(current) != set(expected)
+                or any(current.get(k) != v or type(current.get(k)) is not type(v)
+                       for k, v in expected.items())):
+            raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_ORIGIN_CURSOR_INVALID")
+        require_binding({
+            "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
+            "sha256": FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256,
+        }, label="FQI refresh origin state", verify_file=True)
+    return dict(origin)
+
+
 def require_training_continuation_origin(
     origin: Any, *, verify_files: bool = True,
 ) -> dict[str, Any]:
@@ -214,13 +264,17 @@ def require_native_run_scope(
                             and origin.get("schema_version") == OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA)
     continuation = (isinstance(origin, Mapping)
                     and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA)
+    target_refresh = (isinstance(origin, Mapping)
+                      and origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA)
     if optimizer_transition:
         require_optimizer_procedure_origin(origin)
     elif continuation:
         require_training_continuation_origin(origin)
+    elif target_refresh:
+        require_fqi_target_refresh_origin(origin)
     origin_fields = {"schema_version", "contract", "pointer"}
     optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
-    if not (optimizer_transition or continuation) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
+    if not (optimizer_transition or continuation or target_refresh) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
             or set(origin) - origin_fields - optional_origin_fields
             or ("train_population_scope" in origin and (
                 type(origin["train_population_scope"]) is not str
@@ -239,7 +293,7 @@ def require_native_run_scope(
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
-    if (optimizer_transition or continuation) and (
+    if (optimizer_transition or continuation or target_refresh) and (
             policy.get("training_enabled") is not False
             or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or calibration is not None):
@@ -328,12 +382,15 @@ def require_native_run_scope(
             "additional_optimizer_step_ceilings": [256],
             "full_epoch_training_allowed": False, "test_data_used": False,
         }
-        if continuation:
-            if (scope != continuation_scope or not isinstance(scope, Mapping)
+        refresh_scope = {**continuation_scope, "schema_version": "gx1_native_fqi_target_refresh_scope_v1"}
+        if continuation or target_refresh:
+            expected_scope = refresh_scope if target_refresh else continuation_scope
+            if (scope != expected_scope or not isinstance(scope, Mapping)
                     or scope.get("full_epoch_training_allowed") is not False
                     or scope.get("test_data_used") is not False
                     or any(type(x) is not int for x in scope["additional_optimizer_step_ceilings"])):
-                raise RuntimeError("NATIVE_TRAINING_CONTINUATION_CALIBRATION_SCOPE_INVALID")
+                raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_CALIBRATION_SCOPE_INVALID" if target_refresh
+                                   else "NATIVE_TRAINING_CONTINUATION_CALIBRATION_SCOPE_INVALID")
         elif optimizer_transition:
             if (scope != optimizer_scope or not isinstance(scope, Mapping)
                     or scope.get("full_epoch_training_allowed") is not False
@@ -348,7 +405,8 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([TRAINING_CONTINUATION_STEP_CEILING] if continuation else
+        ceilings = ([FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
+                    [TRAINING_CONTINUATION_STEP_CEILING] if continuation else
                     ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta
                       for delta in scope["additional_optimizer_step_ceilings"]]
                      if optimizer_transition else
@@ -362,7 +420,7 @@ def require_native_run_scope(
             ceiling = execution_budget.get("stop_after_optimizer_steps")
             if type(ceiling) is not int or ceiling not in ceilings:
                 raise RuntimeError("NATIVE_CALIBRATION_STEP_CEILING_INVALID")
-        elif optimizer_transition or continuation:
+        elif optimizer_transition or continuation or target_refresh:
             # Metadata/state-transition validation only. The actual native
             # window still supplies its invocation or execution budget.
             ceiling = max(ceilings)

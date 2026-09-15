@@ -63,11 +63,21 @@ def bind_candidate_weight_ema_history_v1(
         TRAINING_CONTINUATION_SCHEMA, TRAINING_CONTINUATION_ORIGIN_CURSOR,
         TRAINING_CONTINUATION_ORIGIN_STATE_SHA256, TRAINING_CONTINUATION_RECEIPT_NAME,
         TRAINING_CONTINUATION_RECEIPT_SCHEMA, require_training_continuation_origin,
+        FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
+        FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256, FQI_TARGET_REFRESH_RECEIPT_NAME,
+        FQI_TARGET_REFRESH_RECEIPT_SCHEMA, require_fqi_target_refresh_origin,
     )
     continuation = isinstance(origin, Mapping) and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
+    target_refresh = isinstance(origin, Mapping) and origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA
     if isinstance(origin, Mapping) and origin.get("schema_version") in {
-            OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, TRAINING_CONTINUATION_SCHEMA}:
-        if continuation:
+            OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, TRAINING_CONTINUATION_SCHEMA, FQI_TARGET_REFRESH_SCHEMA}:
+        if target_refresh:
+            require_fqi_target_refresh_origin(origin)
+            origin_cursor = FQI_TARGET_REFRESH_ORIGIN_CURSOR
+            origin_state_sha = FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256
+            receipt_name = FQI_TARGET_REFRESH_RECEIPT_NAME
+            receipt_schema = FQI_TARGET_REFRESH_RECEIPT_SCHEMA
+        elif continuation:
             require_training_continuation_origin(origin)
             origin_cursor = TRAINING_CONTINUATION_ORIGIN_CURSOR
             origin_state_sha = TRAINING_CONTINUATION_ORIGIN_STATE_SHA256
@@ -91,6 +101,19 @@ def bind_candidate_weight_ema_history_v1(
         receipt = read_bound_json(receipt_path, receipt_binding["sha256"])
         preserved = receipt.get("preserved_state_fields")
         cursor = receipt.get("origin_cursor")
+        required_preserved = {"model_state", "target_model_state", "optimizer_state", "weight_ema_state",
+                              "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"}
+        if target_refresh:
+            required_preserved.remove("target_model_state")
+            if (receipt.get("target_model_refreshed") is not True
+                    or receipt.get("target_refresh_source") != "origin_online_model_state"
+                    or receipt.get("training_progress_target_history") != "retained_pre_refresh_history"
+                    or any(not isinstance(receipt.get(k), str) or not _SHA256.fullmatch(receipt[k])
+                           for k in ("original_target_model_state_sha256", "refreshed_target_model_state_sha256", "origin_online_model_state_sha256"))
+                    or receipt["refreshed_target_model_state_sha256"] != receipt["origin_online_model_state_sha256"]
+                    or not isinstance(preserved, list) or "target_model_state" in preserved
+                    or "session_contract_sha256" in preserved):
+                raise RuntimeError("UNIFIED_EXIT_CANDIDATE_FQI_TARGET_REFRESH_RECEIPT_INVALID")
         if (inherited is None or inherited.get("optimizer_step_offset") != 19908
                 or receipt.get("schema_version") != receipt_schema
                 or receipt.get("destination_session_contract_sha256") != session_contract_sha256
@@ -104,13 +127,12 @@ def bind_candidate_weight_ema_history_v1(
                 or receipt["global_optimizer_steps"] != origin_cursor["global_optimizer_steps"]
                 or type(receipt.get("ema_internal_steps")) is not int
                 or receipt["ema_internal_steps"] != origin_cursor["global_optimizer_steps"] + inherited["optimizer_step_offset"]
-                or receipt.get("state_preserved") is not True
-                or receipt.get("optimizer_procedure_changed") is not (not continuation)
+                or receipt.get("state_preserved") is not (not target_refresh)
+                or receipt.get("optimizer_procedure_changed") is not (not (continuation or target_refresh))
                 or receipt.get("identical_future_trajectory_claimed") is not False
                 or not isinstance(preserved, list) or any(type(x) is not str for x in preserved)
                 or len(preserved) != len(set(preserved))
-                or not {"model_state", "target_model_state", "optimizer_state", "weight_ema_state",
-                        "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"} <= set(preserved)):
+                or not required_preserved <= set(preserved)):
             raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
         return {"optimizer_step_offset": inherited["optimizer_step_offset"],
                 "transition_receipt": receipt_binding}
@@ -152,12 +174,13 @@ def _require_candidate_ema_history_offset(value: Any, *, contract_path: Path) ->
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     binding = require_binding(value["transition_receipt"], label="EMA history receipt", verify_file=False)
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
-        OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME, TRAINING_CONTINUATION_RECEIPT_NAME,
+        OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME, TRAINING_CONTINUATION_RECEIPT_NAME, FQI_TARGET_REFRESH_RECEIPT_NAME,
     )
     if Path(binding["path"]) not in {
             contract_path.parent / "CANDIDATE_ECONOMICS_TRANSITION.json",
             contract_path.parent / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
-            contract_path.parent / TRAINING_CONTINUATION_RECEIPT_NAME}:
+            contract_path.parent / TRAINING_CONTINUATION_RECEIPT_NAME,
+            contract_path.parent / FQI_TARGET_REFRESH_RECEIPT_NAME}:
         raise RuntimeError("UNIFIED_EXIT_CANDIDATE_VAL_EMA_HISTORY_INVALID")
     return value["optimizer_step_offset"]
 

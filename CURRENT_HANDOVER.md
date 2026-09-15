@@ -1,3 +1,14 @@
+## Neste avgrensede kontroll forberedes — 2026-09-15
+
+Én eksplisitt FQI-læreroppdatering fra checkpoint91/global5521 er implementert.
+Bare target_model_state skal kopieres fra bevart ONLINE91 ved ny privat session;
+gammel lærer og alle andre tilstander beholdes. Ny policy tillater bare én256-
+stegskontroll til5777, før epochgrensen8162. Ingen ny hel epoch. Alle169 målrettede
+regresjoner består. Faktisk CPU-overgang må bestå før oppstart. Nye TRAIN-targets
+måles én gang før native; samme targetpakker og bevarte91-prediksjoner brukes
+etter kontrollen. Dette undersøker verdipropagering uten permanent frekvensregel.
+Ingen aktiv tung jobb. Tidligere kontroller nedenfor er ferdige og bevares.
+
 # Gjeldende status — kontroll ferdig, trening stoppet, 2026-09-15
 
 Eneste kodebase er /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

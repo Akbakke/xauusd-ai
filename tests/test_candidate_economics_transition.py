@@ -569,7 +569,7 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
         _identical(state[key], before[key])
 
 
-def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False):
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
     from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
     current = tmp_path / "CURRENT"
@@ -578,9 +578,13 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
     # The exact deployed85 origin and finite native authority are independently
     # checked by scope-owner tests. Here use real tiny serialized sessions to
     # test preservation and the trainer's recipe/source/contract boundary.
-    monkeypatch.setattr(scope, "require_training_continuation_origin" if continuation else "require_optimizer_procedure_origin", lambda origin: dict(origin))
-    monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 5521 if continuation else 5265)
-    cursor = scope.TRAINING_CONTINUATION_ORIGIN_CURSOR if continuation else scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR
+    validator = ("require_fqi_target_refresh_origin" if target_refresh else
+                 "require_training_continuation_origin" if continuation else "require_optimizer_procedure_origin")
+    monkeypatch.setattr(scope, validator, lambda origin: dict(origin))
+    monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 5777 if target_refresh else 5521 if continuation else 5265)
+    cursor = (scope.FQI_TARGET_REFRESH_ORIGIN_CURSOR if target_refresh else
+              scope.TRAINING_CONTINUATION_ORIGIN_CURSOR if continuation else scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR)
+    preserve_procedure = continuation or target_refresh
     inherited = {"optimizer_step_offset": 19908, "transition_receipt": {"path": "bound_old_receipt", "sha256": "a" * 64}}
     monkeypatch.setattr(val_checkpoint, "bind_candidate_weight_ema_history_v1", lambda **kwargs: inherited)
     sessions = []
@@ -598,7 +602,7 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             "trainer": {"path": str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"), "sha256": str(side + 1) * 64},
             "model": {"path": str(current / "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"), "sha256": "3" * 64},
         }
-        if continuation and fault == "unchanged_source":
+        if preserve_procedure and fault == "unchanged_source":
             sources["trainer"]["sha256"] = "1" * 64
         if side and fault == "model_source":
             sources["model"]["sha256"] = "4" * 64
@@ -619,9 +623,9 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                     "recipe_source_provenance": {"recipe_audit_path": bound_recipe["path"], "recipe_audit_sha256": bound_recipe["sha256"], "source_bindings": sources, "source_bindings_sha256": _sha(sources)},
                     "native_full_val": {"compute_limits": recipe["val_limits"]},
                     "training": {"batch_size": 16, "grad_clip_norm": 1.0, "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=trainer.MARKED_NET_CHECKPOINT_MONITOR)}}
-        if side or continuation:
+        if side or preserve_procedure:
             contract["training"]["gradient_clipping_policy"] = trainer._GRAD_CLIP_POLICY
-        if continuation and not side and fault == "old_clipping_missing":
+        if preserve_procedure and not side and fault == "old_clipping_missing":
             contract["training"].pop("gradient_clipping_policy")
         if side and fault == "clip_cap":
             contract["training"]["grad_clip_norm"] = 2.0
@@ -645,8 +649,8 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             if fault == "ema_steps": state["weight_ema_state"]["steps"] -= 1
             session.save_checkpoint(state)
             pointer = json.loads(session._active_path.read_text())
-            monkeypatch.setattr(scope, "TRAINING_CONTINUATION_ORIGIN_STATE_SHA256" if continuation else "OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256", pointer["state_sha256"])
-            origin = {"schema_version": scope.TRAINING_CONTINUATION_SCHEMA if continuation else scope.OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA,
+            monkeypatch.setattr(scope, "FQI_TARGET_REFRESH_ORIGIN_STATE_SHA256" if target_refresh else "TRAINING_CONTINUATION_ORIGIN_STATE_SHA256" if continuation else "OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256", pointer["state_sha256"])
+            origin = {"schema_version": scope.FQI_TARGET_REFRESH_SCHEMA if target_refresh else scope.TRAINING_CONTINUATION_SCHEMA if continuation else scope.OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA,
                       "contract": {"path": str(session._contract_path), "sha256": trainer._sha256_file(session._contract_path)},
                       "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)},
                       "exit_value_initialization": "close_now_baseline_v1", "train_population_scope": "latest_year_2025_2026_v1",
@@ -734,3 +738,82 @@ def test_training_continuation_rejects_any_learning_or_lineage_change(tmp_path, 
         trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
     assert not new._active_path.exists()
     assert not (new.directory / scope.TRAINING_CONTINUATION_RECEIPT_NAME).exists()
+
+
+
+def test_fqi_refresh_copies_only_online_target_preserves_origin_and_is_crash_idempotent(tmp_path, monkeypatch):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
+    from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    (old, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch, target_refresh=True)
+    before = old.load_checkpoint()
+    old_hashes = {p.name: trainer._sha256_file(p) for p in old.directory.iterdir() if p.is_file()}
+    state = trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    assert state["session_contract_sha256"] == new.contract_sha256
+    for key in before.keys() - {"session_contract_sha256", "target_model_state"}:
+        _identical(state[key], before[key])
+    _identical(state["target_model_state"], before["model_state"])
+    assert canonical_model_state_sha256(before["target_model_state"]) != canonical_model_state_sha256(state["target_model_state"])
+    for name, value in state["target_model_state"].items():
+        assert value.data_ptr() != state["model_state"][name].data_ptr()
+    path = new.directory / scope.FQI_TARGET_REFRESH_RECEIPT_NAME
+    receipt = json.loads(path.read_text())
+    assert receipt["state_preserved"] is False and receipt["optimizer_procedure_changed"] is False
+    assert receipt["target_model_refreshed"] is True
+    assert receipt["original_target_model_state_sha256"] == canonical_model_state_sha256(before["target_model_state"])
+    assert receipt["refreshed_target_model_state_sha256"] == receipt["origin_online_model_state_sha256"] == canonical_model_state_sha256(before["model_state"])
+    assert receipt["training_progress_target_history"] == "retained_pre_refresh_history"
+    assert set(receipt["preserved_state_fields"]) == before.keys() - {"session_contract_sha256", "target_model_state"}
+    assert receipt["ema_internal_steps"] == 25429
+    _identical(state, trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin))
+    path.write_text(json.dumps({**receipt, "refreshed_target_model_state_sha256": "a" * 64}))
+    with pytest.raises(RuntimeError, match="RECEIPT_MISMATCH"):
+        trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    path.write_bytes(trainer._candidate_training_session_json_bytes(receipt))
+    new.save_checkpoint(state)
+    reloaded = new.load_checkpoint()
+    _identical(state, reloaded)
+    with pytest.raises(RuntimeError, match="SESSION_BINDING_INVALID"):
+        trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    assert old_hashes == {p.name: trainer._sha256_file(p) for p in old.directory.iterdir() if p.is_file()}
+
+    # The receipt-chain owner is covered separately with actual bound JSON.
+    # Here exercise the real checkpoint restore and the explicit frozen-target gate.
+    monkeypatch.setattr(val_checkpoint, "bind_candidate_weight_ema_history_v1", lambda **kwargs: {
+        "optimizer_step_offset": 19908,
+        "transition_receipt": {"path": str(path), "sha256": trainer._sha256_file(path)},
+    })
+    model = torch.nn.Linear(3, 2)
+    target = copy.deepcopy(model)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    ema = trainer._WeightEma(model, .99)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+    kwargs = {"session": new, "model": model, "target_model": target, "optimizer": optimizer,
+              "weight_ema": ema, "lr_scheduler": scheduler, "device": torch.device("cpu"),
+              "dataset_rows": 65295, "fqi_target_refresh_origin": origin}
+    trainer._restore_candidate_training_checkpoint(reloaded, **kwargs)
+    assert target.training is False and all(not param.requires_grad for param in target.parameters())
+    _identical(target.state_dict(), before["model_state"])
+    # A later student can change while ordinary resume retains the refreshed teacher.
+    resumed = copy.deepcopy(reloaded)
+    resumed["model_state"]["weight"].add_(1.0)
+    trainer._restore_candidate_training_checkpoint(resumed, **kwargs)
+    _identical(target.state_dict(), before["model_state"])
+    resumed["target_model_state"]["weight"].add_(1.0)
+    with pytest.raises(RuntimeError, match="FQI_TARGET_REFRESH_TARGET_MISMATCH"):
+        trainer._restore_candidate_training_checkpoint(resumed, **kwargs)
+
+
+@pytest.mark.parametrize("fault,expected", [
+    ("model_source", "UNAPPROVED_SOURCE_CHANGED"), ("data", "MODEL_DATA_OR_TRAINING_CHANGED"),
+    ("batch", "MODEL_DATA_OR_TRAINING_CHANGED"), ("clip_cap", "CLIPPING_POLICY_INVALID"),
+    ("old_clipping_missing", "CLIPPING_POLICY_INVALID"),
+    ("cursor", "STOPPED_STATE_INVALID"), ("ema_steps", "EMA_HISTORY_INVALID"),
+])
+def test_fqi_refresh_rejects_unapproved_source_data_procedure_or_cursor(tmp_path, monkeypatch, fault, expected):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
+    (_, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch, fault, target_refresh=True)
+    with pytest.raises(RuntimeError, match=expected):
+        trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
+    assert not new._active_path.exists()
+    assert not (new.directory / scope.FQI_TARGET_REFRESH_RECEIPT_NAME).exists()

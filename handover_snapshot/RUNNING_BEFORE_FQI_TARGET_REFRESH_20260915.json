@@ -119,17 +119,5 @@
     "test_data_used": false,
     "initial_operator_failure": "First attempt exited1 before model execution because source bindings also contain file metadata. Operator verifier was corrected to check their path/SHA pair; original failed script/log preserved beside the run. No production change."
   },
-  "completed_control_review": "handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json",
-  "pending_fqi_target_refresh": {
-    "status": "TARGETED_TESTS_PASSED_CPU_PREPARATION_PENDING",
-    "origin_checkpoint_index": 91,
-    "origin_global_optimizer_steps": 5521,
-    "additional_optimizer_steps": 256,
-    "absolute_optimizer_step_ceiling": 5777,
-    "whole_epoch_training_enabled": false,
-    "only_intended_state_change": "target_model_state copied once from origin model_state; destination contract identity changes",
-    "target_measurement_before_native_required": true,
-    "prior_run_record": "handover_snapshot/RUNNING_BEFORE_FQI_TARGET_REFRESH_20260915.json",
-    "verification": "handover_snapshot/FQI_TARGET_REFRESH_TESTS_20260915.json"
-  }
+  "completed_control_review": "handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json"
 }
