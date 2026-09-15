@@ -1,32 +1,23 @@
-## Neste avgrensede kontroll forberedes — 2026-09-15
+## Gjeldende neste arbeid — 2026-09-15
 
-Én eksplisitt FQI-læreroppdatering fra checkpoint91/global5521 er implementert.
-Bare target_model_state skal kopieres fra bevart ONLINE91 ved ny privat session;
-gammel lærer og alle andre tilstander beholdes. Ny policy tillater bare én256-
-stegskontroll til5777, før epochgrensen8162. Ingen ny hel epoch. Alle169 målrettede
-regresjoner består. Faktisk CPU-overgang må bestå før oppstart. Nye TRAIN-targets
-måles én gang før native; samme targetpakker og bevarte91-prediksjoner brukes
-etter kontrollen. Dette undersøker verdipropagering uten permanent frekvensregel.
-Ingen aktiv tung jobb. Tidligere kontroller nedenfor er ferdige og bevares.
-
-## Brukerpresisering og gjeldende neste arbeid — 2026-09-15
-
-Ingen videre hel epoch før den målte læringssvakheten er håndtert. Native256-
-kontrollen og paret CPU-evaluering er ferdige: checkpoint91/global5521, guard
-PASS/trainer0/observer0, Windows-task Disabled. Alle checkpoints er bevart.
-HOLD-MSE falt svakt på begge sider, men LONG er fortsatt svakere enn null;
-SHORT velger256/256HOLD, Entry64FLAT. Dette er fire faste TRAIN-batcher, ikke
-kalibrering eller profittbevis. Ikke krev at en forventningsverdiprediksjon skal
-treffe fortegnet på hvert stokastisk enkeltutfall.
-
-Neste konkrete justering er én eksplisitt bundet oppdatering av FQI-verdilæreren
-fra bevart ONLINE91, uavhengig av full epoch og VAL. Dette skal undersøke treg
-videreføring av fremtidig verdi. Gammel lærer og øvrige tilstander bevares;
-smal checkpointovergang verifiseres før ny avgrenset native læringskontroll.
-Ingen permanent oppdateringsfrekvens eller hel epoch er godkjent av resultatet.
-Ikke gjenta ferdige gradient-/to-stegs-/fit-kontroller. Ingen ny arkitektur,
-vilkårlig lossendring eller fast risiko-/holdegrense. Se CURRENT_HANDOVER.md og
-handover_snapshot/FIXED_TARGET_FIT_CONTROL_RESULT_20260915.json.
+FQI-læreroppdateringen og256 native steg er ferdige på checkpoint95/global5777.
+169 målrettede tester, faktisk CPU-targetkopi og native guard/trainer/observer
+består. Ny korrekt paretCPU-måling på64faktiske TRAIN-rader overalle12måneder
+viser Exit-MSE ned1.5083%, men bare0.2229% bedre enn nullbaseline. Entry er64FLAT
+mot lærer55FLAT/3LONG/6SHORT. Dette er et begrenset TRAIN-fit-resultat, ingen
+heldout- eller profittgevinst. Alle tunge jobber er ferdige; videre trening er
+stoppet og planen brukt opp. Ingen ny læreroppdatering eller hel epoch nå.
+De ni oversette lærer-inngangene er gjennomgått: FLAT er nær0, LONG/SHORT ligger
+omtrent på felles negativt nivå. Ni rader står allerede for87.69% av EntryQ-feilen.
+Eksakt cache-dekomponering viser at kun0.43594% av positiv lærerverdi på disse ni
+kommer fra videre HOLD, resten fra første lukkingsverdi. Ingen perfekt profittfasit.
+Neste anbefaling er en avgrenset lærbarhetskontroll av eksisterende EntryQ på
+samme64bundne inputs med fast lærer/uendret MSE; eventuell optimizerkjøring må ha
+ny eksplisitt native plan og eksisterende vakter. Ingen produksjonsendring,
+klassevekter eller hel epoch er besluttet. Ingen gjentatte gamle prober,
+shuffle-/lossendring eller vilkårlige grenser. Se CURRENT_HANDOVER.md,
+RUNNING_NATIVE_CALIBRATION.json og ACTUAL_WINDOW_PAIRED_TRAIN_REVIEW_20260915.json
+i handover_snapshot. Oppdater dokumentasjon og commit/push ferdig arbeid.
 
 # Gjeldende GX1-mål — 2026-09-14
 

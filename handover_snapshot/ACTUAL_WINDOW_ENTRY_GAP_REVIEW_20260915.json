@@ -1,0 +1,417 @@
+{
+  "schema_version": "gx1_actual_window_entry_gap_review_v1",
+  "decision": "OBSERVED_ENTRY_Q_OPPORTUNITY_GAP_NOT_CAUSAL_DIAGNOSIS",
+  "review_scope": "Saved JSON-only review of the nine teacher-selected but student-missed entries in the already completed actual-native TRAIN cohort comparison.",
+  "result_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/RESULT.json",
+    "sha256": "aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa"
+  },
+  "batch_json_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_00.json",
+      "sha256": "a573ee5902259412911f9fcb5058a7b81dac7d698cae36a568d66ef1334996fd"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_01.json",
+      "sha256": "47a06742f6f550d45b36340662799483eb72a39e15d9c949f7930f4f2e28711b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_02.json",
+      "sha256": "addb8a4c2561cd881fe550a84b1137b69f43b1dcef2e4d3b74ca4090dad56c13"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_03.json",
+      "sha256": "c5aa2672e2a8e987b37a25d7554fb1c3adf19986b58dcac5a6722ee788305422"
+    }
+  ],
+  "cohort": {
+    "entry_rows": 64,
+    "native_epoch_index": 1,
+    "native_batch_offsets": [
+      1440,
+      1525,
+      1610,
+      1695
+    ],
+    "before_checkpoint": 91,
+    "after_checkpoint": 95,
+    "teacher_checkpoint": 91,
+    "action_order": [
+      "LONG",
+      "SHORT",
+      "FLAT"
+    ],
+    "teacher_actions": {
+      "FLAT": 55,
+      "LONG": 3,
+      "SHORT": 6
+    },
+    "student_actions_before": {
+      "FLAT": 64,
+      "LONG": 0,
+      "SHORT": 0
+    },
+    "student_actions_after": {
+      "FLAT": 64,
+      "LONG": 0,
+      "SHORT": 0
+    },
+    "train_only": true,
+    "independent_holdout": false,
+    "test_data_used": false
+  },
+  "nine_missed_rows": [
+    {
+      "batch_number": 0,
+      "batch_row_position": 3,
+      "native_batch_offset": 1440,
+      "parent_entry_row_index": 253275,
+      "entry_time_ns": 1751258700000000000,
+      "teacher_entry_q_bps": [
+        3.9825186729431152,
+        -16.77635383605957,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -6.149843692779541,
+        -6.394018173217773,
+        -0.025761324912309647
+      ],
+      "after95_entry_q_bps": [
+        -6.081209182739258,
+        -6.338996887207031,
+        -0.03103671595454216
+      ],
+      "teacher_selected_action": "LONG",
+      "teacher_selected_action_index": 0,
+      "before91_selected_side_minus_flat_bps": -6.124082367867231,
+      "after95_selected_side_minus_flat_bps": -6.050172466784716
+    },
+    {
+      "batch_number": 0,
+      "batch_row_position": 8,
+      "native_batch_offset": 1440,
+      "parent_entry_row_index": 278538,
+      "entry_time_ns": 1763108400000000000,
+      "teacher_entry_q_bps": [
+        -11.750017166137695,
+        0.5660703778266907,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.863738536834717,
+        -5.393690586090088,
+        0.02575286105275154
+      ],
+      "after95_entry_q_bps": [
+        -5.79857063293457,
+        -5.700883388519287,
+        0.025407511740922928
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -5.419443447142839,
+      "after95_selected_side_minus_flat_bps": -5.72629090026021
+    },
+    {
+      "batch_number": 0,
+      "batch_row_position": 12,
+      "native_batch_offset": 1440,
+      "parent_entry_row_index": 303801,
+      "entry_time_ns": 1775613300000000000,
+      "teacher_entry_q_bps": [
+        18.097064971923828,
+        -28.66465950012207,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.0723114013671875,
+        -5.562812328338623,
+        0.0118878073990345
+      ],
+      "after95_entry_q_bps": [
+        -4.911962032318115,
+        -5.612273216247559,
+        0.011820424348115921
+      ],
+      "teacher_selected_action": "LONG",
+      "teacher_selected_action_index": 0,
+      "before91_selected_side_minus_flat_bps": -5.084199208766222,
+      "after95_selected_side_minus_flat_bps": -4.923782456666231
+    },
+    {
+      "batch_number": 1,
+      "batch_row_position": 5,
+      "native_batch_offset": 1525,
+      "parent_entry_row_index": 309482,
+      "entry_time_ns": 1778220000000000000,
+      "teacher_entry_q_bps": [
+        -12.628150939941406,
+        1.4371556043624878,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.815147876739502,
+        -5.818428039550781,
+        0.002354901283979416
+      ],
+      "after95_entry_q_bps": [
+        -5.795140266418457,
+        -5.802911758422852,
+        -0.008576590567827225
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -5.820782940834761,
+      "after95_selected_side_minus_flat_bps": -5.794335167855024
+    },
+    {
+      "batch_number": 2,
+      "batch_row_position": 0,
+      "native_batch_offset": 1610,
+      "parent_entry_row_index": 300452,
+      "entry_time_ns": 1773872100000000000,
+      "teacher_entry_q_bps": [
+        -25.7535457611084,
+        11.348061561584473,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -6.5898284912109375,
+        -5.858818531036377,
+        0.009850110858678818
+      ],
+      "after95_entry_q_bps": [
+        -5.979383945465088,
+        -6.422410488128662,
+        0.010542895644903183
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -5.868668641895056,
+      "after95_selected_side_minus_flat_bps": -6.432953383773565
+    },
+    {
+      "batch_number": 2,
+      "batch_row_position": 3,
+      "native_batch_offset": 1610,
+      "parent_entry_row_index": 305728,
+      "entry_time_ns": 1776431400000000000,
+      "teacher_entry_q_bps": [
+        -17.945829391479492,
+        7.144698143005371,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.994696140289307,
+        -6.700197696685791,
+        -0.01939333602786064
+      ],
+      "after95_entry_q_bps": [
+        -5.720410346984863,
+        -6.651443958282471,
+        -0.03804061934351921
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -6.68080436065793,
+      "after95_selected_side_minus_flat_bps": -6.6134033389389515
+    },
+    {
+      "batch_number": 2,
+      "batch_row_position": 7,
+      "native_batch_offset": 1610,
+      "parent_entry_row_index": 311004,
+      "entry_time_ns": 1779079800000000000,
+      "teacher_entry_q_bps": [
+        -20.397680282592773,
+        9.642376899719238,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.8591132164001465,
+        -6.018738746643066,
+        0.011598553508520126
+      ],
+      "after95_entry_q_bps": [
+        -5.92184591293335,
+        -5.975330352783203,
+        0.00516795739531517
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -6.0303373001515865,
+      "after95_selected_side_minus_flat_bps": -5.980498310178518
+    },
+    {
+      "batch_number": 2,
+      "batch_row_position": 13,
+      "native_batch_offset": 1610,
+      "parent_entry_row_index": 301569,
+      "entry_time_ns": 1774418400000000000,
+      "teacher_entry_q_bps": [
+        -12.504764556884766,
+        0.4811285436153412,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -5.875194549560547,
+        -5.85258150100708,
+        -0.0006512291729450226
+      ],
+      "after95_entry_q_bps": [
+        -5.654155731201172,
+        -6.177814960479736,
+        0.0015324614942073822
+      ],
+      "teacher_selected_action": "SHORT",
+      "teacher_selected_action_index": 1,
+      "before91_selected_side_minus_flat_bps": -5.851930271834135,
+      "after95_selected_side_minus_flat_bps": -6.179347421973944
+    },
+    {
+      "batch_number": 3,
+      "batch_row_position": 2,
+      "native_batch_offset": 1695,
+      "parent_entry_row_index": 301974,
+      "entry_time_ns": 1774549500000000000,
+      "teacher_entry_q_bps": [
+        5.439016342163086,
+        -18.242961883544922,
+        0
+      ],
+      "before91_entry_q_bps": [
+        -6.292686939239502,
+        -6.301971912384033,
+        -0.0024459995329380035
+      ],
+      "after95_entry_q_bps": [
+        -5.7518310546875,
+        -6.637259483337402,
+        -0.014384035021066666
+      ],
+      "teacher_selected_action": "LONG",
+      "teacher_selected_action_index": 0,
+      "before91_selected_side_minus_flat_bps": -6.290240939706564,
+      "after95_selected_side_minus_flat_bps": -5.737447019666433
+    }
+  ],
+  "aggregate_observations": {
+    "entry_q_mse_bps2": {
+      "before": 19.431362441738614,
+      "after": 19.576541984817954
+    },
+    "flat_head_after": {
+      "mean_bps": -0.0007199975370895118,
+      "min_bps": -0.04115678742527962,
+      "max_bps": 0.025407511740922928
+    },
+    "directional_head_max_after_bps": {
+      "LONG": -4.656583309173584,
+      "SHORT": -4.759297847747803
+    },
+    "actions_if_only_flat_output_replaced_by_exact_zero": {
+      "before": {
+        "FLAT": 64,
+        "LONG": 0,
+        "SHORT": 0
+      },
+      "after": {
+        "FLAT": 64,
+        "LONG": 0,
+        "SHORT": 0
+      },
+      "meaning": "Descriptive arithmetic counterfactual on saved outputs; no policy changed."
+    },
+    "teacher_trade_nine": {
+      "entry_q_mse_bps2_before": 121.07280718218875,
+      "entry_q_mse_bps2_after": 122.07834857599802,
+      "selected_side_mse_bps2_before": 182.04712942589595,
+      "selected_side_mse_bps2_after": 182.44442384290193,
+      "fraction_of_total_entry_squared_error_before": 0.8762053387169447,
+      "fraction_of_total_entry_squared_error_after": 0.8769305519745692,
+      "selected_side_margin_improved_rows": 6,
+      "correct_long_vs_short_ranking_before": 6,
+      "correct_long_vs_short_ranking_after": 4,
+      "correct_long_vs_short_ranking_after_by_teacher_side": {
+        "LONG": {
+          "correct": 3,
+          "rows": 3
+        },
+        "SHORT": {
+          "correct": 1,
+          "rows": 6
+        }
+      }
+    },
+    "half_sum_long_short": {
+      "definition": "(Q_LONG + Q_SHORT) / 2",
+      "teacher_mean_bps": -5.736333782784641,
+      "teacher_std_bps": 0.39849891344104604,
+      "before_mean_bps": -5.76374376565218,
+      "before_std_bps": 0.33849131256118276,
+      "after_mean_bps": -5.707608088850975,
+      "after_std_bps": 0.3519671710773792
+    },
+    "half_difference_long_short": {
+      "definition": "(Q_LONG - Q_SHORT) / 2",
+      "teacher_mean_bps": -0.46914690639823675,
+      "teacher_std_bps": 5.406360559818265,
+      "before_mean_bps": 0.04013627767562866,
+      "before_std_bps": 0.22230659123458676,
+      "after_mean_bps": 0.12222563475370407,
+      "after_std_bps": 0.2241751118146112
+    },
+    "descriptive_same_cohort_side_mean_baseline": {
+      "entry_q_mse_bps2": 19.59169059118144,
+      "fitted_on_review_cohort": true,
+      "independent_evidence": false,
+      "meaning": "Constant target mean for each action on these same 64 rows; descriptive compression reference only."
+    }
+  },
+  "interpretation": {
+    "observed_bottleneck": "Relative to the frozen learned teacher, student LONG/SHORT values remain near a common negative level and fail to reproduce conditional side-value differences and positive opportunities. The FLAT output is close to its zero target.",
+    "causal_diagnosis_established": false,
+    "not_established": [
+      "That the learned teacher identifies genuinely profitable trades.",
+      "Whether compressed student outputs reflect insufficient fitting, limitations of the representation, uncertain or noisy targets, or economically incorrect teacher continuation values.",
+      "That the nine-row discrepancy or the 64-row aggregate generalizes to the full TRAIN year or VAL.",
+      "That class weighting, oversampling, shifting FLAT, changing economic costs, or changing model architecture is justified."
+    ],
+    "sampling_caveat": "This is a small, preselected actual-native TRAIN cohort. Exact paired measurements establish changes on these cases, not statistical significance or full-year convergence.",
+    "conditional_mean_caveat": "Similarity to a same-cohort constant-mean baseline describes the outputs. It does not establish why they are compressed, nor prove that every positive teacher target is learnable from the causal inputs.",
+    "anchor_decomposition_available_in_reviewed_json": false,
+    "anchor_decomposition_limit": "The reviewed BATCH JSONs do not separately store entry_liquidation_value and teacher first-state HOLD/EXIT continuation. Their bootstrap_bps arrays concern sampled Exit transitions and cannot substitute for the missing Entry-anchor decomposition.",
+    "next_narrow_fact": "Root completed the separate cache-only anchor decomposition recorded below. The next proposed step is a bounded learnability check of the existing Entry component under the native guard contract; no production adjustment is established by this review.",
+    "production_change_recommended_from_this_review": false,
+    "class_weight_change_recommended": false
+  },
+  "anchor_decomposition_followup": {
+    "binding": {
+      "path": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/handover_snapshot/ACTUAL_WINDOW_ENTRY_ANCHOR_DECOMPOSITION_20260915.json",
+      "sha256": "8bdea061bf70c7d8ad4dd2f1899ffe36c89c1921e74c8062539471f9b08e8af9"
+    },
+    "evidence_supplied_by": "Root's completed cache-only decomposition; no model forward or additional decomposition performed by this reviewer.",
+    "entry_target_equals_physical_plus_max_valid_anchor_q_exact_rows": 64,
+    "nine_selected_rows": {
+      "physical_value_positive_rows": 9,
+      "physical_value_mean_bps": 6.431627,
+      "teacher_continuation_mean_bps": 0.0281607,
+      "teacher_continuation_min_bps": 0.0,
+      "teacher_continuation_max_bps": 0.0450693,
+      "total_mean_bps": 6.459788,
+      "continuation_share_of_positive_value_percent": 0.43594
+    },
+    "numeric_precision": "Summary precision supplied by root; referenced artifact retains authoritative values.",
+    "limitation": "These nine rows are not broad-population evidence. Physical realized value is not proof of causal predictability or an executable Entry edge; small teacher continuation does not prove an irreparable teacher."
+  },
+  "execution": {
+    "review_reads": "Existing RESULT/BATCH JSONs only",
+    "new_model_forward_executed": false,
+    "checkpoint_tensor_loaded": false,
+    "corpus_loaded": false,
+    "training_executed": false,
+    "tests_executed": false,
+    "production_source_changed": false
+  }
+}

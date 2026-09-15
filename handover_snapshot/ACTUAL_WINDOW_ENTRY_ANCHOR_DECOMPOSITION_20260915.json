@@ -1,0 +1,2227 @@
+{
+  "all_bindings_preserved": true,
+  "all_rows": [
+    {
+      "after_entry_q_bps": [
+        -5.7909417152404785,
+        -5.982581615447998,
+        0.011237327009439468
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -7.466701507568359,
+        -3.9727063179016113
+      ],
+      "entry_row_index": 267986,
+      "entry_target_bps": [
+        -7.466701507568359,
+        -3.9272854328155518,
+        0.0
+      ],
+      "entry_time_ns": 1758162900000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04428953677415848,
+        0.04542078822851181
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04542078822851181
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.693992614746094,
+        -6.132923603057861,
+        -0.0009173862636089325
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -6.614786624908447,
+        -5.586450576782227
+      ],
+      "entry_row_index": 287973,
+      "entry_target_bps": [
+        -6.614786624908447,
+        -5.53923225402832,
+        0.0
+      ],
+      "entry_time_ns": 1767915600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.049307480454444885,
+        0.04721817001700401
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04721817001700401
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.219135761260986,
+        -5.2615742683410645,
+        -0.04115678742527962
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -1.8886573314666748,
+        -8.551918983459473
+      ],
+      "entry_row_index": 307960,
+      "entry_target_bps": [
+        -1.8886573314666748,
+        -8.496922492980957,
+        0.0
+      ],
+      "entry_time_ns": 1777533000000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.07333668321371078,
+        0.054996296763420105
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.054996296763420105
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.081209182739258,
+        -6.338996887207031,
+        -0.03103671595454216
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        3.9825186729431152,
+        -16.831375122070312
+      ],
+      "entry_row_index": 253275,
+      "entry_target_bps": [
+        3.9825186729431152,
+        -16.77635383605957,
+        0.0
+      ],
+      "entry_time_ns": 1751258700000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 3.9825186729431152,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.066729836165905,
+        0.055020615458488464
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.055020615458488464
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.934579849243164,
+        -5.957647800445557,
+        -0.027691397815942764
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -6.342426300048828,
+        -4.444918155670166
+      ],
+      "entry_row_index": 273262,
+      "entry_target_bps": [
+        -6.342426300048828,
+        -4.393165588378906,
+        0.0
+      ],
+      "entry_time_ns": 1760629200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.0606672465801239,
+        0.05175267159938812
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05175267159938812
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.138758182525635,
+        -6.373611927032471,
+        0.010815639048814774
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -1.5356231927871704,
+        -9.618703842163086
+      ],
+      "entry_row_index": 293249,
+      "entry_target_bps": [
+        -1.5356231927871704,
+        -9.55723762512207,
+        0.0
+      ],
+      "entry_time_ns": 1770390600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.07465367019176483,
+        0.061466433107852936
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.061466433107852936
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.146224498748779,
+        -5.38142204284668,
+        -0.009333033114671707
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -9.961294174194336,
+        -1.6066375970840454
+      ],
+      "entry_row_index": 313236,
+      "entry_target_bps": [
+        -9.961294174194336,
+        -1.5645649433135986,
+        0.0
+      ],
+      "entry_time_ns": 1780017600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.036520808935165405,
+        0.04207271337509155
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04207271337509155
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.422277450561523,
+        -5.894346237182617,
+        0.011039955541491508
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -7.5953240394592285,
+        -3.9697906970977783
+      ],
+      "entry_row_index": 258551,
+      "entry_target_bps": [
+        -7.5953240394592285,
+        -3.923759937286377,
+        0.0
+      ],
+      "entry_time_ns": 1753750800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04579344019293785,
+        0.046030737459659576
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.046030737459659576
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.79857063293457,
+        -5.700883388519287,
+        0.025407511740922928
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -11.750017166137695,
+        0.5210011005401611
+      ],
+      "entry_row_index": 278538,
+      "entry_target_bps": [
+        -11.750017166137695,
+        0.5660703778266907,
+        0.0
+      ],
+      "entry_time_ns": 1763108400000000000,
+      "selected_side_continuation_bps": 0.045069292187690735,
+      "selected_side_physical_liquidation_bps": 0.5210011005401611,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04510723054409027,
+        0.045069292187690735
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.045069292187690735
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.658893585205078,
+        -6.254179954528809,
+        0.018639232963323593
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -8.511944770812988,
+        -2.842660665512085
+      ],
+      "entry_row_index": 298525,
+      "entry_target_bps": [
+        -8.511944770812988,
+        -2.7964513301849365,
+        0.0
+      ],
+      "entry_time_ns": 1773044400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.0543135367333889,
+        0.046209413558244705
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.046209413558244705
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.46991491317749,
+        -5.206715106964111,
+        -0.0026798732578754425
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -5.0976738929748535,
+        -5.630397796630859
+      ],
+      "entry_row_index": 263827,
+      "entry_target_bps": [
+        -5.0976738929748535,
+        -5.580423831939697,
+        0.0
+      ],
+      "entry_time_ns": 1756216800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.06169060245156288,
+        0.04997403919696808
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04997403919696808
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.764562129974365,
+        -5.443912029266357,
+        0.007858972996473312
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -5.863802433013916,
+        -5.56409215927124
+      ],
+      "entry_row_index": 283814,
+      "entry_target_bps": [
+        -5.863802433013916,
+        -5.516311168670654,
+        0.0
+      ],
+      "entry_time_ns": 1765801800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.051858171820640564,
+        0.04778081923723221
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04778081923723221
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.911962032318115,
+        -5.612273216247559,
+        0.011820424348115921
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        18.097064971923828,
+        -28.740999221801758
+      ],
+      "entry_row_index": 303801,
+      "entry_target_bps": [
+        18.097064971923828,
+        -28.66465950012207,
+        0.0
+      ],
+      "entry_time_ns": 1775613300000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 18.097064971923828,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.1227165162563324,
+        0.07633993029594421
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.07633993029594421
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.713395118713379,
+        -5.747793674468994,
+        0.00681300088763237
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -5.760896682739258,
+        -5.760190486907959
+      ],
+      "entry_row_index": 249116,
+      "entry_target_bps": [
+        -5.760896682739258,
+        -5.713771343231201,
+        0.0
+      ],
+      "entry_time_ns": 1749147600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.049403607845306396,
+        0.04641914367675781
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04641914367675781
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.073176860809326,
+        -5.690885543823242,
+        -0.013977039605379105
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -9.370054244995117,
+        -1.6606446504592896
+      ],
+      "entry_row_index": 269103,
+      "entry_target_bps": [
+        -9.370054244995117,
+        -1.6179362535476685,
+        0.0
+      ],
+      "entry_time_ns": 1758709200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.029437262564897537,
+        0.042708396911621094
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.042708396911621094
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.137589931488037,
+        -5.98642635345459,
+        0.0017048008739948273
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -7.10245418548584,
+        -5.2798848152160645
+      ],
+      "entry_row_index": 289090,
+      "entry_target_bps": [
+        -7.10245418548584,
+        -5.230541229248047,
+        0.0
+      ],
+      "entry_time_ns": 1768461900000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04404421150684357,
+        0.04934340715408325
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04934340715408325
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.969973087310791,
+        -5.993415832519531,
+        -0.00022846832871437073
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -3.5613350868225098,
+        -8.073649406433105
+      ],
+      "entry_row_index": 284219,
+      "entry_target_bps": [
+        -3.5613350868225098,
+        -8.02103042602539,
+        0.0
+      ],
+      "entry_time_ns": 1765942500000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.06474969536066055,
+        0.052618756890296936
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.052618756890296936
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.666661739349365,
+        -5.642965793609619,
+        0.00328117236495018
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -2.3661048412323,
+        -7.521746635437012
+      ],
+      "entry_row_index": 304206,
+      "entry_target_bps": [
+        -2.3661048412323,
+        -7.4702582359313965,
+        0.0
+      ],
+      "entry_time_ns": 1775744400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.06583869457244873,
+        0.05148818716406822
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05148818716406822
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.569039821624756,
+        -6.169463157653809,
+        0.013677556067705154
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -7.526110649108887,
+        -4.632840633392334
+      ],
+      "entry_row_index": 249521,
+      "entry_target_bps": [
+        -7.526110649108887,
+        -4.585823059082031,
+        0.0
+      ],
+      "entry_time_ns": 1749461100000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04123416170477867,
+        0.0470176637172699
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0470176637172699
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.508721351623535,
+        -5.869384765625,
+        0.0012152604758739471
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -6.5669660568237305,
+        -5.149545192718506
+      ],
+      "entry_row_index": 269508,
+      "entry_target_bps": [
+        -6.5669660568237305,
+        -5.101523399353027,
+        0.0
+      ],
+      "entry_time_ns": 1758849900000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04156177490949631,
+        0.04802167788147926
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04802167788147926
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.8302154541015625,
+        -5.931721210479736,
+        -0.0021626390516757965
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -5.852277755737305,
+        -6.047676086425781
+      ],
+      "entry_row_index": 289495,
+      "entry_target_bps": [
+        -5.852277755737305,
+        -5.997303009033203,
+        0.0
+      ],
+      "entry_time_ns": 1768593000000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04985031485557556,
+        0.050373055040836334
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.050373055040836334
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.795140266418457,
+        -5.802911758422852,
+        -0.008576590567827225
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -12.628150939941406,
+        1.3929675817489624
+      ],
+      "entry_row_index": 309482,
+      "entry_target_bps": [
+        -12.628150939941406,
+        1.4371556043624878,
+        0.0
+      ],
+      "entry_time_ns": 1778220000000000000,
+      "selected_side_continuation_bps": 0.04418806731700897,
+      "selected_side_physical_liquidation_bps": 1.3929675817489624,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04088056832551956,
+        0.04418806731700897
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04418806731700897
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.599908828735352,
+        -5.620218753814697,
+        -0.011819537729024887
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -6.344600677490234,
+        -5.171980857849121
+      ],
+      "entry_row_index": 254797,
+      "entry_target_bps": [
+        -6.344600677490234,
+        -5.1239142417907715,
+        0.0
+      ],
+      "entry_time_ns": 1751962200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.049215786159038544,
+        0.048066698014736176
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.048066698014736176
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.188266277313232,
+        -5.685838222503662,
+        0.005681861191987991
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -10.979427337646484,
+        -0.29213157296180725
+      ],
+      "entry_row_index": 274784,
+      "entry_target_bps": [
+        -10.979427337646484,
+        -0.2451438009738922,
+        0.0
+      ],
+      "entry_time_ns": 1761316200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04645654186606407,
+        0.04698777198791504
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04698777198791504
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.196634769439697,
+        -6.0330729484558105,
+        -0.007407058030366898
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -3.560650587081909,
+        -7.643694877624512
+      ],
+      "entry_row_index": 294771,
+      "entry_target_bps": [
+        -3.560650587081909,
+        -7.5943169593811035,
+        0.0
+      ],
+      "entry_time_ns": 1771250400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05410658195614815,
+        0.049378037452697754
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.049378037452697754
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.774415016174316,
+        -5.277267932891846,
+        -0.007518608123064041
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -6.336121559143066,
+        -5.182539939880371
+      ],
+      "entry_row_index": 260073,
+      "entry_target_bps": [
+        -6.336121559143066,
+        -5.137794494628906,
+        0.0
+      ],
+      "entry_time_ns": 1754437800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04852226376533508,
+        0.04474525898694992
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04474525898694992
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.587712287902832,
+        -5.902235507965088,
+        0.014074910432100296
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -5.575516223907471,
+        -5.599354267120361
+      ],
+      "entry_row_index": 280060,
+      "entry_target_bps": [
+        -5.575516223907471,
+        -5.551074981689453,
+        0.0
+      ],
+      "entry_time_ns": 1763974200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05507654696702957,
+        0.04827919602394104
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04827919602394104
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.7972893714904785,
+        -5.766970157623291,
+        -0.004917223006486893
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -6.493603706359863,
+        -5.116881847381592
+      ],
+      "entry_row_index": 300047,
+      "entry_target_bps": [
+        -6.493603706359863,
+        -5.069812297821045,
+        0.0
+      ],
+      "entry_time_ns": 1773731400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04375431686639786,
+        0.04706934839487076
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04706934839487076
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.133310317993164,
+        -4.759297847747803,
+        -0.00708988681435585
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -5.903672695159912,
+        -4.895495891571045
+      ],
+      "entry_row_index": 265349,
+      "entry_target_bps": [
+        -5.903672695159912,
+        -4.847705841064453,
+        0.0
+      ],
+      "entry_time_ns": 1756920600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05965130403637886,
+        0.04779026284813881
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04779026284813881
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.435286521911621,
+        -4.987470626831055,
+        0.009759064763784409
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -4.893129348754883,
+        -6.587553024291992
+      ],
+      "entry_row_index": 285336,
+      "entry_target_bps": [
+        -4.893129348754883,
+        -6.540909767150879,
+        0.0
+      ],
+      "entry_time_ns": 1766488800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.0437898263335228,
+        0.04664335027337074
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04664335027337074
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.504353046417236,
+        -5.442389965057373,
+        -0.0242215134203434
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -4.311172962188721,
+        -7.10194206237793
+      ],
+      "entry_row_index": 305323,
+      "entry_target_bps": [
+        -4.311172962188721,
+        -7.050858020782471,
+        0.0
+      ],
+      "entry_time_ns": 1776300300000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.054313644766807556,
+        0.051083847880363464
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.051083847880363464
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.939080715179443,
+        -6.04000997543335,
+        -0.012482870370149612
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -5.4579033851623535,
+        -6.448080062866211
+      ],
+      "entry_row_index": 250638,
+      "entry_target_bps": [
+        -5.4579033851623535,
+        -6.400607585906982,
+        0.0
+      ],
+      "entry_time_ns": 1749834600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.043508030474185944,
+        0.04747236520051956
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04747236520051956
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.979383945465088,
+        -6.422410488128662,
+        0.010542895644903183
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -25.7535457611084,
+        11.308884620666504
+      ],
+      "entry_row_index": 300452,
+      "entry_target_bps": [
+        -25.7535457611084,
+        11.348061561584473,
+        0.0
+      ],
+      "entry_time_ns": 1773872100000000000,
+      "selected_side_continuation_bps": 0.03917660564184189,
+      "selected_side_physical_liquidation_bps": 11.308884620666504,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.03820556402206421,
+        0.03917660564184189
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.03917660564184189
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.3550848960876465,
+        -5.358788967132568,
+        0.021524053066968918
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -5.748283386230469,
+        -5.211977958679199
+      ],
+      "entry_row_index": 265754,
+      "entry_target_bps": [
+        -5.748283386230469,
+        -5.165450096130371,
+        0.0
+      ],
+      "entry_time_ns": 1757061300000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.043443240225315094,
+        0.04652797430753708
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04652797430753708
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.8987717628479,
+        -5.800426959991455,
+        -0.009892057627439499
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -6.083944320678711,
+        -6.504582405090332
+      ],
+      "entry_row_index": 285741,
+      "entry_target_bps": [
+        -6.083944320678711,
+        -6.452263832092285,
+        0.0
+      ],
+      "entry_time_ns": 1766727600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05338306725025177,
+        0.05231863632798195
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05231863632798195
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.720410346984863,
+        -6.651443958282471,
+        -0.03804061934351921
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -17.945829391479492,
+        7.100347518920898
+      ],
+      "entry_row_index": 305728,
+      "entry_target_bps": [
+        -17.945829391479492,
+        7.144698143005371,
+        0.0
+      ],
+      "entry_time_ns": 1776431400000000000,
+      "selected_side_continuation_bps": 0.044350653886795044,
+      "selected_side_physical_liquidation_bps": 7.100347518920898,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05395282804965973,
+        0.044350653886795044
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.044350653886795044
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.996100425720215,
+        -5.972962379455566,
+        0.005071576684713364
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -3.9419760704040527,
+        -8.518312454223633
+      ],
+      "entry_row_index": 251043,
+      "entry_target_bps": [
+        -3.9419760704040527,
+        -8.46462345123291,
+        0.0
+      ],
+      "entry_time_ns": 1750148100000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.059253592044115067,
+        0.05368918180465698
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05368918180465698
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.220964431762695,
+        -5.5426716804504395,
+        -0.005386147648096085
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -4.7948784828186035,
+        -6.151418685913086
+      ],
+      "entry_row_index": 271030,
+      "entry_target_bps": [
+        -4.7948784828186035,
+        -6.1009087562561035,
+        0.0
+      ],
+      "entry_time_ns": 1759709700000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05179857090115547,
+        0.05050969868898392
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05050969868898392
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.472398281097412,
+        -6.58649206161499,
+        0.019221704453229904
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -5.902005672454834,
+        -7.525646209716797
+      ],
+      "entry_row_index": 291017,
+      "entry_target_bps": [
+        -5.902005672454834,
+        -7.473221302032471,
+        0.0
+      ],
+      "entry_time_ns": 1769471400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04247582331299782,
+        0.05242493748664856
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05242493748664856
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.92184591293335,
+        -5.975330352783203,
+        0.00516795739531517
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -20.397680282592773,
+        9.603555679321289
+      ],
+      "entry_row_index": 311004,
+      "entry_target_bps": [
+        -20.397680282592773,
+        9.642376899719238,
+        0.0
+      ],
+      "entry_time_ns": 1779079800000000000,
+      "selected_side_continuation_bps": 0.0388207733631134,
+      "selected_side_physical_liquidation_bps": 9.603555679321289,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.037227340042591095,
+        0.0388207733631134
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0388207733631134
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.483119487762451,
+        -5.278670310974121,
+        0.010657746344804764
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -2.98262357711792,
+        -7.744645118713379
+      ],
+      "entry_row_index": 256319,
+      "entry_target_bps": [
+        -2.98262357711792,
+        -7.694952011108398,
+        0.0
+      ],
+      "entry_time_ns": 1752649200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.062196262180805206,
+        0.04969332367181778
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04969332367181778
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.159199237823486,
+        -6.140356063842773,
+        -0.0019006915390491486
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -6.316319942474365,
+        -6.066769123077393
+      ],
+      "entry_row_index": 276306,
+      "entry_target_bps": [
+        -6.316319942474365,
+        -6.0166192054748535,
+        0.0
+      ],
+      "entry_time_ns": 1762179600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.051414310932159424,
+        0.05014969781041145
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05014969781041145
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.996676921844482,
+        -6.122761249542236,
+        0.010510098189115524
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -1.6294052600860596,
+        -9.832864761352539
+      ],
+      "entry_row_index": 296293,
+      "entry_target_bps": [
+        -1.6294052600860596,
+        -9.779243469238281,
+        0.0
+      ],
+      "entry_time_ns": 1771946400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.06016730144619942,
+        0.05362144112586975
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05362144112586975
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.7079057693481445,
+        -5.535432815551758,
+        0.006727602332830429
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -4.566854953765869,
+        -7.425412178039551
+      ],
+      "entry_row_index": 261595,
+      "entry_target_bps": [
+        -4.566854953765869,
+        -7.380304336547852,
+        0.0
+      ],
+      "entry_time_ns": 1755124800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.054388176649808884,
+        0.045107726007699966
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.045107726007699966
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.912217140197754,
+        -6.036059856414795,
+        -0.008761938661336899
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -5.669449329376221,
+        -6.05015754699707
+      ],
+      "entry_row_index": 281582,
+      "entry_target_bps": [
+        -5.669449329376221,
+        -6.000164031982422,
+        0.0
+      ],
+      "entry_time_ns": 1764697800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.050648339092731476,
+        0.04999358952045441
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04999358952045441
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.654155731201172,
+        -6.177814960479736,
+        0.0015324614942073822
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -12.504764556884766,
+        0.4392872452735901
+      ],
+      "entry_row_index": 301569,
+      "entry_target_bps": [
+        -12.504764556884766,
+        0.4811285436153412,
+        0.0
+      ],
+      "entry_time_ns": 1774418400000000000,
+      "selected_side_continuation_bps": 0.0418412946164608,
+      "selected_side_physical_liquidation_bps": 0.4392872452735901,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.053680479526519775,
+        0.0418412946164608
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0418412946164608
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.135068416595459,
+        -5.093740463256836,
+        0.0024075545370578766
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -6.474328994750977,
+        -4.439758777618408
+      ],
+      "entry_row_index": 266871,
+      "entry_target_bps": [
+        -6.474328994750977,
+        -4.392384052276611,
+        0.0
+      ],
+      "entry_time_ns": 1757607600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05254744738340378,
+        0.04737476259469986
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04737476259469986
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.203988075256348,
+        -5.892111778259277,
+        0.005775105208158493
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -7.063841819763184,
+        -5.531722545623779
+      ],
+      "entry_row_index": 286858,
+      "entry_target_bps": [
+        -7.063841819763184,
+        -5.481961250305176,
+        0.0
+      ],
+      "entry_time_ns": 1767360300000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.061810191720724106,
+        0.0497610867023468
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0497610867023468
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.428889751434326,
+        -6.014893054962158,
+        0.013302195817232132
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -6.277491569519043,
+        -4.838815689086914
+      ],
+      "entry_row_index": 262000,
+      "entry_target_bps": [
+        -6.277491569519043,
+        -4.7932305335998535,
+        0.0
+      ],
+      "entry_time_ns": 1755255900000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05372190475463867,
+        0.045585133135318756
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.045585133135318756
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.6772966384887695,
+        -5.8687334060668945,
+        0.0006592459976673126
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -5.195667266845703,
+        -6.294098854064941
+      ],
+      "entry_row_index": 281987,
+      "entry_target_bps": [
+        -5.195667266845703,
+        -6.242645740509033,
+        0.0
+      ],
+      "entry_time_ns": 1764838500000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05499235913157463,
+        0.05145307630300522
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05145307630300522
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.7518310546875,
+        -6.637259483337402,
+        -0.014384035021066666
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        5.439016342163086,
+        -18.312562942504883
+      ],
+      "entry_row_index": 301974,
+      "entry_target_bps": [
+        5.439016342163086,
+        -18.242961883544922,
+        0.0
+      ],
+      "entry_time_ns": 1774549500000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 5.439016342163086,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.11184104532003403,
+        0.06960037350654602
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.06960037350654602
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.246557235717773,
+        -5.4480814933776855,
+        -0.008069675415754318
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -4.138516902923584,
+        -6.365119457244873
+      ],
+      "entry_row_index": 267276,
+      "entry_target_bps": [
+        -4.138516902923584,
+        -6.3163299560546875,
+        0.0
+      ],
+      "entry_time_ns": 1757921100000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05035632848739624,
+        0.04878965765237808
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04878965765237808
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.153390884399414,
+        -6.243150234222412,
+        -0.007505636662244797
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -6.866779804229736,
+        -6.0826616287231445
+      ],
+      "entry_row_index": 287263,
+      "entry_target_bps": [
+        -6.866779804229736,
+        -6.036423683166504,
+        0.0
+      ],
+      "entry_time_ns": 1767673800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04368215054273605,
+        0.046238012611866
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.046238012611866
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.656583309173584,
+        -5.4861884117126465,
+        0.006255503743886948
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -5.934983253479004,
+        -4.148780345916748
+      ],
+      "entry_row_index": 307250,
+      "entry_target_bps": [
+        -5.934983253479004,
+        -4.102819442749023,
+        0.0
+      ],
+      "entry_time_ns": 1777291200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05169985443353653,
+        0.04596073180437088
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04596073180437088
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.724198341369629,
+        -5.938324928283691,
+        -0.0035962946712970734
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -6.949042320251465,
+        -4.541571617126465
+      ],
+      "entry_row_index": 252565,
+      "entry_target_bps": [
+        -6.949042320251465,
+        -4.496979236602783,
+        0.0
+      ],
+      "entry_time_ns": 1750844100000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.0462418757379055,
+        0.04459258168935776
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04459258168935776
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.1232008934021,
+        -5.754046440124512,
+        -0.01659831777215004
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -7.597423553466797,
+        -3.635436534881592
+      ],
+      "entry_row_index": 272552,
+      "entry_target_bps": [
+        -7.597423553466797,
+        -3.5922868251800537,
+        0.0
+      ],
+      "entry_time_ns": 1760397000000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.03510560840368271,
+        0.04314973205327988
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04314973205327988
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -6.2555251121521,
+        -7.297769546508789,
+        0.00136522576212883
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -10.47622013092041,
+        -1.3727355003356934
+      ],
+      "entry_row_index": 292539,
+      "entry_target_bps": [
+        -10.47622013092041,
+        -1.3283835649490356,
+        0.0
+      ],
+      "entry_time_ns": 1770148800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.048293329775333405,
+        0.04435199126601219
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04435199126601219
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.140905380249023,
+        -5.46598482131958,
+        -0.016669977456331253
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -8.17125129699707,
+        -2.3449370861053467
+      ],
+      "entry_row_index": 312526,
+      "entry_target_bps": [
+        -8.17125129699707,
+        -2.2997310161590576,
+        0.0
+      ],
+      "entry_time_ns": 1779775800000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05158587917685509,
+        0.04520599916577339
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04520599916577339
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.789178371429443,
+        -5.695771217346191,
+        -0.00352327898144722
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -5.717297554016113,
+        -5.894175052642822
+      ],
+      "entry_row_index": 257841,
+      "entry_target_bps": [
+        -5.717297554016113,
+        -5.84541654586792,
+        0.0
+      ],
+      "entry_time_ns": 1753336200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04717385023832321,
+        0.04875843599438667
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04875843599438667
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.519107341766357,
+        -5.5655364990234375,
+        0.002024661749601364
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -10.183258056640625,
+        -1.7053029537200928
+      ],
+      "entry_row_index": 277828,
+      "entry_target_bps": [
+        -10.183258056640625,
+        -1.6623090505599976,
+        0.0
+      ],
+      "entry_time_ns": 1762866600000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.037086497992277145,
+        0.04299388825893402
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04299388825893402
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.8570427894592285,
+        -5.8923468589782715,
+        0.019206363707780838
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -1.929727554321289,
+        -9.18871021270752
+      ],
+      "entry_row_index": 297815,
+      "entry_target_bps": [
+        -1.929727554321289,
+        -9.135303497314453,
+        0.0
+      ],
+      "entry_time_ns": 1772633400000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.07088187336921692,
+        0.05340652912855148
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.05340652912855148
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.017539978027344,
+        -4.957880973815918,
+        0.013998191803693771
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -5.168890476226807,
+        -5.317751884460449
+      ],
+      "entry_row_index": 263117,
+      "entry_target_bps": [
+        -5.168890476226807,
+        -5.274205684661865,
+        0.0
+      ],
+      "entry_time_ns": 1755802200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05428071692585945,
+        0.04354643076658249
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04354643076658249
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.53885555267334,
+        -5.848818778991699,
+        0.005367431789636612
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -5.024176120758057,
+        -5.903841495513916
+      ],
+      "entry_row_index": 283104,
+      "entry_target_bps": [
+        -5.024176120758057,
+        -5.855775356292725,
+        0.0
+      ],
+      "entry_time_ns": 1765387200000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.056697819381952286,
+        0.04806594178080559
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04806594178080559
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.315890312194824,
+        -6.516289710998535,
+        -0.012878809124231339
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        -4.044506072998047,
+        -8.109704971313477
+      ],
+      "entry_row_index": 303091,
+      "entry_target_bps": [
+        -4.044506072998047,
+        -8.05586051940918,
+        0.0
+      ],
+      "entry_time_ns": 1775112300000000000,
+      "selected_side_continuation_bps": null,
+      "selected_side_physical_liquidation_bps": null,
+      "teacher_action": "FLAT",
+      "teacher_anchor_hold_q_bps": [
+        -0.07566048949956894,
+        0.053844183683395386
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.053844183683395386
+      ]
+    }
+  ],
+  "elapsed_seconds": 1.2070667120005965,
+  "entry_rows": 64,
+  "gpu_used": false,
+  "model_constructed": false,
+  "operator_script_sha256": "ec4aff864eec1fdf4f9a9b9f4f7693753704145af0e2725e9b4bda9c85e04452",
+  "preserved_bindings": {
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_00.json": "a573ee5902259412911f9fcb5058a7b81dac7d698cae36a568d66ef1334996fd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_00_INPUTS.pt": "a2e154196754802491efd15327b6a15a67b87ee2ae5dabe152ec3856e7fed3be",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_00_TARGETS.pt": "7ccfe67bde4eddd0d875dde6fb241c05c6eb40a79a375658ed24e958d1993a12",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_01.json": "47a06742f6f550d45b36340662799483eb72a39e15d9c949f7930f4f2e28711b",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_01_INPUTS.pt": "3bd3157ae30affdb2cccad38835b93e2a99a9b673c26fcc19f59ec8001b2978f",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_01_TARGETS.pt": "7db2a80a1ea0bce59b611efb62359570fc41d99f08111c399e24701f6b94820c",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_02.json": "addb8a4c2561cd881fe550a84b1137b69f43b1dcef2e4d3b74ca4090dad56c13",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_02_INPUTS.pt": "625fbe41875a34594e3bc6d4e92b4b4a115cb9735452379786d4eb8af2f08dd3",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_02_TARGETS.pt": "41d55b554fd45bbe86e51ada1756fd5d8ce4124a94697cbbbafd5e5ab99e0282",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_03.json": "c5aa2672e2a8e987b37a25d7554fb1c3adf19986b58dcac5a6722ee788305422",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_03_INPUTS.pt": "894de10e535bb05b9183038c2897c0eec3c804558baf84496a0edef36a7a452e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/BATCH_03_TARGETS.pt": "4d81fd097266038f04908ac8e32ea1af799e514758d3419c3545670df9ac7b46",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/RESULT.json": "aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa"
+  },
+  "raw_result_sha256": "aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa",
+  "schema_version": "gx1_cached_entry_anchor_decomposition_v1",
+  "scope": "Read-only decomposition of already computed teacher targets and native batch tensors. No model, forward, backward, optimizer, new feature or price corpus, VAL or TEST. Same64 TRAIN rows.",
+  "selected_rows": [
+    {
+      "after_entry_q_bps": [
+        -6.081209182739258,
+        -6.338996887207031,
+        -0.03103671595454216
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        3.9825186729431152,
+        -16.831375122070312
+      ],
+      "entry_row_index": 253275,
+      "entry_target_bps": [
+        3.9825186729431152,
+        -16.77635383605957,
+        0.0
+      ],
+      "entry_time_ns": 1751258700000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 3.9825186729431152,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.066729836165905,
+        0.055020615458488464
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.055020615458488464
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.79857063293457,
+        -5.700883388519287,
+        0.025407511740922928
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        -11.750017166137695,
+        0.5210011005401611
+      ],
+      "entry_row_index": 278538,
+      "entry_target_bps": [
+        -11.750017166137695,
+        0.5660703778266907,
+        0.0
+      ],
+      "entry_time_ns": 1763108400000000000,
+      "selected_side_continuation_bps": 0.045069292187690735,
+      "selected_side_physical_liquidation_bps": 0.5210011005401611,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04510723054409027,
+        0.045069292187690735
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.045069292187690735
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -4.911962032318115,
+        -5.612273216247559,
+        0.011820424348115921
+      ],
+      "batch_offset": 1440,
+      "entry_liquidation_value_bps": [
+        18.097064971923828,
+        -28.740999221801758
+      ],
+      "entry_row_index": 303801,
+      "entry_target_bps": [
+        18.097064971923828,
+        -28.66465950012207,
+        0.0
+      ],
+      "entry_time_ns": 1775613300000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 18.097064971923828,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.1227165162563324,
+        0.07633993029594421
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.07633993029594421
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.795140266418457,
+        -5.802911758422852,
+        -0.008576590567827225
+      ],
+      "batch_offset": 1525,
+      "entry_liquidation_value_bps": [
+        -12.628150939941406,
+        1.3929675817489624
+      ],
+      "entry_row_index": 309482,
+      "entry_target_bps": [
+        -12.628150939941406,
+        1.4371556043624878,
+        0.0
+      ],
+      "entry_time_ns": 1778220000000000000,
+      "selected_side_continuation_bps": 0.04418806731700897,
+      "selected_side_physical_liquidation_bps": 1.3929675817489624,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.04088056832551956,
+        0.04418806731700897
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.04418806731700897
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.979383945465088,
+        -6.422410488128662,
+        0.010542895644903183
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -25.7535457611084,
+        11.308884620666504
+      ],
+      "entry_row_index": 300452,
+      "entry_target_bps": [
+        -25.7535457611084,
+        11.348061561584473,
+        0.0
+      ],
+      "entry_time_ns": 1773872100000000000,
+      "selected_side_continuation_bps": 0.03917660564184189,
+      "selected_side_physical_liquidation_bps": 11.308884620666504,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.03820556402206421,
+        0.03917660564184189
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.03917660564184189
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.720410346984863,
+        -6.651443958282471,
+        -0.03804061934351921
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -17.945829391479492,
+        7.100347518920898
+      ],
+      "entry_row_index": 305728,
+      "entry_target_bps": [
+        -17.945829391479492,
+        7.144698143005371,
+        0.0
+      ],
+      "entry_time_ns": 1776431400000000000,
+      "selected_side_continuation_bps": 0.044350653886795044,
+      "selected_side_physical_liquidation_bps": 7.100347518920898,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.05395282804965973,
+        0.044350653886795044
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.044350653886795044
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.92184591293335,
+        -5.975330352783203,
+        0.00516795739531517
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -20.397680282592773,
+        9.603555679321289
+      ],
+      "entry_row_index": 311004,
+      "entry_target_bps": [
+        -20.397680282592773,
+        9.642376899719238,
+        0.0
+      ],
+      "entry_time_ns": 1779079800000000000,
+      "selected_side_continuation_bps": 0.0388207733631134,
+      "selected_side_physical_liquidation_bps": 9.603555679321289,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.037227340042591095,
+        0.0388207733631134
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0388207733631134
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.654155731201172,
+        -6.177814960479736,
+        0.0015324614942073822
+      ],
+      "batch_offset": 1610,
+      "entry_liquidation_value_bps": [
+        -12.504764556884766,
+        0.4392872452735901
+      ],
+      "entry_row_index": 301569,
+      "entry_target_bps": [
+        -12.504764556884766,
+        0.4811285436153412,
+        0.0
+      ],
+      "entry_time_ns": 1774418400000000000,
+      "selected_side_continuation_bps": 0.0418412946164608,
+      "selected_side_physical_liquidation_bps": 0.4392872452735901,
+      "teacher_action": "SHORT",
+      "teacher_anchor_hold_q_bps": [
+        -0.053680479526519775,
+        0.0418412946164608
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.0418412946164608
+      ]
+    },
+    {
+      "after_entry_q_bps": [
+        -5.7518310546875,
+        -6.637259483337402,
+        -0.014384035021066666
+      ],
+      "batch_offset": 1695,
+      "entry_liquidation_value_bps": [
+        5.439016342163086,
+        -18.312562942504883
+      ],
+      "entry_row_index": 301974,
+      "entry_target_bps": [
+        5.439016342163086,
+        -18.242961883544922,
+        0.0
+      ],
+      "entry_time_ns": 1774549500000000000,
+      "selected_side_continuation_bps": 0.0,
+      "selected_side_physical_liquidation_bps": 5.439016342163086,
+      "teacher_action": "LONG",
+      "teacher_anchor_hold_q_bps": [
+        -0.11184104532003403,
+        0.06960037350654602
+      ],
+      "teacher_continuation_value_bps": [
+        0.0,
+        0.06960037350654602
+      ]
+    }
+  ],
+  "source_evaluation_binding_sha256": "e627bdcbeb06786f17156edc8bba2ac4a4ea6e09c4bccbb8c7d6872ef9aad484",
+  "teacher_trade_continuation_mean_bps": 0.02816074300143454,
+  "teacher_trade_count": 9,
+  "teacher_trade_physical_mean_bps": 6.431627081500159,
+  "teacher_trade_positive_physical_count": 9,
+  "teacher_trade_total_mean_bps": 6.459787901904848,
+  "test_data_used": false
+}

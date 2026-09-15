@@ -1,0 +1,46 @@
+{
+  "absolute_optimizer_step_ceilings": [
+    5777
+  ],
+  "additional_optimizer_step_ceilings": [
+    256
+  ],
+  "decision": "PASS_BOUNDED_FQI_TARGET_REFRESH_PREPARED",
+  "elapsed_seconds": 178.90504415600026,
+  "frozen_teacher_changed": true,
+  "learning_improvement_proven": false,
+  "next_epoch_boundary": 8162,
+  "origin_checkpoint_index": 91,
+  "origin_optimizer_steps": 5521,
+  "peak_rss_kib": 1660504,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "feac27b14e9500e5691269500cd68cfbd6007070bdbcd44e99ef5173f076632e"
+  },
+  "prepared_boot_id": 435,
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/NATIVE_RECIPE.json",
+    "sha256": "35ac9a326b4d9bf1681464861e7150a61235475dd65b5fd6540a1dfb7b8475c0"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FQI_TARGET_REFRESH_F11C1DBE_BOOT435",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "faa7dd592faa5da7d49cb970c4759d7d0b572731b7ed8b25ab228f1a5f081167",
+  "source_commit": "f11c1dbeef12721bef58449dfac37fd735f4694f",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "state_replay": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/ACTUAL_CHECKPOINT91_FQI_REFRESH.json",
+    "sha256": "9dd5c4f425af5b39eac1efd11e98ef7e6dab0806fdd22d98aff0e533c39a04a2"
+  },
+  "test_data_used": false,
+  "train_rows": 65295,
+  "training_started": false,
+  "val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 84049614,
+    "max_state_views": 84049614,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "whole_epoch_training_allowed": false
+}

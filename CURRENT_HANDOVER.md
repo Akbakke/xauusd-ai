@@ -1,15 +1,108 @@
-## Neste avgrensede kontroll forberedes — 2026-09-15
+# Gjeldende status — FQI-kontroll og korrekt TRAIN-måling ferdige, 2026-09-15
 
-Én eksplisitt FQI-læreroppdatering fra checkpoint91/global5521 er implementert.
-Bare target_model_state skal kopieres fra bevart ONLINE91 ved ny privat session;
-gammel lærer og alle andre tilstander beholdes. Ny policy tillater bare én256-
-stegskontroll til5777, før epochgrensen8162. Ingen ny hel epoch. Alle169 målrettede
-regresjoner består. Faktisk CPU-overgang må bestå før oppstart. Nye TRAIN-targets
-måles én gang før native; samme targetpakker og bevarte91-prediksjoner brukes
-etter kontrollen. Dette undersøker verdipropagering uten permanent frekvensregel.
-Ingen aktiv tung jobb. Tidligere kontroller nedenfor er ferdige og bevares.
+Eneste kilde er /home/andre2/src/GX1_CURRENT, work/gx1-current. Frossen kilde for
+fullførte målinger var f11c1dbeef12721bef58449dfac37fd735f4694f. Checkpoint95 har
+global5777, epoch_index1/offset1696. Native256 steg tok1194.683976s inkludert
+oppstart/observer, uten fysisk reboot. GuardPASS, trainer0, observer0. Windows-
+task er Disabled; ingen aktiv tung jobb. Planen er brukt opp. Ingen ny lærer-
+oppdatering eller hel epoch starter automatisk. TEST forblir forseglet.
 
-# Gjeldende status — kontroll ferdig, trening stoppet, 2026-09-15
+169 målrettede regresjoner og vanlig commit-hook bestod. Faktisk CPU-overføring
+kopierte target nøyaktig fra ONLINE91 og bevarte alle14 øvrige komponenter.
+Native beholdt denne targeten gjennom256 steg. Alle726 Adamtilstander økte256;
+EMA25429→25685, offset19908 beholdt. Ingen ny kontinuerlig-mot-delt-resume-påstand.
+Gammel lærer og alle resultater/checkpoints er bevart. Kun target ble endret;
+økonomiske formler, MSE, optimizer, modell og risiko er uendret. Dette er én
+kontrollert læreroppdatering, ingen innført permanent «hver256»-regel.
+
+## Resultat på faktiske native TRAIN-batcher
+
+Korrigert paret CPU/no_grad-måling er ferdig, session3258/exit0,419.149976s,
+peak9291828KiB innen eksisterende20GiB/512MiB-cap. Fire forhåndsvalgte faktiske
+batcher fra kontrollen: epoch1offset1440/1525/1610/1695.64entries overalle12måneder,
+4–7 per måned, og256 gyldige HOLD-celler per side. Lagret epoch_order og ordnet
+materialisert sampleplan matcher nøyaktig. Samme nye lærer91, inputs, targets
+og diagnostiske dropoutfrø før91/etter95. Ingen historisk GPU-dropoutreplay-påstand.
+Alle source/checkpoints/inputs/targets/policy/RNG er bevart. Ingen nytrening,
+backward, optimizer, VAL eller TEST ble brukt til målingen.
+
+HOLD-MSE LONG14.09770→13.96113, nullbaseline14.10036; SHORT13.87834→13.59294,
+nullbaseline13.51526. Samlet MSE falt1.5083%, men er bare0.2229% bedre enn null-
+baseline. LONG-HOLD25→199/256; SHORT-HOLD256→205/256. Dette er forbedret Exit-fit
+på utvalget, ikke bevist forventningsverdi, generalisering eller lønnsomhet.
+Entry-Q-MSE19.43136→19.57654; studenten64FLAT begge, læreren55FLAT/3LONG/6SHORT.
+Prognose-MAE bedres svakt på nominelle5/25/120min og forverres på60min; retning
+bedres bare på5min. Prognoser er L1-returanslag før kostnader, ingen kalibrerte
+sannsynligheter. De64 radene ble sett i den avsluttede treningskontrollen.
+Ingen matchet kontroll med uendret lærer fra91 ble kjørt, så årsakseffekten av
+selve læreroppdateringen er ikke isolert.
+
+Se handover_snapshot/ACTUAL_WINDOW_PAIRED_TRAIN_RESULT_20260915.json og
+ACTUAL_WINDOW_PAIRED_TRAIN_REVIEW_20260915.json. Råresultat-SHA:
+aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa.
+Originaler, fire input/targetcacher, batchrapporter, operator og logg ligger i
+NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/
+ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2 under bundet prebuilt-rot.
+
+Første operatorforsøk92416/exit1 feilet før første modellforward: det krevde
+sample.epoch_index==1, mens full TRAIN-epoch1 inneholder interne sampler-chunker
+25/26/27 for disse batchene. Første betingelse kortsluttet; ingen avvikende
+rekkefølge var målt. Kun operatorens epoch-kontroll ble rettet. Full epoch og
+chunk-indekser valideres separat; ordnet sample-digest er uendret. Feilet operator,
+logg og COHORT er bevart i første output uten _V2. Ingen produksjonsrettelse.
+
+## Målegrunnlag og neste arbeid
+
+Native TRAIN er deterministisk stokket over hele året, ikke kalenderblokker.
+Gjenskapt faktisk epoch_order matcher lagret hash84813100...fbfa65. Begge256-
+kontrollene brukte4096entries overalle12måneder (henholdsvis314–367 og313–369
+per måned). Ingen shuffle-rettelse er begrunnet.
+
+De64 tidligere proberadene var fire sammenhengende75min entryblokker med eldre
+sampler-transitions. Bare4 og5 av entry-IDene forekom i de to kontrollene. Den
+små MSE-forverringen i gammel probe var reell på det utvalget, men må ikke omtales
+som bevist forverring av hele modellen. Den nye målingen erstatter den gamle som
+TRAIN-fit-grunnlag; begge bevares. Ingen av dem er en heldout-kvalitetsgate.
+Tidligere target-preflight20.39s og etteranalyse24.63s skal ikke gjentas. Se
+FQI_TARGET_REFRESH_CONTROL_RESULT_20260915.json, FQI_TARGET_PREFLIGHT_RESULT_20260915.json
+og FQI_TARGET_LEARNING_RESULT_20260915.json i handover_snapshot.
+
+Gjennomgangen av de ni lærer-valgte inngangene er ferdig på lagrede JSON-er.
+FLAT ligger rundt0; å sette FLAT eksakt0 ville fortsatt gitt64FLAT. Alle online
+LONG/SHORT-verdier er negative. På de ni lærer-valgte sidene er targets+0.481 til
++18.097Bps, etterprediksjon−6.651 til−4.912. Ni rader står allerede for87.69% av
+EntryQ-kvadratfeilen; dette begrunner ikke automatisk klassevekting/oversampling.
+Side-halvsummen ligger nær lærernivået (−5.708 vs−5.736), mens retningens
+halvforskjell har std0.224 mot target5.406. Studenten lærer hovedsakelig det
+felles negative nivået på dette utvalget, med lite betinget variasjon. Riktig
+LONG-vs-SHORT-rangering på de ni er4/9 etter mot6/9 før. Dette skiller ikke alene
+manglende nyttig informasjon fra utilstrekkelig læring eller svake targets.
+
+Eksakt dekomponering fra allerede lagrede input/targettensorer er ferdig,
+session36519/exit0,1.207s, CPU4GiB/512MiB. Ingen modell/forward/optimizer eller
+nytt markedskorpus. For alle64 er Entry-target eksakt første lukkingsverdi pluss
+max gyldig anchor-Q fra lærer91. Alle ni lærer-trader har positiv fysisk første
+lukkingsverdi: gjennomsnitt6.431627Bps. Lærerens videre HOLD-bidrag er bare
+0.028161Bps i snitt (0–0.045069), mot total6.459788. Fortsettelsesbidraget er
+0.43594% av positiv målverdi i disse ni. Dette viser hvor signalet i prøven kommer
+fra; det beviser ikke at disse observerte prisbevegelsene kunne forutsies ved
+entry eller at læreren er en optimal profittfasit. Se
+ACTUAL_WINDOW_ENTRY_GAP_REVIEW_20260915.json og
+ACTUAL_WINDOW_ENTRY_ANCHOR_DECOMPOSITION_20260915.json i handover_snapshot.
+
+Neste anbefalte arbeid er en avgrenset lærbarhetskontroll av eksisterende EntryQ
+på de samme64 bundne native TRAIN-inputene, fast lærer, uendret MSE, og alle55FLAT-
+rader beholdt. Formålet er å skille lokal tilpasningsevne fra svak betinget
+informasjon/lærertarget. En eventuell optimizerkontroll må først gis en eksplisitt
+avgrenset native plan med eksisterende vakter og bevarte checkpoints; ingen
+alternativ treningsvei eller restart av uttømt plan. Ingen produksjonsrettelse,
+klassevekter, handelsterskler, ny modell eller hel epoch er besluttet. Evne til å
+tilpasse et lite TRAIN-utvalg er heller ingen generaliserings-/profittgate.
+Gjenbruk alle fullførte målinger, særlig anchor-dekomponeringen; ikke gjenta dem.
+Alle jobber er terminale. Sourcefrys er opphevet kun for ferdig arbeid/commit.
+RUNNING_NATIVE_CALIBRATION.json er den operative statusen.
+
+## Historikk: fixed-target-kontrollen87→91
 
 Eneste kodebase er /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
 Den avsluttede kontrollens frosne kilde er da7ae15d35e4a898656a2c1e6f9519f84b3e9ed5.

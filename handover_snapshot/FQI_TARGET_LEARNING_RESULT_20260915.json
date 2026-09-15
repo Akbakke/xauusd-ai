@@ -1,0 +1,955 @@
+{
+  "backward_executed": false,
+  "batch_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915/BATCH_00.json",
+      "sha256": "b6467cab40b4e72eeda051aaa3e36dbd5f82a177764a0b99d707f45fe22677a8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915/BATCH_01.json",
+      "sha256": "3941cc0b242e711f8485e00a506af0d323d9131c65909d3ae1d8fc441e4c1822"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915/BATCH_02.json",
+      "sha256": "026548b613273368084daa9f318edbb101fc7c2b5a9e57bac9e02e69c250049c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915/BATCH_03.json",
+      "sha256": "f5d2228639f415912d38fa2bc190956194393a3690d2a201d7edad1c21b4b5f9"
+    }
+  ],
+  "before91_checkpoint": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+    },
+    "cursor": {
+      "checkpoint_index": 91,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 5521,
+      "next_batch_offset": 1440,
+      "phase": "train"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+    },
+    "state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "0fb167f23a41d4f454f7350b73484d533a7fad3e0fca7a51dc516a4d84484f21"
+    }
+  },
+  "before91_outputs_reused_without_forward": true,
+  "binding": {
+    "after": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
+      },
+      "cursor": {
+        "checkpoint_index": 95,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5777,
+        "next_batch_offset": 1696,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "f508837dfdbc06615fbad52bd824d89f8750944b57a77ca5a13bab1d4798acf8"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+      }
+    },
+    "next_run_policy": {
+      "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+      "sha256": "2973b783e19cc9bf487c7426756b894f6f9c4ed5b995cbf941935bd9d8b9feb8"
+    },
+    "output_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_LEARNING_AFTER_CPU_20260915",
+    "preflight_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/RESULT.json",
+      "sha256": "4ddb626d989c5916bd8532da042654d7db7592580170c88cf299d56772d9806e"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/NATIVE_RECIPE.json",
+      "sha256": "35ac9a326b4d9bf1681464861e7150a61235475dd65b5fd6540a1dfb7b8475c0"
+    },
+    "schema_version": "gx1_fqi_target_refresh_evaluator_binding_v1",
+    "source_commit": "f11c1dbeef12721bef58449dfac37fd735f4694f",
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_FQI_TARGET_REFRESH.json",
+      "sha256": "5236ffa65bf11d9dc52ed873aeb981a6e6128fcf8311d5012d69ce5689a10f7e"
+    }
+  },
+  "binding_sha256": "4b017ee37bca691a0a2c52708a1cac143974730f4f5d520a67334c3abeea4d31",
+  "cache_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_00_INPUTS.pt",
+      "sha256": "d59899f686a726cb76c9df40edf2c5509dbe3948645ca0beb977ce014529a72c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_01_INPUTS.pt",
+      "sha256": "8cc143264e79118b0b019a7b385d69c52230409e07a54c598eab8e386c33c422"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_02_INPUTS.pt",
+      "sha256": "1ade4cfbdc046e428283ba9f94552ebe1a34389212a41a1e4404afb8fceffcc5"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/OPERATOR_OBSERVATIONS/SHARED_TASK_GRADIENT_PROBE_CPU_20260915_V3/BATCH_03_INPUTS.pt",
+      "sha256": "3fde8163f526028ae8a1e2b2f732f60e2f273b1e0abcb9f32722b42c38278fe4"
+    }
+  ],
+  "decision": "FIXED_REFRESHED_TARGET_FIT_OBSERVED",
+  "elapsed_seconds": 24.634584728999926,
+  "fit_on_identical_new_targets": {
+    "AFTER5777": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 2.007462777061543,
+        "mse_bps2": 10.610751964939004,
+        "prediction_mean_bps": -3.7845848073678403,
+        "prediction_positive": 52,
+        "sign_accuracy": 0.6354166666666666,
+        "sign_accuracy_nonzero_targets": 0.953125,
+        "target_mean_bps": -3.8380192373879254,
+        "target_positive": 6,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.090723851540436,
+        "zero_baseline_mse_bps2": 32.79432486565139
+      },
+      "entry_target_actions": {
+        "FLAT": 58,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 3,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.65625,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": -0.11261795125028584,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 139.00513268303663,
+              "mean_absolute_error": 7.138280758386827,
+              "mean_squared_error": 129.1016056726618,
+              "metric_type": "regression",
+              "pearson": 0.4758761409688559,
+              "prediction_mean": 0.009594748553354293,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.9670427863187708,
+              "spearman_rank_ic": 0.26987179487179486,
+              "target_mean": 0.12221269980364013,
+              "target_nan_inf_count": 0,
+              "target_std": 11.790043794788748
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                14,
+                0,
+                16
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                6,
+                0,
+                28
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 7.356068057051743,
+            "zero_return_baseline_mean_squared_error_bps2": 139.02006862702993
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.375,
+              "always_up_accuracy": 0.625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.734375,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": -3.0784876593388617,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 489.36680692880867,
+              "mean_absolute_error": 15.78571481956169,
+              "mean_squared_error": 424.18348217841987,
+              "metric_type": "regression",
+              "pearson": 0.5140807036919491,
+              "prediction_mean": 0.1967427572235465,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 3.9784614725350376,
+              "spearman_rank_ic": 0.3326007326007326,
+              "target_mean": 3.275230416562408,
+              "target_nan_inf_count": 0,
+              "target_std": 22.12163662410195
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                12
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                5,
+                0,
+                35
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 17.173350541386753,
+            "zero_return_baseline_mean_squared_error_bps2": 500.0939412103843
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.234375,
+              "always_up_accuracy": 0.765625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.734375,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": -14.950584374833852,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 899.0277607130547,
+              "mean_absolute_error": 23.531633844133466,
+              "mean_squared_error": 853.2578458793527,
+              "metric_type": "regression",
+              "pearson": 0.557778080976449,
+              "prediction_mean": -3.3145064003765583,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 13.497479590506114,
+              "spearman_rank_ic": 0.30897435897435893,
+              "target_mean": 11.636077974457294,
+              "target_nan_inf_count": 0,
+              "target_std": 29.983791633365094
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                4
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                13,
+                0,
+                36
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 26.629435988608748,
+            "zero_return_baseline_mean_squared_error_bps2": 1034.4260713407048
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.640625,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -27.72670651972294,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2631.4922187268185,
+              "mean_absolute_error": 37.0042241178453,
+              "mean_squared_error": 2945.492862650581,
+              "metric_type": "regression",
+              "pearson": 0.4182317698527156,
+              "prediction_mean": -6.356724466197193,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 23.805069471377994,
+              "spearman_rank_ic": 0.2241300366300366,
+              "target_mean": 21.369982053525746,
+              "target_nan_inf_count": 0,
+              "target_std": 51.298072271059254
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                15,
+                0,
+                10
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                13,
+                0,
+                26
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 39.99698987510055,
+            "zero_return_baseline_mean_squared_error_bps2": 3088.168351694831
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 2.0301640435518493,
+        "mse_bps2": 135.7312048587506,
+        "prediction_mean_bps": 0.03361807926739857,
+        "prediction_positive": 419,
+        "sign_accuracy": 0.7578125,
+        "sign_accuracy_nonzero_targets": 0.515625,
+        "target_mean_bps": 0.033500443375714895,
+        "target_positive": 257,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 2.0279653454097115,
+        "zero_baseline_mse_bps2": 135.44702646717818
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 4.092210692619119,
+          "mse_bps2": 275.19624920048454,
+          "predicted_actions": {
+            "EXIT": 81,
+            "HOLD": 175,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.0319696966871561,
+          "prediction_positive": 175,
+          "sign_accuracy": 0.48828125,
+          "sign_accuracy_nonzero_targets": 0.48828125,
+          "target_actions": {
+            "EXIT": 136,
+            "HOLD": 120,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.5547101825241043,
+          "target_positive": 120,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.09015009763516,
+          "zero_baseline_mse_bps2": 274.2289180846512
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 4.028445481588278,
+          "mse_bps2": 267.72857023451775,
+          "predicted_actions": {
+            "EXIT": 12,
+            "HOLD": 244,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.10250262038243818,
+          "prediction_positive": 244,
+          "sign_accuracy": 0.54296875,
+          "sign_accuracy_nonzero_targets": 0.54296875,
+          "target_actions": {
+            "EXIT": 119,
+            "HOLD": 137,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.6887119560269639,
+          "target_positive": 137,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.021711284003686,
+          "zero_baseline_mse_bps2": 267.5591877840615
+        }
+      }
+    },
+    "BEFORE91": {
+      "entry_predicted_actions": {
+        "FLAT": 64,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 192,
+        "mae_bps": 2.024299097150409,
+        "mse_bps2": 10.723250668150035,
+        "prediction_mean_bps": -3.8294185781269334,
+        "prediction_positive": 56,
+        "sign_accuracy": 0.6354166666666666,
+        "sign_accuracy_nonzero_targets": 0.953125,
+        "target_mean_bps": -3.8380192373879254,
+        "target_positive": 6,
+        "weight_sum": 192.0,
+        "zero_baseline_mae_bps": 4.090723851540436,
+        "zero_baseline_mse_bps2": 32.79432486565139
+      },
+      "entry_target_actions": {
+        "FLAT": 58,
+        "INVALID": 0,
+        "LONG": 3,
+        "SHORT": 3,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.640625,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": 0.06177654273051303,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 139.00513268303663,
+              "mean_absolute_error": 7.199348439622554,
+              "mean_squared_error": 130.46754194394956,
+              "metric_type": "regression",
+              "pearson": 0.5370347714104368,
+              "prediction_mean": 0.18398924253415316,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.7148534124054967,
+              "spearman_rank_ic": 0.30347985347985346,
+              "target_mean": 0.12221269980364013,
+              "target_nan_inf_count": 0,
+              "target_std": 11.790043794788748
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                19
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                4,
+                0,
+                30
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 7.356068057051743,
+            "zero_return_baseline_mean_squared_error_bps2": 139.02006862702993
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.375,
+              "always_up_accuracy": 0.625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.703125,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": -4.690996052348055,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 489.36680692880867,
+              "mean_absolute_error": 15.572935200878419,
+              "mean_squared_error": 414.28844066555104,
+              "metric_type": "regression",
+              "pearson": 0.502179114160909,
+              "prediction_mean": -1.4157656357856467,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 5.978078413127571,
+              "spearman_rank_ic": 0.2812728937728938,
+              "target_mean": 3.275230416562408,
+              "target_nan_inf_count": 0,
+              "target_std": 22.12163662410195
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                12,
+                0,
+                12
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                7,
+                0,
+                33
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 17.173350541386753,
+            "zero_return_baseline_mean_squared_error_bps2": 500.0939412103843
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.234375,
+              "always_up_accuracy": 0.765625,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.734375,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": -15.408280056435615,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 899.0277607130547,
+              "mean_absolute_error": 23.814850550610572,
+              "mean_squared_error": 858.830113780511,
+              "metric_type": "regression",
+              "pearson": 0.5754244162686288,
+              "prediction_mean": -3.772202081978321,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 12.773755096865031,
+              "spearman_rank_ic": 0.32316849816849813,
+              "target_mean": 11.636077974457294,
+              "target_nan_inf_count": 0,
+              "target_std": 29.983791633365094
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                11,
+                0,
+                4
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                13,
+                0,
+                36
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 26.629435988608748,
+            "zero_return_baseline_mean_squared_error_bps2": 1034.4260713407048
+          },
+          {
+            "actual_nonzero_rows": 64,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.390625,
+              "always_up_accuracy": 0.609375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.703125,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -27.403617900738027,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 64,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2631.4922187268185,
+              "mean_absolute_error": 36.428322278836276,
+              "mean_squared_error": 2867.1184955236395,
+              "metric_type": "regression",
+              "pearson": 0.44268561791187677,
+              "prediction_mean": -6.033635847212281,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 22.106426691568853,
+              "spearman_rank_ic": 0.22619047619047614,
+              "target_mean": 21.369982053525746,
+              "target_nan_inf_count": 0,
+              "target_std": 51.298072271059254
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                15,
+                0,
+                10
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                9,
+                0,
+                30
+              ]
+            ],
+            "supervised_rows": 64,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 39.99698987510055,
+            "zero_return_baseline_mean_squared_error_bps2": 3088.168351694831
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 1024,
+        "mae_bps": 2.030682117059996,
+        "mse_bps2": 135.39260243511822,
+        "prediction_mean_bps": 0.026092642076946504,
+        "prediction_positive": 286,
+        "sign_accuracy": 0.7685546875,
+        "sign_accuracy_nonzero_targets": 0.537109375,
+        "target_mean_bps": 0.033500443375714895,
+        "target_positive": 257,
+        "weight_sum": 1024.0,
+        "zero_baseline_mae_bps": 2.0279653454097115,
+        "zero_baseline_mse_bps2": 135.44702646717818
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 256,
+          "mae_bps": 4.086335730172323,
+          "mse_bps2": 274.5196212278209,
+          "predicted_actions": {
+            "EXIT": 226,
+            "HOLD": 30,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": -0.07064963260563673,
+          "prediction_positive": 30,
+          "sign_accuracy": 0.5390625,
+          "sign_accuracy_nonzero_targets": 0.5390625,
+          "target_actions": {
+            "EXIT": 136,
+            "HOLD": 120,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": -0.5547101825241043,
+          "target_positive": 120,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.09015009763516,
+          "zero_baseline_mse_bps2": 274.2289180846512
+        },
+        "SHORT": {
+          "cells": 256,
+          "mae_bps": 4.036392738067661,
+          "mse_bps2": 267.0507885126521,
+          "predicted_actions": {
+            "EXIT": 0,
+            "HOLD": 256,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.17502020091342274,
+          "prediction_positive": 256,
+          "sign_accuracy": 0.53515625,
+          "sign_accuracy_nonzero_targets": 0.53515625,
+          "target_actions": {
+            "EXIT": 119,
+            "HOLD": 137,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.6887119560269639,
+          "target_positive": 137,
+          "weight_sum": 256.0,
+          "zero_baseline_mae_bps": 4.021711284003686,
+          "zero_baseline_mse_bps2": 267.5591877840615
+        }
+      }
+    }
+  },
+  "gpu_used": false,
+  "interpretation": "Teacher-target change is reported separately from prediction change and fixed-new-target fit. Realized stochastic return signs are descriptive, not a correctness oracle for expected value. These 64 cached TRAIN rows establish neither profit nor held-out generalization.",
+  "loaded_model_state_sha256": "355a9cc134a83aac47a3a6f099fb3f0e48c686abe02c093789f85094ccb85813",
+  "one_model": true,
+  "online_entry_and_exit_forward_batches": 4,
+  "operator_script_sha256": "88b1790232c40d4fd057f95de3ced20da810c69529bd5e2430b75e8de60f172a",
+  "optimizer_constructed_or_stepped": false,
+  "peak_rss_kib": 2265516,
+  "phase": "after",
+  "prediction_change": {
+    "entry_q_bps": {
+      "absmean": 0.10104407001441966,
+      "cells": 192,
+      "max": 0.5678634643554688,
+      "mean": 0.04483377075909326,
+      "min": -0.23055219650268555,
+      "negative": 108,
+      "positive": 84,
+      "zero": 0
+    },
+    "exit_q_bps": {
+      "absmean": 0.047589603890628496,
+      "cells": 1024,
+      "max": 0.39201731979846954,
+      "mean": 0.007525437190452067,
+      "min": -0.9664386510848999,
+      "negative": 199,
+      "positive": 313,
+      "zero": 512
+    },
+    "forecast_bps": {
+      "absmean": 1.404086844297126,
+      "cells": 256,
+      "max": 5.71224308013916,
+      "mean": 0.3931802404113114,
+      "min": -6.813500165939331,
+      "negative": 100,
+      "positive": 156,
+      "zero": 0
+    }
+  },
+  "profitability_or_heldout_improvement_proven": false,
+  "reused_before91_batch_sha256": [
+    "aa8ed83803168fa19726239c09b1482c2e56d536b3a17541642914be28c560fc",
+    "7a39776b987d209161c9bdbba167304a792b77a47b6c1105d5bd70f7d0629eb8",
+    "8c9302b4b9515ea770c74547d62f848b35ee026a64241addc3b7f318d51f58f5",
+    "73618cbd68ad35900934b10dff713ffa037b7ba47bf62f7fd595cd22c7528a15"
+  ],
+  "reused_before91_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/OPERATOR_OBSERVATIONS/FIXED_TARGET_LEARNING_CPU_20260915/RESULT.json",
+    "sha256": "49d1463244336c527bb4842e78a0bb05abbdf9753a134a415e5f7080063e6d4a"
+  },
+  "schema_version": "gx1_fqi_target_refresh_observation_v1",
+  "source_bindings_sha256": "faa7dd592faa5da7d49cb970c4759d7d0b572731b7ed8b25ab228f1a5f081167",
+  "source_checkpoint_cache_policy_and_process_rng_preserved": true,
+  "state_checks": {
+    "adam_step_delta_counts": {
+      "256": 726
+    },
+    "before91_frozen_target_sha256": "db64044e81acf8722139566c5c173601947ea92e83027c9e540afa1cc9256572",
+    "before91_online_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+    "ema_history": {
+      "optimizer_step_offset": 19908,
+      "transition_receipt": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_FQI_TARGET_REFRESH.json",
+        "sha256": "5236ffa65bf11d9dc52ed873aeb981a6e6128fcf8311d5012d69ce5689a10f7e"
+      }
+    },
+    "epoch_order": "84813100efc927211156cf485cfe2334a70bed8c50236e4372f32c78d8fbfa65",
+    "lr_scheduler_state": "a803f0d19b11d0db2addf6476db4905ce40952d48d96518336d46044cf8af3a9"
+  },
+  "target_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/BATCH_00_TARGETS.pt",
+      "sha256": "1af94603fe286894e67a3220bc7a29448a09bbbb4d148778365698860460e13f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/BATCH_01_TARGETS.pt",
+      "sha256": "c00e117d241fde724b7de6d4bfb6eaee230363530b9d65d64600d3e2d4d37430"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/BATCH_02_TARGETS.pt",
+      "sha256": "2d25fc2069e882a133fc17b01ba42e654e61e096ea4a08a2466e29937a050175"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/FQI_TARGET_PREFLIGHT_CPU_20260915/BATCH_03_TARGETS.pt",
+      "sha256": "33dd09843351f27d74db500c3939297ea97510afe2b8ddb206fa50636642f133"
+    }
+  ],
+  "target_promotion_performed_by_evaluator": false,
+  "target_shift": {
+    "entry_target_new_minus_old": {
+      "absmean": 0.0458932057954371,
+      "cells": 192,
+      "max": 0.06504058837890625,
+      "mean": -0.01295738248154521,
+      "min": -0.10892581939697266,
+      "negative": 64,
+      "positive": 64,
+      "zero": 64
+    },
+    "hold_by_side": {
+      "LONG": {
+        "new_bootstrap": {
+          "absmean": 0.011710667953593656,
+          "cells": 256,
+          "max": 0.208099365234375,
+          "mean": 0.011710667953593656,
+          "min": 0.0,
+          "negative": 0,
+          "positive": 29,
+          "zero": 227
+        },
+        "new_minus_old": {
+          "absmean": 0.1478860092929608,
+          "cells": 256,
+          "max": 0.0,
+          "mean": -0.1478860092929608,
+          "min": -0.766319751739502,
+          "negative": 254,
+          "positive": 0,
+          "zero": 2
+        },
+        "new_targets": {
+          "absmean": 4.09015009763516,
+          "cells": 256,
+          "max": 92.18866729736328,
+          "mean": -0.5547101825241043,
+          "min": -237.6424102783203,
+          "negative": 136,
+          "positive": 120,
+          "zero": 0
+        },
+        "old_bootstrap": {
+          "absmean": 0.15959667724655446,
+          "cells": 256,
+          "max": 0.9187095165252686,
+          "mean": 0.15959667724655446,
+          "min": 0.0,
+          "negative": 0,
+          "positive": 254,
+          "zero": 2
+        },
+        "old_targets": {
+          "absmean": 4.105818853713572,
+          "cells": 256,
+          "max": 92.53174591064453,
+          "mean": -0.4068241732311435,
+          "min": -237.28872680664062,
+          "negative": 128,
+          "positive": 128,
+          "zero": 0
+        }
+      },
+      "SHORT": {
+        "new_bootstrap": {
+          "absmean": 0.17431688755459618,
+          "cells": 256,
+          "max": 1.6785526275634766,
+          "mean": 0.17431688755459618,
+          "min": 0.022817611694335938,
+          "negative": 0,
+          "positive": 256,
+          "zero": 0
+        },
+        "new_minus_old": {
+          "absmean": 0.1702478696461185,
+          "cells": 256,
+          "max": 1.6785526275634766,
+          "mean": 0.16824534357147058,
+          "min": -0.0672682523727417,
+          "negative": 6,
+          "positive": 250,
+          "zero": 0
+        },
+        "new_targets": {
+          "absmean": 4.021711284003686,
+          "cells": 256,
+          "max": 235.31875610351562,
+          "mean": 0.6887119560269639,
+          "min": -90.16752624511719,
+          "negative": 119,
+          "positive": 137,
+          "zero": 0
+        },
+        "old_bootstrap": {
+          "absmean": 0.0060715439831255935,
+          "cells": 256,
+          "max": 0.20720040798187256,
+          "mean": 0.0060715439831255935,
+          "min": 0.0,
+          "negative": 0,
+          "positive": 20,
+          "zero": 236
+        },
+        "old_targets": {
+          "absmean": 4.035916453845857,
+          "cells": 256,
+          "max": 234.6127166748047,
+          "mean": 0.5204666124554933,
+          "min": -90.36019897460938,
+          "negative": 122,
+          "positive": 130,
+          "zero": 4
+        }
+      }
+    },
+    "new_teacher_entry_actions": {
+      "FLAT": 58,
+      "INVALID": 0,
+      "LONG": 3,
+      "SHORT": 3,
+      "TIED": 0
+    },
+    "old_teacher_entry_actions": {
+      "FLAT": 58,
+      "INVALID": 0,
+      "LONG": 3,
+      "SHORT": 3,
+      "TIED": 0
+    }
+  },
+  "teacher_entry_and_exit_forward_batches": 0,
+  "teacher_model_state_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "test_data_used": false,
+  "train_only": true,
+  "val_evaluated": false
+}

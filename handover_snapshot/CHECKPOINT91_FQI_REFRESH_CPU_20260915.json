@@ -1,0 +1,66 @@
+{
+  "all_preserved_fields_exact": true,
+  "contract_construction": "Original complete native contract; only source/run/output/provenance identity changed. Guarded invocation must independently construct the same contract.",
+  "cpu_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/CPU_REPLAY_RECIPE.json",
+    "sha256": "e519539757813fcdea11feb2624f3aa32f7c18a2ecedba7557d34d87afdadf0a"
+  },
+  "decision": "PASS_EXPLICIT_TARGET_REFRESH_OTHER_STATE_PRESERVED",
+  "destination_contract": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CPU_REPLAY_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "sha256": "6e82c3876165689d283f3cf03b4a3429ff5428ac8bcdae5fb49b25970b8e7a53"
+  },
+  "frozen_teacher_changed": true,
+  "full_native_restore_and_learning_proven": false,
+  "gpu_used": false,
+  "new_target_digest": "2467ccc3d3c7d78642a1b189585948f2587254d8dd00e11b5b9d7e4da16d42fc",
+  "optimizer_procedure_changed": false,
+  "optimizer_steps_executed": 0,
+  "origin": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "aa5e390dfdd5bb5c284445438f25dbd76eaa844137ef481192948d6274ab68fa"
+    },
+    "exit_value_initialization": "close_now_baseline_v1",
+    "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FIXED_TARGET_FIT_DA7AE15D/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "4b47b5156a9d0dea3fe45769d65152713c1c77606f5333b6b2293541c6123bb7"
+    },
+    "schema_version": "gx1_candidate_fqi_target_refresh_origin_v1",
+    "train_population_scope": "latest_year_2025_2026_v1"
+  },
+  "origin_online_digest": "2467ccc3d3c7d78642a1b189585948f2587254d8dd00e11b5b9d7e4da16d42fc",
+  "original_checkpoint_unchanged": true,
+  "original_target_digest": "391c0a807ca33078be6772fdc38684c7c822e8b4e45eca7c410dfd692952cb40",
+  "preserved_state_digests": {
+    "checkpoint_index": "d8ab2e735b33bce73d48313053f102c0c50095308b60b7375295cf174b99f082",
+    "complete": "8f697e241351bbbc59a307f5f140bd8efac8417a03a2e1eb3a36d26648fcadb0",
+    "epoch_index": "13aaa720a36e7abdb795d99d25318d34f1baceb461077584bf2030024308594d",
+    "epoch_order": "b55cdcc6e451c30000c3698f05d98f7fb07a3b81b7443fbc1fc90b26b75f4d37",
+    "global_optimizer_steps": "c4b917395e0934dd859b2e93b3af0167ed6450cd55e286796c0883d9d8e97493",
+    "lr_scheduler_state": "faca7944b467aedbdbbcd518105f1f10764b022a841b607d57d0f5b792864505",
+    "model_state": "2467ccc3d3c7d78642a1b189585948f2587254d8dd00e11b5b9d7e4da16d42fc",
+    "next_batch_offset": "89a22631f5f64df6a180d21e7181f48b53c4e93d3a9a3b92126bd39b8be69fe3",
+    "optimizer_state": "47d9ee5a8cbaa991413cc81f951682d74d5bd8f4cb98680d16410e5cff66bb6d",
+    "phase": "126d4a695a793f5a9f78601672ab44b118d3c17155780ce91510dcded4ca0284",
+    "rng_state": "ad79d05bc6ffed4542bccd8a99f08f96af97ae19abcceadfae37d149dad201f3",
+    "schema_version": "056d21a5f27ac471f2b1d9e8e21abf7f0fe47d6ba0134f385e8ef903a046ad87",
+    "training_progress": "a11c63979d5fe509f9ac3e02e020b039ca1f42844e23acb9bfd6810ac21886d1",
+    "weight_ema_state": "acf1ac8f0168021bbeca2704e768bc64ba06bbf67c85bc136be01b6785fc1618"
+  },
+  "refresh_receipt": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CPU_REPLAY_BUNDLE/CANDIDATE_FQI_TARGET_REFRESH.json",
+    "sha256": "1a73de99e0d5bfb732b51a84dc1e1dfc8986aac7c0d6b10728283b754ac3e6c9"
+  },
+  "source_commit": "f11c1dbeef12721bef58449dfac37fd735f4694f",
+  "target_copy_exact": true,
+  "test_data_used": false,
+  "weight_ema_history": {
+    "optimizer_step_offset": 19908,
+    "transition_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CPU_REPLAY_BUNDLE/CANDIDATE_FQI_TARGET_REFRESH.json",
+      "sha256": "1a73de99e0d5bfb732b51a84dc1e1dfc8986aac7c0d6b10728283b754ac3e6c9"
+    }
+  }
+}

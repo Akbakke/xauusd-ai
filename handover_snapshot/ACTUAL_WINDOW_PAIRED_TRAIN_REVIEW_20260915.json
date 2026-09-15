@@ -1,0 +1,136 @@
+{
+  "completed_operator_sha256": "fc69fc49d76ed0139a75146b33a040792178a18481b9f5699a87b0124199054f",
+  "decision": "TRAIN_EXIT_FIT_IMPROVED_NEAR_ZERO_BASELINE_ENTRY_SELECTION_UNRESOLVED",
+  "entry": {
+    "after_actions": {
+      "FLAT": 64,
+      "INVALID": 0,
+      "LONG": 0,
+      "SHORT": 0,
+      "TIED": 0
+    },
+    "after_q_mse_bps2": 19.576541984817954,
+    "before_actions": {
+      "FLAT": 64,
+      "INVALID": 0,
+      "LONG": 0,
+      "SHORT": 0,
+      "TIED": 0
+    },
+    "before_q_mse_bps2": 19.431362441738614,
+    "teacher_actions": {
+      "FLAT": 55,
+      "INVALID": 0,
+      "LONG": 3,
+      "SHORT": 6,
+      "TIED": 0
+    },
+    "teacher_is_perfect_profit_oracle": false
+  },
+  "exit_hold_fit": {
+    "LONG": {
+      "after_actions": {
+        "EXIT": 57,
+        "HOLD": 199,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "after_mse_bps2": 13.961132452900431,
+      "before_actions": {
+        "EXIT": 231,
+        "HOLD": 25,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "before_mse_bps2": 14.097701437423677,
+      "realized_target_actions_descriptive_only": {
+        "EXIT": 120,
+        "HOLD": 136,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "zero_mse_bps2": 14.100363625959814
+    },
+    "SHORT": {
+      "after_actions": {
+        "EXIT": 51,
+        "HOLD": 205,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "after_mse_bps2": 13.592943909477173,
+      "before_actions": {
+        "EXIT": 0,
+        "HOLD": 256,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "before_mse_bps2": 13.87833607607493,
+      "realized_target_actions_descriptive_only": {
+        "EXIT": 131,
+        "HOLD": 125,
+        "INVALID": 0,
+        "TIED": 0
+      },
+      "zero_mse_bps2": 13.51526450675855
+    }
+  },
+  "exit_mse_relative_improvement_against_zero_percent": 0.2228874536003698,
+  "exit_mse_relative_improvement_percent": 1.5082949145939915,
+  "failed_first_attempt": {
+    "before_first_model_forward": true,
+    "exit_code": 1,
+    "minimal_correction": "Validate full training epoch via adapter and full-population schedule; preserve exact ordered sample dictionaries/digest and sampler chunk identity.",
+    "operator_sha256": "5912e12ce1866e7077e8d9baf62b0817d5c60fb98f65540cd9b44d4ddd687b58",
+    "preserved_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915",
+    "reason": "Operator confused full TRAIN epoch1 with sampler chunk epochs25/26/27. First boolean condition failed before ordered-digest comparison. No ordering mismatch demonstrated.",
+    "session_id": 92416
+  },
+  "measured_seconds": 419.1499757800002,
+  "new_training_executed_for_measurement": false,
+  "peak_rss_kib": 9291828,
+  "preserved": true,
+  "production_model_loss_or_sampler_changed_for_measurement": false,
+  "profitability_proven": false,
+  "raw_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/OPERATOR_OBSERVATIONS/ACTUAL_WINDOW_PAIRED_TRAIN_CPU_20260915_V2/RESULT.json",
+    "sha256": "aab5bacd4a5ba4ba4d885150073e290d43cdfa50d935705add22633a2f1decfa"
+  },
+  "schema_version": "gx1_actual_window_paired_review_v1",
+  "scope": {
+    "entries_seen_in_completed_control": true,
+    "entry_month_counts": {
+      "2025-06": 6,
+      "2025-07": 4,
+      "2025-08": 5,
+      "2025-09": 7,
+      "2025-10": 4,
+      "2025-11": 4,
+      "2025-12": 7,
+      "2026-01": 6,
+      "2026-02": 4,
+      "2026-03": 6,
+      "2026-04": 7,
+      "2026-05": 4
+    },
+    "entry_rows": 64,
+    "heldout_evaluation": false,
+    "historical_gpu_dropout_replay": false,
+    "hold_cells_per_side": 256,
+    "native_batch_offsets": [
+      1440,
+      1525,
+      1610,
+      1695
+    ],
+    "same_teacher_targets_and_diagnostic_dropout_seeds": true,
+    "sampler_chunk_indices": [
+      25,
+      26,
+      27
+    ],
+    "training_epoch_index": 1
+  },
+  "source_commit": "f11c1dbeef12721bef58449dfac37fd735f4694f",
+  "test_data_used": false
+}
