@@ -1,10 +1,21 @@
-# GX1 — stoppet; konkret læringsrettelse verifisert, 2026-09-15
+# GX1 — stoppet; native kontroll bestått, læring fortsatt utilstrekkelig, 2026-09-15
 
 Eneste kilde er /home/andre2/src/GX1_CURRENT, branch work/gx1-current,
-utgangspunkt pushet commit9cd29a2f57a0880e33c6c0a61b279deb7c15b981.
+rettelsen er pushet i6ffd03ee13e28fd7ef84e65946ece1b038142166, med utgangspunkt
+i stoppet kampanje9cd29a2f57a0880e33c6c0a61b279deb7c15b981.
 NEXT_RUN_POLICY.json har training_enabled=false. En smal rettelse i optimizerens
 gradientklipping er gjort og målrettet testet. Gammel policy er arkivert uendret.
-Ingen lagrede modellvekter eller checkpoints er endret. Ingen aktiv trening.
+Originale lagrede modellvekter/checkpoints er bevart. Ny native kontroll er
+ferdig:16+16 steg, begge guard PASS og trainer/observer exit0. Checkpoint87 har
+global5265/epoch_index1/offset1184. Windows-task er Disabled; ingen native prosess.
+CPU-overgangen fra85 består bitnøyaktig på15tilstandskomponenter. Kun16+16
+ekstra steg var tillatt (global5249/5265), med eksisterende maskinvarevakter.
+Gjenopptakelsen over to fysiske booter består; alle726 Adamtilstander økte16 per
+vindu, EMA25141→25157→25173. Ikke ny32-sammenhengende-mot16+16-likhetsmåling.
+Se handover_snapshot/EXIT_CLIP_CONTROL_RESULT_20260915.json. Paret CPU-måling av
+samme TRAIN-input før85/etter87 er ferdig på410.16s, uten optimizer/VAL/TEST.
+Se RUNNING_NATIVE_CALIBRATION.json for plan og runtime. Kontrollens kilderevisjon
+er6ffd03ee. Ingen aktiv jobb; dokumentasjon kan oppdateres.
 TRAIN er 2025-06-01 inklusiv til 2026-06-01 eksklusiv:65 295rader/4081steg per
 hel epoch. Hele juni2026 er utviklings-VAL. Ingen ny femårs-epoch. TEST er forseglet.
 
@@ -19,8 +30,9 @@ Windows-taskens fremtidige triggere ble deaktivert13:45:44UTC. Guard726 fikkTERM
 ble SHA-verifisert: epoch_index1,offset1152,global5233,slot0,
 stateSHA9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974.
 Dette er operatørstopp, ikke en normal native-vindusfullføring eller guardPASS.
-Alle checkpoints/resultater er bevart. RUNNING_NATIVE_CALIBRATION.json binder
-stoppkvittering og prosess-/checkpointbevis. CPU-diagnostikk og tester er ferdige.
+Alle checkpoints/resultater er bevart. Den opprinnelige stoppkvitteringen finnes i
+handover_snapshot/RUNNING_BEFORE_CLIP_CONTROL_20260915.json. Gjeldende runtime er
+RUNNING_NATIVE_CALIBRATION.json; CPU-diagnostikk og tester er ferdige.
 
 ## Målt læringsproblem og minste rettelse
 
@@ -43,12 +55,46 @@ av7 nye fixturetilfeller. Se handover_snapshot/OPTIMIZER_TRANSITION_TESTS_202609
 Se handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json for råbevis og hasher.
 Dette beviser mekanisk rettelse, ikke at Exit-biasen er løst eller modellen profitabel.
 
-En smal overgang fra checkpoint85 er under målrettet verifikasjon. Den bevarer
+Den smale overgangen fra checkpoint85 er verifisert på CPU og native GPU. Den bevarer
 modell/target/Adam/EMA/RNG/scheduler/progress og binder ny klippepolicy eksplisitt.
 NEXT_RUN_POLICY.json tillater bare16/32 ekstra steg for denne kontrollen; hele
-epocher forblir blokkert. Neste er faktisk tilstandsovergang og avgrenset native
-læring/resume før ny beslutning om hel epoch.
+epocher forblir blokkert.32 kontrollsteg og paret TRAIN-måling er ferdige; se nedenfor.
 Gamle recipe/policy-bindinger skal ikke omskrives eller brukes til automatisk restart.
+
+## Resultat av kontrollen — ikke grønt lys for hel epoch
+
+Samme64 forhåndsvalgte TRAIN-rader,256 HOLD-celler per side, identisk frozen
+teacher/input/dropout. HOLD-MSE LONG275.249→275.713, SHORT267.661→268.292;
+begge er dårligere enn nullbaseline274.046/266.666. Fortegnssamsvar øker fra
+49.22→54.30% og50.00→53.17%, men HOLD flyttes LONG236→89 og SHORT61→212.
+Det er ikke dokumentert robust kalibrering. Før/etter32 steg har ingen gammel-
+klipping-kontrollarm og isolerer ikke rettelsens årsakseffekt.
+
+Entry velger64FLAT før og etter; verdilæreren58FLAT/3LONG/3SHORT. Den uavhengige
+markedsprognosens MAE faller på alle fire eksisterende horisonter, men dette er64
+TRAIN-rader før kostnader. På60min er68.75% retningssamsvar svakere enn utvalgets
+alltid-opp-baseline76.56%. Ingen generalisering eller profitabilitet er bevist.
+Se handover_snapshot/EXIT_CLIP_PAIRED_TRAIN_RESULT_20260915.json for råmåling.
+
+Neste prioritet er det målte svake videreverdisignalet: de to native batchene
+viser frozen videreverdi omtrent0.044Bps mot umiddelbar lukkeverdi omtrent−5.8Bps.
+Dette forklarer kostnadsdominert Entry-lærer på disse batchene; det beviser ikke
+at mulighetene er profitable eller at hyppigere læreroppdatering løser problemet.
+Kildegjennomgang bekrefter successor=state_index+1 i
+unified_exit_random_access_sampler_v1.py:233, én-stegs reward+frossen bootstrap i
+unified_exit_fitted_q_v1.py:309 og Entry-koblingen i
+unified_exit_random_access_training_v1.py:564. Læreren kopieres fra ONLINE først
+etter komplett epoch/VAL i entry_v10_ctx_train_v3.py:14052–14058.32-stegskontrollen
+endret derfor ingen frozen targets; forverret MSE beviser ikke en bedre lærer.
+
+Neste smale undersøkelse er policy-konsistent fler-stegsavkastning med frossen
+bootstrap. Den må bevare EXIT underveis, faktisk BID/ASK/kostnader og ekte
+successor/terminal-semantikk, uten etterpåklok maksimering over framtidsutfall.
+Backup-lengde er en læringsinnstilling, ingen maksimal holdetid. Bruk de allerede
+bestemte TRAIN-radene og baselinene; spesifiser først om signalet faktisk kan
+bedres med den svake frosne policyen før kode eller kjøring. Ingen slik rettelse
+eller kontroll er startet. Ikke tving Entry til flere handler eller start hel epoch.
+Windows-task Disabled15:33:20UTC. TEST og all tidligere evidens er bevart.
 
 ## Første ettårs-resultat og avgrenset ONLINE/EMA-sammenligning
 

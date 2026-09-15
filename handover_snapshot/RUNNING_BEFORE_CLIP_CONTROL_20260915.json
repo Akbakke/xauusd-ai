@@ -1,0 +1,497 @@
+{
+  "schema_version": "gx1_running_native_calibration_v1",
+  "status": "TRAINING_BLOCKED_ACTUAL_CHECKPOINT85_CPU_REPLAY_RUNNING",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "source_branch": "work/gx1-current",
+  "source_commit": "9cd29a2f57a0880e33c6c0a61b279deb7c15b981",
+  "source_frozen_until_campaign_finishes": false,
+  "source_frozen_until_native_measurements_finish": false,
+  "arm": "latest_year_learning",
+  "report_only_val": false,
+  "whole_epoch_training_enabled": false,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "ad56bdc7501db1af177fb47e6f5c48640e6c1f97760b6e59d718b85b1e36814f"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/NATIVE_RECIPE.json",
+    "sha256": "834356bbc5b4027cbc9d7b940db271749608a6175e2ae8dbb0bb6410396b6f28"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F_BOOT423",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "selected_train_rows": 65295,
+  "full_parent_train_rows": 313399,
+  "val_rows": 5508,
+  "train_start_inclusive": "2025-06-01",
+  "train_end_exclusive": "2026-06-01",
+  "optimizer_steps_per_epoch": 4081,
+  "max_epochs": 30,
+  "early_stopping_patience": 5,
+  "val_profile": {
+    "policy_batch_size": 256,
+    "cpu_pipeline_workers": 8,
+    "max_wall_seconds": 10800,
+    "progress_interval_forwards": 64
+  },
+  "windows_task": "GX1NativeLearningCalibration",
+  "windows_task_observed_state": "Disabled after operator stop; no automatic restart",
+  "prepared_boot_id": 423,
+  "reboot_requested_utc": "2026-09-15T13:14:46.2091029Z",
+  "automation_id": "gx1-timekontroll",
+  "human_check_interval_seconds": 3600,
+  "gpu_parity_proven": true,
+  "resume_equivalence_proven": true,
+  "checkpoint_transition_proven": true,
+  "absolute_throughput_measured": true,
+  "predictive_calibration_proven": false,
+  "profitability_proven": false,
+  "test_data_used": false,
+  "next_action": "Bind separate_model_and_task_weights_v1 to an explicit state-preserving checkpoint85 transition. Verify bounded native learning and resume before another complete epoch. No automatic restart; training_enabled remains false.",
+  "completed_measurement_source": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+  "completed_measurement_evidence": "handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json",
+  "completed_reference": {
+    "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "2f480c8bede0b1a1f142b3b7a55415aae7eab9f691658f44971fc83cd3f006b8"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/NATIVE_RECIPE.json",
+      "sha256": "e05ded1b6582f0417e6f160ff87326b7a3c89d9979a2e2f9ce7a2ca5a6e5dee4"
+    },
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420",
+    "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+    "trainer_log": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE_BOOT420/progress/.invocation-0001.json.trainer.K9zFhZEc.log",
+    "actual_cpu_transition_replay": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/ACTUAL_TRANSITION_CPU_REPLAY/RESULT.json",
+      "sha256": "eeecfa9b9e6beafc64e692b51ec4f2b6d7f6a4d730dc647afb3bae2e8f643479"
+    },
+    "gpu_parity_observation": {
+      "rows": 256,
+      "actions_equal": true,
+      "max_abs_q_difference_bps": 1.1641532182693481e-10,
+      "inference_speedup": 3.3132260261660913
+    },
+    "status": "COMPLETED_CONTROL_WINDOW",
+    "optimizer_steps_completed": 32,
+    "guard_decision": "PASS",
+    "trainer_exit_status": 0,
+    "observer_exit_status": 0,
+    "controller_exit_status": 0,
+    "capacity_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/calibration_step_0032/CAPACITY_OBSERVATION.json",
+      "sha256": "76963ac9c8c833bc26b7eef8329d31dfa98311136e6186aefeb3f12783179bb0"
+    },
+    "native_val_seconds": 10942.512369069,
+    "native_invocation_elapsed_seconds": 11707.448460693,
+    "model_forward_count": 75716,
+    "materialized_state_view_count": 18852969,
+    "val_states_per_second_including_entry_setup": 1722.9104582318173
+  },
+  "completed_split": {
+    "source_commit": "128c55f2e6c075220883dd6de8219a1d3dac04cd",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_SPLIT/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "7d605d164a199af1e91fb8b5d14d165ca221c9753d068533178d9bfed82321bd"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_SPLIT/NATIVE_RECIPE.json",
+      "sha256": "51d49aae58c55f41da87c2bbd219b7ac900cb1504216f350551cd47ac54ecd4c"
+    },
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_YEAR_BASELINE_128C55F2_SPLIT_BOOT421",
+    "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+    "optimizer_steps_completed": 32,
+    "checkpoint_index": 3,
+    "status": "COMPLETE",
+    "physical_boots": [
+      422,
+      423
+    ],
+    "guard_decisions": [
+      "PASS",
+      "PASS"
+    ],
+    "trainer_exit_statuses": [
+      0,
+      0
+    ],
+    "controller_exit_status": 0
+  },
+  "actual_boot_id": 432,
+  "actual_boot_identity_sha256": "64dc0cde3d84fa17428cf6fa56218376b34803e523d8768f2d8419aec2058ec3",
+  "actual_boot_utc": "2026-09-15T13:15:36.5000000Z",
+  "native_pid": null,
+  "native_process_confirmed": false,
+  "invocation_number": 6,
+  "invocation_started_utc": null,
+  "last_human_observation_utc": "2026-09-15T13:47:47.112202Z",
+  "next_normal_check_not_before_utc": null,
+  "trainer_log": "/home/andre2/GX1_RUNS/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F_BOOT423/progress/.invocation-0006.json.trainer.7kJqglPJ.log",
+  "first_optimizer_step_confirmed": true,
+  "hardware_last_observation": {
+    "observed_utc": "2026-09-15T13:33:12Z",
+    "core_temperature_c": 61,
+    "memory_temperature_c": 66,
+    "power_draw_w": 154.58,
+    "power_limit_w": 300,
+    "vram_mib": 8006
+  },
+  "checkpoint_index": 85,
+  "epoch_index": 1,
+  "phase": "train",
+  "global_optimizer_steps": 5233,
+  "next_batch_offset": 1152,
+  "complete": false,
+  "completed_invocations": [
+    {
+      "invocation_number": 1,
+      "guard_decision": "PASS",
+      "trainer_exit_status": 0,
+      "observer_exit_status": 0,
+      "outcome": "RESUMABLE",
+      "finished_utc": "2026-09-14T23:27:16.599141+00:00"
+    },
+    {
+      "invocation_number": 2,
+      "guard_decision": "PASS",
+      "trainer_exit_status": 0,
+      "observer_exit_status": 0,
+      "outcome": "RESUMABLE",
+      "finished_utc": "2026-09-15T02:48:10.206981+00:00"
+    },
+    {
+      "invocation_number": 3,
+      "guard_decision": "PASS",
+      "trainer_exit_status": 0,
+      "observer_exit_status": 0,
+      "outcome": "RESUMABLE",
+      "finished_utc": "2026-09-15T06:09:03.523011+00:00"
+    },
+    {
+      "invocation_number": 4,
+      "guard_decision": "PASS",
+      "trainer_exit_status": 0,
+      "observer_exit_status": 0,
+      "outcome": "RESUMABLE",
+      "finished_utc": "2026-09-15T09:26:54.533658+00:00"
+    },
+    {
+      "invocation_number": 5,
+      "guard_decision": "PASS",
+      "trainer_exit_status": 0,
+      "observer_exit_status": 0,
+      "outcome": "RESUMABLE",
+      "finished_utc": "2026-09-15T12:51:39.816597+00:00"
+    }
+  ],
+  "active_val_progress": {
+    "decision": "COMPLETE_WITH_RIGHT_CENSORING",
+    "model_forward_count": 291294,
+    "materialized_state_view_count": 71315567,
+    "full_june_complete": true,
+    "active_entry_pairs": 2086,
+    "completed_entry_pairs": 3422,
+    "active_side_count": 2086,
+    "state_index": 24887,
+    "elapsed_compute_seconds": 42449.66063510201
+  },
+  "windows_task_last_run_utc": "2026-09-15T06:15:32.0000000Z",
+  "val_completion_estimate": {
+    "observed_utc": "2026-09-15T08:59:41.039805+00:00",
+    "artifact_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/VAL_ETA_20260915T085941Z.json",
+    "remaining_state_views_if_all_active_hold_to_data_end": 19020633,
+    "remaining_forwards_if_all_active_hold_to_data_end": 79952,
+    "measured_mean_forwards_per_second": 6.856975997895721,
+    "estimated_remaining_compute_seconds_at_measured_forward_rate": 11659.95039570443,
+    "user_estimate_hours_including_restarts_and_setup": [
+      3,
+      4
+    ],
+    "scope": "First complete epoch1 June VAL; conditional estimate, future early exits can reduce work and throughput can change"
+  },
+  "last_user_learning_review_utc": "2026-09-15T09:27:20.513382+00:00",
+  "partial_exit_review": {
+    "decision": "OBSERVED_SIDE_ASYMMETRY_CAUSE_UNRESOLVED",
+    "observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/PARTIAL_EXIT_20260915T092131Z/OBSERVATION.json",
+      "sha256": "82e2144c0afae2374d83082641bf5cea652bf5f81231fb1159ba940498a121ee"
+    },
+    "scope": "Counterfactual both-side rollouts at each entry; not selected Entry trades",
+    "LONG": {
+      "EXITED": 785,
+      "RIGHT_CENSORED_SPLIT_END": 2848,
+      "OPEN": 1875
+    },
+    "SHORT": {
+      "EXITED": 5508,
+      "exit_at_first_state": 5508
+    },
+    "code_defect_proven": false,
+    "full_june_complete": false
+  },
+  "epoch1_model_preservation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_MODEL_PRESERVATION_20260915/PRESERVATION.json",
+    "sha256": "c78484355b29a9c50ba91244f506e482cf56bf4300acbaa1ba2876c39a88f91d",
+    "checkpoint_index": 66,
+    "optimizer_steps": 4081,
+    "online_state_sha256": "ce003c315a67dc31290c191db893d8af42e95b3be41396cb2290480853c56fe8",
+    "immutable_val_ema_sha256": "3cb80f32e1eb21b81e388f135a85d4726940fc6a8d0189b93f344052ee5ba24c"
+  },
+  "ema_source_review": {
+    "parent_epoch_optimizer_steps": 19588,
+    "actual_year_epoch_optimizer_steps": 4081,
+    "decay": 0.9999489483357158,
+    "initial_parameter_contribution_after_year_epoch": 0.8119251196733722,
+    "preserved_decay_matches_existing_transition_contract": true,
+    "restore_requires_equal_decay": true,
+    "target_updates_after_epoch_and_val": true,
+    "first_epoch_target_head_is_zero_baseline": true,
+    "side_asymmetry_explained_by_ema_alone": false,
+    "q_scale_code_defect_found": false
+  },
+  "windows_task_enabled": false,
+  "windows_task_disabled_utc": "2026-09-15T13:45:44.1232498Z",
+  "completed_epoch1_val": {
+    "decision": "COMPLETE_WITH_RIGHT_CENSORING",
+    "file": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/epoch_0001/VAL_RESULT.json",
+      "sha256": "d12b2f3e6cbf8302d65c16b698da37ecc39b468b253d3e36a8bf955b866b7bd6"
+    },
+    "semantic_result_sha256": "f87feb9f0a1e48448d5b9c5e16d238d2988d806b0adf197666333eca99cda7aa",
+    "model_forward_count": 291294,
+    "materialized_state_view_count": 71315567,
+    "elapsed_compute_seconds": 42449.66063510201,
+    "entry": {
+      "LONG": 4207,
+      "SHORT": 1301,
+      "FLAT": 0,
+      "selected_exited": 1389,
+      "selected_non_exited": 4119
+    },
+    "marked_independent_opportunities": {
+      "count": 5508,
+      "mean_net_bps": -495.31894529631955,
+      "semantics": "equal_notional_independent_entry_opportunities_not_portfolio_return"
+    },
+    "marked_single_position": {
+      "executed": 1,
+      "model_exited": 0,
+      "open": 1,
+      "skipped_while_open": 5507,
+      "net_cash_plus_open_bps": -1235.8772001441498,
+      "semantics": "fixed_notional_not_compounded_account_return",
+      "position_rule_trained": false
+    },
+    "counterfactual_exit": {
+      "LONG": {
+        "EXITED": 785,
+        "RIGHT_CENSORED_SPLIT_END": 4723
+      },
+      "SHORT": {
+        "EXITED": 5508,
+        "exit_at_state0": 5508
+      }
+    },
+    "entry_unique_action_teacher_agreement": 0.08950617283950617,
+    "entry_q_mse": 42.82626856016817,
+    "entry_q_constant_mean_baseline_mse": 24.3154571,
+    "profitability_proven": false,
+    "test_data_used": false,
+    "observation_summary": {
+      "path": "handover_snapshot/EPOCH1_FULL_VAL_20260915.json",
+      "sha256": "46aa576c55c75fd4ec5a965e16ac5f65d03d8de8c1ca13f7d950b660b9e5768b"
+    }
+  },
+  "checkpoint_observed_utc": "2026-09-15T13:47:47.112202Z",
+  "native_stop": {
+    "reason": "Review complete negative first-year epoch1 June VAL",
+    "native_pause_reason": "invocation_wall_limit",
+    "checkpoint_index": 77,
+    "global_optimizer_steps": 4721,
+    "epoch2_completed_optimizer_steps": 640,
+    "guard_peak_core_c": 63,
+    "guard_peak_memory_c": 70,
+    "guard_peak_power_w": 183.04,
+    "guard_peak_vram_mib": 9028,
+    "task_last_result": 0,
+    "observed_no_heavy_process": true
+  },
+  "bounded_cpu_comparison": {
+    "operator_script": "/tmp/gx1_epoch1_online_ema_compare.py",
+    "script_sha256": "7557b2d7c22e3792604a36d4bee2119164660625852327846b34b85add78d469",
+    "exec_session_id": null,
+    "capped_class": "producer",
+    "memory_max": "20G",
+    "swap_max": "512M",
+    "alarm_seconds": 1800,
+    "entry_ids": [
+      0,
+      1,
+      2,
+      1024,
+      2048,
+      3072,
+      4096,
+      5507
+    ],
+    "late_states_for_entry0": [
+      14649,
+      30026
+    ],
+    "log": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_ONLINE_EMA_CPU_COMPARE_20260915.log",
+    "output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_ONLINE_EMA_CPU_COMPARE_20260915",
+    "training_executed": false,
+    "test_data_used": false,
+    "process_terminal": true,
+    "process_exit_code": 1,
+    "elapsed_seconds": 157.44226011,
+    "reason_for_nonzero_exit": "Strict numerical sanity mismatch CPU8 versus completed GPU Entry16; all outputs recorded, no input contract mismatch",
+    "result_summary": {
+      "path": "handover_snapshot/EPOCH1_ONLINE_EMA_COMPARE_20260915.json",
+      "sha256": "140fdb273a00fe81b1261ea7771e2a565cd3eac65c0792aa96d958776325d83f"
+    },
+    "review": {
+      "input_or_normalization_defect_found": false,
+      "native_entry_batch_size": 16,
+      "native_exit_policy_batch_size": 256,
+      "cpu_entry_batch_size": 8,
+      "all_8_ema_actions_match_full_val": true,
+      "maximum_cpu_ema_vs_full_val_q_difference_bps": 0.00012671947479248047,
+      "minimum_ema_action_margin_bps": 0.2056464255,
+      "minimum_online_flat_margin_bps": 4.483608201146126,
+      "online_actions": "8 FLAT",
+      "ema_actions": "7 LONG, 1 SHORT",
+      "exit_actions_identical_across_online_and_ema_on_10_states": true,
+      "raw_numerical_gate_remains_review": true,
+      "qualitative_same_cpu_comparison_valid_for_these_8_rows": true,
+      "full_online_val_or_profitability_proven": false,
+      "new_inference_required_for_this_qualitative_finding": false
+    }
+  },
+  "learning_review_decision": {
+    "decision": "SUPERSEDED_BY_USER_REQUIREMENT_TO_MEASURE_AND_JUSTIFY_ADJUSTMENT_BEFORE_MORE_EPOCHS",
+    "entry_online_selectivity_observed_on_fixed8": true,
+    "exit_bias_exists_online_and_ema": true,
+    "first_epoch_frozen_exit_target_zero": true,
+    "next_epoch_target_uses_online_not_ema": true,
+    "observed_exit_signal_or_scale_code_defect": false,
+    "train_loss_curve_available_in_existing_logs": false,
+    "train_loss_curve_limitation": "Native loop ignores returned TRAIN aggregates; completed epoch validates finite loss and both target action cells but does not prove fit quality or balanced per-side targets. No learning improvement claim from TRAIN loss.",
+    "ema_decay_preserved": true,
+    "ema_reset_would_not_modify_exit_teacher": true,
+    "next_assessment": "SUPERSEDED: bounded learning measurement after justified adjustment and verified checkpoint transition; no whole epoch yet.",
+    "profitable_or_calibrated": false,
+    "test_data_used": false
+  },
+  "resume_preflight": {
+    "decision": "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES",
+    "invocation_number": 6,
+    "window_policy_sha256": "0aa4cd8701fabeeac62141a9a68ea02766ecf96a42e73636e31ec684cd1ed352",
+    "source_clean_and_unchanged": true,
+    "plan_and_recipe_file_sha_unchanged": true
+  },
+  "epoch2_resume_request": {
+    "utc": "2026-09-15T13:14:46.2091029Z",
+    "registered_boot_id_before_reboot": 430,
+    "same_plan_sha256": "ad56bdc7501db1af177fb47e6f5c48640e6c1f97760b6e59d718b85b1e36814f",
+    "same_recipe_sha256": "834356bbc5b4027cbc9d7b940db271749608a6175e2ae8dbb0bb6410396b6f28",
+    "same_source_commit": "9cd29a2f57a0880e33c6c0a61b279deb7c15b981",
+    "windows_guards_verified": true
+  },
+  "native_resume_observation": {
+    "same_session_contract_sha256": "19a1286b2c6e977246a8b2f890c8295489135586eb05b194ebf71418c8b47d4c",
+    "saved_before": {
+      "checkpoint_index": 77,
+      "epoch_index": 1,
+      "next_batch_offset": 640,
+      "global_optimizer_steps": 4721
+    },
+    "saved_after": {
+      "checkpoint_index": 78,
+      "epoch_index": 1,
+      "next_batch_offset": 704,
+      "global_optimizer_steps": 4785
+    },
+    "continued_optimizer_steps_confirmed": 64,
+    "new_checkpoint_saved_utc": "2026-09-15T13:31:58.414Z",
+    "native_process_live": false
+  },
+  "latest_user_stop": {
+    "utc": "2026-09-15T13:46:26.562190Z",
+    "guard_pid": 726,
+    "native_pid": 781,
+    "future_windows_disabled_utc": "2026-09-15T13:45:44.1232498Z",
+    "latest_checkpoint_hash_verified": true,
+    "checkpoint_index": 85,
+    "state_sha256": "9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974",
+    "pointer_sha256": "d265ce2cba4f494eb818870093d8cb9834be974e2113729232f1ffdcd070ebb7",
+    "operator_receipt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/USER_STOP_BEFORE_LEARNING_ADJUSTMENT_20260915.json",
+      "sha256": "940353f6be6a522195b91103accbdd24c2552370a967e7384fd3cfd2fb051f97"
+    },
+    "normal_window_completion_claimed": false,
+    "guard_pass_claimed": false
+  },
+  "training_block": {
+    "canonical_next_run_policy_sha256": "f435716883a2cf6d3574bb5bf32fa3da77e0e2481e266f2ba946fa3314d0d603",
+    "training_enabled": false,
+    "previous_policy_archived": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/NEXT_RUN_POLICY_9CD29A2F_BEFORE_USER_STOP.json",
+    "old_campaign_policy_binding_now_deliberately_invalid": true,
+    "automatic_restart_allowed": false,
+    "numerical_model_code_changed": true,
+    "pending_uncommitted_canonical_file": null,
+    "bounded_native_controls_allowed": [
+      16,
+      32
+    ]
+  },
+  "exit_train_diagnostic": {
+    "operator_script": "/tmp/gx1_epoch1_train_exit_diagnostic.py",
+    "script_sha256": "775f94546fca7c1666698061ed7525c1c0427a7b7cd98eba11254582d36a18f7",
+    "exec_session_id": null,
+    "capped_class": "producer",
+    "memory_max": "20G",
+    "swap_max": "512M",
+    "alarm_seconds": 1800,
+    "cpu_threads_max": 4,
+    "optimizer_steps": 0,
+    "chronological_train_rank_starts": [
+      0,
+      21760,
+      43520,
+      65264
+    ],
+    "batch_size": 16,
+    "reference_checkpoint": 66,
+    "current_stopped_checkpoint": 85,
+    "test_data_used": false,
+    "log": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915.log",
+    "output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915",
+    "mode": "Seeded TRAIN-mode isolated Exit gradient component; no optimizer; not historical RNG replay",
+    "process_terminal": true,
+    "process_exit_code": 0,
+    "elapsed_seconds": 410.49581494999984,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/OPERATOR_OBSERVATIONS/EPOCH1_TRAIN_EXIT_CPU_DIAGNOSTIC_20260915/RESULT.json",
+      "sha256": "71f028c7fb548f8b9ea7ddbdd3ff13b7dd709051f819b4c3e531aca26c906db6"
+    }
+  },
+  "exit_learning_adjustment": {
+    "path": "handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json",
+    "sha256": "dbe544acc6cf54019e7476fce652a1cecd628e00ff452f7e9e39c54c2484151c",
+    "mechanical_verification_passed": true,
+    "learning_improvement_proven": false
+  },
+  "current_source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
+  "source_commit_note": "source_commit remains original stopped campaign identity; current_source_commit is pushed clipping correction",
+  "checkpoint85_cpu_replay": {
+    "exec_session_id": 5595,
+    "status": "RUNNING",
+    "capped_class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "optimizer_steps": 0,
+    "operator_script": "/tmp/gx1_prepare_clip_control.py",
+    "log": "/tmp/gx1_prepare_clip_control_20260915.log"
+  }
+}

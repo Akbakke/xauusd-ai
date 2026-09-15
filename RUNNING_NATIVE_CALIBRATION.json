@@ -1,0 +1,130 @@
+{
+  "schema_version": "gx1_running_native_calibration_v1",
+  "status": "STOPPED_FULL_EPOCH_BLOCKED_AFTER_MIXED_LEARNING_RESULT",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "source_branch": "work/gx1-current",
+  "source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
+  "source_frozen_until_native_measurements_finish": false,
+  "arm": "exit_clipping_control",
+  "whole_epoch_training_enabled": false,
+  "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "f246d49716b227977ddb79d316eac7e9e110c590552df0398786a08a15efd38e"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/NATIVE_RECIPE.json",
+    "sha256": "9d37470d9d6549bd9d88f120e7af0aed4c3af119e1b46c2b9ef0ea178edf248e"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE_BOOT432",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "6d93dbd9ac5bcdeb54451c2247b782a5f3fdc8ee5cb9721ae951b5c1d9ff5bfe",
+  "origin": {
+    "checkpoint_index": 85,
+    "epoch_index": 1,
+    "next_batch_offset": 1152,
+    "global_optimizer_steps": 5233,
+    "state_sha256": "9f9aaba84a7f3fd031666b9761d606af03b7c534409cf3049021b023805db974",
+    "pointer_sha256": "d265ce2cba4f494eb818870093d8cb9834be974e2113729232f1ffdcd070ebb7"
+  },
+  "additional_optimizer_step_ceilings": [
+    16,
+    32
+  ],
+  "absolute_optimizer_step_ceilings": [
+    5249,
+    5265
+  ],
+  "train_batch_size": 16,
+  "selected_train_rows": 65295,
+  "val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 84049614,
+    "max_state_views": 84049614,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "val_execution_expected": false,
+  "windows_task": "GX1NativeLearningCalibration",
+  "windows_task_enabled": false,
+  "prepared_boot_id": 432,
+  "launch_observation": "Both bounded native windows complete with guard PASS, trainer/observer exit0. No native process remains. Paired CPU TRAIN observation is running.",
+  "state_preservation_cpu": {
+    "decision": "PASS_STATE_PRESERVATION_ONLY",
+    "compared_components": 15,
+    "all_exact": true,
+    "original_unchanged": true,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_CLIP_CONTROL_6FFD03EE/ACTUAL_CHECKPOINT85_CPU_REPLAY.json",
+      "sha256": "65dcba18a4b65cd798051171a00848d49d315c456fc7e7eceb4b7e838b0d6270"
+    }
+  },
+  "native_checkpoint_restore_proven": true,
+  "current_native_resume_proven": true,
+  "learning_improvement_proven": false,
+  "profitability_proven": false,
+  "historical_technical_evidence": "handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json",
+  "old_stopped_campaign_record": "handover_snapshot/RUNNING_BEFORE_CLIP_CONTROL_20260915.json",
+  "first_epoch_val": "handover_snapshot/EPOCH1_FULL_VAL_20260915.json",
+  "learning_diagnostic": "handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json",
+  "current_policy_sha256": "f435716883a2cf6d3574bb5bf32fa3da77e0e2481e266f2ba946fa3314d0d603",
+  "automation_id": "gx1-timekontroll",
+  "human_check_interval_seconds": 3600,
+  "test_data_used": false,
+  "next_action": "No active job; Windows task Disabled; whole epochs blocked. Reuse completed evidence. Define a narrow policy-consistent multi-step Exit target check with frozen bootstrap, preserving intermediate EXIT, actual BID/ASK/costs and successor semantics without hindsight-max targets. First establish whether the weak frozen policy can provide a useful signal before implementation or launch. No forced Entry activity, arbitrary risk/hold limits, old campaign restart or repeated completed VAL/tests. The completed32-step before/after does not isolate clipping causality or prove learning/generalization/profit.",
+  "reboot_requested_utc": "2026-09-15T14:50:44.7418699Z",
+  "checkpoint85_cpu_replay_operator_note": "Initial generic JSON digest could not encode a nonfinite reporting value; reused existing typed checkpoint verifier. All15 state fields except session identity match exactly.",
+  "windows_task_observed_state": "Disabled",
+  "physical_boot_utc": "2026-09-15T14:51:38.5000000Z",
+  "windows_task_started_utc": "2026-09-15T14:52:51.0000000Z",
+  "native_observation": {
+    "native_pid": null,
+    "guard_pid": null,
+    "phase": "terminal",
+    "guard_error_observed": false
+  },
+  "completed_invocation1": {
+    "guard_decision": "PASS",
+    "trainer_guard_exit_code": 0,
+    "progress_observer_exit_code": 0,
+    "outcome": "RESUMABLE",
+    "checkpoint_index": 86,
+    "epoch_index": 1,
+    "next_batch_offset": 1168,
+    "global_optimizer_steps": 5249,
+    "additional_optimizer_steps": 16
+  },
+  "windows_task_disabled_utc": "2026-09-15T15:33:20.3688993Z",
+  "completed_invocation2": {
+    "guard_decision": "PASS",
+    "trainer_guard_exit_code": 0,
+    "progress_observer_exit_code": 0,
+    "outcome": "RESUMABLE",
+    "checkpoint_index": 87,
+    "epoch_index": 1,
+    "next_batch_offset": 1184,
+    "global_optimizer_steps": 5265,
+    "additional_optimizer_steps": 32,
+    "state_sha256": "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292"
+  },
+  "control_result": {
+    "path": "handover_snapshot/EXIT_CLIP_CONTROL_RESULT_20260915.json",
+    "sha256": "64d40ac966a55eb15f4b901d10fe9bfccd79eac75546b494c638f5a6c5f78aae"
+  },
+  "paired_cpu_observation": {
+    "exec_session_id": 14079,
+    "script": "/tmp/gx1_clip_control_paired_train_cpu.py",
+    "script_sha256": "f9967943338c23f5d091e8247aa6c138b70364044ab5153113fa9a789a311dab",
+    "log": "/tmp/gx1_clip_control_paired_train_cpu_20260915.log",
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "status": "COMPLETE",
+    "process_exit_code": 0,
+    "result": {
+      "path": "handover_snapshot/EXIT_CLIP_PAIRED_TRAIN_RESULT_20260915.json",
+      "sha256": "30d88d4de85f22be85060f981ec1e4feed63cedff9e7ab6bf61ec626cac48303"
+    },
+    "elapsed_seconds": 410.16201694300025
+  }
+}

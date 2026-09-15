@@ -3,7 +3,9 @@
 Ingen videre epoch før den målte Entry/Exit-svakheten er undersøkt med faktiske
 TRAIN-targets, prediksjoner og læringssignal, og en eventuell konkret justering er
 begrunnet/verifisert. Ikke fortsett bare fordi ingen kodefeil ble funnet. Native-
-trening er stoppet på checkpoint85/epoch2offset1152/global5233. Ingen fast grense.
+trening er stoppet. Etter begrunnet klipperettelse er32 kontrollsteg ferdige på
+checkpoint87/epoch2offset1184/global5265. Paret TRAIN-måling er blandet: Exit-MSE
+øker, Entry er fortsatt64FLAT. Hele epocher forblir blokkert. Ingen fast grense.
 
 # Gjeldende GX1-mål — 2026-09-14
 
@@ -50,7 +52,9 @@ eller profitabel. Den delte backbone er ikke fullstendig isolert fra Exit.
 
 De beståtte tekniske portene gjelder det avtalte ettårsutvalget. Gjeldende
 NEXT_RUN_POLICY.json blokkerer nye hele epocher. Bare eksplisitt bundet kontroll
-på16/32 ekstra steg kan kjøres etter verifisert optimizer-/checkpointovergang.
+på16/32 ekstra steg var tillatt; denne er ferdig og skal ikke kjøres på nytt.
+Faktisk overgang/resume består. Neste arbeid gjelder fortsatt læringssignalet,
+med resultater i handover_snapshot/EXIT_CLIP_PAIRED_TRAIN_RESULT_20260915.json.
 Se handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json; eldre tekniske porter
 er bevart i handover_snapshot/NATIVE_YEAR_LEARNING_READINESS_20260914.json.
 Målmodellen oppdateres etter komplett epoch og VAL. Neste bevis er faktisk
