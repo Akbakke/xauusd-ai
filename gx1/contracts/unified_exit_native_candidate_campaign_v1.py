@@ -39,6 +39,56 @@ OPTIMIZER_PROCEDURE_ORIGIN_CURSOR = {
 }
 
 
+TRAINING_CONTINUATION_SCHEMA = "gx1_candidate_training_continuation_origin_v1"
+TRAINING_CONTINUATION_RECEIPT_NAME = "CANDIDATE_TRAINING_CONTINUATION.json"
+TRAINING_CONTINUATION_RECEIPT_SCHEMA = "gx1_candidate_training_continuation_receipt_v1"
+TRAINING_CONTINUATION_ORIGIN_CONTRACT_SHA256 = "1f8f3e3a81c3563f93e2c17ed436a36260c76728ff5b78e813d7ee73bb77ec93"
+TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256 = "49c48c14c9cd0820ddaaa62b8bef35d4eaccc5c86301c5494ee1d88537501c61"
+TRAINING_CONTINUATION_ORIGIN_STATE_SHA256 = "4d1d47484765a7c1ba9af161aa0fb1338e740018ceb8b218e49954e7769f3292"
+TRAINING_CONTINUATION_ORIGIN_CURSOR = {
+    "checkpoint_index": 87, "phase": "train", "epoch_index": 1,
+    "next_batch_offset": 1184, "global_optimizer_steps": 5265, "complete": False,
+}
+TRAINING_CONTINUATION_STEP_CEILING = 5521
+
+
+def require_training_continuation_origin(
+    origin: Any, *, verify_files: bool = True,
+) -> dict[str, Any]:
+    """Admit only stopped checkpoint87, with the already applied procedure."""
+    fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
+              "train_population_scope", "gradient_clipping_policy"}
+    if (type(verify_files) is not bool or not isinstance(origin, Mapping)
+            or set(origin) != fields
+            or origin.get("schema_version") != TRAINING_CONTINUATION_SCHEMA
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
+            or origin.get("exit_value_initialization") != "close_now_baseline_v1"
+            or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
+        raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_INVALID")
+    contract = require_binding(origin["contract"], label="continuation origin contract", verify_file=verify_files)
+    pointer = require_binding(origin["pointer"], label="continuation origin pointer", verify_file=verify_files)
+    if (contract["sha256"] != TRAINING_CONTINUATION_ORIGIN_CONTRACT_SHA256
+            or pointer["sha256"] != TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256):
+        raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_HASH_MISMATCH")
+    if verify_files:
+        current = read_bound_json(Path(pointer["path"]), pointer["sha256"])
+        expected = {
+            **TRAINING_CONTINUATION_ORIGIN_CURSOR,
+            "schema_version": "gx1_candidate_training_session_v1", "slot": 0,
+            "session_contract_sha256": contract["sha256"],
+            "state_sha256": TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
+        }
+        if (set(current) != set(expected)
+                or any(current.get(k) != v or type(current.get(k)) is not type(v)
+                       for k, v in expected.items())):
+            raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_CURSOR_INVALID")
+        require_binding({
+            "path": str(Path(pointer["path"]).parent / "candidate_training_state_slot_0.pt"),
+            "sha256": TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
+        }, label="continuation origin state", verify_file=True)
+    return dict(origin)
+
+
 def require_optimizer_procedure_origin(
     origin: Any, *, verify_files: bool = True,
 ) -> dict[str, Any]:
@@ -162,11 +212,15 @@ def require_native_run_scope(
     origin = recipe.get("candidate_resume_origin")
     optimizer_transition = (isinstance(origin, Mapping)
                             and origin.get("schema_version") == OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA)
+    continuation = (isinstance(origin, Mapping)
+                    and origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA)
     if optimizer_transition:
         require_optimizer_procedure_origin(origin)
+    elif continuation:
+        require_training_continuation_origin(origin)
     origin_fields = {"schema_version", "contract", "pointer"}
     optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
-    if not optimizer_transition and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
+    if not (optimizer_transition or continuation) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
             or set(origin) - origin_fields - optional_origin_fields
             or ("train_population_scope" in origin and (
                 type(origin["train_population_scope"]) is not str
@@ -185,7 +239,7 @@ def require_native_run_scope(
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
-    if optimizer_transition and (
+    if (optimizer_transition or continuation) and (
             policy.get("training_enabled") is not False
             or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or calibration is not None):
@@ -269,7 +323,18 @@ def require_native_run_scope(
             "additional_optimizer_step_ceilings": [16, 32],
             "full_epoch_training_allowed": False, "test_data_used": False,
         }
-        if optimizer_transition:
+        continuation_scope = {
+            "schema_version": "gx1_native_training_continuation_scope_v1",
+            "additional_optimizer_step_ceilings": [256],
+            "full_epoch_training_allowed": False, "test_data_used": False,
+        }
+        if continuation:
+            if (scope != continuation_scope or not isinstance(scope, Mapping)
+                    or scope.get("full_epoch_training_allowed") is not False
+                    or scope.get("test_data_used") is not False
+                    or any(type(x) is not int for x in scope["additional_optimizer_step_ceilings"])):
+                raise RuntimeError("NATIVE_TRAINING_CONTINUATION_CALIBRATION_SCOPE_INVALID")
+        elif optimizer_transition:
             if (scope != optimizer_scope or not isinstance(scope, Mapping)
                     or scope.get("full_epoch_training_allowed") is not False
                     or scope.get("test_data_used") is not False
@@ -283,11 +348,12 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta
-                     for delta in scope["additional_optimizer_step_ceilings"]]
-                    if optimizer_transition else
-                    ([32] if calibration is not None and calibration["arm"] == "reference"
-                     else scope["optimizer_step_ceilings"]))
+        ceilings = ([TRAINING_CONTINUATION_STEP_CEILING] if continuation else
+                    ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta
+                      for delta in scope["additional_optimizer_step_ceilings"]]
+                     if optimizer_transition else
+                     ([32] if calibration is not None and calibration["arm"] == "reference"
+                      else scope["optimizer_step_ceilings"])))
         if invocation_number is not None:
             if type(invocation_number) is not int or not 1 <= invocation_number <= len(ceilings):
                 raise RuntimeError("NATIVE_CALIBRATION_INVOCATION_INVALID")
@@ -296,7 +362,7 @@ def require_native_run_scope(
             ceiling = execution_budget.get("stop_after_optimizer_steps")
             if type(ceiling) is not int or ceiling not in ceilings:
                 raise RuntimeError("NATIVE_CALIBRATION_STEP_CEILING_INVALID")
-        elif optimizer_transition:
+        elif optimizer_transition or continuation:
             # Metadata/state-transition validation only. The actual native
             # window still supplies its invocation or execution budget.
             ceiling = max(ceilings)

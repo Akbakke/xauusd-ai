@@ -13050,7 +13050,7 @@ def _load_candidate_economics_successor_state(
 def _load_candidate_optimizer_procedure_successor_state(
     *, session: _CandidateTrainingSession, origin: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Preserve stopped checkpoint85; change only the bound clipping procedure."""
+    """Preserve stopped85 for clipping, or stopped87 for unchanged bounded learning."""
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         OPTIMIZER_PROCEDURE_TRANSITION_POLICY, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
@@ -13058,6 +13058,9 @@ def _load_candidate_optimizer_procedure_successor_state(
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
         require_optimizer_procedure_origin, require_native_run_scope,
+        TRAINING_CONTINUATION_SCHEMA, TRAINING_CONTINUATION_ORIGIN_CURSOR,
+        TRAINING_CONTINUATION_ORIGIN_STATE_SHA256, TRAINING_CONTINUATION_RECEIPT_NAME,
+        TRAINING_CONTINUATION_RECEIPT_SCHEMA, require_training_continuation_origin,
     )
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
         bind_candidate_weight_ema_history_v1,
@@ -13070,7 +13073,19 @@ def _load_candidate_optimizer_procedure_successor_state(
         checked = require_binding(binding, label="optimizer transition", verify_file=True)
         return read_bound_json(Path(checked["path"]), checked["sha256"])
 
-    origin = require_optimizer_procedure_origin(origin)
+    continuation = origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
+    if continuation:
+        origin = require_training_continuation_origin(origin)
+        origin_cursor = TRAINING_CONTINUATION_ORIGIN_CURSOR
+        origin_state_sha = TRAINING_CONTINUATION_ORIGIN_STATE_SHA256
+        receipt_name = TRAINING_CONTINUATION_RECEIPT_NAME
+        receipt_schema = TRAINING_CONTINUATION_RECEIPT_SCHEMA
+    else:
+        origin = require_optimizer_procedure_origin(origin)
+        origin_cursor = OPTIMIZER_PROCEDURE_ORIGIN_CURSOR
+        origin_state_sha = OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256
+        receipt_name = OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME
+        receipt_schema = OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA
     contract, pointer = read(origin["contract"]), read(origin["pointer"])
     old = _CandidateTrainingSession(
         out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True,
@@ -13080,7 +13095,7 @@ def _load_candidate_optimizer_procedure_successor_state(
             or old.directory == session.directory or session._active_path.exists()
             or any(session._slot_path(slot).exists() for slot in (0, 1))
             or pointer.get("session_contract_sha256") != old.contract_sha256
-            or pointer.get("state_sha256") != OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256):
+            or pointer.get("state_sha256") != origin_state_sha):
         fail("SESSION_BINDING_INVALID")
     contracts = (copy.deepcopy(contract), copy.deepcopy(session._contract))
     recipes = []
@@ -13108,7 +13123,13 @@ def _load_candidate_optimizer_procedure_successor_state(
         fail("CANONICAL_RECIPE_REQUIRED")
     require_native_run_scope(after)
     previous, requested = contracts
-    if ("gradient_clipping_policy" in previous["training"]
+    if continuation:
+        if (previous["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
+                or requested["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
+                or previous["training"].get("grad_clip_norm") != 1.0
+                or requested["training"].get("grad_clip_norm") != 1.0):
+            fail("CLIPPING_POLICY_INVALID")
+    elif ("gradient_clipping_policy" in previous["training"]
             or requested["training"].pop("gradient_clipping_policy", None) != _GRAD_CLIP_POLICY
             or requested["training"].get("grad_clip_norm") != 1.0):
         fail("CLIPPING_POLICY_INVALID")
@@ -13134,7 +13155,7 @@ def _load_candidate_optimizer_procedure_successor_state(
             if relative not in allowed:
                 fail("UNAPPROVED_SOURCE_CHANGED")
             changed_sources.append(relative)
-    if "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" not in changed_sources:
+    if not continuation and "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" not in changed_sources:
         fail("CHANGED_TRAINER_REQUIRED")
     normalized_recipes = copy.deepcopy(recipes)
     for recipe, item in zip(normalized_recipes, contracts):
@@ -13146,7 +13167,7 @@ def _load_candidate_optimizer_procedure_successor_state(
         fail("MODEL_DATA_OR_TRAINING_CHANGED")
     state = old.load_checkpoint()
     if (state is None or any(state.get(k) != v or type(state.get(k)) is not type(v)
-                             for k, v in OPTIMIZER_PROCEDURE_ORIGIN_CURSOR.items())
+                             for k, v in origin_cursor.items())
             or state["training_progress"]["validation_snapshot"] is not None
             or state["training_progress"]["checkpoint_selection"]["top_k_checkpoints"]):
         fail("STOPPED_STATE_INVALID")
@@ -13157,8 +13178,8 @@ def _load_candidate_optimizer_procedure_successor_state(
             or state.get("weight_ema_state", {}).get("steps") != state["global_optimizer_steps"] + 19908):
         fail("EMA_HISTORY_INVALID")
     receipt = {
-        "schema_version": OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
-        "origin": origin, "origin_cursor": dict(OPTIMIZER_PROCEDURE_ORIGIN_CURSOR),
+        "schema_version": receipt_schema,
+        "origin": origin, "origin_cursor": dict(origin_cursor),
         "origin_state_sha256": pointer["state_sha256"],
         "destination_session_contract_sha256": session.contract_sha256,
         "inherited_weight_ema_history": history,
@@ -13167,10 +13188,10 @@ def _load_candidate_optimizer_procedure_successor_state(
         "preserved_state_fields": sorted(set(state) - {"session_contract_sha256"}),
         "changed_source_paths": sorted(changed_sources),
         "gradient_clipping_policy": _GRAD_CLIP_POLICY,
-        "state_preserved": True, "optimizer_procedure_changed": True,
+        "state_preserved": True, "optimizer_procedure_changed": not continuation,
         "identical_future_trajectory_claimed": False, "test_data_used": False,
     }
-    receipt_path = session.directory / OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME
+    receipt_path = session.directory / receipt_name
     if receipt_path.exists() or receipt_path.is_symlink():
         _candidate_training_session_read_json(receipt_path, label="OPTIMIZER_PROCEDURE_TRANSITION")
         if receipt_path.read_bytes() != _candidate_training_session_json_bytes(receipt):
@@ -13424,7 +13445,10 @@ def _run_resumable_candidate_training(
                 epoch_order=_candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population),
                 model=model, optimizer=optimizer,
             )
-        elif candidate_resume_origin.get("schema_version") == "gx1_candidate_optimizer_procedure_transition_v1":
+        elif candidate_resume_origin.get("schema_version") in {
+            "gx1_candidate_optimizer_procedure_transition_v1",
+            "gx1_candidate_training_continuation_origin_v1",
+        }:
             restored_state = _load_candidate_optimizer_procedure_successor_state(
                 session=session, origin=candidate_resume_origin,
             )

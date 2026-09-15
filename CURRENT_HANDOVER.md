@@ -1,3 +1,21 @@
+## Pågående neste kontroll — 2026-09-15
+
+Én ny native kontroll forberedes fra checkpoint87/global5265: 256 optimizersteg,
+til global5521/epoch_index1/offset1440, under epochgrensen8162. Frosne lærermål,
+treningsprosedyre, datarekkefølge og alle optimizer-/EMA-tilstander beholdes.
+Dette er ikke en hel epoch eller en læreroppdatering. Gjeldende policy har fortsatt
+training_enabled=false og tillater bare den nye eksakt bundne kontrollen når
+implementasjon, målrettede tester, faktisk CPU-tilstandsoverføring og ny native plan
+består. Den gamle16+16-planen skal ikke kjøres igjen. Samme fire faste TRAIN-batcher
+måles før/etter mot egne targets og nullbaseline; modellens lønnsomhet utledes ikke
+fra denne kontrollen. Se pending_fixed_target_fit i RUNNING_NATIVE_CALIBRATION.json.
+Den smale videreføringen er implementert i de fire eksisterende eierne. Alle
+143 målrettede regresjoner består; bevaring, ugyldige endringer, kvitteringskjede,
+EMA-historikk og stopp før epochslutt er dekket. Se
+handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json. Faktisk CPU-overføring
+av checkpoint87, ny plan og native kjøring gjenstår. Ingen modell-/lossendring.
+Ingen aktiv tung jobb; Windows-task er fortsatt deaktivert.
+
 # GX1 — stoppet; native kontroll bestått, læring fortsatt utilstrekkelig, 2026-09-15
 
 Eneste kilde er /home/andre2/src/GX1_CURRENT, branch work/gx1-current,

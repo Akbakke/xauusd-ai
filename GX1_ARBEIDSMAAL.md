@@ -13,7 +13,11 @@ beskyttede ruter er uten Exit-gradient. Ingen ny gradient-/arkitekturrettelse
 begrunnes. Neste er én avgrenset native critic-/lærerkontroll: bedre tilpasning
 mot faste targets før en oppdatert verdilærer tas i bruk. Frekvensen for
 læreroppdatering er en kandidat til kontrollert justering, ikke bevist løsning.
-Se handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json. Ingen nye hele
+Ny kontroll er avgrenset til 256 native steg fra87/global5265 til5521, med
+uendrede faste targets og full tilstandsbevaring. Smal videreføringskode og143
+målrettede regresjoner er ferdige; faktisk CPU-overføring og native kjøring
+gjenstår. Se handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json og
+handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json. Ingen nye hele
 epocher, blind læreroppdatering eller gjentakelse av fullført diagnostikk. Ingen fast grense.
 
 # Gjeldende GX1-mål — 2026-09-14

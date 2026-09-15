@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_running_native_calibration_v1",
-  "status": "SHARED_TASK_GRADIENT_COMPLETE_NO_ARCHITECTURE_CHANGE_JUSTIFIED",
+  "status": "PREPARING_BOUNDED_NATIVE_FIXED_TARGET_FIT_FROM_CHECKPOINT87",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit": "6ffd03ee13e28fd7ef84e65946ece1b038142166",
@@ -68,11 +68,11 @@
   "old_stopped_campaign_record": "handover_snapshot/RUNNING_BEFORE_CLIP_CONTROL_20260915.json",
   "first_epoch_val": "handover_snapshot/EPOCH1_FULL_VAL_20260915.json",
   "learning_diagnostic": "handover_snapshot/EXIT_LEARNING_ADJUSTMENT_20260915.json",
-  "current_policy_sha256": "f435716883a2cf6d3574bb5bf32fa3da77e0e2481e266f2ba946fa3314d0d603",
+  "current_policy_sha256": "b05c792fa976fb63344cd474f7096ba65f56a160ac80b1f8d5a37d238a44387e",
   "automation_id": "gx1-timekontroll",
   "human_check_interval_seconds": 3600,
   "test_data_used": false,
-  "next_action": "Finish this gradient-diagnosis branch. Preserve existing architecture, gradient boundaries, task weighting and clipping. Define one bounded native critic/teacher learning control from checkpoint87 using existing TRAIN evidence; first require improved fit against fixed targets before promoting a refreshed teacher. Existing teacher refresh only after complete epoch/VAL is a candidate propagation bottleneck, not a proven sole cause. No whole epoch, production target-cadence change or old control rerun is authorized by this result alone.",
+  "next_action": "Complete the exact87 state-preserving continuation in the four existing native owners and targeted regressions. Then verify actual87 CPU state preservation, materialize a new private native plan with ceiling5521, and run one guarded native invocation. Keep teacher, optimizer procedure and full-epoch block unchanged. After terminal success run the cached fixed-target evaluator; do not repeat completed gradient, n-step or16+16 controls.",
   "reboot_requested_utc": "2026-09-15T14:50:44.7418699Z",
   "checkpoint85_cpu_replay_operator_note": "Initial generic JSON digest could not encode a nonfinite reporting value; reused existing typed checkpoint verifier. All15 state fields except session identity match exactly.",
   "windows_task_observed_state": "Disabled",
@@ -127,7 +127,7 @@
     },
     "elapsed_seconds": 410.16201694300025
   },
-  "latest_source_head": "194bb5960ba11372606a4a81e70aa92e5bb13b74",
+  "latest_source_head": "f718d576196da0a0def11b83474e1d4d607c99c1",
   "two_step_target_probe": {
     "exec_session_id": 22935,
     "script": "/tmp/gx1_two_step_target_probe_cpu.py",
@@ -199,5 +199,26 @@
     "all_four_no_grad_anchors_exact": true,
     "all_four_forecast_dot_total_positive": true,
     "source_checkpoint_policy_schedule_model_rng_preserved": true
+  },
+  "pending_fixed_target_fit": {
+    "status": "TARGETED_TESTS_PASS_ACTUAL_STATE_REPLAY_PENDING",
+    "origin_checkpoint": 87,
+    "origin_global_optimizer_steps": 5265,
+    "origin_epoch_index": 1,
+    "origin_batch_offset": 1184,
+    "additional_optimizer_steps": 256,
+    "absolute_optimizer_step_ceiling": 5521,
+    "expected_final_batch_offset": 1440,
+    "next_epoch_boundary": 8162,
+    "frozen_teacher_changed": false,
+    "optimizer_procedure_changed": false,
+    "whole_epoch_allowed": false,
+    "planned_train_examples": 4096,
+    "train_batch_size": 16,
+    "test_data_used": false,
+    "native_launch_allowed_yet": false,
+    "preserved_policy": "handover_snapshot/NEXT_RUN_POLICY_BEFORE_FIXED_TARGET_FIT_20260915.json",
+    "evaluation": "Same four SHA-bound TRAIN batches/targets, exact checkpoint87 no_grad replay followed by after-state replay; per-side importance-weighted HOLD MSE/MAE, zero baseline, sign/actions, Entry targets/actions and four forecast horizons. TRAIN fit only, no automatic teacher promotion or profitability claim.",
+    "targeted_verification": "handover_snapshot/TRAINING_CONTINUATION_TESTS_20260915.json"
   }
 }

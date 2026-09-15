@@ -75,14 +75,15 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Whole epochs remain blocked after the user stop. The completed 16+16 clipping control and CPU diagnostics are preserved and must not be repeated. Permit only one explicitly SHA-bound continuation from checkpoint87/global5265 with unchanged training procedure and frozen teacher, limited to 256 additional native optimizer steps (absolute5521), below the current epoch boundary8162. Preserve model, target, Adam, EMA, RNG, scheduler, sample order and every previous result. Compare fixed TRAIN target fit before and after against checkpoint87 and the zero baseline before any refreshed teacher is promoted. No change to economic targets, losses, clipping, EMA policy, risk limits or holding time. No TEST or automatic full-epoch restart. Existing native profile and hardware guards remain mandatory.",
+  "rule": "Further complete epochs remain blocked after the user stop on 2026-09-15. The fixed epoch1 TRAIN diagnostic measured Exit side bias and a shared gradient-clipping budget dominated by task-weight adaptation. Permit only the explicitly bound checkpoint85 state-preserving optimizer-procedure transition and native controls of 16 or 32 additional steps under the existing guards, after targeted verification. Keep economic targets and loss, model/target/Adam/EMA/RNG/scheduler/progress and all original results intact. Measure actual learning before any new full epoch. No arbitrary hold/loss limits, EMA reset, TEST access or automatic whole-epoch restart. Historical inference and hardware evidence do not override this block.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "native_learning_calibration": {
-    "schema_version": "gx1_native_training_continuation_scope_v1",
+    "schema_version": "gx1_native_optimizer_procedure_calibration_scope_v1",
     "additional_optimizer_step_ceilings": [
-      256
+      16,
+      32
     ],
     "full_epoch_training_allowed": false,
     "test_data_used": false

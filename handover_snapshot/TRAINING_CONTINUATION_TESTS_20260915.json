@@ -1,0 +1,27 @@
+{
+  "actual_checkpoint87_cpu_transfer_proven": false,
+  "base_commit": "f718d576196da0a0def11b83474e1d4d607c99c1",
+  "decision": "PASS_TARGETED_TESTS_ONLY",
+  "gpu_used": false,
+  "guard": "gx1_capped_run.sh --class audit --mem4G --swap512M",
+  "log_sha256": "94d673aa9d2ac99c83c227bc791fa904ae9dc59fa85e40ab490b70159295f51f",
+  "meaning": "Exact87 bound origin and5521 ceiling, all-field state preservation, receipt retry/tamper, unchanged clipping/source/data rejection, inherited85-to87-to-new EMA history, no epoch completion; existing85/economics/scopes regressions also passed.",
+  "passed_test_count": 143,
+  "process_exit_code": 0,
+  "schema_version": "gx1_training_continuation_test_evidence_v1",
+  "test_files": [
+    "tests/test_native_training_continuation.py",
+    "tests/test_native_optimizer_procedure_scope.py",
+    "tests/test_candidate_economics_transition.py",
+    "tests/test_native_learning_calibration_scope.py"
+  ],
+  "test_market_data_used": false,
+  "tested_file_sha256": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "61d80e5ee9ccc2834c7037f9a3facbd2151b2808905f799f1704fba5f5913415",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "54d838251e12edcfb47c21fc5ecccbcacc000734523697c3df4eb84de1554deb",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "a35452d19df107218c5ec50f4deeda2bc608663cc39352adb6929cb77ebf34c8",
+    "gx1/scripts/materialize_local_random_access_campaign_v2.py": "00dfe0076611809062a43883c91bdc80cdece588a6bfe8e390d03bbce488f838",
+    "tests/test_candidate_economics_transition.py": "ffab1c4699e8e65db7a39e365b93f451baf4a6ed0b836ff109629fb4aff16b46",
+    "tests/test_native_training_continuation.py": "51fa336fd28d372a13affe65e6ba32259534e4a51920db0a31ad665b5677d3d1"
+  }
+}
