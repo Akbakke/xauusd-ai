@@ -1,11 +1,15 @@
-## Gjeldende neste arbeid — 2026-09-15
+## Gjeldende neste arbeid — 2026-09-16
 
-Entry-feilen fortsatte å falle på slutten av64-kontrollen:98=17.918624,
-99=17.321052. Fortsett samme læring fra99 i én avgrenset native1024stegskjøring
-tilglobal7057, uten endret modell, tap, teacher91 eller gradientgrense.
-236 målrettede tester består; faktiskCPU-overføring, frisk boot og native
-kjøring gjenstår. Ingen ny årsdekning, produksjonsresume, hel epoch, VAL eller TEST.
-Gjenbruk alle tidligere målinger og cached64inputs/targets; mål99→115 etterpå.
+Den avgrensede lærbarhetskontrollen er ferdig. Entry-feilen falt videre59.09%,
+og modellen velger nå2LONG/1SHORT som samsvarer med læreren; alle55 lærer-FLAT
+beholdes. Seks lærerhandler overses. Dette er320repetisjoner av64 TRAIN-innganger,
+ikke generalisering/profitt. Ingen ny taps-/modell-/gradientendring er innført.
+
+Avslutt fixed64-øvelsen. Forbered neste avgrensede native kontroll på ekte
+ettårs-TRAIN fra bevart ikke-replay95, frem til neste fulle juni utviklings-VAL.
+Gjenbruk tekniske bevis og profil; juster bare nødvendig resume-/sourcebinding.
+Ikke promoter115 eller tell replay som årsdekning. Ingen ny kjøring er startet.
+Vurder faktisk policyøkonomi før enda en epoch; TEST forblir forseglet.
 Se CURRENT_HANDOVER.md og RUNNING_NATIVE_CALIBRATION.json.
 
 # Gjeldende GX1-mål — 2026-09-14

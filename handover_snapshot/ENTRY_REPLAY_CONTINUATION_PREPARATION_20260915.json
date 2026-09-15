@@ -1,0 +1,46 @@
+{
+  "absolute_optimizer_step_ceilings": [
+    7057
+  ],
+  "additional_optimizer_step_ceilings": [
+    1024
+  ],
+  "decision": "PASS_BOUNDED_ENTRY_LEARNABILITY_PREPARED",
+  "elapsed_seconds": 190.1224573630002,
+  "frozen_teacher_changed": false,
+  "learning_improvement_proven": false,
+  "next_epoch_boundary": 8162,
+  "origin_checkpoint_index": 99,
+  "origin_optimizer_steps": 6033,
+  "peak_rss_kib": 1663736,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "a9de31ac7e315257a4ca33f9611eab449c6b1eabdadb8f760af1f9f151730b67"
+  },
+  "prepared_boot_id": 437,
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/NATIVE_RECIPE.json",
+    "sha256": "ef1127b75e4c1f7bb3d4e8fd994a6545dbc8f4af82b477e06526c1e22d7c1afd"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_REPLAY_CONT_B493E585_BOOT437",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "45436afedea9c7ee8a54e68fccfc4db3eee77713e5dd20789b51d79c19916d55",
+  "source_commit": "b493e585515f4e5ad0c317a61e3aa7b41ed1b374",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "state_replay": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/ACTUAL_CHECKPOINT99_ENTRY_LEARNABILITY.json",
+    "sha256": "525b7a9b10c173cda8b3565f492e642b53c65beaf08cfea6e6c80e589ca5fb97"
+  },
+  "test_data_used": false,
+  "train_rows": 65295,
+  "training_started": false,
+  "val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 84049614,
+    "max_state_views": 84049614,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  },
+  "whole_epoch_training_allowed": false
+}

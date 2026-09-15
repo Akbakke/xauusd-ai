@@ -1,0 +1,74 @@
+{
+  "schema_version": "gx1_entry_replay_continuation_result_v1",
+  "source_commit": "b493e585515f4e5ad0c317a61e3aa7b41ed1b374",
+  "native_elapsed_seconds_including_startup_observer_excluding_reboot": 2679.503783,
+  "native_guard_decision": "PASS",
+  "native_trainer_exit_code": 0,
+  "native_observer_exit_code": 0,
+  "additional_optimizer_steps": 1024,
+  "total_fixed64_diagnostic_optimizer_steps": 1280,
+  "fixed64_total_repetitions": 320,
+  "original_checkpoints_preserved": true,
+  "frozen_teacher_online_checkpoint": 91,
+  "original_epoch_order_preserved": true,
+  "adam_step_delta_counts": {
+    "1024": 726
+  },
+  "ema_steps_before": 25941,
+  "ema_steps_after": 26965,
+  "entry_mse_before": 17.321052009087783,
+  "entry_mse_after": 7.085303759474382,
+  "entry_mse_reduction_percent": 59.094264275882566,
+  "entry_actions_before": {
+    "FLAT": 64,
+    "INVALID": 0,
+    "LONG": 0,
+    "SHORT": 0,
+    "TIED": 0
+  },
+  "entry_actions_after": {
+    "FLAT": 61,
+    "INVALID": 0,
+    "LONG": 2,
+    "SHORT": 1,
+    "TIED": 0
+  },
+  "teacher_actions": {
+    "FLAT": 55,
+    "INVALID": 0,
+    "LONG": 3,
+    "SHORT": 6,
+    "TIED": 0
+  },
+  "teacher_trade_choices_matched": 3,
+  "teacher_trade_choices_missed": 6,
+  "teacher_flat_choices_matched": 55,
+  "wrong_side_choices": 0,
+  "exit_mse_before": 0.3421151480682933,
+  "exit_mse_after": 0.05501113100909787,
+  "forecast_direction_accuracy_after": {
+    "5": 0.78125,
+    "25": 0.8125,
+    "60": 0.84375,
+    "120": 0.890625
+  },
+  "cpu_evaluator_session": 34866,
+  "cpu_evaluator_exit_code": 0,
+  "cpu_elapsed_seconds": 27.49801784700003,
+  "cpu_peak_rss_kib": 2274672,
+  "before99_forwards_repeated": false,
+  "targets_recomputed": false,
+  "paired_result_sha256": "6bb2dc9f94df0618e71d1d2f8dc2aacaa1443c7893386635b6c4e505d219ff79",
+  "failed_evaluator_attempt": {
+    "session": 59763,
+    "failure": "Evaluator variable collision raised KeyError before model construction/forward. Operator variable name corrected; native source and checkpoint unchanged. Failed operator/log/binding retained."
+  },
+  "local_learning_and_selective_choices_observed": true,
+  "heldout_improvement_proven": false,
+  "profitability_proven": false,
+  "new_resume_trajectory_equivalence_claimed": false,
+  "data_coverage_advanced": false,
+  "production_continuation_allowed": false,
+  "test_data_used": false,
+  "next_action": "End the fixed64 learning drill. Prepare the next bounded native control on real latest-year TRAIN rows from preserved non-replay checkpoint95, through the next full June development VAL, reusing current model/loss/profile and technical gates. Do not promote diagnostic115 or count replay as annual coverage. Resolve only the needed resume/source binding in the existing native owner; no new model/loss/threshold experiment. Preserve TEST seal, then assess actual policy economics before another epoch."
+}

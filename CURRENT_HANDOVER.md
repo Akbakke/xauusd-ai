@@ -1,3 +1,42 @@
+# Gjeldende status — Entry lærer selektive valg, 2026-09-16
+
+Native fortsettelse99→115 er ferdig på frossen kilde b493e585.1024 nye
+optimizersteg tok2679.503783s (44m39.5s) inkludert oppstart/observer, uten reboot.
+Checkpoint115/global7057/epoch1offset2976 er diagnostisk. GuardPASS, trainer0,
+observer0; Windows-task Disabled22:44:31UTC2026-09-15. Ingen aktiv tung jobb.
+Planen er uttømt. Original95/99, lagret epoch_order og fast lærer91 er bevart.
+Alle726 Adamtilstander økte1024; EMA25941→26965, offset19908.236tester og normal
+commit-hook bestod før kjøringen. Modell, tap og gradientgrenser er uendret.
+
+Paret CPU-måling99→115 er ferdig, session34866/exit0,27.498018s. Målte99outputs
+ble gjenbrukt og deres samlede statistikk matchet nøyaktig; kun115 ble forwardet.
+Samme64cachedinputs/targets/dropoutfrø; ingen korpus-/lærerberegning, optimizer,
+backward, GPU, VAL eller TEST. En første evaluatorvariant hadde variabelkollisjon
+før modellkonstruksjon; kun måleskriptet ble rettet. Feilforsøket er bevart.
+
+Entry-Q-MSE17.321052→7.085304, ned59.09%. Valgene endret seg fra64FLAT til
+61FLAT/2LONG/1SHORT. Alle tre handelsvalg stemmer med lærerens foretrukne side;
+55av55 lærer-FLAT forblirFLAT. Seks av ni lærerforetrukne handler overses fortsatt.
+Exit-MSE0.342115→0.055011. HOLD/EXIT-treff mot mål ca94.92% LONG og95.31% SHORT.
+Forecast-retning ved5/25/60/120 nominelle minutter:78.125/81.25/84.375/89.0625%.
+Dette er lokal læring etter samlet1280steg/320repetisjoner av64 TRAIN-innganger.
+Ingen generalisering, sannsynlighetskalibrering eller lønnsomhet er dokumentert.
+
+Avslutt nå fixed64-øvelsen; ikke jag perfekt treff på disse ni lærerpreferansene.
+Neste arbeid er en avgrenset native fortsettelse på virkelige ettårs-TRAIN-rader
+fra bevart IKKE-replay checkpoint95/global5777/epoch1offset1696, frem til neste
+fulle juni utviklings-VAL. Gjenbruk modell/tap/profil og eksisterende tekniske
+bevis.115 skal ikke promoteres til produksjon eller telles som årsdekning.
+Avklar bare nødvendig resume-/sourcebinding i eksisterende native eier; ingen
+nye modeller, terskler, tapsendringer eller ekstra samme-kohort-prober nå.
+Ingen ny kjøring er ennå forberedt eller startet. Vurder faktisk policyøkonomi
+etter neste VAL før enda en epoch. TEST forblir forseglet.
+
+Bevis: handover_snapshot/ENTRY_REPLAY_CONTINUATION_REVIEW_20260916.json,
+ENTRY_REPLAY_CONTINUATION_PAIRED_RESULT_20260916.json og native receipt.
+Operatører/logger/resultater er bevart under NATIVE_ENTRY_REPLAY_CONT_B493E585.
+RUNNING_NATIVE_CALIBRATION.json inneholder full binding og status.
+
 # Gjeldende neste arbeid — fortsett samme læringskontroll fra99
 
 Ny avgrenset CPU-observasjon av beholdt checkpoint98 er ferdig, session1529/exit0,

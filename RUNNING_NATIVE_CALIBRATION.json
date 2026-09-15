@@ -17,8 +17,8 @@
   "automation_id": "gx1-timekontroll",
   "human_check_interval_seconds": 3600,
   "test_data_used": false,
-  "status": "NATIVE_FIXED64_CONTINUATION_TESTS_PASS_PREPARATION_PENDING",
-  "source_commit": null,
+  "status": "NATIVE_FIXED64_CONTINUATION_COMPLETE_SELECTIVE_ENTRY_LEARNING_OBSERVED",
+  "source_commit": "b493e585515f4e5ad0c317a61e3aa7b41ed1b374",
   "source_frozen_until_native_measurements_finish": false,
   "arm": "entry_learnability_continuation_from99",
   "whole_epoch_training_enabled": false,
@@ -54,18 +54,36 @@
   "windows_task_enabled": false,
   "windows_task_observed_state": "Disabled",
   "native_observation": {
-    "phase": "not_started",
+    "phase": "train",
     "native_pid": null,
     "guard_pid": null,
-    "guard_error_observed": false
+    "capped_runner_pid": null,
+    "guard_error_observed": false,
+    "started_utc": "2026-09-15T21:57:12.401887+00:00",
+    "guard_start_utc": "2026-09-15T21:57:15Z",
+    "guard_log": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_REPLAY_CONT_B493E585_BOOT437/guard/invocation-0001.log",
+    "observed_utc": "2026-09-15T21:58:31Z",
+    "observed_telemetry": {
+      "core_temp_c": 39,
+      "memory_temp_c": 46,
+      "power_limit_w": 300,
+      "memory_used_mib": 78
+    },
+    "finished_utc": "2026-09-15T22:41:51.905670+00:00",
+    "checkpoint_index": 115,
+    "global_optimizer_steps": 7057,
+    "next_batch_offset": 2976,
+    "guard_decision": "PASS",
+    "outcome": "RESUMABLE",
+    "elapsed_seconds": 2679.503783
   },
   "prior_completed_control_record": "handover_snapshot/RUNNING_BEFORE_REPLAY_CONTINUATION_20260915.json",
   "learning_improvement_proven": false,
   "profitability_proven": false,
-  "next_action": "Commit/push verified continuation only; then run adapted actual99 CPU preparation once and one native1024step continuation to7057 using a fresh physical boot and existing guards. Same learning mathematics. Preserve99 and old plans. Afterwards paired cached99/115 evaluation; no full epoch or repeated old analyses.",
-  "windows_task_disabled_utc": "2026-09-15T21:17:36.9987130+00:00",
-  "completed_control_review": "handover_snapshot/ENTRY_LEARNABILITY_CONTROL_REVIEW_20260915.json",
-  "native_checkpoint_restore_proven": false,
+  "next_action": "End the fixed64 learning drill. Prepare the next bounded native control on real latest-year TRAIN rows from preserved non-replay checkpoint95, through the next full June development VAL, reusing current model/loss/profile and technical gates. Do not promote diagnostic115 or count replay as annual coverage. Resolve only the needed resume/source binding in the existing native owner; no new model/loss/threshold experiment. Preserve TEST seal, then assess actual policy economics before another epoch.",
+  "windows_task_disabled_utc": "2026-09-15T22:44:31.4854483+00:00",
+  "completed_control_review": "handover_snapshot/ENTRY_REPLAY_CONTINUATION_REVIEW_20260916.json",
+  "native_checkpoint_restore_proven": true,
   "current_native_resume_equivalence_proven": false,
   "actual_window_paired_evaluation_failed_attempt": {
     "status": "FAILED_BEFORE_FIRST_FORWARD",
@@ -149,7 +167,84 @@
   "current_policy_sha256": "a1318af85719ff2911c65cec6131ab916c85ebc9d77cc30a1963bafc1890d308",
   "sample_specific_learning_improvement_observed": true,
   "no_active_heavy_job": true,
-  "native_plan_exhausted": false,
+  "native_plan_exhausted": true,
   "production_continuation_allowed": false,
-  "last_quarter_observation": "handover_snapshot/ENTRY_REPLAY_CHECKPOINT98_20260915.json"
+  "last_quarter_observation": "handover_snapshot/ENTRY_REPLAY_CHECKPOINT98_20260915.json",
+  "cpu_preparation": {
+    "status": "COMPLETE",
+    "script": "/tmp/gx1_prepare_entry_replay_continuation.py",
+    "script_sha256": "bb05558efd9a8502c0de0036f2a8c06e38e53efcd396d5ba868cb424fb2e51ce",
+    "log": "/tmp/gx1_prepare_entry_replay_continuation_20260915.log",
+    "exec_session_id": 29189,
+    "exit_code": 0,
+    "elapsed_seconds": 190.1224573630002,
+    "state_replay": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/ACTUAL_CHECKPOINT99_ENTRY_LEARNABILITY.json",
+      "sha256": "525b7a9b10c173cda8b3565f492e642b53c65beaf08cfea6e6c80e589ca5fb97"
+    }
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "a9de31ac7e315257a4ca33f9611eab449c6b1eabdadb8f760af1f9f151730b67"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/NATIVE_RECIPE.json",
+    "sha256": "ef1127b75e4c1f7bb3d4e8fd994a6545dbc8f4af82b477e06526c1e22d7c1afd"
+  },
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_REPLAY_CONT_B493E585_BOOT437",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "prepared_boot_id": 437,
+  "previous_boot_utc": "2026-09-15T20:53:44.5000000Z",
+  "fresh_boot_utc": "2026-09-15T21:54:15.5000000Z",
+  "windows_task_started_utc": "2026-09-15T21:55:05.6696881+00:00",
+  "actual_boot_id": 438,
+  "paired_evaluation_failed_attempt": {
+    "session_id": 59763,
+    "exit_code": 1,
+    "failure": "Local evaluator variable previous overwritten by source-binding loop; KeyError before model construction/forward. Fixed operator variable name only.",
+    "script_sha256": "ed2dde1d8ba465ee075cfaa6cfc22958280b1bdec116aa30697d8948c8033bf2",
+    "binding_sha256": "b5c7109ec7aceac5a5ecfc1013424806357b98c24a231ec602a292b894abb69b"
+  },
+  "paired_evaluation": {
+    "status": "COMPLETE",
+    "script": "/tmp/gx1_entry_replay_continuation_evaluator_cpu.py",
+    "script_sha256": "f09bf7c72d203969bf9670f55234e7030a61ca5a0b0d872fd7ded49bb0894f74",
+    "binding_sha256": "5223c42db11eea97a6dba6b96fd0203675eb94191c8053e94f2090e5ccafeafe",
+    "log": "/tmp/gx1_entry_replay_continuation_evaluator_cpu_20260916_v2.log",
+    "exec_session_id": 34866,
+    "exit_code": 0,
+    "elapsed_seconds": 27.49801784700003,
+    "peak_rss_kib": 2274672,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/OPERATOR_OBSERVATIONS/FIXED64_PAIRED99_115_CPU_20260916_V2/RESULT.json",
+      "sha256": "6bb2dc9f94df0618e71d1d2f8dc2aacaa1443c7893386635b6c4e505d219ff79"
+    },
+    "local_result": "handover_snapshot/ENTRY_REPLAY_CONTINUATION_PAIRED_RESULT_20260916.json"
+  },
+  "after": {
+    "contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "fe3afa6c24d5c6a956e2ae2701381c16362e915ebd6fa2e7778e3a463e34a696"
+    },
+    "cursor": {
+      "checkpoint_index": 115,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 7057,
+      "next_batch_offset": 2976,
+      "phase": "train"
+    },
+    "pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "45472f94ec487fab23a27b9cf513f41ea676b1d3fd0d6d3de4642111e53ad6a8"
+    },
+    "state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "bafdd8b64868f663d82e160478f7b9febd5efacafbe931fe6e43fb61af97bb35"
+    }
+  },
+  "transition_receipt": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_REPLAY_CONT_B493E585/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ENTRY_LEARNABILITY.json",
+    "sha256": "19a3dc7ff629368cd0bdaac75289034540c92cf26e7959ea3eb32fa77fbe0b78"
+  }
 }
