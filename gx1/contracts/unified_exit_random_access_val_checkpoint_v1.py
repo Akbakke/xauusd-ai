@@ -42,6 +42,96 @@ def _equal_tensor(left: torch.Tensor, right: torch.Tensor) -> bool:
 
 
 CANDIDATE_VAL_BINDING_SCHEMA_VERSION = "gx1_candidate_weight_ema_val_binding_v1"
+FROZEN_READOUT_BINDING_SCHEMA_VERSION = "gx1_frozen_online_readout_val_binding_v1"
+
+
+def _frozen_readout_states(plan_binding):
+    """Compose immutable ONLINE weights; never load optimizer or EMA history."""
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_bounded_val_cohort
+
+    cohort = build_bounded_val_cohort(plan_binding)
+    plan = read_bound_json(Path(plan_binding["path"]), plan_binding["sha256"])
+    bindings = {name: require_binding(plan[name], label=name, verify_file=True)
+                for name in ("base_online_checkpoint", "entry_readout", "exit_readout")}
+    parent = torch.load(bindings["base_online_checkpoint"]["path"], map_location="cpu", weights_only=True, mmap=True)
+    if parent.get("schema_version") != "gx1_candidate_training_session_v1" or not isinstance(parent.get("model_state"), Mapping):
+        raise RuntimeError("FROZEN_READOUT_PARENT_CHECKPOINT_INVALID")
+    base = dict(parent["model_state"])
+    entry = torch.load(bindings["entry_readout"]["path"], map_location="cpu", weights_only=True)
+    exit_head = torch.load(bindings["exit_readout"]["path"], map_location="cpu", weights_only=True)
+    patches = {}
+    for suffix in ("weight", "bias"):
+        name = "head_entry_action_q." + suffix
+        value = entry.get(suffix)
+        if (not isinstance(value, torch.Tensor) or name not in base
+                or value.shape != base[name].shape or value.dtype != base[name].dtype
+                or not bool(torch.isfinite(value).all())):
+            raise RuntimeError("FROZEN_READOUT_ENTRY_TENSOR_INVALID")
+        patches[name] = value
+    for suffix in ("weight", "bias"):
+        name = "head_exit_action." + suffix
+        value = exit_head.get("difference_" + suffix)
+        if (not isinstance(value, torch.Tensor) or name not in base
+                or value.shape != base[name].shape[1:] or value.dtype != base[name].dtype
+                or base[name].shape[0] != 2 or not bool(torch.isfinite(value).all())):
+            raise RuntimeError("FROZEN_READOUT_EXIT_TENSOR_INVALID")
+        patches[name] = torch.stack((value / 2, -value / 2))
+    candidate = {**base, **patches}
+    # V2 Entry targets used the fitted Exit teacher with original Entry weights.
+    teacher = {**base, **{k: v for k, v in patches.items() if k.startswith("head_exit_action.")}}
+    return cohort, bindings, base, candidate, teacher
+
+
+def _frozen_readout_binding(plan_binding, arm, states):
+    if arm not in {"baseline", "candidate"}:
+        raise RuntimeError("FROZEN_READOUT_ARM_INVALID")
+    cohort, bindings, base, candidate, teacher = states
+    value = {
+        "schema_version": FROZEN_READOUT_BINDING_SCHEMA_VERSION,
+        "decision": "PASS", "model_variant": "frozen_online_readout", "arm": arm,
+        "model_architecture_schema_version": RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+        "model_architecture_sha256": RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
+        "model_state_sha256": canonical_model_state_sha256(candidate if arm == "candidate" else base),
+        "online_model_state_sha256": canonical_model_state_sha256(base),
+        "target_model_state_sha256": canonical_model_state_sha256(teacher),
+        # The immutable composition manifest binds the base checkpoint and both overlays.
+        "checkpoint_path": plan_binding["path"], "checkpoint_file_sha256": plan_binding["sha256"],
+        "evaluation_plan": dict(plan_binding), "evaluation_cohort_sha256": cohort["cohort_sha256"],
+        **bindings,
+        "modified_parameter_names": (sorted(k for k in candidate if not torch.equal(candidate[k], base[k]))
+                                     if arm == "candidate" else []),
+        "optimizer_or_scheduler_loaded": False, "ema_used": False,
+        "source_checkpoint_modified": False, "rng_mutated": False, "test_data_used": False,
+    }
+    value["binding_sha256"] = canonical_sha256(value)
+    return value
+
+
+def bind_frozen_readout_checkpoint_v1(*, plan_binding, arm, model, target_model=None):
+    """Load the declared composition into evaluation models only, with exact scope."""
+    states = _frozen_readout_states(plan_binding)
+    binding = _frozen_readout_binding(plan_binding, arm, states)
+    rng_before = torch.get_rng_state().clone()
+    strict_load_random_access_v2_state(model, states[3] if arm == "candidate" else states[2])
+    model.requires_grad_(False).eval()
+    if target_model is not None:
+        strict_load_random_access_v2_state(target_model, states[4])
+        target_model.requires_grad_(False).eval()
+    if (not torch.equal(torch.get_rng_state(), rng_before)
+            or canonical_model_state_sha256(model.state_dict()) != binding["model_state_sha256"]):
+        raise RuntimeError("FROZEN_READOUT_MODEL_LOAD_CHANGED_STATE")
+    return binding
+
+
+def require_frozen_readout_checkpoint_binding_v1(value):
+    if not isinstance(value, Mapping) or not isinstance(value.get("evaluation_plan"), Mapping):
+        raise RuntimeError("FROZEN_READOUT_BINDING_INVALID")
+    expected = _frozen_readout_binding(value["evaluation_plan"], value.get("arm"),
+                                       _frozen_readout_states(value["evaluation_plan"]))
+    if dict(value) != expected:
+        raise RuntimeError("FROZEN_READOUT_BINDING_MISMATCH")
+    return expected
 
 
 def bind_candidate_weight_ema_history_v1(
@@ -426,7 +516,9 @@ def bind_candidate_weight_ema_validation_checkpoint_v1(
 def require_selected_weight_ema_checkpoint_binding_v1(
     value: Mapping[str, Any], *, verify_files: bool = True
 ) -> dict[str, Any]:
-    """Validate the immutable read-only EMA selection receipt."""
+    """Validate EMA selection or an explicitly bound frozen ONLINE composition."""
+    if isinstance(value, Mapping) and value.get("schema_version") == FROZEN_READOUT_BINDING_SCHEMA_VERSION:
+        return require_frozen_readout_checkpoint_binding_v1(value)
     if isinstance(value, Mapping) and value.get("schema_version") == CANDIDATE_VAL_BINDING_SCHEMA_VERSION:
         return require_candidate_weight_ema_val_binding_v1(value, verify_files=verify_files)
 

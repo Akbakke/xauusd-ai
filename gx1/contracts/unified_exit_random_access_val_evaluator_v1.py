@@ -154,7 +154,10 @@ def _new_progress(
     *,
     contract_sha256: str,
     checkpoint_binding_sha256: str,
+    entry_count: int = VAL_ENTRY_COHORT_SIZE,
 ) -> dict[str, Any]:
+    if type(entry_count) is not int or not 0 < entry_count <= VAL_ENTRY_COHORT_SIZE:
+        raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_COHORT_INVALID")
     return {
         "schema_version": PROGRESS_SCHEMA_VERSION,
         "decision": "IN_PROGRESS",
@@ -166,9 +169,9 @@ def _new_progress(
         "materialized_state_view_count": 0,
         "completed_invocation_count": 0,
         "elapsed_compute_seconds": 0.0,
-        "active_side_mask": [[True, True] for _ in range(VAL_ENTRY_COHORT_SIZE)],
+        "active_side_mask": [[True, True] for _ in range(entry_count)],
         "trade_accumulators": [
-            [_new_trade(), _new_trade()] for _ in range(VAL_ENTRY_COHORT_SIZE)
+            [_new_trade(), _new_trade()] for _ in range(entry_count)
         ],
         "compaction_trace": [],
         "route_accumulators": {},
@@ -223,12 +226,14 @@ def _require_progress(
     *,
     contract_sha256: str,
     checkpoint_binding_sha256: str,
+    entry_count: int = VAL_ENTRY_COHORT_SIZE,
 ) -> dict[str, Any]:
     observed = dict(value)
     claimed = observed.pop("progress_sha256", None)
     template = _new_progress(
         contract_sha256=contract_sha256,
         checkpoint_binding_sha256=checkpoint_binding_sha256,
+        entry_count=entry_count,
     )
     if (
         set(observed) != set(template)
@@ -239,9 +244,9 @@ def _require_progress(
         or observed["checkpoint_binding_sha256"] != checkpoint_binding_sha256
         or observed["test_data_used"] is not False
         or not isinstance(observed["active_side_mask"], list)
-        or len(observed["active_side_mask"]) != VAL_ENTRY_COHORT_SIZE
+        or len(observed["active_side_mask"]) != entry_count
         or not isinstance(observed["trade_accumulators"], list)
-        or len(observed["trade_accumulators"]) != VAL_ENTRY_COHORT_SIZE
+        or len(observed["trade_accumulators"]) != entry_count
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
     for mask, pair in zip(observed["active_side_mask"], observed["trade_accumulators"]):
@@ -269,7 +274,7 @@ def _require_progress(
         raw = observed[name]
         if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
             raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
-    if observed["next_entry_scan_position"] > VAL_ENTRY_COHORT_SIZE:
+    if observed["next_entry_scan_position"] > entry_count:
         raise RuntimeError("UNIFIED_EXIT_VAL_PROGRESS_INVALID")
     elapsed = observed["elapsed_compute_seconds"]
     if (
@@ -672,9 +677,12 @@ def _finalize_result(
         "checkpoint_binding": dict(checkpoint_binding),
         "checkpoint_binding_sha256": checkpoint_binding["binding_sha256"],
         "execution_contract": dict(execution_contract),
+        **({"evaluation_cohort": adapter.contract["evaluation_cohort"],
+            "evaluation_scope": "bounded_development_val", "source_population_fully_evaluated": False}
+            if "evaluation_cohort" in adapter.contract else {}),
         "execution_contract_sha256": execution_contract["execution_contract_sha256"],
-        "entry_pair_cohort_size": VAL_ENTRY_COHORT_SIZE,
-        "side_trade_count": VAL_ENTRY_COHORT_SIZE * 2,
+        "entry_pair_cohort_size": len(adapter.entries),
+        "side_trade_count": len(adapter.entries) * 2,
         "exited_side_trade_count": len(exited_rows),
         "right_censored_side_trade_count": censored,
         "compute_truncated_side_trade_count": truncated,
@@ -764,6 +772,19 @@ def require_random_access_val_evaluation_result_v1(
     checkpoint = result.get("checkpoint_binding")
     execution = result.get("execution_contract")
     outcomes = result.get("trade_outcomes")
+    ids = list(range(VAL_ENTRY_COHORT_SIZE))
+    if "evaluation_cohort" in result:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        scope = require_bounded_val_cohort(result["evaluation_cohort"])
+        if (scope["population_rows"] != VAL_ENTRY_COHORT_SIZE
+                or not isinstance(execution, Mapping)
+                or execution.get("evaluation_cohort_sha256") != scope["cohort_sha256"]
+                or result.get("evaluation_scope") != "bounded_development_val"
+                or result.get("source_population_fully_evaluated") is not False):
+            raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_COHORT_MISMATCH")
+        ids = scope["entry_row_indices"]
+    elif isinstance(execution, Mapping) and "evaluation_cohort_sha256" in execution:
+        raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_COHORT_MISSING")
     if (
         result.get("schema_version") not in {RESULT_SCHEMA_VERSION, MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}
         or result.get("decision")
@@ -790,10 +811,10 @@ def require_random_access_val_evaluation_result_v1(
             "binding_sha256"
         ]
         != checkpoint_binding_sha256
-        or result.get("entry_pair_cohort_size") != VAL_ENTRY_COHORT_SIZE
-        or result.get("side_trade_count") != 2 * VAL_ENTRY_COHORT_SIZE
+        or result.get("entry_pair_cohort_size") != len(ids)
+        or result.get("side_trade_count") != 2 * len(ids)
         or not isinstance(outcomes, list)
-        or len(outcomes) != 2 * VAL_ENTRY_COHORT_SIZE
+        or len(outcomes) != 2 * len(ids)
         or result.get("test_data_used") is not False
         or not isinstance(claimed, str)
         or claimed != canonical_sha256(result)
@@ -801,7 +822,7 @@ def require_random_access_val_evaluation_result_v1(
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_INVALID")
     policy = require_entry_policy_decisions(
         result.get("entry_policy_decisions"),
-        entry_row_indices=list(range(VAL_ENTRY_COHORT_SIZE)),
+        entry_row_indices=ids,
         checkpoint_binding_sha256=checkpoint_binding_sha256,
     )
     rollout_complete = all(
@@ -890,7 +911,7 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
 
 
 def _restore_cpu_pipeline_progress(origin, *, execution_contract, checkpoint_binding_sha,
-                                   cpu_pipeline_workers):
+                                   cpu_pipeline_workers, entry_count=VAL_ENTRY_COHORT_SIZE):
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
     if cpu_pipeline_workers is None or set(origin) != {"path", "sha256"}:
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_ORIGIN_INVALID")
@@ -907,7 +928,7 @@ def _restore_cpu_pipeline_progress(origin, *, execution_contract, checkpoint_bin
             prior_execution.pop("cpu_pipeline", None)
             prior_execution.pop("cpu_workers", None)
     progress = _require_progress(prior, contract_sha256=canonical_sha256(prior_execution),
-                                 checkpoint_binding_sha256=checkpoint_binding_sha)
+                                 checkpoint_binding_sha256=checkpoint_binding_sha, entry_count=entry_count)
     if progress["completed_invocation_count"] < 1 or progress["materialized_state_view_count"] < 1:
         raise RuntimeError("UNIFIED_EXIT_VAL_CPU_RESUME_COMPLETED_WINDOW_REQUIRED")
     prior_sha = progress["progress_sha256"]
@@ -1026,6 +1047,8 @@ def run_resumable_random_access_val_evaluation_v1(
         "progress_commit_semantics": "complete_policy_subbatch_only_v1",
         "test_data_used": False,
     }
+    if "evaluation_cohort" in contract:
+        execution_contract["evaluation_cohort_sha256"] = contract["evaluation_cohort"]["cohort_sha256"]
     if cpu_pipeline_workers is not None:
         execution_contract["cpu_pipeline"] = "immutable_metadata_shared_path_v2"
         execution_contract["cpu_workers"] = cpu_pipeline_workers
@@ -1036,7 +1059,10 @@ def run_resumable_random_access_val_evaluation_v1(
     )
     checkpoint_binding_sha = checked_checkpoint["binding_sha256"]
     if (
-        checked_checkpoint["model_variant"] != "weight_ema"
+        checked_checkpoint["model_variant"] not in {"weight_ema", "frozen_online_readout"}
+        or (checked_checkpoint["model_variant"] == "frozen_online_readout" and (
+            checked_checkpoint["evaluation_cohort_sha256"]
+            != contract.get("evaluation_cohort", {}).get("cohort_sha256")))
         or checked_checkpoint["model_state_sha256"] != contract["model_state_sha256"]
         or checked_checkpoint["checkpoint_file_sha256"]
         != contract["checkpoint_file_sha256"]
@@ -1054,7 +1080,7 @@ def run_resumable_random_access_val_evaluation_v1(
         != contract["model_state_sha256"]
         or _tensor_sha256(entry_decision_representations)
         != contract["entry_decision_representations_sha256"]
-        or entry_decision_representations.shape[0] != VAL_ENTRY_COHORT_SIZE
+        or entry_decision_representations.shape[0] != contract["entry_pair_cohort_size"]
         or isinstance(max_forwards_this_invocation, bool)
         or max_forwards_this_invocation < 1
         or isinstance(policy_batch_size, bool)
@@ -1077,11 +1103,13 @@ def run_resumable_random_access_val_evaluation_v1(
             json.loads(progress_path.read_text()),
             contract_sha256=execution_contract["execution_contract_sha256"],
             checkpoint_binding_sha256=checkpoint_binding_sha,
+            entry_count=contract["entry_pair_cohort_size"],
         )
     elif resume_progress_origin is not None:
         progress, prior_sha = _restore_cpu_pipeline_progress(
             resume_progress_origin, execution_contract=execution_contract,
             checkpoint_binding_sha=checkpoint_binding_sha, cpu_pipeline_workers=cpu_pipeline_workers,
+            entry_count=contract["entry_pair_cohort_size"],
         )
         _atomic_json(progress_path, progress, replace=False)
         print("VAL_CPU_PIPELINE_PROGRESS_RESTORED " + json.dumps({
@@ -1096,6 +1124,7 @@ def run_resumable_random_access_val_evaluation_v1(
             _new_progress(
                 contract_sha256=execution_contract["execution_contract_sha256"],
                 checkpoint_binding_sha256=checkpoint_binding_sha,
+                entry_count=contract["entry_pair_cohort_size"],
             )
         )
         _atomic_json(progress_path, progress, replace=False)

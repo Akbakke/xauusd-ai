@@ -16,6 +16,15 @@ eksisterende seed uten modellutfall. Juni er gjenbrukt utviklings-VAL, ikke
 urørt holdout. Vekter, mål og utvalg er frosset. Ingen TEST, ny trening eller
 full VAL er åpnet. Se docs/STABLE_READOUT_GENERALIZATION_20260916.md.
 
+Evaluatordelen er nå kontrollert for det frosne utvalget: 12 nye og40 eksisterende
+VAL-tester består. Originale rad-ID-er, pause/gjenopptak, åpne posisjoner/kostnader
+og uendrede modellparametere utenom de frosne verdilagene er verifisert. Kandidaten
+identifiseres som ONLINE, aldri som epoch-EMA. En delvis VAL kan ikke åpne full-VAL-porten.
+
+Native kampanjekobling og paret Exit-måling mot de frosne Q_mu-målene gjenstår.
+Ingen juni-evaluering eller nye treningssteg er kjørt. Dette er tekniske bevis,
+ikke generalisering eller lønnsomhet. Se handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

@@ -389,8 +389,13 @@ def _entry_representations(
     candidate_target_model: torch.nn.Module | None = None,
     candidate_state_factory: RandomAccessValStateFactoryV1 | None = None,
     candidate_child_rows: Sequence[int] | None = None,
+    evaluation_cohort: Mapping[str, Any] | None = None,
 ) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
-    if len(parent_rows) != 5_508 or len(set(parent_rows)) != len(parent_rows):
+    expected_child_rows = list(range(5_508))
+    if evaluation_cohort is not None:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        expected_child_rows = require_bounded_val_cohort(evaluation_cohort)["entry_row_indices"]
+    if len(parent_rows) != len(expected_child_rows) or len(set(parent_rows)) != len(parent_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_MAPPING_INVALID")
     candidate = candidate_target_model is not None
     if candidate != (candidate_state_factory is not None) or candidate != (candidate_child_rows is not None):
@@ -399,11 +404,12 @@ def _entry_representations(
         candidate_target_model.training
         or any(p.requires_grad for p in candidate_target_model.parameters())
         or len(candidate_child_rows) != len(parent_rows)
-        or set(candidate_child_rows) != set(range(len(parent_rows)))
+        or list(candidate_child_rows) != expected_child_rows
     ):
         raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_NOT_FROZEN_OR_COHORT_INVALID")
     active_heads = _new_active_head_epoch_accumulator() if candidate else None
     anchor_bindings: list[str] = []
+    bounded_entry_observations: list[dict[str, Any]] = []
     q_squared_error = 0.0
     q_valid_cells = 0
     unique_target_rows = 0
@@ -472,6 +478,13 @@ def _entry_representations(
                 unique_target_rows += int(unique.sum().item())
                 agreeing_rows += int((unique & (greedy == targets.argmax(dim=1))).sum().item())
                 anchor_bindings.append(anchor_binding["binding_sha256"])
+                if evaluation_cohort is not None:
+                    bounded_entry_observations.extend({
+                        "entry_row_index": int(child), "parent_entry_row_index": int(parent),
+                        "predicted_q_bps": predicted, "target_q_bps": target, "target_valid": valid,
+                    } for child, parent, predicted, target, valid in zip(
+                        candidate_child_rows[consumed:consumed + len(observed_rows)], observed_rows,
+                        entry_q.cpu().tolist(), targets.cpu().tolist(), target_valid.cpu().tolist()))
         entry_q_values.append(entry_q.detach().cpu())
         if (
             not isinstance(representation, torch.Tensor)
@@ -493,10 +506,12 @@ def _entry_representations(
         )
         representations.append(representation.detach())
         consumed += len(observed_rows)
-    if consumed != 5_508:
+    if consumed != len(expected_child_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_ENTRY_COHORT_INCOMPLETE")
     diagnostics = finalize_route_diagnostics_v1(route_accumulators)
-    diagnostics["surface"] = "entry_full_cohort_forward"
+    diagnostics["surface"] = "entry_bounded_cohort_forward" if evaluation_cohort is not None else "entry_full_cohort_forward"
+    if evaluation_cohort is not None:
+        diagnostics["bounded_entry_observations"] = bounded_entry_observations
     if candidate:
         head_stats, _ = _active_head_epoch_diagnostics(active_heads)
         diagnostics["candidate_active_head_evidence"] = {
@@ -579,9 +594,17 @@ def evaluate_bound_full_val_v1(
     exit_policy_batch_size: int | None = None,
     cpu_pipeline_workers: int = 4,
     resume_progress_origin: Mapping[str, Any] | None = None,
+    evaluation_cohort: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The shared full-cohort Entry/Exit evaluator for smoke and candidate epochs."""
 
+    expected_count = 5_508
+    if evaluation_cohort is not None:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        scope = require_bounded_val_cohort(evaluation_cohort)
+        if frame["entry_row_index"].astype("int64").tolist() != scope["entry_row_indices"]:
+            raise RuntimeError("UNIFIED_EXIT_VAL_BOUND_FRAME_MISMATCH")
+        expected_count = len(scope["entry_row_indices"])
     parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
     if candidate_target_model is not None and canonical_model_state_sha256(candidate_target_model.state_dict()) != checkpoint_binding["target_model_state_sha256"]:
         raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_CHECKPOINT_MISMATCH")
@@ -594,6 +617,7 @@ def evaluate_bound_full_val_v1(
         candidate_target_model=candidate_target_model,
         candidate_state_factory=state_factory if candidate_target_model is not None else None,
         candidate_child_rows=frame["entry_row_index"].astype("int64").tolist() if candidate_target_model is not None else None,
+        evaluation_cohort=evaluation_cohort,
     )
     entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
     entry_routes["sequence_source_reconstruction_audit"] = {
@@ -609,8 +633,9 @@ def evaluate_bound_full_val_v1(
         ),
         compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
         resumable_wall_limit=True,
+        evaluation_cohort=evaluation_cohort,
     )
-    if contract["entry_pair_cohort_size"] != 5_508:
+    if contract["entry_pair_cohort_size"] != expected_count:
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_COHORT_REQUIRED")
     entry_policy = build_entry_policy_decisions(
         predicted_q_bps=entry_q_values.numpy(),

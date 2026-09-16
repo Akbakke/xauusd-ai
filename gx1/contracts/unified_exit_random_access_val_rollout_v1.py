@@ -128,11 +128,19 @@ def _tensor_sha256(value: torch.Tensor) -> str:
     return digest.hexdigest()
 
 
-def _require_entries(entries: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _require_entries(entries: Sequence[Mapping[str, Any]], evaluation_cohort=None) -> list[dict[str, Any]]:
+    expected_ids = None
+    if evaluation_cohort is not None:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        scope = require_bounded_val_cohort(evaluation_cohort)
+        if scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+            raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
+        expected_ids = scope["entry_row_indices"]
+    count = VAL_ENTRY_COHORT_SIZE if expected_ids is None else len(expected_ids)
     if (
         not isinstance(entries, Sequence)
         or isinstance(entries, (str, bytes))
-        or len(entries) != VAL_ENTRY_COHORT_SIZE
+        or len(entries) != count
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_FULL_COHORT_REQUIRED")
     checked: list[dict[str, Any]] = []
@@ -164,6 +172,8 @@ def _require_entries(entries: Sequence[Mapping[str, Any]]) -> list[dict[str, Any
         seen.add(entry)
         previous = entry
         checked.append(row)
+    if expected_ids is not None and [row["entry_row_index"] for row in checked] != expected_ids:
+        raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_IDENTITIES_MISMATCH")
     return checked
 
 
@@ -198,14 +208,15 @@ def build_random_access_val_rollout_contract(
     compute_guard_max_materialized_state_views: int,
     compute_guard_max_wall_seconds: float,
     resumable_wall_limit: bool = False,
+    evaluation_cohort: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind the exact immutable VAL cohort, model and source artifacts."""
 
-    cohort = _require_entries(entries)
+    cohort = _require_entries(entries, evaluation_cohort)
     representations_sha = _tensor_sha256(entry_decision_representations)
     normalization = require_lifetime_summary_normalization(normalization_artifact)
     if (
-        int(entry_decision_representations.shape[0]) != VAL_ENTRY_COHORT_SIZE
+        int(entry_decision_representations.shape[0]) != len(cohort)
         or normalization["val_mode"] != "apply_frozen_train_transform_only"
         or normalization["val_fit_rows"] != 0
         or normalization["test_fit_rows"] != 0
@@ -218,7 +229,7 @@ def build_random_access_val_rollout_contract(
         or compute_guard_max_model_forwards < 1
         or isinstance(compute_guard_max_materialized_state_views, bool)
         or not isinstance(compute_guard_max_materialized_state_views, int)
-        or compute_guard_max_materialized_state_views < VAL_ENTRY_COHORT_SIZE
+        or compute_guard_max_materialized_state_views < len(cohort)
         or isinstance(compute_guard_max_wall_seconds, bool)
         or not isinstance(compute_guard_max_wall_seconds, (int, float))
         or not math.isfinite(float(compute_guard_max_wall_seconds))
@@ -230,7 +241,7 @@ def build_random_access_val_rollout_contract(
         "schema_version": VAL_ROLLOUT_CONTRACT_SCHEMA_VERSION,
         "decision": "PASS",
         "split": "val",
-        "entry_pair_cohort_size": VAL_ENTRY_COHORT_SIZE,
+        "entry_pair_cohort_size": len(cohort),
         "both_sides_evaluated": True,
         "entry_cohort_stream_sha256": _entry_stream_sha256(cohort),
         "entry_decision_representations_sha256": representations_sha,
@@ -285,6 +296,8 @@ def build_random_access_val_rollout_contract(
         },
         "test_data_used": False,
     }
+    if evaluation_cohort is not None:
+        result["evaluation_cohort"] = dict(evaluation_cohort)
     result["contract_sha256"] = _canonical_sha256(result)
     return result
 
@@ -331,6 +344,14 @@ def require_random_access_val_rollout_contract(
         "compute_guard",
         "test_data_used",
     }
+    count = VAL_ENTRY_COHORT_SIZE
+    if "evaluation_cohort" in observed:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        scope = require_bounded_val_cohort(observed["evaluation_cohort"])
+        if scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+            raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
+        count = len(scope["entry_row_indices"])
+        required.add("evaluation_cohort")
     guard = observed.get("compute_guard")
     if (
         set(observed) != required
@@ -338,7 +359,7 @@ def require_random_access_val_rollout_contract(
         or observed["schema_version"] != VAL_ROLLOUT_CONTRACT_SCHEMA_VERSION
         or observed["decision"] != "PASS"
         or observed["split"] != "val"
-        or observed["entry_pair_cohort_size"] != VAL_ENTRY_COHORT_SIZE
+        or observed["entry_pair_cohort_size"] != count
         or observed["both_sides_evaluated"] is not True
         or observed["action_order"] != list(EXIT_ACTION_ORDER)
         or observed["tie_break"] != "unique_argmax_or_fail_closed"
@@ -488,7 +509,7 @@ class RandomAccessValRolloutAdapterV1:
         state_provider: Callable[[Mapping[str, Any], int], Mapping[str, Any]],
     ) -> None:
         self.contract = require_random_access_val_rollout_contract(contract)
-        self.entries = _require_entries(entries)
+        self.entries = _require_entries(entries, self.contract.get("evaluation_cohort"))
         self._entry_by_index = {row["entry_row_index"]: row for row in self.entries}
         times = pd.DatetimeIndex(
             pd.to_datetime(m1_times, utc=True, errors="coerce")
@@ -817,7 +838,7 @@ def run_random_access_val_rollout(
         != contract["model_state_sha256"]
         or _tensor_sha256(entry_decision_representations)
         != contract["entry_decision_representations_sha256"]
-        or int(entry_decision_representations.shape[0]) != VAL_ENTRY_COHORT_SIZE
+        or int(entry_decision_representations.shape[0]) != contract["entry_pair_cohort_size"]
     ):
         raise RuntimeError("UNIFIED_EXIT_VAL_MODEL_BINDING_INVALID")
     device = entry_decision_representations.device
@@ -841,7 +862,7 @@ def run_random_access_val_rollout(
         ]
         for _entry in entries
     ]
-    active = np.ones((VAL_ENTRY_COHORT_SIZE, 2), dtype=np.bool_)
+    active = np.ones((contract["entry_pair_cohort_size"], 2), dtype=np.bool_)
     state_index = 0
     forward_count = 0
     materialized_count = 0
@@ -987,8 +1008,8 @@ def run_random_access_val_rollout(
         "schema_version": VAL_ROLLOUT_RESULT_SCHEMA_VERSION,
         "decision": decision,
         "contract_sha256": contract["contract_sha256"],
-        "entry_pair_cohort_size": VAL_ENTRY_COHORT_SIZE,
-        "side_trade_count": VAL_ENTRY_COHORT_SIZE * 2,
+        "entry_pair_cohort_size": contract["entry_pair_cohort_size"],
+        "side_trade_count": contract["entry_pair_cohort_size"] * 2,
         "exited_side_trade_count": exited,
         "right_censored_side_trade_count": censored,
         "compute_truncated_side_trade_count": truncated,
@@ -1040,13 +1061,13 @@ def require_random_access_val_rollout_result(
         "test_data_used",
     }
     outcomes = observed.get("trade_outcomes")
-    total = VAL_ENTRY_COHORT_SIZE * 2
+    total = checked_contract["entry_pair_cohort_size"] * 2
     if (
         set(observed) != required
         or claimed != _canonical_sha256(observed)
         or observed["schema_version"] != VAL_ROLLOUT_RESULT_SCHEMA_VERSION
         or observed["contract_sha256"] != checked_contract["contract_sha256"]
-        or observed["entry_pair_cohort_size"] != VAL_ENTRY_COHORT_SIZE
+        or observed["entry_pair_cohort_size"] != checked_contract["entry_pair_cohort_size"]
         or observed["side_trade_count"] != total
         or not isinstance(outcomes, list)
         or len(outcomes) != total

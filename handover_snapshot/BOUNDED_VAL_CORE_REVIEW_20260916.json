@@ -1,0 +1,53 @@
+{
+  "decision": "CORE_BINDINGS_VERIFIED_NATIVE_CONNECTION_PENDING",
+  "frozen_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+    "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+  },
+  "generalization_demonstrated": false,
+  "later_val_executed": false,
+  "native_integration_complete": false,
+  "next_action": "Core bounded VAL and frozen ONLINE readout bindings are verified. Finish only the missing integration in the existing native campaign, binding the immutable origin cursor and frozen June256 plan, and recording paired Exit Q_mu errors alongside Entry errors and native full-cost selected/open outcomes. No new fitting or architecture work. The core tests do not authorize launch, training, full VAL or TEST. Preserve the frozen plan and all source checkpoints.",
+  "observed_utc": "2026-09-16T20:41:20.810033+00:00",
+  "optimizer_steps": 0,
+  "profitability_demonstrated": false,
+  "source_files": {
+    "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": "8608dbc0892675ce48bdcd41c3b8538d0a0fc7f81bece38e36864d2955b90132",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "35d1e033fc5d27e2ffd430150b0b933b3a7dc88e8c96062f8d08ba0e01737fa6",
+    "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": "eaad5c2b86de7f433f83cb320bcabbaaa66dc6546fdd493838de29b3684b2c98",
+    "gx1/contracts/unified_exit_random_access_val_factory_v1.py": "5082e5bd5f198ca4670c8a1f1f3e9d6586f56f3ec98d7b2b4971bec486d84a1f",
+    "gx1/contracts/unified_exit_random_access_val_rollout_v1.py": "fc8e8508d44fb1cb0cc035918ee06777486bb5c1d478e0962ed409858cbcd210",
+    "gx1/scripts/run_unified_exit_random_access_val_v1.py": "5bd5e7b03af455bc5f5e99278804459f994a7aee7a8a713a5ca32b1ba75097c3",
+    "tests/test_unified_exit_bounded_val.py": "ba167c6e11df7e198f492e9ec1afc47e6eba93695ef6448dfe03906ba5ac3629",
+    "tests/test_unified_exit_random_access_val_rollout_v1.py": "bd17b88badde4721eb5a762ec89d52558df8310da1d8f7e58cd80eca785674d7"
+  },
+  "source_parent_commit": "4ac17c283b58dc57e5a5034223be4e4308ac4caa",
+  "test_data_used": false,
+  "tests": {
+    "existing_modules": {
+      "tests/test_run_unified_exit_random_access_val_v1.py": 4,
+      "tests/test_unified_exit_random_access_val_checkpoint_v1.py": 2,
+      "tests/test_unified_exit_random_access_val_evaluator_v1.py": 23,
+      "tests/test_unified_exit_random_access_val_rollout_v1.py": 11
+    },
+    "existing_val_tests_passed": 40,
+    "full_suite_run": false,
+    "last_targeted_includes_existing_cli_tests": 4,
+    "last_targeted_junit": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/BOUNDED_VAL_CORE_TESTS_20260916.xml",
+      "sha256": "e4b6d25a9f840e56351983c53697a1a737cb17d41017f33c9c679c581cac3593"
+    },
+    "last_targeted_test_count": 16,
+    "new_bounded_tests_passed": 12,
+    "unique_tests_passed": 52
+  },
+  "training_enabled": false,
+  "verified": [
+    "Sparse source row identities survive Entry forward, Exit compaction and pause/resume.",
+    "Both terminal cash and liquidation-advantage accounting include right-censored/open positions; resumed outcomes equal uninterrupted outcomes.",
+    "Partial VAL is explicitly scoped and cannot satisfy complete full-VAL admission.",
+    "Frozen ONLINE composition changes only declared Entry/Exit readout weights; original checkpoints, backbone, buffers and CPU RNG are preserved.",
+    "Both arms bind the same frozen Entry target teacher: original After96 Entry with the fitted Exit readout.",
+    "Real frozen files validate and produce distinct baseline/candidate model hashes."
+  ]
+}

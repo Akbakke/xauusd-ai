@@ -725,9 +725,17 @@ class RandomAccessValStateFactoryV1:
         compute_guard_max_materialized_state_views: int,
         compute_guard_max_wall_seconds: float,
         resumable_wall_limit: bool = False,
+        evaluation_cohort: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], RandomAccessValRolloutAdapterV1]:
+        entries = self.entries
+        if evaluation_cohort is not None:
+            from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+            scope = require_bounded_val_cohort(evaluation_cohort)
+            if scope["source_index"]["sha256"] != self.artifact_file_sha256["random_access_index"]:
+                raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_SOURCE_MISMATCH")
+            entries = [self.entries[i] for i in scope["entry_row_indices"]]
         contract = build_random_access_val_rollout_contract(
-            entries=self.entries,
+            entries=entries,
             entry_decision_representations=entry_decision_representations,
             source_lineage_sha256=self.sequence["binding_sha256"],
             m1_source_sha256=self.bridge["bindings"]["m1_source"],
@@ -758,10 +766,11 @@ class RandomAccessValStateFactoryV1:
             compute_guard_max_materialized_state_views=compute_guard_max_materialized_state_views,
             compute_guard_max_wall_seconds=compute_guard_max_wall_seconds,
             resumable_wall_limit=resumable_wall_limit,
+            evaluation_cohort=evaluation_cohort,
         )
         adapter = RandomAccessValRolloutAdapterV1(
             contract=contract,
-            entries=self.entries,
+            entries=entries,
             m1_times=self.times,
             market_closure_authority=self.closure,
             economic_step_provider=self.economic_step_provider,

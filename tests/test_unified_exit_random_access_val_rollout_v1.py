@@ -302,7 +302,7 @@ def _state_provider(entry, state_index):
     }
 
 
-def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000, reward_accounting="terminal_cash_v2"):
+def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000, reward_accounting="terminal_cash_v2", evaluation_cohort=None):
     tail_rows = max(counts)
     clock = _clock(gap=gap, tail_rows=tail_rows)
     closure = _closure(clock, gap=gap)
@@ -325,7 +325,12 @@ def _fixture(*, thresholds, counts, gap=None, max_forwards=1_000, reward_account
         "economic_step_model_sha256": "4" * 64,
         "economic_step_source_manifest_sha256": "5" * 64,
     }
+    if evaluation_cohort is not None:
+        ids = evaluation_cohort["entry_row_indices"]
+        entries = [entries[i] for i in ids]
+        representations = representations[ids]
     contract = build_random_access_val_rollout_contract(
+        evaluation_cohort=evaluation_cohort,
         entries=entries,
         entry_decision_representations=representations,
         source_lineage_sha256="6" * 64,
