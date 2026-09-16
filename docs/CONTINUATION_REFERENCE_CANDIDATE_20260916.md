@@ -164,15 +164,26 @@ nåinputs og BEFORE95-prediksjoner. Beregn bare manglende rewards og boundary-
 verdier med bevart lærer, i én avgrenset CPU-forberedelse uten optimizer eller
 backward. Deretter bind bevisene i eksisterende policy før en kandidat åpnes.
 
-Referansemålene er nå frosset for512 faktiske trenings-Entries og128 separate
-TRAIN-Entries. Samme online-input og opprinnelige Entry-mål er kontrollert;
-BEFORE95-output gjenbrukes. Tidligere «separat128» hadde16 trente Entries.
-De112 øvrige beholdes; bare overlappen er erstattet ut fra rad-ID, uten utfall.
-Det nye utvalget har0 overlapp og dekker alle12 måneder. Dette retter målingen;
-gamle resultater og checkpoints er bevart.
+Referanse32 er ferdig og gir **ikke grunnlag for større trening**. På512 trente
+Entries er samlet Exit-MSE omtrent0,019% lavere; på128 separate TRAIN-Entries
+omtrent0,0034% høyere. Endringene er små og spriker mellom måneder. LONG holder
+omtrent90% av tilfellene; SHORT velger alltid EXIT. Entry er fortsatt FLAT på
+alle640, med litt bedre trent tilpasning og dårligere separat TRAIN-tilpasning.
+Dette er ikke bevist tilstandsavhengig beslutningsforbedring eller profitt.
 
-Én native32-kandidat er bundet til disse målene og original95, global5777→5809.
-Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
-samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
-konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
-Plan: NEXT_RUN_POLICY.json → reference_learning_plan.
+Målrettelsen ga balanserte positive/negative Q_mu-mål og samme referanse for
+begge sider, men løste ikke verdilæringen i dette avgrensede forsøket. Entry-
+læreren ble bevisst bevart.32 steg beviser ikke at modellen aldri kan lære;
+resultatet åpner heller ikke flere blinde steg eller teacher-refresh.
+
+Fysisk boot448, guardPASS/trainer0/observer0, terminal2026-09-16T18:52:41Z.
+Checkpoint96/global5809/offset1728 er bevart; dette er referansepolicyens96,
+ikke de eldre96-forsøkene. Windows-task er deaktivert og ingen native prosess
+observert. Den avgrensede launch-tillatelsen er fjernet og avvisning kontrollert.
+Les [måling og eksakte bindinger](docs/REFERENCE_POLICY_LEARNING_20260916.md).
+
+Neste arbeid bruker eksisterende tap-/gradientlogger, targets, outputs og
+checkpointtilstand til å avgrense den svake verdioppdateringen før mer kode.
+Ikke gjenta måloppretting, kandidat32 eller den ferdige før/etter-målingen.
+Alle200 features/åtte familier/tidsrammer, kausalitet og vakter er bevart.
+TEST er forseglet; ingen full epoch, VAL eller handelskjøring er åpnet.

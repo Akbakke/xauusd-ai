@@ -75,19 +75,10 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "One existing guarded native32 reference candidate from original95/global5777 to5809, no VAL or teacher refresh. Compare cached before/after outputs on the bound Q_mu targets for actual512 and disjoint128 TRAIN entries by side/month and constant baselines. Reuse completed controls; no larger training or learning PASS.",
+  "rule": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "native_learning_calibration": {
-    "schema_version": "gx1_native_reference_policy_scope_v1",
-    "additional_optimizer_step_ceilings": [
-      32
-    ],
-    "reference_additional_optimizer_step_ceiling": 32,
-    "full_epoch_training_allowed": false,
-    "test_data_used": false
-  },
   "learning_gate": {
     "decision": "INSUFFICIENT_FOR_EXPANSION",
     "required_before_more_extensive_training": true,
@@ -99,8 +90,8 @@
     "technical_scope_complete": true,
     "repeat_completed_controls": false,
     "latest_measurement": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json",
-      "sha256": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+      "sha256": "5df2fd04fa1d10c96e86eaa5bb5fe1ef499285435f079a747fb646208d02b125"
     },
     "value_learning_diagnosis": {
       "report": "docs/VALUE_LEARNING_CAUSE_20260916.md",
@@ -172,7 +163,7 @@
       "next_action": "Completed. Follow continuation_reference_candidate; do not repeat economics probe."
     },
     "continuation_reference_candidate": {
-      "status": "FROZEN_COMPARISON_READY_SINGLE_NATIVE32_BOUND",
+      "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
       "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
       "reference_hold_probability_numerator": 119,
       "reference_hold_probability_denominator": 120,
@@ -180,8 +171,8 @@
       "holding_time_limit_introduced": false,
       "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
       "training_enabled": false,
-      "native_run_authorized": true,
-      "next_action": "One existing guarded native32 reference candidate from original95/global5777 to5809, no VAL or teacher refresh. Compare cached before/after outputs on the bound Q_mu targets for actual512 and disjoint128 TRAIN entries by side/month and constant baselines. Reuse completed controls; no larger training or learning PASS.",
+      "native_run_authorized": false,
+      "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
       "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
       "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
       "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -208,6 +199,12 @@
       "reference_learning_plan": {
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
         "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
+      },
+      "repeat_candidate_allowed": false,
+      "learning_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
+      "learning_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+        "sha256": "5df2fd04fa1d10c96e86eaa5bb5fe1ef499285435f079a747fb646208d02b125"
       }
     }
   },

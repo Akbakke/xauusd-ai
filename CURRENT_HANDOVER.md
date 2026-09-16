@@ -1,77 +1,28 @@
 # GX1 — gjeldende overlevering, 2026-09-16
 
-**Krev målbar læring før mer omfattende trening.** Ingen ny full epoch eller full
-VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
-bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
+Referanse32 er ferdig og gir **ikke grunnlag for større trening**. På512 trente
+Entries er samlet Exit-MSE omtrent0,019% lavere; på128 separate TRAIN-Entries
+omtrent0,0034% høyere. Endringene er små og spriker mellom måneder. LONG holder
+omtrent90% av tilfellene; SHORT velger alltid EXIT. Entry er fortsatt FLAT på
+alle640, med litt bedre trent tilpasning og dårligere separat TRAIN-tilpasning.
+Dette er ikke bevist tilstandsavhengig beslutningsforbedring eller profitt.
 
-**Nå:** Referansemålene er nå frosset for512 faktiske trenings-Entries og128 separate
-TRAIN-Entries. Samme online-input og opprinnelige Entry-mål er kontrollert;
-BEFORE95-output gjenbrukes. Tidligere «separat128» hadde16 trente Entries.
-De112 øvrige beholdes; bare overlappen er erstattet ut fra rad-ID, uten utfall.
-Det nye utvalget har0 overlapp og dekker alle12 måneder. Dette retter målingen;
-gamle resultater og checkpoints er bevart.
+Målrettelsen ga balanserte positive/negative Q_mu-mål og samme referanse for
+begge sider, men løste ikke verdilæringen i dette avgrensede forsøket. Entry-
+læreren ble bevisst bevart.32 steg beviser ikke at modellen aldri kan lære;
+resultatet åpner heller ikke flere blinde steg eller teacher-refresh.
 
-Én native32-kandidat er bundet til disse målene og original95, global5777→5809.
-Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
-samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
-konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
-Plan: NEXT_RUN_POLICY.json → reference_learning_plan. Planens kildehash bruker
-nå native-recipens JSON-format; første forberedelse stoppet på ulik linjeslutt
-i hashgrunnlaget. Alle kildefiler og frosne måleresultater er uendret.
+Fysisk boot448, guardPASS/trainer0/observer0, terminal2026-09-16T18:52:41Z.
+Checkpoint96/global5809/offset1728 er bevart; dette er referansepolicyens96,
+ikke de eldre96-forsøkene. Windows-task er deaktivert og ingen native prosess
+observert. Den avgrensede launch-tillatelsen er fjernet og avvisning kontrollert.
+Les [måling og eksakte bindinger](docs/REFERENCE_POLICY_LEARNING_20260916.md).
 
-Forrige kandidat med separat Exit-klipping er fullført og forkastet.
-Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;
-handlingene kollapset til LONG=HOLD og SHORT=EXIT. Entry forblir FLAT.
-Standardens klippe-/kontraktsfiler er tilbakeført til c586520a; forsøkskilde34489f3a,
-checkpoints og alle målinger er bevart. Les
-[fullført forsøk og neste diagnose](docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
-
-Siste native kjøring: fysisk boot447, guardPASS/trainer0/observer0, terminal
-2026-09-16T15:00:29Z, kandidatcheckpoint96/global5809/offset1728. Windows-task
-er deaktivert, ingen native prosess. Runtime er
-/home/andre2/GX1_RUNS/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE_BOOT446.
-Kandidatens state-SHA er b4f2f472b6c0e58c130e7792d2f20f725511d25202855140c01c7927c46fadbe.
-Dette er en annen96 enn den eldre referansen nedenfor. Maskinrapport og bindinger:
-handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json. Ingen ny trening åpnet.
-
-Måloppdelingen er nå ferdig: LONG-Entry får0 videreverdi på512/512; SHORT får
-0,04967Bps. Exit-læreren stopper LONG etter ett beregningssteg1880/2048 ganger,
-mens SHORT følger fem2047/2048 ganger. Likt tilgjengelig femstegsløp endrer
-31,64% av LONG-målenes fortegn, men åpner ingen targetendring. Se
-[komponentmålingen og neste ene kontroll](docs/TARGET_COMPONENT_CAUSE_20260916.md).
-Ingen ny trening eller modellkjøring var nødvendig. Ikke gjenta komponentmålingen.
-
-Ankerkontrollen er ferdig: 275/512 Entries har eksakt verifisert første-tilstands-
-trace i eksisterende cache. Observert diskontert nytte ved femte steg har snitt
--4,287 Bps LONG / -7,461 Bps SHORT. Det finnes positive utfall, men ingen bevist
-predikerbar handelsfordel. Referanse96 har LONG/SHORT-korrelasjon -0,077/0,282;
-alle 275 velges FLAT. Små TRAIN-forbedringer er målt, læringsporten er ikke bestått.
-Se [ankermålingen og neste beslutning](docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md).
-Gjenbruk bevisene; neste arbeid må begrunne én konkret korreksjon i målkjeden.
-
-Ny avgjørende kontroll: prognose96 ved120 nominelle minutter gir +6,12993 Bps
-på1 022 komplette TRAIN-forløp med native kostnader; alltid LONG/SHORT er
-negative. Entry er allFLAT. To høyresensurerte forløp er med som siste kjente
-markeringer; samlet sluttids-PnL er ukjent. Dette viser økonomisk langtids-
-informasjon på TRAIN, ikke generalisering eller læringsport-PASS. Se
-[120-minuttersdiagnosen](docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md).
-Neste rettelse må bevare forventet handlingsverdi, kausal policy og bootstrap.
-
-Én konkret neste kandidat er nå spesifisert i
-[referanseverdi med bootstrap](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Samme stasjonære referanse gjelder begge sider: eksplisitt Q_mu, ingen fast
-holdetid eller nye modellhoder. De frosne sammenligningsmålene åpner nå én
-bundet native32-kandidat; teacher-refresh og større trening er fortsatt stengt.
-
-Referansemålets matematikk er tidligere kontrollert med62 tester. Den nye
-state-view-/adapter-/factory-/collate-koblingen har26 beståtte integrasjonstilfeller;
-47 eksisterende eiertester er også grønne. Bootstrap bevares ved120-stegsgrensen
-og høyresensurering. To uendrede eldre runner-tester feiler på forventet gammel
-shelltekst; script og tester er byteidentiske med baseline. Ingen suite-PASS
-påstås og ingen kjørevern er endret. Logg, kilde og bevis:
-[datatilkoblingskvittering](handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json).
-Se [referansemål og neste binding](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Bare den nye bundne native32-kandidaten er åpnet; ingen teacher-refresh eller VAL.
+Neste arbeid bruker eksisterende tap-/gradientlogger, targets, outputs og
+checkpointtilstand til å avgrense den svake verdioppdateringen før mer kode.
+Ikke gjenta måloppretting, kandidat32 eller den ferdige før/etter-målingen.
+Alle200 features/åtte familier/tidsrammer, kausalitet og vakter er bevart.
+TEST er forseglet; ingen full epoch, VAL eller handelskjøring er åpnet.
 
 ## Start her
 

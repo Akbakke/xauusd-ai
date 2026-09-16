@@ -1,22 +1,26 @@
 {
-  "status": "FROZEN_REFERENCE_TARGETS_READY_SINGLE32_PLANNED",
+  "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Last actual native source is preserved as history. Read working git HEAD for the new source. One new reference32 campaign is bound in NEXT_RUN_POLICY; not started yet.",
-  "latest_observation_utc": "2026-09-16T15:46:08.825478+00:00",
+  "source_commit_scope": "Last actual native source is preserved as completed experiment history. No active native run; current HEAD may update handover only.",
+  "latest_observation_utc": "2026-09-16T19:03:34.063404+00:00",
   "source_frozen_while_running": false,
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE_BOOT446",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_state": "Disabled",
   "observed_processes": [],
   "latest_observed_checkpoint": {
     "checkpoint_index": 96,
-    "phase": "train",
+    "complete": false,
     "epoch_index": 1,
-    "next_batch_offset": 1728,
     "global_optimizer_steps": 5809,
-    "complete": false
+    "next_batch_offset": 1728,
+    "phase": "train",
+    "schema_version": "gx1_candidate_training_session_v1",
+    "session_contract_sha256": "80e8d051e5e01fb6614b54dc8ddc5e4e9878dfb160ef5afc8e0afede35ce9e77",
+    "slot": 1,
+    "state_sha256": "150946c04910fa3c8a5ae7df64dd01530be55060c17b8fb748877402b1c0d8cd"
   },
   "reference_checkpoint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
@@ -56,14 +60,14 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "One existing guarded native32 reference candidate from original95/global5777 to5809, no VAL or teacher refresh. Compare cached before/after outputs on the bound Q_mu targets for actual512 and disjoint128 TRAIN entries by side/month and constant baselines. Reuse completed controls; no larger training or learning PASS.",
+  "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
   "production_trade_execution_allowed": false,
   "learning_measurement": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json",
-    "sha256": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+    "sha256": "5df2fd04fa1d10c96e86eaa5bb5fe1ef499285435f079a747fb646208d02b125"
   },
   "value_learning_diagnosis": {
     "report": "docs/VALUE_LEARNING_CAUSE_20260916.md",
@@ -81,8 +85,8 @@
     "target_chain_and_final_head_contributions_measured": true
   },
   "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
-  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE",
-  "source_commit": "34489f3a0febe7c11c02a4d4da3ecc951d89a087",
+  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE",
+  "source_commit": "f3b5eca8d83206a4327efaa8f480556519df9b28",
   "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "entry_anchor_outcome_diagnosis": {
@@ -111,7 +115,7 @@
     "next_action": "Completed. Follow continuation_reference_candidate; do not repeat economics probe."
   },
   "continuation_reference_candidate": {
-    "status": "FROZEN_COMPARISON_READY_SINGLE_NATIVE32_BOUND",
+    "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
     "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
     "reference_hold_probability_numerator": 119,
     "reference_hold_probability_denominator": 120,
@@ -119,8 +123,8 @@
     "holding_time_limit_introduced": false,
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
-    "native_run_authorized": true,
-    "next_action": "One existing guarded native32 reference candidate from original95/global5777 to5809, no VAL or teacher refresh. Compare cached before/after outputs on the bound Q_mu targets for actual512 and disjoint128 TRAIN entries by side/month and constant baselines. Reuse completed controls; no larger training or learning PASS.",
+    "native_run_authorized": false,
+    "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -147,6 +151,12 @@
     "reference_learning_plan": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
       "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
+    },
+    "repeat_candidate_allowed": false,
+    "learning_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
+    "learning_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+      "sha256": "5df2fd04fa1d10c96e86eaa5bb5fe1ef499285435f079a747fb646208d02b125"
     }
   },
   "reference_learning_plan": {
@@ -157,5 +167,6 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-16T18:19:20.525069+00:00"
+  "observed_utc": "2026-09-16T18:19:20.525069+00:00",
+  "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json"
 }
