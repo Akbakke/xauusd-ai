@@ -92,3 +92,10 @@ Les CURRENT_HANDOVER.md for eksakte artifact-/checkpointreferanser og aktuell
 terminalstatus. RUNNING_NATIVE_CALIBRATION.json er operatørstatus, ikke launch-
 autoritet. NEXT_RUN_POLICY.json har training_enabled=false. Historiske planer,
 COMPLETED_RUN.json og tidligere håndoverinstrukser skal ikke startes på nytt.
+
+Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
+samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
+(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
+forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
+Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
+frosne prognoser og alle ferdige målinger skal gjenbrukes.

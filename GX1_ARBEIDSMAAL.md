@@ -65,3 +65,10 @@ ikke forveksles med dagens rettede økonomimål eller checkpoints95/134/96/97.
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, work/gx1-current. Én agent og én
 tung jobb. Gjenbruk verifisert arbeid og oppdater handover uten historiske
 «gjeldende»-instrukser. Stående autorisasjon og alle bevaringskrav gjelder.
+
+Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
+samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
+(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
+forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
+Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
+frosne prognoser og alle ferdige målinger skal gjenbrukes.

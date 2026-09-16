@@ -1,0 +1,10 @@
+{
+  "cached_targets_sha256": "fd21994abf9dbe7f8b692ce339623c9ebd1ceb163d0af6b5d9cd2f9ff6edba29",
+  "exact_forecast_target_reproduction": true,
+  "m5_file": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V3_ENRICHED_20260829T173000Z/FULL_PLUS_CTX_v3src.parquet",
+    "sha256": "1785e41c025e8844a47fb78897ec17a082efbb716a9789a8f0494e564b12c9d9"
+  },
+  "max_abs_difference_bps": 0.0,
+  "rows": 1024
+}

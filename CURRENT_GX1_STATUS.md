@@ -15,3 +15,10 @@ docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Neste er én begrunnet korreksj
 Gjenbruk ferdige trace/reward/Q/input/output-cacher; ikke gjenta32-kandidaten
 eller512-analysen. Hent faktisk status med ./handover.sh --check på Mac eller
 bash scripts/gx1_handover.sh --check i Linux. Historiske planer er ikke startautoritet.
+
+Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
+samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
+(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
+forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
+Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
+frosne prognoser og alle ferdige målinger skal gjenbrukes.

@@ -1,5 +1,5 @@
 {
-  "status": "ENTRY_ANCHOR_OUTCOME_DIAGNOSIS_COMPLETE_TRAINING_STOPPED",
+  "status": "FORECAST120_ECONOMIC_SIGNAL_MEASURED_TRAINING_STOPPED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping; read git HEAD.",
@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search.",
+  "next_action": "Use the completed forecast120 economic diagnosis to define one causal continuation-value correction, preserving the intended expected-action-value/Bellman semantics and bootstrap. Do not treat a forced-HOLD return, hindsight maximum or forecast-sign baseline as an interchangeable optimal Exit target. No repeated probes, new training, target refresh, full VAL or model/threshold/loss-weight search until one concrete contract-correct correction and bounded learning comparison are specified.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -94,6 +94,20 @@
     "learning_gate_passed": false,
     "result_sha256": "22fcb932cd106175e01add52910cbdf279616b7a90ba2d30b12304a0f2c9e304",
     "comparison_sha256": "90de1ac8c75b9a0fe8456682938766ecd41c2bf2c277b500c332a64634026e7a",
-    "next_action": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search."
+    "next_action": "Completed; reuse forecast120_economic_diagnosis for next decision."
+  },
+  "forecast120_economic_diagnosis": {
+    "report": "docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md",
+    "result_sha256": "9fa60ae867bedfaeffd3ba58661870582a0d34c2f2fe01be5786be193cc9ee11",
+    "cohort_entries": 1024,
+    "complete_endpoint_entries": 1022,
+    "right_censored_entries": 2,
+    "forecast96_complete_subset_mean_net_cash_bps": 6.129933363067572,
+    "all1024_forecast96_mean_cash_plus_last_marks_bps": 6.106993926346794,
+    "full_endpoint_net_cash_bps": null,
+    "full_endpoint_economics_complete": false,
+    "train_only": true,
+    "learning_gate_passed": false,
+    "next_action": "Use the completed forecast120 economic diagnosis to define one causal continuation-value correction, preserving the intended expected-action-value/Bellman semantics and bootstrap. Do not treat a forced-HOLD return, hindsight maximum or forecast-sign baseline as an interchangeable optimal Exit target. No repeated probes, new training, target refresh, full VAL or model/threshold/loss-weight search until one concrete contract-correct correction and bounded learning comparison are specified."
   }
 }

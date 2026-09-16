@@ -47,3 +47,10 @@ docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Ingen treningsport er åpnet.
 Neste er én begrunnet korreksjon i lærer-/verdimålkjeden.
 
 Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.
+
+Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
+samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
+(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
+forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
+Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
+frosne prognoser og alle ferdige målinger skal gjenbrukes.

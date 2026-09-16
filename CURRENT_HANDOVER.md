@@ -34,6 +34,14 @@ alle 275 velges FLAT. Små TRAIN-forbedringer er målt, læringsporten er ikke b
 Se [ankermålingen og neste beslutning](docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md).
 Gjenbruk bevisene; neste arbeid må begrunne én konkret korreksjon i målkjeden.
 
+Ny avgjørende kontroll: prognose96 ved120 nominelle minutter gir +6,12993 Bps
+på1 022 komplette TRAIN-forløp med native kostnader; alltid LONG/SHORT er
+negative. Entry er allFLAT. To høyresensurerte forløp er med som siste kjente
+markeringer; samlet sluttids-PnL er ukjent. Dette viser økonomisk langtids-
+informasjon på TRAIN, ikke generalisering eller læringsport-PASS. Se
+[120-minuttersdiagnosen](docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md).
+Neste rettelse må bevare forventet handlingsverdi, kausal policy og bootstrap.
+
 ## Start her
 
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

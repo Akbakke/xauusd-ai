@@ -1,0 +1,16 @@
+{
+  "last_available_marks_are_not_forecast_endpoint_values": true,
+  "no_successor_extension": true,
+  "right_censored_entries": [
+    {
+      "available_states": 115,
+      "child_row": 251654,
+      "requested_state": 115
+    },
+    {
+      "available_states": 100,
+      "child_row": 312427,
+      "requested_state": 115
+    }
+  ]
+}
