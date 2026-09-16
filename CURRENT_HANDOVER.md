@@ -34,6 +34,15 @@ Riktig kildebinding, fysisk omstart og alle eksisterende vakter kreves fortsatt.
 Ingen senere VAL er kjørt ennå; full epoch/full5508 VAL og TEST forblir stengt.
 Se handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json.
 
+Evalueringsutganger ligger under BASE/NATIVE_FROZEN_READOUT_20260916_BASELINE
+og BASE/NATIVE_FROZEN_READOUT_20260916_CANDIDATE. PREPARATION_RESULT.json og
+frozen_readout_val/OBSERVATION.json samt den bundne kampanjens receipts er
+levende bevis; de finnes først etter respektive forberedelse/kjøring. Baseline
+kjøres først. Candidate-planen forberedes deretter med den nye observerte booten,
+slik at begge invokasjoner krever hver sin fysiske omstart. Begge bruker samme
+rene kilde og frosne vekter. GitHub-publisering venter på ny eksplisitt godkjenning
+etter automatisk avvisning; lokal evaluering er uavhengig av publiseringen.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

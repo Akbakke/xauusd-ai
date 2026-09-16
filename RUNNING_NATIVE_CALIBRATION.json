@@ -190,5 +190,20 @@
   "native_readonly_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
-  }
+  },
+  "runtime_root_scope": "historical_training_origin; frozen evaluation outputs are listed separately",
+  "frozen_readout_evaluations": {
+    "baseline": {
+      "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE",
+      "status": "NOT_PREPARED",
+      "optimizer_steps": 0
+    },
+    "candidate": {
+      "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_CANDIDATE",
+      "status": "NOT_PREPARED",
+      "optimizer_steps": 0
+    }
+  },
+  "frozen_readout_evaluation_order": "baseline first; prepare candidate after baseline finishes so the candidate plan binds the new observed boot and requires another fresh physical reboot",
+  "github_publication_status": "pending_current_explicit_approval_after_automatic_review_rejection"
 }
