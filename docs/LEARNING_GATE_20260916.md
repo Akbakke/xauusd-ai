@@ -99,3 +99,10 @@ samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
 forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
 Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
 frosne prognoser og alle ferdige målinger skal gjenbrukes.
+
+
+CPU-referansemålets matematikk og grensekontrakt består62 målrettede kontroller.
+Se CONTINUATION_REFERENCE_CANDIDATE_20260916.md og
+../handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json. Dette er
+teknisk prototype-PASS, ikke native tilkobling, bedre modell eller lærings-PASS.
+Neste er kompakt reward-/boundary-tilkobling før frosne læringssammenligninger.

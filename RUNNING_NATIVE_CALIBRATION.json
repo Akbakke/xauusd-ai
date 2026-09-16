@@ -1,5 +1,5 @@
 {
-  "status": "FORECAST120_ECONOMIC_SIGNAL_MEASURED_TRAINING_STOPPED",
+  "status": "REFERENCE_VALUE_CPU_TARGET_PASSED_NATIVE_WIRING_PENDING",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping; read git HEAD.",
@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized.",
+  "next_action": "CPU reference-target prototype passed62 targeted tests; reuse receipt and source. Next implement opt-in reward-only reference traces plus the final boundary state in existing native state-view/collate/recipe/trainer owners, with explicit Q_mu and source/checkpoint binding and unchanged default. Do not materialize120 intermediate model inputs. Preserve genuine censoring/bootstrap and economic owners. Frozen comparative targets and a bounded native learning plan are still required before any training or teacher refresh; no repeat probes/full VAL/TEST.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -108,10 +108,10 @@
     "full_endpoint_economics_complete": false,
     "train_only": true,
     "learning_gate_passed": false,
-    "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized."
+    "next_action": "Completed. Follow continuation_reference_candidate; do not repeat economics probe."
   },
   "continuation_reference_candidate": {
-    "status": "CPU_PROTOTYPE_AND_CONTRACT_CHECK_ONLY",
+    "status": "CPU_TARGET_PASS_NATIVE_DATA_WIRING_PENDING",
     "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
     "reference_hold_probability_numerator": 119,
     "reference_hold_probability_denominator": 120,
@@ -120,6 +120,12 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized."
+    "next_action": "CPU reference-target prototype passed62 targeted tests; reuse receipt and source. Next implement opt-in reward-only reference traces plus the final boundary state in existing native state-view/collate/recipe/trainer owners, with explicit Q_mu and source/checkpoint binding and unchanged default. Do not materialize120 intermediate model inputs. Preserve genuine censoring/bootstrap and economic owners. Frozen comparative targets and a bounded native learning plan are still required before any training or teacher refresh; no repeat probes/full VAL/TEST.",
+    "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
+    "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
+    "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
+    "cpu_tests_passed": 62,
+    "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+    "native_pipeline_connected": false
   }
 }

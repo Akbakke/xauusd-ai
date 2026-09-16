@@ -48,6 +48,13 @@ Kun CPU-prototype/kontraktkontroll er åpnet: samme stasjonære referanse for be
 sider, eksplisitt Q_mu, ingen fast holdetid eller nye modellhoder. Native trening
 og teacher-refresh krever fortsatt eget avgrenset læringsgrunnlag.
 
+Referansemålets CPU-prototype er nå ferdig:62 målrettede tester består.
+Ny eier er gx1/contracts/unified_exit_reference_policy_v1.py; dagens native
+mål og modeller er uendret. Bootstrap bevares ved både120-stegsgrensen og
+høyresensurering. Se [prototype og neste tilkobling](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
+Neste er kompakt reward-/boundary-datatilkobling i eksisterende native eiere.
+Ingen trening, teacher-refresh eller større VAL er åpnet.
+
 ## Start her
 
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

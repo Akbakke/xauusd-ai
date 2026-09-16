@@ -1,7 +1,7 @@
 # Én kandidat: lær en eksplisitt referanseverdi før policyforbedring
 
-Status: valgt hypotese for CPU-prototype og kontraktkontroll. Ingen target-,
-modell- eller treningsendring er implementert eller åpnet for native kjøring.
+Status: isolert CPU-mål-eier er implementert og kontrollert. Den er ikke
+koblet til native trening; dagens mål, modell, recipe og checkpoints er uendret.
 
 Begrunnelse: 120-minuttersprognosen har positiv kostnadsjustert TRAIN-verdi
 på de komplette forløpene, mens Entry velger FLAT og får nesten null videreverdi.
@@ -62,3 +62,36 @@ kritikerlæring kan én separat, bundet teacher-refresh/Entry-vurdering vurderes
 Ingen slik kjøring eller refresh er autorisert av dette notatet. Feil mot
 forskjellige mål må aldri presenteres som læringsgevinst. Full epoch/VAL og
 TEST forblir stengt.
+
+## Fullført CPU-prototype
+
+Ny eier: gx1/contracts/unified_exit_reference_policy_v1.py. Fast policyidentitet
+61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547.
+Resultatet har eksplisitt Q_mu-semantikk, observed/bootstrap-komponenter og
+grensevekt; det kan ikke stille erstatte et eksisterende optimalt Q-mål.
+Ingen native import eller recipe er koblet til funksjonen ennå.
+
+62 tester bestod samlet: den nye referansekontrakten, eksisterende frossen
+femstegskontrakt og eksisterende økonomikontrakt. Forventningen er kontrollert
+mot eksplisitt summering over alle mulige første EXIT-tidspunkter ved1,2,5 og
+120 steg. Negativ bootstrap, ufullstendige forløp, terminal på bare én side,
+sidebytte, fravær av gradient/RNG-drag og ugyldige bevis er kontrollert.
+
+Absorpsjonseieren bekrefter120 forventede beslutninger i den abstrakte
+referansekjeden. Det er ikke en økonomisk kjøreautorisasjon eller en grense
+på veggklokketid. Ved gamma=1 har bootstrap fortsatt vekt0,366341 etter120
+observerte steg. Beregningsgrensen blir altså ikke en tvungen EXIT.
+
+Kvittering: handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json,
+SHA2569f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f.
+Logg og eksakte kildefiler er bevart under BASE/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/
+REFERENCE_POLICY_CPU_PROTOTYPE_20260916. Audit/4GiB/512MiB-swap, ingen modeller,
+forward, optimizer, GPU eller TEST. Ingen eksisterende produksjonsfil var
+endret ved kontrollen. Ikke gjenta de beståtte testene uten relevant endring.
+
+Neste konkrete arbeid: koble en opt-in reward-trace og bare den siste
+boundary-tilstanden til eksisterende native state-view, collate og recipe-/
+trainer-binding. Bevar økonomi-eieren, source binding og dagens standard.
+Gjenbruk allerede lagrede inputs/utfall der de dekker samme tilstand; unngå
+modellinputs for alle120 mellomsteg. Lag frosne sammenlignbare mu-mål før én
+avgrenset native læringsplan eventuelt åpnes. Teknisk PASS er ikke lærings-PASS.

@@ -1,0 +1,55 @@
+{
+  "base_source_commit": "d4f27694677ac9c12813ebf227f911568cef0b3a",
+  "checks": {
+    "bootstrap_weight_after120_at_gamma1": 0.366341265555982,
+    "default_tracked_production_files_changed": false,
+    "explicit_stopping_expectation_cases": [
+      1,
+      2,
+      5,
+      120
+    ],
+    "finite_absorption_certificate_scope": "Abstract stationary stopping chain; not a production policy/economic authorization",
+    "negative_boundary_bootstrap_preserved": true,
+    "no_gradient_or_rng_draw_tested": true,
+    "pytest_failed": 0,
+    "pytest_passed": 62,
+    "side_symmetry_tested": true,
+    "suites": [
+      "test_unified_exit_reference_policy_v1.py",
+      "test_unified_exit_frozen_policy_trace_v1.py",
+      "test_unified_exit_economics_objective_v2.py"
+    ],
+    "terminal_vs_censoring_tested": true
+  },
+  "decision": "CPU_REFERENCE_TARGET_PROTOTYPE_PASS_NOT_NATIVE_TRAINING_AUTHORITY",
+  "guard": {
+    "class": "audit",
+    "cpu_affinity": "0-7",
+    "memory_bytes": 4294967296,
+    "swap_bytes": 536870912
+  },
+  "models_constructed": 0,
+  "native_pipeline_connected": false,
+  "new_source_bindings": {
+    "gx1/contracts/unified_exit_reference_policy_v1.py": "ad0b883c03a6a741dbcb6db9e56d8bf8ede49952bbf95e9ed93e50e305d1bfd2",
+    "tests/test_unified_exit_reference_policy_v1.py": "f7467c12106fcd78d37bef316e0894f2fa1376f073773ac7582d7230ffa412a4"
+  },
+  "optimizer_steps": 0,
+  "policy": {
+    "hold_probability_denominator": 120,
+    "hold_probability_numerator": 119,
+    "maximum_observed_backup_steps": 120,
+    "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+    "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+    "schema_version": "gx1_exit_reference_policy_v1",
+    "selection": "analytical_expectation_no_random_action_draw",
+    "terminal_policy": "exit_if_economic_terminal",
+    "value_coordinates": "advantage_over_executable_liquidation_bps",
+    "value_semantics": "Q_mu_stationary_reference_after_first_action"
+  },
+  "remaining": "Native reward-only trace and boundary materialization, runtime/source binding, frozen comparative learning plan; no GPU launch is authorized.",
+  "test_data_used": false,
+  "test_log_sha256": "d517572cadb65680c98e035997b742df7d8266b1d93e551d8eb79763af0eb8ef",
+  "training_enabled": false
+}
