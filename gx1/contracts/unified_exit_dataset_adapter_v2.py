@@ -522,11 +522,14 @@ class UnifiedExitDatasetAdapterV2:
         expected_child_parquet_sha256: str,
         expected_state_view_source_sha256: str,
         expected_composite_normalization_sha256: str | None = None,
+        backup_steps: int = 1,
     ) -> None:
         """Bind immutable TRAIN artifacts before the first DataLoader read."""
 
         if self._manifest["split"] != "train" or self._random_access_train is not None:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BINDING_INVALID")
+        if type(backup_steps) is not int or backup_steps not in (1, 5):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
         contract = require_random_access_sampler_contract(sampler_contract)
         counts = np.ascontiguousarray(successor_transition_counts, dtype="<i8")
         summary = dict(summary_fit_manifest)
@@ -687,6 +690,7 @@ class UnifiedExitDatasetAdapterV2:
             market_closure_authority=authority,
         )
         self._random_access_train = {
+            "backup_steps": backup_steps,
             "sampler_contract": contract,
             "prevalidated_m1_source": validated_m1_source,
             "successor_counts": counts,
@@ -916,6 +920,7 @@ class UnifiedExitDatasetAdapterV2:
                     "economics_objective_contract"
                 ],
                 prevalidated_m1_source=binding["prevalidated_m1_source"],
+                backup_steps=1 if "anchor_sha256" in sample else binding["backup_steps"],
             )
 
         witness = binding["first_state_bridge_witness"]

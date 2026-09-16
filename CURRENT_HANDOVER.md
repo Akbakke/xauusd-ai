@@ -1,3 +1,40 @@
+## Femstegs lærerberegning implementert, ikke aktivert i native trening — 2026-09-16
+
+Valgfri backup_steps=5 er implementert i eksisterende state-view/adapter/fabrikk/
+treningsberegning. Standard er fortsatt1; gammel native recipe aktiverer ikke
+endringen. Én online-forward/én frossen forward/én backward, samme sampler,
+vekter og Entry-anker. Ekstra fremtid brukes bare i targets. Lærerens unike
+HOLD følger observert neste reward; EXIT/tie beholder lærerens verdi. Grensen
+på fem beregningssteg og faktisk manglende ekstra successor bootstrappes,
+uten ny terminal, maksimum holdetid eller etterpåklok maksgevinst. Ekte
+terminaler og kalenderdiskontering bevares; ubekreftet markedsgap avvises.
+
+48 målrettede tester for berørte læringsbaner består. Utvidet fabrikkfil har
+10 beståtte og2 eksisterende feil: gamle tekstasserts forventer avviklede
+fixed-step/separate-VAL-veier. Både tester og capped-runner er identiske med
+HEAD før endringen; vakter er ikke endret. Dette er ikke en grønn fullsuite.
+
+Én ekte TRAIN-batch16/64 sampled transitions ved offset1696 fra original95 er
+kontrollert på CPU, frossen lærer91. Inputs, sampler, vekting og anker er eksakt
+bevart. Lærerbatch80→336: identiske handlinger, maxQ-avvik2.38419e-7Bps;
+første ettstegstarget avviker høyst4.76837e-7Bps, Entry-target2.98023e-8Bps.
+69 av128 HOLD-targets får ekstra prissteg, maks endring25.486Bps. LONG følger
+fem steg i5/64, SHORT64/64; resterende59LONG stopper ved lærerens første EXIT.
+Dette er mekanisk målberegning på én batch, ikke læring, generalisering/profitt.
+
+CPU-kontroll V2 tok380.27s, topp-RSS12872.16MiB, exit0; ingen optimizer/backward,
+GPU/VAL/TEST. V1 feilet i rapportdelen etter forwards ved feil nivå i eksisterende
+target-cache. Måleskriptet er rettet; produksjonskode uendret mellom forsøkene.
+Begge operatorer/logger bevares. V2-inputs/targets er nå cachet før rapporten.
+Ikke gjenta materialiseringen. Se FROZEN_POLICY_TRACE_REVIEW_20260916.json og
+FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916.json under handover_snapshot.
+
+Neste nødvendige arbeid: eksplisitt bundet native backup-policy og smal
+checkpointovergang, deretter GPU/minne/fart/resume og en avgrenset faktisk
+læringskontroll. Ikke ny modell, tapsvekt, EMA-reset, regeljakt eller full epoch.
+Native134/global8162 og Windows-task forblir stoppet/deaktivert; training_enabled
+er false. Alle gamle checkpoints og ufullstendig VAL bevares. Ingen tung jobb aktiv.
+
 ## Bred faktisk TRAIN-kontroll ferdig — 2026-09-16
 
 Én CPU-jobb på kilde4310254c er terminal/exit0 etter979.6728s, topp-RSS8744.6MiB.

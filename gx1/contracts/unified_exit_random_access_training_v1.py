@@ -37,6 +37,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
     LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION,
+    FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION,
     require_random_access_state_view,
 )
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
@@ -46,6 +47,7 @@ RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_train_batch_v1"
 )
 LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v2"
+FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v3"
 RANDOM_ACCESS_ENTRY_BRIDGE_BATCH_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_entry_bridge_batch_v1"
 )
@@ -355,11 +357,33 @@ def collate_random_access_training_items(
     ]
     transition_views = [view for _sample, view in transitions]
     anchor_views = [view for _sample, view in anchors]
-    relative_flags = {view["schema_version"] == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
+    relative_flags = {view["schema_version"] in {LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION, FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION}
                       for view in [*transition_views, *anchor_views]}
     if len(relative_flags) != 1:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_VALUE_COORDINATES")
     relative = relative_flags.pop()
+    trace_flags = {"frozen_policy_trace" in view for view in transition_views}
+    if len(trace_flags) != 1 or any("frozen_policy_trace" in view for view in anchor_views):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_BACKUP_POLICY")
+    extra_states, extra_masks, extra_owners = [], [], []
+    if trace_flags == {True}:
+        # Keep the legacy successor/anchor layout intact; append only additional
+        # frozen-target states. No extra online rows or sampler weights.
+        indices = np.zeros((len(transitions), 5), dtype=np.int64)
+        rewards = np.zeros((len(transitions), 5, 2), dtype=np.float32)
+        gammas = np.ones((len(transitions), 5), dtype=np.float32)
+        available = np.zeros((len(transitions), 5), dtype=np.bool_)
+        for row, view in enumerate(transition_views):
+            indices[row, :] = row
+            for offset, step in enumerate([view, *view["frozen_policy_trace"]["steps"]]):
+                if offset:
+                    indices[row, offset:] = len(target_states) + len(extra_states)
+                    extra_states.append(step["successor"])
+                    extra_masks.append(step["successor_policy_action_valid_mask"])
+                    extra_owners.append(int(expected_owner[row]))
+                rewards[row, offset] = step["liquidation_relative_reward_bps"][:, 0]
+                gammas[row, offset] = step["elapsed_wall_clock_gamma"]
+                available[row, offset] = True
     result = {
         "schema_version": (LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION if relative
                            else RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION),
@@ -378,7 +402,7 @@ def collate_random_access_training_items(
             online_states, surface=surface, device=device
         ),
         "target_model_inputs": _collate_states(
-            target_states, surface=surface, device=device
+            [*target_states, *extra_states], surface=surface, device=device
         ),
         "online_action_valid_mask": torch.from_numpy(
             np.stack([view["policy_action_valid_mask"] for view in transition_views])
@@ -437,7 +461,65 @@ def collate_random_access_training_items(
         result["entry_liquidation_value_bps"] = torch.from_numpy(
             np.stack([view["current_liquidation_value_bps"] for view in anchor_views])
         ).to(device)
+    if trace_flags == {True}:
+        result["schema_version"] = FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
+        if extra_states:
+            result["target_entry_batch_index"] = torch.cat((result["target_entry_batch_index"],
+                torch.tensor(extra_owners, dtype=torch.long, device=device)))
+        result["target_action_valid_mask"] = torch.cat((result["successor_action_valid_mask"],
+            result["anchor_action_valid_mask"],
+            torch.from_numpy(np.stack(extra_masks) if extra_masks else np.empty((0, 2, 2), dtype=np.bool_)).to(device)))
+        result["frozen_policy_trace"] = {
+            "successor_q_indices": torch.from_numpy(indices).to(device),
+            "hold_reward_bps": torch.from_numpy(rewards).to(device),
+            "elapsed_wall_clock_gamma": torch.from_numpy(gammas).to(device),
+            "transition_available_mask": torch.from_numpy(available).to(device),
+        }
     return result
+
+
+def frozen_policy_trace_hold_targets(
+    *, all_target_q: torch.Tensor, target_action_valid_mask: torch.Tensor,
+    trace: Mapping[str, torch.Tensor],
+) -> torch.Tensor:
+    """Evaluate observed rewards under the frozen causal policy, not hindsight max.
+
+    An intermediate unique HOLD includes the next observed transition. EXIT or
+    a tie retains the teacher value. The last observed/computation boundary
+    bootstraps from the teacher; it never becomes an economic terminal.
+    """
+    if set(trace) != {"successor_q_indices", "hold_reward_bps", "elapsed_wall_clock_gamma", "transition_available_mask"}:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_BATCH_INVALID")
+    indices, rewards, gammas, available = (trace["successor_q_indices"], trace["hold_reward_bps"],
+        trace["elapsed_wall_clock_gamma"], trace["transition_available_mask"])
+    rows = indices.shape[0] if indices.ndim == 2 else 0
+    if (indices.dtype != torch.long or indices.shape != (rows, 5) or rows == 0
+            or rewards.shape != (rows, 5, 2) or gammas.shape != (rows, 5)
+            or available.shape != (rows, 5) or available.dtype != torch.bool
+            or all_target_q.ndim != 3 or all_target_q.shape[1:] != (2, 2)
+            or target_action_valid_mask.shape != all_target_q.shape
+            or target_action_valid_mask.dtype != torch.bool
+            or not bool(available[:, 0].all()) or bool((available[:, 1:] & ~available[:, :-1]).any())
+            or bool((indices < 0).any()) or bool((indices >= len(all_target_q)).any())
+            or not bool(torch.isfinite(rewards).all()) or not bool(torch.isfinite(gammas).all())
+            or bool(((gammas <= 0) | (gammas > 1)).any())):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_BATCH_INVALID")
+    q = all_target_q.detach()[indices]
+    mask = target_action_valid_mask[indices]
+    if (not bool(mask[..., 1].all()) or not bool(torch.isfinite(q[mask]).all())
+            or bool((q[..., 1] != 0).any())):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_Q_INVALID")
+    teacher_values = q.masked_fill(~mask, -torch.inf).max(dim=-1).values
+    values = teacher_values[:, -1]
+    for offset in range(3, -1, -1):
+        follow_hold = (available[:, offset + 1, None] & mask[:, offset, :, 0]
+                       & (q[:, offset, :, 0] > q[:, offset, :, 1]))
+        continuation = rewards[:, offset + 1] + gammas[:, offset + 1, None] * values
+        values = torch.where(follow_hold, continuation, teacher_values[:, offset])
+    targets = rewards[:, 0] + gammas[:, 0, None] * values
+    if not bool(torch.isfinite(targets).all()):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_TARGET_INVALID")
+    return targets.detach()
 
 def run_random_access_training_step(
     *,
@@ -450,9 +532,12 @@ def run_random_access_training_step(
 ) -> dict[str, Any]:
     """One online forward, one frozen-target forward and one backward."""
 
-    relative = batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
-    if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION}:
+    trace_mode = batch.get("schema_version") == FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
+    relative = trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
+    if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION, FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION}:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BATCH_INVALID")
+    if trace_mode != ("frozen_policy_trace" in batch) or trace_mode != ("target_action_valid_mask" in batch):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_POLICY_INVALID")
     coordinate_fields = {"liquidation_relative_values", "liquidation_relative_reward_bps", "entry_liquidation_value_bps"}
     present = coordinate_fields.intersection(batch)
     if ((relative and (present != coordinate_fields or batch["liquidation_relative_values"] is not True))
@@ -485,7 +570,7 @@ def run_random_access_training_step(
     target_inputs["entry_decision_representation"] = (
         target_entry_decision_representations.index_select(0, target_owner)
     )
-    target_inputs["action_valid_mask"] = torch.cat(
+    target_inputs["action_valid_mask"] = batch["target_action_valid_mask"] if trace_mode else torch.cat(
         (batch["successor_action_valid_mask"], batch["anchor_action_valid_mask"]),
         dim=0,
     )
@@ -545,6 +630,17 @@ def run_random_access_training_step(
                 -1, 2, 1
             ),
         )
+        if trace_mode:
+            trace = batch["frozen_policy_trace"]
+            if (not torch.equal(trace["successor_q_indices"][:, 0], torch.arange(transition_count, device=successor_q.device))
+                    or not torch.equal(trace["hold_reward_bps"][:, 0], rewards[..., 0])
+                    or not torch.equal(trace["elapsed_wall_clock_gamma"][:, 0], batch["elapsed_wall_clock_gamma"])
+                    or not torch.equal(batch["target_action_valid_mask"][:transition_count], batch["successor_action_valid_mask"])
+                    or not torch.equal(batch["target_action_valid_mask"][transition_count:transition_count + batch["selected_entry_count"]], batch["anchor_action_valid_mask"])):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_FIRST_STEP_MISMATCH")
+            targets[..., 0, 0] = frozen_policy_trace_hold_targets(
+                all_target_q=all_target_q, target_action_valid_mask=batch["target_action_valid_mask"],
+                trace=batch["frozen_policy_trace"])
         return targets.squeeze(2), valid.squeeze(2)
 
     loss_scale = torch.exp(-model.task_log_variances["unified_exit_action"])
@@ -563,7 +659,7 @@ def run_random_access_training_step(
     entry_gradients = torch.zeros_like(entry_decision_representations)
     entry_gradients.index_add_(0, online_owner, token.grad.detach())
     all_target_q = target_cache["all_q"]
-    anchor_q = all_target_q[transition_count:]
+    anchor_q = all_target_q[transition_count:transition_count + batch["selected_entry_count"]]
     anchor_mask = batch["anchor_action_valid_mask"]
     first_values = unified_exit_first_state_side_values(
         frozen_target_q_bps=anchor_q.unsqueeze(2),

@@ -36,6 +36,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 
 RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v1"
 LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v2"
+FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v3"
 EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
 M1_LOCAL_HISTORY_ROWS = 480
 TRADE_PATH_TAIL_MAX_ROWS = 512
@@ -236,11 +237,16 @@ def materialize_random_access_state_view(
     economic_step_manifest: Mapping[str, Any],
     economics_objective_contract: Mapping[str, Any],
     prevalidated_m1_source: Mapping[str, Any] | None = None,
+    backup_steps: int = 1,
 ) -> dict[str, Any]:
-    """Materialize exact t/t+1 views; memory limits never create terminals."""
+    """Materialize a sampled pair and optional teacher trace; no holding cap."""
 
     contract = require_random_access_sampler_contract(sampler_contract)
     is_anchor = "anchor_sha256" in sample
+    relative = economics_objective_contract.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
+    if (type(backup_steps) is not int or backup_steps not in (1, 5)
+            or (backup_steps != 1 and (is_anchor or not relative))):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
     if is_anchor:
         scheduled = require_random_access_entry_anchor(
             sample, sampler_contract=contract
@@ -306,12 +312,7 @@ def materialize_random_access_state_view(
     successor_row = entry_m1_start_row + successor_index
     if successor_row >= len(times):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUCCESSOR_MISSING")
-    closure = _closure_for_transition(
-        authority=authority,
-        current_row=state_row,
-        current_time_ns=int(times.asi8[state_row]),
-        successor_time_ns=int(times.asi8[successor_row]),
-    )
+
 
     def one_view(index: int, row: int) -> dict[str, Any]:
         local_start = row - (M1_LOCAL_HISTORY_ROWS - 1)
@@ -424,75 +425,116 @@ def materialize_random_access_state_view(
             "mtf": mtf,
         }
 
-    current = one_view(state_index, state_row)
-    successor = one_view(successor_index, successor_row)
-    relative = economics_objective_contract.get("reward_accounting") == LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
-    rewards = np.empty((2, 2), dtype=np.float32)
-    liquidation = np.empty((2, 2), dtype=np.float64) if relative else None
-    physical_hold = np.empty(2, dtype=np.float64) if relative else None
-    economics_hashes: list[dict[str, str]] = []
-    fastpath = getattr(economic_step_provider, "materialize_training_projection", None)
-    if (
-        not callable(fastpath)
-        or getattr(economic_step_provider, "market_closure_authority_sha256", None)
-        != authority["artifact_sha256"]
-    ):
-        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
-    for side in range(2):
-        projection = require_economic_training_projection(
-            fastpath(
-                entry_row_index, side, state_index, state_index + (2 if relative else 1), state_index + 1
-            ),
-            entry_row_index=entry_row_index,
-            side_index=side,
-            start_state_index=state_index,
-            stop_state_index=state_index + (2 if relative else 1),
-            hold_stop_state_index=state_index + 1,
-            economic_manifest=economic_step_manifest,
+    def one_transition(state_index: int, current: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        successor_index = state_index + 1
+        state_row = entry_m1_start_row + state_index
+        successor_row = state_row + 1
+        current = one_view(state_index, state_row) if current is None else current
+        successor = one_view(successor_index, successor_row)
+        closure = _closure_for_transition(
+            authority=authority,
+            current_row=state_row,
+            current_time_ns=int(times.asi8[state_row]),
+            successor_time_ns=int(times.asi8[successor_row]),
         )
+        rewards = np.empty((2, 2), dtype=np.float32)
+        liquidation = np.empty((2, 2), dtype=np.float64) if relative else None
+        physical_hold = np.empty(2, dtype=np.float64) if relative else None
+        economics_hashes: list[dict[str, str]] = []
+        fastpath = getattr(economic_step_provider, "materialize_training_projection", None)
         if (
-            int(projection["exit_event_kind_index"][0]) != 0
-            or int(projection["hold_event_kind_index"][0]) != 1
+            not callable(fastpath)
+            or getattr(economic_step_provider, "market_closure_authority_sha256", None)
+            != authority["artifact_sha256"]
         ):
-            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_EVENT_INVALID")
-        rewards[side, 0] = projection["hold_reward_bps"][0]
-        rewards[side, 1] = projection["exit_reward_bps"][0]
-        if relative:
-            liquidation[side] = projection["exit_reward_bps"]
-            physical_hold[side] = projection["hold_reward_bps"][0]
-        economics_hashes.append(
-            {
-                "projection_sha256": projection["projection_sha256"],
-                "exit_stream_sha256": projection["exit_stream_sha256"],
-                "hold_stream_sha256": projection["hold_stream_sha256"],
-            }
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
+        for side in range(2):
+            projection = require_economic_training_projection(
+                fastpath(
+                    entry_row_index, side, state_index, state_index + (2 if relative else 1), state_index + 1
+                ),
+                entry_row_index=entry_row_index,
+                side_index=side,
+                start_state_index=state_index,
+                stop_state_index=state_index + (2 if relative else 1),
+                hold_stop_state_index=state_index + 1,
+                economic_manifest=economic_step_manifest,
+            )
+            if (
+                int(projection["exit_event_kind_index"][0]) != 0
+                or int(projection["hold_event_kind_index"][0]) != 1
+            ):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_EVENT_INVALID")
+            rewards[side, 0] = projection["hold_reward_bps"][0]
+            rewards[side, 1] = projection["exit_reward_bps"][0]
+            if relative:
+                liquidation[side] = projection["exit_reward_bps"]
+                physical_hold[side] = projection["hold_reward_bps"][0]
+            economics_hashes.append(
+                {
+                    "projection_sha256": projection["projection_sha256"],
+                    "exit_stream_sha256": projection["exit_stream_sha256"],
+                    "hold_stream_sha256": projection["hold_stream_sha256"],
+                }
+            )
+        rewards.setflags(write=False)
+        valid = np.ones((2, 2), dtype=np.bool_)
+        valid.setflags(write=False)
+        bellman = valid.copy()
+        bellman.setflags(write=False)
+        successor_observed = np.ones(2, dtype=np.bool_)
+        successor_observed.setflags(write=False)
+        successor_terminal = np.asarray(
+            [
+                economic_terminal[side] and successor_index == counts[side] - 1
+                for side in range(2)
+            ],
+            dtype=np.bool_,
         )
-    rewards.setflags(write=False)
-    valid = np.ones((2, 2), dtype=np.bool_)
-    valid.setflags(write=False)
-    bellman = valid.copy()
-    bellman.setflags(write=False)
-    successor_observed = np.ones(2, dtype=np.bool_)
-    successor_observed.setflags(write=False)
-    successor_terminal = np.asarray(
-        [
-            economic_terminal[side] and successor_index == counts[side] - 1
-            for side in range(2)
-        ],
-        dtype=np.bool_,
-    )
-    successor_terminal.setflags(write=False)
-    successor_policy = np.ones((2, 2), dtype=np.bool_)
-    successor_policy[:, 0] &= ~successor_terminal
-    successor_policy.setflags(write=False)
-    current_terminal = np.zeros(2, dtype=np.bool_)
-    current_terminal.setflags(write=False)
-    current_censored = np.zeros(2, dtype=np.bool_)
-    current_censored.setflags(write=False)
-    gamma = elapsed_wall_clock_gamma(
-        contract=economics_objective_contract,
-        elapsed_wall_clock_seconds=closure["wall_clock_delta_seconds"],
-    )
+        successor_terminal.setflags(write=False)
+        successor_policy = np.ones((2, 2), dtype=np.bool_)
+        successor_policy[:, 0] &= ~successor_terminal
+        successor_policy.setflags(write=False)
+        current_terminal = np.zeros(2, dtype=np.bool_)
+        current_terminal.setflags(write=False)
+        current_censored = np.zeros(2, dtype=np.bool_)
+        current_censored.setflags(write=False)
+        gamma = elapsed_wall_clock_gamma(
+            contract=economics_objective_contract,
+            elapsed_wall_clock_seconds=closure["wall_clock_delta_seconds"],
+        )
+        view = {
+            "current": current,
+            "successor": successor,
+            "transition_closure": closure,
+            "elapsed_wall_clock_gamma": gamma,
+            "immediate_reward_bps": rewards,
+            "policy_action_valid_mask": valid,
+            "bellman_target_valid_mask": bellman,
+            "successor_observed_mask": successor_observed,
+            "successor_policy_action_valid_mask": successor_policy,
+            "successor_terminal_mask": successor_terminal,
+            "economic_projection_hashes_by_side": economics_hashes,
+            "terminal_mask": current_terminal,
+            "right_censored_mask": current_censored,
+            "capacity_or_tail_length_is_terminal": False,
+            "test_data_used": False,
+        }
+        if relative:
+            # Compute the change before FP32 conversion. Future liquidation belongs
+            # only to the successor target; it never enters current model inputs.
+            advantage_rewards = np.zeros((2, 2), dtype=np.float32)
+            advantage_rewards[:, 0] = physical_hold + gamma * liquidation[:, 1] - liquidation[:, 0]
+            for name, values in {
+                "liquidation_relative_reward_bps": advantage_rewards,
+                "current_liquidation_value_bps": liquidation[:, 0],
+                "successor_liquidation_value_bps": liquidation[:, 1],
+            }.items():
+                array = np.ascontiguousarray(values, dtype=np.float32)
+                array.setflags(write=False)
+                view[name] = array
+        return view
+
     view = {
         "schema_version": LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION,
         "action_order": list(EXIT_ACTION_ORDER),
@@ -512,35 +554,25 @@ def materialize_random_access_state_view(
         "economics_objective_contract_sha256": economics_objective_contract[
             "contract_sha256"
         ],
-        "current": current,
-        "successor": successor,
-        "transition_closure": closure,
-        "elapsed_wall_clock_gamma": gamma,
-        "immediate_reward_bps": rewards,
-        "policy_action_valid_mask": valid,
-        "bellman_target_valid_mask": bellman,
-        "successor_observed_mask": successor_observed,
-        "successor_policy_action_valid_mask": successor_policy,
-        "successor_terminal_mask": successor_terminal,
-        "economic_projection_hashes_by_side": economics_hashes,
-        "terminal_mask": current_terminal,
-        "right_censored_mask": current_censored,
-        "capacity_or_tail_length_is_terminal": False,
-        "test_data_used": False,
+        **one_transition(state_index),
     }
-    if relative:
-        # Compute the change before FP32 conversion. Future liquidation belongs
-        # only to the successor target; it never enters current model inputs.
-        advantage_rewards = np.zeros((2, 2), dtype=np.float32)
-        advantage_rewards[:, 0] = physical_hold + gamma * liquidation[:, 1] - liquidation[:, 0]
-        for name, values in {
-            "liquidation_relative_reward_bps": advantage_rewards,
-            "current_liquidation_value_bps": liquidation[:, 0],
-            "successor_liquidation_value_bps": liquidation[:, 1],
-        }.items():
-            array = np.ascontiguousarray(values, dtype=np.float32)
-            array.setflags(write=False)
-            view[name] = array
+    if backup_steps != 1:
+        # Extend the actual sampled transition. These are successor observations,
+        # never additional sampler draws or additional online loss rows.
+        steps = []
+        previous = view
+        available = min(backup_steps, min(counts) - 1 - state_index)
+        for offset in range(1, available):
+            step = one_transition(state_index + offset, previous["successor"])
+            steps.append(step)
+            previous = step
+        view["schema_version"] = FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION
+        view["frozen_policy_trace"] = {
+            "backup_steps": backup_steps,
+            "side_lifecycle_state_counts": list(counts),
+            "side_economic_terminal": list(economic_terminal),
+            "steps": steps,
+        }
     view["state_view_sha256"] = _structured_sha256(view)
     return view
 
@@ -571,7 +603,8 @@ def require_random_access_state_view(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_INVALID")
     observed = dict(value)
     claimed = observed.pop("state_view_sha256")
-    relative = observed.get("schema_version") == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
+    trace_mode = observed.get("schema_version") == FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION
+    relative = trace_mode or observed.get("schema_version") == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
     required = {
         "schema_version",
         "action_order",
@@ -603,12 +636,14 @@ def require_random_access_state_view(
         "capacity_or_tail_length_is_terminal",
         "test_data_used",
     }
+    if trace_mode:
+        required.add("frozen_policy_trace")
     if relative:
         required.update({"liquidation_relative_reward_bps", "current_liquidation_value_bps", "successor_liquidation_value_bps"})
     if (
         set(observed) != required
         or claimed != _structured_sha256(observed)
-        or observed["schema_version"] != (LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION)
+        or observed["schema_version"] != (FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION if trace_mode else LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION)
         or observed["action_order"] != list(EXIT_ACTION_ORDER)
         or observed["sampler_contract_sha256"] != contract["contract_sha256"]
         or observed["sample_identity_sha256"] != scheduled_identity
@@ -623,6 +658,75 @@ def require_random_access_state_view(
         or observed["test_data_used"] is not False
     ):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_INVALID")
+    _require_transition_fields(observed, relative=relative)
+    if trace_mode:
+        trace = observed["frozen_policy_trace"]
+        if (not isinstance(trace, Mapping) or set(trace) != {
+                "backup_steps", "side_lifecycle_state_counts", "side_economic_terminal", "steps"}
+                or type(trace["backup_steps"]) is not int or trace["backup_steps"] != 5
+                or observed["sample_role"] != "bellman_transition"):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_INVALID")
+        counts, terminals, steps = (trace["side_lifecycle_state_counts"],
+                                   trace["side_economic_terminal"], trace["steps"])
+        index = observed["current"]["state_index"]
+        if (not isinstance(counts, list) or len(counts) != 2
+                or any(type(n) is not int or n < index + 2 for n in counts)
+                or not isinstance(terminals, list) or len(terminals) != 2
+                or any(type(t) is not bool for t in terminals)
+                or not isinstance(steps, list)
+                or len(steps) != min(5, min(counts) - 1 - index) - 1):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_BOUNDARY_INVALID")
+        previous = None
+        for offset, step in enumerate([observed, *steps]):
+            if offset:
+                if not isinstance(step, Mapping) or set(step) != TRACE_TRANSITION_FIELDS:
+                    raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_INVALID")
+                _require_transition_fields(step, relative=True)
+                if (_structured_sha256(previous["successor"]) != _structured_sha256(step["current"])
+                        or not np.array_equal(previous["successor_liquidation_value_bps"], step["current_liquidation_value_bps"])):
+                    raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_LINKAGE_INVALID")
+            expected_terminal = np.array([terminals[side] and index + offset + 1 == counts[side] - 1
+                                          for side in range(2)], dtype=np.bool_)
+            expected_policy = np.ones((2, 2), dtype=np.bool_)
+            expected_policy[:, 0] &= ~expected_terminal
+            if (step["current"]["state_index"] != index + offset
+                    or not np.array_equal(step["successor_terminal_mask"], expected_terminal)
+                    or not np.array_equal(step["successor_policy_action_valid_mask"], expected_policy)
+                    or step["terminal_mask"].any() or step["right_censored_mask"].any()
+                    or not step["successor_observed_mask"].all()
+                    or not step["policy_action_valid_mask"].all()
+                    or not step["bellman_target_valid_mask"].all()
+                    or step["capacity_or_tail_length_is_terminal"] is not False
+                    or step["test_data_used"] is not False):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_MASK_INVALID")
+            previous = step
+    observed["state_view_sha256"] = claimed
+    return observed
+
+
+TRACE_TRANSITION_FIELDS = {
+    'bellman_target_valid_mask',
+    'capacity_or_tail_length_is_terminal',
+    'current',
+    'current_liquidation_value_bps',
+    'economic_projection_hashes_by_side',
+    'elapsed_wall_clock_gamma',
+    'immediate_reward_bps',
+    'liquidation_relative_reward_bps',
+    'policy_action_valid_mask',
+    'right_censored_mask',
+    'successor',
+    'successor_liquidation_value_bps',
+    'successor_observed_mask',
+    'successor_policy_action_valid_mask',
+    'successor_terminal_mask',
+    'terminal_mask',
+    'test_data_used',
+    'transition_closure',
+}
+
+
+def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool) -> None:
     current = observed["current"]
     successor = observed["successor"]
     view_keys = {
@@ -747,8 +851,13 @@ def require_random_access_state_view(
         tolerance = np.finfo(np.float32).eps * (np.abs(physical) + np.abs(gamma * next_l) + np.abs(current_l) + np.abs(expected))
         if np.any(np.abs(observed["liquidation_relative_reward_bps"][:, 0] - expected) > tolerance):
             raise RuntimeError("UNIFIED_EXIT_RELATIVE_REWARD_IDENTITY_INVALID")
-    observed["state_view_sha256"] = claimed
-    return observed
+    gamma = observed["elapsed_wall_clock_gamma"]
+    delta_ns = successor["bar_start_time_ns"] - current["bar_start_time_ns"]
+    if (not np.isfinite(gamma) or not 0 < gamma <= 1
+            or successor["m1_row_index"] != current["m1_row_index"] + 1
+            or delta_ns < 60_000_000_000
+            or observed["transition_closure"]["wall_clock_delta_seconds"] * 1_000_000_000 != delta_ns):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRANSITION_CLOCK_INVALID")
 
 
 __all__ = (
@@ -756,6 +865,7 @@ __all__ = (
     "M1_LOCAL_HISTORY_ROWS",
     "RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION",
     "LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION",
+    "FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION",
     "TRADE_PATH_TAIL_MAX_ROWS",
     "materialize_random_access_state_view",
     "validate_random_access_m1_source_v1",

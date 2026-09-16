@@ -47,3 +47,11 @@ Se nyeste CURRENT_HANDOVER.md og BROAD_TRAIN_LEARNING_REVIEW_20260916.json.
 Neste er én konkret flertrinns-backuphypotese med frossen policy, i eksisterende
 eiere, uten fast holdetidsgrense. Ikke lov ny full epoch før faktisk læring
 og tekniske porter er dokumentert. Ingen modell-/EMA-/tapsvekt-/regel-jakt.
+
+## Femstegs læringshypotese — 2026-09-16
+
+Valgfri femstegs beregning er implementert og CPU-kontrollert på én ekte TRAIN-
+batch. Native standard er fortsatt ett steg; ingen ny trening aktivert. Se øverst
+i CURRENT_HANDOVER.md og FROZEN_POLICY_TRACE_REVIEW_20260916.json. Neste er
+bundet native overgang/GPU/minne/fart/resume og faktisk læring. Gjenbruk begge
+cachekohorter. Ikke gjenta produksjonsmåling eller kalle CPU-pass læringsgevinst.

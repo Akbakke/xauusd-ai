@@ -85,3 +85,13 @@ integrasjon, verifikasjon og oppstart. Gjenbruk beståtte tester og analyser.
 Kontroller stabil langkjøring omtrent hver time. Stående autorisasjon gjelder.
 Oppdater handover ved vesentlig endring og commit/push ferdig arbeid. Ingen
 live-/papirhandel, spending eller TEST-bruk.
+
+## Avgrenset femstegs Exit-hypotese — 2026-09-16
+
+Fem observerte M1-steg under frossen lærerpolicy er implementert som et
+eksplisitt alternativ i eksisterende eiere. Standard/native recipe er fortsatt
+ett steg. CPU-kontroll på én ekte TRAIN-batch består; dette er ikke målt
+læringsgevinst. Se CURRENT_HANDOVER.md og
+handover_snapshot/FROZEN_POLICY_TRACE_REVIEW_20260916.json. Neste er bundet
+native overgang, GPU/minne/fart/resume og avgrenset faktisk læring; ingen full
+epoch eller ny holdetidsgrense. Gjenbruk lagrede inputs/targets.

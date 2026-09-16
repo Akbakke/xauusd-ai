@@ -108,9 +108,12 @@ def build_random_access_train_adapter_factory_v1(
     train_cost_authority_path: Path,
     train_dataset: Any,
     train_feature_source_owner: Any,
+    backup_steps: int = 1,
 ) -> Callable[[int], UnifiedExitDatasetAdapterV2]:
     """Return real candidate adapters without admitting an unbenchmarked sampler."""
 
+    if type(backup_steps) is not int or backup_steps not in (1, 5):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
     root_path = root_manifest_path.expanduser().resolve()
     root = require_random_access_index_root(_read_json(root_path, "ROOT"))
     split_binding = root["splits"]["train"]
@@ -225,6 +228,7 @@ def build_random_access_train_adapter_factory_v1(
             mtf_cache_identity_sha256=train_dataset._multi_tf_cache_identity_sha256,
         )
         adapter.configure_random_access_training_v1(
+            backup_steps=backup_steps,
             sampler_contract=contracts[budget],
             successor_transition_counts=counts,
             summary_fit_manifest=summary,

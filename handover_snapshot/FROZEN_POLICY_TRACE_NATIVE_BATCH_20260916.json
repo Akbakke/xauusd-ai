@@ -1,0 +1,65 @@
+{
+  "artifacts": {
+    "BATCH_INPUTS.pt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/BATCH_INPUTS.pt",
+      "sha256": "5cff4b8ab5406f2cf68875d9e340ef617f1b877e22c56f5e54e67ae0af68e234"
+    },
+    "TARGETS.pt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/TARGETS.pt",
+      "sha256": "253ceaf5ec91683adcb6c4f552cba4bfb53fc2aecf9a96da4b6fa9f558f8fed8"
+    }
+  },
+  "backup_steps": 5,
+  "backward_executed": false,
+  "changed_hold_target_cells": 69,
+  "checkpoint_weights_preserved": true,
+  "decision": "PASS_CPU_TARGET_WIRING_ONLY",
+  "effective_backup_length_counts": {
+    "LONG": {
+      "1": 59,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 5
+    },
+    "SHORT": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 64
+    }
+  },
+  "elapsed_seconds": 380.27127308299896,
+  "entry_count": 16,
+  "entry_signal_changed": false,
+  "entry_target_max_abs_diff_bps": 2.9802322387695312e-08,
+  "expanded_batch_actions_equal": true,
+  "expanded_batch_max_abs_q_diff_bps": 2.384185791015625e-07,
+  "frozen_target_state_count": 336,
+  "gpu_used": false,
+  "learning_improvement_proven": false,
+  "max_abs_hold_target_change_bps": 25.486011505126953,
+  "native_batch_offset": 1696,
+  "one_step_target_max_abs_diff_bps": 4.76837158203125e-07,
+  "operator_sha256": "96324943408f8b10c016c00c02f65b7b78b667c9638812c57aa5ecc0aae7bc76",
+  "optimizer_constructed_or_stepped": false,
+  "original_inputs_weights_and_anchor_exact": true,
+  "original_target_state_count": 80,
+  "peak_rss_mib": 12872.15625,
+  "profitability_proven": false,
+  "sampler_preserved": true,
+  "schema_version": "gx1_frozen_policy_trace_native_batch_observation_v1",
+  "source_head": "8f14f102d922254d27b6f769273519142a653713",
+  "source_overrides": {
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_dataset_adapter_v2.py": "699d3ce83b2020a5b6df605ad7f1e4ec354fe3714ff59af26d80bc71114700f2",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_state_view_v1.py": "ca27525b61b47bf3ca23489ee0b52ea3db46b691c786bfc4e16dfc5c0a12d992",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_train_factory_v1.py": "dfd1040f522175f916731119952beaf43fd6077f8dbc29356f6fb51bb5e6dec9",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py": "bf64283670ff47d35f712f0053d21f2ab83e1c89b7669432339609a9026495c0"
+  },
+  "teacher_forward_and_checks_seconds": 8.744538089000343,
+  "teacher_model_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "test_data_used": false,
+  "training_started": false,
+  "transition_count": 64
+}

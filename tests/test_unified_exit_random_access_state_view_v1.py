@@ -181,6 +181,7 @@ def _materialize(
     terminals: tuple[bool, bool] = (False, False),
     anchor: bool = False,
     prevalidate: bool = False,
+    backup_steps: int = 1,
 ) -> dict:
     clock = _clock()
     contract = _contract()
@@ -262,6 +263,7 @@ def _materialize(
         economic_step_manifest=manifest,
         economics_objective_contract=_objective(),
         prevalidated_m1_source=prevalidated,
+        backup_steps=backup_steps,
     )
     require_random_access_state_view(
         view,
