@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
+  "rule": "Frozen readout candidate and later June256 cohort are bound; no further fits on the reused TRAIN controls. Implement only the missing read-only candidate/cohort binding through existing native campaign/evaluation owners before a bounded chronological development-VAL assessment. Current evaluator requires full5508 and epoch EMA; do not impersonate EMA, fabricate an epoch, retrain to unlock VAL or use another runner. No launch, full epoch/fullVAL or TEST authority from this plan. Report direction/week variation, uncertainty and all cost-adjusted selected/open outcomes.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -172,7 +172,7 @@
       "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
       "training_enabled": false,
       "native_run_authorized": false,
-      "next_action": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
+      "next_action": "Frozen readout candidate and later June256 cohort are bound; no further fits on the reused TRAIN controls. Implement only the missing read-only candidate/cohort binding through existing native campaign/evaluation owners before a bounded chronological development-VAL assessment. Current evaluator requires full5508 and epoch EMA; do not impersonate EMA, fabricate an epoch, retrain to unlock VAL or use another runner. No launch, full epoch/fullVAL or TEST authority from this plan. Report direction/week variation, uncertainty and all cost-adjusted selected/open outcomes.",
       "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
       "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
       "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -208,13 +208,18 @@
       }
     },
     "readout_diagnosis": {
-      "decision": "READOUT_SIGNAL_PRESENT_ENTRY_LONG_UNRESOLVED_NO_EXPANSION",
-      "report": "docs/READOUT_LEARNING_20260916.md",
+      "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
       "review": {
-        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/READOUT_LEARNING_REVIEW_20260916.json",
-        "sha256": "b9b16203a5f02d55646d44e243d7704f01efbc6c9f0716442af3a26a6cc63bd2"
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/STABLE_READOUT_REVIEW_20260916.json",
+        "sha256": "e1d9b7b55621841279642d8be2fa0b003cf36823e4b4b275c3374a3cf6c4558b"
       },
-      "native_training_authorized": false
+      "report": "docs/STABLE_READOUT_GENERALIZATION_20260916.md",
+      "frozen_plan": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+        "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+      },
+      "native_training_authorized": false,
+      "generalization_demonstrated": false
     }
   },
   "exit_reference_policy": {

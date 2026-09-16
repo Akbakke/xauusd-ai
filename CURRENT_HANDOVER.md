@@ -1,19 +1,20 @@
 # GX1 — gjeldende overlevering, 2026-09-16
 
-De eksisterende verdilagene kan hente tilstandsavhengig signal fra modellen.
-En avgrenset tilpasning på cached TRAIN gir bedre Exit-feil for begge sider og
-29,1% lavere samlet Entry-feil på 128 separate TRAIN-Entries. Entry LONG-feilen
-alene blir likevel verre. Begge lag er kontrollert sammen; Exit-gevinsten består.
-Dette er diagnostiske koeffisienter, ikke et promotert checkpoint eller et
-bestått lærings-/økonomikrav. [Resultat og begrensninger](docs/READOUT_LEARNING_20260916.md).
+Forsøket er nå **frosset før kronologisk evaluering**. Eksisterende verdilag
+viser lærbarhet på gjenbrukt TRAIN, men generalisering og økonomisk verdi er
+ikke bevist. Brukerens krav er en varig løsning som tåler ulike markeder;
+videre tilpasning mot det samme kontrollutvalget er stoppet.
 
-Alle native kjøringer er avsluttet; siste er referanse32/checkpoint96 fra boot448.
-Originale checkpoints/lærer/Adam/EMA er bevart. training_enabled=false;
-ingen full epoch, VAL, teacher-refresh eller videre native trening er åpnet.
-Neste konkrete blokkering er separat Entry LONG-feil. Gjenbruk de korrigerte
-V2-feature-/target-/outputcachene; ikke gjenta ferdige forwards eller native32.
-Første Entry-diagnose ble ugyldig på grunn av feil ankerutvalg og er merket
-INVALIDATED.json. V2 erstatter den; native trening og Exit-resultater er uberørt.
+En ustabil Entry-tilpasning ble stabilisert med én regel beregnet kun fra
+TRAIN512. Separat TRAIN128: Entry LONG-MSE 32,26→25,40, SHORT 80,44→27,25;
+begge slår konstantbaseline. LONG bedres i 10/12 måneder, SHORT i 8/12;
+mars-LONG er fortsatt klart verre. Frosne Entry/Exit-lag er kontrollert sammen
+med eksakt cacheparitet, og Exit-forbedringen består. Ingen checkpoint er promotert.
+
+Neste er en på forhånd bundet kontroll på 256 Entries fra juni2026, valgt med
+eksisterende seed uten modellutfall. Juni er gjenbrukt utviklings-VAL, ikke
+urørt holdout. Vekter, mål og utvalg er frosset. Ingen TEST, ny trening eller
+full VAL er åpnet. Se docs/STABLE_READOUT_GENERALIZATION_20260916.md.
 
 ## Start her
 

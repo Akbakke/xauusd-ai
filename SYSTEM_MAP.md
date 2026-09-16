@@ -18,7 +18,7 @@ livstidssammendrag med MFE/MAE og MTF-kontekst. Sammenkobling beviser ikke nytte
 
 Gjeldende native referanseforsøk brukte 120 observerte steg under en stasjonær
 kausal referansepolicy med bootstrap, ikke en maksimal holdetid.
-Forsøket er avsluttet. Se docs/READOUT_LEARNING_20260916.md for siste diagnose.
+Forsøket er avsluttet. Se docs/STABLE_READOUT_GENERALIZATION_20260916.md for frosset kandidat og neste kontroll.
 
 Historisk: opt-in femstegs Exit-backup følger den frosne lærerpolicyen og observerte M1-
 successors, med bootstrap etter beregningsgrensen. Det er ingen fast holdetid.

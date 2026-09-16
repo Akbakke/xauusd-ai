@@ -1,0 +1,289 @@
+{
+  "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
+  "results": {
+    "residual": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/ENTRY_RESIDUAL_AUDIT_20260916/RESULT.json",
+      "sha256": "925516c1a2148f6b95a648e413c784a063813d7f84c8c7f9dfd2dacf95b5bbb0"
+    },
+    "stable_entry": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/ENTRY_STABLE_READOUT_20260916/RESULT.json",
+      "sha256": "eaf3a36edd777163ccb6f67695b736cc1c047c4375cb7d55897e7ef19695153b"
+    },
+    "composition": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/RESULT.json",
+      "sha256": "3487b3d2c2d2629b1f8ab8c75238db1a8e076ff6e44ed43907c4953b2fdc7ce9"
+    }
+  },
+  "frozen_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+    "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+  },
+  "monthly_entry_improvements": {
+    "separate_train": {
+      "LONG": 10,
+      "SHORT": 8
+    },
+    "trained": {
+      "LONG": 12,
+      "SHORT": 11
+    }
+  },
+  "entry_metrics": {
+    "separate_train": {
+      "CURRENT96": {
+        "actions": {
+          "FLAT": 128,
+          "LONG": 0,
+          "SHORT": 0
+        },
+        "centered_mse": {
+          "FLAT": 0.0004732387618631623,
+          "LONG": 23.888470061242582,
+          "SHORT": 58.39974987528153
+        },
+        "mse": 37.56506095542369,
+        "pearson": {
+          "LONG": 0.15342271729292967,
+          "SHORT": 0.34731726645150535
+        },
+        "per_action_mse": {
+          "FLAT": 0.0004744903586524346,
+          "LONG": 32.257076485132124,
+          "SHORT": 80.43763189078017
+        },
+        "regret_vs_teacher": 3.293283039354719
+      },
+      "STABLE_READOUT": {
+        "actions": {
+          "FLAT": 48,
+          "LONG": 43,
+          "SHORT": 37
+        },
+        "centered_mse": {
+          "FLAT": 0.0,
+          "LONG": 24.724203652659526,
+          "SHORT": 27.238371751586833
+        },
+        "mse": 17.550658074882318,
+        "pearson": {
+          "LONG": 0.38489508747107914,
+          "SHORT": 0.7640267054763101
+        },
+        "per_action_mse": {
+          "FLAT": 0.0,
+          "LONG": 25.404909847339333,
+          "SHORT": 27.247064377307545
+        },
+        "regret_vs_teacher": 1.417113015661016
+      },
+      "UNREGULARIZED": {
+        "actions": {
+          "FLAT": 53,
+          "LONG": 37,
+          "SHORT": 38
+        },
+        "centered_mse": {
+          "FLAT": 0.0,
+          "LONG": 51.036820946414416,
+          "SHORT": 28.14333483297697
+        },
+        "mse": 26.649260166884535,
+        "pearson": {
+          "LONG": 0.1464832854913162,
+          "SHORT": 0.7649585649856807
+        },
+        "per_action_mse": {
+          "FLAT": 0.0,
+          "LONG": 51.759493769060384,
+          "SHORT": 28.18828673159321
+        },
+        "regret_vs_teacher": 1.3668128775898367
+      },
+      "entries": 128,
+      "train_constant_mse_by_action": {
+        "FLAT": 0.0,
+        "LONG": 26.458623917471513,
+        "SHORT": 61.16905607211603
+      }
+    },
+    "trained": {
+      "CURRENT96": {
+        "actions": {
+          "FLAT": 512,
+          "LONG": 0,
+          "SHORT": 0
+        },
+        "centered_mse": {
+          "FLAT": 0.00035784182165112075,
+          "LONG": 41.95138386667133,
+          "SHORT": 75.29365524588361
+        },
+        "mse": 50.82371790677407,
+        "pearson": {
+          "LONG": 0.1285308895790307,
+          "SHORT": 0.2784742776212301
+        },
+        "per_action_mse": {
+          "FLAT": 0.00035951674528857027,
+          "LONG": 60.81462548186363,
+          "SHORT": 91.65616872171321
+        },
+        "regret_vs_teacher": 4.371371055342024
+      },
+      "STABLE_READOUT": {
+        "actions": {
+          "FLAT": 193,
+          "LONG": 191,
+          "SHORT": 128
+        },
+        "centered_mse": {
+          "FLAT": 0.0,
+          "LONG": 27.595348786426836,
+          "SHORT": 32.30065838789032
+        },
+        "mse": 19.965335724773137,
+        "pearson": {
+          "LONG": 0.5939026664574978,
+          "SHORT": 0.7641128960265297
+        },
+        "per_action_mse": {
+          "FLAT": 0.0,
+          "LONG": 27.59534878642724,
+          "SHORT": 32.30065838789197
+        },
+        "regret_vs_teacher": 1.39199361516512
+      },
+      "UNREGULARIZED": {
+        "actions": {
+          "FLAT": 203,
+          "LONG": 185,
+          "SHORT": 124
+        },
+        "centered_mse": {
+          "FLAT": 0.0,
+          "LONG": 24.42484517610027,
+          "SHORT": 28.65799784143611
+        },
+        "mse": 17.69428100585151,
+        "pearson": {
+          "LONG": 0.6527362590664733,
+          "SHORT": 0.7941259069479424
+        },
+        "per_action_mse": {
+          "FLAT": 0.0,
+          "LONG": 24.42484517611628,
+          "SHORT": 28.657997841438075
+        },
+        "regret_vs_teacher": 1.1945203416689765
+      },
+      "entries": 512,
+      "train_constant_mse_by_action": {
+        "FLAT": 0.0,
+        "LONG": 42.55678634426247,
+        "SHORT": 77.58740547063132
+      }
+    }
+  },
+  "exit_metrics": {
+    "separate_train": {
+      "LONG": {
+        "centered_mse": 1006.708714543494,
+        "frozen_entry_original_readout_mse": 1006.8581623933685,
+        "hold_fraction": 0.529296875,
+        "mse": 1006.7374080151855,
+        "pearson": 0.25681447544178415,
+        "prediction_mean_bps": -0.5720807164907455,
+        "prediction_std_bps": 11.026923746666153,
+        "regret_vs_target": 7.425596049026353,
+        "zero_mse": 1070.5800097799709
+      },
+      "SHORT": {
+        "centered_mse": 1052.8243451231654,
+        "frozen_entry_original_readout_mse": 1052.9219433360474,
+        "hold_fraction": 0.490234375,
+        "mse": 1052.8264659435722,
+        "pearson": 0.19739374223192388,
+        "prediction_mean_bps": 0.3224336989223957,
+        "prediction_std_bps": 11.471911674608114,
+        "regret_vs_target": 7.817869330967369,
+        "zero_mse": 1069.3951951483502
+      }
+    },
+    "trained": {
+      "LONG": {
+        "centered_mse": 896.9344651176809,
+        "frozen_entry_original_readout_mse": 896.9245844105009,
+        "hold_fraction": 0.5498046875,
+        "mse": 896.9811044045384,
+        "pearson": 0.33801313047986636,
+        "prediction_mean_bps": 0.28384820464998484,
+        "prediction_std_bps": 11.238021294008107,
+        "regret_vs_target": 6.559265215589221,
+        "zero_mse": 1012.6165930291113
+      },
+      "SHORT": {
+        "centered_mse": 885.4769176608074,
+        "frozen_entry_original_readout_mse": 885.2464803244624,
+        "hold_fraction": 0.44580078125,
+        "mse": 885.5318833431435,
+        "pearson": 0.35065235274029133,
+        "prediction_mean_bps": -0.38008653931319714,
+        "prediction_std_bps": 10.79091520046621,
+        "regret_vs_target": 6.628182617670973,
+        "zero_mse": 1009.8542896791716
+      }
+    }
+  },
+  "reference_utility_not_cash_profit": {
+    "separate_train": {
+      "actions": {
+        "FLAT": 22,
+        "LONG": 24,
+        "SHORT": 21
+      },
+      "all_entries_mean_reference_utility_bps": 1.0661417619505924,
+      "entries": 67
+    },
+    "trained": {
+      "actions": {
+        "FLAT": 109,
+        "LONG": 103,
+        "SHORT": 63
+      },
+      "all_entries_mean_reference_utility_bps": 6.013136420683427,
+      "entries": 275
+    }
+  },
+  "fit": {
+    "coefficient_l2": 35.77306331669314,
+    "coefficients": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/ENTRY_STABLE_READOUT_20260916/ENTRY_DIAGNOSTIC_COEFFICIENTS.pt",
+      "sha256": "d6f035095985dfc6776fbff7f4310c5601ee3abc9794d3b8eb498324adea8f65"
+    },
+    "condition_number": 5117.012870435178,
+    "delta": 0.011184708534360302,
+    "effective_degrees_of_freedom": 18.6738865625898,
+    "fit_entries": 512,
+    "lambda_mean_loss": 0.0028454037894467933,
+    "separate_train_used_to_choose_lambda": false,
+    "sklearn_version": "1.7.2",
+    "unpenalized_intercept": true
+  },
+  "outlier_still_wrong": {
+    "parent_row": 301063,
+    "stable_prediction": [
+      15.169027328491211,
+      -20.16915512084961,
+      0.0
+    ],
+    "target": [
+      -16.269807815551758,
+      1.876813530921936,
+      0.0
+    ]
+  },
+  "generalization_demonstrated": false,
+  "profitability_demonstrated": false,
+  "test_data_used": false,
+  "native_launch_authorized": false
+}
