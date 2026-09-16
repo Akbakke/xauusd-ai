@@ -1,0 +1,7 @@
+[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
+[capped_run] cmd: .venv/bin/python -m pytest -q tests/test_native_frozen_policy_trace.py tests/test_candidate_economics_transition.py tests/test_native_training_continuation.py tests/test_native_entry_learnability.py tests/test_native_learning_calibration_scope.py tests/test_candidate_training_session.py
+[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
+........................................................................ [ 27%]
+........................................................................ [ 55%]
+........................................................................ [ 82%]
+.............................................                            [100%]

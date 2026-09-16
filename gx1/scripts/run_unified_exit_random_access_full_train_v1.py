@@ -83,7 +83,7 @@ def _require_native_full_train_recipe(
     }
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != _INITIALIZATION
@@ -192,6 +192,7 @@ def _build_bound_full_train_components(
     batch_size: int, epochs: int, seed: int,
     learning_rate: float, weight_decay: float,
     val_limits: Mapping[str, int],
+    exit_backup_steps: int = 1,
 ) -> dict[str, Any]:
     """Bind every TRAIN row and the full June VAL to the existing native owners.
 
@@ -201,7 +202,7 @@ def _build_bound_full_train_components(
     No source checkpoint is modified and no sampler benchmark is rerun here.
     """
 
-    if epochs != 30 or batch_size != 16:
+    if epochs != 30 or batch_size != 16 or type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("NATIVE_FULL_TRAIN_DECLARED_GEOMETRY_INVALID")
     if device.type == "cuda":
         trainer._require_cuda_trainer_guard_execution(execution_tier="canonical")
@@ -294,6 +295,7 @@ def _build_bound_full_train_components(
         train_cost_authority_path=files["train_cost_authority"],
         train_dataset=datasets["train"],
         train_feature_source_owner=corpus.splits["train"],
+        backup_steps=exit_backup_steps,
     )
     # Keep the measured transition-sampler geometry, then select all Entry
     # pairs through the same full-population owner used by the completed year.
@@ -510,6 +512,7 @@ def run_guarded_native_candidate_invocation(
         device=device, batch_size=controls["batch_size"], epochs=controls["epochs"],
         seed=controls["seed"], learning_rate=controls["learning_rate"],
         weight_decay=controls["weight_decay"], val_limits=recipe["val_limits"],
+        exit_backup_steps=recipe.get("exit_backup_steps", 1),
     )
     smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
     if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:

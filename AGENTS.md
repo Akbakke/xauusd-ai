@@ -55,3 +55,10 @@ batch. Native standard er fortsatt ett steg; ingen ny trening aktivert. Se øver
 i CURRENT_HANDOVER.md og FROZEN_POLICY_TRACE_REVIEW_20260916.json. Neste er
 bundet native overgang/GPU/minne/fart/resume og faktisk læring. Gjenbruk begge
 cachekohorter. Ikke gjenta produksjonsmåling eller kalle CPU-pass læringsgevinst.
+
+## Native femstegs kontroll — 2026-09-16
+
+Gjeldende policy tillater bare eksplisitt bundet reference32 eller split16+16
+fra original95 for teknisk femstegsverifikasjon. Ingen full epoch/VAL.262
+målrettede bindingstester består; faktisk CPU-overgang og GPU/minne/fart/resume
+gjenstår. Se øverst i CURRENT_HANDOVER.md. Stoppet134 og alle originaler bevares.

@@ -109,7 +109,7 @@ def training_continuation_control(origin: Any) -> dict[str, Any]:
         "pointer_sha256": ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256,
         "state_sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
         "cursor": dict(ENTRY_LEARNABILITY_ORIGIN_CURSOR if through_val else TRAINING_CONTINUATION_ORIGIN_CURSOR),
-        "completed_val_ceiling": 2 if through_val else None,
+        "completed_val_ceiling": 2 if through_val and "exit_backup_steps" not in origin else None,
     }
 
 
@@ -242,12 +242,17 @@ def require_training_continuation_origin(
     fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
               "train_population_scope", "gradient_clipping_policy"}
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
-            or set(origin) != fields
+            or not fields <= set(origin) <= fields | {"exit_backup_steps"}
             or origin.get("schema_version") != TRAINING_CONTINUATION_SCHEMA
             or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_INVALID")
+    if "exit_backup_steps" in origin and (
+            type(origin["exit_backup_steps"]) is not int or origin["exit_backup_steps"] != 5
+            or not isinstance(origin.get("contract"), Mapping)
+            or origin["contract"].get("sha256") != ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256):
+        raise RuntimeError("NATIVE_TRACE_BACKUP_ORIGIN_INVALID")
     control = training_continuation_control(origin)
     contract = require_binding(origin["contract"], label="continuation origin contract", verify_file=verify_files)
     pointer = require_binding(origin["pointer"], label="continuation origin pointer", verify_file=verify_files)
@@ -411,6 +416,10 @@ def require_native_run_scope(
         require_training_continuation_origin(origin)
     elif target_refresh:
         require_fqi_target_refresh_origin(origin)
+    trace_backup = continuation and "exit_backup_steps" in origin
+    if ((trace_backup and (type(recipe.get("exit_backup_steps")) is not int or recipe["exit_backup_steps"] != 5))
+            or (not trace_backup and "exit_backup_steps" in recipe)):
+        raise RuntimeError("NATIVE_TRACE_BACKUP_RECIPE_MISMATCH")
     origin_fields = {"schema_version", "contract", "pointer"}
     optional_origin_fields = {"exit_value_initialization", "train_population_scope"}
     if not (optimizer_transition or continuation or target_refresh or entry_learnability) and (not isinstance(origin, Mapping) or not origin_fields <= set(origin)
@@ -436,8 +445,13 @@ def require_native_run_scope(
     if (optimizer_transition or continuation or target_refresh or entry_learnability) and (
             policy.get("training_enabled") is not False
             or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
-            or calibration is not None):
+            or (calibration is not None and not trace_backup)):
         raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_BOUNDED_TRAIN_ONLY_REQUIRED")
+    if trace_backup and (calibration is None or calibration["report_only_val"] is not False):
+        raise RuntimeError("NATIVE_TRACE_BACKUP_TRAIN_ONLY_CALIBRATION_REQUIRED")
+    if ((trace_backup and (type(policy.get("exit_backup_steps")) is not int or policy["exit_backup_steps"] != 5))
+            or (not trace_backup and "exit_backup_steps" in policy)):
+        raise RuntimeError("NATIVE_TRACE_BACKUP_POLICY_MISMATCH")
     if (("exit_value_initialization" in policy and (
             type(policy["exit_value_initialization"]) is not str
             or policy["exit_value_initialization"] != "close_now_baseline_v1"))
@@ -554,7 +568,20 @@ def require_native_run_scope(
         if entry_learnability:
             replay_scope["additional_optimizer_step_ceilings"] = [
                 replay_control["step_ceiling"] - replay_control["cursor"]["global_optimizer_steps"]]
-        if continuation or target_refresh or entry_learnability:
+        if trace_backup:
+            expected_scope = {
+                "schema_version": "gx1_native_frozen_policy_trace_scope_v1",
+                "additional_optimizer_step_ceilings": [16, 32],
+                "reference_additional_optimizer_step_ceiling": 32,
+                "full_epoch_training_allowed": False, "test_data_used": False,
+            }
+            if (not isinstance(scope, Mapping) or scope != expected_scope
+                    or any(type(n) is not int for n in scope["additional_optimizer_step_ceilings"])
+                    or type(scope["reference_additional_optimizer_step_ceiling"]) is not int
+                    or scope["full_epoch_training_allowed"] is not False
+                    or scope["test_data_used"] is not False):
+                raise RuntimeError("NATIVE_TRACE_BACKUP_CALIBRATION_SCOPE_INVALID")
+        elif continuation or target_refresh or entry_learnability:
             expected_scope = replay_scope if entry_learnability else refresh_scope if target_refresh else continuation_scope
             if (scope != expected_scope or not isinstance(scope, Mapping)
                     or scope.get("full_epoch_training_allowed") is not False
@@ -577,7 +604,12 @@ def require_native_run_scope(
                 or (calibration is None) != (scope == old_scope)
                 or (scope == measured_scope and scope["native_report_only_val"] is not True)):
             raise RuntimeError("NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED")
-        ceilings = ([replay_control["step_ceiling"]] if entry_learnability else
+        trace_ceilings = ([ENTRY_LEARNABILITY_ORIGIN_CURSOR["global_optimizer_steps"] + delta
+                           for delta in ([scope["reference_additional_optimizer_step_ceiling"]]
+                                         if calibration["arm"] == "reference"
+                                         else scope["additional_optimizer_step_ceilings"])]
+                          if trace_backup else None)
+        ceilings = (trace_ceilings if trace_backup else [replay_control["step_ceiling"]] if entry_learnability else
                     [FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
                     [TRAINING_CONTINUATION_STEP_CEILING] if continuation else
                     ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta

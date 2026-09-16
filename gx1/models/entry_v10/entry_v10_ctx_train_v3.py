@@ -11278,6 +11278,7 @@ def _candidate_training_session_contract(
     precision_policy: str = DETERMINISTIC_FP32,
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
     native_val_binding: Optional[Mapping[str, Any]] = None,
+    exit_backup_steps: int = 1,
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
@@ -11290,6 +11291,8 @@ def _candidate_training_session_contract(
     semantics.
     """
 
+    if type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
+        raise RuntimeError("[CANDIDATE_TRAINING_BACKUP_POLICY_INVALID]")
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
         raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
     try:
@@ -11394,6 +11397,7 @@ def _candidate_training_session_contract(
         "input_normalization_sha256": normalization_sha256,
         **({"native_full_val": dict(native_val_binding)} if native_val_binding is not None else {}),
         "training": {
+            **({"exit_backup_steps": exit_backup_steps} if exit_backup_steps != 1 else {}),
             "seed": int(seed),
             "batch_size": int(batch_size),
             "epochs": int(epochs),
@@ -13161,6 +13165,7 @@ def _load_candidate_optimizer_procedure_successor_state(
         return read_bound_json(Path(checked["path"]), checked["sha256"])
 
     continuation = origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
+    trace_backup = continuation and origin.get("exit_backup_steps") == 5
     target_refresh = origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA
     entry_learnability = origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA
     if entry_learnability:
@@ -13220,11 +13225,19 @@ def _load_candidate_optimizer_procedure_successor_state(
     canonical = Path(__file__).resolve().parents[3]
     if (Path(before["source_repo"]) != canonical or Path(after["source_repo"]) != canonical
             or after.get("candidate_resume_origin") != origin
-            or "native_calibration" in before or "native_calibration" in after
+            or "native_calibration" in before or ("native_calibration" in after and not trace_backup)
             or _GRAD_CLIP_POLICY != OPTIMIZER_PROCEDURE_TRANSITION_POLICY):
         fail("CANONICAL_RECIPE_REQUIRED")
     require_native_run_scope(after)
     previous, requested = contracts
+    if trace_backup:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
+        calibration = require_native_calibration_run(after)
+        if (previous["training"].get("exit_backup_steps", 1) != 1
+                or requested["training"].pop("exit_backup_steps", None) != 5
+                or before.get("exit_backup_steps", 1) != 1 or after.get("exit_backup_steps") != 5
+                or calibration is None or calibration["report_only_val"] is not False):
+            fail("TRACE_BACKUP_POLICY_INVALID")
     if continuation or target_refresh or entry_learnability:
         if (previous["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
                 or requested["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
@@ -13243,6 +13256,17 @@ def _load_candidate_optimizer_procedure_successor_state(
     }
     if continuation and training_continuation_control(origin)["completed_val_ceiling"] is not None:
         allowed.update({
+            "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+            "gx1/contracts/local_random_access_campaign_v2.py",
+        })
+    if trace_backup:
+        allowed.update({
+            "gx1/contracts/unified_exit_random_access_state_view_v1.py",
+            "gx1/contracts/unified_exit_dataset_adapter_v2.py",
+            "gx1/contracts/unified_exit_random_access_train_factory_v1.py",
+            "gx1/contracts/unified_exit_random_access_training_v1.py",
+            "gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
+            "gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
             "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
             "gx1/contracts/local_random_access_campaign_v2.py",
         })
@@ -13266,6 +13290,9 @@ def _load_candidate_optimizer_procedure_successor_state(
         fail("CHANGED_TRAINER_REQUIRED")
     normalized_recipes = copy.deepcopy(recipes)
     for recipe, item in zip(normalized_recipes, contracts):
+        if trace_backup:
+            recipe.pop("exit_backup_steps", None)
+            recipe.pop("native_calibration", None)
         for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy"):
             recipe.pop(key, None)
         for key in ("source_commit", "recipe_source_provenance", "out_bundle_dir", "run_id"):
@@ -13334,6 +13361,11 @@ def _load_candidate_optimizer_procedure_successor_state(
         "state_preserved": not target_refresh, "optimizer_procedure_changed": not (continuation or target_refresh or entry_learnability),
         "identical_future_trajectory_claimed": False, "test_data_used": False,
         **refresh_evidence, **replay_evidence,
+        **({"exit_backup_policy_change": {
+            "previous_backup_steps": 1, "backup_steps": 5,
+            "teacher_preserved": True, "sampler_preserved": True,
+            "holding_time_cap_introduced": False,
+        }} if trace_backup else {}),
     }
     receipt_path = session.directory / receipt_name
     if receipt_path.exists() or receipt_path.is_symlink():
@@ -13512,6 +13544,9 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROBE_FORBIDDEN]")
     elif checkpoint_monitor in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_REQUIRED]")
+    train_adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+    random_access_binding = getattr(train_adapter, "_random_access_train", None)
+    exit_backup_steps = random_access_binding.get("backup_steps", 1) if random_access_binding is not None else 1
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
         out_bundle_dir, gx1_data_override
     )
@@ -13551,6 +13586,7 @@ def _run_resumable_candidate_training(
             precision_policy=precision_policy,
             checkpoint_monitor=checkpoint_monitor,
             native_val_binding=native_binding,
+            exit_backup_steps=exit_backup_steps,
         ),
     )
     train_checkpoint_interval = candidate_checkpoint_interval(precision_policy)

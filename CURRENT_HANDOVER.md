@@ -1,3 +1,21 @@
+## Native femstegs-binding testet; faktisk overgang og GPU-kontroll gjenstår — 2026-09-16
+
+Eksisterende continuation-origin fra original95 kan nå eksplisitt binde
+exit_backup_steps=5 i origin, recipe, NEXT_RUN_POLICY og session-kontrakt.
+Manglende/ulike bindinger avvises. Gamle recipes beholder standard ett steg.
+Ny scope tillater bare teknisk reference32 eller split16+16 fra5777 til5809
+optimizersteg, uten full epoch/VAL, læreroppdatering, replay eller vektnullstilling.
+training_enabled er fortsatt false. Den stoppede134-kjøringen skal aldri restartes.
+
+262 målrettede tester består, inkludert bevart modell/target/Adam/EMA/RNG,
+datarekkefølge/progress, serialisert resume og SHA-bundet EMA-historie; feil
+originer, læringsendringer, økt steggrense og manglende bindinger avvises.
+Dette er testbevis. Faktisk original95-overføring på CPU skal verifiseres før
+guarded native32 mot16+16, GPU-minne/paritet/fart og gjenopptakelse måles.
+Native-kilden skal fryses under kjøring; CPU-target-cachene gjenbrukes.
+Se handover_snapshot/FROZEN_POLICY_TRACE_NATIVE_BINDING_20260916.json.
+Ingen tung jobb eller native-kjøring aktiv; Windows-task er fortsatt deaktivert.
+
 ## Femstegs lærerberegning implementert, ikke aktivert i native trening — 2026-09-16
 
 Valgfri backup_steps=5 er implementert i eksisterende state-view/adapter/fabrikk/

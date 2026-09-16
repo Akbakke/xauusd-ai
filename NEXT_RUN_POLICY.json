@@ -75,8 +75,19 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Operator-stopped 2026-09-16 after partial EMA VAL showed only HOLD. The checkpoint95 continuation authorization is exhausted and removed. Preserve native checkpoint134/global8162, original checkpoints and incomplete VAL evidence. No further native training or full VAL until Exit learning/generalization is reviewed and a fresh exact continuation binding is prepared. One measured CPU-only optimization changes JSON hashing in the existing VAL economics adapter; economics values, state hashes, model, objective, all features/families/timeframes and guards are unchanged. Technical evidence retains original source bindings. New full native/GPU throughput after the optimization is unmeasured. Use only canonical GX1_CURRENT and native campaign with TRAIN16/VAL256/8CPU/3h if resumed. TEST remains sealed.",
+  "rule": "Only the explicitly bound five-step frozen-policy technical calibration from original non-replay95 is admitted: reference32 or split16+16, with no full epoch or VAL. Native134/global8162 and the operator-stopped partial VAL remain immutable. Training_enabled stays false. Preserve all model/target/optimizer/EMA/scheduler/RNG/epoch-order/progress state and the original sampler; only source/run identity and the declared exit_backup_steps change. Use the existing native campaign, TRAIN16/VAL256/8CPU/3h, deterministic FP32 and all hardware guards. Actual checkpoint transfer and fresh GPU/memory/throughput/resume evidence are required; CPU target wiring is not proof of learning. No target refresh, replay cohort, new risk or holding cap, TEST/live/paper/spending, full epoch or automatic restart of the stopped plan.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
-  "gradient_clipping_policy": "separate_model_and_task_weights_v1"
+  "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+  "exit_backup_steps": 5,
+  "native_learning_calibration": {
+    "schema_version": "gx1_native_frozen_policy_trace_scope_v1",
+    "additional_optimizer_step_ceilings": [
+      16,
+      32
+    ],
+    "reference_additional_optimizer_step_ceiling": 32,
+    "full_epoch_training_allowed": false,
+    "test_data_used": false
+  }
 }

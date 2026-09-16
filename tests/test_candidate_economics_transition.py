@@ -569,9 +569,11 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
         _identical(state[key], before[key])
 
 
-def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None):
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None, trace_backup=False):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
     from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
+    if trace_backup:
+        continuation = True
     current = tmp_path / "CURRENT"
     current.mkdir()
     monkeypatch.setattr(trainer, "__file__", str(current / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"))
@@ -583,7 +585,7 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                  "require_training_continuation_origin" if continuation else "require_optimizer_procedure_origin")
     monkeypatch.setattr(scope, validator, lambda origin: dict(origin))
     monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 6033 if entry_learnability else 5777 if target_refresh else 5521 if continuation else 5265)
-    cursor = (scope.ENTRY_LEARNABILITY_ORIGIN_CURSOR if entry_learnability else
+    cursor = (scope.ENTRY_LEARNABILITY_ORIGIN_CURSOR if entry_learnability or trace_backup else
               scope.FQI_TARGET_REFRESH_ORIGIN_CURSOR if target_refresh else
               scope.TRAINING_CONTINUATION_ORIGIN_CURSOR if continuation else scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR)
     preserve_procedure = continuation or target_refresh or entry_learnability
@@ -617,6 +619,10 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             recipe.update(candidate_resume_origin=origin, next_run_policy={"path": "bound_by_scope", "sha256": "5" * 64})
         if side and fault == "data":
             recipe["files"]["data"] = "changed"
+        if side and trace_backup:
+            recipe["exit_backup_steps"] = 5 if fault != "recipe_backup" else 2
+            recipe["native_calibration"] = {"schema_version": "gx1_native_learning_calibration_run_v1",
+                "arm": "reference", "report_only_val": fault == "calibration_val"}
         recipe["recipe_sha256"] = _sha(recipe)
         bound_recipe = _write(tmp_path / f"clip_recipe{side}.json", recipe)
         contract = {"schema_version": trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
@@ -625,6 +631,8 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                     "recipe_source_provenance": {"recipe_audit_path": bound_recipe["path"], "recipe_audit_sha256": bound_recipe["sha256"], "source_bindings": sources, "source_bindings_sha256": _sha(sources)},
                     "native_full_val": {"compute_limits": recipe["val_limits"]},
                     "training": {"batch_size": 16, "grad_clip_norm": 1.0, "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=trainer.MARKED_NET_CHECKPOINT_MONITOR)}}
+        if side and trace_backup:
+            contract["training"]["exit_backup_steps"] = 5 if fault != "backup_steps" else 2
         if side or preserve_procedure:
             contract["training"]["gradient_clipping_policy"] = trainer._GRAD_CLIP_POLICY
         if preserve_procedure and not side and fault == "old_clipping_missing":
@@ -657,6 +665,10 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                       "pointer": {"path": str(session._active_path), "sha256": trainer._sha256_file(session._active_path)},
                       "exit_value_initialization": "close_now_baseline_v1", "train_population_scope": "latest_year_2025_2026_v1",
                       "gradient_clipping_policy": trainer._GRAD_CLIP_POLICY}
+            if trace_backup:
+                origin["exit_backup_steps"] = 5
+                monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256", origin["contract"]["sha256"])
+                monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256", pointer["state_sha256"])
             if entry_learnability:
                 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
                 assert cohort_factory is not None

@@ -126,6 +126,15 @@ def bind_candidate_weight_ema_history_v1(
                 or receipt.get("replay_policy") != replay_policy
                 or receipt.get("fixed_teacher_model_state_sha256") != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256):
             raise RuntimeError("UNIFIED_EXIT_CANDIDATE_ENTRY_LEARNABILITY_RECEIPT_INVALID")
+        if continuation and "exit_backup_steps" in origin:
+            if (recipe.get("exit_backup_steps") != 5
+                    or contract.get("training", {}).get("exit_backup_steps") != 5
+                    or receipt.get("exit_backup_policy_change") != {
+                        "previous_backup_steps": 1, "backup_steps": 5,
+                        "teacher_preserved": True, "sampler_preserved": True,
+                        "holding_time_cap_introduced": False,
+                    }):
+                raise RuntimeError("UNIFIED_EXIT_CANDIDATE_TRACE_BACKUP_RECEIPT_INVALID")
         if target_refresh:
             required_preserved.remove("target_model_state")
             if (receipt.get("target_model_refreshed") is not True

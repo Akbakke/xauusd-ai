@@ -1,0 +1,56 @@
+{
+  "schema_version": "gx1_native_frozen_policy_trace_binding_review_v1",
+  "observed_utc": "2026-09-16T10:16:19.443005+00:00",
+  "decision": "BINDING_TESTED_ACTUAL_TRANSFER_GPU_PENDING",
+  "base_commit": "d767e8656909d5ea01ee35acda36dbe3dc1f4c8e",
+  "source_files": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "bea6fd0ad39cec934bc5c3409578191ab868018881659294a848aa85a84fc44e",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "3a19c997940c374eb9b6c7b8467ceb0a5f034aa5fb529d06dd13c2e5afa768ed",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "505dd5059af9fbd04b3062030f99dc963d530fec3fa1f345d777b5dd56509493",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "c808f1d9033d881d604e22060116b6456a9f0604cf2a796d7e2ad983180f6ae1"
+  },
+  "tests_passed": 262,
+  "test_logs": {
+    "FROZEN_POLICY_TRACE_NATIVE_BINDING_TESTS_20260916.log": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/FROZEN_POLICY_TRACE_NATIVE_BINDING_TESTS_20260916.log",
+      "sha256": "c2afe2b1619cc95352a0f9d03ce9d3fa1b0106c686a0e85b92521c44d2978d92"
+    },
+    "FROZEN_POLICY_TRACE_HISTORY_TEST_20260916.log": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/FROZEN_POLICY_TRACE_HISTORY_TEST_20260916.log",
+      "sha256": "95f250026f2e2ae32e84b9791fa3cccdd075e7a29cd8bfaf53c0ac8d400f5ed5"
+    }
+  },
+  "native_policy": {
+    "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+    "sha256": "adfce673d92e4c724ec3474673a68c3fc5ab95bf6071a134efc1741e4d283ef2"
+  },
+  "origin_checkpoint": 95,
+  "origin_global_optimizer_steps": 5777,
+  "origin_epoch_index": 1,
+  "origin_next_batch_offset": 1696,
+  "reference_absolute_step_ceilings": [
+    5809
+  ],
+  "split_absolute_step_ceilings": [
+    5793,
+    5809
+  ],
+  "teacher_refresh": false,
+  "state_reset": false,
+  "sampler_change": false,
+  "new_holding_limit": false,
+  "unchanged_profile": {
+    "train_batch_size": 16,
+    "val_policy_batch_size": 256,
+    "cpu_workers": 8,
+    "val_window_seconds": 10800
+  },
+  "actual_checkpoint_transfer_proven": false,
+  "new_gpu_parity_proven": false,
+  "new_resume_equivalence_proven": false,
+  "new_end_to_end_throughput_measured": false,
+  "learning_improvement_proven": false,
+  "full_training_enabled": false,
+  "training_started": false,
+  "test_data_used": false
+}
