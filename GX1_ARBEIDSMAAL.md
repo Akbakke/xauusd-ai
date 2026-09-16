@@ -12,17 +12,15 @@ Se docs/LEARNING_GATE_20260916.md for beslutningsgrunnlag og neste måling.
 
 ## Nåværende arbeid
 
-Først avsluttes den kildebundne femstegs reference32/split16+16-kontrollen.
-Den undersøker korrekt trening, minne og resume; den beviser ikke lønnsomhet.
-Aktuell terminalstatus og bevis står i CURRENT_HANDOVER.md og
-RUNNING_NATIVE_CALIBRATION.json. Ingen avsluttet plan skal startes på nytt.
-
-Deretter måles ONLINE før/etter mot samme fastlagte inputs og targets, med
-allerede lagrede data. Undersøk faktisk læring i Entry og Exit, ikke bare
-hjelpeprognoser eller tekniske porter. En liten lærbarhetsmåling skal ikke
-omtales som generalisering. En videre avgrenset native læringskjøring må ha
-et dokumentert måleopplegg, et bundet sluttpunkt og vurdering før utvidelse.
-Ingen full epoch eller full VAL er aktivert nå; NEXT_RUN_POLICY.json gjelder.
+Teknisk reference32/split16+16 og paret95→96-måling er ferdige. Resume består,
+men læringsresultatet begrunner ikke større trening. Lokal Entry-fit bedres;
+bred Entry er litt verre og allFLAT. LONG Exit flytter grunnverdien opp og blir
+allHOLD. Se CURRENT_HANDOVER.md og FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json.
+Ikke gjenta kontrollene. Neste arbeid lokaliserer konkret hvorfor verdilæringen
+ikke skiller markedet bedre, med eksisterende mål-, gradient-, FQI- og outputbevis.
+Ingen full epoch/fullVAL, target-refresh, replay, nye modeller eller tapsvekter nå.
+En videre avgrenset native kjøring krever dokumentert måleopplegg, bundet sluttpunkt
+og evidens som begrunner den. NEXT_RUN_POLICY.json gjelder.
 
 Dersom prognosene lærer og Entry/Exit fortsatt ikke gjør det, revurder konkret
 læringssignal og verdifordeling før mer beregning. En enklere oppdeling av Entry

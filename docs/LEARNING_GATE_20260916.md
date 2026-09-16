@@ -25,6 +25,14 @@ over flere beregningssteg og beholder bootstrap. Læreren kan fortsatt ta feil;
 dette er én testbar hypotese, ingen dokumentert læringsgevinst. Ingen fast
 holdetid eller tapsgrense er innført. Minnerettelsen deler bare frossen forward.
 
+## Oppdatering95→96
+
+Punkt1 og2 nedenfor er ferdige og skal ikke gjentas. Målingen åpner ikke
+større trening: lokal Entry-fit bedres, bred Entry blir litt verre og allFLAT.
+LONG Exit blir allHOLD, hovedsakelig gjennom en konstant verdiøkning.
+Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json.
+Neste arbeid følger «Hvis resultatet uteblir», med eksisterende gradient-/FQI-bevis.
+
 ## Måling og beslutning, i denne rekkefølgen
 
 1. Fullfør referanse32 mot16+16 og sammenlign faktisk modell, frossen lærer,

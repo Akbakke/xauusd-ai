@@ -1,8 +1,8 @@
 # GX1 — gjeldende overlevering, 2026-09-16
 
 **Krev målbar læring før mer omfattende trening.** Ingen ny full epoch eller full
-VAL er aktivert. Læringsgevinst med den nye targetberegningen og lønnsomhet er
-ikke dokumentert. Neste modellarbeid er en paret måling, ikke en ny oppstart.
+VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
+bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
 ## Start her
 
@@ -74,22 +74,42 @@ Artifactrot (kalt BASE nedenfor):
   NATIVE_FROZEN_TRACE_CONTROL_RESULT_20260916.json og
   NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88.json.
 
-## Neste konkrete modellarbeid
+## Læringsmåling95→96 ferdig — ingen utvidelse begrunnet
 
-1. Gjenbruk CPU-cachen under BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/
-   OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2.
-   BATCH_INPUTS.pt SHA5cff4b8ab5406f2cf68875d9e340ef617f1b877e22c56f5e54e67ae0af68e234;
-   TARGETS.pt SHA253ceaf5ec91683adcb6c4f552cba4bfb53fc2aecf9a96da4b6fa9f558f8fed8.
-   Sammenlign ONLINE95 mot reference96 på identiske inputs/femstegsmål og eval-
-   innstillinger. Rapporter lokal Entry/Exit-læring mot baseline, ikke profitt.
-2. Bred1024-kohort med cached inputs/targets/outputs finnes under samme
-   OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916. Gjenbruk før-resultater.
-   Dette er64 faste native batcher fra offset1696..4079 gjennom tolv måneder.
-   Skill eksponerte/ikke nettopp trente batcher og ettstegs-/femstegsmål.
-3. Følg docs/LEARNING_GATE_20260916.md. Før et nytt avgrenset native læringsløp
-   må måleopplegg og sluttpunkt bindes i eksisterende policy/campaign. Ikke utvid
-   dagens32-scope, restart134, gjenta teknisk32, bruk replay eller start full VAL.
-   Ingen ny lærer/EMA-reset eller bred regel-/modelljakt nå.
+CPU-målingen gjenbrukte lagrede inputs/targets og før95-output:174.65s,
+topp-RSS2 222 524KiB. Ingen ny materialisering, lærerberegning, backward,
+GPU, VAL eller TEST. Før95-output på første batch ble reprodusert eksakt.
+
+- Første trente batch,16 Entries/64 overganger, samme femstegsmål:
+  Entry-MSE3.56205→3.40652 (4.37% ned); begge16FLAT, også læreren.
+  Exit-MSE26.17057→26.16781 (0.01054% ned); MAE blir litt verre.
+- Bred1024 TRAIN-kohort: Entry-MSE12.56542→12.66827 (0.82% opp), fortsatt
+  1024FLAT. Læreren velger914FLAT/49LONG/61SHORT. Bare16 av disse1024 lå i
+  siste32 oppdateringsbatcher; de andre1008 er fortsatt TRAIN, ikke holdout.
+- Bred Exit bruker gamle faste ettstegsmål for sammenlignbar diagnose,
+  ikke som påstått femstegs-loss. MSE9.07095→9.08508. LONG blir4096HOLD.
+  94.70% av kvadrert LONG-prediksjonsendring skyldes en konstant forskyvning;
+  korrelasjon med ettstegsmålet er nær null. Bedre situasjonsvurdering er ubevist.
+- Bred forecast-MSE blir litt verre på alle fire horisonter.32 steg og én
+  femstegsbatch avgjør ikke endelig lærbarhet, men åpner ikke større trening.
+
+Bevis: handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json.
+Fullt resultat og nye BATCH_00..63_AFTER96.json ligger under BASE/
+NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916.
+RESULT.json SHA47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c.
+
+Neste: hold trening stoppet. Sammenhold eksisterende fixed-target-, FQI- og
+SHARED_TASK_GRADIENT_REVIEW_20260915-bevis med dette resultatet. Avklar konkret
+hvorfor verdilæringen hovedsakelig flytter en sidevis grunnverdi fremfor å
+skille markedstilstander. Vurder den frosne lærerpolicyens targets og veien
+fra selvstendig prognosesignal til Entry. Ikke gjenta32/1024 eller start epoch.
+Velg bare én evidensbegrunnet justering eller avgrenset måling med avklart
+beslutningsgrunnlag. Tidligere gradientmåling ga ikke grunnlag for generell
+delt-backbone- eller tapsvektendring; gjenbruk den konklusjonen.
+
+Cachemappene under BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/
+FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2 og BROAD_TRAIN95_134_20260916 er
+bevart. Videre analyse av nye output krever ikke nye forwards.
 
 Bruk eksisterende eiere. CPU-modellfabrikken finnes i
 run_unified_exit_random_access_val_v1; bruk av fabrikk til en CPU-måling er ikke

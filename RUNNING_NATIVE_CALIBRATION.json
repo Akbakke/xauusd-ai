@@ -1,10 +1,10 @@
 {
-  "status": "TECHNICAL_CONTROL_COMPLETE_MEASURE_LEARNING_BEFORE_EXPANSION",
+  "status": "LEARNING_MEASURED_NO_EXPANSION_JUSTIFIED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
   "source_commit_scope": "Training source; documentation HEAD may advance after terminal control. Read current git HEAD.",
-  "latest_observation_utc": "2026-09-16T12:19:43.748766+00:00",
+  "latest_observation_utc": "2026-09-16T12:38:09.103407+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT_BOOT444",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -39,12 +39,15 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "learning_gate": {
-    "decision": "NOT_PROVEN",
+    "decision": "INSUFFICIENT_FOR_EXPANSION",
     "specification": "docs/LEARNING_GATE_20260916.md",
     "technical_pass_is_not_learning_pass": true,
     "entry_exit_learning_demonstrated": false,
     "generalization_demonstrated": false,
-    "profitability_demonstrated": false
+    "profitability_demonstrated": false,
+    "local_entry_fit_improved": true,
+    "broad_entry_fit_improved": false,
+    "exit_market_conditional_improvement_demonstrated": false
   },
   "profile": {
     "train_batch": 16,
@@ -54,9 +57,13 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Use preserved actual TRAIN inputs and consistent five-step targets for paired ONLINE95 versus reference96 measurement. Reuse broad1024 cached evidence for compatible diagnostics. No full epoch/fullVAL, replay, target/EMA reset or restart of completed/stopped plans. Establish learning evidence and a bounded native learning plan before expansion.",
+  "next_action": "Keep training stopped. Reuse existing fixed-target/FQI/gradient evidence and new cached95/96 outputs to locate why value learning mainly shifts a side-wide baseline instead of distinguishing market states. Assess frozen teacher-policy supervision and the independent forecast-to-Entry path. No repeat32/1024, full epoch/VAL, target refresh, replay or broad model/weight/threshold search. Choose one evidence-backed adjustment or bounded measurement with predefined criteria.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
-  "production_trade_execution_allowed": false
+  "production_trade_execution_allowed": false,
+  "learning_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json",
+    "sha256": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c"
+  }
 }

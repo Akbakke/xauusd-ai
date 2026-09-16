@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Require measurable Entry/Exit learning before more extensive training. The bound five-step reference32 and split16+16 technical controls from original95 are complete; do not restart their plans. training_enabled remains false and full epoch/full VAL remain blocked. Next: paired ONLINE95 versus reference96 assessment with preserved actual TRAIN inputs and consistent targets, then a documented bounded native learning experiment only if evidence supports it and its own policy/source binding is prepared. Technical PASS and teacher imitation are not proof of market edge. Preserve all features, families, timeframes, checkpoints, native campaign, TRAIN16/VAL256/8CPU/3h, deterministic FP32 and hardware guards. No arbitrary risk/holding cap, TEST/live/paper/spending, target/EMA reset, replay, broad model/rule/threshold/loss-weight search or automatic restart of stopped134.",
+  "rule": "Require measurable Entry/Exit learning before more extensive training. The bound five-step reference32 and split16+16 technical controls from original95 are complete; do not restart their plans. training_enabled remains false and full epoch/full VAL remain blocked. Paired ONLINE95 versus96 is complete and does not justify expansion. Reuse the result and diagnose value learning before another adjustment or bounded plan. Technical PASS and teacher imitation are not proof of market edge. Preserve all features, families, timeframes, checkpoints, native campaign, TRAIN16/VAL256/8CPU/3h, deterministic FP32 and hardware guards. No arbitrary risk/holding cap, TEST/live/paper/spending, target/EMA reset, replay, broad model/rule/threshold/loss-weight search or automatic restart of stopped134.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -91,7 +91,7 @@
     "test_data_used": false
   },
   "learning_gate": {
-    "decision": "NOT_PROVEN",
+    "decision": "INSUFFICIENT_FOR_EXPANSION",
     "required_before_more_extensive_training": true,
     "specification": "docs/LEARNING_GATE_20260916.md",
     "entry_exit_learning_demonstrated": false,
@@ -99,6 +99,10 @@
     "profitability_demonstrated": false,
     "completed_technical_control_source": "fcd03e884c2b402979624df767a359c57562c2e1",
     "technical_scope_complete": true,
-    "repeat_completed_controls": false
+    "repeat_completed_controls": false,
+    "latest_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json",
+      "sha256": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c"
+    }
   }
 }
