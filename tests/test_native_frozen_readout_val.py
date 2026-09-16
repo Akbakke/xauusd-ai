@@ -152,3 +152,23 @@ def test_guarded_native_dispatch_evaluates_without_calling_trainer(frozen_scope,
     observation=json.loads(Path(result['observation']['path']).read_text())
     assert observation['optimizer_steps']==0 and observation['training_enabled'] is False
     assert native.require_frozen_readout_evaluation(recipe)['origin_resume_state']==state
+
+
+def test_campaign_preparer_uses_preserved_epoch_for_readonly_counter(frozen_scope,tmp_path,monkeypatch):
+    from gx1.scripts import materialize_local_random_access_campaign_v2 as materializer
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    _,recipe,write,_,_=frozen_scope
+    monkeypatch.setattr(materializer,'_source_commit',lambda repo:'c'*40)
+    monkeypatch.setattr(native,'require_native_recipe_metadata',lambda *a,**kw:(recipe,65295))
+    prior=tmp_path/'prior_campaign.json'
+    def stop_at_existing_prior_validation(path,sha):
+        assert path==prior
+        raise RuntimeError('reached_original_campaign_checks')
+    monkeypatch.setattr(campaign,'read_bound_json',stop_at_existing_prior_validation)
+    # Preserved5809 is below its real epoch2 boundary8162, not genesis4081.
+    with pytest.raises(RuntimeError,match='reached_original_campaign_checks'):
+        materializer.materialize_native_candidate_campaign(repo=tmp_path,output=tmp_path/'campaign',runtime=tmp_path/'runtime',
+            gpu_uuid='fixture',prepared_boot_path=tmp_path/'boot',prepared_boot_file_sha256='a'*64,
+            certificate_path=tmp_path/'certificate',prior_campaign_path=prior,prior_campaign_file_sha256='a'*64,
+            selection_path=tmp_path/'selection',selection_file_sha256='a'*64,
+            recipe_path=tmp_path/'recipe',recipe_file_sha256='a'*64,window_count=1)

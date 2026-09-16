@@ -43,6 +43,12 @@ slik at begge invokasjoner krever hver sin fysiske omstart. Begge bruker samme
 rene kilde og frosne vekter. GitHub-publisering venter på ny eksplisitt godkjenning
 etter automatisk avvisning; lokal evaluering er uavhengig av publiseringen.
 
+Første forberedelse stoppet før kampanje/GPU-start fordi original global5809
+ble sammenlignet med genesis-grensen4081. Kampanjeeieren bruker nå den verifiserte
+originale epoch1-grensen8162. 89 målrettede kontroller består. Mislykkede
+forberedelsesfiler er bevart; nye versjoner får kildehash i filnavnet.
+Se handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

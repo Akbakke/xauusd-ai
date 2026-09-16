@@ -1,0 +1,18 @@
+{
+  "decision": "PRESERVED_NATIVE_ORIGIN_COUNTER_FIXED",
+  "source_parent_commit": "09ee931fff2689a613ae5606b8d4bdb858d31109",
+  "observed_blocker": "Native campaign preparation compared original global5809 with fresh-session first-epoch4081; it did not account for preserved epoch_index1. No campaign or GPU invocation was created.",
+  "correction": "Use the already validated immutable origin epoch for the existing epoch ceiling. No new optimizer steps; original5809 is below its actual epoch boundary8162.",
+  "source_file": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_local_random_access_campaign_v2.py",
+    "sha256": "9103707c975f490da15125d7c0a7bd661b97577c8e9611db51def77c80a42ba4"
+  },
+  "tests": {
+    "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_MATERIALIZER_TESTS_20260916.xml",
+    "sha256": "6c9a080bb331d6f31a643407638588d59ff681abfbff887132de40c05b9ff623"
+  },
+  "tests_passed": 89,
+  "failed_preparation_preserved": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/NATIVE_RECIPE.json",
+  "training_started": false,
+  "test_data_used": false
+}

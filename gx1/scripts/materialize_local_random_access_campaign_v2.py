@@ -817,6 +817,11 @@ def materialize_native_candidate_campaign(
             epoch_stop *= FQI_TARGET_REFRESH_ORIGIN_CURSOR["epoch_index"] + 1
         elif recipe.get("candidate_resume_origin", {}).get("schema_version") == ENTRY_LEARNABILITY_SCHEMA:
             epoch_stop *= ENTRY_LEARNABILITY_ORIGIN_CURSOR["epoch_index"] + 1
+        elif "frozen_readout_evaluation" in recipe:
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_readout_evaluation
+            # This is the immutable origin counter, with no additional TRAIN steps.
+            origin = require_frozen_readout_evaluation(recipe)["origin_resume_state"]
+            epoch_stop *= origin["epoch_index"] + 1
         if ceiling is not None and ceiling >= epoch_stop:
             raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")
     prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
