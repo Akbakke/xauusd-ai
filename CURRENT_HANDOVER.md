@@ -42,6 +42,12 @@ informasjon på TRAIN, ikke generalisering eller læringsport-PASS. Se
 [120-minuttersdiagnosen](docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md).
 Neste rettelse må bevare forventet handlingsverdi, kausal policy og bootstrap.
 
+Én konkret neste kandidat er nå spesifisert i
+[referanseverdi med bootstrap](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
+Kun CPU-prototype/kontraktkontroll er åpnet: samme stasjonære referanse for begge
+sider, eksplisitt Q_mu, ingen fast holdetid eller nye modellhoder. Native trening
+og teacher-refresh krever fortsatt eget avgrenset læringsgrunnlag.
+
 ## Start her
 
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

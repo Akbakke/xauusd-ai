@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Use the completed forecast120 economic diagnosis to define one causal continuation-value correction, preserving the intended expected-action-value/Bellman semantics and bootstrap. Do not treat a forced-HOLD return, hindsight maximum or forecast-sign baseline as an interchangeable optimal Exit target. No repeated probes, new training, target refresh, full VAL or model/threshold/loss-weight search until one concrete contract-correct correction and bounded learning comparison are specified.",
+  "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -108,6 +108,18 @@
     "full_endpoint_economics_complete": false,
     "train_only": true,
     "learning_gate_passed": false,
-    "next_action": "Use the completed forecast120 economic diagnosis to define one causal continuation-value correction, preserving the intended expected-action-value/Bellman semantics and bootstrap. Do not treat a forced-HOLD return, hindsight maximum or forecast-sign baseline as an interchangeable optimal Exit target. No repeated probes, new training, target refresh, full VAL or model/threshold/loss-weight search until one concrete contract-correct correction and bounded learning comparison are specified."
+    "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized."
+  },
+  "continuation_reference_candidate": {
+    "status": "CPU_PROTOTYPE_AND_CONTRACT_CHECK_ONLY",
+    "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
+    "reference_hold_probability_numerator": 119,
+    "reference_hold_probability_denominator": 120,
+    "maximum_observed_backup_steps": 120,
+    "holding_time_limit_introduced": false,
+    "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
+    "training_enabled": false,
+    "native_run_authorized": false,
+    "next_action": "Implement and CPU-check the single explicit reference-policy critic candidate in docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md: analytical stationary HOLD probability119/120, up to120 observed steps plus valid boundary bootstrap, Q_mu semantics distinct from optimal Q, unchanged default and no new heads. Verify recurrence/terminal/censoring/side symmetry before specifying any bounded native learning comparison. No training, automatic teacher refresh, replay, full VAL or parameter search is authorized."
   }
 }
