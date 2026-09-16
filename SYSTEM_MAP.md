@@ -37,4 +37,11 @@ Målt lærerpolicy gir LONG oftest ett steg og SHORT fem på den lagrede batchen
 Head-/representasjonsattribusjon forklarer hvor sideforskyvningen uttrykkes;
 en generell modell-, tapsvekt- eller biasrettelse er ikke begrunnet.
 
+Separat Exit-klipping er målt og prøvd, deretter tilbakeført. Bedre fit på de
+512 trente eksemplene overføres ikke til separate TRAIN-kohorter. Trente og
+separate femstegsmål har motsatte sidegjennomsnitt; læreren stopper fortsatt
+LONG oftest etter ett steg og lar SHORT fortsette fem. Det er ikke bevist at
+én enkelt mekanisme forklarer hele svikten. Neste diagnose gjenbruker lagrede
+reward/trace/Q-data uten nye treningssteg. Se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md.
+
 Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.
