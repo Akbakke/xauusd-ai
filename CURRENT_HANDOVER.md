@@ -1,35 +1,37 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-**Baseline er ferdig; kandidaten stoppet i tallpresisjonskontrollen før rollout.**
-Baseline valgte FLAT på alle256 juni-Entries, med null treningssteg og guardPASS.
-Alle256 hypotetiske SHORT-forløp lukket straks;73 LONG-forløp nådde splitgrensen.
-Ingen lærings- eller generaliseringsport er bestått. Juni er gjenbrukt utviklings-VAL.
+**Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
+Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får
+−15,7477Bps per inngangsmulighet, inkludert kostnader og fire åpne posisjoner.
+Dette er uavhengige inngangsmuligheter, ikke porteføljeavkastning. En separat
+én-posisjonsreplay gir−1305,0322Bps i fast notional over24 handler, med én åpen.
 
-Kandidaten på boot450 feilet i batch256/16-kontrollen: maksavvik0,00048828125Bps
-mot grense0,0001, men helt identiske handlinger og TF32av. Native child1 og
-Windows-taskresult1 er målt; ingen modellprosess er aktiv, tasken er deaktivert.
-Feilet invokasjon og alle opprinnelige artefakter er bevart.
+Kandidaten kopierer Entry-læreren bedre, særlig LONG, men Exit-feilen blir
+større for begge retninger i alle fem ukene. LONG Exit-MSE1408,83→1625,02,
+SHORT1410,80→1553,61; begge verre enn TRAIN-konstanten. Korrelasjon med frosset
+referanseutfall er0,035 og−0,006. LONG-prediksjonens middel er+9,10Bps mot
+målets−5,07; SHORT−5,23 mot+5,02. Det er fortsatt skjev verdsetting.
 
-Minste rettelse endrer bare presisjonsvaktens absolutte grense til0,001Bps og
-loggen. Identiske handlinger kreves fortsatt; relativ toleranse er0. Tolv
-målrettede tester består, inkludert avvisning av0,0011/0,03Bps og handlingsavvik.
-Ingen vekter, mål, features, modeller, rollout, økonomi eller øvrige vakter endres.
-AST utenom kontrollfunksjonen er identisk med89c. Derfor gjenbrukes den ferdige
-baseline-målingen med opprinnelig kilde89c; ingen kostbar baseline-omkjøring.
-Dette er en eksplisitt avgrensning fra opprinnelig plan om samme kildecommit.
+Entry LONG-MSE116,44→26,66, SHORT30,23→32,34. Lærerregret5,73→0,96Bps
+betyr bedre lærerimitasjon, ikke bedre markedshandel. TRAIN-gevinst overføres
+ikke robust til juni. Juni er gjenbrukt utviklings-VAL; TEST forblir forseglet.
+Ingen lærings-, generaliserings- eller lønnsomhetsport er bestått.
 
-NEXT_RUN_POLICY åpner én erstatningsinvokasjon for den frosne kandidaten,
-med samme256 forhåndsvalgte Entries, samme lærer og null optimizersteg.
-Ny fysisk boot og eksisterende native eiere/vakter kreves. Ingen modellretuning,
-full epoch, full5508 VAL eller TEST. Etter kandidatresultatet: paret Entry/Exit-
-feil per retning/uke og økonomi for alle valgte/åpne posisjoner, så vurdering.
+Begge native målinger har guardPASS/trainer0/observer0 og null optimizersteg.
+Baseline brukte89c; kandidaten866e2e33 etter en nødvendig rettelse av bare
+batchpresisjonsvakten. Prediction/rollout-AST utenom vaktfunksjonen var identisk.
+Vekter, mål, utvalg og lærerbindinger er uendret og kontrollert eksakt like.
+Første kandidatforsøk på boot450 er bevart som feilet preflight; ikke et resultat.
+Kandidat-retry på boot451 er ferdig. Windows-tasken er deaktivert; ingen aktiv jobb.
 
-Bevis: handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json.
-Baseline: BASE/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val.
-Feilet kandidat: BASE/NATIVE_FROZEN_READOUT_20260916_CANDIDATE; runtime
-/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449.
-Erstatning: BASE/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917.
-PREPARATION_RESULT, OBSERVATION, levende prosess og receipts avgjør nåstatus.
+NEXT_RUN_POLICY har stengt de brukte evalueringsunntakene. Ingen ny trening,
+modell-forward, tuning, full epoch/full VAL eller TEST er åpnet. Neste avgrensede
+arbeid er å kontrollere eksisterende TRAIN-cache mot native VALs representasjons-
+og målkjede før hele svikten tilskrives overtilpasning. Ingen nytt fit på juni.
+
+Se docs/FROZEN_NATIVE_VAL_REVIEW_20260917.md og maskinmålingen
+handover_snapshot/FROZEN_NATIVE_COMPARISON_20260917.json. Alle originale
+checkpoints, planer, resultater og den mislykkede kjøringen er bevart.
 GitHub-push venter fortsatt på det allerede stilte godkjenningsspørsmålet.
 
 ## Start her

@@ -1,9 +1,9 @@
 {
-  "status": "BASELINE_COMPLETE_CANDIDATE_NUMERIC_PREFLIGHT_FAILED_RETRY_PENDING",
+  "status": "FROZEN_NATIVE_VAL_COMPLETE_CANDIDATE_REJECTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "No active native process. Baseline and failed candidate used89c; current source changes only numerical parity assertion/log, tests and handover.",
-  "latest_observation_utc": "2026-09-16T22:44:17Z",
+  "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
+  "latest_observation_utc": "2026-09-16T23:29:32Z",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
+  "next_action": "Frozen June256 comparison is complete and rejects the candidate for expansion. Reuse every saved result; do not rerun either arm or fit/tune on reused TRAIN controls or June VAL. Next is a bounded read-only check of the cached TRAIN versus native VAL representation/target path, to distinguish an implementation mismatch from lack of transferable Exit signal. No model forward, optimizer step, target refresh, full epoch/full VAL or TEST is authorized by this policy. Any next measurement must first state a concrete unresolved cause and minimal evidence required.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -124,7 +124,7 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
+    "next_action": "Frozen June256 comparison is complete and rejects the candidate for expansion. Reuse every saved result; do not rerun either arm or fit/tune on reused TRAIN controls or June VAL. Next is a bounded read-only check of the cached TRAIN versus native VAL representation/target path, to distinguish an implementation mismatch from lack of transferable Exit signal. No model forward, optimizer step, target refresh, full epoch/full VAL or TEST is authorized by this policy. Any next measurement must first state a concrete unresolved cause and minimal evidence required.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -213,15 +213,30 @@
     },
     "candidate_retry": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917",
-      "status": "NOT_PREPARED",
-      "optimizer_steps": 0
+      "status": "COMPLETE_WITH_RIGHT_CENSORING_REJECTED_FOR_EXPANSION",
+      "optimizer_steps": 0,
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917/frozen_readout_val/VAL_RESULT.json",
+        "sha256": "1f4f73b2f3249cf030e8abe1ec9279b7cc12d8d41adf7b61bf644c6f79d12030"
+      },
+      "receipt": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917_BOOT450/receipts/invocation-0001.json",
+        "sha256": "66f92d8c83f0aece810f54ff0c348bdbca5b5bbde4a92047b0e933bed773c74e"
+      },
+      "guard_decision": "PASS",
+      "marked_mean_bps_per_entry": -15.747744815790465
     }
   },
-  "frozen_readout_evaluation_order": "Baseline complete and reused with original provenance. One replacement candidate window after numerical guard-only repair; no weights/targets/cohort change.",
+  "frozen_readout_evaluation_order": "Both observations complete. Plans consumed; no rerun or retuning. Reuse bound comparison and originals.",
   "github_publication_status": "pending_current_explicit_approval_after_automatic_review_rejection",
   "frozen_readout_materializer_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json",
     "sha256": "e727325e32934fbdad5beeb0b230b6c609e818a9583132a549cc1e9ad8eb57c3"
   },
-  "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json"
+  "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json",
+  "last_evaluation_source_commit": "866e2e3305d36e4973554bb2b0a495c58f0e1ad3",
+  "frozen_native_comparison": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/NATIVE_COMPARISON_20260917/RESULT.json",
+    "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
+  }
 }

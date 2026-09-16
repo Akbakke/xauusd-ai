@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
+  "rule": "Frozen June256 comparison is complete and rejects the candidate for expansion. Reuse every saved result; do not rerun either arm or fit/tune on reused TRAIN controls or June VAL. Next is a bounded read-only check of the cached TRAIN versus native VAL representation/target path, to distinguish an implementation mismatch from lack of transferable Exit signal. No model forward, optimizer step, target refresh, full epoch/full VAL or TEST is authorized by this policy. Any next measurement must first state a concrete unresolved cause and minimal evidence required.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -228,6 +228,16 @@
         "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
         "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
       }
+    },
+    "frozen_readout_chronological_review": {
+      "decision": "REJECT_CANDIDATE_FOR_EXPANSION",
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/NATIVE_COMPARISON_20260917/RESULT.json",
+        "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
+      },
+      "development_val": "reused_June2026",
+      "exit_mse_worse_both_sides_all_five_weeks": true,
+      "all_entries_marked_mean_bps": -15.747744815790465
     }
   },
   "exit_reference_policy": {
@@ -246,38 +256,51 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
     "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
   },
-  "frozen_readout_evaluation": {
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
-      "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+  "completed_frozen_readout_evaluation": {
+    "decision": "REJECT_CANDIDATE_FOR_EXPANSION",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/NATIVE_COMPARISON_20260917/RESULT.json",
+      "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
     },
-    "origin_cursor": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447/native-candidate-cursor/RESUME_CURSOR.json",
-      "sha256": "d84546364ecc806f5e10e88b0117184b5148236651d0271c353b32f3df55034b"
+    "completed_scope_not_run_authority": {
+      "plan": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+        "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+      },
+      "origin_cursor": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447/native-candidate-cursor/RESUME_CURSOR.json",
+        "sha256": "d84546364ecc806f5e10e88b0117184b5148236651d0271c353b32f3df55034b"
+      },
+      "allowed_arms": [
+        "baseline",
+        "candidate"
+      ],
+      "optimizer_steps": 0,
+      "max_invocations_per_arm": 1,
+      "full_val_allowed": false,
+      "test_data_used": false
     },
-    "allowed_arms": [
-      "baseline",
-      "candidate"
-    ],
-    "optimizer_steps": 0,
-    "max_invocations_per_arm": 1,
-    "full_val_allowed": false,
-    "test_data_used": false
-  },
-  "frozen_readout_retry": {
-    "arm": "candidate",
-    "maximum_replacement_windows": 1,
-    "reason": "first_batch_numerical_assertion_before_rollout",
-    "failed_source_commit": "89c10e583061ca9810da6a26176d3488739ed90a",
-    "failed_window_policy": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_CANDIDATE/CAMPAIGN/window-policies/invocation-0001.json",
-      "sha256": "f4c7c8d4391511b0f4be4c3db217fd422fdffec97a41a33a332dfc72e718dca3"
+    "completed_retry_not_run_authority": {
+      "arm": "candidate",
+      "maximum_replacement_windows": 1,
+      "reason": "first_batch_numerical_assertion_before_rollout",
+      "failed_source_commit": "89c10e583061ca9810da6a26176d3488739ed90a",
+      "failed_window_policy": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_CANDIDATE/CAMPAIGN/window-policies/invocation-0001.json",
+        "sha256": "f4c7c8d4391511b0f4be4c3db217fd422fdffec97a41a33a332dfc72e718dca3"
+      },
+      "preserved_baseline_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
+        "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
+      },
+      "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917",
+      "review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json"
     },
-    "preserved_baseline_result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
-      "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
-    },
-    "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917",
-    "review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json"
+    "native_evaluation_complete": true,
+    "further_native_evaluation_authorized": false,
+    "new_optimizer_steps": 0,
+    "new_model_forwards_authorized": false,
+    "further_tuning_on_existing_controls_forbidden": true,
+    "next_scope": "read_only_existing_evidence_diagnosis"
   }
 }

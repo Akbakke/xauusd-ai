@@ -107,3 +107,11 @@ utvalg, prediction/rollout/økonomi er uendret. Baseline gjenbrukes med original
 89c-proveniens; AST er kontrollert lik utenom vaktfunksjonen. Én erstatnings-
 invokasjon for kandidaten er avgrenset i NEXT_RUN_POLICY. Ingen retuning.
 Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json.
+
+## Fullført juni-vurdering2026-09-17
+
+Kandidaten forkastes for utvidelse. Exit-MSE blir verre for begge retninger
+i alle fem ukene; kostnader og åpne posisjoner medregnet gir−15,7477Bps per
+inntredelsesmulighet. Entry lærer å kopiere læreren bedre uten bedre økonomi.
+Ingen ny tuning eller treningsutvidelse. Se [full vurdering](FROZEN_NATIVE_VAL_REVIEW_20260917.md)
+og CURRENT_HANDOVER.md. Begge målinger er ferdige; gamle oppstartsavsnitt ovenfor er historikk.
