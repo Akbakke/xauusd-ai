@@ -25,14 +25,37 @@ Første kandidatforsøk på boot450 er bevart som feilet preflight; ikke et resu
 Kandidat-retry på boot451 er ferdig. Windows-tasken er deaktivert; ingen aktiv jobb.
 
 NEXT_RUN_POLICY har stengt de brukte evalueringsunntakene. Ingen ny trening,
-modell-forward, tuning, full epoch/full VAL eller TEST er åpnet. Neste avgrensede
-arbeid er å kontrollere eksisterende TRAIN-cache mot native VALs representasjons-
-og målkjede før hele svikten tilskrives overtilpasning. Ingen nytt fit på juni.
+modell-forward, tuning, full epoch/full VAL eller TEST er åpnet. Kontrollen av eksisterende TRAIN-cache mot native VAL er nå ferdig i
+omfanget beskrevet nedenfor. Ingen nytt fit på juni.
 
 Se docs/FROZEN_NATIVE_VAL_REVIEW_20260917.md og maskinmålingen
 handover_snapshot/FROZEN_NATIVE_COMPARISON_20260917.json. Alle originale
 checkpoints, planer, resultater og den mislykkede kjøringen er bevart.
 GitHub-push venter fortsatt på det allerede stilte godkjenningsspørsmålet.
+
+## Kontrollert etter avvisningen
+
+Alle40 lagrede TRAIN-inputcacher er hashkontrollert. Metadata, gammel base-
+normalisering, child-kontrakt, lifetime-normalisering, checkpoint, boundary-
+lærer og frosne koeffisienter samsvarer med native VAL. Samme collator, forward-
+eier og Q_mu-beregning brukes. Ingen mismatch er funnet i dette kontrollerte
+omfanget; det er ikke kjørt en ny GPU-replay av identiske TRAIN/VAL-inputs.
+
+State0 mangler ikke:275 trente og67 separate TRAIN-Entries er målt der.
+Separat state0 LONG-MSE516,63→487,73; SHORT515,90→544,83. Den samlede TRAIN-
+gevinsten skjulte svakere SHORT ved selve inngangen. Ingen nytt fit er gjort.
+
+De allerede lagrede juni-prognosene er identiske før/etter readout-endringen,
+og taper mot nullprognosen i både MSE og MAE ved5/25/60/120 nominelle minutter.
+120-minuttersprognosen har korrelasjon0,0209, snitt+5,09Bps mot faktisk−9,11
+og42,97% riktig retning. Svak overføring er derfor påvist også uten Exit-læreren.
+Dette beviser ikke at alle mulige kausale modeller eller features mangler signal.
+
+Neste snevre, skrivebeskyttede kontroll gjelder tids-/targetoverlapp mellom
+de eksisterende trente og separate TRAIN-eksemplene. Ulike Entry-ID-er betyr
+ikke nødvendigvis uavhengig framtidig markedsinformasjon. Ingen nye modell-
+forwards, fits, trening, VAL eller TEST er åpnet. Ikke gjenta de ferdige auditene.
+Se docs/TRAIN_VAL_SEMANTICS_AND_TRANSFER_20260917.md.
 
 ## Start her
 

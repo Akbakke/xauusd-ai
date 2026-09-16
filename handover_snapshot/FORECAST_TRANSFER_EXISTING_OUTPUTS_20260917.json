@@ -1,0 +1,147 @@
+{
+  "baseline_candidate_forecast_diagnostics_identical": true,
+  "conclusion_limit": "Reused June256 development VAL only; not proof that no possible model or feature can predict direction. Does reject an already-proven transferable forecast shortcut.",
+  "decision": "DIRECTIONAL_TRANSFER_NOT_DEMONSTRATED_BEYOND_EXIT_READOUT",
+  "exit_teacher_used": false,
+  "forecast_worse_than_zero_mse_and_mae_all_horizons": true,
+  "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+  "horizons": [
+    {
+      "direction_accuracy": 0.4375,
+      "mae": 6.978171119881154,
+      "mse": 100.54248854476535,
+      "nominal_minutes": 5,
+      "observed_m5_bars": 1,
+      "pearson": 0.05781986218862506,
+      "prediction_mean_bps": 0.6021702044454287,
+      "rows": 256,
+      "sign_confusion_actual_rows_predicted_columns": [
+        [
+          7,
+          0,
+          134
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          105
+        ]
+      ],
+      "target_mean_bps": -0.17545072695065755,
+      "zero_return_mae": 6.902875165877049,
+      "zero_return_mse": 100.27685589973593
+    },
+    {
+      "direction_accuracy": 0.4609375,
+      "mae": 15.585571228453773,
+      "mse": 602.4832329626984,
+      "nominal_minutes": 25,
+      "observed_m5_bars": 5,
+      "pearson": 0.0679161313633048,
+      "prediction_mean_bps": 2.9811779548763297,
+      "rows": 256,
+      "sign_confusion_actual_rows_predicted_columns": [
+        [
+          6,
+          0,
+          135
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          112
+        ]
+      ],
+      "target_mean_bps": -1.132307556559681,
+      "zero_return_mae": 15.185271366601228,
+      "zero_return_mse": 589.5134809335276
+    },
+    {
+      "direction_accuracy": 0.46484375,
+      "mae": 25.823195263321395,
+      "mse": 1465.580783537595,
+      "nominal_minutes": 60,
+      "observed_m5_bars": 12,
+      "pearson": 0.055940643576024386,
+      "prediction_mean_bps": 3.9371147081255913,
+      "rows": 256,
+      "sign_confusion_actual_rows_predicted_columns": [
+        [
+          15,
+          0,
+          118
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          19,
+          0,
+          104
+        ]
+      ],
+      "target_mean_bps": -2.703074137258227,
+      "zero_return_mae": 25.382847866785596,
+      "zero_return_mse": 1430.533553181603
+    },
+    {
+      "direction_accuracy": 0.4296875,
+      "mae": 39.47571443923516,
+      "mse": 3225.0460393885232,
+      "nominal_minutes": 120,
+      "observed_m5_bars": 24,
+      "pearson": 0.020894931032456786,
+      "prediction_mean_bps": 5.088420268613845,
+      "rows": 256,
+      "sign_confusion_actual_rows_predicted_columns": [
+        [
+          22,
+          0,
+          125
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          21,
+          0,
+          88
+        ]
+      ],
+      "target_mean_bps": -9.109609495557379,
+      "zero_return_mae": 38.419613574340474,
+      "zero_return_mse": 3081.7023387210884
+    }
+  ],
+  "inputs": {
+    "baseline": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
+      "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
+    },
+    "candidate": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917/frozen_readout_val/VAL_RESULT.json",
+      "sha256": "1f4f73b2f3249cf030e8abe1ec9279b7cc12d8d41adf7b61bf644c6f79d12030"
+    }
+  },
+  "loss_semantics": "l1_conditional_median_not_direction_probability",
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "new_targets": 0,
+  "source_commit": "711c7c5e43875394692451dba5d6276e4eb5b186",
+  "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+  "test_data_used": false
+}

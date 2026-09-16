@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Frozen June256 comparison is complete and rejects the candidate for expansion. Reuse every saved result; do not rerun either arm or fit/tune on reused TRAIN controls or June VAL. Next is a bounded read-only check of the cached TRAIN versus native VAL representation/target path, to distinguish an implementation mismatch from lack of transferable Exit signal. No model forward, optimizer step, target refresh, full epoch/full VAL or TEST is authorized by this policy. Any next measurement must first state a concrete unresolved cause and minimal evidence required.",
+  "rule": "The saved TRAIN/native binding audit is complete: all40 input caches have matching metadata, base/child/lifetime normalization, original checkpoint, boundary teacher and frozen coefficients. No mismatch found in checked scope; no new same-input GPU replay claimed. State0 is present in TRAIN, but separate TRAIN state0 SHORT already worsened. Existing June forecasts at5/25/60/120 nominal minutes all lose to zero-return MSE and MAE, identically before/after readout changes. Next bounded read-only cause check: quantify temporal/future-target overlap between existing trained and separate TRAIN samples; distinct Entry IDs are not proof of independent market information. Reuse saved caches/plans only. No new model forward, fit, target refresh, optimizer, full epoch/VAL or TEST. Do not repeat completed runs or audits.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -302,5 +302,22 @@
     "new_model_forwards_authorized": false,
     "further_tuning_on_existing_controls_forbidden": true,
     "next_scope": "read_only_existing_evidence_diagnosis"
+  },
+  "completed_train_val_semantics_audit": {
+    "decision": "CHECKED_BINDINGS_MATCH_DIRECTIONAL_TRANSFER_UNPROVEN",
+    "report": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/RESULT.json",
+      "sha256": "b3b4e294234d46ec5f0326c418cfc2056f58040d5e47b956fc6adc58445c85ef"
+    },
+    "forecast_report": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/FORECAST_TRANSFER_EXISTING_OUTPUTS.json",
+      "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a"
+    },
+    "checked_cache_batches": 40,
+    "new_model_forwards": 0,
+    "new_targets": 0,
+    "new_fits": 0,
+    "no_dataflow_bug_proven": true,
+    "next_scope": "read_only_temporal_overlap_of_existing_train_controls"
   }
 }
