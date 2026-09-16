@@ -1,0 +1,47 @@
+{
+  "observed_utc": "2026-09-16T12:23:12.686768+00:00",
+  "decision": "PASS_HANDOVER_REFRESH_ONLY",
+  "tests_passed": 28,
+  "test_log": {
+    "path": "/home/andre2/GX1_ARCHIVE/CLEANUP_20260916/HANDOVER_TESTS_V3.log",
+    "sha256": "a8b2b44a0a4083ab81d66f190097ba6e0221805ebed5d736ff661a6590a921a2"
+  },
+  "shell_syntax_pass": true,
+  "handover_check": "PASS; current checkpoint97/global5809, no native process; next_run BLOCKED as intended",
+  "model_or_training_code_changed": false,
+  "fixture_repair": "Original one-step economics test fixture now explicitly omits unrelated current-run origin fields; all production guards unchanged. Initial five fixture failures and subsequent logs preserved in cleanup archive.",
+  "learning_gate": "NOT_PROVEN",
+  "profitability_proven": false,
+  "test_data_used": false,
+  "windows_task_state": "Disabled",
+  "files": {
+    "scripts/collect_gx1_handover_readonly.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/collect_gx1_handover_readonly.py",
+      "sha256": "daeef20c5ed93d4315bc81ab5cf3dea776036f2252679c27dad97acd76e90113"
+    },
+    "scripts/gx1_handover.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_handover.sh",
+      "sha256": "f41677ef5853365c3e8db4bc5cad798dcdfe2c06a9052e2e1586e9554e94a789"
+    },
+    "scripts/macos/gx1_takeover.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/macos/gx1_takeover.sh",
+      "sha256": "174e0f89e066d081545048bc8d60f4b5608f42eb528bbdb5173a26d025c9aa83"
+    },
+    "NEXT_RUN_POLICY.json": {
+      "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+      "sha256": "9b884a74928c918a35353f3c4fbf26e39df81bce7661dd451ea171fe02e8c219"
+    },
+    "RUNNING_NATIVE_CALIBRATION.json": {
+      "path": "/home/andre2/src/GX1_CURRENT/RUNNING_NATIVE_CALIBRATION.json",
+      "sha256": "2ed6297791f8ec2bc11f418b4756faf7d9de0b4166817f10abc51010a0e9d615"
+    },
+    "CURRENT_HANDOVER.md": {
+      "path": "/home/andre2/src/GX1_CURRENT/CURRENT_HANDOVER.md",
+      "sha256": "1fb9742d725fb53d0eae1ad48333c96d753abf5a21a0ae40db4376a5322d3c04"
+    },
+    "docs/LEARNING_GATE_20260916.md": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/LEARNING_GATE_20260916.md",
+      "sha256": "62e093e9bc8a1443ce1f7d40368afb0f606aac1953be6866ffd853ef38b64b74"
+    }
+  }
+}

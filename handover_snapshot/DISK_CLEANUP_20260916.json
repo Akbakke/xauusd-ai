@@ -1,0 +1,72 @@
+{
+  "observed_utc": "2026-09-16T12:10:58.170506+00:00",
+  "decision": "AUTHORIZED_VERIFIED_ORPHAN_TEMPORARY_DATA",
+  "creator": "gx1/models/entry_v10/entry_v10_ctx_train_v3.py: tempfile.TemporaryDirectory; arrays opened mode=w+; directory unique per process and recreated, never a resume input",
+  "source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
+  "live_references": [],
+  "files": [
+    {
+      "path": "/home/andre2/GX1_DATA/tmp/entry_v10_memmap/v10_seq513_dataset__ENTRY_FITTED_Q_val_190471_5dm18_6a/seq.float32.mmap",
+      "bytes": 6998525184,
+      "allocated_bytes": 6998532096,
+      "inode": 164258,
+      "mtime": 1787569951.3527398
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/tmp/entry_v10_memmap/v10_seq513_dataset__ENTRY_FITTED_Q_val_190471_5dm18_6a/ctx_cat.int64.mmap",
+      "bytes": 612616,
+      "allocated_bytes": 614400,
+      "inode": 166575,
+      "mtime": 1787569951.3527398
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/tmp/entry_v10_memmap/v10_seq513_dataset__ENTRY_FITTED_Q_val_190471_5dm18_6a/ctx_cont.float32.mmap",
+      "bytes": 21747868,
+      "allocated_bytes": 21749760,
+      "inode": 166545,
+      "mtime": 1787569951.3527398
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/tmp/entry_v10_memmap/v10_seq513_dataset__ENTRY_FITTED_Q_val_190471_5dm18_6a/snap.float32.mmap",
+      "bytes": 72901304,
+      "allocated_bytes": 72904704,
+      "inode": 166344,
+      "mtime": 1787569951.3527398
+    }
+  ],
+  "deleted_logical_bytes": 7093786972,
+  "deleted_allocated_bytes": 7093800960,
+  "free_before_bytes": 812736122880,
+  "test_data_used": false,
+  "checkpoints_or_results_deleted": false,
+  "free_after_bytes": 819829923840,
+  "removed": true,
+  "scope": "GX1-related Linux data/temp/runtime roots, Windows GX1 roots and local Mac project/temp were inventoried. Only the verified orphan TemporaryDirectory was deleted.",
+  "preserved": [
+    {
+      "path": "/home/andre2/GX1_DATA/data",
+      "reason": "Raw data, bound prebuilt lineage, results, checkpoints and reusable learning caches; no deletion"
+    },
+    {
+      "path": "/home/andre2/src",
+      "reason": "Canonical source and bound historical source/runtime dependencies; current .venv resolves through V30 to lifecycle runtime"
+    },
+    {
+      "path": "/home/andre2/venvs/gx1",
+      "reason": "Existing systemd unit and gx1py references"
+    },
+    {
+      "path": "/home/andre2/.local",
+      "reason": "User runtime packages; not established redundant"
+    },
+    {
+      "path": "/var/tmp",
+      "reason": "Historical source snapshots and evidence; not established redundant"
+    },
+    {
+      "path": "/mnt/c/Users/Andre/GX1_DATA_BACKUP_20260130_105605.tar.gz",
+      "bytes": 9834193829,
+      "reason": "Archive member full_2025.parquet has no current original; unique history possible. Only metadata inventory, no dataset evaluation."
+    }
+  ]
+}

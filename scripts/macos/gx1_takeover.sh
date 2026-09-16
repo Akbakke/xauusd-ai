@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# The Mac workspace has one read-only entrypoint to the current Linux source.
+# Read current_work and next_run in the JSON; COMPLETED_RUN is historical evidence.
+# This read-only entrypoint never starts training. Require measured learning first.
 set -euo pipefail
 [[ $# -le 1 ]] || { echo "Usage: ./handover.sh [--check|--verbose]" >&2; exit 2; }
 mode="${1:---check}"

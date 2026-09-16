@@ -57,6 +57,41 @@ def _policy(repo):
     return path,p
 
 
+def test_current_work_is_observed_separately_from_completed_run(fixture, monkeypatch):
+    repo, binding, _, old_pointer = fixture
+    current = binding.parent / 'current'; current.mkdir()
+    new_pointer = {'global_optimizer_steps': 5809, 'phase': 'train'}
+    (current/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(new_pointer))
+    status = {'status': 'RECORDED_IDLE', 'source_repo': str(repo),
+              'source_commit': 'training-source', 'session_directory': str(current),
+              'next_action': 'Measure learning before larger training',
+              'learning_gate': {'decision': 'NOT_PROVEN'}}
+    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps(status))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes',
+                        lambda _: [{'pid': '123'}])
+    out = native_status(binding)
+    assert out['checkpoint'] == old_pointer
+    assert out['current_work']['checkpoint'] == new_pointer
+    assert out['current_work']['recorded_status'] == 'RECORDED_IDLE'
+    assert out['current_work']['process_observation'] == 'RUNNING'
+    assert out['current_work']['observation_is_run_authority'] is False
+    assert out['current_work']['full_epoch_training_allowed'] is False
+    assert out['current_work']['learning_gate']['decision'] == 'NOT_PROVEN'
+
+
+def test_current_work_source_only_does_not_probe_processes_or_checkpoints(fixture, monkeypatch):
+    repo, binding, *_ = fixture
+    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
+        'status': 'RECORDED_IDLE', 'source_repo': str(repo),
+        'session_directory': str(binding.parent/'missing-session')}))
+    def unexpected(_):
+        raise AssertionError('source-only must not inspect native processes')
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', unexpected)
+    out = native_status(binding, source_only=True)
+    assert 'checkpoint' not in out['current_work']
+    assert 'process_observation' not in out['current_work']
+
+
 def test_enabled_flag_alone_cannot_bypass_missing_proofs(fixture):
     repo,*_=fixture;path,p=_policy(repo)
     p['training_enabled']=True;path.write_text(json.dumps(p))
@@ -102,6 +137,10 @@ def bound_window(fixture, monkeypatch):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as owner
     repo, *_ = fixture
     policy_path, policy = _policy(repo)
+    # Bind the original economics-origin fixture, not the current operator run.
+    for field in ('exit_backup_steps', 'exit_value_initialization',
+                  'train_population_scope', 'gradient_clipping_policy', 'learning_gate'):
+        policy.pop(field, None)
     monkeypatch.setattr(owner, '__file__', str(repo / 'gx1/contracts/native.py'))
 
     def write(name, value):

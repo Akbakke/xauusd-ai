@@ -9,8 +9,8 @@ case "${1:-}" in
   -h|--help) echo "Usage: scripts/gx1_handover.sh [--check|--verbose|--source-only]"; exit 0 ;;
   *) echo "Unsupported handover argument: $1" >&2; exit 2 ;;
 esac
-[[ -f "$REPO/COMPLETED_RUN.json" && -f "$REPO/NEXT_RUN_POLICY.json" ]] || {
-  echo "FATAL: current completed-run evidence and next-run policy are required; no legacy fallback" >&2
+[[ -f "$REPO/COMPLETED_RUN.json" && -f "$REPO/NEXT_RUN_POLICY.json" && -f "$REPO/RUNNING_NATIVE_CALIBRATION.json" && -f "$REPO/CURRENT_HANDOVER.md" ]] || {
+  echo "FATAL: completed evidence, current handover/status and next-run policy are required; no legacy fallback" >&2
   exit 78
 }
 args=(--native-binding "$REPO/COMPLETED_RUN.json")

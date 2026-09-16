@@ -1,0 +1,46 @@
+{
+  "schema_version": "gx1_frozen_trace_control_result_v1",
+  "observed_utc": "2026-09-16T12:19:43.748766+00:00",
+  "decision": "PASS_TECHNICAL_ONLY",
+  "training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
+  "resume_equivalence": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88/RESULT.json",
+    "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
+  },
+  "reference_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/REFERENCE32_OBSERVATION_20260916.json",
+    "sha256": "09e539af550379a565e0d400bfb5181bbdc4f3d52a14033de0a6a3e7f9a09050"
+  },
+  "compared_components_exact": [
+    "complete",
+    "epoch_index",
+    "epoch_order",
+    "global_optimizer_steps",
+    "lr_scheduler_state",
+    "model_state",
+    "next_batch_offset",
+    "optimizer_state",
+    "phase",
+    "rng_state",
+    "schema_version",
+    "target_model_state",
+    "training_progress",
+    "weight_ema_state"
+  ],
+  "excluded_identity_fields": {
+    "checkpoint_index": "reference has one save boundary; split has two",
+    "session_contract_sha256": "distinct immutable arm recipes and output directories"
+  },
+  "reference_checkpoint_index": 96,
+  "split_checkpoint_index": 97,
+  "global_optimizer_steps": 5809,
+  "epoch_index": 1,
+  "next_batch_offset": 1728,
+  "phase": "train",
+  "windows_task_state": "Disabled",
+  "native_processes": [],
+  "learning_improvement_demonstrated": false,
+  "new_val256_parity_measured": false,
+  "profitability_proven": false,
+  "test_data_used": false
+}

@@ -159,6 +159,39 @@ def _native_processes(source: Path) -> list[dict[str, str]]:
     return found
 
 
+def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
+    """Keep mutable operator notes separate from current process/checkpoint evidence."""
+    path = repo / "RUNNING_NATIVE_CALIBRATION.json"
+    if not path.exists():
+        return None
+    record = json.loads(_regular_file(str(path), label="current_work").read_text())
+    source = _repo(record["source_repo"])
+    result = {
+        "recorded_status": record["status"],
+        "recorded_observed_utc": record.get("latest_observation_utc"),
+        "source_repo": str(source),
+        "working_head": _git(source, "rev-parse", "HEAD"),
+        "working_tree_clean": not bool(_git(source, "status", "--porcelain=v1")),
+        "training_source_commit": record.get("source_commit"),
+        "next_action": record.get("next_action"),
+        "learning_gate": record.get("learning_gate"),
+        "full_epoch_training_allowed": record.get("full_epoch_training_allowed", False),
+        "observation_is_run_authority": False,
+    }
+    if source_only:
+        return result
+    processes = _native_processes(source)
+    result["native_processes"] = processes
+    result["process_observation"] = "RUNNING" if processes else "NO_NATIVE_PROCESS_OBSERVED"
+    directory = record.get("session_directory")
+    if directory:
+        pointer_path = Path(directory) / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
+        result["checkpoint"] = json.loads(
+            _regular_file(str(pointer_path), label="current_checkpoint_pointer").read_text()
+        )
+    return result
+
+
 def native_status(binding_path: Path, *, source_only: bool = False) -> dict[str, object]:
     """Observe the explicit native run without touching model/data payloads.
 
@@ -186,6 +219,8 @@ def native_status(binding_path: Path, *, source_only: bool = False) -> dict[str,
     out = {
         "schema_version": "gx1_native_handover_observation_v1",
         "decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY",
+        "observation_scope": "completed_run_history; current_work reports the current canonical workspace",
+        "current_work": _current_work_status(binding_path.parent, source_only=source_only),
         "observed_utc": datetime.now(timezone.utc).isoformat(),
         "source_repo": str(source), "source_commit": commit, "source_clean": True,
         "immutable_artifacts_verified": verified, "test_accessed": False,

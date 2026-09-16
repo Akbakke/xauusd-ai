@@ -1,12 +1,20 @@
 # GX1 XAUUSD
 
-Én gjeldende kildekopi: /home/andre2/src/GX1_CURRENT (work/gx1-current).
+Krev målbar læring før mer omfattende trening. Lønnsomhet er ikke dokumentert.
+Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
 
-Start med bash scripts/gx1_handover.sh --check og CURRENT_HANDOVER.md.
-AGENTS.md inneholder arbeidsreglene. GX1_ARBEIDSMAAL.md inneholder treningsmålet.
-COMPLETED_RUN.json binder den fullførte kjøringen; NEXT_RUN_POLICY.json beskriver
-eneste tillatte neste profil og hva som fortsatt blokkerer trening.
-Resultater/analyser: docs/ENTRY_EXIT_REVIEW_20260914.md og handover_snapshot/.
-SYSTEM_MAP.md viser den gjeldende linjen. Ingen eldre launch-oppskrift er gjeldende.
+Start på Mac med ./handover.sh --check, eller i Linux med
+bash scripts/gx1_handover.sh --check. Les deretter:
 
-På Mac: ./handover.sh. Wrapperkilde: scripts/macos/gx1_takeover.sh.
+1. CURRENT_HANDOVER.md — én gjeldende status og eksakt neste handling.
+2. GX1_ARBEIDSMAAL.md og AGENTS.md — mål, rammer og arbeidsregler.
+3. NEXT_RUN_POLICY.json — faktisk tillatt kjørescope; ingen full epoch nå.
+4. docs/LEARNING_GATE_20260916.md — hva som må måles før utvidelse.
+
+I scriptets JSON gjelder current_work dagens arbeidskopi. De øvrige gamle
+kilde-/checkpointfeltene er merket completed_run_history. Operatørnotater og
+observerte prosesser skilles fra hverandre; ingen håndover starter trening.
+COMPLETED_RUN.json bevarer gammel fullført kjøring. handover_snapshot/ inneholder
+bevis og eksplisitt merket historikk, aldri alternative oppstartsplaner.
+SYSTEM_MAP.md beskriver læringsbanen. Mac-wrapperen eies av
+scripts/macos/gx1_takeover.sh i Linux-repositoriet.

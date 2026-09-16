@@ -1,72 +1,49 @@
-# Grunnregel fra brukeren — 2026-09-12
+# Arbeidsregler for GX1 — oppdatert 2026-09-16
 
-Prioriter å få modellen trent og måle resultatet. Gjør aldri unødvendig omfattende oppdateringer.
+Krev målbar læring før mer omfattende trening. Teknisk PASS er ikke bevis på
+bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
 
-- Endre kode bare når en konkret, observert blokkering hindrer det avtalte treningsløpet. Navngi blokkeringen og gjør den minste nødvendige rettelsen i eksisterende kode.
-- Ingen forebyggende refaktorering, nye rammeverk, ekstra rapportløp eller utvidelse av oppgaven uten brukerens uttrykkelige ønske. Allerede fungerende og verifisert arbeid skal gjenbrukes.
-- Kjør bare målrettet verifikasjon som er nødvendig for den faktiske endringen. Ikke gjenta beståtte smoker, trening eller fullsuiter uten ny relevant feil.
-- Én agent og én tung jobb om gangen. Kontroller kjøringer som varer i flere timer én gang i timen, gjerne sjeldnere når tilstanden er stabil (brukerpresisering 2026-09-13). Aldri minuttvis polling eller statusprat uten en konkret ny feil eller et nært forventet sluttpunkt. Lokal automatisk sikkerhetsvakt håndterer hyppige temperatur- og prosessmålinger uten modellbruk.
-- Bruk tokens konservativt: vent når jobben må beregne, ikke fyll ventetiden med nye analyser, dokumentasjon eller sideoppgaver. Ikke del venting opp i minuttvise modellrunder. Gjenbruk kjent kontekst og beståtte resultater; les bare nødvendige filer og korte loggutdrag. Unngå hele manifest-, kildekode- og loggdumper.
-- Før en kodeendring skal den konkrete blokkeringen og minste nødvendige rettelsen kunne forklares kort. Hvis arbeidet ikke bringer avtalt trening eller resultatmåling videre, skal det utgå. Bruk eksisterende løsning fremfor nye lag, rammeverk og generell opprydding. Når nødvendig verifikasjon består, fortsett treningen; ikke utvid testen eller endringen uten ny relevant evidens.
-- Gi korte statusmeldinger ved vesentlig fremgang, feil eller resultat. Ikke gjenta en uendret status bare fordi en målfortsettelse eller timer aktiveres.
-- Stående autorisasjon gjelder nødvendige handlinger innen avtalt oppgave. Ikke be om samme godkjenning på nytt.
-- Bevar fullførte treningsresultater og aktiv kjøring. Ikke endre en frosset kilde eller starte kjøringen på nytt for dokumentasjon, opprydding eller spekulative forbedringer.
-- Skill lokale driftsgrenser fra maskinvareprodusentens spesifikasjoner. En overskredet lokal temperaturgrense er ikke alene bevis på overoppheting eller utilstrekkelig maskinvare.
+- Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current. Mac-mappen er
+  en overleveringskopi. Historiske kildekopier er avhengigheter og dokumentasjon,
+  aldri alternative oppstartsveier.
+- Start med ./handover.sh --check på Mac, eller bash scripts/gx1_handover.sh --check
+  i Linux-repositoriet. Les CURRENT_HANDOVER.md, GX1_ARBEIDSMAAL.md,
+  NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md.
+- CURRENT_HANDOVER.md er eneste gjeldende fortelling. RUNNING_NATIVE_CALIBRATION.json
+  beskriver siste arbeid; prosesser, checkpoints og receipts må bekrefte nåstatus.
+  COMPLETED_RUN.json og filer merket historikk er bevis, aldri startinstrukser.
+- Én agent og én tung jobb samtidig. Gjenbruk ferdige analyser, cachede inputs,
+  targets, outputs og beståtte tester. Ingen minuttvis modellpolling eller arbeid
+  for å fylle ventetiden. Kontroller stabil langkjøring omtrent hver time;
+  automatiske sikkerhetsvakter håndterer hyppig maskinvarekontroll.
+- Endre modell-/treningskode bare for en konkret, observert blokkering. Forklar
+  blokkeringen og minste rettelse først. Ingen forebyggende refaktorering, nye
+  rammeverk, brede regel-/terskel-/modell-/tapsvektsøk eller gjentatte fullsuiter.
+- Bruk bare eksisterende native campaign via gx1_capped_run.sh og etablerte
+  maskinvarevakter. TRAIN16, VAL256, åtte CPU-arbeidere, tre timers VAL-vinduer,
+  FP32/TF32 av. Ingen separate VAL-kjørere eller historiske smoker som fallback.
+- Ingen full epoch eller full VAL mens læringsporten er uavklart. En gjennomført
+  teknisk kontroll skal ikke automatisk gjentas eller utløse større trening.
+  Gjeldende tillatt omfang står i NEXT_RUN_POLICY.json; training_enabled er false.
+- Bevar alle 200 features, åtte familier, tidsrammer og kausalitet. «Ingen fast
+  grense»: ingen fast tapsgrense eller maksimal holdetid. Femstegs targetberegning
+  er en læringsberegning med bootstrap, ikke en handelsregel om holdetid.
+- Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT
+  er ikke dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet.
+  TRAIN-tilpasning, senere VAL-kvalitet og samlet økonomi rapporteres hver for seg.
+- TEST forblir forseglet. Ingen live-/papirhandel eller spending. Medregn alle
+  valgte handler og åpne posisjoner ved økonomivurdering; lukkede vinnere alene
+  er aldri samlet lønnsomhet. Juni 2026 er gjenbrukt utviklings-VAL.
+- Bevar fullførte resultater, originale checkpoints og aktiv kjøring. Ikke endre
+  frosset kilde under kjøring eller starte om for dokumentasjon/opprydding.
+- Stående autorisasjon gjelder nødvendig arbeid innen oppgaven. Ikke spør om
+  samme godkjenning igjen. Oppdater overlevering ved vesentlige endringer og
+  commit/push ferdig arbeid når den aktive kildebindingen tillater det.
+- Brukeren har bestilt diskopprydding. Slett bare dokumentert overflødige filer;
+  kontroller aktive referanser og bevar modell-/data-/runtime-avhengigheter,
+  unike resultater og checkpoints. Sletting skal ha en kort etterprøvbar logg.
+- Skill lokale driftsgrenser fra produsentspesifikasjoner. En overskredet lokal
+  temperaturgrense er ikke alene bevis på overoppheting.
 
-Gjeldende treningsmål og status står i `GX1_ARBEIDSMAAL.md`. Denne brukerregelen gjelder også arbeid i prosjektets eksterne Linux-repositorier.
-
-## Gjeldende arbeidssted og opprydding — 2026-09-14
-
-Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current. Start med
-bash scripts/gx1_handover.sh --check. Les CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json.
-COMPLETED_RUN.json er bevis fra avsluttet kjøring, aldri en ny oppstartsplan.
-Neste trening er blokkert til risiko-/holdemålet, GPU-paritet, samlet fart og
-resume-likhet er dokumentert. Bruk bare native campaign via gx1_capped_run.sh.
-Ingen fallback til gamle smoker, separate VAL-kjørere, små batcher eller korte vinduer.
-Gamle kildekopier som beholdes utenfor denne arbeidskopien er kun bundet historikk
-eller nødvendige kjøremiljøer. Ikke bruk dem som en alternativ kjørevei.
-Brukeren har uttrykkelig bestilt opprydding; slett bare dokumentert overflødig
-innhold og bevar modell-/dataavhengigheter, fullførte resultater og checkpoints.
-
-## Nyeste brukerprioritet — 2026-09-16
-
-Native134/global8162 er stoppet ved brukerens beskjed08:13:52UTC. Ufullstendig
-VAL viste bareHOLD; GPU var lite utnyttet. Ingen automatisk videre VAL/epoch.
-Mål og rett konkret fartshinder, og vurder aktuell ONLINE mot EMA før videre
-læring.25 målrettede rollout/provider-tester består for en minimal JSON-hash-
-endring i VAL-økonomi. Paret faktisk CPU-fart/hash-paritet består:økonomitrinn1.32656x; målteCPU-trinn1.13905x. Full native totalfart etter endringen er ikke målt. Se nyeste
-CURRENT_HANDOVER.md; tidligere startinstrukser ovenfor er historikk.
-
-## Læringsmåling ferdig — 2026-09-16
-
-Bred paret CPU-kontroll95→134 på1024 ulike faktiske TRAIN-Entries/4096 native
-overganger er ferdig;12måneder. Prognoser for25–120min bedres, Entry/Exit-
-verdilæring bedres ikke på samme mål.1021/1024 Entry-lærervalg tilsvarer første
-M1-likvidasjon. Alle inputs/targets/outputs er cachet, ikke gjenta jobben.
-Se nyeste CURRENT_HANDOVER.md og BROAD_TRAIN_LEARNING_REVIEW_20260916.json.
-Neste er én konkret flertrinns-backuphypotese med frossen policy, i eksisterende
-eiere, uten fast holdetidsgrense. Ikke lov ny full epoch før faktisk læring
-og tekniske porter er dokumentert. Ingen modell-/EMA-/tapsvekt-/regel-jakt.
-
-## Femstegs læringshypotese — 2026-09-16
-
-Valgfri femstegs beregning er implementert og CPU-kontrollert på én ekte TRAIN-
-batch. Native standard er fortsatt ett steg; ingen ny trening aktivert. Se øverst
-i CURRENT_HANDOVER.md og FROZEN_POLICY_TRACE_REVIEW_20260916.json. Neste er
-bundet native overgang/GPU/minne/fart/resume og faktisk læring. Gjenbruk begge
-cachekohorter. Ikke gjenta produksjonsmåling eller kalle CPU-pass læringsgevinst.
-
-## Native femstegs kontroll — 2026-09-16
-
-Gjeldende policy tillater bare eksplisitt bundet reference32 eller split16+16
-fra original95 for teknisk femstegsverifikasjon. Ingen full epoch/VAL.262
-målrettede bindingstester består; faktisk CPU-overgang og GPU/minne/fart/resume
-gjenstår. Se øverst i CURRENT_HANDOVER.md. Stoppet134 og alle originaler bevares.
-
-## Konkret GPU-blokkering rettet — 2026-09-16
-
-Reference32 på0f0a3542 feilet før første optimizersteg med OOM i336-raders
-frossen target-forward. Task/prosesser stoppet; original95 bevart. Bare denne
-forwarden deles nå i tidligere80-raders geometri.48 tester og cachet faktisk
-CPU-paritet består. Se øverst i CURRENT_HANDOVER.md. Nye sourcebundne32/16+16-
-kontroller kreves; ikke restart gammel plan, øk minnegrenser eller kjør full epoch.
+Ingen antagelser der tilstanden kan måles. Bruk tokens konservativt. Når en
+nødvendig rettelse er kontrollert, gå videre mot læringsmålet uten å utvide jobben.
