@@ -4,6 +4,12 @@
 VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
 bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
+**Nå:** En konkret Exit-gradientblokkering er målt og rettet. 213 avgrensede
+regresjoner består. Én ny native32-stegskandidat klargjøres fra original95;
+referanse96 og split97 gjenbrukes. Se
+[rettelse og fast måleopplegg](docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
+Kandidatens receipt/prosesser avgjør om den faktisk har startet eller sluttet.
+
 ## Start her
 
 Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
@@ -22,8 +28,9 @@ som alternativ vei. Statusnotater må kontrolleres mot levende prosess/receipt.
 ## Bekreftet terminalstatus
 
 Treningskilde fcd03e884c2b402979624df767a359c57562c2e1 var frosset gjennom hele
-kontrollen. Etterfølgende handovercommit endrer dokumentasjon/lesestatus, ikke
-modell-/treningsmatematikk. Finn gjeldende dokumentasjons-HEAD med git rev-parse HEAD.
+den fullførte kontrollen nedenfor. Ny rettelse endrer kun klippegrupper og
+bundet overgang; denne kontrollens gamle kilde er referanse, ikke aktuell kode.
+Finn gjeldende HEAD med git rev-parse HEAD og ny kampanjes bundne plan.
 
 Reference32 bestod på fysisk boot444. Split16+16 bestod på boot445 og446;
 alle tre receipts har guardPASS, trainer0 og observer0. Siste splitreceipt er
@@ -124,7 +131,8 @@ Manglende tidlige Exit-eksempler ble avkreftet:497/4096 treningssamples er ved
 tilstand0. Tidligere gradientbevis gir fortsatt ikke grunnlag for generell
 backbone-/tapsvektendring. Den eksakte oppdelingen mellom upstream-moduler og
 Adam-historikk er ikke målt; lærerens skjevhet er ikke alene bevis for retningen
-på de32 ONLINE-oppdateringene.
+på de32 ONLINE-oppdateringene. Dette var status ved cache-/hodeanalysen;
+Adam-/klippebidrag er senere målt i rapporten om Exit-gradientklipping.
 
 Planer, operatorer, logger og resultater ligger i
 handover_snapshot/CACHED_VALUE_CAUSE_20260916/ og tilsvarende mappe under
@@ -133,12 +141,11 @@ RESULT SHAde50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2;
 ATTRIBUTION_RESULT SHA98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0853559.
 Cacheanalysen tok1,04s; hodeanalysen9,75s. Modell-/treningskode og checkpoints er bevart.
 
-Neste: hold trening stoppet. Før en implementasjon velges, avklar én konkret
-hypotese for lærer-/verdisupervisjonen og et frosset sammenligningsgrunnlag.
-Ikke gjenta ferdige diagnoser, nullstill bias/Adam, oppdater læreren automatisk,
-koble bruttoforecast direkte til handel eller start større trening. Rapporten
-lokaliserer mekanismene, men dokumenterer ikke én enkelt kodefeil eller markedsfordel.
-
+Neste: gjennomfør bare den nye bundne32-stegskandidaten med separat Exit-
+klipping og mål den mot frosne caches/reference96. Ingen bias-/Adam-nullstilling,
+læreroppdatering, tapssøk eller full epoch/full VAL. Hypotesen er målt gradient-
+undertrykking, ikke at læreren er fasit. Plan og vurderingskriterier står i
+EXIT_PRIVATE_CLIP_LEARNING_20260916.md.
 Cachemappene under BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/
 FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2 og BROAD_TRAIN95_134_20260916 er
 bevart. Videre analyse av nye output krever ikke nye forwards.

@@ -1,10 +1,9 @@
 {
-  "status": "VALUE_LEARNING_CAUSE_DIAGNOSED_TRAINING_STOPPED",
+  "status": "EXIT_PRIVATE_CLIP_FIXED_BOUNDED_CANDIDATE_PREPARATION",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
-  "source_commit_scope": "Training source; documentation HEAD may advance after terminal control. Read current git HEAD.",
-  "latest_observation_utc": "2026-09-16T13:11:07+00:00",
+  "source_commit_scope": "New candidate source commit is recorded by its prepared CAMPAIGN_PLAN; prior checkpoint/runtime fields below describe completed historical reference/split.",
+  "latest_observation_utc": "2026-09-16T14:01:44Z",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT_BOOT444",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -57,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Keep training stopped. Read docs/VALUE_LEARNING_CAUSE_20260916.md and reuse completed cache/head attribution. Entry supervision is dominated by first liquidation plus near-zero frozen continuation; five-step Exit inherits side-asymmetric teacher stopping. Final-head versus representation contributions are measured on the cached16-row batch. Before any implementation, define one causal hypothesis for value-target supervision and its fixed comparison criteria. No repeat32/1024 or completed probes, automatic teacher refresh, bias/Adam reset, forecast-to-trade shortcut, broad weight/model search, full epoch or full VAL.",
+  "next_action": "Prepare and execute only NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE, original95 plus32 normal steps; source commit and live state are authoritative in its bound plan/receipts. Reuse baseline96 and fixed caches; follow docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. No full epoch/VAL.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -80,5 +79,7 @@
     "training_enabled": false,
     "single_root_cause_proven": false,
     "target_chain_and_final_head_contributions_measured": true
-  }
+  },
+  "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
+  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE"
 }

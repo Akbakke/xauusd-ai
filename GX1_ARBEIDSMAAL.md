@@ -19,11 +19,13 @@ allHOLD. Se CURRENT_HANDOVER.md og FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.js
 Ikke gjenta kontrollene. Årsaksdiagnosen i docs/VALUE_LEARNING_CAUSE_20260916.md
 er ferdig: svak frossen videreverdi dominerer Entry, lærerpolicyen gir sideavhengig
 effektiv Exit-targetlengde, og verdihode/representasjon flytter grunnnivåer.
-Før implementasjon velges: avklar én konkret hypotese for verdisupervisjonen
-og sammenligningskriterier. Ingen enkelt kodefeil eller markedsfordel er bevist.
-Ingen full epoch/fullVAL, target-refresh, replay, nye modeller eller tapsvekter nå.
-En videre avgrenset native kjøring krever dokumentert måleopplegg, bundet sluttpunkt
-og evidens som begrunner den. NEXT_RUN_POLICY.json gjelder.
+Neste gradientmåling påviser at Entry/auxiliary norm klipper ned private Exit-
+gradienter selv om disse oppgavene har null gradient der. Minste rettelse er
+separat Exit-klippegruppe med uendret cap1 og full Adam-historikk.213 smale
+regresjoner består. Én ny native32-stegskandidat mot eksisterende96 er bestemt;
+se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md for faste kriterier. Ingen full
+epoch/fullVAL, target-refresh, replay, nye modeller eller tapsvektsøk nå.
+NEXT_RUN_POLICY.json gjelder.
 
 Dersom prognosene lærer og Entry/Exit fortsatt ikke gjør det, revurder konkret
 læringssignal og verdifordeling før mer beregning. En enklere oppdeling av Entry

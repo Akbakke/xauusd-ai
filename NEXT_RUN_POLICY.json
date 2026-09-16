@@ -75,10 +75,10 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Require measurable Entry/Exit learning before more extensive training. The bound five-step reference32 and split16+16 technical controls from original95 are complete; do not restart their plans. training_enabled remains false and full epoch/full VAL remain blocked. Paired ONLINE95 versus96 is complete and does not justify expansion. Reuse the result and diagnose value learning before another adjustment or bounded plan. Technical PASS and teacher imitation are not proof of market edge. Preserve all features, families, timeframes, checkpoints, native campaign, TRAIN16/VAL256/8CPU/3h, deterministic FP32 and hardware guards. No arbitrary risk/holding cap, TEST/live/paper/spending, target/EMA reset, replay, broad model/rule/threshold/loss-weight search or automatic restart of stopped134. Cache/head cause diagnosis is complete; reuse docs/VALUE_LEARNING_CAUSE_20260916.md. It does not authorize a target change, refresh, reset or further training.",
+  "rule": "Only one new bound native32-step learning candidate from original95 to global5809 is authorized to measure separate private-Exit gradient clipping. Preserve the same teacher, data sequence, five-step targets, Adam, EMA, scheduler and RNG. Reuse completed reference96, split97 and cached evaluations; do not restart completed plans. Follow docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. training_enabled=false; no full epoch or VAL, TEST/live/paper/spending, replay, reset, target refresh, model/loss-weight search. Existing native hardware guards and FP32/TF32 off remain mandatory.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
-  "gradient_clipping_policy": "separate_model_and_task_weights_v1",
+  "gradient_clipping_policy": "separate_exit_private_model_and_task_weights_v1",
   "exit_backup_steps": 5,
   "native_learning_calibration": {
     "schema_version": "gx1_native_frozen_policy_trace_scope_v1",
@@ -118,6 +118,20 @@
       "training_enabled": false,
       "single_root_cause_proven": false,
       "target_chain_and_final_head_contributions_measured": true
+    },
+    "exit_private_clip_hypothesis": {
+      "report": "docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md",
+      "decision": "MEASURE_ONE_BOUNDED_CANDIDATE",
+      "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE",
+      "additional_optimizer_steps": 32,
+      "baseline_checkpoint": 96,
+      "first_order_exit_loss_change_old": -0.00025824811178583654,
+      "first_order_exit_loss_change_new": -0.00818247958585031,
+      "gradient_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/EXIT_PRIVATE_CLIP_DIRECTION95_20260916/RESULT.json",
+        "sha256": "83ffe6f978472d47234a23139ef7bebc4369420e5de013c0c258c03417995a9e"
+      },
+      "learning_improvement_proven": false
     }
   }
 }

@@ -34,9 +34,12 @@ Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20
 Årsaksarbeidet under «Hvis resultatet uteblir» er nå gjennomført og dokumentert i
 [årsaksrapporten](VALUE_LEARNING_CAUSE_20260916.md). Svak frossen videreverdi,
 sideavhengig lærerpolicy og verdihode-/representasjonsforskyvning er målt.
-Ingen produksjonsendring er valgt. Før implementasjon må én konkret hypotese
-for verdisupervisjonen og dens sammenligningsgrunnlag avklares. Ferdige
-cache-/hodekontroller skal ikke gjentas og åpner ikke trening.
+En etterfølgende Adam-/gradientmåling påviste undertrykking av de private
+Exit-gradientene gjennom andre oppgavers klippenorm. Minste rettelse er separat
+Exit-klippegruppe med samme cap1.213 smale regresjoner består. Én avgrenset
+native32-stegskandidat og frosset sammenligning er fastlagt i
+[klippehypotesen](EXIT_PRIVATE_CLIP_LEARNING_20260916.md). Ferdige referanse-/split-
+og gradientkontroller gjentas ikke. Full epoch/full VAL er fortsatt blokkert.
 
 ## Måling og beslutning, i denne rekkefølgen
 
