@@ -1,0 +1,74 @@
+{
+  "schema_version": "gx1_exit_private_clip_learning_review_v1",
+  "decision": "REJECT_FOR_PROMOTION_RESTORE_PREVIOUS_CLIPPING",
+  "experiment_source_commit": "34489f3a0febe7c11c02a4d4da3ecc951d89a087",
+  "code_restoration_source_commit": "c586520a7bb976098f4002e0597ecd5312fe1871",
+  "actual_native_steps": 32,
+  "native_terminal_guard": "PASS",
+  "actual_windows_boot": 447,
+  "windows_task_disabled": true,
+  "trained512_exit_mse": {
+    "AFTER96": 29.705816700708223,
+    "BEFORE95": 29.73130943095242,
+    "CANDIDATE": 29.646137110478193
+  },
+  "separate128_five_step_exit_mse": {
+    "AFTER96": 42.01561031381758,
+    "BEFORE95": 41.86734806197484,
+    "CANDIDATE": 42.64747808605956
+  },
+  "trained512_entry_flat_count": 512,
+  "separate1024_entry_flat_count": 1024,
+  "candidate_side_action_collapse": {
+    "LONG": "ALL_HOLD",
+    "SHORT": "ALL_EXIT"
+  },
+  "trained_mean_target_bps": {
+    "LONG": 0.18919179841918776,
+    "SHORT": -0.06560530198930792
+  },
+  "separate128_mean_target_bps": {
+    "LONG": -0.49834447918760816,
+    "SHORT": 0.5537988015275914
+  },
+  "interpretation": "Stronger Exit updates improve fixed-target fit on the actual trained512 but worsen separate TRAIN cohorts. Side means and weak conditional fit fail to transfer; clipping suppression is measured but removing it does not solve decision learning. No single ultimate root cause or market edge proven.",
+  "actual31_new_batch_backup_lengths": {
+    "LONG": {
+      "1": 1821,
+      "2": 9,
+      "3": 3,
+      "4": 6,
+      "5": 145
+    },
+    "SHORT": {
+      "1": 0,
+      "2": 0,
+      "3": 1,
+      "4": 0,
+      "5": 1983
+    }
+  },
+  "evidence": {
+    "cached_comparison": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+      "sha256": "fd0916b1e1dbfaf4974d152cb109f3287b9c5235536a46610e0a4a3ae5a1415c"
+    },
+    "separate_five_step": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/FIVE_STEP128_REUSED_RESULT.json",
+      "sha256": "a3f77e1342bd1704c9f69a635f110dfb47e2d968ff86519e604e904c381a6376"
+    },
+    "actual_trained32": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/RESULT.json",
+      "sha256": "d46fa21903c3aa14c08714420455e32ab12b722b7005c84742d301a5ae6475e7"
+    },
+    "trained_shape": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/SHAPE_REUSE_RESULT.json",
+      "sha256": "03a74ea6049ee7b8a6d083550ceea29886d40aa406e942a73a30246a61675c35"
+    }
+  },
+  "next_action": "Reuse all target/trace/Q/input/output caches. Diagnose teacher-dependent stopping and reward/bootstrap contributions before one next change. A fixed-horizon counterfactual is an analysis only, not a holding limit or target-change authority. Do not repeat native32 or trained512 audit.",
+  "training_enabled": false,
+  "full_epoch_or_val_allowed": false,
+  "test_data_used": false,
+  "profitability_proven": false
+}

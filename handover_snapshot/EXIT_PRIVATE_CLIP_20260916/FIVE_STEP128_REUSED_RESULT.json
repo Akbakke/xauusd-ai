@@ -1,0 +1,381 @@
+{
+  "all128_train": {
+    "AFTER96": {
+      "full_two_action_mae": 2.298765288473703,
+      "full_two_action_mse": 42.01561031381758,
+      "sides": {
+        "LONG": {
+          "centered_mse": 60.51071911954753,
+          "exit": 0,
+          "hold": 512,
+          "mae": 3.14158982506774,
+          "mean_baseline_mse": 60.25904872560288,
+          "mse": 60.997472913293684,
+          "pearson": -0.18399412105208665,
+          "prediction_mean": 0.19933294895963627,
+          "rows": 512,
+          "target_mean": -0.49834447918760816
+        },
+        "SHORT": {
+          "centered_mse": 106.77029591500141,
+          "exit": 271,
+          "hold": 241,
+          "mae": 6.053471328827072,
+          "mean_baseline_mse": 107.124395358001,
+          "mse": 107.06496834197665,
+          "pearson": 0.22217318324919075,
+          "prediction_mean": 0.010961416139252833,
+          "rows": 512,
+          "target_mean": 0.5537988015275914
+        }
+      }
+    },
+    "BEFORE95": {
+      "full_two_action_mae": 2.292256548361081,
+      "full_two_action_mse": 41.86734806197484,
+      "sides": {
+        "LONG": {
+          "centered_mse": 60.36369785091581,
+          "exit": 98,
+          "hold": 414,
+          "mae": 3.119570995667118,
+          "mean_baseline_mse": 60.25904872560288,
+          "mse": 60.66029792189906,
+          "pearson": -0.08299415388261074,
+          "prediction_mean": 0.04626553814887302,
+          "rows": 512,
+          "target_mean": -0.49834447918760816
+        },
+        "SHORT": {
+          "centered_mse": 106.5527347213768,
+          "exit": 87,
+          "hold": 425,
+          "mae": 6.049455197777206,
+          "mean_baseline_mse": 107.124395358001,
+          "mse": 106.8090943260003,
+          "pearson": 0.2929798874055914,
+          "prediction_mean": 0.04747913508799684,
+          "rows": 512,
+          "target_mean": 0.5537988015275914
+        }
+      }
+    },
+    "CANDIDATE": {
+      "full_two_action_mae": 2.315786032028143,
+      "full_two_action_mse": 42.64747808605956,
+      "sides": {
+        "LONG": {
+          "centered_mse": 61.28822872961005,
+          "exit": 0,
+          "hold": 512,
+          "mae": 3.1566934661830146,
+          "mean_baseline_mse": 60.25904872560288,
+          "mse": 61.84619338779537,
+          "pearson": -0.44376709050091273,
+          "prediction_mean": 0.24862584029324353,
+          "rows": 512,
+          "target_mean": -0.49834447918760816
+        },
+        "SHORT": {
+          "centered_mse": 107.83531793384313,
+          "exit": 512,
+          "hold": 0,
+          "mae": 6.106450661929557,
+          "mean_baseline_mse": 107.124395358001,
+          "mse": 108.7437189564429,
+          "pearson": -0.18194718825684716,
+          "prediction_mean": -0.39930193952750415,
+          "rows": 512,
+          "target_mean": 0.5537988015275914
+        }
+      }
+    }
+  },
+  "candidate_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
+    "sha256": "fd0916b1e1dbfaf4974d152cb109f3287b9c5235536a46610e0a4a3ae5a1415c"
+  },
+  "decision": "PAIRED_FIVE_STEP128_REUSE_NO_MODEL_RUN",
+  "effective_backup_lengths": {
+    "0": "reused_prior_batch0",
+    "18": {
+      "LONG": {
+        "1": 61,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 3
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "27": {
+      "LONG": {
+        "1": 61,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 3
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "36": {
+      "LONG": {
+        "1": 61,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 3
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "45": {
+      "LONG": {
+        "1": 59,
+        "2": 1,
+        "3": 0,
+        "4": 0,
+        "5": 4
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "54": {
+      "LONG": {
+        "1": 59,
+        "2": 1,
+        "3": 0,
+        "4": 0,
+        "5": 4
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "63": {
+      "LONG": {
+        "1": 60,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 4
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    },
+    "9": {
+      "LONG": {
+        "1": 58,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 6
+      },
+      "SHORT": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 64
+      }
+    }
+  },
+  "input_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_00.json",
+      "sha256": "abcc6be02e6f7ca29c2e5829cf44b72baa665e37e29ee765f6d4b081e107a114"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_00_CANDIDATE.json",
+      "sha256": "03cb0d787160d27ae2282cca7e7efb04f68635d7329f5adb9203a75a183b6ebe"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_09.json",
+      "sha256": "072efd6f13f3275970a9a63da39ef7b112bbca0fe806ffcbb3f9b08afb38eee0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_09_CANDIDATE.json",
+      "sha256": "a981459cbca54e2c0d7824c35d2ca5e78de2c3eaadd4b8f1777b8640e178dcb0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_18.json",
+      "sha256": "5d2abbc636f6f14aeae279875054b45e7108a65f269033e7f891e213500cccf9"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_18_CANDIDATE.json",
+      "sha256": "c961cd0f03a727e44ae3a8d111fcf2116086a9dceed373323e232ec3eb38a0ff"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_27.json",
+      "sha256": "a8fc9c011d92321e7d6540d842b060c78a7d936a1ffa040816c03edc08e75dc0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_27_CANDIDATE.json",
+      "sha256": "ce36ec2bfc607fec6b7d976bd329fe81772016c305f86025ba7613ed0bfd4166"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_36.json",
+      "sha256": "f076af5db863369e03a308a09ffb8f766c65460f11feb0fed229f34a46dd5f96"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_36_CANDIDATE.json",
+      "sha256": "4d88bf9a89889d6aa8844c25fc5faf4d488a44b0940a83842f2d064bf389c6b2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_45.json",
+      "sha256": "815d0f046b410fbcd21f6127b76554e207b0e6667711ae8bf0a9146ebe2727a2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_45_CANDIDATE.json",
+      "sha256": "97e876d3acf758b793a948540f5b17a09738cc7ed52d47736d12952fddf84b22"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_54.json",
+      "sha256": "67fdf31023bdfc2781f49e72ace07e46ea303d2bec44f73ce19f9fff74dd3a45"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_54_CANDIDATE.json",
+      "sha256": "1b4d665ab00cf03e6d90ca2d247ea9534c670e81015e3393279b43f45f906e33"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/BATCH_63.json",
+      "sha256": "df0491b23909ebee5aae435b34c485213f2afc76bedbddde68d545450843cbcd"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/LEARNING_COMPARISON/BATCH_63_CANDIDATE.json",
+      "sha256": "c19802b309d489fa547e6d264bdcb47736c861451cf83fe5a6d5c440f574f322"
+    }
+  ],
+  "new_materialization": false,
+  "new_model_forwards": 0,
+  "new_targets": false,
+  "old_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/FIVE_STEP_TARGETS128_20260916/RESULT.json",
+    "sha256": "810083662179f58883e7e7b952bada2760288336d6bfa8290c0bd59d2787423b"
+  },
+  "optimizer_or_backward": false,
+  "outside_latest32_still_train": {
+    "AFTER96": {
+      "full_two_action_mae": 2.2889034513076303,
+      "full_two_action_mse": 44.279581694235965,
+      "sides": {
+        "LONG": {
+          "centered_mse": 64.45107885548919,
+          "exit": 0,
+          "hold": 448,
+          "mae": 3.08959884053989,
+          "mean_baseline_mse": 64.13197432400322,
+          "mse": 65.03319290908475,
+          "pearson": -0.2386652099275348,
+          "prediction_mean": 0.19750571934024003,
+          "rows": 448,
+          "target_mean": -0.5654582729920159
+        },
+        "SHORT": {
+          "centered_mse": 111.79570047588157,
+          "exit": 237,
+          "hold": 211,
+          "mae": 6.066014964690631,
+          "mean_baseline_mse": 112.2014225609686,
+          "mse": 112.08513386785913,
+          "pearson": 0.2906677871320585,
+          "prediction_mean": 0.009193356356783105,
+          "rows": 448,
+          "target_mean": 0.54718349750952
+        }
+      }
+    },
+    "BEFORE95": {
+      "full_two_action_mae": 2.2816071951130783,
+      "full_two_action_mse": 44.10974490168735,
+      "sides": {
+        "LONG": {
+          "centered_mse": 64.27050624065176,
+          "exit": 87,
+          "hold": 361,
+          "mae": 3.065064356977018,
+          "mean_baseline_mse": 64.13197432400322,
+          "mse": 64.6436756829541,
+          "pearson": -0.10945357983821312,
+          "prediction_mean": 0.045417690115365464,
+          "rows": 448,
+          "target_mean": -0.5654582729920159
+        },
+        "SHORT": {
+          "centered_mse": 111.54353939340717,
+          "exit": 75,
+          "hold": 373,
+          "mae": 6.061364423475295,
+          "mean_baseline_mse": 112.2014225609686,
+          "mse": 111.79530392379527,
+          "pearson": 0.3809784904047126,
+          "prediction_mean": 0.04542206974916293,
+          "rows": 448,
+          "target_mean": 0.54718349750952
+        }
+      }
+    },
+    "CANDIDATE": {
+      "full_two_action_mae": 2.307223737649565,
+      "full_two_action_mse": 44.967461649574474,
+      "sides": {
+        "LONG": {
+          "centered_mse": 65.34396458557062,
+          "exit": 0,
+          "hold": 448,
+          "mae": 3.1063474700877123,
+          "mean_baseline_mse": 64.13197432400322,
+          "mse": 66.00075242130139,
+          "pearson": -0.5432995213238786,
+          "prediction_mean": 0.24496620574167796,
+          "rows": 448,
+          "target_mean": -0.5654582729920159
+        },
+        "SHORT": {
+          "centered_mse": 112.97855563114219,
+          "exit": 448,
+          "hold": 0,
+          "mae": 6.122547480510548,
+          "mean_baseline_mse": 112.2014225609686,
+          "mse": 113.86909417699651,
+          "pearson": -0.2047383574158758,
+          "prediction_mean": -0.3965000012623412,
+          "rows": 448,
+          "target_mean": 0.54718349750952
+        }
+      }
+    }
+  },
+  "test_data_used": false
+}

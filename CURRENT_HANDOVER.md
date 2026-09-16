@@ -4,11 +4,20 @@
 VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
 bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
-**Nå:** En konkret Exit-gradientblokkering er målt og rettet. 213 avgrensede
-regresjoner består. Én ny native32-stegskandidat klargjøres fra original95;
-referanse96 og split97 gjenbrukes. Se
-[rettelse og fast måleopplegg](docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
-Kandidatens receipt/prosesser avgjør om den faktisk har startet eller sluttet.
+**Nå:** Kandidaten med separat Exit-klipping er fullført og forkastet.
+Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;
+handlingene kollapset til LONG=HOLD og SHORT=EXIT. Entry forblir FLAT.
+Standardens klippe-/kontraktsfiler tilbakeføres til c586520a; forsøkskilde34489f3a,
+checkpoints og alle målinger er bevart. Les
+[fullført forsøk og neste diagnose](docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
+
+Siste native kjøring: fysisk boot447, guardPASS/trainer0/observer0, terminal
+2026-09-16T15:00:29Z, kandidatcheckpoint96/global5809/offset1728. Windows-task
+er deaktivert, ingen native prosess. Runtime er
+/home/andre2/GX1_RUNS/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE_BOOT446.
+Kandidatens state-SHA er b4f2f472b6c0e58c130e7792d2f20f725511d25202855140c01c7927c46fadbe.
+Dette er en annen96 enn den eldre referansen nedenfor. Maskinrapport og bindinger:
+handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json. Ingen ny trening åpnet.
 
 ## Start her
 
@@ -25,7 +34,7 @@ HANDOVER_HISTORY_BEFORE_LEARNING_GATE_20260916.md, uttrykkelig historikk.
 Ingen eldre startplan, COMPLETED_RUN.json eller historisk kildekopi skal brukes
 som alternativ vei. Statusnotater må kontrolleres mot levende prosess/receipt.
 
-## Bekreftet terminalstatus
+## Historikk: fullført referanse og split
 
 Treningskilde fcd03e884c2b402979624df767a359c57562c2e1 var frosset gjennom hele
 den fullførte kontrollen nedenfor. Ny rettelse endrer kun klippegrupper og
@@ -141,11 +150,11 @@ RESULT SHAde50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2;
 ATTRIBUTION_RESULT SHA98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0853559.
 Cacheanalysen tok1,04s; hodeanalysen9,75s. Modell-/treningskode og checkpoints er bevart.
 
-Neste: gjennomfør bare den nye bundne32-stegskandidaten med separat Exit-
-klipping og mål den mot frosne caches/reference96. Ingen bias-/Adam-nullstilling,
-læreroppdatering, tapssøk eller full epoch/full VAL. Hypotesen er målt gradient-
-undertrykking, ikke at læreren er fasit. Plan og vurderingskriterier står i
-EXIT_PRIVATE_CLIP_LEARNING_20260916.md.
+Neste: kandidat32 og faktisk512-måling er nå ferdige. Gjenbruk deres caches
+for å skille reward, lærerens sideavhengige stopp og bootstrap. Ingen nye
+klippe-/tapsvekt-/modellforsøk, Adam-nullstilling eller større trening før én
+målmekanisme er begrunnet. Se den oppdaterte klipperapporten.
+
 Cachemappene under BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/
 FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2 og BROAD_TRAIN95_134_20260916 er
 bevart. Videre analyse av nye output krever ikke nye forwards.

@@ -34,12 +34,13 @@ Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20
 Årsaksarbeidet under «Hvis resultatet uteblir» er nå gjennomført og dokumentert i
 [årsaksrapporten](VALUE_LEARNING_CAUSE_20260916.md). Svak frossen videreverdi,
 sideavhengig lærerpolicy og verdihode-/representasjonsforskyvning er målt.
-En etterfølgende Adam-/gradientmåling påviste undertrykking av de private
-Exit-gradientene gjennom andre oppgavers klippenorm. Minste rettelse er separat
-Exit-klippegruppe med samme cap1.213 smale regresjoner består. Én avgrenset
-native32-stegskandidat og frosset sammenligning er fastlagt i
-[klippehypotesen](EXIT_PRIVATE_CLIP_LEARNING_20260916.md). Ferdige referanse-/split-
-og gradientkontroller gjentas ikke. Full epoch/full VAL er fortsatt blokkert.
+Den etterfølgende klippehypotesen er nå prøvd og forkastet: sterkere Exit-
+oppdateringer bedrer faktisk TRAIN512-fit litt, men forverrer separat TRAIN128
+med samme femstegsmål. Entry forblir FLAT; Exit kollapser til sideavhengige
+konstantvalg. Se [ferdig forsøk](EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
+Klippekoden tilbakeføres. Alle referanser, resultater og nye32-batchcacher
+bevares og gjenbrukes. Neste er målkomponentdiagnose uten trening. Ingen
+full epoch/full VAL, repetert32-kontroll eller nye tapssøk åpnes.
 
 ## Måling og beslutning, i denne rekkefølgen
 

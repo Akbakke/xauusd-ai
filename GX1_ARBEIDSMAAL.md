@@ -19,12 +19,13 @@ allHOLD. Se CURRENT_HANDOVER.md og FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.js
 Ikke gjenta kontrollene. Årsaksdiagnosen i docs/VALUE_LEARNING_CAUSE_20260916.md
 er ferdig: svak frossen videreverdi dominerer Entry, lærerpolicyen gir sideavhengig
 effektiv Exit-targetlengde, og verdihode/representasjon flytter grunnnivåer.
-Neste gradientmåling påviser at Entry/auxiliary norm klipper ned private Exit-
-gradienter selv om disse oppgavene har null gradient der. Minste rettelse er
-separat Exit-klippegruppe med uendret cap1 og full Adam-historikk.213 smale
-regresjoner består. Én ny native32-stegskandidat mot eksisterende96 er bestemt;
-se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md for faste kriterier. Ingen full
-epoch/fullVAL, target-refresh, replay, nye modeller eller tapsvektsøk nå.
+Separat Exit-klipping ble målt og prøvd i én native32-kandidat, men er forkastet.
+Den forbedret Exit-fit litt på faktisk trent512 og forverret separat TRAIN128
+med samme femstegsmål. AllHOLD for LONG og allEXIT for SHORT er ikke kvalitet;
+Entry er fortsatt allFLAT. Standardkoden tilbakeføres, alle resultater bevares.
+Se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. Neste diagnose gjenbruker ferdige
+trace/reward/Q-caches for å skille målkomponentene. Ingen nye treningsforsøk,
+full epoch/fullVAL, target-refresh, replay eller tapsvektsøk nå.
 NEXT_RUN_POLICY.json gjelder.
 
 Dersom prognosene lærer og Entry/Exit fortsatt ikke gjør det, revurder konkret

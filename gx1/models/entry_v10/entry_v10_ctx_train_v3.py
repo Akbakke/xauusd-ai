@@ -3240,7 +3240,7 @@ def _entry_fitted_q_movement_proof(
 # V12.2: grad-clip norm + weight-decay set at runtime via CLI flag. Module-level
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
-_GRAD_CLIP_POLICY = "separate_exit_private_model_and_task_weights_v1"
+_GRAD_CLIP_POLICY = "separate_model_and_task_weights_v1"
 _WEIGHT_DECAY: float = 1e-5
 # Below the outer guard's 12 GiB observation boundary. An unsafe
 # activation-retention run fails locally as CUDA OOM before it can reserve
@@ -6126,11 +6126,11 @@ def _optimizer_step_with_finite_gradients(
     optimizer: optim.Optimizer,
     weight_ema: Optional["_WeightEma"] = None,
 ) -> torch.Tensor:
-    """Clip private Exit, other model and task-weight gradients independently.
+    """Clip prediction and task-weight gradients separately after a finite guard.
 
-    Entry/auxiliary gradients are zero in the private Exit branch; their norm
-    must not consume its clipping budget. All groups retain the existing cap.
-    The returned norm covers all gradients before clipping.
+    A large loss-weight gradient must not consume the prediction parameters'
+    clipping budget. Both groups retain the existing cap. The returned norm
+    covers all gradients before clipping, for the existing diagnostics.
     """
 
     with kernel_profile_range("gradient_clip_and_finite_guard"):
@@ -6139,18 +6139,16 @@ def _optimizer_step_with_finite_gradients(
             {id(parameter) for parameter in task_weights.parameters()}
             if task_weights is not None else set()
         )
-        groups = ([], [], [])
-        for name, parameter in model.named_parameters():
+        groups = ([], [])
+        for parameter in model.parameters():
             if parameter.grad is not None:
-                group = (2 if id(parameter) in task_weight_ids else
-                         1 if name.startswith(("exit_", "head_exit_action.")) else 0)
-                groups[group].append(parameter)
+                groups[int(id(parameter) in task_weight_ids)].append(parameter)
         active_groups = [group for group in groups if group]
         group_norms = [
             torch.nn.utils.get_total_norm([parameter.grad for parameter in group])
             for group in active_groups
         ]
-        # Check all groups, including FP32 norm overflow, before changing any
+        # Check both groups, including FP32 norm overflow, before changing any
         # gradient, optimizer state, parameter or EMA value.
         gradient_norm = torch.nn.utils.get_total_norm(
             group_norms, error_if_nonfinite=True
@@ -13140,8 +13138,7 @@ def _load_candidate_optimizer_procedure_successor_state(
     """Restore an immutable admitted origin; preserve its model and training state."""
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
-        OPTIMIZER_PROCEDURE_TRANSITION_POLICY, LEGACY_GRAD_CLIP_POLICY,
-        OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
+        OPTIMIZER_PROCEDURE_TRANSITION_POLICY, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
         OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA,
@@ -13241,14 +13238,6 @@ def _load_candidate_optimizer_procedure_successor_state(
                 or before.get("exit_backup_steps", 1) != 1 or after.get("exit_backup_steps") != 5
                 or calibration is None or calibration["report_only_val"] is not False):
             fail("TRACE_BACKUP_POLICY_INVALID")
-    exit_private_clip_transition = (
-        trace_backup
-        and previous["training"].get("gradient_clipping_policy") == LEGACY_GRAD_CLIP_POLICY
-        and requested["training"].get("gradient_clipping_policy") == _GRAD_CLIP_POLICY
-    )
-    if exit_private_clip_transition:
-        # Normalize only the comparison copy; retain every serialized state.
-        previous["training"]["gradient_clipping_policy"] = _GRAD_CLIP_POLICY
     if continuation or target_refresh or entry_learnability:
         if (previous["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
                 or requested["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
@@ -13369,14 +13358,9 @@ def _load_candidate_optimizer_procedure_successor_state(
         "preserved_state_fields": sorted(set(state) - changed_state_fields),
         "changed_source_paths": sorted(changed_sources),
         "gradient_clipping_policy": _GRAD_CLIP_POLICY,
-        "state_preserved": not target_refresh,
-        "optimizer_procedure_changed": exit_private_clip_transition or not (continuation or target_refresh or entry_learnability),
+        "state_preserved": not target_refresh, "optimizer_procedure_changed": not (continuation or target_refresh or entry_learnability),
         "identical_future_trajectory_claimed": False, "test_data_used": False,
         **refresh_evidence, **replay_evidence,
-        **({"gradient_clipping_policy_change": {
-            "previous_policy": LEGACY_GRAD_CLIP_POLICY, "policy": _GRAD_CLIP_POLICY,
-            "grad_clip_norm": 1.0, "optimizer_moments_preserved": True,
-        }} if exit_private_clip_transition else {}),
         **({"exit_backup_policy_change": {
             "previous_backup_steps": 1, "backup_steps": 5,
             "teacher_preserved": True, "sampler_preserved": True,

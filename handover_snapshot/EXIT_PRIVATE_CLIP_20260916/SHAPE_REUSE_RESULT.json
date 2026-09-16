@@ -1,0 +1,52 @@
+{
+  "actual32_shape": {
+    "LONG": {
+      "AFTER96": {
+        "centered_mse": 34.014532685187405,
+        "constant_mean_baseline_mse": 34.074981816606524,
+        "constant_share_of_change_from95": 0.9474367001203068,
+        "prediction_target_pearson": 0.06430242902824161,
+        "target_mean": 0.18919179841918776
+      },
+      "BEFORE95": {
+        "centered_mse": 34.05157780032679,
+        "constant_mean_baseline_mse": 34.074981816606524,
+        "constant_share_of_change_from95": null,
+        "prediction_target_pearson": 0.031914375952124346,
+        "target_mean": 0.18919179841918776
+      },
+      "CANDIDATE": {
+        "centered_mse": 33.86873702405727,
+        "constant_mean_baseline_mse": 34.074981816606524,
+        "constant_share_of_change_from95": 0.7550445141247667,
+        "prediction_target_pearson": 0.1364316967655037,
+        "target_mean": 0.18919179841918776
+      }
+    },
+    "SHORT": {
+      "AFTER96": {
+        "centered_mse": 84.80305979848372,
+        "constant_mean_baseline_mse": 84.82503063782723,
+        "constant_share_of_change_from95": 0.6244037440234917,
+        "prediction_target_pearson": 0.020125980162393146,
+        "target_mean": -0.06560530198930792
+      },
+      "BEFORE95": {
+        "centered_mse": 84.8428592509013,
+        "constant_mean_baseline_mse": 84.82503063782723,
+        "constant_share_of_change_from95": null,
+        "prediction_target_pearson": -0.006984005193549994,
+        "target_mean": -0.06560530198930792
+      },
+      "CANDIDATE": {
+        "centered_mse": 84.59632101548318,
+        "constant_mean_baseline_mse": 84.82503063782723,
+        "constant_share_of_change_from95": 0.8092792862340314,
+        "prediction_target_pearson": 0.07733051015241625,
+        "target_mean": -0.06560530198930792
+      }
+    }
+  },
+  "model_forwards": 0,
+  "test_data_used": false
+}

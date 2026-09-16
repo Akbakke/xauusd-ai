@@ -77,10 +77,8 @@ def test_trace_rejects_old87_even_with_matching_backup_flag(continuation_origin)
         native.require_training_continuation_origin(origin)
 
 
-@pytest.mark.parametrize("private_clip", [False, True])
-def test_trace_transition_preserves_every_state_and_serialized_resume(tmp_path, monkeypatch, private_clip):
-    (old,new), origin = _optimizer_procedure_fixture(tmp_path,monkeypatch,trace_backup=True,
-        exit_private_clip_transition=private_clip)
+def test_trace_transition_preserves_every_state_and_serialized_resume(tmp_path, monkeypatch):
+    (old,new), origin = _optimizer_procedure_fixture(tmp_path,monkeypatch,trace_backup=True)
     before = old.load_checkpoint()
     hashes={p.name:trainer._sha256_file(p) for p in old.directory.iterdir() if p.is_file()}
     state=trainer._load_candidate_optimizer_procedure_successor_state(session=new,origin=origin)
@@ -91,15 +89,7 @@ def test_trace_transition_preserves_every_state_and_serialized_resume(tmp_path, 
     receipt=json.loads(receipt_path.read_text())
     assert receipt["exit_backup_policy_change"] == {"previous_backup_steps":1,"backup_steps":5,
         "teacher_preserved":True,"sampler_preserved":True,"holding_time_cap_introduced":False}
-    assert receipt["state_preserved"] is True
-    assert receipt["optimizer_procedure_changed"] is private_clip
-    if private_clip:
-        assert receipt["gradient_clipping_policy_change"] == {
-            "previous_policy": native.LEGACY_GRAD_CLIP_POLICY,
-            "policy": native.OPTIMIZER_PROCEDURE_TRANSITION_POLICY,
-            "grad_clip_norm": 1.0, "optimizer_moments_preserved": True}
-    else:
-        assert "gradient_clipping_policy_change" not in receipt
+    assert receipt["state_preserved"] is True and receipt["optimizer_procedure_changed"] is False
     assert receipt["global_optimizer_steps"] == 5777
     _identical(state,trainer._load_candidate_optimizer_procedure_successor_state(session=new,origin=origin))
     new.save_checkpoint(state)
@@ -113,8 +103,7 @@ def test_trace_transition_preserves_every_state_and_serialized_resume(tmp_path, 
     ("backup_steps","TRACE_BACKUP_POLICY_INVALID"),("calibration_val","TRACE_BACKUP_POLICY_INVALID"),
     ("model_source","UNAPPROVED_SOURCE_CHANGED"),("data","MODEL_DATA_OR_TRAINING_CHANGED"),
     ("batch","MODEL_DATA_OR_TRAINING_CHANGED"),("clip_cap","CLIPPING_POLICY_INVALID"),
-    ("cursor","STOPPED_STATE_INVALID"),("ema_steps","EMA_HISTORY_INVALID"),
-    ("old_clipping_unknown","CLIPPING_POLICY_INVALID")])
+    ("cursor","STOPPED_STATE_INVALID"),("ema_steps","EMA_HISTORY_INVALID")])
 def test_trace_transition_rejects_unrelated_or_incomplete_changes(tmp_path,monkeypatch,fault,error):
     (_,new),origin=_optimizer_procedure_fixture(tmp_path,monkeypatch,fault,trace_backup=True)
     with pytest.raises(RuntimeError,match=error):
@@ -159,27 +148,3 @@ def test_trace_history_requires_backup_receipt_and_preserved_teacher(trace_scope
     changed=copy.deepcopy(receipt);changed['preserved_state_fields'].remove('target_model_state');_write(path,changed)
     with pytest.raises(RuntimeError,match='EMA_HISTORY_INVALID'):
         ema.bind_candidate_weight_ema_history_v1(**kwargs)
-
-
-def test_private_clip_history_requires_exact_receipt_and_retained_adam(tmp_path, monkeypatch):
-    from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as ema
-    bind_history = ema.bind_candidate_weight_ema_history_v1
-    (_, new), origin = _optimizer_procedure_fixture(tmp_path, monkeypatch,
-        trace_backup=True, exit_private_clip_transition=True)
-    trainer._load_candidate_optimizer_procedure_successor_state(session=new, origin=origin)
-    kwargs = {"session_contract_path": new._contract_path,
-              "session_contract_sha256": new.contract_sha256}
-    assert bind_history(**kwargs)["optimizer_step_offset"] == 19908
-    path = new.directory / native.TRAINING_CONTINUATION_RECEIPT_NAME
-    receipt = json.loads(path.read_text())
-    for field, value in [("previous_policy", "unknown"), ("policy", native.LEGACY_GRAD_CLIP_POLICY),
-                         ("grad_clip_norm", 2.0), ("optimizer_moments_preserved", False)]:
-        changed = copy.deepcopy(receipt)
-        changed["gradient_clipping_policy_change"][field] = value
-        path.write_text(json.dumps(changed))
-        with pytest.raises(RuntimeError, match="EXIT_PRIVATE_CLIP_RECEIPT_INVALID"):
-            bind_history(**kwargs)
-    changed = copy.deepcopy(receipt); changed.pop("gradient_clipping_policy_change")
-    path.write_text(json.dumps(changed))
-    with pytest.raises(RuntimeError, match="EXIT_PRIVATE_CLIP_RECEIPT_INVALID"):
-        bind_history(**kwargs)

@@ -569,7 +569,7 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
         _identical(state[key], before[key])
 
 
-def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None, trace_backup=False, exit_private_clip_transition=False):
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None, trace_backup=False):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
     from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
     if trace_backup:
@@ -635,10 +635,6 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             contract["training"]["exit_backup_steps"] = 5 if fault != "backup_steps" else 2
         if side or preserve_procedure:
             contract["training"]["gradient_clipping_policy"] = trainer._GRAD_CLIP_POLICY
-        if not side and exit_private_clip_transition:
-            contract["training"]["gradient_clipping_policy"] = scope.LEGACY_GRAD_CLIP_POLICY
-        if not side and fault == "old_clipping_unknown":
-            contract["training"]["gradient_clipping_policy"] = "unbound_clipping"
         if preserve_procedure and not side and fault == "old_clipping_missing":
             contract["training"].pop("gradient_clipping_policy")
         if side and fault == "clip_cap":

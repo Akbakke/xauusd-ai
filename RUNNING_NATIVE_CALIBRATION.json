@@ -1,17 +1,17 @@
 {
-  "status": "EXIT_PRIVATE_CLIP_FIXED_BOUNDED_CANDIDATE_PREPARATION",
+  "status": "EXIT_PRIVATE_CLIP_REJECTED_TRAINING_STOPPED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "New candidate source commit is recorded by its prepared CAMPAIGN_PLAN; prior checkpoint/runtime fields below describe completed historical reference/split.",
-  "latest_observation_utc": "2026-09-16T14:01:44Z",
+  "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping; read git HEAD.",
+  "latest_observation_utc": "2026-09-16T15:46:08.825478+00:00",
   "source_frozen_while_running": false,
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT_BOOT444",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE_BOOT446",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_state": "Disabled",
   "observed_processes": [],
   "latest_observed_checkpoint": {
-    "checkpoint_index": 97,
+    "checkpoint_index": 96,
     "phase": "train",
     "epoch_index": 1,
     "next_batch_offset": 1728,
@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prepare and execute only NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE, original95 plus32 normal steps; source commit and live state are authoritative in its bound plan/receipts. Reuse baseline96 and fixed caches; follow docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. No full epoch/VAL.",
+  "next_action": "Reuse all target/trace/Q/input/output caches. Diagnose teacher-dependent stopping and reward/bootstrap contributions before one next change. A fixed-horizon counterfactual is an analysis only, not a holding limit or target-change authority. Do not repeat native32 or trained512 audit.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -81,5 +81,7 @@
     "target_chain_and_final_head_contributions_measured": true
   },
   "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
-  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE"
+  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE",
+  "source_commit": "34489f3a0febe7c11c02a4d4da3ecc951d89a087",
+  "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json"
 }

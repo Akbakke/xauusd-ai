@@ -721,45 +721,18 @@ def test_task_weights_have_separate_gradient_clip_budget(
             assert float(parameter) == 0.0
 
 
-@pytest.mark.parametrize("private_scale", [1.0, 0.05])
-def test_private_exit_has_one_gradient_budget_independent_of_other_tasks(private_scale):
-    model = _TaskWeights()
-    model.register_parameter("prediction", torch.nn.Parameter(torch.zeros(2)))
-    model.register_parameter("exit_feature", torch.nn.Parameter(torch.zeros(())))
-    model.head_exit_action = torch.nn.Linear(1, 1, bias=False)
-    with torch.no_grad(): model.head_exit_action.weight.zero_()
-    model.prediction.grad = torch.tensor([30.0, 40.0])
-    model.exit_feature.grad = torch.tensor(4.0 * private_scale)
-    model.head_exit_action.weight.grad = torch.tensor([[3.0 * private_scale]])
-    task = model.task_log_variances["unified_exit_action"]
-    task.grad = torch.tensor(60.0)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
-    ema = trainer._WeightEma(model, 0.5)
-    norm = trainer._optimizer_step_with_finite_gradients(model=model, optimizer=optimizer, weight_ema=ema)
-    assert float(norm) == pytest.approx((50**2 + (5*private_scale)**2 + 60**2)**0.5)
-    torch.testing.assert_close(model.prediction, torch.tensor([-0.6, -0.8]))
-    assert float(model.exit_feature) == pytest.approx(-4 * min(private_scale, .2), abs=2e-6)
-    assert float(model.head_exit_action.weight) == pytest.approx(-3 * min(private_scale, .2), abs=2e-6)
-    assert float(task) == pytest.approx(-1.0, abs=2e-6)
-    assert ema.steps == 1
-    assert all(p.grad is None for p in model.parameters())
-
-
-@pytest.mark.parametrize("bad_group", ["prediction", "task_weight", "exit_private"])
+@pytest.mark.parametrize("bad_group", ["prediction", "task_weight"])
 @pytest.mark.parametrize("bad_gradient", [float("nan"), float("inf"), 1e30])
 def test_separate_clip_checks_all_groups_before_any_mutation(
     bad_group: str, bad_gradient: float,
 ) -> None:
     model = _TaskWeights()
     model.register_parameter("prediction", torch.nn.Parameter(torch.zeros(2)))
-    model.register_parameter("exit_feature", torch.nn.Parameter(torch.zeros(())))
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
     ema = trainer._WeightEma(model, 0.5)
-    model.exit_feature.grad = torch.tensor(2.0)
     model.prediction.grad = torch.tensor([3.0, 4.0])
     model.task_log_variances["unified_exit_action"].grad = torch.tensor(60.0)
-    bad = {"prediction": model.prediction, "task_weight": model.task_log_variances["unified_exit_action"],
-           "exit_private": model.exit_feature}[bad_group]
+    bad = model.prediction if bad_group == "prediction" else model.task_log_variances["unified_exit_action"]
     bad.grad.fill_(bad_gradient)
     initial = copy.deepcopy(model.state_dict())
     gradients = {name: p.grad.clone() for name, p in model.named_parameters() if p.grad is not None}

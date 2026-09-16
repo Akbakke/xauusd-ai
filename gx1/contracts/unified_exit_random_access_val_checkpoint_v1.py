@@ -58,7 +58,6 @@ def bind_candidate_weight_ema_history_v1(
     origin = recipe.get("candidate_resume_origin")
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME,
-        LEGACY_GRAD_CLIP_POLICY, OPTIMIZER_PROCEDURE_TRANSITION_POLICY,
         OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
         OPTIMIZER_PROCEDURE_ORIGIN_STATE_SHA256, require_optimizer_procedure_origin,
         TRAINING_CONTINUATION_SCHEMA, training_continuation_control,
@@ -136,24 +135,6 @@ def bind_candidate_weight_ema_history_v1(
                         "holding_time_cap_introduced": False,
                     }):
                 raise RuntimeError("UNIFIED_EXIT_CANDIDATE_TRACE_BACKUP_RECEIPT_INVALID")
-        clip_change = receipt.get("gradient_clipping_policy_change")
-        origin_contract = read_bound_json(Path(origin["contract"]["path"]), origin["contract"]["sha256"])
-        exit_private_clip_transition = (
-            continuation and origin.get("exit_backup_steps") == 5
-            and origin_contract.get("training", {}).get("gradient_clipping_policy") == LEGACY_GRAD_CLIP_POLICY
-            and contract.get("training", {}).get("gradient_clipping_policy") == OPTIMIZER_PROCEDURE_TRANSITION_POLICY
-        )
-        if clip_change is not None or exit_private_clip_transition:
-            if (not continuation or origin.get("exit_backup_steps") != 5
-                    or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
-                    or origin_contract.get("training", {}).get("gradient_clipping_policy") != LEGACY_GRAD_CLIP_POLICY
-                    or contract.get("training", {}).get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
-                    or any(item.get("training", {}).get("grad_clip_norm") != 1.0
-                           for item in (origin_contract, contract))
-                    or clip_change != {"previous_policy": LEGACY_GRAD_CLIP_POLICY,
-                        "policy": OPTIMIZER_PROCEDURE_TRANSITION_POLICY,
-                        "grad_clip_norm": 1.0, "optimizer_moments_preserved": True}):
-                raise RuntimeError("UNIFIED_EXIT_CANDIDATE_EXIT_PRIVATE_CLIP_RECEIPT_INVALID")
         if target_refresh:
             required_preserved.remove("target_model_state")
             if (receipt.get("target_model_refreshed") is not True
@@ -179,7 +160,7 @@ def bind_candidate_weight_ema_history_v1(
                 or type(receipt.get("ema_internal_steps")) is not int
                 or receipt["ema_internal_steps"] != origin_cursor["global_optimizer_steps"] + inherited["optimizer_step_offset"]
                 or receipt.get("state_preserved") is not (not target_refresh)
-                or receipt.get("optimizer_procedure_changed") is not (exit_private_clip_transition or not (continuation or target_refresh or entry_learnability))
+                or receipt.get("optimizer_procedure_changed") is not (not (continuation or target_refresh or entry_learnability))
                 or receipt.get("identical_future_trajectory_claimed") is not False
                 or not isinstance(preserved, list) or any(type(x) is not str for x in preserved)
                 or len(preserved) != len(set(preserved))

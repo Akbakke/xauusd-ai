@@ -27,8 +27,7 @@ WINDOW_SCHEMA = "gx1_native_candidate_window_policy_v1"
 
 
 OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA = "gx1_candidate_optimizer_procedure_transition_v1"
-LEGACY_GRAD_CLIP_POLICY = "separate_model_and_task_weights_v1"
-OPTIMIZER_PROCEDURE_TRANSITION_POLICY = "separate_exit_private_model_and_task_weights_v1"
+OPTIMIZER_PROCEDURE_TRANSITION_POLICY = "separate_model_and_task_weights_v1"
 OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_NAME = "CANDIDATE_OPTIMIZER_PROCEDURE_TRANSITION.json"
 OPTIMIZER_PROCEDURE_TRANSITION_RECEIPT_SCHEMA = "gx1_candidate_optimizer_procedure_transition_receipt_v1"
 OPTIMIZER_PROCEDURE_ORIGIN_CONTRACT_SHA256 = "19a1286b2c6e977246a8b2f890c8295489135586eb05b194ebf71418c8b47d4c"
@@ -166,7 +165,7 @@ def require_entry_learnability_origin(
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
             or set(origin) != fields
             or origin.get("schema_version") != ENTRY_LEARNABILITY_SCHEMA
-            or origin.get("gradient_clipping_policy") not in {LEGACY_GRAD_CLIP_POLICY, OPTIMIZER_PROCEDURE_TRANSITION_POLICY}
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_ENTRY_LEARNABILITY_ORIGIN_INVALID")
@@ -208,7 +207,7 @@ def require_fqi_target_refresh_origin(
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
             or set(origin) != fields
             or origin.get("schema_version") != FQI_TARGET_REFRESH_SCHEMA
-            or origin.get("gradient_clipping_policy") not in {LEGACY_GRAD_CLIP_POLICY, OPTIMIZER_PROCEDURE_TRANSITION_POLICY}
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_FQI_TARGET_REFRESH_ORIGIN_INVALID")
@@ -245,7 +244,7 @@ def require_training_continuation_origin(
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
             or not fields <= set(origin) <= fields | {"exit_backup_steps"}
             or origin.get("schema_version") != TRAINING_CONTINUATION_SCHEMA
-            or origin.get("gradient_clipping_policy") not in {LEGACY_GRAD_CLIP_POLICY, OPTIMIZER_PROCEDURE_TRANSITION_POLICY}
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_TRAINING_CONTINUATION_ORIGIN_INVALID")
@@ -292,7 +291,7 @@ def require_optimizer_procedure_origin(
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
             or set(origin) != fields
             or origin.get("schema_version") != OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA
-            or origin.get("gradient_clipping_policy") not in {LEGACY_GRAD_CLIP_POLICY, OPTIMIZER_PROCEDURE_TRANSITION_POLICY}
+            or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
             or origin.get("train_population_scope") != "latest_year_2025_2026_v1"):
         raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_ORIGIN_INVALID")
@@ -445,7 +444,7 @@ def require_native_run_scope(
     policy = read_bound_json(Path(binding["path"]), binding["sha256"])
     if (optimizer_transition or continuation or target_refresh or entry_learnability) and (
             policy.get("training_enabled") is not False
-            or policy.get("gradient_clipping_policy") != origin.get("gradient_clipping_policy")
+            or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or (calibration is not None and not trace_backup)):
         raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_BOUNDED_TRAIN_ONLY_REQUIRED")
     if trace_backup and (calibration is None or calibration["report_only_val"] is not False):
