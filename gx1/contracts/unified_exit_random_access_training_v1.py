@@ -34,10 +34,12 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_sample,
     require_random_access_sampler_contract,
 )
+from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
     LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION,
     FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION,
+    REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION,
     require_random_access_state_view,
 )
 from gx1.features.htf_features import MULTI_TF_TIMEFRAMES
@@ -48,6 +50,7 @@ RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION = (
 )
 LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v2"
 FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v3"
+REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION = "gx1_unified_exit_random_access_train_batch_v4"
 RANDOM_ACCESS_ENTRY_BRIDGE_BATCH_SCHEMA_VERSION = (
     "gx1_unified_exit_random_access_entry_bridge_batch_v1"
 )
@@ -171,10 +174,12 @@ def collate_random_access_training_items(
     expected_economic_step_manifest_sha256: str,
     expected_economics_objective_contract_sha256: str,
     device: torch.device,
+    reference_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Validate and flatten variable-K Entry items into two model calls."""
 
     contract = require_random_access_sampler_contract(sampler_contract)
+    reference_contract = None if reference_policy is None else require_reference_policy_contract(reference_policy)
     surface, normalization_sha = _normalization_surface(normalization_artifact)
     if (
         isinstance(outer_batch_size, bool)
@@ -357,7 +362,7 @@ def collate_random_access_training_items(
     ]
     transition_views = [view for _sample, view in transitions]
     anchor_views = [view for _sample, view in anchors]
-    relative_flags = {view["schema_version"] in {LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION, FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION}
+    relative_flags = {view["schema_version"] in {LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION, FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION, REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION}
                       for view in [*transition_views, *anchor_views]}
     if len(relative_flags) != 1:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_VALUE_COORDINATES")
@@ -365,6 +370,16 @@ def collate_random_access_training_items(
     trace_flags = {"frozen_policy_trace" in view for view in transition_views}
     if len(trace_flags) != 1 or any("frozen_policy_trace" in view for view in anchor_views):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_BACKUP_POLICY")
+    reference_flags = {"reference_policy_trace" in view for view in transition_views}
+    if (reference_flags != {reference_contract is not None}
+            or any("reference_policy_trace" in view for view in anchor_views)
+            or (reference_contract is not None and trace_flags != {False})):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_POLICY_BINDING_INVALID")
+    if reference_contract is not None:
+        traces = [view["reference_policy_trace"] for view in transition_views]
+        if any(trace["policy"] != reference_contract for trace in traces):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_POLICY_BINDING_INVALID")
+        target_states = [trace["boundary"] for trace in traces] + [view["current"] for view in anchor_views]
     extra_states, extra_masks, extra_owners = [], [], []
     if trace_flags == {True}:
         # Keep the legacy successor/anchor layout intact; append only additional
@@ -475,6 +490,38 @@ def collate_random_access_training_items(
             "elapsed_wall_clock_gamma": torch.from_numpy(gammas).to(device),
             "transition_available_mask": torch.from_numpy(available).to(device),
         }
+    if reference_contract is not None:
+        width = max(len(trace["steps"]) for trace in traces)
+        shape = (len(traces), width)
+        rewards = np.zeros((*shape, 2), dtype=np.float32)
+        gammas = np.ones(shape, dtype=np.float32)
+        available = np.zeros(shape, dtype=np.bool_)
+        terminals = np.zeros((*shape, 2), dtype=np.bool_)
+        censored = np.zeros((len(traces), 2), dtype=np.bool_)
+        masks = []
+        for row, trace in enumerate(traces):
+            steps = trace["steps"]
+            for offset, step in enumerate(steps):
+                rewards[row, offset] = step["liquidation_relative_reward_bps"][:, 0]
+                gammas[row, offset] = step["elapsed_wall_clock_gamma"]
+                terminals[row, offset] = step["successor_terminal_mask"]
+                available[row, offset] = True
+            masks.append(steps[-1]["successor_policy_action_valid_mask"])
+            censored[row] = [trace["boundary"]["state_index"] == count - 1 and not terminal
+                             for count, terminal in zip(trace["side_lifecycle_state_counts"], trace["side_economic_terminal"])]
+        result["schema_version"] = REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
+        result["reference_policy_trace"] = {
+            "policy": reference_contract,
+            "state_view_sha256": [view["state_view_sha256"] for view in transition_views],
+            "hold_reward_bps": torch.from_numpy(rewards).to(device),
+            "elapsed_wall_clock_gamma": torch.from_numpy(gammas).to(device),
+            "transition_available_mask": torch.from_numpy(available).to(device),
+            "successor_terminal_mask": torch.from_numpy(terminals).to(device),
+            "boundary_action_valid_mask": torch.from_numpy(np.stack(masks)).to(device),
+            "boundary_right_censored_mask": torch.from_numpy(censored).to(device),
+        }
+        result["target_action_valid_mask"] = torch.cat((
+            result["reference_policy_trace"]["boundary_action_valid_mask"], result["anchor_action_valid_mask"]))
     return result
 
 
@@ -556,6 +603,11 @@ def run_random_access_training_step(
 ) -> dict[str, Any]:
     """One online forward, one frozen-target evaluation and one backward."""
 
+    if (batch.get("schema_version") == REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
+            or "reference_policy_trace" in batch):
+        # Data support is not launch authority. Q_mu needs an explicit native
+        # recipe/checkpoint transition before the optimality trainer can use it.
+        raise RuntimeError("UNIFIED_EXIT_REFERENCE_TRAINING_NOT_BOUND")
     trace_mode = batch.get("schema_version") == FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
     relative = trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
     if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION, FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION}:

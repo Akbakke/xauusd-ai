@@ -1,0 +1,85 @@
+{
+  "schema_version": "gx1_reference_policy_data_flow_receipt_v1",
+  "decision": "DATA_FLOW_PASS_NATIVE_RECIPE_CHECKPOINT_BINDING_PENDING",
+  "recorded_utc": "2026-09-16T17:26:50.611313+00:00",
+  "canonical_source_repo": "/home/andre2/src/GX1_CURRENT",
+  "base_source_commit": "90cbfe93d9b2ee3825997c365881bc5c69ade41d",
+  "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_DATA_FLOW_20260916",
+  "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+  "scope": "Explicit opt-in compact economics/clock traces, final boundary model state, dataset/factory binding, collator; native trainer refuses Q_mu until a separate recipe/checkpoint transition.",
+  "fixture_checks": {
+    "new_integration_cases_passed_final": 26,
+    "observed_transitions": 120,
+    "materialized_model_states": 3,
+    "collated_online_states": 1,
+    "collated_target_states_including_anchor": 2,
+    "default_current_and_successor_hashes_unchanged": true,
+    "first_last_and_weekend_reward_owner_parity": true,
+    "right_censor_keeps_negative_bootstrap": true,
+    "economic_terminal_only_clears_its_side": true,
+    "policy_required_explicitly": true,
+    "native_training_refused_before_model_forward": true
+  },
+  "test_runs": [
+    {
+      "log": "DATA_AND_REGRESSION_PASS.log",
+      "passed": 72,
+      "failed": 0,
+      "note": "25 initial new cases plus 47 existing state/training/trace/relative cases; reuse these passed results."
+    },
+    {
+      "log": "FINAL_DATA_AND_ADAPTER_CHECK.log",
+      "passed": 37,
+      "failed": 2,
+      "new_integration_cases_passed": 26,
+      "other_cases_passed": 11,
+      "failures": [
+        "test_capped_runner_allowlists_only_exact_fixed_step_module",
+        "test_capped_runner_has_exact_non_attended_full_val_allowlist"
+      ],
+      "failure_scope": "Unchanged baseline tests require obsolete exact shell text; related test and script bytes equal committed baseline. No guard relaxed and no suite-green claim."
+    }
+  ],
+  "preexisting_failure_file_proof": {
+    "scripts/gx1_capped_run.sh": {
+      "working_sha256": "1639496c0751b3eef706e0252db911d53b4a0c3d3634b0960c4660baa05fab9f",
+      "committed_sha256": "1639496c0751b3eef706e0252db911d53b4a0c3d3634b0960c4660baa05fab9f",
+      "identical": true
+    },
+    "tests/test_run_unified_exit_random_access_fixed_step_v1.py": {
+      "working_sha256": "f2d5c254b308d2801a8665b77eff11bef1932c133e4d60a7969f6c7535afcd5b",
+      "committed_sha256": "f2d5c254b308d2801a8665b77eff11bef1932c133e4d60a7969f6c7535afcd5b",
+      "identical": true
+    }
+  },
+  "fixed_observed_implementation_failure": "New policy variable collided with existing action mask in collate; use reference_contract and preserve legacy policy mask.",
+  "source_sha256": {
+    "gx1/contracts/unified_exit_reference_policy_v1.py": "ad0b883c03a6a741dbcb6db9e56d8bf8ede49952bbf95e9ed93e50e305d1bfd2",
+    "gx1/contracts/unified_exit_random_access_state_view_v1.py": "55573e3765fc40d491b9f6d3cbc46f2ceeacd70ea3c71fff96d511a798b97688",
+    "gx1/contracts/unified_exit_random_access_training_v1.py": "ffcbfe64e7df73bf02affe732277b834afd38dc4496b94c67e7e91e84c607812",
+    "gx1/contracts/unified_exit_dataset_adapter_v2.py": "b2229cc61fa580f47f63040c2d1f15855eb41741c82ce92da8074d9b573e9bd1",
+    "gx1/contracts/unified_exit_random_access_train_factory_v1.py": "5acd1d25d7b3a153d9306cfa8b5778bbb75bf0c5e4a9e45357dc54e82bb4d7bc",
+    "tests/test_unified_exit_reference_data_flow_v1.py": "011d4962249bb760f3bb13c31f23791c0e38389b4eb15c44149ff468d17d68fd",
+    "tests/test_unified_exit_random_access_state_view_v1.py": "9d4a30685f2c0837969ac0a9ff3d3eab26ff7cc7707838fa8ad4a5fb2450b162",
+    "tests/test_unified_exit_random_access_training_v1.py": "8e9cd813ab99ae357f658160d40e8c291a49be5dc91269c4808813607329f671",
+    "tests/test_unified_exit_frozen_policy_trace_v1.py": "8fbdf2ebaa27a449a7e011db8fb8e72cb974f3db993a62ca06c0dda20dfa2775",
+    "tests/test_liquidation_relative_learning_v1.py": "9eb78bcbfa46a187db4fb6a5aed141f6bf6647259f0b83d93c5f08ecb451ad3e",
+    "tests/test_unified_exit_dataset_adapter_v2.py": "0bdd463748016766da36f41e85c1c3115f4bdad444f7b95c803db036af241ea8",
+    "tests/test_run_unified_exit_random_access_fixed_step_v1.py": "f2d5c254b308d2801a8665b77eff11bef1932c133e4d60a7969f6c7535afcd5b"
+  },
+  "source_diff_sha256": "c6417569c9b40d6b4a3ab7b30b70ba22c9fe2a52c6c31b026b3991e05d4106d4",
+  "log_sha256": {
+    "INITIAL_FAILURE.log": "8a0f5d46bbde535a14516b4e34ed5c8b2e26720e17cc546bc62297db79521e80",
+    "DATA_AND_REGRESSION_PASS.log": "fd6cbf4bbe8238b40b764e063d4796dbdd581e3f67a2c3d1410bbebfe5be2a64",
+    "FINAL_DATA_AND_ADAPTER_CHECK.log": "bf7db8f30dc5406f6896d0636623d0c8e957a310f43578180fa05008ec1f0cae"
+  },
+  "audit_memory_max_bytes": 4294967296,
+  "audit_swap_max_bytes": 536870912,
+  "native_training_started": false,
+  "production_checkpoints_loaded": false,
+  "gpu_used": false,
+  "test_data_used": false,
+  "full_repository_suite_run": false,
+  "learning_demonstrated": false,
+  "next_required": "Bind explicit Q_mu native trainer/session/recipe/checkpoint semantics and actual frozen comparison targets; preserve original weights/Adam/EMA/RNG. No training/teacher refresh before bounded learning plan."
+}

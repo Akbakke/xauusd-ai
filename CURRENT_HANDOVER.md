@@ -4,7 +4,13 @@
 VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
 bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
-**Nå:** Kandidaten med separat Exit-klipping er fullført og forkastet.
+**Nå:** Referansemålets kompakte datatilkobling er implementert og CPU-kontrollert.
+26 nye tester består;120 rewards materialiserer bare current, første successor
+og endelig boundary. Native trainer avviser foreløpig referansebatcher før
+forward. Neste er eksplisitt Q_mu-binding til recipe/checkpoint og frosne,
+sammenlignbare læringsmål. Ingen trening er åpnet.
+
+Forrige kandidat med separat Exit-klipping er fullført og forkastet.
 Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;
 handlingene kollapset til LONG=HOLD og SHORT=EXIT. Entry forblir FLAT.
 Standardens klippe-/kontraktsfiler er tilbakeført til c586520a; forsøkskilde34489f3a,
@@ -44,15 +50,18 @@ Neste rettelse må bevare forventet handlingsverdi, kausal policy og bootstrap.
 
 Én konkret neste kandidat er nå spesifisert i
 [referanseverdi med bootstrap](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Kun CPU-prototype/kontraktkontroll er åpnet: samme stasjonære referanse for begge
+Kun CPU-implementering/kontraktkontroll er åpnet: samme stasjonære referanse for begge
 sider, eksplisitt Q_mu, ingen fast holdetid eller nye modellhoder. Native trening
 og teacher-refresh krever fortsatt eget avgrenset læringsgrunnlag.
 
-Referansemålets CPU-prototype er nå ferdig:62 målrettede tester består.
-Ny eier er gx1/contracts/unified_exit_reference_policy_v1.py; dagens native
-mål og modeller er uendret. Bootstrap bevares ved både120-stegsgrensen og
-høyresensurering. Se [prototype og neste tilkobling](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Neste er kompakt reward-/boundary-datatilkobling i eksisterende native eiere.
+Referansemålets matematikk er tidligere kontrollert med62 tester. Den nye
+state-view-/adapter-/factory-/collate-koblingen har26 beståtte integrasjonstilfeller;
+47 eksisterende eiertester er også grønne. Bootstrap bevares ved120-stegsgrensen
+og høyresensurering. To uendrede eldre runner-tester feiler på forventet gammel
+shelltekst; script og tester er byteidentiske med baseline. Ingen suite-PASS
+påstås og ingen kjørevern er endret. Logg, kilde og bevis:
+[datatilkoblingskvittering](handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json).
+Se [referansemål og neste binding](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
 Ingen trening, teacher-refresh eller større VAL er åpnet.
 
 ## Start her

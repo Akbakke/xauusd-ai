@@ -523,6 +523,7 @@ class UnifiedExitDatasetAdapterV2:
         expected_state_view_source_sha256: str,
         expected_composite_normalization_sha256: str | None = None,
         backup_steps: int = 1,
+        reference_policy: Mapping[str, Any] | None = None,
     ) -> None:
         """Bind immutable TRAIN artifacts before the first DataLoader read."""
 
@@ -530,6 +531,13 @@ class UnifiedExitDatasetAdapterV2:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BINDING_INVALID")
         if type(backup_steps) is not int or backup_steps not in (1, 5):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
+        policy = None
+        if reference_policy is not None:
+            from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+            policy = require_reference_policy_contract(reference_policy)
+            if (backup_steps != 1 or self._readiness["economics_objective_contract"].get("reward_accounting")
+                    != "liquidation_advantage_v1"):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
         contract = require_random_access_sampler_contract(sampler_contract)
         counts = np.ascontiguousarray(successor_transition_counts, dtype="<i8")
         summary = dict(summary_fit_manifest)
@@ -716,6 +724,8 @@ class UnifiedExitDatasetAdapterV2:
             "state_view_source_sha256": expected_state_view_source_sha256,
             "child_parquet_sha256": expected_child_parquet_sha256,
         }
+        if policy is not None:
+            self._random_access_train["reference_policy"] = policy
         self._prepare_random_access_epoch()
 
     def _prepare_random_access_epoch(self) -> None:
@@ -761,7 +771,7 @@ class UnifiedExitDatasetAdapterV2:
         binding = self._random_access_train
         if binding is None:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_NOT_CONFIGURED")
-        return {
+        result = {
             "sampler_contract": binding["sampler_contract"],
             "normalization_artifact": binding["normalization_artifact"],
             "m1_source_sha256": binding["m1_source_sha256"],
@@ -773,6 +783,10 @@ class UnifiedExitDatasetAdapterV2:
                 "economics_objective_contract"
             ]["contract_sha256"],
         }
+        if "reference_policy" in binding:
+            result["reference_policy"] = dict(binding["reference_policy"])
+        return result
+
 
     def random_access_selected_entry_rows_v1(self) -> tuple[int, ...]:
         binding = self._random_access_train
@@ -921,6 +935,7 @@ class UnifiedExitDatasetAdapterV2:
                 ],
                 prevalidated_m1_source=binding["prevalidated_m1_source"],
                 backup_steps=1 if "anchor_sha256" in sample else binding["backup_steps"],
+                reference_policy=None if "anchor_sha256" in sample else binding.get("reference_policy"),
             )
 
         witness = binding["first_state_bridge_witness"]

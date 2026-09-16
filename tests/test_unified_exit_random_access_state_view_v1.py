@@ -182,6 +182,8 @@ def _materialize(
     anchor: bool = False,
     prevalidate: bool = False,
     backup_steps: int = 1,
+    reference_policy: dict | None = None,
+    model_state_times: list | None = None,
 ) -> dict:
     clock = _clock()
     contract = _contract()
@@ -212,6 +214,8 @@ def _materialize(
     authority = _authority(clock, known=known_gap)
 
     def mtf(_times: np.ndarray) -> dict[str, np.ndarray]:
+        if model_state_times is not None:
+            model_state_times.extend(_times.tolist())
         out = {}
         for tf in EXIT_MTF_CONTEXT_TIMEFRAMES:
             suffix = tf.lower()
@@ -264,6 +268,7 @@ def _materialize(
         economics_objective_contract=_objective(),
         prevalidated_m1_source=prevalidated,
         backup_steps=backup_steps,
+        reference_policy=reference_policy,
     )
     require_random_access_state_view(
         view,

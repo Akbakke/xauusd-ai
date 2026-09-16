@@ -109,9 +109,16 @@ def build_random_access_train_adapter_factory_v1(
     train_dataset: Any,
     train_feature_source_owner: Any,
     backup_steps: int = 1,
+    reference_policy: Mapping[str, Any] | None = None,
 ) -> Callable[[int], UnifiedExitDatasetAdapterV2]:
     """Return real candidate adapters without admitting an unbenchmarked sampler."""
 
+    policy = None
+    if reference_policy is not None:
+        from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+        policy = require_reference_policy_contract(reference_policy)
+        if backup_steps != 1:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
     if type(backup_steps) is not int or backup_steps not in (1, 5):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
     root_path = root_manifest_path.expanduser().resolve()
@@ -229,6 +236,7 @@ def build_random_access_train_adapter_factory_v1(
         )
         adapter.configure_random_access_training_v1(
             backup_steps=backup_steps,
+            reference_policy=policy,
             sampler_contract=contracts[budget],
             successor_transition_counts=counts,
             summary_fit_manifest=summary,

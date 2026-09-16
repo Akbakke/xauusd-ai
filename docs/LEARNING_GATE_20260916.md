@@ -100,9 +100,11 @@ forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet
 Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
 frosne prognoser og alle ferdige målinger skal gjenbrukes.
 
-
-CPU-referansemålets matematikk og grensekontrakt består62 målrettede kontroller.
-Se CONTINUATION_REFERENCE_CANDIDATE_20260916.md og
-../handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json. Dette er
-teknisk prototype-PASS, ikke native tilkobling, bedre modell eller lærings-PASS.
-Neste er kompakt reward-/boundary-tilkobling før frosne læringssammenligninger.
+Referansemålets matematikk og kompakte native datatilkobling er nå CPU-kontrollert.
+26 nye dataflyttilfeller består;120 rewards krever bare én ekstra boundary-
+tilstand utover dagens current/successor. Native trainer er fortsatt sperret
+for denne referansen. Neste er uttrykkelig Q_mu-/recipe-/checkpointbinding og
+frosne sammenlignbare mål før én avgrenset kritikerplan. To uendrede eldre
+runner-tekstasserts er dokumentert separat; ingen fullsuite-PASS påstås.
+Se CONTINUATION_REFERENCE_CANDIDATE_20260916.md i docs og kvitteringen
+handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json. Ingen lærings-PASS.

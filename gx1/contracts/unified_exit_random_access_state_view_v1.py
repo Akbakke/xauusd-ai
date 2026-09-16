@@ -27,6 +27,7 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     m1_clock_sha256,
     require_market_closure_authority,
 )
+from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
 from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_entry_anchor,
     require_random_access_sample,
@@ -37,6 +38,8 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
 RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v1"
 LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v2"
 FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v3"
+REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION = "gx1_unified_exit_random_access_state_view_v4"
+COMPACT_STATE_FIELDS = ("state_index", "m1_row_index", "bar_start_time_ns", "decision_time_ns")
 EXIT_ACTION_ORDER = ("HOLD", "EXIT_NOW")
 M1_LOCAL_HISTORY_ROWS = 480
 TRADE_PATH_TAIL_MAX_ROWS = 512
@@ -238,6 +241,7 @@ def materialize_random_access_state_view(
     economics_objective_contract: Mapping[str, Any],
     prevalidated_m1_source: Mapping[str, Any] | None = None,
     backup_steps: int = 1,
+    reference_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Materialize a sampled pair and optional teacher trace; no holding cap."""
 
@@ -247,6 +251,9 @@ def materialize_random_access_state_view(
     if (type(backup_steps) is not int or backup_steps not in (1, 5)
             or (backup_steps != 1 and (is_anchor or not relative))):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
+    policy = None if reference_policy is None else require_reference_policy_contract(reference_policy)
+    if policy is not None and (backup_steps != 1 or is_anchor or not relative):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
     if is_anchor:
         scheduled = require_random_access_entry_anchor(
             sample, sampler_contract=contract
@@ -314,7 +321,13 @@ def materialize_random_access_state_view(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUCCESSOR_MISSING")
 
 
-    def one_view(index: int, row: int) -> dict[str, Any]:
+    def one_view(index: int, row: int, *, compact: bool = False) -> dict[str, Any]:
+        if compact:
+            return {
+                "state_index": index, "m1_row_index": row,
+                "bar_start_time_ns": int(times.asi8[row]),
+                "decision_time_ns": int(times.asi8[row] + 60_000_000_000),
+            }
         local_start = row - (M1_LOCAL_HISTORY_ROWS - 1)
         path_start = max(0, index - (TRADE_PATH_TAIL_MAX_ROWS - 1))
         path_stop = index + 1
@@ -425,12 +438,12 @@ def materialize_random_access_state_view(
             "mtf": mtf,
         }
 
-    def one_transition(state_index: int, current: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    def one_transition(state_index: int, current: Mapping[str, Any] | None = None, *, compact: bool = False) -> dict[str, Any]:
         successor_index = state_index + 1
         state_row = entry_m1_start_row + state_index
         successor_row = state_row + 1
-        current = one_view(state_index, state_row) if current is None else current
-        successor = one_view(successor_index, successor_row)
+        current = one_view(state_index, state_row, compact=compact) if current is None else current
+        successor = one_view(successor_index, successor_row, compact=compact)
         closure = _closure_for_transition(
             authority=authority,
             current_row=state_row,
@@ -573,6 +586,25 @@ def materialize_random_access_state_view(
             "side_economic_terminal": list(economic_terminal),
             "steps": steps,
         }
+    if policy is not None:
+        available = min(policy["maximum_observed_backup_steps"], min(counts) - 1 - state_index)
+        first = {name: view[name] for name in TRACE_TRANSITION_FIELDS}
+        for name in ("current", "successor"):
+            first[name] = {key: view[name][key] for key in COMPACT_STATE_FIELDS}
+        # Intermediate rows carry economic evidence and clocks only. MTF, path,
+        # context and lifetime inputs are constructed only for the final boundary.
+        steps = [first] + [one_transition(state_index + offset, compact=True)
+                           for offset in range(1, available)]
+        boundary = (view["successor"] if available == 1 else
+                    one_view(state_index + available, state_row + available))
+        view["schema_version"] = REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION
+        view["reference_policy_trace"] = {
+            "policy": policy,
+            "side_lifecycle_state_counts": list(counts),
+            "side_economic_terminal": list(economic_terminal),
+            "steps": steps,
+            "boundary": boundary,
+        }
     view["state_view_sha256"] = _structured_sha256(view)
     return view
 
@@ -604,7 +636,8 @@ def require_random_access_state_view(
     observed = dict(value)
     claimed = observed.pop("state_view_sha256")
     trace_mode = observed.get("schema_version") == FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION
-    relative = trace_mode or observed.get("schema_version") == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
+    reference_mode = observed.get("schema_version") == REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION
+    relative = reference_mode or trace_mode or observed.get("schema_version") == LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION
     required = {
         "schema_version",
         "action_order",
@@ -636,6 +669,8 @@ def require_random_access_state_view(
         "capacity_or_tail_length_is_terminal",
         "test_data_used",
     }
+    if reference_mode:
+        required.add("reference_policy_trace")
     if trace_mode:
         required.add("frozen_policy_trace")
     if relative:
@@ -643,7 +678,7 @@ def require_random_access_state_view(
     if (
         set(observed) != required
         or claimed != _structured_sha256(observed)
-        or observed["schema_version"] != (FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION if trace_mode else LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION)
+        or observed["schema_version"] != (REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION if reference_mode else FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION if trace_mode else LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION if relative else RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION)
         or observed["action_order"] != list(EXIT_ACTION_ORDER)
         or observed["sampler_contract_sha256"] != contract["contract_sha256"]
         or observed["sample_identity_sha256"] != scheduled_identity
@@ -700,6 +735,8 @@ def require_random_access_state_view(
                     or step["test_data_used"] is not False):
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_MASK_INVALID")
             previous = step
+    if reference_mode:
+        _require_reference_trace(observed)
     observed["state_view_sha256"] = claimed
     return observed
 
@@ -726,9 +763,7 @@ TRACE_TRANSITION_FIELDS = {
 }
 
 
-def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool) -> None:
-    current = observed["current"]
-    successor = observed["successor"]
+def _require_model_state_pair(current: Mapping[str, Any], successor: Mapping[str, Any], *, adjacent: bool = True) -> None:
     view_keys = {
         "state_index",
         "m1_row_index",
@@ -750,7 +785,7 @@ def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool) -
         or not isinstance(successor, Mapping)
         or set(current) != view_keys
         or set(successor) != view_keys
-        or successor.get("state_index") != current.get("state_index", -2) + 1
+        or (adjacent and successor.get("state_index") != current.get("state_index", -2) + 1)
         or current.get("m1_local_history_x", np.empty(0)).shape[0]
         != M1_LOCAL_HISTORY_ROWS
         or successor.get("m1_local_history_x", np.empty(0)).shape[0]
@@ -811,6 +846,21 @@ def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool) -
                 raise RuntimeError(
                     "UNIFIED_EXIT_RANDOM_ACCESS_STATE_VIEW_SHAPE_INVALID"
                 )
+
+
+def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool, compact: bool = False) -> None:
+    current, successor = observed["current"], observed["successor"]
+    if compact:
+        for state in (current, successor):
+            if (not isinstance(state, Mapping) or set(state) != set(COMPACT_STATE_FIELDS)
+                    or any(type(state[key]) is not int for key in COMPACT_STATE_FIELDS)
+                    or state["state_index"] < 0 or state["m1_row_index"] < 0
+                    or state["decision_time_ns"] != state["bar_start_time_ns"] + 60_000_000_000):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CLOCK_INVALID")
+        if successor["state_index"] != current["state_index"] + 1:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_LINKAGE_INVALID")
+    else:
+        _require_model_state_pair(current, successor)
     shapes = {
         "immediate_reward_bps": (2, 2),
         "policy_action_valid_mask": (2, 2),
@@ -860,12 +910,72 @@ def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool) -
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRANSITION_CLOCK_INVALID")
 
 
+def _require_reference_trace(observed: Mapping[str, Any]) -> None:
+    trace = observed["reference_policy_trace"]
+    if (not isinstance(trace, Mapping) or set(trace) != {
+            "policy", "side_lifecycle_state_counts", "side_economic_terminal", "steps", "boundary"}
+            or observed["sample_role"] != "bellman_transition"):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_TRACE_INVALID")
+    policy = require_reference_policy_contract(trace["policy"])
+    counts, terminals, steps = (trace["side_lifecycle_state_counts"],
+                               trace["side_economic_terminal"], trace["steps"])
+    index = observed["current"]["state_index"]
+    if (not isinstance(counts, list) or len(counts) != 2
+            or any(type(n) is not int or n < index + 2 for n in counts)
+            or not isinstance(terminals, list) or len(terminals) != 2
+            or any(type(t) is not bool for t in terminals)
+            or not isinstance(steps, list)
+            or len(steps) != min(policy["maximum_observed_backup_steps"], min(counts) - 1 - index)):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_BOUNDARY_INVALID")
+    previous = None
+    for offset, step in enumerate(steps):
+        if not isinstance(step, Mapping) or set(step) != TRACE_TRANSITION_FIELDS:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_TRACE_INVALID")
+        _require_transition_fields(step, relative=True, compact=True)
+        if (step["immediate_reward_bps"].dtype != np.float32
+                or not np.isfinite(step["immediate_reward_bps"]).all()):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_REWARD_INVALID")
+        if offset == 0:
+            first = {name: observed[name] for name in TRACE_TRANSITION_FIELDS}
+            for name in ("current", "successor"):
+                first[name] = {key: observed[name][key] for key in COMPACT_STATE_FIELDS}
+            if _structured_sha256(first) != _structured_sha256(step):
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_FIRST_STEP_INVALID")
+        elif (step["current"] != previous["successor"]
+                or not np.array_equal(previous["successor_liquidation_value_bps"], step["current_liquidation_value_bps"])):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_LINKAGE_INVALID")
+        expected_terminal = np.array([terminals[side] and index + offset + 1 == counts[side] - 1
+                                      for side in range(2)], dtype=np.bool_)
+        expected_mask = np.ones((2, 2), dtype=np.bool_)
+        expected_mask[:, 0] = ~expected_terminal
+        mask_names = ("successor_terminal_mask", "successor_policy_action_valid_mask",
+                      "terminal_mask", "right_censored_mask", "successor_observed_mask",
+                      "policy_action_valid_mask", "bellman_target_valid_mask")
+        if (any(step[name].dtype != np.bool_ for name in mask_names)
+                or step["current"]["state_index"] != index + offset
+                or not np.array_equal(step["successor_terminal_mask"], expected_terminal)
+                or not np.array_equal(step["successor_policy_action_valid_mask"], expected_mask)
+                or step["terminal_mask"].any() or step["right_censored_mask"].any()
+                or not step["successor_observed_mask"].all()
+                or not step["policy_action_valid_mask"].all()
+                or not step["bellman_target_valid_mask"].all()
+                or step["capacity_or_tail_length_is_terminal"] is not False
+                or step["test_data_used"] is not False):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_MASK_INVALID")
+        previous = step
+    boundary = trace["boundary"]
+    _require_model_state_pair(observed["current"], boundary, adjacent=False)
+    if {key: boundary[key] for key in COMPACT_STATE_FIELDS} != steps[-1]["successor"]:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_BOUNDARY_INVALID")
+
+
 __all__ = (
     "EXIT_ACTION_ORDER",
     "M1_LOCAL_HISTORY_ROWS",
     "RANDOM_ACCESS_STATE_VIEW_SCHEMA_VERSION",
     "LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION",
     "FROZEN_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION",
+    "REFERENCE_POLICY_TRACE_STATE_VIEW_SCHEMA_VERSION",
     "TRADE_PATH_TAIL_MAX_ROWS",
     "materialize_random_access_state_view",
     "validate_random_access_m1_source_v1",

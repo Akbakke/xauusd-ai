@@ -72,3 +72,12 @@ samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
 forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
 Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
 frosne prognoser og alle ferdige målinger skal gjenbrukes.
+
+Referansemålets matematikk og kompakte native datatilkobling er nå CPU-kontrollert.
+26 nye dataflyttilfeller består;120 rewards krever bare én ekstra boundary-
+tilstand utover dagens current/successor. Native trainer er fortsatt sperret
+for denne referansen. Neste er uttrykkelig Q_mu-/recipe-/checkpointbinding og
+frosne sammenlignbare mål før én avgrenset kritikerplan. To uendrede eldre
+runner-tekstasserts er dokumentert separat; ingen fullsuite-PASS påstås.
+Se CONTINUATION_REFERENCE_CANDIDATE_20260916.md i docs og kvitteringen
+handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json. Ingen lærings-PASS.

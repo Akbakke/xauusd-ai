@@ -1,8 +1,8 @@
 {
-  "status": "REFERENCE_VALUE_CPU_TARGET_PASSED_NATIVE_WIRING_PENDING",
+  "status": "REFERENCE_VALUE_DATA_FLOW_PASSED_NATIVE_BINDING_PENDING",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping; read git HEAD.",
+  "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping and adds opt-in reference data plumbing; read git HEAD. Native reference training remains closed.",
   "latest_observation_utc": "2026-09-16T15:46:08.825478+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE_BOOT446",
@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "CPU reference-target prototype passed62 targeted tests; reuse receipt and source. Next implement opt-in reward-only reference traces plus the final boundary state in existing native state-view/collate/recipe/trainer owners, with explicit Q_mu and source/checkpoint binding and unchanged default. Do not materialize120 intermediate model inputs. Preserve genuine censoring/bootstrap and economic owners. Frozen comparative targets and a bounded native learning plan are still required before any training or teacher refresh; no repeat probes/full VAL/TEST.",
+  "next_action": "Compact native reward/boundary data flow passed26 new CPU cases; reuse receipt and47 prior owner regressions. Next bind explicit Q_mu to the existing native trainer/session/recipe/checkpoint transition, with original weights/Adam/EMA/RNG preserved and default unchanged. The trainer currently rejects reference batches before forward. Freeze comparable targets on actual trained and separate TRAIN before one bounded critic learning plan. No training or teacher refresh yet; no repeat probes, full epoch/VAL or TEST. Two unchanged legacy runner text assertions are recorded separately.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -111,7 +111,7 @@
     "next_action": "Completed. Follow continuation_reference_candidate; do not repeat economics probe."
   },
   "continuation_reference_candidate": {
-    "status": "CPU_TARGET_PASS_NATIVE_DATA_WIRING_PENDING",
+    "status": "DATA_FLOW_PASS_NATIVE_RECIPE_CHECKPOINT_BINDING_PENDING",
     "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
     "reference_hold_probability_numerator": 119,
     "reference_hold_probability_denominator": 120,
@@ -120,12 +120,18 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "CPU reference-target prototype passed62 targeted tests; reuse receipt and source. Next implement opt-in reward-only reference traces plus the final boundary state in existing native state-view/collate/recipe/trainer owners, with explicit Q_mu and source/checkpoint binding and unchanged default. Do not materialize120 intermediate model inputs. Preserve genuine censoring/bootstrap and economic owners. Frozen comparative targets and a bounded native learning plan are still required before any training or teacher refresh; no repeat probes/full VAL/TEST.",
+    "next_action": "Compact native reward/boundary data flow passed26 new CPU cases; reuse receipt and47 prior owner regressions. Next bind explicit Q_mu to the existing native trainer/session/recipe/checkpoint transition, with original weights/Adam/EMA/RNG preserved and default unchanged. The trainer currently rejects reference batches before forward. Freeze comparable targets on actual trained and separate TRAIN before one bounded critic learning plan. No training or teacher refresh yet; no repeat probes, full epoch/VAL or TEST. Two unchanged legacy runner text assertions are recorded separately.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
     "cpu_tests_passed": 62,
     "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
-    "native_pipeline_connected": false
+    "native_pipeline_connected": false,
+    "data_flow_receipt": "handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json",
+    "data_flow_receipt_sha256": "f9846fdc8b217568f062de18584eb11dd8faaff79145c781510a0173f142e213",
+    "data_flow_cpu_cases_passed": 26,
+    "native_data_owners_connected": true,
+    "native_trainer_reference_batches_rejected": true,
+    "known_unchanged_runner_text_test_failures": 2
   }
 }
