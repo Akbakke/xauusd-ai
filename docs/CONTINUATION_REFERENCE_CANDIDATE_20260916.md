@@ -1,10 +1,9 @@
 # Én kandidat: lær en eksplisitt referanseverdi før policyforbedring
 
-Status: CPU-mål-eier og opt-in datatilkobling er implementert og kontrollert.
-State-view, adapter, factory og collate kan levere kompakte rewards og siste
-boundary. Native trainer avviser fortsatt dette skjemaet før forward; recipe-/
-checkpointovergang og faktisk læringsgrunnlag gjenstår. Standardmål, modell,
-recipe og checkpoints er uendret.
+Status: referansemålets matematikk, kompakte dataflyt og eksplisitte native
+trainer-/recipe-/checkpointbinding er implementert og CPU-kontrollert.
+Faktiske frosne sammenligningsmål og bundet læringsplan gjenstår. Ingen ny
+native kjøring eller teacher-refresh er åpnet; dagens standard er uendret.
 
 Begrunnelse: 120-minuttersprognosen har positiv kostnadsjustert TRAIN-verdi
 på de komplette forløpene, mens Entry velger FLAT og får nesten null videreverdi.
@@ -122,10 +121,45 @@ Kun CPU-fixtures under audit/4GiB/512MiB-swap; ingen produksjonscheckpoint,
 ny native trening, GPU eller TEST. En observert collator-navnekollisjon ble
 rettet før de grønne kontrollene. Teknisk datatilkobling er ikke læringsbevis.
 
-Neste konkrete arbeid er eksisterende native trainer/session/recipe/checkpoint-
-binding med eksplisitt Q_mu-semantikk. run_random_access_training_step avviser
-foreløpig v4/referansebatcher før modellforward. Ikke fjern sperren uten denne
-bindingen. Bevar originale vekter, Adam, EMA og RNG; gamle lærersemantikker er
-initialisering, ikke et allerede innlært Q_mu. Frys sammenlignbare mu-mål på
-faktisk trent og separat TRAIN før én avgrenset kritikerplan eventuelt åpnes.
-Ingen Entry-refresh eller større trening følger automatisk av teknisk PASS.
+## Fullført native binding
+
+Referansemålet går nå gjennom eksisterende full-train factory, adapter,
+collator og trainer. Exit bruker Q_mu-returnen direkte; ingen optimalitets-max
+på mellomsteg eller ved boundary. Én targetforward, én onlineforward og ett
+backward; målkomponenter og policyidentitet følger resultatet.
+
+Første avgrensede kandidat beholder Entry-broen mot den uendrede opprinnelige
+læreren. Dette isolerer korreksjonen av Exit-målet. Det hevdes ikke at gamle
+lærervekter allerede er Q_mu: de er initialisering ved første referanseiterasjon.
+En senere teacher-refresh/Entry-endring krever fortsatt eget læringsbevis.
+
+Original95/global5777 er eneste tillatte origin for referansen. Eksisterende
+continuation-kvittering navngir endringen; vekter, lærer, Adam, EMA, scheduler,
+RNG, epochrekkefølge og progresjon bevares. Native scope tillater bare én32-
+stegs TRAIN-kandidat til global5809, uten VAL eller full epoch. Den åpnes bare
+med en hashbundet reference_learning_plan og faktiske frosne mål for512 trente
+og128 separate TRAIN-Entries. Source closure, lærer, policy og sammenligning
+før/etter mot konstant-baselines per side/måned må stemme. Planen finnes ennå
+ikke, og gjeldende NEXT_RUN_POLICY gir ingen starttillatelse for referansen.
+
+175 CPU-tester består, derav31 nye. Nye kontroller dekker faktisk backward i
+fixture, uendret Entry-bro, source-/scopeavvisning, bytebevaring ved overgang og
+serialisert resume, og at EMA-historikken ikke kan miste referansesemantikken.
+En utilsiktet endring i eldre økonomiovergang ble rettet før den grønne suiten.
+Ekte source closure mot original95 er også kontrollert:156→157 bindinger,
+bare unified_exit_reference_policy_v1.py legges til, ingen eier fjernes og alle
+endrede eksisterende kilder ligger innen den snevre overgangslisten.
+
+Kvittering: ../handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json,
+SHA256 027ab79dcf1893b0d2900592794d5c8ddcb0469031c2d140429d5b1de245e064.
+Kilde, logger, JUnit og faktisk source-closurebevis er bevart under
+BASE/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_NATIVE_BINDING_20260916.
+Ingen produksjonscheckpoint er lastet, GPU eller native trening startet, eller
+TEST brukt i denne kontrollen. Tidligere to uendrede runner-tekstfeil er fortsatt
+separat dokumentert; ingen fullsuite-PASS eller modellæring påstås.
+
+Neste arbeid: frys faktiske mu-mål for hele native offset1696:1728 og128
+uavhengig valgte, disjunkte TRAIN-Entries fra eksisterende cache. Gjenbruk
+nåinputs og BEFORE95-prediksjoner. Beregn bare manglende rewards og boundary-
+verdier med bevart lærer, i én avgrenset CPU-forberedelse uten optimizer eller
+backward. Deretter bind bevisene i eksisterende policy før en kandidat åpnes.

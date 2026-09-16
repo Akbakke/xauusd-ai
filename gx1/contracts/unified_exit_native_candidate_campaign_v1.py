@@ -13,6 +13,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     canonical_sha256, file_sha256, read_bound_json, require_binding,
 )
 from gx1.contracts.unified_exit_random_access_sampler_v1 import canonical_sha256 as native_sha256
+from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import native_checkpoint_monitor
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     LATEST_YEAR_ROOT_SCHEMA_VERSION, require_random_access_index_root,
@@ -109,7 +110,7 @@ def training_continuation_control(origin: Any) -> dict[str, Any]:
         "pointer_sha256": ENTRY_LEARNABILITY_ORIGIN_POINTER_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_POINTER_SHA256,
         "state_sha256": ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256 if through_val else TRAINING_CONTINUATION_ORIGIN_STATE_SHA256,
         "cursor": dict(ENTRY_LEARNABILITY_ORIGIN_CURSOR if through_val else TRAINING_CONTINUATION_ORIGIN_CURSOR),
-        "completed_val_ceiling": 2 if through_val and "exit_backup_steps" not in origin else None,
+        "completed_val_ceiling": 2 if through_val and "exit_backup_steps" not in origin and "exit_reference_policy" not in origin else None,
     }
 
 
@@ -242,7 +243,7 @@ def require_training_continuation_origin(
     fields = {"schema_version", "contract", "pointer", "exit_value_initialization",
               "train_population_scope", "gradient_clipping_policy"}
     if (type(verify_files) is not bool or not isinstance(origin, Mapping)
-            or not fields <= set(origin) <= fields | {"exit_backup_steps"}
+            or not fields <= set(origin) <= fields | {"exit_backup_steps", "exit_reference_policy"}
             or origin.get("schema_version") != TRAINING_CONTINUATION_SCHEMA
             or origin.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
             or origin.get("exit_value_initialization") != "close_now_baseline_v1"
@@ -253,6 +254,11 @@ def require_training_continuation_origin(
             or not isinstance(origin.get("contract"), Mapping)
             or origin["contract"].get("sha256") != ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256):
         raise RuntimeError("NATIVE_TRACE_BACKUP_ORIGIN_INVALID")
+    if "exit_reference_policy" in origin:
+        require_reference_policy_contract(origin["exit_reference_policy"])
+        if ("exit_backup_steps" in origin or not isinstance(origin.get("contract"), Mapping)
+                or origin["contract"].get("sha256") != ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256):
+            raise RuntimeError("NATIVE_REFERENCE_POLICY_ORIGIN_INVALID")
     control = training_continuation_control(origin)
     contract = require_binding(origin["contract"], label="continuation origin contract", verify_file=verify_files)
     pointer = require_binding(origin["pointer"], label="continuation origin pointer", verify_file=verify_files)
@@ -388,6 +394,35 @@ def require_native_calibration_run(recipe: Mapping[str, Any]) -> dict[str, Any] 
     return dict(value)
 
 
+def require_reference_learning_plan(recipe: Mapping[str, Any], policy: Mapping[str, Any]) -> dict[str, Any]:
+    binding = require_binding(policy.get("reference_learning_plan"), label="reference learning plan", verify_file=True)
+    plan = read_bound_json(Path(binding["path"]), binding["sha256"])
+    reference = require_reference_policy_contract(recipe["exit_reference_policy"])
+    if (plan.get("schema_version") != "gx1_reference_critic_learning_plan_v1"
+            or plan.get("decision") != "FROZEN_COMPARISON_READY"
+            or plan.get("reference_policy_sha256") != reference["policy_sha256"]
+            or plan.get("origin_state_sha256") != ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256
+            or plan.get("teacher_model_state_sha256") != ENTRY_LEARNABILITY_TARGET_MODEL_SHA256
+            or not isinstance(recipe.get("source_bindings_sha256"), str)
+            or len(recipe["source_bindings_sha256"]) != 64
+            or any(c not in "0123456789abcdef" for c in recipe["source_bindings_sha256"])
+            or plan.get("source_bindings_sha256") != recipe["source_bindings_sha256"]
+            or plan.get("split") != "train" or plan.get("test_data_used") is not False
+            or plan.get("teacher_refresh_allowed") is not False
+            or plan.get("entry_bridge") != "unchanged_initial_teacher_greedy_bridge_no_reference_refresh"
+            or plan.get("comparison") != "same_frozen_targets_before_after_and_constant_baselines_by_side_and_month"
+            or plan.get("trained_entry_count") != 512 or type(plan.get("trained_entry_count")) is not int
+            or plan.get("separate_train_entry_count") != 128 or type(plan.get("separate_train_entry_count")) is not int
+            or not isinstance(plan.get("targets"), Mapping)
+            or set(plan["targets"]) != {"trained", "separate_train"}):
+        raise RuntimeError("NATIVE_REFERENCE_LEARNING_PLAN_INVALID")
+    targets = [require_binding(plan["targets"][role], label=f"frozen reference {role}", verify_file=True)
+               for role in ("trained", "separate_train")]
+    if targets[0]["path"] == targets[1]["path"] or targets[0]["sha256"] == targets[1]["sha256"]:
+        raise RuntimeError("NATIVE_REFERENCE_COMPARISON_SEPARATION_INVALID")
+    return plan
+
+
 def require_native_run_scope(
     recipe: Mapping[str, Any], *, invocation_number: int | None = None,
     execution_budget: Mapping[str, Any] | None = None,
@@ -417,6 +452,14 @@ def require_native_run_scope(
     elif target_refresh:
         require_fqi_target_refresh_origin(origin)
     trace_backup = continuation and "exit_backup_steps" in origin
+    reference_mode = continuation and "exit_reference_policy" in origin
+    if reference_mode:
+        reference = require_reference_policy_contract(origin["exit_reference_policy"])
+        if require_reference_policy_contract(recipe.get("exit_reference_policy")) != reference:
+            raise RuntimeError("NATIVE_REFERENCE_POLICY_RECIPE_MISMATCH")
+    elif "exit_reference_policy" in recipe:
+        raise RuntimeError("NATIVE_REFERENCE_POLICY_RECIPE_MISMATCH")
+
     if ((trace_backup and (type(recipe.get("exit_backup_steps")) is not int or recipe["exit_backup_steps"] != 5))
             or (not trace_backup and "exit_backup_steps" in recipe)):
         raise RuntimeError("NATIVE_TRACE_BACKUP_RECIPE_MISMATCH")
@@ -445,8 +488,15 @@ def require_native_run_scope(
     if (optimizer_transition or continuation or target_refresh or entry_learnability) and (
             policy.get("training_enabled") is not False
             or policy.get("gradient_clipping_policy") != OPTIMIZER_PROCEDURE_TRANSITION_POLICY
-            or (calibration is not None and not trace_backup)):
+            or (calibration is not None and not (trace_backup or reference_mode))):
         raise RuntimeError("NATIVE_OPTIMIZER_PROCEDURE_BOUNDED_TRAIN_ONLY_REQUIRED")
+    if reference_mode:
+        if (calibration is None or calibration["arm"] != "reference" or calibration["report_only_val"] is not False
+                or require_reference_policy_contract(policy.get("exit_reference_policy")) != reference):
+            raise RuntimeError("NATIVE_REFERENCE_POLICY_CALIBRATION_INVALID")
+        require_reference_learning_plan(recipe, policy)
+    elif "exit_reference_policy" in policy or "reference_learning_plan" in policy:
+        raise RuntimeError("NATIVE_REFERENCE_POLICY_POLICY_MISMATCH")
     if trace_backup and (calibration is None or calibration["report_only_val"] is not False):
         raise RuntimeError("NATIVE_TRACE_BACKUP_TRAIN_ONLY_CALIBRATION_REQUIRED")
     if ((trace_backup and (type(policy.get("exit_backup_steps")) is not int or policy["exit_backup_steps"] != 5))
@@ -568,7 +618,19 @@ def require_native_run_scope(
         if entry_learnability:
             replay_scope["additional_optimizer_step_ceilings"] = [
                 replay_control["step_ceiling"] - replay_control["cursor"]["global_optimizer_steps"]]
-        if trace_backup:
+        if reference_mode:
+            expected_scope = {
+                "schema_version": "gx1_native_reference_policy_scope_v1",
+                "additional_optimizer_step_ceilings": [32],
+                "reference_additional_optimizer_step_ceiling": 32,
+                "full_epoch_training_allowed": False, "test_data_used": False,
+            }
+            if (not isinstance(scope, Mapping) or scope != expected_scope
+                    or type(scope["reference_additional_optimizer_step_ceiling"]) is not int
+                    or any(type(n) is not int for n in scope["additional_optimizer_step_ceilings"])
+                    or scope["full_epoch_training_allowed"] is not False or scope["test_data_used"] is not False):
+                raise RuntimeError("NATIVE_REFERENCE_POLICY_CALIBRATION_SCOPE_INVALID")
+        elif trace_backup:
             expected_scope = {
                 "schema_version": "gx1_native_frozen_policy_trace_scope_v1",
                 "additional_optimizer_step_ceilings": [16, 32],
@@ -608,8 +670,8 @@ def require_native_run_scope(
                            for delta in ([scope["reference_additional_optimizer_step_ceiling"]]
                                          if calibration["arm"] == "reference"
                                          else scope["additional_optimizer_step_ceilings"])]
-                          if trace_backup else None)
-        ceilings = (trace_ceilings if trace_backup else [replay_control["step_ceiling"]] if entry_learnability else
+                          if trace_backup or reference_mode else None)
+        ceilings = (trace_ceilings if trace_backup or reference_mode else [replay_control["step_ceiling"]] if entry_learnability else
                     [FQI_TARGET_REFRESH_STEP_CEILING] if target_refresh else
                     [TRAINING_CONTINUATION_STEP_CEILING] if continuation else
                     ([OPTIMIZER_PROCEDURE_ORIGIN_CURSOR["global_optimizer_steps"] + delta

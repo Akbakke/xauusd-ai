@@ -73,11 +73,12 @@ forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet
 Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
 frosne prognoser og alle ferdige målinger skal gjenbrukes.
 
-Referansemålets matematikk og kompakte native datatilkobling er nå CPU-kontrollert.
-26 nye dataflyttilfeller består;120 rewards krever bare én ekstra boundary-
-tilstand utover dagens current/successor. Native trainer er fortsatt sperret
-for denne referansen. Neste er uttrykkelig Q_mu-/recipe-/checkpointbinding og
-frosne sammenlignbare mål før én avgrenset kritikerplan. To uendrede eldre
-runner-tekstasserts er dokumentert separat; ingen fullsuite-PASS påstås.
-Se CONTINUATION_REFERENCE_CANDIDATE_20260916.md i docs og kvitteringen
-handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json. Ingen lærings-PASS.
+Referansemålet er nå koblet til eksisterende native trainer/recipe/checkpoint;
+175 CPU-tester består. Original95s tilstand og den opprinnelige Entry-broen
+bevares. Før én32-stegs kritiker-kandidat kan åpnes, må faktiske mu-mål fryses
+for512 trente og128 separate TRAIN-Entries, med samme lærer og sammenligning
+før/etter per side/måned mot konstant-baselines. Gjenbruk eksisterende inputs
+og prediksjoner; beregn bare manglende rewards/boundary-verdier under CPU-vakt.
+Se docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md og
+handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json.
+Ingen native start, teacher-refresh, større trening eller lærings-PASS nå.

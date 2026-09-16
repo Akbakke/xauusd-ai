@@ -34,7 +34,9 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_sample,
     require_random_access_sampler_contract,
 )
-from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+from gx1.contracts.unified_exit_reference_policy_v1 import (
+    require_reference_policy_contract, build_reference_policy_hold_targets,
+)
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
     LIQUIDATION_RELATIVE_STATE_VIEW_SCHEMA_VERSION,
@@ -600,19 +602,23 @@ def run_random_access_training_step(
     target_entry_decision_representations: torch.Tensor,
     batch: Mapping[str, Any],
     grad_accum_steps: int,
+    reference_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One online forward, one frozen-target evaluation and one backward."""
 
-    if (batch.get("schema_version") == REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
-            or "reference_policy_trace" in batch):
-        # Data support is not launch authority. Q_mu needs an explicit native
-        # recipe/checkpoint transition before the optimality trainer can use it.
+    reference_mode = batch.get("schema_version") == REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
+    policy = None if reference_policy is None else require_reference_policy_contract(reference_policy)
+    if (reference_mode != (policy is not None)
+            or reference_mode != ("reference_policy_trace" in batch)):
+        raise RuntimeError("UNIFIED_EXIT_REFERENCE_TRAINING_NOT_BOUND")
+    if reference_mode and batch["reference_policy_trace"].get("policy") != policy:
         raise RuntimeError("UNIFIED_EXIT_REFERENCE_TRAINING_NOT_BOUND")
     trace_mode = batch.get("schema_version") == FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
-    relative = trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
-    if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION, FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION}:
+    relative = reference_mode or trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
+    if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION, FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION, REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION}:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRAIN_BATCH_INVALID")
-    if trace_mode != ("frozen_policy_trace" in batch) or trace_mode != ("target_action_valid_mask" in batch):
+    if (trace_mode != ("frozen_policy_trace" in batch)
+            or (trace_mode or reference_mode) != ("target_action_valid_mask" in batch)):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_POLICY_INVALID")
     coordinate_fields = {"liquidation_relative_values", "liquidation_relative_reward_bps", "entry_liquidation_value_bps"}
     present = coordinate_fields.intersection(batch)
@@ -646,7 +652,7 @@ def run_random_access_training_step(
     target_inputs["entry_decision_representation"] = (
         target_entry_decision_representations.index_select(0, target_owner)
     )
-    target_inputs["action_valid_mask"] = batch["target_action_valid_mask"] if trace_mode else torch.cat(
+    target_inputs["action_valid_mask"] = batch["target_action_valid_mask"] if trace_mode or reference_mode else torch.cat(
         (batch["successor_action_valid_mask"], batch["anchor_action_valid_mask"]),
         dim=0,
     )
@@ -658,7 +664,7 @@ def run_random_access_training_step(
         target_inputs["liquidation_relative_values"] = True
     rewards = batch["liquidation_relative_reward_bps"] if relative else batch["immediate_reward_bps"]
     transition_count = batch["transition_count"]
-    target_cache: dict[str, torch.Tensor] = {}
+    target_cache: dict[str, Any] = {}
     online_cache: dict[str, Any] = {}
 
     def target_call(**kwargs: Any) -> torch.Tensor:
@@ -691,6 +697,27 @@ def run_random_access_training_step(
             raise RuntimeError(
                 "UNIFIED_EXIT_RANDOM_ACCESS_RIGHT_CENSORED_TRAIN_FORBIDDEN"
             )
+        if reference_mode:
+            trace = batch["reference_policy_trace"]
+            if (not torch.equal(trace["hold_reward_bps"][:, 0], rewards[..., 0])
+                    or not torch.equal(trace["elapsed_wall_clock_gamma"][:, 0], batch["elapsed_wall_clock_gamma"])
+                    or not torch.equal(batch["target_action_valid_mask"][:transition_count], trace["boundary_action_valid_mask"])
+                    or not torch.equal(batch["target_action_valid_mask"][transition_count:], batch["anchor_action_valid_mask"])
+                    or not bool(action.all()) or bool(terminal.any())
+                    or not bool(batch["successor_observed_mask"].all())
+                    or not bool(batch["bellman_target_valid_mask"].all())):
+                raise RuntimeError("UNIFIED_EXIT_REFERENCE_BATCH_BINDING_INVALID")
+            reference = build_reference_policy_hold_targets(
+                policy=policy, hold_reward_bps=trace["hold_reward_bps"],
+                elapsed_wall_clock_gamma=trace["elapsed_wall_clock_gamma"],
+                transition_available_mask=trace["transition_available_mask"],
+                successor_terminal_mask=trace["successor_terminal_mask"],
+                boundary_action_q_bps=successor_q,
+                boundary_action_valid_mask=trace["boundary_action_valid_mask"],
+                boundary_right_censored_mask=trace["boundary_right_censored_mask"],
+            )
+            target_cache["reference_targets"] = reference
+            return torch.stack((reference["hold_target_bps"], reference["exit_now_target_bps"]), dim=-1), batch["bellman_target_valid_mask"]
         targets, valid = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=torch.zeros_like(successor_q).unsqueeze(2),
             exit_now_reward_bps=rewards[..., 1].unsqueeze(2),
@@ -798,6 +825,9 @@ def run_random_access_training_step(
         "entry_targets": entry_targets.detach(),
         "entry_valid_mask": entry_valid,
         "entry_bridge_binding": bridge,
+        **({"reference_target_evidence": target_cache["reference_targets"],
+            "entry_bridge_semantics": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh"}
+           if reference_mode else {}),
     }
 
 

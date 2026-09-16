@@ -7392,6 +7392,11 @@ def _episode_native_exit_train_v2(
         "economic_step_manifest_sha256",
         "economics_objective_contract_sha256",
     }
+    reference_policy = bindings.get("reference_policy") if isinstance(bindings, Mapping) else None
+    if reference_policy is not None:
+        from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+        reference_policy = require_reference_policy_contract(reference_policy)
+        required_bindings.add("reference_policy")
     if not isinstance(bindings, Mapping) or set(bindings) != required_bindings:
         raise RuntimeError(
             "[UNIFIED_EXIT_RANDOM_ACCESS_V2_BINDINGS_INVALID]"
@@ -7434,6 +7439,7 @@ def _episode_native_exit_train_v2(
             bindings["economics_objective_contract_sha256"]
         ),
         device=device,
+        reference_policy=reference_policy,
     )
     outcome = run_random_access_training_step(
         model=model,
@@ -7444,6 +7450,7 @@ def _episode_native_exit_train_v2(
         ),
         batch=batch,
         grad_accum_steps=grad_accum_steps,
+        reference_policy=reference_policy,
     )
     gate_view = _unified_exit_gate_view(outcome["online_output"])
     _accumulate_cooperation_gate_epoch(
@@ -7482,6 +7489,11 @@ def _episode_native_exit_train_v2(
         stats["_relative_hold_reward_bps"] = batch["liquidation_relative_reward_bps"][..., 0].detach()
         stats["_entry_first_liquidation_bps"] = batch["entry_liquidation_value_bps"].detach()
         stats["_entry_anchor_indices"] = batch["selected_entry_batch_index"].detach()
+        if reference_policy is not None:
+            stats["exit_target_value_semantics"] = reference_policy["value_semantics"]
+            stats["exit_reference_policy_sha256"] = reference_policy["policy_sha256"]
+            stats["entry_bridge_semantics"] = outcome["entry_bridge_semantics"]
+
     return (
         outcome["entry_gradients"],
         {**stats, "raw_loss": float(outcome["raw_loss"].cpu().item())},
@@ -11279,6 +11291,7 @@ def _candidate_training_session_contract(
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
     native_val_binding: Optional[Mapping[str, Any]] = None,
     exit_backup_steps: int = 1,
+    exit_reference_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
@@ -11293,6 +11306,11 @@ def _candidate_training_session_contract(
 
     if type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("[CANDIDATE_TRAINING_BACKUP_POLICY_INVALID]")
+    if exit_reference_policy is not None:
+        from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+        exit_reference_policy = require_reference_policy_contract(exit_reference_policy)
+        if exit_backup_steps != 1:
+            raise RuntimeError("[CANDIDATE_TRAINING_REFERENCE_POLICY_INVALID]")
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
         raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
     try:
@@ -11398,6 +11416,7 @@ def _candidate_training_session_contract(
         **({"native_full_val": dict(native_val_binding)} if native_val_binding is not None else {}),
         "training": {
             **({"exit_backup_steps": exit_backup_steps} if exit_backup_steps != 1 else {}),
+            **({"exit_reference_policy": exit_reference_policy} if exit_reference_policy is not None else {}),
             "seed": int(seed),
             "batch_size": int(batch_size),
             "epochs": int(epochs),
@@ -13166,6 +13185,7 @@ def _load_candidate_optimizer_procedure_successor_state(
 
     continuation = origin.get("schema_version") == TRAINING_CONTINUATION_SCHEMA
     trace_backup = continuation and origin.get("exit_backup_steps") == 5
+    reference_mode = continuation and "exit_reference_policy" in origin
     target_refresh = origin.get("schema_version") == FQI_TARGET_REFRESH_SCHEMA
     entry_learnability = origin.get("schema_version") == ENTRY_LEARNABILITY_SCHEMA
     if entry_learnability:
@@ -13225,7 +13245,7 @@ def _load_candidate_optimizer_procedure_successor_state(
     canonical = Path(__file__).resolve().parents[3]
     if (Path(before["source_repo"]) != canonical or Path(after["source_repo"]) != canonical
             or after.get("candidate_resume_origin") != origin
-            or "native_calibration" in before or ("native_calibration" in after and not trace_backup)
+            or "native_calibration" in before or ("native_calibration" in after and not (trace_backup or reference_mode))
             or _GRAD_CLIP_POLICY != OPTIMIZER_PROCEDURE_TRANSITION_POLICY):
         fail("CANONICAL_RECIPE_REQUIRED")
     require_native_run_scope(after)
@@ -13238,6 +13258,15 @@ def _load_candidate_optimizer_procedure_successor_state(
                 or before.get("exit_backup_steps", 1) != 1 or after.get("exit_backup_steps") != 5
                 or calibration is None or calibration["report_only_val"] is not False):
             fail("TRACE_BACKUP_POLICY_INVALID")
+    if reference_mode:
+        from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+        reference = require_reference_policy_contract(origin["exit_reference_policy"])
+        if ("exit_reference_policy" in previous["training"] or "exit_reference_policy" in before
+                or previous["training"].get("exit_backup_steps", 1) != 1
+                or requested["training"].get("exit_backup_steps", 1) != 1
+                or requested["training"].pop("exit_reference_policy", None) != reference
+                or after.get("exit_reference_policy") != reference):
+            fail("REFERENCE_POLICY_INVALID")
     if continuation or target_refresh or entry_learnability:
         if (previous["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
                 or requested["training"].get("gradient_clipping_policy") != _GRAD_CLIP_POLICY
@@ -13259,7 +13288,7 @@ def _load_candidate_optimizer_procedure_successor_state(
             "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
             "gx1/contracts/local_random_access_campaign_v2.py",
         })
-    if trace_backup:
+    if trace_backup or reference_mode:
         allowed.update({
             "gx1/contracts/unified_exit_random_access_state_view_v1.py",
             "gx1/contracts/unified_exit_dataset_adapter_v2.py",
@@ -13270,10 +13299,17 @@ def _load_candidate_optimizer_procedure_successor_state(
             "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
             "gx1/contracts/local_random_access_campaign_v2.py",
         })
+    if reference_mode:
+        allowed.add("gx1/contracts/unified_exit_reference_policy_v1.py")
     old_sources, new_sources = before["source_bindings"], after["source_bindings"]
-    if set(old_sources) != set(new_sources):
+    added_sources = set(new_sources) - set(old_sources)
+    reference_source = canonical / "gx1/contracts/unified_exit_reference_policy_v1.py"
+    if (set(old_sources) - set(new_sources)
+            or (added_sources and (not reference_mode or len(added_sources) != 1
+                or Path(new_sources[next(iter(added_sources))]["path"]) != reference_source
+                or new_sources[next(iter(added_sources))]["sha256"] != _sha256_file(reference_source)))):
         fail("SOURCE_CLOSURE_CHANGED")
-    changed_sources = []
+    changed_sources = [str(reference_source.relative_to(canonical))] if added_sources else []
     for key, bound in old_sources.items():
         try:
             relative = Path(bound["path"]).relative_to(canonical).as_posix()
@@ -13292,6 +13328,9 @@ def _load_candidate_optimizer_procedure_successor_state(
     for recipe, item in zip(normalized_recipes, contracts):
         if trace_backup:
             recipe.pop("exit_backup_steps", None)
+            recipe.pop("native_calibration", None)
+        if reference_mode:
+            recipe.pop("exit_reference_policy", None)
             recipe.pop("native_calibration", None)
         for key in ("source_repo", "source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir", "recipe_sha256", "candidate_resume_origin", "next_run_policy"):
             recipe.pop(key, None)
@@ -13361,6 +13400,12 @@ def _load_candidate_optimizer_procedure_successor_state(
         "state_preserved": not target_refresh, "optimizer_procedure_changed": not (continuation or target_refresh or entry_learnability),
         "identical_future_trajectory_claimed": False, "test_data_used": False,
         **refresh_evidence, **replay_evidence,
+        **({"exit_reference_policy_change": {
+            "policy": reference, "teacher_preserved": True,
+            "teacher_role": "initial_Q_mu_guess_from_preserved_legacy_weights",
+            "entry_bridge": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh",
+            "sampler_preserved": True, "holding_time_cap_introduced": False,
+        }} if reference_mode else {}),
         **({"exit_backup_policy_change": {
             "previous_backup_steps": 1, "backup_steps": 5,
             "teacher_preserved": True, "sampler_preserved": True,
@@ -13547,6 +13592,7 @@ def _run_resumable_candidate_training(
     train_adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
     random_access_binding = getattr(train_adapter, "_random_access_train", None)
     exit_backup_steps = random_access_binding.get("backup_steps", 1) if random_access_binding is not None else 1
+    exit_reference_policy = random_access_binding.get("reference_policy") if random_access_binding is not None else None
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
         out_bundle_dir, gx1_data_override
     )
@@ -13587,6 +13633,7 @@ def _run_resumable_candidate_training(
             checkpoint_monitor=checkpoint_monitor,
             native_val_binding=native_binding,
             exit_backup_steps=exit_backup_steps,
+            exit_reference_policy=exit_reference_policy,
         ),
     )
     train_checkpoint_interval = candidate_checkpoint_interval(precision_policy)

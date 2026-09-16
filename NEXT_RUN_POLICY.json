@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Compact native reward/boundary data flow passed26 new CPU cases; reuse receipt and47 prior owner regressions. Next bind explicit Q_mu to the existing native trainer/session/recipe/checkpoint transition, with original weights/Adam/EMA/RNG preserved and default unchanged. The trainer currently rejects reference batches before forward. Freeze comparable targets on actual trained and separate TRAIN before one bounded critic learning plan. No training or teacher refresh yet; no repeat probes, full epoch/VAL or TEST. Two unchanged legacy runner text assertions are recorded separately.",
+  "rule": "Native reference target/session/recipe/checkpoint binding passed175 CPU tests (31 new); reuse receipt and actual source-closure proof. Next freeze Q_mu targets for all512 actual native offsets1696:1728 and128 disjoint existing separate TRAIN entries. Reuse cached online inputs and BEFORE95 predictions; compute only missing compact rewards/boundary teacher values from the preserved original95 teacher. Use one bounded read-only CPU preparation with existing caps and no optimizer/backward. Bind target hashes, teacher, source closure and side/month/constant-baseline comparison in the existing native policy before one32-step critic run can be opened. Entry bridge stays on the initial teacher; no teacher refresh, full epoch/VAL or TEST. Current run permissions remain closed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -174,7 +174,7 @@
       "next_action": "Completed. Follow continuation_reference_candidate; do not repeat economics probe."
     },
     "continuation_reference_candidate": {
-      "status": "DATA_FLOW_PASS_NATIVE_RECIPE_CHECKPOINT_BINDING_PENDING",
+      "status": "NATIVE_BINDING_PASS_FROZEN_COMPARISON_TARGETS_PENDING",
       "report": "docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md",
       "reference_hold_probability_numerator": 119,
       "reference_hold_probability_denominator": 120,
@@ -183,19 +183,24 @@
       "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
       "training_enabled": false,
       "native_run_authorized": false,
-      "next_action": "Compact native reward/boundary data flow passed26 new CPU cases; reuse receipt and47 prior owner regressions. Next bind explicit Q_mu to the existing native trainer/session/recipe/checkpoint transition, with original weights/Adam/EMA/RNG preserved and default unchanged. The trainer currently rejects reference batches before forward. Freeze comparable targets on actual trained and separate TRAIN before one bounded critic learning plan. No training or teacher refresh yet; no repeat probes, full epoch/VAL or TEST. Two unchanged legacy runner text assertions are recorded separately.",
+      "next_action": "Native reference target/session/recipe/checkpoint binding passed175 CPU tests (31 new); reuse receipt and actual source-closure proof. Next freeze Q_mu targets for all512 actual native offsets1696:1728 and128 disjoint existing separate TRAIN entries. Reuse cached online inputs and BEFORE95 predictions; compute only missing compact rewards/boundary teacher values from the preserved original95 teacher. Use one bounded read-only CPU preparation with existing caps and no optimizer/backward. Bind target hashes, teacher, source closure and side/month/constant-baseline comparison in the existing native policy before one32-step critic run can be opened. Entry bridge stays on the initial teacher; no teacher refresh, full epoch/VAL or TEST. Current run permissions remain closed.",
       "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
       "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
       "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
       "cpu_tests_passed": 62,
       "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
-      "native_pipeline_connected": false,
+      "native_pipeline_connected": true,
       "data_flow_receipt": "handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json",
       "data_flow_receipt_sha256": "f9846fdc8b217568f062de18584eb11dd8faaff79145c781510a0173f142e213",
       "data_flow_cpu_cases_passed": 26,
       "native_data_owners_connected": true,
-      "native_trainer_reference_batches_rejected": true,
-      "known_unchanged_runner_text_test_failures": 2
+      "native_trainer_reference_batches_rejected": false,
+      "known_unchanged_runner_text_test_failures": 2,
+      "native_binding_receipt": "handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json",
+      "native_binding_receipt_sha256": "027ab79dcf1893b0d2900592794d5c8ddcb0469031c2d140429d5b1de245e064",
+      "native_binding_cpu_tests_passed": 175,
+      "native_run_requires_bound_reference_learning_plan": true,
+      "entry_bridge": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh"
     }
   }
 }

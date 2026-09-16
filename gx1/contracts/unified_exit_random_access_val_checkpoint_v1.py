@@ -135,6 +135,17 @@ def bind_candidate_weight_ema_history_v1(
                         "holding_time_cap_introduced": False,
                     }):
                 raise RuntimeError("UNIFIED_EXIT_CANDIDATE_TRACE_BACKUP_RECEIPT_INVALID")
+        if continuation and "exit_reference_policy" in origin:
+            reference = origin["exit_reference_policy"]
+            if (recipe.get("exit_reference_policy") != reference
+                    or contract.get("training", {}).get("exit_reference_policy") != reference
+                    or receipt.get("exit_reference_policy_change") != {
+                        "policy": reference, "teacher_preserved": True,
+                        "teacher_role": "initial_Q_mu_guess_from_preserved_legacy_weights",
+                        "entry_bridge": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh",
+                        "sampler_preserved": True, "holding_time_cap_introduced": False,
+                    }):
+                raise RuntimeError("UNIFIED_EXIT_CANDIDATE_REFERENCE_POLICY_RECEIPT_INVALID")
         if target_refresh:
             required_preserved.remove("target_model_state")
             if (receipt.get("target_model_refreshed") is not True

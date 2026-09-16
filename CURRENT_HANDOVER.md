@@ -4,11 +4,13 @@
 VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
 bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
-**Nå:** Referansemålets kompakte datatilkobling er implementert og CPU-kontrollert.
-26 nye tester består;120 rewards materialiserer bare current, første successor
-og endelig boundary. Native trainer avviser foreløpig referansebatcher før
-forward. Neste er eksplisitt Q_mu-binding til recipe/checkpoint og frosne,
-sammenlignbare læringsmål. Ingen trening er åpnet.
+**Nå:** Referansemålet er koblet til eksisterende native trainer, recipe og
+checkpointovergang.175 CPU-tester består, derav31 nye. Ekte source closure fra
+original95 er kontrollert: bare referansemålets kildefil tilkommer; ingen eier
+fjernes. Neste er frosne sammenligningsmål for512 trente og128 separate TRAIN-
+eksempler. Koden krever deres bundne bevis før én32-stegs kritiker-kandidat.
+Entry beholder opprinnelig lærer; ingen refresh eller native kjøring er åpnet.
+Kvittering: [native binding](handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json).
 
 Forrige kandidat med separat Exit-klipping er fullført og forkastet.
 Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;

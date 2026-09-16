@@ -1,0 +1,77 @@
+{
+  "schema_version": "gx1_reference_native_binding_receipt_v1",
+  "decision": "NATIVE_BINDING_CPU_PASS_FROZEN_COMPARISON_TARGETS_PENDING",
+  "recorded_utc": "2026-09-16T17:47:41.772440+00:00",
+  "base_source_commit": "750fd4d08bb1090657660d298289722c5f02c270",
+  "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_NATIVE_BINDING_20260916",
+  "source_sha256": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "b0ab2892f4dea31a0a02669cb49c2cb8d106a6ec8fb1ef4a6729e945950bd65e",
+    "gx1/contracts/unified_exit_random_access_training_v1.py": "362d45e2a1d73a6c4c93021fab7e73c0283af4e47da16d65387602058376312e",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "0d0e6d6910f4f61a171faf8fd41dacab182256c1123812e08006612d329f0c7b",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "19f1fc9bab75ca030893e144c8887c484a4f63329fe78021de28c5a6bcd3e714",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "f590ef08c9c9952b604f2c94728265b99f740173c32d234e3bded725f9c3866f",
+    "tests/test_candidate_economics_transition.py": "971dba12c3f3b6a1079782a62c837be4ecc5e2d7a1991fa5d7a57cb6ce1c4b47",
+    "tests/test_native_reference_policy_v1.py": "f9a671a6b93e0d159e0ddb829bc130798c9fda9d436435a57dbf0c1774aa2afc"
+  },
+  "log_sha256": {
+    "INITIAL_FAILURE.log": "92ee506dbbcc22a949d9a53d15f26e18dc2d6c9659f266f198c9b303be2d3205",
+    "PYTEST.log": "3c7eee52d33f3c2268b9d1f99cfd30b1ef3550f894f08773c45c1bc8c9a67763",
+    "PYTEST.xml": "d30a62d0b881d552ff4ba6d2da0abc27cb259f26586473b756dab70b3cd42e44",
+    "ACTUAL_SOURCE_CLOSURE.json": "e0250bbeb38dee0e13034e55734a65782a088124e21f4a45c098b75f11268112"
+  },
+  "tests_passed": 175,
+  "new_native_binding_cases_passed": 31,
+  "failed": 0,
+  "scope": "Explicit Q_mu target, existing native factory/trainer/session/recipe propagation, original95 checkpoint semantic transition and EMA-history receipt; one32-step window only after frozen evidence is bound.",
+  "original95_contract": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "sha256": "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
+  },
+  "actual_source_closure_checked": true,
+  "source_binding_counts": [
+    156,
+    157
+  ],
+  "new_source_owner_only": "gx1/contracts/unified_exit_reference_policy_v1.py",
+  "preserved_on_transition": [
+    "online_model",
+    "frozen_teacher",
+    "optimizer",
+    "EMA",
+    "scheduler",
+    "RNG",
+    "epoch_order",
+    "training_progress"
+  ],
+  "teacher_role": "initial_Q_mu_guess_from_preserved_legacy_weights",
+  "entry_bridge": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh",
+  "default_one_and_five_step_paths_preserved": true,
+  "reference_policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+  "fixed_candidate": {
+    "origin_checkpoint": 95,
+    "origin_global_step": 5777,
+    "end_global_step": 5809,
+    "additional_steps": 32,
+    "native_batch_offsets": [
+      1696,
+      1728
+    ],
+    "train_batch_size": 16,
+    "trained_entries": 512,
+    "separate_train_entries": 128,
+    "full_epoch_allowed": false,
+    "VAL_allowed": false,
+    "teacher_refresh_allowed": false
+  },
+  "required_before_run": "Create fixed actual TRAIN target artifacts for both cohorts from the preserved teacher; bind hashes, source closure, policy and before/after side/month/constant-baseline comparison in reference_learning_plan. Current NEXT_RUN_POLICY remains unchanged and cannot launch this reference scope.",
+  "initial_test_failure_fixed": "A source-allowlist edit landed in the older economics transition; moved it into the intended optimizer/continuation owner. All175 relevant tests now pass.",
+  "audit_memory_max_bytes": 4294967296,
+  "audit_swap_max_bytes": 536870912,
+  "native_training_started": false,
+  "production_checkpoint_loaded": false,
+  "gpu_used": false,
+  "test_data_used": false,
+  "learning_demonstrated": false,
+  "full_repository_suite_run": false,
+  "known_unrelated_runner_text_assertions": "Two unchanged baseline failures recorded in REFERENCE_POLICY_DATA_FLOW_20260916; not rerun or changed here."
+}

@@ -569,10 +569,10 @@ def test_economics_transition_permits_bound_val_checkpoint_history_owner(tmp_pat
         _identical(state[key], before[key])
 
 
-def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None, trace_backup=False):
+def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuation=False, target_refresh=False, entry_learnability=False, cohort_factory=None, trace_backup=False, reference_policy=False):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as scope
     from gx1.contracts import unified_exit_random_access_val_checkpoint_v1 as val_checkpoint
-    if trace_backup:
+    if trace_backup or reference_policy:
         continuation = True
     current = tmp_path / "CURRENT"
     current.mkdir()
@@ -585,7 +585,7 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                  "require_training_continuation_origin" if continuation else "require_optimizer_procedure_origin")
     monkeypatch.setattr(scope, validator, lambda origin: dict(origin))
     monkeypatch.setattr(scope, "require_native_run_scope", lambda recipe: 6033 if entry_learnability else 5777 if target_refresh else 5521 if continuation else 5265)
-    cursor = (scope.ENTRY_LEARNABILITY_ORIGIN_CURSOR if entry_learnability or trace_backup else
+    cursor = (scope.ENTRY_LEARNABILITY_ORIGIN_CURSOR if entry_learnability or trace_backup or reference_policy else
               scope.FQI_TARGET_REFRESH_ORIGIN_CURSOR if target_refresh else
               scope.TRAINING_CONTINUATION_ORIGIN_CURSOR if continuation else scope.OPTIMIZER_PROCEDURE_ORIGIN_CURSOR)
     preserve_procedure = continuation or target_refresh or entry_learnability
@@ -610,6 +610,13 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             sources["trainer"]["sha256"] = "1" * 64
         if side and fault == "model_source":
             sources["model"]["sha256"] = "4" * 64
+        if side and reference_policy:
+            owner = current / "gx1/contracts/unified_exit_reference_policy_v1.py"
+            owner.parent.mkdir(parents=True, exist_ok=True)
+            owner.write_text("# Exact fixture source closure addition\n")
+            sources["reference_owner"] = {"path": str(owner), "sha256": trainer._sha256_file(owner)}
+            if fault == "extra_owner":
+                sources["unapproved_owner"] = {"path": str(current / "unrelated.py"), "sha256": "7" * 64}
         recipe = {"source_repo": str(current), "source_commit": str(side + 1) * 40,
                   "source_bindings": sources, "source_bindings_sha256": _sha(sources),
                   "out_bundle_dir": str(tmp_path / f"clip_bundle{side}"), "run_id": f"clip{side}",
@@ -623,6 +630,13 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
             recipe["exit_backup_steps"] = 5 if fault != "recipe_backup" else 2
             recipe["native_calibration"] = {"schema_version": "gx1_native_learning_calibration_run_v1",
                 "arm": "reference", "report_only_val": fault == "calibration_val"}
+        if side and reference_policy:
+            from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract
+            recipe["exit_reference_policy"] = reference_policy_contract()
+            recipe["native_calibration"] = {"schema_version": "gx1_native_learning_calibration_run_v1",
+                "arm": "reference", "report_only_val": False}
+            if fault == "recipe_reference":
+                recipe["exit_reference_policy"]["policy_sha256"] = "0" * 64
         recipe["recipe_sha256"] = _sha(recipe)
         bound_recipe = _write(tmp_path / f"clip_recipe{side}.json", recipe)
         contract = {"schema_version": trainer._CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
@@ -633,6 +647,10 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                     "training": {"batch_size": 16, "grad_clip_norm": 1.0, "checkpoint_policy": trainer.checkpoint_policy_metadata(checkpoint_monitor=trainer.MARKED_NET_CHECKPOINT_MONITOR)}}
         if side and trace_backup:
             contract["training"]["exit_backup_steps"] = 5 if fault != "backup_steps" else 2
+        if side and reference_policy:
+            contract["training"]["exit_reference_policy"] = reference_policy_contract()
+            if fault == "contract_reference":
+                contract["training"].pop("exit_reference_policy")
         if side or preserve_procedure:
             contract["training"]["gradient_clipping_policy"] = trainer._GRAD_CLIP_POLICY
         if preserve_procedure and not side and fault == "old_clipping_missing":
@@ -667,6 +685,11 @@ def _optimizer_procedure_fixture(tmp_path, monkeypatch, fault=None, *, continuat
                       "gradient_clipping_policy": trainer._GRAD_CLIP_POLICY}
             if trace_backup:
                 origin["exit_backup_steps"] = 5
+                monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256", origin["contract"]["sha256"])
+                monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256", pointer["state_sha256"])
+            if reference_policy:
+                from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract
+                origin["exit_reference_policy"] = reference_policy_contract()
                 monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_CONTRACT_SHA256", origin["contract"]["sha256"])
                 monkeypatch.setattr(scope, "ENTRY_LEARNABILITY_ORIGIN_STATE_SHA256", pointer["state_sha256"])
             if entry_learnability:

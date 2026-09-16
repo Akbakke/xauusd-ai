@@ -83,7 +83,7 @@ def _require_native_full_train_recipe(
     }
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != _INITIALIZATION
@@ -193,6 +193,7 @@ def _build_bound_full_train_components(
     learning_rate: float, weight_decay: float,
     val_limits: Mapping[str, int],
     exit_backup_steps: int = 1,
+    exit_reference_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind every TRAIN row and the full June VAL to the existing native owners.
 
@@ -296,6 +297,7 @@ def _build_bound_full_train_components(
         train_dataset=datasets["train"],
         train_feature_source_owner=corpus.splits["train"],
         backup_steps=exit_backup_steps,
+        reference_policy=exit_reference_policy,
     )
     # Keep the measured transition-sampler geometry, then select all Entry
     # pairs through the same full-population owner used by the completed year.
@@ -513,6 +515,7 @@ def run_guarded_native_candidate_invocation(
         seed=controls["seed"], learning_rate=controls["learning_rate"],
         weight_decay=controls["weight_decay"], val_limits=recipe["val_limits"],
         exit_backup_steps=recipe.get("exit_backup_steps", 1),
+        exit_reference_policy=recipe.get("exit_reference_policy"),
     )
     smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
     if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
