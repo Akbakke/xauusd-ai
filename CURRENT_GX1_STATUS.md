@@ -8,7 +8,10 @@ Overførbar beslutningskvalitet og lønnsomhet er ikke dokumentert.
 training_enabled=false; ingen full epoch/full VAL eller TEST.
 
 CURRENT_HANDOVER.md er eneste gjeldende fortelling. Les ferdig resultat og
-neste målkomponentdiagnose i docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md.
+målt måloppdeling i docs/TARGET_COMPONENT_CAUSE_20260916.md.
+Ankerutfall er nå kontrollert på 275/512 Entries; begge sidemiddel er negative.
+SHORT har noe rangering, men læringsporten er ikke bestått. Se
+docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Neste er én begrunnet korreksjon i målkjeden.
 Gjenbruk ferdige trace/reward/Q/input/output-cacher; ikke gjenta32-kandidaten
 eller512-analysen. Hent faktisk status med ./handover.sh --check på Mac eller
 bash scripts/gx1_handover.sh --check i Linux. Historiske planer er ikke startautoritet.

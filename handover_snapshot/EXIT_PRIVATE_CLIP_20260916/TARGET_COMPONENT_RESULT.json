@@ -1,0 +1,3037 @@
+{
+  "actual_target_reproduction_exact": true,
+  "all_actual32": {
+    "LONG": {
+      "common_bootstrap": {
+        "mean": 0.0042212248339318775,
+        "mean_abs": 0.0042212248339318775,
+        "negative": 0,
+        "positive": 168,
+        "std": 0.019744298545583305
+      },
+      "common_length": {
+        "1": 0,
+        "2": 0,
+        "3": 1,
+        "4": 0,
+        "5": 2047
+      },
+      "common_reward": {
+        "mean": 0.14452533619766977,
+        "mean_abs": 5.851632142774038,
+        "negative": 1006,
+        "positive": 1042,
+        "std": 9.203972087555877
+      },
+      "common_target": {
+        "mean": 0.14874656103160167,
+        "mean_abs": 5.852261479567626,
+        "negative": 1006,
+        "positive": 1042,
+        "std": 9.204063134281105
+      },
+      "first_reward": {
+        "mean": 0.15376497895704233,
+        "mean_abs": 2.7786052664214367,
+        "negative": 1003,
+        "positive": 1045,
+        "std": 4.659261539043209
+      },
+      "policy_bootstrap": {
+        "mean": 0.0041369407974521325,
+        "mean_abs": 0.0041369407974521325,
+        "negative": 0,
+        "positive": 148,
+        "std": 0.019731728337431396
+      },
+      "policy_length": {
+        "1": 1880,
+        "2": 9,
+        "3": 3,
+        "4": 6,
+        "5": 150
+      },
+      "policy_reward": {
+        "mean": 0.18505485844357739,
+        "mean_abs": 3.1428199517639888,
+        "negative": 996,
+        "positive": 1052,
+        "std": 5.837239675542293
+      },
+      "predictions": {
+        "AFTER96": {
+          "common_target": {
+            "mse": 84.6596425582802,
+            "pearson": 0.03959066714763895
+          },
+          "target": {
+            "mse": 34.01482237873135,
+            "pearson": 0.06430243056856944
+          }
+        },
+        "BEFORE95": {
+          "common_target": {
+            "mse": 84.71029792605148,
+            "pearson": 0.013854288570161383
+          },
+          "target": {
+            "mse": 34.07062720309466,
+            "pearson": 0.031914377036466546
+          }
+        },
+        "CANDIDATE": {
+          "common_target": {
+            "mse": 84.48247798562986,
+            "pearson": 0.10092840786650177
+          },
+          "target": {
+            "mse": 33.873282465096054,
+            "pearson": 0.13643169869154098
+          }
+        }
+      },
+      "rows": 2048,
+      "sign_changed_by_policy_vs_common": 648,
+      "target": {
+        "mean": 0.18919179841918776,
+        "mean_abs": 3.1434743911433998,
+        "negative": 996,
+        "positive": 1052,
+        "std": 5.837377989850203
+      }
+    },
+    "SHORT": {
+      "common_bootstrap": {
+        "mean": 0.08789987071047345,
+        "mean_abs": 0.08789987071047345,
+        "negative": 0,
+        "positive": 2048,
+        "std": 0.14740052082171523
+      },
+      "common_length": {
+        "1": 0,
+        "2": 0,
+        "3": 1,
+        "4": 0,
+        "5": 2047
+      },
+      "common_reward": {
+        "mean": -0.1535051618552956,
+        "mean_abs": 5.865900742286106,
+        "negative": 1046,
+        "positive": 1002,
+        "std": 9.212127331674257
+      },
+      "common_target": {
+        "mean": -0.06560529114482211,
+        "mean_abs": 5.8605401523929,
+        "negative": 1036,
+        "positive": 1012,
+        "std": 9.210050634616396
+      },
+      "first_reward": {
+        "mean": -0.16967979638502584,
+        "mean_abs": 2.778171207730338,
+        "negative": 1042,
+        "positive": 990,
+        "std": 4.651316771904077
+      },
+      "policy_bootstrap": {
+        "mean": 0.08789987071047345,
+        "mean_abs": 0.08789987071047345,
+        "negative": 0,
+        "positive": 2048,
+        "std": 0.14740052082171523
+      },
+      "policy_length": {
+        "1": 0,
+        "2": 0,
+        "3": 1,
+        "4": 0,
+        "5": 2047
+      },
+      "policy_reward": {
+        "mean": -0.1535051618552956,
+        "mean_abs": 5.865900742286106,
+        "negative": 1046,
+        "positive": 1002,
+        "std": 9.212127331674257
+      },
+      "predictions": {
+        "AFTER96": {
+          "common_target": {
+            "mse": 84.80844647496406,
+            "pearson": 0.02012598132362067
+          },
+          "target": {
+            "mse": 84.80844442410155,
+            "pearson": 0.020125980121917016
+          }
+        },
+        "BEFORE95": {
+          "common_target": {
+            "mse": 84.85461257109566,
+            "pearson": -0.006984004048358188
+          },
+          "target": {
+            "mse": 84.85461052071503,
+            "pearson": -0.006984005501450773
+          }
+        },
+        "CANDIDATE": {
+          "common_target": {
+            "mse": 84.71126803440026,
+            "pearson": 0.07733051043466212
+          },
+          "target": {
+            "mse": 84.71126597681672,
+            "pearson": 0.07733051145689249
+          }
+        }
+      },
+      "rows": 2048,
+      "sign_changed_by_policy_vs_common": 0,
+      "target": {
+        "mean": -0.06560530198930792,
+        "mean_abs": 5.860540063947155,
+        "negative": 1036,
+        "positive": 1012,
+        "std": 9.210050530130895
+      }
+    }
+  },
+  "decision": "CACHED_TARGET_COMPONENTS_MEASURED_NO_TRAINING_AUTHORITY",
+  "elapsed_seconds": 26.23031777199958,
+  "entry": {
+    "LONG": {
+      "continuation": {
+        "mean": 0.0,
+        "mean_abs": 0.0,
+        "positive_count": 0
+      },
+      "liquidation": {
+        "mean": -5.385876296073548,
+        "mean_abs": 6.086628354605637,
+        "positive_count": 33
+      },
+      "target": {
+        "mean": -5.385876296073548,
+        "mean_abs": 6.086628354605637,
+        "positive_count": 33
+      }
+    },
+    "SHORT": {
+      "continuation": {
+        "mean": 0.04966806168522453,
+        "mean_abs": 0.04966806168522453,
+        "positive_count": 512
+      },
+      "liquidation": {
+        "mean": -6.317565604666015,
+        "mean_abs": 6.723672076972434,
+        "positive_count": 25
+      },
+      "target": {
+        "mean": -6.267897555604577,
+        "mean_abs": 6.678210561396554,
+        "positive_count": 25
+      }
+    }
+  },
+  "fp64_decomposition_max_abs_error_bps": 1.002560048846135e-05,
+  "input_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_00.json",
+      "sha256": "0829525845032092bd774a5af42daad9d304999b72696d735e0a3a018c6738e3"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/BATCH_INPUTS.pt",
+      "sha256": "5cff4b8ab5406f2cf68875d9e340ef617f1b877e22c56f5e54e67ae0af68e234"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/TARGETS.pt",
+      "sha256": "253ceaf5ec91683adcb6c4f552cba4bfb53fc2aecf9a96da4b6fa9f558f8fed8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_01.json",
+      "sha256": "0e410c67ca2af28ab9e93db1782f99835e908a124776c00b8e31e00161c7fc54"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_01_INPUTS.pt",
+      "sha256": "48f88bb383ef6a853d22e5fa0750650d682d1bda83176b9c0ca41c220cfa3010"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_01_TARGETS.pt",
+      "sha256": "11221ae22f2a579f25d2a96c94654b27af657cc8a27fc34ba61c4b1715836d8f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_02.json",
+      "sha256": "43c1dbe8ae80b4fc66eec5f1aaf624de3fb1feb4c4bbe18ae9507e0d8e11ff07"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_02_INPUTS.pt",
+      "sha256": "53ea21dee4b211b94e786208afb07ae4297b2318cf592058d022d856df679361"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_02_TARGETS.pt",
+      "sha256": "716becf80140b7795df3962c9c325149e5ad9df7da34d90e832ec5c8a252415f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_03.json",
+      "sha256": "cfa9e781a3f531a208c4b20a40f8d104bf5d6d4436491768e4dece9ac422879f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_03_INPUTS.pt",
+      "sha256": "c3c4ccbf26898d88c7ebebb080996c3e163bdcb115e4920c902aae2e795ad869"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_03_TARGETS.pt",
+      "sha256": "a529f4e9bdefc93a9eac3878725bdbabcc93ac6f3215bc1346dd3a41f75e2d1d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_04.json",
+      "sha256": "741a2422e7422a7a82fdbba5fd3d3d31d71d0ddfb45eccde0ebe5bebf65ac0c8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_04_INPUTS.pt",
+      "sha256": "2b07e737a962d023ba3a990267fa6881711bc3f99e0ca6d72e632abaf1061d5e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_04_TARGETS.pt",
+      "sha256": "4975d61798735637a4749143690e51d5856ad569ddf5bc77d83937a8526557a1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_05.json",
+      "sha256": "dde36eb83ec16ef3d050f1bda7f8909d449e6bf6691c08867557fa6f30cb7b2a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_05_INPUTS.pt",
+      "sha256": "7487366084285c9eed2281429956ba5e5b6fde34bdf0646b24a7cec4323d571a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_05_TARGETS.pt",
+      "sha256": "5d41c2e94419e505e5c781f055c950f399d11ce0d0d875e29ccd51a6dd91597f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_06.json",
+      "sha256": "3928faf89fd1ba1e0e2e837b5769bea9e2b61b82c1b56a548a4179e5f5418e3d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_06_INPUTS.pt",
+      "sha256": "22a3c75e00068ba4c86dfd6bac815ea50b3ed38979220dbc47281fc6c7c1dfbc"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_06_TARGETS.pt",
+      "sha256": "6af2cc5eeb1b1ed52417b29eda2938a358da4532a6b1543a57c2f0d1e1042586"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_07.json",
+      "sha256": "412aa27ca17af7a40679329c40c6cc40ad21dceb11dd0c09e2a037315a43fe48"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_07_INPUTS.pt",
+      "sha256": "aeab4450ddd0ed341c735eb5e009ed7518c58ddd0a13d4cc9ffee44805e2ab48"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_07_TARGETS.pt",
+      "sha256": "0451b5379d0dbf3b26eea26e056dab6b0bf5168f3ae0350e0da8429c443e51e0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_08.json",
+      "sha256": "662457e7b443c3cd5afdd84a76669f5231d7a77f5a1b62bf925e9da4f2737cd3"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_08_INPUTS.pt",
+      "sha256": "0718a30d34ad2228a88be087435cfaeb47b805eb85c400806cda6a30677cbde8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_08_TARGETS.pt",
+      "sha256": "4e575d8065f1b0f42d589d7a6323b173f3431f9aede4d90e18b15ead06801090"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_09.json",
+      "sha256": "bdde5fea3c16a48c196bea069b1204dae9aa8faeb466782065b7922e95d20b5d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_09_INPUTS.pt",
+      "sha256": "f61df9b63439d0b3bcdaa8d4575d94f2a369dc40fd1d92f14fb295414291e96c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_09_TARGETS.pt",
+      "sha256": "e57fd408b08ce6c711a59c7150e8cbe5b9fce7cc89702cac51d0c674e6f261ec"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_10.json",
+      "sha256": "7e3e5c110e933ae1812cf616814e0cc677aef475b973813d48bb58bd54ff1c3e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_10_INPUTS.pt",
+      "sha256": "5c2d8a6d48b490d678dc108f2e154e47e20cbf9839473265a3247715f54e5381"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_10_TARGETS.pt",
+      "sha256": "5adfed5ff761c8b92590d86b6cae04e313686f8d2840a97eafa7f52fcb19383f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_11.json",
+      "sha256": "1af70e80782cba821d3a58f6e1e6ac3173d8d8639360a4f025355e64f754f21a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_11_INPUTS.pt",
+      "sha256": "d91ecc67b8b7db51f9b65b4d3e14f62c9d3e4af18aad82f74ad6a2d00067c44f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_11_TARGETS.pt",
+      "sha256": "597ceec53f9b6e7fb2db7b79b47f9f4b4c60af8b9909b3c334eb049bd150945b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_12.json",
+      "sha256": "4a15ddc0d835b1a0c630164117f4753a8e011bfb36a36161ca92e31d2146c701"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_12_INPUTS.pt",
+      "sha256": "14c3b23debe1a8b2163e657de505eb752e31bc472d6d296b1851c99bf4c30c80"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_12_TARGETS.pt",
+      "sha256": "c1716a8df714bc068f325da46b4bea5b9ae27a2f5d4790fcff411cb0cdbe1d75"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_13.json",
+      "sha256": "ef1cc3253e546ab95e92dc66da4bc307742ced11b7e3508d95dbe35552337d2e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_13_INPUTS.pt",
+      "sha256": "ccf4c2c0eb657d50c5ff4bc557a425979f7d5d3f0654886afc15711c7865c031"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_13_TARGETS.pt",
+      "sha256": "b8eb1fc5a9600b585257610e8ce3f91e1dc6ff5f45f3ea188b0d18f25aaf01e1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_14.json",
+      "sha256": "df1e4bf289e62db9f9eb03e4d2415fd8180b406580175e1efaff3cc1a76a0f59"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_14_INPUTS.pt",
+      "sha256": "0e9af562ba7c483d0c341942d1b32e0539e550dc4c01bed63a0dbafaab260149"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_14_TARGETS.pt",
+      "sha256": "414ff9e865031979f3df7dbf8b28788a5a7363af61423a46add2095bedcd6d4c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_15.json",
+      "sha256": "881690d425b63bc64e0b7d776aaddfb2e49ff1868fb5acdec2659cd3b6781e8d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_15_INPUTS.pt",
+      "sha256": "6e9e2ecf5a5844277283241ea3ba5a7c9ed37a23d1c73ad5eeb5a8b5f8e4beed"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_15_TARGETS.pt",
+      "sha256": "526d744f3ba1de20ab95275f29e2cdfed45977ef767f962521c4d5a6806c3d74"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_16.json",
+      "sha256": "59aa0839044dae97f6bdf9998fd4b8b2c19c87e18a4de1d9730424741fcbda1f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_16_INPUTS.pt",
+      "sha256": "ebaa8d46c82801b0ad63ee15cb9d3545b9623f93ca6f461505cc45401df63aea"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_16_TARGETS.pt",
+      "sha256": "c2843169cf8a0ad9c310723a661acd9ed63a9a5d55f576ec4c415b997959db0d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_17.json",
+      "sha256": "1662a765c4f32a2fc2c7c0fed2fd28a37960c65fa5066f7dd8ac37e8a3988868"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_17_INPUTS.pt",
+      "sha256": "c915962528757884fb82e7d029d5413eb5b367bea5744b8e661d1fd77ee3644b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_17_TARGETS.pt",
+      "sha256": "4ffe40082dd304f01a566cd00edde79d15d62ee03e8b209c4ba6e413059696a5"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_18.json",
+      "sha256": "d921b04dc83b8bba7f41ab300228093bf2d110604708e3dd49d1bea2a82685db"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_18_INPUTS.pt",
+      "sha256": "8aa54932495f71ac17a0863577da6757039f3431e652d3a1b0f1fa27c1b943bd"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_18_TARGETS.pt",
+      "sha256": "7d93103f8e6b50f14e220808a069c40769944ea444d74c7fee04323bb816eb05"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_19.json",
+      "sha256": "250e0335b1598d25ac214675df723379f532d3563c4b7e165984cb377cb48b31"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_19_INPUTS.pt",
+      "sha256": "7e44d51c208fef1f19bd3d4f46c44abf6b83cb221070b5eb32c3e8abdebc4d6e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_19_TARGETS.pt",
+      "sha256": "c0c44c646267904401ec0022595b60dceb20ea99d8d09b98df4afc08a891a163"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_20.json",
+      "sha256": "90ef38ca836db30874e70377fe6a635c28c381e613813ef29a727b13e4af6e45"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_20_INPUTS.pt",
+      "sha256": "2d6ff2f02b38ff2f103e635956889a34d7e2cd5fd5df6d242b7ab22fd78f603d"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_20_TARGETS.pt",
+      "sha256": "db435cd34fb68eb48488c9e394ca6455c8816e8c54c7cb7109b2e84b7573bde3"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_21.json",
+      "sha256": "65351e88c9f2dbff7c245ed6da67acb6a9f5cec5ac42a4f315c657f3ddab9082"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_21_INPUTS.pt",
+      "sha256": "b9f0f11193d1122fdc1a54d4abbf0b898dc6d224a0b447d2c7f4a97dc50c498e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_21_TARGETS.pt",
+      "sha256": "5aff8e133d579585218bc8753020bccb856f14de08dd496ccea1ad29a6b6aa13"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_22.json",
+      "sha256": "41458fa589e241eec2c7b073a22a17c4ad985158fed16661e81ce852221c75f1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_22_INPUTS.pt",
+      "sha256": "ac2ac6be37c8250ca0ac3faac6feb5957ef771e242db8224239d12aefef8b958"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_22_TARGETS.pt",
+      "sha256": "f5219ead304f10f718258b9c83d7900c0141a8e4c27a9258864d89d3c1924df4"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_23.json",
+      "sha256": "f2bff16756b70c83b0c49a880ab06ec087e68349fca149e601df933ad56ad9b2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_23_INPUTS.pt",
+      "sha256": "d3fbf7df80472ec419cb2eedeed24cc544f479a4189e5b08f1e8d6a6309551e0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_23_TARGETS.pt",
+      "sha256": "85b0674e2554c34c3e7a3a43e2c88f3e835bab3c2f05a041909074f40b8e777e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_24.json",
+      "sha256": "a14ffe828664691a7848041420896c2622484c79ee00fb29e2bb9308486fb704"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_24_INPUTS.pt",
+      "sha256": "0a3f892d5edd51ba0cae51b2da6bdc3e852fba2690afe9280a5813b618d2bdc2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_24_TARGETS.pt",
+      "sha256": "b7fadb11d2695000d082501b651027e0df16f7012cb6d23abcc28f2c6efb26a1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_25.json",
+      "sha256": "53fa20d226d3c2bc02b07f4e943fc74032f30a738d0719df496a234c7c75df64"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_25_INPUTS.pt",
+      "sha256": "157c1006e5f4bda76ff756a1013547d4aac41ee9fc03a4d43a99154a3fb99fed"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_25_TARGETS.pt",
+      "sha256": "1659098ce3e74379a706e1a3277d3dc6211b82b2d0585d89267113a0014fe363"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_26.json",
+      "sha256": "0dc8f1e2d2b9e8faa03aaa8d3ab872ff3105e20c057e299a78a35169ad4ac900"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_26_INPUTS.pt",
+      "sha256": "d771a24ddf5ed142e8ca90d08b308520407cc819e61d1c32be68631643d7bc8b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_26_TARGETS.pt",
+      "sha256": "b22f8645ee22c280c6aa25e3a89565dd99b70eb14ce7b0b99998f41edca640de"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_27.json",
+      "sha256": "75a3b5189e860ecd3e750085cdd196427ee1dcea035bdb0a1b5289ef23561ba3"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_27_INPUTS.pt",
+      "sha256": "eb09e6ba06934722f587d48712ad4e64534022f6c636f6f05783b6c9f9690418"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_27_TARGETS.pt",
+      "sha256": "cd8be7d267e1c774d7b07790d4fe20bc365bc5c7794abc489cb28275b2509042"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_28.json",
+      "sha256": "28afe0ede9f33117a1d0fcb61aaa9a36d0851510247a886f6bd2ff4201ba49ca"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_28_INPUTS.pt",
+      "sha256": "570cdd2cb7311aa032a0140caae9ef792fdbb550f0451fdb801807ae666f41a2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_28_TARGETS.pt",
+      "sha256": "6bb47c6a970fa33403101117530fd3a26796d1400100f37a48429c51ed614988"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_29.json",
+      "sha256": "42f06fc1c9dd4e9b0383ca7af330623ccd31d1dd4b96134b4d224ab439880d57"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_29_INPUTS.pt",
+      "sha256": "90b4b7bde0d3f1e10b3bdca4b9ea4f5095de55bbc97daffd140cfa6941f1daf6"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_29_TARGETS.pt",
+      "sha256": "150d7950a11e8fe499a48a3b82e06c6c9e02e12cc666b8d144b62139db228a0b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_30.json",
+      "sha256": "1086f6da768aad7d33e71808becc3301f7abde60855518665172c9e22ea9f99b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_30_INPUTS.pt",
+      "sha256": "4f69494568b079e50ce77c00d92e85fa0b0601e6a5069b742296961dd413a3e6"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_30_TARGETS.pt",
+      "sha256": "50a2520a56d417c1b3ff5fd8a24dbbf934e30b98ca6d60fd1a08466123641a04"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_31.json",
+      "sha256": "5d7c08cb559d2edb06a3030425ec9c6644407b245a627c8616ae440c8d8d01ce"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_31_INPUTS.pt",
+      "sha256": "92c3112159c1479895d5b43dfc008a71a2ed7c1ad9cc19f33ada6817a66cc62a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_31_TARGETS.pt",
+      "sha256": "7c71b0ca20cd4b01d875bdba9ad1d81a2b957720ce85765e900cd13af798afb8"
+    }
+  ],
+  "monthly": {
+    "2025-06": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0010368141355798276,
+          "mean_abs": 0.0010368141355798276,
+          "negative": 0,
+          "positive": 8,
+          "std": 0.005896007297666798
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 168
+        },
+        "common_reward": {
+          "mean": -0.6150931255498625,
+          "mean_abs": 4.281027672154058,
+          "negative": 91,
+          "positive": 77,
+          "std": 5.507979508313986
+        },
+        "common_target": {
+          "mean": -0.6140563114142827,
+          "mean_abs": 4.280514565435098,
+          "negative": 91,
+          "positive": 77,
+          "std": 5.508329354847018
+        },
+        "first_reward": {
+          "mean": -0.08000022287749396,
+          "mean_abs": 2.1183217044738174,
+          "negative": 78,
+          "positive": 90,
+          "std": 3.2123236170191727
+        },
+        "policy_bootstrap": {
+          "mean": 0.0009320979043795314,
+          "mean_abs": 0.0009320979043795314,
+          "negative": 0,
+          "positive": 6,
+          "std": 0.005825534007783001
+        },
+        "policy_length": {
+          "1": 160,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 6
+        },
+        "policy_reward": {
+          "mean": -0.034011561365492333,
+          "mean_abs": 2.267526563193518,
+          "negative": 79,
+          "positive": 89,
+          "std": 3.4703789672283825
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 31.026700870476084,
+              "pearson": -0.029855622380458562
+            },
+            "target": {
+              "mse": 12.09380167076154,
+              "pearson": 0.024211514239509905
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 30.803694940326576,
+              "pearson": -0.025371087174000773
+            },
+            "target": {
+              "mse": 12.056427893593058,
+              "pearson": 0.0026479396816015684
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 31.01275650691852,
+              "pearson": 0.044487307169965476
+            },
+            "target": {
+              "mse": 12.04828577833464,
+              "pearson": 0.13519292998631866
+            }
+          }
+        },
+        "rows": 168,
+        "sign_changed_by_policy_vs_common": 56,
+        "target": {
+          "mean": -0.0330794730952697,
+          "mean_abs": 2.267049825699013,
+          "negative": 79,
+          "positive": 89,
+          "std": 3.4708347063322256
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.0564510808967408,
+          "mean_abs": 0.0564510808967408,
+          "negative": 0,
+          "positive": 168,
+          "std": 0.02607889834159445
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 168
+        },
+        "common_reward": {
+          "mean": 0.5696023355594368,
+          "mean_abs": 4.307538026950091,
+          "negative": 75,
+          "positive": 93,
+          "std": 5.543079190864853
+        },
+        "common_target": {
+          "mean": 0.6260534164561777,
+          "mean_abs": 4.312918111332494,
+          "negative": 74,
+          "positive": 94,
+          "std": 5.5387092480057065
+        },
+        "first_reward": {
+          "mean": 0.007555614236653546,
+          "mean_abs": 2.1320377272842004,
+          "negative": 89,
+          "positive": 77,
+          "std": 3.2518539178586727
+        },
+        "policy_bootstrap": {
+          "mean": 0.0564510808967408,
+          "mean_abs": 0.0564510808967408,
+          "negative": 0,
+          "positive": 168,
+          "std": 0.02607889834159445
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 168
+        },
+        "policy_reward": {
+          "mean": 0.5696023355594368,
+          "mean_abs": 4.307538026950091,
+          "negative": 75,
+          "positive": 93,
+          "std": 5.543079190864853
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 31.09350618190725,
+              "pearson": -0.032723367693081165
+            },
+            "target": {
+              "mse": 31.093505524834935,
+              "pearson": -0.03272336656005904
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 31.0531649450987,
+              "pearson": -0.029957371861822447
+            },
+            "target": {
+              "mse": 31.053164286798275,
+              "pearson": -0.029957370072166246
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 31.624711955973236,
+              "pearson": 0.036032230151947495
+            },
+            "target": {
+              "mse": 31.62471131687384,
+              "pearson": 0.03603223051797843
+            }
+          }
+        },
+        "rows": 168,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 0.6260534346192366,
+          "mean_abs": 4.312918042364929,
+          "negative": 74,
+          "positive": 94,
+          "std": 5.538709174790578
+        }
+      }
+    },
+    "2025-07": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0009613961173931634,
+          "mean_abs": 0.0009613961173931634,
+          "negative": 0,
+          "positive": 7,
+          "std": 0.006320356069089839
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 188
+        },
+        "common_reward": {
+          "mean": -0.49622105128208893,
+          "mean_abs": 3.331953059500761,
+          "negative": 99,
+          "positive": 89,
+          "std": 4.504669220988807
+        },
+        "common_target": {
+          "mean": -0.49525965516469583,
+          "mean_abs": 3.33140915035915,
+          "negative": 99,
+          "positive": 89,
+          "std": 4.504020108791855
+        },
+        "first_reward": {
+          "mean": -0.23816995331373542,
+          "mean_abs": 1.3383423831150372,
+          "negative": 99,
+          "positive": 89,
+          "std": 1.7808919800988274
+        },
+        "policy_bootstrap": {
+          "mean": 0.0009566777590796264,
+          "mean_abs": 0.0009566777590796264,
+          "negative": 0,
+          "positive": 6,
+          "std": 0.0063207409038599964
+        },
+        "policy_length": {
+          "1": 181,
+          "2": 1,
+          "3": 0,
+          "4": 0,
+          "5": 6
+        },
+        "policy_reward": {
+          "mean": -0.302832623400777,
+          "mean_abs": 1.4516973561956692,
+          "negative": 100,
+          "positive": 88,
+          "std": 1.9482599278835953
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 20.779878046586546,
+              "pearson": -0.011106261267671889
+            },
+            "target": {
+              "mse": 4.083413516762707,
+              "pearson": -0.1566323290181525
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 20.58730623032131,
+              "pearson": 0.0028183783273311113
+            },
+            "target": {
+              "mse": 3.952828620506722,
+              "pearson": -0.1381928662112015
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 20.807938921960904,
+              "pearson": 0.004199354198605897
+            },
+            "target": {
+              "mse": 4.090332356724737,
+              "pearson": -0.06639436992234879
+            }
+          }
+        },
+        "rows": 188,
+        "sign_changed_by_policy_vs_common": 61,
+        "target": {
+          "mean": -0.3018759400936765,
+          "mean_abs": 1.4511581572779564,
+          "negative": 100,
+          "positive": 88,
+          "std": 1.9466768774522185
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.0564329301531174,
+          "mean_abs": 0.0564329301531174,
+          "negative": 0,
+          "positive": 188,
+          "std": 0.028799285229452326
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 188
+        },
+        "common_reward": {
+          "mean": 0.5233596197795318,
+          "mean_abs": 3.34631548724303,
+          "negative": 88,
+          "positive": 100,
+          "std": 4.503345273311223
+        },
+        "common_target": {
+          "mean": 0.5797925499326493,
+          "mean_abs": 3.350211508511568,
+          "negative": 88,
+          "positive": 100,
+          "std": 4.503917838363891
+        },
+        "first_reward": {
+          "mean": 0.26019711621066044,
+          "mean_abs": 1.3279549200186862,
+          "negative": 89,
+          "positive": 96,
+          "std": 1.768492571743292
+        },
+        "policy_bootstrap": {
+          "mean": 0.0564329301531174,
+          "mean_abs": 0.0564329301531174,
+          "negative": 0,
+          "positive": 188,
+          "std": 0.028799285229452326
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 188
+        },
+        "policy_reward": {
+          "mean": 0.5233596197795318,
+          "mean_abs": 3.34631548724303,
+          "negative": 88,
+          "positive": 100,
+          "std": 4.503345273311223
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 20.61050810174475,
+              "pearson": 0.04150942070437303
+            },
+            "target": {
+              "mse": 20.61050688945413,
+              "pearson": 0.041509414469733615
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 20.57482765011135,
+              "pearson": 0.045756973917053564
+            },
+            "target": {
+              "mse": 20.574826438114243,
+              "pearson": 0.04575696751140875
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 21.170242494947928,
+              "pearson": 0.006790865942406669
+            },
+            "target": {
+              "mse": 21.170241278381503,
+              "pearson": 0.006790865529382797
+            }
+          }
+        },
+        "rows": 188,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 0.5797925473369182,
+          "mean_abs": 3.350211440327954,
+          "negative": 88,
+          "positive": 100,
+          "std": 4.503917718003651
+        }
+      }
+    },
+    "2025-08": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0007886380720245047,
+          "mean_abs": 0.0007886380720245047,
+          "negative": 0,
+          "positive": 3,
+          "std": 0.005820426769736698
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": 0.3042491532107736,
+          "mean_abs": 2.667720416499823,
+          "negative": 80,
+          "positive": 84,
+          "std": 3.4408182709310036
+        },
+        "common_target": {
+          "mean": 0.3050377912827981,
+          "mean_abs": 2.667452366747039,
+          "negative": 80,
+          "positive": 84,
+          "std": 3.4403591167007943
+        },
+        "first_reward": {
+          "mean": -0.109479937949445,
+          "mean_abs": 1.289828304402962,
+          "negative": 84,
+          "positive": 80,
+          "std": 1.7827245503478006
+        },
+        "policy_bootstrap": {
+          "mean": 0.0007886380720245047,
+          "mean_abs": 0.0007886380720245047,
+          "negative": 0,
+          "positive": 3,
+          "std": 0.005820426769736698
+        },
+        "policy_length": {
+          "1": 161,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 3
+        },
+        "policy_reward": {
+          "mean": -0.10882774616552587,
+          "mean_abs": 1.2826593581383143,
+          "negative": 84,
+          "positive": 80,
+          "std": 1.7885776561404716
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 11.858133593226048,
+              "pearson": -0.01377398281222303
+            },
+            "target": {
+              "mse": 3.3075040911138918,
+              "pearson": -0.0660536303297615
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 11.91697397270599,
+              "pearson": -0.015172794691306689
+            },
+            "target": {
+              "mse": 3.244917476884143,
+              "pearson": -0.09087117973165738
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 11.818036000309114,
+              "pearson": 0.06886339160415464
+            },
+            "target": {
+              "mse": 3.307790167601103,
+              "pearson": 0.010172131334902116
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 56,
+        "target": {
+          "mean": -0.10803910760243035,
+          "mean_abs": 1.2823913078499596,
+          "negative": 84,
+          "positive": 80,
+          "std": 1.7878763999567748
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.05846408249974974,
+          "mean_abs": 0.05846408249974974,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.03126967622038537
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": -0.3068072966957033,
+          "mean_abs": 2.6701382308650707,
+          "negative": 87,
+          "positive": 77,
+          "std": 3.4644194838136397
+        },
+        "common_target": {
+          "mean": -0.2483432141959535,
+          "mean_abs": 2.668232204385776,
+          "negative": 85,
+          "positive": 79,
+          "std": 3.4628693292892523
+        },
+        "first_reward": {
+          "mean": 0.0931406746868317,
+          "mean_abs": 1.2996159960038778,
+          "negative": 79,
+          "positive": 84,
+          "std": 1.7919371667000183
+        },
+        "policy_bootstrap": {
+          "mean": 0.05846408249974974,
+          "mean_abs": 0.05846408249974974,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.03126967622038537
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "policy_reward": {
+          "mean": -0.3068072966957033,
+          "mean_abs": 2.6701382308650707,
+          "negative": 87,
+          "positive": 77,
+          "std": 3.4644194838136397
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 12.045569888104282,
+              "pearson": 0.030027769469212415
+            },
+            "target": {
+              "mse": 12.04556923692621,
+              "pearson": 0.030027778166495753
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 12.067387404601385,
+              "pearson": 0.011900624860447385
+            },
+            "target": {
+              "mse": 12.067386753311236,
+              "pearson": 0.011900634292153597
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 11.951285533950454,
+              "pearson": 0.10310533642569655
+            },
+            "target": {
+              "mse": 11.951284879739266,
+              "pearson": 0.10310534560654212
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -0.24834321939000267,
+          "mean_abs": 2.6682321401085796,
+          "negative": 85,
+          "positive": 79,
+          "std": 3.4628692486813253
+        }
+      }
+    },
+    "2025-09": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.00724313375739699,
+          "mean_abs": 0.00724313375739699,
+          "negative": 0,
+          "positive": 17,
+          "std": 0.03198837555474351
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 180
+        },
+        "common_reward": {
+          "mean": 0.3093817827663985,
+          "mean_abs": 4.048672218267644,
+          "negative": 85,
+          "positive": 95,
+          "std": 5.512584110040051
+        },
+        "common_target": {
+          "mean": 0.31662491652379543,
+          "mean_abs": 4.051645690973291,
+          "negative": 85,
+          "positive": 95,
+          "std": 5.513636897805283
+        },
+        "first_reward": {
+          "mean": 0.1264391612054573,
+          "mean_abs": 1.9068325527633232,
+          "negative": 88,
+          "positive": 92,
+          "std": 2.7055441136324236
+        },
+        "policy_bootstrap": {
+          "mean": 0.007159443121235637,
+          "mean_abs": 0.007159443121235637,
+          "negative": 0,
+          "positive": 14,
+          "std": 0.03199700670760075
+        },
+        "policy_length": {
+          "1": 165,
+          "2": 1,
+          "3": 0,
+          "4": 0,
+          "5": 14
+        },
+        "policy_reward": {
+          "mean": 0.08642567104433846,
+          "mean_abs": 2.145569456417207,
+          "negative": 86,
+          "positive": 94,
+          "std": 3.20539853640855
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 30.370774863233223,
+              "pearson": 0.04368209843596047
+            },
+            "target": {
+              "mse": 10.26157362852199,
+              "pearson": 0.07098402167166817
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 30.42351865663163,
+              "pearson": 0.08356002592984814
+            },
+            "target": {
+              "mse": 10.259217040721788,
+              "pearson": 0.0884869262379053
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 30.520883315710158,
+              "pearson": -0.09210446647183661
+            },
+            "target": {
+              "mse": 10.399976802107568,
+              "pearson": -0.11062560670804802
+            }
+          }
+        },
+        "rows": 180,
+        "sign_changed_by_policy_vs_common": 61,
+        "target": {
+          "mean": 0.09358511470879108,
+          "mean_abs": 2.148573386741595,
+          "negative": 86,
+          "positive": 94,
+          "std": 3.2078059756494204
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.07858535016392361,
+          "mean_abs": 0.07858535016392361,
+          "negative": 0,
+          "positive": 180,
+          "std": 0.05903452527499054
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 180
+        },
+        "common_reward": {
+          "mean": -0.31470140359162047,
+          "mean_abs": 4.019999839703388,
+          "negative": 98,
+          "positive": 82,
+          "std": 5.490761837265864
+        },
+        "common_target": {
+          "mean": -0.2361160534276968,
+          "mean_abs": 4.010299317930167,
+          "negative": 96,
+          "positive": 84,
+          "std": 5.493509782102519
+        },
+        "first_reward": {
+          "mean": -0.13276236726798946,
+          "mean_abs": 1.9209662526328533,
+          "negative": 95,
+          "positive": 85,
+          "std": 2.681373808588572
+        },
+        "policy_bootstrap": {
+          "mean": 0.07858535016392361,
+          "mean_abs": 0.07858535016392361,
+          "negative": 0,
+          "positive": 180,
+          "std": 0.05903452527499054
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 180
+        },
+        "policy_reward": {
+          "mean": -0.31470140359162047,
+          "mean_abs": 4.019999839703388,
+          "negative": 98,
+          "positive": 82,
+          "std": 5.490761837265864
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 30.133097411167633,
+              "pearson": 0.13603847460154847
+            },
+            "target": {
+              "mse": 30.133096884370893,
+              "pearson": 0.13603847207021547
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 30.155946868018763,
+              "pearson": 0.12318159303074364
+            },
+            "target": {
+              "mse": 30.15594634213131,
+              "pearson": 0.12318159060361666
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 30.26829559544303,
+              "pearson": -0.0615536125446836
+            },
+            "target": {
+              "mse": 30.26829505777315,
+              "pearson": -0.06155361498239185
+            }
+          }
+        },
+        "rows": 180,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -0.2361160583794117,
+          "mean_abs": 4.0102992626527945,
+          "negative": 96,
+          "positive": 84,
+          "std": 5.49350972648099
+        }
+      }
+    },
+    "2025-10": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.006203616018693927,
+          "mean_abs": 0.006203616018693927,
+          "negative": 0,
+          "positive": 29,
+          "std": 0.01656247058244127
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 184
+        },
+        "common_reward": {
+          "mean": 1.007283284677281,
+          "mean_abs": 7.773992089917921,
+          "negative": 83,
+          "positive": 101,
+          "std": 12.838074424023057
+        },
+        "common_target": {
+          "mean": 1.013486900695975,
+          "mean_abs": 7.775473083086822,
+          "negative": 83,
+          "positive": 101,
+          "std": 12.839378986425194
+        },
+        "first_reward": {
+          "mean": 0.5751819539936665,
+          "mean_abs": 3.7308160019836025,
+          "negative": 92,
+          "positive": 92,
+          "std": 6.622245083439886
+        },
+        "policy_bootstrap": {
+          "mean": 0.006098267671902282,
+          "mean_abs": 0.006098267671902282,
+          "negative": 0,
+          "positive": 27,
+          "std": 0.01654660420066355
+        },
+        "policy_length": {
+          "1": 154,
+          "2": 2,
+          "3": 0,
+          "4": 0,
+          "5": 28
+        },
+        "policy_reward": {
+          "mean": 0.9899098533883388,
+          "mean_abs": 4.9207968362551755,
+          "negative": 89,
+          "positive": 95,
+          "std": 10.497667699961498
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 165.09238203232377,
+              "pearson": 0.14360480997727948
+            },
+            "target": {
+              "mse": 110.36747857165646,
+              "pearson": 0.21270842971704695
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 165.4893534225639,
+              "pearson": 0.11053937974247881
+            },
+            "target": {
+              "mse": 110.76514761135827,
+              "pearson": 0.17459774910119885
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 164.49043517560884,
+              "pearson": 0.21097944990887157
+            },
+            "target": {
+              "mse": 109.74495662044258,
+              "pearson": 0.2877248879642327
+            }
+          }
+        },
+        "rows": 184,
+        "sign_changed_by_policy_vs_common": 52,
+        "target": {
+          "mean": 0.9960081307015016,
+          "mean_abs": 4.922184554596795,
+          "negative": 89,
+          "positive": 95,
+          "std": 10.499259149226825
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.10869762017817838,
+          "mean_abs": 0.10869762017817838,
+          "negative": 0,
+          "positive": 184,
+          "std": 0.17133464190609934
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 184
+        },
+        "common_reward": {
+          "mean": -1.0351824017758304,
+          "mean_abs": 7.7753039388308345,
+          "negative": 101,
+          "positive": 83,
+          "std": 12.82298302727039
+        },
+        "common_target": {
+          "mean": -0.9264847815976524,
+          "mean_abs": 7.754448695816096,
+          "negative": 101,
+          "positive": 83,
+          "std": 12.807097259291082
+        },
+        "first_reward": {
+          "mean": -0.577166391607455,
+          "mean_abs": 3.690874556960214,
+          "negative": 95,
+          "positive": 89,
+          "std": 6.61610107051151
+        },
+        "policy_bootstrap": {
+          "mean": 0.10869762017817838,
+          "mean_abs": 0.10869762017817838,
+          "negative": 0,
+          "positive": 184,
+          "std": 0.17133464190609934
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 184
+        },
+        "policy_reward": {
+          "mean": -1.0351824017758304,
+          "mean_abs": 7.7753039388308345,
+          "negative": 101,
+          "positive": 83,
+          "std": 12.82298302727039
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 164.86522147279516,
+              "pearson": 0.010487211580268298
+            },
+            "target": {
+              "mse": 164.8652268294528,
+              "pearson": 0.010487203322725411
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 164.99087733799826,
+              "pearson": -0.016255150358798463
+            },
+            "target": {
+              "mse": 164.99088268632914,
+              "pearson": -0.016255156376254132
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 163.2153095221206,
+              "pearson": 0.18805395119946264
+            },
+            "target": {
+              "mse": 163.21531503067212,
+              "pearson": 0.18805393822197983
+            }
+          }
+        },
+        "rows": 184,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -0.9264846753491005,
+          "mean_abs": 7.75444862878193,
+          "negative": 101,
+          "positive": 83,
+          "std": 12.80709741611213
+        }
+      }
+    },
+    "2025-11": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0022497162323296804,
+          "mean_abs": 0.0022497162323296804,
+          "negative": 0,
+          "positive": 11,
+          "std": 0.011169167246168267
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 156
+        },
+        "common_reward": {
+          "mean": -0.07671781900055047,
+          "mean_abs": 5.568206848343673,
+          "negative": 79,
+          "positive": 77,
+          "std": 7.8577340136241
+        },
+        "common_target": {
+          "mean": -0.07446810276822063,
+          "mean_abs": 5.569844338653311,
+          "negative": 79,
+          "positive": 77,
+          "std": 7.859745878254441
+        },
+        "first_reward": {
+          "mean": 0.22616122339222322,
+          "mean_abs": 2.5453125505778305,
+          "negative": 78,
+          "positive": 78,
+          "std": 3.603985557804029
+        },
+        "policy_bootstrap": {
+          "mean": 0.0020652942771459994,
+          "mean_abs": 0.0020652942771459994,
+          "negative": 0,
+          "positive": 7,
+          "std": 0.01112390510835608
+        },
+        "policy_length": {
+          "1": 144,
+          "2": 1,
+          "3": 1,
+          "4": 2,
+          "5": 8
+        },
+        "policy_reward": {
+          "mean": 0.5145282352921161,
+          "mean_abs": 2.8726574308644217,
+          "negative": 76,
+          "positive": 80,
+          "std": 4.315527439105757
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 61.759556006067086,
+              "pearson": 0.07748589720780388
+            },
+            "target": {
+              "mse": 18.59730382745517,
+              "pearson": 0.24074040142175826
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 61.717091100338536,
+              "pearson": 0.066959370856615
+            },
+            "target": {
+              "mse": 18.742354545291036,
+              "pearson": 0.20643170315343337
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 61.74439231683934,
+              "pearson": 0.08682045751064622
+            },
+            "target": {
+              "mse": 18.47022134530252,
+              "pearson": 0.307202906640692
+            }
+          }
+        },
+        "rows": 156,
+        "sign_changed_by_policy_vs_common": 47,
+        "target": {
+          "mean": 0.5165935158826566,
+          "mean_abs": 2.8743492630332743,
+          "negative": 76,
+          "positive": 80,
+          "std": 4.319187310867414
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.06827666090350634,
+          "mean_abs": 0.06827666090350634,
+          "negative": 0,
+          "positive": 156,
+          "std": 0.07274662432442332
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 156
+        },
+        "common_reward": {
+          "mean": 0.08883989204452974,
+          "mean_abs": 5.608532856674882,
+          "negative": 81,
+          "positive": 75,
+          "std": 7.865576729836932
+        },
+        "common_target": {
+          "mean": 0.1571165529480359,
+          "mean_abs": 5.59669099655001,
+          "negative": 81,
+          "positive": 75,
+          "std": 7.854089226029229
+        },
+        "first_reward": {
+          "mean": -0.20588622615935329,
+          "mean_abs": 2.6021878119581974,
+          "negative": 77,
+          "positive": 77,
+          "std": 3.6280226835227403
+        },
+        "policy_bootstrap": {
+          "mean": 0.06827666090350634,
+          "mean_abs": 0.06827666090350634,
+          "negative": 0,
+          "positive": 156,
+          "std": 0.07274662432442332
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 156
+        },
+        "policy_reward": {
+          "mean": 0.08883989204452974,
+          "mean_abs": 5.608532856674882,
+          "negative": 81,
+          "positive": 75,
+          "std": 7.865576729836932
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 61.69326022709322,
+              "pearson": 0.02487117781356851
+            },
+            "target": {
+              "mse": 61.693258001437954,
+              "pearson": 0.02487118420605257
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 61.70716768014704,
+              "pearson": -0.0024483042006472966
+            },
+            "target": {
+              "mse": 61.707165451717515,
+              "pearson": -0.002448298337977528
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 61.789491826645346,
+              "pearson": 0.09513196186499608
+            },
+            "target": {
+              "mse": 61.78948963185254,
+              "pearson": 0.0951319649403424
+            }
+          }
+        },
+        "rows": 156,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 0.1571165890647816,
+          "mean_abs": 5.59669094112439,
+          "negative": 81,
+          "positive": 75,
+          "std": 7.854089098314753
+        }
+      }
+    },
+    "2025-12": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0012773116243212173,
+          "mean_abs": 0.0012773116243212173,
+          "negative": 0,
+          "positive": 4,
+          "std": 0.008530340804618676
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "common_reward": {
+          "mean": 0.37062084583524557,
+          "mean_abs": 5.408158629780944,
+          "negative": 84,
+          "positive": 88,
+          "std": 7.142263214345009
+        },
+        "common_target": {
+          "mean": 0.37189815745956684,
+          "mean_abs": 5.407920301818191,
+          "negative": 84,
+          "positive": 88,
+          "std": 7.141749577252087
+        },
+        "first_reward": {
+          "mean": -0.005630537553495518,
+          "mean_abs": 2.486568777984398,
+          "negative": 85,
+          "positive": 87,
+          "std": 3.4871760797640254
+        },
+        "policy_bootstrap": {
+          "mean": 0.0012773116243212173,
+          "mean_abs": 0.0012773116243212173,
+          "negative": 0,
+          "positive": 4,
+          "std": 0.008530340804618676
+        },
+        "policy_length": {
+          "1": 168,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 4
+        },
+        "policy_reward": {
+          "mean": -0.033367806879633366,
+          "mean_abs": 2.6358500067472304,
+          "negative": 85,
+          "positive": 87,
+          "std": 3.689021209296476
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 50.92346929824923,
+              "pearson": 0.12640319793601026
+            },
+            "target": {
+              "mse": 13.657908926721651,
+              "pearson": -0.00013660688359363017
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 51.01195863797186,
+              "pearson": 0.11173481097202381
+            },
+            "target": {
+              "mse": 13.632880608578342,
+              "pearson": -0.041916958610014744
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 50.9989805279384,
+              "pearson": 0.03084345870507168
+            },
+            "target": {
+              "mse": 13.709423243448068,
+              "pearson": -0.0644388993854882
+            }
+          }
+        },
+        "rows": 172,
+        "sign_changed_by_policy_vs_common": 57,
+        "target": {
+          "mean": -0.032090496910779365,
+          "mean_abs": 2.635611687212923,
+          "negative": 85,
+          "positive": 87,
+          "std": 3.6881666477575212
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.07308912593559129,
+          "mean_abs": 0.07308912593559129,
+          "negative": 0,
+          "positive": 172,
+          "std": 0.09695684040750775
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "common_reward": {
+          "mean": -0.40462336532369075,
+          "mean_abs": 5.4172551915703995,
+          "negative": 88,
+          "positive": 84,
+          "std": 7.158832628618573
+        },
+        "common_target": {
+          "mean": -0.3315342393880994,
+          "mean_abs": 5.414627102475109,
+          "negative": 88,
+          "positive": 84,
+          "std": 7.159190452635585
+        },
+        "first_reward": {
+          "mean": -0.022630465422692037,
+          "mean_abs": 2.4661413746626053,
+          "negative": 90,
+          "positive": 81,
+          "std": 3.4706031518660847
+        },
+        "policy_bootstrap": {
+          "mean": 0.07308912593559129,
+          "mean_abs": 0.07308912593559129,
+          "negative": 0,
+          "positive": 172,
+          "std": 0.09695684040750775
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "policy_reward": {
+          "mean": -0.40462336532369075,
+          "mean_abs": 5.4172551915703995,
+          "negative": 88,
+          "positive": 84,
+          "std": 7.158832628618573
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 51.28602544081532,
+              "pearson": 0.11184248551446799
+            },
+            "target": {
+              "mse": 51.28602476907645,
+              "pearson": 0.11184248195146262
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 51.327908616730866,
+              "pearson": 0.09419802396686058
+            },
+            "target": {
+              "mse": 51.32790794480172,
+              "pearson": 0.09419802156809587
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 51.25733615890339,
+              "pearson": 0.005992789021752527
+            },
+            "target": {
+              "mse": 51.257335483476474,
+              "pearson": 0.005992786732618069
+            }
+          }
+        },
+        "rows": 172,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -0.33153424351367833,
+          "mean_abs": 5.414627034217119,
+          "negative": 88,
+          "positive": 84,
+          "std": 7.159190457985957
+        }
+      }
+    },
+    "2026-01": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.008249955158500225,
+          "mean_abs": 0.008249955158500225,
+          "negative": 0,
+          "positive": 17,
+          "std": 0.027826077453959524
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "common_reward": {
+          "mean": 1.4868190315249097,
+          "mean_abs": 6.982195705695714,
+          "negative": 81,
+          "positive": 91,
+          "std": 11.361660610297402
+        },
+        "common_target": {
+          "mean": 1.49506898668341,
+          "mean_abs": 6.981994181840925,
+          "negative": 81,
+          "positive": 91,
+          "std": 11.359512223901843
+        },
+        "first_reward": {
+          "mean": 0.3708060107824696,
+          "mean_abs": 3.587966996703979,
+          "negative": 78,
+          "positive": 94,
+          "std": 5.231614881461757
+        },
+        "policy_bootstrap": {
+          "mean": 0.008248252177133798,
+          "mean_abs": 0.008248252177133798,
+          "negative": 0,
+          "positive": 16,
+          "std": 0.02782657333895775
+        },
+        "policy_length": {
+          "1": 156,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 16
+        },
+        "policy_reward": {
+          "mean": 0.06378817967876543,
+          "mean_abs": 4.318133429834153,
+          "negative": 78,
+          "positive": 94,
+          "std": 7.875070759144393
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 131.07013770875298,
+              "pearson": -0.14272903094592665
+            },
+            "target": {
+              "mse": 62.11486025160016,
+              "pearson": -0.05681104514922534
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 131.65060836614958,
+              "pearson": -0.236542333907234
+            },
+            "target": {
+              "mse": 62.19814439985872,
+              "pearson": -0.13978355463992173
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 130.51828665791692,
+              "pearson": 0.011684135796108242
+            },
+            "target": {
+              "mse": 62.126659246806796,
+              "pearson": -0.025142589068987642
+            }
+          }
+        },
+        "rows": 172,
+        "sign_changed_by_policy_vs_common": 55,
+        "target": {
+          "mean": 0.07203642415156208,
+          "mean_abs": 4.317930174538686,
+          "negative": 78,
+          "positive": 94,
+          "std": 7.8734586599070235
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.12445839599196512,
+          "mean_abs": 0.12445839599196512,
+          "negative": 0,
+          "positive": 172,
+          "std": 0.21194854426122944
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "common_reward": {
+          "mean": -1.5214015106169725,
+          "mean_abs": 7.008577933969924,
+          "negative": 92,
+          "positive": 80,
+          "std": 11.406731037427434
+        },
+        "common_target": {
+          "mean": -1.3969431146250078,
+          "mean_abs": 7.017207083253362,
+          "negative": 90,
+          "positive": 82,
+          "std": 11.423824961686897
+        },
+        "first_reward": {
+          "mean": -0.46353915812404356,
+          "mean_abs": 3.5598617397725234,
+          "negative": 94,
+          "positive": 76,
+          "std": 5.161059768405919
+        },
+        "policy_bootstrap": {
+          "mean": 0.12445839599196512,
+          "mean_abs": 0.12445839599196512,
+          "negative": 0,
+          "positive": 172,
+          "std": 0.21194854426122944
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 172
+        },
+        "policy_reward": {
+          "mean": -1.5214015106169725,
+          "mean_abs": 7.008577933969924,
+          "negative": 92,
+          "positive": 80,
+          "std": 11.406731037427434
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 132.63924219849906,
+              "pearson": -0.07328457812170512
+            },
+            "target": {
+              "mse": 132.63924205331733,
+              "pearson": -0.07328457541652324
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 132.90472898771242,
+              "pearson": -0.12218345052920598
+            },
+            "target": {
+              "mse": 132.9047288425372,
+              "pearson": -0.12218345253244865
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 131.64752503108872,
+              "pearson": -0.02514899219782301
+            },
+            "target": {
+              "mse": 131.64752500958997,
+              "pearson": -0.025148992383903973
+            }
+          }
+        },
+        "rows": 172,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -1.3969430157286657,
+          "mean_abs": 7.017207026795679,
+          "negative": 90,
+          "positive": 82,
+          "std": 11.423825027457141
+        }
+      }
+    },
+    "2026-02": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.0009558029774843244,
+          "mean_abs": 0.0009558029774843244,
+          "negative": 0,
+          "positive": 5,
+          "std": 0.006518946741190562
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 1,
+          "4": 0,
+          "5": 159
+        },
+        "common_reward": {
+          "mean": -0.8951226761418167,
+          "mean_abs": 8.851558640464178,
+          "negative": 77,
+          "positive": 83,
+          "std": 13.397664693547705
+        },
+        "common_target": {
+          "mean": -0.8941668731643324,
+          "mean_abs": 8.851876075566029,
+          "negative": 77,
+          "positive": 83,
+          "std": 13.397832946564867
+        },
+        "first_reward": {
+          "mean": 0.2569372629048304,
+          "mean_abs": 3.8030942958081146,
+          "negative": 82,
+          "positive": 78,
+          "std": 5.95325040658917
+        },
+        "policy_bootstrap": {
+          "mean": 0.000914872137803842,
+          "mean_abs": 0.000914872137803842,
+          "negative": 0,
+          "positive": 4,
+          "std": 0.006504243348446097
+        },
+        "policy_length": {
+          "1": 156,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 4
+        },
+        "policy_reward": {
+          "mean": 0.2941703618494935,
+          "mean_abs": 3.847966955840767,
+          "negative": 80,
+          "positive": 80,
+          "std": 5.969747651488473
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 180.4861315999162,
+              "pearson": 0.09143871556719772
+            },
+            "target": {
+              "mse": 35.66581697747598,
+              "pearson": -0.010814929261969572
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 180.25230685087269,
+              "pearson": 0.059196872051499656
+            },
+            "target": {
+              "mse": 35.7271991113207,
+              "pearson": -0.0174308237226686
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 180.35608991619011,
+              "pearson": 0.18779479711953137
+            },
+            "target": {
+              "mse": 35.376447010640845,
+              "pearson": 0.25836822957417116
+            }
+          }
+        },
+        "rows": 160,
+        "sign_changed_by_policy_vs_common": 49,
+        "target": {
+          "mean": 0.29508523095864814,
+          "mean_abs": 3.848243456729688,
+          "negative": 80,
+          "positive": 80,
+          "std": 5.9697786276453035
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.06579876731458394,
+          "mean_abs": 0.06579876731458394,
+          "negative": 0,
+          "positive": 160,
+          "std": 0.03862926777363453
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 1,
+          "4": 0,
+          "5": 159
+        },
+        "common_reward": {
+          "mean": 0.9497421385222878,
+          "mean_abs": 8.92575698915513,
+          "negative": 83,
+          "positive": 77,
+          "std": 13.393221950532448
+        },
+        "common_target": {
+          "mean": 1.0155409058368718,
+          "mean_abs": 8.917386667897484,
+          "negative": 83,
+          "positive": 77,
+          "std": 13.392975883173937
+        },
+        "first_reward": {
+          "mean": -0.271463484549895,
+          "mean_abs": 3.8050262058619415,
+          "negative": 75,
+          "positive": 84,
+          "std": 6.0035092558266525
+        },
+        "policy_bootstrap": {
+          "mean": 0.06579876731458394,
+          "mean_abs": 0.06579876731458394,
+          "negative": 0,
+          "positive": 160,
+          "std": 0.03862926777363453
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 1,
+          "4": 0,
+          "5": 159
+        },
+        "policy_reward": {
+          "mean": 0.9497421385222878,
+          "mean_abs": 8.92575698915513,
+          "negative": 83,
+          "positive": 77,
+          "std": 13.393221950532448
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 180.21174828785496,
+              "pearson": 0.09148901059530937
+            },
+            "target": {
+              "mse": 180.21173557609634,
+              "pearson": 0.09148900335172842
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 180.24515585416228,
+              "pearson": 0.046180365621693864
+            },
+            "target": {
+              "mse": 180.24514313356633,
+              "pearson": 0.04618036216205313
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 180.96686487212025,
+              "pearson": 0.1318813959910224
+            },
+            "target": {
+              "mse": 180.96685205060166,
+              "pearson": 0.13188141944629053
+            }
+          }
+        },
+        "rows": 160,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 1.0155408548191192,
+          "mean_abs": 8.917386527173221,
+          "negative": 83,
+          "positive": 77,
+          "std": 13.392975401955544
+        }
+      }
+    },
+    "2026-03": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.013191930442171325,
+          "mean_abs": 0.013191930442171325,
+          "negative": 0,
+          "positive": 31,
+          "std": 0.04088290436763727
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 176
+        },
+        "common_reward": {
+          "mean": 1.671780617249134,
+          "mean_abs": 9.571834268188795,
+          "negative": 78,
+          "positive": 98,
+          "std": 14.027978342143664
+        },
+        "common_target": {
+          "mean": 1.6849725476913056,
+          "mean_abs": 9.575016971538798,
+          "negative": 78,
+          "positive": 98,
+          "std": 14.025281615831284
+        },
+        "first_reward": {
+          "mean": 0.5342935263814235,
+          "mean_abs": 5.342327237065712,
+          "negative": 85,
+          "positive": 91,
+          "std": 8.705418607960095
+        },
+        "policy_bootstrap": {
+          "mean": 0.012949753166433186,
+          "mean_abs": 0.012949753166433186,
+          "negative": 0,
+          "positive": 28,
+          "std": 0.04090766098909624
+        },
+        "policy_length": {
+          "1": 144,
+          "2": 2,
+          "3": 0,
+          "4": 2,
+          "5": 28
+        },
+        "policy_reward": {
+          "mean": 0.5097433229950524,
+          "mean_abs": 6.256688508283004,
+          "negative": 83,
+          "positive": 93,
+          "std": 9.984563667767501
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 198.6272236359123,
+              "pearson": 0.052376653848589236
+            },
+            "target": {
+              "mse": 99.60050674095021,
+              "pearson": 0.056823694858428225
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 199.18537086519996,
+              "pearson": 0.04101242303043391
+            },
+            "target": {
+              "mse": 99.80690782253401,
+              "pearson": 0.023255675197466876
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 197.72963621557918,
+              "pearson": 0.10159165013902623
+            },
+            "target": {
+              "mse": 98.97729145186992,
+              "pearson": 0.1338942916672056
+            }
+          }
+        },
+        "rows": 176,
+        "sign_changed_by_policy_vs_common": 53,
+        "target": {
+          "mean": 0.5226930949667636,
+          "mean_abs": 6.25998206093738,
+          "negative": 83,
+          "positive": 93,
+          "std": 9.982269919630658
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.17449835214140846,
+          "mean_abs": 0.17449835214140846,
+          "negative": 0,
+          "positive": 176,
+          "std": 0.33043009109284566
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 176
+        },
+        "common_reward": {
+          "mean": -1.6998821622407807,
+          "mean_abs": 9.572196276150727,
+          "negative": 100,
+          "positive": 76,
+          "std": 14.040415827873945
+        },
+        "common_target": {
+          "mean": -1.525383810099372,
+          "mean_abs": 9.547045842262374,
+          "negative": 98,
+          "positive": 78,
+          "std": 14.062820937170686
+        },
+        "first_reward": {
+          "mean": -0.5714920649029824,
+          "mean_abs": 5.344245064844886,
+          "negative": 91,
+          "positive": 85,
+          "std": 8.664082848908244
+        },
+        "policy_bootstrap": {
+          "mean": 0.17449835214140846,
+          "mean_abs": 0.17449835214140846,
+          "negative": 0,
+          "positive": 176,
+          "std": 0.33043009109284566
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 176
+        },
+        "policy_reward": {
+          "mean": -1.6998821622407807,
+          "mean_abs": 9.572196276150727,
+          "negative": 100,
+          "positive": 76,
+          "std": 14.040415827873945
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 199.8899229379569,
+              "pearson": 0.06853263634496391
+            },
+            "target": {
+              "mse": 199.8899202757564,
+              "pearson": 0.06853263883787156
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 200.0535573246451,
+              "pearson": 0.05477944236619838
+            },
+            "target": {
+              "mse": 200.05355467634428,
+              "pearson": 0.054779444789218645
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 198.15196024475307,
+              "pearson": 0.06874785895999046
+            },
+            "target": {
+              "mse": 198.15195744317322,
+              "pearson": 0.06874785580147354
+            }
+          }
+        },
+        "rows": 176,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": -1.5253839362412691,
+          "mean_abs": 9.547045708887957,
+          "negative": 98,
+          "positive": 78,
+          "std": 14.06282100301266
+        }
+      }
+    },
+    "2026-04": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.004947812500977559,
+          "mean_abs": 0.004947812500977559,
+          "negative": 0,
+          "positive": 21,
+          "std": 0.014365904237517137
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": -0.9048785868991803,
+          "mean_abs": 6.0825019153522,
+          "negative": 86,
+          "positive": 78,
+          "std": 7.943822070344515
+        },
+        "common_target": {
+          "mean": -0.8999307743982028,
+          "mean_abs": 6.081965162882193,
+          "negative": 86,
+          "positive": 78,
+          "std": 7.944313098360767
+        },
+        "first_reward": {
+          "mean": 0.06574753564910213,
+          "mean_abs": 2.5468001336834627,
+          "negative": 77,
+          "positive": 87,
+          "std": 3.735098742681407
+        },
+        "policy_bootstrap": {
+          "mean": 0.004714832735999418,
+          "mean_abs": 0.004714832735999418,
+          "negative": 0,
+          "positive": 19,
+          "std": 0.014287162585936274
+        },
+        "policy_length": {
+          "1": 143,
+          "2": 1,
+          "3": 0,
+          "4": 1,
+          "5": 19
+        },
+        "policy_reward": {
+          "mean": 0.15124113581791854,
+          "mean_abs": 2.8956866660035034,
+          "negative": 78,
+          "positive": 86,
+          "std": 4.1792065321338985
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 64.35825191977234,
+              "pearson": 0.015807066866725585
+            },
+            "target": {
+              "mse": 17.40604095997614,
+              "pearson": 0.08777632376431402
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 64.09118948885501,
+              "pearson": -0.021603186042962144
+            },
+            "target": {
+              "mse": 17.435566201005194,
+              "pearson": 0.06165768583189233
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 64.37106829187465,
+              "pearson": 0.05649026612698975
+            },
+            "target": {
+              "mse": 17.350779799172827,
+              "pearson": 0.12743271249652285
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 54,
+        "target": {
+          "mean": 0.15595595763496511,
+          "mean_abs": 2.8953828642871686,
+          "negative": 78,
+          "positive": 86,
+          "std": 4.17928120550286
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.10542575398142238,
+          "mean_abs": 0.10542575398142238,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.16774738223943908
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": 0.870076186029418,
+          "mean_abs": 6.085682987871451,
+          "negative": 75,
+          "positive": 89,
+          "std": 7.951273622499482
+        },
+        "common_target": {
+          "mean": 0.9755019400108405,
+          "mean_abs": 6.075754787585982,
+          "negative": 75,
+          "positive": 89,
+          "std": 7.932168548958919
+        },
+        "first_reward": {
+          "mean": -0.038092607371054854,
+          "mean_abs": 2.564018654353099,
+          "negative": 85,
+          "positive": 77,
+          "std": 3.73268600883591
+        },
+        "policy_bootstrap": {
+          "mean": 0.10542575398142238,
+          "mean_abs": 0.10542575398142238,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.16774738223943908
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "policy_reward": {
+          "mean": 0.870076186029418,
+          "mean_abs": 6.085682987871451,
+          "negative": 75,
+          "positive": 89,
+          "std": 7.951273622499482
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 63.98300307495091,
+              "pearson": -0.10311429433468755
+            },
+            "target": {
+              "mse": 63.98299908972483,
+              "pearson": -0.10311429350464762
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 63.95509301344695,
+              "pearson": -0.12660548599764995
+            },
+            "target": {
+              "mse": 63.95508903324028,
+              "pearson": -0.12660548376307976
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 64.86496294356294,
+              "pearson": 0.0226392287702391
+            },
+            "target": {
+              "mse": 64.86495888763493,
+              "pearson": 0.022639224808049207
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 0.9755018317572228,
+          "mean_abs": 6.0757546643385805,
+          "negative": 75,
+          "positive": 89,
+          "std": 7.932168261708038
+        }
+      }
+    },
+    "2026-05": {
+      "LONG": {
+        "common_bootstrap": {
+          "mean": 0.002681585635325094,
+          "mean_abs": 0.002681585635325094,
+          "negative": 0,
+          "positive": 15,
+          "std": 0.00975853186495799
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": -0.6612071126978847,
+          "mean_abs": 5.753886404373819,
+          "negative": 83,
+          "positive": 81,
+          "std": 8.19508827017067
+        },
+        "common_target": {
+          "mean": -0.6585255270625596,
+          "mean_abs": 5.7539526175051305,
+          "negative": 83,
+          "positive": 81,
+          "std": 8.195869071464276
+        },
+        "first_reward": {
+          "mean": 0.11261765880115536,
+          "mean_abs": 2.6436372643653248,
+          "negative": 77,
+          "positive": 87,
+          "std": 3.4705700830816624
+        },
+        "policy_bootstrap": {
+          "mean": 0.00266181512283526,
+          "mean_abs": 0.00266181512283526,
+          "negative": 0,
+          "positive": 14,
+          "std": 0.009760659953707727
+        },
+        "policy_length": {
+          "1": 148,
+          "2": 0,
+          "3": 1,
+          "4": 1,
+          "5": 14
+        },
+        "policy_reward": {
+          "mean": 0.0896475872969421,
+          "mean_abs": 2.7114769935784517,
+          "negative": 78,
+          "positive": 86,
+          "std": 3.605125920396765
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 67.9698572490263,
+              "pearson": -0.022199531375119614
+            },
+            "target": {
+              "mse": 13.054143369190356,
+              "pearson": -0.04325397282929001
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 67.72451543207453,
+              "pearson": -0.02144341599929699
+            },
+            "target": {
+              "mse": 13.048024689459698,
+              "pearson": -0.059478778515445724
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 67.88159520179615,
+              "pearson": 0.07785039524381417
+            },
+            "target": {
+              "mse": 12.932433793767384,
+              "pearson": 0.13882742038898674
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 47,
+        "target": {
+          "mean": 0.09230940028948419,
+          "mean_abs": 2.7115233892073753,
+          "negative": 78,
+          "positive": 86,
+          "std": 3.6063350454251104
+        }
+      },
+      "SHORT": {
+        "common_bootstrap": {
+          "mean": 0.07947109030914487,
+          "mean_abs": 0.07947109030914487,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.09308490417371099
+        },
+        "common_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "common_reward": {
+          "mean": 0.6763299892926299,
+          "mean_abs": 5.76450218418782,
+          "negative": 78,
+          "positive": 86,
+          "std": 8.188895620096945
+        },
+        "common_target": {
+          "mean": 0.7558010796017748,
+          "mean_abs": 5.773589703334096,
+          "negative": 77,
+          "positive": 87,
+          "std": 8.184047397710485
+        },
+        "first_reward": {
+          "mean": -0.10284437457235847,
+          "mean_abs": 2.6312236888561307,
+          "negative": 83,
+          "positive": 79,
+          "std": 3.460503396243736
+        },
+        "policy_bootstrap": {
+          "mean": 0.07947109030914487,
+          "mean_abs": 0.07947109030914487,
+          "negative": 0,
+          "positive": 164,
+          "std": 0.09308490417371099
+        },
+        "policy_length": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 164
+        },
+        "policy_reward": {
+          "mean": 0.6763299892926299,
+          "mean_abs": 5.76450218418782,
+          "negative": 78,
+          "positive": 86,
+          "std": 8.188895620096945
+        },
+        "predictions": {
+          "AFTER96": {
+            "common_target": {
+              "mse": 67.60712668028404,
+              "pearson": -0.051024079394931574
+            },
+            "target": {
+              "mse": 67.60712056956626,
+              "pearson": -0.05102408453957623
+            }
+          },
+          "BEFORE95": {
+            "common_target": {
+              "mse": 67.56210810817515,
+              "pearson": -0.058266162012527385
+            },
+            "target": {
+              "mse": 67.56210200437012,
+              "pearson": -0.05826616754254104
+            }
+          },
+          "CANDIDATE": {
+            "common_target": {
+              "mse": 68.22990606698048,
+              "pearson": 0.05030712131970099
+            },
+            "target": {
+              "mse": 68.22989987552879,
+              "pearson": 0.05030712390599288
+            }
+          }
+        },
+        "rows": 164,
+        "sign_changed_by_policy_vs_common": 0,
+        "target": {
+          "mean": 0.7558009796207998,
+          "mean_abs": 5.773589535003029,
+          "negative": 77,
+          "positive": 87,
+          "std": 8.184047065957865
+        }
+      }
+    }
+  },
+  "no_fixed_holding_limit_introduced": true,
+  "no_new_forward_or_backward": true,
+  "no_new_materialization": true,
+  "peak_rss_kib": 630240,
+  "source_commit": "8691899457d9dfdd2405d3d37e759a25fddc7576",
+  "test_data_used": false,
+  "weights_targets_and_source_unchanged": true
+}

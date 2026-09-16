@@ -7,7 +7,7 @@ bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 **Nå:** Kandidaten med separat Exit-klipping er fullført og forkastet.
 Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;
 handlingene kollapset til LONG=HOLD og SHORT=EXIT. Entry forblir FLAT.
-Standardens klippe-/kontraktsfiler tilbakeføres til c586520a; forsøkskilde34489f3a,
+Standardens klippe-/kontraktsfiler er tilbakeført til c586520a; forsøkskilde34489f3a,
 checkpoints og alle målinger er bevart. Les
 [fullført forsøk og neste diagnose](docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
 
@@ -18,6 +18,21 @@ er deaktivert, ingen native prosess. Runtime er
 Kandidatens state-SHA er b4f2f472b6c0e58c130e7792d2f20f725511d25202855140c01c7927c46fadbe.
 Dette er en annen96 enn den eldre referansen nedenfor. Maskinrapport og bindinger:
 handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json. Ingen ny trening åpnet.
+
+Måloppdelingen er nå ferdig: LONG-Entry får0 videreverdi på512/512; SHORT får
+0,04967Bps. Exit-læreren stopper LONG etter ett beregningssteg1880/2048 ganger,
+mens SHORT følger fem2047/2048 ganger. Likt tilgjengelig femstegsløp endrer
+31,64% av LONG-målenes fortegn, men åpner ingen targetendring. Se
+[komponentmålingen og neste ene kontroll](docs/TARGET_COMPONENT_CAUSE_20260916.md).
+Ingen ny trening eller modellkjøring var nødvendig. Ikke gjenta komponentmålingen.
+
+Ankerkontrollen er ferdig: 275/512 Entries har eksakt verifisert første-tilstands-
+trace i eksisterende cache. Observert diskontert nytte ved femte steg har snitt
+-4,287 Bps LONG / -7,461 Bps SHORT. Det finnes positive utfall, men ingen bevist
+predikerbar handelsfordel. Referanse96 har LONG/SHORT-korrelasjon -0,077/0,282;
+alle 275 velges FLAT. Små TRAIN-forbedringer er målt, læringsporten er ikke bestått.
+Se [ankermålingen og neste beslutning](docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md).
+Gjenbruk bevisene; neste arbeid må begrunne én konkret korreksjon i målkjeden.
 
 ## Start her
 
@@ -151,7 +166,8 @@ ATTRIBUTION_RESULT SHA98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0
 Cacheanalysen tok1,04s; hodeanalysen9,75s. Modell-/treningskode og checkpoints er bevart.
 
 Neste: kandidat32 og faktisk512-måling er nå ferdige. Gjenbruk deres caches
-for å skille reward, lærerens sideavhengige stopp og bootstrap. Ingen nye
+for neste kontroll av observerte utfall ved Entry-ankeret; reward/stopp/bootstrap
+er nå målt i TARGET_COMPONENT_CAUSE_20260916.md. Ingen nye
 klippe-/tapsvekt-/modellforsøk, Adam-nullstilling eller større trening før én
 målmekanisme er begrunnet. Se den oppdaterte klipperapporten.
 

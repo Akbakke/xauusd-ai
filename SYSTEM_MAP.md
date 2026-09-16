@@ -41,7 +41,9 @@ Separat Exit-klipping er målt og prøvd, deretter tilbakeført. Bedre fit på d
 512 trente eksemplene overføres ikke til separate TRAIN-kohorter. Trente og
 separate femstegsmål har motsatte sidegjennomsnitt; læreren stopper fortsatt
 LONG oftest etter ett steg og lar SHORT fortsette fem. Det er ikke bevist at
-én enkelt mekanisme forklarer hele svikten. Neste diagnose gjenbruker lagrede
-reward/trace/Q-data uten nye treningssteg. Se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md.
+én enkelt mekanisme forklarer hele svikten. Måloppdelingen er ferdig; Entry-LONG får0 videreverdi på alle512 målte Entries.
+Observerte ankerutfall er nå målt på 275/512 Entries; se
+docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Ingen treningsport er åpnet.
+Neste er én begrunnet korreksjon i lærer-/verdimålkjeden.
 
 Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.

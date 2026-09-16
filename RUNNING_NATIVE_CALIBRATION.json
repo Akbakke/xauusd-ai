@@ -1,5 +1,5 @@
 {
-  "status": "EXIT_PRIVATE_CLIP_REJECTED_TRAINING_STOPPED",
+  "status": "ENTRY_ANCHOR_OUTCOME_DIAGNOSIS_COMPLETE_TRAINING_STOPPED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Last actual native training source, retained as experiment history. Current HEAD restores previous clipping; read git HEAD.",
@@ -56,7 +56,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Reuse all target/trace/Q/input/output caches. Diagnose teacher-dependent stopping and reward/bootstrap contributions before one next change. A fixed-horizon counterfactual is an analysis only, not a holding limit or target-change authority. Do not repeat native32 or trained512 audit.",
+  "next_action": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -83,5 +83,17 @@
   "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
   "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE",
   "source_commit": "34489f3a0febe7c11c02a4d4da3ecc951d89a087",
-  "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json"
+  "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json",
+  "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
+  "entry_anchor_outcome_diagnosis": {
+    "report": "docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md",
+    "verified_entries": 275,
+    "total_entries": 512,
+    "missing_anchor_traces": 237,
+    "training_enabled": false,
+    "learning_gate_passed": false,
+    "result_sha256": "22fcb932cd106175e01add52910cbdf279616b7a90ba2d30b12304a0f2c9e304",
+    "comparison_sha256": "90de1ac8c75b9a0fe8456682938766ecd41c2bf2c277b500c332a64634026e7a",
+    "next_action": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search."
+  }
 }

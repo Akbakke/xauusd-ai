@@ -39,7 +39,9 @@ oppdateringer bedrer faktisk TRAIN512-fit litt, men forverrer separat TRAIN128
 med samme femstegsmål. Entry forblir FLAT; Exit kollapser til sideavhengige
 konstantvalg. Se [ferdig forsøk](EXIT_PRIVATE_CLIP_LEARNING_20260916.md).
 Klippekoden tilbakeføres. Alle referanser, resultater og nye32-batchcacher
-bevares og gjenbrukes. Neste er målkomponentdiagnose uten trening. Ingen
+bevares og gjenbrukes. Målkomponentene er målt i TARGET_COMPONENT_CAUSE_20260916.md;
+ankerutfall er deretter kontrollert på 275/512 Entries. Se
+ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Ingen læringsport er bestått. Ingen
 full epoch/full VAL, repetert32-kontroll eller nye tapssøk åpnes.
 
 ## Måling og beslutning, i denne rekkefølgen

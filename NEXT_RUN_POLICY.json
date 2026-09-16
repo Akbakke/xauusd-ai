@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Training remains disabled. The single private-Exit clipping32 candidate is complete and rejected for promotion: better fit on trained512, worse separate TRAIN cohorts, all-HOLD LONG/all-EXIT SHORT and all-FLAT Entry. Restore previous clipping exactly, preserve experiment source34489f3a and all checkpoints/results/caches. Reuse docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md and actual32 trace/reward/Q data for one target-component diagnosis. Do not restart any completed plan or run another training, full epoch/VAL, TEST/live/paper/spending, target refresh, optimizer reset, replay, model/loss-weight search. All native hardware and causality requirements remain.",
+  "rule": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search. All existing native guards, source binding, TRAIN-only scope and TEST sealing remain.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -137,6 +137,27 @@
       "trained_fit_improved": true,
       "separate_train_fit_worsened": true,
       "review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json"
+    },
+    "target_component_diagnosis": {
+      "report": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/TARGET_COMPONENT_AUDIT_20260916/RESULT.json",
+        "sha256": "b34d6f7211b029eb8d4745284eb4bfa0b7a2cfe4e76196172dbdb71fc0ab6b53"
+      },
+      "complete": true,
+      "training_authorized": false,
+      "next_action": "Completed; see entry_anchor_outcome_diagnosis. Do not repeat."
+    },
+    "entry_anchor_outcome_diagnosis": {
+      "report": "docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md",
+      "verified_entries": 275,
+      "total_entries": 512,
+      "missing_anchor_traces": 237,
+      "training_enabled": false,
+      "learning_gate_passed": false,
+      "result_sha256": "22fcb932cd106175e01add52910cbdf279616b7a90ba2d30b12304a0f2c9e304",
+      "comparison_sha256": "90de1ac8c75b9a0fe8456682938766ecd41c2bf2c277b500c332a64634026e7a",
+      "next_action": "Reuse completed target-component and verified Entry-anchor outcome reports. Choose and justify one concrete teacher/value-target-chain correction; state the expected action value, causal policy and bootstrap semantics before any target edit. Do not repeat completed probes or infer a predictable edge from positive realized samples. No new training, teacher refresh, optimizer reset, full VAL, model/threshold/loss-weight search."
     }
   }
 }

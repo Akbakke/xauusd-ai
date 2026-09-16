@@ -23,8 +23,10 @@ Separat Exit-klipping ble målt og prøvd i én native32-kandidat, men er forkas
 Den forbedret Exit-fit litt på faktisk trent512 og forverret separat TRAIN128
 med samme femstegsmål. AllHOLD for LONG og allEXIT for SHORT er ikke kvalitet;
 Entry er fortsatt allFLAT. Standardkoden tilbakeføres, alle resultater bevares.
-Se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. Neste diagnose gjenbruker ferdige
-trace/reward/Q-caches for å skille målkomponentene. Ingen nye treningsforsøk,
+Se docs/EXIT_PRIVATE_CLIP_LEARNING_20260916.md. Målkomponentene er nå målt i
+docs/TARGET_COMPONENT_CAUSE_20260916.md. Ankerutfall er også kontrollert på
+275/512 Entries; se docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Neste er
+én begrunnet korreksjon i målkjeden, ikke flere gjentatte diagnosekjøringer. Ingen nye treningsforsøk,
 full epoch/fullVAL, target-refresh, replay eller tapsvektsøk nå.
 NEXT_RUN_POLICY.json gjelder.
 

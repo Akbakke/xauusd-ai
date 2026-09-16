@@ -1,0 +1,1705 @@
+{
+  "coverage": {
+    "covered": 275,
+    "missing": 237,
+    "selection_bias": {
+      "covered": {
+        "entries": 275,
+        "teacher_positive_count": [
+          24,
+          15
+        ],
+        "teacher_target_mean_bps": [
+          -5.102942129210993,
+          -6.6248394364660435
+        ]
+      },
+      "missing": {
+        "entries": 237,
+        "teacher_positive_count": [
+          9,
+          10
+        ],
+        "teacher_target_mean_bps": [
+          -5.714175434838116,
+          -5.8537244870944365
+        ]
+      }
+    },
+    "total": 512
+  },
+  "decision": "NO_OBSERVED_ENTRY_LEARNING_IMPROVEMENT_PROVEN",
+  "monthly": {
+    "2025-06": {
+      "entries": 22,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": 1.277587321294841,
+              "mean_prediction": -5.9849843111905185,
+              "mse": 41.22933950260683,
+              "pearson": -0.0413218255897557
+            },
+            "BEFORE95": {
+              "bias": 1.2763613296122687,
+              "mean_prediction": -5.986210302873091,
+              "mse": 41.01322893138843,
+              "pearson": 0.015119984043247344
+            },
+            "CANDIDATE": {
+              "bias": 1.2779380783735323,
+              "mean_prediction": -5.984633554111827,
+              "mse": 41.231380577617735,
+              "pearson": -0.041416327249663765
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 1.5185934179505134,
+              "mean_prediction": -5.743978214534846,
+              "mse": 38.79926510776697,
+              "pearson": 0.2923552357556757
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -7.2625716324853595,
+              "mse": 39.35697008756933,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 1.5185934179505134,
+              "mean_prediction": -5.743978214534846,
+              "mse": 38.79926510776697,
+              "pearson": 0.2923552357556757
+            },
+            "zero": {
+              "bias": 7.2625716324853595,
+              "mean_prediction": 0.0,
+              "mse": 92.1019168045504,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -7.2625716324853595,
+          "observed_utility_positive_count": 2,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 0
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": -1.2353063507482434,
+              "mean_prediction": -6.237499172037298,
+              "mse": 40.542544353698425,
+              "pearson": 0.2413137695043341
+            },
+            "BEFORE95": {
+              "bias": -1.0329003778339816,
+              "mean_prediction": -6.035093199123036,
+              "mse": 40.365537281599735,
+              "pearson": 0.1593220784253857
+            },
+            "CANDIDATE": {
+              "bias": -1.236319738081507,
+              "mean_prediction": -6.2385125593705615,
+              "mse": 40.54078764420189,
+              "pearson": 0.24305446221521573
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -1.503907399824671,
+              "mean_prediction": -6.5061002211137255,
+              "mse": 38.826625180767884,
+              "pearson": 0.30164751677923524
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.0021928212890545,
+              "mse": 39.804539896459694,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -1.4543673352730568,
+              "mean_prediction": -6.456560156562111,
+              "mse": 38.670367691678926,
+              "pearson": 0.3018395630811828
+            },
+            "zero": {
+              "bias": 5.0021928212890545,
+              "mean_prediction": 0.0,
+              "mse": 64.82647291781544,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.0021928212890545,
+          "observed_utility_positive_count": 4,
+          "teacher_nonpositive_observed_positive": 4,
+          "teacher_positive_count": 0
+        }
+      }
+    },
+    "2025-07": {
+      "entries": 24,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -0.020003452421019752,
+              "mean_prediction": -5.544476727644603,
+              "mse": 26.616541690860547,
+              "pearson": 0.28019843973662045
+            },
+            "BEFORE95": {
+              "bias": -0.05807532322485276,
+              "mean_prediction": -5.582548598448436,
+              "mse": 27.080925936686228,
+              "pearson": 0.176499906926533
+            },
+            "CANDIDATE": {
+              "bias": -0.01812288614192603,
+              "mean_prediction": -5.542596161365509,
+              "mse": 26.610830416666573,
+              "pearson": 0.28057728357413997
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.3810992419513166,
+              "mean_prediction": -5.143374033272266,
+              "mse": 20.858199218664797,
+              "pearson": 0.5156886628345778
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.524473275223583,
+              "mse": 27.66598271764129,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.3810992419513166,
+              "mean_prediction": -5.143374033272266,
+              "mse": 20.858199218664797,
+              "pearson": 0.5156886628345778
+            },
+            "zero": {
+              "bias": 5.524473275223583,
+              "mean_prediction": 0.0,
+              "mse": 58.18578768630088,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.524473275223583,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 0
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 0.09284906575616336,
+              "mean_prediction": -5.913269639015198,
+              "mse": 25.137468627695263,
+              "pearson": -0.1511684423435246
+            },
+            "BEFORE95": {
+              "bias": 0.43889410286680963,
+              "mean_prediction": -5.5672246019045515,
+              "mse": 24.990006697186328,
+              "pearson": -0.0029385267728215237
+            },
+            "CANDIDATE": {
+              "bias": 0.09210037181313968,
+              "mean_prediction": -5.914018332958221,
+              "mse": 25.15855255911756,
+              "pearson": -0.15875119770602353
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.4603547554260876,
+              "mean_prediction": -6.466473460197449,
+              "mse": 20.5559085836662,
+              "pearson": 0.42314978865094705
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -6.006118704771361,
+              "mse": 24.69038711143087,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.41162987560494635,
+              "mean_prediction": -6.4177485803763075,
+              "mse": 20.51520857876039,
+              "pearson": 0.42313061105615957
+            },
+            "zero": {
+              "bias": 6.006118704771361,
+              "mean_prediction": 0.0,
+              "mse": 60.76384900723529,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -6.006118704771361,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 0
+        }
+      }
+    },
+    "2025-08": {
+      "entries": 21,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 21
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 21
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 21
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -0.4876935005249514,
+              "mean_prediction": -5.638483796800886,
+              "mse": 14.794439491265553,
+              "pearson": 0.4220893122478335
+            },
+            "BEFORE95": {
+              "bias": -0.5216915584807387,
+              "mean_prediction": -5.672481854756673,
+              "mse": 14.984101241912821,
+              "pearson": 0.38109401660952524
+            },
+            "CANDIDATE": {
+              "bias": -0.4868889399998748,
+              "mean_prediction": -5.637679236275809,
+              "mse": 14.790669844137224,
+              "pearson": 0.42288050255211546
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.1272013749333567,
+              "mean_prediction": -5.0235889213425775,
+              "mse": 15.696742538448445,
+              "pearson": 0.23320168375897432
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.150790296275934,
+              "mse": 15.715750255651555,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.1272013749333567,
+              "mean_prediction": -5.0235889213425775,
+              "mse": 15.696742538448445,
+              "pearson": 0.23320168375897432
+            },
+            "zero": {
+              "bias": 5.150790296275934,
+              "mean_prediction": 0.0,
+              "mse": 42.246390931861875,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.150790296275934,
+          "observed_utility_positive_count": 2,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 0
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 0.1338313872367083,
+              "mean_prediction": -5.983962603977749,
+              "mse": 15.113050532041921,
+              "pearson": -0.05290969112769092
+            },
+            "BEFORE95": {
+              "bias": 0.46401459806376444,
+              "mean_prediction": -5.653779393150693,
+              "mse": 15.331769165869547,
+              "pearson": -0.050452682479903324
+            },
+            "CANDIDATE": {
+              "bias": 0.13159906272731536,
+              "mean_prediction": -5.986194928487142,
+              "mse": 15.11230993421475,
+              "pearson": -0.05289898138597426
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.19815236069972197,
+              "mean_prediction": -6.315946351914179,
+              "mse": 15.942392188128562,
+              "pearson": 0.1742036827896535
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -6.117793991214457,
+              "mse": 14.909546122864453,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.14965706803614776,
+              "mean_prediction": -6.267451059250605,
+              "mse": 15.916645270284336,
+              "pearson": 0.17423339643233182
+            },
+            "zero": {
+              "bias": 6.117793991214457,
+              "mean_prediction": 0.0,
+              "mse": 52.336949441804165,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -6.117793991214457,
+          "observed_utility_positive_count": 2,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 0
+        }
+      }
+    },
+    "2025-09": {
+      "entries": 20,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": 0.5671653185930472,
+              "mean_prediction": -5.352820968627929,
+              "mse": 25.359292234293175,
+              "pearson": 0.21364270416833112
+            },
+            "BEFORE95": {
+              "bias": 0.5019815121736739,
+              "mean_prediction": -5.418004775047303,
+              "mse": 25.630045364093746,
+              "pearson": 0.10527696546280033
+            },
+            "CANDIDATE": {
+              "bias": 0.5654202376451707,
+              "mean_prediction": -5.354566049575806,
+              "mse": 25.371470201738685,
+              "pearson": 0.20813913421244415
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.09035245524313229,
+              "mean_prediction": -5.829633831977844,
+              "mse": 18.32063646485621,
+              "pearson": 0.5335717766411225
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.9199862872209765,
+              "mse": 25.59355550179866,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.09035245524313229,
+              "mean_prediction": -5.829633831977844,
+              "mse": 18.32063646485621,
+              "pearson": 0.5335717766411225
+            },
+            "zero": {
+              "bias": 5.9199862872209765,
+              "mean_prediction": 0.0,
+              "mse": 60.63979314268306,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.9199862872209765,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 0
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": -0.703657496796235,
+              "mean_prediction": -5.737696027755737,
+              "mse": 26.019690289366363,
+              "pearson": -0.07439064672971579
+            },
+            "BEFORE95": {
+              "bias": -0.41727796875058143,
+              "mean_prediction": -5.451316499710083,
+              "mse": 25.76475785694529,
+              "pearson": -0.062348280170584344
+            },
+            "CANDIDATE": {
+              "bias": -0.705273617134675,
+              "mean_prediction": -5.739312148094177,
+              "mse": 26.001751921822425,
+              "pearson": -0.06713225514183778
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.18855038218317954,
+              "mean_prediction": -5.2225889131426815,
+              "mse": 18.199466315822736,
+              "pearson": 0.5299906572007257
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.034038530959502,
+              "mse": 25.248866889363267,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.14171783410130434,
+              "mean_prediction": -5.175756365060806,
+              "mse": 18.188812368925042,
+              "pearson": 0.5298000978124594
+            },
+            "zero": {
+              "bias": 5.034038530959502,
+              "mean_prediction": 0.0,
+              "mse": 50.59041082054817,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.034038530959502,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 1
+        }
+      }
+    },
+    "2025-10": {
+      "entries": 28,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 28
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 28
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 28
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -2.063932824286326,
+              "mean_prediction": -5.6981125218527655,
+              "mse": 138.54664351095883,
+              "pearson": -0.4522364345918112
+            },
+            "BEFORE95": {
+              "bias": -2.2723908902729595,
+              "mean_prediction": -5.906570587839399,
+              "mse": 140.199750065392,
+              "pearson": -0.5141316356021922
+            },
+            "CANDIDATE": {
+              "bias": -2.0671341046077205,
+              "mean_prediction": -5.70131380217416,
+              "mse": 138.51487281126703,
+              "pearson": -0.4518200221953932
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -2.7504722023035133,
+              "mean_prediction": -6.384651899869953,
+              "mse": 116.2982693864256,
+              "pearson": 0.39710472132465874
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -3.6341796975664393,
+              "mse": 128.90102060731732,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -2.7504722023035133,
+              "mean_prediction": -6.384651899869953,
+              "mse": 116.2982693864256,
+              "pearson": 0.39710472132465874
+            },
+            "zero": {
+              "bias": 3.6341796975664393,
+              "mean_prediction": 0.0,
+              "mse": 142.10828268152142,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -3.6341796975664393,
+          "observed_utility_positive_count": 7,
+          "teacher_nonpositive_observed_positive": 5,
+          "teacher_positive_count": 2
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 1.9641459688560357,
+              "mean_prediction": -6.074282884597778,
+              "mse": 133.7837597515157,
+              "pearson": 0.6790676855429907
+            },
+            "BEFORE95": {
+              "bias": 2.101021240653216,
+              "mean_prediction": -5.937407612800598,
+              "mse": 135.18218256473145,
+              "pearson": 0.6613081696356451
+            },
+            "CANDIDATE": {
+              "bias": 1.9634275114978115,
+              "mean_prediction": -6.0750013419560025,
+              "mse": 133.81654544162845,
+              "pearson": 0.6806624542212326
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 2.794655412756451,
+              "mean_prediction": -5.243773440697363,
+              "mse": 116.46966201045618,
+              "pearson": 0.4919003990420535
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -8.038428853453814,
+              "mse": 139.69125886617329,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 2.8433602609820783,
+              "mean_prediction": -5.195068592471736,
+              "mse": 116.78347983538963,
+              "pearson": 0.4916460863343483
+            },
+            "zero": {
+              "bias": 8.038428853453814,
+              "mean_prediction": 0.0,
+              "mse": 204.30759729821207,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -8.038428853453814,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 4
+        }
+      }
+    },
+    "2025-11": {
+      "entries": 24,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 24
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": 2.014482167565916,
+              "mean_prediction": -5.869912246863048,
+              "mse": 71.22825744097743,
+              "pearson": 0.07378505326181414
+            },
+            "BEFORE95": {
+              "bias": 2.0154385042231224,
+              "mean_prediction": -5.868955910205841,
+              "mse": 71.3407563109649,
+              "pearson": 0.055102866730485624
+            },
+            "CANDIDATE": {
+              "bias": 2.0144500207941674,
+              "mean_prediction": -5.869944393634796,
+              "mse": 71.22206061733357,
+              "pearson": 0.07485641596504035
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 1.9186305425605124,
+              "mean_prediction": -5.965763871868451,
+              "mse": 53.32344412282818,
+              "pearson": 0.5140757730570695
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -7.8843944144289635,
+              "mse": 67.47378291188691,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 1.9186305425605124,
+              "mean_prediction": -5.965763871868451,
+              "mse": 53.32344412282818,
+              "pearson": 0.5140757730570695
+            },
+            "zero": {
+              "bias": 7.8843944144289635,
+              "mean_prediction": 0.0,
+              "mse": 129.63745819416556,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -7.8843944144289635,
+          "observed_utility_positive_count": 4,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 1
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": -2.0281448405897047,
+              "mean_prediction": -6.269431074460347,
+              "mse": 73.67611389750441,
+              "pearson": 0.27491410007280365
+            },
+            "BEFORE95": {
+              "bias": -1.8464215836838314,
+              "mean_prediction": -6.087707817554474,
+              "mse": 74.5011322392644,
+              "pearson": 0.05794635530334028
+            },
+            "CANDIDATE": {
+              "bias": -2.029235089015507,
+              "mean_prediction": -6.270521322886149,
+              "mse": 73.68595669961867,
+              "pearson": 0.27438365223414096
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -1.7853387598609354,
+              "mean_prediction": -6.026624993731578,
+              "mse": 52.487385147249725,
+              "pearson": 0.5558746250027757
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -4.2412862338706425,
+              "mse": 71.32523332921993,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -1.7361722692266532,
+              "mean_prediction": -5.977458503097296,
+              "mse": 52.30287407070545,
+              "pearson": 0.556035465553476
+            },
+            "zero": {
+              "bias": 4.2412862338706425,
+              "mean_prediction": 0.0,
+              "mse": 89.31374224684055,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -4.2412862338706425,
+          "observed_utility_positive_count": 5,
+          "teacher_nonpositive_observed_positive": 4,
+          "teacher_positive_count": 1
+        }
+      }
+    },
+    "2025-12": {
+      "entries": 25,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 25
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 25
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 25
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -3.6560889203761167,
+              "mean_prediction": -5.797864589691162,
+              "mse": 100.48818599132663,
+              "pearson": 0.18385350134614475
+            },
+            "BEFORE95": {
+              "bias": -3.7548925168726988,
+              "mean_prediction": -5.896668186187744,
+              "mse": 101.45186383193644,
+              "pearson": 0.14562216384664664
+            },
+            "CANDIDATE": {
+              "bias": -3.65508906914931,
+              "mean_prediction": -5.796864738464356,
+              "mse": 100.46696466719015,
+              "pearson": 0.18647835790754153
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -3.315305341026599,
+              "mean_prediction": -5.4570810103416445,
+              "mse": 80.23032238735249,
+              "pearson": 0.4654501009482581
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -2.1417756693150456,
+              "mse": 88.1998044067101,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -3.315305341026599,
+              "mean_prediction": -5.4570810103416445,
+              "mse": 80.23032238735249,
+              "pearson": 0.4654501009482581
+            },
+            "zero": {
+              "bias": 2.1417756693150456,
+              "mean_prediction": 0.0,
+              "mse": 92.78700742438002,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -2.1417756693150456,
+          "observed_utility_positive_count": 7,
+          "teacher_nonpositive_observed_positive": 5,
+          "teacher_positive_count": 3
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 3.5649156654877023,
+              "mean_prediction": -6.251963806152344,
+              "mse": 98.66373665836221,
+              "pearson": 0.21399123426962574
+            },
+            "BEFORE95": {
+              "bias": 3.7929871834320386,
+              "mean_prediction": -6.023892288208008,
+              "mse": 100.13892656858458,
+              "pearson": 0.22976350499009976
+            },
+            "CANDIDATE": {
+              "bias": 3.5673265350860914,
+              "mean_prediction": -6.249552936553955,
+              "mse": 98.62448320585206,
+              "pearson": 0.22135034711615642
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 3.3365125645202953,
+              "mean_prediction": -6.480366907119751,
+              "mse": 81.42651807670609,
+              "pearson": 0.4417192126808002
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -9.816879471640046,
+              "mse": 87.26711034342065,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 3.3869728172821363,
+              "mean_prediction": -6.42990665435791,
+              "mse": 81.77486909121522,
+              "pearson": 0.44162465766874753
+            },
+            "zero": {
+              "bias": 9.816879471640046,
+              "mean_prediction": 0.0,
+              "mse": 183.63823290412842,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -9.816879471640046,
+          "observed_utility_positive_count": 2,
+          "teacher_nonpositive_observed_positive": 1,
+          "teacher_positive_count": 1
+        }
+      }
+    },
+    "2026-01": {
+      "entries": 22,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 22
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -2.61768755388556,
+              "mean_prediction": -5.963632887059992,
+              "mse": 154.28658236627336,
+              "pearson": -0.05558440600585971
+            },
+            "BEFORE95": {
+              "bias": -2.685131098099982,
+              "mean_prediction": -6.031076431274414,
+              "mse": 154.19507088297522,
+              "pearson": -0.01646417842125584
+            },
+            "CANDIDATE": {
+              "bias": -2.6171524558963912,
+              "mean_prediction": -5.963097789070823,
+              "mse": 154.25910507644662,
+              "pearson": -0.05404166625513829
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -1.8065001782100114,
+              "mean_prediction": -5.152445511384443,
+              "mse": 105.65519560107886,
+              "pearson": 0.5481885016394136
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -3.345945333174432,
+              "mse": 146.3310034226864,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -1.8065001782100114,
+              "mean_prediction": -5.152445511384443,
+              "mse": 105.65519560107886,
+              "pearson": 0.5481885016394136
+            },
+            "zero": {
+              "bias": 3.345945333174432,
+              "mean_prediction": 0.0,
+              "mse": 157.52635359527818,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -3.345945333174432,
+          "observed_utility_positive_count": 7,
+          "teacher_nonpositive_observed_positive": 5,
+          "teacher_positive_count": 4
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 2.716099566301465,
+              "mean_prediction": -6.60789062760093,
+              "mse": 160.9604375986449,
+              "pearson": 0.0029965459215673907
+            },
+            "BEFORE95": {
+              "bias": 2.8604882636655784,
+              "mean_prediction": -6.463501930236816,
+              "mse": 163.45234606015526,
+              "pearson": -0.12927383570168505
+            },
+            "CANDIDATE": {
+              "bias": 2.714906823173469,
+              "mean_prediction": -6.609083370728926,
+              "mse": 160.94727306015216,
+              "pearson": 0.0034398341018730422
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 1.710584901218013,
+              "mean_prediction": -7.613405292684382,
+              "mse": 105.67213209865669,
+              "pearson": 0.5754893652142566
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -9.323990193902395,
+              "mse": 153.38079730403382,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 1.7622493511698787,
+              "mean_prediction": -7.561740842732516,
+              "mse": 105.8628684374594,
+              "pearson": 0.5753998710656891
+            },
+            "zero": {
+              "bias": 9.323990193902395,
+              "mean_prediction": 0.0,
+              "mse": 240.31759044002183,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -9.323990193902395,
+          "observed_utility_positive_count": 3,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 3
+        }
+      }
+    },
+    "2026-02": {
+      "entries": 19,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 19
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 19
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 19
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -1.0682696519167214,
+              "mean_prediction": -5.510007205762361,
+              "mse": 286.45489564956387,
+              "pearson": -0.4012369508878307
+            },
+            "BEFORE95": {
+              "bias": -1.0624089467920177,
+              "mean_prediction": -5.504146500637657,
+              "mse": 287.71307205317856,
+              "pearson": -0.39702929683228716
+            },
+            "CANDIDATE": {
+              "bias": -1.071647390668585,
+              "mean_prediction": -5.5133849445142245,
+              "mse": 286.7118748912397,
+              "pearson": -0.4074541007974417
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.8170877687787335,
+              "mean_prediction": -3.624649785066906,
+              "mse": 123.42007423378817,
+              "pearson": 0.7491013754080041
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -4.441737553845639,
+              "mse": 275.7108232918634,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.8170877687787335,
+              "mean_prediction": -3.624649785066906,
+              "mse": 123.42007423378817,
+              "pearson": 0.7491013754080041
+            },
+            "zero": {
+              "bias": 4.441737553845639,
+              "mean_prediction": 0.0,
+              "mse": 295.43985578910605,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -4.441737553845639,
+          "observed_utility_positive_count": 7,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 4
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 1.335876351807947,
+              "mean_prediction": -6.538674555326763,
+              "mse": 291.7298334416168,
+              "pearson": 0.5155836908758085
+            },
+            "BEFORE95": {
+              "bias": 1.5390773445929486,
+              "mean_prediction": -6.335473562541761,
+              "mse": 292.1650199033032,
+              "pearson": 0.4969178958229283
+            },
+            "CANDIDATE": {
+              "bias": 1.33732618773581,
+              "mean_prediction": -6.5372247193989,
+              "mse": 291.6499086567455,
+              "pearson": 0.5172799886035547
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.965285615017839,
+              "mean_prediction": -8.839836522152549,
+              "mse": 131.9940121399193,
+              "pearson": 0.7541126997384034
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -7.87455090713471,
+              "mse": 302.21213487357977,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.9123826027923378,
+              "mean_prediction": -8.786933509927048,
+              "mse": 131.91302421470442,
+              "pearson": 0.7541144940630768
+            },
+            "zero": {
+              "bias": 7.87455090713471,
+              "mean_prediction": 0.0,
+              "mse": 364.2206868626359,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -7.87455090713471,
+          "observed_utility_positive_count": 6,
+          "teacher_nonpositive_observed_positive": 3,
+          "teacher_positive_count": 3
+        }
+      }
+    },
+    "2026-03": {
+      "entries": 27,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 27
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 27
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 27
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -8.088526843064304,
+              "mean_prediction": -5.469813735396774,
+              "mse": 231.72173815597142,
+              "pearson": -0.13172701552526414
+            },
+            "BEFORE95": {
+              "bias": -8.1134015655804,
+              "mean_prediction": -5.4946884579128685,
+              "mse": 232.54022061726985,
+              "pearson": -0.1557965051698978
+            },
+            "CANDIDATE": {
+              "bias": -8.08982558853753,
+              "mean_prediction": -5.47111248087,
+              "mse": 231.73588037894132,
+              "pearson": -0.1310029237006994
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -5.936879178181785,
+              "mean_prediction": -3.318166070514255,
+              "mse": 121.92505649229858,
+              "pearson": 0.7290550961846595
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": 2.6187131076675305,
+              "mse": 164.48922847022857,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -5.936879178181785,
+              "mean_prediction": -3.318166070514255,
+              "mse": 121.92505649229858,
+              "pearson": 0.7290550961846595
+            },
+            "zero": {
+              "bias": -2.6187131076675305,
+              "mean_prediction": 0.0,
+              "mse": 171.3468868104983,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": 2.6187131076675305,
+          "observed_utility_positive_count": 14,
+          "teacher_nonpositive_observed_positive": 9,
+          "teacher_positive_count": 5
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 8.096627515988136,
+              "mean_prediction": -6.2143673190364135,
+              "mse": 229.45615159259657,
+              "pearson": -0.06622815675101075
+            },
+            "BEFORE95": {
+              "bias": 8.277867862684776,
+              "mean_prediction": -6.033126972339772,
+              "mse": 231.8729918316109,
+              "pearson": -0.031244258358939472
+            },
+            "CANDIDATE": {
+              "bias": 8.101886411720873,
+              "mean_prediction": -6.209108423303674,
+              "mse": 229.41814414731078,
+              "pearson": -0.055777311534977385
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 5.911558838015271,
+              "mean_prediction": -8.399435997009277,
+              "mse": 120.32262675899435,
+              "pearson": 0.7279674684408648
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -14.310994835024548,
+              "mse": 162.76806955827539,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 5.965364042468563,
+              "mean_prediction": -8.345630792555985,
+              "mse": 121.00374014676947,
+              "pearson": 0.727998393616795
+            },
+            "zero": {
+              "bias": 14.310994835024548,
+              "mean_prediction": 0.0,
+              "mse": 367.57264272637474,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -14.310994835024548,
+          "observed_utility_positive_count": 2,
+          "teacher_nonpositive_observed_positive": 2,
+          "teacher_positive_count": 1
+        }
+      }
+    },
+    "2026-04": {
+      "entries": 20,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 20
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": 0.9044220367896934,
+              "mean_prediction": -5.222693657875061,
+              "mse": 111.62632513454624,
+              "pearson": 0.296497062229986
+            },
+            "BEFORE95": {
+              "bias": 0.8858452240455525,
+              "mean_prediction": -5.2412704706192015,
+              "mse": 111.83971639394477,
+              "pearson": 0.23714477523560085
+            },
+            "CANDIDATE": {
+              "bias": 0.9057406584251302,
+              "mean_prediction": -5.221375036239624,
+              "mse": 111.63746671664971,
+              "pearson": 0.29443384478265655
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.7440927455652133,
+              "mean_prediction": -5.383022949099541,
+              "mse": 83.96169749912978,
+              "pearson": 0.6200720715022557
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -6.127115694664754,
+              "mse": 113.12154563343319,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.7440927455652133,
+              "mean_prediction": -5.383022949099541,
+              "mse": 83.96169749912978,
+              "pearson": 0.6200720715022557
+            },
+            "zero": {
+              "bias": 6.127115694664754,
+              "mean_prediction": 0.0,
+              "mse": 150.66309236924033,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -6.127115694664754,
+          "observed_utility_positive_count": 5,
+          "teacher_nonpositive_observed_positive": 4,
+          "teacher_positive_count": 1
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": -0.4303447032943337,
+              "mean_prediction": -6.007989931106567,
+              "mse": 108.69562444212339,
+              "pearson": 0.23338139846543424
+            },
+            "BEFORE95": {
+              "bias": -0.2085029388442603,
+              "mean_prediction": -5.786148166656494,
+              "mse": 107.994510211712,
+              "pearson": 0.2526034306239066
+            },
+            "CANDIDATE": {
+              "bias": -0.4329166437163918,
+              "mean_prediction": -6.010561871528625,
+              "mse": 108.6753078743224,
+              "pearson": 0.23616807419835664
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.7090207303538891,
+              "mean_prediction": -6.286665958166123,
+              "mse": 86.33695032439813,
+              "pearson": 0.6176313591583176
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -5.5776452278122335,
+              "mse": 110.90832550800941,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.6588191236034007,
+              "mean_prediction": -6.236464351415634,
+              "mse": 86.29869828564027,
+              "pearson": 0.6175381277095078
+            },
+            "zero": {
+              "bias": 5.5776452278122335,
+              "mean_prediction": 0.0,
+              "mse": 142.01845179534598,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -5.5776452278122335,
+          "observed_utility_positive_count": 4,
+          "teacher_nonpositive_observed_positive": 4,
+          "teacher_positive_count": 0
+        }
+      }
+    },
+    "2026-05": {
+      "entries": 23,
+      "entry_choice_counts": {
+        "AFTER96": {
+          "0": 0,
+          "1": 0,
+          "2": 23
+        },
+        "BEFORE95": {
+          "0": 0,
+          "1": 0,
+          "2": 23
+        },
+        "CANDIDATE": {
+          "0": 0,
+          "1": 0,
+          "2": 23
+        }
+      },
+      "sides": {
+        "LONG": {
+          "arms": {
+            "AFTER96": {
+              "bias": -0.5005612045748054,
+              "mean_prediction": -5.088000276814336,
+              "mse": 105.59211947310068,
+              "pearson": -0.3560470711365039
+            },
+            "BEFORE95": {
+              "bias": -0.610893216751319,
+              "mean_prediction": -5.19833228899085,
+              "mse": 106.12780783499387,
+              "pearson": -0.4271514893784819
+            },
+            "CANDIDATE": {
+              "bias": -0.500624748309149,
+              "mean_prediction": -5.08806382054868,
+              "mse": 105.61409269233884,
+              "pearson": -0.3577982944279335
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": 0.5194459159515494,
+              "mean_prediction": -4.067993156287981,
+              "mse": 66.40471731863798,
+              "pearson": 0.59776993978396
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -4.587439072239531,
+              "mse": 102.83261542741198,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": 0.5194459159515494,
+              "mean_prediction": -4.067993156287981,
+              "mse": 66.40471731863798,
+              "pearson": 0.59776993978396
+            },
+            "zero": {
+              "bias": 4.587439072239531,
+              "mean_prediction": 0.0,
+              "mse": 123.87721266892187,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -4.587439072239531,
+          "observed_utility_positive_count": 6,
+          "teacher_nonpositive_observed_positive": 4,
+          "teacher_positive_count": 4
+        },
+        "SHORT": {
+          "arms": {
+            "AFTER96": {
+              "bias": 0.2858575245836894,
+              "mean_prediction": -5.950119951496953,
+              "mse": 103.48879919331775,
+              "pearson": 0.3056755737642568
+            },
+            "BEFORE95": {
+              "bias": 0.5857197435234287,
+              "mean_prediction": -5.650257732557214,
+              "mse": 104.02243529501368,
+              "pearson": 0.24846938802188606
+            },
+            "CANDIDATE": {
+              "bias": 0.2856297622784707,
+              "mean_prediction": -5.950347713802172,
+              "mse": 103.53502916038804,
+              "pearson": 0.29864521349464695
+            }
+          },
+          "baselines": {
+            "first_liquidation_not_available_at_entry": {
+              "bias": -0.6662531805846621,
+              "mean_prediction": -6.902230656665305,
+              "mse": 66.11061162251144,
+              "pearson": 0.613203134469782
+            },
+            "same_sample_side_mean_in_sample_only": {
+              "bias": 0.0,
+              "mean_prediction": -6.235977476080643,
+              "mse": 105.22986847049056,
+              "pearson": null
+            },
+            "teacher_target_not_causal_market_outcome": {
+              "bias": -0.6157186730819815,
+              "mean_prediction": -6.851696149162624,
+              "mse": 66.05900069439966,
+              "pearson": 0.6130946692525745
+            },
+            "zero": {
+              "bias": 6.235977476080643,
+              "mean_prediction": 0.0,
+              "mse": 144.11728355267564,
+              "pearson": null
+            }
+          },
+          "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+          "observed_utility_mean_bps": -6.235977476080643,
+          "observed_utility_positive_count": 6,
+          "teacher_nonpositive_observed_positive": 5,
+          "teacher_positive_count": 1
+        }
+      }
+    }
+  },
+  "no_model_forward_training_or_materialization": true,
+  "overall": {
+    "entries": 275,
+    "entry_choice_counts": {
+      "AFTER96": {
+        "0": 0,
+        "1": 0,
+        "2": 275
+      },
+      "BEFORE95": {
+        "0": 0,
+        "1": 0,
+        "2": 275
+      },
+      "CANDIDATE": {
+        "0": 0,
+        "1": 0,
+        "2": 275
+      }
+    },
+    "sides": {
+      "LONG": {
+        "arms": {
+          "AFTER96": {
+            "bias": -1.315698655638844,
+            "mean_prediction": -5.602277256358754,
+            "mse": 109.88829236544404,
+            "pearson": -0.07704915402252034
+          },
+          "BEFORE95": {
+            "bias": -1.3745913478579714,
+            "mean_prediction": -5.661169948577881,
+            "mse": 110.43173758040543,
+            "pearson": -0.10740999246336692
+          },
+          "CANDIDATE": {
+            "bias": -1.3160372984527866,
+            "mean_prediction": -5.602615899172696,
+            "mse": 109.90244347194205,
+            "pearson": -0.07818359069363628
+          }
+        },
+        "baselines": {
+          "first_liquidation_not_available_at_entry": {
+            "bias": -0.8163635284910828,
+            "mean_prediction": -5.102942129210993,
+            "mse": 71.85458867252369,
+            "pearson": 0.5844957684197687
+          },
+          "same_sample_side_mean_in_sample_only": {
+            "bias": 0.0,
+            "mean_prediction": -4.28657860071991,
+            "mse": 107.08130922962745,
+            "pearson": null
+          },
+          "teacher_target_not_causal_market_outcome": {
+            "bias": -0.8163635284910828,
+            "mean_prediction": -5.102942129210993,
+            "mse": 71.85458867252369,
+            "pearson": 0.5844957684197687
+          },
+          "zero": {
+            "bias": 4.28657860071991,
+            "mean_prediction": 0.0,
+            "mse": 125.45606532977732,
+            "pearson": null
+          }
+        },
+        "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+        "observed_utility_mean_bps": -4.28657860071991,
+        "observed_utility_positive_count": 67,
+        "teacher_nonpositive_observed_positive": 48,
+        "teacher_positive_count": 24
+      },
+      "SHORT": {
+        "arms": {
+          "AFTER96": {
+            "bias": 1.3125275008106998,
+            "mean_prediction": -6.148417583812367,
+            "mse": 109.6263125043551,
+            "pearson": 0.28225553262358394
+          },
+          "BEFORE95": {
+            "bias": 1.540089791349141,
+            "mean_prediction": -5.920855293273926,
+            "mse": 110.40628991737636,
+            "pearson": 0.25485129914527505
+          },
+          "CANDIDATE": {
+            "bias": 1.3124589333613033,
+            "mean_prediction": -6.148486151261763,
+            "mse": 109.61936160692088,
+            "pearson": 0.2830085140590366
+          }
+        },
+        "baselines": {
+          "first_liquidation_not_available_at_entry": {
+            "bias": 0.7859950665314308,
+            "mean_prediction": -6.674950018091636,
+            "mse": 72.47812722590524,
+            "pearson": 0.5965818448572057
+          },
+          "same_sample_side_mean_in_sample_only": {
+            "bias": 0.0,
+            "mean_prediction": -7.4609450846230665,
+            "mse": 110.65140843417672,
+            "pearson": null
+          },
+          "teacher_target_not_causal_market_outcome": {
+            "bias": 0.836105648157023,
+            "mean_prediction": -6.6248394364660435,
+            "mse": 72.57628932683689,
+            "pearson": 0.5965131164944587
+          },
+          "zero": {
+            "bias": 7.4609450846230665,
+            "mean_prediction": 0.0,
+            "mse": 166.31710998993782,
+            "pearson": null
+          }
+        },
+        "fixed_outcome": "Available fifth-step discounted observed utility; no teacher bootstrap. Includes every covered entry, not hindsight-selected exits. Not undiscounted cash PnL.",
+        "observed_utility_mean_bps": -7.4609450846230665,
+        "observed_utility_positive_count": 43,
+        "teacher_nonpositive_observed_positive": 34,
+        "teacher_positive_count": 15
+      }
+    }
+  },
+  "scope": "TRAIN-only already-trained examples; no held-out/generalization claim. The horizon defines a diagnostic measurement, not a trading policy, holding limit or target edit. Positive realized samples are not proof of predictable positive expectation.",
+  "source_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ENTRY_ANCHOR_CACHE_AUDIT_20260916/RESULT.json",
+    "sha256": "22fcb932cd106175e01add52910cbdf279616b7a90ba2d30b12304a0f2c9e304"
+  },
+  "test_data_used": false
+}
