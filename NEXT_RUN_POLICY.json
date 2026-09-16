@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
+  "rule": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -172,7 +172,7 @@
       "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
       "training_enabled": false,
       "native_run_authorized": false,
-      "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
+      "next_action": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
       "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
       "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
       "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -206,6 +206,15 @@
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/LEARNING_COMPARISON/RESULT.json",
         "sha256": "5df2fd04fa1d10c96e86eaa5bb5fe1ef499285435f079a747fb646208d02b125"
       }
+    },
+    "readout_diagnosis": {
+      "decision": "READOUT_SIGNAL_PRESENT_ENTRY_LONG_UNRESOLVED_NO_EXPANSION",
+      "report": "docs/READOUT_LEARNING_20260916.md",
+      "review": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/READOUT_LEARNING_REVIEW_20260916.json",
+        "sha256": "b9b16203a5f02d55646d44e243d7704f01efbc6c9f0716442af3a26a6cc63bd2"
+      },
+      "native_training_authorized": false
     }
   },
   "exit_reference_policy": {

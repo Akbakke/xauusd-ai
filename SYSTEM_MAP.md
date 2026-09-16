@@ -1,5 +1,8 @@
 # Gjeldende GX1-systemkart — 2026-09-16
 
+GX1_CURRENT er aktivt Git-worktree av GX1_ENGINE, på work/gx1-current.
+Felles Git-katalog: /home/andre2/src/GX1_ENGINE/.git. Data: /home/andre2/GX1_DATA.
+
 Rå M1-priser/bid/ask og native feature-eiere
 → TRAIN-eid normalisering og bundne M1/M5/MTF-data
 → Entry: M5 + M15/H1/H4/D1, LONG/SHORT/FLAT
@@ -13,7 +16,11 @@ på fire rutingsparametere; backbone er delt og handelsverdiene bruker fortsatt
 Exit-læreren. Det er ikke en fullt uavhengig Entry. Exit får lokal prissti,
 livstidssammendrag med MFE/MAE og MTF-kontekst. Sammenkobling beviser ikke nytte.
 
-Opt-in femstegs Exit-backup følger den frosne lærerpolicyen og observerte M1-
+Gjeldende native referanseforsøk brukte 120 observerte steg under en stasjonær
+kausal referansepolicy med bootstrap, ikke en maksimal holdetid.
+Forsøket er avsluttet. Se docs/READOUT_LEARNING_20260916.md for siste diagnose.
+
+Historisk: opt-in femstegs Exit-backup følger den frosne lærerpolicyen og observerte M1-
 successors, med bootstrap etter beregningsgrensen. Det er ingen fast holdetid.
 Bare frosne target-forwards deles i mindre delbatcher for å holde minnegrensen;
 online-trening, sampler og én backward beholdes. Læringsgevinst er ikke bevist.
@@ -44,7 +51,7 @@ LONG oftest etter ett steg og lar SHORT fortsette fem. Det er ikke bevist at
 én enkelt mekanisme forklarer hele svikten. Måloppdelingen er ferdig; Entry-LONG får0 videreverdi på alle512 målte Entries.
 Observerte ankerutfall er nå målt på 275/512 Entries; se
 docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Ingen treningsport er åpnet.
-Neste er én begrunnet korreksjon i lærer-/verdimålkjeden.
+Senere arbeid og gjeldende beslutning står i CURRENT_HANDOVER.md.
 
 Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.
 
@@ -52,5 +59,4 @@ Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
 samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
 (for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
 forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
-Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
-frosne prognoser og alle ferdige målinger skal gjenbrukes.
+Gjeldende arbeid følger CURRENT_HANDOVER.md; alle ferdige målinger skal gjenbrukes.

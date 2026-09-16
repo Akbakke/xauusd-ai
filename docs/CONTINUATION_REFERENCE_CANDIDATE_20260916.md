@@ -164,26 +164,17 @@ nåinputs og BEFORE95-prediksjoner. Beregn bare manglende rewards og boundary-
 verdier med bevart lærer, i én avgrenset CPU-forberedelse uten optimizer eller
 backward. Deretter bind bevisene i eksisterende policy før en kandidat åpnes.
 
-Referanse32 er ferdig og gir **ikke grunnlag for større trening**. På512 trente
-Entries er samlet Exit-MSE omtrent0,019% lavere; på128 separate TRAIN-Entries
-omtrent0,0034% høyere. Endringene er små og spriker mellom måneder. LONG holder
-omtrent90% av tilfellene; SHORT velger alltid EXIT. Entry er fortsatt FLAT på
-alle640, med litt bedre trent tilpasning og dårligere separat TRAIN-tilpasning.
-Dette er ikke bevist tilstandsavhengig beslutningsforbedring eller profitt.
+De eksisterende verdilagene kan hente tilstandsavhengig signal fra modellen.
+En avgrenset tilpasning på cached TRAIN gir bedre Exit-feil for begge sider og
+29,1% lavere samlet Entry-feil på 128 separate TRAIN-Entries. Entry LONG-feilen
+alene blir likevel verre. Begge lag er kontrollert sammen; Exit-gevinsten består.
+Dette er diagnostiske koeffisienter, ikke et promotert checkpoint eller et
+bestått lærings-/økonomikrav. [Resultat og begrensninger](READOUT_LEARNING_20260916.md).
 
-Målrettelsen ga balanserte positive/negative Q_mu-mål og samme referanse for
-begge sider, men løste ikke verdilæringen i dette avgrensede forsøket. Entry-
-læreren ble bevisst bevart.32 steg beviser ikke at modellen aldri kan lære;
-resultatet åpner heller ikke flere blinde steg eller teacher-refresh.
-
-Fysisk boot448, guardPASS/trainer0/observer0, terminal2026-09-16T18:52:41Z.
-Checkpoint96/global5809/offset1728 er bevart; dette er referansepolicyens96,
-ikke de eldre96-forsøkene. Windows-task er deaktivert og ingen native prosess
-observert. Den avgrensede launch-tillatelsen er fjernet og avvisning kontrollert.
-Les [måling og eksakte bindinger](docs/REFERENCE_POLICY_LEARNING_20260916.md).
-
-Neste arbeid bruker eksisterende tap-/gradientlogger, targets, outputs og
-checkpointtilstand til å avgrense den svake verdioppdateringen før mer kode.
-Ikke gjenta måloppretting, kandidat32 eller den ferdige før/etter-målingen.
-Alle200 features/åtte familier/tidsrammer, kausalitet og vakter er bevart.
-TEST er forseglet; ingen full epoch, VAL eller handelskjøring er åpnet.
+Alle native kjøringer er avsluttet; siste er referanse32/checkpoint96 fra boot448.
+Originale checkpoints/lærer/Adam/EMA er bevart. training_enabled=false;
+ingen full epoch, VAL, teacher-refresh eller videre native trening er åpnet.
+Neste konkrete blokkering er separat Entry LONG-feil. Gjenbruk de korrigerte
+V2-feature-/target-/outputcachene; ikke gjenta ferdige forwards eller native32.
+Første Entry-diagnose ble ugyldig på grunn av feil ankerutvalg og er merket
+INVALIDATED.json. V2 erstatter den; native trening og Exit-resultater er uberørt.

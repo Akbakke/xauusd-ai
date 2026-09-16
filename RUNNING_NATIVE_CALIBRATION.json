@@ -1,9 +1,9 @@
 {
-  "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
+  "status": "READOUT_SIGNAL_PRESENT_ENTRY_LONG_UNRESOLVED_NO_EXPANSION",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Last actual native source is preserved as completed experiment history. No active native run; current HEAD may update handover only.",
-  "latest_observation_utc": "2026-09-16T19:03:34.063404+00:00",
+  "latest_observation_utc": "2026-09-16T19:51:35.916588+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
+  "next_action": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -124,7 +124,7 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "The single reference32 trial and fixed-target comparison are complete and must not repeat. No additional training, teacher refresh or VAL. Reuse saved native loss/gradient diagnostics, targets, outputs and checkpoint states to isolate weak value updates before any further code change. Do not interpret unused Entry routing gradients or small TRAIN correlations alone as a proved root cause.",
+    "next_action": "The composed existing linear readouts recover state-dependent TRAIN signal, but separate TRAIN Entry LONG MSE worsens. That is the remaining measured blocker. Reuse the corrected V2 Entry features, targets and predictions to distinguish calibration bias from state-dependent error before one justified minimal correction. Do not repeat the native32, readout forwards or composition check. No architecture split, broad search, checkpoint promotion, teacher refresh, additional native training or VAL is authorized by these diagnostic results.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -168,5 +168,14 @@
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
   "observed_utc": "2026-09-16T18:19:20.525069+00:00",
-  "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json"
+  "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
+  "readout_diagnosis": {
+    "decision": "READOUT_SIGNAL_PRESENT_ENTRY_LONG_UNRESOLVED_NO_EXPANSION",
+    "report": "docs/READOUT_LEARNING_20260916.md",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/READOUT_LEARNING_REVIEW_20260916.json",
+      "sha256": "b9b16203a5f02d55646d44e243d7704f01efbc6c9f0716442af3a26a6cc63bd2"
+    },
+    "native_training_authorized": false
+  }
 }
