@@ -158,7 +158,8 @@ def test_one_forward_and_backward_same_anchor_and_weights_with_multistep(relativ
         result = run_random_access_training_step(model=model, target_model=target,
             entry_decision_representations=entry, target_entry_decision_representations=entry.detach(),
             batch=current_batch, grad_accum_steps=1)
-        assert model.calls == target.calls == 1
+        assert model.calls == 1
+        assert target.calls == (3 if current_batch is batch else 1)
         assert result["backward_calls"] == 1
         assert all(p.grad is None for p in target.parameters())
         outcomes.append(result)

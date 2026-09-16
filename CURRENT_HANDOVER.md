@@ -1,3 +1,33 @@
+## GPU-minnefeil avdekket og smalt rettet; ny kortkontroll kreves — 2026-09-16
+
+Reference32 på0f0a3542/boot443 er terminal med CUDA OOM i første frozen-target
+forward, før noen optimizersteg. Native checkpoint95/global5777/offset1696 er
+lagret; faktisk modell/target/Adam/EMA/RNG/progress er bevart i alle15 felt.
+Windows-task er Disabled, ingen native/guard/controller-prosess lever. Den gamle
+ACTIVE_INVOCATION-filen er et restartefakt, ikke en levende kjøring. Ingen
+terminal campaign-receipt ble produsert. Ikke start den feilede planen igjen.
+
+336 samtidige lærer-rader krevde3.44GiB ekstra GRU-minne utover PyTorch-grensen
+10.80GiB. Guard-topp10034MiB,48Ccore/50Cmem/155.82W; dette er ikke overoppheting.
+Minste rettelse deler bare frossen trace-target-forward i den eksisterende
+ettstegsgeometrien:64successors+16ankre=80rader.336 blir80+80+80+80+16.
+Samme row-order, inputs, femstegsmål, anker, TRAIN16, VAL256, sampler, vekting og
+én online-forward/backward. Ettstegsbanen og alle minne-/maskinvaregrenser beholdt.
+
+48 målrettede tester består. Cachet faktisk CPU-paritet bruker samme lærer91:
+Exit-handlinger og Entry-lærervalg er identiske, femstegs HOLD-targets eksakt like,
+maxQ-avvik2.38419e-7Bps, maxEntry-targetavvik2.98023e-8Bps.19.39s totalt,
+9.75s target-forwards, topp-RSS2296204KiB. Ingen ny datamaterialisering/GPU/
+optimizer/backward/VAL/TEST. To måleskriptfeil før modellforward er bevart;
+produksjonskode ble ikke endret mellom CPU-forsøkene. Ikke gjenta cachemålingen.
+
+Neste: commit/push og ny sourcebundet reference32/split16+16 via eksisterende
+native campaign og friske booter. Gjenbruk faktisk15-felts checkpointovergang;
+overgangseierne er uendret. Ny GPU-minne/paritet/fart/resume og faktisk læring
+er ennå ikke bevist. Ingen full epoch/VAL, læreroppdatering, EMA-reset eller replay.
+Bevis:FROZEN_TRACE_GPU_MEMORY_REVIEW_20260916.json og
+FROZEN_TRACE_MEMORY_CPU_PARITY_20260916.json i handover_snapshot.
+
 ## Native femstegs-binding testet; faktisk overgang og GPU-kontroll gjenstår — 2026-09-16
 
 Eksisterende continuation-origin fra original95 kan nå eksplisitt binde

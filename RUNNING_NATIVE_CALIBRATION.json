@@ -479,6 +479,15 @@
         "full_epoch_training_allowed": false,
         "test_data_used": false
       }
+    },
+    "native_control": {
+      "decision": "TARGET_MEMORY_FIX_CPU_VERIFIED_FRESH_NATIVE_GPU_REQUIRED",
+      "review": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/FROZEN_TRACE_GPU_MEMORY_REVIEW_20260916.json",
+        "sha256": "136209e69bd921f347112d92d38ea25c338d9a4c1ed16264ec1e723b73bbff6a"
+      },
+      "training_active": false,
+      "old_plan_restart_allowed": false
     }
   }
 }

@@ -1,3 +1,9 @@
+## Gjeldende avgrensning — 2026-09-16
+
+Den nye femstegs-targeten krever en minimal minnerettelse før GPU-kontrollen.
+Se øverst i CURRENT_HANDOVER.md. Bare reference32 og split16+16 fra original95
+er tillatt nå; ingen ny full epoch eller VAL. Læring/profitt er fortsatt ubevist.
+
 ## Gjeldende neste arbeid — 2026-09-16
 
 Den avgrensede lærbarhetskontrollen er ferdig. Entry-feilen falt videre59.09%,

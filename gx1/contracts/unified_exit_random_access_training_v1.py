@@ -521,6 +521,30 @@ def frozen_policy_trace_hold_targets(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TRACE_TARGET_INVALID")
     return targets.detach()
 
+def _frozen_exit_q_in_base_batches(
+    *, target_model: nn.Module, model_inputs: Mapping[str, Any], rows_per_batch: int,
+) -> torch.Tensor:
+    """Keep the frozen teacher's working batch at the original one-step size."""
+    row_count = int(model_inputs["entry_decision_representation"].shape[0])
+    if type(rows_per_batch) is not int or rows_per_batch < 1 or row_count < 1:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TARGET_BATCH_SIZE_INVALID")
+
+    def select(value: Any, start: int, stop: int) -> Any:
+        if isinstance(value, Mapping):
+            return {name: select(item, start, stop) for name, item in value.items()}
+        if isinstance(value, torch.Tensor) and value.ndim and value.shape[0] == row_count:
+            return value[start:stop]
+        if type(value) is bool:
+            return value
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_TARGET_BATCH_LAYOUT_INVALID")
+
+    chunks = []
+    for start in range(0, row_count, rows_per_batch):
+        inputs = select(model_inputs, start, start + rows_per_batch)
+        chunks.append(target_model.forward_exit_random_access_batch(**inputs)["exit_action_q_bps"])
+    return torch.cat(chunks, dim=0)
+
+
 def run_random_access_training_step(
     *,
     model: nn.Module,
@@ -530,7 +554,7 @@ def run_random_access_training_step(
     batch: Mapping[str, Any],
     grad_accum_steps: int,
 ) -> dict[str, Any]:
-    """One online forward, one frozen-target forward and one backward."""
+    """One online forward, one frozen-target evaluation and one backward."""
 
     trace_mode = batch.get("schema_version") == FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
     relative = trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
@@ -586,8 +610,13 @@ def run_random_access_training_step(
     online_cache: dict[str, Any] = {}
 
     def target_call(**kwargs: Any) -> torch.Tensor:
-        output = target_model.forward_exit_random_access_batch(**kwargs)
-        q = output["exit_action_q_bps"]
+        if trace_mode:
+            q = _frozen_exit_q_in_base_batches(
+                target_model=target_model, model_inputs=kwargs,
+                rows_per_batch=transition_count + batch["selected_entry_count"],
+            )
+        else:
+            q = target_model.forward_exit_random_access_batch(**kwargs)["exit_action_q_bps"]
         target_cache["all_q"] = q
         return q
 

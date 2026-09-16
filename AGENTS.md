@@ -62,3 +62,11 @@ Gjeldende policy tillater bare eksplisitt bundet reference32 eller split16+16
 fra original95 for teknisk femstegsverifikasjon. Ingen full epoch/VAL.262
 målrettede bindingstester består; faktisk CPU-overgang og GPU/minne/fart/resume
 gjenstår. Se øverst i CURRENT_HANDOVER.md. Stoppet134 og alle originaler bevares.
+
+## Konkret GPU-blokkering rettet — 2026-09-16
+
+Reference32 på0f0a3542 feilet før første optimizersteg med OOM i336-raders
+frossen target-forward. Task/prosesser stoppet; original95 bevart. Bare denne
+forwarden deles nå i tidligere80-raders geometri.48 tester og cachet faktisk
+CPU-paritet består. Se øverst i CURRENT_HANDOVER.md. Nye sourcebundne32/16+16-
+kontroller kreves; ikke restart gammel plan, øk minnegrenser eller kjør full epoch.

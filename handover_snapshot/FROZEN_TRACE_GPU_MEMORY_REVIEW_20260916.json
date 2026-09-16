@@ -1,0 +1,70 @@
+{
+  "all_15_native_transfer_state_fields_preserved": true,
+  "cached_data_reused": true,
+  "cpu_parity": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE/TRACE_FROZEN_TARGET_MEMORY_20260916_V3/RESULT.json",
+    "sha256": "838336e0c5deb3027f051276fc194ed14d229b25a2d5753c2efccaf44b889f71"
+  },
+  "decision": "TARGET_MEMORY_FIX_CPU_VERIFIED_FRESH_NATIVE_GPU_REQUIRED",
+  "entry_teacher_actions_equal": true,
+  "failed_native_source_commit": "0f0a35421e5311684545a8bf9954018bbd42aa70",
+  "failed_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "5ded106dc3bf60626a8f8a1c1cb30f297ac7bbf528311aa06b237d77af0a15a0"
+  },
+  "failed_processes_exited": true,
+  "failure": "Frozen teacher forward over 336 trace rows exceeded PyTorch allowed 10.80 GiB while requesting a 3.44 GiB GRU allocation.",
+  "fresh_gpu_memory_success": false,
+  "guard_exit_code": 1,
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE_BOOT442/guard/invocation-0001.log",
+    "sha256": "d910cfc3f7a0f1fdce4327505ade47749b078e6514b0355382f0f7fc928c0546"
+  },
+  "guard_peak_core_c": 48,
+  "guard_peak_memory_c": 50,
+  "guard_peak_power_w": 155.82,
+  "guard_peak_vram_mib": 10034,
+  "learning_improvement_proven": false,
+  "memory_or_safety_limits_raised": false,
+  "minimal_fix": "Within the existing trace target call, slice nested inputs and concatenate frozen Q in original row order. Working rows equal the unchanged first-step successor plus anchor count, 80 here. Legacy one-step path, online batch, sampler, loss weights and backward are unchanged.",
+  "modified_source_owner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+    "sha256": "42786afa45737b56fa3504228d6558a5c8e09aee09613eb0de6a16761eda2c84"
+  },
+  "native_initial_checkpoint": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "c4241ac22c12b4606eb27efcfb934f4a0b9f531c64e294c83006e083c3844ac4"
+  },
+  "native_optimizer_steps_executed": 0,
+  "native_terminal_receipt_available": false,
+  "new_gpu_parity_or_total_throughput_proven": false,
+  "next": "Freeze committed source and prepare new reference32 then split16+16 using the verified original95 transition; do not restart the failed plan or start full epoch/VAL.",
+  "observed_utc": "2026-09-16T11:00:21.767100+00:00",
+  "operator_failures_preserved": [
+    "TRACE_FROZEN_TARGET_MEMORY_20260916: unsupported hash helper in Python3.10 before data load/forward",
+    "TRACE_FROZEN_TARGET_MEMORY_20260916_V2: wrong model-factory import before model construction/forward"
+  ],
+  "source_policy_and_checkpoint_transition_owners_unchanged": true,
+  "stale_active_marker_is_not_live_process_evidence": true,
+  "target_forward_row_counts": [
+    80,
+    80,
+    80,
+    80,
+    16
+  ],
+  "targeted_tests": {
+    "log": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/FROZEN_TRACE_MEMORY_TESTS_20260916.log",
+      "sha256": "6bde2cf4814d370b6dcf3ba1ef384e89f53aac0603efdc6bceeb707d9196dedb"
+    },
+    "passed": 48,
+    "scope": "trace batching, row order, nested inputs, residual batch, targets, Entry anchors, one backward and gradients; legacy random-access and liquidation-relative training"
+  },
+  "task_disabled": true,
+  "test_data_used": false,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE_BOOT442/progress/.invocation-0001.json.trainer.uWQiHep6.log",
+    "sha256": "0200b6ad3b0040702aca49d459043182935f46f6f5c2494a84b5272bbfdc2910"
+  }
+}

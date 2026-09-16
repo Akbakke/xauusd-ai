@@ -1,0 +1,68 @@
+{
+  "actions_equal": true,
+  "actual_native_95_transfer_preserved": {
+    "checkpoint_index": true,
+    "complete": true,
+    "epoch_index": true,
+    "epoch_order": true,
+    "global_optimizer_steps": true,
+    "lr_scheduler_state": true,
+    "model_state": true,
+    "next_batch_offset": true,
+    "optimizer_state": true,
+    "phase": true,
+    "rng_state": true,
+    "schema_version": true,
+    "target_model_state": true,
+    "training_progress": true,
+    "weight_ema_state": true
+  },
+  "actual_native_initial_checkpoint": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "c4241ac22c12b4606eb27efcfb934f4a0b9f531c64e294c83006e083c3844ac4"
+  },
+  "baseline_targets": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/TARGETS.pt",
+    "sha256": "253ceaf5ec91683adcb6c4f552cba4bfb53fc2aecf9a96da4b6fa9f558f8fed8"
+  },
+  "chunked_target_forward_seconds": 9.754175977999921,
+  "chunked_targets": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_0F0A3542_REFERENCE/TRACE_FROZEN_TARGET_MEMORY_20260916_V3/CHUNKED_TARGETS.pt",
+    "sha256": "a6d63f4c687451a52cf127e659af0d7576098b4bf49d89a689b0a5dd815e4c8b"
+  },
+  "decision": "PASS_CACHED_NATIVE_FROZEN_TARGET_CPU_PARITY",
+  "elapsed_seconds": 19.387122825999995,
+  "gpu_memory_success_proven": false,
+  "gpu_used": false,
+  "input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/BATCH_INPUTS.pt",
+    "sha256": "5cff4b8ab5406f2cf68875d9e340ef617f1b877e22c56f5e54e67ae0af68e234"
+  },
+  "learning_improvement_proven": false,
+  "max_abs_entry_target_difference_bps": 2.9802322387695312e-08,
+  "max_abs_five_step_hold_target_difference_bps": 0.0,
+  "max_abs_q_difference_bps": 2.384185791015625e-07,
+  "modified_source_owner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+    "sha256": "42786afa45737b56fa3504228d6558a5c8e09aee09613eb0de6a16761eda2c84"
+  },
+  "native_optimizer_steps_completed": 0,
+  "new_materialization": false,
+  "new_optimizer_or_backward": false,
+  "observed_utc": "2026-09-16T10:57:48.085025+00:00",
+  "peak_rss_kib": 2296204,
+  "q_absolute_tolerance_bps": 0.0001,
+  "target_forward_row_counts": [
+    80,
+    80,
+    80,
+    80,
+    16
+  ],
+  "target_working_batch_rows": 80,
+  "teacher_model_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "test_data_used": false,
+  "tested_worktree_parent_commit": "0f0a35421e5311684545a8bf9954018bbd42aa70",
+  "total_target_rows": 336,
+  "training_batch_or_sampler_changed": false
+}
