@@ -74,7 +74,7 @@
   "test_data_used": false,
   "profitability_proven": false,
   "production_trade_execution_allowed": false,
-  "next_action": "Review existing Exit targets/loss and generalization evidence before any new training; native total speed after JSON hash change remains unmeasured.",
+  "next_action": "One bounded frozen-policy multi-step target hypothesis in existing owners; first inspect prior two-step evidence and preserve native semantics. No full epoch or fullVAL until actual learning and technical gates pass. Reuse cached1024 inputs/targets/outputs.",
   "latest_observation_utc": "2026-09-16T08:24:52.2247937Z",
   "next_regular_check_not_before_utc": null,
   "latest_observed_checkpoint": {
@@ -450,5 +450,9 @@
     "ema_hold": 20,
     "ema_exit": 0,
     "profitability_proven": false
+  },
+  "broad_train_review": {
+    "path": "handover_snapshot/BROAD_TRAIN_LEARNING_REVIEW_20260916.json",
+    "sha256": "8cf5fe38bb59c7024b9436dbac1094d0cf88fd8012e2e0342e22d3de63c0d9b7"
   }
 }

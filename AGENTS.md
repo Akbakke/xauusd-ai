@@ -36,3 +36,14 @@ Mål og rett konkret fartshinder, og vurder aktuell ONLINE mot EMA før videre
 læring.25 målrettede rollout/provider-tester består for en minimal JSON-hash-
 endring i VAL-økonomi. Paret faktisk CPU-fart/hash-paritet består:økonomitrinn1.32656x; målteCPU-trinn1.13905x. Full native totalfart etter endringen er ikke målt. Se nyeste
 CURRENT_HANDOVER.md; tidligere startinstrukser ovenfor er historikk.
+
+## Læringsmåling ferdig — 2026-09-16
+
+Bred paret CPU-kontroll95→134 på1024 ulike faktiske TRAIN-Entries/4096 native
+overganger er ferdig;12måneder. Prognoser for25–120min bedres, Entry/Exit-
+verdilæring bedres ikke på samme mål.1021/1024 Entry-lærervalg tilsvarer første
+M1-likvidasjon. Alle inputs/targets/outputs er cachet, ikke gjenta jobben.
+Se nyeste CURRENT_HANDOVER.md og BROAD_TRAIN_LEARNING_REVIEW_20260916.json.
+Neste er én konkret flertrinns-backuphypotese med frossen policy, i eksisterende
+eiere, uten fast holdetidsgrense. Ikke lov ny full epoch før faktisk læring
+og tekniske porter er dokumentert. Ingen modell-/EMA-/tapsvekt-/regel-jakt.

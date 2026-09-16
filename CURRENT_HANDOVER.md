@@ -1,3 +1,40 @@
+## Bred faktisk TRAIN-kontroll ferdig — 2026-09-16
+
+Én CPU-jobb på kilde4310254c er terminal/exit0 etter979.6728s, topp-RSS8744.6MiB.
+1024 ulike TRAIN-innganger,64 forhåndsvalgte batch-offsets1696..4079 og4096 ekte
+native epoch1-overganger dekker alle12måneder. Ingen optimizer/backward/GPU/VAL/
+TEST. ONLINE95 og ONLINE134 sammenlignes i eval-modus mot identisk frossen lærer91.
+Originaler, samplerrekkefølge og v4-økonomi beholdt. Alle inputs/targets/outputs
+cachet; ikke materialiser eller forward denne kontrollen på nytt.
+
+Exit HOLD-MSE LONG18.2180→18.2337 mot nullbaseline18.2128; SHORT18.0657→18.1232
+mot18.1355. Ingen forbedring på målt kohort; ikke påstå statistisk signifikans
+eller en bevist eneårsak. Entry-MSE12.5654→12.6256; begge1024FLAT mot lærerens
+914FLAT/49LONG/61SHORT. Forecast forbedres ved25/60/120 nominelle minutter;
+120min-MSE1968.89→1646.33, retningsandel63.57%→66.60%. Dette er TRAIN, ikke
+holdt-utenfor prediksjon eller profitt.
+
+Gjenbrukte cachedata bekrefter tidligere begrensede Entry-ankerdekomponering:
+lærerens fremtidige verdi i snitt0.02456Bps, maks0.09434Bps.1021/1024 lærervalg
+er identiske med umiddelbar første-M1-likvidasjon; bare3 FLAT blir nye handler.
+Entry får dermed nesten ingen verdi fra senere hold. Koden bruker en-M1-backup
+og normal målmodelloppdatering først etter full epoch/VAL. Dette er en konkret
+hypotese om for treg tilbakeføring av fremtidig verdi, ikke et bevist tiltak.
+
+Neste avgrensede læringshypotese er flertrinnsbackup under frossen lærerpolicy,
+med fem observerte M1-successors knyttet til eksisterende M5-entrydatakadens.
+Dette er ikke en holdetidsgrense: bootstrap må fortsette verdien utover grensen,
+intermediære EXIT-valg følger lærerens kausale Q, aldri fasitbasert fremtidsmaks.
+Bruk eksisterende eiere og tidligere to-stegsbevis; ikke en ny modell, EMA-reset,
+tapsvekt-/gradientendring, terskeljakt eller fixed64-replay. Hypotesen er ennå
+ikke implementert/aktivert og må måles som faktisk læring før noen ny full epoch.
+Den eksisterende treningsblokkeringen og deaktivert Windows-task gjelder.
+
+Bevis:BROAD_TRAIN95_134_RESULT_20260916.json,
+BROAD_TRAIN95_134_TARGET_DECOMPOSITION_20260916.json og
+BROAD_TRAIN_LEARNING_REVIEW_20260916.json under handover_snapshot.
+Ingen tung jobb aktiv. Alle snapshots134/95/99/115 og ufullstendig VAL bevart.
+
 ## Verifisert fartstilpasning og aktuell læring — 2026-09-16
 
 Native kjøring er fortsatt STOPPET. Den avsluttede fortsettelsesscope er fjernet

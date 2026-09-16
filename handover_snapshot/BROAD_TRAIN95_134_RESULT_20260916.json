@@ -1,0 +1,1033 @@
+{
+  "actual_native_batch_offsets": [
+    1696,
+    1733,
+    1771,
+    1809,
+    1847,
+    1885,
+    1922,
+    1960,
+    1998,
+    2036,
+    2074,
+    2112,
+    2149,
+    2187,
+    2225,
+    2263,
+    2301,
+    2339,
+    2376,
+    2414,
+    2452,
+    2490,
+    2528,
+    2565,
+    2603,
+    2641,
+    2679,
+    2717,
+    2755,
+    2792,
+    2830,
+    2868,
+    2906,
+    2944,
+    2982,
+    3019,
+    3057,
+    3095,
+    3133,
+    3171,
+    3209,
+    3246,
+    3284,
+    3322,
+    3360,
+    3398,
+    3435,
+    3473,
+    3511,
+    3549,
+    3587,
+    3625,
+    3662,
+    3700,
+    3738,
+    3776,
+    3814,
+    3852,
+    3889,
+    3927,
+    3965,
+    4003,
+    4041,
+    4079
+  ],
+  "arms": {
+    "AFTER134": {
+      "entry_predicted_actions": {
+        "FLAT": 1024,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 3072,
+        "mae_bps": 1.8328544237047026,
+        "mse_bps2": 12.62558013339948,
+        "prediction_mean_bps": -3.8879586528613195,
+        "prediction_positive": 449,
+        "sign_accuracy": 0.630859375,
+        "sign_accuracy_nonzero_targets": 0.9462890625,
+        "target_mean_bps": -3.885805208445769,
+        "target_positive": 110,
+        "weight_sum": 3072.0,
+        "zero_baseline_mae_bps": 4.164421721908487,
+        "zero_baseline_mse_bps2": 35.324514924719644
+      },
+      "entry_target_actions": {
+        "FLAT": 914,
+        "INVALID": 0,
+        "LONG": 49,
+        "SHORT": 61,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.4951171875,
+              "always_up_accuracy": 0.5048828125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.533203125,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": 0.46058990625351726,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 75.71452611983128,
+              "mean_absolute_error": 5.663980659401204,
+              "mean_squared_error": 74.70870052826109,
+              "metric_type": "regression",
+              "pearson": 0.13415955064675553,
+              "prediction_mean": 0.5876315335053732,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.7868501424409848,
+              "spearman_rank_ic": 0.12467649175666974,
+              "target_mean": 0.12704162725185597,
+              "target_nan_inf_count": 0,
+              "target_std": 8.701409432950003
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                97,
+                0,
+                410
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                68,
+                0,
+                449
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 5.69687430045542,
+            "zero_return_baseline_mean_squared_error_bps2": 75.73066569488608
+          },
+          {
+            "actual_nonzero_rows": 1023,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.49853372434017595,
+              "always_up_accuracy": 0.501466275659824,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.5728250244379277,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": 1.1790057227171928,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 409.2279611545549,
+              "mean_absolute_error": 12.616480624796168,
+              "mean_squared_error": 380.4079912301067,
+              "metric_type": "regression",
+              "pearson": 0.2945816893284639,
+              "prediction_mean": 0.9788480263814563,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 3.656574524512506,
+              "spearman_rank_ic": 0.24397370762105713,
+              "target_mean": -0.20015769633573655,
+              "target_nan_inf_count": 0,
+              "target_std": 20.22938360787483
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                177,
+                0,
+                333
+              ],
+              [
+                0,
+                0,
+                1
+              ],
+              [
+                104,
+                0,
+                409
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 13.044269634772718,
+            "zero_return_baseline_mean_squared_error_bps2": 409.26802425795734
+          },
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.5087890625,
+              "always_up_accuracy": 0.4912109375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.59765625,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": 3.569493597951805,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 1135.025802627935,
+              "mean_absolute_error": 20.167727478812594,
+              "mean_squared_error": 985.0977873832412,
+              "metric_type": "regression",
+              "pearson": 0.39568237916490756,
+              "prediction_mean": 1.9684301332927134,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 9.453032822539043,
+              "spearman_rank_ic": 0.30183501269580143,
+              "target_mean": -1.6010634646590916,
+              "target_nan_inf_count": 0,
+              "target_std": 33.69014399832591
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                201,
+                0,
+                320
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                92,
+                0,
+                411
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 21.135020877634815,
+            "zero_return_baseline_mean_squared_error_bps2": 1137.589206845801
+          },
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.666015625,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": 2.736685510881216,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2292.2699181477974,
+              "mean_absolute_error": 26.321627734545473,
+              "mean_squared_error": 1646.3322360929988,
+              "metric_type": "regression",
+              "pearson": 0.553009440275052,
+              "prediction_mean": 3.0780467869335553,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 19.577985885870575,
+              "spearman_rank_ic": 0.4717474496638295,
+              "target_mean": 0.34136127605233924,
+              "target_nan_inf_count": 0,
+              "target_std": 47.87765572945064
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                224,
+                0,
+                256
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                86,
+                0,
+                458
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 30.236911142626923,
+            "zero_return_baseline_mean_squared_error_bps2": 2292.386445668586
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 16384,
+        "mae_bps": 1.3282708650366928,
+        "mse_bps2": 9.089234174836287,
+        "prediction_mean_bps": 0.024020692260151577,
+        "prediction_positive": 6734,
+        "sign_accuracy": 0.75396728515625,
+        "sign_accuracy_nonzero_targets": 0.5079345703125,
+        "target_mean_bps": 0.023730730693273472,
+        "target_positive": 4127,
+        "weight_sum": 16384.0,
+        "zero_baseline_mae_bps": 1.3283630552940622,
+        "zero_baseline_mse_bps2": 9.087080827005366
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 4096,
+          "mae_bps": 2.6617400928435018,
+          "mse_bps2": 18.233747725407667,
+          "predicted_actions": {
+            "EXIT": 1402,
+            "HOLD": 2694,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.011036533151610683,
+          "prediction_positive": 2694,
+          "sign_accuracy": 0.516845703125,
+          "sign_accuracy_nonzero_targets": 0.516845703125,
+          "target_actions": {
+            "EXIT": 2005,
+            "HOLD": 2091,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.04888663504698343,
+          "target_positive": 2091,
+          "weight_sum": 4096.0,
+          "zero_baseline_mae_bps": 2.6635204889471424,
+          "zero_baseline_mse_bps2": 18.212815882903428
+        },
+        "SHORT": {
+          "cells": 4096,
+          "mae_bps": 2.6513433673032694,
+          "mse_bps2": 18.12318897393748,
+          "predicted_actions": {
+            "EXIT": 56,
+            "HOLD": 4040,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.08504623588899562,
+          "prediction_positive": 4040,
+          "sign_accuracy": 0.4990234375,
+          "sign_accuracy_nonzero_targets": 0.4990234375,
+          "target_actions": {
+            "EXIT": 2060,
+            "HOLD": 2036,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.04603628772611046,
+          "target_positive": 2036,
+          "weight_sum": 4096.0,
+          "zero_baseline_mae_bps": 2.6499317322291063,
+          "zero_baseline_mse_bps2": 18.13550742511804
+        }
+      }
+    },
+    "BEFORE95": {
+      "entry_predicted_actions": {
+        "FLAT": 1024,
+        "INVALID": 0,
+        "LONG": 0,
+        "SHORT": 0,
+        "TIED": 0
+      },
+      "entry_q_fit": {
+        "cells": 3072,
+        "mae_bps": 1.8335730453697276,
+        "mse_bps2": 12.565416144329314,
+        "prediction_mean_bps": -3.835762411269267,
+        "prediction_positive": 561,
+        "sign_accuracy": 0.630859375,
+        "sign_accuracy_nonzero_targets": 0.9462890625,
+        "target_mean_bps": -3.885805208445769,
+        "target_positive": 110,
+        "weight_sum": 3072.0,
+        "zero_baseline_mae_bps": 4.164421721908487,
+        "zero_baseline_mse_bps2": 35.324514924719644
+      },
+      "entry_target_actions": {
+        "FLAT": 914,
+        "INVALID": 0,
+        "LONG": 49,
+        "SHORT": 61,
+        "TIED": 0
+      },
+      "forecast_horizons": {
+        "exit_teacher_used": false,
+        "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+        "horizons": [
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.4951171875,
+              "always_up_accuracy": 0.5048828125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.529296875,
+            "m5_bars_ahead": 1,
+            "mean_prediction_minus_target_bps": -0.020046559128786612,
+            "nominal_horizon_minutes": 5,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 75.71452611983128,
+              "mean_absolute_error": 5.671094430909761,
+              "mean_squared_error": 74.15061183981246,
+              "metric_type": "regression",
+              "pearson": 0.17587046553363087,
+              "prediction_mean": 0.10699506812306936,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 0.6485239004325045,
+              "spearman_rank_ic": 0.10997277555253555,
+              "target_mean": 0.12704162725185597,
+              "target_nan_inf_count": 0,
+              "target_std": 8.701409432950003
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                201,
+                0,
+                306
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                176,
+                0,
+                341
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K1",
+            "zero_return_baseline_mean_absolute_error_bps": 5.69687430045542,
+            "zero_return_baseline_mean_squared_error_bps2": 75.73066569488608
+          },
+          {
+            "actual_nonzero_rows": 1023,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.49853372434017595,
+              "always_up_accuracy": 0.501466275659824,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.5698924731182796,
+            "m5_bars_ahead": 5,
+            "mean_prediction_minus_target_bps": 1.2966068876030477,
+            "nominal_horizon_minutes": 25,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 409.2279611545549,
+              "mean_absolute_error": 12.782987127697197,
+              "mean_squared_error": 395.5216547942716,
+              "metric_type": "regression",
+              "pearson": 0.21927932317724178,
+              "prediction_mean": 1.096449191267311,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 2.364754262103848,
+              "spearman_rank_ic": 0.18055005453830197,
+              "target_mean": -0.20015769633573655,
+              "target_nan_inf_count": 0,
+              "target_std": 20.22938360787483
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                171,
+                0,
+                339
+              ],
+              [
+                0,
+                0,
+                1
+              ],
+              [
+                101,
+                0,
+                412
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K5",
+            "zero_return_baseline_mean_absolute_error_bps": 13.044269634772718,
+            "zero_return_baseline_mean_squared_error_bps2": 409.26802425795734
+          },
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.5087890625,
+              "always_up_accuracy": 0.4912109375,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.5810546875,
+            "m5_bars_ahead": 12,
+            "mean_prediction_minus_target_bps": 2.3050623351882678,
+            "nominal_horizon_minutes": 60,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 1135.025802627935,
+              "mean_absolute_error": 20.425014358057524,
+              "mean_squared_error": 1049.4314744245598,
+              "metric_type": "regression",
+              "pearson": 0.30841215878865935,
+              "prediction_mean": 0.7039988705291762,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 6.260823971386461,
+              "spearman_rank_ic": 0.2229295338316286,
+              "target_mean": -1.6010634646590916,
+              "target_nan_inf_count": 0,
+              "target_std": 33.69014399832591
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                224,
+                0,
+                297
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                132,
+                0,
+                371
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K12",
+            "zero_return_baseline_mean_absolute_error_bps": 21.135020877634815,
+            "zero_return_baseline_mean_squared_error_bps2": 1137.589206845801
+          },
+          {
+            "actual_nonzero_rows": 1024,
+            "constant_direction_baselines_nonzero_targets": {
+              "always_down_accuracy": 0.46875,
+              "always_up_accuracy": 0.53125,
+              "scope": "Descriptive fixed TRAIN cohort; neither policy nor held-out evidence"
+            },
+            "direction_accuracy_on_nonzero_targets": 0.6357421875,
+            "m5_bars_ahead": 24,
+            "mean_prediction_minus_target_bps": -0.22933202468266245,
+            "nominal_horizon_minutes": 120,
+            "predicted_nonzero_rows": 1024,
+            "regression_metrics": {
+              "constant_mean_baseline_mean_squared_error": 2292.2699181477974,
+              "mean_absolute_error": 28.376296560534684,
+              "mean_squared_error": 1968.8929349326886,
+              "metric_type": "regression",
+              "pearson": 0.42545632990364096,
+              "prediction_mean": 0.11202925136967679,
+              "prediction_nan_inf_count": 0,
+              "prediction_space": "native",
+              "prediction_std": 10.804221470173411,
+              "spearman_rank_ic": 0.3377104530255346,
+              "target_mean": 0.34136127605233924,
+              "target_nan_inf_count": 0,
+              "target_std": 47.87765572945064
+            },
+            "sign_confusion_actual_rows_predicted_columns": [
+              [
+                247,
+                0,
+                233
+              ],
+              [
+                0,
+                0,
+                0
+              ],
+              [
+                140,
+                0,
+                404
+              ]
+            ],
+            "supervised_rows": 1024,
+            "target_column": "y_forecast_ret_K24",
+            "zero_return_baseline_mean_absolute_error_bps": 30.236911142626923,
+            "zero_return_baseline_mean_squared_error_bps2": 2292.386445668586
+          }
+        ],
+        "loss_semantics": "l1_conditional_median_not_direction_probability",
+        "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
+        "sign_order": [
+          "down",
+          "unchanged",
+          "up"
+        ],
+        "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
+        "used_for_entry_selection": false
+      },
+      "full_two_action_fit": {
+        "cells": 16384,
+        "mae_bps": 1.327504025022833,
+        "mse_bps2": 9.070946513608813,
+        "prediction_mean_bps": 0.023914390780760186,
+        "prediction_positive": 6682,
+        "sign_accuracy": 0.75457763671875,
+        "sign_accuracy_nonzero_targets": 0.5091552734375,
+        "target_mean_bps": 0.023730730693273472,
+        "target_positive": 4127,
+        "weight_sum": 16384.0,
+        "zero_baseline_mae_bps": 1.3283630552940622,
+        "zero_baseline_mse_bps2": 9.087080827005366
+      },
+      "hold_only_native_importance_weighted_by_side": {
+        "LONG": {
+          "cells": 4096,
+          "mae_bps": 2.6609892275247944,
+          "mse_bps2": 18.218045225047504,
+          "predicted_actions": {
+            "EXIT": 790,
+            "HOLD": 3306,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.05000523597118445,
+          "prediction_positive": 3306,
+          "sign_accuracy": 0.506591796875,
+          "sign_accuracy_nonzero_targets": 0.506591796875,
+          "target_actions": {
+            "EXIT": 2005,
+            "HOLD": 2091,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.04888663504698343,
+          "target_positive": 2091,
+          "weight_sum": 4096.0,
+          "zero_baseline_mae_bps": 2.6635204889471424,
+          "zero_baseline_mse_bps2": 18.212815882903428
+        },
+        "SHORT": {
+          "cells": 4096,
+          "mae_bps": 2.6490268725665373,
+          "mse_bps2": 18.06574082938775,
+          "predicted_actions": {
+            "EXIT": 720,
+            "HOLD": 3376,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "prediction_mean_bps": 0.0456523271518563,
+          "prediction_positive": 3376,
+          "sign_accuracy": 0.51171875,
+          "sign_accuracy_nonzero_targets": 0.51171875,
+          "target_actions": {
+            "EXIT": 2060,
+            "HOLD": 2036,
+            "INVALID": 0,
+            "TIED": 0
+          },
+          "target_mean_bps": 0.04603628772611046,
+          "target_positive": 2036,
+          "weight_sum": 4096.0,
+          "zero_baseline_mae_bps": 2.6499317322291063,
+          "zero_baseline_mse_bps2": 18.13550742511804
+        }
+      }
+    }
+  },
+  "backward_executed": false,
+  "cache_bindings": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_00_INPUTS.pt",
+      "sha256": "94553af8d066f61ce52e1eb2e011783bd63de7fa09dee3b91157cbe352a8a593"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_01_INPUTS.pt",
+      "sha256": "00c17307330252311ed6a082a8ff1935b8430ec70d4307a896aa6a0526340d0b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_02_INPUTS.pt",
+      "sha256": "8793d5fa03e3a4bc4a4ce6f2a8e21398c2886dfdce6a8971e5eb0b071d7b4d9f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_03_INPUTS.pt",
+      "sha256": "e6acbcc7b5cff74feeae1b9a67739dd4569a7f42c494b63d97559effb9ad195e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_04_INPUTS.pt",
+      "sha256": "11e037b84a9488d55b69ca10e1bf4f78017596d526d8fa8459ba13f58456993e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_05_INPUTS.pt",
+      "sha256": "a778ac203ed0f88e84fe9e2f60464e8cb8f1f1de176b49ee75c47ad12b1776cb"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_06_INPUTS.pt",
+      "sha256": "c279eba25921a3251baf7d40faf1ad5e0a5e93bcbf40c23cf56270637c10d399"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_07_INPUTS.pt",
+      "sha256": "6b4f502364ac3de4e7cd22ca18072f5b187f0d81463b66a7280a9ffbd2a03a8c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_08_INPUTS.pt",
+      "sha256": "d88411d66586d7b5bf64740ee97f8c9f2c9100f6a67fe3344ccf8ad2698819a8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_09_INPUTS.pt",
+      "sha256": "d7df182bd141e372a0bd718508ebe9e39d433b70e5c8098e140de68ff82d6c29"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_10_INPUTS.pt",
+      "sha256": "e9be7b953e047ea6a30dd506e4299127c940172fcf9224bba0542e8907cbccef"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_11_INPUTS.pt",
+      "sha256": "e34ed116539631259c8544ac89ea9cc4b2b7316d94cc1900194bbeedc6124c29"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_12_INPUTS.pt",
+      "sha256": "e944b2a0492991bbfc68c37b51ca28d6407471ea633921080795130495197e01"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_13_INPUTS.pt",
+      "sha256": "9e79cdd23e2ed56514683e2e5717b19433a7f789907340c662af9e6f14329b07"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_14_INPUTS.pt",
+      "sha256": "d030936e78e3e2cfcc4ddb259150e4bd9335c7863370a96f49d21a0ed974e62f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_15_INPUTS.pt",
+      "sha256": "ce977763a16a0c6369377e3a488a4f2b59e08d90b56472b662cfe0f5f497be50"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_16_INPUTS.pt",
+      "sha256": "f66558814641d4fccb52fc1bfa09680de1c6644f6ea0afc50f203f94a99e2946"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_17_INPUTS.pt",
+      "sha256": "ee0166b65423872bbabd95a1046f37767605ff4083a92043533178c8c53fc6ce"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_18_INPUTS.pt",
+      "sha256": "7b8cc584b163781a265f5492eefb8b7d8274ca52f28fcb4ee54087a457ed4efe"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_19_INPUTS.pt",
+      "sha256": "70c1c609d8b9a8d6dea52c2beba641b23a4c0d8436d8e6b63e8ecc78040b227b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_20_INPUTS.pt",
+      "sha256": "41cc05f85261febfa32016ce7ec9f66df1b812daf241bbf4b9448047014defea"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_21_INPUTS.pt",
+      "sha256": "1a7fea2c4c71fb73b37c065eb5da9231f057599b7e6384efc013af057cb7cb56"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_22_INPUTS.pt",
+      "sha256": "516b5432a507e46a84d6fe8cb7c65cca8fe2fcc5a820b18dc8c3718ad7e9ed5e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_23_INPUTS.pt",
+      "sha256": "aaeedd1f1a83f7150498ff2e56915be6347dcd4c3fa62acd723da75fb3e0e923"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_24_INPUTS.pt",
+      "sha256": "a1450dba2dae0fcdaab5611539e10d25ee119f13c8e91da67132b0d4982d5c80"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_25_INPUTS.pt",
+      "sha256": "7f9ea3a7cc48e094835a9c1c1a37bedd144b054354ec3e7f46dd24da05d4fd30"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_26_INPUTS.pt",
+      "sha256": "785a54401ce53883e005cdc4a96b02d2b1ea9b01184f3757bdfb641742c007fe"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_27_INPUTS.pt",
+      "sha256": "f816eb320c85f67775f9de4c59b5aa4d879a89cdf759d6841e8d3bff607fdfd0"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_28_INPUTS.pt",
+      "sha256": "7cfe97e1c793dbd4590e2da3d9fbe497c609d2aa434c48f450af5cebaedf1460"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_29_INPUTS.pt",
+      "sha256": "3c0a6b0fb24fdc76290edb2fc361f328740e608123469a1adc30f86c55b1680c"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_30_INPUTS.pt",
+      "sha256": "c0b79b0987bbbca747a1050aaa2562637796669cfcfdda27ec66acca2a5ddd19"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_31_INPUTS.pt",
+      "sha256": "7b2cf62929ad87f0576880c1e77ec5bf384e27f4275d3d71ff87a328618ada46"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_32_INPUTS.pt",
+      "sha256": "12667d18abbb74c47f2f17000808e602f3fb70716986b51a80f15ac664780b9f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_33_INPUTS.pt",
+      "sha256": "181dab5e0b57ceb116e114e5da970680c9be7cc4b1a2aaec4e94775d232bc4bb"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_34_INPUTS.pt",
+      "sha256": "591feb992ccc82b249b5cdcc27fb89372825a8a53d1b2ae3c46505fea984d314"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_35_INPUTS.pt",
+      "sha256": "872473962844215aa4d015aea590332285cb2401e5f9fe478615ce2dde7bdac6"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_36_INPUTS.pt",
+      "sha256": "a0983ecb8df293bb7ba5883105d4f200528b1f8d2a2dd144abd401dd791a439b"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_37_INPUTS.pt",
+      "sha256": "e061a77feb99531cc476ed6e5173ba689e1b93140027ed6bfd40a4856093178f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_38_INPUTS.pt",
+      "sha256": "7bcffdb03df214a2b3b8664fced9ade9ce4fc48dd39a35a5b977f196139457a9"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_39_INPUTS.pt",
+      "sha256": "5d5ef75a66b01465780e3cd704cfcc6aac6410ffe4dbd9cfbcd0d55942d139d7"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_40_INPUTS.pt",
+      "sha256": "b0bb3e4fef9124430d80213e548a7725138f7aa461e546d751827a570aa29a0e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_41_INPUTS.pt",
+      "sha256": "d303572b0dec92eb2fae8958aae7786cc57c8fc4056dd8640221823ab3587dc7"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_42_INPUTS.pt",
+      "sha256": "bbdc71e742633453c7af20e6b8c8391e2a9ec38f51ea37feacdc985d3240ea83"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_43_INPUTS.pt",
+      "sha256": "ac582648342b4a2582e4a125b1f0ef75e332d4a3456cb8ce08b97642d6afc36f"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_44_INPUTS.pt",
+      "sha256": "93c8794fd2f370e5874d9eae4fc3970848de66b77be62e24b98c8036bfa38513"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_45_INPUTS.pt",
+      "sha256": "1f002dccf463eccc06950ee34740584085117481e20587f1e1bee9e79cbd5755"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_46_INPUTS.pt",
+      "sha256": "933e914b9f3010237daa70de22bbfa53dbbbe3f48257168d6a5b49a3281b95f8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_47_INPUTS.pt",
+      "sha256": "0d711ced02b2e8baeb12dca368022874b592b253261717e2f7a257a596e65a53"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_48_INPUTS.pt",
+      "sha256": "c7eccd4c344ddc84a1ce130b23726cdd0b97ad16c8e08ba889283bca0d260360"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_49_INPUTS.pt",
+      "sha256": "5696c5265ed624a0e6a8fe39961df251362ef88abc15c06926800dbb57a68ec3"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_50_INPUTS.pt",
+      "sha256": "971cd8cb66c44e2d4162b717cdb1f41495705727fad3a82951d3a0c029dd76f1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_51_INPUTS.pt",
+      "sha256": "c2ef7d93fb5116b99af9217dae62d2b943d84a0873206fec33b7b43001b110c1"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_52_INPUTS.pt",
+      "sha256": "f35b93666d3953229afc3a33008ed0f8873a89c143ab65d4768c92d2e985c863"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_53_INPUTS.pt",
+      "sha256": "61056af2794ed7e75e8ed0b7e327027b1b8f82961b085198df0d2d7a89e82de5"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_54_INPUTS.pt",
+      "sha256": "30e73a2058c11733f2ce3c15aa49d9218b510df9703bd432dc896e5b5f6cadcc"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_55_INPUTS.pt",
+      "sha256": "46049053b4756b053fc52e771dc3ddf662c6e58d6401b15ab7f7f4b4337e0de4"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_56_INPUTS.pt",
+      "sha256": "f8619cf0906d52c799672e3c6e196e520a7ff69196caff1d2beff8eace3ea432"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_57_INPUTS.pt",
+      "sha256": "e8d150d7a6f8247a31831be26ed5b0189430212947a17abe01edc3796d5ace83"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_58_INPUTS.pt",
+      "sha256": "cf4a3bf5ef1679750e9f999b3a0e9891c6cf599c33190f3df9f1471f4f6b85ec"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_59_INPUTS.pt",
+      "sha256": "75cd518c72ec1e3eea72fc1aaed3b7a641efe3fc3aa45389d949ca40adb722f8"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_60_INPUTS.pt",
+      "sha256": "f6b86c151208781ea06554a7af4a20ecf9de08086b4ce17a5da288673525f404"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_61_INPUTS.pt",
+      "sha256": "ab93744c3458814bd4ef760cf595786d38367440730077804b6302e255786942"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_62_INPUTS.pt",
+      "sha256": "14cd37a45c383a6e7d8c17632a8f7b524202392b263a89973827f5f092a0c972"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_63_INPUTS.pt",
+      "sha256": "38d5988429c8a61bc9fde40f7504a133e5fa23bf12ae8a0e39e74cd9c434d19d"
+    }
+  ],
+  "checkpoint_bindings": {
+    "AFTER134": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "ffd17096fb82c78192cd8e50257b7ff7f45a31549ba9a61458dbae74b5c26535"
+      },
+      "cursor": {
+        "checkpoint_index": 134,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 8162,
+        "next_batch_offset": 0,
+        "phase": "validation"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_STOP_20260916/TRAIN_POINTER.json",
+        "sha256": "fa970ecc7abe63b13d4fbb4591d6e43fdf8c303fcf4cb71d0a5dfb5d75e4e4de"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
+        "sha256": "ddd8cfbf5122122baaa854b6c46c5f2298c90e549766226b260cf1c8455c7419"
+      }
+    },
+    "BEFORE95": {
+      "contract": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+        "sha256": "25c32556b456ac7f155109993b8eccf9d074c37d167ae3fae1285ecfbffdbdae"
+      },
+      "cursor": {
+        "checkpoint_index": 95,
+        "complete": false,
+        "epoch_index": 1,
+        "global_optimizer_steps": 5777,
+        "next_batch_offset": 1696,
+        "phase": "train"
+      },
+      "pointer": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+        "sha256": "f508837dfdbc06615fbad52bd824d89f8750944b57a77ca5a13bab1d4798acf8"
+      },
+      "state": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+        "sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+      }
+    }
+  },
+  "decision": "BROAD_ACTUAL_TRAIN_FIT_RECORDED",
+  "elapsed_seconds": 979.6727973269999,
+  "entry_month_counts": {
+    "2025-06": 84,
+    "2025-07": 99,
+    "2025-08": 82,
+    "2025-09": 89,
+    "2025-10": 88,
+    "2025-11": 79,
+    "2025-12": 85,
+    "2026-01": 82,
+    "2026-02": 76,
+    "2026-03": 89,
+    "2026-04": 84,
+    "2026-05": 87
+  },
+  "entry_rows": 1024,
+  "epoch_order_sha256": "84813100efc927211156cf485cfe2334a70bed8c50236e4372f32c78d8fbfa65",
+  "gpu_used": false,
+  "inputs_and_targets_built_once_per_actual_batch": true,
+  "interpretation": "1024 distinct TRAIN entries from64 predetermined, evenly spaced native batch offsets in the2385-step continuation. Both ONLINE models evaluated against identical frozen ONLINE91 targets with dropout disabled. Native epoch1 samples and parent order are reproduced; only TRAIN fit and before/after behavior are measured, not policy profit or heldout generalization. Realized return signs are not a correctness oracle for conditional expected values.",
+  "model_mode": "eval",
+  "model_state_sha256": {
+    "AFTER134": "67c991605c46f75eb30f06e9fe0106161541c66fe653f1aabb5feb8e5be56cc6",
+    "BEFORE95": "355a9cc134a83aac47a3a6f099fb3f0e48c686abe02c093789f85094ccb85813"
+  },
+  "operator_script_sha256": "a6ce204677d2374138c5cb04439c3c7cac39e4c9a0ab96fae4bb14e3b29c7f75",
+  "optimizer_constructed_or_stepped": false,
+  "peak_rss_kib": 8954468,
+  "profitability_or_heldout_improvement_proven": false,
+  "row_selection_uses_outcomes": false,
+  "sampled_transition_count": 4096,
+  "schema_version": "gx1_broad_actual_train95_134_observation_v1",
+  "selected_sample_plan_sha256": "e1fe7259f054c09d22f196faec5252d0d2ed57185880bcb605c4a03c0eb4506f",
+  "source_commit": "4310254c12f79424be45f429025b8c6177cfdaf6",
+  "target_promotion_performed": false,
+  "teacher_model_state_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "test_data_used": false,
+  "train_only": true,
+  "val_evaluated": false
+}

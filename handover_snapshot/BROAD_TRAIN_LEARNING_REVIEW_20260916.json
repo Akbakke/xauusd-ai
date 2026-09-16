@@ -1,0 +1,116 @@
+{
+  "schema_version": "gx1_broad_train_learning_review_v1",
+  "decision": "EXIT_AND_ENTRY_VALUE_LEARNING_NOT_READY_FOR_NEXT_EPOCH",
+  "source_commit_measured": "4310254c12f79424be45f429025b8c6177cfdaf6",
+  "cpu_job_exit_code": 0,
+  "cpu_elapsed_seconds": 979.6727973269999,
+  "peak_rss_kib": 8954468,
+  "entry_rows": 1024,
+  "native_transitions": 4096,
+  "months": {
+    "2025-06": 84,
+    "2025-07": 99,
+    "2025-08": 82,
+    "2025-09": 89,
+    "2025-10": 88,
+    "2025-11": 79,
+    "2025-12": 85,
+    "2026-01": 82,
+    "2026-02": 76,
+    "2026-03": 89,
+    "2026-04": 84,
+    "2026-05": 87
+  },
+  "evidence": {
+    "BROAD_TRAIN95_134_RESULT_20260916.json": "1cbb47666a2f6b64b9cac473645629b30038d70cc24f85f33a3deed7cb4edfcd",
+    "BROAD_TRAIN95_134_TARGET_DECOMPOSITION_20260916.json": "0e9389498b1ee36552f71ad6b13cf24862d83df85343be6ad3bcc7fa3cc85103"
+  },
+  "observed_entry_actions_before_and_after": {
+    "FLAT": 1024,
+    "LONG": 0,
+    "SHORT": 0
+  },
+  "entry_teacher_actions": {
+    "LONG": 49,
+    "SHORT": 61,
+    "FLAT": 914
+  },
+  "exit_hold_mse": {
+    "LONG": {
+      "before95": 18.218045225047504,
+      "after134": 18.233747725407667,
+      "zero_baseline": 18.212815882903428
+    },
+    "SHORT": {
+      "before95": 18.06574082938775,
+      "after134": 18.12318897393748,
+      "zero_baseline": 18.13550742511804
+    }
+  },
+  "entry_q_mse_before_after": [
+    12.565416144329314,
+    12.62558013339948
+  ],
+  "entry_teacher_future_value_mean_bps": 0.02456036224930358,
+  "entry_teacher_max_future_value_bps": 0.09433746337890625,
+  "entry_teacher_same_action_as_immediate_liquidation": 1021,
+  "entry_teacher_changes_immediate_flat_to_trade": 3,
+  "forecast_direction_accuracy_after": [
+    0.533203125,
+    0.5728250244379277,
+    0.59765625,
+    0.666015625
+  ],
+  "forecast_horizons_nominal_minutes": [
+    5,
+    25,
+    60,
+    120
+  ],
+  "forecast_mse_before_after": {
+    "5": [
+      74.15061183981246,
+      74.70870052826109
+    ],
+    "25": [
+      395.5216547942716,
+      380.4079912301067
+    ],
+    "60": [
+      1049.4314744245598,
+      985.0977873832412
+    ],
+    "120": [
+      1968.8929349326886,
+      1646.3322360929988
+    ]
+  },
+  "interpretation": [
+    "This is broader actual TRAIN fit, not heldout generalization or profitability. The paired models share1024 entries, native epoch1 samples, frozen teacher91 and eval mode. No replay training was performed.",
+    "Both Exit HOLD MSE values increased on this measured cohort after2385 real optimizer steps. LONG remains slightly worse than zero; SHORT is slightly better than zero but worse than before95. This is descriptive, not a statistical significance or sole-cause claim.",
+    "Forecast MSE improved at25/60/120minutes while action learning did not. Constant trading or complete disconnection of all features is not supported.",
+    "Entry value targets are effectively immediate first-M1 liquidation on1021/1024 entries; teacher continuation changes only3 entries fromFLAT totrade. Earlier64-entry decomposition is reused as supporting evidence, not treated as a new finding.",
+    "One-step bootstrap plus teacher refresh only after full epoch/VAL is a concrete credit-assignment hypothesis; these observations do not prove that changing cadence or multi-step backup will fix learning.",
+    "The v4 reward already includes the v3 liquidation-value adjustment. Relative reward reduces to executable value change plus physical carrying cost. Do not falsely treat it as unadjusted potential shaping or repeat the old terminal-cash HOLD diagnosis."
+  ],
+  "next_bounded_change_proposal": {
+    "hypothesis": "A frozen-policy multi-step backup can carry observed later value into Exit and hence Entry sooner than the current one-M1 backup.",
+    "scope": "Existing model/economics/sampler owners only. Five observed M1 successor transitions align the existing M5 Entry data cadence; this is a learning-backup extent, never a maximum holding time or policy EXIT rule.",
+    "required_semantics": [
+      "Follow the frozen teacher action at intermediate states; do not choose actions from realized future rewards.",
+      "Stop trace at teacher EXIT and retain correct realized costs; bootstrap at the computation boundary or unavailable further successor without inventing economic terminal.",
+      "Use wall-clock discount and declared market closures; keep original sampled states and loss weights.",
+      "Keep all features/families/timeframes, forecast supervision, task weighting, gradient boundaries, model structure and EMA unchanged.",
+      "Reuse completed two-step target-sensitivity evidence; no new search over horizons or same fixed64 replay.",
+      "Require actual learning comparison and native GPU/resume/throughput gates before any full epoch or fullVAL."
+    ],
+    "status": "Not implemented or enabled; one targeted hypothesis for the next learning control, not evidence of improved profit.",
+    "primary_method_reference": "https://arxiv.org/html/1710.02298v1#S3.SS4"
+  },
+  "cache_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916",
+  "no_repeated_current_model_forwards_needed": true,
+  "no_heavy_job_active": true,
+  "test_data_used": false,
+  "training_started": false,
+  "profitability_proven": false
+}

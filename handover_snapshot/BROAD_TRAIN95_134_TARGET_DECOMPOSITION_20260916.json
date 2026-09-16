@@ -1,0 +1,169 @@
+{
+  "scope": "Decomposition of the already recorded1024 TRAIN entries and4096 native transitions; no new model forwards or training",
+  "entry_anchor_liquidation_bps": {
+    "count": 2048,
+    "mean": -5.853268174917957,
+    "std": 4.36194554256588,
+    "absmean": 6.2686661232487495,
+    "min": -45.17010498046875,
+    "median": -5.813594102859497,
+    "p95": 0.04701518919318893,
+    "max": 30.046531677246094
+  },
+  "entry_teacher_future_value_bps": {
+    "count": 2048,
+    "mean": 0.02456036224930358,
+    "std": 0.02481151177884726,
+    "absmean": 0.02456036224930358,
+    "min": 0.0,
+    "median": 0.015567779541015625,
+    "p95": 0.05526928901672363,
+    "max": 0.09433746337890625
+  },
+  "entry_teacher_actions": {
+    "LONG": 49,
+    "SHORT": 61,
+    "FLAT": 914
+  },
+  "entry_immediate_liquidation_actions": {
+    "LONG": 49,
+    "SHORT": 58,
+    "FLAT": 917
+  },
+  "entry_teacher_vs_immediate_actions_identical_count": 1021,
+  "entry_teacher_creates_trade_from_immediate_flat_count": 3,
+  "exit": {
+    "LONG": {
+      "native_relative_one_step_reward_bps": {
+        "count": 4096,
+        "mean": 0.04446081192145357,
+        "std": 4.268741842893894,
+        "absmean": 2.6628256427320594,
+        "min": -54.48810958862305,
+        "median": 0.0644255205988884,
+        "p95": 6.1123151779174805,
+        "max": 29.621225357055664
+      },
+      "frozen_bootstrap_bps": {
+        "count": 4096,
+        "mean": 0.004425823126439354,
+        "std": 0.02112533297886878,
+        "absmean": 0.004425823126439354,
+        "min": 0.0,
+        "median": 0.0,
+        "p95": 0.03435352444648743,
+        "max": 0.334014892578125
+      },
+      "combined_target_bps": {
+        "count": 4096,
+        "mean": 0.04888663504698343,
+        "std": 4.267367570272944,
+        "absmean": 2.6635204889471424,
+        "min": -54.3481330871582,
+        "median": 0.06943122670054436,
+        "p95": 6.1123151779174805,
+        "max": 29.621225357055664
+      },
+      "arms": {
+        "BEFORE95": {
+          "prediction_bps": {
+            "count": 4096,
+            "mean": 0.05000523597118445,
+            "std": 0.08076735150899718,
+            "absmean": 0.07682154205031111,
+            "min": -0.15103520452976227,
+            "median": 0.05695393681526184,
+            "p95": 0.19294213503599167,
+            "max": 0.5317369699478149
+          },
+          "pearson_to_target": -0.001587965332774807,
+          "pearson_to_observed_one_step_return": -0.0039287669978498915,
+          "mse_minus_zero_baseline": 0.005229342144075872
+        },
+        "AFTER134": {
+          "prediction_bps": {
+            "count": 4096,
+            "mean": 0.011036533151610683,
+            "std": 0.05957331383863219,
+            "absmean": 0.03767771916531615,
+            "min": -0.14274582266807556,
+            "median": 0.011481549125164747,
+            "p95": 0.08024091273546219,
+            "max": 0.47838443517684937
+          },
+          "pearson_to_target": -0.036071212135858004,
+          "pearson_to_observed_one_step_return": -0.03890575357854717,
+          "mse_minus_zero_baseline": 0.02093184250423917
+        }
+      }
+    },
+    "SHORT": {
+      "native_relative_one_step_reward_bps": {
+        "count": 4096,
+        "mean": -0.04379140749870203,
+        "std": 4.24449936889041,
+        "absmean": 2.651851585829263,
+        "min": -30.076608657836914,
+        "median": -0.09459472075104713,
+        "p95": 5.8980735540390015,
+        "max": 46.72710418701172
+      },
+      "frozen_bootstrap_bps": {
+        "count": 4096,
+        "mean": 0.08982769523390743,
+        "std": 0.16204944728304985,
+        "absmean": 0.08982769523390743,
+        "min": 0.014546811580657959,
+        "median": 0.053716301918029785,
+        "p95": 0.2138025313615799,
+        "max": 2.1042213439941406
+      },
+      "combined_target_bps": {
+        "count": 4096,
+        "mean": 0.04603628772611046,
+        "std": 4.258331608192396,
+        "absmean": 2.6499317322291063,
+        "min": -30.04376220703125,
+        "median": -0.021290212869644165,
+        "p95": 6.051985383033752,
+        "max": 47.61137771606445
+      },
+      "arms": {
+        "BEFORE95": {
+          "prediction_bps": {
+            "count": 4096,
+            "mean": 0.0456523271518563,
+            "std": 0.0961623951948685,
+            "absmean": 0.060271044916135,
+            "min": -0.09276916831731796,
+            "median": 0.031029988080263138,
+            "p95": 0.15975868701934814,
+            "max": 1.2849735021591187
+          },
+          "pearson_to_target": 0.09389039161623766,
+          "pearson_to_observed_one_step_return": 0.06586786879290349,
+          "mse_minus_zero_baseline": -0.06976659573029233
+        },
+        "AFTER134": {
+          "prediction_bps": {
+            "count": 4096,
+            "mean": 0.08504623588899562,
+            "std": 0.04618349953869847,
+            "absmean": 0.085084166788846,
+            "min": -0.004025906324386597,
+            "median": 0.08247530087828636,
+            "p95": 0.16712763532996178,
+            "max": 0.516166090965271
+          },
+          "pearson_to_target": 0.03522189337353522,
+          "pearson_to_observed_one_step_return": 0.02637968985255004,
+          "mse_minus_zero_baseline": -0.012318451180558772
+        }
+      }
+    }
+  },
+  "test_data_used": false,
+  "gpu_used": false,
+  "optimizer_used": false,
+  "entry_action_label_semantics": "Computed diagnostic action preferences from stochastic realized first-state liquidation and frozen critic continuation, not realized profit or an oracle for expected return."
+}
