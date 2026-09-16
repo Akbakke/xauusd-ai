@@ -58,6 +58,9 @@ def _frozen_readout_states(plan_binding):
     if parent.get("schema_version") != "gx1_candidate_training_session_v1" or not isinstance(parent.get("model_state"), Mapping):
         raise RuntimeError("FROZEN_READOUT_PARENT_CHECKPOINT_INVALID")
     base = dict(parent["model_state"])
+    boundary = parent.get("target_model_state")
+    if not isinstance(boundary, Mapping) or set(boundary) != set(base):
+        raise RuntimeError("FROZEN_READOUT_BOUNDARY_TEACHER_INVALID")
     entry = torch.load(bindings["entry_readout"]["path"], map_location="cpu", weights_only=True)
     exit_head = torch.load(bindings["exit_readout"]["path"], map_location="cpu", weights_only=True)
     patches = {}
@@ -80,13 +83,13 @@ def _frozen_readout_states(plan_binding):
     candidate = {**base, **patches}
     # V2 Entry targets used the fitted Exit teacher with original Entry weights.
     teacher = {**base, **{k: v for k, v in patches.items() if k.startswith("head_exit_action.")}}
-    return cohort, bindings, base, candidate, teacher
+    return cohort, bindings, base, candidate, teacher, boundary
 
 
 def _frozen_readout_binding(plan_binding, arm, states):
     if arm not in {"baseline", "candidate"}:
         raise RuntimeError("FROZEN_READOUT_ARM_INVALID")
-    cohort, bindings, base, candidate, teacher = states
+    cohort, bindings, base, candidate, teacher, boundary = states
     value = {
         "schema_version": FROZEN_READOUT_BINDING_SCHEMA_VERSION,
         "decision": "PASS", "model_variant": "frozen_online_readout", "arm": arm,
@@ -95,6 +98,7 @@ def _frozen_readout_binding(plan_binding, arm, states):
         "model_state_sha256": canonical_model_state_sha256(candidate if arm == "candidate" else base),
         "online_model_state_sha256": canonical_model_state_sha256(base),
         "target_model_state_sha256": canonical_model_state_sha256(teacher),
+        "exit_boundary_teacher_model_state_sha256": canonical_model_state_sha256(boundary),
         # The immutable composition manifest binds the base checkpoint and both overlays.
         "checkpoint_path": plan_binding["path"], "checkpoint_file_sha256": plan_binding["sha256"],
         "evaluation_plan": dict(plan_binding), "evaluation_cohort_sha256": cohort["cohort_sha256"],
@@ -108,7 +112,7 @@ def _frozen_readout_binding(plan_binding, arm, states):
     return value
 
 
-def bind_frozen_readout_checkpoint_v1(*, plan_binding, arm, model, target_model=None):
+def bind_frozen_readout_checkpoint_v1(*, plan_binding, arm, model, target_model=None, boundary_model=None):
     """Load the declared composition into evaluation models only, with exact scope."""
     states = _frozen_readout_states(plan_binding)
     binding = _frozen_readout_binding(plan_binding, arm, states)
@@ -118,6 +122,9 @@ def bind_frozen_readout_checkpoint_v1(*, plan_binding, arm, model, target_model=
     if target_model is not None:
         strict_load_random_access_v2_state(target_model, states[4])
         target_model.requires_grad_(False).eval()
+    if boundary_model is not None:
+        strict_load_random_access_v2_state(boundary_model, states[5])
+        boundary_model.requires_grad_(False).eval()
     if (not torch.equal(torch.get_rng_state(), rng_before)
             or canonical_model_state_sha256(model.state_dict()) != binding["model_state_sha256"]):
         raise RuntimeError("FROZEN_READOUT_MODEL_LOAD_CHANGED_STATE")

@@ -1,9 +1,9 @@
 {
-  "status": "CORE_BINDINGS_VERIFIED_NATIVE_CONNECTION_PENDING",
+  "status": "NATIVE_READONLY_INTEGRATION_VERIFIED_PREPARATION_PENDING",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Last actual native source is preserved as completed experiment history. No active native run; current HEAD may update handover only.",
-  "latest_observation_utc": "2026-09-16T20:41:20.810033+00:00",
+  "latest_observation_utc": "2026-09-16T21:02:29.603965+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Core bounded VAL and frozen ONLINE readout bindings are verified. Finish only the missing integration in the existing native campaign, binding the immutable origin cursor and frozen June256 plan, and recording paired Exit Q_mu errors alongside Entry errors and native full-cost selected/open outcomes. No new fitting or architecture work. The core tests do not authorize launch, training, full VAL or TEST. Preserve the frozen plan and all source checkpoints.",
+  "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -124,7 +124,7 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "Core bounded VAL and frozen ONLINE readout bindings are verified. Finish only the missing integration in the existing native campaign, binding the immutable origin cursor and frozen June256 plan, and recording paired Exit Q_mu errors alongside Entry errors and native full-cost selected/open outcomes. No new fitting or architecture work. The core tests do not authorize launch, training, full VAL or TEST. Preserve the frozen plan and all source checkpoints.",
+    "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -186,5 +186,9 @@
   "bounded_val_core": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json",
     "sha256": "02590c20b837a76c78bacfd1b2250856753630844a568bb8a1d43a0b7406a517"
+  },
+  "native_readonly_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
+    "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   }
 }

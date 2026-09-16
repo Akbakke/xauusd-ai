@@ -423,6 +423,84 @@ def require_reference_learning_plan(recipe: Mapping[str, Any], policy: Mapping[s
     return plan
 
 
+def _require_native_profile_and_economics(recipe, policy, repo):
+    profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
+               "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
+            or policy.get("canonical_source_repo") != str(repo)
+            or policy.get("canonical_branch") != "work/gx1-current"
+            or policy.get("training_module") != NATIVE_MODULE
+            or policy.get("required_val_profile") != profile
+            or any(recipe.get("val_limits", {}).get(k) != v for k, v in profile.items())
+            or policy.get("train_batch_size") != 16
+            or recipe.get("trainer_cli", {}).get("batch_size") != 16
+            or policy.get("precision") != "float32" or policy.get("tf32_allowed") is not False
+            or policy.get("native_invocation_seconds") != 12000
+            or policy.get("outer_guard_seconds") != 13800):
+        raise RuntimeError("NATIVE_NEXT_RUN_PROFILE_INVALID")
+    evidence = policy.get("required_evidence", {})
+    risk_binding = require_binding(evidence.get("risk_objective"), label="native risk objective")
+    risk = read_bound_json(Path(risk_binding["path"]), risk_binding["sha256"])
+    econ_binding = require_binding(recipe.get("files", {}).get("economics_readiness"), label="native economics")
+    economics = read_bound_json(Path(econ_binding["path"]), econ_binding["sha256"])
+    objective = economics.get("economics_objective_contract", {})
+    if (risk.get("decision") != "PASS" or risk.get("test_data_used") is not False
+            or risk.get("maximum_holding_seconds") is not None
+            or risk.get("absolute_loss_limit_bps") is not None
+            or risk.get("reward_accounting") != "liquidation_advantage_v1"
+            or risk.get("economics_objective_schema") != "gx1_unified_exit_economics_objective_v4"
+            or objective.get("reward_accounting") != risk["reward_accounting"]
+            or objective.get("schema_version") != risk["economics_objective_schema"]):
+        raise RuntimeError("NATIVE_NEXT_RUN_RISK_OBJECTIVE_INVALID")
+    return profile, evidence, objective
+
+
+def require_frozen_readout_evaluation(recipe, *, invocation_number=None, execution_budget=None):
+    """One bound, read-only native VAL window per arm; no training admission."""
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_bounded_val_cohort
+    repo = Path(__file__).resolve().parents[2]
+    value = recipe.get("frozen_readout_evaluation")
+    if (not isinstance(value, Mapping) or set(value) != {"plan", "origin_cursor", "arm"}
+            or value.get("arm") not in {"baseline", "candidate"}
+            or any(k in recipe for k in ("candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy"))):
+        raise RuntimeError("NATIVE_FROZEN_READOUT_RECIPE_INVALID")
+    binding = require_binding(recipe.get("next_run_policy"), label="frozen native policy")
+    if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {"plan": value["plan"], "origin_cursor": value["origin_cursor"],
+                "allowed_arms": ["baseline", "candidate"], "optimizer_steps": 0,
+                "max_invocations_per_arm": 1, "full_val_allowed": False, "test_data_used": False}
+    if (policy.get("training_enabled") is not False
+            or policy.get("frozen_readout_evaluation") != expected
+            or "native_learning_calibration" in policy):
+        raise RuntimeError("NATIVE_FROZEN_READOUT_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or invocation_number != 1):
+        raise RuntimeError("NATIVE_FROZEN_READOUT_INVOCATION_INVALID")
+    cohort = build_bounded_val_cohort(value["plan"])
+    plan = read_bound_json(Path(cohort["plan"]["path"]), cohort["plan"]["sha256"])
+    cb = require_binding(value["origin_cursor"], label="frozen native origin cursor")
+    raw = read_bound_json(Path(cb["path"]), cb["sha256"])
+    cursor = require_native_cursor(raw, expected_recipe=raw["recipe"], verify_files=True)
+    state = cursor["resume_state"]
+    if (len(cohort["entry_row_indices"]) != 256 or cohort["population_rows"] != 5508
+            or state["training_state"] != plan["base_online_checkpoint"]
+            or state["phase"] != "train" or state["complete"] is not False
+            or cursor["outcome"] != "RESUMABLE" or state["active_val_cursor"] is not None
+            or recipe.get("files", {}).get("random_access_root") != plan["val_root"]):
+        raise RuntimeError("NATIVE_FROZEN_READOUT_ORIGIN_OR_COHORT_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != state["global_optimizer_steps"]
+            or execution_budget.get("expected_active_pointer_sha256") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_FROZEN_READOUT_BUDGET_INVALID")
+    return {"cohort":cohort, "plan":plan, "origin_resume_state":state, "arm":value["arm"]}
+
+
 def require_native_run_scope(
     recipe: Mapping[str, Any], *, invocation_number: int | None = None,
     execution_budget: Mapping[str, Any] | None = None,
@@ -432,6 +510,10 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "frozen_readout_evaluation" in recipe:
+        scope = require_frozen_readout_evaluation(recipe, invocation_number=invocation_number,
+                                                execution_budget=execution_budget)
+        return scope["origin_resume_state"]["global_optimizer_steps"]
     repo = Path(__file__).resolve().parents[2]
     origin = recipe.get("candidate_resume_origin")
     optimizer_transition = (isinstance(origin, Mapping)
@@ -517,34 +599,7 @@ def require_native_run_scope(
         root = require_random_access_index_root(read_bound_json(Path(root_binding["path"]), root_binding["sha256"]))
         if root["schema_version"] != LATEST_YEAR_ROOT_SCHEMA_VERSION:
             raise RuntimeError("NATIVE_LATEST_YEAR_POPULATION_REQUIRED")
-    profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
-               "max_wall_seconds": 10800, "progress_interval_forwards": 64}
-    if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
-            or policy.get("canonical_source_repo") != str(repo)
-            or policy.get("canonical_branch") != "work/gx1-current"
-            or policy.get("training_module") != NATIVE_MODULE
-            or policy.get("required_val_profile") != profile
-            or any(recipe.get("val_limits", {}).get(k) != v for k, v in profile.items())
-            or policy.get("train_batch_size") != 16
-            or recipe.get("trainer_cli", {}).get("batch_size") != 16
-            or policy.get("precision") != "float32" or policy.get("tf32_allowed") is not False
-            or policy.get("native_invocation_seconds") != 12000
-            or policy.get("outer_guard_seconds") != 13800):
-        raise RuntimeError("NATIVE_NEXT_RUN_PROFILE_INVALID")
-    evidence = policy.get("required_evidence", {})
-    risk_binding = require_binding(evidence.get("risk_objective"), label="native risk objective")
-    risk = read_bound_json(Path(risk_binding["path"]), risk_binding["sha256"])
-    econ_binding = require_binding(recipe.get("files", {}).get("economics_readiness"), label="native economics")
-    economics = read_bound_json(Path(econ_binding["path"]), econ_binding["sha256"])
-    objective = economics.get("economics_objective_contract", {})
-    if (risk.get("decision") != "PASS" or risk.get("test_data_used") is not False
-            or risk.get("maximum_holding_seconds") is not None
-            or risk.get("absolute_loss_limit_bps") is not None
-            or risk.get("reward_accounting") != "liquidation_advantage_v1"
-            or risk.get("economics_objective_schema") != "gx1_unified_exit_economics_objective_v4"
-            or objective.get("reward_accounting") != risk["reward_accounting"]
-            or objective.get("schema_version") != risk["economics_objective_schema"]):
-        raise RuntimeError("NATIVE_NEXT_RUN_RISK_OBJECTIVE_INVALID")
+    profile, evidence, objective = _require_native_profile_and_economics(recipe, policy, repo)
     if policy.get("training_enabled") is True:
         if calibration is not None:
             raise RuntimeError("NATIVE_CALIBRATION_CANNOT_ENABLE_FULL_TRAINING")

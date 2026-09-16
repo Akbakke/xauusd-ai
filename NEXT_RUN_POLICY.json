@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Core bounded VAL and frozen ONLINE readout bindings are verified. Finish only the missing integration in the existing native campaign, binding the immutable origin cursor and frozen June256 plan, and recording paired Exit Q_mu errors alongside Entry errors and native full-cost selected/open outcomes. No new fitting or architecture work. The core tests do not authorize launch, training, full VAL or TEST. Preserve the frozen plan and all source checkpoints.",
+  "rule": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -172,7 +172,7 @@
       "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
       "training_enabled": false,
       "native_run_authorized": false,
-      "next_action": "Core bounded VAL and frozen ONLINE readout bindings are verified. Finish only the missing integration in the existing native campaign, binding the immutable origin cursor and frozen June256 plan, and recording paired Exit Q_mu errors alongside Entry errors and native full-cost selected/open outcomes. No new fitting or architecture work. The core tests do not authorize launch, training, full VAL or TEST. Preserve the frozen plan and all source checkpoints.",
+      "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
       "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
       "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
       "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -223,6 +223,10 @@
       "bounded_val_core": {
         "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json",
         "sha256": "02590c20b837a76c78bacfd1b2250856753630844a568bb8a1d43a0b7406a517"
+      },
+      "native_readonly_review": {
+        "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
+        "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
       }
     }
   },
@@ -241,5 +245,23 @@
   "reference_learning_plan": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
     "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
+  },
+  "frozen_readout_evaluation": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+      "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+    },
+    "origin_cursor": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447/native-candidate-cursor/RESUME_CURSOR.json",
+      "sha256": "d84546364ecc806f5e10e88b0117184b5148236651d0271c353b32f3df55034b"
+    },
+    "allowed_arms": [
+      "baseline",
+      "candidate"
+    ],
+    "optimizer_steps": 0,
+    "max_invocations_per_arm": 1,
+    "full_val_allowed": false,
+    "test_data_used": false
   }
 }

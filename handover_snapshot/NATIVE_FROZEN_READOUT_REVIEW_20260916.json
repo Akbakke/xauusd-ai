@@ -1,0 +1,45 @@
+{
+  "decision": "NATIVE_READONLY_INTEGRATION_VERIFIED_PREPARATION_PENDING",
+  "source_parent_commit": "aaa70be03268c0c43065d16613cfaca8e3efa8f9",
+  "source_files": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "bdd41342c0d5ade6581300111733961ccc28b3c27d9eadea6bf6e59fe8055894",
+    "gx1/contracts/unified_exit_random_access_val_checkpoint_v1.py": "79ff624d25b1644c6edbc9c3442719c5cab3969d2755863bcb455f727dc14cca",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "f90307d527d5052496c7c054e2fd73f0cd4b2b3bb85c3fcbc744ab900340ae95",
+    "gx1/scripts/run_unified_exit_random_access_val_v1.py": "6ebb8c33ccb86216a211e95f58a10107407eb027fdc2b8477eb7c693f400724b",
+    "tests/test_unified_exit_bounded_val.py": "8b490cbd3463c6a7cb11176efc4f4dac5da5fadb195a8799c1e1082fb4a74119",
+    "tests/test_native_frozen_readout_val.py": "3f6e884d90d045d2e43925c5e3d38a4d0e579d1ab9d86be8f1bc06682ef2250e"
+  },
+  "frozen_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/FROZEN_PLAN.json",
+    "sha256": "d018995e779e3bf3e1c5f00c96bbb26e9cc6f66f2776e01567088e6e617822ec"
+  },
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "d84546364ecc806f5e10e88b0117184b5148236651d0271c353b32f3df55034b"
+  },
+  "tests": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_TESTS_20260916.xml",
+      "sha256": "5c900b897e6caa3c55c0035ef3e133fbc6cb8250be8ea9b1fbc75dfa3e565125",
+      "tests": 26
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_REGRESSION_TESTS_20260916.xml",
+      "sha256": "49f6045e526f78a7343db33f6adba7989b6b5034d4fbfe52a84923d27c7a85ee",
+      "tests": 181
+    }
+  ],
+  "tests_passed": 207,
+  "target_parity": "Exact FP32 rewards and elapsed-clock gammas against existing TRAIN reference owner; same Q_mu recurrence, observed120 steps or actual earlier boundary, retained valid bootstrap including censoring. Known weekend accepted; unknown gap rejected.",
+  "exit_measurement_scope": "state0 for every preselected entry, LONG and SHORT; actual trading economics still evaluate complete native trajectories within compute window. This is not error coverage of every possible holding state.",
+  "entry_target_teacher_model_sha256": "bc392bd03241a2f929fa70d500f9ae0c7362c08adf414b7868ed4c1982d90327",
+  "exit_boundary_teacher_model_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
+  "training_enabled": false,
+  "optimizer_steps": 0,
+  "later_val_executed": false,
+  "generalization_demonstrated": false,
+  "profitability_demonstrated": false,
+  "test_data_used": false,
+  "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
+  "observed_utc": "2026-09-16T21:02:29.603965+00:00"
+}

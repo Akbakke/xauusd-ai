@@ -83,10 +83,10 @@ def _require_native_full_train_recipe(
     }
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
-        or recipe["initialization"] != _INITIALIZATION
+        or recipe["initialization"] != ("frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
         or set(recipe["files"]) != _DATA_FILES
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
@@ -520,6 +520,10 @@ def run_guarded_native_candidate_invocation(
     smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
     if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
         raise RuntimeError("NATIVE_FULL_TRAIN_ACTUAL_SEED_MODEL_MISMATCH")
+    if "frozen_readout_evaluation" in recipe:
+        return _run_frozen_readout_validation(
+            components=components, recipe=recipe, device=device, output=output,
+            recipe_file_sha256=recipe_file_sha256, invocation_started=started)
     try:
         result = _run_bound_full_train_candidate(
             components=components, files=files, device=device,
@@ -563,6 +567,68 @@ def run_guarded_native_candidate_invocation(
         "resume_state": _native_resume_state(components=components, output=output),
         "bundle_written": False, "test_data_used": False,
     }
+
+
+def _run_frozen_readout_validation(*, components, recipe, device, output,
+                                   recipe_file_sha256, invocation_started):
+    """Use the existing native evaluator; preserve the original TRAIN cursor."""
+    import copy
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_readout_evaluation
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_frozen_readout_checkpoint_v1
+    scope = require_frozen_readout_evaluation(recipe)
+    if device.type != "cuda":
+        raise RuntimeError("NATIVE_FROZEN_READOUT_CUDA_REQUIRED")
+    directory = output.parent / "frozen_readout_val"
+    if directory.exists() or directory.is_symlink():
+        raise RuntimeError("NATIVE_FROZEN_READOUT_OUTPUT_EXISTS")
+    context = components["native_val_context"]
+    if time.monotonic() - invocation_started + context["max_wall_seconds"] + 60 >= 12000:
+        raise RuntimeError("NATIVE_FROZEN_READOUT_INSUFFICIENT_WINDOW")
+    frame = context["frame"].iloc[scope["cohort"]["entry_row_indices"]].copy()
+    planned = scope["plan"]["selection"]["rows"]
+    # Check source identities again at the actual full native dataframe boundary.
+    for actual, expected in zip(frame.to_dict("records"), planned):
+        if any(int(actual[k]) != int(expected[k]) for k in ("entry_row_index", "parent_entry_row_index")):
+            raise RuntimeError("NATIVE_FROZEN_READOUT_ENTRY_MAPPING_CHANGED")
+    model = components["model"]
+    target = copy.deepcopy(model)
+    boundary = copy.deepcopy(model)
+    binding = bind_frozen_readout_checkpoint_v1(plan_binding=scope["cohort"]["plan"],
+        arm=scope["arm"], model=model, target_model=target, boundary_model=boundary)
+    before = dict(scope["origin_resume_state"])
+    result = val.evaluate_bound_full_val_v1(
+        model=model, entry_dataset=components["val_ds"], frame=frame,
+        state_factory=context["state_factory"], checkpoint_binding=binding,
+        parent_coordinate_evidence=context["parent_coordinate_evidence"],
+        val_sequence_audit=context["val_sequence_audit"], device=device, selected_batch_size=16,
+        candidate_target_model=target, exit_boundary_model=boundary,
+        evaluation_cohort=scope["cohort"], rollout_progress_path=directory/"ROLLOUT_PROGRESS.json",
+        result_path=directory/"VAL_RESULT.json", max_forwards_this_invocation=context["max_model_forwards"],
+        progress_interval_forwards=context["progress_interval_forwards"],
+        compute_guard_max_model_forwards=context["max_model_forwards"],
+        compute_guard_max_materialized_state_views=context["max_state_views"],
+        compute_guard_max_wall_seconds=context["max_wall_seconds"],
+        exit_policy_batch_size=context["policy_batch_size"], cpu_pipeline_workers=context["cpu_pipeline_workers"])
+    after = require_frozen_readout_evaluation(recipe)["origin_resume_state"]
+    if after != before:
+        raise RuntimeError("NATIVE_FROZEN_READOUT_CHANGED_TRAINING_STATE")
+    report = {"schema_version":"gx1_native_frozen_readout_evaluation_v1",
+        "decision":"OBSERVATION_REQUIRES_REVIEW", "arm":scope["arm"],
+        "checkpoint_binding":binding, "evaluation_cohort":scope["cohort"],
+        "evaluation_decision":result["decision"], "origin_resume_state":before,
+        "optimizer_steps":0, "training_enabled":False, "test_data_used":False,
+        "native_invocation_elapsed_seconds":time.monotonic()-invocation_started}
+    for key,name in (("progress","ROLLOUT_PROGRESS.json"),("result","VAL_RESULT.json")):
+        path=directory/name
+        if path.is_file():report[key]={"path":str(path),"sha256":val.file_sha256(path)}
+    path=directory/"OBSERVATION.json"
+    trainer._candidate_training_session_atomic_write_json(path,report)
+    print(json.dumps({"event":"FROZEN_READOUT_VAL_COMPLETED", "arm":scope["arm"],
+                      "decision":result["decision"], "observation":str(path)}),flush=True)
+    # The evaluation never completes or advances the underlying training session.
+    return {"decision":"PAUSED_RESUMABLE", "resume_state":before,
+            "observation":{"path":str(path),"sha256":val.file_sha256(path)},
+            "recipe_file_sha256":recipe_file_sha256, "bundle_written":False,"test_data_used":False}
 
 
 def _run_native_calibration_validation(

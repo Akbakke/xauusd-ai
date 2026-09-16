@@ -81,3 +81,18 @@ identifiseres som ONLINE, aldri som epoch-EMA. En delvis VAL kan ikke åpne full
 Native kampanjekobling og paret Exit-måling mot de frosne Q_mu-målene gjenstår.
 Ingen juni-evaluering eller nye treningssteg er kjørt. Dette er tekniske bevis,
 ikke generalisering eller lønnsomhet. Se handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json.
+
+## Native evaluering bundet, ikke startet
+
+Den skrivebeskyttede native-koblingen er nå kontrollert. 207 målrettede tester
+består, inkludert eksakt reward-/klokkeparitet mot TRAIN, helgegap, sensur,
+bevart bootstrap, uendret treningscursor og sperre mot nye optimizersteg.
+Begge faktiske modeller bruker samme frosne Entry-lærer og samme opprinnelige
+Exit-boundary-lærer. Exit-feil måles på state0 per valgt Entry; dette er ikke
+feildekning av alle mulige holdetilstander. Native økonomi følger hele forløpet.
+
+NEXT_RUN_POLICY åpner bare én eksisterende native evalueringsinvokasjon per
+frosset variant, med256 forhåndsvalgte juni-Entries og null treningssteg.
+Riktig kildebinding, fysisk omstart og alle eksisterende vakter kreves fortsatt.
+Ingen senere VAL er kjørt ennå; full epoch/full5508 VAL og TEST forblir stengt.
+Se handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json.

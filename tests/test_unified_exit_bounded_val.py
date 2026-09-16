@@ -125,7 +125,7 @@ def _readout_plan(tmp_path):
     model = _make_model(dropout=0.1)
     base = {k:v.clone() for k,v in model.state_dict().items()}
     parent = tmp_path/'parent.pt'
-    torch.save({'schema_version':'gx1_candidate_training_session_v1', 'model_state':base}, parent)
+    torch.save({'schema_version':'gx1_candidate_training_session_v1', 'model_state':base, 'target_model_state':base}, parent)
     ep = tmp_path/'entry.pt'
     xp = tmp_path/'exit.pt'
     torch.save({'weight':torch.full_like(base['head_entry_action_q.weight'], 0.25),

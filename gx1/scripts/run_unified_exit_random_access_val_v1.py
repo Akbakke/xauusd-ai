@@ -379,6 +379,101 @@ def _candidate_anchor_targets(
     )
 
 
+def _bounded_reference_trace(*, state_factory, child_rows, device):
+    """The existing reference target on VAL anchors; no prediction or fitting.
+
+    The verified VAL index has no economic terminals and equal side lifetimes.
+    Available observations may end early; their boundary always retains bootstrap.
+    """
+    from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract
+    from gx1.contracts.unified_exit_dataset_adapter_v2 import require_economic_training_projection
+    from gx1.contracts.unified_exit_random_access_state_view_v1 import _closure_for_transition
+    from gx1.contracts.unified_exit_economics_objective_v2 import (
+        elapsed_wall_clock_gamma, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
+    )
+    if state_factory.economics_objective_contract.get("reward_accounting") != LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
+        raise RuntimeError("BOUNDED_REFERENCE_RELATIVE_ECONOMICS_REQUIRED")
+    policy = reference_policy_contract()
+    lengths = [min(policy["maximum_observed_backup_steps"],
+                   state_factory.entries[i]["available_state_count"] - 1) for i in child_rows]
+    if not lengths or min(lengths) < 1:
+        raise RuntimeError("BOUNDED_REFERENCE_SUCCESSOR_REQUIRED")
+    width = max(lengths)
+    rewards = np.zeros((len(child_rows), width, 2), dtype=np.float32)
+    gammas = np.ones((len(child_rows), width), dtype=np.float32)
+    available = np.zeros((len(child_rows), width), dtype=np.bool_)
+    censored = np.zeros((len(child_rows), 2), dtype=np.bool_)
+    projections = []
+    for row, (child, length) in enumerate(zip(child_rows, lengths)):
+        entry = state_factory.entries[child]
+        start = entry["entry_m1_start_row"]
+        gamma64 = []
+        for offset in range(length):
+            index = start + offset
+            closure = _closure_for_transition(
+                authority=state_factory.closure, current_row=index,
+                current_time_ns=int(state_factory.times.asi8[index]),
+                successor_time_ns=int(state_factory.times.asi8[index+1]))
+            gamma64.append(elapsed_wall_clock_gamma(
+                contract=state_factory.economics_objective_contract,
+                elapsed_wall_clock_seconds=closure["wall_clock_delta_seconds"]))
+        gamma64 = np.asarray(gamma64, dtype=np.float64)
+        for side in range(2):
+            projection = require_economic_training_projection(
+                state_factory.economic_step_provider.materialize_training_projection(child, side, 0, length+1, length),
+                entry_row_index=child, side_index=side, start_state_index=0,
+                stop_state_index=length+1, hold_stop_state_index=length,
+                economic_manifest=state_factory.economic_step_manifest)
+            if np.any(projection["exit_event_kind_index"] != 0) or np.any(projection["hold_event_kind_index"] != 1):
+                raise RuntimeError("BOUNDED_REFERENCE_VAL_INDEX_NONTERMINAL_REQUIRED")
+            liquidation = projection["exit_reward_bps"]
+            # Same arithmetic and FP64-before-FP32 conversion as the TRAIN state owner.
+            rewards[row, :length, side] = projection["hold_reward_bps"] + gamma64 * liquidation[1:] - liquidation[:-1]
+            projections.append(projection["projection_sha256"])
+        gammas[row, :length] = gamma64
+        available[row, :length] = True
+        censored[row, :] = length == entry["available_state_count"] - 1
+    tensor = lambda value: torch.from_numpy(value).to(device)
+    return lengths, policy, projections, {
+        "hold_reward_bps": tensor(rewards), "elapsed_wall_clock_gamma": tensor(gammas),
+        "transition_available_mask": tensor(available),
+        "successor_terminal_mask": torch.zeros_like(tensor(rewards), dtype=torch.bool),
+        "boundary_action_valid_mask": torch.ones((len(child_rows),2,2), dtype=torch.bool, device=device),
+        "boundary_right_censored_mask": tensor(censored),
+    }
+
+
+def _bounded_reference_exit_observations(*, model, boundary_model, entry_output,
+        boundary_entry_output, state_factory, child_rows, device):
+    from gx1.contracts.unified_exit_reference_policy_v1 import build_reference_policy_hold_targets
+    lengths, policy, projections, trace = _bounded_reference_trace(
+        state_factory=state_factory, child_rows=child_rows, device=device)
+    def forward(which, source, offsets):
+        inputs = collate_random_access_states_v1(
+            [state_factory.materialize_state(state_factory.entries[i], offset)
+             for i, offset in zip(child_rows, offsets)],
+            normalization_artifact=state_factory.normalization, device=device)
+        inputs.update(entry_decision_representation=source[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY],
+                      action_valid_mask=trace["boundary_action_valid_mask"], liquidation_relative_values=True)
+        return which.forward_exit_random_access_batch(**inputs)["exit_action_q_bps"]
+    predicted = forward(model, entry_output, [0]*len(child_rows))
+    boundary_q = forward(boundary_model, boundary_entry_output, lengths)
+    target = build_reference_policy_hold_targets(policy=policy, boundary_action_q_bps=boundary_q, **trace)
+    rows = []
+    for n, child in enumerate(child_rows):
+        rows.append({"entry_row_index":int(child), "state_index":0,
+            "prediction_hold_bps":predicted[n,:,0].cpu().tolist(),
+            "target_hold_bps":target["hold_target_bps"][n].cpu().tolist(),
+            "observed_component_bps":target["observed_reward_component_bps"][n].cpu().tolist(),
+            "bootstrap_component_bps":target["bootstrap_component_bps"][n].cpu().tolist(),
+            "boundary_bootstrap_weight":target["boundary_bootstrap_weight"][n].cpu().tolist(),
+            "observed_backup_steps":lengths[n],
+            "boundary_censored":trace["boundary_right_censored_mask"][n].cpu().tolist(),
+            "reference_policy_sha256":policy["policy_sha256"],
+            "economic_projection_sha256_by_side":projections[2*n:2*n+2]})
+    return rows
+
+
 def _entry_representations(
     *,
     model: torch.nn.Module,
@@ -389,6 +484,7 @@ def _entry_representations(
     candidate_target_model: torch.nn.Module | None = None,
     candidate_state_factory: RandomAccessValStateFactoryV1 | None = None,
     candidate_child_rows: Sequence[int] | None = None,
+    exit_boundary_model: torch.nn.Module | None = None,
     evaluation_cohort: Mapping[str, Any] | None = None,
 ) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
     expected_child_rows = list(range(5_508))
@@ -407,6 +503,10 @@ def _entry_representations(
         or list(candidate_child_rows) != expected_child_rows
     ):
         raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_NOT_FROZEN_OR_COHORT_INVALID")
+    if exit_boundary_model is not None and (evaluation_cohort is None or not candidate
+            or exit_boundary_model.training or any(p.requires_grad for p in exit_boundary_model.parameters())):
+        raise RuntimeError("BOUNDED_REFERENCE_FROZEN_TEACHER_REQUIRED")
+    bounded_exit_observations = []
     active_heads = _new_active_head_epoch_accumulator() if candidate else None
     anchor_bindings: list[str] = []
     bounded_entry_observations: list[dict[str, Any]] = []
@@ -459,6 +559,14 @@ def _entry_representations(
                     ctx_cat=ctx_cat, ctx_cont=ctx_cont,
                     **_multi_tf_kwargs_from_batch(batch, device),
                 )
+                if exit_boundary_model is not None:
+                    boundary_entry_output = _model_forward_fp32(
+                        exit_boundary_model, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+                        **_multi_tf_kwargs_from_batch(batch, device))
+                    bounded_exit_observations.extend(_bounded_reference_exit_observations(
+                        model=model, boundary_model=exit_boundary_model, entry_output=output,
+                        boundary_entry_output=boundary_entry_output, state_factory=candidate_state_factory,
+                        child_rows=candidate_child_rows[consumed:consumed+len(observed_rows)], device=device))
                 targets, target_valid, anchor_binding = _candidate_anchor_targets(
                     target_model=candidate_target_model, target_entry_output=target_output,
                     state_factory=candidate_state_factory,
@@ -512,6 +620,7 @@ def _entry_representations(
     diagnostics["surface"] = "entry_bounded_cohort_forward" if evaluation_cohort is not None else "entry_full_cohort_forward"
     if evaluation_cohort is not None:
         diagnostics["bounded_entry_observations"] = bounded_entry_observations
+        diagnostics["bounded_exit_anchor_observations"] = bounded_exit_observations
     if candidate:
         head_stats, _ = _active_head_epoch_diagnostics(active_heads)
         diagnostics["candidate_active_head_evidence"] = {
@@ -591,6 +700,7 @@ def evaluate_bound_full_val_v1(
     compute_guard_max_materialized_state_views: int,
     compute_guard_max_wall_seconds: float,
     candidate_target_model: torch.nn.Module | None = None,
+    exit_boundary_model: torch.nn.Module | None = None,
     exit_policy_batch_size: int | None = None,
     cpu_pipeline_workers: int = 4,
     resume_progress_origin: Mapping[str, Any] | None = None,
@@ -608,6 +718,8 @@ def evaluate_bound_full_val_v1(
     parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
     if candidate_target_model is not None and canonical_model_state_sha256(candidate_target_model.state_dict()) != checkpoint_binding["target_model_state_sha256"]:
         raise RuntimeError("CANDIDATE_NATIVE_VAL_TARGET_CHECKPOINT_MISMATCH")
+    if exit_boundary_model is not None and canonical_model_state_sha256(exit_boundary_model.state_dict()) != checkpoint_binding.get("exit_boundary_teacher_model_state_sha256"):
+        raise RuntimeError("BOUNDED_REFERENCE_TEACHER_CHECKPOINT_MISMATCH")
     representations, entry_routes, entry_q_values = _entry_representations(
         model=model,
         dataset=entry_dataset,
@@ -618,6 +730,7 @@ def evaluate_bound_full_val_v1(
         candidate_state_factory=state_factory if candidate_target_model is not None else None,
         candidate_child_rows=frame["entry_row_index"].astype("int64").tolist() if candidate_target_model is not None else None,
         evaluation_cohort=evaluation_cohort,
+        exit_boundary_model=exit_boundary_model,
     )
     entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
     entry_routes["sequence_source_reconstruction_audit"] = {
