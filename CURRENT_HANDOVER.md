@@ -1,3 +1,134 @@
+## Verifisert fartstilpasning og aktuell læring — 2026-09-16
+
+Native kjøring er fortsatt STOPPET. Den avsluttede fortsettelsesscope er fjernet
+fra NEXT_RUN_POLICY.json; training_enabled er fortsatt false. Checkpoint134/global8162 bevart; ingen ny
+VAL eller epoch er startet. Ufullstendig EMA-VAL hadde64,785,368 HOLD/nullEXIT.
+Nåværende ONLINE134 er sammenlignet med egen EMA på samme forhåndsdefinerte
+8 VAL-innganger/10 tilstander. ONLINE Entry8FLAT; EMA7FLAT/1SHORT. ONLINE Exit
+19HOLD/1EXIT, EMA20HOLD. Dette er et lite fast utvalg, ikke full selektivitet,
+retningskvalitet/profitt eller bevis for at EMA alene er årsaken til HOLD.
+Begge bruker egne kausale Entry-representasjoner og samme faktiske markedsinputs.
+
+Profilering av batch256/8CPU lokaliserte økonomiberegning som største av de tre
+målte CPU-trinnene. Minste rettelse er tre hashkall i eksisterende VAL-adapter:
+bruk den eksisterende JSON-hasheieren på JSON-økonomidata, uten rekursiv
+array-projeksjon. Ingen endring i modell, læring, handling, økonomi eller vakter.
+Paret måling med identiske cachetilstander:økonomitrinn1.32656x og målt samlet
+CPU-materialisering/batchbygging/økonomi1.13905x. Alle faktiske tilstands-/økonomi-
+hasher og verdier er eksakt lik frossen baseline; endret økonomikonvolutt avvises.
+25 målrettede rollout/provider-tester består. Full native/GPU/totalfart etter
+rettelsen er IKKE målt; ikke presenter CPU-tallet som full VAL-speedup.
+
+ONLINE/EMA-målingen tok155.94s. Første profileringsdel ble avvist på for lav
+måleskriptgrense før profilkjøring; bare operatoroppsettet ble rettet, og
+modellforwards ble ikke gjentatt. CPU-profileringsjobben og paret rettelsesmåling
+er begge terminale/exit0, henholdsvis165.37s og164.98s. Alle operatorer/logger
+og originale checkpoints/resultater er bevart under kjøringens OPERATOR_OBSERVATIONS.
+
+Neste læringsarbeid: bruk eksisterende TRAIN-target-/tapsbevis til å skille
+svakt Exit-signal fra manglende generalisering. Ikke anta at mer fart, EMA-bytte
+eller enda en epoch løser HOLD. Ingen bred regel-/modelljakt eller samme-kohort
+fit-repetisjoner. Bevar brukerens risikomål uten fast grense; TEST forseglet.
+Bevis:handover_snapshot/CHECKPOINT134_CPU_COMPARE_20260916/ og
+handover_snapshot/REAL_TRAIN_VAL_STOP_20260916.json. Ingen tung jobb aktiv.
+
+## STOPPET etter brukerbeskjed — 2026-09-16 08:13:52 UTC
+
+Native VAL er stoppet og Windows-task er Disabled/Enabled=false/LastResult1.
+Alle native-/guard-/capped-prosesser er avsluttet. Checkpoint134/global8162 og
+originale resultater er bevart. OPERATOR_STOP_20260916 inneholder konsistent
+TRAIN-pointer, continuation receipt og VAL-progress.32,392,684 tilstandsvisninger,
+64,785,368 aktive sidebeslutninger, alle HOLD/nullEXIT på begge sider. Dette er
+hypotetiske sidebaner, ikke unike/Entry-valgte handler eller samlet profitt.
+Guard ryddet resterende workers etter operator-SIGTERM; dette er operatorstopp,
+ikke en naturlig guardPASS eller maskinvarefeil. Tidligere ETA er ikke gjeldende.
+
+Ny prioritet fra brukeren: maksimer faktisk fart og stopp unyttig VAL. Målt GPU
+snitt4.35%/126W viser ledig kapasitet; flaskehals er ennå ikke lokalisert. Gjør én
+avgrenset CPU-profil av eksisterende VAL-eiere og sammenlign aktuell ONLINE134
+mot EMA på den allerede definerte kohorten. Bare målt blokkering gir kodeendring.
+Ingen ny epoch/fullVAL/replay eller spekulativ EMA-/modellendring. TEST forseglet.
+Kilde er fortsatt fdd70e5c; stoppet plan skal ikke startes automatisk.
+
+## Brukerbestilt ETA/GPU-måling — 2026-09-16 08:05 UTC
+
+FullVAL har31,642,401 av maksimalt84,049,614 tilstandsvisninger,37.65% dersom
+HOLD fortsetter. Maksgrensen følger boundVAL-root84044106 successors+5508 entries.
+Målt samlet beregningsfart1405.83views/s gir ca10.36 beregningstimer igjen;
+omstarter/innlasting kommer i tillegg. Foreløpig ETA21–23 norsk tid16.sep,
+avhengig av samme fart/HOLD; ingen garanti eller ferdig resultat.
+20x1s GPU-prøver:snitt4.35% GPU(min1/max8),126.05W under300W-grense,1395MHz.
+GPU er ikke mettet. Nøyaktig flaskehals er ikke lokalisert; ikke påstå maksimal
+maskinvareutnyttelse. Gjeldende256/8CPU/3h-profil og vakter er i bruk.
+Aktiv/frossen kjøring bevares, ingen spekulativ effekt-/batch-/kodeendring.
+Bevis:handover_snapshot/REAL_TRAIN_VAL_ETA_GPU_20260916.json. Neste vanlig
+kontroll rundt09:05UTC. HOLD-only-funnet består; ingen ny epoch automatisk.
+
+## Nytt målt læringsproblem i pågående VAL — 2026-09-16 06:35:27 UTC
+
+Brukerbestilt status viste52,052,574 registrerte aktive sidebeslutninger,
+alleHOLD og0EXIT, fordelt likt påLONG/SHORT. Telleren er bekreftet i evaluatorens
+accumulate_q_diagnostics:gjentatte beslutningspunkter på alle evaluerte mulige
+prisbaner, ikke52m unike/valgte handler.26,026,287 tilstandsvisninger,18,378.32
+beregningssekunder. FullVAL er IN_PROGRESS; Entry-selektivitet og samlet profitt
+er ennå ikke vurdert. Dette er et konkret faresignal om gjeldende EMA-Exit.
+Det er ikke bevis for at ONLINE har samme feil, eller for at EMA alene er årsaken.
+Ingen ny epoch er tillatt. Aktiv kjøring/kilde bevares; ikke kode spekulativt.
+Bevis:handover_snapshot/REAL_TRAIN_VAL_HOLD_OBSERVATION_20260916.json med binding.
+Native751/guard696/capped645 var levende06:33:39UTC. Neste ordinære kontroll
+rundt07:48UTC. Budsjettstopp etter fullVAL er fortsatt bindende.
+
+## Full juni-VAL kjører — 2026-09-16 02:04:20 UTC
+
+Native756/guard701/capped650 lever på boot440. Checkpoint134/global8162 er fortsatt
+VAL-grunnlaget. ROLLOUT_PROGRESS har4743663 tilstandsvisninger/19008 forwards og
+3364.97 beregningssekunder; IN_PROGRESS, ingen samlet resultatpåstand.
+Innebygd nåværende batch256-paritet:identiske handlinger, maxQ-avvik1.49e-8Bps;
+batch-inferens3.127x mot16. Cache og8CPU gir identiske handlinger/økonomisteg/hash.
+Dette er innebygde profilkontroller, ikke samlet relativ speedup eller profitt.
+Guard57C/66C/8814MiB. Neste ordinære kontroll rundt03:04UTC.
+
+## TRAIN ferdig; full VAL starter — 2026-09-16 01:02:59 UTC
+
+Alle2385 ekte resterende TRAIN-steg er lagret. Native checkpoint134 er
+phase=validation/epoch_index1/global8162/offset0. Invokasjon1 endte RESUMABLE,
+guardPASS, trainer0/observer0; pause=native_full_val_phase_boundary.
+Guardmaks62C/70C/194.15W/8006MiB. Kampanjen gikk automatisk videre etter ny
+fysisk boot00:51:31UTC. Invokasjon2 startet00:54:54UTC; native756/guard701/capped650
+lever01:02:59UTC under innlasting for full juni utviklings-VAL. Ingen ny TRAIN-epoch.
+Neste ordinære kontroll rundt02:03UTC. Ingen endring av frossen kilde.
+
+## Siste driftskontroll — 2026-09-16 00:36:55 UTC
+
+Native791/guard736/capped685 lever. Checkpoint127/global7825/epoch1offset3744
+er lagret:2048 av2385 nye TRAIN-steg ferdige,337 gjenstår. Mellom to kontroller
+ble1984 steg lagret på3671.38s, ca1.85s/steg. Dette er observert TRAIN-fart,
+ikke full kampanjegjennomstrømning. Guard58C/68C/8006MiB. Neste kontroll rundt
+01:01UTC ved forventet overgang til full VAL, deretter omtrent hver time.
+
+# Aktiv native TRAIN→VAL — 2026-09-16
+
+Kilde fdd70e5cf872e32f4f4102f659a47d55178a7f19 er committet, pushet og frosset.
+CPU-overføringen av originalt ikke-replay95 består: alle15 tilstandskomponenter
+bevart bortsett fra ny kjøreidentitet; original sampler gir2385 ekte resterende
+TRAIN-batcher. Seks numeriske funksjoner er AST-identiske med opprinnelig FQI-kilde.
+269 målrettede tester og vanlig commit-hook består. Hjelpeskriptets første
+forsøk stoppet før state-load på ekstra metadatafelt; bare dette feltet ble rettet.
+Bevis og begge operatørforsøk er bevart. CPU-kontrollen tok131.492124s.
+
+Eksisterende Windows-task ble bundet til ny plan og startet én gang23:18:32UTC
+etter fysisk boot439/23:17:59UTC15.sep. NativePID791/guard736/capped685 er observert
+levende23:35:44UTC. Faktisk native95-overgang er bekreftet med state_preserved=true,
+optimizer_procedure_changed=false og EMA25685. Checkpoint96/global5841/offset1760
+er lagret:64 nye optimizersteg. Normal guard:core59C/memory66C/8006MiB.
+Neste ordinære sjekk tidligst00:35:44UTC16.sep ved stabil drift.
+Kjøreplanen tillater fullføring av eksisterende ettårs-epoch og hele juni-VAL,
+med completed_val_epochs2 som stopp før neste epoch eller automatisk omstart.
+Den begrenser ikke modellens holdetid eller tapsstørrelse. TRAIN16/VAL256/8CPU/3h.
+Original95/99/115 bevares; repetisjonsresultatene brukes ikke som årsdekning.
+Se RUNNING_NATIVE_CALIBRATION.json for plan-, recipe- og tilstandsbindinger.
+Ikke endre frossen kilde eller start på nytt ved observasjonstimeout. TEST forseglet.
+
 # Gjeldende arbeid — vanlig TRAIN til neste VAL, 2026-09-16
 
 Lærbarhetskontrollen er avsluttet og bevart. Neste kjøring forberedes fra

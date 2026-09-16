@@ -1,0 +1,95 @@
+{
+  "all_economics_and_state_hashes_match_frozen_baseline": true,
+  "changed_economic_envelope_rejected": true,
+  "changed_source_sha256": "2aa7f4def98736171de14844cba8a565deed9f1741ba9e3945951a1da409c34a",
+  "full_native_speedup_verified": false,
+  "gpu_used": false,
+  "measurements": [
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "6e967d4348b9c6b00eaa02d197ea6bcc191655143c0f7e8fbb907c702db45efe",
+      "envelope_digest": "d44dc032731c3a0d88257f9853e15f8619aaa923eb3d4b6766dabdf364fee260",
+      "materialize_and_collate_seconds": 12.120075102999635,
+      "optimized_economics_seconds": 0.11537317600004826,
+      "original_economics_seconds": 0.1464604140001029,
+      "state_index": 6500,
+      "warmup": true
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "d3bec675269d5295f46bd18f0735404f94f0745bce1fa31894cc25499eb0606a",
+      "envelope_digest": "87857fa8e388e07b859f48f3f6ec0313fa799998da0a010b1be4ceb3176e7f85",
+      "materialize_and_collate_seconds": 0.09848838400012028,
+      "optimized_economics_seconds": 0.11650086600002396,
+      "original_economics_seconds": 0.13387602700004209,
+      "state_index": 6501,
+      "warmup": true
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "f12fcff8bfc54ae638bd6e513a75a0d81cf815d656ab1873bdae36c62880cac7",
+      "envelope_digest": "3cf61ebed17678291bd4500789fd738ecbcef8cc0de3de3696e81691185f255f",
+      "materialize_and_collate_seconds": 0.0887862520003182,
+      "optimized_economics_seconds": 0.11267496900018159,
+      "original_economics_seconds": 0.1394137829997817,
+      "state_index": 6502,
+      "warmup": true
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "16ec0f7b3eb8492e83906795c1df6013b7e24a9161ca70b451f77a7c4936fa6b",
+      "envelope_digest": "823abe72092acd39339996a036a461c08edac65dd92cdbe6d32f01fbd0977a0f",
+      "materialize_and_collate_seconds": 0.07767259399997783,
+      "optimized_economics_seconds": 0.11628735700014659,
+      "original_economics_seconds": 0.13563614900022003,
+      "state_index": 6503,
+      "warmup": false
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "fcfca1e24097d54f9cb0337d2d67aa493a587027fda1ec77e8f58cb175123cf9",
+      "envelope_digest": "fad50aa490b27302b6199bad31721c789b05f7ecb4a7fcf89c3a638a0f1c3503",
+      "materialize_and_collate_seconds": 0.08107282100036173,
+      "optimized_economics_seconds": 0.11325447599983818,
+      "original_economics_seconds": 0.13987520000000586,
+      "state_index": 6504,
+      "warmup": false
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "5c4054e61fcf6bb47c6891a2a55e4fd8b09dea8da6da23337d189de1f8f76ff8",
+      "envelope_digest": "e9dbd42021780c81ce7fe2192711ce2fe87166141adf8ddf28b0fe394287ef2d",
+      "materialize_and_collate_seconds": 0.07575199700022495,
+      "optimized_economics_seconds": 0.03808556000012686,
+      "original_economics_seconds": 0.059949263999897084,
+      "state_index": 6505,
+      "warmup": false
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "9ca6091af1bfd2ab0a9f9500340567481efdae36970a505ace4c470b61207d32",
+      "envelope_digest": "7021ea976d9b2dcadf887a9e4f0ddac6893d64e1c73ccd895f13aad9661538c9",
+      "materialize_and_collate_seconds": 0.14888415199993688,
+      "optimized_economics_seconds": 0.03700537900022027,
+      "original_economics_seconds": 0.060590592000153265,
+      "state_index": 6506,
+      "warmup": false
+    },
+    {
+      "economic_outputs_and_hashes_exact": true,
+      "economics_digest": "fe51f7a798957b37a814fa034bb0dbfa43867e79f4fbedcab759f66fc1dfc69e",
+      "envelope_digest": "3f451f985ceafa11f750d4c9cfb52e2395ed184cabbbde21e0970aa440c80471",
+      "materialize_and_collate_seconds": 0.08058653699981733,
+      "optimized_economics_seconds": 0.03944694099982371,
+      "original_economics_seconds": 0.06039010199992845,
+      "state_index": 6507,
+      "warmup": false
+    }
+  ],
+  "operator_script_sha256": "dc60681ad05a58affdb91bab520c23412fef8adf680deac04656ef50fc9ee205",
+  "scope": "paired production CPU stages; identical caches restored; no cProfile timing overhead; excludes GPU/routes/progress persistence",
+  "source_baseline_commit": "fdd70e5cf872e32f4f4102f659a47d55178a7f19",
+  "stable_economics_speedup": 1.3265568696867585,
+  "stable_measured_cpu_stages_speedup": 1.1390531501394336,
+  "test_data_used": false
+}

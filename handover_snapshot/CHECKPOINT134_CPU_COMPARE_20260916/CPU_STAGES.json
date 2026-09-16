@@ -1,0 +1,89 @@
+{
+  "gpu_used": false,
+  "measurements": [
+    {
+      "collate_seconds": 0.01074517899996863,
+      "economics_digest": "6e967d4348b9c6b00eaa02d197ea6bcc191655143c0f7e8fbb907c702db45efe",
+      "economics_seconds": 0.14614733000007618,
+      "envelope_digest": "d44dc032731c3a0d88257f9853e15f8619aaa923eb3d4b6766dabdf364fee260",
+      "materialize_seconds": 12.03873525300014,
+      "state_index": 6500,
+      "total_cpu_stage_seconds": 12.195627762000186,
+      "warmup": true
+    },
+    {
+      "collate_seconds": 0.014538434000314737,
+      "economics_digest": "d3bec675269d5295f46bd18f0735404f94f0745bce1fa31894cc25499eb0606a",
+      "economics_seconds": 0.1390047320001031,
+      "envelope_digest": "87857fa8e388e07b859f48f3f6ec0313fa799998da0a010b1be4ceb3176e7f85",
+      "materialize_seconds": 0.07641226599980655,
+      "state_index": 6501,
+      "total_cpu_stage_seconds": 0.2299554320002244,
+      "warmup": true
+    },
+    {
+      "collate_seconds": 0.010584502999790857,
+      "economics_digest": "f12fcff8bfc54ae638bd6e513a75a0d81cf815d656ab1873bdae36c62880cac7",
+      "economics_seconds": 0.1404479440002433,
+      "envelope_digest": "3cf61ebed17678291bd4500789fd738ecbcef8cc0de3de3696e81691185f255f",
+      "materialize_seconds": 0.07037628200032486,
+      "state_index": 6502,
+      "total_cpu_stage_seconds": 0.22140872900035902,
+      "warmup": true
+    },
+    {
+      "collate_seconds": 0.011506285999985266,
+      "economics_digest": "16ec0f7b3eb8492e83906795c1df6013b7e24a9161ca70b451f77a7c4936fa6b",
+      "economics_seconds": 0.28820885400000407,
+      "envelope_digest": "823abe72092acd39339996a036a461c08edac65dd92cdbe6d32f01fbd0977a0f",
+      "materialize_seconds": 0.06691833800005043,
+      "state_index": 6503,
+      "total_cpu_stage_seconds": 0.36663347800003976,
+      "warmup": false
+    },
+    {
+      "collate_seconds": 0.011174540999945748,
+      "economics_digest": "fcfca1e24097d54f9cb0337d2d67aa493a587027fda1ec77e8f58cb175123cf9",
+      "economics_seconds": 0.2861846490000062,
+      "envelope_digest": "fad50aa490b27302b6199bad31721c789b05f7ecb4a7fcf89c3a638a0f1c3503",
+      "materialize_seconds": 0.07005251300006421,
+      "state_index": 6504,
+      "total_cpu_stage_seconds": 0.36741170300001613,
+      "warmup": false
+    },
+    {
+      "collate_seconds": 0.011482878000151686,
+      "economics_digest": "5c4054e61fcf6bb47c6891a2a55e4fd8b09dea8da6da23337d189de1f8f76ff8",
+      "economics_seconds": 0.11719826499984265,
+      "envelope_digest": "e9dbd42021780c81ce7fe2192711ce2fe87166141adf8ddf28b0fe394287ef2d",
+      "materialize_seconds": 0.0708245910000187,
+      "state_index": 6505,
+      "total_cpu_stage_seconds": 0.19950573400001304,
+      "warmup": false
+    },
+    {
+      "collate_seconds": 0.010929654999927152,
+      "economics_digest": "9ca6091af1bfd2ab0a9f9500340567481efdae36970a505ace4c470b61207d32",
+      "economics_seconds": 0.11543439099978059,
+      "envelope_digest": "7021ea976d9b2dcadf887a9e4f0ddac6893d64e1c73ccd895f13aad9661538c9",
+      "materialize_seconds": 0.07432022300008612,
+      "state_index": 6506,
+      "total_cpu_stage_seconds": 0.20068426899979386,
+      "warmup": false
+    },
+    {
+      "collate_seconds": 0.010990755999955582,
+      "economics_digest": "fe51f7a798957b37a814fa034bb0dbfa43867e79f4fbedcab759f66fc1dfc69e",
+      "economics_seconds": 0.1173600769998302,
+      "envelope_digest": "3f451f985ceafa11f750d4c9cfb52e2395ed184cabbbde21e0970aa440c80471",
+      "materialize_seconds": 0.06973647399991023,
+      "state_index": 6507,
+      "total_cpu_stage_seconds": 0.198087306999696,
+      "warmup": false
+    }
+  ],
+  "no_policy_actions_evaluated_in_cpu_profile": true,
+  "profile_scope": "production cached-market CPU stages, batch256 workers8; excludes GPU, route accumulation and progress persistence",
+  "source_commit": "fdd70e5cf872e32f4f4102f659a47d55178a7f19",
+  "test_data_used": false
+}

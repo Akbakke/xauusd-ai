@@ -1,0 +1,43 @@
+         4565339 function calls (4126134 primitive calls) in 1.520 seconds
+
+   Ordered by: cumulative time
+   List reduced from 184 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.000    0.000    0.923    0.185 unified_exit_random_access_val_rollout_v1.py:708(compose_selected_actions)
+        5    0.005    0.001    0.796    0.159 unified_exit_random_access_val_rollout_v1.py:719(<listcomp>)
+     2560    0.016    0.000    0.791    0.000 unified_exit_random_access_val_rollout_v1.py:723(_compose_selected_envelope)
+     5125    0.011    0.000    0.428    0.000 unified_exit_random_access_val_rollout_v1.py:84(_canonical_sha256)
+        5    0.001    0.000    0.350    0.070 unified_exit_random_access_val_rollout_v1.py:662(materialize_cached_active_batch)
+     1036    0.004    0.000    0.317    0.000 unified_exit_economics_objective_v2.py:736(compose_economic_step)
+     1320    0.002    0.000    0.291    0.000 _base.py:430(result)
+240810/5125    0.106    0.000    0.290    0.000 unified_exit_random_access_val_rollout_v1.py:85(project)
+      217    0.001    0.000    0.288    0.001 threading.py:288(wait)
+      474    0.287    0.001    0.287    0.001 {method 'acquire' of '_thread.lock' objects}
+53765/5125    0.055    0.000    0.282    0.000 unified_exit_random_access_val_rollout_v1.py:95(<dictcomp>)
+     9767    0.014    0.000    0.223    0.000 __init__.py:183(dumps)
+    25352    0.014    0.000    0.210    0.000 unified_exit_economics_objective_v2.py:102(_require_sha256)
+  1127182    0.109    0.000    0.209    0.000 {built-in method builtins.isinstance}
+     1036    0.012    0.000    0.207    0.000 unified_exit_economics_objective_v2.py:597(require_economic_step_inputs)
+     9767    0.013    0.000    0.203    0.000 encoder.py:182(encode)
+    28709    0.087    0.000    0.200    0.000 {built-in method builtins.any}
+       10    0.001    0.000    0.191    0.019 unified_exit_random_access_state_view_v1.py:44(_structured_sha256)
+     9767    0.186    0.000    0.186    0.000 encoder.py:204(iterencode)
+     2072    0.019    0.000    0.176    0.000 unified_exit_economics_objective_v2.py:511(_require_runtime_contract)
+        5    0.001    0.000    0.153    0.031 unified_exit_random_access_val_factory_v1.py:650(materialize_cached_cpu_batch)
+        5    0.000    0.000    0.149    0.030 unified_exit_random_access_val_factory_v1.py:683(<listcomp>)
+     1285    0.001    0.000    0.146    0.000 _base.py:614(result_iterator)
+129290/10    0.052    0.000    0.145    0.015 unified_exit_random_access_state_view_v1.py:45(project)
+  2570/10    0.002    0.000    0.145    0.015 unified_exit_random_access_state_view_v1.py:57(<listcomp>)
+     1280    0.001    0.000    0.145    0.000 _base.py:316(_result_or_cancel)
+25600/2560    0.027    0.000    0.135    0.000 unified_exit_random_access_state_view_v1.py:55(<dictcomp>)
+     2565    0.001    0.000    0.129    0.000 unified_exit_random_access_val_rollout_v1.py:97(<listcomp>)
+        5    0.011    0.002    0.126    0.025 unified_exit_economic_step_provider_v1.py:483(materialize_selected_actions)
+    10848    0.014    0.000    0.117    0.000 unified_exit_economics_objective_v2.py:576(_complete_component)
+  1647880    0.107    0.000    0.107    0.000 unified_exit_economics_objective_v2.py:106(<genexpr>)
+   393021    0.049    0.000    0.100    0.000 abc.py:117(__instancecheck__)
+     1036    0.002    0.000    0.091    0.000 unified_exit_economics_objective_v2.py:555(elapsed_wall_clock_gamma)
+     2560    0.004    0.000    0.069    0.000 unified_exit_no_cap_economic_authority_v1.py:43(canonical_sha256)
+        5    0.001    0.000    0.056    0.011 unified_exit_random_access_training_v1.py:90(_collate_states)
+
+

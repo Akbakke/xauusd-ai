@@ -29,6 +29,9 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     m1_clock_sha256,
     require_market_closure_authority,
 )
+from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
+    canonical_sha256 as _economic_json_sha256,
+)
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     require_lifetime_summary_normalization,
 )
@@ -715,7 +718,7 @@ class RandomAccessValRolloutAdapterV1:
         cache = getattr(self, "_val_composed_hold_cache", None)
         if cache is None:
             cache = self._val_composed_hold_cache = {}
-        objective_sha = _canonical_sha256(self.objective)
+        objective_sha = _economic_json_sha256(self.objective)
         return [self._compose_selected_envelope(
             envelope, **request, _hold_cache=cache, _objective_sha=objective_sha,
         ) for request, envelope in zip(requests, envelopes)]
@@ -727,10 +730,12 @@ class RandomAccessValRolloutAdapterV1:
     ) -> tuple[dict[str, Any], str]:
         if not isinstance(envelope, Mapping) or "slice_sha256" not in envelope:
             raise RuntimeError("UNIFIED_EXIT_VAL_ECONOMIC_SLICE_INVALID")
+        # Economic envelopes are JSON-only and already sealed by the provider
+        # with this owner; array projection belongs only to market-state hashes.
         raw = dict(envelope)
         claimed = raw.pop("slice_sha256")
         if (
-            claimed != _canonical_sha256(raw)
+            claimed != _economic_json_sha256(raw)
             or raw.get("entry_row_index") != entry_row_index
             or raw.get("side_index") != side_index
             or raw.get("action") != action
@@ -749,7 +754,7 @@ class RandomAccessValRolloutAdapterV1:
             # Cache interval costs once. Entry-specific marks must not multiply
             # cache size by the number of overlapping counterfactual entries.
             cache_step = {**cache_step, "successor_liquidation_value": {**mark, "value_bps": 0.0}}
-        cache_key = (_objective_sha, _canonical_sha256(cache_step)) if _hold_cache is not None and action == "hold" else None
+        cache_key = (_objective_sha, _economic_json_sha256(cache_step)) if _hold_cache is not None and action == "hold" else None
         if cache_key is not None and cache_key in _hold_cache:
             composed = _hold_cache[cache_key]
             if isinstance(mark, Mapping):

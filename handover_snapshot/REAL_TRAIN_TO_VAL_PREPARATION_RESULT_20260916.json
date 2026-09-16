@@ -1,0 +1,50 @@
+{
+  "decision": "PASS_BOUNDED_REAL_TRAIN_TO_VAL_PREPARED",
+  "elapsed_seconds": 131.49212356099997,
+  "frozen_teacher_changed": false,
+  "learning_improvement_proven": false,
+  "next_epoch_boundary": 8162,
+  "only_current_epoch_completion_allowed": true,
+  "origin_checkpoint_index": 95,
+  "origin_optimizer_steps": 5777,
+  "peak_rss_kib": 1676628,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "a702b88f85df7ba9d9f49d30ef374912f4e830c21a1f89dcf4988d135e4b54ed"
+  },
+  "prepared_boot_id": 438,
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/NATIVE_RECIPE.json",
+    "sha256": "a991dc2767fa1941efea7faeab52bb70025a8f0d8fad45b95cf734ae556b8fa4"
+  },
+  "remaining_optimizer_steps": 2385,
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C_BOOT438",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_bindings_sha256": "67a78b826d6747a2e4ea56dfaa026abdb4be7b08e3c33af384c111b926169ed9",
+  "source_commit": "fdd70e5cf872e32f4f4102f659a47d55178a7f19",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "state_replay": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/ACTUAL_CHECKPOINT95_REAL_TRAIN_TRANSITION.json",
+    "sha256": "e438b8669ea01a000591f2816053c0784c483c93cfc959a3dd78aba1abcc0a19"
+  },
+  "stop_after_completed_val_epochs": 2,
+  "test_data_used": false,
+  "train_rows": 65295,
+  "training_started": false,
+  "unchanged_numeric_functions": [
+    "train_epoch",
+    "_episode_native_exit_train_v2",
+    "_optimizer_step_with_finite_gradients",
+    "dip_forecast_task_losses",
+    "_joint_task_loss",
+    "_model_forward_fp32"
+  ],
+  "val_profile": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 84049614,
+    "max_state_views": 84049614,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  }
+}

@@ -27,3 +27,12 @@ Gamle kildekopier som beholdes utenfor denne arbeidskopien er kun bundet histori
 eller nødvendige kjøremiljøer. Ikke bruk dem som en alternativ kjørevei.
 Brukeren har uttrykkelig bestilt opprydding; slett bare dokumentert overflødig
 innhold og bevar modell-/dataavhengigheter, fullførte resultater og checkpoints.
+
+## Nyeste brukerprioritet — 2026-09-16
+
+Native134/global8162 er stoppet ved brukerens beskjed08:13:52UTC. Ufullstendig
+VAL viste bareHOLD; GPU var lite utnyttet. Ingen automatisk videre VAL/epoch.
+Mål og rett konkret fartshinder, og vurder aktuell ONLINE mot EMA før videre
+læring.25 målrettede rollout/provider-tester består for en minimal JSON-hash-
+endring i VAL-økonomi. Paret faktisk CPU-fart/hash-paritet består:økonomitrinn1.32656x; målteCPU-trinn1.13905x. Full native totalfart etter endringen er ikke målt. Se nyeste
+CURRENT_HANDOVER.md; tidligere startinstrukser ovenfor er historikk.

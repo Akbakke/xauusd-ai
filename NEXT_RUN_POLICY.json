@@ -75,14 +75,8 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Permit one bounded native continuation from immutable non-replay checkpoint95/global5777/epoch1offset1696. Use the original one-year TRAIN order for the remaining2385 optimizer steps to global8162, then complete June development VAL. Stop at completed_val_epochs2 before any next epoch or automatic reboot. Diagnostic99/115 and their exhausted plans are never production origins. Preserve model, all200 features/eight families/timeframes, targets at transition, optimizer, EMA, scheduler, RNG, costs and existing guards. No new loss, model, threshold or holding limit. Reuse unchanged historical technical evidence without rewriting its source or origin bindings; verify the actual95 state transfer. Only native campaign with TRAIN16/VAL256/8CPU/3h windows. Whole campaign continuation remains disabled; review actual policy economics including open positions before further training. TEST remains sealed.",
+  "rule": "Operator-stopped 2026-09-16 after partial EMA VAL showed only HOLD. The checkpoint95 continuation authorization is exhausted and removed. Preserve native checkpoint134/global8162, original checkpoints and incomplete VAL evidence. No further native training or full VAL until Exit learning/generalization is reviewed and a fresh exact continuation binding is prepared. One measured CPU-only optimization changes JSON hashing in the existing VAL economics adapter; economics values, state hashes, model, objective, all features/families/timeframes and guards are unchanged. Technical evidence retains original source bindings. New full native/GPU throughput after the optimization is unmeasured. Use only canonical GX1_CURRENT and native campaign with TRAIN16/VAL256/8CPU/3h if resumed. TEST remains sealed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
-  "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "native_learning_calibration": {
-    "schema_version": "gx1_native_training_continuation_scope_v2",
-    "stop_after_completed_val_epochs": 2,
-    "full_epoch_training_allowed": true,
-    "test_data_used": false
-  }
+  "gradient_clipping_policy": "separate_model_and_task_weights_v1"
 }

@@ -1,0 +1,35 @@
+{
+  "observed_utc": "2026-09-16T06:35:27.294051+00:00",
+  "source_commit": "fdd70e5cf872e32f4f4102f659a47d55178a7f19",
+  "progress_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/.gx1-candidate-training-session.CANDIDATE_BUNDLE/native_val/epoch_0002/ROLLOUT_PROGRESS.json",
+  "observed_progress_file_sha256": "89abb799ce5b612bd008c40eeaccce51599cbf8a7d25503422901eac53be3702",
+  "checkpoint_binding_sha256": "67538b3e955fbf4725d1d2f590a40d7bf358739c1847ada783a0b7eefb0f2acb",
+  "decision": "IN_PROGRESS",
+  "elapsed_compute_seconds": 18378.32461509398,
+  "materialized_state_view_count": 26026287,
+  "model_forward_count": 104217,
+  "q_diagnostics": {
+    "active_side_decision_count": 52052574,
+    "exit_now_action_count": 0,
+    "exit_now_action_count_by_side": [
+      0,
+      0
+    ],
+    "hold_action_count": 52052574,
+    "hold_action_count_by_side": [
+      26026287,
+      26026287
+    ],
+    "margin_sum": -8886836.122444978,
+    "margin_sumsq": 2075464.5944287153,
+    "q_cell_count": 104105148,
+    "q_max": 0.7021823525428772,
+    "q_min": 0,
+    "q_sum": 8886836.122444978,
+    "q_sumsq": 2075464.5944287153
+  },
+  "semantics": "Active-side repeated HOLD/EXIT decision points across all evaluated LONG and SHORT opportunities, not unique or selected trades. Full VAL remains incomplete.",
+  "entry_selectivity_assessed": false,
+  "net_profit_assessed": false,
+  "test_data_used": false
+}

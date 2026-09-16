@@ -1,0 +1,382 @@
+{
+  "causal_entry_input_sha256": "c44edaee50a961b0d9a45d72ac375468e26bdfbc1f8b14b5cdc1fa442392d5c8",
+  "causal_exit_inputs_without_entry_representation_sha256": "a1cf79fe35ddbeae63da56d9e31132d6e9f5708bdfb69be83f83b48c29c009be",
+  "checkpoint_file_sha256": "ddd8cfbf5122122baaa854b6c46c5f2298c90e549766226b260cf1c8455c7419",
+  "complete_exit_input_sha256": "7c41bdf3d92bbffafa126f7928f46b2e8fc8876ef2888c11e54828d2a2c18d1b",
+  "entry": [
+    {
+      "action": "FLAT",
+      "entry_row_index": 0,
+      "forecast_bps": [
+        1.5366047620773315,
+        5.111887454986572,
+        12.033626556396484,
+        22.222171783447266
+      ],
+      "parent_entry_row_index": 1,
+      "q_bps": [
+        -5.082910060882568,
+        -6.1874237060546875,
+        -0.006635602563619614
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 1,
+      "forecast_bps": [
+        1.5757580995559692,
+        5.11887788772583,
+        12.065338134765625,
+        22.313430786132812
+      ],
+      "parent_entry_row_index": 2,
+      "q_bps": [
+        -5.276239395141602,
+        -6.255931854248047,
+        -0.005329154431819916
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 2,
+      "forecast_bps": [
+        1.5173078775405884,
+        5.027842044830322,
+        12.132425308227539,
+        22.23990249633789
+      ],
+      "parent_entry_row_index": 3,
+      "q_bps": [
+        -5.1104817390441895,
+        -6.0953521728515625,
+        -0.006782080978155136
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 1024,
+      "forecast_bps": [
+        1.0779316425323486,
+        4.164393901824951,
+        10.285643577575684,
+        18.106016159057617
+      ],
+      "parent_entry_row_index": 1025,
+      "q_bps": [
+        -5.007774353027344,
+        -6.236154079437256,
+        0.0021430104970932007
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 2048,
+      "forecast_bps": [
+        2.5888864994049072,
+        5.206543922424316,
+        12.304070472717285,
+        17.24118423461914
+      ],
+      "parent_entry_row_index": 2049,
+      "q_bps": [
+        -5.925244331359863,
+        -6.5107879638671875,
+        -0.011963870376348495
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 3072,
+      "forecast_bps": [
+        0.41843271255493164,
+        1.6440776586532593,
+        3.3560776710510254,
+        5.265820503234863
+      ],
+      "parent_entry_row_index": 3073,
+      "q_bps": [
+        -5.396936416625977,
+        -6.218242168426514,
+        -0.006790522485971451
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 4096,
+      "forecast_bps": [
+        0.3724561333656311,
+        1.6579092741012573,
+        4.452432632446289,
+        5.7823944091796875
+      ],
+      "parent_entry_row_index": 4097,
+      "q_bps": [
+        -5.029947757720947,
+        -6.1257452964782715,
+        -0.004779186099767685
+      ]
+    },
+    {
+      "action": "FLAT",
+      "entry_row_index": 5507,
+      "forecast_bps": [
+        0.9054083824157715,
+        3.781118154525757,
+        9.700864791870117,
+        18.130285263061523
+      ],
+      "parent_entry_row_index": 5508,
+      "q_bps": [
+        -4.302429676055908,
+        -5.81762170791626,
+        -0.007664807140827179
+      ]
+    }
+  ],
+  "entry_representation_sha256": "10512fa565e15f016e372e8f55c179542cdf1313c2547232926452e7d0937f84",
+  "exit": [
+    {
+      "entry_row_index": 0,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.038273222744464874,
+          "q_bps": [
+            0.038273222744464874,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.06988707184791565,
+          "q_bps": [
+            0.06988707184791565,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 1,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.020749008283019066,
+          "q_bps": [
+            0.020749008283019066,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.08883614093065262,
+          "q_bps": [
+            0.08883614093065262,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 2,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.025984566658735275,
+          "q_bps": [
+            0.025984566658735275,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.08778596669435501,
+          "q_bps": [
+            0.08778596669435501,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 1024,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.020915349945425987,
+          "q_bps": [
+            0.020915349945425987,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.09642238169908524,
+          "q_bps": [
+            0.09642238169908524,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 2048,
+      "sides": [
+        {
+          "action": "EXIT_NOW",
+          "hold_minus_exit_bps": -0.000698420568369329,
+          "q_bps": [
+            -0.000698420568369329,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.13534247875213623,
+          "q_bps": [
+            0.13534247875213623,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 3072,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.024266555905342102,
+          "q_bps": [
+            0.024266555905342102,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.07663385570049286,
+          "q_bps": [
+            0.07663385570049286,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 4096,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.024059457704424858,
+          "q_bps": [
+            0.024059457704424858,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.08210619539022446,
+          "q_bps": [
+            0.08210619539022446,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 5507,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.01810266636312008,
+          "q_bps": [
+            0.01810266636312008,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.07990388572216034,
+          "q_bps": [
+            0.07990388572216034,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 0
+    },
+    {
+      "entry_row_index": 0,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.2039698362350464,
+          "q_bps": [
+            0.2039698362350464,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.08616288751363754,
+          "q_bps": [
+            0.08616288751363754,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 14649
+    },
+    {
+      "entry_row_index": 0,
+      "sides": [
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.2866291403770447,
+          "q_bps": [
+            0.2866291403770447,
+            0.0
+          ],
+          "side": "long"
+        },
+        {
+          "action": "HOLD",
+          "hold_minus_exit_bps": 0.13813799619674683,
+          "q_bps": [
+            0.13813799619674683,
+            0.0
+          ],
+          "side": "short"
+        }
+      ],
+      "state_index": 30026
+    }
+  ],
+  "model_state_sha256": "67c991605c46f75eb30f06e9fe0106161541c66fe653f1aabb5feb8e5be56cc6",
+  "test_data_used": false,
+  "variant": "ONLINE"
+}

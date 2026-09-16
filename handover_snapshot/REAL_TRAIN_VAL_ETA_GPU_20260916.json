@@ -1,0 +1,55 @@
+{
+  "observed_utc": "2026-09-16T08:05:04.477244+00:00",
+  "source_commit": "fdd70e5cf872e32f4f4102f659a47d55178a7f19",
+  "invocation_number": 4,
+  "process": 756,
+  "gpu_sample": {
+    "sample_count": 20,
+    "interval_ms": 1000,
+    "metrics": {
+      "utilization.gpu": {
+        "mean": 4.35,
+        "min": 1,
+        "max": 8
+      },
+      "utilization.memory": {
+        "mean": 2.15,
+        "min": 0,
+        "max": 4
+      },
+      "power.draw": {
+        "mean": 126.0505,
+        "min": 125.03,
+        "max": 127.01
+      },
+      "power.limit": {
+        "mean": 300,
+        "min": 300,
+        "max": 300
+      },
+      "clocks.current.graphics": {
+        "mean": 1395,
+        "min": 1395,
+        "max": 1395
+      }
+    }
+  },
+  "val_progress": {
+    "decision": "IN_PROGRESS",
+    "elapsed_compute_seconds": 22507.955804895973,
+    "materialized_state_view_count": 31642401,
+    "model_forward_count": 126709,
+    "next_state_index": 6329,
+    "next_entry_scan_position": 1792,
+    "completed_invocation_count": 2
+  },
+  "maximum_state_views": 84049614,
+  "maximum_state_views_basis": "Bound VAL root successor_transition_total84044106 +5508 entry rows; native full_train owner sums lifecycle_state_count.",
+  "views_per_compute_second": 1405.8318433838886,
+  "remaining_compute_hours_if_hold_continues": 10.35512122959606,
+  "eta_oslo_interval": "2026-09-16 21:00–23:00",
+  "eta_conditions": "Current throughput and continued HOLD; includes approximate remaining reboot/startup overhead, not a completion guarantee.",
+  "gpu_saturated": false,
+  "bottleneck_localized": false,
+  "test_data_used": false
+}
