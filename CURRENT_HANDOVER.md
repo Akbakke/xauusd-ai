@@ -15,7 +15,9 @@ gamle resultater og checkpoints er bevart.
 Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
 samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
 konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
-Plan: NEXT_RUN_POLICY.json → reference_learning_plan.
+Plan: NEXT_RUN_POLICY.json → reference_learning_plan. Planens kildehash bruker
+nå native-recipens JSON-format; første forberedelse stoppet på ulik linjeslutt
+i hashgrunnlaget. Alle kildefiler og frosne måleresultater er uendret.
 
 Forrige kandidat med separat Exit-klipping er fullført og forkastet.
 Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;

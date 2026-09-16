@@ -83,8 +83,8 @@
   "entry_bridge_max_abs_error_bps": 9.5367431640625e-07,
   "gpu_used": false,
   "learning_plan": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN.json",
-    "sha256": "6385d90bcc1f14b8d2f4a5863167e7f31e02b4b914b10a7922fedc5a9dc20361"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
+    "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
   },
   "monthly_entries": {
     "separate_train": {
@@ -157,5 +157,6 @@
   },
   "teacher_model_state_sha256": "b8e635dcf6c15ef812f0025fdc088e57ceac703081a290ff682a29920b406a81",
   "test_data_used": false,
-  "trained_entries": 512
+  "trained_entries": 512,
+  "source_hash_format_correction": "Frozen operator used canonical JSON plus newline; native recipe requires the same canonical JSON without newline. Full source binding maps verified identical. Original targets/result/plan remain preserved."
 }
