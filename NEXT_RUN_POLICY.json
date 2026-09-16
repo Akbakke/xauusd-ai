@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
+  "rule": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -263,5 +263,21 @@
     "max_invocations_per_arm": 1,
     "full_val_allowed": false,
     "test_data_used": false
+  },
+  "frozen_readout_retry": {
+    "arm": "candidate",
+    "maximum_replacement_windows": 1,
+    "reason": "first_batch_numerical_assertion_before_rollout",
+    "failed_source_commit": "89c10e583061ca9810da6a26176d3488739ed90a",
+    "failed_window_policy": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_CANDIDATE/CAMPAIGN/window-policies/invocation-0001.json",
+      "sha256": "f4c7c8d4391511b0f4be4c3db217fd422fdffec97a41a33a332dfc72e718dca3"
+    },
+    "preserved_baseline_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
+      "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
+    },
+    "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917",
+    "review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json"
   }
 }

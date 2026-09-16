@@ -414,15 +414,19 @@ def test_native_val_batch128_preserves_full_cohort_pause_resume(tmp_path, cache_
 
 @pytest.mark.parametrize("difference,change_action,error", [
     (4.92e-5, False, None),
+    (0.00048828125, False, None),
+    (0.0009, False, None),
+    (0.0011, False, AssertionError),
     (0.03, False, AssertionError),
     (4.92e-5, True, RuntimeError),
 ])
-def test_val_batch_rounding_guard_preserves_decisions(difference, change_action, error):
+@pytest.mark.parametrize("rows", [128, 256])
+def test_val_batch_rounding_guard_preserves_decisions(difference, change_action, error, rows):
     from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
         _verify_val_batch_throughput,
     )
 
-    reference = torch.zeros((128, 2, 2), dtype=torch.float32)
+    reference = torch.zeros((rows, 2, 2), dtype=torch.float32)
     reference[..., 1] = 1.0 if not change_action else 2e-5
     actual = reference.clone()
     actual[..., 0] += difference

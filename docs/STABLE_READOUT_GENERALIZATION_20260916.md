@@ -96,3 +96,14 @@ frosset variant, med256 forhåndsvalgte juni-Entries og null treningssteg.
 Riktig kildebinding, fysisk omstart og alle eksisterende vakter kreves fortsatt.
 Ingen senere VAL er kjørt ennå; full epoch/full5508 VAL og TEST forblir stengt.
 Se handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json.
+
+## Oppdatering2026-09-17: baseline ferdig, numerisk preflight-rettelse
+
+Baseline er ferdig med256FLAT og null treningssteg. Kandidaten stoppet før
+rollout på batch256/16-avvik0,00048828125Bps, med identiske handlinger. Bare
+assert-grensen/loggen endres til absolutt0,001Bps; relativ toleranse0 og eksakt
+handlingslikhet består.12 målrettede tester består. Modeller, vekter, mål,
+utvalg, prediction/rollout/økonomi er uendret. Baseline gjenbrukes med original
+89c-proveniens; AST er kontrollert lik utenom vaktfunksjonen. Én erstatnings-
+invokasjon for kandidaten er avgrenset i NEXT_RUN_POLICY. Ingen retuning.
+Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json.

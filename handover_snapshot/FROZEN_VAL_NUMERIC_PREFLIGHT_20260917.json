@@ -1,0 +1,67 @@
+{
+  "baseline": {
+    "entry_count": 256,
+    "evaluation_decision": "COMPLETE_WITH_RIGHT_CENSORING",
+    "flat_count": 256,
+    "guard_decision": "PASS",
+    "hypothetical_censored_sides": 73,
+    "hypothetical_short_exit_at_state0": 256,
+    "net_bps_sum": 0.0,
+    "optimizer_steps": 0,
+    "selected_trade_count": 0,
+    "trainer_guard_exit_code": 0
+  },
+  "baseline_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
+    "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
+  },
+  "baseline_source_commit": "89c10e583061ca9810da6a26176d3488739ed90a",
+  "change": {
+    "absolute_tolerance_bps": 0.001,
+    "baseline_recompute_required": false,
+    "baseline_reuse_reason": "Only the numerical assertion/log changed. AST equality outside that function verified against89c; model, targets, state construction, rollout and accounting unchanged. Preserve baseline original provenance.",
+    "function": "_verify_val_batch_throughput",
+    "identical_actions_required": true,
+    "other_cache_pipeline_tolerances_changed": false,
+    "prediction_or_rollout_ast_changed_outside_guard": false,
+    "relative_tolerance": 0.0,
+    "weights_targets_cohort_changed": false
+  },
+  "decision": "NUMERICAL_GUARD_FIXED_CANDIDATE_RETRY_REQUIRED",
+  "failed_candidate": {
+    "boot_id": 450,
+    "completed_rollout_forwards": 0,
+    "first_batch": {
+      "actions_equal": true,
+      "max_abs_q_difference_bps": 0.00048828125,
+      "max_intermediate_error": 2.86102294921875e-06,
+      "previous_atol_bps": 0.0001,
+      "reference_batch_size": 16,
+      "rows": 256,
+      "tf32": false
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449/guard/invocation-0001.log",
+      "sha256": "381c7f757eb0633cbd085533b9b302af516ef2bd21149460ec6e1a8bd62c242b"
+    },
+    "native_child_exit_code": 1,
+    "optimizer_steps": 0,
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449",
+    "trainer_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449/progress/.invocation-0001.json.trainer.f3p7NW5K.log",
+      "sha256": "5b5307f8c2e2060975ad2791170e5961bdc7aeadaccc1ede50979a09f55768f8"
+    },
+    "windows_task_disabled": true,
+    "windows_task_result": 1
+  },
+  "full_val_allowed": false,
+  "schema_version": "gx1_frozen_val_numeric_preflight_review_v1",
+  "test_data_used": false,
+  "tests": {
+    "junit": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.xml",
+    "junit_sha256": "059a1e9ef7fd19381f93a09795c42ee3c4c890ddf61ca41c0b35a82612fa524e",
+    "passed": 12,
+    "scope": "batch128 and256; old and frozen-readout rounding pass; 0.0011 and0.03 bps reject; action mismatch rejects"
+  },
+  "training_enabled": false
+}

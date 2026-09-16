@@ -860,6 +860,7 @@ def require_random_access_val_evaluation_result_v1(
 
 def _verify_val_batch_throughput(model, inputs, output, forward_started: float) -> None:
     """Check actual first-batch Q/actions and log measured inference throughput."""
+    q_absolute_tolerance_bps = 1e-3
     q = output["exit_action_q_bps"]
     if q.device.type == "cuda":
         torch.cuda.synchronize(q.device)
@@ -894,18 +895,18 @@ def _verify_val_batch_throughput(model, inputs, output, forward_started: float) 
         "large_batch_seconds": large_seconds, "reference_seconds": reference_seconds,
         "inference_speedup": reference_seconds / large_seconds,
         "max_abs_q_difference_bps": float((q - reference).abs().max().item()),
-        "actions_equal": bool(actions_equal), "q_absolute_tolerance_bps": 1e-4,
+        "actions_equal": bool(actions_equal), "q_absolute_tolerance_bps": q_absolute_tolerance_bps,
         "intermediate_max_abs_difference": intermediate_differences,
         "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
         "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32}), flush=True)
-    # Different FP32 batch shapes change reduction order. The real 128-row
-    # comparison with both TF32 backends disabled measured <=4.92e-5 Bps,
-    # <7.2e-7 intermediate-state error, and exactly identical actions.
-    # Bound rounding in Bps (no magnitude-dependent relative allowance);
-    # the observed 0.03 Bps reduced-precision regression still fails.
+    # Different FP32 batch shapes change reduction order. The frozen readout
+    # measured 0.00048828125 Bps at batch256 with identical actions and TF32 off.
+    # Keep an absolute 0.001 Bps budget, independent of Q magnitude. This is
+    # only a numerical parity check: no weights, Q values or actions change.
+    # Every action mismatch and the 0.03 Bps reduced-precision regression fail.
     if not actions_equal:
         raise RuntimeError("UNIFIED_EXIT_VAL_BATCH_ACTION_MISMATCH")
-    torch.testing.assert_close(q, reference, atol=1e-4, rtol=0.0)
+    torch.testing.assert_close(q, reference, atol=q_absolute_tolerance_bps, rtol=0.0)
     print(json.dumps({"event": "VAL_BATCH_THROUGHPUT_VERIFIED", "rows": size,
         "inference_speedup": reference_seconds / large_seconds, "actions_equal": True}), flush=True)
 

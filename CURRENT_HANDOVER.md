@@ -1,53 +1,36 @@
-# GX1 — gjeldende overlevering, 2026-09-16
+# GX1 — gjeldende overlevering, 2026-09-17
 
-Forsøket er nå **frosset før kronologisk evaluering**. Eksisterende verdilag
-viser lærbarhet på gjenbrukt TRAIN, men generalisering og økonomisk verdi er
-ikke bevist. Brukerens krav er en varig løsning som tåler ulike markeder;
-videre tilpasning mot det samme kontrollutvalget er stoppet.
+**Baseline er ferdig; kandidaten stoppet i tallpresisjonskontrollen før rollout.**
+Baseline valgte FLAT på alle256 juni-Entries, med null treningssteg og guardPASS.
+Alle256 hypotetiske SHORT-forløp lukket straks;73 LONG-forløp nådde splitgrensen.
+Ingen lærings- eller generaliseringsport er bestått. Juni er gjenbrukt utviklings-VAL.
 
-En ustabil Entry-tilpasning ble stabilisert med én regel beregnet kun fra
-TRAIN512. Separat TRAIN128: Entry LONG-MSE 32,26→25,40, SHORT 80,44→27,25;
-begge slår konstantbaseline. LONG bedres i 10/12 måneder, SHORT i 8/12;
-mars-LONG er fortsatt klart verre. Frosne Entry/Exit-lag er kontrollert sammen
-med eksakt cacheparitet, og Exit-forbedringen består. Ingen checkpoint er promotert.
+Kandidaten på boot450 feilet i batch256/16-kontrollen: maksavvik0,00048828125Bps
+mot grense0,0001, men helt identiske handlinger og TF32av. Native child1 og
+Windows-taskresult1 er målt; ingen modellprosess er aktiv, tasken er deaktivert.
+Feilet invokasjon og alle opprinnelige artefakter er bevart.
 
-Neste er en på forhånd bundet kontroll på 256 Entries fra juni2026, valgt med
-eksisterende seed uten modellutfall. Juni er gjenbrukt utviklings-VAL, ikke
-urørt holdout. Vekter, mål og utvalg er frosset. Ingen TEST, ny trening eller
-full VAL er åpnet. Se docs/STABLE_READOUT_GENERALIZATION_20260916.md.
+Minste rettelse endrer bare presisjonsvaktens absolutte grense til0,001Bps og
+loggen. Identiske handlinger kreves fortsatt; relativ toleranse er0. Tolv
+målrettede tester består, inkludert avvisning av0,0011/0,03Bps og handlingsavvik.
+Ingen vekter, mål, features, modeller, rollout, økonomi eller øvrige vakter endres.
+AST utenom kontrollfunksjonen er identisk med89c. Derfor gjenbrukes den ferdige
+baseline-målingen med opprinnelig kilde89c; ingen kostbar baseline-omkjøring.
+Dette er en eksplisitt avgrensning fra opprinnelig plan om samme kildecommit.
 
-Evaluatordelen er nå kontrollert for det frosne utvalget: 12 nye og40 eksisterende
-VAL-tester består. Originale rad-ID-er, pause/gjenopptak, åpne posisjoner/kostnader
-og uendrede modellparametere utenom de frosne verdilagene er verifisert. Kandidaten
-identifiseres som ONLINE, aldri som epoch-EMA. En delvis VAL kan ikke åpne full-VAL-porten.
+NEXT_RUN_POLICY åpner én erstatningsinvokasjon for den frosne kandidaten,
+med samme256 forhåndsvalgte Entries, samme lærer og null optimizersteg.
+Ny fysisk boot og eksisterende native eiere/vakter kreves. Ingen modellretuning,
+full epoch, full5508 VAL eller TEST. Etter kandidatresultatet: paret Entry/Exit-
+feil per retning/uke og økonomi for alle valgte/åpne posisjoner, så vurdering.
 
-Den skrivebeskyttede native-koblingen er nå kontrollert. 207 målrettede tester
-består, inkludert eksakt reward-/klokkeparitet mot TRAIN, helgegap, sensur,
-bevart bootstrap, uendret treningscursor og sperre mot nye optimizersteg.
-Begge faktiske modeller bruker samme frosne Entry-lærer og samme opprinnelige
-Exit-boundary-lærer. Exit-feil måles på state0 per valgt Entry; dette er ikke
-feildekning av alle mulige holdetilstander. Native økonomi følger hele forløpet.
-
-NEXT_RUN_POLICY åpner bare én eksisterende native evalueringsinvokasjon per
-frosset variant, med256 forhåndsvalgte juni-Entries og null treningssteg.
-Riktig kildebinding, fysisk omstart og alle eksisterende vakter kreves fortsatt.
-Ingen senere VAL er kjørt ennå; full epoch/full5508 VAL og TEST forblir stengt.
-Se handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json.
-
-Evalueringsutganger ligger under BASE/NATIVE_FROZEN_READOUT_20260916_BASELINE
-og BASE/NATIVE_FROZEN_READOUT_20260916_CANDIDATE. PREPARATION_RESULT.json og
-frozen_readout_val/OBSERVATION.json samt den bundne kampanjens receipts er
-levende bevis; de finnes først etter respektive forberedelse/kjøring. Baseline
-kjøres først. Candidate-planen forberedes deretter med den nye observerte booten,
-slik at begge invokasjoner krever hver sin fysiske omstart. Begge bruker samme
-rene kilde og frosne vekter. GitHub-publisering venter på ny eksplisitt godkjenning
-etter automatisk avvisning; lokal evaluering er uavhengig av publiseringen.
-
-Første forberedelse stoppet før kampanje/GPU-start fordi original global5809
-ble sammenlignet med genesis-grensen4081. Kampanjeeieren bruker nå den verifiserte
-originale epoch1-grensen8162. 89 målrettede kontroller består. Mislykkede
-forberedelsesfiler er bevart; nye versjoner får kildehash i filnavnet.
-Se handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json.
+Bevis: handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json.
+Baseline: BASE/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val.
+Feilet kandidat: BASE/NATIVE_FROZEN_READOUT_20260916_CANDIDATE; runtime
+/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449.
+Erstatning: BASE/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917.
+PREPARATION_RESULT, OBSERVATION, levende prosess og receipts avgjør nåstatus.
+GitHub-push venter fortsatt på det allerede stilte godkjenningsspørsmålet.
 
 ## Start her
 

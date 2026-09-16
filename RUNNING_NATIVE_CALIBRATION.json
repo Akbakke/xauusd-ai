@@ -1,9 +1,9 @@
 {
-  "status": "NATIVE_READONLY_INTEGRATION_VERIFIED_PREPARATION_PENDING",
+  "status": "BASELINE_COMPLETE_CANDIDATE_NUMERIC_PREFLIGHT_FAILED_RETRY_PENDING",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Last actual native source is preserved as completed experiment history. No active native run; current HEAD may update handover only.",
-  "latest_observation_utc": "2026-09-16T21:02:29.603965+00:00",
+  "source_commit_scope": "No active native process. Baseline and failed candidate used89c; current source changes only numerical parity assertion/log, tests and handover.",
+  "latest_observation_utc": "2026-09-16T22:44:17Z",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
+  "next_action": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -124,7 +124,7 @@
     "policy_semantics": "stationary_reference_policy_evaluation_Q_mu_not_optimal_Q",
     "training_enabled": false,
     "native_run_authorized": false,
-    "next_action": "Prepare and execute exactly one existing guarded native window for each frozen arm (baseline and candidate), using the bound June256 cohort, original TRAIN cursor and zero optimizer steps. Compare paired Entry targets and Exit anchor Q_mu targets by side/week, then all selected/open cost-adjusted outcomes. No retuning, full epoch, full5508 VAL or TEST. Both arms must remain on the same clean committed source; preserve all original checkpoints. Pause for review after these two bounded observations.",
+    "next_action": "Run exactly one replacement native candidate window after the failed first-batch numerical check. Reuse the completed baseline with original89c provenance: only the assertion/log changed, and prediction/rollout AST equality outside that function is verified. Keep frozen weights, teacher, June256 cohort and original TRAIN cursor; zero optimizer steps. Preserve failed attempt, require new physical boot and all existing guards. Compare paired side/week errors and all selected/open costed outcomes, then pause for review. No retuning, baseline rerun, full epoch/full5508 VAL or TEST.",
     "prototype_source": "gx1/contracts/unified_exit_reference_policy_v1.py",
     "cpu_receipt": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
     "cpu_receipt_sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
@@ -195,19 +195,33 @@
   "frozen_readout_evaluations": {
     "baseline": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE",
-      "status": "PREPARATION_ORIGIN_COUNTER_CORRECTED_RETRY_PENDING",
-      "optimizer_steps": 0
+      "status": "COMPLETE_WITH_RIGHT_CENSORING",
+      "optimizer_steps": 0,
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE/frozen_readout_val/VAL_RESULT.json",
+        "sha256": "8720c18736f83b650e5da6f3198c0c23ba9ead095cf40d120930078288a43fe6"
+      },
+      "flat_count": 256,
+      "guard_decision": "PASS"
     },
     "candidate": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_CANDIDATE",
+      "status": "FIRST_BATCH_NUMERICAL_ASSERTION_FAILED",
+      "optimizer_steps": 0,
+      "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_READOUT_20260916_CANDIDATE_BOOT449",
+      "completed_rollout_forwards": 0
+    },
+    "candidate_retry": {
+      "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917",
       "status": "NOT_PREPARED",
       "optimizer_steps": 0
     }
   },
-  "frozen_readout_evaluation_order": "baseline first; prepare candidate after baseline finishes so the candidate plan binds the new observed boot and requires another fresh physical reboot",
+  "frozen_readout_evaluation_order": "Baseline complete and reused with original provenance. One replacement candidate window after numerical guard-only repair; no weights/targets/cohort change.",
   "github_publication_status": "pending_current_explicit_approval_after_automatic_review_rejection",
   "frozen_readout_materializer_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json",
     "sha256": "e727325e32934fbdad5beeb0b230b6c609e818a9583132a549cc1e9ad8eb57c3"
-  }
+  },
+  "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json"
 }
