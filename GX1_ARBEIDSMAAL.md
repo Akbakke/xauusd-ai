@@ -16,8 +16,11 @@ Teknisk reference32/split16+16 og paret95→96-måling er ferdige. Resume bestå
 men læringsresultatet begrunner ikke større trening. Lokal Entry-fit bedres;
 bred Entry er litt verre og allFLAT. LONG Exit flytter grunnverdien opp og blir
 allHOLD. Se CURRENT_HANDOVER.md og FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json.
-Ikke gjenta kontrollene. Neste arbeid lokaliserer konkret hvorfor verdilæringen
-ikke skiller markedet bedre, med eksisterende mål-, gradient-, FQI- og outputbevis.
+Ikke gjenta kontrollene. Årsaksdiagnosen i docs/VALUE_LEARNING_CAUSE_20260916.md
+er ferdig: svak frossen videreverdi dominerer Entry, lærerpolicyen gir sideavhengig
+effektiv Exit-targetlengde, og verdihode/representasjon flytter grunnnivåer.
+Før implementasjon velges: avklar én konkret hypotese for verdisupervisjonen
+og sammenligningskriterier. Ingen enkelt kodefeil eller markedsfordel er bevist.
 Ingen full epoch/fullVAL, target-refresh, replay, nye modeller eller tapsvekter nå.
 En videre avgrenset native kjøring krever dokumentert måleopplegg, bundet sluttpunkt
 og evidens som begrunner den. NEXT_RUN_POLICY.json gjelder.

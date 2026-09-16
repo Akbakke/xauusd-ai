@@ -1,0 +1,12 @@
+{
+  "criteria": "Report exact counts, conditional and centered errors/correlations, side-constant baselines and month splits. Constant baselines are descriptive same-cohort fits, not validated predictors. Reproduce stored five-step targets exactly. No causal claim from a correlation, old gradients or one batch. This measurement never opens training.",
+  "questions": [
+    "Does Entry approximate side constants while its teacher provides almost no continuation?",
+    "Does the frozen teacher produce unequal effective backup lengths for LONG and SHORT?",
+    "Is observed prediction movement mainly constant rather than target-correlated?",
+    "Are early-life anchor states represented in the cached Exit training sample?",
+    "Does forecast signal reach Entry directly or only through shared representations?"
+  ],
+  "scope": "Reuse exactly64 stored batches:1024 TRAIN Entries/4096 transitions and one16-entry five-step batch. No forward, model construction, backward, optimizer, dataset materialization, teacher refresh, VAL or TEST.",
+  "source_commit": "0dd34ff8352a3b56746a00b4a2564d128fb56ac1"
+}

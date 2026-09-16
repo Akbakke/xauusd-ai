@@ -1,0 +1,1483 @@
+{
+  "backward_or_optimizer": false,
+  "elapsed_seconds": 1.0393151469997974,
+  "entry": {
+    "LONG": {
+      "after": {
+        "centered_mse": 19.070887052126842,
+        "constant_target_mean_mse": 19.04602662721036,
+        "constant_target_median_mae": 2.771678238255845,
+        "correlation": 0.05254415451931507,
+        "mae": 2.7599610710385605,
+        "mse": 19.201284002332464,
+        "prediction": {
+          "max": -3.9876720905303955,
+          "mean": -5.569464474450797,
+          "median": -5.585502624511719,
+          "min": -7.8640923500061035,
+          "n": 1024,
+          "std": 0.507600198826113
+        },
+        "target": {
+          "max": 27.296886444091797,
+          "mean": -5.930569653319253,
+          "median": -5.769240140914917,
+          "min": -45.17010498046875,
+          "n": 1024,
+          "std": 4.364175366230184
+        }
+      },
+      "before": {
+        "centered_mse": 18.960084058147537,
+        "constant_target_mean_mse": 19.04602662721036,
+        "constant_target_median_mae": 2.771678238255845,
+        "correlation": 0.0780035657721409,
+        "mae": 2.756784048942791,
+        "mse": 19.0530593262496,
+        "prediction": {
+          "max": -4.031796932220459,
+          "mean": -5.625651191920042,
+          "median": -5.631786823272705,
+          "min": -7.98932409286499,
+          "n": 1024,
+          "std": 0.5134647368646919
+        },
+        "target": {
+          "max": 27.296886444091797,
+          "mean": -5.930569653319253,
+          "median": -5.769240140914917,
+          "min": -45.17010498046875,
+          "n": 1024,
+          "std": 4.364175366230184
+        }
+      },
+      "forecast_observed_return_correlations_before": [
+        -0.01380006659612354,
+        0.08022422453007895,
+        0.1140522715374977,
+        0.14390640214810027
+      ],
+      "forecast_prediction_correlations_before": [
+        0.009760228942693735,
+        0.1617202611204349,
+        0.20620139877907012,
+        0.2114351605592109
+      ],
+      "movement": {
+        "before_plus_constant_mse": 19.09048100835316,
+        "change": {
+          "max": 0.7840070724487305,
+          "mean": 0.056186717469245195,
+          "median": 0.04181408882141113,
+          "min": -0.9219493865966797,
+          "n": 1024,
+          "std": 0.1540957087816366
+        },
+        "change_target_correlation": -0.08683341799937386,
+        "constant_fraction_squared_change": 0.11734801169288395
+      }
+    },
+    "SHORT": {
+      "after": {
+        "centered_mse": 18.656775917060113,
+        "constant_target_mean_mse": 18.959096946857905,
+        "constant_target_median_mae": 2.7429426435737696,
+        "correlation": 0.12682885773983799,
+        "mae": 2.7465758330545214,
+        "mse": 18.803209906593764,
+        "prediction": {
+          "max": -4.073395729064941,
+          "mean": -6.109512915369123,
+          "median": -6.0848212242126465,
+          "min": -8.239052772521973,
+          "n": 1024,
+          "std": 0.5007932245059898
+        },
+        "target": {
+          "max": 30.07925033569336,
+          "mean": -5.7268459720180545,
+          "median": -5.813589096069336,
+          "min": -42.443077087402344,
+          "n": 1024,
+          "std": 4.354204513669277
+        }
+      },
+      "before": {
+        "centered_mse": 18.61833092691169,
+        "constant_target_mean_mse": 18.959096946857905,
+        "constant_target_median_mae": 2.7429426435737696,
+        "correlation": 0.1347055493112623,
+        "mae": 2.731979358697572,
+        "mse": 18.64290163738979,
+        "prediction": {
+          "max": -4.106630325317383,
+          "mean": -5.883596444036812,
+          "median": -5.864653587341309,
+          "min": -8.100126266479492,
+          "n": 1024,
+          "std": 0.5294576209282549
+        },
+        "target": {
+          "max": 30.07925033569336,
+          "mean": -5.7268459720180545,
+          "median": -5.813589096069336,
+          "min": -42.443077087402344,
+          "n": 1024,
+          "std": 4.354204513669277
+        }
+      },
+      "forecast_observed_return_correlations_before": [
+        -0.07277720384226359,
+        -0.03424253341359606,
+        -0.027696989880088813,
+        -0.05778508341366417
+      ],
+      "forecast_prediction_correlations_before": [
+        -0.5302658407226835,
+        -0.48132303794664366,
+        -0.35438423130552815,
+        -0.30407943549485644
+      ],
+      "movement": {
+        "before_plus_constant_mse": 18.76476491644534,
+        "change": {
+          "max": 1.220106601715088,
+          "mean": -0.22591647133231163,
+          "median": -0.23443007469177246,
+          "min": -1.105240821838379,
+          "n": 1024,
+          "std": 0.1876048358524656
+        },
+        "change_target_correlation": -0.04160792018372279,
+        "constant_fraction_squared_change": 0.5918588344933099
+      }
+    }
+  },
+  "exit": {
+    "LONG": {
+      "after": {
+        "centered_mse": 18.22436512072143,
+        "constant_target_mean_mse": 18.21042597981721,
+        "constant_target_median_mae": 2.6625718699824574,
+        "correlation": -0.006886701146571407,
+        "mae": 2.6623309922820226,
+        "mse": 18.24871467831228,
+        "prediction": {
+          "max": 0.91580730676651,
+          "mean": 0.20493008281346192,
+          "median": 0.19774096459150314,
+          "min": 0.002702571451663971,
+          "n": 4096,
+          "std": 0.09227867471078995
+        },
+        "target": {
+          "max": 29.621225357055664,
+          "mean": 0.04888663504698343,
+          "median": 0.06943122670054436,
+          "min": -54.3481330871582,
+          "n": 4096,
+          "std": 4.267367570272944
+        }
+      },
+      "before": {
+        "centered_mse": 18.218043973779476,
+        "constant_target_mean_mse": 18.21042597981721,
+        "constant_target_median_mae": 2.6625718699824574,
+        "correlation": -0.001587965332774807,
+        "mae": 2.6609892275247944,
+        "mse": 18.218045225047504,
+        "prediction": {
+          "max": 0.5317369699478149,
+          "mean": 0.05000523597118445,
+          "median": 0.05695393681526184,
+          "min": -0.15103520452976227,
+          "n": 4096,
+          "std": 0.08076735150899718
+        },
+        "target": {
+          "max": 29.621225357055664,
+          "mean": 0.04888663504698343,
+          "median": 0.06943122670054436,
+          "min": -54.3481330871582,
+          "n": 4096,
+          "std": 4.267367570272944
+        }
+      },
+      "hold_counts": [
+        3306,
+        4096
+      ],
+      "movement": {
+        "before_plus_constant_mse": 18.242393531370325,
+        "change": {
+          "max": 0.7694493755698204,
+          "mean": 0.15492484684227747,
+          "median": 0.14960507862269878,
+          "min": 0.10534759797155857,
+          "n": 4096,
+          "std": 0.03665914216966307
+        },
+        "change_target_correlation": -0.013836654943287887,
+        "constant_fraction_squared_change": 0.9469772797531476
+      },
+      "reward": {
+        "max": 29.621225357055664,
+        "mean": 0.04446081192145357,
+        "median": 0.0644255205988884,
+        "min": -54.48810958862305,
+        "n": 4096,
+        "std": 4.268741842893894
+      },
+      "teacher_bootstrap": {
+        "max": 0.334014892578125,
+        "mean": 0.004425823126439354,
+        "median": 0.0,
+        "min": 0.0,
+        "n": 4096,
+        "std": 0.02112533297886878
+      }
+    },
+    "SHORT": {
+      "after": {
+        "centered_mse": 18.090246719024933,
+        "constant_target_mean_mse": 18.13338808533044,
+        "constant_target_median_mae": 2.6498690585417535,
+        "correlation": 0.07258118771425366,
+        "mae": 2.648678603852204,
+        "mse": 18.091589255054522,
+        "prediction": {
+          "max": 0.9963299632072449,
+          "mean": 0.009395654140007537,
+          "median": -0.0012324191629886627,
+          "min": -0.11823873221874237,
+          "n": 4096,
+          "std": 0.08019522422972274
+        },
+        "target": {
+          "max": 47.61137771606445,
+          "mean": 0.04603628772611046,
+          "median": -0.021290212869644165,
+          "min": -30.04376220703125,
+          "n": 4096,
+          "std": 4.258331608192396
+        }
+      },
+      "before": {
+        "centered_mse": 18.065740681962026,
+        "constant_target_mean_mse": 18.13338808533044,
+        "constant_target_median_mae": 2.6498690585417535,
+        "correlation": 0.09389039161623766,
+        "mae": 2.6490268725665373,
+        "mse": 18.06574082938775,
+        "prediction": {
+          "max": 1.2849735021591187,
+          "mean": 0.0456523271518563,
+          "median": 0.031029988080263138,
+          "min": -0.09276916831731796,
+          "n": 4096,
+          "std": 0.0961623951948685
+        },
+        "target": {
+          "max": 47.61137771606445,
+          "mean": 0.04603628772611046,
+          "median": -0.021290212869644165,
+          "min": -30.04376220703125,
+          "n": 4096,
+          "std": 4.258331608192396
+        }
+      },
+      "hold_counts": [
+        3376,
+        1957
+      ],
+      "movement": {
+        "before_plus_constant_mse": 18.06708321799162,
+        "change": {
+          "max": 0.12263232469558716,
+          "mean": -0.03625667301184876,
+          "median": -0.03236169880256057,
+          "min": -0.6065414249897003,
+          "n": 4096,
+          "std": 0.03437545100956042
+        },
+        "change_target_correlation": -0.09332416668817597,
+        "constant_fraction_squared_change": 0.5266152049569407
+      },
+      "reward": {
+        "max": 46.72710418701172,
+        "mean": -0.04379140749870203,
+        "median": -0.09459472075104713,
+        "min": -30.076608657836914,
+        "n": 4096,
+        "std": 4.24449936889041
+      },
+      "teacher_bootstrap": {
+        "max": 2.1042213439941406,
+        "mean": 0.08982769523390743,
+        "median": 0.053716301918029785,
+        "min": 0.014546811580657959,
+        "n": 4096,
+        "std": 0.16204944728304985
+      }
+    }
+  },
+  "forecast": {
+    "120": {
+      "AFTER96": {
+        "fit": {
+          "centered_mse": 1983.8218057611793,
+          "constant_target_mean_mse": 2292.2699181477974,
+          "constant_target_median_mae": 30.18230617307927,
+          "correlation": 0.39486181348074695,
+          "mae": 28.482187517718558,
+          "mse": 1984.2103981401124,
+          "prediction": {
+            "max": 21.165348052978516,
+            "mean": 0.9647330583247822,
+            "median": 3.6854313611984253,
+            "min": -61.38340759277344,
+            "n": 1024,
+            "std": 11.908408458985289
+          },
+          "target": {
+            "max": 181.7335662841797,
+            "mean": 0.34136127605233924,
+            "median": 1.7969367504119873,
+            "min": -452.6007080078125,
+            "n": 1024,
+            "std": 47.87765572945064
+          }
+        },
+        "majority_sign_accuracy": 0.53125,
+        "months": {
+          "2025-06": {
+            "correlation": 0.09112713096826805,
+            "mse": 710.6569203909404,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.31081619521049975,
+            "mse": 466.47488281111424,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": 0.19432949778703792,
+            "mse": 370.1391740632593,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.3236378534772177,
+            "mse": 823.7461703143291,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.4757696941114904,
+            "mse": 1809.336220889726,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.3363925290029443,
+            "mse": 1739.3872452203918,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.24186374028267918,
+            "mse": 799.7298872126747,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.6442440179685831,
+            "mse": 4618.034877757145,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.3655994113559551,
+            "mse": 4133.728197580953,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.3299822621193034,
+            "mse": 5276.423214323489,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.3057551355903338,
+            "mse": 2189.7304775118005,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.3926945963240911,
+            "mse": 1279.2986454180384,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.6259765625
+      },
+      "BEFORE95": {
+        "fit": {
+          "centered_mse": 1968.8403417551433,
+          "constant_target_mean_mse": 2292.2699181477974,
+          "constant_target_median_mae": 30.18230617307927,
+          "correlation": 0.42545632990364096,
+          "mae": 28.376296560534684,
+          "mse": 1968.8929349326886,
+          "prediction": {
+            "max": 21.572105407714844,
+            "mean": 0.11202925136967679,
+            "median": 2.201182246208191,
+            "min": -59.32282257080078,
+            "n": 1024,
+            "std": 10.804221470173411
+          },
+          "target": {
+            "max": 181.7335662841797,
+            "mean": 0.34136127605233924,
+            "median": 1.7969367504119873,
+            "min": -452.6007080078125,
+            "n": 1024,
+            "std": 47.87765572945064
+          }
+        },
+        "majority_sign_accuracy": 0.53125,
+        "months": {
+          "2025-06": {
+            "correlation": 0.12232862277434983,
+            "mse": 704.3250320613702,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.4648653761944547,
+            "mse": 418.70069443913,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": 0.24370505384807745,
+            "mse": 390.914048426481,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.41115034465645356,
+            "mse": 810.7186682969059,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.4941163682804892,
+            "mse": 1848.795552223773,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.3608696958577118,
+            "mse": 1743.797261967417,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.24905495617117618,
+            "mse": 792.8340295583953,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.6915202752221946,
+            "mse": 4529.235094394737,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.2882950686400366,
+            "mse": 4329.560779492189,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.4225068882705557,
+            "mse": 5067.838942576906,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.34892618198374925,
+            "mse": 2140.2905012561864,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.39650806761468177,
+            "mse": 1289.792306883073,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.6357421875
+      }
+    },
+    "25": {
+      "AFTER96": {
+        "fit": {
+          "centered_mse": 399.2773361703856,
+          "constant_target_mean_mse": 409.2279611545549,
+          "constant_target_median_mae": 13.04420747999211,
+          "correlation": 0.16235267295874647,
+          "mae": 12.940394447587096,
+          "mse": 403.88674960429194,
+          "prediction": {
+            "max": 8.974010467529297,
+            "mean": 1.9467967591444904,
+            "median": 2.0135772228240967,
+            "min": -7.823885917663574,
+            "n": 1024,
+            "std": 2.369983074105907
+          },
+          "target": {
+            "max": 120.8496322631836,
+            "mean": -0.20015769633573655,
+            "median": 0.10867907851934433,
+            "min": -160.16680908203125,
+            "n": 1024,
+            "std": 20.22938360787483
+          }
+        },
+        "majority_sign_accuracy": 0.5009765625,
+        "months": {
+          "2025-06": {
+            "correlation": -0.053370674543990665,
+            "mse": 154.9322684369294,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.016849316075298146,
+            "mse": 166.27039864793517,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": -0.008613148425259304,
+            "mse": 66.36926454170678,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.1718184657385112,
+            "mse": 144.8799995672805,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.05254288573678031,
+            "mse": 511.9392115633738,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.25827280159067595,
+            "mse": 292.1914495660429,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.1375524041943184,
+            "mse": 225.65910368106282,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.45639573613930795,
+            "mse": 571.5605336448359,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.25476501997681106,
+            "mse": 745.2334972302857,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.0726128634545921,
+            "mse": 1030.6977781633418,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.1750437165146664,
+            "mse": 734.3183387954919,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.17953583835086045,
+            "mse": 247.50575535767578,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.5498046875
+      },
+      "BEFORE95": {
+        "fit": {
+          "centered_mse": 393.840465373292,
+          "constant_target_mean_mse": 409.2279611545549,
+          "constant_target_median_mae": 13.04420747999211,
+          "correlation": 0.21927932317724178,
+          "mae": 12.782987127697197,
+          "mse": 395.5216547942716,
+          "prediction": {
+            "max": 8.380024909973145,
+            "mean": 1.096449191267311,
+            "median": 1.281744360923767,
+            "min": -9.629303932189941,
+            "n": 1024,
+            "std": 2.364754262103848
+          },
+          "target": {
+            "max": 120.8496322631836,
+            "mean": -0.20015769633573655,
+            "median": 0.10867907851934433,
+            "min": -160.16680908203125,
+            "n": 1024,
+            "std": 20.22938360787483
+          }
+        },
+        "majority_sign_accuracy": 0.5009765625,
+        "months": {
+          "2025-06": {
+            "correlation": -0.018841543814558055,
+            "mse": 153.50498808000071,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.15607500521691606,
+            "mse": 162.19637175381553,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": 0.05025543272114004,
+            "mse": 63.82201542160409,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.2654065694514485,
+            "mse": 138.40396443999362,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.13276610715704903,
+            "mse": 501.5568042637787,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.1444779617320067,
+            "mse": 298.56519882324193,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.1212271440177486,
+            "mse": 224.44273949225436,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.5300513917867508,
+            "mse": 553.6632968686257,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.31137017959759505,
+            "mse": 739.3437329399516,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.21735586514403124,
+            "mse": 983.2102462499626,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.1777913436650482,
+            "mse": 732.6481071274081,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.2591504099362764,
+            "mse": 242.195486282213,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.5693359375
+      }
+    },
+    "5": {
+      "AFTER96": {
+        "fit": {
+          "centered_mse": 74.77111242833084,
+          "constant_target_mean_mse": 75.71452611983128,
+          "constant_target_median_mae": 5.696477162339761,
+          "correlation": 0.11929292505994135,
+          "mae": 5.681280247802533,
+          "mse": 74.87024368055468,
+          "prediction": {
+            "max": 3.7638676166534424,
+            "mean": 0.44189278609337634,
+            "median": 0.49604396522045135,
+            "min": -2.669952630996704,
+            "n": 1024,
+            "std": 0.6718680672019924
+          },
+          "target": {
+            "max": 83.00127410888672,
+            "mean": 0.12704162725185597,
+            "median": 0.07535665109753609,
+            "min": -64.15451049804688,
+            "n": 1024,
+            "std": 8.701409432950003
+          }
+        },
+        "majority_sign_accuracy": 0.5048828125,
+        "months": {
+          "2025-06": {
+            "correlation": 0.16877782661610558,
+            "mse": 24.815174327158292,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.01809024543190643,
+            "mse": 27.336528998764997,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": -0.04539862028264622,
+            "mse": 14.007770343285785,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.06261255901339595,
+            "mse": 22.581986832186434,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.0890867067546468,
+            "mse": 81.60718191588927,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": -0.060574936808086156,
+            "mse": 72.8764048067485,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.06645397151378368,
+            "mse": 36.16173093489615,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.34742608016093374,
+            "mse": 76.1513251457901,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.23320077974342915,
+            "mse": 196.71287020902392,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": -0.001432458423281313,
+            "mse": 180.61771268755533,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.06577246232629184,
+            "mse": 123.43675836980889,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.153563093246963,
+            "mse": 58.24412034965977,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.5302734375
+      },
+      "BEFORE95": {
+        "fit": {
+          "centered_mse": 74.15020997527955,
+          "constant_target_mean_mse": 75.71452611983128,
+          "constant_target_median_mae": 5.696477162339761,
+          "correlation": 0.17587046553363087,
+          "mae": 5.671094430909761,
+          "mse": 74.15061183981246,
+          "prediction": {
+            "max": 3.451096773147583,
+            "mean": 0.10699506812306936,
+            "median": 0.16988149285316467,
+            "min": -3.3096439838409424,
+            "n": 1024,
+            "std": 0.6485239004325045
+          },
+          "target": {
+            "max": 83.00127410888672,
+            "mean": 0.12704162725185597,
+            "median": 0.07535665109753609,
+            "min": -64.15451049804688,
+            "n": 1024,
+            "std": 8.701409432950003
+          }
+        },
+        "majority_sign_accuracy": 0.5048828125,
+        "months": {
+          "2025-06": {
+            "correlation": 0.17619549902567067,
+            "mse": 24.78724064047555,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.1269820562907484,
+            "mse": 27.509766381172117,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": -0.040250043477536815,
+            "mse": 13.650488946301078,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.1050582112253002,
+            "mse": 22.23316351446157,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.03120981584270278,
+            "mse": 82.36668654454176,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": -0.13252355037318636,
+            "mse": 73.4682724677188,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.08582903719511631,
+            "mse": 35.3833776922769,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.3016095847252451,
+            "mse": 77.0945113337962,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.45563386039369813,
+            "mse": 191.7203505924307,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.05675619789933555,
+            "mse": 177.86618100221193,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.10500262242224678,
+            "mse": 121.99200805875714,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.2394881826046428,
+            "mse": 57.43419984835317,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.529296875
+      }
+    },
+    "60": {
+      "AFTER96": {
+        "fit": {
+          "centered_mse": 1047.2220439948348,
+          "constant_target_mean_mse": 1135.025802627935,
+          "constant_target_median_mae": 21.130060249292,
+          "correlation": 0.29274390839016845,
+          "mae": 20.526601864114127,
+          "mse": 1054.7299830989916,
+          "prediction": {
+            "max": 13.949153900146484,
+            "mean": 1.1389984149627708,
+            "median": 2.406439781188965,
+            "min": -33.43996810913086,
+            "n": 1024,
+            "std": 6.785765783626317
+          },
+          "target": {
+            "max": 166.47866821289062,
+            "mean": -1.6010634646590916,
+            "median": -0.48035143315792084,
+            "min": -278.8506774902344,
+            "n": 1024,
+            "std": 33.69014399832591
+          }
+        },
+        "majority_sign_accuracy": 0.5087890625,
+        "months": {
+          "2025-06": {
+            "correlation": 0.04489851254149831,
+            "mse": 355.91387543705497,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.11695184486080988,
+            "mse": 428.51358861990644,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": 0.24031243858427345,
+            "mse": 214.6679462012948,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.29312321118695805,
+            "mse": 308.7333813879775,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.32599028529527874,
+            "mse": 1900.7040994646866,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.3284796048240999,
+            "mse": 704.055147507185,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.17050281658849697,
+            "mse": 593.8994163056059,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.6568186004579895,
+            "mse": 926.6511889425594,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.2796095816110107,
+            "mse": 2885.0891331663042,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.28321007002727877,
+            "mse": 2546.8687756564427,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.048477944626172366,
+            "mse": 1272.481226020919,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.1343415437268802,
+            "mse": 695.0363899563425,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.5732421875
+      },
+      "BEFORE95": {
+        "fit": {
+          "centered_mse": 1044.1181620554562,
+          "constant_target_mean_mse": 1135.025802627935,
+          "constant_target_median_mae": 21.130060249292,
+          "correlation": 0.30841215878865935,
+          "mae": 20.425014358057524,
+          "mse": 1049.4314744245598,
+          "prediction": {
+            "max": 14.938096046447754,
+            "mean": 0.7039988705291762,
+            "median": 1.835528552532196,
+            "min": -32.64393615722656,
+            "n": 1024,
+            "std": 6.260823971386461
+          },
+          "target": {
+            "max": 166.47866821289062,
+            "mean": -1.6010634646590916,
+            "median": -0.48035143315792084,
+            "min": -278.8506774902344,
+            "n": 1024,
+            "std": 33.69014399832591
+          }
+        },
+        "majority_sign_accuracy": 0.5087890625,
+        "months": {
+          "2025-06": {
+            "correlation": 0.06275057588558178,
+            "mse": 356.6702946106741,
+            "n": 84
+          },
+          "2025-07": {
+            "correlation": 0.2890788236650639,
+            "mse": 400.8313043472794,
+            "n": 99
+          },
+          "2025-08": {
+            "correlation": 0.3179375810533809,
+            "mse": 212.20728512894382,
+            "n": 82
+          },
+          "2025-09": {
+            "correlation": 0.4045825889667531,
+            "mse": 290.1295174820726,
+            "n": 89
+          },
+          "2025-10": {
+            "correlation": 0.3075740661735649,
+            "mse": 1930.0028658619317,
+            "n": 88
+          },
+          "2025-11": {
+            "correlation": 0.32705043484298774,
+            "mse": 721.2851028418387,
+            "n": 79
+          },
+          "2025-12": {
+            "correlation": 0.1908256310283547,
+            "mse": 585.0346206305982,
+            "n": 85
+          },
+          "2026-01": {
+            "correlation": 0.6704599719360713,
+            "mse": 920.3460655495726,
+            "n": 82
+          },
+          "2026-02": {
+            "correlation": 0.19480360793191204,
+            "mse": 2979.41158955513,
+            "n": 76
+          },
+          "2026-03": {
+            "correlation": 0.3912527048012214,
+            "mse": 2452.247210987349,
+            "n": 89
+          },
+          "2026-04": {
+            "correlation": 0.0789054252969228,
+            "mse": 1249.99771526906,
+            "n": 84
+          },
+          "2026-05": {
+            "correlation": 0.15637484399000579,
+            "mse": 690.2243147230818,
+            "n": 87
+          }
+        },
+        "sign_accuracy": 0.5810546875
+      }
+    }
+  },
+  "gpu_used": false,
+  "input_bindings": {
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_00_AFTER96.json": "2ceaffbb609a4067c834d3bd66e92552a3ce7206869f9bbf0dcae81b2301e8bd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_01_AFTER96.json": "47340a3cad5139709c35e0e6bd0fe030391b80ace620a3167755d09d4343fb8d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_02_AFTER96.json": "c8bf012a1ed9d153b6a0c044f8198483f1fdbe06d97ec5b1410e840c1dea7ca6",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_03_AFTER96.json": "80bba670352cf97acbd7cc33fc0e279cb39350918eb8382b70a46ed73fc5e860",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_04_AFTER96.json": "dcefa77eebafe86c65898848cbad0f51f5d820cbbe2d9e30b798fd926b2c616a",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_05_AFTER96.json": "c0497f03b29a840b3b94c02d233651a52752fb5a3a9604641b263a8f1ee87b20",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_06_AFTER96.json": "bae0f53794ed595b91ec5f73181a31f6a94948fdc2de61c143405be073bfff25",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_07_AFTER96.json": "ac478205a4bea9cbf1b3cddc48e4d467f9d4aff62c4538711160ef4f07b16e44",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_08_AFTER96.json": "9e7a3734566aad997d5bb019a2dc6c0c4ecc3a2d00fafa1990c99306cbfa865e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_09_AFTER96.json": "e5623a6c75bd89bbf91eb3d0086c22e136a676f55dcac90baa5b1c636aa0f6c1",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_10_AFTER96.json": "3d220ace9e6d691e71acd12e0d83756aa686b0c212fb6efa31fb0b644df62e21",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_11_AFTER96.json": "75ae24a434e42ca0949f37282254ca3f25aa1864f724bd1cbb96d65adfb23770",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_12_AFTER96.json": "80279740423b3cffff0f95e9f6c155271ced883052b06c7687ea8c8bcf4e3b50",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_13_AFTER96.json": "d7bc87581c6f38585c7a9c683400365a926b99297239db7327aaf3fc992024d4",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_14_AFTER96.json": "b82ce33573e88046604e24b3fc2e95937abafb02846f49499112d19b20ba3d50",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_15_AFTER96.json": "f7c745f7419c173bf766300f1ae4b07e776c031be41c7a191b730970ed904c2d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_16_AFTER96.json": "53619c5c92a1f87c77be746382abd469775a63e57793c385c2580058ec5f5bdd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_17_AFTER96.json": "bb2eab47f2d096a2239c97163fb3e92581afe126a50938b2aeda246f0550cd64",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_18_AFTER96.json": "23847a7056ee0b703567eb7ea55436364494375f2effaa896196566df0879e2c",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_19_AFTER96.json": "0caac10398fa5a7d64939853e8320b0048b486a1501d6beba161e6732090f660",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_20_AFTER96.json": "34e5bcfcf02b61b9ac853a43269064421dc1d8a9024c79a4905dcd6817a3532a",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_21_AFTER96.json": "4cf803d4c8550d804e4f90f8eb93fe967858e8ff741e53d374bae0215121d8a2",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_22_AFTER96.json": "c6d1e0767bbf25ec0f459acc637e09638ad6a5aa6ebc219f3aef169bd6020faf",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_23_AFTER96.json": "f894d2193d32b0c67b9e6c81c8b025d76d036db72931e46ea0c4253a0f4d96e1",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_24_AFTER96.json": "8e0ab15d9fb34215383b8cd793b8b2bb6e3c5782fc6cc3f15324c2aa876cffad",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_25_AFTER96.json": "dab217beb700b8cf9a49a5dc61a44bea3b417d07bc065814f0b0262c3594a951",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_26_AFTER96.json": "bb0e43d2b22679f3455fd33a365b22903cabfcac3bb0db25b4e20e1e20535efc",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_27_AFTER96.json": "e28bf387b4892fdb926c90476ddd91b909c1abe821deb8c25474393e8867013a",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_28_AFTER96.json": "d3a72369cd1af2a7876e10ae93420e0b54ef6ea00d8c4c96f87632548f70f6f7",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_29_AFTER96.json": "9b6866bbaadab000657a68640fac7d1fae6b616587a9724303978ff4c0717d29",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_30_AFTER96.json": "79b829754a045f7b98353bcf3aacec209b209b90ea1dd963ffc13d7e42cab2dd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_31_AFTER96.json": "3ff910742c8f54b3439f5649816f4ab63fa1323cf94926b4e7a58e403627bb09",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_32_AFTER96.json": "1b96a88d863e335a76c52ab07de4d8a721ba531aef0fa08d1058e3fa1ec9dc49",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_33_AFTER96.json": "94b9f67592d6c01b8c2180dbaf69b60c9bf238fd54b23d353a32fd388618c76d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_34_AFTER96.json": "e16816525f9e3acaf817b2a3308aa6219ef77615a0c3913eb3ee614c5cd95dc6",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_35_AFTER96.json": "beeb0cea3b6f8a8161f1cc998bbf9128c1c0e9cdec9d9ff6c00efaa322520ac4",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_36_AFTER96.json": "abb7e9f565c72d79d9e0109fc4b6e125f95a24c699c31d726ffb19c2c2a51553",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_37_AFTER96.json": "c4f1b459615a339d1aa0ac850b39514dec874d84ae16a794cf24c2fe17a229ad",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_38_AFTER96.json": "498b3720d4023b6ea51dcaca195ab11b629d3d361bf7a9ee8fab41136df28134",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_39_AFTER96.json": "fc41269f5b84a0abf07a192eb06ff7e44a6d0b1763a599a30e4738686d07776d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_40_AFTER96.json": "802cba42f3784e95c4f3b25699a2d831ab3e32184bd1b62176c34900de97a08b",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_41_AFTER96.json": "605596ac4fce0325b4e98a60eb4e2a85138295211cfc6922138994ced4fd21ef",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_42_AFTER96.json": "3cbe22fa0345da22c01be344c1d19eaa71ae85b32207296808d3ad95030c0a8c",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_43_AFTER96.json": "fd731b7853c08bce617071ae2c73e524d4fbac9af96f9c94636071856259c9cb",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_44_AFTER96.json": "6ffe4113dfe0f9e5f295a24b9aa7e95c782ee160a6d55b28991de9eeace49619",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_45_AFTER96.json": "fb8722967fe4fb4cbb0c6c940373e65ff8b2d54d12a9cdfa9949820cfa5f601e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_46_AFTER96.json": "f07be579e535810e5fbbaaa311769bf40128488bb6c238be551a15f30a54b18d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_47_AFTER96.json": "1dad6069fcbd5800f75c3d147b0b4a59bb3dd582e34771382517c397a8d3c39b",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_48_AFTER96.json": "c00d6a512ca9fb78a9c188276bad9e210c8aad261c94bcda918b53424ccb77da",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_49_AFTER96.json": "71e9af780148f8b45ea204b3c10b488dd682bda130d3c181361f6463cc58e7bd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_50_AFTER96.json": "65cd2895b60f2b87b36da6e780171095d8c527fc5d3f0e5a4d3c92fb3686d8d1",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_51_AFTER96.json": "ebb0f3ee799c1cbada8d75d9d852bc4158cc35e416fcaba7e8a36f1b32814b45",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_52_AFTER96.json": "d32ed5a66dd9742b93a57ca2de92838032599b66193419255fc3c4db1dfa638d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_53_AFTER96.json": "bea4335f1532374c2be05974db5caa802ca7bd4877eb8998e8138aae4c6da6f8",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_54_AFTER96.json": "97e2ce1e8b07956172bb6fb541595f12f4dd34681c4f1501902f5d9af4e4d080",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_55_AFTER96.json": "fe01faf9dcf04083761a6e57b8f58c028143d79de8163df448b9844fa7011ab3",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_56_AFTER96.json": "7fc9992cb0b2c41745365f2836410895700d4a2a2ad2c66d76feda014be4005d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_57_AFTER96.json": "e7a162b4278a15a189e2172f069af0613230c3fa9a2ef3b3c580ae1260ca92c3",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_58_AFTER96.json": "ad4ccb084a8e212338616c61c76bef093c404f7735f5f3e12c2a963386f53f47",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_59_AFTER96.json": "1ce05ebc6962fb925f52e18809f428e1f94989d38af34de22bf27152d73c5e44",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_60_AFTER96.json": "cf7e67e6839ac0ea246d89f6c96827d76582be1eecf65ac1b1df2b1415774464",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_61_AFTER96.json": "94cdaa5c4acefdcada552075e25e9914ec1c70e43094e80bf020d7b865db3dda",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_62_AFTER96.json": "1f6b4c9ee135236031bdd7f5d6e9bcd5a597f351e14c90648bf944ef6e0a65c6",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/BATCH_63_AFTER96.json": "a9dd96b9bf17755e50d3f9f0c5050ccb860303d64545ce49a1a70364f2471a9b",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/FIVE_STEP_LOCAL_BATCH.json": "ff47cc749b1a24744963618faa632e18821a5f152725d69d19bef949178eee10",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_00.json": "da88f8d1e05ab118ec947d38ab02468354a7325f8ff6f70961b4d3cfdea31c7e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_01.json": "72c5df013e20270d96f01258b44203630f9db81711b23747f0764770db44de2c",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_02.json": "b18f6fcac245585188c81039d979893decbebd1a0973303cf793e3a773374740",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_03.json": "ed04c6259869d4c1b9329e33e154c292fe593aa1a1ed80ea6c91739a41d21649",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_04.json": "c8a9c94fee69895dcfd13c4c689d64e4ff3443e3120bc27ae9a1bd79cfb39273",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_05.json": "6e34c1b4eb79d7d2ed8082c082eb69f2a4f79d0454b9ced94787c0f846a00ef9",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_06.json": "5a0ce379a25214ff13c461faf795abfaa61e6ab9e6914fcbc1ba6c7383b204b7",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_07.json": "1bed13fba28644743b5609009f5478a94c16826c10bfbbfde9990195fbe2fc93",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_08.json": "f9e02e228da0a12125684d5aa334530d2eac634741b98668d9744d87b8283a53",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_09.json": "d49842f62d67e8501989300c3a80ae575dc912354b8fc8ce1ea1fcfe327aa768",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_10.json": "c64d2e2f9429f30517cedbe39904861759406bbc2f26b2230b6d197e1f726cf6",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_11.json": "40ffd4300e43f7d37b74f33bb0ae991ce943ec99b40ee17a0788ecfa86719f44",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_12.json": "e43f9dbd94275d5af3e8fd00cf2e6879345e163ccf85eac823e144593ac0c713",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_13.json": "03a65f4a937882ab124684a4948d101b03af9e5d45d574926515380de5a6ebbf",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_14.json": "9e0706a24e5eee6f8907b81c67e8e7f8748947b7a8ad767b5af6495d027b8684",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_15.json": "18ac6245e53dec4798bb6d6993ee5b77a79cb30ec14739c28436d2c1faa6e69e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_16.json": "d7c627ea7496dbe3713a87e1e84002e71a8a18953367a8c1e1335948ba5f9eb9",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_17.json": "4cb5755892f00e3748225ae05a5188d79964fc26e75c24a294cfb2afbeaa58d2",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_18.json": "ecc484175764101c4eb07f23c41c696914de66095a52e5c26c54185a7fd37165",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_19.json": "af6b9a398b54cfe87d8e5b881da1412f8a5e11c674e02d2e1ec2b9c68302008e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_20.json": "0327da0b4ac83f4ab80f6cffdc7a958097094e6a0e1942214f8fc10d730542bd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_21.json": "80234c338bc5bc3ed17394f0b3dd53f2b263135cafffcd219b02cc379fbfd761",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_22.json": "ae93280522d34b5de5fd0e30df690711a8eaf1f90442b6308b10ec891742ef46",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_23.json": "3410d1545911cd8d63cd6eea98b9628c1df1b1c62defee11a04ed36312b94682",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_24.json": "d9dfe46c6ffdeb7cd90bdf103dbc6a9d3c41bbb35b470b70320a25b4a46d1705",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_25.json": "8de985adeda10113853750d62c5ae65a08b4ac802ff128f88dbbaeb921c7d5ed",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_26.json": "ecb8df4a4e6aaa5a5d77a9d9d8a72437956d65fa332b4d936c6bbba19ed244af",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_27.json": "84a378f82b210143cc0b70150fe8167104f58fcc10437be3a66b8e9a3e2b57ce",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_28.json": "6052a31e794891751aa56fdd209533b6f51e3fea24b448b9ef5defd9c6cd4e23",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_29.json": "19683403d478cb497380f109bd755058ff8b3de0ad04171ad06e806bd68a1b2e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_30.json": "7f6d576bc5d5f5f2c8efcacc96b6b77a1c289fbabd2b03699c31fe5c04010b2e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_31.json": "a78b7a9201749d398ce47767ac1efcbda0928cd994af1f281579b3d321da228f",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_32.json": "f0341721f043eb64555b795e375054fa9d6b9b4e18a3cd911796626d7da73cef",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_33.json": "435a9e7cacf371013ec229b8baa455c9262cd2d86e521b77102acf46b3840ea1",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_34.json": "58a5378ee5eee866fa546c896db7f9535711b37c6c0f404a65f363e3d01711c0",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_35.json": "c018ee7c7c7b1824d797bbde3ca04b85bcb00ffd496abd93e45258afc48e7069",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_36.json": "942adbf12da3af0badb704148112b8656af1447382da73f7b8e182ba86a6b7eb",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_37.json": "0ab56db852c11d4c58528a4f144089c2a34747e48eee5757d172405fe4ee2ec3",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_38.json": "5919c0fbadbbb9264449ceffd53e663a104b17651a24fa5cff17a7f03f86e803",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_39.json": "a8794c34bcaaa747b6edbce4b294ab1d09111317bc63eaeb9437163a3c749454",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_40.json": "a6c0e9054ede9d8eafa078b2566a39978d77a6489ca739b85039eeb8236a48fb",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_41.json": "1c46ece25690563a2cb3708c20c9297c3e65f6ff51c594bb143d2495c54d7e46",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_42.json": "239aa8aca70f12fef512eb1dac421de71700de153f42c33f2421e3fa5cd9a376",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_43.json": "9c94912395c1edda115716251539bd500d999de3d5bb9bf39c31e7695cc5ba61",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_44.json": "deaf38e6d0a106496b84857b681f77c8d5abb35e8ee88a24b7ea71cda991a105",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_45.json": "1cd6c6b27719751d7dc5a041a239e74a15b5b542d65e595f6deda01dc9abed4f",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_46.json": "7e4b4665b8c0fd0a8ae5f15cb4a6a7627abbccce2526b2eeb945741d3307bc9d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_47.json": "d77454a29d429e38a5e519f4c65b519d3452badc555076383d1153070bd1dd7d",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_48.json": "a958df0694abc73c39a38e9c1881e1d6206f96904f6b4025b4b3355711abb5d3",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_49.json": "726bdb471afc64fe30f067342cb2d8d1f847567ec91b77276b34c9ff0b31c937",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_50.json": "914da86a42e37bc35763e76d88aac87feb89605bc1adf0b5490bb37c9bd15493",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_51.json": "b9a562b89f3428b210f3f86dc61a4369c61dc7f40c636059526f691e97d21dab",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_52.json": "880dbcf8c32bff2e6b2f9a0959e54c4722b2ab7ec8e439e5e91955ddbc88c557",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_53.json": "d06f443689b345c5a5dbcc60cf2882df7bb3592855e4e33a172e3f079e0d284e",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_54.json": "d8c3c9cf0be3c21d2ff61d094e69a8a81e491ed367f6abb12c71b0ff9ad6daf1",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_55.json": "d54537a17b241d459c16fea2f9f064fee80d514e94683265f4ecd1a447741aee",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_56.json": "1c2be4b4ba619832f20c127d4fadc64753137e966440500b131d39f53cf1defd",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_57.json": "083d34635b9c2a80e40567c8faa74848076558e689261a7172926f6f49374720",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_58.json": "d0abc4edb37801430b12db2360c912d536fe3d308d7f44b59c4e307c5145b67a",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_59.json": "baa754bc5ff7251ee7e2685a95ba6735ad14ceb4b8dffbd843164677d07a58ed",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_60.json": "82233926fdf299f3972902bff28c12fbc872c6022a2a783e4492af1f514199fb",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_61.json": "92d555d87b1e1896ba9d964d28c4772d1dddf82d4130bc81e359221c45d70d2f",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_62.json": "45363254da90b4c5a7233a5f79785b66d6c917095c17b725df7f6fd01c289b47",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_63.json": "08a7e2212485cf70ce48f2b27e9734a5f6fd6ae8048bc5e6bdd6094f273bc389",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/BATCH_INPUTS.pt": "5cff4b8ab5406f2cf68875d9e340ef617f1b877e22c56f5e54e67ae0af68e234",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2/TARGETS.pt": "253ceaf5ec91683adcb6c4f552cba4bfb53fc2aecf9a96da4b6fa9f558f8fed8",
+    "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json": "5abf7fbcbcce1db0026f148b0693b378e73e4e5add848baff7d5410f614a375a",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_sampler_v1.py": "61f11a8e6399d7a472ce69e1921f4b7fd4fe7d08ead8185f5fdd3e1ac436737e",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py": "42786afa45737b56fa3504228d6558a5c8e09aee09613eb0de6a16761eda2c84",
+    "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "eb5f60d824eaf8c60cbfdddc9388dc3561963ef11f8cb5f9703cfac801c12f19",
+    "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "505dd5059af9fbd04b3062030f99dc963d530fec3fa1f345d777b5dd56509493",
+    "/home/andre2/src/GX1_CURRENT/handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json": "9f550c3061522ff1f068dd60dba61d30d4db7eb45f634d45781b049e3cb3d08d",
+    "/home/andre2/src/GX1_CURRENT/handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json": "d50afbd134236eea81dde86c54ed4a5e0ee4c5ac8e293e542bf194046eb9ec01"
+  },
+  "limits": "All rows are TRAIN; broad Exit targets are one-step diagnostics. Five-step teacher asymmetry is measured on one cached batch. Frozen-teacher near-zero value and learning collapse do not prove a market edge exists. Constant baselines are in-sample descriptions.",
+  "model_forward_count": 0,
+  "models_constructed": 0,
+  "no_training_authority": true,
+  "operator_sha256": "11bc7211dfc124965cb9d7a04ad0bf4e0bc93657ebd8448ab6fb3769ace61273",
+  "peak_rss_kib": 584432,
+  "reused_gradient": {
+    "batches": [
+      {
+        "batch": 0,
+        "entry_private_exit_gradient_norm": 0.0,
+        "head_plus_exit_blocks_fraction_squared_raw_gradient": 0.9999857660577705,
+        "note": "Old checkpoint87 raw CPU gradients; not Adam parameter displacement or proof about checkpoint96."
+      },
+      {
+        "batch": 1,
+        "entry_private_exit_gradient_norm": 0.0,
+        "head_plus_exit_blocks_fraction_squared_raw_gradient": 0.9999829740063381,
+        "note": "Old checkpoint87 raw CPU gradients; not Adam parameter displacement or proof about checkpoint96."
+      },
+      {
+        "batch": 2,
+        "entry_private_exit_gradient_norm": 0.0,
+        "head_plus_exit_blocks_fraction_squared_raw_gradient": 0.9999868617822956,
+        "note": "Old checkpoint87 raw CPU gradients; not Adam parameter displacement or proof about checkpoint96."
+      },
+      {
+        "batch": 3,
+        "entry_private_exit_gradient_norm": 0.0,
+        "head_plus_exit_blocks_fraction_squared_raw_gradient": 0.9999660271956836,
+        "note": "Old checkpoint87 raw CPU gradients; not Adam parameter displacement or proof about checkpoint96."
+      }
+    ],
+    "decision": "NO_SHARED_EXIT_INTERFERENCE_CHANGE_JUSTIFIED_BY_FIXED_SAMPLE",
+    "scope": "64 fixed TRAIN rows in four chronological clusters; raw native CPU gradient geometry, no executed SGD or Adam update and no generalization or profitability evidence."
+  },
+  "sample_ages": {
+    "descriptive_counts_not_holding_rules": {
+      "0": 497,
+      "1440": 3178,
+      "5": 1082,
+      "60": 2035
+    },
+    "note": "These4096 cached training transitions do not describe all32 optimizer batches. Entry anchors are separate frozen-target queries with no Exit loss.",
+    "observed_m1_index": {
+      "max": 45142.0,
+      "mean": 1964.290771484375,
+      "median": 62.0,
+      "min": 0.0,
+      "n": 4096,
+      "std": 4867.914755976916
+    },
+    "wall_minutes_since_entry_timestamp": {
+      "max": 64540.0,
+      "mean": 2814.040771484375,
+      "median": 68.0,
+      "min": 6.0,
+      "n": 4096,
+      "std": 7091.382535837275
+    }
+  },
+  "source_commit": "0dd34ff8352a3b56746a00b4a2564d128fb56ac1",
+  "test_data_used": false,
+  "trace": {
+    "anchor_liquidation": {
+      "max": -0.39006128907203674,
+      "mean": -5.893247050233185,
+      "median": -5.84298849105835,
+      "min": -12.70250415802002,
+      "n": 32,
+      "std": 2.3185401625944406
+    },
+    "entry_one_vs_five_max_abs_difference": 2.9802322387695312e-08,
+    "entry_teacher_continuation": {
+      "max": 0.05515098571777344,
+      "mean": 0.024321570992469788,
+      "median": 0.0212324857711792,
+      "min": 0.0,
+      "n": 32,
+      "std": 0.024415223416169193
+    },
+    "exact_target_reproduction": true,
+    "sides": {
+      "LONG": {
+        "after": {
+          "centered_mse": 32.68951018202337,
+          "constant_target_mean_mse": 32.896330902946474,
+          "constant_target_median_mae": 3.50571030046558,
+          "correlation": 0.17685510016970785,
+          "mae": 3.505526716762688,
+          "mse": 32.747432942756255,
+          "prediction": {
+            "max": 0.6729983687400818,
+            "mean": 0.2121235562954098,
+            "median": 0.19787383824586868,
+            "min": 0.03398407995700836,
+            "n": 64,
+            "std": 0.10765989052481793
+          },
+          "target": {
+            "max": 29.621225357055664,
+            "mean": -0.0285479225567542,
+            "median": 0.05354024097323418,
+            "min": -16.819868087768555,
+            "n": 64,
+            "std": 5.735532312082853
+          }
+        },
+        "available_steps": {
+          "1": 64,
+          "2": 64,
+          "3": 64,
+          "4": 64,
+          "5": 64
+        },
+        "before": {
+          "centered_mse": 32.770133290905264,
+          "constant_target_mean_mse": 32.896330902946474,
+          "constant_target_median_mae": 3.50571030046558,
+          "correlation": 0.14056829455921,
+          "mae": 3.501117466497817,
+          "mse": 32.776653594513675,
+          "prediction": {
+            "max": 0.3312325179576874,
+            "mean": 0.0522004743834259,
+            "median": 0.059810176491737366,
+            "min": -0.1253650188446045,
+            "n": 64,
+            "std": 0.0824829033015324
+          },
+          "target": {
+            "max": 29.621225357055664,
+            "mean": -0.0285479225567542,
+            "median": 0.05354024097323418,
+            "min": -16.819868087768555,
+            "n": 64,
+            "std": 5.735532312082853
+          }
+        },
+        "first_successor_teacher_hold_q": {
+          "max": 0.24985560774803162,
+          "mean": -0.06342358725669328,
+          "median": -0.06386855617165565,
+          "min": -0.14853577315807343,
+          "n": 64,
+          "std": 0.06365541072444612
+        },
+        "five_step_target": {
+          "max": 29.621225357055664,
+          "mean": -0.0285479225567542,
+          "median": 0.05354024097323418,
+          "min": -16.819868087768555,
+          "n": 64,
+          "std": 5.735532312082853
+        },
+        "length_counts": {
+          "1": 59,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 5
+        },
+        "movement": {
+          "before_plus_constant_mse": 32.82805605163815,
+          "change": {
+            "max": 0.621376994997263,
+            "mean": 0.1599230819119839,
+            "median": 0.1485603265464306,
+            "min": 0.12236958742141724,
+            "n": 64,
+            "std": 0.06251567256149103
+          },
+          "change_target_correlation": 0.11910164876358204,
+          "constant_fraction_squared_change": 0.8674446429744003
+        },
+        "one_step_target": {
+          "max": 29.621225357055664,
+          "mean": 0.0989322192617692,
+          "median": -0.09542548097670078,
+          "min": -16.819868087768555,
+          "n": 64,
+          "std": 5.610939500674006
+        }
+      },
+      "SHORT": {
+        "after": {
+          "centered_mse": 71.59114822534602,
+          "constant_target_mean_mse": 71.5827542513815,
+          "constant_target_median_mae": 5.917262292001396,
+          "correlation": 0.004183167487117171,
+          "mae": 5.965665877782158,
+          "mse": 71.92380966079926,
+          "prediction": {
+            "max": 0.9413830041885376,
+            "mean": 0.02333783461654093,
+            "median": -0.002284962683916092,
+            "min": -0.10930880904197693,
+            "n": 64,
+            "std": 0.13360942393129296
+          },
+          "target": {
+            "max": 24.129600524902344,
+            "mean": 0.6001059296540916,
+            "median": 0.5106385052204132,
+            "min": -29.70203971862793,
+            "n": 64,
+            "std": 8.460659209032208
+          }
+        },
+        "available_steps": {
+          "1": 64,
+          "2": 64,
+          "3": 64,
+          "4": 64,
+          "5": 64
+        },
+        "before": {
+          "centered_mse": 71.61593847493208,
+          "constant_target_mean_mse": 71.5827542513815,
+          "constant_target_median_mae": 5.917262292001396,
+          "correlation": -0.002772179565893173,
+          "mae": 5.966090617890586,
+          "mse": 71.9056271414353,
+          "prediction": {
+            "max": 1.156013011932373,
+            "mean": 0.06187859245983418,
+            "median": 0.031295839697122574,
+            "min": -0.08513075858354568,
+            "n": 64,
+            "std": 0.16021462596223793
+          },
+          "target": {
+            "max": 24.129600524902344,
+            "mean": 0.6001059296540916,
+            "median": 0.5106385052204132,
+            "min": -29.70203971862793,
+            "n": 64,
+            "std": 8.460659209032208
+          }
+        },
+        "first_successor_teacher_hold_q": {
+          "max": 1.8250678777694702,
+          "mean": 0.10568260989384726,
+          "median": 0.05475267767906189,
+          "min": 0.026369132101535797,
+          "n": 64,
+          "std": 0.24169528656608902
+        },
+        "five_step_target": {
+          "max": 24.129600524902344,
+          "mean": 0.6001059296540916,
+          "median": 0.5106385052204132,
+          "min": -29.70203971862793,
+          "n": 64,
+          "std": 8.460659209032208
+        },
+        "length_counts": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 64
+        },
+        "movement": {
+          "before_plus_constant_mse": 71.94859991038533,
+          "change": {
+            "max": -0.002520933747291565,
+            "mean": -0.03854075784329325,
+            "median": -0.03182233730331063,
+            "min": -0.21463000774383545,
+            "n": 64,
+            "std": 0.03671522447753169
+          },
+          "change_target_correlation": 0.027319846866942207,
+          "constant_fraction_squared_change": 0.5242433855220804
+        },
+        "one_step_target": {
+          "max": 16.44074058532715,
+          "mean": -0.01613237109268084,
+          "median": 0.261762872338295,
+          "min": -30.04376220703125,
+          "n": 64,
+          "std": 5.6417013676007155
+        }
+      }
+    }
+  }
+}

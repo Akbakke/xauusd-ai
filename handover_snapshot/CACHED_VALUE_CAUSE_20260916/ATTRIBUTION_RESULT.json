@@ -1,0 +1,79 @@
+{
+  "algebra": "dQ = dw*mean(h) + mean(w)*dh + db; symmetric between checkpoints, fp64 analysis of captured FP32 tensors.",
+  "cached_all_outputs_exact": true,
+  "checkpoint_bindings": {
+    "AFTER96": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
+      "sha256": "77294b3f04afca6c0acb1e078fb68f392f6ba3ee0a1858a669a8c91b12622d0c"
+    },
+    "BEFORE95": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FQI_TARGET_REFRESH_F11C1DBE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "ca18cdf27f1ddf22741c893456d2040e1e53ce0cf1ac8e9532cb780973fd5dbe"
+    }
+  },
+  "elapsed_seconds": 9.750573209999857,
+  "entry_forward_count": 2,
+  "exit_forward_count": 2,
+  "gpu_used": false,
+  "head_bias_delta_shared_both_sides": 0.0015068771317601204,
+  "head_bias_difference_after": -0.006580514833331108,
+  "head_bias_difference_before": -0.008087391965091228,
+  "limits": "Exact attribution of this stored batch at final linear layer; not a causal attribution to individual upstream modules, Adam momentum, all32 gradients or market edge.",
+  "maximum_float32_output_reconstruction_residual": 8.59052338153532e-08,
+  "operator_sha256": "4bb70f0b42945750ff6a837a5ff1476efb26e4b7135110bdbdf919aa37b52a52",
+  "optimizer_or_backward": false,
+  "peak_rss_kib": 1955728,
+  "sides": {
+    "LONG": {
+      "after_hidden_across_states_centered_energy_fraction": 0.22901504867412764,
+      "before_hidden_across_states_centered_energy_fraction": 0.23064058959291225,
+      "head_including_bias_mean": 0.09612915466408625,
+      "head_weight_term": {
+        "max": 0.21082445130088545,
+        "mean": 0.09462227753232613,
+        "min": 0.07200718551572777,
+        "std": 0.02237471404412802
+      },
+      "hidden_mean_fraction_of_net_change": 0.39890382124951995,
+      "hidden_representation_term": {
+        "max": 0.45279696888134724,
+        "mean": 0.06379392848069036,
+        "min": 0.043645384174027704,
+        "std": 0.04981037782864281
+      },
+      "total_change": {
+        "max": 0.621376994997263,
+        "mean": 0.1599230819119839,
+        "min": 0.12236958742141724,
+        "std": 0.06251567256149103
+      }
+    },
+    "SHORT": {
+      "after_hidden_across_states_centered_energy_fraction": 0.2781185480413279,
+      "before_hidden_across_states_centered_energy_fraction": 0.2996336711400515,
+      "head_including_bias_mean": 0.000860657291493677,
+      "head_weight_term": {
+        "max": 0.017121545833147112,
+        "mean": -0.0006462198402664434,
+        "min": -0.03136292315099908,
+        "std": 0.009199635882106347
+      },
+      "hidden_mean_fraction_of_net_change": 1.0223310864896635,
+      "hidden_representation_term": {
+        "max": -0.0028421375196064796,
+        "mean": -0.03940141484006901,
+        "min": -0.210555506997084,
+        "std": 0.03547526808421202
+      },
+      "total_change": {
+        "max": -0.002520933747291565,
+        "mean": -0.03854075784329325,
+        "min": -0.21463000774383545,
+        "std": 0.03671522447753169
+      }
+    }
+  },
+  "source_commit": "0dd34ff8352a3b56746a00b4a2564d128fb56ac1",
+  "teacher_forward_count": 0,
+  "test_data_used": false
+}

@@ -28,4 +28,13 @@ bundet historisk bevis. Ingen gamle smoker eller separate VAL-kjørere er
 alternative oppstartsveier. Importer med v12/live i navnet kan fortsatt eie
 nødvendige offlinefunksjoner; navn alene er ikke grunnlag for sletting.
 
+Målkjeden er undersøkt i docs/VALUE_LEARNING_CAUSE_20260916.md:
+observerte utfall → forecast/markedsrepresentasjon → detached Entry-Q-mikser;
+frossen Exit-lærer + første likvidasjonsverdi → Entry-Q-supervisjon.
+Forecast-output brukes ikke direkte til handling. Femstegs Exit-target følger
+lærerens HOLD/EXIT-valg; Entry-target bruker fortsatt frossen førstetilstandsverdi.
+Målt lærerpolicy gir LONG oftest ett steg og SHORT fem på den lagrede batchen.
+Head-/representasjonsattribusjon forklarer hvor sideforskyvningen uttrykkes;
+en generell modell-, tapsvekt- eller biasrettelse er ikke begrunnet.
+
 Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.

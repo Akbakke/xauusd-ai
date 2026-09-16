@@ -98,14 +98,46 @@ Fullt resultat og nye BATCH_00..63_AFTER96.json ligger under BASE/
 NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916.
 RESULT.json SHA47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c.
 
-Neste: hold trening stoppet. Sammenhold eksisterende fixed-target-, FQI- og
-SHARED_TASK_GRADIENT_REVIEW_20260915-bevis med dette resultatet. Avklar konkret
-hvorfor verdilæringen hovedsakelig flytter en sidevis grunnverdi fremfor å
-skille markedstilstander. Vurder den frosne lærerpolicyens targets og veien
-fra selvstendig prognosesignal til Entry. Ikke gjenta32/1024 eller start epoch.
-Velg bare én evidensbegrunnet justering eller avgrenset måling med avklart
-beslutningsgrunnlag. Tidligere gradientmåling ga ikke grunnlag for generell
-delt-backbone- eller tapsvektendring; gjenbruk den konklusjonen.
+Årsaksdiagnosen er nå ferdig; se neste avsnitt. Ikke gjenta32/1024-kontrollen.
+
+## Årsaksdiagnose — målkjede og verdilesing
+
+Se [full årsaksrapport](docs/VALUE_LEARNING_CAUSE_20260916.md). Én cacheanalyse
+og en avsluttende hodeattribusjon ble kjørt på CPU med eksisterende audit-vakt;
+ingen trening, nye targets, GPU, VAL eller TEST. Begge kilde-/checkpointbindinger
+bestod. To evalueringer av én lagret batch reproduserte alle gamle outputs eksakt.
+
+Entry får bare0,02456Bps videreverdi mot−5,85327Bps første likvidasjonsverdi;
+1021/1024 lærerhandlinger er de samme uten videreverdien. Femstegsberegningen
+endrer ikke denne Entry-supervisjonen. I den lagrede batchen stopper lærerpolicyen
+LONG etter ett steg på59/64, mens SHORT bruker fem på64/64; alle successors finnes.
+Dette er en målt sideavhengig målhorisont, ikke en holdetidsgrense.
+
+På den samme lokale batchen kommer LONG-økningen0,15992Bps omtrent60% fra siste
+verdihode og40% fra representasjonen. SHORT-fallet−0,03854Bps kommer fra
+representasjonen. Felles biasendring er bare+0,00151Bps. Det er ikke dokumentert
+at en biasrettelse løser problemet. Den brede konstante LONG-forskyvningen er
+fortsatt94,70%; tilstandsavhengig læring er svak. Prognoser har TRAIN-signal,
+men lærer andre mål og inngår ikke direkte i Entry-argmax.
+
+Manglende tidlige Exit-eksempler ble avkreftet:497/4096 treningssamples er ved
+tilstand0. Tidligere gradientbevis gir fortsatt ikke grunnlag for generell
+backbone-/tapsvektendring. Den eksakte oppdelingen mellom upstream-moduler og
+Adam-historikk er ikke målt; lærerens skjevhet er ikke alene bevis for retningen
+på de32 ONLINE-oppdateringene.
+
+Planer, operatorer, logger og resultater ligger i
+handover_snapshot/CACHED_VALUE_CAUSE_20260916/ og tilsvarende mappe under
+BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/.
+RESULT SHAde50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2;
+ATTRIBUTION_RESULT SHA98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0853559.
+Cacheanalysen tok1,04s; hodeanalysen9,75s. Modell-/treningskode og checkpoints er bevart.
+
+Neste: hold trening stoppet. Før en implementasjon velges, avklar én konkret
+hypotese for lærer-/verdisupervisjonen og et frosset sammenligningsgrunnlag.
+Ikke gjenta ferdige diagnoser, nullstill bias/Adam, oppdater læreren automatisk,
+koble bruttoforecast direkte til handel eller start større trening. Rapporten
+lokaliserer mekanismene, men dokumenterer ikke én enkelt kodefeil eller markedsfordel.
 
 Cachemappene under BASE/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/
 FROZEN_POLICY_TRACE_NATIVE_BATCH_20260916_V2 og BROAD_TRAIN95_134_20260916 er

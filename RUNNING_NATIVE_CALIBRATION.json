@@ -1,10 +1,10 @@
 {
-  "status": "LEARNING_MEASURED_NO_EXPANSION_JUSTIFIED",
+  "status": "VALUE_LEARNING_CAUSE_DIAGNOSED_TRAINING_STOPPED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
   "source_commit_scope": "Training source; documentation HEAD may advance after terminal control. Read current git HEAD.",
-  "latest_observation_utc": "2026-09-16T12:38:09.103407+00:00",
+  "latest_observation_utc": "2026-09-16T13:11:07+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT_BOOT444",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -57,7 +57,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Keep training stopped. Reuse existing fixed-target/FQI/gradient evidence and new cached95/96 outputs to locate why value learning mainly shifts a side-wide baseline instead of distinguishing market states. Assess frozen teacher-policy supervision and the independent forecast-to-Entry path. No repeat32/1024, full epoch/VAL, target refresh, replay or broad model/weight/threshold search. Choose one evidence-backed adjustment or bounded measurement with predefined criteria.",
+  "next_action": "Keep training stopped. Read docs/VALUE_LEARNING_CAUSE_20260916.md and reuse completed cache/head attribution. Entry supervision is dominated by first liquidation plus near-zero frozen continuation; five-step Exit inherits side-asymmetric teacher stopping. Final-head versus representation contributions are measured on the cached16-row batch. Before any implementation, define one causal hypothesis for value-target supervision and its fixed comparison criteria. No repeat32/1024 or completed probes, automatic teacher refresh, bias/Adam reset, forecast-to-trade shortcut, broad weight/model search, full epoch or full VAL.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -65,5 +65,20 @@
   "learning_measurement": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/LEARNING95_96_20260916/RESULT.json",
     "sha256": "47822d2d58f2fcfdab82c22065c3c393d8ef2f1073b409dccff57d8c052c071c"
+  },
+  "value_learning_diagnosis": {
+    "report": "docs/VALUE_LEARNING_CAUSE_20260916.md",
+    "source_commit": "0dd34ff8352a3b56746a00b4a2564d128fb56ac1",
+    "cache_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/CACHED_VALUE_CAUSE_20260916/RESULT.json",
+      "sha256": "de50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2"
+    },
+    "attribution_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_RESULT.json",
+      "sha256": "98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0853559"
+    },
+    "training_enabled": false,
+    "single_root_cause_proven": false,
+    "target_chain_and_final_head_contributions_measured": true
   }
 }

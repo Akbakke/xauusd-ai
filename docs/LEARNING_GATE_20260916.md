@@ -31,7 +31,12 @@ Punkt1 og2 nedenfor er ferdige og skal ikke gjentas. Målingen åpner ikke
 større trening: lokal Entry-fit bedres, bred Entry blir litt verre og allFLAT.
 LONG Exit blir allHOLD, hovedsakelig gjennom en konstant verdiøkning.
 Se CURRENT_HANDOVER.md og handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json.
-Neste arbeid følger «Hvis resultatet uteblir», med eksisterende gradient-/FQI-bevis.
+Årsaksarbeidet under «Hvis resultatet uteblir» er nå gjennomført og dokumentert i
+[årsaksrapporten](VALUE_LEARNING_CAUSE_20260916.md). Svak frossen videreverdi,
+sideavhengig lærerpolicy og verdihode-/representasjonsforskyvning er målt.
+Ingen produksjonsendring er valgt. Før implementasjon må én konkret hypotese
+for verdisupervisjonen og dens sammenligningsgrunnlag avklares. Ferdige
+cache-/hodekontroller skal ikke gjentas og åpner ikke trening.
 
 ## Måling og beslutning, i denne rekkefølgen
 

@@ -1,0 +1,7 @@
+{
+  "bound_scope": "One existing16-entry/64-transition batch, ONLINE95 and96 CPU eval. Exactly2 Entry and2 Exit forwards; no teacher, backward, optimizer, new materialization, VAL or TEST.",
+  "criteria": "Both Entry/Exit/forecast output arrays must exactly reproduce existing caches. Store algebra residual including float32 rounding. Do not claim raw gradient causality or generalization; no training authorization.",
+  "observed_blocker": "Cache-only diagnosis cannot distinguish constant output shift caused by final head parameters from hidden representations.",
+  "predefined_method": "Capture existing exit_random_access_fuse output. For Q=w*h+b, symmetric exact decomposition dQ=dw*mean(h)+mean(w)*dh+db. Report sides separately; compare reconstruction against cached outputs. No architecture/weight modification or parameter transplant.",
+  "source_commit": "0dd34ff8352a3b56746a00b4a2564d128fb56ac1"
+}
