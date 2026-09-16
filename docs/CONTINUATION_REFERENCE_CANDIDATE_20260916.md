@@ -163,3 +163,16 @@ uavhengig valgte, disjunkte TRAIN-Entries fra eksisterende cache. Gjenbruk
 nåinputs og BEFORE95-prediksjoner. Beregn bare manglende rewards og boundary-
 verdier med bevart lærer, i én avgrenset CPU-forberedelse uten optimizer eller
 backward. Deretter bind bevisene i eksisterende policy før en kandidat åpnes.
+
+Referansemålene er nå frosset for512 faktiske trenings-Entries og128 separate
+TRAIN-Entries. Samme online-input og opprinnelige Entry-mål er kontrollert;
+BEFORE95-output gjenbrukes. Tidligere «separat128» hadde16 trente Entries.
+De112 øvrige beholdes; bare overlappen er erstattet ut fra rad-ID, uten utfall.
+Det nye utvalget har0 overlapp og dekker alle12 måneder. Dette retter målingen;
+gamle resultater og checkpoints er bevart.
+
+Én native32-kandidat er bundet til disse målene og original95, global5777→5809.
+Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
+samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
+konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
+Plan: NEXT_RUN_POLICY.json → reference_learning_plan.

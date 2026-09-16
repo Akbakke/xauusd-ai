@@ -73,12 +73,15 @@ forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet
 Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
 frosne prognoser og alle ferdige målinger skal gjenbrukes.
 
-Referansemålet er nå koblet til eksisterende native trainer/recipe/checkpoint;
-175 CPU-tester består. Original95s tilstand og den opprinnelige Entry-broen
-bevares. Før én32-stegs kritiker-kandidat kan åpnes, må faktiske mu-mål fryses
-for512 trente og128 separate TRAIN-Entries, med samme lærer og sammenligning
-før/etter per side/måned mot konstant-baselines. Gjenbruk eksisterende inputs
-og prediksjoner; beregn bare manglende rewards/boundary-verdier under CPU-vakt.
-Se docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md og
-handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json.
-Ingen native start, teacher-refresh, større trening eller lærings-PASS nå.
+Referansemålene er nå frosset for512 faktiske trenings-Entries og128 separate
+TRAIN-Entries. Samme online-input og opprinnelige Entry-mål er kontrollert;
+BEFORE95-output gjenbrukes. Tidligere «separat128» hadde16 trente Entries.
+De112 øvrige beholdes; bare overlappen er erstattet ut fra rad-ID, uten utfall.
+Det nye utvalget har0 overlapp og dekker alle12 måneder. Dette retter målingen;
+gamle resultater og checkpoints er bevart.
+
+Én native32-kandidat er bundet til disse målene og original95, global5777→5809.
+Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
+samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
+konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
+Plan: NEXT_RUN_POLICY.json → reference_learning_plan.

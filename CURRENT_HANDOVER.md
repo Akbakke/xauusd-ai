@@ -4,13 +4,18 @@
 VAL er aktivert. Paret95→96 er ferdig og gir ikke grunnlag for utvidelse. Lokal Entry-fit
 bedres, bred beslutningskvalitet og lønnsomhet er ikke dokumentert.
 
-**Nå:** Referansemålet er koblet til eksisterende native trainer, recipe og
-checkpointovergang.175 CPU-tester består, derav31 nye. Ekte source closure fra
-original95 er kontrollert: bare referansemålets kildefil tilkommer; ingen eier
-fjernes. Neste er frosne sammenligningsmål for512 trente og128 separate TRAIN-
-eksempler. Koden krever deres bundne bevis før én32-stegs kritiker-kandidat.
-Entry beholder opprinnelig lærer; ingen refresh eller native kjøring er åpnet.
-Kvittering: [native binding](handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json).
+**Nå:** Referansemålene er nå frosset for512 faktiske trenings-Entries og128 separate
+TRAIN-Entries. Samme online-input og opprinnelige Entry-mål er kontrollert;
+BEFORE95-output gjenbrukes. Tidligere «separat128» hadde16 trente Entries.
+De112 øvrige beholdes; bare overlappen er erstattet ut fra rad-ID, uten utfall.
+Det nye utvalget har0 overlapp og dekker alle12 måneder. Dette retter målingen;
+gamle resultater og checkpoints er bevart.
+
+Én native32-kandidat er bundet til disse målene og original95, global5777→5809.
+Bare Exit-målet endres til den dokumenterte referanseverdien. Entry beholder
+samme lærer. Etterpå måles tilstandsavhengig forbedring per side/måned mot
+konstant-baselines. Ingen lærer-refresh, VAL, større trening eller lærings-PASS.
+Plan: NEXT_RUN_POLICY.json → reference_learning_plan.
 
 Forrige kandidat med separat Exit-klipping er fullført og forkastet.
 Den lærte litt på de512 trente eksemplene, men feilen økte på separat TRAIN;
@@ -52,9 +57,9 @@ Neste rettelse må bevare forventet handlingsverdi, kausal policy og bootstrap.
 
 Én konkret neste kandidat er nå spesifisert i
 [referanseverdi med bootstrap](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Kun CPU-implementering/kontraktkontroll er åpnet: samme stasjonære referanse for begge
-sider, eksplisitt Q_mu, ingen fast holdetid eller nye modellhoder. Native trening
-og teacher-refresh krever fortsatt eget avgrenset læringsgrunnlag.
+Samme stasjonære referanse gjelder begge sider: eksplisitt Q_mu, ingen fast
+holdetid eller nye modellhoder. De frosne sammenligningsmålene åpner nå én
+bundet native32-kandidat; teacher-refresh og større trening er fortsatt stengt.
 
 Referansemålets matematikk er tidligere kontrollert med62 tester. Den nye
 state-view-/adapter-/factory-/collate-koblingen har26 beståtte integrasjonstilfeller;
@@ -64,7 +69,7 @@ shelltekst; script og tester er byteidentiske med baseline. Ingen suite-PASS
 påstås og ingen kjørevern er endret. Logg, kilde og bevis:
 [datatilkoblingskvittering](handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json).
 Se [referansemål og neste binding](docs/CONTINUATION_REFERENCE_CANDIDATE_20260916.md).
-Ingen trening, teacher-refresh eller større VAL er åpnet.
+Bare den nye bundne native32-kandidaten er åpnet; ingen teacher-refresh eller VAL.
 
 ## Start her
 
