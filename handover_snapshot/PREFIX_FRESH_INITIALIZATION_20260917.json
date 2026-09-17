@@ -1,0 +1,240 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+    "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+  },
+  "result": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "completed_utc": "2026-09-17T06:07:21.221946+00:00",
+    "control_entries": 256,
+    "decision": "ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED",
+    "elapsed_seconds": 621.4495523039986,
+    "eligible_train_entries": 47814,
+    "ema_derivation": {
+      "batch_size": 16,
+      "declared_value": "epoch",
+      "effective_batch_rows": 16,
+      "grad_accum_steps": 1,
+      "horizon_epochs": 1,
+      "horizon_optimizer_steps": 2989,
+      "recipe_key": "ENTRY_TRAIN_WEIGHT_EMA_DECAY",
+      "steps_per_epoch": 2989,
+      "train_rows": 47814,
+      "weight_ema_decay": 0.9996654399464704
+    },
+    "ema_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "ema_steps": 0,
+    "files": {
+      "child_composite_normalization": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/COMPOSITE_NORMALIZATION.json",
+        "sha256": "fa4a348c743cca9ffb72665c00cff59a02533fae32194ecc76208961f25de4a4"
+      },
+      "economics_readiness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/ECONOMICS_READINESS_V4.json",
+        "sha256": "90b07b4dc8bbfeedf8d2b15c950d1c87717ebc43182a5b80c75d08e26534d805"
+      },
+      "entry_train_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+      },
+      "entry_train_parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+      },
+      "entry_val_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+      },
+      "entry_val_parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+      },
+      "feature_lifecycle_root": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/UNIFIED_EXIT_LIFECYCLE/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+        "sha256": "3fa95fb054b9e593708533e714189939f2e48fb10270dbb48efb5cc8aefdae52"
+      },
+      "m5_prebuilt": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V3_ENRICHED_20260829T173000Z/FULL_PLUS_CTX_v3src.parquet",
+        "sha256": "1785e41c025e8844a47fb78897ec17a082efbb716a9789a8f0494e564b12c9d9"
+      },
+      "random_access_root": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/ROOT.json",
+        "sha256": "6c8b0c023db89e197a21d7b05d19ee071242c023d7a0c30399ab5466f47d7819"
+      },
+      "sampler_candidate_set": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",
+        "sha256": "50d8de996f4da0e5b730f3e1b7eba7ecd5adc673da7a4533c9b16d7fba9a987a"
+      },
+      "sequence_source_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260905T143732Z.json",
+        "sha256": "53f836d0bee89409636ad58f988ada44d61633bfd62c10014bef4e5f2f68ef29"
+      },
+      "source_bundle_metadata": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z/ENTRY_V9_LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z_BUNDLE/bundle_metadata.json",
+        "sha256": "9870b87899719e4282f87b5191b96bd661a8f4daf015c5ebdf8f96d0694d0a87"
+      },
+      "train_cost_authority": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PROSPECTIVE_COST_POLICY_V1/parameter_authority.json",
+        "sha256": "b5cfc8ebaf5b5116747266c667edbbf73f4b862f6c4259c4c0fa202fd1095e37"
+      }
+    },
+    "inherited_checkpoint_weights": false,
+    "initial_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/INITIAL_STATE.pt",
+      "sha256": "f25206898ff121d78f6d042c897886aacd4ec95f2d861b2cf2abbe01dfb28bfe"
+    },
+    "input_normalization_sha256": "0c73327b125ef653071d00124d985e87019449e7f3b2885179a6f6cdf96cfb59",
+    "model_forwards": 0,
+    "model_parameter_count": 9617497,
+    "native_control_context": {
+      "compute_limits": {
+        "cpu_pipeline_workers": 8,
+        "max_model_forwards": 84049614,
+        "max_state_views": 84049614,
+        "max_wall_seconds": 10800,
+        "policy_batch_size": 256,
+        "progress_interval_forwards": 64
+      },
+      "entry_q_target_semantics": "separately_bound_reference_measurement_required",
+      "evaluation_cohort": {
+        "cohort_sha256": "d9baa92bfe6ca41712506fd55a899503900bdd2e0808526c2aa9ae847fc11874",
+        "evaluation_role": "chronological_reused_development_control",
+        "plan": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+          "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+        },
+        "population_rows": 313399,
+        "schema_version": "gx1_chronological_development_control_cohort_v1",
+        "source_index": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.random_access_index.parquet",
+          "sha256": "66004b8c453aa54ecaa74535036e1d1d25b40d1e60e363ede2f2956accfbfb78"
+        },
+        "source_split": "train",
+        "split": "val",
+        "test_data_used": false,
+        "entry_row_indices_count": 256,
+        "parent_entry_row_indices_count": 256
+      },
+      "factory_receipt": {
+        "artifact_file_sha256": {
+          "child_m1": "ee0bdee2bf76846ef0a715a537457cb0653ecac1585742603b84b51de87874f8",
+          "child_m1_manifest": "e5c99322bbe878a7a148dd840f9ae5547fb2a1fe8f90c0138058b20fd795c843",
+          "closure_authority": "fd6f2f260fd40e412e3bc15a0719633e8f44ce82791856848b864bae73f3f874",
+          "composite_normalization": "fa4a348c743cca9ffb72665c00cff59a02533fae32194ecc76208961f25de4a4",
+          "entry_manifest": "af7238e733e4a66314de70988da27cb1c0bcbddb93f8702925d2183ef1086c03",
+          "entry_parquet": "84b920ce177dd584b6503c035d0a8dd5a2366d68367269613e35ebea298cd653",
+          "first_state_bridge": "00c7f7fafefa4ba624c36614d9979af120068715b15850a94e2be50147a23aa8",
+          "random_access_index": "66004b8c453aa54ecaa74535036e1d1d25b40d1e60e363ede2f2956accfbfb78",
+          "random_access_index_manifest": "736b9cb51f1fb73bccc096d09b5a1f6dfd509c2519b5ef68107a0e3a59424a04",
+          "random_access_index_root": "6c8b0c023db89e197a21d7b05d19ee071242c023d7a0c30399ab5466f47d7819",
+          "split_sequence_binding": "89490b3b8babe335e1b121a26bf2323aa4ef0eb180431d4878858c27503a87dd",
+          "successor_counts": "3ca5737106bb8ed8912c64994ab4f69fef97b02588f96d2f854ebbd6f2627648",
+          "summary_manifest": "4bde458c8a4278d557b0e8f1711e3fa7a0da1010f498d60dc9060002a4ba69ca"
+        },
+        "both_sides": true,
+        "capacity_is_terminal": false,
+        "closure_authority_sha256": "e9c7b7f67af649cc77a65c4a6c6ef3115e2d3298561a589cfeb7982f2a018fab",
+        "composite_normalization_sha256": "a0ac57bed82d982fa138e218af888e89951532bc34bc99f263cd806a9f48c68f",
+        "decision": "PASS",
+        "entry_pair_count": 313399,
+        "factory_sha256": "0df4f5974bc3fff9855f378b4130b1150c9268c0bb83472f93a967815aeeadc4",
+        "first_state_bridge_sha256": "fe0be6983ae6770be5fc686e01598d1efb5ea1126281337cafe983ce2a9a0879",
+        "parent_m1_row_offset": 833354,
+        "schema_version": "gx1_unified_exit_random_access_val_factory_v1",
+        "source_lineage_sha256": "9591780ed99b1262bcc054a1b2f4e42642f297ea647ad2abbc95808c4ccaa1b8",
+        "split": "train",
+        "state_zero_has_prior_m1_rows": 479,
+        "test_accessed": false,
+        "trade_path_tail_capacity": 512
+      },
+      "parent_coordinate_evidence_sha256": "1869ddd1ab9cc48acdf3951288339db46d9b9337873a50bc3937e62d3a0fd12e",
+      "parent_coordinates_sha256": "2aced33461ff18d32de75526fd7a0e7ccf28997960912d8c0a1b80cb026679ec",
+      "report_only": true,
+      "schema_version": "gx1_candidate_native_bounded_control_context_v1",
+      "sequence_source_audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_TRAIN_20260905T143732Z.json",
+        "sha256": "53f836d0bee89409636ad58f988ada44d61633bfd62c10014bef4e5f2f68ef29"
+      },
+      "test_accessed": false
+    },
+    "native_launch_authorized": false,
+    "native_prefix_order_sha256": "36c2258b6b87061e56109c0d462240caa942c017b0dcd2d0bb5a967ed89a7e72",
+    "normalization_refits": 0,
+    "online_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "optimizer_state_empty": true,
+    "optimizer_state_sha256": "c1ede9648b2cc3487e08d56f93a629cb14519bfd4f2add7378df67542b4dfe53",
+    "optimizer_steps": 0,
+    "peak_rss_kib": 9588436,
+    "physical_train_entries": 313399,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RETRY_PLAN.json",
+      "sha256": "bd11ea7a0ad2a92f473f0da0eb7b25e0b86c9760934c096a50e8b9882393db4a"
+    },
+    "preparation_script": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/PREPARE_RETRY1.py",
+      "sha256": "b56884c2c46930556f5f5db8215823fcb942faffa977630c5e25b0f90a97a6c3"
+    },
+    "previous_attempt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/FAILURE.json",
+      "sha256": "b7110591cfd6d70e7d1cae33ce46a05db002d74752f8091ac79197a9f86dab86"
+    },
+    "remaining": [
+      "bound frozen TRAIN/control target and initial-prediction preparation through native guards",
+      "fixed ONLINE snapshot measurement dispatch",
+      "single frozen256-step native experiment and paired learning review"
+    ],
+    "scheduler_state": {
+      "T_max": 30,
+      "_get_lr_called_within_step": false,
+      "_last_lr": [
+        0.0001,
+        0.0001
+      ],
+      "_step_count": 1,
+      "base_lrs": [
+        0.0001,
+        0.0001
+      ],
+      "eta_min": 0.0,
+      "last_epoch": 0,
+      "verbose": false
+    },
+    "scheduler_state_sha256": "7d77d2cada2f4935ba6498d45791367d57298cd376ae84466a0af50ac2303c6f",
+    "schema_version": "gx1_prefix_fresh_initialization_v1",
+    "seed_binding": {
+      "checkpoint_loaded": false,
+      "initialization": "fresh_existing_model_constructor_no_checkpoint_weights",
+      "input_normalization_sha256": "0c73327b125ef653071d00124d985e87019449e7f3b2885179a6f6cdf96cfb59",
+      "model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+      "seed": 20260911
+    },
+    "separate_train_control_label_instances": true,
+    "source_bindings": {
+      "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": "d9543a6368cc1fd5ea27feb7fbae3dfd2de9690708a0f85940fd981e0630fb23",
+      "gx1/contracts/unified_exit_random_access_train_factory_v1.py": "9ed494f2b58da597f0ed861a251a6e8fa7b34878ffae9935194791a119b49e9f",
+      "gx1/contracts/unified_exit_random_access_val_factory_v1.py": "c49a706456ccede388894e9de6b689c26dd92e9e2b0c2d454179095c6f1c0000",
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "eb5f60d824eaf8c60cbfdddc9388dc3561963ef11f8cb5f9703cfac801c12f19",
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "8b0b614c118acec4fd1fd4b00878a35ca466711e89394386fd92fcd28ed08132",
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "b67ec60e60b029e632d7357025ee51a791a53c6521b72721442381c67bafe64e",
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": "31895fd47431d3a3a6bc4a4327704d8ed7b67095c8013262c1425dc4d9e067ce"
+    },
+    "source_commit": "591ceec407497d695ccfd84297b57eb5a25fd751",
+    "target_frozen": true,
+    "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "test_data_used": false
+  },
+  "publication_scope": "Aggregate metadata only; row identities remain in the original GX1_DATA result."
+}

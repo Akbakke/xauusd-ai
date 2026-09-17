@@ -1,17 +1,18 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: én nødvendig retry av fersk CPU-oppstart
+## Gjeldende neste steg: frosne target- og sammenligningsmålinger
 
-Prefix-normaliseringene er bundet med uendrede fysiske indeksfiler.
-Første CPU-oppstart ble drept med exit137 før initialtilstanden ble lagret.
-Kontrollfabrikkens unødvendige innlesing av alle Entry-kolonner er rettet til
-kun tid; modellfeatures og alle kildekontroller beholdes. Fire tester består.
+Faktisk fersk native komponentoppstart er ferdig på CPU med de nye
+normaliseringsreferansene. ONLINE, frossen target og nullstegs-EMA er eksakt
+like; AdamW har tom momenttilstand. Full fysisk TRAIN, eligible prefix,
+separate TRAIN-/kontrollfasiter og frosset CONTROL256 er kontrollert gjennom
+eksisterende eiere. INITIAL_STATE.pt er bevart i GX1_DATA.
 
-Neste er én bundet retry med samme inputs og uendrede20G/512M-grenser.
-Originalt forsøk er bevart. Ingen modell-forward, optimizer eller refit er
-kjørt. Deretter gjenstår frosne target-/sammenligningsmålinger og fast ONLINE-
-dispatch. Ingen chronological_learning_run er åpnet; training_enabled er
-false. Se docs/PREFIX_ENTRY_CLOCK_READ_FIX_20260917.md.
+Ingen modell-forward, optimizersteg eller refit ble kjørt. Neste er å binde
+frosne target-/førmålinger og fast ONLINE-sluttmåling gjennom native vakter.
+Ingen chronological_learning_run er åpnet; training_enabled er fortsatt
+false.256-stegsforsøket har ennå ingen læringsresultater. Se
+docs/PREFIX_FRESH_INITIALIZATION_20260917.md. Ikke gjenta ferdig oppstart.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

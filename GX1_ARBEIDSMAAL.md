@@ -5,8 +5,9 @@ Ingen ny læring er bevist. Kronologisk design, prefix-policies/fasiter og
 normalisering er ferdige. Fersk komponentoppstart og native koordinator/resume
 samt recipe/campaign er koblet og syntetisk kontrollert. Kontrollens Entry/Exit
 bruker samme observerte referanse som TRAIN. Transformreferansene er nå
-oppdatert med uendrede fysiske data. Faktisk fersk oppstart og bundet
-måleklargjøring gjenstår før det ene frosne forsøket.
+oppdatert med uendrede fysiske data. Faktisk fersk native oppstart er ferdig
+på CPU; initial ONLINE/target/EMA er like og AdamW er fersk. Frosne target-
+og sammenligningsmålinger gjenstår før det ene frosne forsøket.
 CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste arbeid; teksten
 lenger ned beskriver historiske beslutninger.
 

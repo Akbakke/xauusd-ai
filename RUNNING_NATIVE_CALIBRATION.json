@@ -1,5 +1,5 @@
 {
-  "status": "ENTRY_CLOCK_READ_FIXED_FRESH_CPU_RETRY_REQUIRED",
+  "status": "ACTUAL_FRESH_INITIALIZATION_READY_TARGET_MEASUREMENT_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "The unnecessary full Entry-parquet decode is corrected to read time only, preserving complete-file identity and separate feature ownership. Four focused factory tests pass. Bind one CPU initialization retry with identical completed inputs and unchanged20G/512M limits; preserve the failed attempt. No model forward, optimizer, refit, native launch, full epoch/fullVAL or TEST. Frozen target/comparison preparation and fixed ONLINE measurement remain after actual initialization.",
+  "next_action": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T05:51:31.808866+00:00",
+  "observed_utc": "2026-09-17T06:07:21.221946+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "The unnecessary full Entry-parquet decode is corrected to read time only, preserving complete-file identity and separate feature ownership. Four focused factory tests pass. Bind one CPU initialization retry with identical completed inputs and unchanged20G/512M limits; preserve the failed attempt. No model forward, optimizer, refit, native launch, full epoch/fullVAL or TEST. Frozen target/comparison preparation and fixed ONLINE measurement remain after actual initialization."
+    "next_scope": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -576,10 +576,10 @@
   },
   "prefix_fresh_initialization_preparation": {
     "enabled": false,
-    "status": "FAILED_MEMORY_LIMIT_NO_INITIAL_STATE",
+    "status": "COMPLETE_DO_NOT_REPEAT",
     "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/PLAN.json",
-      "sha256": "0522c697664fe8c8c30b011e53b2f0485d499361fc4918b489ba958b41e57c47"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RETRY_PLAN.json",
+      "sha256": "bd11ea7a0ad2a92f473f0da0eb7b25e0b86c9760934c096a50e8b9882393db4a"
     },
     "one_preparation_only": true,
     "training_enabled": false,
@@ -588,6 +588,15 @@
     "failure": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/FAILURE.json",
       "sha256": "b7110591cfd6d70e7d1cae33ce46a05db002d74752f8091ac79197a9f86dab86"
+    },
+    "previous_plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/PLAN.json",
+      "sha256": "0522c697664fe8c8c30b011e53b2f0485d499361fc4918b489ba958b41e57c47"
+    },
+    "attempt": 2,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
     }
   },
   "completed_prefix_entry_clock_fix": {
@@ -597,6 +606,24 @@
     },
     "report": "docs/PREFIX_ENTRY_CLOCK_READ_FIX_20260917.md",
     "tests_passed": 4,
-    "actual_retry_completed": false
+    "actual_retry_completed": true,
+    "actual_retry_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+    }
+  },
+  "completed_prefix_fresh_initialization": {
+    "status": "ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+    },
+    "report": "docs/PREFIX_FRESH_INITIALIZATION_20260917.md",
+    "initial_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/INITIAL_STATE.pt",
+      "sha256": "f25206898ff121d78f6d042c897886aacd4ec95f2d861b2cf2abbe01dfb28bfe"
+    },
+    "online_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "native_launch_authorized": false
   }
 }
