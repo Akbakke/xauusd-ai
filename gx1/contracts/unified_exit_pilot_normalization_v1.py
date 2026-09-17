@@ -106,7 +106,8 @@ def build_sampler_benchmark_candidate_set(
 
 
 def iter_physical_summary_samples(
-    *, successor_transition_count_by_entry: Sequence[int], source_lineage_sha256: str
+    *, successor_transition_count_by_entry: Sequence[int], source_lineage_sha256: str,
+    fit_state_stop_exclusive_by_entry: Sequence[int] | None = None,
 ) -> Iterable[dict[str, Any]]:
     """Yield one deterministic state per physical Entry and eligible duration bucket.
 
@@ -121,6 +122,18 @@ def iter_physical_summary_samples(
         for count in counts
     ):
         raise RuntimeError("UNIFIED_EXIT_PILOT_SUMMARY_POPULATION_INVALID")
+    if fit_state_stop_exclusive_by_entry is not None:
+        limits = tuple(fit_state_stop_exclusive_by_entry)
+        if (len(limits) != len(counts)
+                or any(type(limit) is not int or not 0 <= limit <= count
+                       for limit, count in zip(limits, counts))
+                or not any(limits)):
+            raise RuntimeError("UNIFIED_EXIT_PILOT_SUMMARY_FIT_POPULATION_INVALID")
+        # Full-tape hashes remain provenance, not a source of randomness from
+        # future prices. Prefix sampling uses only eligible identities/bounds.
+        lineage = canonical_sha256({"fit_state_bounds": [
+            [row, limit] for row, limit in enumerate(limits) if limit]})
+        counts = limits
     for entry_row_index, count in enumerate(counts):
         for bucket_index, (start, raw_stop) in enumerate(DURATION_BUCKETS):
             if start >= count:
@@ -149,13 +162,15 @@ def iter_physical_summary_samples(
 
 
 def build_physical_summary_sample_authority(
-    *, successor_transition_count_by_entry: Sequence[int], source_lineage_sha256: str
+    *, successor_transition_count_by_entry: Sequence[int], source_lineage_sha256: str,
+    fit_state_stop_exclusive_by_entry: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     counts = tuple(successor_transition_count_by_entry)
     samples = tuple(
         iter_physical_summary_samples(
             successor_transition_count_by_entry=counts,
             source_lineage_sha256=source_lineage_sha256,
+            fit_state_stop_exclusive_by_entry=fit_state_stop_exclusive_by_entry,
         )
     )
     digest = hashlib.sha256()
@@ -186,6 +201,13 @@ def build_physical_summary_sample_authority(
         "test_fit_rows": 0,
         "test_accessed": False,
     }
+    if fit_state_stop_exclusive_by_entry is not None:
+        limits = tuple(fit_state_stop_exclusive_by_entry)
+        value["selection"] = "one_hash_selected_state_per_entry_per_eligible_prefix_duration_bucket_v1"
+        value["fit_state_stop_exclusive_by_entry_sha256"] = hashlib.sha256(
+            np.asarray(limits, dtype="<i8").tobytes()).hexdigest()
+        value["fit_entry_pair_population"] = sum(limit > 0 for limit in limits)
+        value["fit_physical_state_population"] = sum(limits)
     value["authority_sha256"] = canonical_sha256(value)
     return value
 

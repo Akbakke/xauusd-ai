@@ -81,6 +81,27 @@ class _SparseRange:
         return b, bi
 
 
+def _prefix_fit_state_stops(
+    *, times: pd.DatetimeIndex, starts: np.ndarray, counts: np.ndarray,
+    entry_rows: np.ndarray, cutoff_time_ns: int,
+) -> np.ndarray:
+    """Bound normalization observations only; retain market successor counts."""
+    if (type(cutoff_time_ns) is not int or cutoff_time_ns <= 0
+            or entry_rows.dtype != np.dtype("int64") or entry_rows.ndim != 1
+            or not len(entry_rows) or np.any(entry_rows < 0)
+            or np.any(entry_rows >= len(starts)) or np.any(np.diff(entry_rows) <= 0)
+            or times.empty or times.hasnans or not times.is_unique or not times.is_monotonic_increasing
+            or starts.ndim != 1 or counts.shape != starts.shape):
+        raise RuntimeError("PILOT_SUMMARY_PREFIX_FIT_POPULATION_INVALID")
+    # M1 timestamps are bar starts: a row is available only at bar close.
+    stop = int(np.searchsorted(times.asi8, cutoff_time_ns - 60_000_000_000, side="right"))
+    limits = np.zeros(len(counts), dtype="<i8")
+    limits[entry_rows] = np.minimum(counts[entry_rows], stop - starts[entry_rows])
+    if np.any(limits[entry_rows] < 1):
+        raise RuntimeError("PILOT_SUMMARY_PREFIX_ENTRY_AFTER_CUTOFF")
+    return limits
+
+
 def materialize(
     *,
     split: str,
@@ -90,7 +111,13 @@ def materialize(
     closure_path: Path,
     output_dir: Path,
     publish: bool,
+    fit_entry_rows_path: Path | None = None,
+    fit_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
+    prefix_fit = fit_entry_rows_path is not None
+    if (prefix_fit != (fit_cutoff_time_ns is not None)
+            or (prefix_fit and split != "train")):
+        raise RuntimeError("PILOT_SUMMARY_PREFIX_SCOPE_INVALID")
     if split not in {"train", "val"}:
         raise RuntimeError("PILOT_SUMMARY_SPLIT_INVALID")
     admission = _json(child_admission_path)
@@ -153,9 +180,29 @@ def materialize(
             "right_censor_time_utc_exclusive": m1_manifest["right_censor_time_utc_exclusive"],
         }
     )
+    fit_limits = None
+    fit_population = None
+    if prefix_fit:
+        rows_path = fit_entry_rows_path.expanduser().absolute()
+        if not rows_path.is_file() or rows_path.is_symlink() or rows_path.resolve() != rows_path:
+            raise RuntimeError("PILOT_SUMMARY_PREFIX_ROWS_BINDING_INVALID")
+        entry_rows = np.load(rows_path, allow_pickle=False)
+        fit_limits = _prefix_fit_state_stops(
+            times=times, starts=starts, counts=counts, entry_rows=entry_rows,
+            cutoff_time_ns=fit_cutoff_time_ns)
+        ends = starts[entry_rows] + fit_limits[entry_rows] - 1
+        fit_population = {
+            "entry_rows": {"path": str(rows_path), "sha256": _sha(rows_path)},
+            "cutoff_time_ns": fit_cutoff_time_ns,
+            "maximum_observed_decision_time_ns": int(times.asi8[ends].max()) + 60_000_000_000,
+            "fit_state_stop_exclusive_by_entry_sha256": hashlib.sha256(fit_limits.tobytes()).hexdigest(),
+            "market_successor_counts_preserved": True,
+        }
+        fit_limits = [int(value) for value in fit_limits]
     authority = build_physical_summary_sample_authority(
         successor_transition_count_by_entry=[int(value) for value in counts],
         source_lineage_sha256=lineage,
+        fit_state_stop_exclusive_by_entry=fit_limits,
     )
     summary_values: np.ndarray | None = None
     normalization: dict[str, Any] | None = None
@@ -167,7 +214,7 @@ def materialize(
         ask_low = _SparseRange(arrays["ask_low"], maximum=False)
         summary_values = np.empty((authority["fit_row_count"], 7), dtype="<f8")
         row = 0
-        for sample in iter_physical_summary_samples(successor_transition_count_by_entry=[int(value) for value in counts], source_lineage_sha256=lineage):
+        for sample in iter_physical_summary_samples(successor_transition_count_by_entry=[int(value) for value in counts], source_lineage_sha256=lineage, fit_state_stop_exclusive_by_entry=fit_limits):
             entry_index = sample["entry_row_index"]
             start = int(starts[entry_index])
             state = int(sample["state_index"])
@@ -215,6 +262,8 @@ def materialize(
         "test_fit_rows": 0,
         "test_accessed": False,
     }
+    if fit_population is not None:
+        manifest["normalization_fit_population"] = fit_population
     manifest["manifest_sha256"] = canonical_sha256(manifest)
     if not publish:
         return {"mode": "validate_no_publish", "published": False, "manifest": manifest}
@@ -224,6 +273,8 @@ def materialize(
     staging = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.staging.", dir=output_dir.parent))
     try:
         np.save(staging / "successor_transition_counts.npy", counts, allow_pickle=False)
+        if fit_limits is not None:
+            np.save(staging / "fit_state_stop_exclusive_by_entry.npy", np.asarray(fit_limits, dtype="<i8"), allow_pickle=False)
         if summary_values is not None:
             np.save(staging / "lifetime_summary_fit_values.npy", summary_values, allow_pickle=False)
         (staging / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2, allow_nan=False) + "\n")
@@ -243,8 +294,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--closure-authority", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--fit-entry-rows", type=Path)
+    parser.add_argument("--fit-cutoff-time-ns", type=int)
     args = parser.parse_args(argv)
-    print(json.dumps(materialize(split=args.split, child_admission_path=args.child_admission.resolve(), m1_path=args.m1_source.resolve(), m1_manifest_path=args.m1_manifest.resolve(), closure_path=args.closure_authority.resolve(), output_dir=args.output_dir.resolve(), publish=args.publish), sort_keys=True))
+    print(json.dumps(materialize(split=args.split, child_admission_path=args.child_admission.resolve(), m1_path=args.m1_source.resolve(), m1_manifest_path=args.m1_manifest.resolve(), closure_path=args.closure_authority.resolve(), output_dir=args.output_dir.resolve(), publish=args.publish, fit_entry_rows_path=args.fit_entry_rows, fit_cutoff_time_ns=args.fit_cutoff_time_ns), sort_keys=True))
     return 0
 
 

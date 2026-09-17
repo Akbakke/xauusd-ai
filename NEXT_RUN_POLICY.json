@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Coherent Entry reference targets are now implemented behind explicit reference_policy plus reference_cutoff_time_ns;77 focused synthetic CPU tests pass. Same observed state0 Q_mu drives Entry and Exit; costs/gamma/masks/terminal/bootstrap/detach and legacy recipes are preserved. Cutoff-crossing support is rejected, not truncated or liquidated. This is a wiring correction, not learning or generalization evidence. The existing chronological DESIGN and CONTROL256 IDs remain frozen and not executable. Inspect the existing fresh-initialization and prefix-only normalization owners for the frozen chronological design, then address only their concrete binding blockers. No actual-data model forward, target cache refresh, normalization fit, optimizer step or native run is authorized yet. Preserve all200 features/eight families/MTF, original artifacts and native guards; TEST sealed; no control retuning or automatic extension.",
+  "rule": "Coherent Entry/Exit reference targets passed77 synthetic tests. Lifetime-summary prefix normalization now passed24 focused synthetic tests, including future-price poison invariance and unchanged full market successor counts. These are technical corrections, not learning evidence. The chronological DESIGN and CONTROL256 remain frozen/not executable. Implement only the observed base/context/MTF prefix-fit population binding in the existing normalization owners, then finish fresh native initialization and chronological dataset/control bindings. Lifetime-summary prefix fitting is already implemented and tested; do not repeat it. No actual-data normalization fit, model forward, target refresh, optimizer or native run yet. Preserve all200 features/eight families/MTF, costs, bootstrap and guards; TEST sealed; no control retuning or automatic extension.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Inspect the existing fresh-initialization and prefix-only normalization owners for the frozen chronological design, then address only their concrete binding blockers. No actual-data model forward, target cache refresh, normalization fit, optimizer step or native run is authorized yet."
+    "next_scope": "Implement only the observed base/context/MTF prefix-fit population binding in the existing normalization owners, then finish fresh native initialization and chronological dataset/control bindings. Lifetime-summary prefix fitting is already implemented and tested; do not repeat it. No actual-data normalization fit, model forward, target refresh, optimizer or native run yet."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -386,6 +386,17 @@
     "actual_model_forwards": 0,
     "optimizer_steps": 0,
     "learning_demonstrated": false,
+    "native_launch_authorized": false
+  },
+  "completed_prefix_summary_normalization": {
+    "status": "PREFIX_LIFETIME_NORMALIZATION_SYNTHETIC_PASS_NOT_FULL_PREFIX_READINESS",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_SUMMARY_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "c9b3b88a712f9fca46ea5bda45ead57a3592d796fbecd86f8a78a15101cce9db"
+    },
+    "report": "docs/PREFIX_NORMALIZATION_20260917.md",
+    "synthetic_tests_passed": 24,
+    "actual_normalization_fits": 0,
     "native_launch_authorized": false
   }
 }

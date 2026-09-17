@@ -85,8 +85,16 @@ Første forsøk hadde én testkopieringsfeil; bare den og eksisterende adapterkj
 ble kjørt etter testrettelsen. Original logg er bevart. Dette er teknisk
 målberegningsbevis, ikke ny læring. Ingen faktisk modell-forward, targetcache,
 normaliseringsfit eller optimizersteg. Se docs/COHERENT_REFERENCE_ENTRY_20260917.md.
-Neste er kildekontroll av fersk initialisering og prefix-normalisering i
-samme native eiere; ingen faktisk fit eller kjøring er åpnet.
+Kildekontrollen viste at tidlige Entry-rader alene ikke avgrenser senere
+normaliseringsdata: lifetime-fit fulgte hele forløpet til TRAIN-slutt.
+Lifetime-normaliseringen har nå en eksplisitt fit-populasjon før cutoff,
+med uendrede fysiske successor-counts og Entry-ID-er.24 syntetiske kontroller
+består, inkludert kraftig endring av alle framtidige priser uten endring i
+prefix-utvalg, fit-verdier eller normaliseringsstatistikk. Se
+docs/PREFIX_NORMALIZATION_20260917.md. Ingen faktisk normalisering er fittet.
+Neste er tilsvarende binding for base/context/MTF-normaliseringen i dens
+eksisterende eiere, deretter fersk native oppstart og kontrollbindinger.
+Ingen faktisk fit, target-refresh, modell-forward eller kjøring er åpnet.
 
 Fersk initialisering, prefix-normalisering og native kontrollbindinger er
 fortsatt nødvendige før en kjørbar plan. Samme200 features/åtte familier/MTF,

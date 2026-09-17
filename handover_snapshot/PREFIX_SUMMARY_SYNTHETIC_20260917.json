@@ -1,0 +1,89 @@
+{
+  "schema_version": "gx1_prefix_summary_synthetic_evidence_v1",
+  "decision": "PREFIX_LIFETIME_NORMALIZATION_SYNTHETIC_PASS_NOT_FULL_PREFIX_READINESS",
+  "observed_utc": "2026-09-17T01:17:26.086194+00:00",
+  "parent_source_commit": "74ffc57bcc1ee3b215326c08ddd60cf7f0ca5be3",
+  "source_files": {
+    "gx1/contracts/unified_exit_pilot_normalization_v1.py": "a6ce76e72b7f40767129ec28606eefa919eda5edd1b14c2697d8e7f5df1884d7",
+    "gx1/scripts/materialize_unified_exit_pilot_summary_fit_v1.py": "b6759e83244dfbdedd3903622f90127748e11b96ef994accdf254bf3c1041231",
+    "tests/test_prefix_summary_normalization_v1.py": "a23391323e761194bd6186aad29b5dc7ddf51e826534b104e24963b236fc43d2"
+  },
+  "tests": {
+    "passed": 24,
+    "failed": 0,
+    "cases": [
+      "test_materializer_preserves_lifecycles_and_future_prices_cannot_change_prefix_fit",
+      "test_exact_close_boundary_and_entry_identity_are_preserved",
+      "test_invalid_fit_limits_fail_closed[limits0]",
+      "test_invalid_fit_limits_fail_closed[limits1]",
+      "test_invalid_fit_limits_fail_closed[limits2]",
+      "test_invalid_fit_limits_fail_closed[limits3]",
+      "test_invalid_fit_limits_fail_closed[limits4]",
+      "test_invalid_fit_limits_fail_closed[limits5]",
+      "test_invalid_entry_scope_is_rejected[duplicate]",
+      "test_invalid_entry_scope_is_rejected[unordered]",
+      "test_invalid_entry_scope_is_rejected[past_end]",
+      "test_invalid_entry_scope_is_rejected[float]",
+      "test_invalid_entry_scope_is_rejected[empty]",
+      "test_invalid_entry_scope_is_rejected[after_cutoff]",
+      "test_prefix_scope_rejects_before_any_file_read[val-rows0-1]",
+      "test_prefix_scope_rejects_before_any_file_read[train-None-1]",
+      "test_prefix_scope_rejects_before_any_file_read[train-rows2-None]",
+      "test_benchmark_candidates_are_explicit_and_unselected",
+      "test_physical_summary_authority_is_deterministic_and_outcome_blind",
+      "test_lifetime_summary_fit_is_train_only_and_registry_bound",
+      "test_lifetime_summary_normalization_validator_rejects_mutation",
+      "test_lifetime_summary_fit_rejects_mutated_authority",
+      "test_first_state_bridge_binds_exact_clock_and_sources",
+      "test_first_state_bridge_rejects_test_split"
+    ],
+    "xml": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_SUMMARY_SYNTHETIC_20260917/TEST_ATTEMPT1.xml",
+      "sha256": "8143d036a2fc6ab5d4537bca20eba3a40022df719cd295c64d70d3ec010e67c0"
+    },
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_SUMMARY_SYNTHETIC_20260917/TEST_ATTEMPT1.log",
+      "sha256": "d30f0f56e9236e8fbd539174cfbc7a257525a7e4b3f979f4de9e753afdfbd13d"
+    }
+  },
+  "observed_blocker": "Existing lifetime normalization samples each Entry across its full physical lifecycle to TRAIN end; selecting early Entries alone does not exclude later control states. Full-tape price hashes also seed old summary samples.",
+  "correction": "Explicit fit Entry row-ID file plus cutoff yields separate per-Entry fit-state bounds; original market successor counts and Entry identity preserved. Prefix sample randomness uses eligible identity/bounds only, while full-source hashes remain provenance.",
+  "checked": [
+    "Synthetic future-price poison (+5000 after cutoff) changes source hashes but not prefix sample stream, fit values hash or any fitted surface statistics",
+    "Physical lifecycle counts [29,25,14] retained while fit-state stops are [10,6,0]",
+    "Exact bar-close cutoff includes row; one ns earlier excludes it, including a weekend gap",
+    "Invalid scope, duplicated/unordered/out-of-range/non-integer/empty Entry IDs and invalid bounds rejected",
+    "Legacy mode still covers original full physical population; existing normalization contract tests pass"
+  ],
+  "fit_population_artifacts": [
+    "original successor_transition_counts.npy",
+    "separate fit_state_stop_exclusive_by_entry.npy",
+    "prefix scope, row-ID file and maximum observed close-time in manifest",
+    "existing lifetime_summary_fit_values.npy and normalization owner"
+  ],
+  "scope": {
+    "market_data_accessed": false,
+    "actual_model_forwards": 0,
+    "actual_normalization_fits": 0,
+    "synthetic_normalization_fits": true,
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_accessed": false,
+    "learning_demonstrated": false,
+    "generalization_demonstrated": false,
+    "native_launch_authorized": false
+  },
+  "guard": {
+    "class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "cpu_affinity": "0-7",
+    "numerical_threads": 1,
+    "tasks_max": 64
+  },
+  "frozen_design": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+    "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+  },
+  "remaining": "Base/context/MTF prefix population and normalization bindings; full label/Exit eligibility and sample/probe IDs; fresh native online/teacher/EMA/optimizer and later-control binding. No actual fit, target refresh, model forward or native run authorized."
+}
