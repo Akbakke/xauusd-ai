@@ -1,0 +1,42 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/OOM_ENTRY_CLOCK_FIX/RESULT.json",
+    "sha256": "1324ae9266ed8c9ea8dd83164cfbfa3f59930abcd56644a15065f0d2dd4ce873"
+  },
+  "result": {
+    "schema_version": "gx1_prefix_entry_clock_projection_fix_v1",
+    "decision": "FOCUSED_FACTORY_TESTS_PASS_ACTUAL_RETRY_REQUIRED",
+    "completed_utc": "2026-09-17T05:51:31.808866+00:00",
+    "failed_preparation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/FAILURE.json",
+      "sha256": "b7110591cfd6d70e7d1cae33ce46a05db002d74752f8091ac79197a9f86dab86"
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_factory_v1.py",
+      "sha256": "c49a706456ccede388894e9de6b689c26dd92e9e2b0c2d454179095c6f1c0000"
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_chronological_control_source.py",
+      "sha256": "a7c9915a111f4f1b1c555779e3d0e31b2b560758d5ba8f75b8f08a9924f562ff"
+    },
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/OOM_ENTRY_CLOCK_FIX/JUNIT.xml",
+      "sha256": "67330edc3d483e5df338384ef200e895d93cb87d4e15f855dfd460e5da01133f"
+    },
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/OOM_ENTRY_CLOCK_FIX/TEST.log",
+      "sha256": "1922da5039ebe4531307d7b17f513b79919451f4cdf3522c92617396f32410b1"
+    },
+    "changed_functions": [
+      "RandomAccessValStateFactoryV1.from_artifacts"
+    ],
+    "unchanged_functions": 11,
+    "tests_passed": 4,
+    "change": "Project only Entry time; preserve complete-file hashes and all source/index/clock validation. Model feature ownership unchanged.",
+    "actual_retry_completed": false,
+    "hardware_limits_unchanged": true,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false
+  }
+}

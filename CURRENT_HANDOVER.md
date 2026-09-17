@@ -1,17 +1,17 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: faktisk fersk oppstart og måleklargjøring
+## Gjeldende neste steg: én nødvendig retry av fersk CPU-oppstart
 
-Ferdige prefix-normaliseringer er nå koblet til nye immutable bridge-, bundle-
-og indeksmanifester. Originale indeksfiler, priser, klokker, successors,
-episode-/fill-ID-er, sampler og sekvensbindinger er uendret. Eksisterende
-byggere og validatorer er brukt. Ingen produksjonskode, modellkjøring eller
-normaliseringsfit inngikk. Denne forberedelsen er ferdig og skal ikke gjentas.
+Prefix-normaliseringene er bundet med uendrede fysiske indeksfiler.
+Første CPU-oppstart ble drept med exit137 før initialtilstanden ble lagret.
+Kontrollfabrikkens unødvendige innlesing av alle Entry-kolonner er rettet til
+kun tid; modellfeatures og alle kildekontroller beholdes. Fire tester består.
 
-Neste er å binde faktisk fersk oppstart og frosne TRAIN-/kontrollmålinger,
-inkludert fast ONLINE-snapshot. Ingen chronological_learning_run er åpnet;
-training_enabled er fortsatt false. Det planlagte 256-stegs forsøket har ennå
-ingen læringsresultater. Se docs/PREFIX_IMMUTABLE_BINDINGS_20260917.md.
+Neste er én bundet retry med samme inputs og uendrede20G/512M-grenser.
+Originalt forsøk er bevart. Ingen modell-forward, optimizer eller refit er
+kjørt. Deretter gjenstår frosne target-/sammenligningsmålinger og fast ONLINE-
+dispatch. Ingen chronological_learning_run er åpnet; training_enabled er
+false. Se docs/PREFIX_ENTRY_CLOCK_READ_FIX_20260917.md.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

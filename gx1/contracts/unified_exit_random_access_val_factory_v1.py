@@ -523,7 +523,9 @@ class RandomAccessValStateFactoryV1:
         ).hexdigest() != summary.get("successor_counts_sha256"):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_COUNTS_INVALID")
         return cls(
-            entry_rows=pd.read_parquet(paths["entry_parquet"]),
+            # The factory needs only the Entry clock. Feature tensors are owned
+            # by the existing source/dataset, and the entire file is still hashed.
+            entry_rows=pd.read_parquet(paths["entry_parquet"], columns=["time"]),
             child_m1=pd.read_parquet(paths["child_m1"]),
             successor_transition_counts=counts,
             random_access_index=index,

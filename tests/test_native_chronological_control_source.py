@@ -263,7 +263,10 @@ def test_from_artifacts_propagates_physical_train_identity(tmp_path,monkeypatch)
     paths={name:tmp_path/name for name in names}
     for path in paths.values():path.write_text('{}')
     kw['random_access_index'].to_parquet(paths['random_access_index'],index=False)
-    kw['entry_rows'].to_parquet(paths['entry_parquet'],index=False)
+    # Full TRAIN also stores large nested features. This reader must not decode
+    # or retain them: model features come from the separately bound source owner.
+    wide_entries=kw['entry_rows'].assign(seq=[[[1.0]*238]*96 for _ in range(len(kw['entry_rows']))])
+    wide_entries.to_parquet(paths['entry_parquet'],index=False)
     kw['child_m1'].to_parquet(paths['child_m1'],index=False)
     with paths['successor_counts'].open('wb') as handle:np.save(handle,kw['successor_transition_counts'])
     for name, parquet in [('entry_manifest','entry_parquet'),('child_m1_manifest','child_m1')]:
@@ -295,6 +298,8 @@ def test_from_artifacts_propagates_physical_train_identity(tmp_path,monkeypatch)
                                            'economic_step_manifest','economics_objective_contract')})
     obj=Capture.from_artifacts(**call,source_split='train')
     assert checked==['train'] and obj.args['source_split']=='train'
+    assert obj.args['entry_rows'].equals(kw['entry_rows'])
+    assert obj.args['artifact_file_sha256']['entry_parquet']==file_sha256(paths['entry_parquet'])
     assert obj.args['random_access_index'].equals(kw['random_access_index'])
     with pytest.raises(RuntimeError,match='ARTIFACT_BINDING_INVALID'):Capture.from_artifacts(**call)
     with pytest.raises(RuntimeError,match='SOURCE_SPLIT_INVALID'):Capture.from_artifacts(**call,source_split='test')
