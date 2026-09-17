@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "The saved TRAIN/native binding audit is complete: all40 input caches have matching metadata, base/child/lifetime normalization, original checkpoint, boundary teacher and frozen coefficients. No mismatch found in checked scope; no new same-input GPU replay claimed. State0 is present in TRAIN, but separate TRAIN state0 SHORT already worsened. Existing June forecasts at5/25/60/120 nominal minutes all lose to zero-return MSE and MAE, identically before/after readout changes. Next bounded read-only cause check: quantify temporal/future-target overlap between existing trained and separate TRAIN samples; distinct Entry IDs are not proof of independent market information. Reuse saved caches/plans only. No new model forward, fit, target refresh, optimizer, full epoch/VAL or TEST. Do not repeat completed runs or audits.",
+  "rule": "Existing TRAIN temporal audit is complete:331/512 separate states share observed reward transitions with fitted TRAIN, covering118/128 entries; all512 share480bar local input history. The35 state0 controls without target overlap lose to the TRAIN constant on both sides. These are dependent, reused TRAIN controls, not chronological generalization evidence. Do not refit or select a favorable subset. Next one read-only check: trace the supervised date coverage of existing initialization checkpoints to determine whether any can support a genuinely later chronological TRAIN control without prior weight exposure. Inspect existing manifests/cursors/receipts only; do not load models for forward passes. A future experiment must separate full observed target supports across the time boundary and account for initialization exposure; this is an evaluation boundary, never a trading holding-time limit. No new forward, fit, target refresh, optimizer, native run, full epoch/VAL or TEST. Do not repeat completed audits.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -318,6 +318,25 @@
     "new_targets": 0,
     "new_fits": 0,
     "no_dataflow_bug_proven": true,
-    "next_scope": "read_only_temporal_overlap_of_existing_train_controls"
+    "next_scope": "Completed; see completed_train_temporal_overlap_audit."
+  },
+  "completed_train_temporal_overlap_audit": {
+    "decision": "DEPENDENT_TRAIN_CONTROLS_NOT_GENERALIZATION_EVIDENCE",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_TEMPORAL_OVERLAP_20260917_V3/RESULT.json",
+      "sha256": "9c67415c09f52fb2f550da31e4d4547c75fc7d2692b5a83f6956bc69ef53a304"
+    },
+    "report": "docs/TRAIN_TEMPORAL_OVERLAP_20260917.md",
+    "overlapping_state_rows": 331,
+    "separate_state_rows": 512,
+    "overlapping_entries": 118,
+    "separate_entries": 128,
+    "no_target_overlap_state0_count": 35,
+    "both_sides_lose_to_train_constant_without_target_overlap_at_state0": true,
+    "new_model_forwards": 0,
+    "new_targets": 0,
+    "new_fits": 0,
+    "native_training_authorized": false,
+    "next_scope": "read_only_existing_initialization_supervised_date_coverage"
   }
 }

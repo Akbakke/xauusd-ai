@@ -51,11 +51,22 @@ og taper mot nullprognosen i både MSE og MAE ved5/25/60/120 nominelle minutter.
 og42,97% riktig retning. Svak overføring er derfor påvist også uten Exit-læreren.
 Dette beviser ikke at alle mulige kausale modeller eller features mangler signal.
 
-Neste snevre, skrivebeskyttede kontroll gjelder tids-/targetoverlapp mellom
-de eksisterende trente og separate TRAIN-eksemplene. Ulike Entry-ID-er betyr
-ikke nødvendigvis uavhengig framtidig markedsinformasjon. Ingen nye modell-
-forwards, fits, trening, VAL eller TEST er åpnet. Ikke gjenta de ferdige auditene.
-Se docs/TRAIN_VAL_SEMANTICS_AND_TRANSFER_20260917.md.
+Tidskontrollen er nå ferdig:331/512 separate TRAIN-tilstander deler observerte
+reward-overganger med fitted TRAIN. Dette berører118/128 Entries; alle512 deler
+480-bars lokal inputhistorikk. Ulike Entry-ID-er ga ikke uavhengige forløp.
+Blant35 state0-kontroller uten targetoverlapp taper kandidaten mot TRAIN-
+konstanten på begge sider: LONG-MSE637,08 mot623,90; SHORT731,74 mot620,42.
+Disse35 er fortsatt gjenbrukt TRAIN, ikke et nytt holdout eller tuningutvalg.
+Overlapp beviser avhengighet, ikke alene årsaken til juni-svikten eller
+framtidslekkasje i kausale modellinputs. Se docs/TRAIN_TEMPORAL_OVERLAP_20260917.md.
+
+Neste ene skrivebeskyttede kontroll er initialiseringsvektenes dokumenterte
+treningsdatoer: finnes et eksisterende startpunkt som ikke allerede har sett
+en senere kronologisk TRAIN-kontroll? Bruk eksisterende manifests/cursors/
+receipts. Et senere forsøk må skille hele observerte fasitvinduer og tidligere
+vekteksponering, ikke bare Entry-ID-er. Dette innfører ingen holdetidsgrense.
+Ingen nye forwards, fits, targets, trening, VAL eller TEST er åpnet. Ingen
+tilpasning til de35 kontrollene eller juni. Ikke gjenta ferdige auditer.
 
 ## Start her
 

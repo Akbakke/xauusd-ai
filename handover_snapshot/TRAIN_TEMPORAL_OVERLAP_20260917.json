@@ -1,0 +1,581 @@
+{
+  "bindings": [
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_01.json",
+        "sha256": "72c5df013e20270d96f01258b44203630f9db81711b23747f0764770db44de2c"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_01_FEATURES_OUTPUTS.pt",
+        "sha256": "a33a2d909d181707c84517049f592f995afebc8580537bb249db4dea6a3a6975"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_09.json",
+        "sha256": "d49842f62d67e8501989300c3a80ae575dc912354b8fc8ce1ea1fcfe327aa768"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_09_FEATURES_OUTPUTS.pt",
+        "sha256": "6ca6a581ae503c8047fa9d876cb6e395b8aadf93c79c7f635e3e7f46f8a08d99"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_18.json",
+        "sha256": "ecc484175764101c4eb07f23c41c696914de66095a52e5c26c54185a7fd37165"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_18_FEATURES_OUTPUTS.pt",
+        "sha256": "825c725827174a3dc0c8a15fc5d85e37fa0657c6f1cc9f3a218949c26d868fd8"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_27.json",
+        "sha256": "84a378f82b210143cc0b70150fe8167104f58fcc10437be3a66b8e9a3e2b57ce"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_27_FEATURES_OUTPUTS.pt",
+        "sha256": "555efb6b9cfa5b0bb3529f30c98ee64b2f9950225e515e274ef73d4fcb59e318"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_36.json",
+        "sha256": "942adbf12da3af0badb704148112b8656af1447382da73f7b8e182ba86a6b7eb"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_36_FEATURES_OUTPUTS.pt",
+        "sha256": "295beb58d3da3c34757f3780200eb28df77a203b76f9a244a7aadc7503154c94"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_45.json",
+        "sha256": "1cd6c6b27719751d7dc5a041a239e74a15b5b542d65e595f6deda01dc9abed4f"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_45_FEATURES_OUTPUTS.pt",
+        "sha256": "5f795c37123420efbb0a0c0b8b0cbc498caf5b9ac1570ba09d1e4f00c6e6b15a"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_54.json",
+        "sha256": "d8c3c9cf0be3c21d2ff61d094e69a8a81e491ed367f6abb12c71b0ff9ad6daf1"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_54_FEATURES_OUTPUTS.pt",
+        "sha256": "3f74ec472d1c82d6873e6533a907078ca532359a9224db0e4cb42d208cc33732"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/BROAD_TRAIN95_134_20260916/BATCH_63.json",
+        "sha256": "08a7e2212485cf70ce48f2b27e9734a5f6fd6ae8048bc5e6bdd6094f273bc389"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/separate_train_63_FEATURES_OUTPUTS.pt",
+        "sha256": "2d52b3aa6f9ddba72f758dd22822ff55afba3d8b80341b63b0b7493b39f512ec"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_00.json",
+        "sha256": "0829525845032092bd774a5af42daad9d304999b72696d735e0a3a018c6738e3"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_00_FEATURES_OUTPUTS.pt",
+        "sha256": "20f602207d1b362074aa53a56a287054c957278d56a1462303375cee0ec54478"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_01.json",
+        "sha256": "0e410c67ca2af28ab9e93db1782f99835e908a124776c00b8e31e00161c7fc54"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_01_FEATURES_OUTPUTS.pt",
+        "sha256": "937daf18f73b7a46398a251cbfc6bc4d19963d49b277161b50c2f5c9920ef51f"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_02.json",
+        "sha256": "43c1dbe8ae80b4fc66eec5f1aaf624de3fb1feb4c4bbe18ae9507e0d8e11ff07"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_02_FEATURES_OUTPUTS.pt",
+        "sha256": "4a77d71b2f5e2ad3baa55e4111c71da679d3896907ef5ddc66927806f0e6b103"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_03.json",
+        "sha256": "cfa9e781a3f531a208c4b20a40f8d104bf5d6d4436491768e4dece9ac422879f"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_03_FEATURES_OUTPUTS.pt",
+        "sha256": "e98e4ec8607aedec03b18e289ed9f62574cb9cf98e82eb870c2f7058fb9db29e"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_04.json",
+        "sha256": "741a2422e7422a7a82fdbba5fd3d3d31d71d0ddfb45eccde0ebe5bebf65ac0c8"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_04_FEATURES_OUTPUTS.pt",
+        "sha256": "e31ef75867560265375e1a7b67c8a6020f329d52c9da5219057bcef6c25ba947"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_05.json",
+        "sha256": "dde36eb83ec16ef3d050f1bda7f8909d449e6bf6691c08867557fa6f30cb7b2a"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_05_FEATURES_OUTPUTS.pt",
+        "sha256": "b63e893315aeb776aaee08b14a93edc6833c69345986cb2feb6168b70d16b779"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_06.json",
+        "sha256": "3928faf89fd1ba1e0e2e837b5769bea9e2b61b82c1b56a548a4179e5f5418e3d"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_06_FEATURES_OUTPUTS.pt",
+        "sha256": "4db85a6578937d1fc24bf5a6ba1422c9a8cfc7bc5272f617216d15f0bc4dc3d8"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_07.json",
+        "sha256": "412aa27ca17af7a40679329c40c6cc40ad21dceb11dd0c09e2a037315a43fe48"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_07_FEATURES_OUTPUTS.pt",
+        "sha256": "536836dc18f0a9a161fdee498870464dfa1cf26f6ebdb29f37ec3453d0537039"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_08.json",
+        "sha256": "662457e7b443c3cd5afdd84a76669f5231d7a77f5a1b62bf925e9da4f2737cd3"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_08_FEATURES_OUTPUTS.pt",
+        "sha256": "592eca1e9bc189e34a4ee8ef4608cf05b08e3cc7b5a1adeb457c3e9db4d731a6"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_09.json",
+        "sha256": "bdde5fea3c16a48c196bea069b1204dae9aa8faeb466782065b7922e95d20b5d"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_09_FEATURES_OUTPUTS.pt",
+        "sha256": "fbf1743464d1cbf497fe7bf36ca99d74674c5969e6ff77afc237476fb87968d3"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_10.json",
+        "sha256": "7e3e5c110e933ae1812cf616814e0cc677aef475b973813d48bb58bd54ff1c3e"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_10_FEATURES_OUTPUTS.pt",
+        "sha256": "2398531ff0c9c862d881763b4f87f0c3e765197b8280987f41be74adc9ef663f"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_11.json",
+        "sha256": "1af70e80782cba821d3a58f6e1e6ac3173d8d8639360a4f025355e64f754f21a"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_11_FEATURES_OUTPUTS.pt",
+        "sha256": "a69cc11430ec41cd4e02f44aa6e9d6bee78e5e8f1316535c2bb551e6754a955a"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_12.json",
+        "sha256": "4a15ddc0d835b1a0c630164117f4753a8e011bfb36a36161ca92e31d2146c701"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_12_FEATURES_OUTPUTS.pt",
+        "sha256": "a904b1bfa5326f42ee95d318c1c0acfd281f1e06d9b656614d13f64dff74b50b"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_13.json",
+        "sha256": "ef1cc3253e546ab95e92dc66da4bc307742ced11b7e3508d95dbe35552337d2e"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_13_FEATURES_OUTPUTS.pt",
+        "sha256": "e00c374dbc021c9f84ed3756842c8cda7a1fdf7b871a5f3eb5710c5f9c6bc1f7"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_14.json",
+        "sha256": "df1e4bf289e62db9f9eb03e4d2415fd8180b406580175e1efaff3cc1a76a0f59"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_14_FEATURES_OUTPUTS.pt",
+        "sha256": "c98b6a4fa34bdc78aedbde4acedf43f1614cc1685fc48a43eb9f729c4119fa91"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_15.json",
+        "sha256": "881690d425b63bc64e0b7d776aaddfb2e49ff1868fb5acdec2659cd3b6781e8d"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_15_FEATURES_OUTPUTS.pt",
+        "sha256": "231e3db61619bd9f9b8d4e5304a233181a26a2eb32fdbf09b8b075391da8abf6"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_16.json",
+        "sha256": "59aa0839044dae97f6bdf9998fd4b8b2c19c87e18a4de1d9730424741fcbda1f"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_16_FEATURES_OUTPUTS.pt",
+        "sha256": "4b02f697335fee59bf641758f1b929ecd0234c9399f665278804b463e78c2535"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_17.json",
+        "sha256": "1662a765c4f32a2fc2c7c0fed2fd28a37960c65fa5066f7dd8ac37e8a3988868"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_17_FEATURES_OUTPUTS.pt",
+        "sha256": "37e7dc2c020817e2fc06a42223594d65be756d0066002171509a51ee1f96143a"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_18.json",
+        "sha256": "d921b04dc83b8bba7f41ab300228093bf2d110604708e3dd49d1bea2a82685db"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_18_FEATURES_OUTPUTS.pt",
+        "sha256": "d70b0dd6682401e34e21a33fae5643601c1fdf4ae7f4ca4c5432925300605a46"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_19.json",
+        "sha256": "250e0335b1598d25ac214675df723379f532d3563c4b7e165984cb377cb48b31"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_19_FEATURES_OUTPUTS.pt",
+        "sha256": "ff9a3e46a64fe9b5bb18c20e15d3cabbfa5e7ac78dcfe8ec11c87e4f08df2c02"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_20.json",
+        "sha256": "90ef38ca836db30874e70377fe6a635c28c381e613813ef29a727b13e4af6e45"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_20_FEATURES_OUTPUTS.pt",
+        "sha256": "95ed9aa2d254c485428b3f5bfca3afb8a9dc64e186cbbc207b1c1607dec0e985"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_21.json",
+        "sha256": "65351e88c9f2dbff7c245ed6da67acb6a9f5cec5ac42a4f315c657f3ddab9082"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_21_FEATURES_OUTPUTS.pt",
+        "sha256": "cade1869218540d2b373a45e3ac95507aabd287522507fee66898297a4cf2b55"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_22.json",
+        "sha256": "41458fa589e241eec2c7b073a22a17c4ad985158fed16661e81ce852221c75f1"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_22_FEATURES_OUTPUTS.pt",
+        "sha256": "a567cc0f54df604f69d5642c7797543f94db5b59b63e4eb7a2d4e1a7db647574"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_23.json",
+        "sha256": "f2bff16756b70c83b0c49a880ab06ec087e68349fca149e601df933ad56ad9b2"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_23_FEATURES_OUTPUTS.pt",
+        "sha256": "f6501f842d2923e9e408ca00d0a2af6d006c7130c48d8042601716c91af3e237"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_24.json",
+        "sha256": "a14ffe828664691a7848041420896c2622484c79ee00fb29e2bb9308486fb704"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_24_FEATURES_OUTPUTS.pt",
+        "sha256": "3e217225954ac365149778527ac74bb00e72795bcfdfe80f6d9074950f824f9d"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_25.json",
+        "sha256": "53fa20d226d3c2bc02b07f4e943fc74032f30a738d0719df496a234c7c75df64"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_25_FEATURES_OUTPUTS.pt",
+        "sha256": "824d77c0d282d30c507ba1d7878a1fdbbd9aef043cc4bd654064675e18332db3"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_26.json",
+        "sha256": "0dc8f1e2d2b9e8faa03aaa8d3ab872ff3105e20c057e299a78a35169ad4ac900"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_26_FEATURES_OUTPUTS.pt",
+        "sha256": "d7f9eedec7c421d30aba64d5c60d7718c909d363a77e7a9ceb1873cc4c841053"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_27.json",
+        "sha256": "75a3b5189e860ecd3e750085cdd196427ee1dcea035bdb0a1b5289ef23561ba3"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_27_FEATURES_OUTPUTS.pt",
+        "sha256": "54c2ba4e6fa1c988f9bfc98ff2c8c3b5a54c349496e52648e6d23ad39695a0e2"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_28.json",
+        "sha256": "28afe0ede9f33117a1d0fcb61aaa9a36d0851510247a886f6bd2ff4201ba49ca"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_28_FEATURES_OUTPUTS.pt",
+        "sha256": "18c9ed05e85fe1012a402789bc60720d17608297c23e72c7b5d1ae1174926796"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_29.json",
+        "sha256": "42f06fc1c9dd4e9b0383ca7af330623ccd31d1dd4b96134b4d224ab439880d57"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_29_FEATURES_OUTPUTS.pt",
+        "sha256": "abc9eb615f46d4c9383650e25eed999314f33a798d1452bbca1b1a0d7fb959ec"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_30.json",
+        "sha256": "1086f6da768aad7d33e71808becc3301f7abde60855518665172c9e22ea9f99b"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_30_FEATURES_OUTPUTS.pt",
+        "sha256": "b3a52ee7f48ed27f43442a07b60bfe318216196bf66810e17356b12c55918c54"
+      }
+    },
+    {
+      "baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/ACTUAL_TRAIN32_FIXED_TARGET_AUDIT_20260916/BATCH_31.json",
+        "sha256": "5d7c08cb559d2edb06a3030425ec9c6644407b245a627c8616ae440c8d8d01ce"
+      },
+      "saved_candidate": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/STABLE_COMPOSED_CACHE_CHECK_20260916/trained_31_FEATURES_OUTPUTS.pt",
+        "sha256": "a9729cbe04a02baec96d4752edf7a910b677782d95988b12d4bea730951500a1"
+      }
+    }
+  ],
+  "descriptive_saved_exit_mse": {
+    "ALL": {
+      "LONG": {
+        "baseline_mse": 1070.6244155530605,
+        "candidate_mse": 1006.7374080151855,
+        "train_constant_mse": 1071.2323551575846
+      },
+      "SHORT": {
+        "baseline_mse": 1069.2658992001352,
+        "candidate_mse": 1052.8264659435722,
+        "train_constant_mse": 1070.1125389056524
+      },
+      "state_rows": 512,
+      "unique_entries": 128
+    },
+    "NO_TARGET_OVERLAP": {
+      "LONG": {
+        "baseline_mse": 828.6658992253161,
+        "candidate_mse": 781.8885528106051,
+        "train_constant_mse": 829.8147759626801
+      },
+      "SHORT": {
+        "baseline_mse": 824.283636473905,
+        "candidate_mse": 852.4244325441181,
+        "train_constant_mse": 825.3522495871262
+      },
+      "state_rows": 181,
+      "unique_entries": 81
+    },
+    "STATE0_NO_TARGET_OVERLAP": {
+      "LONG": {
+        "baseline_mse": 626.1562341674928,
+        "candidate_mse": 637.0812989342055,
+        "train_constant_mse": 623.9012273935053
+      },
+      "SHORT": {
+        "baseline_mse": 623.8532618220119,
+        "candidate_mse": 731.7433703273947,
+        "train_constant_mse": 620.4209539446557
+      },
+      "state_rows": 35,
+      "unique_entries": 35
+    },
+    "STATE0_TARGET_OVERLAP": {
+      "LONG": {
+        "baseline_mse": 396.52170465100306,
+        "candidate_mse": 324.38128134607916,
+        "train_constant_mse": 396.16384459074675
+      },
+      "SHORT": {
+        "baseline_mse": 399.2159994015374,
+        "candidate_mse": 340.393385604547,
+        "train_constant_mse": 398.4436039756086
+      },
+      "state_rows": 32,
+      "unique_entries": 32
+    },
+    "TARGET_OVERLAP": {
+      "LONG": {
+        "baseline_mse": 1202.9340574120388,
+        "candidate_mse": 1129.6910116164818,
+        "train_constant_mse": 1203.2461975572153
+      },
+      "SHORT": {
+        "baseline_mse": 1203.229009633512,
+        "candidate_mse": 1162.4118678931227,
+        "train_constant_mse": 1203.9542681100431
+      },
+      "state_rows": 331,
+      "unique_entries": 118
+    }
+  },
+  "elapsed_seconds": 28.662366016000306,
+  "interpretation_limits": [
+    "TRAIN controls are interleaved, not chronological holdout, and the base model already trained on TRAIN.",
+    "Exact shared reward source transitions establish dependence, not future input leakage or a sole cause of June failure.",
+    "No-overlap rows remain reused TRAIN and may share input history or bootstrap teacher information.",
+    "Stratification is descriptive after results, never a new tuning target or generalization gate."
+  ],
+  "learning_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
+    "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
+  },
+  "m1_clock": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/M1_CHILD_VIEWS_V1/train.m1.parquet",
+    "sha256": "ee0bdee2bf76846ef0a715a537457cb0653ecac1585742603b84b51de87874f8"
+  },
+  "manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.manifest.json",
+    "sha256": "93e1424591f509540db9e822ab914e552f8eb624e332c8c5f58c259b72fbcf7e"
+  },
+  "overlap": {
+    "coverage_fraction_quantiles": {
+      "0": 0.0,
+      "0.25": 0.0,
+      "0.5": 0.3208333333333333,
+      "0.75": 0.8083333333333333,
+      "1": 1.0
+    },
+    "covered_successor_observations": 24538,
+    "fully_covered_separate_windows": 62,
+    "nearest_train_entry_wall_minutes": {
+      "0": 100.0,
+      "0.25": 140.0,
+      "0.5": 180.0,
+      "0.75": 375.0,
+      "1": 630.0
+    },
+    "nearest_train_state_wall_minutes": {
+      "0": 0.0,
+      "0.25": 34.0,
+      "0.5": 88.0,
+      "0.75": 159.0,
+      "1": 680.0
+    },
+    "overlapping_cross_pairs": 711,
+    "overlapping_entries": 118,
+    "overlapping_state0_count": 32,
+    "overlapping_state_rows": 331,
+    "separate_state_rows": 512,
+    "shared_480bar_local_history_state_rows": 512,
+    "state0_count": 67,
+    "total_successor_observations": 60569
+  },
+  "role_ranges": {
+    "separate_train": {
+      "backup_steps_max": 120,
+      "backup_steps_min": 9,
+      "entries": 128,
+      "entry_max_utc": "2026-05-29T01:35:00+00:00",
+      "entry_min_utc": "2025-06-02T14:55:00+00:00",
+      "state_max_utc": "2026-05-31T23:12:00+00:00",
+      "state_min_utc": "2025-06-02T15:03:00+00:00",
+      "state_rows": 512,
+      "target_boundary_max_utc": "2026-06-01T00:00:00+00:00"
+    },
+    "trained": {
+      "backup_steps_max": 120,
+      "backup_steps_min": 3,
+      "entries": 512,
+      "entry_max_utc": "2026-05-29T03:35:00+00:00",
+      "entry_min_utc": "2025-06-02T07:20:00+00:00",
+      "state_max_utc": "2026-05-31T23:07:00+00:00",
+      "state_min_utc": "2025-06-02T10:29:00+00:00",
+      "state_rows": 2048,
+      "target_boundary_max_utc": "2026-06-01T00:00:00+00:00"
+    }
+  },
+  "schema_version": "gx1_existing_train_temporal_overlap_audit_v1",
+  "scope": {
+    "age_decode": "unique exact FP32 encoded integer over full observed count range; both sides and path lengths agree",
+    "all_boundary_hold_actions_valid": true,
+    "direct_recorded_state_coordinate_checks": 576,
+    "index_binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.random_access_index.parquet",
+      "sha256": "66004b8c453aa54ecaa74535036e1d1d25b40d1e60e363ede2f2956accfbfb78"
+    },
+    "new_fits": 0,
+    "new_forwards": 0,
+    "new_targets": 0,
+    "optimizer_steps": 0,
+    "price_values_read": false,
+    "same_entry_overlap": 0,
+    "test_data_used": false,
+    "two_overlap_implementations_agree": true
+  },
+  "source_commit": "0a421e9cc418ac1a868481d9ffb194e9ba4a316b",
+  "target_packages": {
+    "separate_train": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/SEPARATE_TRAIN_TARGETS.pt",
+      "sha256": "3edf95284a123161c43413b3bfbdbd89d51518a5c6ed8717cae4f67f8f1e4b54"
+    },
+    "trained": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/TRAINED_TARGETS.pt",
+      "sha256": "2e85285b7f9a05ec30faf07fe201f9cec303b03d1c33523aee4b10668d21e5b5"
+    }
+  }
+}
