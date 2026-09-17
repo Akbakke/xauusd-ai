@@ -124,6 +124,21 @@ def test_pair_opens_gradient_without_changing_outputs_heads_or_weights(pair):
     for k,v in before.items():assert torch.equal(v,pair["model"].state_dict()[k])
     assert all(p.grad is None for p in pair["model"].parameters())
 
+def test_cached_numeric_roundoff_keeps_strict_variant_gradient_parity(pair):
+    pair["expected_prediction"] = pair["expected_prediction"] + 1e-5
+    result=runner._entry_gradient_pair(**pair)
+    assert result["connected"]["cached_prediction_max_abs_difference_bps"]<1e-4
+    assert result["connected"]["cached_actions_equal"]
+
+def test_cached_action_change_below_tolerance_is_rejected(pair):
+    with torch.no_grad():
+        pair["model"].head_entry_action_q.weight.zero_()
+        pair["model"].head_entry_action_q.bias.zero_()
+    pair["expected_prediction"]=torch.zeros(16,3)
+    pair["expected_prediction"][0,1]=1e-5
+    with pytest.raises(RuntimeError,match="FORWARD_VALUES_CHANGED"):
+        runner._entry_gradient_pair(**pair)
+
 @pytest.mark.parametrize("fault",["prediction","mask","training_mode"])
 def test_pair_rejects_nonidentical_values_and_wrong_scope(pair,fault):
     if fault=="prediction":pair["expected_prediction"]=pair["expected_prediction"]+1
@@ -167,3 +182,4 @@ def test_outer_preserves_original_checkpoint_and_rng_on_success_or_failure(pair,
     assert torch.equal(torch.get_rng_state(),rng) and model.training
     assert runner.trainer._model_state_sha256(model)==model_hash
     assert _bind(state_path)==state_binding and _bind(Path(pointer["path"]))==pointer
+    assert (tmp_path/"entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt").is_file()

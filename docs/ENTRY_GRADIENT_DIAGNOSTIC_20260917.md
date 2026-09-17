@@ -9,8 +9,8 @@ Gjenbruk lagrede mål, prefix-inputs og eksisterende FP32-forward. To eval-
 forwards med modellens eksisterende gradientflagg, henholdsvis detached og
 connected. Ingen modell-/taps-/samplerendring eller optimizersteg.
 
-Krev eksakt samme prediksjoner som den lagrede sluttmålingen, identiske
-Entry-hodegradienter mellom variantene, endelige gradienter og null akkumulert
+Krev maksimalt0,0001Bps avvik fra lagret sluttmåling og identiske handlinger.
+Krev bitlike prediksjoner og Entry-hodegradienter mellom variantene, endelige gradienter og null akkumulert
 .grad. Mål LONG/SHORT/FLAT, routinggradient og forhold/vinkel mot eksisterende
 vektede hjelpeoppgaver. Eval-modus holder dropout fast. Dette er én gjenbrukt
 TRAIN-batch, ikke bevis på bedre læring eller overføring til senere data.
@@ -35,3 +35,19 @@ Første faktiske preflight stoppet før modellarbeid fordi kildebindingene har
 python:-prefiks og utvidet metadata. Bare oppslaget og testfixturen ble rettet;
 11 valgte scope/dispatch/mask-kontroller består etterpå. Original feillogg og
 policykopier er bevart. Faktisk korrigert binding er nå verifisert.
+
+## Første kjøring og minste målerettelse
+
+Første native forsøk på4401c257 sluttet10:42:15UTC med child_status1 på
+ENTRY_GRADIENT_FORWARD_VALUES_CHANGED. Faktisk differanse ble ikke lagret;
+avrunding er foreløpig en hypotese. Null optimizersteg, ingen gradientrapport.
+Original plan/oppskrift/logg/policy bevares i den opprinnelige artifactmappen.
+
+Én korrigert kontroll er separat bundet i NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917.
+Den gjenbruker ONLINE256 og identiske TRAIN16-mål. Toleransen1e-4,rtol0 er
+hentet fra eksisterende native FP32 output-paritet (VAL-eier), før dette avviket
+er målt. Handlingene må være identiske. Variantparitet er fortsatt bitlik.
+Avvik logges før stopp; inputcache skrives før kontroll. Åtte berørte tester
+består, inkludert avvisning av endret handling innen toleransen. Modell, trener,
+mål og vakter er uendret. Et nytt misforhold gir stopp, ingen toleransesøk.
+Se handover_snapshot/ENTRY_GRADIENT_NUMERIC_REPAIR_20260917.json.

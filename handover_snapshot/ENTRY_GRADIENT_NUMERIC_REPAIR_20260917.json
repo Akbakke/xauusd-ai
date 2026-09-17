@@ -1,0 +1,110 @@
+{
+  "result_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/BINDING_RESULT.json",
+    "sha256": "1397078172d49ee3b8b8b3e3ff190d2c697c65a533749957edbd2766b763c1eb"
+  },
+  "result": {
+    "decision": "MINIMAL_NUMERIC_REPAIR_VERIFIED_RETRY_BOUND_NOT_STARTED",
+    "failed_attempt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/FAILURE.json",
+      "sha256": "b497c355872fa8fbee77dd17bd4f9af3098f512deb230ae1fd086da2f0ca55be"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/PLAN.json",
+      "sha256": "30fa70726fb1170803cc8631c247ab645918d0e6c0a272ae0c4f7e8a668019a8"
+    },
+    "tests_passed": 8,
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/NUMERIC_REPAIR_TEST.log",
+      "sha256": "f4f588c85b30da36129fd55ee81dc6a3b9002843d9494e045dffaedd86d610f0"
+    },
+    "actual_scope_verified": true,
+    "source_bindings_sha256": "4087d42a17c65e674c81def44b3c5f7009e958b5e9b191db57cf00962d753a31",
+    "optimizer_steps": 0,
+    "model_and_trainer_source_unchanged": true,
+    "learning_proven": false,
+    "test_data_used": false
+  },
+  "failed_attempt": {
+    "decision": "TERMINAL_FAILED_CACHED_FORWARD_BIT_EQUALITY",
+    "source_commit": "4401c257a0f0e6e995819ae02d4b77e1d77fda87",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/PLAN.json",
+      "sha256": "dc600149c04002351d8e7325c29b5279f9021c9ac6fdcc087f11706aac922d98"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/NATIVE_RECIPE.json",
+      "sha256": "3b0b56bf83e69d7e5cf8f9e17bf96e1d78a552d86906365d5b7ff99a462e92cd"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917_BOOT453/guard/invocation-0001.log",
+      "sha256": "0b8e3852dbf64dad1cbb421a147e44e9b9d967ef402310837a11509fa3379d0b"
+    },
+    "trainer_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917_BOOT453/progress/.invocation-0001.json.trainer.0HbHPEtt.log",
+      "sha256": "876e3770c7791be93652fdb01b43a3972fe3afb0ab04b672013bcd88e203cea2"
+    },
+    "task_disabled": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917_DISABLED.json",
+      "sha256": "1123fb11df4eb2172a91bf1b7d30a287b84bc7d574f04bd92832af27297f1ffb"
+    },
+    "ended_utc": "2026-09-17T10:42:15Z",
+    "optimizer_steps": 0,
+    "gradient_result_available": false,
+    "actual_q_difference_recorded": false,
+    "failure_cause": "Cached inference prediction was not bit-identical to autograd prediction. Numerical difference was not recorded; roundoff is a hypothesis, not a measured explanation.",
+    "guard_child_exit_status": 1,
+    "guard_pass_claimed": false,
+    "test_data_used": false
+  },
+  "plan": {
+    "schema_version": "gx1_entry_gradient_diagnostic_plan_v1",
+    "created_utc": "2026-09-17T11:08:28.895410+00:00",
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
+      "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
+    },
+    "origin_cursor": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_FIXED256_LEARNING_20260917_BOOT452/native-candidate-cursor/RESUME_CURSOR.json",
+      "sha256": "6ec63787445a527808cd0e3ef28bf62cd39cffb5d9e268a5c4734abf8cd130e7"
+    },
+    "train_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+      "sha256": "4be70dc59670f1d3950a680fac3509c613fb8d21ffc438e40beba2ea8105d242"
+    },
+    "optimizer_steps": 0,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "max_invocations": 1,
+    "mode": "eval",
+    "selection": "first16_existing_frozen_TRAIN_probe",
+    "variants": [
+      "detached",
+      "connected"
+    ],
+    "test_data_used": false,
+    "question": "Does the existing Entry Q loss have finite nonzero upstream/routing gradients when its current detach is removed in an otherwise identical diagnostic forward?",
+    "interpretation": "Compare raw/weighted loss, by-side gradients and cosine/norm ratio against existing auxiliary task gradients. No gradient update, search, control tuning or learning claim.",
+    "invariants": [
+      "same finalONLINE256 model",
+      "same saved TRAIN16 targets",
+      "cached predictions within predeclared FP32 tolerance; identical actions",
+      "bit-identical predictions and Entry-head gradients between gradient variants",
+      "unchanged original checkpoint and RNG",
+      "no optimizer",
+      "no Exit/control/TEST forward"
+    ],
+    "decision": "One report; finite connected gradients show access only. Conflicting or dominating gradients inform the narrow hypothesis; neither result authorizes training or predicts transfer.",
+    "retry_of": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/FAILURE.json",
+      "sha256": "b497c355872fa8fbee77dd17bd4f9af3098f512deb230ae1fd086da2f0ca55be"
+    },
+    "cached_output_parity": {
+      "absolute_tolerance_bps": 0.0001,
+      "relative_tolerance": 0.0,
+      "actions_identical": true,
+      "source": "Existing native FP32 output parity in unified_exit_random_access_val_evaluator_v1.py; chosen before actual diagnostic difference was measured."
+    }
+  }
+}

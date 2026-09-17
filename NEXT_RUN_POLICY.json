@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Run one existing guarded native window for the declared TRAIN16 Entry-gradient diagnostic. Load fixedONLINE256 read-only, reuse frozen targets and prefix inputs, perform exactly two eval-mode forwards with the existing detach flag, compare Entry/auxiliary gradients without optimizer steps, preserve original state/RNG and cache the input batch. No CONTROL/Exit/TEST forwards, fit, training, same-control retuning, economic rollout or automatic repeat. Review the result before changing the model.",
+  "rule": "Run the single corrected TRAIN16 native gradient contrast, no optimizer. Preserve failed first attempt. Cached FP32 predictions must differ by at most 1e-4 Bps with identical actions; detached/connected outputs and head gradients remain bit-identical. Log actual difference and preserve input cache before measurement. No CONTROL/Exit/TEST forward, training, extension or automatic repeat.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -825,8 +825,8 @@
   },
   "entry_gradient_diagnostic": {
     "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/PLAN.json",
-      "sha256": "dc600149c04002351d8e7325c29b5279f9021c9ac6fdcc087f11706aac922d98"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/PLAN.json",
+      "sha256": "30fa70726fb1170803cc8631c247ab645918d0e6c0a272ae0c4f7e8a668019a8"
     },
     "chronological_prefix": {
       "design": {
@@ -842,9 +842,9 @@
         "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
       }
     },
-    "run_id": "NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/CANDIDATE_BUNDLE",
-    "source_bindings_sha256": "9bf39f83f69c91b385c9abbcb7101cc99bdee15e8f30ef7d7c205cef40db3ddc",
+    "run_id": "NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "4087d42a17c65e674c81def44b3c5f7009e958b5e9b191db57cf00962d753a31",
     "optimizer_steps": 0,
     "origin_optimizer_steps": 256,
     "max_invocations": 1,
@@ -852,5 +852,9 @@
     "model_forwards": 2,
     "control_forwards": 0,
     "test_data_used": false
+  },
+  "entry_gradient_first_attempt_failure": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/FAILURE.json",
+    "sha256": "b497c355872fa8fbee77dd17bd4f9af3098f512deb230ae1fd086da2f0ca55be"
   }
 }

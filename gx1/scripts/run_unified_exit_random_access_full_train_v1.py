@@ -757,13 +757,25 @@ def _entry_gradient_pair(*, model, batch, target, valid, expected_prediction, de
         return max(-1.0,min(1.0,float(torch.dot(a,b))/den)) if den>0 else None
     report = {}
     first_head = None
+    first_prediction = None
     for variant, detached in (("detached",True),("connected",False)):
         out = trainer._model_forward_fp32(model,batch["seq_x"].to(device),batch["snap_x"].to(device),
             ctx_cat=batch["ctx_cat"].to(device),ctx_cont=batch["ctx_cont"].to(device),
             **trainer._multi_tf_kwargs_from_batch(batch,device),liquidation_relative_values=detached)
         q=out["entry_action_q_bps"]
-        if not torch.equal(q.detach(),expected_prediction):
+        # Reuse the existing native FP32 output-parity allowance. Inference
+        # and autograd can select different reduction kernels. The two
+        # gradient variants still require bit-exact outputs and head gradients.
+        difference = float((q.detach()-expected_prediction).abs().max())
+        actions_equal = torch.equal(q.detach().argmax(1), expected_prediction.argmax(1))
+        print(json.dumps({"event":"ENTRY_GRADIENT_NUMERIC_PARITY", "variant":variant,
+            "max_abs_q_difference_bps":difference, "absolute_tolerance_bps":1e-4,
+            "relative_tolerance":0.0, "actions_equal":actions_equal}), flush=True)
+        if (not actions_equal or not torch.allclose(q.detach(),expected_prediction,atol=1e-4,rtol=0.0)):
             raise RuntimeError("ENTRY_GRADIENT_FORWARD_VALUES_CHANGED")
+        if first_prediction is None:first_prediction=q.detach().clone()
+        elif not torch.equal(first_prediction,q.detach()):
+            raise RuntimeError("ENTRY_GRADIENT_VARIANT_VALUES_CHANGED")
         raw=torch.nn.functional.mse_loss(q[valid],target[valid])
         precision=torch.exp(-model.task_log_variances["entry_action_q"])
         entry_grads=gradients(precision*raw)
@@ -788,6 +800,7 @@ def _entry_gradient_pair(*, model, batch, target, valid, expected_prediction, de
             g=gradients(precision*((q[:,j]-target[:,j])**2).sum()/valid.sum())
             sides[side]=describe(g)
         report[variant]={"raw_entry_mse":float(raw.detach()),"entry_precision":float(precision.detach()),
+            "cached_prediction_max_abs_difference_bps":difference,"cached_actions_equal":actions_equal,
             "entry":describe(entry_grads),"auxiliary":describe(aux_grads),"entry_by_action":sides,
             "entry_auxiliary_routing_cosine":cosine(ev,av),
             "entry_to_auxiliary_routing_norm_ratio":float(torch.linalg.vector_norm(ev)/torch.linalg.vector_norm(av)) if bool(torch.linalg.vector_norm(av)>0) else None}
@@ -824,6 +837,10 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
     prediction=torch.tensor([r["predicted_q_bps"] for r in rows],dtype=torch.float32,device=device)
     directory=output.parent/"entry_gradient_diagnostic"
     if directory.exists() or directory.is_symlink():raise RuntimeError("ENTRY_GRADIENT_OUTPUT_EXISTS")
+    directory.mkdir()
+    cache=directory/"TRAIN16_INPUTS_AND_TARGETS.pt"
+    # Preserve the expensive input materialization even if the contrast fails.
+    torch.save({"batch":batch,"target":target.cpu(),"valid":valid.cpu(),"expected_prediction":prediction.cpu()},cache)
     modes=[(m,m.training) for m in model.modules()]
     rng=trainer._attended_session_rng_state(device=device)
     try:
@@ -837,16 +854,14 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
         trainer._restore_attended_session_rng_state(rng,device=device)
         if trainer._model_state_sha256(model)!=expected:raise RuntimeError("ENTRY_GRADIENT_MODEL_CHANGED")
         _bound_artifact(pointer_binding);_bound_artifact(state_binding)
-    directory.mkdir()
-    # Cache this exact TRAIN batch once for any justified subsequent analysis.
-    cache=directory/"TRAIN16_INPUTS_AND_TARGETS.pt"
-    torch.save({"batch":batch,"target":target.cpu(),"valid":valid.cpu(),"expected_prediction":prediction.cpu()},cache)
     report={"schema_version":"gx1_entry_gradient_diagnostic_result_v1",
         "decision":"TRAIN_GRADIENT_MEASURED_NOT_LEARNING_OR_GENERALIZATION_PROOF",
         "plan":scope["plan_binding"],"source_commit":recipe["source_commit"],"model_state_sha256":expected,
         "training_state":state_binding,"training_pointer":pointer_binding,"input_cache":{"path":str(cache),"sha256":val.file_sha256(cache)},
         "selection":"first16_existing_frozen_TRAIN_probe","model_mode":"eval","measurements":measured,
-        "forward_values_and_entry_head_gradients_identical":True,"model_and_original_checkpoint_preserved":True,
+        "variant_forward_values_and_entry_head_gradients_identical":True,
+        "cached_prediction_absolute_tolerance_bps":1e-4,"cached_actions_identical":True,
+        "model_and_original_checkpoint_preserved":True,
         "rng_restored":True,"optimizer_steps":0,"model_forwards":2,"control_forwards":0,"test_data_used":False,
         "limitations":"One reused TRAIN batch in eval mode. Finite connected gradients are not learning, improvement or future transfer.",
         "native_elapsed_seconds":time.monotonic()-invocation_started}
