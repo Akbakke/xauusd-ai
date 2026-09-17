@@ -648,40 +648,44 @@ def test_cuda_trainer_guard_requires_exact_execution_tier_before_cuda_probe() ->
 @pytest.mark.parametrize("surface,field", [
     ("signal", "ctx_cont.d1_ema_stack_aligned_v2"),
     ("ctx_cont", "d1_ema_stack_aligned_v2"),
-    ("mtf_d1", "ema_stack_aligned_v2"),
+    ("mtf_d1", "bull_divergence_strength"),
 ])
-@pytest.mark.parametrize("observed", [-1.0, 0.0, 1.0])
-def test_constant_source_defined_ema_stack_preserves_unseen_states(surface, field, observed):
-    fitted = fit_surface_normalization(np.full((8, 1), observed, dtype=np.float32),
-                                      surface=surface, field_names=[field])
-    assert fitted["scale_source"] == ["source_declared_ternary_unit"]
+@pytest.mark.parametrize("observed", [-1.0, 0.0, 1.0, 2.5])
+def test_explicit_constant_prefix_preserves_unseen_values(surface, field, observed):
+    values = np.full((8, 1), observed, dtype=np.float32)
+    fitted = fit_surface_normalization(values, surface=surface, field_names=[field],
+                                      allow_constant_train_fields=True)
+    assert fitted["scale_source"] == ["constant_train_unit_scale"]
     assert fitted["center"] == [observed] and fitted["scale"] == [1.0]
     assert fitted["binary_mask"] == fitted["categorical_mask"] == [0]
     normalization_contract.require_surface_normalization(fitted, surface=surface, field_names=[field])
-    served = np.array([[-1.0], [0.0], [1.0]], dtype=np.float32)
+    # Future values are not selected from or limited to observed TRAIN support.
+    served = np.array([[-9.0], [-1.0], [0.0], [1.0], [17.0]], dtype=np.float32)
     transformed = apply_surface_normalization(served, fitted)
     assert np.isfinite(transformed).all() and np.all(np.diff(transformed[:, 0]) > 0)
-    np.testing.assert_allclose(invert_surface_normalization(transformed, fitted), served, atol=2e-6)
-
-
-@pytest.mark.parametrize("surface,field,value", [
-    ("signal", "ctx_cont.d1_ema_stack_aligned_v2", 2.0),
-    ("signal", "constant", 1.0),
-    ("signal", "ctx_cont.d1_trend_state_age_bars_v2", 1.0),
-    ("mtf_unknown", "ema_stack_aligned_v2", 1.0),
-])
-def test_declared_unit_does_not_relax_unknown_constants(surface, field, value):
+    np.testing.assert_allclose(invert_surface_normalization(transformed, fitted), served, atol=3e-6)
     with pytest.raises(RuntimeError, match="UNSCALEABLE"):
-        fit_surface_normalization(np.full((8, 1), value, dtype=np.float32),
-                                  surface=surface, field_names=[field])
+        fit_surface_normalization(values, surface=surface, field_names=[field])
 
 
-@pytest.mark.parametrize("key,value", [("scale", [2.0]), ("center", [2.0]),
-                                       ("train_transformed_max", [1.0])])
-def test_declared_unit_metadata_rejects_forged_units(key, value):
-    field = "ctx_cont.d1_ema_stack_aligned_v2"
-    fitted = fit_surface_normalization(np.ones((8, 1), dtype=np.float32),
-                                      surface="signal", field_names=[field])
-    fitted[key] = value
-    with pytest.raises(RuntimeError, match="DECLARED_UNIT_INVALID"):
-        normalization_contract.require_surface_normalization(fitted, surface="signal", field_names=[field])
+def test_constant_opt_in_does_not_change_nonconstant_statistics():
+    values = np.array([[0., 1.], [0., 2.], [0., 3.], [4., 4.]], dtype=np.float32)
+    args = dict(surface="signal", field_names=["rare", "continuous"])
+    assert fit_surface_normalization(values, **args) == fit_surface_normalization(
+        values, **args, allow_constant_train_fields=True)
+
+
+@pytest.mark.parametrize("fault", ["scale", "support", "policy"])
+def test_constant_unit_contract_fails_closed(fault):
+    values = np.zeros((8, 1), dtype=np.float32)
+    if fault == "policy":
+        with pytest.raises(RuntimeError, match="CONSTANT_POLICY_INVALID"):
+            fit_surface_normalization(values, surface="signal", field_names=["f"],
+                                      allow_constant_train_fields=1)
+        return
+    fitted = fit_surface_normalization(values, surface="signal", field_names=["f"],
+                                      allow_constant_train_fields=True)
+    if fault == "scale": fitted["scale"] = [2.0]
+    else: fitted["train_transformed_max"] = [1.0]
+    with pytest.raises(RuntimeError, match="CONSTANT_UNIT_INVALID"):
+        normalization_contract.require_surface_normalization(fitted, surface="signal", field_names=["f"])

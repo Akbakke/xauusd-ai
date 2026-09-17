@@ -47,3 +47,22 @@ inkludert apply/invert, er AST-uendret. Ikke-konstant fit er uendret.
 RETRY_PLAN binder kun uferdig base-/summary-fit og sammensatt binding. Ferdig
 populasjon gjenbrukes med hash; ingen datoer, rader, features eller kontrollmål
 endres. Samme capped producer16GiB/512MiB og3600s. Ingen modellkjøring.
+
+## Generell feil avdekket; første unntak erstattet
+
+Det andre forsøket passerte EMA-feltet, men stoppet på D1 bull_divergence_strength
+med median0/skala0. Den feltspesifikke rettelsen var for snever og er fjernet.
+Begge mislykkede kjøringer er bevart; ingen base-fit ble publisert.
+
+Den eksisterende fit-funksjonen har nå én eksplisitt prefix-policy:
+allow_constant_train_fields. Bare prefix-eieren aktiverer den. Endelig konstante
+felter beholder TRAIN-median og rå enhetsskala gjennom eksisterende invertible
+asinh; scale_source=constant_train_unit_scale registrerer ingen observert
+variasjon. Standardmodus og alle ikke-konstante statistikker er uendret.
+Ingen feltliste, epsilon, binærdomene, clipping eller nyere observasjoner brukes.
+
+41 relevante tester består på første forsøk:33 normaliseringskontrakt og8
+prefix-integrasjon, inklusive invarians ved endring av framtidige features.
+Senere verdier beholder distinkte, endelige, inverterbare representasjoner.
+Dette gir ingen læring av den manglende variasjonen; konstante felter oppgis
+åpent i det faktiske resultatet. RESUME_PLAN binder kun de uferdige fasene.

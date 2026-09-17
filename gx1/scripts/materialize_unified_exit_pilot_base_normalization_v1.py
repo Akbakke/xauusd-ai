@@ -170,8 +170,8 @@ def fit_base(
     signal_parts = [MatrixPopulationPart(m5_signal, row_indices=entry_indices, source="entry_m5"), MatrixPopulationPart(m1_signal, row_indices=local, source="exit_m1")]
     ctx_parts = [MatrixPopulationPart(entry_ctx, source="entry"), MatrixPopulationPart(m1_ctx, row_indices=current, source="exit")]
     cat_parts = [MatrixPopulationPart(entry_cat, source="entry"), MatrixPopulationPart(m1_cat, row_indices=current, source="exit")]
-    signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=signal_fields, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS)
-    ctx_raw = fit_surface_normalization(ctx_parts, surface="ctx_cont", field_names=MODEL_NATIVE_CTX_CONT_FIELDS, row_count=len(entry_times) + len(current), semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
+    signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=signal_fields, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
+    ctx_raw = fit_surface_normalization(ctx_parts, surface="ctx_cont", field_names=MODEL_NATIVE_CTX_CONT_FIELDS, row_count=len(entry_times) + len(current), semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
     ctx_surface = share_temporal_alias_stats_from_signal(ctx_raw, signal_surface, temporal_aliases=aliases, ctx_cont_values=ctx_parts)
     surfaces: dict[str, Any] = {"signal": signal_surface, "ctx_cont": ctx_surface}
     cache = load_multi_tf_v4_cache(mtf_cache_dir)
@@ -179,7 +179,7 @@ def fit_base(
     for tf in EXPECTED_TFS:
         source = cache[tf]
         selected, window, _proof = select_shared_causal_mtf_fit_population(tf=tf, source=source, entry_train_times_ns=np.asarray(entry_times.asi8), exit_train_times_ns=np.asarray(m1_times.asi8[current]), seq_len=PER_TF_SEQ_LENS[tf])
-        surfaces[f"mtf_{tf.lower()}"] = fit_surface_normalization(selected, surface=f"mtf_{tf.lower()}", field_names=MULTI_TF_PER_BAR_FEATURES_V4, row_count=window["selected_unique_row_count"], semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS)
+        surfaces[f"mtf_{tf.lower()}"] = fit_surface_normalization(selected, surface=f"mtf_{tf.lower()}", field_names=MULTI_TF_PER_BAR_FEATURES_V4, row_count=window["selected_unique_row_count"], semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
         windows[tf] = window
     if tuple(surfaces) != EXPECTED_SURFACES:
         raise RuntimeError("PILOT_BASE_NORMALIZATION_SURFACE_ORDER_INVALID")

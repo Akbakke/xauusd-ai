@@ -1,0 +1,46 @@
+{
+  "schema_version": "gx1_explicit_constant_prefix_normalization_fix_v1",
+  "decision": "GENERAL_EXPLICIT_PREFIX_CONSTANT_POLICY_PASS",
+  "completed_utc": "2026-09-17T03:21:22.035546+00:00",
+  "source_files": {
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "b90cd8abd40011656ce343f979f98c40316669a422552b9b0c499122c7343c60"
+    },
+    "gx1/scripts/materialize_unified_exit_pilot_base_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_pilot_base_normalization_v1.py",
+      "sha256": "f6b33c8096540ae4ce8542375eeb2d7123a3fb5021b7e9d6cea855f55f7de365"
+    }
+  },
+  "tests_passed": 41,
+  "junit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/GENERAL_CONSTANT_PREFIX_FIX/JUNIT.xml",
+    "sha256": "399db0f607f98f35912d0e63c248bb0fd8c5c2c862e5806c70e36cd4c349db7c"
+  },
+  "test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/GENERAL_CONSTANT_PREFIX_FIX/TEST.log",
+    "sha256": "372879a6b7a50d4f3da2943a092665c2b98f6a9d1d37eecd989b4ef59c4cb462"
+  },
+  "observed_failure": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RETRY_PREPARATION.log",
+    "sha256": "89f07b49365456ef4e325c1711b7d3582fd5329b3729fff566769c759232525f"
+  },
+  "supersedes_field_specific_ema_fix": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/CONSTANT_EMA_STATE_FIX/RESULT.json",
+    "sha256": "ec588bc316debe097ce4b34f145eb777a3baf385c3bd2a716e9f1ad5ecf82e79"
+  },
+  "correction": "Explicit allow_constant_train_fields=True only in existing prefix base-fit branch. Finite constant columns retain fitted TRAIN center, raw unit scale, invertible asinh and zero binary/categorical masks. Mark constant_train_unit_scale for each such field. No feature-specific exemption remains. Default constant rejection and nonconstant fitted statistics are unchanged.",
+  "checked": [
+    "All33 normalization cases including16 new constant-policy cases pass",
+    "All8 causal prefix-fit integration cases pass, including future-feature poison invariance",
+    "Unknown or EMA or divergence fields receive same explicit handling; served unseen values remain distinct and invertible",
+    "No-opt-in legacy rejection, invalid policy type/unit/support and nonfinite input rejection preserved"
+  ],
+  "limits": "A constant feature has no measured dispersion or learned state contrast in this fit population. Unit scale is explicit raw-unit preservation, not estimated variability or evidence of robustness. All constant fields will be reported in actual artifacts.",
+  "scope": {
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "control_tuning": false,
+    "test_accessed": false
+  }
+}

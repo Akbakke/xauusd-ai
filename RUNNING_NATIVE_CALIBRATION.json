@@ -1,5 +1,5 @@
 {
-  "status": "PREFIX_NORMALIZATION_REMAINDER_BOUND_AFTER_CONSTANT_EMA_FIX",
+  "status": "PREFIX_NORMALIZATION_REMAINDER_BOUND_GENERAL_CONSTANT_POLICY",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prefix normalization population completed:47814Entries,53007M5-local rows,263998Exit-current rows,allcloses<=cutoff. Basefit stopped on constant source-defined d1 EMA state before publishing; no summaryfit yet. The minimal normalizer fix uses declared unit spacing only for legal constant EMA signedstates;33 focused tests pass, existing nonconstant transform/application unchanged. Resume only unfinished base/summary/composite stages through the bound RETRY_PLAN; reuse completed population. No row/date/hyperparameter changes, model/optimizer/controlretuning/labels/TEST. Native launch remains closed.",
+  "next_action": "Prefix population remains complete and immutable. A second constant-field stop proved the first EMA-specific exception too narrow; it is now removed. Existing prefix base-fit explicitly preserves raw unit scale for finite constant fields and records no-observed-dispersion via scale_source. Nonconstant fits and default rejection unchanged;41 relevant tests pass including future-feature poison invariance. Resume only unfinished base/summary/composite under RESUME_PLAN, reusing exact47814Entries/cutoff/population. Report all constant fields; no assertion of learned unseen-regime effects. No model/optimizer/labels/policyfit/controltuning/TEST/native launch.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix normalization population completed:47814Entries,53007M5-local rows,263998Exit-current rows,allcloses<=cutoff. Basefit stopped on constant source-defined d1 EMA state before publishing; no summaryfit yet. The minimal normalizer fix uses declared unit spacing only for legal constant EMA signedstates;33 focused tests pass, existing nonconstant transform/application unchanged. Resume only unfinished base/summary/composite stages through the bound RETRY_PLAN; reuse completed population. No row/date/hyperparameter changes, model/optimizer/controlretuning/labels/TEST. Native launch remains closed."
+    "next_scope": "Prefix population remains complete and immutable. A second constant-field stop proved the first EMA-specific exception too narrow; it is now removed. Existing prefix base-fit explicitly preserves raw unit scale for finite constant fields and records no-observed-dispersion via scale_source. Nonconstant fits and default rejection unchanged;41 relevant tests pass including future-feature poison invariance. Resume only unfinished base/summary/composite under RESUME_PLAN, reusing exact47814Entries/cutoff/population. Report all constant fields; no assertion of learned unseen-regime effects. No model/optimizer/labels/policyfit/controltuning/TEST/native launch."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -434,14 +434,14 @@
   },
   "prefix_normalization_preparation": {
     "enabled": true,
-    "status": "RESUME_UNFINISHED_NORMALIZATION_AFTER_CONSTANT_EMA_UNIT_FIX",
+    "status": "RESUME_UNFINISHED_NORMALIZATION_EXPLICIT_CONSTANT_PREFIX_POLICY",
     "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RETRY_PLAN.json",
-      "sha256": "ebf69149b07072cfdab7fd8c4cdc7795d3bd2e403b1c2f2a8e69924dfcbca121"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESUME_PLAN.json",
+      "sha256": "a383c718ab984f0a46fe3ff00406b92e15bca892f442ce01d498a7b164941143"
     },
     "previous_attempt": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/PLAN.json",
-      "sha256": "384896e64bc73d338c896f3e07bc41fd741e15b154c35d5744301ccc4fe05273"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RETRY_PLAN.json",
+      "sha256": "ebf69149b07072cfdab7fd8c4cdc7795d3bd2e403b1c2f2a8e69924dfcbca121"
     },
     "one_preparation_only": true,
     "completed_population_must_not_repeat": true,
@@ -454,5 +454,13 @@
       "sha256": "ec588bc316debe097ce4b34f145eb777a3baf385c3bd2a716e9f1ad5ecf82e79"
     },
     "tests_passed": 33
+  },
+  "completed_constant_prefix_normalization_fix": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/GENERAL_CONSTANT_PREFIX_FIX/RESULT.json",
+      "sha256": "024f5efb6c2b2bc1e3dcda323a155bd929ca24f5435c15e7e4d1ad85f1a35cbe"
+    },
+    "tests_passed": 41,
+    "supersedes_ema_specific_exception": true
   }
 }

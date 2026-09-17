@@ -703,24 +703,6 @@ def _population_transformed_extrema(
     return transformed_min, transformed_max
 
 
-
-def _source_declared_ema_stack(surface: str, field: str) -> bool:
-    """Exact signed {-1,0,1} EMA ordering, including its context projections.
-
-    htf_features constructs this state from mutually exclusive strict EMA
-    orderings. Its unit gap is defined by the producer, not by TRAIN support.
-    It remains on the existing invertible asinh route, never an embedding.
-    """
-    if surface in EXPECTED_SURFACES and surface.startswith("mtf_"):
-        return field == "ema_stack_aligned_v2"
-    names = {f"{tf.lower()}_ema_stack_aligned_v2" for tf in MULTI_TF_TIMEFRAMES}
-    if surface == "ctx_cont":
-        return field in names
-    if surface == "signal":
-        return field in {f"ctx_cont.{name}" for name in names}
-    return False
-
-
 def fit_surface_normalization(
     values: Any,
     *,
@@ -730,6 +712,7 @@ def fit_surface_normalization(
     column_chunk: int = FIT_COLUMN_CHUNK,
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
     semantic_binary_fields: Sequence[str] | None = None,
+    allow_constant_train_fields: bool = False,
 ) -> dict[str, Any]:
     """Fit an invertible robust transform without materializing the matrix.
 
@@ -777,6 +760,8 @@ def fit_surface_normalization(
     binary_mask = np.zeros(width, dtype=np.uint8)
     categorical_mask = np.zeros(width, dtype=np.uint8)
     scale_source: list[str] = [""] * width
+    if type(allow_constant_train_fields) is not bool:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONSTANT_POLICY_INVALID]")
     categorical_domains = {
         str(name): tuple(int(value) for value in domain)
         for name, domain in (semantic_categorical_domains or {}).items()
@@ -861,6 +846,15 @@ def fit_surface_normalization(
                 categorical_mask[index] = np.uint8(1)
                 scale_source[index] = "categorical_embedding_identity"
                 continue
+            if allow_constant_train_fields and np.all(column == column[0]):
+                # Explicit finite-prefix mode: dispersion is not estimable.
+                # Retain raw feature units, TRAIN center and invertible asinh;
+                # do not infer a binary domain, clip later values, invent
+                # observations or use later data to obtain a nonzero scale.
+                center[index] = np.float32(column[0])
+                scale[index] = np.float32(1.0)
+                scale_source[index] = "constant_train_unit_scale"
+                continue
             # v7 (2026-08-19): the sample-inferred binary branch is REMOVED.
             # It read ``all(x in {0,1}) and any(x==0) and any(x==1)`` off the
             # fit window and stamped ``binary_mask``, which
@@ -911,18 +905,6 @@ def fit_surface_normalization(
                 if positive.size:
                     field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
-            if (
-                field_scale == np.float32(0.0)
-                and _source_declared_ema_stack(str(surface), names[index])
-                and field_center in (-1.0, 0.0, 1.0)
-                and np.all(column == float(field_center))
-            ):
-                # A constant prefix cannot estimate dispersion. The producer's
-                # signed unit spacing supplies scale, without inventing rows,
-                # clipping unseen signs or granting unknown continuous fields
-                # a fallback. Retain TRAIN's median and the existing asinh.
-                field_scale = np.float32(1.0)
-                source = "source_declared_ternary_unit"
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] "
@@ -1124,22 +1106,19 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
-        declared_unit = scale_source[index] == "source_declared_ternary_unit"
-        if declared_unit and (
-            not _source_declared_ema_stack(str(surface), names[index])
-            or is_binary or is_categorical
-            or center[index] not in (-1.0, 0.0, 1.0)
-            or scale[index] != np.float32(1.0)
-            or transformed_min[index] != 0.0 or transformed_max[index] != 0.0
+        constant_unit = scale_source[index] == "constant_train_unit_scale"
+        if constant_unit and (
+            is_binary or is_categorical or scale[index] != np.float32(1.0)
+            or transformed_min[index] != transformed_max[index]
         ):
             raise RuntimeError(
-                f"[ENTRY_INPUT_NORMALIZATION_DECLARED_UNIT_INVALID] "
+                f"[ENTRY_INPUT_NORMALIZATION_CONSTANT_UNIT_INVALID] "
                 f"surface={surface} field={names[index]}"
             )
         if not is_binary and not is_categorical and scale_source[index] not in {
             "raw_iqr",
             "median_positive_abs_deviation",
-            "source_declared_ternary_unit",
+            "constant_train_unit_scale",
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
@@ -1148,7 +1127,7 @@ def require_surface_normalization(
         if (
             not is_binary
             and not is_categorical
-            and not declared_unit
+            and not constant_unit
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(

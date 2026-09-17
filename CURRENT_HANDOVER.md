@@ -192,32 +192,25 @@ samt TRAIN-kilde for senere CONTROL256 gjenstår. Kun nødvendige kilde-/
 bindingsrettelser og fokuserte syntetiske tester er åpnet nå. Gjenbruk ferdige
 fasitfiler og tester. Se docs/PREFIX_LABEL_BINDING_20260917.md.
 
-## Én prefix-normalisering klargjort
+## Prefix-normalisering: populasjon klar, generell konstantregel kontrollert
 
-Eksisterende base/context/MTF- og lifetime-eiere er uendret etter sine12/24
-beståtte kontroller. Én avgrenset CPU-plan bruker de47814 frosne TRAIN-radene
-og observerte barlukkinger senest2026-03-01. Originale parent-/child-klokker
-matcher på alle313399 rader. Fysisk markedsstøtte og successor-counts beholdes.
-Eksisterende uttømmende sekvensbevis gjenbrukes; ingen full sekvensaudit gjentas.
+47814 Entries,53007 lokale M5-rader og263998 Exit-current-rader er bundet før
+2026-03-01. Alle313399 parent-/child-klokker matcher. Ferdig populasjon og
+uttømmende sekvensbevis gjenbrukes; fysiske successor-counts beholdes.
 
-Planen bruker capped producer16GiB/512MiB og høyst3600s. Den skriver nye
-normaliseringsartefakter uten modell-forward, optimizer, labels, policyfit,
-kontrolltilpasning eller TEST. NEXT_RUN_POLICY binder det ene unntaket.
-Native integrasjon og ferske vekter/lærer/EMA/optimizer gjenstår etter fit.
-Se docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md.
+To base-fit-forsøk stoppet før publisering: først konstant D1 EMA-tilstand,
+deretter konstant bull_divergence_strength på D1. Det første EMA-unntaket er
+fjernet. Feilen var den generelle antakelsen om at alle features varierer i
+et kortere TRAIN-vindu. Eksisterende prefix-fit bruker nå eksplisitt rå
+enhetsskala for konstante felter og markerer manglende observert variasjon.
+TRAIN-median/asinh og øvrige statistikker bevares. Standardmodus avviser
+fortsatt ukjente konstante felter. Ingen feature, rad, dato eller mål endres.
 
-## Normalisering: konkret konstant-felt-feil rettet
-
-Populasjonen er ferdig og gjenbrukes:47814 Entries,53007 lokale M5-rader,
-263998 Exit-current-rader. Første base-fit stoppet før publisering: D1 EMA-
-tilstanden var konstant+1 og fikk null skala. Kilden definerer-1,0,+1; minste
-rettelse bruker bare det kjente enhetssteget for konstante lovlige EMA-tilstander.
-TRAIN-median/asinh beholdes.33 relevante syntetiske tester består. Dette gir
-ikke nye treningsobservasjoner eller bevis på læring av et usett markedsregime.
-
-RETRY_PLAN binder kun uferdig base-/summary-fit og sammensatt normalisering.
-Første feil og ferdig populasjon bevares; ingen endring av rader eller cutoff.
-Modell-forward/optimizer/TEST er fortsatt stengt. Se samme normaliseringsrapport.
+41 relevante tester består, inkludert senere featureforgiftning uten endring
+i tidligere fit. Den nye RESUME_PLAN kjører bare uferdig base/summary/composite.
+Alle berørte konstante felt skal rapporteres; dette beviser ikke læring av
+usette markedsregimer. Capped producer16GiB/512MiB,3600s. Modell/optimizer,
+kontrolltilpasning og TEST er stengt. Se normaliseringsrapporten.
 
 ## Start her
 
