@@ -703,6 +703,24 @@ def _population_transformed_extrema(
     return transformed_min, transformed_max
 
 
+
+def _source_declared_ema_stack(surface: str, field: str) -> bool:
+    """Exact signed {-1,0,1} EMA ordering, including its context projections.
+
+    htf_features constructs this state from mutually exclusive strict EMA
+    orderings. Its unit gap is defined by the producer, not by TRAIN support.
+    It remains on the existing invertible asinh route, never an embedding.
+    """
+    if surface in EXPECTED_SURFACES and surface.startswith("mtf_"):
+        return field == "ema_stack_aligned_v2"
+    names = {f"{tf.lower()}_ema_stack_aligned_v2" for tf in MULTI_TF_TIMEFRAMES}
+    if surface == "ctx_cont":
+        return field in names
+    if surface == "signal":
+        return field in {f"ctx_cont.{name}" for name in names}
+    return False
+
+
 def fit_surface_normalization(
     values: Any,
     *,
@@ -893,6 +911,18 @@ def fit_surface_normalization(
                 if positive.size:
                     field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
+            if (
+                field_scale == np.float32(0.0)
+                and _source_declared_ema_stack(str(surface), names[index])
+                and field_center in (-1.0, 0.0, 1.0)
+                and np.all(column == float(field_center))
+            ):
+                # A constant prefix cannot estimate dispersion. The producer's
+                # signed unit spacing supplies scale, without inventing rows,
+                # clipping unseen signs or granting unknown continuous fields
+                # a fallback. Retain TRAIN's median and the existing asinh.
+                field_scale = np.float32(1.0)
+                source = "source_declared_ternary_unit"
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] "
@@ -1094,9 +1124,22 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
+        declared_unit = scale_source[index] == "source_declared_ternary_unit"
+        if declared_unit and (
+            not _source_declared_ema_stack(str(surface), names[index])
+            or is_binary or is_categorical
+            or center[index] not in (-1.0, 0.0, 1.0)
+            or scale[index] != np.float32(1.0)
+            or transformed_min[index] != 0.0 or transformed_max[index] != 0.0
+        ):
+            raise RuntimeError(
+                f"[ENTRY_INPUT_NORMALIZATION_DECLARED_UNIT_INVALID] "
+                f"surface={surface} field={names[index]}"
+            )
         if not is_binary and not is_categorical and scale_source[index] not in {
             "raw_iqr",
             "median_positive_abs_deviation",
+            "source_declared_ternary_unit",
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
@@ -1105,6 +1148,7 @@ def require_surface_normalization(
         if (
             not is_binary
             and not is_categorical
+            and not declared_unit
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(

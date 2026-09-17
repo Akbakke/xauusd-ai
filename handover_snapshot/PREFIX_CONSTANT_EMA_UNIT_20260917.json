@@ -1,0 +1,47 @@
+{
+  "schema_version": "gx1_constant_source_ema_normalization_fix_v1",
+  "decision": "SOURCE_DEFINED_UNIT_FOR_CONSTANT_SIGNED_EMA_STATE_SYNTHETIC_PASS",
+  "completed_utc": "2026-09-17T03:13:10.875764+00:00",
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+    "sha256": "5f0326b7a4be08f2becf5b246212781cb2bd2e3f345d42bdbcaa7024b2d7d52b"
+  },
+  "junit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/CONSTANT_EMA_STATE_FIX/JUNIT.xml",
+    "sha256": "1f0c8486e38349ebec3e6a32b79a8bf1d437154ca0e77b19ce7db089567424be"
+  },
+  "test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/CONSTANT_EMA_STATE_FIX/TEST.log",
+    "sha256": "8a43a358583878158d0f5dcbde81e59759a63d810528f30ac4a9e3d32c44541f"
+  },
+  "observed_failure_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/PREPARATION.log",
+    "sha256": "25e907cf44253c9cad9888f875434307e413c1ba4bfefc2b20ca1d102a4b8f7f"
+  },
+  "failed_terminal": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/TERMINAL.json",
+    "sha256": "3082d9c9984c8970287d9a1d97ffc3088f406ea728f06fa4685aeebff0872729"
+  },
+  "tests_passed": 33,
+  "new_cases": 16,
+  "legacy_cases": 17,
+  "unchanged_other_functions": 17,
+  "changed_existing_functions": [
+    "fit_surface_normalization",
+    "require_surface_normalization"
+  ],
+  "source_definition": "htf_features constructs ema_stack_aligned_v2 as -1,0,+1. Unit spacing is a producer property; exact context aliases share it.",
+  "correction": "Only a constant legal EMA state with zero estimated dispersion receives declared unit scale. Retain TRAIN median, continuous asinh route and zero binary/categorical masks. Load validates exact field/surface/unit/legal center and zero transformed training support. Nonconstant fits and all apply/invert code unchanged. Unknown constant continuous fields still fail.",
+  "checked": [
+    "Each training state -1,0,+1 on signal/context/MTF preserves three distinct finite invertible served states",
+    "Unknown constant fields, illegal constant EMA value, unknown timeframe and malformed stored scales rejected",
+    "Existing rare-two-value/IQR/fallback/nonfinite/domain/contract checks retained"
+  ],
+  "limitations": "Training support remains constant for this field; this does not manufacture observations of other market regimes or prove generalization.",
+  "scope": {
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "control_used_for_selection": false,
+    "test_accessed": false
+  }
+}

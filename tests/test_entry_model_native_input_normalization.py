@@ -643,3 +643,45 @@ def test_cuda_trainer_guard_requires_exact_execution_tier_before_cuda_probe() ->
             environ=guarded_env,
             read_text=lambda _path: pytest.fail("must fail before cgroup read"),
         )
+
+
+@pytest.mark.parametrize("surface,field", [
+    ("signal", "ctx_cont.d1_ema_stack_aligned_v2"),
+    ("ctx_cont", "d1_ema_stack_aligned_v2"),
+    ("mtf_d1", "ema_stack_aligned_v2"),
+])
+@pytest.mark.parametrize("observed", [-1.0, 0.0, 1.0])
+def test_constant_source_defined_ema_stack_preserves_unseen_states(surface, field, observed):
+    fitted = fit_surface_normalization(np.full((8, 1), observed, dtype=np.float32),
+                                      surface=surface, field_names=[field])
+    assert fitted["scale_source"] == ["source_declared_ternary_unit"]
+    assert fitted["center"] == [observed] and fitted["scale"] == [1.0]
+    assert fitted["binary_mask"] == fitted["categorical_mask"] == [0]
+    normalization_contract.require_surface_normalization(fitted, surface=surface, field_names=[field])
+    served = np.array([[-1.0], [0.0], [1.0]], dtype=np.float32)
+    transformed = apply_surface_normalization(served, fitted)
+    assert np.isfinite(transformed).all() and np.all(np.diff(transformed[:, 0]) > 0)
+    np.testing.assert_allclose(invert_surface_normalization(transformed, fitted), served, atol=2e-6)
+
+
+@pytest.mark.parametrize("surface,field,value", [
+    ("signal", "ctx_cont.d1_ema_stack_aligned_v2", 2.0),
+    ("signal", "constant", 1.0),
+    ("signal", "ctx_cont.d1_trend_state_age_bars_v2", 1.0),
+    ("mtf_unknown", "ema_stack_aligned_v2", 1.0),
+])
+def test_declared_unit_does_not_relax_unknown_constants(surface, field, value):
+    with pytest.raises(RuntimeError, match="UNSCALEABLE"):
+        fit_surface_normalization(np.full((8, 1), value, dtype=np.float32),
+                                  surface=surface, field_names=[field])
+
+
+@pytest.mark.parametrize("key,value", [("scale", [2.0]), ("center", [2.0]),
+                                       ("train_transformed_max", [1.0])])
+def test_declared_unit_metadata_rejects_forged_units(key, value):
+    field = "ctx_cont.d1_ema_stack_aligned_v2"
+    fitted = fit_surface_normalization(np.ones((8, 1), dtype=np.float32),
+                                      surface="signal", field_names=[field])
+    fitted[key] = value
+    with pytest.raises(RuntimeError, match="DECLARED_UNIT_INVALID"):
+        normalization_contract.require_surface_normalization(fitted, surface="signal", field_names=[field])

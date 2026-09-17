@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Exactly one source/row/cutoff-bound CPU normalization preparation is allowed by prefix_normalization_preparation: existing base/context/MTF and lifetime-summary owners,47814 frozen TRAIN Entries, observed closes<=2026Mar01,full physical successor counts preserved. Reuse completed synthetic/sequence proofs. Producer16G/512M,1numericthread,3600s maximum; no GPU/model/optimizer/labels/policyfit/controlretuning/TEST. After completion, close the one-off gate and bind new transforms plus prefix labels into fresh native model/target/EMA/optimizer and sourceTRAIN/logicalCONTROL256 setup. All native training and forward gates remain closed.",
+  "rule": "Prefix normalization population completed:47814Entries,53007M5-local rows,263998Exit-current rows,allcloses<=cutoff. Basefit stopped on constant source-defined d1 EMA state before publishing; no summaryfit yet. The minimal normalizer fix uses declared unit spacing only for legal constant EMA signedstates;33 focused tests pass, existing nonconstant transform/application unchanged. Resume only unfinished base/summary/composite stages through the bound RETRY_PLAN; reuse completed population. No row/date/hyperparameter changes, model/optimizer/controlretuning/labels/TEST. Native launch remains closed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Exactly one source/row/cutoff-bound CPU normalization preparation is allowed by prefix_normalization_preparation: existing base/context/MTF and lifetime-summary owners,47814 frozen TRAIN Entries, observed closes<=2026Mar01,full physical successor counts preserved. Reuse completed synthetic/sequence proofs. Producer16G/512M,1numericthread,3600s maximum; no GPU/model/optimizer/labels/policyfit/controlretuning/TEST. After completion, close the one-off gate and bind new transforms plus prefix labels into fresh native model/target/EMA/optimizer and sourceTRAIN/logicalCONTROL256 setup. All native training and forward gates remain closed."
+    "next_scope": "Prefix normalization population completed:47814Entries,53007M5-local rows,263998Exit-current rows,allcloses<=cutoff. Basefit stopped on constant source-defined d1 EMA state before publishing; no summaryfit yet. The minimal normalizer fix uses declared unit spacing only for legal constant EMA signedstates;33 focused tests pass, existing nonconstant transform/application unchanged. Resume only unfinished base/summary/composite stages through the bound RETRY_PLAN; reuse completed population. No row/date/hyperparameter changes, model/optimizer/controlretuning/labels/TEST. Native launch remains closed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -506,13 +506,25 @@
   },
   "prefix_normalization_preparation": {
     "enabled": true,
-    "status": "ONE_PREFIX_NORMALIZATION_PREPARATION_BOUND",
+    "status": "RESUME_UNFINISHED_NORMALIZATION_AFTER_CONSTANT_EMA_UNIT_FIX",
     "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RETRY_PLAN.json",
+      "sha256": "ebf69149b07072cfdab7fd8c4cdc7795d3bd2e403b1c2f2a8e69924dfcbca121"
+    },
+    "previous_attempt": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/PLAN.json",
       "sha256": "384896e64bc73d338c896f3e07bc41fd741e15b154c35d5744301ccc4fe05273"
     },
     "one_preparation_only": true,
+    "completed_population_must_not_repeat": true,
     "training_enabled": false,
     "native_launch_authorized": false
+  },
+  "completed_constant_ema_state_normalization_fix": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/CONSTANT_EMA_STATE_FIX/RESULT.json",
+      "sha256": "ec588bc316debe097ce4b34f145eb777a3baf385c3bd2a716e9f1ad5ecf82e79"
+    },
+    "tests_passed": 33
   }
 }

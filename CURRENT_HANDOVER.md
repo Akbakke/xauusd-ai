@@ -206,6 +206,19 @@ kontrolltilpasning eller TEST. NEXT_RUN_POLICY binder det ene unntaket.
 Native integrasjon og ferske vekter/lærer/EMA/optimizer gjenstår etter fit.
 Se docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md.
 
+## Normalisering: konkret konstant-felt-feil rettet
+
+Populasjonen er ferdig og gjenbrukes:47814 Entries,53007 lokale M5-rader,
+263998 Exit-current-rader. Første base-fit stoppet før publisering: D1 EMA-
+tilstanden var konstant+1 og fikk null skala. Kilden definerer-1,0,+1; minste
+rettelse bruker bare det kjente enhetssteget for konstante lovlige EMA-tilstander.
+TRAIN-median/asinh beholdes.33 relevante syntetiske tester består. Dette gir
+ikke nye treningsobservasjoner eller bevis på læring av et usett markedsregime.
+
+RETRY_PLAN binder kun uferdig base-/summary-fit og sammensatt normalisering.
+Første feil og ferdig populasjon bevares; ingen endring av rader eller cutoff.
+Modell-forward/optimizer/TEST er fortsatt stengt. Se samme normaliseringsrapport.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
