@@ -1,17 +1,11 @@
 # GX1 arbeidsmål — 2026-09-16
 
-Gjeldende status2026-09-17: kandidaten ble forkastet på senere juni-data.
-Ingen ny læring er bevist. Kronologisk design, prefix-policies/fasiter og
-normalisering er ferdige. Fersk komponentoppstart og native koordinator/resume
-samt recipe/campaign er koblet og syntetisk kontrollert. Kontrollens Entry/Exit
-bruker samme observerte referanse som TRAIN. Transformreferansene er nå
-oppdatert med uendrede fysiske data. Faktisk fersk native oppstart er ferdig
-på CPU; initial ONLINE/target/EMA er like og AdamW er fersk. TRAIN-/kontroll-
-utvalg og samples er fryst og native bundet. Faktiske target-/førmålinger er
-nå ferdige med bevart starttilstand og null optimizersteg. Det ene fryste256-
-stegsforsøket og fast ONLINE-sluttmåling gjenstår før læring kan vurderes.
-CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste arbeid; teksten
-lenger ned beskriver historiske beslutninger.
+Gjeldende status2026-09-17: fast256-forsøket er ferdig. TRAIN-feil bedres svakt,
+men Entry-valg og senere Exit-overføring består ikke læringskravene. Kjøringen
+og unntaket er avsluttet; bevar originale checkpoints og målinger. Entry har
+førsteprioritet. Bekreftet V4-gradientisolasjon er neste avgrensede TRAIN-only
+hypotese, ingen dokumentert løsning. CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json
+avgjør neste arbeid; eldre beslutninger nedenfor er historikk.
 
 Utvikle en modell som gir positiv kostnadsjustert netto Bps gjennom selektive,
 retningsmessig gode Entries og Exit som realiserer forventet videre nettoverdi.

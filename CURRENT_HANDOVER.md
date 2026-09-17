@@ -1,21 +1,31 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: start det bundne256-stegsforsøket
+## Gjeldende status:256-stegsforsøket er ferdig, læringsporten er ikke bestått
 
-Førmålingen er ferdig og verifisert; ikke gjenta den. Native trening er nå
-koblet til dens lagrede initialtilstand og fast ONLINE-sluttmåling ved256 steg.
-14 fokuserte CPU-kontroller og bindingen til faktiske førbevis består.
-Modell, tap, features, MTF, normalisering, sampler og treningskoordinator er uendret.
+Entry vurderes først. På senere mars–mai faller LONG-MSE530,45→513,09 og
+SHORT432,71→421,24. LONG taper mot TRAIN-konstanten507,32 i alle tre måneder.
+SHORT slår konstanten429,35, men gevinsten er hovedsakelig nivåtilpasning;
+korrelasjonen er0,022. Entry velger66LONG/190SHORT/0FLAT på kontrollen og
+255/1/0 på TRAIN. Bedre innganger er ikke bevist.
 
-NEXT_RUN_POLICY åpner kun ett forhåndsbestemt forsøk: TRAIN16, opprinnelig
-prefix-rekkefølge, maksimum4096 Entries/256 optimizersteg, uendret frossen lærer.
-Tre eksisterende native vinduer kan bare fortsette mot samme samlede grense.
-Sluttmålingen bruker siste ONLINE og krever eksakt samme fryste mål/utvalg som
-førmålingen. Ingen EMA-/best-valg, target-refresh, full epoch/fullVAL eller økonomi.
-Commit og bind denne kilden før start med eksisterende campaign og vakter.
-Ingen ny trening er startet; ingen læringsport er bestått. TEST er forseglet.
-Se docs/NATIVE_PREFIX_FIXED256_20260917.md. Stopp for paret læringsgjennomgang
-etter forsøket; ingen automatisk utvidelse eller gjentakelse.
+Exit-feilen blir samlet større i begge retninger på senere data, både ved
+ankeret og samplede states. TRAIN-feil bedres svakt, men handlingsvalg og
+overføring består ikke kravene. Ingen økonomikjøring er åpnet.
+
+Alle256 steg og fast ONLINE-måling er ferdige på cf6e2b23 med eksakt samme
+mål, masks, kohorter og frosne lærer som førmålingen. GuardPASS/trainer0/
+observer0. Tasken er deaktivert; ingen aktiv native jobb. Det brukte
+chronological_learning_run-unntaket er stengt. Ingen gjentakelse, utvidelse,
+samme-CONTROL-tuning, full epoch/fullVAL eller TEST. Bevar alle bevis.
+
+Neste hypotese: V4 detach lar Entry trene verdilaget, men ikke feature-/MTF-
+representasjonen. Kilde og faktisk førstebatchgradient bekrefter dette;
+andre oppgaver endrer routingvektene. Dette beviser ikke årsaken til svikten.
+Neste er én TRAIN-only gradientkontrast uten optimizersteg, separat bundet
+før faktiske modellkall. Ingen modellendring eller ny trening er åpnet nå.
+Se docs/NATIVE_PREFIX_FIXED256_REVIEW_20260917.md og tilhørende snapshot.
+
+## Historiske resultater og fullført arbeid — ikke startinstrukser
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

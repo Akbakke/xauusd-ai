@@ -1,26 +1,26 @@
 {
-  "status": "FIXED256_NATIVE_LEARNING_BOUND_NOT_STARTED",
+  "status": "FIXED256_COMPLETE_LEARNING_GATE_FAILED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
-  "latest_observation_utc": "2026-09-16T23:29:32Z",
+  "source_commit_scope": "Completed fixed256 training and final ONLINE source; documentation commit follows.",
+  "latest_observation_utc": "2026-09-17T09:54:01.389151+00:00",
   "source_frozen_while_running": false,
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_REFERENCE_POLICY_20260916_REFERENCE_BOOT447",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_FIXED256_LEARNING_20260917_BOOT452",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_state": "Disabled",
   "observed_processes": [],
   "latest_observed_checkpoint": {
-    "checkpoint_index": 96,
+    "checkpoint_index": 5,
     "complete": false,
-    "epoch_index": 1,
-    "global_optimizer_steps": 5809,
-    "next_batch_offset": 1728,
+    "epoch_index": 0,
+    "global_optimizer_steps": 256,
+    "next_batch_offset": 256,
     "phase": "train",
     "schema_version": "gx1_candidate_training_session_v1",
-    "session_contract_sha256": "80e8d051e5e01fb6614b54dc8ddc5e4e9878dfb160ef5afc8e0afede35ce9e77",
-    "slot": 1,
-    "state_sha256": "150946c04910fa3c8a5ae7df64dd01530be55060c17b8fb748877402b1c0d8cd"
+    "session_contract_sha256": "dd1264010fc1002f8076fffafef9cd353db3f3413d34962096c6729c37ce98e9",
+    "slot": 0,
+    "state_sha256": "dc73d0fd7887ebcb1d9e8a8f62d5d4c3b0038a5ee439b5ad79950c45d119d7b6"
   },
   "reference_checkpoint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
@@ -42,7 +42,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "learning_gate": {
-    "decision": "INSUFFICIENT_FOR_EXPANSION",
+    "decision": "FIXED256_REJECTED_FOR_EXPANSION",
     "specification": "docs/LEARNING_GATE_20260916.md",
     "technical_pass_is_not_learning_pass": true,
     "entry_exit_learning_demonstrated": false,
@@ -50,7 +50,13 @@
     "profitability_demonstrated": false,
     "local_entry_fit_improved": true,
     "broad_entry_fit_improved": false,
-    "exit_market_conditional_improvement_demonstrated": false
+    "exit_market_conditional_improvement_demonstrated": false,
+    "fixed256_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
+      "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
+    },
+    "training_fit_improved_against_constants_both_sides": true,
+    "robust_entry_decisions_demonstrated": false
   },
   "profile": {
     "train_batch": 16,
@@ -60,7 +66,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Commit and bind this exact source, then execute the one predeclared native256-step prefix experiment from saved INITIAL_STATE.pt. Use the original eligible native order, TRAIN16, unchanged losses/features/MTF and frozen initial teacher. Up to three existing guarded windows permit only continuation to the same total256-step ceiling. At that boundary measure final ONLINE, never best or EMA, through the existing TRAIN256/CONTROL256 measurement owner. Require exact equality to every saved initial target, validity mask, cohort and coordinate. Preserve checkpoint/RNG during measurement and stop for paired learning review before any economic rollout. No full epoch/fullVAL, target refresh, retuning, TEST or automatic extension. training_enabled remains false outside this bound exception.",
+  "next_action": "Fixed256 complete and rejected for expansion. Preserve checkpoints and cached predictions. No repeat, extension, same-CONTROL retuning, economics, full epoch/fullVAL or TEST. Entry first: V4 detaches its representation; source and actual unused Entry gradients on routing confirm this limitation. Next one TRAIN-only gradient-path comparison on identical saved state/batch, without optimizer steps. Bind any actual model work separately through existing native guards. No model change or new training is authorized by this result; reconnecting gradients is a hypothesis, not a proven generalization fix.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -86,7 +92,7 @@
   },
   "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
   "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE",
-  "source_commit": "f3b5eca8d83206a4327efaa8f480556519df9b28",
+  "source_commit": "cf6e2b239bbf94496add7814e8062ebd554a0487",
   "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "entry_anchor_outcome_diagnosis": {
@@ -167,7 +173,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T08:10:30.203074+00:00",
+  "observed_utc": "2026-09-17T09:54:01.389151+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -191,7 +197,7 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
-  "runtime_root_scope": "historical_training_origin; frozen evaluation outputs are listed separately",
+  "runtime_root_scope": "Completed fixed256 experiment; no native process remains.",
   "frozen_readout_evaluations": {
     "baseline": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE",
@@ -301,7 +307,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Commit and bind this exact source, then execute the one predeclared native256-step prefix experiment from saved INITIAL_STATE.pt. Use the original eligible native order, TRAIN16, unchanged losses/features/MTF and frozen initial teacher. Up to three existing guarded windows permit only continuation to the same total256-step ceiling. At that boundary measure final ONLINE, never best or EMA, through the existing TRAIN256/CONTROL256 measurement owner. Require exact equality to every saved initial target, validity mask, cohort and coordinate. Preserve checkpoint/RNG during measurement and stop for paired learning review before any economic rollout. No full epoch/fullVAL, target refresh, retuning, TEST or automatic extension. training_enabled remains false outside this bound exception."
+    "next_scope": "Fixed256 complete and rejected for expansion. Preserve checkpoints and cached predictions. No repeat, extension, same-CONTROL retuning, economics, full epoch/fullVAL or TEST. Entry first: V4 detaches its representation; source and actual unused Entry gradients on routing confirm this limitation. Next one TRAIN-only gradient-path comparison on identical saved state/batch, without optimizer steps. Bind any actual model work separately through existing native guards. No model change or new training is authorized by this result; reconnecting gradients is a hypothesis, not a proven generalization fix."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -702,37 +708,6 @@
     "learning_proven": false
   },
   "windows_task_enabled": false,
-  "chronological_learning_run": {
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "run_id": "NATIVE_PREFIX_FIXED256_LEARNING_20260917",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/CANDIDATE_BUNDLE",
-    "source_bindings_sha256": "bb0c719f266b502a555eff329a1fb19edcd80fa5a3a12b09990c45ee906bd687",
-    "optimizer_steps": 256,
-    "maximum_trained_entry_rows": 4096,
-    "max_invocations": 3,
-    "final_model_variant": "ONLINE",
-    "teacher_refresh_allowed": false,
-    "full_epoch_training_allowed": false,
-    "full_val_allowed": false,
-    "test_data_used": false,
-    "chronological_learning_measurement": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
-    }
-  },
   "completed_native_prefix_learning_measurement_dispatch": {
     "binding": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_LEARNING_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
@@ -740,5 +715,40 @@
     },
     "tests_passed": 14,
     "report": "docs/NATIVE_PREFIX_FIXED256_20260917.md"
+  },
+  "completed_native_prefix_fixed256_learning": {
+    "status": "REJECT_EXPANSION_LEARNING_GATE_FAILED",
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
+      "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+      "sha256": "d8c845ba8eaebed24bedfd677f9f41250043492348c0cbffa1f644e0ce6024a8"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_FIXED256_LEARNING_20260917_BOOT452/receipts/invocation-0001.json",
+      "sha256": "92d1fe741f89b0fa84e8731abe873eed7ac2f63a238802c8d7d94ce7cf2eb6f5"
+    },
+    "training_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "215567a9928708b3b2e77adf66bfdf93443a7e7e07c2ca603e5321a6732828de"
+    },
+    "training_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "dc73d0fd7887ebcb1d9e8a8f62d5d4c3b0038a5ee439b5ad79950c45d119d7b6"
+    },
+    "optimizer_steps": 256,
+    "source_commit": "cf6e2b239bbf94496add7814e8062ebd554a0487",
+    "windows_task_state": "Disabled",
+    "windows_task_enabled": false,
+    "learning_gate_passed": false,
+    "report": "docs/NATIVE_PREFIX_FIXED256_REVIEW_20260917.md",
+    "started_utc": "2026-09-17T08:25:56.023113+00:00",
+    "finished_utc": "2026-09-17T09:40:40.893985+00:00",
+    "entry_gradient_source_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/ENTRY_GRADIENT_SOURCE_REVIEW.json",
+      "sha256": "ccca790ad82cffd790fd4904704727ea072767b4c1cc225f382f42b253cbb2e5"
+    }
   }
 }

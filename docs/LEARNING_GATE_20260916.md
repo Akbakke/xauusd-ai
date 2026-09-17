@@ -1,5 +1,10 @@
 # Beslutning før mer omfattende GX1-trening — 2026-09-16
 
+Gjeldende2026-09-17: fast256 er ferdig og forkastet for utvidelse. Entry-valg
+og senere Exit-overføring består ikke kravene. Se
+[NATIVE_PREFIX_FIXED256_REVIEW_20260917.md](NATIVE_PREFIX_FIXED256_REVIEW_20260917.md).
+Ingen økonomi, gjentakelse, større trening eller TEST er åpnet.
+
 Brukerens prioritet: **Krev målbar læring før mer omfattende trening.**
 Målet er positiv kostnadsjustert netto Bps, ikke flest mulige tekniske PASS.
 Denne beslutningen endrer ikke økonomi, modell, tapsvekter eller handelsgrenser.

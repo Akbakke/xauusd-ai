@@ -32,3 +32,9 @@ forblir false utenfor unntaket. Etterpå kreves paret Entry/Exit-sammenligning
 mot initialmodell og TRAIN-konstanter, fordelt på sider/måneder og ukeusikkerhet
 etter det frosne designet. Et uklart eller negativt utfall gir ikke utvidelse.
 Ingen tuning på kontrollen, TEST, live/paper eller spending er åpnet.
+
+## Ferdig resultat
+
+Fast ONLINE-måling er ferdig. Læringsporten bestås ikke; se
+[NATIVE_PREFIX_FIXED256_REVIEW_20260917.md](NATIVE_PREFIX_FIXED256_REVIEW_20260917.md).
+Kjøreunntaket er stengt. Ikke gjenta eller utvid forsøket.
