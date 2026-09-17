@@ -148,7 +148,7 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
         "epoch_index": state["epoch_index"], "global_optimizer_steps": state["global_optimizer_steps"],
         "next_batch_offset": state["next_batch_offset"], "total_batches": batches,
         "completed_units": state["global_optimizer_steps"],
-        "total_units": step_ceiling if "chronological_prefix" in recipe else batches * 30,
+        "total_units": max(1, step_ceiling) if "chronological_prefix" in recipe else batches * 30,
         "epoch_schedule_sha256": state["epoch_schedule_sha256"],
         "selection_receipt_sha256": plan["selection_artifact_sha256"],
         "checkpoint_pointer": {"path": str(cursor_path), "sha256": file_sha256(cursor_path)},

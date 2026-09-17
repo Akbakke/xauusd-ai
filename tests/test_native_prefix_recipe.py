@@ -166,6 +166,8 @@ def _cursor(tmp_path,recipe_binding,steps):
 
 def test_native_campaign_materialization_window_and_final_review_stop(prefix_scope,monkeypatch,tmp_path):
     _,recipe,files,seal=prefix_scope;rb=seal();repo=Path(recipe['source_repo'])
+    initial='chronological_initial_measurement' in recipe
+    steps,windows=(0,1) if initial else (256,3)
     monkeypatch.setattr(materializer,'_source_commit',lambda _:recipe['source_commit'])
     guards={};controllers={}
     for names,target in [(('runner','guard','query','certificate'),guards),(('controller','observer','campaign_cli'),controllers)]:
@@ -191,22 +193,23 @@ def test_native_campaign_materialization_window_and_final_review_stop(prefix_sco
     result=materializer.materialize_native_candidate_campaign(repo=repo,output=tmp_path/'campaign',runtime=tmp_path/'runtime',
         gpu_uuid='GPU-fixture',prepared_boot_path=boot,prepared_boot_file_sha256=native.file_sha256(boot),
         certificate_path=Path(guards['certificate']['path']),prior_campaign_path=Path(pb['path']),prior_campaign_file_sha256=pb['sha256'],
-        selection_path=Path(sb['path']),selection_file_sha256=sb['sha256'],recipe_path=Path(rb['path']),recipe_file_sha256=rb['sha256'],window_count=3)
+        selection_path=Path(sb['path']),selection_file_sha256=sb['sha256'],recipe_path=Path(rb['path']),recipe_file_sha256=rb['sha256'],window_count=windows)
     plan=result['plan'];assert plan['final_train_checkpoint_authority'] is None and plan['entry_pairs_per_epoch']==4500
-    assert len(plan['checked_invocations'])==3 and plan['policy']['maximum_memory_junction_temperature_c']==80
+    assert len(plan['checked_invocations'])==windows and plan['policy']['maximum_memory_junction_temperature_c']==80
     assert all(i['launcher_argv'][:3]==[str(repo/'scripts/gx1_capped_run.sh'),'--class','trainer'] for i in plan['checked_invocations'])
     invocation=plan['checked_invocations'][0];wp=invocation['native_window_policy']
-    position,cursor=_cursor(tmp_path,rb,256)
+    position,cursor=_cursor(tmp_path,rb,steps)
     monkeypatch.setattr(window.native.trainer,'_require_cuda_trainer_guard_execution',lambda **kw:None)
     monkeypatch.setattr(window,'_context',lambda *a:(wp,plan,invocation,{}))
     monkeypatch.setattr(window,'_expected_training_pointer',lambda **kw:None)
     def run(**kw):
         budget=json.loads(Path(kw['execution_budget_path']).read_text())
-        assert budget['stop_after_optimizer_steps']==256 and budget['stop_after_completed_val_epochs'] is None
+        assert budget['stop_after_optimizer_steps']==steps and budget['stop_after_completed_val_epochs'] is None
         return {'decision':'PAUSED_RESUMABLE','resume_state':position}
     monkeypatch.setattr(window.native,'run_guarded_native_candidate_invocation',run)
     progress=window.run_window(policy_path=tmp_path/'unused-window',policy_file_sha256='a'*64,progress_path=Path(wp['progress_path']))
-    raw=json.loads(Path(progress['progress']['path']).read_text());assert raw['total_units']==raw['completed_units']==256
+    raw=json.loads(Path(progress['progress']['path']).read_text())
+    assert raw['total_units']==max(1,steps) and raw['completed_units']==steps
     receipt={'outcome':'RESUMABLE','checkpoint_pointer_snapshot':_bind(Path(wp['campaign_cursor_path']))}
     monkeypatch.setattr(campaign,'require_receipt_chain',lambda plan,receipts,**kw:receipts)
     assert campaign.next_action(plan,[receipt],current_boot=_boot(101,1))=={'decision':'BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED'}

@@ -1,5 +1,5 @@
 {
-  "status": "ACTUAL_MEASUREMENT_BINDINGS_READY_INITIAL_NATIVE_DISPATCH_NEXT",
+  "status": "NATIVE_INITIAL_MEASUREMENT_DISPATCH_READY_NOT_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Frozen TRAIN256 and CONTROL256 coordinates are now bound through the existing native measurement owners:1024 sampled Exit states per role, unchanged original TRAIN samples and CONTROL Entry IDs, exact original physical source and separate March1/June1 support cutoffs.18 focused synthetic tests and actual artifact binding passed. TRAIN probe shares the original inputs and bound TRAIN labels without attaching the training lifecycle materializer. Reuse these coordinates, tests and saved INITIAL_STATE.pt; no reinitialization or sampling rerun. Next is the narrow initial frozen-target/prediction dispatch through the existing native campaign and guards, then the single predeclared256-step experiment and fixed ONLINE final measurement. No actual model forward, optimizer step, fit, full epoch/fullVAL, economics or TEST is authorized merely by this binding result; training_enabled remains false and chronological_learning_run is absent.",
+  "next_action": "Prepare and execute one existing guarded native window for frozen initial TRAIN256 and CONTROL256 measurements, each with1024 bound sampled Exit states, from saved INITIAL_STATE.pt. Native coordinator saves the initial checkpoint at zero optimizer steps; no TRAIN batch, teacher refresh, fit, economic rollout, full epoch/fullVAL or TEST. Keep training_enabled=false. Then bind the predeclared256-step experiment and fixed final ONLINE measurement. This technical result proves no learning or generalization.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T06:47:20.700416+00:00",
+  "observed_utc": "2026-09-17T07:13:34.565930+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Frozen TRAIN256 and CONTROL256 coordinates are now bound through the existing native measurement owners:1024 sampled Exit states per role, unchanged original TRAIN samples and CONTROL Entry IDs, exact original physical source and separate March1/June1 support cutoffs.18 focused synthetic tests and actual artifact binding passed. TRAIN probe shares the original inputs and bound TRAIN labels without attaching the training lifecycle materializer. Reuse these coordinates, tests and saved INITIAL_STATE.pt; no reinitialization or sampling rerun. Next is the narrow initial frozen-target/prediction dispatch through the existing native campaign and guards, then the single predeclared256-step experiment and fixed ONLINE final measurement. No actual model forward, optimizer step, fit, full epoch/fullVAL, economics or TEST is authorized merely by this binding result; training_enabled remains false and chronological_learning_run is absent."
+    "next_scope": "Prepare and execute one existing guarded native window for frozen initial TRAIN256 and CONTROL256 measurements, each with1024 bound sampled Exit states, from saved INITIAL_STATE.pt. Native coordinator saves the initial checkpoint at zero optimizer steps; no TRAIN batch, teacher refresh, fit, economic rollout, full epoch/fullVAL or TEST. Keep training_enabled=false. Then bind the predeclared256-step experiment and fixed final ONLINE measurement. This technical result proves no learning or generalization."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -651,5 +651,46 @@
     },
     "tests_passed": 18,
     "actual_model_forwards": 0
+  },
+  "chronological_initial_measurement": {
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "64a9abebdb99a8fff717ee056d004b86fe41bdfeba02ff25fe65e5f6624d12ce",
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false
+  },
+  "completed_native_prefix_initial_dispatch": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "9a1535d1a6b90f3f66f8933e45706fc4d3a513408b12d85500e015646027ed9d"
+    },
+    "tests_passed": 12,
+    "report": "docs/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917.md"
   }
 }

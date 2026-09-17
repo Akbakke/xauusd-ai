@@ -1,0 +1,67 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "9a1535d1a6b90f3f66f8933e45706fc4d3a513408b12d85500e015646027ed9d"
+  },
+  "result": {
+    "schema_version": "gx1_native_prefix_initial_dispatch_synthetic_v1",
+    "decision": "NATIVE_INITIAL_ZERO_STEP_MEASUREMENT_DISPATCH_VERIFIED",
+    "completed_utc": "2026-09-17T07:13:34.565930+00:00",
+    "source_commit_before": "547dbfe4839883fc653ba849800936c2bc651e0c",
+    "source_files": {
+      "tests/test_native_prefix_recipe.py": "feb86258549c0190b0ebd3e80af5613c454ae992d625c38c2437685a6787e199",
+      "tests/test_native_prefix_initial_measurement.py": "708417a6d5a2ec4191b62d06e66f8fd8663f838aa5ae4618643dd56a302304cd",
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "d233e6655cacd2000df310128a962cf4ab07b64be20043ff02927e08706c05a3",
+      "gx1/contracts/entry_model_native_train_launch_v1.py": "508f48460613aa310ac6d8afc1f38d76a7d1fa47088de9537b6486dffc6c7001",
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "2b90d03fc5fe39d9aa811cd841ebef367201bb4d513b1101ef758329a0df4012",
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "16c87a687c525b1a087fd37fe5a3ed20b71cc0b4f530007647959fc7d1f4530e",
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": "cada9bd27b2cf6b691b5ec93d27ee9356cc732d3fa65be95f6cb43aa67a0fd0d"
+    },
+    "changed_functions": {
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": [
+        "require_chronological_initial_measurement",
+        "require_native_run_scope"
+      ],
+      "gx1/contracts/entry_model_native_train_launch_v1.py": [
+        "require_candidate_execution_budget"
+      ],
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": [
+        "_run_resumable_candidate_training"
+      ],
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": [
+        "_require_native_full_train_recipe",
+        "run_guarded_native_candidate_invocation",
+        "_restore_prefix_initial_measurement_state",
+        "_run_prefix_initial_measurement"
+      ],
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": [
+        "run_window"
+      ]
+    },
+    "tests_passed": 12,
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "98ca32ed9661ad077e243b5ce0d8520ce7a838b8350ebbc31d4a3f560bd4585b"
+    },
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_SYNTHETIC_20260917/TEST.log",
+      "sha256": "483fd0d8496812c19639fa173f55da2c7798772f4f1b284ff6bd4a30ce558696"
+    },
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "zero_step_save_then_resume_equals_uninterrupted": true,
+    "measurement_preserves_model_rng_and_pointer_on_success_and_failure": true,
+    "campaign_stops_for_review_after_single_zero_step_window": true,
+    "actual_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "learning_proven": false,
+    "test_data_used": false,
+    "next_action": "Prepare and execute one existing guarded native window for frozen initial TRAIN256 and CONTROL256 measurements, each with1024 bound sampled Exit states, from saved INITIAL_STATE.pt. Native coordinator saves the initial checkpoint at zero optimizer steps; no TRAIN batch, teacher refresh, fit, economic rollout, full epoch/fullVAL or TEST. Keep training_enabled=false. Then bind the predeclared256-step experiment and fixed final ONLINE measurement. This technical result proves no learning or generalization."
+  }
+}

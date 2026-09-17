@@ -13856,7 +13856,7 @@ def _run_resumable_candidate_training(
         if (candidate_resume_origin is not None or execution_budget is None or native_val_context is None
                 or "evaluation_cohort" not in native_val_context
                 or type(execution_budget.get("stop_after_optimizer_steps")) is not int
-                or not 0 < execution_budget["stop_after_optimizer_steps"] <= 256
+                or not 0 <= execution_budget["stop_after_optimizer_steps"] <= 256
                 or execution_budget.get("stop_after_completed_val_epochs") is not None
                 or "resume_probe_val_rows" in execution_budget):
             raise RuntimeError("[CANDIDATE_PREFIX_FIXED_BUDGET_REQUIRED]")

@@ -86,7 +86,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -661,6 +661,10 @@ def run_guarded_native_candidate_invocation(
         return _run_frozen_readout_validation(
             components=components, recipe=recipe, device=device, output=output,
             recipe_file_sha256=recipe_file_sha256, invocation_started=started)
+    if "chronological_initial_measurement" in recipe:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_initial_measurement
+        initial_scope = require_chronological_initial_measurement(recipe, execution_budget=budget)
+        _restore_prefix_initial_measurement_state(components=components, scope=initial_scope, device=device)
     try:
         result = _run_bound_full_train_candidate(
             components=components, files=files, device=device,
@@ -674,6 +678,10 @@ def run_guarded_native_candidate_invocation(
             candidate_resume_origin=recipe.get("candidate_resume_origin"),
         )
     except trainer._CandidateExecutionPaused as paused:
+        if "chronological_initial_measurement" in recipe:
+            paused.evidence["chronological_initial_measurement"] = _run_prefix_initial_measurement(
+                components=components, scope=initial_scope, recipe=recipe, output=output,
+                device=device, invocation_started=started, pause_evidence=paused.evidence)
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
         calibration = require_native_calibration_run(recipe)
         if (calibration is not None and calibration["report_only_val"]
@@ -704,6 +712,114 @@ def run_guarded_native_candidate_invocation(
         "resume_state": _native_resume_state(components=components, output=output),
         "bundle_written": False, "test_data_used": False,
     }
+
+
+def _restore_prefix_initial_measurement_state(*, components, scope, device):
+    """Load the saved fresh state, never an exposed historical checkpoint."""
+    initial = scope["initialization"]
+    state = torch.load(_bound_artifact(initial["initial_state"]), map_location="cpu", weights_only=False)
+    expected = initial["online_model_state_sha256"]
+    if (state.get("schema_version") != "gx1_prefix_fresh_initial_state_v1"
+            or state.get("chronological_prefix") != components["chronological_prefix"]
+            or state.get("model_forwards") != 0 or state.get("optimizer_steps") != 0
+            or state.get("checkpoint_loaded") is not False
+            or state["optimizer_state"]["state"] or state["weight_ema_state"]["steps"] != 0
+            or any(val.canonical_model_state_sha256(value) != expected for value in (
+                state["model_state"], state["target_model_state"], state["weight_ema_state"]["shadow"]))
+            or components["seed_binding"]["model_state_sha256"] != expected
+            or components["weight_ema_derivation"] != initial["ema_derivation"]):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_STATE_MISMATCH")
+    model = components["model"]
+    model.load_state_dict(state["model_state"], strict=True)
+    components["optimizer"].load_state_dict(state["optimizer_state"])
+    components["weight_ema"].restore_checkpoint_state(state["weight_ema_state"], model=model)
+    scheduler = components["lr_scheduler"]
+    if (scheduler is None) != (state["lr_scheduler_state"] is None):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_SCHEDULER_MISMATCH")
+    if scheduler is not None:
+        scheduler.load_state_dict(state["lr_scheduler_state"])
+    # The saved preparation ran on CPU. CUDA randomness starts from the same
+    # declared seed; the CPU/Python/NumPy state comes from the saved preparation.
+    trainer._restore_attended_session_rng_state(state["rng_state"], device=torch.device("cpu"))
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(int(initial["seed_binding"]["seed"]))
+    if trainer._model_state_sha256(model) != expected:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_MODEL_MISMATCH")
+
+
+def _run_prefix_initial_measurement(*, components, scope, recipe, output, device,
+                                  invocation_started, pause_evidence):
+    """Measure frozen targets and initial predictions after the native zero-step save."""
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
+    if (pause_evidence.get("reason") != "optimizer_step_ceiling" or pause_evidence.get("phase") != "train"
+            or any(type(pause_evidence.get(k)) is not int or pause_evidence[k] != 0
+                   for k in ("epoch_index", "next_batch_offset", "global_optimizer_steps"))):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_PAUSE_INVALID")
+    context = components["native_val_context"]
+    if time.monotonic() - invocation_started + context["max_wall_seconds"] + 60 >= 12000:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_INSUFFICIENT_WINDOW")
+    directory = Path(pause_evidence["session_directory"])
+    session = trainer._CandidateTrainingSession(out_bundle_dir=output,
+        contract=val._read(directory / trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME), read_only=True)
+    before = val.file_sha256(session._active_path)
+    if before != pause_evidence["active_pointer_sha256"]:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_POINTER_MISMATCH")
+    state = session.load_checkpoint()
+    expected = scope["initialization"]["online_model_state_sha256"]
+    model = components["model"]
+    if (state["global_optimizer_steps"] != 0 or state["optimizer_state"]["state"]
+            or trainer._model_state_sha256(model) != expected
+            or val.canonical_model_state_sha256(state["target_model_state"]) != expected):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_CHECKPOINT_MISMATCH")
+    target = copy.deepcopy(model).to(device).eval().requires_grad_(False)
+    target.load_state_dict(state["target_model_state"], strict=True)
+    out = directory / "initial_measurement"
+    if out.exists() or out.is_symlink():
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_EXISTS")
+    out.mkdir()
+    modes = [(module, module.training) for module in model.modules()]
+    rng = trainer._attended_session_rng_state(device=device)
+    observations = {}
+    try:
+        model.eval()
+        for role, dataset_key in (("train", "train_probe_ds"), ("control", "val_ds")):
+            cohort = build_chronological_measurement_cohort(recipe["chronological_prefix"]["design"],
+                scope["measurement"]["coordinate_result"], role=role)
+            _, diagnostics, _ = val._entry_representations(model=model, dataset=components[dataset_key],
+                parent_rows=cohort["parent_entry_row_indices"], device=device, batch_size=16,
+                candidate_target_model=target, candidate_state_factory=context["state_factory"],
+                candidate_child_rows=cohort["entry_row_indices"], exit_boundary_model=target,
+                evaluation_cohort=cohort)
+            if (len(diagnostics["bounded_entry_observations"]) != 256
+                    or len(diagnostics["bounded_exit_anchor_observations"]) != 256
+                    or len(diagnostics["bounded_exit_sampled_observations"]) != 1024):
+                raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INCOMPLETE")
+            report = {"schema_version": "gx1_prefix_initial_prediction_observation_v1",
+                "role": role, "cohort": cohort, "model_state_sha256": expected,
+                "target_model_state_sha256": expected, "diagnostics": diagnostics,
+                "optimizer_steps": 0, "test_data_used": False}
+            path = out / (role.upper() + "_OBSERVATION.json")
+            trainer._candidate_training_session_atomic_write_json(path, report)
+            observations[role] = {"path": str(path), "sha256": val.file_sha256(path)}
+            print(json.dumps({"event": "PREFIX_INITIAL_MEASUREMENT_ROLE_COMPLETE", "role": role,
+                              "entries": 256, "sampled_states": 1024}), flush=True)
+    finally:
+        for module, training in modes:
+            module.training = training
+        trainer._restore_attended_session_rng_state(rng, device=device)
+        if val.file_sha256(session._active_path) != before or trainer._model_state_sha256(model) != expected:
+            raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_CHANGED_STATE")
+    result = {"schema_version": "gx1_native_prefix_initial_measurement_v1",
+        "decision": "FROZEN_INITIAL_TARGETS_AND_PREDICTIONS_READY_NO_LEARNING_MEASURED",
+        "initialization_result": scope["artifacts"]["initialization_result"],
+        "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
+        "training_pointer_sha256": before, "model_state_sha256": expected,
+        "target_model_state_sha256": expected, "observations": observations,
+        "optimizer_steps": 0, "teacher_refreshed": False, "economic_rollout": False,
+        "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}
+    path = out / "RESULT.json"
+    trainer._candidate_training_session_atomic_write_json(path, result)
+    return {"path": str(path), "sha256": val.file_sha256(path)}
 
 
 def _run_frozen_readout_validation(*, components, recipe, device, output,

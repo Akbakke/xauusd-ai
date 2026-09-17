@@ -369,6 +369,63 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
     return {"artifacts":artifacts, "design":design, "train_rows":len(rows)}
 
 
+def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
+    """One native initial measurement, using saved fresh weights and zero steps."""
+    prefix = require_chronological_prefix_recipe(recipe)
+    value = recipe.get("chronological_initial_measurement")
+    if not isinstance(value, Mapping) or set(value) != {"initialization_result", "measurement_binding_result"}:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INVALID")
+    artifacts = {k: require_binding(v, label="initial measurement artifact", verify_file=True)
+                 for k, v in value.items()}
+    initial, measurement = (read_bound_json(Path(artifacts[k]["path"]), artifacts[k]["sha256"])
+                            for k in ("initialization_result", "measurement_binding_result"))
+    repo = Path(__file__).resolve().parents[2]
+    model_source = "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
+    if (initial.get("schema_version") != "gx1_prefix_fresh_initialization_v1"
+            or initial.get("decision") != "ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED"
+            or initial.get("chronological_prefix") != prefix["artifacts"]
+            or initial.get("files") != recipe.get("files")
+            or initial.get("inherited_checkpoint_weights") is not False
+            or initial.get("optimizer_state_empty") is not True or initial.get("target_frozen") is not True
+            or any(initial.get(k) != 0 for k in ("model_forwards", "optimizer_steps", "ema_steps", "normalization_refits"))
+            or initial.get("online_model_state_sha256") != initial.get("target_model_state_sha256")
+            or initial.get("online_model_state_sha256") != initial.get("ema_model_state_sha256")
+            or initial.get("source_bindings", {}).get(model_source) != file_sha256(repo / model_source)
+            or measurement.get("schema_version") != "gx1_prefix_native_measurement_binding_result_v1"
+            or measurement.get("decision") != "FROZEN_TRAIN_CONTROL_COORDINATES_AND_NATIVE_MEASUREMENT_BINDING_READY"
+            or measurement.get("actual_model_forwards") != 0 or measurement.get("optimizer_steps") != 0
+            or measurement.get("test_data_used") is not False):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_ARTIFACT_MISMATCH")
+    require_binding(initial["initial_state"], label="saved fresh initial state", verify_file=True)
+    coordinates = require_binding(measurement["coordinate_result"], label="frozen measurement coordinates", verify_file=True)
+    coordinate_result = read_bound_json(Path(coordinates["path"]), coordinates["sha256"])
+    if coordinate_result.get("design") != prefix["artifacts"]["design"]:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_DESIGN_MISMATCH")
+    binding = require_binding(recipe.get("next_run_policy"), label="initial measurement policy", verify_file=True)
+    if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {**artifacts, "chronological_prefix": prefix["artifacts"], "run_id": recipe.get("run_id"),
+        "out_bundle_dir": recipe.get("out_bundle_dir"), "source_bindings_sha256": recipe.get("source_bindings_sha256"),
+        "optimizer_steps": 0, "max_invocations": 1, "teacher_refresh_allowed": False,
+        "full_epoch_training_allowed": False, "full_val_allowed": False, "test_data_used": False}
+    if (policy.get("training_enabled") is not False or policy.get("chronological_initial_measurement") != expected
+            or any(k in policy for k in ("chronological_learning_run", "native_learning_calibration", "frozen_readout_evaluation"))):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or invocation_number != 1):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != 0
+            or execution_budget.get("expected_active_pointer_sha256") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_BUDGET_INVALID")
+    return {"artifacts": artifacts, "initialization": initial, "measurement": measurement}
+
+
 def require_chronological_prefix_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit only the explicitly bound single experiment through native guards."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -596,6 +653,10 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "chronological_initial_measurement" in recipe:
+        require_chronological_initial_measurement(recipe, invocation_number=invocation_number,
+                                                  execution_budget=execution_budget)
+        return 0
     if "chronological_prefix" in recipe:
         require_chronological_prefix_run(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
         return 256

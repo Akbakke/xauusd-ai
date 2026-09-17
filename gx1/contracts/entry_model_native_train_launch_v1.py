@@ -906,7 +906,11 @@ def require_candidate_execution_budget(
         raise ValueError('[CANDIDATE_EXECUTION_BUDGET_POINTER_INVALID]')
     for field in ('stop_after_optimizer_steps', 'stop_after_completed_val_epochs'):
         value = budget[field]
-        if value is not None and (type(value) is not int or value < 1):
+        initial_measurement = (field == 'stop_after_optimizer_steps'
+            and 'chronological_initial_measurement' in recipe and 'chronological_prefix' in recipe
+            and recipe.get('schema_version') == 'gx1_unified_exit_random_access_full_train_recipe_v1'
+            and pointer is None and budget['stop_after_completed_val_epochs'] is None)
+        if value is not None and (type(value) is not int or value < (0 if initial_measurement else 1)):
             raise ValueError('[CANDIDATE_EXECUTION_BUDGET_CEILING_INVALID]')
     epoch_ceiling = budget['stop_after_completed_val_epochs']
     if epoch_ceiling is not None and epoch_ceiling > recipe['trainer_cli']['epochs']:

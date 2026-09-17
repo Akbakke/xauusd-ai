@@ -1,18 +1,18 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: native førmåling fra lagret initialtilstand
+## Gjeldende neste steg: kjør den bundne native førmålingen
 
-TRAIN256 og CONTROL256 er nå koblet til eksisterende native måleeiere med
-1024 fryste Exit-tilstander hver. Opprinnelige TRAIN-samples og kontroll-ID-er
-er uendret, riktige datogrenser er kontrollert.18 fokuserte syntetiske tester
-og binding av begge faktiske kohorter består. TRAIN-lesekopien deler input/
-labels, uten å utløse treningssampleren. Ingen faktisk modell-forward eller fit.
+Nullstegskoblingen er ferdig:12 fokuserte CPU-tester og faktisk artefaktbinding
+består. Eksisterende native koordinator lagrer startcheckpoint før TRAIN og
+måler fryste TRAIN256/CONTROL256 med1024 Exit-samples hver. Vekter, tilfeldig
+tilstand og checkpointpeker bevares, også ved målefeil. Ingen ny modell-forward.
 
-Neste er avgrenset target-/førmåling fra INITIAL_STATE.pt gjennom eksisterende
-native campaign og vakter, deretter det ene256-stegsforsøket og fast ONLINE-
-sluttmåling. Ingen chronological_learning_run er åpnet; training_enabled er
-false. Gjenbruk ferdige utvalg, initialtilstand og tester. Se
-docs/PREFIX_NATIVE_MEASUREMENT_BINDING_20260917.md. Ingen ny læring er bevist.
+NEXT_RUN_POLICY åpner kun ett native nullstegsvindu fra lagret INITIAL_STATE.pt.
+Commit og bind gjeldende kilde før campaign startes gjennom eksisterende vakter.
+Ingen optimizersteg, refit, target-refresh, økonomi, full epoch/fullVAL eller TEST.
+Etter førmålingen gjenstår det fryste256-stegsforsøket og fast ONLINE-sluttmåling.
+Ingen læringsport er bestått. Ikke gjenta ferdige forberedelser eller tester.
+Se docs/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917.md.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får
