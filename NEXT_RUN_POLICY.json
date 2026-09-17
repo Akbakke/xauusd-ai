@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST.",
+  "rule": "Fresh prefix components, durable native coordinator, recipe/campaign and coherent chronological control targets are synthetically verified. CONTROL Entry/Exit reuse identical observed reference Q_mu with one frozen teacher and bound control-end timestamp; native TRAIN target parity is exact. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms, then separately bind actual fresh-state and frozen TRAIN/control measurements including fixed ONLINE snapshot dispatch. Only necessary source corrections and focused synthetic tests now; completed artifacts/tests must be reused. No chronological_learning_run authority is present and training_enabled remains false. No actual construction/forward/optimizer, refit, native launch, control tuning, full epoch/fullVAL or TEST. The single frozen256-step experiment still has no learning result.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST."
+    "next_scope": "Fresh prefix components, durable native coordinator, recipe/campaign and coherent chronological control targets are synthetically verified. CONTROL Entry/Exit reuse identical observed reference Q_mu with one frozen teacher and bound control-end timestamp; native TRAIN target parity is exact. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms, then separately bind actual fresh-state and frozen TRAIN/control measurements including fixed ONLINE snapshot dispatch. Only necessary source corrections and focused synthetic tests now; completed artifacts/tests must be reused. No chronological_learning_run authority is present and training_enabled remains false. No actual construction/forward/optimizer, refit, native launch, control tuning, full epoch/fullVAL or TEST. The single frozen256-step experiment still has no learning result."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -606,6 +606,16 @@
     },
     "report": "docs/NATIVE_PREFIX_RECIPE_20260917.md",
     "tests_passed": 21,
+    "native_launch_authorized": false
+  },
+  "completed_coherent_control_targets": {
+    "status": "CONTROL_ENTRY_EXIT_MATCH_NATIVE_REFERENCE_TARGETS_SYNTHETIC_PASS",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "d1406f1c1e38c9f90a3a0c8c070041dd3eea1ab9dbae218d8b8bd34ec090516f"
+    },
+    "report": "docs/COHERENT_CONTROL_TARGET_20260917.md",
+    "tests_passed": 24,
     "native_launch_authorized": false
   }
 }

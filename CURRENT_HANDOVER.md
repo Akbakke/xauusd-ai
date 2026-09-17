@@ -298,6 +298,21 @@ Neste er immutable normaliseringsreferanser og sammenhengende Entry/Exit-mål
 for kontrollen, deretter separat bundet klargjøring og ett frosset forsøk.
 Se docs/NATIVE_PREFIX_RECIPE_20260917.md og tilhørende handover_snapshot.
 
+## Kontrollens Entry/Exit-fasit er samordnet
+
+Den kronologiske kontrollen bruker nå samme observerte state0-referanse-Q_mu
+for Entry og Exit, med samme frosne lærer. Entry får første likvidasjon én gang,
+FLAT er0, bootstrap bevares, og støtte utenfor kontrollperioden avvises uten
+trunkering. Eksakte kohort-ID-er og fysisk TRAIN-kilde kontrolleres. Beregnet
+referanse gjenbrukes; ingen ekstra state0-lærerforward trengs.
+
+24 unike syntetiske kontroller består, inkludert eksakt likhet med native
+TRAIN-targets. Tre korte testforløp krevde rettelse av fixture-boundaryen;
+produksjonskoden var uendret etter første kjøring. Ingen ny læring er målt.
+Neste er immutable normaliseringsreferanser og separat bundet faktisk fersk
+oppstart/måleklargjøring med fast ONLINE-snapshot. Ingen launch er åpnet.
+Se docs/COHERENT_CONTROL_TARGET_20260917.md og tilhørende handover_snapshot.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

@@ -1,0 +1,72 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "d1406f1c1e38c9f90a3a0c8c070041dd3eea1ab9dbae218d8b8bd34ec090516f"
+  },
+  "result": {
+    "schema_version": "gx1_coherent_control_target_synthetic_v1",
+    "decision": "CONTROL_ENTRY_EXIT_MATCH_NATIVE_REFERENCE_TARGETS_SYNTHETIC_PASS",
+    "completed_utc": "2026-09-17T05:05:45.947259+00:00",
+    "parent_source_commit": "0cce10ff3b46c74fd96ba89b7c7f4dc80f0c6048",
+    "source_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+      "sha256": "31895fd47431d3a3a6bc4a4327704d8ed7b67095c8013262c1425dc4d9e067ce"
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_chronological_control_targets.py",
+      "sha256": "6be40e66a78ca8f0d8accf8c2b086d6f65b03c00591baefc84b44fbf4f76d0e0"
+    },
+    "junit_initial": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "012a6efd1644c0c8dacae72c5f15d74491e24c4fdee053cce292ab7906947eb2"
+    },
+    "junit_retry": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/JUNIT_RETRY1.xml",
+      "sha256": "e8421fc8ab9b6d39ad6900fb0a33c37e64c37e1ec696db2ea046c7335ad6cf61"
+    },
+    "initial_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/TEST.log",
+      "sha256": "d0579a39d3245d57cb5e80f3c139228e92327d97d53e181a6896b8b515d73a2d"
+    },
+    "retry_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917/TEST_RETRY1.log",
+      "sha256": "32cf90723e90b725282d368bf47ad8985ac5a5c322aee39fb17013310ea69297"
+    },
+    "unique_tests_passed": 24,
+    "new_tests_passed": 17,
+    "legacy_tests_passed": 7,
+    "ast": {
+      "changed_functions": [
+        "_bounded_reference_exit_observations",
+        "_bounded_reference_trace",
+        "_candidate_anchor_targets",
+        "_entry_representations"
+      ],
+      "unchanged_functions_or_classes": 13
+    },
+    "initial_failure": "Three short-lifetime cases attempted to construct a new sampled transition at the final observed state in the test fixture. The existing predecessor successor is the correct boundary state. Only this test fixture was corrected; production code unchanged; only those three cases rerun.",
+    "verified": [
+      "Entry and Exit control use the identical observed reference Q_mu at state0 with one frozen boundary teacher",
+      "exact tensor equality with existing native TRAIN target owner at2,3,121,122,600 states including closure and right censoring",
+      "Entry adds executable first liquidation once; FLAT and relative EXIT_NOW remain0",
+      "bootstrap remains positive at observed boundaries; no artificial terminal or holding limit",
+      "control target support bound to frozen design control-end timestamp using M1 close time; crossing rejected before economic projection or Exit state materialization",
+      "same coherent Exit target reused for Entry without another state0 teacher forward",
+      "same teacher instance reuses its Entry representation; no redundant second identical teacher Entry forward",
+      "chronological child/parent IDs and physical TRAIN identity checked before any forward",
+      "mixed/nonfrozen teachers and invalid reference values rejected",
+      "legacy raw teacher Entry and earlier bounded VAL semantics remain passing"
+    ],
+    "actual_data_model_constructions": 0,
+    "actual_data_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "synthetic_models_only": true,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "remaining": [
+      "immutable index/bridge/bundle references to completed prefix transforms",
+      "separately bound fresh native initialization and frozen TRAIN/control measurement artifacts including fixed ONLINE snapshot dispatch",
+      "single frozen256-step learning experiment; later economics only after learning gate"
+    ]
+  }
+}

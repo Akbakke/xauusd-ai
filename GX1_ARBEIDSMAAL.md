@@ -3,8 +3,9 @@
 Gjeldende status2026-09-17: kandidaten ble forkastet på senere juni-data.
 Ingen ny læring er bevist. Kronologisk design, prefix-policies/fasiter og
 normalisering er ferdige. Fersk komponentoppstart og native koordinator/resume
-samt recipe/campaign er koblet og syntetisk kontrollert. Transformreferanser
-og sammenhengende kontrollmål gjenstår før det ene frosne forsøket.
+samt recipe/campaign er koblet og syntetisk kontrollert. Kontrollens Entry/Exit
+bruker samme observerte referanse som TRAIN. Transformreferanser og faktisk
+fersk oppstart/bundet måleklargjøring gjenstår før det ene frosne forsøket.
 CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste arbeid; teksten
 lenger ned beskriver historiske beslutninger.
 

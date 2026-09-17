@@ -338,7 +338,7 @@ def _assert_clean_source(launch: Mapping[str, Any]) -> None:
 def _candidate_anchor_targets(
     *, target_model: torch.nn.Module, target_entry_output: Mapping[str, Any],
     state_factory: RandomAccessValStateFactoryV1, child_rows: Sequence[int],
-    device: torch.device,
+    device: torch.device, reference_hold_targets: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
     """Use the same frozen first-state Exit values as the TRAIN Entry target."""
     from gx1.contracts.unified_exit_economics_objective_v2 import LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
@@ -347,19 +347,29 @@ def _candidate_anchor_targets(
     entries = [state_factory.entries[int(row)] for row in child_rows]
     if [int(entry["entry_row_index"]) for entry in entries] != list(child_rows):
         raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_ORDER_INVALID")
-    inputs = collate_random_access_states_v1(
-        [state_factory.materialize_state(entry, 0) for entry in entries],
-        normalization_artifact=state_factory.normalization, device=device,
-    )
-    inputs["entry_decision_representation"] = target_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
-    inputs["action_valid_mask"] = torch.ones((len(entries), 2, 2), dtype=torch.bool, device=device)
-    if relative:
-        inputs["liquidation_relative_values"] = True
-    output = target_model.forward_exit_random_access_batch(**inputs)
-    q = output["exit_action_q_bps"]
-    valid = output["exit_action_valid_mask"]
-    if q.shape != (len(entries), 2, 2) or not torch.equal(valid, inputs["action_valid_mask"]):
-        raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_Q_INVALID")
+    if reference_hold_targets is not None:
+        if (not relative or reference_hold_targets.shape != (len(entries), 2)
+                or reference_hold_targets.dtype != torch.float32
+                or reference_hold_targets.device != target_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY].device
+                or reference_hold_targets.requires_grad
+                or not bool(torch.isfinite(reference_hold_targets).all().item())):
+            raise RuntimeError("CANDIDATE_NATIVE_REFERENCE_ANCHOR_INVALID")
+        q = torch.stack((reference_hold_targets, torch.zeros_like(reference_hold_targets)), dim=-1)
+        valid = torch.ones_like(q, dtype=torch.bool)
+    else:
+        inputs = collate_random_access_states_v1(
+            [state_factory.materialize_state(entry, 0) for entry in entries],
+            normalization_artifact=state_factory.normalization, device=device,
+        )
+        inputs["entry_decision_representation"] = target_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
+        inputs["action_valid_mask"] = torch.ones((len(entries), 2, 2), dtype=torch.bool, device=device)
+        if relative:
+            inputs["liquidation_relative_values"] = True
+        output = target_model.forward_exit_random_access_batch(**inputs)
+        q = output["exit_action_q_bps"]
+        valid = output["exit_action_valid_mask"]
+        if q.shape != (len(entries), 2, 2) or not torch.equal(valid, inputs["action_valid_mask"]):
+            raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_Q_INVALID")
     values = unified_exit_first_state_side_values(
         frozen_target_q_bps=q.unsqueeze(2), action_valid_mask=valid.unsqueeze(2),
         state_valid_mask=torch.ones((len(entries), 2, 1), dtype=torch.bool, device=device),
@@ -379,13 +389,13 @@ def _candidate_anchor_targets(
     )
 
 
-def _bounded_reference_trace(*, state_factory, child_rows, device):
+def _bounded_reference_trace(*, state_factory, child_rows, device, reference_policy=None, reference_cutoff_time_ns=None):
     """The existing reference target on VAL anchors; no prediction or fitting.
 
     The verified VAL index has no economic terminals and equal side lifetimes.
     Available observations may end early; their boundary always retains bootstrap.
     """
-    from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract
+    from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract, require_reference_policy_contract
     from gx1.contracts.unified_exit_dataset_adapter_v2 import require_economic_training_projection
     from gx1.contracts.unified_exit_random_access_state_view_v1 import _closure_for_transition
     from gx1.contracts.unified_exit_economics_objective_v2 import (
@@ -393,11 +403,19 @@ def _bounded_reference_trace(*, state_factory, child_rows, device):
     )
     if state_factory.economics_objective_contract.get("reward_accounting") != LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING:
         raise RuntimeError("BOUNDED_REFERENCE_RELATIVE_ECONOMICS_REQUIRED")
-    policy = reference_policy_contract()
+    if reference_cutoff_time_ns is not None and (type(reference_cutoff_time_ns) is not int
+            or reference_cutoff_time_ns <= 0 or reference_policy is None):
+        raise RuntimeError("BOUNDED_REFERENCE_CUTOFF_BINDING_INVALID")
+    policy = reference_policy_contract() if reference_policy is None else require_reference_policy_contract(reference_policy)
     lengths = [min(policy["maximum_observed_backup_steps"],
                    state_factory.entries[i]["available_state_count"] - 1) for i in child_rows]
     if not lengths or min(lengths) < 1:
         raise RuntimeError("BOUNDED_REFERENCE_SUCCESSOR_REQUIRED")
+    if reference_cutoff_time_ns is not None:
+        for child, length in zip(child_rows, lengths):
+            boundary_row = state_factory.entries[child]["entry_m1_start_row"] + length
+            if int(state_factory.times.asi8[boundary_row]) + 60_000_000_000 > reference_cutoff_time_ns:
+                raise RuntimeError("BOUNDED_REFERENCE_SUPPORT_CROSSES_CUTOFF")
     width = max(lengths)
     rewards = np.zeros((len(child_rows), width, 2), dtype=np.float32)
     gammas = np.ones((len(child_rows), width), dtype=np.float32)
@@ -444,10 +462,12 @@ def _bounded_reference_trace(*, state_factory, child_rows, device):
 
 
 def _bounded_reference_exit_observations(*, model, boundary_model, entry_output,
-        boundary_entry_output, state_factory, child_rows, device):
+        boundary_entry_output, state_factory, child_rows, device,
+        reference_policy=None, reference_cutoff_time_ns=None, return_reference_targets=False):
     from gx1.contracts.unified_exit_reference_policy_v1 import build_reference_policy_hold_targets
     lengths, policy, projections, trace = _bounded_reference_trace(
-        state_factory=state_factory, child_rows=child_rows, device=device)
+        state_factory=state_factory, child_rows=child_rows, device=device,
+        reference_policy=reference_policy, reference_cutoff_time_ns=reference_cutoff_time_ns)
     def forward(which, source, offsets):
         inputs = collate_random_access_states_v1(
             [state_factory.materialize_state(state_factory.entries[i], offset)
@@ -471,7 +491,7 @@ def _bounded_reference_exit_observations(*, model, boundary_model, entry_output,
             "boundary_censored":trace["boundary_right_censored_mask"][n].cpu().tolist(),
             "reference_policy_sha256":policy["policy_sha256"],
             "economic_projection_sha256_by_side":projections[2*n:2*n+2]})
-    return rows
+    return (rows, target) if return_reference_targets else rows
 
 
 def _entry_representations(
@@ -488,9 +508,28 @@ def _entry_representations(
     evaluation_cohort: Mapping[str, Any] | None = None,
 ) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
     expected_child_rows = list(range(5_508))
+    coherent_reference = None
     if evaluation_cohort is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
-        expected_child_rows = require_bounded_val_cohort(evaluation_cohort)["entry_row_indices"]
+        checked_cohort = require_bounded_val_cohort(evaluation_cohort)
+        expected_child_rows = checked_cohort["entry_row_indices"]
+        if checked_cohort.get("evaluation_role") == "chronological_reused_development_control":
+            from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+            plan_binding = checked_cohort["plan"]
+            plan = read_bound_json(Path(plan_binding["path"]), plan_binding["sha256"])
+            if (checked_cohort.get("source_split") != "train"
+                    or list(parent_rows) != checked_cohort["parent_entry_row_indices"]
+                    or candidate_state_factory is None or candidate_state_factory.source_split != "train"
+                    or candidate_target_model is None or exit_boundary_model is None
+                    or (candidate_target_model is not exit_boundary_model and
+                        canonical_model_state_sha256(candidate_target_model.state_dict()) != canonical_model_state_sha256(exit_boundary_model.state_dict()))):
+                raise RuntimeError("CHRONOLOGICAL_CONTROL_SAME_FROZEN_TEACHER_REQUIRED")
+            coherent_reference = {
+                "semantics":"observed_reference_anchor_Q_mu_with_greedy_first_action",
+                "frozen_design":plan_binding,
+                "reference_policy":require_reference_policy_contract(plan["targets"]["reference_policy"]),
+                "reference_cutoff_time_ns":int(pd.Timestamp(plan["calendar"]["development_control_entry_end_exclusive"]).value),
+            }
     if len(parent_rows) != len(expected_child_rows) or len(set(parent_rows)) != len(parent_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_MAPPING_INVALID")
     candidate = candidate_target_model is not None
@@ -559,19 +598,28 @@ def _entry_representations(
                     ctx_cat=ctx_cat, ctx_cont=ctx_cont,
                     **_multi_tf_kwargs_from_batch(batch, device),
                 )
+                reference_hold_targets = None
                 if exit_boundary_model is not None:
-                    boundary_entry_output = _model_forward_fp32(
-                        exit_boundary_model, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
-                        **_multi_tf_kwargs_from_batch(batch, device))
-                    bounded_exit_observations.extend(_bounded_reference_exit_observations(
+                    boundary_entry_output = (target_output if coherent_reference is not None and exit_boundary_model is candidate_target_model
+                        else _model_forward_fp32(exit_boundary_model, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+                                                **_multi_tf_kwargs_from_batch(batch, device)))
+                    observed = _bounded_reference_exit_observations(
                         model=model, boundary_model=exit_boundary_model, entry_output=output,
                         boundary_entry_output=boundary_entry_output, state_factory=candidate_state_factory,
-                        child_rows=candidate_child_rows[consumed:consumed+len(observed_rows)], device=device))
+                        child_rows=candidate_child_rows[consumed:consumed+len(observed_rows)], device=device,
+                        **({"reference_policy":coherent_reference["reference_policy"],
+                            "reference_cutoff_time_ns":coherent_reference["reference_cutoff_time_ns"],
+                            "return_reference_targets":True} if coherent_reference is not None else {}))
+                    if coherent_reference is not None:
+                        observed, reference_targets = observed
+                        reference_hold_targets = reference_targets["hold_target_bps"]
+                    bounded_exit_observations.extend(observed)
                 targets, target_valid, anchor_binding = _candidate_anchor_targets(
                     target_model=candidate_target_model, target_entry_output=target_output,
                     state_factory=candidate_state_factory,
                     child_rows=candidate_child_rows[consumed:consumed + len(observed_rows)],
                     device=device,
+                    **({"reference_hold_targets":reference_hold_targets} if coherent_reference is not None else {}),
                 )
                 _accumulate_active_head_epoch(
                     active_heads, model,
@@ -625,7 +673,9 @@ def _entry_representations(
         head_stats, _ = _active_head_epoch_diagnostics(active_heads)
         diagnostics["candidate_active_head_evidence"] = {
             **head_stats,
-            "entry_q_target_semantics": "frozen_train_target_exit_first_state_values_long_short_flat",
+            "entry_q_target_semantics": (coherent_reference["semantics"] if coherent_reference is not None
+                                         else "frozen_train_target_exit_first_state_values_long_short_flat"),
+            **({"reference_measurement":coherent_reference} if coherent_reference is not None else {}),
             "target_model_state_sha256": canonical_model_state_sha256(candidate_target_model.state_dict()),
             "anchor_batch_binding_sha256": anchor_bindings,
             "entry_action_q_raw_bps_mse_mean": q_squared_error / q_valid_cells,
