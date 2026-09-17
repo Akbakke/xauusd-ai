@@ -920,6 +920,63 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device,vali
     return reports
 
 
+def _entry_representation_pair(*,model,batch,target,valid,predictions,states,device):
+    """Two inference-only forwards on the exact saved TRAIN16; no fit or gradients."""
+    if model.training or any(p.grad is not None for p in model.parameters()):
+        raise RuntimeError("ENTRY_REPRESENTATION_MODEL_INVALID")
+    def spread(value):
+        x=value.detach().cpu().double()
+        if x.ndim != 2 or len(x) != 16 or not bool(torch.isfinite(x).all()):
+            raise RuntimeError("ENTRY_REPRESENTATION_SURFACE_INVALID")
+        center=x-x.mean(0);norm=torch.linalg.vector_norm(x,dim=1)
+        unit=x/norm.clamp_min(1e-30)[:,None];cosine=unit@unit.T
+        return {"rows":len(x),"width":x.shape[1],"rms_feature_std":float(center.square().mean().sqrt()),
+                "mean_row_l2":float(norm.mean()),
+                "mean_pairwise_cosine":float((cosine.sum()-cosine.diag().sum())/(len(x)*(len(x)-1)))}
+    reports={}
+    for variant in ("initial","final"):
+        model.load_state_dict(states[variant],strict=True)
+        captured={};handles=[]
+        def save(name,value):
+            if name in captured:raise RuntimeError("ENTRY_REPRESENTATION_SURFACE_REPEATED")
+            captured[name]=value
+        def hook(name):
+            return lambda _m,args,out:save(name,out)
+        for name,module in (("main_fuse",model.fuse),("specialist_correction",model.specialist_out),
+                            ("cross_tf_correction",model.cross_tf_out),("cooperation_correction",model.family_tf_cooperation_out),
+                            ("joint_normalized",model.entry_q_joint_norm),("joint_linear",model.entry_q_joint_in)):
+            handles.append(module.register_forward_hook(hook(name)))
+        handles.append(model.fuse.register_forward_pre_hook(lambda _m,args:save("main_fuse_input",args[0])))
+        handles.append(model.entry_q_joint_norm.register_forward_pre_hook(lambda _m,args:save("joint_source",args[0])))
+        try:
+            with torch.inference_mode():
+                out=trainer._model_forward_fp32(model,batch["seq_x"].to(device),batch["snap_x"].to(device),
+                    ctx_cat=batch["ctx_cat"].to(device),ctx_cont=batch["ctx_cont"].to(device),
+                    **trainer._multi_tf_kwargs_from_batch(batch,device))
+                q=out["entry_action_q_bps"];expected=predictions[variant]
+                if (q.shape != (16,3) or expected.shape != q.shape or not bool(torch.isfinite(q).all())
+                        or not torch.allclose(q,expected,atol=1e-4,rtol=0)
+                        or not torch.equal(q.argmax(1),expected.argmax(1))):
+                    raise RuntimeError("ENTRY_REPRESENTATION_CACHED_INFERENCE_CHANGED")
+                parts=_entry_signal_losses(q,target,valid)
+                surfaces={**captured,"entry_hidden":out["entry_q_joint_hidden"]}
+                for prefix,name in (("raw_","joint_source"),("normalized_","joint_normalized")):
+                    surfaces.update({prefix+k:v for k,v in zip(("local_m5","fused","mtf","global_context"),captured[name].chunk(4,dim=1))})
+                surfaces.update({k:v for k,v in zip(("seq_pool","snap_hidden","context_before_fuse"),captured["main_fuse_input"].chunk(3,dim=1))})
+                reports[variant]={"model_state_sha256":trainer._model_state_sha256(model),
+                    "inference_cached_max_abs_difference_bps":float((q-expected).abs().max()),"cached_actions_identical":True,
+                    "raw_entry_mse":float(sum(parts.values())),"raw_loss_decomposition":{k:float(v) for k,v in parts.items()},
+                    "representations":{k:spread(v) for k,v in surfaces.items()},
+                    "prediction_std_by_action":q.cpu().double().std(0,unbiased=False).tolist(),
+                    "prediction_contrast_std_bps":float((q[:,0]-q[:,1]).double().std(unbiased=False)),
+                    "target_contrast_std_bps":float((target[:,0]-target[:,1]).double().std(unbiased=False))}
+        finally:
+            for handle in handles:handle.remove()
+        if any(p.grad is not None for p in model.parameters()):raise RuntimeError("ENTRY_REPRESENTATION_GRAD_ACCUMULATED")
+        del out,q,captured,surfaces,parts
+    return reports
+
+
 def _entry_forward_parity(*,model,batch,expected,device):
     """Measure the two numerical paths without fitting or changing tolerance."""
     if model.training or expected.shape != (16,3) or any(p.grad is not None for p in model.parameters()):
@@ -996,7 +1053,11 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
         if signal:
             initial_rows=scope["initial_observation"]["diagnostics"]["bounded_entry_observations"][:16]
             initial_prediction=torch.tensor([r["predicted_q_bps"] for r in initial_rows],dtype=torch.float32,device=device)
-            if scope["plan"].get("diagnostic_kind") == "initial_final_forward_parity":
+            if scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
+                measured=_entry_representation_pair(model=model,batch=batch,target=target,valid=valid,
+                    predictions={"initial":initial_prediction,"final":prediction},
+                    states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
+            elif scope["plan"].get("diagnostic_kind") == "initial_final_forward_parity":
                 measured={}
                 for variant,weights,expected_prediction in (("initial",state["target_model_state"],initial_prediction),
                                                             ("final",state["model_state"],prediction)):
@@ -1035,6 +1096,11 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             exact_native_entry_mse_decomposition=True,
             limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
         report.pop("variant_forward_values_and_entry_head_gradients_identical")
+        if scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
+            report.update(schema_version="gx1_entry_representation_diagnostic_result_v1",
+                decision="ENTRY_REPRESENTATIONS_MEASURED_NO_OPTIMIZER_STEP",model_forwards=2,backward_passes=0,
+                cached_prediction_validation_mode="canonical_inference",input_binding_audit=scope["plan"]["input_binding_audit"],
+                limitations="Two inference-only forwards on reused TRAIN16. Measured representation variation is not evidence of learning, predictability, Exit improvement, generalization or profitability.")
         if scope["plan"].get("diagnostic_kind") == "initial_final_entry_signal_inference_checked":
             report.update(schema_version="gx1_entry_signal_diagnostic_result_v2",model_forwards=4,
                 cached_prediction_validation_mode="canonical_inference",cross_mode_numerical_parity_claimed=False,
