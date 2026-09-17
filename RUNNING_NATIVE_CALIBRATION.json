@@ -520,6 +520,8 @@
     "standing_public_push_authorization": true,
     "scope": "finished GX1 source, documentation, internal artifact paths and aggregate evidence; no raw datasets, model weights or secrets",
     "repeat_project_confirmation_required": false,
-    "platform_security_review_unchanged": true
+    "platform_security_review_unchanged": true,
+    "platform_review_status": "BLOCKED_PENDING_EXPLICIT_DESTINATION_AND_PAYLOAD_CONFIRMATION",
+    "confirmation_question_already_sent": true
   }
 }

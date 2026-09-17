@@ -34,6 +34,10 @@ checkpoints, planer, resultater og den mislykkede kjøringen er bevart.
 Brukeren godkjente offentlig push2026-09-17 og ga stående autorisasjon for
 ferdig GX1-kode, dokumentasjon og aggregerte bevis til Akbakke/xauusd-ai.
 Ikke be om samme godkjenning på nytt. Rådata, vekter og hemmeligheter inngår ikke.
+Selve pushen ble likevel blokkert av automatisk godkjenningskontroll, som
+krever uttrykkelig bekreftelse på offentlig mål og innhold sammen. Det presise
+spørsmålet er allerede stilt; vent på svaret før nytt pushforsøk. Koden er
+committet lokalt. Ikke omgå plattformkontrollen eller spør gjentatte ganger.
 
 ## Kontrollert etter avvisningen
 
@@ -267,6 +271,17 @@ indeks/bridge/bundle-referanser må peke på ferdige transforms, og kontrollen
 må bruke samme observerte Entry/Exit-referanse. Deretter separat bundet
 klargjøring og ett fast256-stegs forsøk. Ingen refit, større trening eller TEST.
 Se docs/NATIVE_PREFIX_COORDINATOR_20260917.md. Ikke gjenta ferdig arbeid.
+
+## Presisering av faktiske feature-dimensjoner
+
+Dagens kodekontrakt har176 MTF-felt per tidsramme (M5/M15/H1/H4/D1),238
+lokale signalfelt,71 kontinuerlige og én kategorisk kontekst, fordelt via
+åtte familier. Entry bruker lokal M5 og de fire høyere tidsrammene; Exit lokal
+M1 og alle fem MTF-flater. Modellen har eksplisitt sammenslåing på tvers av
+familier og tidsrammer. «200 × 5» er dermed ikke en presis dimensjonsbeskrivelse.
+Dette er lest fra current_entry_exit_architecture_observation og modellens
+forward-kode, uten modellkjøring. Antall felt eller kobling beviser ikke nyttig
+framtidssignal. Ingen feature er endret eller fjernet i denne kontrollen.
 
 ## Start her
 
