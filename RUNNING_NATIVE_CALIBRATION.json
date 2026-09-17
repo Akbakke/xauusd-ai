@@ -1,10 +1,10 @@
 {
-  "status": "ENTRY_FORWARD_PARITY_BOUND_NOT_YET_STARTED",
+  "status": "ENTRY_SIGNAL_INFERENCE_FIX_TESTED_NEW_PLAN_REQUIRED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Completed native training source; handover maintenance is a later commit.",
-  "latest_observation_utc": "2026-09-17T17:53:54.726838+00:00",
-  "source_frozen_while_running": true,
+  "latest_observation_utc": "2026-09-17T18:39:57.145544+00:00",
+  "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FORWARD_PARITY_20260917_BOOT458",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
@@ -100,7 +100,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "One separately bound native parity measurement: same cached TRAIN16, initial/final each in inference and gradient-enabled mode, four forwards total, no backward or optimizer. Preserve original failure and tolerance; do not infer its missing variant or difference. No CONTROL/VAL/TEST, Exit forward, search, automatic repeat or training.",
+  "next_action": "Diagnostic inference validation fix implemented; five targeted tests pass. Bind one new initial_final_entry_signal_inference_checked TRAIN16 plan with four forwards, zero optimizer steps, unchanged cached-inference tolerance and completed parity evidence before running. No currently open model scope, training, CONTROL/VAL/TEST or Exit forwards.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -231,7 +231,7 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
-  "runtime_root_scope": "Planned name only until PREPARATION_RESULT binds current boot and runtime.",
+  "runtime_root_scope": "Completed parity runtime, not an active or authorized run.",
   "frozen_readout_evaluations": {
     "baseline": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE",
@@ -957,36 +957,6 @@
     }
   },
   "native_processes": [],
-  "entry_gradient_diagnostic": {
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/PLAN.json",
-      "sha256": "dc07584410072b56b35248683f8935e2ab237e3cbb70845d2a4777489db23b87"
-    },
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "run_id": "NATIVE_ENTRY_FORWARD_PARITY_20260917",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/CANDIDATE_BUNDLE",
-    "source_bindings_sha256": "29092561f1f90bb2c46605d27548c333334822fd79dce5de7351378204a6546f",
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 256,
-    "max_invocations": 1,
-    "train_entries": 16,
-    "model_forwards": 4,
-    "control_forwards": 0,
-    "test_data_used": false
-  },
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -1000,16 +970,16 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "0d1c02a0bee3ea9203ddbd0b92106a89f2e5c35e4d781d2bdc4c909d8335cc48"
   },
-  "next_diagnostic": {
-    "run_id": "NATIVE_ENTRY_FORWARD_PARITY_20260917",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/PLAN.json",
-      "sha256": "dc07584410072b56b35248683f8935e2ab237e3cbb70845d2a4777489db23b87"
-    },
-    "preparation_executed": false,
-    "activation_executed": false,
-    "model_forwards": 4,
-    "optimizer_steps": 0
+  "next_diagnostic": null,
+  "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
+  "completed_entry_forward_parity": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/REVIEW.json",
+    "sha256": "4a513fe872718e691e36ea8be7659e7e3b2436d1f719a220d2a80e5ac3143c9c"
   },
-  "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence."
+  "diagnostic_validation_fix": {
+    "report": "docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md",
+    "targeted_tests_passed": 5,
+    "model_training_math_changed": false,
+    "new_plan_bound": false
+  }
 }

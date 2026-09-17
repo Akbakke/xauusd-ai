@@ -2,7 +2,7 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — læringsavslag, feilet diagnose og ny ustartet parity-plan.
+1. CURRENT_HANDOVER.md — læringsavslag, fullført parity-måling og testet målerettelse og neste signaldiagnose.
 2. VEIEN_VIDERE.md — ferdig paret analyse, neste årsaksdiagnose og avgrensning.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
@@ -11,7 +11,11 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
-- docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md — gjeldende avgrensede måling av prediksjonsavvik.
+- docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md — minste målerettelse, tester og neste planbinding.
+
+- handover_snapshot/ENTRY_FORWARD_PARITY_{RESULT,REVIEW}_20260917.json — inferens eksakt, gradientmodus avviker svakt uten handlingsbytter.
+
+- docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md — fullført måling av prediksjonsavvik; ingen relansering.
 - docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md — bevart, feilet signaldiagnose.
 - handover_snapshot/SAVED_OPTIMIZER_CAUSE_20260917.json — ferdig undersøkelse av lagret state.
 

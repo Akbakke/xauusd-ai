@@ -1,0 +1,197 @@
+{
+  "cached_actions_identical": true,
+  "cached_prediction_absolute_tolerance_bps": 0.0001,
+  "control_forwards": 0,
+  "decision": "ENTRY_FORWARD_PARITY_MEASURED_NO_OPTIMIZER_STEP",
+  "exact_native_entry_mse_decomposition": false,
+  "input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "99079cf43cd423686edc1197d3070a6f6e26a4e5e37f81ce8e70ea06731dc02d"
+  },
+  "limitations": "Four frozen TRAIN16 forwards isolate inference/gradient paths on initial and final models. A completed report is not a parity PASS, a changed tolerance, learning or generalization evidence.",
+  "measurements": {
+    "final": {
+      "comparison_tolerance_changed": false,
+      "comparisons": {
+        "gradient__cached_reference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.000164031982421875,
+          "max_abs_difference_by_action_bps": [
+            0.00011110305786132812,
+            0.000164031982421875,
+            9.383261203765869e-05
+          ],
+          "rms_difference_bps": 0.00011791698601612109,
+          "within_existing_1e_minus4_bps": false
+        },
+        "gradient__inference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.000164031982421875,
+          "max_abs_difference_by_action_bps": [
+            0.00011110305786132812,
+            0.000164031982421875,
+            9.383261203765869e-05
+          ],
+          "rms_difference_bps": 0.00011791698601612109,
+          "within_existing_1e_minus4_bps": false
+        },
+        "inference__cached_reference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.0,
+          "max_abs_difference_by_action_bps": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rms_difference_bps": 0.0,
+          "within_existing_1e_minus4_bps": true
+        }
+      },
+      "model_forwards": 2,
+      "model_state_sha256": "0ab0fed4a77e0f247aa821eaa8c9064c1a80f3e274acc735c5fde9a430de2074",
+      "optimizer_steps": 0,
+      "prediction_mean_by_action": {
+        "cached_reference": [
+          -5.723777621984482,
+          -5.947227776050568,
+          -0.01977934260503389
+        ],
+        "gradient": [
+          -5.723881393671036,
+          -5.947380423545837,
+          -0.019866259215632454
+        ],
+        "inference": [
+          -5.723777621984482,
+          -5.947227776050568,
+          -0.01977934260503389
+        ]
+      },
+      "prediction_std_by_action": {
+        "cached_reference": [
+          0.06556519725939285,
+          0.06586233023652796,
+          0.06105626654849605
+        ],
+        "gradient": [
+          0.06556973805879754,
+          0.06586749543491029,
+          0.06106142048648919
+        ],
+        "inference": [
+          0.06556519725939285,
+          0.06586233023652796,
+          0.06105626654849605
+        ]
+      }
+    },
+    "initial": {
+      "comparison_tolerance_changed": false,
+      "comparisons": {
+        "gradient__cached_reference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.00029921531677246094,
+          "max_abs_difference_by_action_bps": [
+            8.034706115722656e-05,
+            0.00029921531677246094,
+            0.00017958879470825195
+          ],
+          "rms_difference_bps": 0.00013973507659702288,
+          "within_existing_1e_minus4_bps": false
+        },
+        "gradient__inference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.00029921531677246094,
+          "max_abs_difference_by_action_bps": [
+            8.034706115722656e-05,
+            0.00029921531677246094,
+            0.00017958879470825195
+          ],
+          "rms_difference_bps": 0.00013973507659702288,
+          "within_existing_1e_minus4_bps": false
+        },
+        "inference__cached_reference": {
+          "changed_actions": 0,
+          "max_abs_difference_bps": 0.0,
+          "max_abs_difference_by_action_bps": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rms_difference_bps": 0.0,
+          "within_existing_1e_minus4_bps": true
+        }
+      },
+      "model_forwards": 2,
+      "model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+      "optimizer_steps": 0,
+      "prediction_mean_by_action": {
+        "cached_reference": [
+          1.3813226986676455,
+          1.3714459482580423,
+          1.1569302566349506
+        ],
+        "gradient": [
+          1.381310898810625,
+          1.3712210031226277,
+          1.1569769107736647
+        ],
+        "inference": [
+          1.3813226986676455,
+          1.3714459482580423,
+          1.1569302566349506
+        ]
+      },
+      "prediction_std_by_action": {
+        "cached_reference": [
+          0.47154322699736123,
+          0.5784953804479296,
+          0.4671319246301671
+        ],
+        "gradient": [
+          0.471528578482299,
+          0.5784819314582018,
+          0.4670949212411138
+        ],
+        "inference": [
+          0.47154322699736123,
+          0.5784953804479296,
+          0.4671319246301671
+        ]
+      }
+    }
+  },
+  "model_and_original_checkpoint_preserved": true,
+  "model_forwards": 4,
+  "model_mode": "eval",
+  "model_state_sha256": "0ab0fed4a77e0f247aa821eaa8c9064c1a80f3e274acc735c5fde9a430de2074",
+  "native_elapsed_seconds": 642.711179704,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/PLAN.json",
+    "sha256": "dc07584410072b56b35248683f8935e2ab237e3cbb70845d2a4777489db23b87"
+  },
+  "reused_input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "0b8cd6351a49e19adf5be366a0f38966394701db3e7e8d36461464e174dc7aab"
+  },
+  "rng_restored": true,
+  "schema_version": "gx1_entry_forward_parity_result_v1",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "source_commit": "e53645d7942ed6ddad72d7f564000fb666b2ba43",
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "e14124277545365e53a4fa7e3e559dc0ce92b3146ab941b129a602d0bdc0148a"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+  },
+  "variants": [
+    "initial_inference",
+    "initial_gradient",
+    "final_inference",
+    "final_gradient"
+  ]
+}

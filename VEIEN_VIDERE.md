@@ -11,23 +11,30 @@ Fjernkontakt: `ssh gx1-3090-lan`; Linux via
 `wsl.exe -d Ubuntu-22.04 -u andre2 -- /bin/bash -s`.
 Alle kildeoperasjoner skjer i `/home/andre2/src/GX1_CURRENT`.
 
-## Neste handling: mål avviket i den feilede prediksjonskontrollen
+## Prediksjonsavviket er målt — ingen aktiv jobb
 
-Signaldiagnosen er terminal med feil og skal ikke relanseres. Ingen signal-
-konklusjon finnes; variant og avviksstørrelse ble ikke logget. Original modell,
-checkpoint og tidligere læringsavslag bevares.
+Fire forwards er fullført på e53645d7, samme cachede TRAIN16 og frosne initial/
+finalmodeller. Native sluttkvittering: 18:34:13 UTC / 20:34:13 Oslo, guard PASS,
+trainer/observer 0. Faktisk boot459, forberedt runtime-navn BOOT458. Windows-task
+deaktivert, controller avsluttet, null optimizersteg og originale checkpoints bevart.
 
-Følg den nye, separat bundne planen i BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917:
-samme cachede TRAIN16, fire forwards (initial/final × inferens/gradientaktivert
-eval), ingen backward/optimizer. Ingen endret toleranse. Se
-docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md. Kontroller PREPARATION_RESULT,
-faktiske prosesser og receipt før start; ikke start om en eksisterende jobb.
+Inferens matcher begge lagrede prediksjoner eksakt. Gradientmodus avviker med
+maks 0,0002992153 Bps initialt og 0,0001640320 Bps til slutt; ingen handlingsbytter.
+Den gamle 0,0001 Bps-kontrollen mellom ulike modus består altså ikke. Toleransen
+er uendret. Dette forklarer signaldiagnosens måleblokkering, ikke læringssvikten.
+Det er ikke isolert hvilken enkeltkernel som gir forskjellen.
 
-Rapporten skal skille ny inferens mot lagret inferens fra gradientforward mot
-inferens. Manglende samsvar må forklares før representasjons-/gradientanalysen
-fortsetter. Ingen påstand om årsak eller modellrettelse uten målt støtte.
-Bevar feilforsøket; steng det nye brukte scope etter terminalt resultat.
-Ingen trening, CONTROL, VAL, TEST, Exit-forward, søk eller automatisk utvidelse.
+Den testede rettelsen gjelder bare diagnostikken: verifiser vanlig inferens mot lagret
+inferens med samme toleranse, og beregn/rapporter gradientmodus separat. Bevar
+handlingskontroll og synlig numerisk avvik; ikke påstå eksakt samsvar mellom modus.
+Deretter kan en særskilt bundet signaldiagnose finne hvor variasjon/gradientsignal
+går tapt. Rettelsen er implementert og fem målrettede tester består.
+En ny signalplan må bindes før kjøring; ingen ny trening er åpnet.
+Den brukte parity-planen er stengt og skal ikke relanseres.
+
+Bevis: `handover_snapshot/ENTRY_FORWARD_PARITY_{RESULT,REVIEW}_20260917.json` og
+`BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917/REVIEW.json`. Her er BASE den vanlige
+prebuilt-roten i GX1_DATA. Entry/Exit-læringsporten er fortsatt ikke bestått.
 
 ## Referanser for sammenligningen
 
@@ -77,13 +84,10 @@ refaktorering eller justering av terskler på samme kontrollutvalg.
 
 ## Operatører og publisering
 
-Native256 og den feilede signaldiagnosen er avsluttet; deres operatører er
-historiske og skal ikke relanseres. Parity-planen er bundet, men recipe/campaign
-er ennå ikke forberedt. Ubrukte operatører er bevart i
-`BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917/OPERATOR_HANDOVER/`. Følg den
-eksakte rekkefølgen i parity-dokumentet; Macens /tmp er ikke nødvendig.
-Gjenbruk cache og ferdige analyser. Ingen vekter, rådata eller hemmeligheter
-skal pushes.
+Native256, signalfeilen og parity-målingen er avsluttet. Alle tilhørende
+operatører er nå historiske og skal ikke relanseres. Bevar cache og ferdige
+resultater. En ny signaldiagnose må få egen plan etter den minimale målerettelsen.
+Ingen vekter, rådata eller hemmeligheter skal pushes.
 
 Stående godkjenning gjelder offentlig kode, dokumentasjon, interne filstier
 og aggregerte resultater til `Akbakke/xauusd-ai`, `work/gx1-current`. Commit/push

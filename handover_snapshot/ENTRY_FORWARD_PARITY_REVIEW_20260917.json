@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_entry_forward_parity_review_v1",
+  "created_utc": "2026-09-17T18:39:57.145544+00:00",
+  "decision": "INFERENCE_EXACT_GRADIENT_PATH_DIFFERS_NO_ACTION_CHANGE",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "dc7a50ebff2747d4cd22f648326e58a3199c05ba3ca30cf7088d86264315b45f"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FORWARD_PARITY_20260917_BOOT458/receipts/invocation-0001.json",
+    "sha256": "5461bc47adc1fe779278e1e6ebffd3cd6d6d91773f8350f95a30eb7e682ff295"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/PLAN.json",
+    "sha256": "dc07584410072b56b35248683f8935e2ab237e3cbb70845d2a4777489db23b87"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/NATIVE_RECIPE.json",
+    "sha256": "23fd8719a8128f6f40d35e69327769bd2b6586125fbc3fd4b4f9d84c2c956114"
+  },
+  "source_commit": "e53645d7942ed6ddad72d7f564000fb666b2ba43",
+  "windows_terminal": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/WINDOWS_TERMINAL_OBSERVATION.json",
+    "sha256": "6c0e6cfc635a8ed533cd62543e3daab7d753e00584baf6bd89ad8ec5fbe58bb2"
+  },
+  "native_processes": [],
+  "model_forwards": 4,
+  "optimizer_steps": 0,
+  "original_checkpoints_rehashed_unchanged": true,
+  "inference_matches_cached_exactly_both_models": true,
+  "gradient_inference_max_abs_bps": {
+    "final": 0.000164031982421875,
+    "initial": 0.00029921531677246094
+  },
+  "changed_actions_both_models": 0,
+  "existing_1e_minus4_gradient_comparison_passed": false,
+  "tolerance_changed": false,
+  "specific_fused_kernel_cause_proven": false,
+  "installed_transformer_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/nn/modules/transformer.py",
+    "sha256": "eecc1e4b9f1b60712fed47469a628bfd5b9497d3351cb1045d447becebea5e89"
+  },
+  "source_observation": "Installed PyTorch transformer forward disables its fused path when grad is enabled and participating tensors require gradients. This is consistent with the measured mode difference; no kernel-level isolation was run.",
+  "training_enabled": false,
+  "learning_gate_passed": false,
+  "learning_measured": false,
+  "test_data_used": false,
+  "next_action": "Fix only diagnostic validation: compare a fresh canonical inference forward against cached inference at unchanged 1e-4 Bps tolerance, then compute/report gradient-mode outputs and gradients separately. Require unchanged actions and disclose the numeric difference, without claiming cross-mode parity. Bind any next signal diagnostic separately; no new model work is currently open."
+}

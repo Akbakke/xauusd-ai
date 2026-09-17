@@ -824,8 +824,8 @@ def _entry_signal_losses(q, target, valid):
     return parts
 
 
-def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
-    """Two frozen forwards localize lost variation and Entry/aux gradient conflict.
+def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device,validate_inference=False):
+    """Frozen forwards localize lost variation and Entry/aux gradient conflict.
 
     Routing and Entry-Q parameters are the Entry-private surfaces. These are
     pre-clipping eval gradients, not a reconstructed training optimizer step.
@@ -846,6 +846,16 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
     reports={}
     for variant in ("initial","final"):
         model.load_state_dict(states[variant],strict=True)
+        expected=predictions[variant];inference_difference=None
+        if validate_inference:
+            with torch.inference_mode():
+                inference=trainer._model_forward_fp32(model,batch["seq_x"].to(device),batch["snap_x"].to(device),
+                    ctx_cat=batch["ctx_cat"].to(device),ctx_cont=batch["ctx_cont"].to(device),
+                    **trainer._multi_tf_kwargs_from_batch(batch,device))["entry_action_q_bps"]
+                inference_difference=float((inference-expected).abs().max())
+                if not torch.allclose(inference,expected,atol=1e-4,rtol=0) or not torch.equal(inference.argmax(1),expected.argmax(1)):
+                    raise RuntimeError("ENTRY_SIGNAL_CACHED_INFERENCE_CHANGED")
+            del inference
         captured={}
         handle=model.entry_q_joint_norm.register_forward_pre_hook(lambda _m,args:captured.update(source=args[0]))
         try:
@@ -857,8 +867,11 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
         difference=float((q.detach()-expected).abs().max())
         print(json.dumps({"event":"ENTRY_SIGNAL_NUMERIC_PARITY","variant":variant,
             "max_abs_difference_bps":difference,"actions_equal":bool(torch.equal(q.detach().argmax(1),expected.argmax(1))),
+            "cached_validation_mode":"canonical_inference" if validate_inference else "gradient",
+            "inference_cached_max_abs_difference_bps":inference_difference,
             "absolute_tolerance_bps":1e-4}),flush=True)
-        if not torch.allclose(q.detach(),expected,atol=1e-4,rtol=0) or not torch.equal(q.detach().argmax(1),expected.argmax(1)):
+        if ((not validate_inference and not torch.allclose(q.detach(),expected,atol=1e-4,rtol=0))
+                or not torch.equal(q.detach().argmax(1),expected.argmax(1))):
             raise RuntimeError("ENTRY_SIGNAL_CACHED_PREDICTION_CHANGED")
         parts=_entry_signal_losses(q,target,valid)
         precision=torch.exp(-model.task_log_variances["entry_action_q"])
@@ -893,6 +906,9 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
             g=vectors["contrast"][group];joint=vectors["entry"][group]+vectors["auxiliary"][group]
             alignment[group]["contrast_dot_entry_plus_aux_gradient"]=float(torch.dot(g,joint))
         reports[variant]={"model_state_sha256":trainer._model_state_sha256(model),"cached_max_abs_difference_bps":difference,
+            "cached_validation_mode":"canonical_inference" if validate_inference else "gradient",
+            "inference_cached_max_abs_difference_bps":inference_difference,
+            "gradient_cached_within_1e_minus4_bps":bool(torch.allclose(q.detach(),expected,atol=1e-4,rtol=0)),
             "entry_precision":float(precision.detach()),"raw_entry_mse":float(sum(parts.values()).detach()),
             "raw_loss_decomposition":{k:float(v.detach()) for k,v in parts.items()},
             "representations":{**{name:spread(value) for name,value in zip(("local_m5","fused","mtf","global_context"),source.chunk(4,dim=1))},
@@ -989,7 +1005,8 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             else:
                 measured=_entry_signal_pair(model=model,batch=batch,target=target,valid=valid,
                     predictions={"initial":initial_prediction,"final":prediction},
-                    states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
+                    states={"initial":state["target_model_state"],"final":state["model_state"]},device=device,
+                    validate_inference=scope["plan"].get("diagnostic_kind")=="initial_final_entry_signal_inference_checked")
         else:
             measured=_entry_gradient_pair(model=model,batch=batch,target=target,valid=valid,
                                          expected_prediction=prediction,device=device)
@@ -1018,6 +1035,10 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             exact_native_entry_mse_decomposition=True,
             limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
         report.pop("variant_forward_values_and_entry_head_gradients_identical")
+        if scope["plan"].get("diagnostic_kind") == "initial_final_entry_signal_inference_checked":
+            report.update(schema_version="gx1_entry_signal_diagnostic_result_v2",model_forwards=4,
+                cached_prediction_validation_mode="canonical_inference",cross_mode_numerical_parity_claimed=False,
+                forward_parity_evidence=scope["plan"]["forward_parity_result"])
         if scope["plan"].get("diagnostic_kind") == "initial_final_forward_parity":
             report.update(schema_version="gx1_entry_forward_parity_result_v1",
                 decision="ENTRY_FORWARD_PARITY_MEASURED_NO_OPTIMIZER_STEP",

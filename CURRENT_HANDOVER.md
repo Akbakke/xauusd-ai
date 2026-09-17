@@ -2,10 +2,8 @@
 
 ## Les dette først
 
-**Nåstatus: ingen modelljobb kjører. Signaldiagnosen feilet; neste
-fire-forward-plan er bundet, men recipe/campaign er ikke forberedt og den
-er ikke startet. Følg kjøreoppskriften i
-`docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md`.**
+**Nåstatus: parity-målingen er fullført. Ingen modelljobb kjører eller er åpen.
+Den minimale målerettelsen er testet; neste er å binde den rettede signaldiagnosen.**
 
 **Den kausale Entry-prøven og den parete analysen er ferdige. Læringsporten
 er ikke bestått: Entry velger FLAT256/256; Exit alltid HOLD for LONG og EXIT
@@ -27,19 +25,32 @@ kandidat. Generalisering og profitt er ikke dokumentert.**
 Kjør `./handover.sh --check` på Mac eller `bash scripts/gx1_handover.sh --check`
 i Linux for fersk status. `--verbose` viser også denne overleveringen.
 Ingen handover-kommando starter trening. Gjeldende policy har stengt det brukte
-treningsunntaket. Nå er bare den særskilt bundne målingen av prediksjonsavvik tillatt.
+treningsunntaket. Også parity-planen er brukt og stengt; ingen nye modellforwards er åpnet.
 
-## Aktuelt neste arbeid: mål prediksjonsavviket
+## Prediksjonsavviket er målt — ingen aktiv jobb
 
-Den bundne signaldiagnosen stoppet på prediksjonskontrollen; ingen signalrapport
-er skrevet. Variant og avviksstørrelse manglet i måleloggen. Original state og
-pointer er bevart, tasken deaktivert, ingen optimizersteg. Ikke relanser forsøket.
+Fire forwards er fullført på e53645d7, samme cachede TRAIN16 og frosne initial/
+finalmodeller. Native sluttkvittering: 18:34:13 UTC / 20:34:13 Oslo, guard PASS,
+trainer/observer 0. Faktisk boot459, forberedt runtime-navn BOOT458. Windows-task
+deaktivert, controller avsluttet, null optimizersteg og originale checkpoints bevart.
 
-Neste plan er separat bundet: samme cachede TRAIN16, initial/final hver med
-inferens og gradientaktivert eval, fire forwards totalt og ingen backward eller
-optimizer. Den måler avviket uten å endre toleransen eller gjette hvilken variant
-som feilet. Se docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md og policyen.
-PREPARATION_RESULT, prosess og receipt må bekrefte eventuell faktisk start.
+Inferens matcher begge lagrede prediksjoner eksakt. Gradientmodus avviker med
+maks 0,0002992153 Bps initialt og 0,0001640320 Bps til slutt; ingen handlingsbytter.
+Den gamle 0,0001 Bps-kontrollen mellom ulike modus består altså ikke. Toleransen
+er uendret. Dette forklarer signaldiagnosens måleblokkering, ikke læringssvikten.
+Det er ikke isolert hvilken enkeltkernel som gir forskjellen.
+
+Den testede rettelsen gjelder bare diagnostikken: verifiser vanlig inferens mot lagret
+inferens med samme toleranse, og beregn/rapporter gradientmodus separat. Bevar
+handlingskontroll og synlig numerisk avvik; ikke påstå eksakt samsvar mellom modus.
+Deretter kan en særskilt bundet signaldiagnose finne hvor variasjon/gradientsignal
+går tapt. Rettelsen er implementert og fem målrettede tester består.
+En ny signalplan må bindes før kjøring; ingen ny trening er åpnet.
+Den brukte parity-planen er stengt og skal ikke relanseres.
+
+Bevis: `handover_snapshot/ENTRY_FORWARD_PARITY_{RESULT,REVIEW}_20260917.json` og
+`BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917/REVIEW.json`. Her er BASE den vanlige
+prebuilt-roten i GX1_DATA. Entry/Exit-læringsporten er fortsatt ikke bestått.
 
 ## Autoritativ kilde og siste fullførte kjøring
 
@@ -113,7 +124,7 @@ Maskinbevis: `handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json`.
 Historikk før oppryddingen er bevart i aktiv artefaktmappes
 `OPERATOR_HANDOVER/BEFORE_CANONICAL_REFRESH` og Mac `handover_snapshot/`.
 Den tidligere eksterne OPERATOR_HANDOVER-kopien som ble brukt under
-treningskildens frys er arkiv. Den nye parity-planens OPERATOR_HANDOVER
-inneholder ubrukte operatørmaler; den er dokumentert i parity-dokumentet. Bruk de vanlige kanoniske handover-inngangene. Ingen gamle planer er
+treningskildens frys er arkiv. Parity-planens OPERATOR_HANDOVER inneholder nå brukte operatører og
+verifikasjoner; de er historikk og skal ikke relanseres. Bruk de vanlige kanoniske handover-inngangene. Ingen gamle planer er
 startinstrukser. Stående godkjenning for ferdig kode/dokumentasjon/aggregater
 på offentlig work/gx1-current gjelder; ikke spør på nytt.

@@ -381,8 +381,8 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
     plan_binding, plan = load(recipe.get("entry_gradient_diagnostic"), "Entry gradient plan")
     kind = plan.get("diagnostic_kind")
-    signal = kind in ("initial_final_entry_signal", "initial_final_forward_parity")
-    if kind not in (None, "initial_final_entry_signal", "initial_final_forward_parity"):
+    signal = kind in ("initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked")
+    if kind not in (None, "initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked"):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     fixed = {"schema_version":"gx1_entry_gradient_diagnostic_plan_v1", "optimizer_steps":0,
              "train_entries":16, "model_forwards":2, "control_forwards":0, "max_invocations":1,
@@ -393,6 +393,8 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
     if kind == "initial_final_forward_parity":
         fixed.update(schema_version="gx1_entry_forward_parity_plan_v1", model_forwards=4,
                      variants=["initial_inference", "initial_gradient", "final_inference", "final_gradient"])
+    if kind == "initial_final_entry_signal_inference_checked":
+        fixed.update(schema_version="gx1_entry_signal_diagnostic_plan_v2", model_forwards=4)
     if any(type(plan.get(k)) is not type(v) or plan[k] != v for k,v in fixed.items()):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     _, review = load(plan.get("review"), "completed fixed256 review")
@@ -458,6 +460,24 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
                 or initial_observation.get("model_state_sha256") != result.get("target_model_state_sha256")
                 or initial_observation.get("test_data_used") is not False):
             raise RuntimeError("ENTRY_SIGNAL_CACHE_OR_BASELINE_INVALID")
+    if kind == "initial_final_entry_signal_inference_checked":
+        _, parity = load(plan.get("forward_parity_result"), "completed Entry forward parity")
+        if (parity.get("schema_version") != "gx1_entry_forward_parity_result_v1"
+                or parity.get("reused_input_cache") != cached_inputs
+                or parity.get("training_state") != state["training_state"]
+                or parity.get("training_pointer") != state["training_pointer"]
+                or parity.get("optimizer_steps") != 0 or parity.get("model_forwards") != 4
+                or parity.get("test_data_used") is not False
+                or parity.get("model_and_original_checkpoint_preserved") is not True):
+            raise RuntimeError("ENTRY_SIGNAL_PARITY_EVIDENCE_INVALID")
+        for variant, expected_model in (("initial",result["target_model_state_sha256"]),("final",result["model_state_sha256"])):
+            measured = parity.get("measurements",{}).get(variant,{})
+            comparisons = measured.get("comparisons",{})
+            if (measured.get("model_state_sha256") != expected_model
+                    or comparisons.get("inference__cached_reference",{}).get("max_abs_difference_bps") != 0
+                    or any(comparisons.get(k,{}).get("changed_actions") != 0 for k in
+                           ("inference__cached_reference","gradient__cached_reference","gradient__inference"))):
+                raise RuntimeError("ENTRY_SIGNAL_PARITY_EVIDENCE_INVALID")
     policy_binding, policy = load(recipe.get("next_run_policy"), "Entry gradient policy")
     if Path(policy_binding["path"]) != repo/"NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")

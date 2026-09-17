@@ -198,34 +198,45 @@ def test_signal_loss_split_preserves_native_mse_and_prediction_gradient():
         runner._entry_signal_losses(q,target,valid)
 
 
-def test_signal_pair_observes_two_frozen_states_without_accumulation(pair):
+@pytest.mark.parametrize('validate_inference',[False,True])
+def test_signal_pair_observes_two_frozen_states_without_accumulation(pair,validate_inference):
     class SignalSmall(Small):
         def __init__(self):
             super().__init__();self.entry_q_joint_norm=torch.nn.LayerNorm(16)
-            self.entry_q_joint_in=torch.nn.Linear(16,4);self.calls=0
+            self.entry_q_joint_in=torch.nn.Linear(16,4);self.calls=0;self.offset_gradient=False
         def forward(self,seq_x,snap_x,**kw):
             self.calls+=1
             h=torch.tanh(self.family_tf_context_gate(seq_x)+self.family_tf_token_gate(snap_x))
             hidden=torch.nn.functional.gelu(self.entry_q_joint_in(self.entry_q_joint_norm(torch.cat([h]*4,1))))
-            return {"entry_action_q_bps":self.head_entry_action_q(hidden),"entry_q_joint_hidden":hidden,"aux":h}
+            q=self.head_entry_action_q(hidden)
+            if self.offset_gradient and torch.is_grad_enabled():q=q+0.001
+            return {"entry_action_q_bps":q,"entry_q_joint_hidden":hidden,"aux":h}
     model=SignalSmall().eval();batch=pair['batch'];initial=copy.deepcopy(model.state_dict())
     initial_q=model(batch['seq_x'],batch['snap_x'])['entry_action_q_bps'].detach()
     with torch.no_grad():model.head_entry_action_q.weight.add_(0.1)
     final=copy.deepcopy(model.state_dict());final_q=model(batch['seq_x'],batch['snap_x'])['entry_action_q_bps'].detach()
-    model.calls=0
+    model.calls=0;model.offset_gradient=validate_inference
     result=runner._entry_signal_pair(model=model,batch=batch,target=pair['target'],valid=pair['valid'],
-        predictions={'initial':initial_q,'final':final_q},states={'initial':initial,'final':final},device=pair['device'])
-    assert model.calls==2 and result['final']['gradients']['contrast']['routing']['l2_norm']>0
+        predictions={'initial':initial_q,'final':final_q},states={'initial':initial,'final':final},device=pair['device'],validate_inference=validate_inference)
+    assert model.calls==(4 if validate_inference else 2) and result['final']['gradients']['contrast']['routing']['l2_norm']>0
     assert result['final']['gradients']['auxiliary']['entry_head']['l2_norm']==0
     assert all(p.grad is None for p in model.parameters())
     for k,v in final.items():assert torch.equal(v,model.state_dict()[k])
+    if validate_inference:
+        assert result['final']['inference_cached_max_abs_difference_bps']==0
+        assert result['final']['cached_max_abs_difference_bps']>0.0009
+        assert result['final']['gradient_cached_within_1e_minus4_bps'] is False
+        with pytest.raises(RuntimeError,match='ENTRY_SIGNAL_CACHED_INFERENCE_CHANGED'):
+            runner._entry_signal_pair(model=model,batch=batch,target=pair['target'],valid=pair['valid'],
+                predictions={'initial':initial_q+1,'final':final_q},states={'initial':initial,'final':final},device=pair['device'],validate_inference=True)
 
 
-@pytest.mark.parametrize('parity_only',[False,True])
+@pytest.mark.parametrize('parity_only',[False,True,'checked'])
 def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient_scope,tmp_path,parity_only):
     _,recipe,_,seal,plan,obs,final,resume=gradient_scope
     plan.update(diagnostic_kind='initial_final_entry_signal',schema_version='gx1_entry_signal_diagnostic_plan_v1',variants=['initial','final'])
-    if parity_only:plan.update(diagnostic_kind='initial_final_forward_parity',schema_version='gx1_entry_forward_parity_plan_v1',model_forwards=4,variants=['initial_inference','initial_gradient','final_inference','final_gradient'])
+    if parity_only is True:plan.update(diagnostic_kind='initial_final_forward_parity',schema_version='gx1_entry_forward_parity_plan_v1',model_forwards=4,variants=['initial_inference','initial_gradient','final_inference','final_gradient'])
+    if parity_only=='checked':plan.update(diagnostic_kind='initial_final_entry_signal_inference_checked',schema_version='gx1_entry_signal_diagnostic_plan_v2',model_forwards=4)
     baseline={**obs,'optimizer_steps':0,'model_state_sha256':'c'*64}
     final['target_model_state_sha256']='c'*64
     final['initial_measurement']=_write(tmp_path/'saved_initial.json',{'observations':{'train':_write(tmp_path/'initial_obs.json',baseline)}})
@@ -238,9 +249,23 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
     prior_plan=_write(tmp_path/'cached_plan.json',{'origin_cursor':_write(tmp_path/'cached_cursor.json',{'recipe':prior_recipe})})
     plan['cached_input_review']=_write(tmp_path/'cache_review.json',{'schema_version':'gx1_entry_gradient_diagnostic_result_v1',
         'plan':prior_plan,'input_cache':_bind(cache),'selection':'first16_existing_frozen_TRAIN_probe','optimizer_steps':0,'test_data_used':False})
+    if parity_only=='checked':
+        parity={'schema_version':'gx1_entry_forward_parity_result_v1','reused_input_cache':_bind(cache),
+                'training_state':resume['training_state'],'training_pointer':resume['training_pointer'],
+                'optimizer_steps':0,'model_forwards':4,'test_data_used':False,'model_and_original_checkpoint_preserved':True,
+                'measurements':{k:{'model_state_sha256':digest,'comparisons':{c:{'max_abs_difference_bps':0 if c.startswith('inference') else 0.0003,'changed_actions':0}
+                       for c in ('inference__cached_reference','gradient__cached_reference','gradient__inference')}}
+                       for k,digest in (('initial',final['target_model_state_sha256']),('final',final['model_state_sha256']))}}
+        plan['forward_parity_result']=_write(tmp_path/'forward_parity.json',parity)
     seal()
     scope=native.require_entry_gradient_diagnostic(recipe)
     assert scope['cached_inputs']==_bind(cache) and scope['initial_observation']==baseline
+    if parity_only=='checked':
+        parity['measurements']['initial']['comparisons']['inference__cached_reference']['max_abs_difference_bps']=0.01
+        plan['forward_parity_result']=_write(tmp_path/'forward_parity.json',parity);seal()
+        with pytest.raises(RuntimeError,match='ENTRY_SIGNAL_PARITY_EVIDENCE_INVALID'):native.require_entry_gradient_diagnostic(recipe)
+        parity['measurements']['initial']['comparisons']['inference__cached_reference']['max_abs_difference_bps']=0
+        plan['forward_parity_result']=_write(tmp_path/'forward_parity.json',parity);seal()
     cache.write_bytes(b'tampered cache')
     with pytest.raises(RuntimeError):native.require_entry_gradient_diagnostic(recipe)
 
