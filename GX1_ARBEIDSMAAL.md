@@ -8,8 +8,8 @@ Nå: native256 og paret analyse er ferdige, læringsport ikke bestått. Entry er
 all-FLAT; Exit-handling bestemmes bare av side. Neste er én konkret årsaksdiagnose
 fra eksisterende TRAIN-outputs, lagrede state/gradientbevis og kilde.
 Signaldiagnosens måleblokkering er nå forklart: inferens matcher eksakt, men
-gradientmodus avviker svakt uten handlingsbytter. Den minimale målerettelsen er testet. Neste er å binde signaldiagnosen
-med korrekt inferenskontroll; ingen ny modellkjøring er åpen.
+gradientmodus avviker svakt uten handlingsbytter. Den minimale målerettelsen er testet. Signaldiagnosen med korrekt inferenskontroll er særskilt bundet,
+men ikke startet. Ingen trening er åpnet.
 Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md for faktisk jobb og neste handling.
 Gjenbruk mål/prediksjoner/checkpoints; ikke gjenta beståtte undersøkelser.
 

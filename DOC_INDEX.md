@@ -11,6 +11,8 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- docs/ENTRY_SIGNAL_INFERENCE_CHECK_20260917.md — gjeldende bundne signaldiagnose og varige operatører.
+
 - docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md — minste målerettelse, tester og neste planbinding.
 
 - handover_snapshot/ENTRY_FORWARD_PARITY_{RESULT,REVIEW}_20260917.json — inferens eksakt, gradientmodus avviker svakt uten handlingsbytter.

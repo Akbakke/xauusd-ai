@@ -1,11 +1,11 @@
 {
-  "status": "ENTRY_SIGNAL_INFERENCE_FIX_TESTED_NEW_PLAN_REQUIRED",
+  "status": "ENTRY_SIGNAL_INFERENCE_CHECK_BOUND_NOT_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Completed native training source; handover maintenance is a later commit.",
-  "latest_observation_utc": "2026-09-17T18:39:57.145544+00:00",
-  "source_frozen_while_running": false,
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FORWARD_PARITY_20260917_BOOT458",
+  "latest_observation_utc": "2026-09-17T18:53:36.760373+00:00",
+  "source_frozen_while_running": true,
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917_BOOT459",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_state": "Disabled",
@@ -100,7 +100,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Diagnostic inference validation fix implemented; five targeted tests pass. Bind one new initial_final_entry_signal_inference_checked TRAIN16 plan with four forwards, zero optimizer steps, unchanged cached-inference tolerance and completed parity evidence before running. No currently open model scope, training, CONTROL/VAL/TEST or Exit forwards.",
+  "next_action": "Run one separately bound Entry signal diagnostic on the same cached TRAIN16 and frozen initial/final models: four forwards, zero optimizer steps. Validate canonical inference at unchanged 1e-4 Bps tolerance; report gradient-mode variation, exact native MSE components and Entry-private gradient alignment. No training, CONTROL/VAL/TEST, Exit forwards, search or automatic extension.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -231,7 +231,7 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
-  "runtime_root_scope": "Completed parity runtime, not an active or authorized run.",
+  "runtime_root_scope": "Planned name only; PREPARATION_RESULT binds actual prepared boot and runtime.",
   "frozen_readout_evaluations": {
     "baseline": {
       "artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_20260916_BASELINE",
@@ -961,16 +961,26 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
-  "diagnostic_runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/PREPARATION_RESULT.json",
+  "diagnostic_runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/PREPARATION_RESULT.json",
   "completed_entry_signal_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/FAILURE.json",
     "sha256": "32c36627b90f7b38561887fa3ac25c10e600f52d4148e74f59566e36b1aa22c1"
   },
   "handover_operator_manifest": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
-    "sha256": "0d1c02a0bee3ea9203ddbd0b92106a89f2e5c35e4d781d2bdc4c909d8335cc48"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
+    "sha256": "bd4337cacd49c6c4a0ae248fad307d470f004698a2c2b84c45b82a52d27fb57f"
   },
-  "next_diagnostic": null,
+  "next_diagnostic": {
+    "run_id": "NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/PLAN.json",
+      "sha256": "352c4d2a2437105916f7564dd07f83d6e2df91ef0c2e0afb4a909a36653fcce2"
+    },
+    "preparation_executed": false,
+    "activation_executed": false,
+    "model_forwards": 4,
+    "optimizer_steps": 0
+  },
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "completed_entry_forward_parity": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/REVIEW.json",
@@ -980,6 +990,36 @@
     "report": "docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md",
     "targeted_tests_passed": 5,
     "model_training_math_changed": false,
-    "new_plan_bound": false
+    "new_plan_bound": true
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/PLAN.json",
+      "sha256": "352c4d2a2437105916f7564dd07f83d6e2df91ef0c2e0afb4a909a36653fcce2"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "808a11f838e16ac2b0d5d863096582a8c6ce2825222e6c5debb17721ea7ecaea",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 4,
+    "control_forwards": 0,
+    "test_data_used": false
   }
 }

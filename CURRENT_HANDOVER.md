@@ -1,9 +1,32 @@
 # GX1 — overlevering 17. september 2026
 
+## Gjeldende neste arbeid: Entry-signalet, fire forwards
+
+Den rettede signaldiagnosen er separat bundet som
+`NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917`. Recipe/campaign er ikke
+forberedt, og kjøringen er ikke startet. Samme cachede TRAIN16, samme frosne
+initial-/sluttmodeller og korrigerte mål. Fire forwards, null optimizersteg.
+
+Mål hvor Entry-representasjonens variasjon svekkes og om hjelpetapenes gradienter
+motarbeider LONG–SHORT-komponenten. Vanlig inferens kontrolleres med uendret
+toleranse; gradientavvik rapporteres separat. Ingen læring loves fra denne
+eval-diagnosen. Ingen Exit-forward, CONTROL/VAL/TEST eller automatisk utvidelse.
+
+I den nye artefaktmappen finnes PLAN.json, ADMISSION_CHECK.py og
+OPERATOR_HANDOVER/PREPARE.py samt ACTIVATE_TEMPLATE.ps1. De to sistnevnte er
+tilpassede kopier av de fungerende native operatørene. Etter ren commit/push,
+kjør PREPARE.py via eksisterende audit-vakt. Fyll så ny campaign-filhash og
+kildecommit i en ny kopi av aktiveringsmalen; verifiser deaktivert task og
+ingen aktiv jobb, og aktiver én gang. Les PREPARATION_RESULT/prosesser/receipt
+før eventuell ny handling. Gamle planer/operatører skal ikke relanseres.
+
+Se docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md for den testede
+rettelsen og begrensningene. Steng brukt scope etter terminalt resultat.
+
 ## Les dette først
 
-**Nåstatus: parity-målingen er fullført. Ingen modelljobb kjører eller er åpen.
-Den minimale målerettelsen er testet; neste er å binde den rettede signaldiagnosen.**
+**Nåstatus: parity-målingen er fullført. Ingen modelljobb kjører. Den nye signalplanen er bundet, ikke startet.
+Den minimale målerettelsen er testet; følg den særskilt bundne signalplanen ovenfor.**
 
 **Den kausale Entry-prøven og den parete analysen er ferdige. Læringsporten
 er ikke bestått: Entry velger FLAT256/256; Exit alltid HOLD for LONG og EXIT
@@ -45,7 +68,7 @@ inferens med samme toleranse, og beregn/rapporter gradientmodus separat. Bevar
 handlingskontroll og synlig numerisk avvik; ikke påstå eksakt samsvar mellom modus.
 Deretter kan en særskilt bundet signaldiagnose finne hvor variasjon/gradientsignal
 går tapt. Rettelsen er implementert og fem målrettede tester består.
-En ny signalplan må bindes før kjøring; ingen ny trening er åpnet.
+Den separate signalplanen ovenfor er nå bundet; ingen ny trening er åpnet.
 Den brukte parity-planen er stengt og skal ikke relanseres.
 
 Bevis: `handover_snapshot/ENTRY_FORWARD_PARITY_{RESULT,REVIEW}_20260917.json` og

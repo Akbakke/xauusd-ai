@@ -17,7 +17,9 @@ gradienter måles uten optimizer/akkumulering, korrekt fire-forward-omfang og
 frosset tidligere parity-bevis kreves. Logg ligger i den fullførte parity-
 artefaktmappen som SIGNAL_INFERENCE_FIX_TEST.log. Gjenbruk dette beviset.
 
-## Neste handling — plan er ikke bundet ennå
+## Planbinding — separat plan er nå bundet
+
+Se ENTRY_SIGNAL_INFERENCE_CHECK_20260917.md for faktisk run-id og oppstart.
 
 Fortsett det opprinnelige signalspørsmålet: hvor svekkes representasjonens
 variasjon, og motarbeider hjelpetapenes gradienter LONG–SHORT-komponenten?

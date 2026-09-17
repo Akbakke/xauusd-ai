@@ -12,8 +12,8 @@ Entry all-FLAT, svak LONG−SHORT-kontrast, Exit konstant per side og dårligere
 enn forrige kandidat. Brukt launch-unntak er stengt. Neste er én årsaksdiagnose
 fra eksisterende TRAIN-bevis/kilde. Parity-målingen etter signalfeilen er
 fullført: inferens eksakt, gradientmodus avviker svakt uten handlingsbytter.
-Brukt scope er stengt. Målerettelsen er testet; neste er å binde den rettede signaldiagnosen;
-ingen nye forwards eller trening er åpnet. Se parity-rapporten.
+Brukt scope er stengt. Målerettelsen er testet. Én signaldiagnose med fire forwards og null
+optimizersteg er særskilt bundet; ingen trening er åpnet. Se gjeldende handover.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke
