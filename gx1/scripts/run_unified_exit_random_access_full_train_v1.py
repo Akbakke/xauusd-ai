@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import argparse
+import copy
 import json
 import logging
 import math
@@ -17,6 +18,7 @@ import re
 import time
 from typing import Any
 
+import numpy as np
 import torch
 
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
@@ -185,21 +187,98 @@ def _require_native_full_train_recipe(
     return recipe, files, provenance
 
 
+
+def _require_prefix_component_bindings(value, *, files, seed, batch_size, learning_rate, weight_decay):
+    """Check completed preprocessing identity; never fit or grant launch authority."""
+    if not isinstance(value, Mapping) or set(value) != {"design", "normalization_result", "labels_result"}:
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_BINDINGS_INVALID")
+    design, normalization, labels = (val._read(_bound_artifact(value[name]))
+                                    for name in ("design", "normalization_result", "labels_result"))
+    if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or design.get("status") != "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE"
+            or design["scope"].get("test_sealed") is not True
+            or design["scope"].get("same_architecture") is not True
+            or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
+            or type(seed) is not int or seed != design["initialization"]["seed"]
+            or batch_size != 16 or learning_rate != 0.0001 or weight_decay != 0.0001
+            or design["budget"]["planned_optimizer_steps"] != 256
+            or design["budget"]["maximum_trained_entry_rows"] != 4096
+            or normalization.get("schema_version") != "gx1_prefix_normalization_preparation_result_v1"
+            or normalization.get("decision") != "PREFIX_NORMALIZATION_READY_NOT_NATIVE_BOUND"
+            or normalization["frozen_design"] != value["design"]
+            or normalization["scope"].get("control_fit_rows") != 0
+            or normalization["scope"].get("test_fit_rows") != 0
+            or normalization["scope"].get("test_accessed") is not False
+            or normalization.get("original_market_successor_counts_exact_equal") is not True
+            or normalization.get("parent_child_row_clock_identity_exact") is not True
+            or labels.get("schema_version") != "gx1_prefix_policy_dependent_labels_v1"
+            or labels["prefix_preparation"] != normalization["prefix_preparation"]):
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_IDENTITY_INVALID")
+    preparation = val._read(_bound_artifact(normalization["prefix_preparation"]))
+    cutoff = int(val.pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
+    if (preparation["frozen_design"] != value["design"]
+            or int(val.pd.Timestamp(preparation["support_end_inclusive"]).value) != cutoff
+            or normalization["fit_cutoff_time_ns"] != cutoff
+            or normalization["fit_entry_rows"] != preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"]
+            or labels["labels"]["TRAIN"]["row_binding"] != normalization["fit_entry_rows"]
+            or labels["labels"]["CONTROL256"]["row_binding"] != design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]
+            or _bound_artifact(normalization["artifacts"]["COMPOSITE_NORMALIZATION.json"]) != files["child_composite_normalization"]
+            or _bound_artifact(labels["parent_entry_parquet"]) != files["entry_train_parquet"]
+            or _bound_artifact(labels["parent_entry_manifest"]) != files["entry_train_manifest"]
+            or files["entry_val_parquet"] != files["entry_train_parquet"]
+            or files["entry_val_manifest"] != files["entry_train_manifest"]):
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_SOURCE_INVALID")
+    rows = {name: np.load(_bound_artifact(preparation["bindings"][name]), allow_pickle=False)
+            for name in ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER", "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")}
+    eligible, order, planned, probe = (rows[name] for name in rows)
+    if (any(v.dtype != np.dtype("int64") or v.ndim != 1 for v in rows.values())
+            or len(eligible) < 4096 or np.any(eligible < 0)
+            or not np.array_equal(eligible, np.unique(eligible))
+            or not np.array_equal(np.sort(order), eligible)
+            or planned.shape != (4096,) or not np.array_equal(planned, order[:4096])
+            or probe.shape != (256,) or len(np.unique(probe)) != 256 or not np.isin(probe, planned).all()):
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_POPULATION_INVALID")
+    composite = val.require_composite_normalization_binding(val._read(files["child_composite_normalization"]))
+    if (composite["composite_normalization_sha256"] != normalization["composite_normalization_sha256"]
+            or composite["base_feature_normalization"]["contract_sha256"] != normalization["base_contract_sha256"]
+            or composite["lifetime_summary_normalization"]["normalization_sha256"] != normalization["summary_normalization_sha256"]):
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_NORMALIZATION_INVALID")
+    return {"bindings": dict(value), "design": design, "normalization": normalization,
+            "labels": labels, "preparation": preparation, "cutoff_time_ns": cutoff,
+            "eligible_parent_rows": eligible, "epoch0_parent_order": order}
+
+
+def _fresh_prefix_model(*, metadata, normalization, device, seed):
+    """Call the existing complete constructor, never any checkpoint loader."""
+    trainer._set_deterministic(seed, device, "deterministic_fp32")
+    model = val._model(metadata, normalization, device)
+    if any(torch.count_nonzero(parameter.detach()).item() for parameter in model.task_log_variances.parameters()):
+        raise RuntimeError("NATIVE_PREFIX_FRESH_TASK_WEIGHTS_INVALID")
+    return model, {
+        "initialization": "fresh_existing_model_constructor_no_checkpoint_weights",
+        "seed": seed, "model_state_sha256": trainer._model_state_sha256(model),
+        "input_normalization_sha256": normalization["contract_sha256"],
+        "checkpoint_loaded": False,
+    }
+
+
 def _build_bound_full_train_components(
     *, files: Mapping[str, Path], dataset_run_id: str,
-    seed_launch_path: Path, seed_authority_path: Path,
-    seed_authority_file_sha256: str, device: torch.device,
+    seed_launch_path: Path | None, seed_authority_path: Path | None,
+    seed_authority_file_sha256: str | None, device: torch.device,
     batch_size: int, epochs: int, seed: int,
     learning_rate: float, weight_decay: float,
     val_limits: Mapping[str, int],
     exit_backup_steps: int = 1,
     exit_reference_policy: Mapping[str, Any] | None = None,
+    chronological_prefix: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Bind every TRAIN row and the full June VAL to the existing native owners.
+    """Bind legacy full TRAIN/June or explicit fresh-prefix components.
 
     Main training warm-starts from the completed smoke EMA. Its new candidate
     starts with a fresh optimizer and full-TRAIN EMA horizon; on subsequent
     invocations the coordinator restores its exact optimizer/EMA/target/RNG.
+    Prefix mode reuses completed preprocessing and physical TRAIN for CONTROL256.
     No source checkpoint is modified and no sampler benchmark is rerun here.
     """
 
@@ -210,20 +289,29 @@ def _build_bound_full_train_components(
     elif device.type != "cpu":
         raise RuntimeError("NATIVE_FULL_TRAIN_DEVICE_INVALID")
     trainer._set_deterministic(seed, device, "deterministic_fp32")
-    source_launch = val.require_launch_manifest(val._read(seed_launch_path))
-    authority = val._load_final_authority(
-        seed_authority_path, seed_authority_file_sha256,
-    )
-    if (
-        authority["launch_manifest"]["path"] != str(seed_launch_path)
-        or authority["launch_manifest"]["sha256"] != val.file_sha256(seed_launch_path)
-        or authority["launch_manifest_sha256"] != source_launch["manifest_sha256"]
-        or authority["selected_batch_size"] != batch_size
-        or source_launch["files"]["source_bundle_metadata"]["sha256"]
-        != val.file_sha256(files["source_bundle_metadata"])
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_SEED_AUTHORITY_MISMATCH")
-
+    prefix = None
+    if chronological_prefix is not None:
+        if any(value is not None for value in (seed_launch_path, seed_authority_path, seed_authority_file_sha256)):
+            raise RuntimeError("NATIVE_PREFIX_OLD_INITIALIZATION_FORBIDDEN")
+        prefix = _require_prefix_component_bindings(
+            chronological_prefix, files=files, seed=seed, batch_size=batch_size,
+            learning_rate=learning_rate, weight_decay=weight_decay)
+        if exit_backup_steps != 1 or exit_reference_policy != prefix["design"]["targets"]["reference_policy"]:
+            raise RuntimeError("NATIVE_PREFIX_REFERENCE_POLICY_MISMATCH")
+    else:
+        source_launch = val.require_launch_manifest(val._read(seed_launch_path))
+        authority = val._load_final_authority(
+            seed_authority_path, seed_authority_file_sha256,
+        )
+        if (
+            authority["launch_manifest"]["path"] != str(seed_launch_path)
+            or authority["launch_manifest"]["sha256"] != val.file_sha256(seed_launch_path)
+            or authority["launch_manifest_sha256"] != source_launch["manifest_sha256"]
+            or authority["selected_batch_size"] != batch_size
+            or source_launch["files"]["source_bundle_metadata"]["sha256"]
+            != val.file_sha256(files["source_bundle_metadata"])
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_SEED_AUTHORITY_MISMATCH")
     train_window = val._read(files["entry_train_manifest"])["splits"]["train"]
     train_start, train_end = (val.pd.Timestamp(train_window[key]) for key in ("start", "end"))
     if (
@@ -244,25 +332,31 @@ def _build_bound_full_train_components(
         for key, path in files.items()
         if key in {"entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest"}
     }
-    val_audit = val._val_sequence_source_audit(meta, file_bindings)
+    val_audit = (files["sequence_source_audit"] if prefix is not None
+                 else val._val_sequence_source_audit(meta, file_bindings))
+    physical_splits = ("train",) if prefix is not None else ("train", "val")
     datasets = {
         split: val.EntryV10CtxDataset(
             files[f"entry_{split}_parquet"], seq_len=int(meta["seq_len"]),
             m5_prebuilt_path=files["m5_prebuilt"], per_tf_seq_lens=per_tf,
             multi_tf_closed_bar=True,
-            sequence_source_audit_json=(
-                files["sequence_source_audit"] if split == "train" else val_audit
-            ),
-        )
-        for split in ("train", "val")
+            sequence_source_audit_json=(files["sequence_source_audit"] if split == "train" else val_audit),
+        ) for split in physical_splits
     }
+    if prefix is not None:
+        # Role-specific label replacement is atomic and shares unchanged input columns.
+        # The copy precedes any lifecycle or label binding; workers are not running.
+        datasets["val"] = copy.copy(datasets["train"])
+        for split, role in (("train", "TRAIN"), ("val", "CONTROL256")):
+            datasets[split].bind_policy_dependent_auxiliary_targets(
+                result_path=Path(chronological_prefix["labels_result"]["path"]),
+                expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
+                expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
     corpus = val.UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
-        entry_parquets={s: files[f"entry_{s}_parquet"] for s in ("train", "val")},
-        entry_manifest_bindings={
-            s: file_bindings[f"entry_{s}_manifest"] for s in ("train", "val")
-        },
-        dataset_run_id=dataset_run_id, splits=("train", "val"),
+        entry_parquets={split: files[f"entry_{split}_parquet"] for split in physical_splits},
+        entry_manifest_bindings={split: file_bindings[f"entry_{split}_manifest"] for split in physical_splits},
+        dataset_run_id=dataset_run_id, splits=physical_splits,
     )
     root_path = files["random_access_root"]
     root = val.require_random_access_index_root(val._read(root_path))
@@ -270,7 +364,7 @@ def _build_bound_full_train_components(
         LATEST_YEAR_ROOT_SCHEMA_VERSION, require_latest_year_index_root,
     )
     latest_year = root["schema_version"] == LATEST_YEAR_ROOT_SCHEMA_VERSION
-    if latest_year:
+    if latest_year and prefix is None:
         require_latest_year_index_root(root, expected_parent_bindings={
             split: {"parquet": file_bindings[f"entry_{split}_parquet"],
                     "manifest": file_bindings[f"entry_{split}_manifest"]}
@@ -298,6 +392,7 @@ def _build_bound_full_train_components(
         train_feature_source_owner=corpus.splits["train"],
         backup_steps=exit_backup_steps,
         reference_policy=exit_reference_policy,
+        reference_cutoff_time_ns=(prefix["cutoff_time_ns"] if prefix is not None else None),
     )
     # Keep the measured transition-sampler geometry, then select all Entry
     # pairs through the same full-population owner used by the completed year.
@@ -308,28 +403,35 @@ def _build_bound_full_train_components(
         parent_entry_row_indices=parents, child_entry_row_indices=children,
     )
 
-    val_binding = root["splits"]["val"]
+    source_split = "train" if prefix is not None else "val"
+    val_binding = root["splits"][source_split]
     index_path = Path(val_binding["index_parquet_path"])
     manifest_path = Path(val_binding["manifest_path"])
     frame = val.pd.read_parquet(index_path)
     manifest = val.require_random_access_index_manifest(
-        val._read(manifest_path), expected_split="val", index_frame=frame,
+        val._read(manifest_path), expected_split=source_split, index_frame=frame,
         index_path=index_path, verify_sources=False,
     )
     if (
-        frame["entry_row_index"].astype("int64").tolist() != list(range(5_508))
+        frame["entry_row_index"].astype("int64").tolist() != list(range(len(datasets["train"]) if prefix is not None else 5_508))
         or val_binding["index_parquet_sha256"] != val.file_sha256(index_path)
         or val_binding["manifest_sha256"] != manifest["manifest_sha256"]
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_JUNE_VAL_BINDING_INVALID")
-    all_val_states = int(frame["lifecycle_state_count"].sum())
+    evaluation_cohort = None
+    if prefix is not None:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_control_cohort
+        evaluation_cohort = build_chronological_control_cohort(
+            chronological_prefix["design"], source_index_binding={"path": str(index_path), "sha256": val.file_sha256(index_path)})
+    control_frame = frame if evaluation_cohort is None else frame.iloc[evaluation_cohort["entry_row_indices"]].copy()
+    all_val_states = int(control_frame["lifecycle_state_count"].sum())
     if (
         val_limits["max_state_views"] < all_val_states
         or val_limits["max_model_forwards"] < all_val_states
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_VAL_COMPUTE_CANNOT_COVER_FULL_COHORT")
     parent_evidence = val.require_parent_entry_coordinate_equivalence(
-        index_manifest=manifest, index_frame=frame, expected_split="val",
+        index_manifest=manifest, index_frame=frame, expected_split=source_split,
         parent_parquet=file_bindings["entry_val_parquet"],
         parent_manifest=file_bindings["entry_val_manifest"],
     )
@@ -356,32 +458,37 @@ def _build_bound_full_train_components(
     val_factory = val.RandomAccessValStateFactoryV1.from_artifacts(
         **state_paths, random_access_index_path=index_path,
         random_access_index_manifest_path=manifest_path,
-        random_access_index_root_path=root_path, source_owner=corpus.splits["val"],
+        random_access_index_root_path=root_path, source_owner=corpus.splits[source_split],
         mtf_materializer=datasets["val"]._get_exit_multi_tf_episode_histories,
         economic_step_provider=provider,
         economic_step_manifest=provider.economic_exit_step_manifest,
         economics_objective_contract=readiness["economics_objective_contract"],
+        **({"source_split": "train"} if prefix is not None else {}),
     )
     child = val.require_composite_normalization_binding(
         val._read(files["child_composite_normalization"]),
     )
-    old_norm = val.require_bootstrap_composite_normalization(
-        val._read(Path(source_launch["files"]["bootstrap_composite_normalization"]["path"])),
-    )["base_feature_normalization"]["artifact"]["base_artifact"]["contract"]
-    model = val._model(meta, child["base_feature_normalization"]["artifact"]["contract"], device)
-    seed_binding = val.load_selected_weight_ema_checkpoint_readonly_v1(
-        pointer_path=Path(authority["final_checkpoint_pointer"]["path"]), model=model,
-        expected_checkpoint_pointer_file_sha256=authority["final_checkpoint_pointer"]["sha256"],
-        expected_launch_manifest_sha256=source_launch["manifest_sha256"],
-        expected_selected_sampler_artifact_sha256=authority["selected_sampler_artifact_sha256"],
-        expected_bootstrap_source_receipt_sha256=source_launch["bootstrap_source_receipt_sha256"],
-        expected_base_normalization_sha256=authority["base_normalization_sha256"],
-        expected_summary_normalization_sha256=authority["summary_normalization_sha256"],
-        expected_batch_size=batch_size,
-        expected_epoch_schedule_sha256=authority["epoch_schedule_sha256"],
-        expected_weight_ema_decay=float(source_launch["weight_ema_decay"]),
-    )
-    val.bind_preserved_v7_input_normalization(model, old_norm)
+    if prefix is not None:
+        input_norm = child["base_feature_normalization"]["artifact"]["contract"]
+        model, seed_binding = _fresh_prefix_model(metadata=meta, normalization=input_norm, device=device, seed=seed)
+    else:
+        input_norm = val.require_bootstrap_composite_normalization(
+            val._read(Path(source_launch["files"]["bootstrap_composite_normalization"]["path"])),
+        )["base_feature_normalization"]["artifact"]["base_artifact"]["contract"]
+        model = val._model(meta, child["base_feature_normalization"]["artifact"]["contract"], device)
+        seed_binding = val.load_selected_weight_ema_checkpoint_readonly_v1(
+            pointer_path=Path(authority["final_checkpoint_pointer"]["path"]), model=model,
+            expected_checkpoint_pointer_file_sha256=authority["final_checkpoint_pointer"]["sha256"],
+            expected_launch_manifest_sha256=source_launch["manifest_sha256"],
+            expected_selected_sampler_artifact_sha256=authority["selected_sampler_artifact_sha256"],
+            expected_bootstrap_source_receipt_sha256=source_launch["bootstrap_source_receipt_sha256"],
+            expected_base_normalization_sha256=authority["base_normalization_sha256"],
+            expected_summary_normalization_sha256=authority["summary_normalization_sha256"],
+            expected_batch_size=batch_size,
+            expected_epoch_schedule_sha256=authority["epoch_schedule_sha256"],
+            expected_weight_ema_decay=float(source_launch["weight_ema_decay"]),
+        )
+        val.bind_preserved_v7_input_normalization(model, input_norm)
     model.requires_grad_(True)
     model.train()
     joint = list(model.task_log_variances.parameters())
@@ -390,9 +497,13 @@ def _build_bound_full_train_components(
         {"params": [p for p in model.parameters() if id(p) not in joint_ids], "weight_decay": weight_decay},
         {"params": joint, "weight_decay": 0.0},
     ], lr=learning_rate)
+    effective_train_rows = (len(prefix["eligible_parent_rows"]) if prefix is not None
+                            else root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
+                            if latest_year else len(datasets["train"]))
     ema_derivation = trainer.resolve_weight_ema_decay(
         trainer.ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED,
-        train_rows=len(datasets["train"]), batch_size=batch_size, grad_accum_steps=1,
+        train_rows=(len(prefix["eligible_parent_rows"]) if prefix is not None else len(datasets["train"])),
+        batch_size=batch_size, grad_accum_steps=1,
     )
     weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]))
     scheduler = (
@@ -400,20 +511,29 @@ def _build_bound_full_train_components(
         if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None
     )
     val_context = {
-        "frame": frame, "state_factory": val_factory,
+        "frame": control_frame, "state_factory": val_factory,
         "parent_coordinate_evidence": parent_evidence, "val_sequence_audit": val_audit,
         **dict(val_limits),
     }
-    trainer._native_candidate_val_context_binding(val_context)
+    if prefix is not None:
+        val_context["evaluation_cohort"] = evaluation_cohort
+        observed_order = trainer._candidate_training_epoch_order(
+            datasets["train"], epoch_index=0,
+            parent_population=torch.as_tensor(prefix["eligible_parent_rows"].copy(), dtype=torch.int64))
+        if not np.array_equal(observed_order.numpy(), prefix["epoch0_parent_order"]):
+            raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
+    else:
+        trainer._native_candidate_val_context_binding(val_context)
     return {
         "model": model, "optimizer": optimizer, "weight_ema": weight_ema,
         "lr_scheduler": scheduler, "train_ds": datasets["train"],
         "val_ds": datasets["val"], "native_val_context": val_context,
-        "input_normalization": old_norm, "metadata": meta, "per_tf_seq_lens": per_tf,
+        "input_normalization": input_norm, "metadata": meta, "per_tf_seq_lens": per_tf,
         "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
         "full_population_schedule": schedule,
-        "effective_train_rows": (root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
-                                 if latest_year else len(datasets["train"])),
+        **({"chronological_prefix": prefix["bindings"], "prefix_parent_population": prefix["eligible_parent_rows"],
+            "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
+        "effective_train_rows": effective_train_rows,
         "unified_exit_lifecycle_evidence": {
             "schema_version": "gx1_native_candidate_input_lineage_v1",
             "root_manifest_sha256": root["root_sha256"],

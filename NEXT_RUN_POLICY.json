@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Native physical TRAIN/logical development-control source is synthetically verified in existing factory/rollout/evaluator/result validator;35 unique tests passed. Preserve original CONTROL256 parent/child IDs and all physical index columns. No separate runner and no full-VAL authority. Prefix labels/policies/normalizations are already complete; do not refit or repeat completed tests. Next concrete work is existing native full-train fresh whole-model/target/EMA/optimizer initialization, binding the completed prefix artifacts on separate TRAIN/CONTROL datasets, and prefix eligibility/order/cutoff/source references through native recipe/campaign. Old weights/full-TRAIN transforms must not load. Minimal required source corrections and focused synthetic tests only, then separately bound preparation. No actual forward, optimizer, native launch, full epoch/VAL, control tuning or TEST.",
+  "rule": "Fresh prefix component construction is synthetically verified in the existing full-train owner: no old checkpoint/normalization loads, separate TRAIN/CONTROL label roles sharing immutable inputs, exact frozen native prefix order, existing AdamW/EMA/scheduler and cutoff to TRAIN factory;20 tests first-pass. Source-TRAIN logical control owner already verified. Next concrete integration: existing native coordinator must bind prefix parent population, reference cutoff and durable resume/source identity; native recipe/campaign must admit only fixed256-step/finalONLINE design; immutable index/bridge/final-bundle references must bind completed normalization without changing physical rows/counts. Later control Entry targets must use the same coherent observed reference as Exit. Then separately bound actual fresh-state/frozen-measurement preparation. Reuse completed policies/labels/normalizations and tests. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Native physical TRAIN/logical development-control source is synthetically verified in existing factory/rollout/evaluator/result validator;35 unique tests passed. Preserve original CONTROL256 parent/child IDs and all physical index columns. No separate runner and no full-VAL authority. Prefix labels/policies/normalizations are already complete; do not refit or repeat completed tests. Next concrete work is existing native full-train fresh whole-model/target/EMA/optimizer initialization, binding the completed prefix artifacts on separate TRAIN/CONTROL datasets, and prefix eligibility/order/cutoff/source references through native recipe/campaign. Old weights/full-TRAIN transforms must not load. Minimal required source corrections and focused synthetic tests only, then separately bound preparation. No actual forward, optimizer, native launch, full epoch/VAL, control tuning or TEST."
+    "next_scope": "Fresh prefix component construction is synthetically verified in the existing full-train owner: no old checkpoint/normalization loads, separate TRAIN/CONTROL label roles sharing immutable inputs, exact frozen native prefix order, existing AdamW/EMA/scheduler and cutoff to TRAIN factory;20 tests first-pass. Source-TRAIN logical control owner already verified. Next concrete integration: existing native coordinator must bind prefix parent population, reference cutoff and durable resume/source identity; native recipe/campaign must admit only fixed256-step/finalONLINE design; immutable index/bridge/final-bundle references must bind completed normalization without changing physical rows/counts. Later control Entry targets must use the same coherent observed reference as Exit. Then separately bound actual fresh-state/frozen-measurement preparation. Reuse completed policies/labels/normalizations and tests. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -563,6 +563,16 @@
     },
     "report": "docs/NATIVE_CONTROL_SOURCE_20260917.md",
     "unique_tests_passed": 35,
+    "native_launch_authorized": false
+  },
+  "completed_native_fresh_components": {
+    "status": "FRESH_PREFIX_COMPONENT_OWNER_SYNTHETIC_PASS_NOT_NATIVE_LAUNCH_READY",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FRESH_COMPONENTS_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "c1354d0f2f7f0b9d9209e2f9ee3771871852894a2a9fee77f8670257bc4be1fb"
+    },
+    "report": "docs/NATIVE_FRESH_COMPONENTS_20260917.md",
+    "tests_passed": 20,
     "native_launch_authorized": false
   }
 }

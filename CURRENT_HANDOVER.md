@@ -234,6 +234,24 @@ tester er åpnet, deretter separat bundet klargjøring. Ingen faktiske forwards,
 optimizersteg, full epoch/VAL eller TEST. Ikke gjenta ferdige fits eller tester.
 Se docs/NATIVE_CONTROL_SOURCE_20260917.md og tilhørende handover_snapshot.
 
+## Fersk native komponentoppstart er rettet
+
+Eksisterende full-TRAIN-eier har nå en eksplisitt prefix-gren som avviser
+gamle vekter og normalisering. Den binder ferdige prefix-artefakter, separate
+TRAIN/CONTROL256-fasiter, fysisk TRAIN-kilde, eksakt låst native rekkefølge,
+reference-cutoff og fersk modell/AdamW/EMA/scheduler. Uendrede inputs deles
+mellom to datasettinstanser.20 syntetiske kontroller består på første forsøk.
+Dette er komponentkobling med testmodeller, ikke markeds- eller læringsbevis.
+
+Neste er native koordinatorens prefix-populasjon/cutoff/resume-proveniens og
+recipe/campaign for fast256-stegs ONLINE-forsøk, samt nye immutable referanser
+til de ferdige normaliseringene. Sammenhengende Entry/Exit-referansemål må også
+brukes i senere kontrollmåling. Faktisk fersk targetkopi og målecacher gjenstår.
+Kun nødvendige koderettelser og fokuserte syntetiske kontroller er åpnet nå;
+faktisk klargjøring må bindes separat. Ingen modellkjøring, trening, refit,
+full epoch/VAL eller TEST. Ikke gjenta ferdig arbeid. Se
+ docs/NATIVE_FRESH_COMPONENTS_20260917.md og tilhørende handover_snapshot.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

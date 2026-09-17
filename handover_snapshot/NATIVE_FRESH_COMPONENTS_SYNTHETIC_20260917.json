@@ -1,0 +1,70 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FRESH_COMPONENTS_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "c1354d0f2f7f0b9d9209e2f9ee3771871852894a2a9fee77f8670257bc4be1fb"
+  },
+  "result": {
+    "schema_version": "gx1_native_fresh_prefix_components_synthetic_v1",
+    "decision": "FRESH_PREFIX_COMPONENT_OWNER_SYNTHETIC_PASS_NOT_NATIVE_LAUNCH_READY",
+    "completed_utc": "2026-09-17T04:09:52.557028+00:00",
+    "parent_source_commit": "ad0615ef4ad75f4e194de42cb228c18ba5640dc2",
+    "source_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+      "sha256": "286f645c6067fe27eb61d65cbbe5225cac824fe7aa90b8efbe5370b3e31806fb"
+    },
+    "unchanged_model_constructor_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_fixed_step_v1.py",
+      "sha256": "9d2cb7629e5c02a6567f80a6667ec1d59555d13720e4f9e80799e776da96fcb8"
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_fresh_prefix_components.py",
+      "sha256": "163673b5db116061b0b4943839a492b7bd9f9acd184f20444e33d8fc7e933175"
+    },
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FRESH_COMPONENTS_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "effa806aa7a709f6fd7a4591f26e6cc5d40e0bd77d399f75153e7601a39c409f"
+    },
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FRESH_COMPONENTS_SYNTHETIC_20260917/TEST.log",
+      "sha256": "10d9d49c9f955eac40b292f6b5415bb7bb9bee2f3139ab5c3d98a943afe674c8"
+    },
+    "tests_passed": 20,
+    "first_attempt_passed": true,
+    "ast": {
+      "changed_functions": [
+        "_build_bound_full_train_components",
+        "_fresh_prefix_model",
+        "_require_prefix_component_bindings"
+      ],
+      "unchanged_existing_functions": 9,
+      "legacy_seed_authority_block_exact": true,
+      "legacy_checkpoint_and_normalization_block_exact_except_variable_rename": true
+    },
+    "verified": [
+      "existing whole-model constructor called with completed prefix transform; no legacy checkpoint or preserved transform loader",
+      "seeded construction reproducible after unrelated RNG draws; all task log variances neutral",
+      "completed normalization/label/policy preparation must share frozen design, cutoff and eligible rows",
+      "TRAIN physical dataset instantiated once then shallow-copied before independent label and lifecycle binding",
+      "TRAIN and CONTROL256 role bindings separate; original parent features shared",
+      "existing full native schedule filtered by eligible parents matches frozen order exactly",
+      "reference policy and cutoff passed to existing TRAIN factory",
+      "fresh empty AdamW groups, zero-step EMA exact copy and eligible-population EMA rule; existing scheduler",
+      "logical CONTROL256 uses physical TRAIN factory and original TRAIN sequence audit"
+    ],
+    "actual_data_model_constructions": 0,
+    "actual_data_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "actual_normalization_fits": 0,
+    "actual_label_materializations": 0,
+    "synthetic_models_only": true,
+    "test_data_used": false,
+    "native_launch_authorized": false,
+    "remaining": [
+      "native coordinator parent population, reference cutoff and durable prefix/source binding",
+      "recipe/campaign admission for fresh branch and fixed256-step/finalONLINE design",
+      "rebind immutable index/bridge/final-bundle references to completed prefix normalization without changing physical sources",
+      "bounded preparation of actual fresh online/target/EMA/optimizer and frozen measurements; no preparation authority yet",
+      "coherent reference Entry/Exit targets in later control measurement; then measurable learning gate"
+    ]
+  }
+}
