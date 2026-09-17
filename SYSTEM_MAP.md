@@ -45,8 +45,12 @@ initialisering, normalisering/labels fittet på prefix-TRAIN, samme4096 Entries,
 frossen lærer og slutt-ONLINE. Bare TRAIN256/Exit-anker/samplede states er målt.
 Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
 beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLAT,
-Exit alltid HOLD for LONG / EXIT for SHORT. Neste er diagnose av den observerte
-mangelen på tilstandsavhengige beslutninger; ingen ny trening er åpnet.
+Exit alltid HOLD for LONG / EXIT for SHORT. Signaldiagnosen er fullført: kraftig
+vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
+Entry-hidden. Inputnormaliseringen er uendret. Neste er én uprøvd hypotese om
+normalisering før tre residualprojeksjoner; se VEIEN_VIDERE.md. Ingen ny trening
+er åpnet. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
+bevaring av lærerens Entry-/Exit-outputs og frosne mål.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
 Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.

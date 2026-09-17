@@ -9,11 +9,11 @@ Native256 med korrekt kausal Entry-fasit er ferdig. Slutt-ONLINE, bare TRAIN,
 frossen lærer og eksakt bevart målgrunnlag er teknisk bekreftet. GuardPASS er
 ikke læringsbevis. Den parete analysen er ferdig og porten ikke bestått:
 Entry all-FLAT, svak LONG−SHORT-kontrast, Exit konstant per side og dårligere
-enn forrige kandidat. Brukt launch-unntak er stengt. Neste er én årsaksdiagnose
-fra eksisterende TRAIN-bevis/kilde. Parity-målingen etter signalfeilen er
-fullført: inferens eksakt, gradientmodus avviker svakt uten handlingsbytter.
-Brukt scope er stengt. Målerettelsen er testet. Én signaldiagnose med fire forwards og null
-optimizersteg er særskilt bundet; ingen trening er åpnet. Se gjeldende handover.
+enn forrige kandidat. Brukt launch-unntak er stengt. Signaldiagnosen og
+CPU-skalaauditen er
+fullført. Brukt scope er stengt. Neste er én kontrollert residualnormaliserings-
+kandidat etter bevart initiering/lærer er bevist, deretter separat planbinding.
+Ingen ny modellkjøring,CONTROL/VAL/TEST eller trening er åpnet.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke

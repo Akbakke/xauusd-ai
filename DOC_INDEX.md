@@ -2,8 +2,8 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — læringsavslag, fullført parity-måling og testet målerettelse og neste signaldiagnose.
-2. VEIEN_VIDERE.md — ferdig paret analyse, neste årsaksdiagnose og avgrensning.
+1. CURRENT_HANDOVER.md — siste fullførte signaldiagnose, måleresultater og neste kandidat.
+2. VEIEN_VIDERE.md — én kontrollert residualnormaliseringshypotese og krav før forsøket.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
@@ -11,7 +11,12 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
-- docs/ENTRY_SIGNAL_INFERENCE_CHECK_20260917.md — gjeldende bundne signaldiagnose og varige operatører.
+- handover_snapshot/ENTRY_SIGNAL_INFERENCE_CHECK_{RESULT,REVIEW}_20260917.json — nyeste signalmåling og vurdering.
+- handover_snapshot/ENTRY_SIGNAL_SAVED_SCALE_20260917.json — uendrede inputnormalisatorer og lagrede residualvekter.
+
+Tidligere diagnoser og bindinger nedenfor er fullført historikk, ikke startordre.
+
+- docs/ENTRY_SIGNAL_INFERENCE_CHECK_20260917.md — fullført signaldiagnose og brukte operatører.
 
 - docs/ENTRY_SIGNAL_INFERENCE_VALIDATION_FIX_20260917.md — minste målerettelse, tester og neste planbinding.
 

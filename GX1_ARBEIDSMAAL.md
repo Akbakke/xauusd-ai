@@ -4,14 +4,11 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: native256 og paret analyse er ferdige, læringsport ikke bestått. Entry er
-all-FLAT; Exit-handling bestemmes bare av side. Neste er én konkret årsaksdiagnose
-fra eksisterende TRAIN-outputs, lagrede state/gradientbevis og kilde.
-Signaldiagnosens måleblokkering er nå forklart: inferens matcher eksakt, men
-gradientmodus avviker svakt uten handlingsbytter. Den minimale målerettelsen er testet. Signaldiagnosen med korrekt inferenskontroll er særskilt bundet,
-men ikke startet. Ingen trening er åpnet.
-Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md for faktisk jobb og neste handling.
-Gjenbruk mål/prediksjoner/checkpoints; ikke gjenta beståtte undersøkelser.
+Nå: kausal256 er avvist, signaldiagnosen og skalaauditen er fullført. Neste
+er én kontrollert hypotese mot målte nesten konstante mellomrepresentasjoner:
+normalisering ved tre residualprojeksjoner. Kandidaten er ikke implementert
+eller kjøreautorisert ennå. Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md.
+Gjenbruk ferdige bevis; ingen ny trening uten separat bundet policy.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

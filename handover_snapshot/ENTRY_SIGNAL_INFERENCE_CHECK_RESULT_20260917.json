@@ -1,0 +1,305 @@
+{
+  "cached_actions_identical": true,
+  "cached_prediction_absolute_tolerance_bps": 0.0001,
+  "cached_prediction_validation_mode": "canonical_inference",
+  "control_forwards": 0,
+  "cross_mode_numerical_parity_claimed": false,
+  "decision": "ENTRY_REPRESENTATION_AND_GRADIENT_SIGNAL_MEASURED_NO_OPTIMIZER_STEP",
+  "exact_native_entry_mse_decomposition": true,
+  "forward_parity_evidence": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "dc7a50ebff2747d4cd22f648326e58a3199c05ba3ca30cf7088d86264315b45f"
+  },
+  "input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "99079cf43cd423686edc1197d3070a6f6e26a4e5e37f81ce8e70ea06731dc02d"
+  },
+  "limitations": "One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.",
+  "measurements": {
+    "final": {
+      "alignment": {
+        "entry_head": {
+          "common__contrast": 0.06188335592330262,
+          "contrast__auxiliary": null,
+          "contrast_dot_entry_plus_aux_gradient": 1242.9757408995154,
+          "entry__auxiliary": null
+        },
+        "routing": {
+          "common__contrast": -0.22268411031938895,
+          "contrast__auxiliary": -0.6076029631234451,
+          "contrast_dot_entry_plus_aux_gradient": 0.0005361269492775429,
+          "entry__auxiliary": -0.5937799286090297
+        }
+      },
+      "cached_max_abs_difference_bps": 0.000164031982421875,
+      "cached_validation_mode": "canonical_inference",
+      "entry_precision": 0.9752586483955383,
+      "gradient_cached_within_1e_minus4_bps": false,
+      "gradients": {
+        "auxiliary": {
+          "entry_head": {
+            "connected_tensors": 0,
+            "l2_norm": 0.0
+          },
+          "joint_source_l2": null,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.028786194737481875
+          }
+        },
+        "common": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 0.28882617296619384
+          },
+          "joint_source_l2": 0.010652866214513779,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.0010428477555220789
+          }
+        },
+        "contrast": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 35.25626955542904
+          },
+          "joint_source_l2": 0.5226343274116516,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.03355678700769486
+          }
+        },
+        "entry": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 35.258305347220464
+          },
+          "joint_source_l2": 0.5226258039474487,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.033485379496547917
+          }
+        },
+        "flat": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 0.35036110674934945
+          },
+          "joint_source_l2": 0.0014054107014089823,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.0003680538918746971
+          }
+        }
+      },
+      "inference_cached_max_abs_difference_bps": 0.0,
+      "model_state_sha256": "0ab0fed4a77e0f247aa821eaa8c9064c1a80f3e274acc735c5fde9a430de2074",
+      "prediction_std_by_action": [
+        0.06556973805879754,
+        0.06586749543491029,
+        0.06106142048648919
+      ],
+      "raw_entry_mse": 308.27947998046875,
+      "raw_loss_decomposition": {
+        "common": 0.0847809910774231,
+        "contrast": 308.1933288574219,
+        "flat": 0.0013743884628638625
+      },
+      "representations": {
+        "entry_hidden": {
+          "mean_pairwise_cosine": 0.9995373089768693,
+          "mean_row_l2": 15.058866445582172,
+          "rms_feature_std": 0.02810857265103115,
+          "rows": 16,
+          "width": 128
+        },
+        "fused": {
+          "mean_pairwise_cosine": 0.9999253111164033,
+          "mean_row_l2": 163.03382992848344,
+          "rms_feature_std": 0.29086504670008473,
+          "rows": 16,
+          "width": 128
+        },
+        "global_context": {
+          "mean_pairwise_cosine": 0.7394708128614218,
+          "mean_row_l2": 7.178835294118348,
+          "rms_feature_std": 0.31547990568156875,
+          "rows": 16,
+          "width": 128
+        },
+        "local_m5": {
+          "mean_pairwise_cosine": 0.9999038673421585,
+          "mean_row_l2": 140.7381483609302,
+          "rms_feature_std": 0.2961440809688234,
+          "rows": 16,
+          "width": 128
+        },
+        "mtf": {
+          "mean_pairwise_cosine": 0.9932576485801751,
+          "mean_row_l2": 50.44959622382867,
+          "rms_feature_std": 0.3705503426155338,
+          "rows": 16,
+          "width": 128
+        }
+      }
+    },
+    "initial": {
+      "alignment": {
+        "entry_head": {
+          "common__contrast": -0.09961116338431844,
+          "contrast__auxiliary": null,
+          "contrast_dot_entry_plus_aux_gradient": 1817.1841676537342,
+          "entry__auxiliary": null
+        },
+        "routing": {
+          "common__contrast": -0.3228682425350996,
+          "contrast__auxiliary": null,
+          "contrast_dot_entry_plus_aux_gradient": 11.174614558266692,
+          "entry__auxiliary": null
+        }
+      },
+      "cached_max_abs_difference_bps": 0.00029921531677246094,
+      "cached_validation_mode": "canonical_inference",
+      "entry_precision": 1.0,
+      "gradient_cached_within_1e_minus4_bps": false,
+      "gradients": {
+        "auxiliary": {
+          "entry_head": {
+            "connected_tensors": 0,
+            "l2_norm": 0.0
+          },
+          "joint_source_l2": null,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 0.0
+          }
+        },
+        "common": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 144.05051588716532
+          },
+          "joint_source_l2": 4.817838191986084,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 19.75430041456717
+          }
+        },
+        "contrast": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 50.1041558622919
+          },
+          "joint_source_l2": 14.511652946472168,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 7.588721786778951
+          }
+        },
+        "entry": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 149.82360439773026
+          },
+          "joint_source_l2": 15.206938743591309,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 19.415949049135463
+          }
+        },
+        "flat": {
+          "entry_head": {
+            "connected_tensors": 6,
+            "l2_norm": 15.920326354690678
+          },
+          "joint_source_l2": 0.5812044739723206,
+          "routing": {
+            "connected_tensors": 4,
+            "l2_norm": 1.2754435460158107
+          }
+        }
+      },
+      "inference_cached_max_abs_difference_bps": 0.0,
+      "model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+      "prediction_std_by_action": [
+        0.471528578482299,
+        0.5784819314582018,
+        0.4670949212411138
+      ],
+      "raw_entry_mse": 343.74932861328125,
+      "raw_loss_decomposition": {
+        "common": 34.90779113769531,
+        "contrast": 308.3226318359375,
+        "flat": 0.5189244151115417
+      },
+      "representations": {
+        "entry_hidden": {
+          "mean_pairwise_cosine": 0.8813004233885627,
+          "mean_row_l2": 9.448582751522133,
+          "rms_feature_std": 0.28315602210594254,
+          "rows": 16,
+          "width": 128
+        },
+        "fused": {
+          "mean_pairwise_cosine": 0.6153493804084533,
+          "mean_row_l2": 1.0457797342107127,
+          "rms_feature_std": 0.0559293644059763,
+          "rows": 16,
+          "width": 128
+        },
+        "global_context": {
+          "mean_pairwise_cosine": 0.43738311312087375,
+          "mean_row_l2": 3.834276901628046,
+          "rms_feature_std": 0.2473426164074432,
+          "rows": 16,
+          "width": 128
+        },
+        "local_m5": {
+          "mean_pairwise_cosine": 0.6153493804084533,
+          "mean_row_l2": 1.0457797342107127,
+          "rms_feature_std": 0.0559293644059763,
+          "rows": 16,
+          "width": 128
+        },
+        "mtf": {
+          "mean_pairwise_cosine": 0.9800289014341576,
+          "mean_row_l2": 8.63944637224217,
+          "rms_feature_std": 0.10583230252896157,
+          "rows": 16,
+          "width": 128
+        }
+      }
+    }
+  },
+  "model_and_original_checkpoint_preserved": true,
+  "model_forwards": 4,
+  "model_mode": "eval",
+  "model_state_sha256": "0ab0fed4a77e0f247aa821eaa8c9064c1a80f3e274acc735c5fde9a430de2074",
+  "native_elapsed_seconds": 647.9572834950001,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/PLAN.json",
+    "sha256": "352c4d2a2437105916f7564dd07f83d6e2df91ef0c2e0afb4a909a36653fcce2"
+  },
+  "reused_input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "0b8cd6351a49e19adf5be366a0f38966394701db3e7e8d36461464e174dc7aab"
+  },
+  "rng_restored": true,
+  "schema_version": "gx1_entry_signal_diagnostic_result_v2",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "source_commit": "812e4e66ec303902b8f3e9059805783b80f38ee6",
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "e14124277545365e53a4fa7e3e559dc0ce92b3146ab941b129a602d0bdc0148a"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+  },
+  "variants": [
+    "initial",
+    "final"
+  ]
+}

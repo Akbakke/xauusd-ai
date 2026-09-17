@@ -1,5 +1,11 @@
 # Bundet Entry-signaldiagnose med korrekt inferenskontroll
 
+## Fullført — ikke relanser
+
+Fire forwards er fullført med guard PASS og null optimizersteg. Resultatet og
+CPU-skalaauditen er vurdert; se CURRENT_HANDOVER.md og de nye RESULT/REVIEW-
+snapshotene. Oppstartsoppskriften nedenfor er bevart historikk.
+
 ## Gjeldende neste arbeid: Entry-signalet, fire forwards
 
 Den rettede signaldiagnosen er separat bundet som

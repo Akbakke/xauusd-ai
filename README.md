@@ -9,10 +9,10 @@ Dette er lesende observasjon og starter aldri trening.
 4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Mac-mappen er overlevering. Siste native256-prøve er fullført; neste arbeid er
-den separat bundne signaldiagnosen etter fullført måling av modusavvik.
-Læringsporten er ikke bestått. Bruk vanlig Linux-inngang
-`bash scripts/gx1_handover.sh --check`. Ekstern OPERATOR_HANDOVER er arkiv.
+Mac-mappen er overlevering. Signaldiagnosen/skalaauditen er fullført; neste
+arbeid er én kontrollert kandidat mot residualenes skalavekst. Ingen jobb er
+aktiv eller åpen i policyen. Bruk vanlig Linux-inngang
+`bash scripts/gx1_handover.sh --check`.
 
 `current_work` gjelder dagens jobb. Øvrige gamle checkpoint-/VAL-felt i scriptets
 JSON er fullført historikk. Ingen historiske planer er startinstrukser.

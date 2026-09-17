@@ -1,0 +1,77 @@
+{
+  "schema_version": "gx1_entry_signal_scale_review_v1",
+  "created_utc": "2026-09-17T19:43:42.127039+00:00",
+  "decision": "STATE_VARIATION_ATTENUATION_OBSERVED_RESIDUAL_GAIN_CANDIDATE_REQUIRED",
+  "source_commit": "812e4e66ec303902b8f3e9059805783b80f38ee6",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "9f921c930fee565b0e3822f92c651bb82a69a266910dfb977a70d0bab7df0888"
+  },
+  "saved_scale_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/SAVED_SCALE_CAUSE/RESULT.json",
+    "sha256": "2507eed9104b2fc8e6157c5c92bb2a7bc08f7e8ea3c81fa7a194f1db56a2c54d"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917_BOOT459/receipts/invocation-0001.json",
+    "sha256": "cfbf62b54c31ea85ebc71e0deb31a021b16a0349ae6a8d009b0741e4ab569c40"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917_DISABLED.json",
+    "sha256": "bc129e51c75bd78ad663b06112b0942e740ef036f0e56e5d8f4355fc4a5f74a4"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/PLAN.json",
+    "sha256": "352c4d2a2437105916f7564dd07f83d6e2df91ef0c2e0afb4a909a36653fcce2"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/NATIVE_RECIPE.json",
+    "sha256": "2a27259a42a8559aca096b7fd64510b935d8fffad191dc5d10f74fcbd98a850a"
+  },
+  "model_forwards": 4,
+  "optimizer_steps": 0,
+  "native_processes": [],
+  "original_checkpoints_rehashed_unchanged": true,
+  "fresh_teacher_residual_nonzero_counts": {
+    "specialist_out.weight": 0,
+    "specialist_out.bias": 0,
+    "cross_tf_out.weight": 0,
+    "cross_tf_out.bias": 0,
+    "family_tf_cooperation_out.weight": 0,
+    "family_tf_cooperation_out.bias": 0
+  },
+  "derived_signal_metrics": {
+    "mse_improvement_fraction_by_component": {
+      "common": 0.9817637088646544,
+      "contrast": 0.0036454336147352263,
+      "flat": 0.014591266853332494
+    },
+    "final_contrast_fraction_of_mse": 0.9997205421423043,
+    "hidden_rms_feature_std_final_over_initial": 0.09926884987992364,
+    "representation_mean_row_l2_final_over_initial": {
+      "entry_hidden": 1.5937698638619895,
+      "fused": 155.89691078832283,
+      "global_context": 1.8722787837962855,
+      "local_m5": 134.5772381668405,
+      "mtf": 5.839447812989391
+    },
+    "routing_contrast_norm_final_over_initial": 0.004421928745122453,
+    "routing_contrast_dot_auxiliary": -0.0005869275743978278,
+    "routing_contrast_dot_entry": 0.0011230545236753707,
+    "routing_useful_projection_retained_with_auxiliary": 0.4773828322448531,
+    "routing_entry_plus_auxiliary_direction_reversed": false
+  },
+  "residual_projection_top1_energy_fraction": {
+    "specialist_out": 0.9902992327701343,
+    "cross_tf_out": 0.9234702322626666,
+    "family_tf_cooperation_out": 0.9248477727370424
+  },
+  "normalization_buffers_changed": false,
+  "single_root_cause_proven": false,
+  "corrective_candidate_tested": false,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "test_data_used": false,
+  "next_action": "Prepare one controlled residual-projection normalization candidate, not a broad search: normalize the inputs to specialist_out, cross_tf_out and family_tf_cooperation_out while retaining all features/families/timeframes and state_dict keys. First prove unchanged fresh/frozen-teacher outputs from their measured zero weights/biases. Then separately bind the existing native fixed256 comparison on the same 4096 TRAIN rows and frozen TRAIN256/Exit targets. No candidate or model execution is currently authorized by an active run scope; no full epoch, CONTROL/VAL/TEST, spending or automatic expansion. Treat normalization as a testable hypothesis, not a proven cure.",
+  "limitation": "One reused TRAIN16 and saved weights. Residual weight rank concentration plus observed representation attenuation motivate a controlled candidate, but do not prove its efficacy or that future directional outcomes are predictable. Measured Entry-private gradients omit full joint clipping/Adam and Exit forwards."
+}
