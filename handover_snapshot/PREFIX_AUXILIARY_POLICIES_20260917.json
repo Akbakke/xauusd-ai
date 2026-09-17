@@ -1,0 +1,96 @@
+{
+  "schema_version": "gx1_prefix_auxiliary_policy_preparation_v1",
+  "decision": "PREFIX_POLICIES_AND_TRAIN_IDS_FROZEN_NOT_NATIVE_READY",
+  "source_commit": "3072ae28270454294af2151811c62ddeb12f8eb9",
+  "completed_utc": "2026-09-17T02:04:23.062920+00:00",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/PLAN.json",
+    "sha256": "8cb54d4cc005707eb5f3ab78aee1891f1afa6680c1ccdd2bc19e6963fd672af6"
+  },
+  "frozen_design": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+    "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+  },
+  "clock_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917/RESULT.json",
+    "sha256": "1ce7ec74192415c50fe8f051bae023793f9c01e24d873851b6f0ef50231e08dc"
+  },
+  "inputs": {
+    "m5": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/m5_FIT_INPUT.parquet",
+      "sha256": "bd1fbc98c174f941cd2e019a5fc73d74dcd0f9772addfd9d0c4a36129bd8f8a0",
+      "rows": 53013,
+      "first_bar_start_utc": "2025-06-01T22:00:00+00:00",
+      "last_bar_start_utc": "2026-02-27T21:55:00+00:00"
+    },
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/m1_FIT_INPUT.parquet",
+      "sha256": "4f8c6bdb73e416acbf1a7b530966cb9716cc1177d3b208b9e7c83b1f201a21de",
+      "rows": 264223,
+      "first_bar_start_utc": "2025-06-01T22:04:00+00:00",
+      "last_bar_start_utc": "2026-02-27T21:59:00+00:00"
+    }
+  },
+  "direction_policy": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/DIRECTION_POLICY.json",
+    "sha256": "591f177411e360bdff62e26b910f8f63e8b9ec11594a3c3359c82bb9c1f825ee"
+  },
+  "direction_policy_sha256": "0e5cf8acf0b0ab16e7f25fff472d7898cccb8695c1c42a8734baa647bc2925e1",
+  "position_size_policy": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/POSITION_SIZE_POLICY.json",
+    "sha256": "74bd3e5cff8c01cc3c61ca6f2ff86e052b81575a4e35d34de532f6d549deab7f"
+  },
+  "position_size_policy_sha256": "ad7196fe7986cd3fc4a799947a6d92bbcab15a5f5c75c829b0862b5c059247e9",
+  "selected_causal_m1_horizon_bars": 18,
+  "direction_fit_population_rows": 34030,
+  "position_size_fit_candidate_rows": 49213,
+  "position_size_fit_rows": 42644,
+  "train_start_inclusive": "2025-06-01T00:00:00+00:00",
+  "support_end_inclusive": "2026-03-01T00:00:00+00:00",
+  "eligible_train_rows": 47814,
+  "planned_train_rows": 4096,
+  "train_probe_rows": 256,
+  "bindings": {
+    "TRAIN_ELIGIBLE_PARENT_ROWS": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_ELIGIBLE_PARENT_ROWS.npy",
+      "sha256": "ac883a1d4fda5d8c8101f025d90a699cc56118ed853ddef86975bd93b66baf86"
+    },
+    "TRAIN_NATIVE_EPOCH0_ORDER": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_NATIVE_EPOCH0_ORDER.npy",
+      "sha256": "40963221da4606bc0899a2a9237998c03994ca83ede0bdc645ab11fb7c90c027"
+    },
+    "TRAIN_NATIVE4096_PARENT_ROWS": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_NATIVE4096_PARENT_ROWS.npy",
+      "sha256": "f9dfd3772aa23e86ba03b39f4407210eb4a7bb3065f4262fdc87bb4f622f3a9d"
+    },
+    "TRAIN256_PROBE_PARENT_ROWS": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN256_PROBE_PARENT_ROWS.npy",
+      "sha256": "df6ea964e4b10feea6efc916128719d243b9655300b7514833b98dfb6948954b"
+    }
+  },
+  "planned_samples": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/PLANNED_NATIVE_SAMPLES.npz",
+    "sha256": "bcceb3c85f3e4dfd61dabc245ca1426bb086c099cdddd3684ed801edf6e5dd55"
+  },
+  "all_four_original_native_samples_retained": true,
+  "control256_unchanged": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/CONTROL256_PARENT_ROWS.npy",
+    "sha256": "911b5d0013ecec10b668a72f7466893780e059c31496c7c4d491bbb6f2dc70eb"
+  },
+  "control_rows_used_for_fit": 0,
+  "fits": {
+    "direction_policy": 1,
+    "position_size_ecdf": 1,
+    "new_search_algorithms": 0
+  },
+  "scope": {
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "normalization_fits": 0,
+    "gpu_used": false,
+    "test_accessed": false,
+    "native_launch_authorized": false,
+    "learning_demonstrated": false
+  },
+  "limits": "Only preprocessing policies and clock-eligible sample bindings. All dependent labels/masks must still be rebuilt through existing owners; no old policy label reuse. Prefix normalizations, fresh native initialization/control bindings remain required. March-May are reused development; no eternal/generalization claim."
+}

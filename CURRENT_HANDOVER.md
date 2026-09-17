@@ -141,11 +141,20 @@ eksisterende horisonter1..96 uten utfallsvalg; ved96 er33212 kvalifisert.
 Ingen samplerendring eller forkorting av markedslivsløp. Originale counts,
 native epoch0-rekkefølge og alle fire samples per beholdt Entry videreføres.
 
-Én eksplisitt CPU-klargjøring er bundet i NEXT_RUN_POLICY:tilpass de to
-eksisterende fasitpolicyene kun juni2025–februar2026 og frys deretter lovlige
-TRAIN-ID-er/native4096/TRAIN256. Ingen senere kontrollpriser, label-refresh,
-normaliseringsfit, modell-forward, optimizer eller native kjøring er åpnet.
-Se docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md. Klokkemålingen gjenbrukes.
+Den ene CPU-klargjøringen er ferdig. Eksisterende direction-policy-eier valgte
+18 M5-perioder fra34030 komplette prefix-forløp. Størrelses-ECDF brukte42644
+tradable prefix-rader. Fit-perioden er juni2025–februar2026; ingen senere
+kontrollpriser inngikk.47814 lovlige TRAIN-ID-er, native epoch0-rekkefølge,
+første4096 og TRAIN256-probe er nå hashfrosset. Begge utvalg dekker alle ni
+tidligere måneder. Alle fire opprinnelige Exit-samples per Entry beholdes.
+
+Engangstillatelsen er stengt. Gjenbruk policyer, klokker og utvalg; ingen refit
+eller endring av kontrollen. Avhengige gamle size/sideMAE/trendline-fasiter og
+masker må fortsatt erstattes via eksisterende eiere. Deretter gjenstår faktiske
+prefix-normaliseringer og fersk native initialisering/kontrollbinding. Ingen
+modell-forward eller optimizersteg er kjørt. Ingen læring er dokumentert.
+Se docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md og
+docs/PREFIX_AUXILIARY_POLICIES_20260917.md. TEST og modelltrening er stengt.
 
 ## Start her
 
