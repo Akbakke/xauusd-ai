@@ -1,10 +1,10 @@
 {
-  "status": "RESIDUAL_NORMALIZATION_COMPLETE_REJECTED",
+  "status": "RESIDUAL_REPRESENTATION_BOUND_NOT_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Latest completed residual trial source; current working HEAD is separate.",
-  "latest_observation_utc": "2026-09-17T21:51:45.292433+00:00",
-  "source_frozen_while_running": false,
+  "latest_observation_utc": "2026-09-17T22:05:47.736997+00:00",
+  "source_frozen_while_running": true,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917_BOOT460",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
@@ -104,7 +104,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Do not repeat or extend the rejected trial. First inspect whether the existing cached TRAIN16 inputs can be joined exactly to the new native TRAIN observations/checkpoint. Then, if the current native diagnostic contract permits, bind one representation-only comparison to locate remaining attenuation in raw local/MTF/context versus Entry hidden. No new optimizer steps, extra normalization, loss change or model search before that evidence. Old nonzero checkpoints must not be forwarded through the changed architecture and called original baselines; reuse their saved outputs. No CONTROL/VAL/TEST or economic claim.",
+  "next_action": "Run the separately bound residual representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -970,10 +970,20 @@
     "sha256": "32c36627b90f7b38561887fa3ac25c10e600f52d4148e74f59566e36b1aa22c1"
   },
   "handover_operator_manifest": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
-    "sha256": "188b5764588c58620ff0aaeb4a41eaf7ac5325fc2f63a68dfe7749199a10c6f1"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
+    "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
   },
-  "next_diagnostic": null,
+  "next_diagnostic": {
+    "run_id": "NATIVE_RESIDUAL_REPRESENTATION_20260918",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/PLAN.json",
+      "sha256": "01b0f0453002fe0b5fcf72037ce019721f6b317c72ab0a20eb70600834e1a67c"
+    },
+    "preparation_executed": false,
+    "activation_executed": false,
+    "model_forwards": 2,
+    "optimizer_steps": 0
+  },
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "completed_entry_forward_parity": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FORWARD_PARITY_20260917/REVIEW.json",
@@ -1080,10 +1090,45 @@
     },
     "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
     "cache_files_exist_and_sha_verified": true,
-    "cache_schema_and_new_prediction_row_join_complete": false,
-    "new_diagnostic_bound": false,
+    "cache_schema_and_new_prediction_row_join_complete": true,
+    "new_diagnostic_bound": true,
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
-    "next_deliverable": "CPU-only cache/observation identity audit and native diagnostic compatibility decision; no model forward or training."
-  }
+    "next_deliverable": "Run the separately bound residual representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
+    "input_binding_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RESIDUAL_REPRESENTATION_INPUT_AUDIT_20260917/RESULT.json",
+      "sha256": "75eaa64acae3cc4fbf81ed9d086f7c6d8de7c1156726f3ab407742fba2ae8c9c"
+    }
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/PLAN.json",
+      "sha256": "01b0f0453002fe0b5fcf72037ce019721f6b317c72ab0a20eb70600834e1a67c"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_RESIDUAL_REPRESENTATION_20260918",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "115619cb35b76550758db1de348a3d432a9f459fafa613332f1f1711b3028321",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "test_data_used": false
+  },
+  "diagnostic_runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/PREPARATION_RESULT.json"
 }

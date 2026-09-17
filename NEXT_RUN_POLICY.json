@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Do not repeat or extend the rejected trial. First inspect whether the existing cached TRAIN16 inputs can be joined exactly to the new native TRAIN observations/checkpoint. Then, if the current native diagnostic contract permits, bind one representation-only comparison to locate remaining attenuation in raw local/MTF/context versus Entry hidden. No new optimizer steps, extra normalization, loss change or model search before that evidence. Old nonzero checkpoints must not be forwarded through the changed architecture and called original baselines; reuse their saved outputs. No CONTROL/VAL/TEST or economic claim.",
+  "rule": "Run the separately bound residual representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1125,5 +1125,35 @@
     "native_frozen_targets_exactly_preserved": true,
     "generalization_proven": false,
     "profitability_proven": false
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/PLAN.json",
+      "sha256": "01b0f0453002fe0b5fcf72037ce019721f6b317c72ab0a20eb70600834e1a67c"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_RESIDUAL_REPRESENTATION_20260918",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "115619cb35b76550758db1de348a3d432a9f459fafa613332f1f1711b3028321",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "test_data_used": false
   }
 }

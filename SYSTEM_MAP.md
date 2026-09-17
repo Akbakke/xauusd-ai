@@ -50,7 +50,8 @@ vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
 Entry-hidden. Dette er målt før residualnormaliseringen; den nye modellens
 representasjoner er ennå ikke målt. Inputnormaliseringen er uendret.
 Normaliseringen før tre residualprojeksjoner ble prøvd på88310075 med native256 og
-avvist: samme FLAT/sidekonstante handlinger. Ingen aktiv kjøreplan. Koden
+avvist: samme FLAT/sidekonstante handlinger. Én representasjonsdiagnose er nå
+bundet med to inferensforwards og null optimizersteg. Koden
 bevares for kildesamsvar; neste er avgrenset representasjonsdiagnose. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
 bevaring av lærerens Entry-/Exit-outputs og frosne mål.
 

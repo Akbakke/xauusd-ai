@@ -1,0 +1,67 @@
+{
+  "schema_version": "gx1_entry_representation_diagnostic_plan_v1",
+  "diagnostic_kind": "initial_final_entry_representations",
+  "created_utc": "2026-09-17T22:05:47.736997+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
+    "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
+  },
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917_BOOT460/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "e61925bef4062aa19905b1d8257b7fb8b3342b0b68c36dab56a02d16b4aee226"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "5015339d2cf4cc16802b22a1daedc1741e8aa6cac36789365664c31fd62a7abf"
+  },
+  "cached_input_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+    "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+  },
+  "optimizer_steps": 0,
+  "train_entries": 16,
+  "model_forwards": 2,
+  "control_forwards": 0,
+  "max_invocations": 1,
+  "mode": "eval",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "variants": [
+    "initial",
+    "final"
+  ],
+  "test_data_used": false,
+  "question": "Where does row-to-row variation shrink in the residual-normalized candidate: main fuse, raw local/MTF/context, joint LayerNorm, linear mixer or hidden GELU?",
+  "measurement": [
+    "Two canonical inference forwards, initial and residual final; compare against respective saved native predictions at unchanged 1e-4 Bps tolerance and identical actions.",
+    "Measure row norms, RMS feature standard deviations and pairwise cosine at existing representation boundaries.",
+    "Report exact native common/contrast/FLAT MSE decomposition; no gradients or fitting."
+  ],
+  "interpretation": "A source-bound TRAIN16 diagnosis only. Low predicted variation does not establish target predictability, causal architecture failure, learning or transfer.",
+  "preserve": [
+    "original initial/final/target models",
+    "optimizer state and step count",
+    "RNG and model modes",
+    "all features/timeframes and causal inputs",
+    "costs/targets/teacher",
+    "native guards and source binding"
+  ],
+  "prohibited": [
+    "optimizer step or fitted candidate",
+    "CONTROL/VAL/TEST",
+    "Exit forwards",
+    "search or automatic extension",
+    "treating small predicted variance as proof that target noise is predictable",
+    "raising cached-inference tolerance",
+    "claiming cross-mode numerical parity",
+    "changing model/training mathematics for the measured mode difference",
+    "backward passes"
+  ],
+  "input_binding_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RESIDUAL_REPRESENTATION_INPUT_AUDIT_20260917/RESULT.json",
+    "sha256": "75eaa64acae3cc4fbf81ed9d086f7c6d8de7c1156726f3ab407742fba2ae8c9c"
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "schema_version": "gx1_residual_representation_input_audit_v1",
+  "created_utc": "2026-09-17T21:56:56.003159+00:00",
+  "decision": "EXACT_INPUT_TARGET_AND_ROW_BINDING_CONFIRMED_NATIVE_DIAGNOSTIC_EXTENSION_REQUIRED",
+  "cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "99079cf43cd423686edc1197d3070a6f6e26a4e5e37f81ce8e70ea06731dc02d"
+  },
+  "original_input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "0b8cd6351a49e19adf5be366a0f38966394701db3e7e8d36461464e174dc7aab"
+  },
+  "new_training_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "5015339d2cf4cc16802b22a1daedc1741e8aa6cac36789365664c31fd62a7abf"
+  },
+  "initial_training_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "d61956ee9dd236b1fd096839c714b914d46756aeb3006091ad7e4b334af8517f"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "d00e1107282ffb1c1d1b5878403a7f0cdc85e8517042c73266bcd8049928feaa"
+  },
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "cb20370cab6e75e40bf220309a2a1fe13837c3972b1c4f1ef1f61c7b3528821f"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
+    "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
+  },
+  "model_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "sha256": "cd09eb6bc798b9335c55f7b6d8c011abe5565e737bae29199edf308678a3c35a"
+  },
+  "model_state_sha256": "c940a3b855e95067e16882558daffeb25f896e22b6ab23d425afc80db40f4db1",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "entries": 16,
+  "batch_identical_to_original_cache": true,
+  "parent_row_order_exact": true,
+  "targets_exact": true,
+  "masks_exact": true,
+  "same_prefix_and_file_bindings": true,
+  "cached_predictions_match_original_causal_model": true,
+  "cached_predictions_match_new_model": false,
+  "old_to_new_prediction_max_abs_difference_bps": 0.41399240493774414,
+  "batch_tensor_shapes": {
+    "entry_row_index": [
+      16
+    ],
+    "seq_x": [
+      16,
+      96,
+      238
+    ],
+    "snap_x": [
+      16,
+      238
+    ],
+    "ctx_cont": [
+      16,
+      71
+    ],
+    "ctx_cat": [
+      16,
+      1
+    ],
+    "y_long_expected_mae_bps": [
+      16
+    ],
+    "y_short_expected_mae_bps": [
+      16
+    ],
+    "y_position_size_target": [
+      16
+    ],
+    "y_position_size_mask": [
+      16
+    ],
+    "y_line_support_touch_held": [
+      16
+    ],
+    "y_line_support_touch_mask": [
+      16
+    ],
+    "y_line_resistance_touch_held": [
+      16
+    ],
+    "y_line_resistance_touch_mask": [
+      16
+    ],
+    "y_countertrend_short_trap": [
+      16
+    ],
+    "y_countertrend_long_trap": [
+      16
+    ],
+    "y_dip_mae_long_K12": [
+      16
+    ],
+    "y_dip_mae_long_K48": [
+      16
+    ],
+    "y_dip_mae_long_K96": [
+      16
+    ],
+    "y_dip_mae_short_K12": [
+      16
+    ],
+    "y_dip_mae_short_K48": [
+      16
+    ],
+    "y_dip_mae_short_K96": [
+      16
+    ],
+    "y_dip_mfe_long_K12": [
+      16
+    ],
+    "y_dip_mfe_long_K48": [
+      16
+    ],
+    "y_dip_mfe_long_K96": [
+      16
+    ],
+    "y_dip_mfe_short_K12": [
+      16
+    ],
+    "y_dip_mfe_short_K48": [
+      16
+    ],
+    "y_dip_mfe_short_K96": [
+      16
+    ],
+    "y_forecast_ret_K1": [
+      16
+    ],
+    "y_forecast_ret_K5": [
+      16
+    ],
+    "y_forecast_ret_K12": [
+      16
+    ],
+    "y_forecast_ret_K24": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K12": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K12": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K48": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K48": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K96": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K96": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K12": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K12": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K48": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K48": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K96": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K96": [
+      16
+    ],
+    "y_tail_mae_long_K12": [
+      16
+    ],
+    "y_tail_mae_long_K48": [
+      16
+    ],
+    "y_tail_mae_long_K96": [
+      16
+    ],
+    "y_tail_mae_short_K12": [
+      16
+    ],
+    "y_tail_mae_short_K48": [
+      16
+    ],
+    "y_tail_mae_short_K96": [
+      16
+    ],
+    "y_vol_fwd_K12": [
+      16
+    ],
+    "y_vol_fwd_K48": [
+      16
+    ],
+    "y_vol_fwd_K96": [
+      16
+    ],
+    "seq_m15": [
+      16,
+      64,
+      176
+    ],
+    "seq_h1": [
+      16,
+      96,
+      176
+    ],
+    "seq_h4": [
+      16,
+      96,
+      176
+    ],
+    "seq_d1": [
+      16,
+      252,
+      176
+    ]
+  },
+  "all_floating_batch_tensors_finite": true,
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "diagnostic_contract_obstacles": [
+    "Current signal contract only accepts causal review schema and causal verdict; new residual review is distinct.",
+    "Inference-checked signal v2 requires prior parity evidence for identical final checkpoint; old parity evidence belongs to causal checkpoint."
+  ],
+  "next_action": "Add one bounded inference-only representation variant to the existing native diagnostic: two initial/final forwards, validate against saved native predictions, zero optimizer/backward steps. Bind residual verdict and this input audit; do not rerun separate parity or train.",
+  "limitations": "CPU identity audit only; no representation values or learning improvement measured."
+}

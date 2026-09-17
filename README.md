@@ -9,7 +9,7 @@ Dette er lesende observasjon og starter aldri trening.
 4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Mac-mappen er overlevering. Residualnormalisering er fullført og avvist: samme FLAT/sidekonstante valg. Ingen jobb eller aktiv kjøreplan; læringsporten er ikke bestått.
+Mac-mappen er overlevering. Residualnormalisering er avvist. Én representasjonsdiagnose med to inferensforwards er bundet, ikke startet; ingen trening er åpnet og læringsporten er ikke bestått.
 
 `current_work` gjelder dagens jobb. Øvrige gamle checkpoint-/VAL-felt i scriptets
 JSON er fullført historikk. Ingen historiske planer er startinstrukser.

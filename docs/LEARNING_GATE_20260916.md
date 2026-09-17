@@ -5,7 +5,7 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Residualnormalisering er fullført og avvist: samme FLAT/sidekonstante valg. Ingen jobb eller aktiv kjøreplan; læringsporten er ikke bestått.
+Residualnormalisering er avvist. Én representasjonsdiagnose med to inferensforwards er bundet, ikke startet; ingen trening er åpnet og læringsporten er ikke bestått.
 Ny kandidat gir blandede MSE-endringer og identiske handlinger mot kausal256.
 Eksakt fasit/lærer er bevart. Neste er én avgrenset diagnose, ikke mer trening.
 
