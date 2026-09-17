@@ -68,15 +68,26 @@ TRAIN. Ingen undersøkt startvekt i den aktive kjeden gir en usett senere
 TRAIN-periode. Å nullstille bare hodene eller velge nye Entry-ID-er løser ikke
 dette. Se docs/INITIALIZATION_EXPOSURE_20260917.md.
 
-Neste arbeid er én frosset kronologisk forsøkskontrakt med samme arkitektur,
-200 features/åtte familier/MTF, ueksponert initialisering og normalisering
-fittet bare før kontrollperioden. Bind tidssplitt, full observert fasitstøtte,
-Entry/Exit-mål, budsjett og forkastelseskriterier før fit. Eksisterende native
-eier tvinger inn trent EMA og gammel normalisering; beskriv minste nødvendige
-rettelse av denne konkrete blokkeringen før kodeendring. Ingen nye rammeverk
-eller separat runner. Gamle utviklingsperioder blir ikke forskningsmessig
-urørte av nye vekter. Ingen forwards, fits, targets, trening, VAL eller TEST
-er åpnet i planleggingssteget. Ingen holdetidsgrense innføres. Ikke gjenta auditene.
+Én forsøksdesign er nå frosset før fit:49 017 kalender-TRAIN-rader fra
+juni2025 til februar2026 og16 278 senere kontrollrader fra mars–mai2026.
+CONTROL256 er låst med eksisterende seed20260911/salt1:83/87/86 per måned.
+Fem TRAIN-ankerfasiter krysser allerede datogrensen; kalenderutvalget er ikke
+ferdig target-/state-eligibilitet. Budsjett256 oppdateringer/4096 Entries er
+kun design, ingen kjøreautoritet. Se docs/CHRONOLOGICAL_LEARNING_DESIGN_20260917.md.
+
+Neste minste koderettelse gjelder den observerte målkjedesvikten: dagens
+referansemål brukes i Exit, men Entry leser fortsatt rå Q fra gammel lærer;
+collator avviser referansetrace ved ankeret. I en eksplisitt opt-in-modus skal
+samme observerte state0-Q_mu gå gjennom eksisterende Entry-/first-state-eier,
+med likvidasjonsverdi, gamma, masks, terminal/bootstrap og detach bevart.
+Behold gamle oppskrifters semantikk. Kontroller med målrettede syntetiske
+CPU-tester; ingen ny faktisk datatarget eller modell-forward er åpnet.
+
+Fersk initialisering, prefix-normalisering og native kontrollbindinger er
+fortsatt nødvendige før en kjørbar plan. Samme200 features/åtte familier/MTF,
+ingen ny arkitektur eller separat runner. Ingen fit, trening, VAL eller TEST
+er åpnet. Gamle utviklingsperioder blir ikke urørte av nye vekter. Ingen
+holdetidsgrense eller automatisk forlengelse. Ikke gjenta ferdige auditer.
 
 ## Start her
 

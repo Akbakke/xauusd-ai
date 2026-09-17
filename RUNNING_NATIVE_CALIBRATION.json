@@ -1,5 +1,5 @@
 {
-  "status": "FROZEN_VAL_REJECTED_BOUND_INITIALIZATIONS_ALREADY_TRAIN_EXPOSED",
+  "status": "CHRONOLOGICAL_DESIGN_FROZEN_NOT_EXECUTABLE_ANCHOR_TARGET_FIX_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Initialization exposure audit complete. The bound V9 ancestor consumed77312 shuffled rows spanning all60 TRAIN months through2026-05-29, including16016 latest-year rows; the bound seed completed65295 latest-year entries, and ancestor315 completed the313399-row full TRAIN epoch. Preserved input normalization fitted all313399 Entry rows plus TRAIN Exit history. No chronologically clean initialization exists in the checked active lineage; this is not an exhaustive disk claim. Do not relabel existing TRAIN slices as unseen or reset only heads. Next: prepare exactly one frozen chronological learning-experiment contract using the same200-feature/eight-family/MTF architecture with unexposed initialization and prefix-only normalization. Bind calendar split and complete observed target support, initial online/target/EMA/optimizer states, consistent Entry/Exit target semantics, fixed budget, controls and rejection criteria before any fit. Inspect/reuse existing native initialization and normalization owners; no new framework, architecture, broad search or separate runner. The current native owner forces pretrained EMA plus preserved normalization, which is the concrete compatibility blocker to describe before any minimal code change. Previously inspected development periods remain reused development data even for fresh weights. No new forward, fit, target refresh, optimizer, native run, full epoch/VAL or TEST is authorized at this planning stage.",
+  "next_action": "One chronological design and CONTROL256 IDs are frozen, not executable: TRAIN calendar2025-06-01..2026-03-01 has49017 rows; later control2026-03-01..2026-06-01 has16278, sampled256 (83/87/86 by month) with existing selector seed20260911 salt1. Five TRAIN anchor120 supports cross the cutoff, so complete label/state eligibility is still required. Planned ceiling256 optimizer steps/4096 entries is DESIGN ONLY, not launch authority. Next implement only the observed target-chain blocker first: in an explicit opt-in chronological/reference mode, materialize reference traces at Entry state0 and route the same observed Q_mu through existing first-state/Entry bridge owners used by Exit, preserving liquidation, gamma, masks, bootstrap and detach. Current code rejects reference traces on anchors and keeps the old raw teacher bridge; do not silently alter old recipes. Reuse existing state-view/collator/target owners, with focused synthetic CPU tests for Entry/Exit anchor equality, future-cutoff rejection, masks/terminal/bootstrap and legacy parity. No architecture/refactor/framework, actual-data model forward, target cache refresh, normalization fit, optimizer or native run yet. Remaining fresh initialization, prefix-only normalization and bounded TRAIN-sourced control bindings are specified in the frozen design; address their measured blockers sequentially after this minimal correction. All200 features/eight families/MTF preserved; TEST sealed; no retuning controls or automatic extension.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -247,7 +247,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/FORECAST_TRANSFER_EXISTING_OUTPUTS.json",
     "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a"
   },
-  "latest_readonly_audit_utc": "2026-09-17T00:26:59.249468+00:00",
+  "latest_readonly_audit_utc": "2026-09-17T00:40:32.194951+00:00",
   "train_temporal_overlap_audit": {
     "decision": "DEPENDENT_TRAIN_CONTROLS_NOT_GENERALIZATION_EVIDENCE",
     "result": {
@@ -284,5 +284,23 @@
     "new_targets": 0,
     "native_training_authorized": false,
     "next_scope": "prepare_one_frozen_chronological_learning_contract_same_architecture_unexposed_initialization_prefix_normalization"
+  },
+  "chronological_learning_design": {
+    "status": "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+      "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+    },
+    "report": "docs/CHRONOLOGICAL_LEARNING_DESIGN_20260917.md",
+    "calendar_train_rows": 49017,
+    "calendar_control_rows": 16278,
+    "control_entries": 256,
+    "planned_optimizer_steps_not_authorized": 256,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "actual_data_model_forwards_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_cpu_contract_tests_authorized": true,
+    "next_scope": "minimal_opt_in_coherent_anchor_reference_targets_in_existing_owners_and_focused_synthetic_tests"
   }
 }
