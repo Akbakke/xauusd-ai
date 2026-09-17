@@ -67,7 +67,7 @@ def test_same_state_zero_reference_drives_entry_and_exit(relative_fixture, count
     q = result['entry_reference_target_evidence']['hold_target_bps']
     torch.testing.assert_close(q, result['targets'][..., 0], rtol=0, atol=0)
     torch.testing.assert_close(result['entry_targets'][1, :2],
-                               batch['entry_liquidation_value_bps'][0] + q[0].clamp_min(0), rtol=0, atol=0)
+                               batch['entry_liquidation_value_bps'][0] + (119/120)*q[0], rtol=0, atol=0)
     assert result['entry_targets'][1, 1] > 0  # Observed favourable side beats the entry cost.
     assert old['entry_targets'][1, :2].max() < 0  # Legacy raw teacher remains cost-only here.
     assert result['entry_targets'][:, 2].tolist() == [0, 0, 0]
@@ -82,7 +82,7 @@ def test_same_state_zero_reference_drives_entry_and_exit(relative_fixture, count
     anchor = batch['entry_reference_policy_trace']
     assert anchor['boundary_action_valid_mask'][0, 0, 0].item() == (not (terminal and count <= 121))
     assert anchor['boundary_right_censored_mask'][0, 0].item() == (not terminal and count <= 121)
-    assert result['entry_bridge_semantics'] == 'observed_reference_anchor_Q_mu_with_greedy_first_action'
+    assert result['entry_bridge_semantics'] == 'observed_reference_anchor_V_mu_without_hindsight_action'
     assert result['entry_bridge_binding']['reference_cutoff_time_ns'] == CUTOFF
 
 

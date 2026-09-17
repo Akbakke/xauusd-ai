@@ -1,6 +1,28 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Entry lærer mer, men retningsvalg og Exit består fortsatt ikke læringsporten
+## Entry-fasiten inneholdt etterpåklokskap — rettet, læring ennå umålt
+
+En konkret Entry-fasitfeil er påvist og rettet: max(observert HOLD-utfall,0)
+valgte første handling med kunnskap om framtiden. Dette var en feil i den
+tidligere «coherent reference»-rettelsen. Korrekt forventning under den
+allerede bundne kausale referansepolicyen er (119/120)*HOLD-utfallet; negative
+utfall beholdes. Første gjennomførbare likvidasjonsverdi legges til som før.
+
+På eksisterende TRAIN256 løftet feilen Entry-fasiten med 8,6852 Bps i snitt.
+Dette er en dokumentert fasitskjevhet, ikke bevis for at den forklarer all
+svak læring. Ingen framtidslekkasje i modellinputs er påvist av denne testen.
+33 målrettede syntetiske tester består. Ingen ny faktisk modell-forward,
+targetcache eller trening er kjørt. Exit-HOLD-fasit og tidligere resultater
+er uendret og bevart; ingen lærings- eller økonomiport er bestått.
+
+Neste er én eksplisitt avledet TRAIN-baseline med de lagrede prediksjonene,
+HOLD-målene og kanonisk første likvidasjonsverdi. Gamle Entry-targets må ikke
+gjenbrukes eller omdøpes til korrekt fasit. Ingen ny trening er åpnet før
+sammenlignbare targets og bindinger er kontrollert. Ingen CONTROL/VAL/TEST.
+Se docs/CAUSAL_REFERENCE_ENTRY_FIX_20260917.md. Native-tasken er avsluttet;
+ingen aktiv modelljobb. NEXT_RUN_POLICY.json angir tillatt forberedelse.
+
+## Fullført connected256 med gammel Entry-fasit — historikk, ikke startinstruks
 
 Den ene Entry-gradientrettelsen er prøvd ferdig på2c5ddb45: samme ferske
 starttilstand,4096 Entries,256 oppdateringer og identisk frossen fasit/lærer.
@@ -31,7 +53,7 @@ Exit-tokenets detach beholdes. Før rettelsen målte én TRAIN16-kontrast
 Entry-routingnorm0→0,229 med bitlike outputs og hodegradienter. Sju berørte
 gradienttester og13 måle-/scope-kontroller består; commit-kontrakttester består.
 
-Neste er å isolere den svake retnings-/tilstandslæringen fra eksisterende
+Daværende neste steg (nå erstattet av fasitrettelsen over) var å isolere den svake retnings-/tilstandslæringen fra eksisterende
 TRAIN-outputs, cacher og kode før ny modellendring. Ingen ny trening, forward,
 fit, CONTROL-gjenbruk, targetendring, tapsvektsøk, full epoch/VAL eller TEST er
 åpnet. Kildekontrollen fant ingen tilsvarende detach i online Exit-fusjonen.

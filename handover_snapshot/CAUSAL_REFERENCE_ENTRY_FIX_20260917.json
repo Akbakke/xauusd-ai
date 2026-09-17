@@ -1,0 +1,197 @@
+{
+  "audit": {
+    "common_current_target_mean_bps": 2.830218362651067,
+    "common_mean_hindsight_lift_bps": 8.68522946503981,
+    "common_reference_target_mean_bps_reconstructed": -5.855011102388744,
+    "control_accessed": false,
+    "created_utc": "2026-09-17T14:01:48.143627+00:00",
+    "current_formula": "entry_liquidation + max(realized_reference_HOLD_return,0)",
+    "decision": "CONFIRMED_PATHWISE_FIRST_ACTION_CLIPPING_IN_OBSERVED_ENTRY_TARGET",
+    "declared_causal_reference_formula": "entry_liquidation + (119/120)*realized_reference_HOLD_return; invalid HOLD uses EXIT zero",
+    "error": "The first HOLD/EXIT choice is made after observing future rollout rewards. A maximum of pathwise return samples is not the maximum of conditional expected action values. This adds hindsight upside even when neither side has causal expected profit.",
+    "first_audit_stop": "An unnecessary assumption that every first liquidation is negative failed. First liquidation can include a market move. The corrected audit measures its sign and keeps the original failed operator.",
+    "limits": "Reference counterfactual uses liquidation reconstructed from saved targets in float64; it is an audit, not a newly materialized bit-exact native target cache. No targets, checkpoints or models changed.",
+    "new_fits": 0,
+    "new_model_forwards": 0,
+    "next_minimal_fix": "In the explicit observed-reference branch, replace the pathwise first-action maximum with the declared fixed causal policy expectation in the existing reference owner and both train/eval callers. Preserve legacy critic-based max, Exit HOLD targets, all causal inputs, costs, gamma, masks, terminal/bootstrap and original evidence. Require synthetic expectation tests and a separately bound same-target baseline before another learning run.",
+    "not_claimed": "This is target optimism, not demonstrated future leakage in model inputs. Correct Q_mu targets do not establish profitable learned greedy-policy trading.",
+    "optimizer_steps": 0,
+    "reference_policy": {
+      "hold_probability_denominator": 120,
+      "hold_probability_numerator": 119,
+      "maximum_observed_backup_steps": 120,
+      "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+      "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+      "schema_version": "gx1_exit_reference_policy_v1",
+      "selection": "analytical_expectation_no_random_action_draw",
+      "terminal_policy": "exit_if_economic_terminal",
+      "value_coordinates": "advantage_over_executable_liquidation_bps",
+      "value_semantics": "Q_mu_stationary_reference_after_first_action"
+    },
+    "rows_with_future_dependent_hold_exit_choice": 256,
+    "schema_version": "gx1_entry_reference_hindsight_audit_v1",
+    "source_bindings": {
+      "gx1/contracts/unified_exit_fitted_q_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_fitted_q_v1.py",
+        "sha256": "799c565d168a868194d304e1b13391a6cdf9be4f90ba3720144fdbd2e4d48a52"
+      },
+      "gx1/contracts/unified_exit_random_access_training_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+        "sha256": "af5ad2204062917f1769c5dde293a2bfc28a58c407f88ab12037de3873c71924"
+      },
+      "gx1/contracts/unified_exit_reference_policy_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+        "sha256": "ad0b883c03a6a741dbcb6db9e56d8bf8ede49952bbf95e9ed93e50e305d1bfd2"
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "sha256": "25e67111d24a9ee18be37401ccb8fd48dcdfd701c3cc4c2cdbc1369ec9bae347"
+      }
+    },
+    "source_commit": "797c10aa6380eaf4a99b363ca1f60563c03e6cdf",
+    "synthetic_same_state_two_futures": {
+      "causal_reference_target_mean_by_side_bps": [
+        -1.0,
+        -1.0
+      ],
+      "current_target_mean_by_side_bps": [
+        4.0,
+        4.0
+      ],
+      "each_future_probability": 0.5,
+      "expected_causal_greedy_first_action_value_bps": [
+        -1,
+        -1
+      ],
+      "first_liquidation_bps": -1,
+      "hold_outcomes_bps": [
+        [
+          10,
+          -10
+        ],
+        [
+          -10,
+          10
+        ]
+      ]
+    },
+    "test_data_used": false,
+    "train256_by_side": {
+      "LONG": {
+        "current_entry_target_mean_bps": 3.8568875598721206,
+        "hold_bootstrap_mean_absolute_bps": 0.04522673364772345,
+        "hold_observed_mean_absolute_bps": 17.369419345253846,
+        "hold_target_mean_bps": 2.2173689806077164,
+        "inferred_first_liquidation_mean_bps": -5.948846081941156,
+        "inferred_first_liquidation_range_bps": [
+          -26.3638973236084,
+          18.323843002319336
+        ],
+        "mean_hindsight_lift_bps": 7.606842736043957,
+        "mean_lift_on_negative_hold_bps": 18.346979447537,
+        "negative_realized_hold_outcomes": 105,
+        "positive_first_liquidations": 12,
+        "reference_policy_entry_mean_bps_reconstructed": -3.749955176171837,
+        "rows": 256
+      },
+      "SHORT": {
+        "current_entry_target_mean_bps": 1.803549165430013,
+        "hold_bootstrap_mean_absolute_bps": 0.03970754513829888,
+        "hold_observed_mean_absolute_bps": 17.37280761473812,
+        "hold_target_mean_bps": -2.198963167727925,
+        "inferred_first_liquidation_mean_bps": -5.779428553942125,
+        "inferred_first_liquidation_range_bps": [
+          -30.41961669921875,
+          12.537307739257812
+        ],
+        "mean_hindsight_lift_bps": 9.763616194035663,
+        "mean_lift_on_negative_hold_bps": 16.445753155883907,
+        "negative_realized_hold_outcomes": 151,
+        "positive_first_liquidations": 10,
+        "reference_policy_entry_mean_bps_reconstructed": -7.960067028605652,
+        "rows": 256
+      }
+    },
+    "train_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+      "sha256": "761898c85476fbfacd751e444b0a57dce5355ddcf8f449eed26cc2016884a49d"
+    }
+  },
+  "fix": {
+    "schema_version": "gx1_causal_reference_entry_fix_v1",
+    "created_utc": "2026-09-17T14:15:33.408366+00:00",
+    "decision": "CAUSAL_REFERENCE_ENTRY_FIX_TESTED_NEW_BASELINE_REQUIRED",
+    "audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/RESULT.json",
+      "sha256": "f28423f581bd7421d443bd96e7e6fa62629e37fa22f3241b9f55bbce8109f166"
+    },
+    "tests": {
+      "passed": 33,
+      "log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/CAUSAL_FIX_TEST.log",
+        "sha256": "1ecae7bff46813d9a22625cb33d0e54f9b7432ea0cfe655b82c32c131c820baa"
+      },
+      "scope": "Synthetic symmetric futures, losses, terminal masks, invalid policies, exact native TRAIN/eval Entry parity, unchanged Exit targets and diagnostic semantics."
+    },
+    "source_base_commit": "797c10aa6380eaf4a99b363ca1f60563c03e6cdf",
+    "changed_files": {
+      "gx1/contracts/unified_exit_random_access_training_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+        "sha256": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab"
+      },
+      "gx1/contracts/unified_exit_reference_policy_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+        "sha256": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "sha256": "1ff4a93b43439d8d9adc5208a590fff9302174ad887551a116f2c1efd18bdbb6"
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "sha256": "dd7d73d4623a2c994cac9b2858e7db97f5f634c2f3aa3186c3c145ac9ebd7556"
+      },
+      "tests/test_candidate_learning_diagnostics.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_candidate_learning_diagnostics.py",
+        "sha256": "be9fe4ca41c0e6813d6055b944cfe7d1c62c15e7dd8ff4502b8288719f593473"
+      },
+      "tests/test_chronological_control_targets.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_chronological_control_targets.py",
+        "sha256": "52aac3f19ad1cecb28d605fec6280855a7dc7763ed7e8e26824d9f0038ebaf35"
+      },
+      "tests/test_coherent_reference_entry_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_coherent_reference_entry_v1.py",
+        "sha256": "64e08bb47697866d8a137f4d1b68402260636709f1f0cd974c471e640ec77507"
+      },
+      "tests/test_unified_exit_reference_policy_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_unified_exit_reference_policy_v1.py",
+        "sha256": "c6aea4bdd41802eecd86dd39ab27a41efccae3cb357aecafb1c88705e634678f"
+      }
+    },
+    "corrected_formula": "entry_liquidation + (119/120)*observed_reference_Q_HOLD; invalid HOLD uses EXIT=0",
+    "changed_scope": "Explicit observed-reference Entry bridge only; legacy critic-estimate max and Exit HOLD targets unchanged. Diagnostic strings clarify semantics.",
+    "new_native_model_forwards": 0,
+    "optimizer_steps": 0,
+    "new_target_caches": 0,
+    "learning_proven": false,
+    "generalization_proven": false,
+    "profitability_proven": false,
+    "control_accessed": false,
+    "test_data_used": false,
+    "next_action": "Prepare one explicitly derived TRAIN-only baseline using preserved predictions and HOLD targets, canonical executable first-liquidation values, and the corrected causal reference Entry formula. Verify target provenance and exact parity before binding any new native run. Never relabel old hindsight targets or an algebraic reconstruction as native measurements. No model forward, optimizer, normalization fit, CONTROL/VAL/TEST access, or training is authorized in this preparation."
+  },
+  "record": {
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/CAUSAL_FIX_RESULT.json",
+      "sha256": "07ef00a2834e58f62223963d56ad0b16bd883963b36e69ad12e4f8d4ccbdf6df"
+    },
+    "audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/RESULT.json",
+      "sha256": "f28423f581bd7421d443bd96e7e6fa62629e37fa22f3241b9f55bbce8109f166"
+    },
+    "report": "docs/CAUSAL_REFERENCE_ENTRY_FIX_20260917.md",
+    "tests_passed": 33,
+    "learning_proven": false,
+    "new_native_run_authorized": false
+  }
+}

@@ -118,7 +118,7 @@ def test_entry_choice_bias_and_relative_hold_summary_respect_masks_and_ties():
         "valid_cell_count": 3, "positive_count": 1, "negative_count": 1, "zero_count": 1,
         "mean": 1.0 / 3.0, "mean_absolute": 5.0 / 3.0, "minimum": -2.0, "maximum": 3.0,
     })
-    assert evidence["entry"]["target_semantics"] == "frozen_exit_value_estimates_not_realized_market_outcomes"
+    assert evidence["entry"]["target_semantics"] == "fitted_entry_targets_not_realized_trading_policy_profit"
 
 
 def test_decomposition_uses_actual_masked_reward_and_selected_anchor_order():

@@ -339,6 +339,7 @@ def _candidate_anchor_targets(
     *, target_model: torch.nn.Module, target_entry_output: Mapping[str, Any],
     state_factory: RandomAccessValStateFactoryV1, child_rows: Sequence[int],
     device: torch.device, reference_hold_targets: torch.Tensor | None = None,
+    reference_policy: Mapping[str, Any] | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
     """Use the same frozen first-state Exit values as the TRAIN Entry target."""
     from gx1.contracts.unified_exit_economics_objective_v2 import LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING
@@ -347,6 +348,8 @@ def _candidate_anchor_targets(
     entries = [state_factory.entries[int(row)] for row in child_rows]
     if [int(entry["entry_row_index"]) for entry in entries] != list(child_rows):
         raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_ORDER_INVALID")
+    if (reference_hold_targets is None) != (reference_policy is None):
+        raise RuntimeError("CANDIDATE_NATIVE_REFERENCE_POLICY_NOT_BOUND")
     if reference_hold_targets is not None:
         if (not relative or reference_hold_targets.shape != (len(entries), 2)
                 or reference_hold_targets.dtype != torch.float32
@@ -370,13 +373,17 @@ def _candidate_anchor_targets(
         valid = output["exit_action_valid_mask"]
         if q.shape != (len(entries), 2, 2) or not torch.equal(valid, inputs["action_valid_mask"]):
             raise RuntimeError("CANDIDATE_NATIVE_VAL_ANCHOR_Q_INVALID")
-    values = unified_exit_first_state_side_values(
-        frozen_target_q_bps=q.unsqueeze(2), action_valid_mask=valid.unsqueeze(2),
-        state_valid_mask=torch.ones((len(entries), 2, 1), dtype=torch.bool, device=device),
-    )
+    if reference_hold_targets is not None:
+        from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_state_values
+        values = reference_policy_state_values(policy=reference_policy, action_q_bps=q, action_valid_mask=valid)
+    else:
+        values = unified_exit_first_state_side_values(
+            frozen_target_q_bps=q.unsqueeze(2), action_valid_mask=valid.unsqueeze(2),
+            state_valid_mask=torch.ones((len(entries), 2, 1), dtype=torch.bool, device=device),
+        )
     if relative:
-        # Only the executable first-state close value is added. No future
-        # price or hindsight-best Exit is fed into the Entry prediction.
+        # Add the executable first-state close value. Observed-reference
+        # continuation uses the fixed policy expectation, never hindsight max.
         liquidation = [[float(state_factory.economic_step_provider.materialize_training_projection(
             int(entry["entry_row_index"]), side, 0, 1, 0,
         )["exit_reward_bps"][0]) for side in range(2)] for entry in entries]
@@ -538,7 +545,7 @@ def _entry_representations(
                         canonical_model_state_sha256(candidate_target_model.state_dict()) != canonical_model_state_sha256(exit_boundary_model.state_dict()))):
                 raise RuntimeError("CHRONOLOGICAL_CONTROL_SAME_FROZEN_TEACHER_REQUIRED")
             coherent_reference = {
-                "semantics":"observed_reference_anchor_Q_mu_with_greedy_first_action",
+                "semantics":"observed_reference_anchor_V_mu_without_hindsight_action",
                 "frozen_design":plan_binding,
                 "reference_policy":require_reference_policy_contract(plan["targets"]["reference_policy"]),
                 "reference_cutoff_time_ns":int(pd.Timestamp(plan["calendar"][
@@ -679,7 +686,8 @@ def _entry_representations(
                     state_factory=candidate_state_factory,
                     child_rows=candidate_child_rows[consumed:consumed + len(observed_rows)],
                     device=device,
-                    **({"reference_hold_targets":reference_hold_targets} if coherent_reference is not None else {}),
+                    **({"reference_hold_targets":reference_hold_targets,
+                        "reference_policy":coherent_reference["reference_policy"]} if coherent_reference is not None else {}),
                 )
                 _accumulate_active_head_epoch(
                     active_heads, model,

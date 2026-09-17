@@ -1,9 +1,9 @@
 # Beslutning før mer omfattende GX1-trening — 2026-09-16
 
-Gjeldende2026-09-17: Entry-gradientrettelsen bedrer TRAIN-verdiestimatene,
-men retningsvalg slår ikke konstantbaseline og Exit er litt svakere. Se
-[ENTRY_CONNECTED_FIXED256_20260917.md](ENTRY_CONNECTED_FIXED256_20260917.md).
-Ingen læringsport, større trening eller kontroll-/økonomikjøring er åpnet.
+Gjeldende 2026-09-17: Etterpåklokskap i observerte Entry-targets er påvist
+og rettet. Gamle Entry-målinger dokumenterer fit til den gamle fasiten.
+Korrekt, sammenlignbar baseline kreves før mer trening; ingen læringsport
+er bestått. Se [fasitrettelsen](CAUSAL_REFERENCE_ENTRY_FIX_20260917.md).
 
 Brukerens prioritet: **Krev målbar læring før mer omfattende trening.**
 Målet er positiv kostnadsjustert netto Bps, ikke flest mulige tekniske PASS.

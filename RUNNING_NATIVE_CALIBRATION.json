@@ -1,12 +1,12 @@
 {
-  "status": "ENTRY_CONNECTED_FIXED256_COMPLETE_PARTIAL_FIT_DECISION_GATE_FAILED",
+  "status": "CAUSAL_REFERENCE_ENTRY_FIX_TESTED_NEW_BASELINE_REQUIRED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Completed connected256 model run source; documentation commit follows.",
-  "latest_observation_utc": "2026-09-17T13:50:32.550949+00:00",
+  "source_commit_scope": "Last completed native training source; current target fix has no native training run.",
+  "latest_observation_utc": "2026-09-17T14:15:33.408366+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_CONNECTED_FIXED256_20260917_BOOT455",
-  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_state": "Disabled",
   "observed_processes": [],
@@ -18,9 +18,9 @@
     "next_batch_offset": 256,
     "phase": "train",
     "schema_version": "gx1_candidate_training_session_v1",
-    "session_contract_sha256": "dd1264010fc1002f8076fffafef9cd353db3f3413d34962096c6729c37ce98e9",
+    "session_contract_sha256": "82e24fb03316dbeea8d2d0bb3cd23e3c9243e50aa1f9ca185584ff40163a4752",
     "slot": 0,
-    "state_sha256": "dc73d0fd7887ebcb1d9e8a8f62d5d4c3b0038a5ee439b5ad79950c45d119d7b6"
+    "state_sha256": "1c44bad72a06a33b7f5bb8da298a2f274ed37f50defe09d39589ea92c8690c16"
   },
   "reference_checkpoint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_1.pt",
@@ -42,7 +42,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "learning_gate": {
-    "decision": "REJECT_EXPANSION_ENTRY_DIRECTION_AND_EXIT_DECISION_GATES_FAILED",
+    "decision": "CAUSAL_REFERENCE_ENTRY_FIX_TESTED_NEW_BASELINE_REQUIRED",
     "specification": "docs/LEARNING_GATE_20260916.md",
     "technical_pass_is_not_learning_pass": true,
     "entry_exit_learning_demonstrated": false,
@@ -63,6 +63,22 @@
     "connected_fixed256_verdict": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/VERDICT.json",
       "sha256": "1d9604bf5774fd6c6177b290e651d01d2bbb210db69d91f1e1b18a69731ab486"
+    },
+    "corrected_entry_baseline_required": true,
+    "previous_entry_fit_scope": "Historical fit to hindsight-clipped Entry targets; not a corrected-target learning result.",
+    "causal_reference_entry_fix": {
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/CAUSAL_FIX_RESULT.json",
+        "sha256": "07ef00a2834e58f62223963d56ad0b16bd883963b36e69ad12e4f8d4ccbdf6df"
+      },
+      "audit": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/RESULT.json",
+        "sha256": "f28423f581bd7421d443bd96e7e6fa62629e37fa22f3241b9f55bbce8109f166"
+      },
+      "report": "docs/CAUSAL_REFERENCE_ENTRY_FIX_20260917.md",
+      "tests_passed": 33,
+      "learning_proven": false,
+      "new_native_run_authorized": false
     }
   },
   "profile": {
@@ -73,7 +89,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Use existing TRAIN outputs, cached inputs and current source to isolate the remaining directional-value learning bottleneck. Preserve the Entry gradient correction as an unpromoted work candidate. No additional training, forward, fitting, control reuse, target change, search or expansion is authorized by this result.",
+  "next_action": "Prepare one explicitly derived TRAIN-only baseline using preserved predictions and HOLD targets, canonical executable first-liquidation values, and the corrected causal reference Entry formula. Verify target provenance and exact parity before binding any new native run. Never relabel old hindsight targets or an algebraic reconstruction as native measurements. No model forward, optimizer, normalization fit, CONTROL/VAL/TEST access, or training is authorized in this preparation.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -98,7 +114,7 @@
     "target_chain_and_final_head_contributions_measured": true
   },
   "historical_last_training_source_commit": "fcd03e884c2b402979624df767a359c57562c2e1",
-  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE",
+  "candidate_artifact_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917",
   "source_commit": "2c5ddb454d1e5bfc81c7c1dbbdf1f7080d82852e",
   "exit_private_clip_review": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
@@ -180,7 +196,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T13:50:32.550934+00:00",
+  "observed_utc": "2026-09-17T14:15:33.408366+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -241,7 +257,7 @@
     }
   },
   "frozen_readout_evaluation_order": "Both observations complete. Plans consumed; no rerun or retuning. Reuse bound comparison and originals.",
-  "github_publication_status": "pending_current_explicit_approval_after_automatic_review_rejection",
+  "github_publication_status": "standing_explicit_authorization_for_source_docs_and_aggregates",
   "frozen_readout_materializer_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json",
     "sha256": "e727325e32934fbdad5beeb0b230b6c609e818a9583132a549cc1e9ad8eb57c3"
@@ -804,5 +820,19 @@
     "measurement_roles": [
       "train"
     ]
+  },
+  "completed_causal_reference_entry_fix": {
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/CAUSAL_FIX_RESULT.json",
+      "sha256": "07ef00a2834e58f62223963d56ad0b16bd883963b36e69ad12e4f8d4ccbdf6df"
+    },
+    "audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/RESULT.json",
+      "sha256": "f28423f581bd7421d443bd96e7e6fa62629e37fa22f3241b9f55bbce8109f166"
+    },
+    "report": "docs/CAUSAL_REFERENCE_ENTRY_FIX_20260917.md",
+    "tests_passed": 33,
+    "learning_proven": false,
+    "new_native_run_authorized": false
   }
 }

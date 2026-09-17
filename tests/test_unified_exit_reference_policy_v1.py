@@ -7,7 +7,7 @@ import torch
 
 from gx1.contracts.unified_exit_reference_policy_v1 import (
     build_reference_policy_hold_targets, reference_policy_contract,
-    require_reference_policy_contract,
+    require_reference_policy_contract, reference_policy_state_values,
 )
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     PROPER_POLICY_CERTIFICATE_SCHEMA_VERSION, require_proper_policy_certificate,
@@ -146,3 +146,35 @@ def test_malformed_evidence_fails_closed(mutation):
         data['successor_terminal_mask'][0,-1,0]=True;data['boundary_action_valid_mask'][0,0,0]=False;data['boundary_right_censored_mask'][0,0]=True
     elif mutation=='resurrection':data['successor_terminal_mask'][0,0,0]=True
     with pytest.raises(RuntimeError,match='UNIFIED_EXIT_REFERENCE_'):build_reference_policy_hold_targets(**data)
+
+
+def test_reference_state_value_does_not_invent_profit_from_symmetric_future_outcomes():
+    q=torch.tensor([[[10.,0.],[-10.,0.]],[[-10.,0.],[10.,0.]]],requires_grad=True)
+    mask=torch.ones_like(q,dtype=torch.bool);rng=torch.random.get_rng_state().clone()
+    actual=reference_policy_state_values(policy=reference_policy_contract(),action_q_bps=q,action_valid_mask=mask)
+    # Same observable state, two equiprobable futures: zero gross expectation,
+    # minus one Bps executable entry value. A pathwise max would invent +4.
+    assert torch.equal((actual-1).mean(0),torch.tensor([-1.,-1.]))
+    assert torch.equal(q.detach()[...,0].clamp_min(0).mean(0)-1,torch.tensor([4.,4.]))
+    assert not actual.requires_grad and q.grad is None and torch.equal(rng,torch.random.get_rng_state())
+    flipped=reference_policy_state_values(policy=reference_policy_contract(),action_q_bps=q.flip(1),action_valid_mask=mask)
+    assert torch.equal(flipped,actual.flip(1))
+
+
+def test_reference_state_value_preserves_losses_and_ignores_invalid_terminal_hold():
+    q=torch.tensor([[[-12.,0.],[float('nan'),0.]]]);mask=torch.tensor([[[True,True],[False,True]]])
+    actual=reference_policy_state_values(policy=reference_policy_contract(),action_q_bps=q,action_valid_mask=mask)
+    assert torch.equal(actual,torch.tensor([[-11.9,0.]]))
+
+
+@pytest.mark.parametrize('fault',['shape','dtype','mask','exit_invalid','exit_value','valid_nan'])
+def test_reference_state_value_rejects_invalid_inputs(fault):
+    q=torch.zeros(1,2,2);mask=torch.ones_like(q,dtype=torch.bool)
+    if fault=='shape':q=q[:,:,0]
+    elif fault=='dtype':q=q.double()
+    elif fault=='mask':mask=mask.float()
+    elif fault=='exit_invalid':mask[0,0,1]=False
+    elif fault=='exit_value':q[0,0,1]=1
+    else:q[0,0,0]=float('nan')
+    with pytest.raises(RuntimeError,match='REFERENCE_STATE_VALUE_INVALID'):
+        reference_policy_state_values(policy=reference_policy_contract(),action_q_bps=q,action_valid_mask=mask)

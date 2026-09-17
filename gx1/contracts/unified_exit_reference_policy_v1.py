@@ -144,3 +144,25 @@ def build_reference_policy_hold_targets(
         "boundary_bootstrap_weight": weight,
         "observed_backup_step_count": lengths,
     }
+
+
+@torch.no_grad()
+def reference_policy_state_values(*, policy: Mapping[str, Any],
+                                  action_q_bps: torch.Tensor,
+                                  action_valid_mask: torch.Tensor) -> torch.Tensor:
+    """V_mu at the current state; never choose an action using a future return.
+
+    HOLD Q_mu may be an observed return sample. Average the declared causal
+    action probabilities before regression. Terminal sides take EXIT=0.
+    """
+    contract = require_reference_policy_contract(policy)
+    q, mask = action_q_bps, action_valid_mask
+    if (not isinstance(q, torch.Tensor) or not isinstance(mask, torch.Tensor)
+            or q.ndim != 3 or q.shape[0] < 1 or q.shape[1:] != (2, 2)
+            or q.dtype != torch.float32 or mask.dtype != torch.bool
+            or mask.shape != q.shape or mask.device != q.device
+            or not bool(mask[..., 1].all()) or not bool(torch.isfinite(q[mask]).all())
+            or not bool((q[..., 1] == 0).all())):
+        raise RuntimeError("UNIFIED_EXIT_REFERENCE_STATE_VALUE_INVALID")
+    p = contract["hold_probability_numerator"] / contract["hold_probability_denominator"]
+    return p * q[..., 0].masked_fill(~mask[..., 0], 0.0)

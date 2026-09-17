@@ -35,7 +35,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     require_random_access_sampler_contract,
 )
 from gx1.contracts.unified_exit_reference_policy_v1 import (
-    require_reference_policy_contract, build_reference_policy_hold_targets,
+    require_reference_policy_contract, build_reference_policy_hold_targets, reference_policy_state_values,
 )
 from gx1.contracts.unified_exit_random_access_state_view_v1 import (
     TRADE_PATH_TAIL_MAX_ROWS,
@@ -818,13 +818,17 @@ def run_random_access_training_step(
         anchor_reference = target_cache["entry_reference_targets"]
         anchor_q = torch.stack((anchor_reference["hold_target_bps"], anchor_reference["exit_now_target_bps"]), dim=-1)
     anchor_mask = batch["anchor_action_valid_mask"]
-    first_values = unified_exit_first_state_side_values(
-        frozen_target_q_bps=anchor_q.unsqueeze(2),
-        action_valid_mask=anchor_mask.unsqueeze(2),
-        state_valid_mask=torch.ones(
-            anchor_q.shape[:2] + (1,), dtype=torch.bool, device=anchor_q.device
-        ),
-    )
+    if entry_reference:
+        first_values = reference_policy_state_values(
+            policy=policy, action_q_bps=anchor_q, action_valid_mask=anchor_mask)
+    else:
+        first_values = unified_exit_first_state_side_values(
+            frozen_target_q_bps=anchor_q.unsqueeze(2),
+            action_valid_mask=anchor_mask.unsqueeze(2),
+            state_valid_mask=torch.ones(
+                anchor_q.shape[:2] + (1,), dtype=torch.bool, device=anchor_q.device
+            ),
+        )
     if relative:
         liquidation = batch["entry_liquidation_value_bps"]
         if liquidation.shape != first_values.shape or not bool(torch.isfinite(liquidation).all().item()):
@@ -867,7 +871,7 @@ def run_random_access_training_step(
         "entry_fitted_q_binding_sha256": fitted_entry_binding["binding_sha256"],
     }
     if entry_reference:
-        bridge["entry_bridge_semantics"] = "observed_reference_anchor_Q_mu_with_greedy_first_action"
+        bridge["entry_bridge_semantics"] = "observed_reference_anchor_V_mu_without_hindsight_action"
         bridge["reference_cutoff_time_ns"] = reference_cutoff_time_ns
     bridge["binding_sha256"] = _canonical_sha256(bridge)
     return {

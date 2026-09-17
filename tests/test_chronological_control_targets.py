@@ -45,7 +45,7 @@ def test_control_entry_and_exit_equal_native_train_reference_exactly(relative_fi
             reference_policy=reference_policy_contract(),reference_cutoff_time_ns=CUTOFF,return_reference_targets=True)
         before=list(factory.calls)
         targets,valid,_=val._candidate_anchor_targets(target_model=teacher,target_entry_output=output,state_factory=factory,
-            child_rows=[0],device=torch.device('cpu'),reference_hold_targets=target['hold_target_bps'])
+            child_rows=[0],device=torch.device('cpu'),reference_hold_targets=target['hold_target_bps'],reference_policy=reference_policy_contract())
     torch.testing.assert_close(target['hold_target_bps'],train['entry_reference_target_evidence']['hold_target_bps'],rtol=0,atol=0)
     torch.testing.assert_close(targets[0],train['entry_targets'][1],rtol=0,atol=0)
     assert factory.calls==before==[0,min(120,count-1)]
@@ -84,7 +84,7 @@ def test_reference_entry_rejects_invalid_detached_value_before_model_call(relati
     else:factory.economics_objective_contract={}
     with pytest.raises(RuntimeError,match='REFERENCE_ANCHOR_INVALID'):
         val._candidate_anchor_targets(target_model=None,target_entry_output={val.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY:torch.ones(1,1)},
-            state_factory=factory,child_rows=[0],device=torch.device('cpu'),reference_hold_targets=q)
+            state_factory=factory,child_rows=[0],device=torch.device('cpu'),reference_hold_targets=q,reference_policy=reference_policy_contract())
     assert factory.calls==[]
 
 
@@ -149,8 +149,23 @@ def test_entry_control_integration_reuses_same_exit_reference_and_exact_sparse_i
     rows=diag['bounded_entry_observations']
     assert [r['entry_row_index'] for r in rows]==args['candidate_child_rows']
     for row,exit_row in zip(rows,reference_rows):
-        assert row['target_q_bps']==[-4+max(exit_row['target_hold_bps'][0],0),-4.,0.]
+        expected=torch.tensor(exit_row['target_hold_bps'],dtype=torch.float32)*(119/120)-4
+        assert row['target_q_bps']==expected.tolist()+[0.]
     evidence=diag['candidate_active_head_evidence']
-    assert evidence['entry_q_target_semantics']=='observed_reference_anchor_Q_mu_with_greedy_first_action'
+    assert evidence['entry_q_target_semantics']=='observed_reference_anchor_V_mu_without_hindsight_action'
     assert evidence['reference_measurement']['frozen_design']==args['evaluation_cohort']['plan']
     assert evidence['target_updated_from_val_or_test'] is False
+
+
+@pytest.mark.parametrize('fault',['missing','unpaired','changed'])
+def test_reference_entry_requires_same_declared_policy(relative_fixture,fault):
+    factory=_factory(_collate(*_inputs()),600);q=torch.ones(1,2);policy=reference_policy_contract()
+    if fault=='missing':policy=None
+    elif fault=='unpaired':q=None
+    else:policy['hold_probability_numerator']=118
+    with pytest.raises(RuntimeError,match='REFERENCE_'):
+        val._candidate_anchor_targets(target_model=None,
+            target_entry_output={val.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY:torch.ones(1,1)},
+            state_factory=factory,child_rows=[0],device=torch.device('cpu'),
+            reference_hold_targets=q,reference_policy=policy)
+    assert factory.calls==[]

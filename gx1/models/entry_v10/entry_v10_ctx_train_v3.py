@@ -545,7 +545,7 @@ def _candidate_learning_diagnostics(
         "frozen_continuation_bps": summary(continuation[anchor_valid]),
         "first_liquidation_source": "canonical_random_access_batch.entry_liquidation_value_bps",
         "continuation_source": "entry_target[selected_entry_batch_index,LONG_SHORT]-first_liquidation",
-        "continuation_semantics": "max_valid_frozen_relative_action_value_with_EXIT_zero",
+        "continuation_semantics": "actual_fitted_entry_bridge_continuation_see_bound_bridge_semantics",
         "source_counts": {
             "outer_entry_rows": int(target.shape[0]),
             "selected_first_anchor_rows": int(anchors.numel()),
@@ -564,7 +564,7 @@ def _candidate_learning_diagnostics(
         "routing_task_gradients": evidence, "routing_gradient_cosines": cosines,
         "gradient_semantics": "actual_weighted_task_gradients_on_same_entry_routing_parameters",
         "entry": {"prediction": choices(prediction), "target": choices(target), "by_action": per_action,
-                  "target_semantics": "frozen_exit_value_estimates_not_realized_market_outcomes",
+                  "target_semantics": "fitted_entry_targets_not_realized_trading_policy_profit",
                   "target_decomposition_bps": entry_decomposition},
         "relative_hold_target_bps": summary(hold),
         "relative_hold_decomposition_bps": {
@@ -573,6 +573,7 @@ def _candidate_learning_diagnostics(
             "nonpositive_reward_positive_target_count": int(((reward <= 0) & (hold > 0)).sum().item()),
             "reward_source": "canonical_random_access_batch.liquidation_relative_reward_bps.HOLD",
             "bootstrap_source": "actual_fitted_Q_HOLD_target-minus-liquidation_relative_reward",
+            "remainder_semantics": "Includes later observed rewards in multi-step/reference mode; not pure teacher bootstrap.",
         }, "test_data_used": False,
     }
 
