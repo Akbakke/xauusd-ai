@@ -1,49 +1,46 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende status:256-stegsforsøket er ferdig, læringsporten er ikke bestått
+## Entry lærer mer, men retningsvalg og Exit består fortsatt ikke læringsporten
 
-Entry vurderes først. På senere mars–mai faller LONG-MSE530,45→513,09 og
-SHORT432,71→421,24. LONG taper mot TRAIN-konstanten507,32 i alle tre måneder.
-SHORT slår konstanten429,35, men gevinsten er hovedsakelig nivåtilpasning;
-korrelasjonen er0,022. Entry velger66LONG/190SHORT/0FLAT på kontrollen og
-255/1/0 på TRAIN. Bedre innganger er ikke bevist.
+Den ene Entry-gradientrettelsen er prøvd ferdig på2c5ddb45: samme ferske
+starttilstand,4096 Entries,256 oppdateringer og identisk frossen fasit/lærer.
+TRAIN256 er målt med alle anker-/samplede Exit-states. Ingen ny CONTROL-
+forward. GuardPASS/trainer0/observer0. Tasken er deaktivert; ingen aktiv jobb.
+Det brukte chronological_learning_run-unntaket er stengt. Ingen utvidelse.
 
-Exit-feilen blir samlet større i begge retninger på senere data, både ved
-ankeret og samplede states. TRAIN-feil bedres svakt, men handlingsvalg og
-overføring består ikke kravene. Ingen økonomikjøring er åpnet.
+Entry LONG-MSE240,24→234,50 og SHORT235,34→220,73 mot den lagrede detached-
+modellen. Begge slår initialmodell og TRAIN-konstant; sentrert feil bedres
+også. LONG-MSE bedres i5/9 måneder, SHORT i8/9. Dette er gjenbrukt TRAIN med
+fitted-overlapp, ikke generalisering eller profitt.
 
-Alle256 steg og fast ONLINE-måling er ferdige på cf6e2b23 med eksakt samme
-mål, masks, kohorter og frosne lærer som førmålingen. GuardPASS/trainer0/
-observer0. Tasken er deaktivert; ingen aktiv native jobb. Det brukte
-chronological_learning_run-unntaket er stengt. Ingen gjentakelse, utvidelse,
-samme-CONTROL-tuning, full epoch/fullVAL eller TEST. Bevar alle bevis.
+Omtrent88,63% av samlet LONG/SHORT-MSE-gevinst er fellesverdien(LONG+SHORT)/2.
+Retningskontrasten LONG−SHORT har korrelasjon0,101, omtrent initial0,101;
+den gamle detached var0,075. Modellen lærer mest felles verdi, fortsatt svakt
+retningsskille. Valgene er222LONG/19SHORT/15FLAT mot gamle255/1/0. Referanse-
+regret8,5074 er bedre enn gamle8,5952, men taper mot alltidLONG8,4556.
+Dette er frosne referanseverdier, ikke realisert handelsresultat.
 
-Entry-gradientkontrollen er ferdig på4f6a64ec: guardPASS/trainer0/observer0,
-null optimizersteg og to forwards på samme TRAIN16. Dagens V4-detach gir
-null Entry-gradient til feature-/MTF-routing. Åpen forbindelse gir norm0,229;
-LONG0,134/SHORT0,192/FLAT0,016. Hjelpeoppgavene gir1,937; forholdet er0,118
-og cosinus0,550. Entry-hodegradientene og variantprediksjonene er bitlike.
-541 parametertensorer får Entry-gradient mot7 før. Dette viser en konkret
-læringsbegrensning, ikke bedre læring eller generalisering.
+Exit-MSE blir litt verre mot detached på begge sider og begge stateflater.
+LONG velger fortsatt1024/1024HOLD; SHORT1004/1024EXIT. Hele målet er uoppfylt.
+Å sette kjent FLAT=0 på lagrede outputs endrer bare to valg og gjør regret
+verre; det forklarer ikke hovedgapet. Ingen ny modellvariant ble kjørt.
 
-Avviket mot lagret inferens var0,0000296Bps med identiske handlinger, innen
-på forhånd valgt eksisterende FP32-toleranse0,0001. Første feilede forsøk er
-bevart. Original ONLINE256, checkpoint, RNG og frosne mål er uendret; eksakte
-TRAIN16-inputs er cachet. Tasken er deaktivert og diagnoseunntaket er stengt.
+Behold den minimale Entry-gradientrettelsen som arbeidskandidat og bevar alle
+originaler/checkpoints/cache/resultater. Modell-AST er ellers uendret;
+Exit-tokenets detach beholdes. Før rettelsen målte én TRAIN16-kontrast
+Entry-routingnorm0→0,229 med bitlike outputs og hodegradienter. Sju berørte
+gradienttester og13 måle-/scope-kontroller består; commit-kontrakttester består.
 
-Modellrettelsen er gjort: bare detach foran Entry-Q-mikseren er fjernet;
-hele øvrige modell-AST, inkludert Exit-tokenets sperre, er uendret. Sju
-relevante gradienttester består. Eksisterende native sluttmåler har ett
-policybundet TRAIN-only-valg;13 unike måle-/scope-kontroller består.
+Neste er å isolere den svake retnings-/tilstandslæringen fra eksisterende
+TRAIN-outputs, cacher og kode før ny modellendring. Ingen ny trening, forward,
+fit, CONTROL-gjenbruk, targetendring, tapsvektsøk, full epoch/VAL eller TEST er
+åpnet. Kildekontrollen fant ingen tilsvarende detach i online Exit-fusjonen.
+Exit har egne exit_episode_family_tf-rutere; manglende gradient til Entry-
+rutere er derfor ikke bevis for avskåret Exit-læring. Ingen ny Exit-gradient
+har blitt målt. Gjenbruk ferdig arbeid; ikke gjenta gradient- eller256-runden.
 
-Én TRAIN-only læringskontrast er frosset før fit: samme ferske starttilstand,
-samme4096-raders rekkefølge, lærer, mål og256 optimizersteg. Slutt-ONLINE
-sammenlignes med lagret initialmodell, opprinnelig detached256 og TRAIN-
-konstanter. TRAIN256 og alle anker-/samplede Exit-states måles. Ingen ny
-CONTROL-forward. Konstant nivåflytting eller klassesammenbrudd teller ikke.
-Dette er gjenbrukt TRAIN, ikke generalisering. Ingen tapsvektsøk, gjentakelse,
-forlengelse, full epoch/VAL eller TEST. Commit og bind én native window før start.
-Se docs/ENTRY_CONNECTED_FIXED256_20260917.md og tilhørende plan-snapshot.
+Se docs/ENTRY_CONNECTED_FIXED256_20260917.md og
+handover_snapshot/ENTRY_CONNECTED_FIXED256_REVIEW_20260917.json.
 
 ## Historiske resultater og fullført arbeid — ikke startinstrukser
 

@@ -1,11 +1,12 @@
 # GX1 arbeidsmål — 2026-09-16
 
-Gjeldende status2026-09-17: fast256-forsøket er ferdig. TRAIN-feil bedres svakt,
-men Entry-valg og senere Exit-overføring består ikke læringskravene. Kjøringen
-og unntaket er avsluttet; bevar originale checkpoints og målinger. Entry har
-førsteprioritet. Bekreftet V4-gradientisolasjon er neste avgrensede TRAIN-only
-hypotese, ingen dokumentert løsning. CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json
-avgjør neste arbeid; eldre beslutninger nedenfor er historikk.
+Gjeldende status2026-09-17: Entry-gradientrettelsen er prøvd i ett ferdig
+fast256-forsøk. Entry-feil bedres på TRAIN, hovedsakelig i fellesverdien;
+retningsvalg slår fortsatt ikke konstantbaseline. Exit blir litt svakere.
+Ingen lærings-/generaliserings-/økonomiport er bestått. Kjøringen og unntaket
+er avsluttet. Gjenbruk eksisterende TRAIN-bevis for neste årsaksavklaring;
+ingen ny trening eller CONTROL-forward nå. CURRENT_HANDOVER.md og
+NEXT_RUN_POLICY.json avgjør gjeldende arbeid; eldre beslutninger er historikk.
 
 Utvikle en modell som gir positiv kostnadsjustert netto Bps gjennom selektive,
 retningsmessig gode Entries og Exit som realiserer forventet videre nettoverdi.
