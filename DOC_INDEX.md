@@ -2,8 +2,8 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — bundet representasjonsdiagnose etter avvist residualprøve.
-2. VEIEN_VIDERE.md — utfør og vurder den ene bundne representasjonsmålingen.
+1. CURRENT_HANDOVER.md — fullført representasjonsdiagnose og neste avklaring.
+2. VEIEN_VIDERE.md — bevar lærerfunksjonen før rettelse av hovedbanen.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
@@ -11,7 +11,10 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
-- docs/RESIDUAL_REPRESENTATION_DIAGNOSTIC_20260918.md — gjeldende diagnose, inputbevis og oppstart.
+- docs/RESIDUAL_REPRESENTATION_REVIEW_20260918.md — gjeldende funn og begrensninger.
+- handover_snapshot/RESIDUAL_REPRESENTATION_{RESULT,REVIEW}_20260918.json — fullført måling og vurdering.
+
+- docs/RESIDUAL_REPRESENTATION_DIAGNOSTIC_20260918.md — fullført forsøksdesign; ikke relanser.
 
 - docs/RESIDUAL_NORMALIZATION_REVIEW_20260917.md — gjeldende konklusjon.
 - handover_snapshot/RESIDUAL_NORMALIZATION_{REVIEW,VERDICT,COMPLETION,BOUND_AUDIT}_20260917.json — fullførte aggregater og bindinger.

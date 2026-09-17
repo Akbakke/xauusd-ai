@@ -4,9 +4,9 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Residualnormalisering er avvist. Én representasjonsdiagnose med to inferensforwards er bundet, ikke startet; ingen trening er åpnet og læringsporten er ikke bestått.
-Neste er den bundne representasjonsdiagnosen fra kontrollerte inputs/outputs,
-ikke ny trening eller flere uprøvde arkitekturendringer.
+Nå: Representasjonsdiagnosen er fullført: stor nesten felles hovedbane og svekket variasjon ved Entry-normalisering er målt. Ingen aktiv kjøring eller ny plan; læringsporten er ikke bestått.
+Neste er å bevare lærerfunksjonen før én rettelse av den målte hovedbanen.
+Ingen ny trening eller uprøvde arkitekturendringer er åpnet.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

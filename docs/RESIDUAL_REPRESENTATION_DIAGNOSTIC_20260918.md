@@ -1,3 +1,7 @@
+# Fullført historisk forsøksplan — ikke relanser
+
+Se RESIDUAL_REPRESENTATION_REVIEW_20260918.md for resultat og neste steg.
+
 # Residualkandidat — to native inferensmålinger
 
 CPU-kontrollen bekreftet identiske inputs, radrekkefølge, targets og masker for

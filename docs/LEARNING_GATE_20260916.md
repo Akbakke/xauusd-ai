@@ -5,9 +5,9 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Residualnormalisering er avvist. Én representasjonsdiagnose med to inferensforwards er bundet, ikke startet; ingen trening er åpnet og læringsporten er ikke bestått.
+Representasjonsdiagnosen er fullført: stor nesten felles hovedbane og svekket variasjon ved Entry-normalisering er målt. Ingen aktiv kjøring eller ny plan; læringsporten er ikke bestått.
 Ny kandidat gir blandede MSE-endringer og identiske handlinger mot kausal256.
-Eksakt fasit/lærer er bevart. Neste er én avgrenset diagnose, ikke mer trening.
+Eksakt fasit/lærer er bevart. Diagnosen er vurdert; neste er eksplisitt lærerbinding før én rettelse.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke

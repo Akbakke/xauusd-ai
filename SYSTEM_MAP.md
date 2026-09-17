@@ -48,11 +48,13 @@ beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLA
 Exit alltid HOLD for LONG / EXIT for SHORT. Signaldiagnosen er fullført: kraftig
 vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
 Entry-hidden. Dette er målt før residualnormaliseringen; den nye modellens
-representasjoner er ennå ikke målt. Inputnormaliseringen er uendret.
+representasjoner er nå målt separat: nesten felles main-fuse-norm117,71,
+9,51 ganger mindre variasjon etter joint-normalisering og7,07 ganger mindre
+i Entry-hidden. Se RESIDUAL_REPRESENTATION_REVIEW_20260918.md. Inputnormaliseringen er uendret.
 Normaliseringen før tre residualprojeksjoner ble prøvd på88310075 med native256 og
-avvist: samme FLAT/sidekonstante handlinger. Én representasjonsdiagnose er nå
-bundet med to inferensforwards og null optimizersteg. Koden
-bevares for kildesamsvar; neste er avgrenset representasjonsdiagnose. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
+avvist: samme FLAT/sidekonstante handlinger. Representasjonsdiagnosen er fullført
+og brukt scope er stengt. Koden
+bevares for kildesamsvar; neste er uendret lærerbinding før rettelse av hovedbanen. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
 bevaring av lærerens Entry-/Exit-outputs og frosne mål.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert

@@ -177,7 +177,7 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "latest_completed_native": record.get("completed_residual_normalized_fixed256") or record.get("completed_causal_entry_fixed256"),
         "recorded_next_diagnostic": record.get("next_diagnostic"),
         "last_diagnostic_failure": record.get("completed_entry_signal_failure"),
-        "latest_completed_diagnostic": record.get("completed_entry_signal_inference_check") or record.get("completed_entry_forward_parity"),
+        "latest_completed_diagnostic": record.get("completed_residual_representation") or record.get("completed_entry_signal_inference_check") or record.get("completed_entry_forward_parity"),
         "next_action": record.get("next_action"),
         "learning_gate": record.get("learning_gate"),
         "full_epoch_training_allowed": record.get("full_epoch_training_allowed", False),
