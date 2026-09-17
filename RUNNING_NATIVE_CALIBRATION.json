@@ -1,5 +1,5 @@
 {
-  "status": "COHERENT_CONTROL_TARGETS_READY_IMMUTABLE_BINDINGS_NEXT",
+  "status": "PREFIX_IMMUTABLE_BINDINGS_READY_FRESH_PREPARATION_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Fresh prefix components, durable native coordinator, recipe/campaign and coherent chronological control targets are synthetically verified. CONTROL Entry/Exit reuse identical observed reference Q_mu with one frozen teacher and bound control-end timestamp; native TRAIN target parity is exact. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms, then separately bind actual fresh-state and frozen TRAIN/control measurements including fixed ONLINE snapshot dispatch. Only necessary source corrections and focused synthetic tests now; completed artifacts/tests must be reused. No chronological_learning_run authority is present and training_enabled remains false. No actual construction/forward/optimizer, refit, native launch, control tuning, full epoch/fullVAL or TEST. The single frozen256-step experiment still has no learning result.",
+  "next_action": "Completed prefix normalization is now bound to immutable bridge/bundle/index manifests; original physical indices, coordinates, quotes, successors, episode/fill IDs, sampler and sequences are unchanged. Do not repeat preparation or fits. Next: bind actual fresh initialization and frozen TRAIN/control measurement preparation, including fixed ONLINE snapshot dispatch, through existing native owners. No chronological_learning_run authority is present; training_enabled remains false. No actual model construction/forward/optimizer, full epoch/fullVAL or TEST has been run by this metadata preparation. The frozen256-step experiment still has no learning result.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T05:05:45.947259+00:00",
+  "observed_utc": "2026-09-17T05:22:05.732289+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Fresh prefix components, durable native coordinator, recipe/campaign and coherent chronological control targets are synthetically verified. CONTROL Entry/Exit reuse identical observed reference Q_mu with one frozen teacher and bound control-end timestamp; native TRAIN target parity is exact. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms, then separately bind actual fresh-state and frozen TRAIN/control measurements including fixed ONLINE snapshot dispatch. Only necessary source corrections and focused synthetic tests now; completed artifacts/tests must be reused. No chronological_learning_run authority is present and training_enabled remains false. No actual construction/forward/optimizer, refit, native launch, control tuning, full epoch/fullVAL or TEST. The single frozen256-step experiment still has no learning result."
+    "next_scope": "Completed prefix normalization is now bound to immutable bridge/bundle/index manifests; original physical indices, coordinates, quotes, successors, episode/fill IDs, sampler and sequences are unchanged. Do not repeat preparation or fits. Next: bind actual fresh initialization and frozen TRAIN/control measurement preparation, including fixed ONLINE snapshot dispatch, through existing native owners. No chronological_learning_run authority is present; training_enabled remains false. No actual model construction/forward/optimizer, full epoch/fullVAL or TEST has been run by this metadata preparation. The frozen256-step experiment still has no learning result."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -544,6 +544,34 @@
     },
     "report": "docs/COHERENT_CONTROL_TARGET_20260917.md",
     "tests_passed": 24,
+    "native_launch_authorized": false
+  },
+  "prefix_immutable_binding_preparation": {
+    "enabled": false,
+    "status": "COMPLETE_DO_NOT_REPEAT",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/PLAN.json",
+      "sha256": "666e0d50abfb48c214365eb9fe861fb3c5d86bd706d517a2c4e94f4a7dd15ade"
+    },
+    "one_preparation_only": true,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/RESULT.json",
+      "sha256": "559cc4ef659290468fe4228ac94db94e133bec99ac772d3b9118f7f7a141cda6"
+    }
+  },
+  "completed_prefix_immutable_bindings": {
+    "status": "PREFIX_TRANSFORMS_BOUND_PHYSICAL_DATA_UNCHANGED",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/RESULT.json",
+      "sha256": "559cc4ef659290468fe4228ac94db94e133bec99ac772d3b9118f7f7a141cda6"
+    },
+    "report": "docs/PREFIX_IMMUTABLE_BINDINGS_20260917.md",
+    "root": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/ROOT.json",
+      "sha256": "6c8b0c023db89e197a21d7b05d19ee071242c023d7a0c30399ab5466f47d7819"
+    },
     "native_launch_authorized": false
   }
 }

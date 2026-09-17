@@ -1,5 +1,18 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
+## Gjeldende neste steg: faktisk fersk oppstart og måleklargjøring
+
+Ferdige prefix-normaliseringer er nå koblet til nye immutable bridge-, bundle-
+og indeksmanifester. Originale indeksfiler, priser, klokker, successors,
+episode-/fill-ID-er, sampler og sekvensbindinger er uendret. Eksisterende
+byggere og validatorer er brukt. Ingen produksjonskode, modellkjøring eller
+normaliseringsfit inngikk. Denne forberedelsen er ferdig og skal ikke gjentas.
+
+Neste er å binde faktisk fersk oppstart og frosne TRAIN-/kontrollmålinger,
+inkludert fast ONLINE-snapshot. Ingen chronological_learning_run er åpnet;
+training_enabled er fortsatt false. Det planlagte 256-stegs forsøket har ennå
+ingen læringsresultater. Se docs/PREFIX_IMMUTABLE_BINDINGS_20260917.md.
+
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får
 −15,7477Bps per inngangsmulighet, inkludert kostnader og fire åpne posisjoner.

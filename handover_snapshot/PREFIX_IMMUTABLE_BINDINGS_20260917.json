@@ -1,0 +1,136 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/RESULT.json",
+    "sha256": "559cc4ef659290468fe4228ac94db94e133bec99ac772d3b9118f7f7a141cda6"
+  },
+  "result": {
+    "completed_utc": "2026-09-17T05:22:05.732289+00:00",
+    "composite_normalization": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/COMPOSITE_NORMALIZATION.json",
+      "sha256": "fa4a348c743cca9ffb72665c00cff59a02533fae32194ecc76208961f25de4a4"
+    },
+    "composite_normalization_sha256": "a0ac57bed82d982fa138e218af888e89951532bc34bc99f263cd806a9f48c68f",
+    "control_entries": 256,
+    "decision": "PREFIX_TRANSFORMS_BOUND_PHYSICAL_DATA_UNCHANGED",
+    "elapsed_seconds": 96.9405442319985,
+    "existing_bundle_builder_reused": true,
+    "final_bindings_bundle": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/FINAL_BINDINGS_BUNDLE.json",
+      "sha256": "fe3e5b315d8db67d164ee53c31b2c0385298fa4c572cbb84b718e62eebf65712"
+    },
+    "final_bindings_recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/FINAL_BINDINGS_RECIPE.json",
+      "sha256": "7193e93ec0d4da1bdf227c5042d276c2cd1ab77b5208393daef6a7b5121acbaf"
+    },
+    "frozen_design": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+      "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+    },
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "native_launch_authorized": false,
+    "normalization_refits": 0,
+    "normalization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+      "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+    },
+    "optimizer_steps": 0,
+    "original_root": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/ROOT.json",
+      "sha256": "dbce286e2cb20cb8b0cb441fd60d6743a84a91ea2afdd549a817b8f351d842c7"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/PLAN.json",
+      "sha256": "666e0d50abfb48c214365eb9fe861fb3c5d86bd706d517a2c4e94f4a7dd15ade"
+    },
+    "preparation_script": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/PREPARE.py",
+      "sha256": "6d803ab3f801c2e60c31f58e6fe51eb3d7d37c967f411f8372a31ab6c6ad79b6"
+    },
+    "production_source_edits": 0,
+    "remaining": [
+      "bound actual fresh initialization and frozen TRAIN/control measurement preparation, including fixed ONLINE snapshot dispatch",
+      "single predeclared 256-step native learning experiment; economics only after learning gate"
+    ],
+    "root": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/ROOT.json",
+      "sha256": "6c8b0c023db89e197a21d7b05d19ee071242c023d7a0c30399ab5466f47d7819"
+    },
+    "sampler_and_native_order_unchanged": true,
+    "schema_version": "gx1_prefix_immutable_bindings_v1",
+    "source_commit": "fafadcec9bcb4d23d1efbfe618770a017db1eb4e",
+    "split_proofs": {
+      "train": {
+        "all_sources_verified": true,
+        "bridge_only_changed_fields": [
+          "bindings.train_normalization",
+          "witness_sha256"
+        ],
+        "entry_rows": 313399,
+        "index": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.random_access_index.parquet",
+          "sha256": "66004b8c453aa54ecaa74535036e1d1d25b40d1e60e363ede2f2956accfbfb78"
+        },
+        "index_reused_byte_exact": true,
+        "manifest": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/train.manifest.json",
+          "sha256": "736b9cb51f1fb73bccc096d09b5a1f6dfd509c2519b5ef68107a0e3a59424a04"
+        },
+        "physical_columns_unchanged": [
+          "entry_row_index",
+          "parent_entry_row_index",
+          "entry_time_ns",
+          "first_state_time_ns",
+          "parent_m1_start_row",
+          "child_m1_start_row",
+          "successor_transition_count",
+          "lifecycle_state_count",
+          "economic_terminal",
+          "right_censored",
+          "entry_bid",
+          "entry_ask",
+          "episode_binding_sha256",
+          "entry_fill_binding_sha256",
+          "row_identity_sha256"
+        ]
+      },
+      "val": {
+        "all_sources_verified": true,
+        "bridge_only_changed_fields": [
+          "bindings.train_normalization",
+          "witness_sha256"
+        ],
+        "entry_rows": 5508,
+        "index": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/val.random_access_index.parquet",
+          "sha256": "9893d83368d5b26c6149bf9acd1fdbdaad6988c7c461e2c3e1151c9650a6e476"
+        },
+        "index_reused_byte_exact": true,
+        "manifest": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/val.manifest.json",
+          "sha256": "67278db7fae428cce33edd5be2fc21f713f2f0dfb6c0216487e38d2d2e853dbd"
+        },
+        "physical_columns_unchanged": [
+          "entry_row_index",
+          "parent_entry_row_index",
+          "entry_time_ns",
+          "first_state_time_ns",
+          "parent_m1_start_row",
+          "child_m1_start_row",
+          "successor_transition_count",
+          "lifecycle_state_count",
+          "economic_terminal",
+          "right_censored",
+          "entry_bid",
+          "entry_ask",
+          "episode_binding_sha256",
+          "entry_fill_binding_sha256",
+          "row_identity_sha256"
+        ]
+      }
+    },
+    "successor_counts_preserved": true,
+    "test_data_used": false,
+    "val_metadata_only_no_model_evaluation": true
+  }
+}
