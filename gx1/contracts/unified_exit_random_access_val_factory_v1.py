@@ -100,7 +100,7 @@ def _materialize_val_cpu_chunk(requests: list[tuple[dict[str, Any], int]]) -> li
 
 
 class RandomAccessValStateFactoryV1:
-    """Own the exact VAL cohort and lazily materialize causal rolling states."""
+    """Materialize causal evaluation states from an explicitly bound source split."""
 
     def __init__(
         self,
@@ -119,9 +119,15 @@ class RandomAccessValStateFactoryV1:
         economic_step_manifest: Mapping[str, Any],
         economics_objective_contract: Mapping[str, Any],
         artifact_file_sha256: Mapping[str, str],
+        source_split: str = "val",
     ) -> None:
-        if len(entry_rows) != VAL_ENTRY_COHORT_SIZE or len(child_m1) < _M1_HISTORY:
+        if source_split not in ("train", "val"):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_SOURCE_SPLIT_INVALID")
+        entry_count = len(entry_rows)
+        if (entry_count < 1 or len(child_m1) < _M1_HISTORY
+                or (source_split == "val" and entry_count != VAL_ENTRY_COHORT_SIZE)):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_COHORT_INVALID")
+        self.source_split = source_split
         self.entry_rows = entry_rows.reset_index(drop=True)
         self.child_m1 = child_m1.reset_index(drop=True)
         self.times = pd.DatetimeIndex(
@@ -132,14 +138,14 @@ class RandomAccessValStateFactoryV1:
             self.times.hasnans
             or not self.times.is_unique
             or not self.times.is_monotonic_increasing
-            or counts.shape != (VAL_ENTRY_COHORT_SIZE,)
+            or counts.shape != (entry_count,)
             or np.any(counts < 1)
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_SOURCE_INVALID")
         sequence = require_split_sequence_binding(
             sequence_binding,
-            expected_split="val",
-            expected_entry_rows=VAL_ENTRY_COHORT_SIZE,
+            expected_split=source_split,
+            expected_entry_rows=entry_count,
         )
         composite = require_composite_normalization_binding(composite_normalization)
         bridge = dict(first_state_bridge)
@@ -150,14 +156,14 @@ class RandomAccessValStateFactoryV1:
             bridge.get("schema_version")
             != "gx1_unified_exit_first_state_entry_bridge_v1"
             or bridge.get("decision") != "PASS"
-            or bridge.get("split") != "val"
-            or bridge.get("entry_row_count") != VAL_ENTRY_COHORT_SIZE
+            or bridge.get("split") != source_split
+            or bridge.get("entry_row_count") != entry_count
             or bridge.get("test_accessed") is not False
             or bridge.get("witness_sha256") != canonical_sha256(bridge_core)
             or len(bridge.get("first_state_episode_binding_sha256_by_entry", ()))
-            != VAL_ENTRY_COHORT_SIZE
+            != entry_count
             or len(bridge.get("entry_fill_binding_sha256_by_entry", ()))
-            != VAL_ENTRY_COHORT_SIZE
+            != entry_count
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_BRIDGE_INVALID")
         closure = require_market_closure_authority(
@@ -215,10 +221,10 @@ class RandomAccessValStateFactoryV1:
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_ENTRY_CLOCK_INVALID")
         index = require_random_access_index(
-            random_access_index, expected_split="val"
+            random_access_index, expected_split=source_split
         ).reset_index(drop=True)
         if (
-            len(index) != VAL_ENTRY_COHORT_SIZE
+            len(index) != entry_count
             or not np.array_equal(
                 index["entry_time_ns"].to_numpy(dtype="<i8"), entry_times.asi8
             )
@@ -239,7 +245,7 @@ class RandomAccessValStateFactoryV1:
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_INDEX_BINDING_INVALID")
         rebuilt_sequence = build_split_sequence_binding(
-            split="val",
+            split=source_split,
             entry_times=entry_times,
             m1_times=self.times,
             successor_transition_counts=counts,
@@ -260,7 +266,7 @@ class RandomAccessValStateFactoryV1:
             closure_authority_sha256=sequence["bindings"]["closure_authority"],
         )
         rebuilt_bridge = build_first_state_entry_bridge_witness(
-            split="val",
+            split=source_split,
             entry_times=entry_times,
             m1_times=self.times,
             child_admission_sha256=bridge["bindings"]["child_admission"],
@@ -396,13 +402,13 @@ class RandomAccessValStateFactoryV1:
                     "entry_fill_binding_sha256_by_entry"
                 ][index],
             }
-            for index in range(VAL_ENTRY_COHORT_SIZE)
+            for index in range(entry_count)
         ]
         self.factory_receipt = {
             "schema_version": VAL_FACTORY_SCHEMA_VERSION,
             "decision": "PASS",
-            "split": "val",
-            "entry_pair_count": VAL_ENTRY_COHORT_SIZE,
+            "split": source_split,
+            "entry_pair_count": entry_count,
             "both_sides": True,
             "state_zero_has_prior_m1_rows": _M1_HISTORY - 1,
             "trade_path_tail_capacity": _PATH_TAIL,
@@ -441,7 +447,10 @@ class RandomAccessValStateFactoryV1:
         economic_step_provider: Any,
         economic_step_manifest: Mapping[str, Any],
         economics_objective_contract: Mapping[str, Any],
+        source_split: str = "val",
     ) -> "RandomAccessValStateFactoryV1":
+        if source_split not in ("train", "val"):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_SOURCE_SPLIT_INVALID")
         paths = {
             "entry_parquet": entry_parquet_path.expanduser().resolve(),
             "entry_manifest": entry_manifest_path.expanduser().resolve(),
@@ -464,17 +473,19 @@ class RandomAccessValStateFactoryV1:
         child_manifest = _read_json(paths["child_m1_manifest"], "M1_MANIFEST")
         summary = _read_json(paths["summary_manifest"], "SUMMARY_MANIFEST")
         if (
-            entry_manifest.get("split") != "val"
+            entry_manifest.get("split") != source_split
             or entry_manifest.get("decision") != "PASS"
             or entry_manifest.get("output_parquet_sha256") != hashes["entry_parquet"]
             or entry_manifest.get("test_accessed") is not False
-            or child_manifest.get("split") != "val"
+            or child_manifest.get("split") != source_split
             or child_manifest.get("decision") != "PASS"
             or child_manifest.get("output_parquet_sha256") != hashes["child_m1"]
             or child_manifest.get("test_accessed") is not False
-            or summary.get("split") != "val"
+            or summary.get("split") != source_split
             or summary.get("decision") != "PASS"
-            or summary.get("entry_pair_population") != VAL_ENTRY_COHORT_SIZE
+            or type(summary.get("entry_pair_population")) is not int
+            or summary["entry_pair_population"] <= 0
+            or (source_split == "val" and summary["entry_pair_population"] != VAL_ENTRY_COHORT_SIZE)
             or summary.get("m1_source_sha256") != hashes["child_m1"]
             or summary.get("m1_manifest_sha256") != hashes["child_m1_manifest"]
             or summary.get("test_accessed") is not False
@@ -483,7 +494,7 @@ class RandomAccessValStateFactoryV1:
         index = pd.read_parquet(paths["random_access_index"])
         index_manifest = require_random_access_index_manifest(
             _read_json(paths["random_access_index_manifest"], "INDEX_MANIFEST"),
-            expected_split="val",
+            expected_split=source_split,
             index_frame=index,
             index_path=paths["random_access_index"],
             verify_sources=True,
@@ -491,12 +502,13 @@ class RandomAccessValStateFactoryV1:
         index_root = require_random_access_index_root(
             _read_json(paths["random_access_index_root"], "INDEX_ROOT")
         )
-        root_val = index_root["splits"]["val"]
+        root_split = index_root["splits"][source_split]
         if (
-            root_val["index_parquet_path"] != str(paths["random_access_index"])
-            or root_val["index_parquet_sha256"] != hashes["random_access_index"]
-            or root_val["manifest_path"] != str(paths["random_access_index_manifest"])
-            or root_val["manifest_sha256"] != index_manifest["manifest_sha256"]
+            len(index) != summary["entry_pair_population"]
+            or root_split["index_parquet_path"] != str(paths["random_access_index"])
+            or root_split["index_parquet_sha256"] != hashes["random_access_index"]
+            or root_split["manifest_path"] != str(paths["random_access_index_manifest"])
+            or root_split["manifest_sha256"] != index_manifest["manifest_sha256"]
             or index_manifest["source_bindings"]["first_state_bridge"]["sha256"]
             != hashes["first_state_bridge"]
             or index_manifest["source_bindings"]["sequence_binding"]["sha256"]
@@ -527,6 +539,7 @@ class RandomAccessValStateFactoryV1:
             economic_step_manifest=economic_step_manifest,
             economics_objective_contract=economics_objective_contract,
             artifact_file_sha256=hashes,
+            source_split=source_split,
         )
 
     def _summary(self, entry_start: int, side: int, state_index: int) -> dict[str, Any]:
@@ -580,7 +593,7 @@ class RandomAccessValStateFactoryV1:
         entry_id = int(entry["entry_row_index"])
         if (
             entry_id < 0
-            or entry_id >= VAL_ENTRY_COHORT_SIZE
+            or entry_id >= len(self.entries)
             or dict(entry) != self.entries[entry_id]
             or state_index < 0
             or state_index >= entry["available_state_count"]
@@ -728,10 +741,14 @@ class RandomAccessValStateFactoryV1:
         evaluation_cohort: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], RandomAccessValRolloutAdapterV1]:
         entries = self.entries
+        if self.source_split == "train" and evaluation_cohort is None:
+            raise RuntimeError("UNIFIED_EXIT_VAL_TRAIN_SOURCE_REQUIRES_BOUND_COHORT")
         if evaluation_cohort is not None:
             from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
             scope = require_bounded_val_cohort(evaluation_cohort)
-            if scope["source_index"]["sha256"] != self.artifact_file_sha256["random_access_index"]:
+            if (scope.get("source_split", scope["split"]) != self.source_split
+                    or scope["population_rows"] != len(self.entries)
+                    or scope["source_index"]["sha256"] != self.artifact_file_sha256["random_access_index"]):
                 raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_SOURCE_MISMATCH")
             entries = [self.entries[i] for i in scope["entry_row_indices"]]
         contract = build_random_access_val_rollout_contract(

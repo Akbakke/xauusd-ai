@@ -776,7 +776,7 @@ def require_random_access_val_evaluation_result_v1(
     if "evaluation_cohort" in result:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(result["evaluation_cohort"])
-        if (scope["population_rows"] != VAL_ENTRY_COHORT_SIZE
+        if ((scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE)
                 or not isinstance(execution, Mapping)
                 or execution.get("evaluation_cohort_sha256") != scope["cohort_sha256"]
                 or result.get("evaluation_scope") != "bounded_development_val"

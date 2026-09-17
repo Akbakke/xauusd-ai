@@ -1,5 +1,5 @@
 {
-  "status": "PREFIX_NORMALIZATION_READY_FRESH_NATIVE_BINDING_NEXT",
+  "status": "NATIVE_CONTROL_SOURCE_READY_FRESH_INITIALIZATION_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prefix normalization artifacts COMPLETE and verified. Frozen47814 TRAIN Entries,53007M5 local rows,263998Exit current rows,379901summary state samples/759802bothside rows;maximum observed close2026Feb27T22Z beforeMarch1 cutoff. All original313399 successor counts exact equal. Same fields/timeframes retained. Two source features constant: D1 EMA (signal/context aliases) and D1 bull_divergence_strength; explicit prefix-only raw-unit scaling records absent variation, not learned unseen-regime effects. First two basefit failures preserved; final base/summary/composite published once, no refit or repeated population allowed. Existing Entry dataset prefix label binding and these new transforms must now be used in the existing native fresh whole-model/target/EMA/optimizer and TRAIN-source logicalCONTROL256 setup. Old full-train initialization/normalization and June-only evaluator must not leak through. Next scope: minimal concrete native binding corrections and focused synthetic tests, then separately bound preparation. No actual model forward, optimizer, native launch, full epoch/VAL, controlretuning or TEST now.",
+  "next_action": "Native physical TRAIN/logical development-control source is synthetically verified in existing factory/rollout/evaluator/result validator;35 unique tests passed. Preserve original CONTROL256 parent/child IDs and all physical index columns. No separate runner and no full-VAL authority. Prefix labels/policies/normalizations are already complete; do not refit or repeat completed tests. Next concrete work is existing native full-train fresh whole-model/target/EMA/optimizer initialization, binding the completed prefix artifacts on separate TRAIN/CONTROL datasets, and prefix eligibility/order/cutoff/source references through native recipe/campaign. Old weights/full-TRAIN transforms must not load. Minimal required source corrections and focused synthetic tests only, then separately bound preparation. No actual forward, optimizer, native launch, full epoch/VAL, control tuning or TEST.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-16T18:19:20.525069+00:00",
+  "observed_utc": "2026-09-17T03:53:27.491246+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix normalization artifacts COMPLETE and verified. Frozen47814 TRAIN Entries,53007M5 local rows,263998Exit current rows,379901summary state samples/759802bothside rows;maximum observed close2026Feb27T22Z beforeMarch1 cutoff. All original313399 successor counts exact equal. Same fields/timeframes retained. Two source features constant: D1 EMA (signal/context aliases) and D1 bull_divergence_strength; explicit prefix-only raw-unit scaling records absent variation, not learned unseen-regime effects. First two basefit failures preserved; final base/summary/composite published once, no refit or repeated population allowed. Existing Entry dataset prefix label binding and these new transforms must now be used in the existing native fresh whole-model/target/EMA/optimizer and TRAIN-source logicalCONTROL256 setup. Old full-train initialization/normalization and June-only evaluator must not leak through. Next scope: minimal concrete native binding corrections and focused synthetic tests, then separately bound preparation. No actual model forward, optimizer, native launch, full epoch/VAL, controlretuning or TEST now."
+    "next_scope": "Native physical TRAIN/logical development-control source is synthetically verified in existing factory/rollout/evaluator/result validator;35 unique tests passed. Preserve original CONTROL256 parent/child IDs and all physical index columns. No separate runner and no full-VAL authority. Prefix labels/policies/normalizations are already complete; do not refit or repeat completed tests. Next concrete work is existing native full-train fresh whole-model/target/EMA/optimizer initialization, binding the completed prefix artifacts on separate TRAIN/CONTROL datasets, and prefix eligibility/order/cutoff/source references through native recipe/campaign. Old weights/full-TRAIN transforms must not load. Minimal required source corrections and focused synthetic tests only, then separately bound preparation. No actual forward, optimizer, native launch, full epoch/VAL, control tuning or TEST."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -481,6 +481,16 @@
     "base_fit_published_once": true,
     "summary_fit_published_once": true,
     "constant_field_policy_explicit": true,
+    "native_launch_authorized": false
+  },
+  "completed_native_control_source": {
+    "status": "NATIVE_TRAIN_CONTROL_SOURCE_SYNTHETIC_PASS_NOT_FRESH_CAMPAIGN_READY",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "968bce7a35e7caab2e67a20b6971074c9c1455ef2a551666d02e3e24cf043e43"
+    },
+    "report": "docs/NATIVE_CONTROL_SOURCE_20260917.md",
+    "unique_tests_passed": 35,
     "native_launch_authorized": false
   }
 }

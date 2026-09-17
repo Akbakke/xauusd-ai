@@ -1,0 +1,128 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "968bce7a35e7caab2e67a20b6971074c9c1455ef2a551666d02e3e24cf043e43"
+  },
+  "result": {
+    "schema_version": "gx1_native_control_source_synthetic_v1",
+    "decision": "NATIVE_TRAIN_CONTROL_SOURCE_SYNTHETIC_PASS_NOT_FRESH_CAMPAIGN_READY",
+    "completed_utc": "2026-09-17T03:53:27.488058+00:00",
+    "parent_source_commit": "86fd84b734e5459057ed45765b03603f5ef3fc46",
+    "source_files": {
+      "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_bounded_val_cohort_v1.py",
+        "sha256": "d9543a6368cc1fd5ea27feb7fbae3dfd2de9690708a0f85940fd981e0630fb23"
+      },
+      "gx1/contracts/unified_exit_random_access_val_factory_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_factory_v1.py",
+        "sha256": "8a667c277564d30800dc0fac01a5ba622ab7b5aad6c8db1abed3f976084332be"
+      },
+      "gx1/contracts/unified_exit_random_access_val_rollout_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
+        "sha256": "17569ce8a2f7b052b2bc07ea4c2767ec6716cabd15d3bfe18e5eab1cf3c89f17"
+      },
+      "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
+        "sha256": "5a90eab6514fafabadab695b31856906edb9343dcd72e677b20018366ca1310d"
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "sha256": "587a395948fe41c124aa645eb98fa5a3d8bd111a2287462e068f3f6f9899db55"
+      }
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_chronological_control_source.py",
+      "sha256": "44dd179be1b0186047c1d85c313367da2ade705208d11cae0ae86001c541dc6d"
+    },
+    "test_runs": [
+      {
+        "junit": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917/JUNIT.xml",
+          "sha256": "2fb2bd9781c668ef1e5f8acf24fae4613ccd56fdfa9e149bb053b806aad18df3"
+        },
+        "tests": 33,
+        "failed": 1
+      },
+      {
+        "junit": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917/RETRY_JUNIT.xml",
+          "sha256": "6c9a559ed81b068cb1f347f9b57308a49166893474df36da5c390e58e6b0ce1c"
+        },
+        "tests": 3,
+        "failed": 0
+      },
+      {
+        "junit": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917/RESULT_VALIDATOR_JUNIT.xml",
+          "sha256": "917b9ca2c57ca93045e51b7c776e90f9c0a71e1449c885d313ebff7432894663"
+        },
+        "tests": 3,
+        "failed": 0
+      }
+    ],
+    "unique_tests_passed": 35,
+    "unchanged_owner_definitions": {
+      "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": {
+        "changed_definitions": [
+          "_chronological_control_coordinates",
+          "build_chronological_control_cohort",
+          "require_bounded_val_cohort"
+        ],
+        "unchanged_definitions": 1
+      },
+      "gx1/contracts/unified_exit_random_access_val_factory_v1.py": {
+        "changed_definitions": [
+          "RandomAccessValStateFactoryV1.__init__",
+          "RandomAccessValStateFactoryV1.bind_rollout",
+          "RandomAccessValStateFactoryV1.from_artifacts",
+          "RandomAccessValStateFactoryV1.materialize_state"
+        ],
+        "unchanged_definitions": 8
+      },
+      "gx1/contracts/unified_exit_random_access_val_rollout_v1.py": {
+        "changed_definitions": [
+          "_require_entries",
+          "require_random_access_val_rollout_contract"
+        ],
+        "unchanged_definitions": 18
+      },
+      "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": {
+        "changed_definitions": [
+          "require_random_access_val_evaluation_result_v1"
+        ],
+        "unchanged_definitions": 23
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "changed_definitions": [
+          "evaluate_bound_full_val_v1"
+        ],
+        "unchanged_definitions": 18
+      }
+    },
+    "first_attempt_failure": "Test used nonexistent build_adapter method; corrected to existing bind_rollout. Original log retained. No production change for this test failure.",
+    "result_validator_followup": "Existing result validator still unconditionally required June population; changed same source-specific check and reran only affected native result/resume path.",
+    "scope": [
+      "explicit physical TRAIN source with logical reused-development VAL role",
+      "CONTROL256 exact frozen parent IDs from design, original child IDs retained",
+      "all original physical index fields equal including counts/times/prices when normalization binding changes",
+      "no full TRAIN evaluation without bounded cohort",
+      "same state/summary/MTF/economic owners",
+      "full June default retained",
+      "synthetic pause/resume exact output parity",
+      "bounded result cannot satisfy full VAL gate",
+      "before-forward source and parent-ID rejection"
+    ],
+    "actual_data_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "actual_normalization_fits": 0,
+    "synthetic_policy_forwards_exercised": true,
+    "test_data_used": false,
+    "native_launch_authorized": false,
+    "remaining": [
+      "fresh whole model/target/EMA/AdamW and prefix normalization in native full-train owner",
+      "bind completed prefix labels on TRAIN and CONTROL dataset instances",
+      "bind prefix eligibility/order/cutoff and rebuilt normalization references in native recipe/campaign",
+      "separately bound preparation then bounded measurable learning"
+    ]
+  }
+}

@@ -133,7 +133,7 @@ def _require_entries(entries: Sequence[Mapping[str, Any]], evaluation_cohort=Non
     if evaluation_cohort is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(evaluation_cohort)
-        if scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+        if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         expected_ids = scope["entry_row_indices"]
     count = VAL_ENTRY_COHORT_SIZE if expected_ids is None else len(expected_ids)
@@ -348,7 +348,7 @@ def require_random_access_val_rollout_contract(
     if "evaluation_cohort" in observed:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(observed["evaluation_cohort"])
-        if scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+        if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         count = len(scope["entry_row_indices"])
         required.add("evaluation_cohort")

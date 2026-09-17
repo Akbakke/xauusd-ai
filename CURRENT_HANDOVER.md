@@ -217,6 +217,23 @@ bindingsrettelser og fokuserte syntetiske kontroller er åpnet nå; ingen forwar
 optimizer eller native launch. Se docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md
 og handover_snapshot/PREFIX_NORMALIZATION_READY_20260917.json.
 
+## Native TRAIN-kilde for senere kontroll er rettet
+
+Eksisterende factory/rollout/evaluator/resultatleser kan nå binde den låste
+CONTROL256 fra fysisk TRAIN som gjenbrukt utviklingskontroll. Originale
+parent-/child-ID-er, klokker, priser og successor-counts beholdes. En kontroll
+kan ikke ommerkes til full VAL; uavgrenset TRAIN-rollout er stengt. Default
+juni5508 er uendret.35 unike syntetiske kontroller består, med nøyaktig
+pause/gjenopptak-paritet. Én feil metodenavn i testen er rettet; loggen bevart.
+Dette er kildeintegrasjon, ikke læringsbevis eller faktisk kontrollkjøring.
+
+Fersk helmodell/lærer/EMA/optimizer, de ferdige prefix-transformene/-fasitene
+og prefix-rekkefølge/cutoff må fortsatt kobles i eksisterende native oppstart
+og recipe/campaign. Bare nødvendige koderettelser og fokuserte syntetiske
+tester er åpnet, deretter separat bundet klargjøring. Ingen faktiske forwards,
+optimizersteg, full epoch/VAL eller TEST. Ikke gjenta ferdige fits eller tester.
+Se docs/NATIVE_CONTROL_SOURCE_20260917.md og tilhørende handover_snapshot.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

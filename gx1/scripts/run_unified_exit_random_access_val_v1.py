@@ -712,8 +712,13 @@ def evaluate_bound_full_val_v1(
     if evaluation_cohort is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(evaluation_cohort)
-        if frame["entry_row_index"].astype("int64").tolist() != scope["entry_row_indices"]:
+        if (frame["entry_row_index"].astype("int64").tolist() != scope["entry_row_indices"]
+                or ("parent_entry_row_indices" in scope and
+                    frame["parent_entry_row_index"].astype("int64").tolist() != scope["parent_entry_row_indices"])):
             raise RuntimeError("UNIFIED_EXIT_VAL_BOUND_FRAME_MISMATCH")
+        if (scope.get("source_split", "val") != state_factory.source_split
+                or scope["source_index"]["sha256"] != state_factory.artifact_file_sha256["random_access_index"]):
+            raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_SOURCE_MISMATCH")
         expected_count = len(scope["entry_row_indices"])
     parent_rows = frame["parent_entry_row_index"].astype("int64").tolist()
     if candidate_target_model is not None and canonical_model_state_sha256(candidate_target_model.state_dict()) != checkpoint_binding["target_model_state_sha256"]:
