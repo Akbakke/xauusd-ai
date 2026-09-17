@@ -11,6 +11,9 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md — én bundet native signaldiagnose, ikke påstand om start.
+- handover_snapshot/SAVED_OPTIMIZER_CAUSE_20260917.json — ferdig undersøkelse av lagret state.
+
 - docs/CAUSAL_ENTRY_FIXED256_REVIEW_20260917.md — paret læringsanalyse, ikke bestått.
 - handover_snapshot/CAUSAL_ENTRY_FIXED256_{REVIEW,VERDICT}_20260917.json — aggregater og konklusjon.
 - handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json — historisk snapshot ved teknisk fullføring, før analysen.

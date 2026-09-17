@@ -1,0 +1,102 @@
+{
+  "schema_version": "gx1_saved_optimizer_cause_review_v1",
+  "created_utc": "2026-09-17T17:00:43.076858+00:00",
+  "decision": "LOSS_WEIGHT_SHUTDOWN_AND_TOTAL_ENTRY_DISCONNECT_NOT_SUPPORTED",
+  "state_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/STATE_AUDIT.json",
+    "sha256": "c6d9fe8b359caf22aaa0008d4b50ccd141876e7782f456754a6b9a859d6a0a12"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+  },
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456/progress/.invocation-0001.json.trainer.FKJG3O8i.log",
+    "sha256": "afd659298419b96a55206d3a9cc5166c05f4d92d2b87f40ecc35e0809f9d3023"
+  },
+  "first_batch_entry_routing_l2": 21.650791275353438,
+  "final_entry_precision": 0.9752587196346746,
+  "final_exit_precision": 0.9758503367292242,
+  "optimizer_step_histogram": {
+    "256": 726
+  },
+  "optimizer_groups": [
+    {
+      "weight_decay": 0.0001,
+      "lr": 0.0001,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "amsgrad": false,
+      "foreach": null,
+      "maximize": false,
+      "capturable": false,
+      "differentiable": false,
+      "fused": null,
+      "initial_lr": 0.0001,
+      "parameter_count": 722
+    },
+    {
+      "weight_decay": 0.0,
+      "lr": 0.0001,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "amsgrad": false,
+      "foreach": null,
+      "maximize": false,
+      "capturable": false,
+      "differentiable": false,
+      "fused": null,
+      "initial_lr": 0.0001,
+      "parameter_count": 10
+    }
+  ],
+  "parameter_changes": {
+    "entry_q_joint_in": {
+      "tensors": 2,
+      "changed_tensors": 2,
+      "elements": 65664,
+      "changed_elements": 65664,
+      "delta_l2": 0.5553946009056899,
+      "initial_l2": 14.316895067308407,
+      "final_l2": 14.32639139129208
+    },
+    "head_entry_action_q": {
+      "tensors": 2,
+      "changed_tensors": 2,
+      "elements": 387,
+      "changed_elements": 387,
+      "delta_l2": 0.045584587945018434,
+      "initial_l2": 2.421642322350949,
+      "final_l2": 2.4132201713321946
+    },
+    "family_tf_context_gate": {
+      "tensors": 2,
+      "changed_tensors": 2,
+      "elements": 5160,
+      "changed_elements": 4128,
+      "delta_l2": 0.1643406592544471,
+      "initial_l2": 3.629555742312985,
+      "final_l2": 3.6324395453211795
+    },
+    "family_tf_token_gate": {
+      "tensors": 2,
+      "changed_tensors": 2,
+      "elements": 129,
+      "changed_elements": 129,
+      "delta_l2": 0.02528433530099698,
+      "initial_l2": 0.5589473964852549,
+      "final_l2": 0.5651870940722573
+    }
+  },
+  "cause_proven": false,
+  "new_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "limitations": "First-batch routing gradient and parameter movement do not prove useful conditional learning or reveal the complete clipped Adam direction. Loss precision near one rules out loss-weight shutdown, not task-gradient competition."
+}

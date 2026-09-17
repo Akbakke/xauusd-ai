@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_entry_signal_diagnostic_plan_v1",
+  "diagnostic_kind": "initial_final_entry_signal",
+  "created_utc": "2026-09-17T17:00:43.076858+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "26697b79bb062154c13bc95df60c85544c094281eee05874a6fb115d79823a43"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+    "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
+  },
+  "saved_optimizer_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
+    "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
+  },
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "9db53b038cea2f20689c35e5bf2ef2c90ce83f20c6e6ed3d5e6ae4670d6768bf"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "d7b919d53c87167af08766e865257a2e5dcb6b4b80d808b2aff88bc2d21e6837"
+  },
+  "cached_input_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+    "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+  },
+  "optimizer_steps": 0,
+  "train_entries": 16,
+  "model_forwards": 2,
+  "control_forwards": 0,
+  "max_invocations": 1,
+  "mode": "eval",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "variants": [
+    "initial",
+    "final"
+  ],
+  "test_data_used": false,
+  "question": "Where does state-dependent Entry variation shrink between the saved initial and final models, and do weighted auxiliary gradients oppose the exact LONG-SHORT component on Entry-private surfaces?",
+  "measurement": [
+    "same cached TRAIN16 inputs and corrected frozen targets",
+    "initial and final prediction parity within existing FP32 allowance and identical actions",
+    "spread of local M5, fused, MTF, global-context and Entry-hidden representations",
+    "exact common/contrast/FLAT decomposition of native MSE",
+    "weighted common/contrast/Entry/auxiliary gradient norms and alignment on Entry-private routing and head"
+  ],
+  "interpretation": "Localize attenuation and distinguish measured gradient conflict from speculation. This is a report-only eval diagnostic, not an actual full-joint clipped Adam step or proof of learning. No architecture/loss/threshold change follows without measured cause.",
+  "preserve": [
+    "original initial/final/target models",
+    "optimizer state and step count",
+    "RNG and model modes",
+    "all features/timeframes and causal inputs",
+    "costs/targets/teacher",
+    "native guards and source binding"
+  ],
+  "prohibited": [
+    "optimizer step or fitted candidate",
+    "CONTROL/VAL/TEST",
+    "Exit forwards",
+    "search or automatic extension",
+    "treating small predicted variance as proof that target noise is predictable"
+  ]
+}

@@ -380,10 +380,15 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         binding = require_binding(value, label=label, verify_file=True)
         return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
     plan_binding, plan = load(recipe.get("entry_gradient_diagnostic"), "Entry gradient plan")
+    signal = plan.get("diagnostic_kind") == "initial_final_entry_signal"
+    if plan.get("diagnostic_kind") not in (None, "initial_final_entry_signal"):
+        raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     fixed = {"schema_version":"gx1_entry_gradient_diagnostic_plan_v1", "optimizer_steps":0,
              "train_entries":16, "model_forwards":2, "control_forwards":0, "max_invocations":1,
              "mode":"eval", "selection":"first16_existing_frozen_TRAIN_probe",
              "variants":["detached", "connected"], "test_data_used":False}
+    if signal:
+        fixed.update(schema_version="gx1_entry_signal_diagnostic_plan_v1", variants=["initial", "final"])
     if any(type(plan.get(k)) is not type(v) or plan[k] != v for k,v in fixed.items()):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     _, review = load(plan.get("review"), "completed fixed256 review")
@@ -402,8 +407,10 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         if Path(source["path"]) != repo/key:
             raise RuntimeError("ENTRY_GRADIENT_SOURCE_INVALID")
     _, observation = load(plan.get("train_observation"), "frozen TRAIN observation")
-    if (review.get("schema_version") != "gx1_native_fixed256_paired_learning_review_v1"
-            or review.get("decision") != "REJECT_EXPANSION_LEARNING_GATE_FAILED"
+    expected_review = (("gx1_causal_entry_fixed256_train_review_v1", "PAIRED_METRICS_COMPLETE_VERDICT_REQUIRED")
+                       if signal else ("gx1_native_fixed256_paired_learning_review_v1", "REJECT_EXPANSION_LEARNING_GATE_FAILED"))
+    if (review.get("schema_version") != expected_review[0]
+            or review.get("decision") != expected_review[1]
             or result.get("schema_version") != "gx1_native_prefix_final_online_measurement_v1"
             or result.get("selected_model_variant") != "ONLINE" or result.get("optimizer_steps") != 256
             or result.get("frozen_targets_exactly_preserved") is not True
@@ -423,6 +430,30 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
             or observation.get("cohort",{}).get("plan") != prefix["artifacts"]["design"]
             or len(observation.get("diagnostics",{}).get("bounded_entry_observations",[])) != 256):
         raise RuntimeError("ENTRY_GRADIENT_ORIGIN_INVALID")
+    cached_inputs = None
+    initial_observation = None
+    if signal:
+        _, verdict = load(plan.get("verdict"), "completed causal verdict")
+        _, cache_review = load(plan.get("cached_input_review"), "prior cached TRAIN16 inputs")
+        _, cache_plan = load(cache_review.get("plan"), "prior cache plan")
+        _, cache_cursor = load(cache_plan.get("origin_cursor"), "prior cache origin")
+        _, cache_recipe = load(cache_cursor.get("recipe"), "prior cache recipe")
+        cached_inputs = require_binding(cache_review.get("input_cache"), label="cached TRAIN16", verify_file=True)
+        _, initial_result = load(result.get("initial_measurement"), "saved initial measurement")
+        _, initial_observation = load(initial_result.get("observations",{}).get("train"), "saved initial TRAIN outputs")
+        if (verdict.get("review") != plan.get("review")
+                or verdict.get("decision") != "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE"
+                or verdict.get("learning_gate_passed") is not False
+                or cache_review.get("schema_version") != "gx1_entry_gradient_diagnostic_result_v1"
+                or cache_review.get("selection") != "first16_existing_frozen_TRAIN_probe"
+                or cache_review.get("optimizer_steps") != 0 or cache_review.get("test_data_used") is not False
+                or cache_recipe.get("chronological_prefix") != recipe.get("chronological_prefix")
+                or cache_recipe.get("files") != recipe.get("files")
+                or initial_observation.get("cohort") != observation.get("cohort")
+                or initial_observation.get("role") != "train" or initial_observation.get("optimizer_steps") != 0
+                or initial_observation.get("model_state_sha256") != result.get("target_model_state_sha256")
+                or initial_observation.get("test_data_used") is not False):
+            raise RuntimeError("ENTRY_SIGNAL_CACHE_OR_BASELINE_INVALID")
     policy_binding, policy = load(recipe.get("next_run_policy"), "Entry gradient policy")
     if Path(policy_binding["path"]) != repo/"NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
@@ -447,7 +478,8 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
             or "resume_probe_val_rows" in execution_budget):
         raise RuntimeError("ENTRY_GRADIENT_BUDGET_INVALID")
     return {"plan":plan, "plan_binding":plan_binding, "result":result,
-            "observation":observation, "origin_resume_state":state}
+            "observation":observation, "origin_resume_state":state,
+            "cached_inputs":cached_inputs, "initial_observation":initial_observation}
 
 
 def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):

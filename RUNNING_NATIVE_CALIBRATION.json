@@ -1,10 +1,10 @@
 {
-  "status": "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE",
+  "status": "ENTRY_SIGNAL_DIAGNOSTIC_BOUND_NOT_YET_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Completed native training source; handover maintenance is a later commit.",
-  "latest_observation_utc": "2026-09-17T16:36:48.277435+00:00",
-  "source_frozen_while_running": false,
+  "latest_observation_utc": "2026-09-17T17:00:43.076858+00:00",
+  "source_frozen_while_running": true,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
@@ -100,7 +100,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Reuse the completed paired review. Diagnose one remaining cause of near-constant Entry predictions and fixed-by-side Exit actions from existing TRAIN outputs, checkpoint/optimizer state, saved diagnostics and source. First trace whether the state-dependent LONG-SHORT component reaches the actual weighted/clipped optimizer update; do not infer a loss bug from output collapse alone. No new forwards, fits, training, CONTROL, VAL, TEST, search, automatic repeat or extension. Bind any necessary new measurement separately before execution.",
+  "next_action": "One bound native initial-versus-final Entry-signal diagnostic on the same cached TRAIN16, two forwards and zero optimizer steps. Use existing campaign/guards. Inspect terminal report before any change or new run. No CONTROL, VAL, TEST, Exit forward, search or training.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -956,5 +956,40 @@
       "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
     }
   },
-  "native_processes": []
+  "native_processes": [],
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/PLAN.json",
+      "sha256": "4cadac4dcd37cf8f05face40e17210a466d8f77c4f03c707e221762f084493eb"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "2b173bc13f4dbac706f566097a851ef6909d1dde9bb73315a3317959199fbbc3",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "test_data_used": false
+  },
+  "saved_optimizer_cause_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
+    "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
+  },
+  "diagnostic_runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/PREPARATION_RESULT.json"
 }

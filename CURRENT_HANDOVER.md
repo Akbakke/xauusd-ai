@@ -22,7 +22,18 @@ kandidat. Generalisering og profitt er ikke dokumentert.**
 Kjør `./handover.sh --check` på Mac eller `bash scripts/gx1_handover.sh --check`
 i Linux for fersk status. `--verbose` viser også denne overleveringen.
 Ingen handover-kommando starter trening. Gjeldende policy har stengt det brukte
-unntaket; tillatt neste arbeid er analyse av eksisterende TRAIN-artefakter.
+treningsunntaket. Nå er bare den særskilt bundne signaldiagnosen tillatt.
+
+## Aktuelt neste arbeid: én bundet signaldiagnose
+
+Årsaksdiagnosen fra lagret checkpoint er gjort. Entry-gradienten når routing;
+tapsvektene er omtrent 0,975 og parameterne beveger seg. Én konkret ny måling
+er derfor bundet: samme cachede TRAIN16, startmodell mot sluttmodell, to
+native eval-forwards og null optimizersteg. Den lokaliserer tapt variasjon
+og måler retningsgradient mot hjelpeoppgaver. Se
+docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md og NEXT_RUN_POLICY.json.
+Ingen faktisk start hevdes av planen; les PREPARATION_RESULT, prosess og receipt.
+Siste fullførte treningsmodell/checkpoint nedenfor er fortsatt referansen.
 
 ## Autoritativ kilde og siste fullførte kjøring
 

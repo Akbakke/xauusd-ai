@@ -183,3 +183,61 @@ def test_outer_preserves_original_checkpoint_and_rng_on_success_or_failure(pair,
     assert runner.trainer._model_state_sha256(model)==model_hash
     assert _bind(state_path)==state_binding and _bind(Path(pointer["path"]))==pointer
     assert (tmp_path/"entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt").is_file()
+
+
+def test_signal_loss_split_preserves_native_mse_and_prediction_gradient():
+    torch.manual_seed(73)
+    q=torch.randn(16,3,requires_grad=True);target=20*torch.randn(16,3)
+    valid=torch.ones_like(q,dtype=torch.bool)
+    parts=runner._entry_signal_losses(q,target,valid)
+    actual=sum(parts.values());native_loss=torch.nn.functional.mse_loss(q,target)
+    torch.testing.assert_close(actual,native_loss)
+    torch.testing.assert_close(torch.autograd.grad(actual,q,retain_graph=True)[0],torch.autograd.grad(native_loss,q)[0])
+    valid[0,0]=False
+    with pytest.raises(RuntimeError,match="ENTRY_SIGNAL_INPUT_INVALID"):
+        runner._entry_signal_losses(q,target,valid)
+
+
+def test_signal_pair_observes_two_frozen_states_without_accumulation(pair):
+    class SignalSmall(Small):
+        def __init__(self):
+            super().__init__();self.entry_q_joint_norm=torch.nn.LayerNorm(16)
+            self.entry_q_joint_in=torch.nn.Linear(16,4);self.calls=0
+        def forward(self,seq_x,snap_x,**kw):
+            self.calls+=1
+            h=torch.tanh(self.family_tf_context_gate(seq_x)+self.family_tf_token_gate(snap_x))
+            hidden=torch.nn.functional.gelu(self.entry_q_joint_in(self.entry_q_joint_norm(torch.cat([h]*4,1))))
+            return {"entry_action_q_bps":self.head_entry_action_q(hidden),"entry_q_joint_hidden":hidden,"aux":h}
+    model=SignalSmall().eval();batch=pair['batch'];initial=copy.deepcopy(model.state_dict())
+    initial_q=model(batch['seq_x'],batch['snap_x'])['entry_action_q_bps'].detach()
+    with torch.no_grad():model.head_entry_action_q.weight.add_(0.1)
+    final=copy.deepcopy(model.state_dict());final_q=model(batch['seq_x'],batch['snap_x'])['entry_action_q_bps'].detach()
+    model.calls=0
+    result=runner._entry_signal_pair(model=model,batch=batch,target=pair['target'],valid=pair['valid'],
+        predictions={'initial':initial_q,'final':final_q},states={'initial':initial,'final':final},device=pair['device'])
+    assert model.calls==2 and result['final']['gradients']['contrast']['routing']['l2_norm']>0
+    assert result['final']['gradients']['auxiliary']['entry_head']['l2_norm']==0
+    assert all(p.grad is None for p in model.parameters())
+    for k,v in final.items():assert torch.equal(v,model.state_dict()[k])
+
+
+def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient_scope,tmp_path):
+    _,recipe,_,seal,plan,obs,final,resume=gradient_scope
+    plan.update(diagnostic_kind='initial_final_entry_signal',schema_version='gx1_entry_signal_diagnostic_plan_v1',variants=['initial','final'])
+    baseline={**obs,'optimizer_steps':0,'model_state_sha256':'c'*64}
+    final['target_model_state_sha256']='c'*64
+    final['initial_measurement']=_write(tmp_path/'saved_initial.json',{'observations':{'train':_write(tmp_path/'initial_obs.json',baseline)}})
+    review=json.loads(Path(plan['review']['path']).read_text())
+    review.update(schema_version='gx1_causal_entry_fixed256_train_review_v1',decision='PAIRED_METRICS_COMPLETE_VERDICT_REQUIRED',final_result=_write(tmp_path/'final.json',final))
+    plan['review']=_write(tmp_path/'review.json',review)
+    plan['verdict']=_write(tmp_path/'verdict.json',{'review':plan['review'],'decision':'REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE','learning_gate_passed':False})
+    cache=tmp_path/'input_cache.pt';cache.write_bytes(b'synthetic cache')
+    prior_recipe=_write(tmp_path/'cached_recipe.json',{'chronological_prefix':recipe['chronological_prefix'],'files':recipe['files']})
+    prior_plan=_write(tmp_path/'cached_plan.json',{'origin_cursor':_write(tmp_path/'cached_cursor.json',{'recipe':prior_recipe})})
+    plan['cached_input_review']=_write(tmp_path/'cache_review.json',{'schema_version':'gx1_entry_gradient_diagnostic_result_v1',
+        'plan':prior_plan,'input_cache':_bind(cache),'selection':'first16_existing_frozen_TRAIN_probe','optimizer_steps':0,'test_data_used':False})
+    seal()
+    scope=native.require_entry_gradient_diagnostic(recipe)
+    assert scope['cached_inputs']==_bind(cache) and scope['initial_observation']==baseline
+    cache.write_bytes(b'tampered cache')
+    with pytest.raises(RuntimeError):native.require_entry_gradient_diagnostic(recipe)

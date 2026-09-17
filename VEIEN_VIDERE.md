@@ -11,35 +11,27 @@ Fjernkontakt: `ssh gx1-3090-lan`; Linux via
 `wsl.exe -d Ubuntu-22.04 -u andre2 -- /bin/bash -s`.
 Alle kildeoperasjoner skjer i `/home/andre2/src/GX1_CURRENT`.
 
-## Neste handling: én konkret årsaksdiagnose
+## Neste handling: utfør den bundne signaldiagnosen én gang
 
-Native256 og den parete analysen er ferdige. Ikke gjenta dem.
-REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE:
-Entry FLAT256/256, MSE svakere enn TRAIN-konstanter og dårligere LONG−SHORT-
-kontrast enn før. Exit alltid HOLD for LONG / EXIT for SHORT, alle fire
-MSE verre enn connected256. Ingen ny trening, CONTROL, VAL eller TEST.
+Checkpoint-/kildeundersøkelsen er gjort; ikke gjenta den. Tapsvekter nær 0,975,
+ikke-null første Entry-gradient og bevegelige parametere utelukker full stopp
+som forklaring, men avgjør ikke hvorfor retningsfølsomheten blir liten.
 
-Les docs/CAUSAL_ENTRY_FIXED256_REVIEW_20260917.md og siste artefaktmappes
-PAIRED_TRAIN_REVIEW.json/VERDICT.json. Checkpointets payload, modell og frosne
-lærer er verifisert; gamle baselinemetrikker er gjenskapt. Originaler er bevart.
+Planen i BASE/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917 er bundet før utførelse.
+Bruk eksisterende native campaign/launcher/guards: samme cachede TRAIN16,
+initial/final, to eval-forwards og null optimizersteg. Les
+docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md. Kontroller PREPARATION_RESULT.json,
+faktiske prosesser og receipt før noe startes; en eksisterende jobb skal bevares.
 
-1. Følg den tilstandsavhengige LONG−SHORT-feilen til faktisk vektet og klippet
-   optimizeroppdatering i eksisterende kilde og lagrede TRAIN-bevis. Bruk
-   gx1/models/entry_v10/entry_v10_ctx_train_v3.py og tidligere gradientdiagnose.
-   Entry bruker MSE. Ikke anta Huber, manglende features eller ny detach-feil.
-2. Gjenbruk lagrede outputs, checkpoint-/optimizerstate og eksisterende
-   diagnoseartefakter. Skill liten outputvariasjon fra dokumentert årsak.
-   Bevis om dette er svak kondisjonering/oppdatering eller et gjennomsnitt som
-   er rimelig under referansepolicyen; ikke press fram handler med terskler.
-3. Hvis eksisterende bevis ikke avgjør årsaken, beskriv én nødvendig avgrenset
-   måling og bind den særskilt før utførelse. Gjeldende scope åpner ingen nye
-   forwards, fit, søk eller trening. Ikke gjør blind ekstra epoch.
-4. Rett bare en dokumentert blokkering. Bevar korrigert kausal fasit, features,
-   lærer/checkpoints og native vakter. Oppdater handover med konklusjonen og
-   push ferdig arbeid under stående autorisasjon.
+Resultatet skal vise hvor variasjonen krymper og gradientretningen mellom
+fellesnivå, LONG−SHORT og hjelpeoppgaver på Entry-private parametere.
+Skillet fra faktisk treningsmodus og full klippet Adam-oppdatering må beholdes.
+Ingen hypotese blir kodeendring uten målt støtte. Ingen ny trening, søk,
+CONTROL, VAL, TEST, Exit-forward eller automatisk ekstra diagnose.
 
-En eventuell stabil langjobb kontrolleres omtrent hvert 15.–30. minutt eller
-sjeldnere. Faktiske prosesser og terminalkvittering avgjør kjøretilstand.
+Etter terminal receipt: deaktiver tasken, bevar resultat/checkpoint, vurder
+én konkret årsak, steng det brukte diagnoseunntaket og oppdater handover.
+Langjobb sjekkes omtrent hvert 15.–30. minutt eller sjeldnere ved stabil drift.
 
 ## Referanser for sammenligningen
 

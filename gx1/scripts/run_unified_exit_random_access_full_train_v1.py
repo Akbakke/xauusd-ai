@@ -810,6 +810,97 @@ def _entry_gradient_pair(*, model, batch, target, valid, expected_prediction, de
     return report
 
 
+def _entry_signal_losses(q, target, valid):
+    """Exact native Entry MSE decomposition, with no changed objective."""
+    if (q.shape != (16,3) or target.shape != q.shape or valid.shape != q.shape
+            or valid.dtype != torch.bool or not bool(valid.all())
+            or not bool(torch.isfinite(q).all()) or not bool(torch.isfinite(target).all())):
+        raise RuntimeError("ENTRY_SIGNAL_INPUT_INVALID")
+    error=q-target
+    parts={"common":(2.0/3.0)*error[:,:2].mean(1).square().mean(),
+           "contrast":(1.0/6.0)*(error[:,0]-error[:,1]).square().mean(),
+           "flat":(1.0/3.0)*error[:,2].square().mean()}
+    torch.testing.assert_close(sum(parts.values()),error.square().mean(),atol=1e-5,rtol=1e-5)
+    return parts
+
+
+def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
+    """Two frozen forwards localize lost variation and Entry/aux gradient conflict.
+
+    Routing and Entry-Q parameters are the Entry-private surfaces. These are
+    pre-clipping eval gradients, not a reconstructed training optimizer step.
+    """
+    selected=[(n,p) for n,p in model.named_parameters() if p.requires_grad and
+              n.startswith(("family_tf_context_gate.","family_tf_token_gate.","entry_q_joint_","head_entry_action_q."))]
+    names,parameters=zip(*selected)
+    groups={"routing":[i for i,n in enumerate(names) if n.startswith("family_tf_")],
+            "entry_head":[i for i,n in enumerate(names) if not n.startswith("family_tf_")]}
+    if model.training or not all(groups.values()) or any(p.grad is not None for p in model.parameters()):
+        raise RuntimeError("ENTRY_SIGNAL_MODEL_INVALID")
+    def spread(x):
+        x=x.detach().cpu().double();center=x-x.mean(0);variance=center.square().mean(0)
+        norm=torch.linalg.vector_norm(x,dim=1);normalized=x/norm.clamp_min(1e-30)[:,None]
+        cosine=normalized@normalized.T
+        return {"rows":len(x),"width":x.shape[1],"rms_feature_std":float(variance.mean().sqrt()),
+                "mean_row_l2":float(norm.mean()),"mean_pairwise_cosine":float((cosine.sum()-cosine.diag().sum())/(len(x)*(len(x)-1)))}
+    reports={}
+    for variant in ("initial","final"):
+        model.load_state_dict(states[variant],strict=True)
+        captured={}
+        handle=model.entry_q_joint_norm.register_forward_pre_hook(lambda _m,args:captured.update(source=args[0]))
+        try:
+            out=trainer._model_forward_fp32(model,batch["seq_x"].to(device),batch["snap_x"].to(device),
+                ctx_cat=batch["ctx_cat"].to(device),ctx_cont=batch["ctx_cont"].to(device),
+                **trainer._multi_tf_kwargs_from_batch(batch,device))
+        finally:handle.remove()
+        q=out["entry_action_q_bps"];expected=predictions[variant]
+        difference=float((q.detach()-expected).abs().max())
+        if not torch.allclose(q.detach(),expected,atol=1e-4,rtol=0) or not torch.equal(q.detach().argmax(1),expected.argmax(1)):
+            raise RuntimeError("ENTRY_SIGNAL_CACHED_PREDICTION_CHANGED")
+        parts=_entry_signal_losses(q,target,valid)
+        precision=torch.exp(-model.task_log_variances["entry_action_q"])
+        losses={k:precision*v for k,v in parts.items()}
+        losses["entry"]=sum(losses.values())
+        aux=trainer.dip_forecast_task_losses(out,batch,device)
+        aux["side_mae_bps"]=trainer._side_mae_auxiliary_loss(out,batch,device)[0]
+        aux["trendline_event"]=trainer._trendline_event_aux_loss(out,batch,device)[0]
+        position=trainer._require_active_aux_head_prediction(out,batch,output_name="position_size_logit",
+            target_names=("y_position_size_target","y_position_size_mask"))
+        mask=batch["y_position_size_mask"].to(device)
+        if bool((mask.reshape(-1)==1).any()):
+            aux["position_size"]=trainer._masked_position_size_mse(position,batch["y_position_size_target"].to(device),mask)
+        losses["auxiliary"]=trainer._joint_task_loss(model,aux)[0]
+        source=captured["source"];vectors={};gradients={}
+        for task,loss in losses.items():
+            grads=torch.autograd.grad(loss,(*parameters,source),retain_graph=True,allow_unused=True)
+            vectors[task]={};gradients[task]={}
+            for group,indices in groups.items():
+                vector=torch.cat([grads[i].detach().cpu().double().reshape(-1) if grads[i] is not None
+                                  else torch.zeros(parameters[i].numel(),dtype=torch.float64) for i in indices])
+                vectors[task][group]=vector
+                gradients[task][group]={"l2_norm":float(torch.linalg.vector_norm(vector)),
+                    "connected_tensors":sum(grads[i] is not None for i in indices)}
+            gradients[task]["joint_source_l2"]=float(torch.linalg.vector_norm(grads[-1].detach())) if grads[-1] is not None else None
+        alignment={}
+        for group in groups:
+            alignment[group]={}
+            for first,second in (("common","contrast"),("entry","auxiliary"),("contrast","auxiliary")):
+                x,y=vectors[first][group],vectors[second][group];den=float(torch.linalg.vector_norm(x)*torch.linalg.vector_norm(y))
+                alignment[group][first+"__"+second]=float(torch.dot(x,y)/den) if den else None
+            g=vectors["contrast"][group];joint=vectors["entry"][group]+vectors["auxiliary"][group]
+            alignment[group]["contrast_dot_entry_plus_aux_gradient"]=float(torch.dot(g,joint))
+        reports[variant]={"model_state_sha256":trainer._model_state_sha256(model),"cached_max_abs_difference_bps":difference,
+            "entry_precision":float(precision.detach()),"raw_entry_mse":float(sum(parts.values()).detach()),
+            "raw_loss_decomposition":{k:float(v.detach()) for k,v in parts.items()},
+            "representations":{**{name:spread(value) for name,value in zip(("local_m5","fused","mtf","global_context"),source.chunk(4,dim=1))},
+                               "entry_hidden":spread(out["entry_q_joint_hidden"])},
+            "prediction_std_by_action":q.detach().cpu().double().std(0,unbiased=False).tolist(),
+            "gradients":gradients,"alignment":alignment}
+        if any(p.grad is not None for p in model.parameters()):raise RuntimeError("ENTRY_SIGNAL_GRAD_ACCUMULATED")
+        del out,q,parts,losses,aux,source,captured,vectors,grads,position,precision,loss
+    return reports
+
+
 def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe_file_sha256, invocation_started):
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_entry_gradient_diagnostic
     scope=require_entry_gradient_diagnostic(recipe)
@@ -827,9 +918,14 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
     parents=[r["parent_entry_row_index"] for r in rows]
     if parents!=scope["observation"]["cohort"]["parent_entry_row_indices"][:16]:
         raise RuntimeError("ENTRY_GRADIENT_TRAIN_ORDER_INVALID")
-    loader=val.DataLoader(components["train_probe_ds"],batch_size=16,sampler=val._ExactSampler(parents),
-                          num_workers=0,generator=torch.Generator().manual_seed(0))
-    batch=next(iter(loader))
+    signal=scope.get("cached_inputs") is not None
+    if signal:
+        cached=torch.load(_bound_artifact(scope["cached_inputs"]),map_location="cpu",weights_only=False)
+        batch=cached["batch"]
+    else:
+        loader=val.DataLoader(components["train_probe_ds"],batch_size=16,sampler=val._ExactSampler(parents),
+                              num_workers=0,generator=torch.Generator().manual_seed(0))
+        batch=next(iter(loader))
     if batch["entry_row_index"].tolist()!=parents:
         raise RuntimeError("ENTRY_GRADIENT_INPUT_ROW_MISMATCH")
     target=torch.tensor([r["target_q_bps"] for r in rows],dtype=torch.float32,device=device)
@@ -846,10 +942,18 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
     try:
         model.eval()
         if time.monotonic()-invocation_started>=11940:raise RuntimeError("ENTRY_GRADIENT_WALL_LIMIT")
-        measured=_entry_gradient_pair(model=model,batch=batch,target=target,valid=valid,
-                                     expected_prediction=prediction,device=device)
+        if signal:
+            initial_rows=scope["initial_observation"]["diagnostics"]["bounded_entry_observations"][:16]
+            initial_prediction=torch.tensor([r["predicted_q_bps"] for r in initial_rows],dtype=torch.float32,device=device)
+            measured=_entry_signal_pair(model=model,batch=batch,target=target,valid=valid,
+                predictions={"initial":initial_prediction,"final":prediction},
+                states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
+        else:
+            measured=_entry_gradient_pair(model=model,batch=batch,target=target,valid=valid,
+                                         expected_prediction=prediction,device=device)
         if time.monotonic()-invocation_started>=11940:raise RuntimeError("ENTRY_GRADIENT_WALL_LIMIT")
     finally:
+        if signal:model.load_state_dict(state["model_state"],strict=True)
         for m,training in modes:m.training=training
         trainer._restore_attended_session_rng_state(rng,device=device)
         if trainer._model_state_sha256(model)!=expected:raise RuntimeError("ENTRY_GRADIENT_MODEL_CHANGED")
@@ -865,6 +969,13 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
         "rng_restored":True,"optimizer_steps":0,"model_forwards":2,"control_forwards":0,"test_data_used":False,
         "limitations":"One reused TRAIN batch in eval mode. Finite connected gradients are not learning, improvement or future transfer.",
         "native_elapsed_seconds":time.monotonic()-invocation_started}
+    if signal:
+        report.update(schema_version="gx1_entry_signal_diagnostic_result_v1",
+            decision="ENTRY_REPRESENTATION_AND_GRADIENT_SIGNAL_MEASURED_NO_OPTIMIZER_STEP",
+            reused_input_cache=scope["cached_inputs"],variants=["initial","final"],
+            exact_native_entry_mse_decomposition=True,
+            limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
+        report.pop("variant_forward_values_and_entry_head_gradients_identical")
     path=directory/"RESULT.json";trainer._candidate_training_session_atomic_write_json(path,report)
     print(json.dumps({"event":"ENTRY_GRADIENT_DIAGNOSTIC_COMPLETE","result":str(path),"optimizer_steps":0}),flush=True)
     return {"decision":"PAUSED_RESUMABLE","resume_state":scope["origin_resume_state"],
