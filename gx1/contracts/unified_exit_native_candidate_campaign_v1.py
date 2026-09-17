@@ -325,6 +325,87 @@ def require_optimizer_procedure_origin(
     return dict(origin)
 
 
+def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
+    """Read the frozen prefix identity; this alone never grants run authority."""
+    import numpy as np
+    value = recipe.get("chronological_prefix")
+    if (not isinstance(value, Mapping) or set(value) != {"design", "normalization_result", "labels_result"}
+            or recipe.get("initialization") != "fresh_existing_model_constructor_no_checkpoint_weights"
+            or any(recipe.get(key) is not None for key in ("seed_launch", "seed_authority", "smoke_full_val"))
+            or any(key in recipe for key in ("candidate_resume_origin", "native_calibration", "frozen_readout_evaluation", "exit_backup_steps"))):
+        raise RuntimeError("NATIVE_PREFIX_RECIPE_INVALID")
+    artifacts = {key: require_binding(binding, label="native prefix artifact", verify_file=True)
+                 for key, binding in value.items()}
+    design, normalization, labels = (read_bound_json(Path(artifacts[key]["path"]), artifacts[key]["sha256"])
+                                     for key in ("design", "normalization_result", "labels_result"))
+    preparation_binding = require_binding(normalization.get("prefix_preparation"), label="native prefix preparation", verify_file=True)
+    preparation = read_bound_json(Path(preparation_binding["path"]), preparation_binding["sha256"])
+    if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or design.get("initialization", {}).get("mode") != recipe["initialization"]
+            or design.get("scope", {}).get("test_sealed") is not True
+            or design.get("scope", {}).get("same_architecture") is not True
+            or design.get("scope", {}).get("one_experiment") is not True
+            or design.get("budget", {}).get("planned_optimizer_steps") != 256
+            or design.get("budget", {}).get("maximum_trained_entry_rows") != 4096
+            or design.get("budget", {}).get("epochs_completed") != 0
+            or design.get("budget", {}).get("repeat_or_automatic_extension") is not False
+            or normalization.get("frozen_design") != artifacts["design"]
+            or preparation.get("frozen_design") != artifacts["design"]
+            or labels.get("prefix_preparation") != preparation_binding
+            or require_reference_policy_contract(recipe.get("exit_reference_policy"))
+                != require_reference_policy_contract(design["targets"]["reference_policy"])):
+        raise RuntimeError("NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH")
+    controls = recipe.get("trainer_cli", {})
+    if any(type(controls.get(key)) is not type(expected) or controls[key] != expected
+           for key, expected in {"seed":design["initialization"]["seed"], "batch_size":16,
+                                 "learning_rate":0.0001, "weight_decay":0.0001, "grad_accum_steps":1}.items()):
+        raise RuntimeError("NATIVE_PREFIX_TRAINING_CONTROLS_INVALID")
+    row_binding = require_binding(preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"], label="native prefix rows", verify_file=True)
+    rows = np.load(row_binding["path"], allow_pickle=False)
+    if (rows.dtype != np.dtype("int64") or rows.ndim != 1 or len(rows) <= 4096
+            or not np.array_equal(rows, np.unique(rows)) or np.any(rows < 0)
+            or normalization.get("fit_entry_rows") != row_binding):
+        raise RuntimeError("NATIVE_PREFIX_POPULATION_INVALID")
+    return {"artifacts":artifacts, "design":design, "train_rows":len(rows)}
+
+
+def require_chronological_prefix_run(recipe, *, invocation_number=None, execution_budget=None):
+    """Admit only the explicitly bound single experiment through native guards."""
+    prefix = require_chronological_prefix_recipe(recipe)
+    repo = Path(__file__).resolve().parents[2]
+    binding = require_binding(recipe.get("next_run_policy"), label="native prefix policy", verify_file=True)
+    if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    scope = policy.get("chronological_learning_run")
+    if not isinstance(scope, Mapping):
+        raise RuntimeError("NATIVE_PREFIX_RUN_NOT_AUTHORIZED")
+    windows = scope.get("max_invocations")
+    expected = {"chronological_prefix":prefix["artifacts"], "run_id":recipe.get("run_id"),
+                "out_bundle_dir":recipe.get("out_bundle_dir"), "source_bindings_sha256":recipe.get("source_bindings_sha256"),
+                "optimizer_steps":256, "maximum_trained_entry_rows":4096, "max_invocations":windows,
+                "final_model_variant":"ONLINE", "teacher_refresh_allowed":False,
+                "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
+    if (policy.get("training_enabled") is not False or scope != expected
+            or type(windows) is not int or windows < 1
+            or type(scope.get("optimizer_steps")) is not int
+            or type(scope.get("maximum_trained_entry_rows")) is not int
+            or any(scope.get(key) is not False for key in ("teacher_refresh_allowed", "full_epoch_training_allowed", "full_val_allowed", "test_data_used"))
+            or any(key in policy for key in ("native_learning_calibration", "frozen_readout_evaluation"))):
+        raise RuntimeError("NATIVE_PREFIX_RUN_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or not 1 <= invocation_number <= windows):
+        raise RuntimeError("NATIVE_PREFIX_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != 256
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_PREFIX_BUDGET_INVALID")
+    return prefix
+
+
 def require_native_recipe_metadata(
     binding: Mapping[str, str], *, source_repo: Path, source_commit: str,
 ) -> tuple[dict[str, Any], int]:
@@ -377,6 +458,11 @@ def require_native_recipe_metadata(
         raise RuntimeError("NATIVE_CANDIDATE_FULL_POPULATION_METADATA_INVALID")
     if latest_year:
         count = root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
+    if "chronological_prefix" in recipe:
+        prefix = require_chronological_prefix_recipe(recipe)
+        if prefix["train_rows"] > count or latest_year:
+            raise RuntimeError("NATIVE_PREFIX_FULL_PHYSICAL_INDEX_REQUIRED")
+        count = prefix["train_rows"]
     return recipe, count
 
 
@@ -510,6 +596,9 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "chronological_prefix" in recipe:
+        require_chronological_prefix_run(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
+        return 256
     if "frozen_readout_evaluation" in recipe:
         scope = require_frozen_readout_evaluation(recipe, invocation_number=invocation_number,
                                                 execution_budget=execution_budget)

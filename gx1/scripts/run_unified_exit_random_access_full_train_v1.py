@@ -83,12 +83,14 @@ def _require_native_full_train_recipe(
         "val_limits", "initialization", "test_data_used", "recipe_sha256",
         "next_run_policy",
     }
+    prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
-        or recipe["initialization"] != ("frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
+        or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
+                                        "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
         or set(recipe["files"]) != _DATA_FILES
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
@@ -110,38 +112,46 @@ def _require_native_full_train_recipe(
     if any(os.environ.get(key, expected) != expected for key, expected in env.items()):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_ENVIRONMENT_MISMATCH")
     files = {key: _bound_artifact(binding) for key, binding in recipe["files"].items()}
-    seed_launch_path = _bound_artifact(recipe["seed_launch"])
-    seed_launch = val.require_launch_manifest(val._read(seed_launch_path))
-    authority_path = _bound_artifact(recipe["seed_authority"])
-    authority = val._load_final_authority(authority_path, recipe["seed_authority"]["sha256"])
-    schedule = authority.get("full_population_schedule")
-    if (
-        authority.get("epoch_complete") is not True or authority.get("epoch_index") != 0
-        or not isinstance(schedule, Mapping)
-        or schedule.get("every_entry_pair_exactly_once") is not True
-        or schedule.get("entry_pair_count") != authority["entry_pair_count"]
-        or schedule.get("global_entry_start") != 0
-        or schedule.get("global_entry_stop") != authority["entry_pair_count"]
-        or authority["global_optimizer_steps"] != (authority["entry_pair_count"] + 15) // 16
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_COMPLETE_SEED_EPOCH_REQUIRED")
-    smoke = val._read(_bound_artifact(recipe["smoke_full_val"]))
-    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_complete_val_observation
-    require_complete_val_observation(smoke)
-    checkpoint = require_selected_weight_ema_checkpoint_binding_v1(smoke["checkpoint_binding"])
-    if (
-        smoke.get("schema_version") != RESULT_SCHEMA_VERSION
-        or smoke.get("test_data_used") is not False
-        or smoke.get("entry_pair_cohort_size") != 5_508
-        or smoke.get("compute_truncated_side_trade_count") != 0
-        or smoke.get("semantic_result_sha256") != val.canonical_sha256({k: v for k, v in smoke.items() if k != "semantic_result_sha256"})
-        or smoke.get("checkpoint_binding_sha256") != checkpoint["binding_sha256"]
-        or checkpoint["checkpoint_file_sha256"] != authority["final_checkpoint_state"]["sha256"]
-        or checkpoint["checkpoint_pointer_file_sha256"] != authority["final_checkpoint_pointer"]["sha256"]
-        or checkpoint["launch_manifest_sha256"] != seed_launch["manifest_sha256"]
-        or recipe["dataset_run_id"] != seed_launch["dataset_run_id"]
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_COMPLETE_SMOKE_BINDING_REQUIRED")
+    if prefix_mode:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_prefix_recipe
+        prefix = require_chronological_prefix_recipe(recipe)
+        seed_launch = {"seed":prefix["design"]["initialization"]["seed"],
+                       "learning_rate":0.0001, "weight_decay":0.0001}
+        _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
+            batch_size=16, seed=seed_launch["seed"], learning_rate=0.0001, weight_decay=0.0001)
+    else:
+        seed_launch_path = _bound_artifact(recipe["seed_launch"])
+        seed_launch = val.require_launch_manifest(val._read(seed_launch_path))
+        authority_path = _bound_artifact(recipe["seed_authority"])
+        authority = val._load_final_authority(authority_path, recipe["seed_authority"]["sha256"])
+        schedule = authority.get("full_population_schedule")
+        if (
+            authority.get("epoch_complete") is not True or authority.get("epoch_index") != 0
+            or not isinstance(schedule, Mapping)
+            or schedule.get("every_entry_pair_exactly_once") is not True
+            or schedule.get("entry_pair_count") != authority["entry_pair_count"]
+            or schedule.get("global_entry_start") != 0
+            or schedule.get("global_entry_stop") != authority["entry_pair_count"]
+            or authority["global_optimizer_steps"] != (authority["entry_pair_count"] + 15) // 16
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_COMPLETE_SEED_EPOCH_REQUIRED")
+        smoke = val._read(_bound_artifact(recipe["smoke_full_val"]))
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_complete_val_observation
+        require_complete_val_observation(smoke)
+        checkpoint = require_selected_weight_ema_checkpoint_binding_v1(smoke["checkpoint_binding"])
+        if (
+            smoke.get("schema_version") != RESULT_SCHEMA_VERSION
+            or smoke.get("test_data_used") is not False
+            or smoke.get("entry_pair_cohort_size") != 5_508
+            or smoke.get("compute_truncated_side_trade_count") != 0
+            or smoke.get("semantic_result_sha256") != val.canonical_sha256({k: v for k, v in smoke.items() if k != "semantic_result_sha256"})
+            or smoke.get("checkpoint_binding_sha256") != checkpoint["binding_sha256"]
+            or checkpoint["checkpoint_file_sha256"] != authority["final_checkpoint_state"]["sha256"]
+            or checkpoint["checkpoint_pointer_file_sha256"] != authority["final_checkpoint_pointer"]["sha256"]
+            or checkpoint["launch_manifest_sha256"] != seed_launch["manifest_sha256"]
+            or recipe["dataset_run_id"] != seed_launch["dataset_run_id"]
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_COMPLETE_SMOKE_BINDING_REQUIRED")
     # A technical smoke may finish with a selected trade censored at June-end.
     # Its unavailable score cannot select a checkpoint or establish trading quality.
     controls = {
@@ -624,22 +634,25 @@ def run_guarded_native_candidate_invocation(
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
     require_native_run_scope(recipe, execution_budget=budget)
     controls = recipe["trainer_cli"]
+    prefix_mode = "chronological_prefix" in recipe
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")
     components = _build_bound_full_train_components(
         files=files, dataset_run_id=recipe["dataset_run_id"],
-        seed_launch_path=Path(recipe["seed_launch"]["path"]),
-        seed_authority_path=Path(recipe["seed_authority"]["path"]),
-        seed_authority_file_sha256=recipe["seed_authority"]["sha256"],
+        seed_launch_path=None if prefix_mode else Path(recipe["seed_launch"]["path"]),
+        seed_authority_path=None if prefix_mode else Path(recipe["seed_authority"]["path"]),
+        seed_authority_file_sha256=None if prefix_mode else recipe["seed_authority"]["sha256"],
         device=device, batch_size=controls["batch_size"], epochs=controls["epochs"],
         seed=controls["seed"], learning_rate=controls["learning_rate"],
         weight_decay=controls["weight_decay"], val_limits=recipe["val_limits"],
         exit_backup_steps=recipe.get("exit_backup_steps", 1),
         exit_reference_policy=recipe.get("exit_reference_policy"),
+        **({"chronological_prefix":recipe["chronological_prefix"]} if prefix_mode else {}),
     )
-    smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
-    if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
-        raise RuntimeError("NATIVE_FULL_TRAIN_ACTUAL_SEED_MODEL_MISMATCH")
+    if not prefix_mode:
+        smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
+        if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
+            raise RuntimeError("NATIVE_FULL_TRAIN_ACTUAL_SEED_MODEL_MISMATCH")
     if "frozen_readout_evaluation" in recipe:
         return _run_frozen_readout_validation(
             components=components, recipe=recipe, device=device, output=output,

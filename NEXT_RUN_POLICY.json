@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Prefix component construction and native coordinator are integrated and synthetically verified. Durable session binds exact TRAIN/control roles, original order, cutoff/policy, prefix normalization and fresh initialization; split resume is exact;256 maximum and no epoch VAL. Reuse all completed artifacts/tests. Next necessary integration: native recipe/campaign admission for fixed256-step finalONLINE, immutable index/bridge/bundle references to completed prefix transforms, and coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen experiment. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST.",
+  "rule": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix component construction and native coordinator are integrated and synthetically verified. Durable session binds exact TRAIN/control roles, original order, cutoff/policy, prefix normalization and fresh initialization; split resume is exact;256 maximum and no epoch VAL. Reuse all completed artifacts/tests. Next necessary integration: native recipe/campaign admission for fixed256-step finalONLINE, immutable index/bridge/bundle references to completed prefix transforms, and coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen experiment. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST."
+    "next_scope": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -597,5 +597,15 @@
     "confirmation_question_already_sent": true,
     "user_confirmation": "Ja, godkjenn dette og tilsvarende fremtidige GX1-push",
     "confirmation_received": true
+  },
+  "completed_native_prefix_recipe": {
+    "status": "PREFIX_NATIVE_ADMISSION_CHAIN_SYNTHETIC_PASS_NOT_LAUNCH_READY",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "e399c9e68106d8a1465121ec3236c67d960e17ec07d7713b38c90a778b849258"
+    },
+    "report": "docs/NATIVE_PREFIX_RECIPE_20260917.md",
+    "tests_passed": 21,
+    "native_launch_authorized": false
   }
 }

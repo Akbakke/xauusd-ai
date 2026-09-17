@@ -828,10 +828,11 @@ def materialize_native_candidate_campaign(
     selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)
     if prior["selection_receipt"] != _binding(selection_path) or selection["selected_batch_size"] != 16:
         raise RandomAccessCampaignError("native campaign measured selection differs")
-    require_native_completed_smoke(plan={
-        "final_train_checkpoint_authority": recipe["seed_authority"],
-        "selection_receipt": _binding(selection_path),
-    }, prior=prior, recipe=recipe)
+    if "chronological_prefix" not in recipe:
+        require_native_completed_smoke(plan={
+            "final_train_checkpoint_authority": recipe["seed_authority"],
+            "selection_receipt": _binding(selection_path),
+        }, prior=prior, recipe=recipe)
     boot = require_boot_identity(read_bound_json(prepared_boot_path, prepared_boot_file_sha256))
     guards, controllers = _sources(repo, certificate_path)
     target = Path(recipe["out_bundle_dir"])

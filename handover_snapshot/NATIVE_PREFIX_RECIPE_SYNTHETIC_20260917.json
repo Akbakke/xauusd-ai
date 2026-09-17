@@ -1,0 +1,117 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "e399c9e68106d8a1465121ec3236c67d960e17ec07d7713b38c90a778b849258"
+  },
+  "result": {
+    "schema_version": "gx1_native_prefix_recipe_campaign_synthetic_v1",
+    "decision": "PREFIX_NATIVE_ADMISSION_CHAIN_SYNTHETIC_PASS_NOT_LAUNCH_READY",
+    "completed_utc": "2026-09-17T04:51:27.054357+00:00",
+    "parent_source_commit": "f52195f3023b86284739d4bbf141cb80d2aa35f1",
+    "source_owners": {
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+        "sha256": "946836bab0dbfb640a327703aecec0c435a080912c97480a753a84dbc24642aa"
+      },
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+        "sha256": "b67ec60e60b029e632d7357025ee51a791a53c6521b72721442381c67bafe64e"
+      },
+      "gx1/scripts/materialize_local_random_access_campaign_v2.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_local_random_access_campaign_v2.py",
+        "sha256": "aca7edc46c776a85bcc2c88e450358954cebdb9b06115aa788c119382f158691"
+      },
+      "gx1/contracts/local_random_access_campaign_v2.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+        "sha256": "35815c397a978de296a0731821b777aeea8d5201d6c31175a87ffa929c596ecd"
+      },
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+        "sha256": "2e300364683bca2af1812febba725d93e3631ea5c179da48d3785c5f88888e89"
+      }
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_prefix_recipe.py",
+      "sha256": "bbf11a27415bfed9884a0a44e005e8b272c1dcc2b6ef05b8db509142824e35ef"
+    },
+    "junit_initial": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "6dae06c51c0481d91548f4b7a2490f5d96d2b9d7db697260e340cf8ed9943f93"
+    },
+    "junit_final": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/JUNIT_RETRY1.xml",
+      "sha256": "bd3d29e76bc14ab00745f955c668236ec6500aebf33717f4ce9da96089eff3b9"
+    },
+    "initial_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/TEST.log",
+      "sha256": "335f8f1239b3e04757a055ac327ef4591701f7c4282f0bbb5a80cf73804a2cda"
+    },
+    "final_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/TEST_RETRY1.log",
+      "sha256": "ce33df6d144e2fe3e9fe657f9d7216f3599ded6eab36ed695cd3b64c5b80de44"
+    },
+    "unique_tests_passed": 21,
+    "new_tests_passed": 17,
+    "legacy_tests_reused_from_first_attempt": 4,
+    "initial_failure": "17 new cases stopped in fixture setup because the reused policy fixture had only a minimal economics document; replaced with the existing full V4 synthetic objective. Production code unchanged after first test run.",
+    "ast": {
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+        "changed_functions": [
+          "require_chronological_prefix_recipe",
+          "require_chronological_prefix_run",
+          "require_native_recipe_metadata",
+          "require_native_run_scope"
+        ],
+        "unchanged_functions_or_classes": 17
+      },
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+        "changed_functions": [
+          "_require_native_full_train_recipe",
+          "run_guarded_native_candidate_invocation"
+        ],
+        "unchanged_functions_or_classes": 10
+      },
+      "gx1/scripts/materialize_local_random_access_campaign_v2.py": {
+        "changed_functions": [
+          "materialize_native_candidate_campaign"
+        ],
+        "unchanged_functions_or_classes": 17
+      },
+      "gx1/contracts/local_random_access_campaign_v2.py": {
+        "changed_functions": [
+          "next_action",
+          "require_plan"
+        ],
+        "unchanged_functions_or_classes": 20
+      },
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": {
+        "changed_functions": [
+          "run_window"
+        ],
+        "unchanged_functions_or_classes": 3
+      }
+    },
+    "verified": [
+      "existing recipe verifies completed prefix artifacts and fresh initialization without old seed/smoke loaders",
+      "metadata reports eligible prefix count while preserving full physical index requirement",
+      "run scope requires separately bound active policy with same design, output, source closure and fixed256 ONLINE endpoint",
+      "old seeds, migrations, readout arms, target refresh, full epoch/fullVAL and changed artifacts/budgets rejected",
+      "existing native guard and component owner dispatch to existing durable coordinator",
+      "existing campaign materializer and validator accept fresh prefix with no historical model authority and unchanged hardware/selection provenance",
+      "existing window emits256 total units and retains canonical resume cursor",
+      "campaign stops for review at256 even when unused native windows remain",
+      "existing controller refuses non-LAUNCH action; no controller changes"
+    ],
+    "synthetic_models_only": true,
+    "actual_data_model_constructions": 0,
+    "actual_data_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "remaining": [
+      "rebind immutable index/bridge/final-bundle references to completed prefix transforms",
+      "same coherent observed reference Entry/Exit targets in later control measurement",
+      "separately bound actual fresh-state/frozen-measurement preparation and single frozen learning experiment"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "status": "PREFIX_COORDINATOR_READY_NATIVE_RECIPE_AND_MEASUREMENT_NEXT",
+  "status": "PREFIX_NATIVE_ADMISSION_READY_TRANSFORM_REFERENCES_AND_CONTROL_TARGETS_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prefix component construction and native coordinator are integrated and synthetically verified. Durable session binds exact TRAIN/control roles, original order, cutoff/policy, prefix normalization and fresh initialization; split resume is exact;256 maximum and no epoch VAL. Reuse all completed artifacts/tests. Next necessary integration: native recipe/campaign admission for fixed256-step finalONLINE, immutable index/bridge/bundle references to completed prefix transforms, and coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen experiment. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST.",
+  "next_action": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T04:31:55.967421+00:00",
+  "observed_utc": "2026-09-17T04:51:27.054357+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix component construction and native coordinator are integrated and synthetically verified. Durable session binds exact TRAIN/control roles, original order, cutoff/policy, prefix normalization and fresh initialization; split resume is exact;256 maximum and no epoch VAL. Reuse all completed artifacts/tests. Next necessary integration: native recipe/campaign admission for fixed256-step finalONLINE, immutable index/bridge/bundle references to completed prefix transforms, and coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen experiment. Only necessary source corrections and focused synthetic tests now; no actual construction/forward/optimizer, fit, native launch, full epoch/VAL, control tuning or TEST."
+    "next_scope": "Fresh prefix components, durable native coordinator, recipe and guarded campaign admission are synthetically integrated. Exact prefix rows/cutoff/labels/transforms/fresh identity remain bound; ordinary native windows target fixed256 ONLINE steps and stop for review with no epoch/fullVAL or teacher refresh. No chronological_learning_run authority is present; training_enabled remains false. Next: rebind immutable index/bridge/final-bundle references to completed prefix transforms and use the same coherent observed reference Entry/Exit targets in later control measurement. Then separately bind actual fresh-state/frozen-measurement preparation and the single frozen learning experiment. Reuse completed artifacts and tests; only necessary source corrections and focused synthetic checks now. No actual construction/forward/optimizer, refit, native launch, control tuning or TEST."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -525,5 +525,15 @@
     "confirmation_question_already_sent": true,
     "user_confirmation": "Ja, godkjenn dette og tilsvarende fremtidige GX1-push",
     "confirmation_received": true
+  },
+  "completed_native_prefix_recipe": {
+    "status": "PREFIX_NATIVE_ADMISSION_CHAIN_SYNTHETIC_PASS_NOT_LAUNCH_READY",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "e399c9e68106d8a1465121ec3236c67d960e17ec07d7713b38c90a778b849258"
+    },
+    "report": "docs/NATIVE_PREFIX_RECIPE_20260917.md",
+    "tests_passed": 21,
+    "native_launch_authorized": false
   }
 }

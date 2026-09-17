@@ -895,12 +895,18 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
         result["selection_receipt"] = selection_binding
         result["selection_artifact_sha256"] = selection["artifact_sha256"]
         if phase == "native_candidate":
-            result["final_train_checkpoint_authority"] = require_binding(
-                result["final_train_checkpoint_authority"], label="native seed authority", verify_file=verify_files,
-            )
-            if verify_files:
-                from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_completed_smoke
-                require_native_completed_smoke(plan=result, prior=prior, recipe=native_recipe)
+            if result["final_train_checkpoint_authority"] is None:
+                if verify_files and "chronological_prefix" not in native_recipe:
+                    raise RandomAccessCampaignError("native seed authority missing outside fresh prefix")
+            else:
+                if verify_files and "chronological_prefix" in native_recipe:
+                    raise RandomAccessCampaignError("native prefix cannot load historical seed authority")
+                result["final_train_checkpoint_authority"] = require_binding(
+                    result["final_train_checkpoint_authority"], label="native seed authority", verify_file=verify_files,
+                )
+                if verify_files:
+                    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_completed_smoke
+                    require_native_completed_smoke(plan=result, prior=prior, recipe=native_recipe)
         elif phase in {"resume_proof", "selected_training"}:
             if result.get("final_train_checkpoint_authority") is not None:
                 raise RandomAccessCampaignError(
@@ -1452,13 +1458,19 @@ def next_action(
         recipe_binding = checked_plan["native_recipe"]
         recipe = read_bound_json(Path(recipe_binding["path"]), recipe_binding["sha256"])
         val_ceiling = native_completed_val_ceiling(recipe)
-        if val_ceiling is not None:
-            require_native_run_scope(recipe)
+        if val_ceiling is not None or "chronological_prefix" in recipe:
+            step_ceiling = require_native_run_scope(recipe)
             binding = checked_receipts[-1]["checkpoint_pointer_snapshot"]
             cursor = require_native_cursor(read_bound_json(Path(binding["path"]), binding["sha256"]),
                                            expected_recipe=recipe_binding)
             state = cursor["resume_state"]
-            if state["epoch_index"] >= val_ceiling:
+            if "chronological_prefix" in recipe:
+                if (state["epoch_index"] != 0 or state["phase"] != "train" or state["complete"]
+                        or state["active_val_cursor"] is not None or state["global_optimizer_steps"] > step_ceiling):
+                    raise RandomAccessCampaignError("native prefix cursor exceeded fixed experiment")
+                if state["global_optimizer_steps"] == step_ceiling:
+                    return {"decision":"BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED"}
+            elif state["epoch_index"] >= val_ceiling:
                 # The training session remains resumable; only this bounded run is done.
                 return {"decision": "BLOCKED_NATIVE_VAL_REVIEW_REQUIRED"}
     if len(checked_receipts) == len(invocations):

@@ -283,6 +283,21 @@ Dette er lest fra current_entry_exit_architecture_observation og modellens
 forward-kode, uten modellkjøring. Antall felt eller kobling beviser ikke nyttig
 framtidssignal. Ingen feature er endret eller fjernet i denne kontrollen.
 
+## Fersk oppstart gjennom eksisterende native campaign er koblet
+
+Recipe og dispatch kan nå bruke de ferdige prefix-artefaktene uten historiske
+seed-/smokevekter. Metadata bruker eligible prefix-antall; full fysisk indeks,
+originale ID-er og eksisterende vakter bevares. En separat aktiv policy må
+binde forsøket til fast256 ONLINE-steg. Campaignen stopper for vurdering ved
+sluttpunktet selv om flere vinduer finnes. Ingen slik kjøreautoritet er åpnet.
+
+21 unike syntetiske tester består.17 nye krevde først en rettelse av fixture-
+økonomien; produksjonskoden var uendret etter første testrunde. Ingen faktisk
+modellkjøring eller læring er målt. Features/modell/treningsløkke er uendret.
+Neste er immutable normaliseringsreferanser og sammenhengende Entry/Exit-mål
+for kontrollen, deretter separat bundet klargjøring og ett frosset forsøk.
+Se docs/NATIVE_PREFIX_RECIPE_20260917.md og tilhørende handover_snapshot.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
