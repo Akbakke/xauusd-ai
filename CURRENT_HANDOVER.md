@@ -192,6 +192,20 @@ samt TRAIN-kilde for senere CONTROL256 gjenstår. Kun nødvendige kilde-/
 bindingsrettelser og fokuserte syntetiske tester er åpnet nå. Gjenbruk ferdige
 fasitfiler og tester. Se docs/PREFIX_LABEL_BINDING_20260917.md.
 
+## Én prefix-normalisering klargjort
+
+Eksisterende base/context/MTF- og lifetime-eiere er uendret etter sine12/24
+beståtte kontroller. Én avgrenset CPU-plan bruker de47814 frosne TRAIN-radene
+og observerte barlukkinger senest2026-03-01. Originale parent-/child-klokker
+matcher på alle313399 rader. Fysisk markedsstøtte og successor-counts beholdes.
+Eksisterende uttømmende sekvensbevis gjenbrukes; ingen full sekvensaudit gjentas.
+
+Planen bruker capped producer16GiB/512MiB og høyst3600s. Den skriver nye
+normaliseringsartefakter uten modell-forward, optimizer, labels, policyfit,
+kontrolltilpasning eller TEST. NEXT_RUN_POLICY binder det ene unntaket.
+Native integrasjon og ferske vekter/lærer/EMA/optimizer gjenstår etter fit.
+Se docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

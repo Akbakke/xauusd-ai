@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Existing EntryV10CtxDataset now has explicit prefix-policy label binding;21 synthetic integration/rejection tests pass. Only10 active policy-dependent columns change;37 raw targets/features/MTF/original parent coordinates and sampler order remain. Source/design/policy/cohort/time/support domains hash-checked; unbound access fails, invalid binding is atomic. Actual native recipe has not yet called this owner. Reuse completed policies, labels, clocks and tests. Next: actual prefix normalizations via existing tested owners and minimal fresh whole-model/target/EMA/optimizer plus sourceTRAIN/logicalCONTROL256 recipe integration, including this binding and correct metadata, under narrowly bound preparation. Only necessary source/binding fixes and focused synthetic tests are currently open; no new actual fit, label refresh, model forward, optimizer or native launch. No same-control retuning; TEST sealed.",
+  "rule": "Exactly one source/row/cutoff-bound CPU normalization preparation is allowed by prefix_normalization_preparation: existing base/context/MTF and lifetime-summary owners,47814 frozen TRAIN Entries, observed closes<=2026Mar01,full physical successor counts preserved. Reuse completed synthetic/sequence proofs. Producer16G/512M,1numericthread,3600s maximum; no GPU/model/optimizer/labels/policyfit/controlretuning/TEST. After completion, close the one-off gate and bind new transforms plus prefix labels into fresh native model/target/EMA/optimizer and sourceTRAIN/logicalCONTROL256 setup. All native training and forward gates remain closed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Existing EntryV10CtxDataset now has explicit prefix-policy label binding;21 synthetic integration/rejection tests pass. Only10 active policy-dependent columns change;37 raw targets/features/MTF/original parent coordinates and sampler order remain. Source/design/policy/cohort/time/support domains hash-checked; unbound access fails, invalid binding is atomic. Actual native recipe has not yet called this owner. Reuse completed policies, labels, clocks and tests. Next: actual prefix normalizations via existing tested owners and minimal fresh whole-model/target/EMA/optimizer plus sourceTRAIN/logicalCONTROL256 recipe integration, including this binding and correct metadata, under narrowly bound preparation. Only necessary source/binding fixes and focused synthetic tests are currently open; no new actual fit, label refresh, model forward, optimizer or native launch. No same-control retuning; TEST sealed."
+    "next_scope": "Exactly one source/row/cutoff-bound CPU normalization preparation is allowed by prefix_normalization_preparation: existing base/context/MTF and lifetime-summary owners,47814 frozen TRAIN Entries, observed closes<=2026Mar01,full physical successor counts preserved. Reuse completed synthetic/sequence proofs. Producer16G/512M,1numericthread,3600s maximum; no GPU/model/optimizer/labels/policyfit/controlretuning/TEST. After completion, close the one-off gate and bind new transforms plus prefix labels into fresh native model/target/EMA/optimizer and sourceTRAIN/logicalCONTROL256 setup. All native training and forward gates remain closed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -502,6 +502,17 @@
     },
     "report": "docs/PREFIX_LABEL_BINDING_20260917.md",
     "tests_passed": 21,
+    "native_launch_authorized": false
+  },
+  "prefix_normalization_preparation": {
+    "enabled": true,
+    "status": "ONE_PREFIX_NORMALIZATION_PREPARATION_BOUND",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/PLAN.json",
+      "sha256": "384896e64bc73d338c896f3e07bc41fd741e15b154c35d5744301ccc4fe05273"
+    },
+    "one_preparation_only": true,
+    "training_enabled": false,
     "native_launch_authorized": false
   }
 }
