@@ -1,0 +1,94 @@
+{
+  "schema_version": "gx1_prefix_policy_dependent_labels_v1",
+  "decision": "PREFIX_DEPENDENT_LABELS_MATERIALIZED_NOT_NATIVE_BOUND",
+  "source_commit": "3104e6612942d4b4eaa42f413b9e67523b321f33",
+  "completed_utc": "2026-09-17T02:33:50.943611+00:00",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/PLAN.json",
+    "sha256": "c5d349c02f624c8ded258950395d1152e9052494cdab074a990022cde94e2fd1"
+  },
+  "prefix_preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/RESULT.json",
+    "sha256": "4370eafcb2d106031487b006e7e58e244167a26af24cc76edde88ae1ef70ee34"
+  },
+  "parent_entry_parquet": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet",
+    "sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+  },
+  "parent_entry_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+    "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+  },
+  "direction_policy": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/DIRECTION_POLICY.json",
+    "sha256": "591f177411e360bdff62e26b910f8f63e8b9ec11594a3c3359c82bb9c1f825ee"
+  },
+  "position_size_policy": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/POSITION_SIZE_POLICY.json",
+    "sha256": "74bd3e5cff8c01cc3c61ca6f2ff86e052b81575a4e35d34de532f6d549deab7f"
+  },
+  "active_target_columns": [
+    "y_long_expected_mae_bps",
+    "y_short_expected_mae_bps",
+    "y_position_size_target",
+    "y_position_size_mask",
+    "y_line_support_touch_held",
+    "y_line_support_touch_mask",
+    "y_line_resistance_touch_held",
+    "y_line_resistance_touch_mask",
+    "y_countertrend_short_trap",
+    "y_countertrend_long_trap"
+  ],
+  "diagnostic_columns": [
+    "y_support_retest_continuation",
+    "y_resistance_retest_continuation",
+    "y_long_high_mae_low_mfe_early_failure",
+    "y_short_high_mae_low_mfe_early_failure"
+  ],
+  "labels": {
+    "TRAIN": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/TRAIN_LABELS.parquet",
+      "sha256": "5eee760b0d3bed5e4b7a794bdd77799125c770d0c1905b08f80054f5dc843ee5",
+      "rows": 47814,
+      "row_binding": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_ELIGIBLE_PARENT_ROWS.npy",
+        "sha256": "ac883a1d4fda5d8c8101f025d90a699cc56118ed853ddef86975bd93b66baf86"
+      },
+      "max_m1_outcome_end_utc": "2026-02-27T15:05:00+00:00",
+      "max_line_outcome_end_utc": "2026-02-27T15:05:00+00:00"
+    },
+    "CONTROL256": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/CONTROL256_LABELS.parquet",
+      "sha256": "fd3e37ac4417225226632fe34b27d3dbc5ad333023b905defa1e805dbe4511f9",
+      "rows": 256,
+      "row_binding": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/CONTROL256_PARENT_ROWS.npy",
+        "sha256": "911b5d0013ecec10b668a72f7466893780e059c31496c7c4d491bbb6f2dc70eb"
+      },
+      "max_m1_outcome_end_utc": "2026-05-29T10:10:00+00:00",
+      "max_line_outcome_end_utc": "2026-05-29T10:10:00+00:00"
+    }
+  },
+  "original_m5_context_exact": true,
+  "context_m5_sha256": "28313cd154d2c72dd952431f5524ad1c5cd4281b16c9ad579e4012830614151c",
+  "train_support_end_inclusive": "2026-03-01T00:00:00+00:00",
+  "control_support_end_inclusive": "2026-06-01T00:00:00+00:00",
+  "causality_evidence": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "f409edd1359cf516ac6d777dc3688584b97a9e0afe388815527af2740f0a6f9d"
+  },
+  "selection_frozen_before_outcomes": true,
+  "dropped_or_replaced_rows": 0,
+  "scope": {
+    "policy_fits": 0,
+    "normalization_fits": 0,
+    "model_input_feature_artifacts_rebuilt": 0,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_accessed": false,
+    "native_launch_authorized": false,
+    "learning_demonstrated": false
+  },
+  "limits": "Label artifacts only. Native dataset binding still required; original parquet/checkpoints remain unchanged. Only10 active columns and4 related diagnostics carry new policy provenance. Other old diagnostic columns must not be treated as refreshed.37 fixed-horizon active targets/features are unchanged. Control label values are stored, not used for fit/selection or printed as quality evidence."
+}

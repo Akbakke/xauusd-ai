@@ -156,7 +156,7 @@ modell-forward eller optimizersteg er kjørt. Ingen læring er dokumentert.
 Se docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md og
 docs/PREFIX_AUXILIARY_POLICIES_20260917.md. TEST og modelltrening er stengt.
 
-## Avhengige fasiter: eier kontrollert, én materialisering bundet
+## Avhengige fasiter: nye artefakter klare
 
 Eksisterende builder deler nå nøyaktig samme size/sideMAE/trendline-beregning
 med en avgrenset label-materialisering.12 syntetiske kontroller består.
@@ -164,12 +164,18 @@ Gammel/ny beregning er bitlik på3x213 rader og14 aktive/relaterte felt;42 andre
 funksjoner er AST-uendret. Framtidige priser+5000 endrer ingen tidligere labels.
 Ingen modell-/featurekode er endret; registry replay brukes bare for fasit.
 
-Opprinnelig Group-A-cache viser at registry-konteksten starter2019-11-11T00Z,
-ikke den tidligere råkildestarten. Én CPU-jobb er bundet for47814TRAIN og den
-frosne CONTROL256. Faktisk M5-kontekst må matche originalhash før beregning.
-TRAIN-fasiter må slutte før mars1; kontroll før juni1. Ingen refit/utvalgsbytte.
-Modell-forward/optimizer/normaliseringsfit/native kjøring er fortsatt stengt.
-Se docs/PREFIX_DEPENDENT_LABELS_20260917.md. Ikke gjenta beståtte kontroller.
+Den ene CPU-jobben er nå ferdig:47814 TRAIN- og256 kontrollrader har nye
+fasitfiler. Alle ti aktive policyavhengige kolonner og fire relaterte felt
+bruker frossetK18.464244 M5-kontekstrader matcher original Group-A-hash eksakt;
+historikken starter2019-11-11T00Z, etter råkildens warmup. Alle rad-ID-er,
+tider, verdidomener og støttegrenser er kontrollert. Ingen rader ble byttet
+eller fjernet. TRAIN-støtte slutter senest mars1, kontroll senest juni1.
+
+Engangstillatelsen er stengt. Ingen refit, kontrollkvalitetsmåling eller
+modell-forward/optimizer. Nye labels må fortsatt bindes eksplisitt i native
+dataset; originale datasett og features er uendret. Deretter gjenstår faktiske
+prefix-normaliseringer og ferske native vekter/lærer/EMA/optimizer/bindinger.
+Se docs/PREFIX_DEPENDENT_LABELS_20260917.md. Ikke gjenta ferdig materialisering.
 
 ## Start her
 

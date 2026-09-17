@@ -1,5 +1,5 @@
 {
-  "status": "DEPENDENT_LABEL_OWNER_VERIFIED_ONE_MATERIALIZATION_BOUND",
+  "status": "PREFIX_DEPENDENT_LABELS_READY_NATIVE_DATASET_BINDING_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Shared existing-builder label projection/materializer passed12 synthetic tests, exactlegacyparity3x213x14 and futurepricepoison invariance. All42 unaffected functions unchanged. Exactly one bound label-only CPU preparation now allowed:10 policy-dependent active targets plus4 related diagnostics for frozen47814TRAIN and CONTROL256. Policies remain fixedK18; original Group-A M5context hash must match; TRAIN support<=March1 and control<=June1. No row replacement, quality-based selection, feature artifact rebuild, policy/normalizationfit, model forward, optimizer, native launch or TEST. Dataset binding and prefix normalization/fresh native setup follow; reuse completed proofs.",
+  "next_action": "Prefix dependent labels are materialized and verified for frozen47814TRAIN and CONTROL256. All10 active policy-dependent columns plus4 related diagnostics use frozenK18 policies. Original464244-row M5context hash matched exactly (history starts2019Nov11). TRAIN outcome clocks<=March1,control<=June1; no dropped/replaced rows, refit, controlquality metric or model call. Reuse label parquet/manifest and completed12synthetic+legacyparity checks. Next concrete work: explicitly bind these labels by original parent Entry ID/time/policy/source hashes inside existing native datasets, reject unbound access, then actual prefix normalization/fresh whole-model/target/EMA/optimizer and sourceTRAIN/logicalcontrol bindings under narrowlyboundpreparation. Only minimal source/binding corrections and focused synthetic tests currently open; no further actual label/normalizationfit, modelforward, optimizer or native launch. Preserve all200features/eightfamilies/MTF,raw37targets,sampler/checkpoints/guards. TESTsealed; nocontrolretuning.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Shared existing-builder label projection/materializer passed12 synthetic tests, exactlegacyparity3x213x14 and futurepricepoison invariance. All42 unaffected functions unchanged. Exactly one bound label-only CPU preparation now allowed:10 policy-dependent active targets plus4 related diagnostics for frozen47814TRAIN and CONTROL256. Policies remain fixedK18; original Group-A M5context hash must match; TRAIN support<=March1 and control<=June1. No row replacement, quality-based selection, feature artifact rebuild, policy/normalizationfit, model forward, optimizer, native launch or TEST. Dataset binding and prefix normalization/fresh native setup follow; reuse completed proofs."
+    "next_scope": "Prefix dependent labels are materialized and verified for frozen47814TRAIN and CONTROL256. All10 active policy-dependent columns plus4 related diagnostics use frozenK18 policies. Original464244-row M5context hash matched exactly (history starts2019Nov11). TRAIN outcome clocks<=March1,control<=June1; no dropped/replaced rows, refit, controlquality metric or model call. Reuse label parquet/manifest and completed12synthetic+legacyparity checks. Next concrete work: explicitly bind these labels by original parent Entry ID/time/policy/source hashes inside existing native datasets, reject unbound access, then actual prefix normalization/fresh whole-model/target/EMA/optimizer and sourceTRAIN/logicalcontrol bindings under narrowlyboundpreparation. Only minimal source/binding corrections and focused synthetic tests currently open; no further actual label/normalizationfit, modelforward, optimizer or native launch. Preserve all200features/eightfamilies/MTF,raw37targets,sampler/checkpoints/guards. TESTsealed; nocontrolretuning."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -386,14 +386,19 @@
     "native_launch_authorized": false
   },
   "prefix_dependent_label_preparation": {
-    "enabled": true,
+    "enabled": false,
     "plan": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/PLAN.json",
       "sha256": "c5d349c02f624c8ded258950395d1152e9052494cdab074a990022cde94e2fd1"
     },
     "one_materialization_only": true,
     "training_enabled": false,
-    "native_launch_authorized": false
+    "native_launch_authorized": false,
+    "status": "COMPLETE_DO_NOT_REMATERIALIZE",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+      "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+    }
   },
   "completed_prefix_dependent_label_synthetic": {
     "status": "SHARED_LABEL_OWNER_SYNTHETIC_AND_LEGACY_PARITY_PASS",
@@ -403,5 +408,18 @@
     },
     "tests_passed": 12,
     "report": "docs/PREFIX_DEPENDENT_LABELS_20260917.md"
+  },
+  "completed_prefix_dependent_labels": {
+    "status": "PREFIX_DEPENDENT_LABELS_MATERIALIZED_NOT_NATIVE_BOUND",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+      "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+    },
+    "verification": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/VERIFICATION.json",
+      "sha256": "369f7759580a3ca23e810d4518ac73a747014ff3962e767847fb6d0cbc4c24d6"
+    },
+    "report": "docs/PREFIX_DEPENDENT_LABELS_20260917.md",
+    "native_launch_authorized": false
   }
 }

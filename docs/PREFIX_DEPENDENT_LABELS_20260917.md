@@ -30,3 +30,20 @@ optimizer eller TEST. Teknisk labelkontroll er ikke læringsbevis.
 
 Syntetisk bevis:handover_snapshot/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917.json.
 Plan:GX1_DATA/.../PREFIX_DEPENDENT_LABELS_20260917/PLAN.json.
+
+
+## Fullført materialisering
+
+Jobben er ferdig med47814 TRAIN-rader og256 kontrollrader. Original kontekst-
+hash ble kontrollert eksakt før én registry-pass. Ingen rader ble fjernet eller
+byttet. Alle ti aktive mål er endelige float32-verdier med korrekt domene;
+maskerte størrelsesmål er0. Opprinnelige Entry-ID-er og tider matcher eksakt.
+Lagrede M1-/line-outcome-slutttider holder hver kohorts datogrense.
+
+TRAIN_LABELS.parquet og CONTROL256_LABELS.parquet ligger under GX1_DATA/.../
+PREFIX_DEPENDENT_LABELS_20260917 med PLAN,RESULT,VERIFICATION og kjørelogg.
+Kontrollverdier er lagret uten å beregne eller bruke kvalitetsmål. Det er ikke
+gjort policy-/normaliseringsfit, modell-forward eller optimizersteg.
+Engangstillatelsen er stengt. Native dataset-binding er neste konkrete oppgave;
+artefaktene er ikke automatisk brukt av modellen. Fersk init og prefix-
+normalisering gjenstår. Ingen lærings-/generaliseringspåstand.
