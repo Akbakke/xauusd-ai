@@ -1,0 +1,144 @@
+{
+  "result": {
+    "artifacts": {
+      "BASE_NORMALIZATION.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/BASE_NORMALIZATION.json",
+        "sha256": "d8d3db7dfb8d39702c1c01a577bc2d6f1d5959f4b420f156415af17758661c51"
+      },
+      "CHILD_NORMALIZATION_VIEW.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/CHILD_NORMALIZATION_VIEW.json",
+        "sha256": "3d2b2ddb262d014104909dd0902bcb6433a43a4bbb8afc8ea32c02f8c255905c"
+      },
+      "COMPOSITE_NORMALIZATION.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/COMPOSITE_NORMALIZATION.json",
+        "sha256": "fa4a348c743cca9ffb72665c00cff59a02533fae32194ecc76208961f25de4a4"
+      },
+      "SUMMARY_FIT/fit_state_stop_exclusive_by_entry.npy": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/SUMMARY_FIT/fit_state_stop_exclusive_by_entry.npy",
+        "sha256": "2c825ae3a03127a154fbe8ee9ea246a2a799ea1666630d778c61f7b59c50173a"
+      },
+      "SUMMARY_FIT/lifetime_summary_fit_values.npy": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/SUMMARY_FIT/lifetime_summary_fit_values.npy",
+        "sha256": "d0c08b45d8f4d3b968f6c4b2494640c587faec452fa3d192ede24d01d2585efd"
+      },
+      "SUMMARY_FIT/manifest.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/SUMMARY_FIT/manifest.json",
+        "sha256": "4bde458c8a4278d557b0e8f1711e3fa7a0da1010f498d60dc9060002a4ba69ca"
+      },
+      "SUMMARY_FIT/successor_transition_counts.npy": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/SUMMARY_FIT/successor_transition_counts.npy",
+        "sha256": "3ca5737106bb8ed8912c64994ab4f69fef97b02588f96d2f854ebbd6f2627648"
+      },
+      "TRAIN_NORMALIZATION_POPULATION_WITNESS.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/TRAIN_NORMALIZATION_POPULATION_WITNESS.json",
+        "sha256": "403f0f3ddbab1f24c97975c47294ec94eb9fd2ccc48a56460bf8270271637727"
+      }
+    },
+    "base_contract_sha256": "0c73327b125ef653071d00124d985e87019449e7f3b2885179a6f6cdf96cfb59",
+    "completed_utc": "2026-09-17T03:24:59.109949+00:00",
+    "composite_normalization_sha256": "a0ac57bed82d982fa138e218af888e89951532bc34bc99f263cd806a9f48c68f",
+    "constant_field_limit": "No observed TRAIN dispersion; preserved raw unit scale does not imply learned unseen-regime behavior.",
+    "constant_train_fields": {
+      "ctx_cont": [
+        "d1_ema_stack_aligned_v2"
+      ],
+      "mtf_d1": [
+        "bull_divergence_strength"
+      ],
+      "mtf_h1": [],
+      "mtf_h4": [],
+      "mtf_m15": [],
+      "mtf_m5": [],
+      "signal": [
+        "ctx_cont.d1_ema_stack_aligned_v2"
+      ]
+    },
+    "decision": "PREFIX_NORMALIZATION_READY_NOT_NATIVE_BOUND",
+    "fit_cutoff_time_ns": 1772323200000000000,
+    "fit_entry_rows": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_ELIGIBLE_PARENT_ROWS.npy",
+      "sha256": "ac883a1d4fda5d8c8101f025d90a699cc56118ed853ddef86975bd93b66baf86"
+    },
+    "fit_population": {
+      "entry_local_unique_rows": 53007,
+      "entry_rows": 47814,
+      "exit_current_unique_rows": 263998,
+      "maximum_base_decision_time_ns": 1772229600000000000,
+      "maximum_summary_eligible_decision_time_ns": 1772229600000000000,
+      "maximum_summary_sample_decision_time_ns": 1772229600000000000,
+      "summary_fit_rows": 759802,
+      "summary_state_samples": 379901
+    },
+    "frozen_design": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+      "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+    },
+    "limits": "Preparation only. Native fresh whole-model/teacher/EMA/optimizer and source-TRAIN logical-control bindings must use these new transforms and prefix label policies. No new learning/generalization claim, control retuning, TEST or live/paper authority.",
+    "original_market_successor_counts_exact_equal": true,
+    "parent_child_row_clock_identity_exact": true,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESUME_PLAN.json",
+      "sha256": "a383c718ab984f0a46fe3ff00406b92e15bca892f442ce01d498a7b164941143"
+    },
+    "prefix_preparation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/RESULT.json",
+      "sha256": "4370eafcb2d106031487b006e7e58e244167a26af24cc76edde88ae1ef70ee34"
+    },
+    "schema_version": "gx1_prefix_normalization_preparation_result_v1",
+    "scope": {
+      "base_normalization_fits": 1,
+      "control_fit_rows": 0,
+      "features_rebuilt": 0,
+      "learning_demonstrated": false,
+      "model_forwards": 0,
+      "native_launch_authorized": false,
+      "new_labels": 0,
+      "new_policies": 0,
+      "optimizer_steps": 0,
+      "summary_normalization_fits": 1,
+      "test_accessed": false,
+      "test_fit_rows": 0
+    },
+    "sequence_audit_reused": true,
+    "source_commit": "78538476dac8ac41caed3a3084126570bcd6f8e0",
+    "summary_normalization_sha256": "7f98b04756fd15a0a80df64b8353e6fd997c305fce82f3e40e55fdedb4339c4d"
+  },
+  "verification": {
+    "decision": "VERIFIED_COMPLETED_PREFIX_NORMALIZATION",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+      "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+    },
+    "all_output_hashes_match": true,
+    "terminal": {
+      "exit_code": 0,
+      "finished_utc": "2026-09-17T03:24:59.671091+00:00"
+    },
+    "run_pid_absent": true,
+    "base_fit_attempts": 3,
+    "base_fit_published_once": true,
+    "summary_fit_attempts": 1,
+    "population_computed_once": true,
+    "constant_fields": {
+      "ctx_cont": [
+        "d1_ema_stack_aligned_v2"
+      ],
+      "mtf_d1": [
+        "bull_divergence_strength"
+      ],
+      "mtf_h1": [],
+      "mtf_h4": [],
+      "mtf_m15": [],
+      "mtf_m5": [],
+      "signal": [
+        "ctx_cont.d1_ema_stack_aligned_v2"
+      ]
+    },
+    "source_commit": "78538476dac8ac41caed3a3084126570bcd6f8e0",
+    "maximum_observed_close_utc": "2026-02-27T22:00:00+00:00"
+  },
+  "verification_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/VERIFICATION.json",
+    "sha256": "e4930f0dbdc3ebdb97c9bd33649c621069c4d709143c64d0d65070ac52f84d46"
+  }
+}

@@ -192,25 +192,30 @@ samt TRAIN-kilde for senere CONTROL256 gjenstår. Kun nødvendige kilde-/
 bindingsrettelser og fokuserte syntetiske tester er åpnet nå. Gjenbruk ferdige
 fasitfiler og tester. Se docs/PREFIX_LABEL_BINDING_20260917.md.
 
-## Prefix-normalisering: populasjon klar, generell konstantregel kontrollert
+## Prefix-normalisering ferdig; fersk native binding gjenstår
 
-47814 Entries,53007 lokale M5-rader og263998 Exit-current-rader er bundet før
-2026-03-01. Alle313399 parent-/child-klokker matcher. Ferdig populasjon og
-uttømmende sekvensbevis gjenbrukes; fysiske successor-counts beholdes.
+Base/context/alle MTF og lifetime-normalisering er nå beregnet og verifisert
+uten kontroll-fit.47814 låste Entries,53007 lokale M5-rader og263998 unike
+Exit-current-rader inngår. Lifetime bruker379901 state-samples og759802 rader
+fordelt på begge sider. Seneste observerte lukking er2026-02-27T22Z, før cutoff
+mars1. Alle opprinnelige313399 successor-counts er eksakt bevart. Samtlige
+normaliseringsfelt og tidsrammer er beholdt; eksisterende sekvensbevis gjenbrukt.
 
-To base-fit-forsøk stoppet før publisering: først konstant D1 EMA-tilstand,
-deretter konstant bull_divergence_strength på D1. Det første EMA-unntaket er
-fjernet. Feilen var den generelle antakelsen om at alle features varierer i
-et kortere TRAIN-vindu. Eksisterende prefix-fit bruker nå eksplisitt rå
-enhetsskala for konstante felter og markerer manglende observert variasjon.
-TRAIN-median/asinh og øvrige statistikker bevares. Standardmodus avviser
-fortsatt ukjente konstante felter. Ingen feature, rad, dato eller mål endres.
+D1-EMA (signal/context) og D1 bull_divergence_strength hadde ingen variasjon.
+Den generelle, eksplisitte prefix-regelen beholder rå enhetsskala og markerer
+manglende observert variasjon. Ingen feltspesifikke unntak står igjen. Dette er
+ikke læring av usette regimer.41 relevante tester og påkrevde commit-kontroller
+består. To tidligere base-fit-stopp er bevart; endelig base/summary/composite
+ble publisert én gang. Siste CPU-jobb sluttet med exit0; ingen modell ble kjørt.
 
-41 relevante tester består, inkludert senere featureforgiftning uten endring
-i tidligere fit. Den nye RESUME_PLAN kjører bare uferdig base/summary/composite.
-Alle berørte konstante felt skal rapporteres; dette beviser ikke læring av
-usette markedsregimer. Capped producer16GiB/512MiB,3600s. Modell/optimizer,
-kontrolltilpasning og TEST er stengt. Se normaliseringsrapporten.
+Engangstillatelsen er stengt. Ikke gjenta fit, populasjon eller ferdige tester.
+Neste er minste nødvendige binding i eksisterende native kjøring: fersk hel
+modell/lærer/EMA/optimizer, de nye normaliseringene og prefix-fasitene, samt
+TRAIN-kilde for låst senere CONTROL256. Gamle vekter/full-TRAIN-statistikker og
+hardkodet juni-VAL kan ikke brukes i dette forsøket. Bare nødvendige kilde-/
+bindingsrettelser og fokuserte syntetiske kontroller er åpnet nå; ingen forward,
+optimizer eller native launch. Se docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md
+og handover_snapshot/PREFIX_NORMALIZATION_READY_20260917.json.
 
 ## Start her
 

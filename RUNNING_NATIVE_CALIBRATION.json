@@ -1,5 +1,5 @@
 {
-  "status": "PREFIX_NORMALIZATION_REMAINDER_BOUND_GENERAL_CONSTANT_POLICY",
+  "status": "PREFIX_NORMALIZATION_READY_FRESH_NATIVE_BINDING_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Prefix population remains complete and immutable. A second constant-field stop proved the first EMA-specific exception too narrow; it is now removed. Existing prefix base-fit explicitly preserves raw unit scale for finite constant fields and records no-observed-dispersion via scale_source. Nonconstant fits and default rejection unchanged;41 relevant tests pass including future-feature poison invariance. Resume only unfinished base/summary/composite under RESUME_PLAN, reusing exact47814Entries/cutoff/population. Report all constant fields; no assertion of learned unseen-regime effects. No model/optimizer/labels/policyfit/controltuning/TEST/native launch.",
+  "next_action": "Prefix normalization artifacts COMPLETE and verified. Frozen47814 TRAIN Entries,53007M5 local rows,263998Exit current rows,379901summary state samples/759802bothside rows;maximum observed close2026Feb27T22Z beforeMarch1 cutoff. All original313399 successor counts exact equal. Same fields/timeframes retained. Two source features constant: D1 EMA (signal/context aliases) and D1 bull_divergence_strength; explicit prefix-only raw-unit scaling records absent variation, not learned unseen-regime effects. First two basefit failures preserved; final base/summary/composite published once, no refit or repeated population allowed. Existing Entry dataset prefix label binding and these new transforms must now be used in the existing native fresh whole-model/target/EMA/optimizer and TRAIN-source logicalCONTROL256 setup. Old full-train initialization/normalization and June-only evaluator must not leak through. Next scope: minimal concrete native binding corrections and focused synthetic tests, then separately bound preparation. No actual model forward, optimizer, native launch, full epoch/VAL, controlretuning or TEST now.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix population remains complete and immutable. A second constant-field stop proved the first EMA-specific exception too narrow; it is now removed. Existing prefix base-fit explicitly preserves raw unit scale for finite constant fields and records no-observed-dispersion via scale_source. Nonconstant fits and default rejection unchanged;41 relevant tests pass including future-feature poison invariance. Resume only unfinished base/summary/composite under RESUME_PLAN, reusing exact47814Entries/cutoff/population. Report all constant fields; no assertion of learned unseen-regime effects. No model/optimizer/labels/policyfit/controltuning/TEST/native launch."
+    "next_scope": "Prefix normalization artifacts COMPLETE and verified. Frozen47814 TRAIN Entries,53007M5 local rows,263998Exit current rows,379901summary state samples/759802bothside rows;maximum observed close2026Feb27T22Z beforeMarch1 cutoff. All original313399 successor counts exact equal. Same fields/timeframes retained. Two source features constant: D1 EMA (signal/context aliases) and D1 bull_divergence_strength; explicit prefix-only raw-unit scaling records absent variation, not learned unseen-regime effects. First two basefit failures preserved; final base/summary/composite published once, no refit or repeated population allowed. Existing Entry dataset prefix label binding and these new transforms must now be used in the existing native fresh whole-model/target/EMA/optimizer and TRAIN-source logicalCONTROL256 setup. Old full-train initialization/normalization and June-only evaluator must not leak through. Next scope: minimal concrete native binding corrections and focused synthetic tests, then separately bound preparation. No actual model forward, optimizer, native launch, full epoch/VAL, controlretuning or TEST now."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -433,8 +433,8 @@
     "native_launch_authorized": false
   },
   "prefix_normalization_preparation": {
-    "enabled": true,
-    "status": "RESUME_UNFINISHED_NORMALIZATION_EXPLICIT_CONSTANT_PREFIX_POLICY",
+    "enabled": false,
+    "status": "COMPLETE_DO_NOT_REFIT",
     "plan": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESUME_PLAN.json",
       "sha256": "a383c718ab984f0a46fe3ff00406b92e15bca892f442ce01d498a7b164941143"
@@ -446,7 +446,11 @@
     "one_preparation_only": true,
     "completed_population_must_not_repeat": true,
     "training_enabled": false,
-    "native_launch_authorized": false
+    "native_launch_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+      "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+    }
   },
   "completed_constant_ema_state_normalization_fix": {
     "binding": {
@@ -462,5 +466,21 @@
     },
     "tests_passed": 41,
     "supersedes_ema_specific_exception": true
+  },
+  "completed_prefix_normalization": {
+    "status": "PREFIX_NORMALIZATION_READY_NOT_NATIVE_BOUND",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+      "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+    },
+    "verification": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/VERIFICATION.json",
+      "sha256": "e4930f0dbdc3ebdb97c9bd33649c621069c4d709143c64d0d65070ac52f84d46"
+    },
+    "report": "docs/PREFIX_NORMALIZATION_PREPARATION_20260917.md",
+    "base_fit_published_once": true,
+    "summary_fit_published_once": true,
+    "constant_field_policy_explicit": true,
+    "native_launch_authorized": false
   }
 }

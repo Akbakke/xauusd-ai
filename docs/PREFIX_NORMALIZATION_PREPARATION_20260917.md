@@ -1,5 +1,30 @@
 # Prefix-normalisering — én avgrenset klargjøring
 
+Gjeldende resultat: **ferdig og verifisert, ikke koblet inn i native forsøk**.
+47814 Entry-rader,53007 lokale M5-rader og263998 Exit-current-rader. Lifetime-fit
+brukte379901 states/759802 siderader. Maksimal observert lukking var
+2026-02-27T22:00Z, før cutoff2026-03-01. Fysiske successor-counts for alle313399
+opprinnelige Entries er eksakt uendret. Alle featurefelt og tidsrammer beholdes.
+
+To kildefeatures er konstante: d1_ema_stack_aligned_v2 (signal/context) og
+D1 bull_divergence_strength. De har eksplisitt constant_train_unit_scale;
+manglende variasjon er dokumentert og betyr ingen læring av usette tilstander.
+41 relevante tester og obligatoriske commit-kontroller består. Feltspesifikt
+EMA-unntak er erstattet av én generell regel bare i eksplisitt prefix-modus.
+
+Første to baseforsøk stoppet før publisering. Den siste CPU-jobben sluttet med
+exit0; base tok37,82s (peak10 500396KiB), summary48,39s (peak3 196232KiB),
+sluttkontroll5,91s. Base og summary er publisert én gang; populasjonen ble
+beregnet én gang og gjenbrukt. Alle outputhasher er kontrollert. Engangsporten
+er stengt; ingen refit. RESULT.json SHA77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404.
+
+Ingen modell-forward, optimizersteg, kontrolltilpasning eller TEST. Ferske
+native komponenter må fortsatt bruke de nye fasit-/normaliseringsbindingene.
+Maskinbevis: handover_snapshot/PREFIX_NORMALIZATION_READY_20260917.json.
+
+Det følgende dokumenterer klargjøringen og de to bevarte feilene i rekkefølge.
+
+
 Blokkeringen er at de gamle normaliseringene brukte hele TRAIN, inklusive
 mars–mai-kontrollen. Tidlige Entry-ID-er alene fjernet ikke senere Exit-states.
 Eksisterende eiere er allerede rettet og testet; ingen ny produksjonskode nå.
