@@ -1,0 +1,115 @@
+{
+  "result": {
+    "decision": "ENTRY_GRADIENT_FIX_AND_TRAIN_ONLY_SCOPE_VERIFIED",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/PLAN.json",
+      "sha256": "57efdd5782591e9c426988075f0e9a49ec94495c9dcfc341bbbb81dda8d1549a"
+    },
+    "gradient_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+      "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+    },
+    "model_ast_exact_after_removing_only_entry_detach": true,
+    "entry_gradient_boundary_tests_passed": 7,
+    "measurement_scope_unique_tests_passed": 13,
+    "scope_recheck_cases": 7,
+    "test_logs": {
+      "ENTRY_OPEN_TEST.log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/ENTRY_OPEN_TEST.log",
+        "sha256": "c21e60953ce4c6d983b3f1a67b1bd4e48b0cf14af708fe8f5fc6773b211546f7"
+      },
+      "TRAIN_ONLY_MEASUREMENT_TEST.log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/TRAIN_ONLY_MEASUREMENT_TEST.log",
+        "sha256": "e0da04f7c77d4ba59d42a76285805d6a295d047851b17a4569ccb9b82c404d49"
+      },
+      "TRAIN_ONLY_SCOPE_RECHECK.log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/TRAIN_ONLY_SCOPE_RECHECK.log",
+        "sha256": "dbe3757194983477fcab4ec29f177aae6a61f906bce9519e2737d7f5d95cefe5"
+      }
+    },
+    "actual_scope_verified": true,
+    "source_bindings_sha256": "76e4399fe9396e1ef0f707732e47f1bf3ff161e60aee3361af44af40fa0ceca5",
+    "actual_new_optimizer_steps": 0,
+    "actual_new_model_forwards": 0,
+    "learning_proven": false,
+    "test_data_used": false
+  },
+  "plan": {
+    "schema_version": "gx1_entry_connected_fixed256_plan_v1",
+    "created_utc": "2026-09-17T11:58:43.802115+00:00",
+    "decision": "ONE_MECHANISTIC_TRAIN_ONLY_CONTRAST_BOUND_BEFORE_FIT",
+    "run_scope": {
+      "chronological_prefix": {
+        "design": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+          "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+        },
+        "labels_result": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+          "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+        },
+        "normalization_result": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+          "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+        }
+      },
+      "run_id": "NATIVE_ENTRY_CONNECTED_FIXED256_20260917",
+      "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/CANDIDATE_BUNDLE",
+      "source_bindings_sha256": "76e4399fe9396e1ef0f707732e47f1bf3ff161e60aee3361af44af40fa0ceca5",
+      "optimizer_steps": 256,
+      "maximum_trained_entry_rows": 4096,
+      "max_invocations": 1,
+      "final_model_variant": "ONLINE",
+      "teacher_refresh_allowed": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "test_data_used": false,
+      "chronological_learning_measurement": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+        "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+      },
+      "chronological_train_only_measurement": true
+    },
+    "gradient_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+      "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+    },
+    "baseline_detached_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
+      "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
+    },
+    "change": "Only Entry Q source detach removed; Exit token detach, all model parameters, initialization, losses, features and training controls preserved.",
+    "model_ast_exact_after_removing_only_entry_detach": true,
+    "fresh_initial_state_reused": true,
+    "initial_measurement_reused": true,
+    "same_original4096_entry_order": true,
+    "same_frozen_target_model": true,
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "final_model_variant": "ONLINE",
+    "measurement_roles": [
+      "train"
+    ],
+    "measurement_entries": 256,
+    "measurement_exit_anchor_states": 256,
+    "measurement_exit_sampled_states": 1024,
+    "additional_control_forwards": 0,
+    "teacher_refresh_allowed": false,
+    "search_allowed": false,
+    "automatic_repeat_or_extension": false,
+    "comparison": [
+      "saved initial ONLINE",
+      "saved detached ONLINE256",
+      "same TRAIN-derived constant baselines"
+    ],
+    "criteria": {
+      "entry": "Both LONG/SHORT MSE and centered error must improve over initial and detached baseline and beat TRAIN constants; report every TRAIN month, correlations, target regret and LONG/SHORT/FLAT counts. A constant shift or action collapse is insufficient.",
+      "exit": "Report both sides at anchor and all sampled states against the same three baselines; Entry-only improvement cannot pass the full Entry/Exit learning gate.",
+      "limits": "This reused TRAIN probe overlaps fitted examples. No generalization or economic claim; no CONTROL selection, threshold tuning, new checkpoint selection or automatic follow-up training."
+    },
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "economic_rollout": false,
+    "test_data_used": false
+  }
+}

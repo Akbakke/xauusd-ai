@@ -18,19 +18,32 @@ observer0. Tasken er deaktivert; ingen aktiv native jobb. Det brukte
 chronological_learning_run-unntaket er stengt. Ingen gjentakelse, utvidelse,
 samme-CONTROL-tuning, full epoch/fullVAL eller TEST. Bevar alle bevis.
 
-Neste hypotese: V4 detach lar Entry trene verdilaget, men ikke feature-/MTF-
-representasjonen. Kilde og faktisk førstebatchgradient bekrefter dette;
-andre oppgaver endrer routingvektene. Dette beviser ikke årsaken til svikten.
-Første TRAIN16-kontroll stoppet2026-09-17T10:42:15Z på bitlikhet mot lagret
-inferens. Ingen optimizersteg eller gradientrapport; faktisk avvik ble ikke
-logget. Tasken er deaktivert. Feilen og original kilde/plan er bevart.
-Minste rettelse bruker eksisterende native FP32-toleranse0,0001Bps med eksakt
-samme handling; de to gradientvariantene krever fortsatt bitlike outputs og
-hodegradienter. Avvik logges, og TRAIN16-input lagres også ved målefeil.
-Åtte berørte CPU-kontroller består. Én korrigert native kontroll er bundet;
-commit/push og vanlig kildebinding før start. Ingen modell-/treningsendring,
-optimizer, Exit-/CONTROL-/TEST-forward eller automatisk ny runde.
-Se docs/NATIVE_PREFIX_FIXED256_REVIEW_20260917.md og tilhørende snapshot.
+Entry-gradientkontrollen er ferdig på4f6a64ec: guardPASS/trainer0/observer0,
+null optimizersteg og to forwards på samme TRAIN16. Dagens V4-detach gir
+null Entry-gradient til feature-/MTF-routing. Åpen forbindelse gir norm0,229;
+LONG0,134/SHORT0,192/FLAT0,016. Hjelpeoppgavene gir1,937; forholdet er0,118
+og cosinus0,550. Entry-hodegradientene og variantprediksjonene er bitlike.
+541 parametertensorer får Entry-gradient mot7 før. Dette viser en konkret
+læringsbegrensning, ikke bedre læring eller generalisering.
+
+Avviket mot lagret inferens var0,0000296Bps med identiske handlinger, innen
+på forhånd valgt eksisterende FP32-toleranse0,0001. Første feilede forsøk er
+bevart. Original ONLINE256, checkpoint, RNG og frosne mål er uendret; eksakte
+TRAIN16-inputs er cachet. Tasken er deaktivert og diagnoseunntaket er stengt.
+
+Modellrettelsen er gjort: bare detach foran Entry-Q-mikseren er fjernet;
+hele øvrige modell-AST, inkludert Exit-tokenets sperre, er uendret. Sju
+relevante gradienttester består. Eksisterende native sluttmåler har ett
+policybundet TRAIN-only-valg;13 unike måle-/scope-kontroller består.
+
+Én TRAIN-only læringskontrast er frosset før fit: samme ferske starttilstand,
+samme4096-raders rekkefølge, lærer, mål og256 optimizersteg. Slutt-ONLINE
+sammenlignes med lagret initialmodell, opprinnelig detached256 og TRAIN-
+konstanter. TRAIN256 og alle anker-/samplede Exit-states måles. Ingen ny
+CONTROL-forward. Konstant nivåflytting eller klassesammenbrudd teller ikke.
+Dette er gjenbrukt TRAIN, ikke generalisering. Ingen tapsvektsøk, gjentakelse,
+forlengelse, full epoch/VAL eller TEST. Commit og bind én native window før start.
+Se docs/ENTRY_CONNECTED_FIXED256_20260917.md og tilhørende plan-snapshot.
 
 ## Historiske resultater og fullført arbeid — ikke startinstrukser
 

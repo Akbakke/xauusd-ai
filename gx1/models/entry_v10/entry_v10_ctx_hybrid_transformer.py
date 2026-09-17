@@ -3710,11 +3710,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         entry_q_joint_source = torch.cat(
             (z_v3, z, mtf_repr, global_context_h), dim=1
         )
-        # In v4 the observed-market auxiliary targets own this Entry
-        # representation; the Exit-derived Q teacher still trains its mixer
-        # and action head. Forward values and every input path are unchanged.
-        if liquidation_relative_values:
-            entry_q_joint_source = entry_q_joint_source.detach()
+        # Entry's own Q error must train the representations it uses.
+        # V4 Exit feedback stays isolated in _project_entry_decision_token.
         entry_q_joint_hidden = nn.functional.gelu(
             self.entry_q_joint_in(
                 self.entry_q_joint_norm(entry_q_joint_source)

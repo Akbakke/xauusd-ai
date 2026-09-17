@@ -578,6 +578,11 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
     if "chronological_learning_measurement" in recipe:
         measured = require_chronological_learning_measurement(recipe)
         expected["chronological_learning_measurement"] = measured["artifacts"]["initial_measurement_audit"]
+    if "chronological_train_only_measurement" in recipe:
+        if (recipe["chronological_train_only_measurement"] is not True
+                or "chronological_learning_measurement" not in recipe):
+            raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
+        expected["chronological_train_only_measurement"] = True
     if (policy.get("training_enabled") is not False or scope != expected
             or type(windows) is not int or windows < 1
             or type(scope.get("optimizer_steps")) is not int
@@ -787,6 +792,10 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "chronological_train_only_measurement" in recipe and (
+            "chronological_prefix" not in recipe or "chronological_learning_measurement" not in recipe
+            or any(key in recipe for key in ("chronological_initial_measurement", "entry_gradient_diagnostic"))):
+        raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
     if "entry_gradient_diagnostic" in recipe:
         scope = require_entry_gradient_diagnostic(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
         return scope["origin_resume_state"]["global_optimizer_steps"]

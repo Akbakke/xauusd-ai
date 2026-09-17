@@ -86,7 +86,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -948,6 +948,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     try:
         model.eval()
         for role, dataset_key in (("train", "train_probe_ds"), ("control", "val_ds")):
+            if role == "control" and recipe.get("chronological_train_only_measurement") is True:
+                continue
             if time.monotonic() >= deadline:
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
             cohort = build_chronological_measurement_cohort(recipe["chronological_prefix"]["design"],
@@ -999,6 +1001,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
         "target_model_state_sha256": target_hash, "observations": observations,
+        "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}
     if optimizer_steps == 256:

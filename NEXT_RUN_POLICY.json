@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Run the single corrected TRAIN16 native gradient contrast, no optimizer. Preserve failed first attempt. Cached FP32 predictions must differ by at most 1e-4 Bps with identical actions; detached/connected outputs and head gradients remain bit-identical. Log actual difference and preserve input cache before measurement. No CONTROL/Exit/TEST forward, training, extension or automatic repeat.",
+  "rule": "Run exactly one existing native fixed256 TRAIN-only comparison for the measured Entry-gradient correction. Reuse saved fresh initialization, original4096 order, frozen teacher and initial TRAIN256 targets; compare final ONLINE256 with saved initial and detached results. No new CONTROL forward, refit, search, target refresh, automatic repeat, full epoch/VAL or TEST.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -823,11 +823,15 @@
       "sha256": "ccca790ad82cffd790fd4904704727ea072767b4c1cc225f382f42b253cbb2e5"
     }
   },
-  "entry_gradient_diagnostic": {
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/PLAN.json",
-      "sha256": "30fa70726fb1170803cc8631c247ab645918d0e6c0a272ae0c4f7e8a668019a8"
-    },
+  "entry_gradient_first_attempt_failure": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/FAILURE.json",
+    "sha256": "b497c355872fa8fbee77dd17bd4f9af3098f512deb230ae1fd086da2f0ca55be"
+  },
+  "entry_gradient_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+    "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+  },
+  "chronological_learning_run": {
     "chronological_prefix": {
       "design": {
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
@@ -842,19 +846,25 @@
         "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
       }
     },
-    "run_id": "NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/CANDIDATE_BUNDLE",
-    "source_bindings_sha256": "4087d42a17c65e674c81def44b3c5f7009e958b5e9b191db57cf00962d753a31",
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 256,
+    "run_id": "NATIVE_ENTRY_CONNECTED_FIXED256_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "76e4399fe9396e1ef0f707732e47f1bf3ff161e60aee3361af44af40fa0ceca5",
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
     "max_invocations": 1,
-    "train_entries": 16,
-    "model_forwards": 2,
-    "control_forwards": 0,
-    "test_data_used": false
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+    },
+    "chronological_train_only_measurement": true
   },
-  "entry_gradient_first_attempt_failure": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/FAILURE.json",
-    "sha256": "b497c355872fa8fbee77dd17bd4f9af3098f512deb230ae1fd086da2f0ca55be"
+  "entry_connected_learning_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/PLAN.json",
+    "sha256": "57efdd5782591e9c426988075f0e9a49ec94495c9dcfc341bbbb81dda8d1549a"
   }
 }

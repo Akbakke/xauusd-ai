@@ -51,3 +51,28 @@ Avvik logges før stopp; inputcache skrives før kontroll. Åtte berørte tester
 består, inkludert avvisning av endret handling innen toleransen. Modell, trener,
 mål og vakter er uendret. Et nytt misforhold gir stopp, ingen toleransesøk.
 Se handover_snapshot/ENTRY_GRADIENT_NUMERIC_REPAIR_20260917.json.
+
+## Målt resultat og beslutning
+
+Korrigert kontroll fullført2026-09-17T11:32:26UTC på4f6a64ec. GuardPASS,
+trainer0,observer0. Null optimizersteg, to Entry-forwards, ingen Exit/CONTROL/TEST.
+Original modell/checkpoint/RNG og inputcache er kontrollert.
+
+| TRAIN16 | Dagens detach | Åpen Entry-forbindelse |
+|---|---:|---:|
+| Entry routing-gradientnorm |0|0,229012|
+| LONG / SHORT / FLAT |0 /0 /0|0,133861 /0,191809 /0,016059|
+| Parametertensorer med Entry-gradient |7|541|
+| Entry-hodegradientnorm |23,367628|23,367628|
+
+Hjelpeoppgavenes routingnorm er1,936871, Entry/aux-forhold0,118238 og
+cosinus0,549554 på denne ene gjenbrukte batchen. Ingen tapsvekter endres ut fra
+dette. Variantoutputs og hodegradienter er bitlike. Avvik fra lagret inferens
+er0,0000295639Bps med identiske handlinger; første forsøk var for strengt.
+
+Beslutning: fjern bare Entry-Q-kildens detach. Behold Exit-tokenets detach og
+alle inputs, tap, priser, tidshorisonter og kausalitet. Dette korrigerer den
+påviste gradientbegrensningen; det er ikke en dokumentert læringsgevinst.
+Før mer trening kreves én separat bundet, fast TRAIN-only læringskontrast.
+Senere kontroll er allerede brukt til utvikling; ingen ommerking til urørt
+holdout eller tuning mot dens utfall. TEST forblir forseglet.

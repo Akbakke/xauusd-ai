@@ -84,6 +84,22 @@ def test_learning_admission_rejects_changed_frozen_evidence(learning_scope, faul
     with pytest.raises(RuntimeError): native.require_native_run_scope(recipe,invocation_number=1)
 
 
+@pytest.mark.parametrize('fault',[None,'false','unbound','missing_measurement','initial','diagnostic','no_prefix'])
+def test_train_only_measurement_is_explicitly_bound(learning_scope,fault):
+    policy,recipe,_,seal=learning_scope
+    recipe['chronological_train_only_measurement']=False if fault=='false' else True
+    if fault!='unbound':policy['chronological_learning_run']['chronological_train_only_measurement']=True
+    if fault=='missing_measurement':recipe.pop('chronological_learning_measurement')
+    if fault=='initial':recipe['chronological_initial_measurement']={}
+    if fault=='diagnostic':recipe['entry_gradient_diagnostic']={}
+    if fault=='no_prefix':recipe.pop('chronological_prefix')
+    seal()
+    if fault:
+        with pytest.raises(RuntimeError):native.require_native_run_scope(recipe,invocation_number=1)
+    else:
+        assert native.require_native_run_scope(recipe,invocation_number=1)==256
+
+
 def test_learning_campaign_stops_for_review_at_fixed256(learning_scope,monkeypatch,tmp_path):
     campaign_check(learning_scope,monkeypatch,tmp_path)
 
@@ -117,7 +133,8 @@ def test_native_dispatch_restores_initial_state_and_measures_only_final_online(l
 
 
 @pytest.mark.parametrize('fault',[None,'target','cohort'])
-def test_final_online_uses_identical_initial_targets_and_preserves_trained_session(tmp_path,monkeypatch,fault):
+@pytest.mark.parametrize('train_only',[False,True])
+def test_final_online_uses_identical_initial_targets_and_preserves_trained_session(tmp_path,monkeypatch,fault,train_only):
     artifacts=tmp_path/'artifacts';artifacts.mkdir()
     h=PrefixHarness(tmp_path/'run',_prepared(artifacts));output=h.root/'CANDIDATE'
     initial,pause=h.run_prefix(output,0)
@@ -127,12 +144,15 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
         'artifacts':{'initialization_result':{'test':True},'measurement_binding_result':{'test':True},
                     'initial_measurement_audit':{'test':True}}}
     phase={'final':False}
+    measured_roles=[]
     def cohort(*a,role):
         value={'role':role,'parent_entry_row_indices':list(range(256)),'entry_row_indices':list(range(256))}
         if phase['final'] and fault=='cohort':value['changed']=True
         return value
     monkeypatch.setattr(cohorts,'build_chronological_measurement_cohort',cohort)
     def measure(**kw):
+        if phase['final'] and train_only:assert kw['evaluation_cohort']['role']=='train'
+        measured_roles.append(kw['evaluation_cohort']['role'])
         assert not kw['model'].training and not kw['candidate_target_model'].training
         assert trainer._model_state_sha256(kw['candidate_target_model'])==initial_hash
         prediction=float(kw['model'].weight[0,0].detach())
@@ -160,12 +180,16 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
     kwargs=dict(components=components,scope=scope_value,recipe={'chronological_prefix':h.data.value},
         output=output,device=torch.device('cpu'),invocation_started=time.monotonic()-1800,
         pause_evidence=pause,optimizer_steps=256)
+    if train_only:kwargs['recipe']['chronological_train_only_measurement']=True
+    measured_roles.clear()
     if fault:
         with pytest.raises(RuntimeError,match='FROZEN_TARGET_CHANGED|COHORT_OR_TEACHER_CHANGED'):
             runner._run_prefix_initial_measurement(**kwargs)
     else:
         after=runner._run_prefix_initial_measurement(**kwargs);result=json.loads(Path(after['path']).read_text())
         assert result['optimizer_steps']==256 and result['selected_model_variant']=='ONLINE'
+        assert measured_roles==(['train'] if train_only else ['train','control'])
+        assert result['measurement_roles']==measured_roles and set(result['observations'])==set(measured_roles)
         assert result['frozen_targets_exactly_preserved'] is True and result['target_model_state_sha256']==initial_hash
         assert result['model_state_sha256']==model_hash and result['initial_measurement']==before
     assert trained.training and h.pointer(output).read_bytes()==pointer

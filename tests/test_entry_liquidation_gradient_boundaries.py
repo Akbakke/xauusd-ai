@@ -77,7 +77,7 @@ def test_v4_forward_is_exact_with_all_configured_production_width_inputs():
 
 
 @pytest.mark.parametrize("relative", [False, True])
-def test_q_teacher_trains_mixer_and_head_but_v4_blocks_entry_representation(relative):
+def test_entry_q_trains_mixer_head_and_entry_representation_in_both_modes(relative):
     model, inputs = _model_and_inputs()
     output = _forward(model, inputs, liquidation_relative_values=relative)
     output["entry_action_q_bps"].square().sum().backward()
@@ -85,10 +85,7 @@ def test_q_teacher_trains_mixer_and_head_but_v4_blocks_entry_representation(rela
                       model.entry_q_joint_norm.weight):
         _nonzero(parameter)
     for parameter in _entry_parameters(model):
-        if relative:
-            assert parameter.grad is None
-        else:
-            _nonzero(parameter)
+        _nonzero(parameter)
     assert model.head_forecast.weight.grad is None
 
 

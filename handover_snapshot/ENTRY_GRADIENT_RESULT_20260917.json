@@ -1,0 +1,136 @@
+{
+  "cached_actions_identical": true,
+  "cached_prediction_absolute_tolerance_bps": 0.0001,
+  "control_forwards": 0,
+  "decision": "TRAIN_GRADIENT_MEASURED_NOT_LEARNING_OR_GENERALIZATION_PROOF",
+  "input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "0b8cd6351a49e19adf5be366a0f38966394701db3e7e8d36461464e174dc7aab"
+  },
+  "limitations": "One reused TRAIN batch in eval mode. Finite connected gradients are not learning, improvement or future transfer.",
+  "measurements": {
+    "connected": {
+      "auxiliary": {
+        "entry_head_l2_norm": 0.0,
+        "routing_l2_norm": 1.936871414845773,
+        "connected_parameter_names_count": 558,
+        "nonzero_parameter_names_count": 558
+      },
+      "cached_actions_equal": true,
+      "cached_prediction_max_abs_difference_bps": 2.956390380859375e-05,
+      "entry": {
+        "entry_head_l2_norm": 23.367628168658197,
+        "routing_l2_norm": 0.22901213931653064,
+        "connected_parameter_names_count": 541,
+        "nonzero_parameter_names_count": 541
+      },
+      "entry_auxiliary_routing_cosine": 0.5495538106336907,
+      "entry_by_action": {
+        "FLAT": {
+          "entry_head_l2_norm": 1.266264478790495,
+          "routing_l2_norm": 0.016058670834542533,
+          "connected_parameter_names_count": 541,
+          "nonzero_parameter_names_count": 541
+        },
+        "LONG": {
+          "entry_head_l2_norm": 18.782433508501693,
+          "routing_l2_norm": 0.13386109313058223,
+          "connected_parameter_names_count": 541,
+          "nonzero_parameter_names_count": 541
+        },
+        "SHORT": {
+          "entry_head_l2_norm": 14.057444645710088,
+          "routing_l2_norm": 0.19180942241830162,
+          "connected_parameter_names_count": 541,
+          "nonzero_parameter_names_count": 541
+        }
+      },
+      "entry_precision": 0.9760700464248657,
+      "entry_to_auxiliary_routing_norm_ratio": 0.11823817397540877,
+      "raw_entry_mse": 112.38277435302734
+    },
+    "detached": {
+      "auxiliary": {
+        "entry_head_l2_norm": 0.0,
+        "routing_l2_norm": 1.936871414845773,
+        "connected_parameter_names_count": 558,
+        "nonzero_parameter_names_count": 558
+      },
+      "cached_actions_equal": true,
+      "cached_prediction_max_abs_difference_bps": 2.956390380859375e-05,
+      "entry": {
+        "entry_head_l2_norm": 23.367628168658197,
+        "routing_l2_norm": 0.0,
+        "connected_parameter_names_count": 7,
+        "nonzero_parameter_names_count": 7
+      },
+      "entry_auxiliary_routing_cosine": null,
+      "entry_by_action": {
+        "FLAT": {
+          "entry_head_l2_norm": 1.266264478790495,
+          "routing_l2_norm": 0.0,
+          "connected_parameter_names_count": 7,
+          "nonzero_parameter_names_count": 7
+        },
+        "LONG": {
+          "entry_head_l2_norm": 18.782433508501693,
+          "routing_l2_norm": 0.0,
+          "connected_parameter_names_count": 7,
+          "nonzero_parameter_names_count": 7
+        },
+        "SHORT": {
+          "entry_head_l2_norm": 14.057444645710088,
+          "routing_l2_norm": 0.0,
+          "connected_parameter_names_count": 7,
+          "nonzero_parameter_names_count": 7
+        }
+      },
+      "entry_precision": 0.9760700464248657,
+      "entry_to_auxiliary_routing_norm_ratio": 0.0,
+      "raw_entry_mse": 112.38277435302734
+    }
+  },
+  "model_and_original_checkpoint_preserved": true,
+  "model_forwards": 2,
+  "model_mode": "eval",
+  "model_state_sha256": "6b365a67e72684544c53539367a29f5e4cebca9bd23dea4fb61ac2abc1425775",
+  "native_elapsed_seconds": 650.951353566,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/PLAN.json",
+    "sha256": "30fa70726fb1170803cc8631c247ab645918d0e6c0a272ae0c4f7e8a668019a8"
+  },
+  "rng_restored": true,
+  "schema_version": "gx1_entry_gradient_diagnostic_result_v1",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "source_commit": "4f6a64ecb26ffaa66c2c239e96d353622b043756",
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "215567a9928708b3b2e77adf66bfdf93443a7e7e07c2ca603e5321a6732828de"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "dc73d0fd7887ebcb1d9e8a8f62d5d4c3b0038a5ee439b5ad79950c45d119d7b6"
+  },
+  "variant_forward_values_and_entry_head_gradients_identical": true,
+  "result_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "cbdb668587e11fc169189df863df728c82a62254fbb9c9cee98a9b295f7c4210"
+  },
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917_BOOT454/receipts/invocation-0001.json",
+    "sha256": "49e6e7055d9dbff2ef1a44ab05039d61714facef13f8f10bd73025232a331d6e"
+  },
+  "task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917_DISABLED.json",
+    "sha256": "3bb28b79eddbbd099770f68be2aa9ac133172f44334f7415f7408fb9e9147d4b"
+  },
+  "guard_decision": "PASS",
+  "guard_child_exit_status": 0,
+  "observer_exit_status": 0,
+  "started_utc": "2026-09-17T11:19:50.878736+00:00",
+  "finished_utc": "2026-09-17T11:32:26.225547+00:00",
+  "interpretation": "Entry Q cannot train upstream representations with the current V4 detach. Removing only that edge exposes finite gradients in all three actions without changing outputs or head gradients. Routing Entry/auxiliary norm ratio is 0.1182 and cosine 0.5496 on this reused TRAIN16 batch. This is access, not learning, transfer or profitability proof.",
+  "next_step": "Remove only Entry Q source detach; retain V4 Exit-token detach. Verify existing gradient boundaries, then bind one fixed-budget paired TRAIN-only learning experiment before any optimizer call. No control tuning or larger training."
+}
