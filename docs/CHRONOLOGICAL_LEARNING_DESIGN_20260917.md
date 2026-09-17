@@ -24,7 +24,12 @@ brukes kausalt, men kontrollperioden skal ikke brukes i normaliseringsfit.
 
 ## Hypotese og minste nødvendige rettelse
 
-Exit bruker nå observerte Q_mu-referansemål; Entry bruker fortsatt gammel,
+Status etter designfrys: opt-in-koblingen er implementert og77 syntetiske
+kontroller består. Se COHERENT_REFERENCE_ENTRY_20260917.md. DESIGN.json og
+utvalgs-/beslutningskriterier er uendret; forsøket er fortsatt ikke kjørbart.
+Avsnittene nedenfor beskriver blokkeringen og rettelsen ved designfrys.
+
+Ved designfrys brukte Exit observerte Q_mu-referansemål; Entry brukte gammel,
 frossen, rå anker-Q. Collator avviser referansetraces i anchor_views. Det er
 en konkret uoverensstemmelse i supervisjonen, ikke grunnlag for ny arkitektur.
 

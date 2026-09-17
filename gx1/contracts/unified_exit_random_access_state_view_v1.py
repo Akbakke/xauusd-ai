@@ -242,6 +242,7 @@ def materialize_random_access_state_view(
     prevalidated_m1_source: Mapping[str, Any] | None = None,
     backup_steps: int = 1,
     reference_policy: Mapping[str, Any] | None = None,
+    reference_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
     """Materialize a sampled pair and optional teacher trace; no holding cap."""
 
@@ -252,7 +253,11 @@ def materialize_random_access_state_view(
             or (backup_steps != 1 and (is_anchor or not relative))):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
     policy = None if reference_policy is None else require_reference_policy_contract(reference_policy)
-    if policy is not None and (backup_steps != 1 or is_anchor or not relative):
+    if reference_cutoff_time_ns is not None and (
+            type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0 or policy is None):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_INVALID")
+    if policy is not None and (backup_steps != 1 or not relative
+                               or (is_anchor and reference_cutoff_time_ns is None)):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
     if is_anchor:
         scheduled = require_random_access_entry_anchor(
@@ -319,6 +324,10 @@ def materialize_random_access_state_view(
     successor_row = entry_m1_start_row + successor_index
     if successor_row >= len(times):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_SUCCESSOR_MISSING")
+    if reference_cutoff_time_ns is not None:
+        boundary_row = state_row + min(policy["maximum_observed_backup_steps"], min(counts) - 1 - state_index)
+        if boundary_row >= len(times) or int(times.asi8[boundary_row] + 60_000_000_000) > reference_cutoff_time_ns:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_EXCEEDED")
 
 
     def one_view(index: int, row: int, *, compact: bool = False) -> dict[str, Any]:
@@ -605,6 +614,8 @@ def materialize_random_access_state_view(
             "steps": steps,
             "boundary": boundary,
         }
+        if reference_cutoff_time_ns is not None:
+            view["reference_policy_trace"]["supervision_end_time_ns"] = reference_cutoff_time_ns
     view["state_view_sha256"] = _structured_sha256(view)
     return view
 
@@ -912,9 +923,14 @@ def _require_transition_fields(observed: Mapping[str, Any], *, relative: bool, c
 
 def _require_reference_trace(observed: Mapping[str, Any]) -> None:
     trace = observed["reference_policy_trace"]
-    if (not isinstance(trace, Mapping) or set(trace) != {
-            "policy", "side_lifecycle_state_counts", "side_economic_terminal", "steps", "boundary"}
-            or observed["sample_role"] != "bellman_transition"):
+    required = {"policy", "side_lifecycle_state_counts", "side_economic_terminal", "steps", "boundary"}
+    if not isinstance(trace, Mapping) or set(trace) not in (required, required | {"supervision_end_time_ns"}):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_TRACE_INVALID")
+    cutoff = trace.get("supervision_end_time_ns")
+    if (("supervision_end_time_ns" in trace and (type(cutoff) is not int or cutoff <= 0))
+            or observed["sample_role"] not in ("bellman_transition", "entry_anchor_no_loss")
+            or (observed["sample_role"] == "entry_anchor_no_loss" and
+                (cutoff is None or observed["current"]["state_index"] != 0 or observed["loss_weight"] != 0.0))):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_TRACE_INVALID")
     policy = require_reference_policy_contract(trace["policy"])
     counts, terminals, steps = (trace["side_lifecycle_state_counts"],
@@ -967,6 +983,8 @@ def _require_reference_trace(observed: Mapping[str, Any]) -> None:
     _require_model_state_pair(observed["current"], boundary, adjacent=False)
     if {key: boundary[key] for key in COMPACT_STATE_FIELDS} != steps[-1]["successor"]:
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_BOUNDARY_INVALID")
+    if cutoff is not None and boundary["decision_time_ns"] > cutoff:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_EXCEEDED")
 
 
 __all__ = (

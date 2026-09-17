@@ -177,11 +177,16 @@ def collate_random_access_training_items(
     expected_economics_objective_contract_sha256: str,
     device: torch.device,
     reference_policy: Mapping[str, Any] | None = None,
+    reference_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
     """Validate and flatten variable-K Entry items into two model calls."""
 
     contract = require_random_access_sampler_contract(sampler_contract)
     reference_contract = None if reference_policy is None else require_reference_policy_contract(reference_policy)
+    if reference_cutoff_time_ns is not None and (
+            type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0 or reference_contract is None):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_INVALID")
+    entry_reference = reference_cutoff_time_ns is not None
     surface, normalization_sha = _normalization_surface(normalization_artifact)
     if (
         isinstance(outer_batch_size, bool)
@@ -374,14 +379,18 @@ def collate_random_access_training_items(
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_MIXED_BACKUP_POLICY")
     reference_flags = {"reference_policy_trace" in view for view in transition_views}
     if (reference_flags != {reference_contract is not None}
-            or any("reference_policy_trace" in view for view in anchor_views)
+            or {"reference_policy_trace" in view for view in anchor_views} != {entry_reference}
             or (reference_contract is not None and trace_flags != {False})):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_POLICY_BINDING_INVALID")
     if reference_contract is not None:
         traces = [view["reference_policy_trace"] for view in transition_views]
-        if any(trace["policy"] != reference_contract for trace in traces):
+        anchor_traces = [view["reference_policy_trace"] for view in anchor_views] if entry_reference else []
+        if any(trace["policy"] != reference_contract
+               or trace.get("supervision_end_time_ns") != reference_cutoff_time_ns
+               for trace in [*traces, *anchor_traces]):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_POLICY_BINDING_INVALID")
-        target_states = [trace["boundary"] for trace in traces] + [view["current"] for view in anchor_views]
+        target_states = [trace["boundary"] for trace in traces] + (
+            [trace["boundary"] for trace in anchor_traces] if entry_reference else [view["current"] for view in anchor_views])
     extra_states, extra_masks, extra_owners = [], [], []
     if trace_flags == {True}:
         # Keep the legacy successor/anchor layout intact; append only additional
@@ -493,37 +502,48 @@ def collate_random_access_training_items(
             "transition_available_mask": torch.from_numpy(available).to(device),
         }
     if reference_contract is not None:
-        width = max(len(trace["steps"]) for trace in traces)
-        shape = (len(traces), width)
-        rewards = np.zeros((*shape, 2), dtype=np.float32)
-        gammas = np.ones(shape, dtype=np.float32)
-        available = np.zeros(shape, dtype=np.bool_)
-        terminals = np.zeros((*shape, 2), dtype=np.bool_)
-        censored = np.zeros((len(traces), 2), dtype=np.bool_)
-        masks = []
-        for row, trace in enumerate(traces):
-            steps = trace["steps"]
-            for offset, step in enumerate(steps):
-                rewards[row, offset] = step["liquidation_relative_reward_bps"][:, 0]
-                gammas[row, offset] = step["elapsed_wall_clock_gamma"]
-                terminals[row, offset] = step["successor_terminal_mask"]
-                available[row, offset] = True
-            masks.append(steps[-1]["successor_policy_action_valid_mask"])
-            censored[row] = [trace["boundary"]["state_index"] == count - 1 and not terminal
-                             for count, terminal in zip(trace["side_lifecycle_state_counts"], trace["side_economic_terminal"])]
         result["schema_version"] = REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
-        result["reference_policy_trace"] = {
-            "policy": reference_contract,
-            "state_view_sha256": [view["state_view_sha256"] for view in transition_views],
-            "hold_reward_bps": torch.from_numpy(rewards).to(device),
-            "elapsed_wall_clock_gamma": torch.from_numpy(gammas).to(device),
-            "transition_available_mask": torch.from_numpy(available).to(device),
-            "successor_terminal_mask": torch.from_numpy(terminals).to(device),
-            "boundary_action_valid_mask": torch.from_numpy(np.stack(masks)).to(device),
-            "boundary_right_censored_mask": torch.from_numpy(censored).to(device),
-        }
+        groups = [("reference_policy_trace", transition_views, traces)]
+        if entry_reference:
+            groups.append(("entry_reference_policy_trace", anchor_views, anchor_traces))
+        for name, group_views, traces in groups:
+            width = max(len(trace["steps"]) for trace in traces)
+            shape = (len(traces), width)
+            rewards = np.zeros((*shape, 2), dtype=np.float32)
+            gammas = np.ones(shape, dtype=np.float32)
+            available = np.zeros(shape, dtype=np.bool_)
+            terminals = np.zeros((*shape, 2), dtype=np.bool_)
+            censored = np.zeros((len(traces), 2), dtype=np.bool_)
+            masks = []
+            for row, trace in enumerate(traces):
+                steps = trace["steps"]
+                for offset, step in enumerate(steps):
+                    rewards[row, offset] = step["liquidation_relative_reward_bps"][:, 0]
+                    gammas[row, offset] = step["elapsed_wall_clock_gamma"]
+                    terminals[row, offset] = step["successor_terminal_mask"]
+                    available[row, offset] = True
+                masks.append(steps[-1]["successor_policy_action_valid_mask"])
+                censored[row] = [trace["boundary"]["state_index"] == count - 1 and not terminal
+                                 for count, terminal in zip(trace["side_lifecycle_state_counts"], trace["side_economic_terminal"])]
+            result[name] = {
+                "policy": reference_contract,
+                "state_view_sha256": [view["state_view_sha256"] for view in group_views],
+                "hold_reward_bps": torch.from_numpy(rewards).to(device),
+                "elapsed_wall_clock_gamma": torch.from_numpy(gammas).to(device),
+                "transition_available_mask": torch.from_numpy(available).to(device),
+                "successor_terminal_mask": torch.from_numpy(terminals).to(device),
+                "boundary_action_valid_mask": torch.from_numpy(np.stack(masks)).to(device),
+                "boundary_right_censored_mask": torch.from_numpy(censored).to(device),
+            }
+        anchor_target_mask = (result["entry_reference_policy_trace"]["boundary_action_valid_mask"]
+                              if entry_reference else result["anchor_action_valid_mask"])
         result["target_action_valid_mask"] = torch.cat((
-            result["reference_policy_trace"]["boundary_action_valid_mask"], result["anchor_action_valid_mask"]))
+            result["reference_policy_trace"]["boundary_action_valid_mask"], anchor_target_mask))
+        if entry_reference:
+            result["reference_cutoff_time_ns"] = reference_cutoff_time_ns
+            result["reference_boundary_time_ns"] = torch.tensor(
+                [view["reference_policy_trace"]["boundary"]["decision_time_ns"]
+                 for view in [*transition_views, *anchor_views]], dtype=torch.int64, device=device)
     return result
 
 
@@ -603,6 +623,7 @@ def run_random_access_training_step(
     batch: Mapping[str, Any],
     grad_accum_steps: int,
     reference_policy: Mapping[str, Any] | None = None,
+    reference_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
     """One online forward, one frozen-target evaluation and one backward."""
 
@@ -613,6 +634,21 @@ def run_random_access_training_step(
         raise RuntimeError("UNIFIED_EXIT_REFERENCE_TRAINING_NOT_BOUND")
     if reference_mode and batch["reference_policy_trace"].get("policy") != policy:
         raise RuntimeError("UNIFIED_EXIT_REFERENCE_TRAINING_NOT_BOUND")
+    entry_reference = reference_cutoff_time_ns is not None
+    entry_reference_fields = {"entry_reference_policy_trace", "reference_cutoff_time_ns", "reference_boundary_time_ns"}
+    if ((entry_reference and (not reference_mode or type(reference_cutoff_time_ns) is not int
+                             or reference_cutoff_time_ns <= 0 or entry_reference_fields.intersection(batch) != entry_reference_fields
+                             or batch["reference_cutoff_time_ns"] != reference_cutoff_time_ns))
+            or (not entry_reference and entry_reference_fields.intersection(batch))):
+        raise RuntimeError("UNIFIED_EXIT_REFERENCE_ENTRY_NOT_BOUND")
+    if entry_reference:
+        boundary_times = batch["reference_boundary_time_ns"]
+        if (batch["entry_reference_policy_trace"].get("policy") != policy
+                or not isinstance(boundary_times, torch.Tensor)
+                or boundary_times.dtype != torch.int64
+                or tuple(boundary_times.shape) != (batch["transition_count"] + batch["selected_entry_count"],)
+                or bool(((boundary_times <= 0) | (boundary_times > reference_cutoff_time_ns)).any())):
+            raise RuntimeError("UNIFIED_EXIT_REFERENCE_ENTRY_CUTOFF_INVALID")
     trace_mode = batch.get("schema_version") == FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION
     relative = reference_mode or trace_mode or batch.get("schema_version") == LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION
     if batch.get("schema_version") not in {RANDOM_ACCESS_TRAIN_BATCH_SCHEMA_VERSION, LIQUIDATION_RELATIVE_TRAIN_BATCH_SCHEMA_VERSION, FROZEN_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION, REFERENCE_POLICY_TRACE_TRAIN_BATCH_SCHEMA_VERSION}:
@@ -699,10 +735,12 @@ def run_random_access_training_step(
             )
         if reference_mode:
             trace = batch["reference_policy_trace"]
+            anchor_target_mask = (batch["entry_reference_policy_trace"]["boundary_action_valid_mask"]
+                                  if entry_reference else batch["anchor_action_valid_mask"])
             if (not torch.equal(trace["hold_reward_bps"][:, 0], rewards[..., 0])
                     or not torch.equal(trace["elapsed_wall_clock_gamma"][:, 0], batch["elapsed_wall_clock_gamma"])
                     or not torch.equal(batch["target_action_valid_mask"][:transition_count], trace["boundary_action_valid_mask"])
-                    or not torch.equal(batch["target_action_valid_mask"][transition_count:], batch["anchor_action_valid_mask"])
+                    or not torch.equal(batch["target_action_valid_mask"][transition_count:], anchor_target_mask)
                     or not bool(action.all()) or bool(terminal.any())
                     or not bool(batch["successor_observed_mask"].all())
                     or not bool(batch["bellman_target_valid_mask"].all())):
@@ -717,6 +755,14 @@ def run_random_access_training_step(
                 boundary_right_censored_mask=trace["boundary_right_censored_mask"],
             )
             target_cache["reference_targets"] = reference
+            if entry_reference:
+                anchor_trace = batch["entry_reference_policy_trace"]
+                target_cache["entry_reference_targets"] = build_reference_policy_hold_targets(
+                    policy=policy, boundary_action_q_bps=all_target_q[transition_count:],
+                    **{name: anchor_trace[name] for name in (
+                        "hold_reward_bps", "elapsed_wall_clock_gamma", "transition_available_mask",
+                        "successor_terminal_mask", "boundary_action_valid_mask", "boundary_right_censored_mask")},
+                )
             return torch.stack((reference["hold_target_bps"], reference["exit_now_target_bps"]), dim=-1), batch["bellman_target_valid_mask"]
         targets, valid = build_unified_exit_fitted_q_targets(
             frozen_target_q_bps=torch.zeros_like(successor_q).unsqueeze(2),
@@ -768,6 +814,9 @@ def run_random_access_training_step(
     entry_gradients.index_add_(0, online_owner, token.grad.detach())
     all_target_q = target_cache["all_q"]
     anchor_q = all_target_q[transition_count:transition_count + batch["selected_entry_count"]]
+    if entry_reference:
+        anchor_reference = target_cache["entry_reference_targets"]
+        anchor_q = torch.stack((anchor_reference["hold_target_bps"], anchor_reference["exit_now_target_bps"]), dim=-1)
     anchor_mask = batch["anchor_action_valid_mask"]
     first_values = unified_exit_first_state_side_values(
         frozen_target_q_bps=anchor_q.unsqueeze(2),
@@ -817,6 +866,9 @@ def run_random_access_training_step(
         "flat_target_bps": 0.0,
         "entry_fitted_q_binding_sha256": fitted_entry_binding["binding_sha256"],
     }
+    if entry_reference:
+        bridge["entry_bridge_semantics"] = "observed_reference_anchor_Q_mu_with_greedy_first_action"
+        bridge["reference_cutoff_time_ns"] = reference_cutoff_time_ns
     bridge["binding_sha256"] = _canonical_sha256(bridge)
     return {
         **outcome,
@@ -826,8 +878,10 @@ def run_random_access_training_step(
         "entry_valid_mask": entry_valid,
         "entry_bridge_binding": bridge,
         **({"reference_target_evidence": target_cache["reference_targets"],
-            "entry_bridge_semantics": "unchanged_initial_teacher_greedy_bridge_no_reference_refresh"}
+            "entry_bridge_semantics": (bridge["entry_bridge_semantics"] if entry_reference
+                                       else "unchanged_initial_teacher_greedy_bridge_no_reference_refresh")}
            if reference_mode else {}),
+        **({"entry_reference_target_evidence": target_cache["entry_reference_targets"]} if entry_reference else {}),
     }
 
 

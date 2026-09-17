@@ -1,5 +1,5 @@
 {
-  "status": "CHRONOLOGICAL_DESIGN_FROZEN_NOT_EXECUTABLE_ANCHOR_TARGET_FIX_NEXT",
+  "status": "COHERENT_ENTRY_REFERENCE_SYNTHETIC_PASS_CHRONOLOGICAL_RUN_STILL_BLOCKED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "One chronological design and CONTROL256 IDs are frozen, not executable: TRAIN calendar2025-06-01..2026-03-01 has49017 rows; later control2026-03-01..2026-06-01 has16278, sampled256 (83/87/86 by month) with existing selector seed20260911 salt1. Five TRAIN anchor120 supports cross the cutoff, so complete label/state eligibility is still required. Planned ceiling256 optimizer steps/4096 entries is DESIGN ONLY, not launch authority. Next implement only the observed target-chain blocker first: in an explicit opt-in chronological/reference mode, materialize reference traces at Entry state0 and route the same observed Q_mu through existing first-state/Entry bridge owners used by Exit, preserving liquidation, gamma, masks, bootstrap and detach. Current code rejects reference traces on anchors and keeps the old raw teacher bridge; do not silently alter old recipes. Reuse existing state-view/collator/target owners, with focused synthetic CPU tests for Entry/Exit anchor equality, future-cutoff rejection, masks/terminal/bootstrap and legacy parity. No architecture/refactor/framework, actual-data model forward, target cache refresh, normalization fit, optimizer or native run yet. Remaining fresh initialization, prefix-only normalization and bounded TRAIN-sourced control bindings are specified in the frozen design; address their measured blockers sequentially after this minimal correction. All200 features/eight families/MTF preserved; TEST sealed; no retuning controls or automatic extension.",
+  "next_action": "Coherent Entry reference targets are now implemented behind explicit reference_policy plus reference_cutoff_time_ns;77 focused synthetic CPU tests pass. Same observed state0 Q_mu drives Entry and Exit; costs/gamma/masks/terminal/bootstrap/detach and legacy recipes are preserved. Cutoff-crossing support is rejected, not truncated or liquidated. This is a wiring correction, not learning or generalization evidence. The existing chronological DESIGN and CONTROL256 IDs remain frozen and not executable. Inspect the existing fresh-initialization and prefix-only normalization owners for the frozen chronological design, then address only their concrete binding blockers. No actual-data model forward, target cache refresh, normalization fit, optimizer step or native run is authorized yet. Preserve all200 features/eight families/MTF, original artifacts and native guards; TEST sealed; no control retuning or automatic extension.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -247,7 +247,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/FORECAST_TRANSFER_EXISTING_OUTPUTS.json",
     "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a"
   },
-  "latest_readonly_audit_utc": "2026-09-17T00:40:32.194951+00:00",
+  "latest_readonly_audit_utc": "2026-09-17T01:01:41.056881+00:00",
   "train_temporal_overlap_audit": {
     "decision": "DEPENDENT_TRAIN_CONTROLS_NOT_GENERALIZATION_EVIDENCE",
     "result": {
@@ -301,6 +301,19 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "minimal_opt_in_coherent_anchor_reference_targets_in_existing_owners_and_focused_synthetic_tests"
+    "next_scope": "Inspect the existing fresh-initialization and prefix-only normalization owners for the frozen chronological design, then address only their concrete binding blockers. No actual-data model forward, target cache refresh, normalization fit, optimizer step or native run is authorized yet."
+  },
+  "completed_coherent_reference_entry": {
+    "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_REFERENCE_ENTRY_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "2f788edc6da619a406a0b44e8f1c215e933462942a7006b30370880098300fbb"
+    },
+    "report": "docs/COHERENT_REFERENCE_ENTRY_20260917.md",
+    "unique_synthetic_tests_passed": 77,
+    "actual_model_forwards": 0,
+    "optimizer_steps": 0,
+    "learning_demonstrated": false,
+    "native_launch_authorized": false
   }
 }

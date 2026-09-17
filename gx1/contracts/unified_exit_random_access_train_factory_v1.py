@@ -110,6 +110,7 @@ def build_random_access_train_adapter_factory_v1(
     train_feature_source_owner: Any,
     backup_steps: int = 1,
     reference_policy: Mapping[str, Any] | None = None,
+    reference_cutoff_time_ns: int | None = None,
 ) -> Callable[[int], UnifiedExitDatasetAdapterV2]:
     """Return real candidate adapters without admitting an unbenchmarked sampler."""
 
@@ -121,6 +122,9 @@ def build_random_access_train_adapter_factory_v1(
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
     if type(backup_steps) is not int or backup_steps not in (1, 5):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BACKUP_STEPS_INVALID")
+    if reference_cutoff_time_ns is not None and (
+            type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0 or policy is None):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_INVALID")
     root_path = root_manifest_path.expanduser().resolve()
     root = require_random_access_index_root(_read_json(root_path, "ROOT"))
     split_binding = root["splits"]["train"]
@@ -237,6 +241,7 @@ def build_random_access_train_adapter_factory_v1(
         adapter.configure_random_access_training_v1(
             backup_steps=backup_steps,
             reference_policy=policy,
+            reference_cutoff_time_ns=reference_cutoff_time_ns,
             sampler_contract=contracts[budget],
             successor_transition_counts=counts,
             summary_fit_manifest=summary,

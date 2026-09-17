@@ -1,0 +1,75 @@
+{
+  "schema_version": "gx1_coherent_reference_entry_synthetic_evidence_v1",
+  "decision": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
+  "observed_utc": "2026-09-17T01:01:41.056881+00:00",
+  "parent_source_commit": "f3818a92a456a383b2b9eaa466839df3e921b9a3",
+  "source_files": {
+    "gx1/contracts/unified_exit_dataset_adapter_v2.py": "e1bfa4d88671ac39f12c3513f4811c6a6133db3e198882a2c606cadc38b5216b",
+    "gx1/contracts/unified_exit_random_access_state_view_v1.py": "4315ac48e860cba4c83e246e5688564342e97da4a89376f015a5b1c552104436",
+    "gx1/contracts/unified_exit_random_access_train_factory_v1.py": "9ed494f2b58da597f0ed861a251a6e8fa7b34878ffae9935194791a119b49e9f",
+    "gx1/contracts/unified_exit_random_access_training_v1.py": "af5ad2204062917f1769c5dde293a2bfc28a58c407f88ab12037de3873c71924",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "60e962f0d82e78574cb7e6fd6e614d872d2756c01ca976a745c4caedae7f020b",
+    "tests/test_unified_exit_random_access_state_view_v1.py": "a17bf982ea2169579a570010767de5f25920384ae94212195cbf5a51474c7270",
+    "tests/test_coherent_reference_entry_v1.py": "bae54cd7407330f1eec6e8f150e62827c3dea5a97426c490cc6aec4989223875"
+  },
+  "logs": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_REFERENCE_ENTRY_SYNTHETIC_20260917/TEST_ATTEMPT1.log",
+      "sha256": "75d219ae4edee1300c59c0c6145fd8ac08725bebe79c491dff30de59fd60e775",
+      "passed": 75,
+      "failed": 1
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/COHERENT_REFERENCE_ENTRY_SYNTHETIC_20260917/TEST_ATTEMPT2.log",
+      "sha256": "fdf0ceff5a1825e2b0281ab6eabcda34ee2454f62cbe22f00987b500a201b169",
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "unique_tests_passed": 77,
+  "production_changes_after_attempt1": false,
+  "test_only_fix": "Shallow-copy the state-view and trace mappings to preserve read-only NumPy arrays; prior deepcopy made arrays writable and failed before reaching cutoff validation. Retest only the failed test plus the existing adapter chain test.",
+  "explicit_opt_in": "reference_policy plus positive int reference_cutoff_time_ns in factory/adapter/state-view/collator/training/native bridge",
+  "entry_side_target": "initial executable liquidation + max(valid observed state0 HOLD Q_mu, 0); FLAT=0",
+  "checked": [
+    "Identical Entry/Exit state0 Q_mu for counts2,3,121,122, terminal/censored and asymmetric sides",
+    "Anchor remains state0 when sampled Exit is state4",
+    "No extra online rows, sample weights, target forward calls or backwards",
+    "Legacy Entry bridge and Exit targets/gradients preserved without opt-in",
+    "Exact cutoff passes; cutoff minus1ns rejects before constructing model inputs",
+    "Resealed state-view crossing cutoff rejected",
+    "Missing/mismatched policy, cutoff, traces or boundary clock rejected",
+    "Targets detached and frozen teacher gradients absent",
+    "Native bridge propagates explicit binding through existing target owners",
+    "Existing compact producer/dataset/canonical trainer chain passes"
+  ],
+  "guard": {
+    "class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "cpu_affinity": "0-7",
+    "numerical_threads": 1,
+    "tasks_max": 64
+  },
+  "real_market_data_accessed": false,
+  "actual_model_forwards": 0,
+  "synthetic_tiny_module_forwards_and_backwards": true,
+  "optimizer_steps": 0,
+  "gpu_used": false,
+  "test_split_accessed": false,
+  "learning_demonstrated": false,
+  "generalization_demonstrated": false,
+  "profitability_demonstrated": false,
+  "native_launch_authorized": false,
+  "frozen_chronological_design": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+    "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+  },
+  "remaining": [
+    "Fresh whole-model initialization and frozen initial teacher binding in existing native runner",
+    "Prefix-only base/context/MTF/lifetime normalization provenance",
+    "Full auxiliary and sampled Exit target support eligibility before cutoff",
+    "Frozen4096 sampleplan and TRAIN256 probe",
+    "Explicit native TRAIN-source later-development-control binding"
+  ]
+}

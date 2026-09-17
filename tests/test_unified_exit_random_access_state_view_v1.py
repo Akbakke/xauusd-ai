@@ -183,6 +183,7 @@ def _materialize(
     prevalidate: bool = False,
     backup_steps: int = 1,
     reference_policy: dict | None = None,
+    reference_cutoff_time_ns: int | None = None,
     model_state_times: list | None = None,
 ) -> dict:
     clock = _clock()
@@ -269,6 +270,7 @@ def _materialize(
         prevalidated_m1_source=prevalidated,
         backup_steps=backup_steps,
         reference_policy=reference_policy,
+        reference_cutoff_time_ns=reference_cutoff_time_ns,
     )
     require_random_access_state_view(
         view,

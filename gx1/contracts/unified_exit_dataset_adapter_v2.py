@@ -524,6 +524,7 @@ class UnifiedExitDatasetAdapterV2:
         expected_composite_normalization_sha256: str | None = None,
         backup_steps: int = 1,
         reference_policy: Mapping[str, Any] | None = None,
+        reference_cutoff_time_ns: int | None = None,
     ) -> None:
         """Bind immutable TRAIN artifacts before the first DataLoader read."""
 
@@ -539,6 +540,9 @@ class UnifiedExitDatasetAdapterV2:
                     != "liquidation_advantage_v1"):
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_SCOPE_INVALID")
         contract = require_random_access_sampler_contract(sampler_contract)
+        if reference_cutoff_time_ns is not None and (
+                type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0 or policy is None):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_REFERENCE_CUTOFF_INVALID")
         counts = np.ascontiguousarray(successor_transition_counts, dtype="<i8")
         summary = dict(summary_fit_manifest)
         normalization = require_lifetime_summary_normalization(
@@ -726,6 +730,8 @@ class UnifiedExitDatasetAdapterV2:
         }
         if policy is not None:
             self._random_access_train["reference_policy"] = policy
+        if reference_cutoff_time_ns is not None:
+            self._random_access_train["reference_cutoff_time_ns"] = reference_cutoff_time_ns
         self._prepare_random_access_epoch()
 
     def _prepare_random_access_epoch(self) -> None:
@@ -785,6 +791,8 @@ class UnifiedExitDatasetAdapterV2:
         }
         if "reference_policy" in binding:
             result["reference_policy"] = dict(binding["reference_policy"])
+        if "reference_cutoff_time_ns" in binding:
+            result["reference_cutoff_time_ns"] = binding["reference_cutoff_time_ns"]
         return result
 
 
@@ -935,7 +943,9 @@ class UnifiedExitDatasetAdapterV2:
                 ],
                 prevalidated_m1_source=binding["prevalidated_m1_source"],
                 backup_steps=1 if "anchor_sha256" in sample else binding["backup_steps"],
-                reference_policy=None if "anchor_sha256" in sample else binding.get("reference_policy"),
+                reference_policy=(None if "anchor_sha256" in sample and "reference_cutoff_time_ns" not in binding
+                                  else binding.get("reference_policy")),
+                reference_cutoff_time_ns=binding.get("reference_cutoff_time_ns"),
             )
 
         witness = binding["first_state_bridge_witness"]

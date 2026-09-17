@@ -7393,10 +7393,15 @@ def _episode_native_exit_train_v2(
         "economics_objective_contract_sha256",
     }
     reference_policy = bindings.get("reference_policy") if isinstance(bindings, Mapping) else None
+    reference_cutoff_time_ns = bindings.get("reference_cutoff_time_ns") if isinstance(bindings, Mapping) else None
     if reference_policy is not None:
         from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
         reference_policy = require_reference_policy_contract(reference_policy)
         required_bindings.add("reference_policy")
+    if reference_cutoff_time_ns is not None:
+        if type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0 or reference_policy is None:
+            raise RuntimeError("[UNIFIED_EXIT_RANDOM_ACCESS_V2_REFERENCE_CUTOFF_INVALID]")
+        required_bindings.add("reference_cutoff_time_ns")
     if not isinstance(bindings, Mapping) or set(bindings) != required_bindings:
         raise RuntimeError(
             "[UNIFIED_EXIT_RANDOM_ACCESS_V2_BINDINGS_INVALID]"
@@ -7440,6 +7445,7 @@ def _episode_native_exit_train_v2(
         ),
         device=device,
         reference_policy=reference_policy,
+        reference_cutoff_time_ns=reference_cutoff_time_ns,
     )
     outcome = run_random_access_training_step(
         model=model,
@@ -7451,6 +7457,7 @@ def _episode_native_exit_train_v2(
         batch=batch,
         grad_accum_steps=grad_accum_steps,
         reference_policy=reference_policy,
+        reference_cutoff_time_ns=reference_cutoff_time_ns,
     )
     gate_view = _unified_exit_gate_view(outcome["online_output"])
     _accumulate_cooperation_gate_epoch(

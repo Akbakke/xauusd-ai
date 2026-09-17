@@ -75,13 +75,18 @@ Fem TRAIN-ankerfasiter krysser allerede datogrensen; kalenderutvalget er ikke
 ferdig target-/state-eligibilitet. Budsjett256 oppdateringer/4096 Entries er
 kun design, ingen kjøreautoritet. Se docs/CHRONOLOGICAL_LEARNING_DESIGN_20260917.md.
 
-Neste minste koderettelse gjelder den observerte målkjedesvikten: dagens
-referansemål brukes i Exit, men Entry leser fortsatt rå Q fra gammel lærer;
-collator avviser referansetrace ved ankeret. I en eksplisitt opt-in-modus skal
-samme observerte state0-Q_mu gå gjennom eksisterende Entry-/first-state-eier,
-med likvidasjonsverdi, gamma, masks, terminal/bootstrap og detach bevart.
-Behold gamle oppskrifters semantikk. Kontroller med målrettede syntetiske
-CPU-tester; ingen ny faktisk datatarget eller modell-forward er åpnet.
+Den konkrete Entry-/Exit-målkjeden er nå rettet i eksplisitt opt-in-modus:
+reference_policy og reference_cutoff_time_ns kreves gjennom eksisterende eiere.
+Entry bruker samme observerte state0-Q_mu som Exit, pluss første likvidasjon;
+FLAT er0. Gamma, masks, terminal/bootstrap, detach og gammel standard er bevart.
+Fasit som krysser datogrensen avvises før modellinputs bygges; ingen kunstig
+terminal eller holdetidsgrense.77 målrettede syntetiske CPU-tester består.
+Første forsøk hadde én testkopieringsfeil; bare den og eksisterende adapterkjede
+ble kjørt etter testrettelsen. Original logg er bevart. Dette er teknisk
+målberegningsbevis, ikke ny læring. Ingen faktisk modell-forward, targetcache,
+normaliseringsfit eller optimizersteg. Se docs/COHERENT_REFERENCE_ENTRY_20260917.md.
+Neste er kildekontroll av fersk initialisering og prefix-normalisering i
+samme native eiere; ingen faktisk fit eller kjøring er åpnet.
 
 Fersk initialisering, prefix-normalisering og native kontrollbindinger er
 fortsatt nødvendige før en kjørbar plan. Samme200 features/åtte familier/MTF,
