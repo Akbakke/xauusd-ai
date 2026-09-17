@@ -39,6 +39,11 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
 - Stående autorisasjon gjelder nødvendig arbeid innen oppgaven. Ikke spør om
   samme godkjenning igjen. Oppdater overlevering ved vesentlige endringer og
   commit/push ferdig arbeid når den aktive kildebindingen tillater det.
+  Brukeren ga2026-09-17 stående godkjenning for offentlig push av ferdig GX1-kode,
+  dokumentasjon, interne artefaktstier og aggregerte bevis til Akbakke/xauusd-ai,
+  work/gx1-current. Gjør dette automatisk uten ny bekreftelse. Rådata, modellvekter
+  og hemmeligheter inngår ikke i publiseringen. Plattformens sikkerhetskontroller
+  gjelder fortsatt; dette fjerner bare gjentatt prosjektbekreftelse.
 - Brukeren har bestilt diskopprydding. Slett bare dokumentert overflødige filer;
   kontroller aktive referanser og bevar modell-/data-/runtime-avhengigheter,
   unike resultater og checkpoints. Sletting skal ha en kort etterprøvbar logg.

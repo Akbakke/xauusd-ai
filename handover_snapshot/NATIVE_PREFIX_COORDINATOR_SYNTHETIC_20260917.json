@@ -1,0 +1,77 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_COORDINATOR_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "47decc610eed2d5ac50be8d5d83f6decb474bae687ca11ac527f02596093ebcc"
+  },
+  "result": {
+    "schema_version": "gx1_native_prefix_coordinator_synthetic_v1",
+    "decision": "PREFIX_COORDINATOR_RESUME_SYNTHETIC_PASS_NOT_LEARNING_EVIDENCE",
+    "completed_utc": "2026-09-17T04:31:55.967421+00:00",
+    "parent_source_commit": "6f1335d18481924f5c65adce7f4c7abd91fe1e44",
+    "source_owners": {
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "sha256": "8b0b614c118acec4fd1fd4b00878a35ca466711e89394386fd92fcd28ed08132"
+      },
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+        "sha256": "18425f3776dab828571ea7dc3ca316d371a3b2cb9bf582d09d8136354a3c6b40"
+      }
+    },
+    "test_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_prefix_coordinator.py",
+      "sha256": "29c4a7a26e0c81d3a8d108cca041968067814543bfffa5466712debefa8c1a6b"
+    },
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_COORDINATOR_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "ecf2193d652ee02c5ec5ca34ac0a598584323a906b14c3a1290a0dd38ab52d8e"
+    },
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_COORDINATOR_SYNTHETIC_20260917/TEST.log",
+      "sha256": "78de1f91d60158d1946a8ec2d24baa5e8bbbd8d318f52d9be42fc76c6083a2dd"
+    },
+    "tests_passed": 25,
+    "test_first_attempt_passed": true,
+    "ast": {
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+        "changed_functions": [
+          "_candidate_training_session_contract",
+          "_native_candidate_epoch_validation",
+          "_native_candidate_val_context_binding",
+          "_prefix_candidate_training_binding",
+          "_run_resumable_candidate_training"
+        ],
+        "unchanged_functions_or_classes": 182
+      },
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+        "changed_functions": [
+          "_build_bound_full_train_components",
+          "_run_bound_full_train_candidate"
+        ],
+        "unchanged_functions_or_classes": 10
+      }
+    },
+    "verified": [
+      "same physical TRAIN with separate exact eligible and CONTROL256 role masks",
+      "frozen design, prefix artifacts, cutoff, policy, normalization and fresh initial weights bound in durable session",
+      "four native synthetic updates equal two plus restart plus two for online, target, AdamW, EMA, scheduler, RNG, order and progress",
+      "frozen target unchanged across invocation and resume",
+      "original native row order preserved; no reindexing or resampling",
+      "extension beyond256, full VAL, legacy seed migration and changed warm start rejected",
+      "CONTROL256 report-only context cannot trigger epoch EMA selection",
+      "legacy coordinator resume and full-VAL pause remain passing"
+    ],
+    "actual_data_model_constructions": 0,
+    "actual_data_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "synthetic_models_only": true,
+    "test_data_used": false,
+    "native_launch_authorized": false,
+    "remaining": [
+      "recipe/campaign fresh-prefix admission with fixed256-step finalONLINE",
+      "immutable index/bridge/final-bundle references to completed prefix normalization",
+      "coherent observed reference Entry/Exit targets in later control measurement",
+      "separately bound actual fresh initialization and frozen measurements, then bounded learning experiment"
+    ]
+  }
+}

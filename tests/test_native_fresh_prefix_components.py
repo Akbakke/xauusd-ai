@@ -207,7 +207,11 @@ def component_chain(tmp_path,monkeypatch):
     for name in ['load_selected_weight_ema_checkpoint_readonly_v1','bind_preserved_v7_input_normalization',
                  '_load_final_authority','require_launch_manifest','_val_sequence_source_audit']:
         monkeypatch.setattr(runner.val,name,forbidden)
-    monkeypatch.setattr(runner.trainer,'_native_candidate_val_context_binding',forbidden)
+    def bind_control(context):
+        assert context['evaluation_cohort']==cohort
+        seen['control_context']=context
+        return {'synthetic_bounded_control':True}
+    monkeypatch.setattr(runner.trainer,'_native_candidate_val_context_binding',bind_control)
     args=dict(files=files,dataset_run_id='fixture',seed_launch_path=None,seed_authority_path=None,
               seed_authority_file_sha256=None,device=torch.device('cpu'),batch_size=16,epochs=30,
               seed=20260911,learning_rate=.0001,weight_decay=.0001,
@@ -243,6 +247,7 @@ def test_existing_component_owner_uses_fresh_state_labels_and_physical_train(com
              train_rows=4500,batch_size=16,grad_accum_steps=1)
     assert c['weight_ema_derivation']==expected
     assert len(c['native_val_context']['frame'])==256
+    assert seen['control_context'] is c['native_val_context']
     assert c['native_val_context']['val_sequence_audit']==args['files']['sequence_source_audit']
     if c['lr_scheduler'] is not None:assert c['lr_scheduler'].T_max==30
 

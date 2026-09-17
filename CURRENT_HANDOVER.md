@@ -31,7 +31,9 @@ omfanget beskrevet nedenfor. Ingen nytt fit på juni.
 Se docs/FROZEN_NATIVE_VAL_REVIEW_20260917.md og maskinmålingen
 handover_snapshot/FROZEN_NATIVE_COMPARISON_20260917.json. Alle originale
 checkpoints, planer, resultater og den mislykkede kjøringen er bevart.
-GitHub-push venter fortsatt på det allerede stilte godkjenningsspørsmålet.
+Brukeren godkjente offentlig push2026-09-17 og ga stående autorisasjon for
+ferdig GX1-kode, dokumentasjon og aggregerte bevis til Akbakke/xauusd-ai.
+Ikke be om samme godkjenning på nytt. Rådata, vekter og hemmeligheter inngår ikke.
 
 ## Kontrollert etter avvisningen
 
@@ -251,6 +253,20 @@ Kun nødvendige koderettelser og fokuserte syntetiske kontroller er åpnet nå;
 faktisk klargjøring må bindes separat. Ingen modellkjøring, trening, refit,
 full epoch/VAL eller TEST. Ikke gjenta ferdig arbeid. Se
  docs/NATIVE_FRESH_COMPONENTS_20260917.md og tilhørende handover_snapshot.
+
+## Native koordinator og resume er koblet
+
+Eksakte prefix-rader, cutoff, policy, fasiter, normalisering og fersk modell-
+identitet inngår nå i den lagrede native sesjonen.25 syntetiske kontroller
+består;4 oppdateringer er eksakt lik2+gjenopptak+2. Læreren forblir frossen,
+original rekkefølge bevares, og budsjettutvidelse/vanlig epoch-VAL avvises.
+Dette er teknisk kontroll, ikke læringsbevis. Ingen modelltrening kjører.
+
+Neste: eksisterende recipe/campaign må ta inn denne oppstarten, immutable
+indeks/bridge/bundle-referanser må peke på ferdige transforms, og kontrollen
+må bruke samme observerte Entry/Exit-referanse. Deretter separat bundet
+klargjøring og ett fast256-stegs forsøk. Ingen refit, større trening eller TEST.
+Se docs/NATIVE_PREFIX_COORDINATOR_20260917.md. Ikke gjenta ferdig arbeid.
 
 ## Start her
 

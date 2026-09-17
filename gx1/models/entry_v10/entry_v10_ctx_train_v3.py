@@ -11469,6 +11469,8 @@ def _candidate_training_session_contract(
     native_val_binding: Optional[Mapping[str, Any]] = None,
     exit_backup_steps: int = 1,
     exit_reference_policy: Mapping[str, Any] | None = None,
+    reference_cutoff_time_ns: int | None = None,
+    prefix_training_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind a full candidate session to its immutable launch surface.
 
@@ -11488,6 +11490,14 @@ def _candidate_training_session_contract(
         exit_reference_policy = require_reference_policy_contract(exit_reference_policy)
         if exit_backup_steps != 1:
             raise RuntimeError("[CANDIDATE_TRAINING_REFERENCE_POLICY_INVALID]")
+    if ((prefix_training_binding is None) != (reference_cutoff_time_ns is None)
+            or (prefix_training_binding is not None and (
+                prefix_training_binding.get("schema_version") != "gx1_candidate_prefix_training_binding_v1"
+                or type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0
+                or prefix_training_binding.get("reference_cutoff_time_ns") != reference_cutoff_time_ns
+                or prefix_training_binding.get("input_normalization_sha256") != input_normalization.get("contract_sha256")
+                or exit_reference_policy is None))):
+        raise RuntimeError("[CANDIDATE_PREFIX_SESSION_CONTRACT_INVALID]")
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
         raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
     try:
@@ -11590,10 +11600,13 @@ def _candidate_training_session_contract(
             for name, path in artifact_paths.items()
         },
         "input_normalization_sha256": normalization_sha256,
-        **({"native_full_val": dict(native_val_binding)} if native_val_binding is not None else {}),
+        **({("native_bounded_control" if prefix_training_binding is not None else "native_full_val"): dict(native_val_binding)}
+           if native_val_binding is not None else {}),
+        **({"chronological_prefix": dict(prefix_training_binding)} if prefix_training_binding is not None else {}),
         "training": {
             **({"exit_backup_steps": exit_backup_steps} if exit_backup_steps != 1 else {}),
             **({"exit_reference_policy": exit_reference_policy} if exit_reference_policy is not None else {}),
+            **({"reference_cutoff_time_ns": reference_cutoff_time_ns} if reference_cutoff_time_ns is not None else {}),
             "seed": int(seed),
             "batch_size": int(batch_size),
             "epochs": int(epochs),
@@ -12774,6 +12787,89 @@ def _candidate_training_parent_rows(
     return parents
 
 
+
+def _prefix_candidate_training_binding(
+    *, chronological_prefix, train_ds, val_ds, train_parquet, val_parquet,
+    input_normalization, model, seed, batch_size, learning_rate, weight_decay,
+):
+    """Bind already prepared prefix data to the durable native training session."""
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+
+    def checked(binding):
+        return require_binding(binding, label="native prefix session", verify_file=True)
+
+    def read(binding):
+        binding = checked(binding)
+        return read_bound_json(Path(binding["path"]), binding["sha256"])
+
+    if not isinstance(chronological_prefix, Mapping) or set(chronological_prefix) != {"design", "normalization_result", "labels_result"}:
+        raise RuntimeError("[CANDIDATE_PREFIX_BINDING_INVALID]")
+    artifacts = {key: checked(binding) for key, binding in chronological_prefix.items()}
+    design = read(artifacts["design"])
+    normalization = read(artifacts["normalization_result"])
+    preparation = read(normalization["prefix_preparation"])
+    cutoff = int(pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
+    bindings = [getattr(dataset, "_policy_dependent_auxiliary_binding", None) for dataset in (train_ds, val_ds)]
+    adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+    training = getattr(adapter, "_random_access_train", None)
+    if (train_ds is val_ds or Path(train_parquet) != Path(val_parquet)
+            or any(Path(dataset.parquet_path) != Path(train_parquet) for dataset in (train_ds, val_ds))
+            or design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
+            or seed != design["initialization"]["seed"] or batch_size != 16
+            or learning_rate != 0.0001 or weight_decay != 0.0001
+            or design["budget"]["planned_optimizer_steps"] != 256
+            or design["budget"]["maximum_trained_entry_rows"] != 4096
+            or preparation["frozen_design"] != artifacts["design"]
+            or normalization["frozen_design"] != artifacts["design"]
+            or normalization["fit_cutoff_time_ns"] != cutoff
+            or input_normalization["contract_sha256"] != normalization["base_contract_sha256"]
+            or not isinstance(training, Mapping)
+            or training.get("reference_cutoff_time_ns") != cutoff
+            or training.get("reference_policy") != design["targets"]["reference_policy"]
+            or training.get("normalization_artifact", {}).get("normalization_sha256") != normalization["summary_normalization_sha256"]):
+        raise RuntimeError("[CANDIDATE_PREFIX_SOURCE_OR_TARGET_MISMATCH]")
+    row_bindings = (preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"],
+                    design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
+    populations = []
+    for dataset, binding, role, row_binding in zip((train_ds, val_ds), bindings, ("TRAIN", "CONTROL256"), row_bindings):
+        if (not isinstance(binding, Mapping) or binding.get("role") != role
+                or binding.get("result") != artifacts["labels_result"]
+                or binding.get("design") != artifacts["design"]
+                or binding.get("prefix_preparation") != normalization["prefix_preparation"]
+                or binding.get("labels", {}).get("row_binding") != row_binding):
+            raise RuntimeError("[CANDIDATE_PREFIX_LABEL_ROLE_MISMATCH]")
+        rows = np.load(Path(checked(row_binding)["path"]), allow_pickle=False)
+        mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
+        if (rows.dtype != np.dtype("int64") or rows.ndim != 1
+                or not np.array_equal(rows, np.unique(rows))
+                or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_ or mask.shape != (len(dataset),)
+                or not np.array_equal(np.flatnonzero(mask), rows)):
+            raise RuntimeError("[CANDIDATE_PREFIX_BOUND_ROWS_MISMATCH]")
+        populations.append(_candidate_training_parent_rows(len(dataset), torch.as_tensor(rows.copy())))
+    parents, control = populations
+    order_binding = checked(preparation["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"])
+    order = np.load(order_binding["path"], allow_pickle=False)
+    if (parents.numel() <= 4096 or control.numel() != 256
+            or np.intersect1d(parents.numpy(), control.numpy()).size
+            or order.dtype != np.dtype("int64") or order.ndim != 1
+            or not np.array_equal(np.sort(order), parents.numpy())
+            or normalization["fit_entry_rows"] != row_bindings[0]):
+        raise RuntimeError("[CANDIDATE_PREFIX_POPULATION_INVALID]")
+    binding = {
+        "schema_version": "gx1_candidate_prefix_training_binding_v1",
+        "artifacts": artifacts, "prefix_preparation": normalization["prefix_preparation"],
+        "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
+        "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
+        "reference_cutoff_time_ns": cutoff, "maximum_optimizer_steps": 256,
+        "maximum_completed_epochs": 0, "fixed_final_model_variant": "ONLINE",
+        "initial_model_state_sha256": _model_state_sha256(model),
+        "input_normalization_sha256": input_normalization["contract_sha256"],
+        "composite_normalization_sha256": normalization["composite_normalization_sha256"],
+    }
+    return binding, parents, torch.as_tensor(order.copy())
+
+
 def _candidate_training_epoch_order(
     train_ds: EntryV10CtxDataset, *, epoch_index: int,
     parent_population: Optional[torch.Tensor] = None,
@@ -12828,7 +12924,8 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
         "frame", "state_factory", "parent_coordinate_evidence", "val_sequence_audit",
         "max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards",
     }
-    if not isinstance(context, Mapping) or set(context) not in (required, required | {"policy_batch_size"}, required | {"policy_batch_size", "cpu_pipeline_workers"}):
+    cohort_keys = {"evaluation_cohort"} if isinstance(context, Mapping) and "evaluation_cohort" in context else set()
+    if not isinstance(context, Mapping) or set(context) - cohort_keys not in (required, required | {"policy_batch_size"}, required | {"policy_batch_size", "cpu_pipeline_workers"}):
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_INVALID]")
     from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
 
@@ -12838,7 +12935,18 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
     frame = context["frame"]
     children = frame["entry_row_index"].astype("int64").tolist()
     parents = frame["parent_entry_row_index"].astype("int64").tolist()
-    if children != list(range(5508)) or len(set(parents)) != 5508:
+    cohort = None
+    if cohort_keys:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+        cohort = require_bounded_val_cohort(context["evaluation_cohort"])
+        if (cohort.get("source_split") != "train" or len(children) != 256
+                or children != cohort["entry_row_indices"] or parents != cohort["parent_entry_row_indices"]
+                or factory.source_split != "train"
+                or factory.factory_receipt.get("split") != "train"
+                or cohort["population_rows"] != factory.factory_receipt.get("entry_pair_count")
+                or cohort["source_index"]["sha256"] != factory.artifact_file_sha256["random_access_index"]):
+            raise RuntimeError("[CANDIDATE_NATIVE_CONTROL_SOURCE_INVALID]")
+    elif children != list(range(5508)) or len(set(parents)) != 5508:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_COHORT_INVALID]")
     limits = {key: context[key] for key in ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")}
     for key in ("policy_batch_size", "cpu_pipeline_workers"):
@@ -12850,13 +12958,16 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
     audit = Path(context["val_sequence_audit"]).resolve(strict=True)
     return {
-        "schema_version": "gx1_candidate_native_full_val_context_v1",
+        "schema_version": ("gx1_candidate_native_bounded_control_context_v1" if cohort is not None
+                           else "gx1_candidate_native_full_val_context_v1"),
+        **({"evaluation_cohort": cohort, "report_only": True} if cohort is not None else {}),
         "factory_receipt": dict(factory.factory_receipt),
         "parent_coordinates_sha256": canonical_json_sha256({"children": children, "parents": parents}),
         "parent_coordinate_evidence_sha256": canonical_json_sha256(context["parent_coordinate_evidence"]),
         "sequence_source_audit": {"path": str(audit), "sha256": _sha256_file(audit)},
         "compute_limits": limits,
-        "entry_q_target_semantics": "frozen_train_target_exit_first_state_values_long_short_flat",
+        "entry_q_target_semantics": ("separately_bound_reference_measurement_required" if cohort is not None
+                                     else "frozen_train_target_exit_first_state_values_long_short_flat"),
         "test_accessed": False,
     }
 
@@ -12866,6 +12977,8 @@ def _native_candidate_epoch_validation(
     weight_ema: _WeightEma, val_ds: EntryV10CtxDataset, device: torch.device,
     batch_size: int, epoch_index: int, context: Mapping[str, Any],
 ) -> dict[str, Any]:
+    if "evaluation_cohort" in context:
+        raise RuntimeError("[CANDIDATE_BOUNDED_CONTROL_NOT_EPOCH_VALIDATION]")
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_candidate_weight_ema_validation_checkpoint_v1
     from gx1.scripts.run_unified_exit_random_access_val_v1 import evaluate_bound_full_val_v1
 
@@ -13724,6 +13837,7 @@ def _run_resumable_candidate_training(
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
     native_val_context: Optional[Mapping[str, Any]] = None,
     candidate_resume_origin: Optional[Mapping[str, Any]] = None,
+    chronological_prefix: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -13736,6 +13850,20 @@ def _run_resumable_candidate_training(
     """
 
     parent_population = None
+    prefix_binding = None
+    prefix_epoch0_order = None
+    if chronological_prefix is not None:
+        if (candidate_resume_origin is not None or execution_budget is None or native_val_context is None
+                or "evaluation_cohort" not in native_val_context
+                or type(execution_budget.get("stop_after_optimizer_steps")) is not int
+                or not 0 < execution_budget["stop_after_optimizer_steps"] <= 256
+                or execution_budget.get("stop_after_completed_val_epochs") is not None
+                or "resume_probe_val_rows" in execution_budget):
+            raise RuntimeError("[CANDIDATE_PREFIX_FIXED_BUDGET_REQUIRED]")
+        prefix_binding, parent_population, prefix_epoch0_order = _prefix_candidate_training_binding(
+            chronological_prefix=chronological_prefix, train_ds=train_ds, val_ds=val_ds,
+            train_parquet=train_parquet, val_parquet=val_parquet, input_normalization=input_normalization,
+            model=model, seed=seed, batch_size=batch_size, learning_rate=lr, weight_decay=weight_decay)
     if (candidate_resume_origin is not None
             and candidate_resume_origin.get("train_population_scope") == "latest_year_2025_2026_v1"):
         from gx1.contracts.unified_exit_random_access_index_v1 import require_latest_year_index_root, latest_year_selected_entry_rows
@@ -13762,6 +13890,11 @@ def _run_resumable_candidate_training(
         if checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR} or weight_ema is None or execution_budget is None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_SESSION_CONFIGURATION_INVALID]")
         native_binding = _native_candidate_val_context_binding(native_val_context)
+        if prefix_binding is not None and (
+                native_binding.get("evaluation_cohort", {}).get("plan") != chronological_prefix["design"]
+                or native_binding.get("factory_receipt", {}).get("composite_normalization_sha256")
+                != prefix_binding["composite_normalization_sha256"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH]")
         if execution_budget.get("resume_probe_val_rows") is not None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROBE_FORBIDDEN]")
     elif checkpoint_monitor in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
@@ -13770,6 +13903,9 @@ def _run_resumable_candidate_training(
     random_access_binding = getattr(train_adapter, "_random_access_train", None)
     exit_backup_steps = random_access_binding.get("backup_steps", 1) if random_access_binding is not None else 1
     exit_reference_policy = random_access_binding.get("reference_policy") if random_access_binding is not None else None
+    reference_cutoff = random_access_binding.get("reference_cutoff_time_ns") if random_access_binding is not None else None
+    if (prefix_binding is None) != (reference_cutoff is None):
+        raise RuntimeError("[CANDIDATE_PREFIX_CUTOFF_SESSION_BINDING_REQUIRED]")
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
         out_bundle_dir, gx1_data_override
     )
@@ -13811,6 +13947,7 @@ def _run_resumable_candidate_training(
             native_val_binding=native_binding,
             exit_backup_steps=exit_backup_steps,
             exit_reference_policy=exit_reference_policy,
+            reference_cutoff_time_ns=reference_cutoff, prefix_training_binding=prefix_binding,
         ),
     )
     train_checkpoint_interval = candidate_checkpoint_interval(precision_policy)
@@ -13924,6 +14061,12 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_TRAINING_GLOBAL_STEP_MISMATCH]")
         if device.type == "cuda":
             torch.cuda.empty_cache()
+
+    if prefix_binding is not None and (
+            epoch_index != 0 or phase != "train" or complete
+            or global_optimizer_steps > prefix_binding["maximum_optimizer_steps"]
+            or not torch.equal(epoch_order.cpu(), prefix_epoch0_order)):
+        raise RuntimeError("[CANDIDATE_PREFIX_RESTORED_SCOPE_OR_ORDER_INVALID]")
 
     def _pause_if_due(
         *, phase_value: str, epoch_value: int, batch_offset_value: int,

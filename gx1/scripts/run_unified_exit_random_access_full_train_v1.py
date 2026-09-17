@@ -522,8 +522,7 @@ def _build_bound_full_train_components(
             parent_population=torch.as_tensor(prefix["eligible_parent_rows"].copy(), dtype=torch.int64))
         if not np.array_equal(observed_order.numpy(), prefix["epoch0_parent_order"]):
             raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
-    else:
-        trainer._native_candidate_val_context_binding(val_context)
+    trainer._native_candidate_val_context_binding(val_context)
     return {
         "model": model, "optimizer": optimizer, "weight_ema": weight_ema,
         "lr_scheduler": scheduler, "train_ds": datasets["train"],
@@ -593,6 +592,7 @@ def _run_bound_full_train_candidate(
             val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
         ),
         candidate_resume_origin=candidate_resume_origin,
+        **({"chronological_prefix": components["chronological_prefix"]} if "chronological_prefix" in components else {}),
     )
 
 

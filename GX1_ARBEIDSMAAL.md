@@ -1,11 +1,12 @@
 # GX1 arbeidsmål — 2026-09-16
 
 Gjeldende status2026-09-17: kandidaten ble forkastet på senere juni-data.
-Kronologisk forsøksdesign er frosset, men ikke kjørbart. Den generelle Entry-/
-Exit-målkjeden er rettet med77 syntetiske kontroller; ingen ny læring er målt.
-Fersk initialisering, prefix-normalisering og tidsavgrensede native bindinger
-mangler fortsatt. CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste
-arbeid; forsøks-/neste-stegstekst lenger ned er historiske beslutninger.
+Ingen ny læring er bevist. Kronologisk design, prefix-policies/fasiter og
+normalisering er ferdige. Fersk komponentoppstart og native koordinator/resume
+er koblet og syntetisk kontrollert. Recipe/campaign, transformreferanser og
+sammenhengende kontrollmål gjenstår før det ene frosne forsøket.
+CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste arbeid; teksten
+lenger ned beskriver historiske beslutninger.
 
 Utvikle en modell som gir positiv kostnadsjustert netto Bps gjennom selektive,
 retningsmessig gode Entries og Exit som realiserer forventet videre nettoverdi.
