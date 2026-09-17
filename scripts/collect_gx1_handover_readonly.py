@@ -175,6 +175,8 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "training_source_commit": record.get("source_commit"),
         "runtime_root": record.get("runtime_root"),
         "latest_completed_native": record.get("completed_causal_entry_fixed256"),
+        "recorded_next_diagnostic": record.get("next_diagnostic"),
+        "last_diagnostic_failure": record.get("completed_entry_signal_failure"),
         "next_action": record.get("next_action"),
         "learning_gate": record.get("learning_gate"),
         "full_epoch_training_allowed": record.get("full_epoch_training_allowed", False),
@@ -190,14 +192,19 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
     # point at the previous run; the explicit current policy owns the selection.
     policy_path = repo / "NEXT_RUN_POLICY.json"
     policy = json.loads(policy_path.read_text()) if policy_path.is_file() else {}
-    scope = policy.get("chronological_learning_run")
+    diagnostic = policy.get("entry_gradient_diagnostic")
+    scope = policy.get("chronological_learning_run") or diagnostic
     if scope is not None:
         output = Path(scope["out_bundle_dir"])
         if output.parent.name != scope["run_id"]:
             raise ValueError("Current native run directory does not match policy")
-        directory = str(output.parent / (".gx1-candidate-training-session." + output.name))
         result["declared_run_id"] = scope["run_id"]
-        result["checkpoint_selection"] = "current_policy_session_not_previous_operator_note"
+        if diagnostic is not None:
+            result["checkpoint_selection"] = "preserved_training_origin_not_diagnostic_progress"
+            result["diagnostic_artifact_root"] = str(output.parent)
+        else:
+            directory = str(output.parent / (".gx1-candidate-training-session." + output.name))
+            result["checkpoint_selection"] = "current_policy_session_not_previous_operator_note"
         preparation_path = output.parent / "PREPARATION_RESULT.json"
         if preparation_path.is_file():
             preparation = json.loads(preparation_path.read_text())
@@ -210,15 +217,15 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
                     or recipe["source_repo"] != str(source)
                     or recipe["source_commit"] != preparation["source_commit"]):
                 raise ValueError("Current native recipe scope mismatch")
-            result["training_source_commit"] = preparation["source_commit"]
+            result["diagnostic_source_commit" if diagnostic is not None else "training_source_commit"] = preparation["source_commit"]
             result["runtime_root"] = preparation["runtime_root"]
             receipt_path = Path(preparation["runtime_root"]) / "receipts/invocation-0001.json"
             if receipt_path.is_file():
                 result["latest_terminal_receipt"] = json.loads(receipt_path.read_text())
         if processes:
-            result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. Review final ONLINE at the declared ceiling."
+            result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. " + ("Review the diagnostic result; no optimizer steps are allowed." if diagnostic is not None else "Review final ONLINE at the declared ceiling.")
         elif result.get("latest_terminal_receipt") is not None:
-            result["next_action"] = "The bound invocation has a terminal receipt. Verify final measurement and review learning before any new run."
+            result["next_action"] = "The bound invocation has a terminal receipt. " + ("Review the diagnostic result and close its used scope; completion is not learning evidence." if diagnostic is not None else "Verify final measurement and review learning before any new run.")
     if directory:
         pointer_path = Path(directory) / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
         result["session_directory"] = directory

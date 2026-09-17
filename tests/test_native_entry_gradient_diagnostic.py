@@ -38,7 +38,7 @@ def gradient_scope(initial_scope,tmp_path,monkeypatch):
           "chronological_prefix":recipe["chronological_prefix"],"run_id":recipe["run_id"],
           "out_bundle_dir":recipe["out_bundle_dir"],"source_bindings_sha256":recipe["source_bindings_sha256"],
           "optimizer_steps":0,"origin_optimizer_steps":256,"max_invocations":1,"train_entries":16,
-          "model_forwards":2,"control_forwards":0,"test_data_used":False}
+          "model_forwards":plan['model_forwards'],"control_forwards":0,"test_data_used":False}
         return seal()
     reseal()
     return policy,recipe,files,reseal,plan,obs,final,resume
@@ -221,9 +221,11 @@ def test_signal_pair_observes_two_frozen_states_without_accumulation(pair):
     for k,v in final.items():assert torch.equal(v,model.state_dict()[k])
 
 
-def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient_scope,tmp_path):
+@pytest.mark.parametrize('parity_only',[False,True])
+def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient_scope,tmp_path,parity_only):
     _,recipe,_,seal,plan,obs,final,resume=gradient_scope
     plan.update(diagnostic_kind='initial_final_entry_signal',schema_version='gx1_entry_signal_diagnostic_plan_v1',variants=['initial','final'])
+    if parity_only:plan.update(diagnostic_kind='initial_final_forward_parity',schema_version='gx1_entry_forward_parity_plan_v1',model_forwards=4,variants=['initial_inference','initial_gradient','final_inference','final_gradient'])
     baseline={**obs,'optimizer_steps':0,'model_state_sha256':'c'*64}
     final['target_model_state_sha256']='c'*64
     final['initial_measurement']=_write(tmp_path/'saved_initial.json',{'observations':{'train':_write(tmp_path/'initial_obs.json',baseline)}})
@@ -241,3 +243,19 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
     assert scope['cached_inputs']==_bind(cache) and scope['initial_observation']==baseline
     cache.write_bytes(b'tampered cache')
     with pytest.raises(RuntimeError):native.require_entry_gradient_diagnostic(recipe)
+
+
+def test_forward_parity_reports_difference_without_hiding_it_or_updating_model(pair,monkeypatch):
+    model=pair['model'];before=copy.deepcopy(model.state_dict());seen=[]
+    original=runner.trainer._model_forward_fp32
+    def differing_forward(*args,**kwargs):
+        seen.append(torch.is_grad_enabled());out=original(*args,**kwargs)
+        if torch.is_grad_enabled():out['entry_action_q_bps']=out['entry_action_q_bps']+0.01
+        return out
+    monkeypatch.setattr(runner.trainer,'_model_forward_fp32',differing_forward)
+    result=runner._entry_forward_parity(model=model,batch=pair['batch'],expected=pair['expected_prediction'],device=pair['device'])
+    assert seen==[False,True]
+    assert result['comparisons']['gradient__inference']['max_abs_difference_bps']>0.009
+    assert not result['comparisons']['gradient__inference']['within_existing_1e_minus4_bps']
+    assert result['comparison_tolerance_changed'] is False and all(p.grad is None for p in model.parameters())
+    for k,v in before.items():assert torch.equal(v,model.state_dict()[k])

@@ -380,8 +380,9 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         binding = require_binding(value, label=label, verify_file=True)
         return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
     plan_binding, plan = load(recipe.get("entry_gradient_diagnostic"), "Entry gradient plan")
-    signal = plan.get("diagnostic_kind") == "initial_final_entry_signal"
-    if plan.get("diagnostic_kind") not in (None, "initial_final_entry_signal"):
+    kind = plan.get("diagnostic_kind")
+    signal = kind in ("initial_final_entry_signal", "initial_final_forward_parity")
+    if kind not in (None, "initial_final_entry_signal", "initial_final_forward_parity"):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     fixed = {"schema_version":"gx1_entry_gradient_diagnostic_plan_v1", "optimizer_steps":0,
              "train_entries":16, "model_forwards":2, "control_forwards":0, "max_invocations":1,
@@ -389,6 +390,9 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
              "variants":["detached", "connected"], "test_data_used":False}
     if signal:
         fixed.update(schema_version="gx1_entry_signal_diagnostic_plan_v1", variants=["initial", "final"])
+    if kind == "initial_final_forward_parity":
+        fixed.update(schema_version="gx1_entry_forward_parity_plan_v1", model_forwards=4,
+                     variants=["initial_inference", "initial_gradient", "final_inference", "final_gradient"])
     if any(type(plan.get(k)) is not type(v) or plan[k] != v for k,v in fixed.items()):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     _, review = load(plan.get("review"), "completed fixed256 review")
@@ -462,7 +466,7 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         "run_id":recipe.get("run_id"), "out_bundle_dir":recipe.get("out_bundle_dir"),
         "source_bindings_sha256":recipe.get("source_bindings_sha256"),
         "optimizer_steps":0, "origin_optimizer_steps":256, "max_invocations":1,
-        "train_entries":16, "model_forwards":2, "control_forwards":0, "test_data_used":False}
+        "train_entries":16, "model_forwards":fixed["model_forwards"], "control_forwards":0, "test_data_used":False}
     if (policy.get("training_enabled") is not False or policy.get("entry_gradient_diagnostic") != expected
             or any(k in policy for k in ("chronological_learning_run", "chronological_initial_measurement",
                                          "native_learning_calibration", "frozen_readout_evaluation"))):

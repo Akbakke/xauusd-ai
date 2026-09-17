@@ -855,6 +855,9 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
         finally:handle.remove()
         q=out["entry_action_q_bps"];expected=predictions[variant]
         difference=float((q.detach()-expected).abs().max())
+        print(json.dumps({"event":"ENTRY_SIGNAL_NUMERIC_PARITY","variant":variant,
+            "max_abs_difference_bps":difference,"actions_equal":bool(torch.equal(q.detach().argmax(1),expected.argmax(1))),
+            "absolute_tolerance_bps":1e-4}),flush=True)
         if not torch.allclose(q.detach(),expected,atol=1e-4,rtol=0) or not torch.equal(q.detach().argmax(1),expected.argmax(1)):
             raise RuntimeError("ENTRY_SIGNAL_CACHED_PREDICTION_CHANGED")
         parts=_entry_signal_losses(q,target,valid)
@@ -901,6 +904,38 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device):
     return reports
 
 
+def _entry_forward_parity(*,model,batch,expected,device):
+    """Measure the two numerical paths without fitting or changing tolerance."""
+    if model.training or expected.shape != (16,3) or any(p.grad is not None for p in model.parameters()):
+        raise RuntimeError("ENTRY_FORWARD_PARITY_SCOPE_INVALID")
+    values={"cached_reference":expected.detach().cpu().double()}
+    for name,context in (("inference",torch.inference_mode),("gradient",torch.enable_grad)):
+        with context():
+            out=trainer._model_forward_fp32(model,batch["seq_x"].to(device),batch["snap_x"].to(device),
+                ctx_cat=batch["ctx_cat"].to(device),ctx_cont=batch["ctx_cont"].to(device),
+                **trainer._multi_tf_kwargs_from_batch(batch,device))
+            q=out["entry_action_q_bps"]
+            if q.shape != expected.shape or not bool(torch.isfinite(q).all()):
+                raise RuntimeError("ENTRY_FORWARD_PARITY_NONFINITE_OR_SHAPE")
+            values[name]=q.detach().cpu().double().clone()
+        del out,q
+    comparisons={}
+    for left,right in (("inference","cached_reference"),("gradient","cached_reference"),("gradient","inference")):
+        delta=values[left]-values[right]
+        comparisons[left+"__"+right]={"max_abs_difference_bps":float(delta.abs().max()),
+            "rms_difference_bps":float(delta.square().mean().sqrt()),
+            "max_abs_difference_by_action_bps":delta.abs().amax(0).tolist(),
+            "changed_actions":int((values[left].argmax(1)!=values[right].argmax(1)).sum()),
+            "within_existing_1e_minus4_bps":bool(torch.allclose(values[left],values[right],atol=1e-4,rtol=0))}
+    if any(p.grad is not None for p in model.parameters()):raise RuntimeError("ENTRY_FORWARD_PARITY_GRAD_ACCUMULATED")
+    report={"model_state_sha256":trainer._model_state_sha256(model),"comparisons":comparisons,
+        "prediction_mean_by_action":{k:v.mean(0).tolist() for k,v in values.items()},
+        "prediction_std_by_action":{k:v.std(0,unbiased=False).tolist() for k,v in values.items()},
+        "comparison_tolerance_changed":False,"optimizer_steps":0,"model_forwards":2}
+    print(json.dumps({"event":"ENTRY_FORWARD_PARITY_MEASURED",**report}),flush=True)
+    return report
+
+
 def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe_file_sha256, invocation_started):
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_entry_gradient_diagnostic
     scope=require_entry_gradient_diagnostic(recipe)
@@ -945,9 +980,16 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
         if signal:
             initial_rows=scope["initial_observation"]["diagnostics"]["bounded_entry_observations"][:16]
             initial_prediction=torch.tensor([r["predicted_q_bps"] for r in initial_rows],dtype=torch.float32,device=device)
-            measured=_entry_signal_pair(model=model,batch=batch,target=target,valid=valid,
-                predictions={"initial":initial_prediction,"final":prediction},
-                states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
+            if scope["plan"].get("diagnostic_kind") == "initial_final_forward_parity":
+                measured={}
+                for variant,weights,expected_prediction in (("initial",state["target_model_state"],initial_prediction),
+                                                            ("final",state["model_state"],prediction)):
+                    model.load_state_dict(weights,strict=True)
+                    measured[variant]=_entry_forward_parity(model=model,batch=batch,expected=expected_prediction,device=device)
+            else:
+                measured=_entry_signal_pair(model=model,batch=batch,target=target,valid=valid,
+                    predictions={"initial":initial_prediction,"final":prediction},
+                    states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
         else:
             measured=_entry_gradient_pair(model=model,batch=batch,target=target,valid=valid,
                                          expected_prediction=prediction,device=device)
@@ -976,6 +1018,12 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             exact_native_entry_mse_decomposition=True,
             limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
         report.pop("variant_forward_values_and_entry_head_gradients_identical")
+        if scope["plan"].get("diagnostic_kind") == "initial_final_forward_parity":
+            report.update(schema_version="gx1_entry_forward_parity_result_v1",
+                decision="ENTRY_FORWARD_PARITY_MEASURED_NO_OPTIMIZER_STEP",
+                variants=["initial_inference","initial_gradient","final_inference","final_gradient"],
+                model_forwards=4,exact_native_entry_mse_decomposition=False,
+                limitations="Four frozen TRAIN16 forwards isolate inference/gradient paths on initial and final models. A completed report is not a parity PASS, a changed tolerance, learning or generalization evidence.")
     path=directory/"RESULT.json";trainer._candidate_training_session_atomic_write_json(path,report)
     print(json.dumps({"event":"ENTRY_GRADIENT_DIAGNOSTIC_COMPLETE","result":str(path),"optimizer_steps":0}),flush=True)
     return {"decision":"PAUSED_RESUMABLE","resume_state":scope["origin_resume_state"],

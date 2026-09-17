@@ -2,7 +2,7 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — siste fullførte native256, faktisk tilstand og avgrensning.
+1. CURRENT_HANDOVER.md — læringsavslag, feilet diagnose og ny ustartet parity-plan.
 2. VEIEN_VIDERE.md — ferdig paret analyse, neste årsaksdiagnose og avgrensning.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
@@ -11,7 +11,8 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
-- docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md — én bundet native signaldiagnose, ikke påstand om start.
+- docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md — gjeldende avgrensede måling av prediksjonsavvik.
+- docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md — bevart, feilet signaldiagnose.
 - handover_snapshot/SAVED_OPTIMIZER_CAUSE_20260917.json — ferdig undersøkelse av lagret state.
 
 - docs/CAUSAL_ENTRY_FIXED256_REVIEW_20260917.md — paret læringsanalyse, ikke bestått.

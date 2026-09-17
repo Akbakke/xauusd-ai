@@ -1,0 +1,75 @@
+{
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "26697b79bb062154c13bc95df60c85544c094281eee05874a6fb115d79823a43"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+    "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
+  },
+  "saved_optimizer_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
+    "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
+  },
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "9db53b038cea2f20689c35e5bf2ef2c90ce83f20c6e6ed3d5e6ae4670d6768bf"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "d7b919d53c87167af08766e865257a2e5dcb6b4b80d808b2aff88bc2d21e6837"
+  },
+  "cached_input_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+    "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+  },
+  "optimizer_steps": 0,
+  "train_entries": 16,
+  "control_forwards": 0,
+  "max_invocations": 1,
+  "mode": "eval",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "test_data_used": false,
+  "preserve": [
+    "original initial/final/target models",
+    "optimizer state and step count",
+    "RNG and model modes",
+    "all features/timeframes and causal inputs",
+    "costs/targets/teacher",
+    "native guards and source binding"
+  ],
+  "schema_version": "gx1_entry_forward_parity_plan_v1",
+  "diagnostic_kind": "initial_final_forward_parity",
+  "created_utc": "2026-09-17T17:53:54.726838+00:00",
+  "failure": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/FAILURE.json",
+    "sha256": "32c36627b90f7b38561887fa3ac25c10e600f52d4148e74f59566e36b1aa22c1"
+  },
+  "model_forwards": 4,
+  "variants": [
+    "initial_inference",
+    "initial_gradient",
+    "final_inference",
+    "final_gradient"
+  ],
+  "question": "On identical cached TRAIN16 inputs, which initial/final model and inference/gradient path differs from its saved native inference prediction, by how much, and does the action change?",
+  "rationale": "The failed report did not identify its variant. Both frozen models require one inference and one gradient-enabled forward to avoid guessing; no backward or optimizer step is needed.",
+  "measurement": [
+    "per-model model-state hash",
+    "inference versus cached prediction",
+    "gradient-enabled versus cached prediction",
+    "gradient-enabled versus fresh inference",
+    "absolute/RMS/by-action difference and changed-action count",
+    "existing 0.0001 Bps comparison reported without changing tolerance"
+  ],
+  "interpretation": "Record differences even when parity fails. Report completion is not numerical PASS, learning, generalization or permission to relax tolerance. Infer a numerical-path cause only if fresh inference matches the cached result while the gradient path differs.",
+  "prohibited": [
+    "optimizer step or backward",
+    "new inputs/targets",
+    "CONTROL/VAL/TEST",
+    "Exit forwards",
+    "tolerance change",
+    "automatic retry or additional forwards",
+    "model/training-math modification based on unmeasured cause"
+  ]
+}

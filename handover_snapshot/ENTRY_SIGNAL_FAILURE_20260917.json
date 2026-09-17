@@ -1,0 +1,46 @@
+{
+  "schema_version": "gx1_entry_signal_diagnostic_failure_v1",
+  "created_utc": "2026-09-17T17:53:54.726838+00:00",
+  "decision": "FAILED_ENTRY_SIGNAL_CACHED_PREDICTION_PARITY_UNMEASURED",
+  "source_commit": "3ee12e5772b1157e9a1e2c9525239e99f731d109",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/PLAN.json",
+    "sha256": "4cadac4dcd37cf8f05face40e17210a466d8f77c4f03c707e221762f084493eb"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/NATIVE_RECIPE.json",
+    "sha256": "9f61ae721dcbfa1f986aaf1f43cee84043187fa622f6e19cdbaf9c8b7074865b"
+  },
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917_BOOT457/progress/.invocation-0001.json.trainer.5tYZLKbz.log",
+    "sha256": "8dbe08810a5232177f8e1fd73073bcff968081f2953414e7e60fb356f9b1b051"
+  },
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917_BOOT457/guard/invocation-0001.log",
+    "sha256": "cfde4101d7147ff16a3fc0c89d812794168fc4c665fabf4b7cad04abf4129404"
+  },
+  "terminal_guard_line": "2026-09-17T17:27:26Z event=exit child_status=1 stage=canonical telemetry_samples=578 peak_core_temp_c=47 peak_memory_temp_c=48 peak_power_draw_w=130.85 peak_memory_used_mib=1866",
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917_DISABLED.json",
+    "sha256": "4e705d2b615bc0a91ee2f719704870e9c6b00484a072f5f7f14b8eaf544fed80"
+  },
+  "terminal_receipt_present": false,
+  "native_processes": [],
+  "optimizer_steps": 0,
+  "original_training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+  },
+  "original_training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "e14124277545365e53a4fa7e3e559dc0ce92b3146ab941b129a602d0bdc0148a"
+  },
+  "original_artifacts_rehashed_unchanged": true,
+  "model_forwards_completed": null,
+  "model_forwards_ceiling": 2,
+  "failed_variant": null,
+  "numerical_difference_bps": null,
+  "learning_measured": false,
+  "test_data_used": false,
+  "limitation": "The original diagnostic did not log variant or difference before raising. Do not assume initial/final, roundoff size, action parity or a model bug. Native finally restored model/RNG and verified checkpoint bindings."
+}

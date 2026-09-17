@@ -7,6 +7,8 @@ beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt akti
 Nå: native256 og paret analyse er ferdige, læringsport ikke bestått. Entry er
 all-FLAT; Exit-handling bestemmes bare av side. Neste er én konkret årsaksdiagnose
 fra eksisterende TRAIN-outputs, lagrede state/gradientbevis og kilde.
+Signaldiagnosen feilet prediksjonskontrollen. Neste avgrensede måling er fire
+forwards på samme TRAIN16, uten backward/optimizer; den er ikke startet.
 Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md for faktisk jobb og neste handling.
 Gjenbruk mål/prediksjoner/checkpoints; ikke gjenta beståtte undersøkelser.
 

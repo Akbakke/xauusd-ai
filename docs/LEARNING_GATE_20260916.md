@@ -11,8 +11,9 @@ ikke læringsbevis. Den parete analysen er ferdig og porten ikke bestått:
 Entry all-FLAT, svak LONG−SHORT-kontrast, Exit konstant per side og dårligere
 enn forrige kandidat. Brukt launch-unntak er stengt. Neste er én årsaksdiagnose
 fra eksisterende TRAIN-bevis/kilde. Denne er utført; nå er én separat bundet
-signaldiagnose tillatt med to cachede TRAIN16 eval-forwards og null optimizersteg.
-Se docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md. Ingen trening er åpnet.
+måling av prediksjonsavvik tillatt etter at signaldiagnosen feilet. Samme
+TRAIN16, initial/final × inferens/gradient, fire forwards, ingen backward eller
+optimizer. Se docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md. Ingen trening er åpnet.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke

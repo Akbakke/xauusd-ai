@@ -27,3 +27,9 @@ Plan: BASE/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917/PLAN.json.
 BASE er /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912.
 PREPARATION_RESULT.json, prosesser og kvittering avgjør om målingen faktisk har
 startet/sluttet. Dette dokumentet er en bundet plan, ikke påstand om utførelse.
+
+## Forsøket er terminalt med feil
+
+Ingen signalrapport ble skrevet. Prediksjonskontrollen feilet; variant og
+avviksstørrelse manglet i loggen. Se ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md
+og handover_snapshot/ENTRY_SIGNAL_FAILURE_20260917.json. Ikke relanser denne planen.

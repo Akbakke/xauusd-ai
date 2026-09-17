@@ -11,27 +11,23 @@ Fjernkontakt: `ssh gx1-3090-lan`; Linux via
 `wsl.exe -d Ubuntu-22.04 -u andre2 -- /bin/bash -s`.
 Alle kildeoperasjoner skjer i `/home/andre2/src/GX1_CURRENT`.
 
-## Neste handling: utfør den bundne signaldiagnosen én gang
+## Neste handling: mål avviket i den feilede prediksjonskontrollen
 
-Checkpoint-/kildeundersøkelsen er gjort; ikke gjenta den. Tapsvekter nær 0,975,
-ikke-null første Entry-gradient og bevegelige parametere utelukker full stopp
-som forklaring, men avgjør ikke hvorfor retningsfølsomheten blir liten.
+Signaldiagnosen er terminal med feil og skal ikke relanseres. Ingen signal-
+konklusjon finnes; variant og avviksstørrelse ble ikke logget. Original modell,
+checkpoint og tidligere læringsavslag bevares.
 
-Planen i BASE/NATIVE_ENTRY_SIGNAL_DIAGNOSTIC_20260917 er bundet før utførelse.
-Bruk eksisterende native campaign/launcher/guards: samme cachede TRAIN16,
-initial/final, to eval-forwards og null optimizersteg. Les
-docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md. Kontroller PREPARATION_RESULT.json,
-faktiske prosesser og receipt før noe startes; en eksisterende jobb skal bevares.
+Følg den nye, separat bundne planen i BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917:
+samme cachede TRAIN16, fire forwards (initial/final × inferens/gradientaktivert
+eval), ingen backward/optimizer. Ingen endret toleranse. Se
+docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md. Kontroller PREPARATION_RESULT,
+faktiske prosesser og receipt før start; ikke start om en eksisterende jobb.
 
-Resultatet skal vise hvor variasjonen krymper og gradientretningen mellom
-fellesnivå, LONG−SHORT og hjelpeoppgaver på Entry-private parametere.
-Skillet fra faktisk treningsmodus og full klippet Adam-oppdatering må beholdes.
-Ingen hypotese blir kodeendring uten målt støtte. Ingen ny trening, søk,
-CONTROL, VAL, TEST, Exit-forward eller automatisk ekstra diagnose.
-
-Etter terminal receipt: deaktiver tasken, bevar resultat/checkpoint, vurder
-én konkret årsak, steng det brukte diagnoseunntaket og oppdater handover.
-Langjobb sjekkes omtrent hvert 15.–30. minutt eller sjeldnere ved stabil drift.
+Rapporten skal skille ny inferens mot lagret inferens fra gradientforward mot
+inferens. Manglende samsvar må forklares før representasjons-/gradientanalysen
+fortsetter. Ingen påstand om årsak eller modellrettelse uten målt støtte.
+Bevar feilforsøket; steng det nye brukte scope etter terminalt resultat.
+Ingen trening, CONTROL, VAL, TEST, Exit-forward, søk eller automatisk utvidelse.
 
 ## Referanser for sammenligningen
 
@@ -50,9 +46,9 @@ Felles rot (`BASE`):
   og `.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json`.
   Entry-prediksjonene må vurderes mot den nye avledede fasiten; gamle Entry-MSE
   er ikke direkte sammenlignbare. Exit-målene er uendret.
-- Ny plan: `BASE/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PLAN.json`, SHA256
+- Fullført treningsplan, ikke relanser: `BASE/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PLAN.json`, SHA256
   `0f48d7aec4a530ec5df44df60d76332377ee81f72584a11ca235818d699cc63b`.
-- Ny native recipe: samme mappe `/NATIVE_RECIPE.json`, SHA256
+- Fullført treningsrecipe: samme mappe `/NATIVE_RECIPE.json`, SHA256
   `8b96b88a28ddf513062a7608cfdc3fa08286bc093d6eeb4fa12279418f944bcd`.
 - Campaign-plan: samme mappe `/CAMPAIGN/CAMPAIGN_PLAN.json`, filhash
   `45d038f9198ff682bbf9e437f511d6aa92d55e563ba8fa2a837a1f403c5dc016`.
@@ -81,11 +77,13 @@ refaktorering eller justering av terskler på samme kontrollutvalg.
 
 ## Operatører og publisering
 
-Forberedelse/aktivering og kjøring er fullført. Bevis finnes i siste artefakt-
-mappen; aldri kjør dem igjen uendret. Gjenbruk fungerende måleformler og cache.
-Lokale arbeidsoperatører finnes under `/private/tmp/gx1-prefix-normalization/`;
-varige kopier/bindinger ligger i de respektive artefaktmappene. /tmp er ikke
-langsiktig autoritet. Ingen nye vekter, rådata eller hemmeligheter skal pushes.
+Native256 og den feilede signaldiagnosen er avsluttet; deres operatører er
+historiske og skal ikke relanseres. Parity-planen er bundet, men recipe/campaign
+er ennå ikke forberedt. Ubrukte operatører er bevart i
+`BASE/NATIVE_ENTRY_FORWARD_PARITY_20260917/OPERATOR_HANDOVER/`. Følg den
+eksakte rekkefølgen i parity-dokumentet; Macens /tmp er ikke nødvendig.
+Gjenbruk cache og ferdige analyser. Ingen vekter, rådata eller hemmeligheter
+skal pushes.
 
 Stående godkjenning gjelder offentlig kode, dokumentasjon, interne filstier
 og aggregerte resultater til `Akbakke/xauusd-ai`, `work/gx1-current`. Commit/push

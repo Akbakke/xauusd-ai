@@ -2,6 +2,11 @@
 
 ## Les dette først
 
+**Nåstatus: ingen modelljobb kjører. Signaldiagnosen feilet; neste
+fire-forward-plan er bundet, men recipe/campaign er ikke forberedt og den
+er ikke startet. Følg kjøreoppskriften i
+`docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md`.**
+
 **Den kausale Entry-prøven og den parete analysen er ferdige. Læringsporten
 er ikke bestått: Entry velger FLAT256/256; Exit alltid HOLD for LONG og EXIT
 for SHORT. Ingen ny trening eller relansering av den brukte planen.**
@@ -22,18 +27,19 @@ kandidat. Generalisering og profitt er ikke dokumentert.**
 Kjør `./handover.sh --check` på Mac eller `bash scripts/gx1_handover.sh --check`
 i Linux for fersk status. `--verbose` viser også denne overleveringen.
 Ingen handover-kommando starter trening. Gjeldende policy har stengt det brukte
-treningsunntaket. Nå er bare den særskilt bundne signaldiagnosen tillatt.
+treningsunntaket. Nå er bare den særskilt bundne målingen av prediksjonsavvik tillatt.
 
-## Aktuelt neste arbeid: én bundet signaldiagnose
+## Aktuelt neste arbeid: mål prediksjonsavviket
 
-Årsaksdiagnosen fra lagret checkpoint er gjort. Entry-gradienten når routing;
-tapsvektene er omtrent 0,975 og parameterne beveger seg. Én konkret ny måling
-er derfor bundet: samme cachede TRAIN16, startmodell mot sluttmodell, to
-native eval-forwards og null optimizersteg. Den lokaliserer tapt variasjon
-og måler retningsgradient mot hjelpeoppgaver. Se
-docs/ENTRY_SIGNAL_DIAGNOSTIC_20260917.md og NEXT_RUN_POLICY.json.
-Ingen faktisk start hevdes av planen; les PREPARATION_RESULT, prosess og receipt.
-Siste fullførte treningsmodell/checkpoint nedenfor er fortsatt referansen.
+Den bundne signaldiagnosen stoppet på prediksjonskontrollen; ingen signalrapport
+er skrevet. Variant og avviksstørrelse manglet i måleloggen. Original state og
+pointer er bevart, tasken deaktivert, ingen optimizersteg. Ikke relanser forsøket.
+
+Neste plan er separat bundet: samme cachede TRAIN16, initial/final hver med
+inferens og gradientaktivert eval, fire forwards totalt og ingen backward eller
+optimizer. Den måler avviket uten å endre toleransen eller gjette hvilken variant
+som feilet. Se docs/ENTRY_FORWARD_PARITY_DIAGNOSTIC_20260917.md og policyen.
+PREPARATION_RESULT, prosess og receipt må bekrefte eventuell faktisk start.
 
 ## Autoritativ kilde og siste fullførte kjøring
 
@@ -100,12 +106,14 @@ CURRENT_HANDOVER.md, CURRENT_GX1_STATUS.md, VEIEN_VIDERE.md, README.md,
 GX1_ARBEIDSMAAL.md, RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json.
 Mac- og Linux-script er kontrollert. Innsamleren velger en eventuell aktiv
 session fra gjeldende policy og faller aldri tilbake til forrige checkpoint.
-Tre målrettede tester består; ingen full modelltestserie er gjentatt.
+Seks målrettede handover-tester og tre nye diagnostikktester består;
+ingen full modelltestserie er gjentatt.
 
 Maskinbevis: `handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json`.
 Historikk før oppryddingen er bevart i aktiv artefaktmappes
 `OPERATOR_HANDOVER/BEFORE_CANONICAL_REFRESH` og Mac `handover_snapshot/`.
-Den eksterne OPERATOR_HANDOVER-kopien som ble brukt under kildefrys er nå
-arkiv. Bruk de vanlige kanoniske handover-inngangene. Ingen gamle planer er
+Den tidligere eksterne OPERATOR_HANDOVER-kopien som ble brukt under
+treningskildens frys er arkiv. Den nye parity-planens OPERATOR_HANDOVER
+inneholder ubrukte operatørmaler; den er dokumentert i parity-dokumentet. Bruk de vanlige kanoniske handover-inngangene. Ingen gamle planer er
 startinstrukser. Stående godkjenning for ferdig kode/dokumentasjon/aggregater
 på offentlig work/gx1-current gjelder; ikke spør på nytt.

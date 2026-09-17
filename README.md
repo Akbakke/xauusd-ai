@@ -10,7 +10,8 @@ Dette er lesende observasjon og starter aldri trening.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Mac-mappen er overlevering. Siste native256-prøve er fullført; neste arbeid er
-årsaksdiagnose etter ikke bestått paret læringsanalyse. Bruk vanlig Linux-inngang
+én ustartet måling av prediksjonsavvik etter feilet signaldiagnose.
+Læringsporten er ikke bestått. Bruk vanlig Linux-inngang
 `bash scripts/gx1_handover.sh --check`. Ekstern OPERATOR_HANDOVER er arkiv.
 
 `current_work` gjelder dagens jobb. Øvrige gamle checkpoint-/VAL-felt i scriptets
