@@ -4,8 +4,8 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Hovedencoder-rettelsen og original lærerfunksjon er kontrollert. Ny TRAIN-only startmåling mangler; admission-rettelsen er ennå ikke implementert. Ingen aktiv kjøring eller ny bundet plan; læringsporten er ikke bestått.
-Neste: minst mulig kontraktsrettelse, deretter ny bundet nullstegs startmåling.
+Nå: Hovedencoder-rettelsen, bevart lærer og måleport er kontrollert. Én TRAIN-only startmåling med null optimizersteg er bundet; native campaign må forberedes og aktiveres én gang. Læringsporten er ikke bestått.
+Neste: utfør den ene bundne native nullstegsmålingen og kontroller ny baseline.
 Ingen ny læring er målt med rettelsen. Se VEIEN_VIDERE.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast

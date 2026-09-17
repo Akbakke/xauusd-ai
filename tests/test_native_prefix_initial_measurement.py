@@ -177,8 +177,8 @@ def test_saved_fresh_state_restore_includes_optimizer_scheduler_ema_and_rng(tmp_
     equal_tree(trainer._attended_session_rng_state(device=torch.device('cpu')), rng)
 
 
-@pytest.mark.parametrize('fail_control', [False, True])
-def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_path, monkeypatch, fail_control):
+@pytest.mark.parametrize('train_only,fail_control', [(False,False),(False,True),(True,False)])
+def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_path, monkeypatch, train_only, fail_control):
     monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", lambda m: copy.deepcopy(m).eval().requires_grad_(False))
     artifacts = tmp_path / 'artifacts'; artifacts.mkdir()
     h = PrefixHarness(tmp_path / 'run', _prepared(artifacts))
@@ -207,7 +207,9 @@ def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_
         return None, {'bounded_entry_observations': [{}]*256, 'bounded_exit_anchor_observations': [{}]*256,
                       'bounded_exit_sampled_observations': [{}]*1024}, None
     monkeypatch.setattr(runner.val, '_entry_representations', measure)
-    kwargs = dict(components=components, scope=scope_value, recipe={'chronological_prefix': h.data.value},
+    measurement_recipe = {'chronological_prefix': h.data.value}
+    if train_only: measurement_recipe['chronological_train_only_measurement'] = True
+    kwargs = dict(components=components, scope=scope_value, recipe=measurement_recipe,
         output=output, device=torch.device('cpu'), invocation_started=time.monotonic(), pause_evidence=pause)
     if fail_control:
         with pytest.raises(RuntimeError, match='injected control failure'): runner._run_prefix_initial_measurement(**kwargs)
@@ -215,10 +217,30 @@ def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_
         binding = runner._run_prefix_initial_measurement(**kwargs)
         result = json.loads(Path(binding['path']).read_text())
         assert result['optimizer_steps'] == 0 and result['teacher_refreshed'] is False
-        assert set(result['observations']) == {'train','control'}
-    assert seen == ['train','control'] and model.training
+        assert set(result['observations']) == ({'train'} if train_only else {'train','control'})
+    assert seen == (['train'] if train_only else ['train','control']) and model.training
     assert h.pointer(output).read_bytes() == pointer and trainer._model_state_sha256(model) == initial_hash
     equal_tree(h.state(output), saved)
     equal_tree(trainer._attended_session_rng_state(device=torch.device('cpu')), rng)
     assert h.batches == [] and h.validation_batches == 0
     with pytest.raises(RuntimeError, match='MEASUREMENT_EXISTS'): runner._run_prefix_initial_measurement(**kwargs)
+
+
+@pytest.mark.parametrize('fault', [None, 'false', 'unbound', 'mixed_learning', 'diagnostic'])
+def test_initial_train_only_is_bound_and_cannot_enable_updates(initial_scope, fault):
+    policy, recipe, _, seal = initial_scope
+    recipe['chronological_train_only_measurement'] = False if fault == 'false' else True
+    if fault != 'unbound':
+        policy['chronological_initial_measurement']['chronological_train_only_measurement'] = True
+    if fault == 'mixed_learning': recipe['chronological_learning_measurement'] = {}
+    if fault == 'diagnostic': recipe['entry_gradient_diagnostic'] = {}
+    seal()
+    if fault:
+        with pytest.raises(RuntimeError): native.require_native_run_scope(recipe, invocation_number=1)
+    else:
+        assert native.require_native_run_scope(recipe, invocation_number=1) == 0
+        budget = {'stop_after_optimizer_steps':0, 'stop_after_completed_val_epochs':None,
+                  'max_invocation_seconds':12000, 'expected_active_pointer_sha256':None}
+        assert native.require_native_run_scope(recipe, invocation_number=1, execution_budget=budget) == 0
+        with pytest.raises(RuntimeError, match='INITIAL_BUDGET'):
+            native.require_native_run_scope(recipe, execution_budget={**budget, 'stop_after_optimizer_steps':1})

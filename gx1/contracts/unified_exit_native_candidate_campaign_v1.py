@@ -569,6 +569,10 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
         "out_bundle_dir": recipe.get("out_bundle_dir"), "source_bindings_sha256": recipe.get("source_bindings_sha256"),
         "optimizer_steps": 0, "max_invocations": 1, "teacher_refresh_allowed": False,
         "full_epoch_training_allowed": False, "full_val_allowed": False, "test_data_used": False}
+    if "chronological_train_only_measurement" in recipe:
+        if recipe["chronological_train_only_measurement"] is not True:
+            raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
+        expected["chronological_train_only_measurement"] = True
     if (policy.get("training_enabled") is not False or policy.get("chronological_initial_measurement") != expected
             or any(k in policy for k in ("chronological_learning_run", "native_learning_calibration", "frozen_readout_evaluation"))):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_NOT_AUTHORIZED")
@@ -654,6 +658,12 @@ def require_chronological_learning_measurement(recipe):
     measurement = load(result.get("measurement_binding_result"), "frozen measurement coordinates")
     receipt = load(audit.get("receipt"), "initial native terminal receipt")
     expected = initial.get("online_model_state_sha256")
+    repo = Path(__file__).resolve().parents[2]
+    model_source = "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
+    if initial.get("source_bindings", {}).get(model_source) != file_sha256(repo / model_source):
+        raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MODEL_SOURCE_CHANGED")
+    initial_roles = set(result.get("observations", {}))
+    allowed_roles = ({"train"}, {"train", "control"}) if recipe.get("chronological_train_only_measurement") is True else ({"train", "control"},)
     if (audit.get("schema_version") != "gx1_native_prefix_initial_measurement_audit_v1"
             or audit.get("decision") != "FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED"
             or audit.get("optimizer_steps") != 0 or audit.get("test_data_used") is not False
@@ -670,7 +680,7 @@ def require_chronological_learning_measurement(recipe):
             or receipt.get("guard_decision") != "PASS" or receipt.get("outcome") != "RESUMABLE"
             or receipt.get("trainer_guard_exit_code") != 0 or receipt.get("progress_observer_exit_code") != 0
             or receipt.get("test_data_used") is not False
-            or set(result.get("observations", {})) != {"train", "control"}):
+            or initial_roles not in allowed_roles):
         raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MEASUREMENT_INVALID")
     require_binding(initial["initial_state"], label="saved fresh state", verify_file=True)
     observed = {}
@@ -939,8 +949,9 @@ def require_native_run_scope(
     if "chronological_entry_baseline" in recipe and recipe.get("chronological_train_only_measurement") is not True:
         raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
     if "chronological_train_only_measurement" in recipe and (
-            "chronological_prefix" not in recipe or "chronological_learning_measurement" not in recipe
-            or any(key in recipe for key in ("chronological_initial_measurement", "entry_gradient_diagnostic"))):
+            recipe["chronological_train_only_measurement"] is not True
+            or "chronological_prefix" not in recipe or "entry_gradient_diagnostic" in recipe
+            or sum(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement")) != 1):
         raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
     if "entry_gradient_diagnostic" in recipe:
         scope = require_entry_gradient_diagnostic(recipe, invocation_number=invocation_number, execution_budget=execution_budget)

@@ -92,9 +92,10 @@ def test_current_work_source_only_does_not_probe_processes_or_checkpoints(fixtur
     assert 'process_observation' not in out['current_work']
 
 
-@pytest.mark.parametrize('diagnostic',[False,True])
+@pytest.mark.parametrize('scope_kind',['learning','diagnostic','initial'])
 @pytest.mark.parametrize('case',['active','before_first_checkpoint','changed_recipe'])
-def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,monkeypatch,case,diagnostic):
+def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,monkeypatch,case,scope_kind):
+    diagnostic = scope_kind == "diagnostic"
     from scripts.collect_gx1_handover_readonly import _current_work_status
     repo,binding,*_=fixture
     run=binding.parent/'CURRENT_RUN';run.mkdir();output=run/'CANDIDATE_BUNDLE'
@@ -106,7 +107,7 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         'status':'RECORDED_BEFORE_START','source_repo':str(repo),'source_commit':'old-source',
         'session_directory':str(binding.parent/'session'),'next_action':'old note'}))
     scope={'run_id':run.name,'out_bundle_dir':str(output)}
-    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({'entry_gradient_diagnostic' if diagnostic else 'chronological_learning_run':scope}))
+    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({{'diagnostic':'entry_gradient_diagnostic','learning':'chronological_learning_run','initial':'chronological_initial_measurement'}[scope_kind]:scope}))
     recipe=run/'recipe.json';recipe.write_text(json.dumps({**scope,'source_repo':str(repo),'source_commit':'current-source'}))
     (run/'PREPARATION_RESULT.json').write_text(json.dumps({'source_commit':'current-source',
         'recipe':{'path':str(recipe),'sha256':hashlib.sha256(recipe.read_bytes()).hexdigest()},

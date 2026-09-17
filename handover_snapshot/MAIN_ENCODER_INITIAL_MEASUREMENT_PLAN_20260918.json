@@ -1,0 +1,89 @@
+{
+  "schema_version": "gx1_main_encoder_initial_measurement_plan_v1",
+  "created_utc": "2026-09-17T23:24:04.093426+00:00",
+  "run_id": "NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918",
+  "scope": {
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_INITIALIZATION_20260918/RESULT.json",
+      "sha256": "c540124c5f38b236b7369f24005db4f7d6cb9035c9a451e372e93b7e6eb9edfa"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "d3e096af6ed5e7cfe369f24a381e7f79e7ebf444226e2f6f43728206428d79cb",
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_train_only_measurement": true
+  },
+  "question": "Measure initial ONLINE predictions after final main-encoder normalization against the preserved frozen teacher and corrected causal Entry targets.",
+  "model_functions": {
+    "online": "main_encoder_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "constructor_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/INITIALIZATION_AUDIT.json",
+    "sha256": "56c298b5804fb042af48ef9bb3a1688bde13a85067afa0dc51811f76d21894e5"
+  },
+  "original_initialization": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+    "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+  },
+  "new_initialization_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_INITIALIZATION_20260918/RESULT.json",
+    "sha256": "c540124c5f38b236b7369f24005db4f7d6cb9035c9a451e372e93b7e6eb9edfa"
+  },
+  "test_evidence": {
+    "TRAIN_ONLY_TESTS.xml": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TRAIN_ONLY_TESTS.xml",
+      "sha256": "1c095b60d8f6b4e1161909b2832590b2ade931b0178d30ab8463c065772fffd4"
+    },
+    "TRAIN_ONLY_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TRAIN_ONLY_TESTS.log",
+      "sha256": "594af872ef11725c74e1e339cfb625ae98c4c1dbb62bdb3845c0e340bb6604a2"
+    },
+    "INITIAL_HANDOVER_TESTS.xml": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/INITIAL_HANDOVER_TESTS.xml",
+      "sha256": "4f6fa8d30849947ff1b3937bd8c59d428cca1925a301162fcc01aa6b6e43060c"
+    },
+    "INITIAL_HANDOVER_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/INITIAL_HANDOVER_TESTS.log",
+      "sha256": "b748f8e5bfc6b299438a61922dea7cbf535d78658268cb7daa1115ad87f1011b"
+    }
+  },
+  "measurement_roles": [
+    "train"
+  ],
+  "entry_count": 256,
+  "exit_anchor_count": 256,
+  "exit_sampled_count": 1024,
+  "optimizer_steps": 0,
+  "control_forwards": 0,
+  "test_data_used": false,
+  "review_requirements": [
+    "New ONLINE baseline cannot be substituted by old predictions with same tensor digest.",
+    "Original teacher target values, cohorts and masks must match the corrected causal TRAIN baseline and original Exit observations.",
+    "Native receipt/guard PASS and exact saved model/teacher/optimizer/EMA/scheduler/CPU-Python-NumPy RNG preservation.",
+    "No learning or economics claim; close this scope before separately binding any fixed256 trial."
+  ]
+}

@@ -208,3 +208,25 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
     equal_tree(h.state(output),checkpoint)
     equal_tree(trainer._attended_session_rng_state(device=torch.device('cpu')),rng)
     assert len(h.batches)==256 and h.validation_batches==0 and len(set(h.teacher_hashes))==1
+
+
+def test_learning_accepts_train_only_initial_but_rejects_old_online_function(learning_scope):
+    policy, recipe, _, seal = learning_scope
+    ab = recipe['chronological_learning_measurement']
+    audit = json.loads(Path(ab['path']).read_text())
+    result = json.loads(Path(audit['result']['path']).read_text())
+    result['observations'].pop('control')
+    audit['result'] = _write(Path(audit['result']['path']), result)
+    recipe['chronological_learning_measurement'] = _write(Path(ab['path']), audit)
+    policy['chronological_learning_run']['chronological_learning_measurement'] = recipe['chronological_learning_measurement']
+    seal()
+    with pytest.raises(RuntimeError, match='INITIAL_MEASUREMENT_INVALID'):
+        native.require_native_run_scope(recipe)
+    recipe['chronological_train_only_measurement'] = True
+    policy['chronological_learning_run']['chronological_train_only_measurement'] = True
+    seal()
+    assert native.require_native_run_scope(recipe, invocation_number=1) == 256
+    source = Path(recipe['source_repo']) / 'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py'
+    source.write_text('changed online function; initial tensor hash unchanged')
+    with pytest.raises(RuntimeError, match='INITIAL_MODEL_SOURCE_CHANGED'):
+        native.require_native_run_scope(recipe)

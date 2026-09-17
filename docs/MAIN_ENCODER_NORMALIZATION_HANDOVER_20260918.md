@@ -1,4 +1,8 @@
-# Hovedencoder — implementert rettelse, startmåling gjenstår
+# Hovedencoder — historisk overlevering før målebinding
+
+Måleporten er senere rettet og én nullstegsmåling bundet. Se
+MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md. Restarbeid omtalt nedenfor
+beskriver det tidligere stoppunktet.
 
 Bekreftet 18. september 2026. Modellrettelsen er en hypotese støttet av
 representasjonsmålingen, ikke et nytt læringsresultat.

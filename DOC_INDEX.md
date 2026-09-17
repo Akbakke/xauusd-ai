@@ -2,14 +2,17 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — kontrollert modellrettelse og manglende startmåling.
-2. VEIEN_VIDERE.md — eksakt uferdig kontraktsrettelse og neste nullstegsmåling.
+1. CURRENT_HANDOVER.md — rettet måleport og bundet nullstegsmåling.
+2. VEIEN_VIDERE.md — én bundet nullstegsmåling og baseline-kontroll.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
 6. docs/LEARNING_GATE_20260916.md — krav før neste kontroll eller større trening.
 
 Aktuelle bevis:
+
+- docs/MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md — gjeldende plan/operatører.
+- handover_snapshot/MAIN_ENCODER_INITIAL_MEASUREMENT_PLAN_20260918.json — scope og bevis.
 
 - docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md — kode, tester, bindinger og restarbeid.
 - handover_snapshot/MAIN_ENCODER_{INITIALIZATION_AUDIT,TEST_REVIEW}_20260918.json — ferdige kontroller.

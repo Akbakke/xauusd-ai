@@ -196,7 +196,8 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
     policy_path = repo / "NEXT_RUN_POLICY.json"
     policy = json.loads(policy_path.read_text()) if policy_path.is_file() else {}
     diagnostic = policy.get("entry_gradient_diagnostic")
-    scope = policy.get("chronological_learning_run") or diagnostic
+    initial = policy.get("chronological_initial_measurement")
+    scope = policy.get("chronological_learning_run") or initial or diagnostic
     if scope is not None:
         output = Path(scope["out_bundle_dir"])
         if output.parent.name != scope["run_id"]:
@@ -226,9 +227,9 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
             if receipt_path.is_file():
                 result["latest_terminal_receipt"] = json.loads(receipt_path.read_text())
         if processes:
-            result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. " + ("Review the diagnostic result; no optimizer steps are allowed." if diagnostic is not None else "Review final ONLINE at the declared ceiling.")
+            result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. " + ("Review the diagnostic result; no optimizer steps are allowed." if diagnostic is not None else "Verify the zero-step TRAIN-only initial measurement; no learning is measured." if initial is not None else "Review final ONLINE at the declared ceiling.")
         elif result.get("latest_terminal_receipt") is not None:
-            result["next_action"] = "The bound invocation has a terminal receipt. " + ("Review the diagnostic result and close its used scope; completion is not learning evidence." if diagnostic is not None else "Verify final measurement and review learning before any new run.")
+            result["next_action"] = "The bound invocation has a terminal receipt. " + ("Review the diagnostic result and close its used scope; completion is not learning evidence." if diagnostic is not None else "Audit the initial baseline and close its used scope; no learning is measured." if initial is not None else "Verify final measurement and review learning before any new run.")
     if directory:
         pointer_path = Path(directory) / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
         result["session_directory"] = directory

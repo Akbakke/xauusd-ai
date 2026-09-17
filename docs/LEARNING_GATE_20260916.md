@@ -5,7 +5,7 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Hovedencoder-rettelsen og original lærerfunksjon er kontrollert. Ny TRAIN-only startmåling mangler; admission-rettelsen er ennå ikke implementert. Ingen aktiv kjøring eller ny bundet plan; læringsporten er ikke bestått.
+Hovedencoder-rettelsen, bevart lærer og måleport er kontrollert. Én TRAIN-only startmåling med null optimizersteg er bundet; native campaign må forberedes og aktiveres én gang. Læringsporten er ikke bestått.
 Siste residual256 ga identiske, sidekonstante handlinger. Ny ONLINE-funksjon
 krever ny startbaseline selv med identiske vekter; læreren bevares eksplisitt.
 

@@ -57,8 +57,8 @@ og brukt scope er stengt. Hovedencoder har nå parameterfri final LayerNorm.
 Prefix-læreren kopieres uten denne nye normaliseringen; original lærerfunksjon
 og initialvekter/RNG er kontrollert. Entry-hidden/Q inngår i Exit-tokenet;
 full lærerparitet er testet for begge. Ny ONLINE-funksjon krever egen native
-nullstegsbaseline. TRAIN-only-admission-rettelsen er ikke implementert, og
-ingen ny kjøreplan er bundet. Se docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md.
+nullstegsbaseline. TRAIN-only-admission er rettet og testet. Én nullstegsmåling
+er bundet; se docs/MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
 Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.
