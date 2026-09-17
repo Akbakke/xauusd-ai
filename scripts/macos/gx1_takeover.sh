@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read current_work and next_run in the JSON; COMPLETED_RUN is historical evidence.
+# Use current_work for the current policy/session; COMPLETED_RUN is history.
 # This read-only entrypoint never starts training. Require measured learning first.
 set -euo pipefail
 [[ $# -le 1 ]] || { echo "Usage: ./handover.sh [--check|--verbose]" >&2; exit 2; }

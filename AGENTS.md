@@ -1,4 +1,4 @@
-# Arbeidsregler for GX1 — oppdatert 2026-09-16
+# Arbeidsregler for GX1 — oppdatert 2026-09-17
 
 Krev målbar læring før mer omfattende trening. Teknisk PASS er ikke bevis på
 bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
@@ -8,13 +8,15 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
   aldri alternative oppstartsveier.
 - Start med ./handover.sh --check på Mac, eller bash scripts/gx1_handover.sh --check
   i Linux-repositoriet. Les CURRENT_HANDOVER.md, GX1_ARBEIDSMAAL.md,
-  NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md.
+  NEXT_RUN_POLICY.json, VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.
+  CURRENT_HANDOVER.md angir eventuell operatørkopi under kildefrys.
+  Ikke relanser en allerede aktiv eller fullført plan.
 - CURRENT_HANDOVER.md er eneste gjeldende fortelling. RUNNING_NATIVE_CALIBRATION.json
   beskriver siste arbeid; prosesser, checkpoints og receipts må bekrefte nåstatus.
   COMPLETED_RUN.json og filer merket historikk er bevis, aldri startinstrukser.
 - Én agent og én tung jobb samtidig. Gjenbruk ferdige analyser, cachede inputs,
   targets, outputs og beståtte tester. Ingen minuttvis modellpolling eller arbeid
-  for å fylle ventetiden. Kontroller stabil langkjøring omtrent hver time;
+  for å fylle ventetiden. Kontroller stabil langkjøring omtrent hvert 15.–30. minutt eller sjeldnere;
   automatiske sikkerhetsvakter håndterer hyppig maskinvarekontroll.
 - Endre modell-/treningskode bare for en konkret, observert blokkering. Forklar
   blokkeringen og minste rettelse først. Ingen forebyggende refaktorering, nye

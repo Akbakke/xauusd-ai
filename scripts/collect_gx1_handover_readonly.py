@@ -173,6 +173,8 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "working_head": _git(source, "rev-parse", "HEAD"),
         "working_tree_clean": not bool(_git(source, "status", "--porcelain=v1")),
         "training_source_commit": record.get("source_commit"),
+        "runtime_root": record.get("runtime_root"),
+        "latest_completed_native": record.get("completed_causal_entry_fixed256"),
         "next_action": record.get("next_action"),
         "learning_gate": record.get("learning_gate"),
         "full_epoch_training_allowed": record.get("full_epoch_training_allowed", False),
@@ -184,11 +186,50 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
     result["native_processes"] = processes
     result["process_observation"] = "RUNNING" if processes else "NO_NATIVE_PROCESS_OBSERVED"
     directory = record.get("session_directory")
+    # A running source tree is frozen. Its operator note can therefore still
+    # point at the previous run; the explicit current policy owns the selection.
+    policy_path = repo / "NEXT_RUN_POLICY.json"
+    policy = json.loads(policy_path.read_text()) if policy_path.is_file() else {}
+    scope = policy.get("chronological_learning_run")
+    if scope is not None:
+        output = Path(scope["out_bundle_dir"])
+        if output.parent.name != scope["run_id"]:
+            raise ValueError("Current native run directory does not match policy")
+        directory = str(output.parent / (".gx1-candidate-training-session." + output.name))
+        result["declared_run_id"] = scope["run_id"]
+        result["checkpoint_selection"] = "current_policy_session_not_previous_operator_note"
+        preparation_path = output.parent / "PREPARATION_RESULT.json"
+        if preparation_path.is_file():
+            preparation = json.loads(preparation_path.read_text())
+            recipe_binding = preparation["recipe"]
+            recipe_path = _regular_file(recipe_binding["path"], label="current native recipe")
+            if _sha256(recipe_path) != recipe_binding["sha256"]:
+                raise ValueError("Current native recipe hash mismatch")
+            recipe = json.loads(recipe_path.read_text())
+            if (recipe["run_id"] != scope["run_id"] or recipe["out_bundle_dir"] != scope["out_bundle_dir"]
+                    or recipe["source_repo"] != str(source)
+                    or recipe["source_commit"] != preparation["source_commit"]):
+                raise ValueError("Current native recipe scope mismatch")
+            result["training_source_commit"] = preparation["source_commit"]
+            result["runtime_root"] = preparation["runtime_root"]
+            receipt_path = Path(preparation["runtime_root"]) / "receipts/invocation-0001.json"
+            if receipt_path.is_file():
+                result["latest_terminal_receipt"] = json.loads(receipt_path.read_text())
+        if processes:
+            result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. Review final ONLINE at the declared ceiling."
+        elif result.get("latest_terminal_receipt") is not None:
+            result["next_action"] = "The bound invocation has a terminal receipt. Verify final measurement and review learning before any new run."
     if directory:
         pointer_path = Path(directory) / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
-        result["checkpoint"] = json.loads(
-            _regular_file(str(pointer_path), label="current_checkpoint_pointer").read_text()
-        )
+        result["session_directory"] = directory
+        result["checkpoint_pointer_path"] = str(pointer_path)
+        if pointer_path.exists():
+            result["checkpoint"] = json.loads(
+                _regular_file(str(pointer_path), label="current_checkpoint_pointer").read_text()
+            )
+        else:
+            result["checkpoint"] = None
+            result["checkpoint_observation"] = "NOT_YET_WRITTEN_NO_HISTORICAL_FALLBACK"
     return result
 
 

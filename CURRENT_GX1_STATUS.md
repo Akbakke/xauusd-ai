@@ -1,24 +1,12 @@
-# GX1-status
+# GX1-status — 17. september 2026
 
-Trening er stoppet. Separat Exit-klipping er prøvd i én native32-kandidat og
-forkastet. Modellen forbedret fit på faktisk trent512 litt, men ble dårligere
-på separat TRAIN med samme femstegsmål. Sidevalg kollapset til LONG=HOLD og
-SHORT=EXIT; Entry forblir FLAT. Standardkoden er tilbakeført, alle bevis bevart.
-Overførbar beslutningskvalitet og lønnsomhet er ikke dokumentert.
-training_enabled=false; ingen full epoch/full VAL eller TEST.
+Kausal Entry-prøve på kilde955abf19 er fullført: 256 oppdateringer og native
+TRAIN-only sluttmåling, guardPASS/trainer0/observer0. Ingen native prosess;
+Windows-tasken er deaktivert. Launch-unntaket er stengt. Ingen ny trening nå.
 
-CURRENT_HANDOVER.md er eneste gjeldende fortelling. Les ferdig resultat og
-målt måloppdeling i docs/TARGET_COMPONENT_CAUSE_20260916.md.
-Ankerutfall er nå kontrollert på 275/512 Entries; begge sidemiddel er negative.
-SHORT har noe rangering, men læringsporten er ikke bestått. Se
-docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Neste er én begrunnet korreksjon i målkjeden.
-Gjenbruk ferdige trace/reward/Q/input/output-cacher; ikke gjenta32-kandidaten
-eller512-analysen. Hent faktisk status med ./handover.sh --check på Mac eller
-bash scripts/gx1_handover.sh --check i Linux. Historiske planer er ikke startautoritet.
+Korrekt Entry-baseline og uendrede Exit-targets er bekreftet eksakt bevart.
+**Neste er paret analyse av lagrede outputs. Læringsforbedring, generalisering
+og lønnsomhet er ikke vurdert eller dokumentert av denne prøven.**
 
-Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
-samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
-(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
-forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
-Neste arbeid er én kausalt og matematisk begrunnet rettelse av videreverdien;
-frosne prognoser og alle ferdige målinger skal gjenbrukes.
+Les CURRENT_HANDOVER.md og VEIEN_VIDERE.md. Kjør ./handover.sh --check på Mac
+eller bash scripts/gx1_handover.sh --check i Linux for fersk status.

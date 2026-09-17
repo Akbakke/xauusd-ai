@@ -1,62 +1,57 @@
-# Gjeldende GX1-systemkart — 2026-09-16
+# Gjeldende GX1-systemkart — 17. september 2026
 
-GX1_CURRENT er aktivt Git-worktree av GX1_ENGINE, på work/gx1-current.
-Felles Git-katalog: /home/andre2/src/GX1_ENGINE/.git. Data: /home/andre2/GX1_DATA.
+Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current. GX1_ENGINE/.git er
+felles Git-lagring, ikke alternativ oppstartsvei. Data: /home/andre2/GX1_DATA.
 
-Rå M1-priser/bid/ask og native feature-eiere
-→ TRAIN-eid normalisering og bundne M1/M5/MTF-data
-→ Entry: M5 + M15/H1/H4/D1, LONG/SHORT/FLAT
-→ Exit: M1 + M5/M15/H1/H4/D1, HOLD/EXIT_NOW
-→ samme V4-økonomi-/kostnadseier i trening og native evaluering.
+## Modell og læringskjede
 
-Alle200 features, åtte familier og tidsrammer beholdes. Featureverdier tilhører
-sine lukkede klokker. Fremtidige prisutfall brukes som læringsmål, aldri som
-online-input. Entry-forecast har et selvstendig signal og undersøkt isolasjon
-på fire rutingsparametere; backbone er delt og handelsverdiene bruker fortsatt
-Exit-læreren. Det er ikke en fullt uavhengig Entry. Exit får lokal prissti,
-livstidssammendrag med MFE/MAE og MTF-kontekst. Sammenkobling beviser ikke nytte.
+Kausale native features og TRAIN-eid normalisering
+→ Entry: lokal M5-historikk + M15/H1/H4/D1, LONG/SHORT/FLAT
+→ Exit: lokal M1-historikk + M5/M15/H1/H4/D1, HOLD/EXIT_NOW
+→ samme V4 BID/ASK-, kostnads- og økonomiberegning i trening og evaluering.
 
-Gjeldende native referanseforsøk brukte 120 observerte steg under en stasjonær
-kausal referansepolicy med bootstrap, ikke en maksimal holdetid.
-Forsøket er avsluttet. Se docs/STABLE_READOUT_GENERALIZATION_20260916.md for frosset kandidat og neste kontroll.
+Alle 200 features, åtte familier og tidsrammer bevares. Hver timeframe bruker
+sin tilgjengelige lukkede klokke. Antall features er ikke antall uavhengige
+signaler. Sammenkobling alene dokumenterer ingen prediksjons- eller handelsfordel.
 
-Historisk: opt-in femstegs Exit-backup følger den frosne lærerpolicyen og observerte M1-
-successors, med bootstrap etter beregningsgrensen. Det er ingen fast holdetid.
-Bare frosne target-forwards deles i mindre delbatcher for å holde minnegrensen;
-online-trening, sampler og én backward beholdes. Læringsgevinst er ikke bevist.
+Entry-Q kan nå trene sin upstream representasjon: den blokkerende detach før
+Entry-Q-mikseren er fjernet. Exit-tokenets eksisterende detach beholdes.
+Dette innebærer ikke full isolasjon av alle delte parametere. Exit har egne
+exit_episode_family_tf-rutere; null Exit-gradient på Entry-ruteren er ikke
+bevis for at Exit-ruteren er frakoblet. Forecast er hjelpeoppgaver, ikke direkte
+handlingsfasit. Exit har også kausal prissti og livstidssammendrag.
 
-Én kjørevei: NEXT_RUN_POLICY.json → kilde-/databundet native campaign → laststyrt
-GPU-clock-launcher/Windows-controller → gx1_capped_run.sh → native kandidatvindu.
-TRAIN16, VAL256, åtte CPU-arbeidere, tre timers VAL-vinduer, FP32/TF32 av og
-etablerte maskinvarevakter. Full epoch/VAL er blokkert mens læring er uavklart.
+## Gjeldende targets i det avsluttede forsøket
 
-Handover er kun lesing: current_work beskriver nåstatus; COMPLETED_RUN.json er
-bundet historisk bevis. Ingen gamle smoker eller separate VAL-kjørere er
-alternative oppstartsveier. Importer med v12/live i navnet kan fortsatt eie
-nødvendige offlinefunksjoner; navn alene er ikke grunnlag for sletting.
+- Exit-HOLD-target er et observert, diskontert Q_mu-returutfall under fast kausal
+  referansepolicy: HOLD119/120, EXIT1/120 etter første handling. Maksimalt120
+  observerte beregningssteg og gyldig frossen boundary-bootstrap bevares.
+- Entry-target er første gjennomførbare likvidasjonsverdi + V_mu(state0),
+  der V_mu=(119/120)*Q_mu(HOLD); ugyldig/terminal HOLD gir EXIT=0. FLAT=0.
+- Positive og negative observerte HOLD-utfall teller. Tidligere
+  max(observert HOLD-utfall,0) brukte framtidig informasjon til første
+  handlingsvalg og er rettet. Maks over critic-estimater i legacy-grenen
+  er en annen beregning og er bevart.
 
-Målkjeden er undersøkt i docs/VALUE_LEARNING_CAUSE_20260916.md:
-observerte utfall → forecast/markedsrepresentasjon → detached Entry-Q-mikser;
-frossen Exit-lærer + første likvidasjonsverdi → Entry-Q-supervisjon.
-Forecast-output brukes ikke direkte til handling. Femstegs Exit-target følger
-lærerens HOLD/EXIT-valg; Entry-target bruker fortsatt frossen førstetilstandsverdi.
-Målt lærerpolicy gir LONG oftest ett steg og SHORT fem på den lagrede batchen.
-Head-/representasjonsattribusjon forklarer hvor sideforskyvningen uttrykkes;
-en generell modell-, tapsvekt- eller biasrettelse er ikke begrunnet.
+Dette er referanse-policyverdier, ikke optimal verdi eller faktisk profitt
+under en lært greedy-policy. Framtidige utfall er targets, aldri online-input.
+Ingen fast holdetid eller tapsgrense er innført. Bootstrap, successors og
+kostnader er bevart. Femstegsoppsettet er historisk sammenligningsgrunnlag.
 
-Separat Exit-klipping er målt og prøvd, deretter tilbakeført. Bedre fit på de
-512 trente eksemplene overføres ikke til separate TRAIN-kohorter. Trente og
-separate femstegsmål har motsatte sidegjennomsnitt; læreren stopper fortsatt
-LONG oftest etter ett steg og lar SHORT fortsette fem. Det er ikke bevist at
-én enkelt mekanisme forklarer hele svikten. Måloppdelingen er ferdig; Entry-LONG får0 videreverdi på alle512 målte Entries.
-Observerte ankerutfall er nå målt på 275/512 Entries; se
-docs/ENTRY_ANCHOR_OBSERVED_OUTCOMES_20260916.md. Ingen treningsport er åpnet.
-Senere arbeid og gjeldende beslutning står i CURRENT_HANDOVER.md.
+## Aktuell forsøksstatus og drift
 
-Neste beslutning følger docs/LEARNING_GATE_20260916.md. TEST forblir forseglet.
+Den korrigerte native256-prøven er fullført på955abf19. Fersk lagret
+initialisering, normalisering/labels fittet på prefix-TRAIN, samme4096 Entries,
+frossen lærer og slutt-ONLINE. Bare TRAIN256/Exit-anker/samplede states er målt.
+Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
+beholdes. Neste er paret analyse. Læringsgevinst er ennå ikke vurdert.
 
-Oppdatering: eksisterende120-minuttersprognose har kostnadsjustert TRAIN-signal
-samtidig som Entry er allFLAT. Se docs/FORECAST120_ECONOMIC_SIGNAL_20260916.md
-(for filer under docs: FORECAST120_ECONOMIC_SIGNAL_20260916.md). To sensurerte
-forløp gjør samlet sluttidsregnskap ufullstendig. Ingen læringsport er åpnet.
-Gjeldende arbeid følger CURRENT_HANDOVER.md; alle ferdige målinger skal gjenbrukes.
+Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
+Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.
+TRAIN16, VAL256/8CPU/3t når særskilt tillatt, FP32/TF32 av og etablerte vakter.
+Det brukte unntaket er stengt. Ingen ny trening/full VAL/TEST er åpnet.
+
+Handover er kun lesing. `current_work` gjelder dagens jobb; øvrige felt fra
+COMPLETED_RUN.json er historikk. Historiske smoker/kildekopier er avhengigheter
+og bevis, aldri alternative oppstartsveier. Se CURRENT_HANDOVER.md,
+VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.

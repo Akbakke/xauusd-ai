@@ -39,3 +39,15 @@ ikke generalisering eller realisert handelsprofitt. Ingen CONTROL-forward,
 økonomireplay, søk, automatisk gjentakelse, full epoch/VAL eller TEST. Alle
 native vakter og opprinnelige checkpoints/resultater bevares. Plan og bevis:
 handover_snapshot/CAUSAL_ENTRY_TRAIN_BASELINE_20260917.json.
+
+## Teknisk fullført — læringsanalyse gjenstår
+
+Kjøring955abf19 fullførte 256 oppdateringer og TRAIN-only sluttmåling
+2026-09-17 kl.15:59:49UTC /17:59:49Oslo. GuardPASS/trainer0/observer0;
+maskinvaretopper59C/66C,156,89W,8014MiB. Ingen aktive native prosesser;
+Windows-tasken er deaktivert. Det brukte launch-unntaket er stengt.
+
+Sluttresultatet binder korrekt avledet Entry-baseline, samme targetmodell og
+eksakt bevart fasit. Mål og observasjoner er lagret; læringskonklusjon er
+**ikke gjort**. Neste er den på forhånd beskrevne parete analysen. Se
+VEIEN_VIDERE.md og handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json.

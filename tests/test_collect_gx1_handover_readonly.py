@@ -92,6 +92,35 @@ def test_current_work_source_only_does_not_probe_processes_or_checkpoints(fixtur
     assert 'process_observation' not in out['current_work']
 
 
+@pytest.mark.parametrize('case',['active','before_first_checkpoint','changed_recipe'])
+def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,monkeypatch,case):
+    from scripts.collect_gx1_handover_readonly import _current_work_status
+    repo,binding,*_=fixture
+    run=binding.parent/'CURRENT_RUN';run.mkdir();output=run/'CANDIDATE_BUNDLE'
+    session=run/'.gx1-candidate-training-session.CANDIDATE_BUNDLE';session.mkdir()
+    new={'global_optimizer_steps':128,'phase':'train'}
+    if case!='before_first_checkpoint':
+        (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(new))
+    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
+        'status':'RECORDED_BEFORE_START','source_repo':str(repo),'source_commit':'old-source',
+        'session_directory':str(binding.parent/'session'),'next_action':'old note'}))
+    scope={'run_id':run.name,'out_bundle_dir':str(output)}
+    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({'chronological_learning_run':scope}))
+    recipe=run/'recipe.json';recipe.write_text(json.dumps({**scope,'source_repo':str(repo),'source_commit':'current-source'}))
+    (run/'PREPARATION_RESULT.json').write_text(json.dumps({'source_commit':'current-source',
+        'recipe':{'path':str(recipe),'sha256':hashlib.sha256(recipe.read_bytes()).hexdigest()},
+        'runtime_root':str(binding.parent/'runtime')}))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes',lambda _:[{'pid':'780'}])
+    if case=='changed_recipe':
+        recipe.write_text('{}')
+        with pytest.raises(ValueError,match='hash mismatch'):_current_work_status(binding.parent,source_only=False)
+    else:
+        out=_current_work_status(binding.parent,source_only=False)
+        assert out['checkpoint']==(None if case=='before_first_checkpoint' else new)
+        assert out['session_directory']==str(session) and out['training_source_commit']=='current-source'
+        assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
+
+
 def test_enabled_flag_alone_cannot_bypass_missing_proofs(fixture):
     repo,*_=fixture;path,p=_policy(repo)
     p['training_enabled']=True;path.write_text(json.dumps(p))

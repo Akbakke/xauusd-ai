@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One read-only handover. Missing current evidence never falls back to old runs.
+# Read-only current policy/session observation; completed runs remain history.
 set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 REPO=$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)

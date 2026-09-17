@@ -1,0 +1,81 @@
+{
+  "status": "NATIVE256_TECHNICALLY_COMPLETE_PAIRED_LEARNING_REVIEW_PENDING",
+  "source_commit": "955abf191a3960025e297f331f0c33df90e731c4",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+    "sha256": "06ec5badb25a98f20cc550c100d4f1e761b290684ae001be52e9a3005f837c69"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "d7b919d53c87167af08766e865257a2e5dcb6b4b80d808b2aff88bc2d21e6837"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456/receipts/invocation-0001.json",
+    "sha256": "dae2eba139c001a9713bb85ab57398859bc9654bcedf2e0a2aa82ccbab61d28a"
+  },
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "e14124277545365e53a4fa7e3e559dc0ce92b3146ab941b129a602d0bdc0148a"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+  },
+  "state_payload_rehashed": false,
+  "derived_entry_baseline": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+    "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+  },
+  "model_state_sha256": "0ab0fed4a77e0f247aa821eaa8c9064c1a80f3e274acc735c5fde9a430de2074",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "started_utc": "2026-09-17T14:45:41.962204+00:00",
+  "finished_utc": "2026-09-17T15:59:49.236680+00:00",
+  "optimizer_steps": 256,
+  "measurement_roles": [
+    "train"
+  ],
+  "observation_counts": {
+    "bounded_entry_observations": 256,
+    "bounded_exit_anchor_observations": 256,
+    "bounded_exit_sampled_observations": 1024
+  },
+  "guard_decision": "PASS",
+  "trainer_guard_exit_code": 0,
+  "progress_observer_exit_code": 0,
+  "native_frozen_targets_exactly_preserved": true,
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_DISABLED.json",
+    "sha256": "21b6a3ef81d84502949cf840c1495ff396bd3e2a28f112a50a8c155a00f7cb86"
+  },
+  "native_processes": [],
+  "learning_review_complete": false,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "test_data_used": false,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PLAN.json",
+    "sha256": "0f48d7aec4a530ec5df44df60d76332377ee81f72584a11ca235818d699cc63b"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/NATIVE_RECIPE.json",
+    "sha256": "8b96b88a28ddf513062a7608cfdc3fa08286bc093d6eeb4fa12279418f944bcd"
+  },
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "45d038f9198ff682bbf9e437f511d6aa92d55e563ba8fa2a837a1f403c5dc016"
+  },
+  "handover_tests": {
+    "passed": 3,
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/OPERATOR_HANDOVER/HANDOVER_TEST.log",
+      "sha256": "406c8ccbbd023700b7094b621c6e4ec8e252066642aa43fea6ac742d8605d658"
+    }
+  },
+  "peak_hardware": {
+    "core_c": 59,
+    "memory_c": 66,
+    "power_w": 156.89,
+    "vram_mib": 8014
+  }
+}

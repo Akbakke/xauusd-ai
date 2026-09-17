@@ -1,20 +1,22 @@
-# GX1 XAUUSD
+# GX1 XAUUSD — start her
 
-Krev målbar læring før mer omfattende trening. Lønnsomhet er ikke dokumentert.
-Eneste kodebase: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Kjør `./handover.sh --check` for fersk status. `--verbose` viser status og handover.
+Dette er lesende observasjon og starter aldri trening.
 
-Start på Mac med ./handover.sh --check, eller i Linux med
-bash scripts/gx1_handover.sh --check. Les deretter:
+1. [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md): aktiv jobb, kode, checkpoint og avgrensning.
+2. [VEIEN_VIDERE.md](VEIEN_VIDERE.md): neste handling, sluttkontroll og korrekt baseline.
+3. [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) og [AGENTS.md](AGENTS.md): mål og arbeidsregler.
+4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
-1. CURRENT_HANDOVER.md — én gjeldende status og eksakt neste handling.
-2. GX1_ARBEIDSMAAL.md og AGENTS.md — mål, rammer og arbeidsregler.
-3. NEXT_RUN_POLICY.json — faktisk tillatt kjørescope; ingen full epoch nå.
-4. docs/LEARNING_GATE_20260916.md — hva som må måles før utvidelse.
+Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
+Mac-mappen er overlevering. Siste native256-prøve er fullført; neste arbeid er
+analyse av lagrede resultater. Bruk vanlig Linux-inngang
+`bash scripts/gx1_handover.sh --check`. Ekstern OPERATOR_HANDOVER er arkiv.
 
-I scriptets JSON gjelder current_work dagens arbeidskopi. De øvrige gamle
-kilde-/checkpointfeltene er merket completed_run_history. Operatørnotater og
-observerte prosesser skilles fra hverandre; ingen håndover starter trening.
-COMPLETED_RUN.json bevarer gammel fullført kjøring. handover_snapshot/ inneholder
-bevis og eksplisitt merket historikk, aldri alternative oppstartsplaner.
-SYSTEM_MAP.md beskriver læringsbanen. Mac-wrapperen eies av
-scripts/macos/gx1_takeover.sh i Linux-repositoriet.
+`current_work` gjelder dagens jobb. Øvrige gamle checkpoint-/VAL-felt i scriptets
+JSON er fullført historikk. Ingen historiske planer er startinstrukser.
+`training_enabled=false` og fravær av aktivt kjøreunntak stenger ny trening.
+Prosesser og receipts avgjør faktisk kjøretilstand. Den brukte planen må ikke relanseres.
+
+Korrekt læring, generalisering og positiv kostnadsjustert økonomi er fortsatt
+ikke dokumentert. Teknisk PASS er ikke handelsfordel.
