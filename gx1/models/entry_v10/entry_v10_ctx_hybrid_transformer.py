@@ -835,6 +835,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.encoder = nn.TransformerEncoder(
             enc_layer,
             num_layers=num_layers,
+            norm=nn.LayerNorm(d_model, elementwise_affine=False),
             enable_nested_tensor=False,
         )
 

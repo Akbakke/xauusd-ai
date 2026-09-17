@@ -31,6 +31,8 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
   grense»: ingen fast tapsgrense eller maksimal holdetid. Beregningshorisont
   og bootstrap er læringsberegning, ikke en handelsregel om holdetid. Gjeldende
   120-stegs referanseberegning er beskrevet i SYSTEM_MAP.md; fem steg er historikk.
+- Ved endret ONLINE-funksjon må ny initialbaseline måles; lik vekthash er
+  ikke funksjonsparitet. Bevar frossen lærerfunksjon og bind modellkilden.
 - Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT
   er ikke dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet.
   TRAIN-tilpasning, senere VAL-kvalitet og samlet økonomi rapporteres hver for seg.

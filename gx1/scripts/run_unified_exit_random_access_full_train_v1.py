@@ -1182,7 +1182,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                            or state["weight_ema_state"]["steps"] != 256))
             or val.canonical_model_state_sha256(state["target_model_state"]) != target_hash):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_CHECKPOINT_MISMATCH")
-    target = copy.deepcopy(model).to(device).eval().requires_grad_(False)
+    target = trainer._copy_frozen_prefix_reference_model(model).to(device)
     target.load_state_dict(state["target_model_state"], strict=True)
     out = directory / ("initial_measurement" if optimizer_steps == 0 else "final_online_measurement")
     if out.exists() or out.is_symlink():
@@ -1251,6 +1251,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
         "target_model_state_sha256": target_hash, "observations": observations,
+        "model_functions": dict(trainer._PREFIX_MODEL_FUNCTIONS),
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}

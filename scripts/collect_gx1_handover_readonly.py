@@ -179,6 +179,8 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "last_diagnostic_failure": record.get("completed_entry_signal_failure"),
         "latest_completed_diagnostic": record.get("completed_residual_representation") or record.get("completed_entry_signal_inference_check") or record.get("completed_entry_forward_parity"),
         "next_action": record.get("next_action"),
+        "latest_model_correction": record.get("completed_main_encoder_correction"),
+        "handover_resume_point": record.get("handover_resume_point"),
         "learning_gate": record.get("learning_gate"),
         "full_epoch_training_allowed": record.get("full_epoch_training_allowed", False),
         "observation_is_run_authority": False,

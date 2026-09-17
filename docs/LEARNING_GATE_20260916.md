@@ -1,13 +1,13 @@
-# Læringsport for GX1 — gjeldende 17. september 2026
+# Læringsport for GX1 — gjeldende 18. september 2026
 
 Brukerens prioritet er målbar læring før mer omfattende trening. Målet er
 robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Representasjonsdiagnosen er fullført: stor nesten felles hovedbane og svekket variasjon ved Entry-normalisering er målt. Ingen aktiv kjøring eller ny plan; læringsporten er ikke bestått.
-Ny kandidat gir blandede MSE-endringer og identiske handlinger mot kausal256.
-Eksakt fasit/lærer er bevart. Diagnosen er vurdert; neste er eksplisitt lærerbinding før én rettelse.
+Hovedencoder-rettelsen og original lærerfunksjon er kontrollert. Ny TRAIN-only startmåling mangler; admission-rettelsen er ennå ikke implementert. Ingen aktiv kjøring eller ny bundet plan; læringsporten er ikke bestått.
+Siste residual256 ga identiske, sidekonstante handlinger. Ny ONLINE-funksjon
+krever ny startbaseline selv med identiske vekter; læreren bevares eksplisitt.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke
@@ -18,7 +18,8 @@ nye kjøreordre. Ingen full epoch, full VAL, CONTROL/TEST eller trading er åpne
 1. Bruk sammenlignbare frosne targets. Entry skal bruke korrekt avledet
    DERIVED_TRAIN_BASELINE, ikke tidligere etterpåkloke targets. Exit-targets,
    lærer, utvalg, tidsgrenser og masks skal være de samme. Gjenbruk lagrede
-   prediksjoner fra initialmodell, connected256 og ny ONLINE256.
+   historiske prediksjoner. Ny ONLINE-funksjon må få egen nullstegs baseline;
+   initialvektenes hash alene beviser ikke samme prediksjonsfunksjon.
 2. Rapporter begge sider og alle ni TRAIN-måneder: MSE, sentrert feil,
    korrelasjon og verdi-/målfordeling. Skill fellesverdi fra LONG−SHORT-
    kontrast. Lavere bias alene er ikke bedre tilstandsavhengig læring.

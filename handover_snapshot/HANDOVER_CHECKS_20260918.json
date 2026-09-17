@@ -1,0 +1,35 @@
+{
+  "schema_version": "gx1_handover_check_review_v1",
+  "reviewed_utc": "2026-09-17T23:13:07.786083+00:00",
+  "initial_tests": 34,
+  "initial_passed": 29,
+  "initial_failed": 5,
+  "failure_cause": "Legacy economics-origin fixture inherited unrelated reference-policy fields from current NEXT_RUN_POLICY.",
+  "fix": "Remove only exit_reference_policy and reference_learning_plan from that fixture. Production gates unchanged.",
+  "affected_tests_passed": 11,
+  "affected_tests_failed": 0,
+  "all_previous_failures_rechecked_and_passed": true,
+  "remaining_known_failures": 0,
+  "native_model_forwards": 0,
+  "optimizer_steps": 0,
+  "initial_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/HANDOVER_TESTS.log",
+    "sha256": "0cc7679bed10cbd21a2184cb4c1ae5ea44ae8fe642e63a0fe3db628b3be72c35"
+  },
+  "initial_junit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/HANDOVER_TESTS.xml",
+    "sha256": "a3d10365421b492aeb46c929a7c39dfb3f96360f87b9bea8e0e9541c9407ae77"
+  },
+  "recheck_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/HANDOVER_TEST_RECHECK.log",
+    "sha256": "5bc999900a7f683c2e097d597ed3abfa05fa49fc77e13133f96f3f98441be16d"
+  },
+  "recheck_junit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/HANDOVER_TEST_RECHECK.xml",
+    "sha256": "394fb44d0b8f9378f10b819c00f5c75a542e6fcf7b8aee0845bed23398a81112"
+  },
+  "test_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_collect_gx1_handover_readonly.py",
+    "sha256": "ae2466e338f9d608b9130fa12e99b21d1f79ef9f6c51048d4913474b962cc3b4"
+  }
+}

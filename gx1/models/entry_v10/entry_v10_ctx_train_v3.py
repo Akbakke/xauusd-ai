@@ -12789,6 +12789,30 @@ def _candidate_training_parent_rows(
 
 
 
+_PREFIX_MODEL_FUNCTIONS = {
+    "online": "main_encoder_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1",
+}
+
+
+def _copy_frozen_prefix_reference_model(model):
+    """Preserve the pre-correction teacher function, not just its state tensors.
+
+    Only the main encoder's new parameter-free final norm differs. Prefix
+    supervision remains tied to the original encoder without that norm.
+    """
+    encoder = getattr(model, "encoder", None)
+    norm = getattr(encoder, "norm", None)
+    if (not isinstance(encoder, nn.TransformerEncoder)
+            or not isinstance(norm, nn.LayerNorm) or norm.elementwise_affine
+            or tuple(norm.normalized_shape) != (encoder.layers[0].self_attn.embed_dim,)
+            or norm.eps != 1e-5 or norm.state_dict()):
+        raise RuntimeError("[PREFIX_REFERENCE_ENCODER_FUNCTION_INVALID]")
+    target = copy.deepcopy(model)
+    target.encoder.norm = None
+    return target.eval().requires_grad_(False)
+
+
 def _prefix_candidate_training_binding(
     *, chronological_prefix, train_ds, val_ds, train_parquet, val_parquet,
     input_normalization, model, seed, batch_size, learning_rate, weight_decay,
@@ -12859,6 +12883,7 @@ def _prefix_candidate_training_binding(
         raise RuntimeError("[CANDIDATE_PREFIX_POPULATION_INVALID]")
     binding = {
         "schema_version": "gx1_candidate_prefix_training_binding_v1",
+        "model_functions": dict(_PREFIX_MODEL_FUNCTIONS),
         "artifacts": artifacts, "prefix_preparation": normalization["prefix_preparation"],
         "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
@@ -14008,7 +14033,8 @@ def _run_resumable_candidate_training(
 
     if restored_state is None:
         epoch_order = _candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population)
-        target_model = copy.deepcopy(model).to(device)
+        target_model = (_copy_frozen_prefix_reference_model(model)
+                        if prefix_binding is not None else copy.deepcopy(model)).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
         progress = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor)
@@ -14019,7 +14045,8 @@ def _run_resumable_candidate_training(
         checkpoint_index = 1
         complete = False
     else:
-        target_model = copy.deepcopy(model).to(device)
+        target_model = (_copy_frozen_prefix_reference_model(model)
+                        if prefix_binding is not None else copy.deepcopy(model)).to(device)
         restored = _restore_candidate_training_checkpoint(
             restored_state,
             session=session,
@@ -14661,7 +14688,8 @@ def _run_resumable_candidate_training(
         epoch_order = _candidate_training_epoch_order(
             train_ds, epoch_index=epoch_index, parent_population=parent_population,
         )
-        target_model = copy.deepcopy(model).to(device)
+        target_model = (_copy_frozen_prefix_reference_model(model)
+                        if prefix_binding is not None else copy.deepcopy(model)).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
         phase = "train"

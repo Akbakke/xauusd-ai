@@ -1,0 +1,42 @@
+{
+  "schema_version": "gx1_main_encoder_focused_test_review_v1",
+  "reviewed_utc": "2026-09-17T23:09:28.123909+00:00",
+  "initial_run": {
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TESTS.log",
+      "sha256": "6f76577225b6b43ab2bec22b92b34ed51e2fae47427511ce30cd6bb119c2e02b"
+    },
+    "passed": 49,
+    "failed": 11,
+    "skipped": 3,
+    "failure_cause": "Linear test doubles did not apply eval/freeze; production teacher helper already did."
+  },
+  "corrected_fixture_recheck": {
+    "log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TEST_RECHECK.log",
+      "sha256": "186b86d1075ebb3b39eea041b8c42730f113e8a6062d0104ebece4b3e7935ea4"
+    },
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TEST_RECHECK.xml",
+      "sha256": "1e4d4318359d301e5ff02e308f1b87ed1a18c113a1908f583602dad77ac348a0"
+    },
+    "passed": 11,
+    "failed": 0,
+    "skipped": 3
+  },
+  "remaining_known_test_failures": 0,
+  "full_suite_repeated": false,
+  "train_only_admission_patch_applied": false,
+  "train_only_tests_log_exists": false,
+  "native_model_forwards": 0,
+  "optimizer_steps": 0,
+  "source_files": {
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "9ac05e5c79279e7f02da66ff0fd0f98bf591ad7966d80f1c4dce2f726e1e1541",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "6c1795c2c000762adbfb3dde6e4c7cfe3fd20238edb50cbafaba7edffdd4e684",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "926126c242671997c679349967c8a04ccecafa49f522e891085bc0b8c34009ff",
+    "tests/test_entry_main_encoder_normalization.py": "947350f0fc6156ea28f91809de622b6dc4a041b407a4ca8b42d8d16d77e86b7e",
+    "tests/test_native_prefix_coordinator.py": "a0f3c4d6bdfb39a0e036d5c79fbf1215346a2cd37623b5e9c2531cd923b8d068",
+    "tests/test_native_prefix_initial_measurement.py": "36c157591a613aa2b27dc74521ba5c0d2099ab1ef042592b2bd5b08d0c9a6ff3",
+    "tests/test_native_prefix_learning_measurement.py": "c25c1a10a7e0ba4b6d14e885c9ecf3e0de14141601b18872360daee61c0b41a5"
+  }
+}

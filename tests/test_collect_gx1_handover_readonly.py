@@ -175,7 +175,8 @@ def bound_window(fixture, monkeypatch):
     policy_path, policy = _policy(repo)
     # Bind the original economics-origin fixture, not the current operator run.
     for field in ('exit_backup_steps', 'exit_value_initialization',
-                  'train_population_scope', 'gradient_clipping_policy', 'learning_gate'):
+                  'train_population_scope', 'gradient_clipping_policy', 'learning_gate',
+                  'exit_reference_policy', 'reference_learning_plan'):
         policy.pop(field, None)
     monkeypatch.setattr(owner, '__file__', str(repo / 'gx1/contracts/native.py'))
 

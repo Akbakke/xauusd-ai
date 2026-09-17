@@ -4,9 +4,9 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Representasjonsdiagnosen er fullført: stor nesten felles hovedbane og svekket variasjon ved Entry-normalisering er målt. Ingen aktiv kjøring eller ny plan; læringsporten er ikke bestått.
-Neste er å bevare lærerfunksjonen før én rettelse av den målte hovedbanen.
-Ingen ny trening eller uprøvde arkitekturendringer er åpnet.
+Nå: Hovedencoder-rettelsen og original lærerfunksjon er kontrollert. Ny TRAIN-only startmåling mangler; admission-rettelsen er ennå ikke implementert. Ingen aktiv kjøring eller ny bundet plan; læringsporten er ikke bestått.
+Neste: minst mulig kontraktsrettelse, deretter ny bundet nullstegs startmåling.
+Ingen ny læring er målt med rettelsen. Se VEIEN_VIDERE.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

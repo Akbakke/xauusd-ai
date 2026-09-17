@@ -136,6 +136,7 @@ def test_native_dispatch_restores_initial_state_and_measures_only_final_online(l
 @pytest.mark.parametrize('fault',[None,'target','cohort'])
 @pytest.mark.parametrize('train_only',[False,True])
 def test_final_online_uses_identical_initial_targets_and_preserves_trained_session(tmp_path,monkeypatch,fault,train_only,derived):
+    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", lambda m: copy.deepcopy(m).eval().requires_grad_(False))
     if derived and not train_only: pytest.skip('Derived targets require the TRAIN-only scope.')
     artifacts=tmp_path/'artifacts';artifacts.mkdir()
     h=PrefixHarness(tmp_path/'run',_prepared(artifacts));output=h.root/'CANDIDATE'

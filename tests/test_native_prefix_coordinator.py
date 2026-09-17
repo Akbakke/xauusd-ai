@@ -93,6 +93,7 @@ def test_prefix_binding_covers_exact_roles_rows_cutoff_normalization_and_fresh_i
     assert binding['reference_cutoff_time_ns']==data.norm['fit_cutoff_time_ns']
     assert binding['maximum_optimizer_steps']==256 and binding['maximum_completed_epochs']==0
     assert binding['initial_model_state_sha256']==trainer._model_state_sha256(args['model'])
+    assert binding["model_functions"] == trainer._PREFIX_MODEL_FUNCTIONS
     context=trainer._native_candidate_val_context_binding(data.context)
     assert context['report_only'] is True and context['factory_receipt']['split']=='train'
     assert context['schema_version']=='gx1_candidate_native_bounded_control_context_v1'
@@ -129,6 +130,7 @@ def test_bounded_context_rejects_mismatched_factory_or_coordinates(tmp_path,faul
 class PrefixHarness(Harness):
     def __init__(self,root,data):
         super().__init__(root);self.data=data;self.last_kwargs=None;self.teacher_hashes=[]
+        self.ns["_copy_frozen_prefix_reference_model"] = copy.deepcopy
     def train(self,model,teacher,loader,optimizer,device,**kwargs):
         self.teacher_hashes.append(trainer._model_state_sha256(teacher))
         return super().train(model,teacher,loader,optimizer,device,**kwargs)

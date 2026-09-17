@@ -1,4 +1,4 @@
-# Gjeldende GX1-systemkart — 17. september 2026
+# Gjeldende GX1-systemkart — 18. september 2026
 
 Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current. GX1_ENGINE/.git er
 felles Git-lagring, ikke alternativ oppstartsvei. Data: /home/andre2/GX1_DATA.
@@ -53,9 +53,12 @@ representasjoner er nå målt separat: nesten felles main-fuse-norm117,71,
 i Entry-hidden. Se RESIDUAL_REPRESENTATION_REVIEW_20260918.md. Inputnormaliseringen er uendret.
 Normaliseringen før tre residualprojeksjoner ble prøvd på88310075 med native256 og
 avvist: samme FLAT/sidekonstante handlinger. Representasjonsdiagnosen er fullført
-og brukt scope er stengt. Koden
-bevares for kildesamsvar; neste er uendret lærerbinding før rettelse av hovedbanen. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
-bevaring av lærerens Entry-/Exit-outputs og frosne mål.
+og brukt scope er stengt. Hovedencoder har nå parameterfri final LayerNorm.
+Prefix-læreren kopieres uten denne nye normaliseringen; original lærerfunksjon
+og initialvekter/RNG er kontrollert. Entry-hidden/Q inngår i Exit-tokenet;
+full lærerparitet er testet for begge. Ny ONLINE-funksjon krever egen native
+nullstegsbaseline. TRAIN-only-admission-rettelsen er ikke implementert, og
+ingen ny kjøreplan er bundet. Se docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
 Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.

@@ -1,15 +1,18 @@
-# Gjeldende dokumenter — 17. september 2026
+# Gjeldende dokumenter — 18. september 2026
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — fullført representasjonsdiagnose og neste avklaring.
-2. VEIEN_VIDERE.md — bevar lærerfunksjonen før rettelse av hovedbanen.
+1. CURRENT_HANDOVER.md — kontrollert modellrettelse og manglende startmåling.
+2. VEIEN_VIDERE.md — eksakt uferdig kontraktsrettelse og neste nullstegsmåling.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
 6. docs/LEARNING_GATE_20260916.md — krav før neste kontroll eller større trening.
 
 Aktuelle bevis:
+
+- docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md — kode, tester, bindinger og restarbeid.
+- handover_snapshot/MAIN_ENCODER_{INITIALIZATION_AUDIT,TEST_REVIEW}_20260918.json — ferdige kontroller.
 
 - docs/RESIDUAL_REPRESENTATION_REVIEW_20260918.md — gjeldende funn og begrensninger.
 - handover_snapshot/RESIDUAL_REPRESENTATION_{RESULT,REVIEW}_20260918.json — fullført måling og vurdering.
@@ -23,7 +26,7 @@ Aktuelle bevis:
 - handover_snapshot/RESIDUAL_NORMALIZATION_FIXED256_PLAN_20260917.json — brukt historisk plan.
 - handover_snapshot/RESIDUAL_NORMALIZATION_INITIALIZATION_20260917.json — fem tester og faktisk initialisering.
 
-- handover_snapshot/ENTRY_SIGNAL_INFERENCE_CHECK_{RESULT,REVIEW}_20260917.json — nyeste signalmåling og vurdering.
+- handover_snapshot/ENTRY_SIGNAL_INFERENCE_CHECK_{RESULT,REVIEW}_20260917.json — tidligere signalmåling og vurdering.
 - handover_snapshot/ENTRY_SIGNAL_SAVED_SCALE_20260917.json — uendrede inputnormalisatorer og lagrede residualvekter.
 
 Tidligere diagnoser og bindinger nedenfor er fullført historikk, ikke startordre.

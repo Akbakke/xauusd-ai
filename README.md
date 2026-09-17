@@ -9,9 +9,10 @@ Dette er lesende observasjon og starter aldri trening.
 4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Mac-mappen er overlevering. Representasjonsdiagnosen er fullført: stor nesten felles hovedbane og svekket variasjon ved Entry-normalisering er målt. Ingen aktiv kjøring eller ny plan; læringsporten er ikke bestått.
+Mac-mappen er overlevering. Hovedencoder-rettelsen og original lærerfunksjon er kontrollert. Ny TRAIN-only startmåling mangler; admission-rettelsen er ennå ikke implementert. Ingen aktiv kjøring eller ny bundet plan; læringsporten er ikke bestått.
 
-`current_work` gjelder dagens jobb. Øvrige gamle checkpoint-/VAL-felt i scriptets
+`current_work` viser også `latest_model_correction` og `handover_resume_point`.
+Disse angir ferdige kontroller og nøyaktig uferdig neste steg. Øvrige gamle checkpoint-/VAL-felt i scriptets
 JSON er fullført historikk. Ingen historiske planer er startinstrukser.
 `training_enabled=false` og fravær av aktivt kjøreunntak stenger ny trening.
 Prosesser og receipts avgjør faktisk kjøretilstand. Den brukte planen må ikke relanseres.

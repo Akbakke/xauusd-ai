@@ -179,6 +179,7 @@ def test_saved_fresh_state_restore_includes_optimizer_scheduler_ema_and_rng(tmp_
 
 @pytest.mark.parametrize('fail_control', [False, True])
 def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_path, monkeypatch, fail_control):
+    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", lambda m: copy.deepcopy(m).eval().requires_grad_(False))
     artifacts = tmp_path / 'artifacts'; artifacts.mkdir()
     h = PrefixHarness(tmp_path / 'run', _prepared(artifacts))
     output = h.root / 'MEASURED'

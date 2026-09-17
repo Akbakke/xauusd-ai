@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Address the measured main-encoder/main-fuse common growth, not another residual-port sweep. First inspect the existing frozen-teacher construction: it deep-copies the online architecture, so adding normalization directly would change the reference function despite identical state weights. Determine the smallest explicit teacher/function binding that preserves original Entry/Exit bootstrap targets and initial comparison before any model correction or new bounded training. No new model run is authorized.",
+  "rule": "Finish the missing TRAIN-only zero-step admission and reject stale initial model-source bindings; these contract changes and their tests are NOT implemented. Then bind a derived initialization record backed by the completed constructor audit and one native zero-step TRAIN-only initial measurement. Preserve the original teacher function. No new run is bound or authorized; do not reuse old ONLINE predictions as the corrected model baseline. See VEIEN_VIDERE.md.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1129,5 +1129,51 @@
   "completed_residual_representation": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/REVIEW.json",
     "sha256": "754fe0677135733f83c2c8e47426ab4ca2dbf100da7da137e22760e3af584bf1"
+  },
+  "completed_main_encoder_correction": {
+    "status": "MAIN_ENCODER_CORRECTION_TESTED_INITIAL_MEASUREMENT_PENDING",
+    "report": "docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md",
+    "initialization_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/INITIALIZATION_AUDIT.json",
+      "sha256": "56c298b5804fb042af48ef9bb3a1688bde13a85067afa0dc51811f76d21894e5"
+    },
+    "test_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/MAIN_ENCODER_TEST_REVIEW_20260918.json",
+      "sha256": "6552b9439ca92e8b5a7fec32e6c6b509bd69c40f0894fe48acf7dd1bc6a9fec6"
+    },
+    "model_functions": {
+      "online": "main_encoder_final_layernorm_no_affine_v1",
+      "target": "main_encoder_no_final_norm_v1"
+    },
+    "teacher_function_preserved": true,
+    "new_initial_measurement_required": true,
+    "native_initial_measurement_completed": false,
+    "train_only_admission_patch_applied": false,
+    "new_native_run_bound": false,
+    "native_model_forwards": 0,
+    "optimizer_steps": 0,
+    "learning_gate_passed": false
+  },
+  "handover_resume_point": {
+    "observed_utc": "2026-09-17T23:09:28.123909+00:00",
+    "source_before_handover_commit": "6f149e37423ae122155818d86ca7701a9946e264",
+    "source_state_at_observation": "Seven uncommitted model/trainer/measurement/test files; preserved with this handover commit. Use live working_head for current commit.",
+    "windows_task_observation": {
+      "observed_utc": "2026-09-17T23:05:38.8267798Z",
+      "task_name": "GX1NativeLearningCalibration",
+      "state": "Disabled",
+      "enabled": false,
+      "last_result": 0
+    },
+    "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
+    "next_deliverable": "Finish the missing TRAIN-only zero-step admission and reject stale initial model-source bindings; these contract changes and their tests are NOT implemented. Then bind a derived initialization record backed by the completed constructor audit and one native zero-step TRAIN-only initial measurement. Preserve the original teacher function. No new run is bound or authorized; do not reuse old ONLINE predictions as the corrected model baseline. See VEIEN_VIDERE.md.",
+    "new_native_run_bound": false,
+    "new_model_forwards_since_representation_diagnosis": 0,
+    "new_optimizer_steps_since_residual_trial": 0,
+    "pending_contract_file": "gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+    "pending_contract_source_sha256": "90a092546807d6aa73b4f33bacc180ee99503d67e0985671ce2cd5f333df165c",
+    "train_only_tests_log_exists": false,
+    "do_not_rely_on_previous_compaction_claim": "TRAIN-only patch and TRAIN_ONLY_TESTS.log were not created. Verified from canonical git diff, source and artifact directory.",
+    "reuse": "Completed representation review, production initialization audit and passing focused tests; do not repeat native diagnostics."
   }
 }
