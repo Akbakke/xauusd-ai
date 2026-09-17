@@ -11,29 +11,35 @@ Fjernkontakt: `ssh gx1-3090-lan`; Linux via
 `wsl.exe -d Ubuntu-22.04 -u andre2 -- /bin/bash -s`.
 Alle kildeoperasjoner skjer i `/home/andre2/src/GX1_CURRENT`.
 
-## Neste handling: analyser ferdig sluttmåling
+## Neste handling: én konkret årsaksdiagnose
 
-Prøven er terminal med 256 oppdateringer, guardPASS/trainer0/observer0 og
-TRAIN-only sluttmåling. Windows-tasken er deaktivert og det brukte policy-
-unntaket stengt. Fullføringsbevis står i
-`handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json`.
+Native256 og den parete analysen er ferdige. Ikke gjenta dem.
+REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE:
+Entry FLAT256/256, MSE svakere enn TRAIN-konstanter og dårligere LONG−SHORT-
+kontrast enn før. Exit alltid HOLD for LONG / EXIT for SHORT, alle fire
+MSE verre enn connected256. Ingen ny trening, CONTROL, VAL eller TEST.
 
-1. Verifiser bindingene i fullføringsbeviset mot sluttresultat, TRAIN-observasjon,
-   checkpoint og korrekt avledet baseline. Gjenbruk de eksisterende filene;
-   ikke gjør nye forwards eller trening for rapportering.
-2. Gjør én paret analyse. Entry bruker de nye targets fra DERIVED_TRAIN_BASELINE;
-   Exit bruker uendrede anker-/samplede HOLD-targets fra originalmålingen.
-   Bevar alle gamle prediksjoner og målinger. Rapporter alle ni måneder.
-3. Gjenbruk metrikformlene i den bevarte `review_entry_connected_fixed256.py`.
-   Den gamle operatøren har bundne gamle input-/outputbaner og skal ikke kjøres
-   uendret. Legg den nye analysen i siste artefaktmappe, med kilde-/filbindinger.
-4. Vurder læringsporten etter kriteriene nedenfor. Oppdater aktuell fortelling,
-   status og policy med målt konklusjon; commit/push ferdig kode/docs/aggregater.
-   Ingen ny kjøring eller større omfang følger automatisk av teknisk PASS.
+Les docs/CAUSAL_ENTRY_FIXED256_REVIEW_20260917.md og siste artefaktmappes
+PAIRED_TRAIN_REVIEW.json/VERDICT.json. Checkpointets payload, modell og frosne
+lærer er verifisert; gamle baselinemetrikker er gjenskapt. Originaler er bevart.
 
-Framtidige stabile jobber kontrolleres omtrent hvert 15.–30. minutt eller
-sjeldnere. En timeout eller ACTIVE_INVOCATION alene avgjør ikke om en jobb er
-stoppet; faktiske prosesser og terminalkvittering er autoritative.
+1. Følg den tilstandsavhengige LONG−SHORT-feilen til faktisk vektet og klippet
+   optimizeroppdatering i eksisterende kilde og lagrede TRAIN-bevis. Bruk
+   gx1/models/entry_v10/entry_v10_ctx_train_v3.py og tidligere gradientdiagnose.
+   Entry bruker MSE. Ikke anta Huber, manglende features eller ny detach-feil.
+2. Gjenbruk lagrede outputs, checkpoint-/optimizerstate og eksisterende
+   diagnoseartefakter. Skill liten outputvariasjon fra dokumentert årsak.
+   Bevis om dette er svak kondisjonering/oppdatering eller et gjennomsnitt som
+   er rimelig under referansepolicyen; ikke press fram handler med terskler.
+3. Hvis eksisterende bevis ikke avgjør årsaken, beskriv én nødvendig avgrenset
+   måling og bind den særskilt før utførelse. Gjeldende scope åpner ingen nye
+   forwards, fit, søk eller trening. Ikke gjør blind ekstra epoch.
+4. Rett bare en dokumentert blokkering. Bevar korrigert kausal fasit, features,
+   lærer/checkpoints og native vakter. Oppdater handover med konklusjonen og
+   push ferdig arbeid under stående autorisasjon.
+
+En eventuell stabil langjobb kontrolleres omtrent hvert 15.–30. minutt eller
+sjeldnere. Faktiske prosesser og terminalkvittering avgjør kjøretilstand.
 
 ## Referanser for sammenligningen
 
@@ -60,7 +66,7 @@ Felles rot (`BASE`):
   `45d038f9198ff682bbf9e437f511d6aa92d55e563ba8fa2a837a1f403c5dc016`.
   Ikke forveksle filhash med planens semantiske hash.
 
-## Beslutningen etter målingen
+## Kriterier for senere arbeid — siste prøve er allerede avvist
 
 Rapporter Entry LONG/SHORT MSE, sentrert feil, korrelasjon, prediksjons-/target-
 fordeling, fellesverdi og LONG−SHORT-kontrast. Ta med LONG/SHORT/FLAT-valg og

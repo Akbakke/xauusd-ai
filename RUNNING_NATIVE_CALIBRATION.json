@@ -1,9 +1,9 @@
 {
-  "status": "NATIVE256_TECHNICALLY_COMPLETE_PAIRED_LEARNING_REVIEW_PENDING",
+  "status": "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Completed native training source; handover maintenance is a later commit.",
-  "latest_observation_utc": "2026-09-17T16:16:33.701835+00:00",
+  "latest_observation_utc": "2026-09-17T16:36:48.277435+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -42,22 +42,22 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "learning_gate": {
-    "decision": "NATIVE256_TECHNICALLY_COMPLETE_PAIRED_LEARNING_REVIEW_PENDING",
+    "decision": "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE",
     "specification": "docs/LEARNING_GATE_20260916.md",
     "technical_pass_is_not_learning_pass": true,
     "entry_exit_learning_demonstrated": false,
     "generalization_demonstrated": false,
     "profitability_demonstrated": false,
-    "local_entry_fit_improved": true,
+    "local_entry_fit_improved": false,
     "broad_entry_fit_improved": false,
     "exit_market_conditional_improvement_demonstrated": false,
     "fixed256_review": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
       "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
     },
-    "training_fit_improved_against_constants_both_sides": true,
+    "training_fit_improved_against_constants_both_sides": false,
     "robust_entry_decisions_demonstrated": false,
-    "entry_conditional_train_fit_improved": true,
+    "entry_conditional_train_fit_improved": false,
     "entry_decisions_beat_constant": false,
     "exit_improved_against_previous_model": false,
     "connected_fixed256_verdict": {
@@ -81,7 +81,16 @@
       "new_native_run_authorized": false
     },
     "corrected_entry_learning_measured": true,
-    "corrected_entry_learning_assessed": false
+    "corrected_entry_learning_assessed": true,
+    "causal_entry_fixed256_verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+      "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
+    },
+    "latest_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "26697b79bb062154c13bc95df60c85544c094281eee05874a6fb115d79823a43"
+    },
+    "latest_measurement_scope": "Corrected-target TRAIN-only paired review. Historical named subrecords are evidence, not current action authority."
   },
   "profile": {
     "train_batch": 16,
@@ -91,7 +100,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Perform one paired CPU review of existing TRAIN observations: corrected Entry targets from DERIVED_TRAIN_BASELINE, unchanged Exit targets, final ONLINE versus saved initial,connected256 and TRAIN constants. Report both sides,all nine months,centered errors,common/contrast fit and decisions. Preserve originals. No new model forwards,training,CONTROL,VAL,TEST,search or automatic extension.",
+  "next_action": "Reuse the completed paired review. Diagnose one remaining cause of near-constant Entry predictions and fixed-by-side Exit actions from existing TRAIN outputs, checkpoint/optimizer state, saved diagnostics and source. First trace whether the state-dependent LONG-SHORT component reaches the actual weighted/clipped optimizer update; do not infer a loss bug from output collapse alone. No new forwards, fits, training, CONTROL, VAL, TEST, search, automatic repeat or extension. Bind any necessary new measurement separately before execution.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -859,7 +868,7 @@
     "learning_proven": false
   },
   "completed_causal_entry_fixed256": {
-    "status": "NATIVE256_TECHNICALLY_COMPLETE_PAIRED_LEARNING_REVIEW_PENDING",
+    "status": "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE",
     "source_commit": "955abf191a3960025e297f331f0c33df90e731c4",
     "result": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
@@ -881,7 +890,7 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
       "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
     },
-    "state_payload_rehashed": false,
+    "state_payload_rehashed": true,
     "derived_entry_baseline": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
       "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
@@ -908,7 +917,7 @@
       "sha256": "21b6a3ef81d84502949cf840c1495ff396bd3e2a28f112a50a8c155a00f7cb86"
     },
     "native_processes": [],
-    "learning_review_complete": false,
+    "learning_review_complete": true,
     "learning_gate_passed": false,
     "generalization_proven": false,
     "profitability_proven": false,
@@ -937,6 +946,14 @@
       "memory_c": 66,
       "power_w": 156.89,
       "vram_mib": 8014
+    },
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "26697b79bb062154c13bc95df60c85544c094281eee05874a6fb115d79823a43"
+    },
+    "verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+      "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
     }
   },
   "native_processes": []

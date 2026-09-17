@@ -2,8 +2,9 @@
 
 ## Les dette først
 
-**Den kausale Entry-prøven er ferdig. Neste oppgave er én paret analyse av
-lagrede resultater. Ikke start ny trening eller relanser den brukte planen.**
+**Den kausale Entry-prøven og den parete analysen er ferdige. Læringsporten
+er ikke bestått: Entry velger FLAT256/256; Exit alltid HOLD for LONG og EXIT
+for SHORT. Ingen ny trening eller relansering av den brukte planen.**
 
 Native-kjøringen startet 14:45:41.962204 UTC / 16:45:41 Oslo og sluttet
 15:59:49.236680 UTC / 17:59:49 Oslo 17. september. Checkpoint5 har 256
@@ -13,8 +14,10 @@ Windows-tasken er deaktivert med kvittering 16:11:52 UTC / 18:11:52 Oslo.
 
 Slutt-ONLINE er målt på TRAIN256, 256 Exit-ankere og 1024 samplede Exit-states.
 Resultatet bekrefter eksakt bevart korrigert fasit, frossen lærer og bare TRAIN.
-**Dette er teknisk fullføring. Læringsgevinst, generalisering og profitt er
-ennå ikke vurdert eller dokumentert av denne prøven.**
+**Analysen er fullført: Entry-MSE612,81/607,47 taper mot TRAIN-konstanter
+608,80/603,81. Lavere feil enn tidligere modeller kommer fra felles nivå;
+LONG−SHORT-kontrasten blir svakere. Alle fire Exit-MSE er dårligere enn forrige
+kandidat. Generalisering og profitt er ikke dokumentert.**
 
 Kjør `./handover.sh --check` på Mac eller `bash scripts/gx1_handover.sh --check`
 i Linux for fersk status. `--verbose` viser også denne overleveringen.
@@ -59,9 +62,10 @@ fasit for optimal handel. Exit-mål, kostnader, gamma og bootstrap er uendret.
 Kanonisk økonomi gjenskapte alle 512 gamle sidemål eksakt. En tydelig merket
 avledet TRAIN-baseline bruker korrekt Entry-fasit og bevarte native prediksjoner.
 Den opprinnelige målingen er ikke omdøpt. 33 tester for fasitrettelsen og 13 for
-baselinebindingen består. Ny faktisk læring med korrekt fasit er ennå ikke vurdert.
+baselinebindingen består. Prøven med korrekt fasit er vurdert og består ikke
+læringsporten. Retting av en reell fasitfeil garanterer ikke nyttige beslutninger.
 
-## Hva prøven skal avgjøre
+## Fullført sammenligning — ikke gjenta
 
 Samme lagrede ferske starttilstand, samme 4096 Entries i samme rekkefølge,
 TRAIN16, 256 oppdateringer, frossen lærer og slutt-ONLINE. Mål TRAIN256,
@@ -72,12 +76,15 @@ retninger skal med. Konstant nivåflytting, all-FLAT/all-HOLD eller bare bedre
 hjelpeprognoser består ikke læringsporten. Dette er TRAIN med fitted-overlapp;
 generalisering og lønnsomhet er ikke dokumentert.
 
-**Fortsett etter `VEIEN_VIDERE.md`.** Der står eksakt sluttkontroll, baseline-
-referanser, hva som skal måles og hva som ikke skal gjentas.
+**Fortsett etter `VEIEN_VIDERE.md`.** Neste er én konkret årsaksundersøkelse
+av nesten konstante outputs, med eksisterende TRAIN-bevis og kilde.
+Se docs/CAUSAL_ENTRY_FIXED256_REVIEW_20260917.md og de bundne
+PAIRED_TRAIN_REVIEW.json/VERDICT.json i siste artefaktmappe.
+Checkpointets faktiske payload er nå også rehashet og verifisert av analysen.
 
 ## Handover og bevis
 
-Alle operative innganger peker nå på samme fullførte jobb og neste analyse:
+Alle operative innganger peker nå på samme fullførte jobb, avslag og neste diagnose:
 CURRENT_HANDOVER.md, CURRENT_GX1_STATUS.md, VEIEN_VIDERE.md, README.md,
 GX1_ARBEIDSMAAL.md, RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json.
 Mac- og Linux-script er kontrollert. Innsamleren velger en eventuell aktiv

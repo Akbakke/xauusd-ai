@@ -44,7 +44,9 @@ Den korrigerte native256-prøven er fullført på955abf19. Fersk lagret
 initialisering, normalisering/labels fittet på prefix-TRAIN, samme4096 Entries,
 frossen lærer og slutt-ONLINE. Bare TRAIN256/Exit-anker/samplede states er målt.
 Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
-beholdes. Neste er paret analyse. Læringsgevinst er ennå ikke vurdert.
+beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLAT,
+Exit alltid HOLD for LONG / EXIT for SHORT. Neste er diagnose av den observerte
+mangelen på tilstandsavhengige beslutninger; ingen ny trening er åpnet.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
 Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.

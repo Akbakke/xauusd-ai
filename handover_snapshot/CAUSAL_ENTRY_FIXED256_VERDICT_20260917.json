@@ -1,0 +1,178 @@
+{
+  "schema_version": "gx1_causal_entry_fixed256_verdict_v1",
+  "created_utc": "2026-09-17T16:36:48.277435+00:00",
+  "decision": "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "26697b79bb062154c13bc95df60c85544c094281eee05874a6fb115d79823a43"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/PLAN.json",
+    "sha256": "0f48d7aec4a530ec5df44df60d76332377ee81f72584a11ca235818d699cc63b"
+  },
+  "training_source_commit": "955abf191a3960025e297f331f0c33df90e731c4",
+  "analysis_source_commit": "4358a82e715c0368e6847d1069a8736ffc8d05b4",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+    "sha256": "06ec5badb25a98f20cc550c100d4f1e761b290684ae001be52e9a3005f837c69"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_CAUSAL_ENTRY_FIXED256_20260917_BOOT456/receipts/invocation-0001.json",
+    "sha256": "dae2eba139c001a9713bb85ab57398859bc9654bcedf2e0a2aa82ccbab61d28a"
+  },
+  "state_payload_rehashed": true,
+  "original_checkpoint_preserved": true,
+  "measurement_roles": [
+    "train"
+  ],
+  "entry": {
+    "mse_better_than_initial_both_sides": true,
+    "mse_better_than_connected_both_sides": true,
+    "mse_better_than_constant_both_sides": false,
+    "conditional_fit_improved_both_sides": false,
+    "decisions_beat_constant": false,
+    "action_counts": {
+      "FLAT": 256,
+      "LONG": 0,
+      "SHORT": 0
+    },
+    "reference_value_bps": 0.0,
+    "reference_regret_bps": 12.08649828255875,
+    "long_short_contrast": {
+      "bias_bps": -3.9782757174107246,
+      "centered_mse": 2424.00303279531,
+      "mae": 34.176905458036344,
+      "mse": 2439.82971047905,
+      "pearson": 0.051469317983934955,
+      "prediction_mean_bps": 0.2318361233919859,
+      "prediction_std_bps": 0.10299489696486643,
+      "target_mean_bps": 4.2101118408027105,
+      "target_std_bps": 49.23935893289922
+    },
+    "interpretation": "Total MSE reduction comes from corrected common level. LONG-SHORT MSE and centered MSE worsen versus initial and connected. All-FLAT equals constant baseline; no selective entries demonstrated."
+  },
+  "exit": {
+    "all_four_mse_worse_than_connected": true,
+    "anchor_actions": {
+      "LONG": {
+        "EXIT": 0,
+        "HOLD": 256,
+        "reference_regret_bps": 7.58836466120556,
+        "selected_reference_value_bps": 2.2173689806077164
+      },
+      "SHORT": {
+        "EXIT": 256,
+        "HOLD": 0,
+        "reference_regret_bps": 7.582977719372138,
+        "selected_reference_value_bps": 0.0
+      }
+    },
+    "sampled_actions": {
+      "LONG": {
+        "EXIT": 0,
+        "HOLD": 1024,
+        "reference_regret_bps": 9.058838462718995,
+        "selected_reference_value_bps": -0.1634380246468936
+      },
+      "SHORT": {
+        "EXIT": 1024,
+        "HOLD": 0,
+        "reference_regret_bps": 9.012272249692614,
+        "selected_reference_value_bps": 0.0
+      }
+    },
+    "sampled_decisions_worse_than_train_constants_both_sides": true,
+    "interpretation": "Every LONG state selects HOLD and every SHORT state EXIT. No demonstrated state-dependent decision improvement."
+  },
+  "monthly_improvement_counts": {
+    "entry": {
+      "LONG": {
+        "centered_mse": {
+          "connected": 4,
+          "initial": 5,
+          "train_constant": 5
+        },
+        "mse": {
+          "connected": 7,
+          "initial": 6,
+          "train_constant": 4
+        }
+      },
+      "SHORT": {
+        "centered_mse": {
+          "connected": 5,
+          "initial": 4,
+          "train_constant": 8
+        },
+        "mse": {
+          "connected": 8,
+          "initial": 8,
+          "train_constant": 5
+        }
+      }
+    },
+    "exit_anchor": {
+      "LONG": {
+        "centered_mse": {
+          "connected": 4,
+          "initial": 7,
+          "train_constant": 6
+        },
+        "mse": {
+          "connected": 3,
+          "initial": 6,
+          "train_constant": 4
+        }
+      },
+      "SHORT": {
+        "centered_mse": {
+          "connected": 4,
+          "initial": 8,
+          "train_constant": 8
+        },
+        "mse": {
+          "connected": 3,
+          "initial": 8,
+          "train_constant": 5
+        }
+      }
+    },
+    "exit_sampled": {
+      "LONG": {
+        "centered_mse": {
+          "connected": 2,
+          "initial": 7,
+          "train_constant": 7
+        },
+        "mse": {
+          "connected": 1,
+          "initial": 7,
+          "train_constant": 7
+        }
+      },
+      "SHORT": {
+        "centered_mse": {
+          "connected": 1,
+          "initial": 7,
+          "train_constant": 7
+        },
+        "mse": {
+          "connected": 0,
+          "initial": 6,
+          "train_constant": 7
+        }
+      }
+    }
+  },
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "new_forwards": 0,
+  "new_fits": 0,
+  "control_observations_accessed": false,
+  "test_data_used": false,
+  "training_expansion_authorized": false,
+  "reference_values_are_not_realized_profit": true,
+  "remaining_cause_proven": false,
+  "next_action": "Reuse the completed paired review. Diagnose one remaining cause of near-constant Entry predictions and fixed-by-side Exit actions from existing TRAIN outputs, checkpoint/optimizer state, saved diagnostics and source. First trace whether the state-dependent LONG-SHORT component reaches the actual weighted/clipped optimizer update; do not infer a loss bug from output collapse alone. No new forwards, fits, training, CONTROL, VAL, TEST, search, automatic repeat or extension. Bind any necessary new measurement separately before execution."
+}
