@@ -521,6 +521,15 @@ def _selected_surface_hash(
     return digest.hexdigest()
 
 
+def _prefix_entry_rows(path: Path, population: int) -> tuple[np.ndarray, dict[str, Any]]:
+    path = _exact_file(path, "PREFIX_ENTRY_ROWS")
+    rows = np.load(path, allow_pickle=False)
+    if (rows.dtype != np.dtype("int64") or rows.ndim != 1 or not len(rows)
+            or np.any(rows < 0) or np.any(rows >= population) or np.any(np.diff(rows) <= 0)):
+        raise RuntimeError("PILOT_NORMALIZATION_PREFIX_ENTRY_ROWS_INVALID")
+    return rows, {"path": str(path), "sha256": _sha256_file(path)}
+
+
 def build_train_normalization_population_witness(
     *,
     child_admission: Mapping[str, Any],
@@ -535,7 +544,14 @@ def build_train_normalization_population_witness(
     mtf_cache_binding: Mapping[str, Any],
     mtf_cache_manifest_path: Path,
     train_end: str = TRAIN_END,
+    fit_entry_rows_path: Path | None = None,
+    fit_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
+    prefix = fit_entry_rows_path is not None
+    if (prefix != (fit_cutoff_time_ns is not None)
+            or (prefix and (type(fit_cutoff_time_ns) is not int or fit_cutoff_time_ns <= 0
+                            or fit_cutoff_time_ns > int(pd.Timestamp(train_end).value)))):
+        raise RuntimeError("PILOT_NORMALIZATION_PREFIX_SCOPE_INVALID")
     m1_path = _exact_file(m1_source_path, "M1_SOURCE")
     m1_manifest_path = _exact_file(m1_source_manifest_path, "M1_SOURCE_MANIFEST")
     m1_sha = _sha256_file(m1_path)
@@ -618,6 +634,18 @@ def build_train_normalization_population_witness(
         or _clock_hash(entry_ns) != child_train["clock_sha256"]
     ):
         raise RuntimeError("PILOT_NORMALIZATION_CHILD_TRAIN_CLOCK_INVALID")
+    fit_population = None
+    if prefix:
+        rows, rows_binding = _prefix_entry_rows(fit_entry_rows_path, len(entry_times))
+        entry_times = entry_times[rows]
+        entry_ns = np.asarray(entry_times.asi8, dtype=np.int64)
+        if np.any(entry_ns + ENTRY_BAR_NS > fit_cutoff_time_ns):
+            raise RuntimeError("PILOT_NORMALIZATION_PREFIX_ENTRY_AFTER_CUTOFF")
+        fit_population = {
+            "entry_rows": rows_binding, "cutoff_time_ns": fit_cutoff_time_ns,
+            "parent_train_entry_clock_sha256": child_train["clock_sha256"],
+            "market_source_end_preserved": True,
+        }
     starts = np.searchsorted(clock_ns, entry_ns + ENTRY_BAR_NS, side="left")
     exact = starts < len(clock_ns)
     positions = np.flatnonzero(exact)
@@ -626,7 +654,7 @@ def build_train_normalization_population_witness(
     )
     if not exact.all():
         raise RuntimeError("PILOT_NORMALIZATION_ENTRY_OPEN_M1_MISSING")
-    split_end_ns = int(pd.Timestamp(train_end).value)
+    split_end_ns = fit_cutoff_time_ns if prefix else int(pd.Timestamp(train_end).value)
     available_stop = int(
         np.searchsorted(clock_ns, split_end_ns - EXIT_BAR_NS, side="right")
     )
@@ -720,7 +748,7 @@ def build_train_normalization_population_witness(
         "child_admission_witness_sha256": child_admission["witness_sha256"],
         "child_sequence_audit_sha256": child_sequence_audit["contract_sha256"],
         "train_entry_decision_rows": len(entry_times),
-        "train_entry_clock_sha256": child_train["clock_sha256"],
+        "train_entry_clock_sha256": _clock_hash(entry_ns),
         "entry_m5_local_unique_rows": len(entry_local_indices),
         "entry_m5_local_intervals": [
             {"start_row": left, "end_row_exclusive": right}
@@ -774,6 +802,10 @@ def build_train_normalization_population_witness(
         "test_fit_rows": 0,
         "test_accessed": False,
     }
+    if fit_population is not None:
+        fit_population["maximum_observed_decision_time_ns"] = max(
+            int(entry_ns.max()) + ENTRY_BAR_NS, int(clock_ns[exit_indices].max()) + EXIT_BAR_NS)
+        witness["normalization_fit_population"] = fit_population
     witness["contract_sha256"] = _canonical_sha256(witness)
     return witness
 
@@ -793,6 +825,8 @@ def build_normalization_inputs(
     publish: bool,
     expected_train_rows: int = EXPECTED_TRAIN_ROWS,
     expected_val_rows: int = EXPECTED_VAL_ROWS,
+    fit_entry_rows_path: Path | None = None,
+    fit_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
     if type(publish) is not bool:
         raise RuntimeError("PILOT_NORMALIZATION_INVOCATION_INVALID")
@@ -829,6 +863,8 @@ def build_normalization_inputs(
         parent_manifest=parent,
         mtf_cache_binding=mtf_binding,
         mtf_cache_manifest_path=mtf_cache_manifest_path,
+        fit_entry_rows_path=fit_entry_rows_path,
+        fit_cutoff_time_ns=fit_cutoff_time_ns,
     )
     sequence_path = output / "CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json"
     population_path = output / "TRAIN_NORMALIZATION_POPULATION_WITNESS.json"
@@ -891,6 +927,8 @@ def build_normalization_inputs(
         "test_fit_rows": 0,
         "test_accessed": False,
     }
+    if "normalization_fit_population" in population:
+        view["normalization_fit_population"] = population["normalization_fit_population"]
     view["contract_sha256"] = _canonical_sha256(view)
     if not publish:
         return {
@@ -947,6 +985,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mtf-cache-manifest", type=Path, required=True)
     parser.add_argument("--market-closure-authority", type=Path, required=True)
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--fit-entry-rows", type=Path)
+    parser.add_argument("--fit-cutoff-time-ns", type=int)
     return parser
 
 
@@ -964,6 +1004,8 @@ def main() -> None:
         mtf_cache_manifest_path=args.mtf_cache_manifest,
         market_closure_authority_path=args.market_closure_authority,
         publish=args.publish,
+        fit_entry_rows_path=args.fit_entry_rows,
+        fit_cutoff_time_ns=args.fit_cutoff_time_ns,
     )
     print(json.dumps(report, sort_keys=True))
 

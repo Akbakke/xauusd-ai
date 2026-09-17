@@ -1,0 +1,113 @@
+{
+  "schema_version": "gx1_prefix_base_synthetic_evidence_v1",
+  "decision": "BASE_CONTEXT_MTF_PREFIX_SYNTHETIC_PASS_NOT_NATIVE_READINESS",
+  "observed_utc": "2026-09-17T01:35:48.249125+00:00",
+  "parent_source_commit": "dd68dffcabadaa02cfc08dafe1868386a3157d12",
+  "source_files": {
+    "gx1/scripts/materialize_unified_exit_pilot_normalization_inputs_v1.py": "ebf2ae4b3b977433d1108b48e43a6a778f9e75170e872dc4569094071f59702a",
+    "gx1/scripts/materialize_unified_exit_pilot_base_normalization_v1.py": "9ab2bb53450b14210f18ca30521006fd703ae86660b438b6550305919f830c32",
+    "tests/test_materialize_unified_exit_pilot_normalization_inputs_v1.py": "2e35f10d4401ca177b5820740350438f7d2029bc61b89edc3256d2bdfecfb2df",
+    "tests/test_prefix_base_normalization_v1.py": "436780f2e22ebe961baf43081351526dabbde4db106ffb40673d09a4b8d3921e"
+  },
+  "unique_tests_passed": 12,
+  "test_results": {
+    "tests.test_prefix_base_normalization_v1::test_actual_fit_surfaces_ignore_all_later_features": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[missing_opt_in]": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[wrong_cutoff]": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[wrong_rows]": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[future_m5]": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[future_m1]": true,
+    "tests.test_prefix_base_normalization_v1::test_bad_prefix_binding_rejected_before_statistics[changed_witness]": true,
+    "tests.test_prefix_base_normalization_v1::test_population_cutoff_uses_close_and_rejects_later_entry": true,
+    "tests.test_materialize_unified_exit_pilot_normalization_inputs_v1::test_child_sequence_audit_is_exhaustive_and_rejects_changed_value": true,
+    "tests.test_materialize_unified_exit_pilot_normalization_inputs_v1::test_population_witness_scans_unique_rows_without_sampler_keys": true,
+    "tests.test_materialize_unified_exit_pilot_normalization_inputs_v1::test_view_is_explicitly_blocked_until_summary_registry": true,
+    "tests.test_materialize_unified_exit_pilot_normalization_inputs_v1::test_interval_merge_is_deterministic": true
+  },
+  "attempts": [
+    {
+      "xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT1.xml",
+        "sha256": "59971912b2d5c09a3d839104f7a558a5908f27896ce825a76984041b7f262913"
+      },
+      "log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT1.log",
+        "sha256": "45ad11df6219bf94bed06c6235e2a060074eb2b83d5a796288e33913ecf48ecd"
+      },
+      "cases": 12,
+      "failed": 1
+    },
+    {
+      "xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT2.xml",
+        "sha256": "0cc10172513441424e58880a07c25bea3a89fcff79e0cfc7285837e0455f6e6a"
+      },
+      "log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT2.log",
+        "sha256": "bd8c890d7941e7a9833d8cc06de452bc04e9f714c24fa9b162ed854bf3dd2c73"
+      },
+      "cases": 1,
+      "failed": 1
+    },
+    {
+      "xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT3.xml",
+        "sha256": "20836645bad6d58848d61466fd0f27a3ce2138171efe7de1209376fe2b91b480"
+      },
+      "log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT3.log",
+        "sha256": "e7ee30fb93e867be7eecbb36c9c82944ff8947048142b5b790706430cb3baa88"
+      },
+      "cases": 1,
+      "failed": 1
+    },
+    {
+      "xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT4.xml",
+        "sha256": "3d7919cb5ece7df2f095175d728d5d9c1d46bd74eae065083acb368fcd0d07e0"
+      },
+      "log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_BASE_SYNTHETIC_20260917/TEST_ATTEMPT4.log",
+        "sha256": "726767940f4ce36f1d28c3f7b0976c039a4978d2cb6d7037db65305c42e5a41a"
+      },
+      "cases": 7,
+      "failed": 0
+    }
+  ],
+  "test_fixture_repairs": [
+    "Vary synthetic continuous context fields instead of all-zero columns, preserving semantic categorical domains",
+    "Use existing multi_tf_bar_label for actual H4/D1 session grid",
+    "Use two prefix Entries plus one later excluded Entry, satisfying existing normalizer minimum"
+  ],
+  "production_changes_after_attempt1": false,
+  "code_scope": "Existing population witness/bundle and base fitting owner receive explicit fit Entry NPY file + cutoff. Filter Entry contexts and M5 windows, bound observed Exit M1 states to closes <=cutoff, then reuse unchanged causal Entry+5m/Exit+1m MTF selector and fit/statistics/contract owners. Preserve original source end and full market history.",
+  "checked": [
+    "Future continuous signal/context/MTF features +5000 leave every fitted surface and categorical contract identical",
+    "Synthetic 2 of3 Entries,6 unique Exit current rows,97 unique M5 local rows; original M1 source boundary remains June2 while fit cutoff is June1 00:06Z",
+    "Missing opt-in, mismatched cutoff/row binding/witness and resealed future M5/M1 intervals rejected before fit_surface_normalization",
+    "Exact M1 close and cutoff minus1ns select two versus one observation; later Entry rejected",
+    "Existing population/sequence/audit tests pass"
+  ],
+  "test_limits": "Synthetic verified MTF frames replace only the cache loader; population, causal MTF selection, actual statistics and normalization contract builders run. No actual production cache or prefix artifacts fitted.",
+  "guard": {
+    "class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "cpu_affinity": "0-7",
+    "numerical_threads": 1,
+    "tasks_max": 64
+  },
+  "real_market_data_accessed": false,
+  "actual_normalization_fits": 0,
+  "actual_model_forwards": 0,
+  "optimizer_steps": 0,
+  "gpu_used": false,
+  "test_accessed": false,
+  "learning_demonstrated": false,
+  "native_launch_authorized": false,
+  "frozen_design": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+    "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+  },
+  "remaining": "Exact all-head and sampled Exit target eligibility, TRAIN sample/probe IDs; then prefix artifact preparation and fresh native initialization/control bindings under narrowly bound policy. Current actual fit/forward/run remains closed."
+}

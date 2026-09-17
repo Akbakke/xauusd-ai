@@ -206,9 +206,9 @@ def test_child_sequence_audit_is_exhaustive_and_rejects_changed_value(
         )
 
 
-def test_population_witness_scans_unique_rows_without_sampler_keys(
+def _population_fixture(
     tmp_path: Path,
-) -> None:
+) -> dict[str, Any]:
     fixture = _sequence_fixture(tmp_path)
     m1_times = pd.date_range(fixture["times"][0], periods=600, freq="1min")
     parent_m1_source = tmp_path / "parent_m1.parquet"
@@ -301,7 +301,7 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
         "cache_identity_sha256": "6" * 64,
     }
     sequence_audit = {"contract_sha256": "7" * 64}
-    witness = build_train_normalization_population_witness(
+    kwargs = dict(
         child_admission=fixture["child"],
         child_admission_file_sha256="3" * 64,
         child_sequence_audit=sequence_audit,
@@ -315,6 +315,13 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
         mtf_cache_manifest_path=mtf_manifest,
         train_end="2025-06-02T00:00:00Z",
     )
+    return fixture, kwargs, closure
+
+
+def test_population_witness_scans_unique_rows_without_sampler_keys(tmp_path: Path) -> None:
+    fixture, kwargs, closure = _population_fixture(tmp_path)
+    closure_path = kwargs["market_closure_authority_path"]
+    witness = build_train_normalization_population_witness(**kwargs)
     assert witness["decision"] == "PASS"
     assert witness["train_entry_decision_rows"] == 2
     assert witness["entry_m5_local_unique_rows"] == 97
@@ -332,20 +339,7 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(
     )
     _write_json(closure_path, bad)
     with pytest.raises(RuntimeError, match="MARKET_CLOSURE_AUTHORITY_INVALID"):
-        build_train_normalization_population_witness(
-            child_admission=fixture["child"],
-            child_admission_file_sha256="3" * 64,
-            child_sequence_audit=sequence_audit,
-            m1_source_path=m1_source,
-            m1_source_manifest_path=m1_manifest,
-            m1_feature_base_path=m1_feature,
-            m1_feature_base_manifest_path=m1_feature_manifest,
-            market_closure_authority_path=closure_path,
-            parent_manifest=fixture["parent"],
-            mtf_cache_binding=mtf,
-            mtf_cache_manifest_path=mtf_manifest,
-            train_end="2025-06-02T00:00:00Z",
-        )
+        build_train_normalization_population_witness(**kwargs)
 
 
 def test_view_is_explicitly_blocked_until_summary_registry(

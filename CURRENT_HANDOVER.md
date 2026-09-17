@@ -92,8 +92,17 @@ med uendrede fysiske successor-counts og Entry-ID-er.24 syntetiske kontroller
 består, inkludert kraftig endring av alle framtidige priser uten endring i
 prefix-utvalg, fit-verdier eller normaliseringsstatistikk. Se
 docs/PREFIX_NORMALIZATION_20260917.md. Ingen faktisk normalisering er fittet.
-Neste er tilsvarende binding for base/context/MTF-normaliseringen i dens
-eksisterende eiere, deretter fersk native oppstart og kontrollbindinger.
+Base/context/MTF-fit er nå også eksplisitt avgrenset med samme Entry-fil og
+cutoff gjennom eksisterende populasjons- og fit-eiere.12 syntetiske kontroller
+består; store endringer i framtidige features endrer ingen fitted surface.
+M5+5min/Exit+1min og eksisterende MTF-tilgjengelighet er bevart. Tre feil i den
+nye testfixturen ble rettet; produksjonskoden var uendret etter første forsøk.
+Se docs/PREFIX_BASE_NORMALIZATION_20260917.md. Ingen faktisk fit er gjort.
+
+Før artefaktene kan beregnes må full targeteligibilitet fastsettes: alle
+hjelpefasiter og samplede Exit-forløp innen cutoff, så låste TRAIN-ID-er,
+4096-rekkefølge og TRAIN256-probe. Kalenderutvalget alene er utilstrekkelig.
+Deretter bindes prefix-artefakter, fersk native oppstart og senere kontroll.
 Ingen faktisk fit, target-refresh, modell-forward eller kjøring er åpnet.
 
 Fersk initialisering, prefix-normalisering og native kontrollbindinger er
