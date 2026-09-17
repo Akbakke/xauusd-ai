@@ -1,0 +1,346 @@
+{
+  "derivation": {
+    "schema_version": "gx1_derived_causal_entry_train_baseline_result_v1",
+    "decision": "CANONICAL_DERIVED_TRAIN_BASELINE_READY_NO_NEW_LEARNING_MEASURED",
+    "created_utc": "2026-09-17T14:24:43.185168+00:00",
+    "source_commit": "ad464322c3f35395035a43b7e1d241d2005c3a70",
+    "derived_baseline": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/DERIVED_TRAIN_BASELINE.json",
+      "sha256": "cf816df7ab079bd1605480bf0bbb4c07b6a5901a7426a2d4ad5260287eb363fc"
+    },
+    "source_observations": {
+      "initial": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/TRAIN_OBSERVATION.json",
+        "sha256": "d61956ee9dd236b1fd096839c714b914d46756aeb3006091ad7e4b334af8517f"
+      },
+      "detached": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+        "sha256": "4be70dc59670f1d3950a680fac3509c613fb8d21ffc438e40beba2ea8105d242"
+      },
+      "connected": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+        "sha256": "761898c85476fbfacd751e444b0a57dce5355ddcf8f449eed26cc2016884a49d"
+      }
+    },
+    "source_bindings": {
+      "gx1/contracts/unified_exit_economic_step_provider_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_economic_step_provider_v1.py",
+        "sha256": "f01e5d6f5e9eb7f786cb404103e2afbae29582a4420083671ebd82f8d1613125"
+      },
+      "gx1/contracts/unified_exit_reference_policy_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+        "sha256": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35"
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "sha256": "dd7d73d4623a2c994cac9b2858e7db97f5f634c2f3aa3186c3c145ac9ebd7556"
+      },
+      "gx1/contracts/unified_exit_random_access_training_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+        "sha256": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab"
+      }
+    },
+    "operator": {
+      "path": "/tmp/gx1_derive_causal_entry_baseline_20260917.py",
+      "sha256": "1e366a2d4404ce1a4439f1d05d823703e5d22b7fe759ba9d65fb47d28e9590da"
+    },
+    "source_recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/NATIVE_RECIPE.json",
+      "sha256": "b2aa52afffe76e3e861f3a435765e8279afe2b7cb5e38c2e2343f81c315c01f0"
+    },
+    "initial_measurement_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+    },
+    "data_bindings": {
+      "random_access_root": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/ROOT.json",
+        "sha256": "6c8b0c023db89e197a21d7b05d19ee071242c023d7a0c30399ab5466f47d7819"
+      },
+      "economics_readiness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_LATEST_YEAR_LEARNING_9CD29A2F/ECONOMICS_READINESS_V4.json",
+        "sha256": "90b07b4dc8bbfeedf8d2b15c950d1c87717ebc43182a5b80c75d08e26534d805"
+      },
+      "train_cost_authority": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PROSPECTIVE_COST_POLICY_V1/parameter_authority.json",
+        "sha256": "b5cfc8ebaf5b5116747266c667edbbf73f4b862f6c4259c4c0fa202fd1095e37"
+      },
+      "index_manifest_file": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/train.manifest.json",
+        "sha256": "736b9cb51f1fb73bccc096d09b5a1f6dfd509c2519b5ef68107a0e3a59424a04"
+      }
+    },
+    "canonical_first_liquidation_materializations": 512,
+    "old_entry_targets_exactly_reconstructed": true,
+    "old_entry_predictions_and_exit_targets_preserved": true,
+    "target_policy_unchanged": true,
+    "corrected_entry_target_mean_bps": [
+      -3.7499551668879576,
+      -7.960067007690668,
+      0.0
+    ],
+    "mean_removed_hindsight_lift_bps": 8.68522944994038,
+    "saved_models_rescored_only": {
+      "initial": {
+        "metrics": {
+          "mse": [
+            634.3624776558627,
+            684.5888729872148,
+            1.1419780372890125
+          ],
+          "centered_mse": [
+            608.8025286190957,
+            601.0253034274668,
+            0.16627747396815346
+          ],
+          "bias": [
+            5.055684823717456,
+            9.141311151019181,
+            0.9877755632332992
+          ],
+          "prediction_mean": [
+            1.3057296568294987,
+            1.181244143328513,
+            0.9877755632332992
+          ],
+          "target_mean": [
+            -3.7499551668879576,
+            -7.960067007690668,
+            0.0
+          ]
+        },
+        "decisions": {
+          "counts": {
+            "LONG": 127,
+            "SHORT": 90,
+            "FLAT": 39
+          },
+          "mean_reference_value_bps": -3.1784164835698903,
+          "reference_regret_bps": 15.26491476612864
+        }
+      },
+      "detached": {
+        "metrics": {
+          "mse": [
+            649.6679963809436,
+            710.387206113339,
+            0.031111820203017983
+          ],
+          "centered_mse": [
+            609.4306876269836,
+            603.3915018707859,
+            0.030894064597425292
+          ],
+          "bias": [
+            6.343288481060881,
+            10.343872787430882,
+            0.014756544500414748
+          ],
+          "prediction_mean": [
+            2.5933333141729236,
+            2.3838057797402143,
+            0.014756544500414748
+          ],
+          "target_mean": [
+            -3.7499551668879576,
+            -7.960067007690668,
+            0.0
+          ]
+        },
+        "decisions": {
+          "counts": {
+            "LONG": 255,
+            "SHORT": 1,
+            "FLAT": 0
+          },
+          "mean_reference_value_bps": -3.9903618589160033,
+          "reference_regret_bps": 16.076860141474754
+        }
+      },
+      "connected": {
+        "metrics": {
+          "mse": [
+            649.5105495159409,
+            681.4858952021191,
+            0.005654713488553334
+          ],
+          "centered_mse": [
+            617.2890421547187,
+            602.5761651711856,
+            0.00354969340978121
+          ],
+          "bias": [
+            5.676399154501269,
+            8.883114883357848,
+            0.04588049780431902
+          ],
+          "prediction_mean": [
+            1.926443987613311,
+            0.92304787566718,
+            0.04588049780431902
+          ],
+          "target_mean": [
+            -3.7499551668879576,
+            -7.960067007690668,
+            0.0
+          ]
+        },
+        "decisions": {
+          "counts": {
+            "LONG": 222,
+            "SHORT": 19,
+            "FLAT": 15
+          },
+          "mean_reference_value_bps": -3.5521699681994505,
+          "reference_regret_bps": 15.6386682507582
+        }
+      },
+      "train_constant": {
+        "metrics": {
+          "mse": [
+            608.8027565758161,
+            603.8142519450181,
+            0.0
+          ],
+          "centered_mse": [
+            608.8027565758161,
+            603.8142519450181,
+            0.0
+          ],
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "prediction_mean": [
+            -3.7499551668879576,
+            -7.960067007690668,
+            0.0
+          ],
+          "target_mean": [
+            -3.7499551668879576,
+            -7.960067007690668,
+            0.0
+          ]
+        },
+        "decisions": {
+          "counts": {
+            "LONG": 0,
+            "SHORT": 0,
+            "FLAT": 256
+          },
+          "mean_reference_value_bps": 0.0,
+          "reference_regret_bps": 12.08649828255875
+        }
+      }
+    },
+    "optimizer_steps": 0,
+    "new_model_forwards": 0,
+    "control_observations_accessed": false,
+    "test_data_used": false,
+    "learning_gate_passed": false,
+    "scope_limits": "Old models were fitted to the old hindsight targets. Rescoring them is a baseline, not a test of learning the corrected targets. TRAIN probe overlaps fitted examples; no generalization or economic profit claim.",
+    "next_action": "Bind this explicitly derived TRAIN-only baseline to the existing native fixed256 measurement. Preserve exact target-equality checks and original native receipt; do not fake a new native initial measurement."
+  },
+  "binding": {
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+      "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+    },
+    "derived_baseline": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/DERIVED_TRAIN_BASELINE.json",
+      "sha256": "cf816df7ab079bd1605480bf0bbb4c07b6a5901a7426a2d4ad5260287eb363fc"
+    },
+    "canonical_old_targets_exact": true,
+    "tests_passed": 13,
+    "inapplicable_combinations_skipped": 3,
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/NATIVE_BINDING_TEST.log",
+      "sha256": "dd15f3f933897ddfcdd768dbeb8150b86d5724aaa99ca57afd7154dfab567bde"
+    },
+    "actual_baseline_admission_verified": true,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "learning_proven": false
+  },
+  "plan": {
+    "schema_version": "gx1_causal_entry_fixed256_plan_v1",
+    "created_utc": "2026-09-17T14:33:01.403306+00:00",
+    "decision": "ONE_CORRECTED_TARGET_TRAIN_ONLY_CONTRAST_BOUND_BEFORE_FIT",
+    "run_scope": {
+      "chronological_prefix": {
+        "design": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+          "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+        },
+        "labels_result": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+          "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+        },
+        "normalization_result": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+          "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+        }
+      },
+      "run_id": "NATIVE_CAUSAL_ENTRY_FIXED256_20260917",
+      "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/CANDIDATE_BUNDLE",
+      "source_bindings_sha256": "da29436e754e0fd254db305df1f3ccbf1dc07f1b9b4e374d56550f1f9e1c6bce",
+      "optimizer_steps": 256,
+      "maximum_trained_entry_rows": 4096,
+      "max_invocations": 1,
+      "final_model_variant": "ONLINE",
+      "teacher_refresh_allowed": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "test_data_used": false,
+      "chronological_learning_measurement": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+        "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+      },
+      "chronological_train_only_measurement": true,
+      "chronological_entry_baseline": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+        "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+      }
+    },
+    "cause_and_fix": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_REFERENCE_HINDSIGHT_AUDIT_20260917/CAUSAL_FIX_RESULT.json",
+      "sha256": "07ef00a2834e58f62223963d56ad0b16bd883963b36e69ad12e4f8d4ccbdf6df"
+    },
+    "derived_entry_baseline": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+      "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+    },
+    "previous_connected_run": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_CONNECTED_FIXED256_20260917/VERDICT.json",
+      "sha256": "1d9604bf5774fd6c6177b290e651d01d2bbb210db69d91f1e1b18a69731ab486"
+    },
+    "change": "Replace only the observed-reference Entry pathwise HOLD/EXIT maximum with the already declared causal policy expectation. Keep the Entry gradient connection; reuse identical fresh initialization, 4096 order and frozen teacher.",
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "final_model_variant": "ONLINE",
+    "measurement_roles": [
+      "train"
+    ],
+    "measurement_entries": 256,
+    "measurement_exit_anchor_states": 256,
+    "measurement_exit_sampled_states": 1024,
+    "new_control_forwards": 0,
+    "teacher_refresh_allowed": false,
+    "loss_or_threshold_search_allowed": false,
+    "automatic_repeat_or_extension": false,
+    "full_epoch_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "comparisons": [
+      "saved initial ONLINE rescored with corrected targets",
+      "saved connected ONLINE256 rescored with corrected targets",
+      "TRAIN-derived constants including FLAT zero"
+    ],
+    "criteria": {
+      "entry": "Report LONG/SHORT MSE and centered error, correlations, every TRAIN month, common/contrast fit, LONG/SHORT/FLAT counts and selected reference value. Require both-side conditional improvement and better decisions than TRAIN constants; a bias shift or all-FLAT is insufficient.",
+      "exit": "Report unchanged anchor and sampled HOLD targets on both sides against initial, connected256 and TRAIN constants. Require state-dependent improvement and useful HOLD/EXIT decisions; Entry-only improvement does not pass the full gate.",
+      "limits": "This is reused TRAIN with fitted overlap, not generalization. Targets evaluate the declared reference policy, not realized learned-policy profit. No automatic expansion even after a technical PASS."
+    }
+  }
+}

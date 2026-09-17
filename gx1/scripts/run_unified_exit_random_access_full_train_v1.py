@@ -86,7 +86,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -967,6 +967,10 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
             if optimizer_steps == 256:
                 baseline = val._read(_bound_artifact(scope["initial_measurement"]["observations"][role]))
+                if "entry_baseline" in scope:
+                    if role != "train" or recipe.get("chronological_train_only_measurement") is not True:
+                        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
+                    baseline["diagnostics"]["bounded_entry_observations"] = scope["entry_baseline"]["entry_observations"]
                 if baseline["cohort"] != cohort or baseline["target_model_state_sha256"] != target_hash:
                     raise RuntimeError("NATIVE_PREFIX_FINAL_COHORT_OR_TEACHER_CHANGED")
                 for key, prediction in (("bounded_entry_observations", "predicted_q_bps"),
@@ -1008,6 +1012,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         result.update(initial_measurement=scope["artifacts"]["initial_measurement_result"],
                       initial_measurement_audit=scope["artifacts"]["initial_measurement_audit"],
                       selected_model_variant="ONLINE", frozen_targets_exactly_preserved=True)
+        if "entry_baseline_result" in scope:
+            result["derived_entry_target_baseline"] = scope["entry_baseline_result"]
     path = out / "RESULT.json"
     trainer._candidate_training_session_atomic_write_json(path, result)
     return {"path": str(path), "sha256": val.file_sha256(path)}

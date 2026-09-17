@@ -507,6 +507,62 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
     return {"artifacts": artifacts, "initialization": initial, "measurement": measurement}
 
 
+def _require_derived_entry_baseline(recipe, *, initial_result, train_observation):
+    """Verify an explicit target derivation; retain the original native receipt."""
+    import torch
+    from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_state_values
+    binding = require_binding(recipe["chronological_entry_baseline"], label="derived Entry baseline", verify_file=True)
+    result = read_bound_json(Path(binding["path"]), binding["sha256"])
+    baseline_binding = require_binding(result.get("derived_baseline"), label="derived TRAIN targets", verify_file=True)
+    baseline = read_bound_json(Path(baseline_binding["path"]), baseline_binding["sha256"])
+    original_binding = initial_result["observations"]["train"]
+    if (recipe.get("chronological_train_only_measurement") is not True
+            or result.get("schema_version") != "gx1_derived_causal_entry_train_baseline_result_v1"
+            or result.get("decision") != "CANONICAL_DERIVED_TRAIN_BASELINE_READY_NO_NEW_LEARNING_MEASURED"
+            or result.get("source_observations", {}).get("initial") != original_binding
+            or result.get("initial_measurement_audit") != recipe["chronological_learning_measurement"]
+            or result.get("old_entry_targets_exactly_reconstructed") is not True
+            or result.get("new_model_forwards") != 0 or result.get("optimizer_steps") != 0
+            or result.get("test_data_used") is not False or result.get("control_observations_accessed") is not False
+            or baseline.get("schema_version") != "gx1_derived_causal_entry_train_baseline_v1"
+            or baseline.get("role") != "train" or baseline.get("source_observation") != original_binding
+            or baseline.get("initial_measurement_audit") != recipe["chronological_learning_measurement"]
+            or any(baseline.get(k) != train_observation[k] for k in ("cohort", "model_state_sha256", "target_model_state_sha256"))
+            or baseline.get("target_semantics") != "observed_reference_anchor_V_mu_without_hindsight_action"):
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_BASELINE_INVALID")
+    repo = Path(__file__).resolve().parents[2]
+    for name in ("gx1/contracts/unified_exit_economic_step_provider_v1.py",
+                 "gx1/contracts/unified_exit_reference_policy_v1.py",
+                 "gx1/scripts/run_unified_exit_random_access_val_v1.py",
+                 "gx1/contracts/unified_exit_random_access_training_v1.py"):
+        if result.get("source_bindings", {}).get(name) != {"path":str(repo/name), "sha256":file_sha256(repo/name)}:
+            raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_SOURCE_CHANGED")
+    if any(result.get("data_bindings", {}).get(k) != recipe["files"][k]
+           for k in ("random_access_root", "economics_readiness", "train_cost_authority")):
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_DATA_CHANGED")
+    policy = require_reference_policy_contract(baseline["reference_policy"])
+    if policy != require_reference_policy_contract(recipe["exit_reference_policy"]):
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_POLICY_CHANGED")
+    old = train_observation["diagnostics"]["bounded_entry_observations"]
+    anchors = train_observation["diagnostics"]["bounded_exit_anchor_observations"]
+    liquidation = torch.tensor(baseline["canonical_first_liquidation_bps"], dtype=torch.float32)
+    if (len(old) != 256 or len(anchors) != 256 or liquidation.shape != (256, 2)
+            or not bool(torch.isfinite(liquidation).all())
+            or [x["entry_row_index"] for x in old] != [x["entry_row_index"] for x in anchors]
+            or any(x["state_index"] != 0 or x["reference_policy_sha256"] != policy["policy_sha256"] for x in anchors)):
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_COORDINATES_INVALID")
+    hold = torch.tensor([x["target_hold_bps"] for x in anchors], dtype=torch.float32)
+    q = torch.stack((hold, torch.zeros_like(hold)), dim=-1)
+    values = liquidation + reference_policy_state_values(policy=policy, action_q_bps=q, action_valid_mask=torch.ones_like(q,dtype=torch.bool))
+    old_expected = torch.cat((liquidation + hold.clamp_min(0), torch.zeros(256,1)), dim=1)
+    targets = torch.cat((values, torch.zeros(256,1)), dim=1).tolist()
+    expected_rows = [{**row, "target_q_bps": target} for row,target in zip(old,targets)]
+    if (old_expected.tolist() != [x["target_q_bps"] for x in old]
+            or baseline.get("entry_observations") != expected_rows):
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TARGET_OR_PREDICTION_CHANGED")
+    return binding, baseline
+
+
 def require_chronological_learning_measurement(recipe):
     """Bind the completed initial observation; prefix identity is checked by the caller."""
     binding = require_binding(recipe.get("chronological_learning_measurement"),
@@ -539,8 +595,11 @@ def require_chronological_learning_measurement(recipe):
             or set(result.get("observations", {})) != {"train", "control"}):
         raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MEASUREMENT_INVALID")
     require_binding(initial["initial_state"], label="saved fresh state", verify_file=True)
-    for role in ("train", "control"):
+    observed = {}
+    roles = ("train",) if recipe.get("chronological_train_only_measurement") is True else ("train", "control")
+    for role in roles:
         observation = load(result["observations"][role], "initial " + role + " observations")
+        observed[role] = observation
         cohort = observation.get("cohort", {})
         if (observation.get("role") != role or observation.get("optimizer_steps") != 0
                 or observation.get("model_state_sha256") != expected
@@ -551,7 +610,12 @@ def require_chronological_learning_measurement(recipe):
                 or cohort.get("measurement_role") != role
                 or len(cohort.get("entry_row_indices", [])) != 256):
             raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_OBSERVATION_INVALID")
-    return {"artifacts": {"initialization_result": result["initialization_result"],
+    derived = {}
+    if "chronological_entry_baseline" in recipe:
+        entry_binding, entry_baseline = _require_derived_entry_baseline(
+            recipe, initial_result=result, train_observation=observed["train"])
+        derived = {"entry_baseline":entry_baseline, "entry_baseline_result":entry_binding}
+    return {**derived, "artifacts": {"initialization_result": result["initialization_result"],
                           "measurement_binding_result": result["measurement_binding_result"],
                           "initial_measurement_audit": binding, "initial_measurement_result": audit["result"]},
             "initialization": initial, "measurement": measurement, "initial_measurement": result}
@@ -578,6 +642,8 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
     if "chronological_learning_measurement" in recipe:
         measured = require_chronological_learning_measurement(recipe)
         expected["chronological_learning_measurement"] = measured["artifacts"]["initial_measurement_audit"]
+        if "chronological_entry_baseline" in recipe:
+            expected["chronological_entry_baseline"] = measured["entry_baseline_result"]
     if "chronological_train_only_measurement" in recipe:
         if (recipe["chronological_train_only_measurement"] is not True
                 or "chronological_learning_measurement" not in recipe):
@@ -792,6 +858,8 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "chronological_entry_baseline" in recipe and recipe.get("chronological_train_only_measurement") is not True:
+        raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
     if "chronological_train_only_measurement" in recipe and (
             "chronological_prefix" not in recipe or "chronological_learning_measurement" not in recipe
             or any(key in recipe for key in ("chronological_initial_measurement", "entry_gradient_diagnostic"))):

@@ -1,9 +1,9 @@
 # Beslutning før mer omfattende GX1-trening — 2026-09-16
 
-Gjeldende 2026-09-17: Etterpåklokskap i observerte Entry-targets er påvist
-og rettet. Gamle Entry-målinger dokumenterer fit til den gamle fasiten.
-Korrekt, sammenlignbar baseline kreves før mer trening; ingen læringsport
-er bestått. Se [fasitrettelsen](CAUSAL_REFERENCE_ENTRY_FIX_20260917.md).
+Gjeldende 2026-09-17: Korrekt Entry-baseline er avledet og kontrollert.
+Én native TRAIN-only prøve med 256 oppdateringer er bundet før fit; ingen
+læringsport er bestått. Se [planen](CAUSAL_ENTRY_FIXED256_20260917.md).
+Ingen større trening eller CONTROL/VAL/TEST er åpnet.
 
 Brukerens prioritet: **Krev målbar læring før mer omfattende trening.**
 Målet er positiv kostnadsjustert netto Bps, ikke flest mulige tekniske PASS.

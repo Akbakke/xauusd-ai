@@ -132,9 +132,11 @@ def test_native_dispatch_restores_initial_state_and_measures_only_final_online(l
     assert ('chronological_final_measurement' in result['pause']) == (steps==256)
 
 
+@pytest.mark.parametrize('derived',[pytest.param(False,id='original'),pytest.param(True,id='derived')])
 @pytest.mark.parametrize('fault',[None,'target','cohort'])
 @pytest.mark.parametrize('train_only',[False,True])
-def test_final_online_uses_identical_initial_targets_and_preserves_trained_session(tmp_path,monkeypatch,fault,train_only):
+def test_final_online_uses_identical_initial_targets_and_preserves_trained_session(tmp_path,monkeypatch,fault,train_only,derived):
+    if derived and not train_only: pytest.skip('Derived targets require the TRAIN-only scope.')
     artifacts=tmp_path/'artifacts';artifacts.mkdir()
     h=PrefixHarness(tmp_path/'run',_prepared(artifacts));output=h.root/'CANDIDATE'
     initial,pause=h.run_prefix(output,0)
@@ -159,6 +161,8 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
         delta=1 if phase['final'] and fault=='target' else 0
         entry=[{'entry_row_index':i,'parent_entry_row_index':i,'predicted_q_bps':[prediction,prediction,0],
                 'target_q_bps':[i/100+delta,-i/100,0],'target_valid':[True]*3} for i in range(256)]
+        if phase['final'] and derived:
+            for row in entry: row['target_q_bps'][1] -= 7
         anchor=[{'entry_row_index':i,'state_index':0,'prediction_hold_bps':[prediction]*2,
                  'target_hold_bps':[i/10,-i/10]} for i in range(256)]
         sampled=[{**row,'state_index':j} for row in anchor for j in range(4)]
@@ -172,6 +176,12 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
         invocation_started=time.monotonic(),pause_evidence=pause)
     scope_value['artifacts']['initial_measurement_result']=before
     scope_value['initial_measurement']=json.loads(Path(before['path']).read_text())
+    if derived:
+        saved=json.loads(Path(scope_value['initial_measurement']['observations']['train']['path']).read_text())
+        entry_rows=copy.deepcopy(saved['diagnostics']['bounded_entry_observations'])
+        for row in entry_rows: row['target_q_bps'][1] -= 7
+        scope_value['entry_baseline']={'entry_observations':entry_rows}
+        scope_value['entry_baseline_result']={'path':'derived-result.json','sha256':'d'*64}
     trained,pause=h.run_prefix(output,256,expected_pointer=digest(h.pointer(output)))
     model_hash=trainer._model_state_sha256(trained); assert model_hash!=initial_hash
     checkpoint=h.state(output); pointer=h.pointer(output).read_bytes()
@@ -192,6 +202,7 @@ def test_final_online_uses_identical_initial_targets_and_preserves_trained_sessi
         assert result['measurement_roles']==measured_roles and set(result['observations'])==set(measured_roles)
         assert result['frozen_targets_exactly_preserved'] is True and result['target_model_state_sha256']==initial_hash
         assert result['model_state_sha256']==model_hash and result['initial_measurement']==before
+        if derived: assert result['derived_entry_target_baseline']==scope_value['entry_baseline_result']
     assert trained.training and h.pointer(output).read_bytes()==pointer
     equal_tree(h.state(output),checkpoint)
     equal_tree(trainer._attended_session_rng_state(device=torch.device('cpu')),rng)

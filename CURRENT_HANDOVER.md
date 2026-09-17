@@ -1,26 +1,34 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Entry-fasiten inneholdt etterpåklokskap — rettet, læring ennå umålt
+## Korrekt Entry-baseline klar — én avgrenset læringsprøve bundet før start
 
-En konkret Entry-fasitfeil er påvist og rettet: max(observert HOLD-utfall,0)
-valgte første handling med kunnskap om framtiden. Dette var en feil i den
-tidligere «coherent reference»-rettelsen. Korrekt forventning under den
-allerede bundne kausale referansepolicyen er (119/120)*HOLD-utfallet; negative
-utfall beholdes. Første gjennomførbare likvidasjonsverdi legges til som før.
+Etterpåklokskap i Entry-fasiten er rettet på ad464322. Kausal referansepolicy
+lar både positive og negative HOLD-utfall telle. Den kanoniske økonomieieren
+gjenskaper alle 512 gamle LONG/SHORT-targets eksakt. Ny TRAIN256-fasit er
+beregnet med korrekt formel; originale prediksjoner, Exit-mål og receipts
+bevares. Ingen ny modell-forward eller trening i baselineforberedelsen.
 
-På eksisterende TRAIN256 løftet feilen Entry-fasiten med 8,6852 Bps i snitt.
-Dette er en dokumentert fasitskjevhet, ikke bevis for at den forklarer all
-svak læring. Ingen framtidslekkasje i modellinputs er påvist av denne testen.
-33 målrettede syntetiske tester består. Ingen ny faktisk modell-forward,
-targetcache eller trening er kjørt. Exit-HOLD-fasit og tidligere resultater
-er uendret og bevart; ingen lærings- eller økonomiport er bestått.
+Ny Entry-fasit har middel −3,7500 LONG / −7,9601 SHORT Bps. De gamle modellene
+taper mot konstantbaseline ved revurdering med denne fasiten. Det er ikke
+en prøve på læring av korrekt fasit: de ble trent med den gamle feilen.
+TRAIN-kohorten overlapper fitted eksempler; ingen generalisering eller profitt.
 
-Neste er én eksplisitt avledet TRAIN-baseline med de lagrede prediksjonene,
-HOLD-målene og kanonisk første likvidasjonsverdi. Gamle Entry-targets må ikke
-gjenbrukes eller omdøpes til korrekt fasit. Ingen ny trening er åpnet før
-sammenlignbare targets og bindinger er kontrollert. Ingen CONTROL/VAL/TEST.
-Se docs/CAUSAL_REFERENCE_ENTRY_FIX_20260917.md. Native-tasken er avsluttet;
-ingen aktiv modelljobb. NEXT_RUN_POLICY.json angir tillatt forberedelse.
+Eksisterende native sluttmåler har nå én eksplisitt binding til den avledede
+Entry-baselinen. Den originale native målingen omdøpes ikke. Før/etter må ha
+eksakt samme korrigerte Entry-mål og opprinnelige Exit-mål. 13 målrettede
+syntetiske tester består; tre ikke-anvendelige kombinasjoner hoppes over.
+Faktisk baseline og fast kjøreomfang er validert uten modellkonstruksjon.
+
+Én native TRAIN-prøve er bundet: samme ferske starttilstand, opprinnelige 4096
+Entries, frossen lærer og 256 oppdateringer. Slutt-ONLINE måles på TRAIN256,
+256 Exit-ankere og 1024 samplede Exit-states. Sammenlign mot lagret initial,
+connected256 og TRAIN-konstanter med korrekt Entry-fasit. Krev tilstands-
+avhengig læring og bedre beslutninger; all-FLAT eller nivåflytting er ikke nok.
+Ingen CONTROL-forward, target-refresh, søk, automatisk forlengelse, full epoch,
+full VAL eller TEST. Bruk bare én eksisterende native campaign med alle vakter.
+Commit/push og bind campaign før start. Ingen modelljobb kjører nå.
+
+Se docs/CAUSAL_ENTRY_FIXED256_20260917.md og NEXT_RUN_POLICY.json.
 
 ## Fullført connected256 med gammel Entry-fasit — historikk, ikke startinstruks
 
