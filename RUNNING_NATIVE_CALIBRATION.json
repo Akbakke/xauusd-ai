@@ -1,5 +1,5 @@
 {
-  "status": "FROZEN_VAL_REJECTED_TRAIN_CONTROLS_TEMPORALLY_DEPENDENT",
+  "status": "FROZEN_VAL_REJECTED_BOUND_INITIALIZATIONS_ALREADY_TRAIN_EXPOSED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Existing TRAIN temporal audit is complete:331/512 separate states share observed reward transitions with fitted TRAIN, covering118/128 entries; all512 share480bar local input history. The35 state0 controls without target overlap lose to the TRAIN constant on both sides. These are dependent, reused TRAIN controls, not chronological generalization evidence. Do not refit or select a favorable subset. Next one read-only check: trace the supervised date coverage of existing initialization checkpoints to determine whether any can support a genuinely later chronological TRAIN control without prior weight exposure. Inspect existing manifests/cursors/receipts only; do not load models for forward passes. A future experiment must separate full observed target supports across the time boundary and account for initialization exposure; this is an evaluation boundary, never a trading holding-time limit. No new forward, fit, target refresh, optimizer, native run, full epoch/VAL or TEST. Do not repeat completed audits.",
+  "next_action": "Initialization exposure audit complete. The bound V9 ancestor consumed77312 shuffled rows spanning all60 TRAIN months through2026-05-29, including16016 latest-year rows; the bound seed completed65295 latest-year entries, and ancestor315 completed the313399-row full TRAIN epoch. Preserved input normalization fitted all313399 Entry rows plus TRAIN Exit history. No chronologically clean initialization exists in the checked active lineage; this is not an exhaustive disk claim. Do not relabel existing TRAIN slices as unseen or reset only heads. Next: prepare exactly one frozen chronological learning-experiment contract using the same200-feature/eight-family/MTF architecture with unexposed initialization and prefix-only normalization. Bind calendar split and complete observed target support, initial online/target/EMA/optimizer states, consistent Entry/Exit target semantics, fixed budget, controls and rejection criteria before any fit. Inspect/reuse existing native initialization and normalization owners; no new framework, architecture, broad search or separate runner. The current native owner forces pretrained EMA plus preserved normalization, which is the concrete compatibility blocker to describe before any minimal code change. Previously inspected development periods remain reused development data even for fresh weights. No new forward, fit, target refresh, optimizer, native run, full epoch/VAL or TEST is authorized at this planning stage.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -247,7 +247,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/FORECAST_TRANSFER_EXISTING_OUTPUTS.json",
     "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a"
   },
-  "latest_readonly_audit_utc": "2026-09-17T00:14:53.725163+00:00",
+  "latest_readonly_audit_utc": "2026-09-17T00:26:59.249468+00:00",
   "train_temporal_overlap_audit": {
     "decision": "DEPENDENT_TRAIN_CONTROLS_NOT_GENERALIZATION_EVIDENCE",
     "result": {
@@ -266,5 +266,23 @@
     "new_fits": 0,
     "native_training_authorized": false,
     "next_scope": "read_only_existing_initialization_supervised_date_coverage"
+  },
+  "initialization_exposure_audit": {
+    "decision": "NO_CHRONOLOGICALLY_CLEAN_INITIALIZATION_IN_CHECKED_ACTIVE_LINEAGE",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/INITIALIZATION_EXPOSURE_20260917/RESULT.json",
+      "sha256": "871674a608c39eff48b0f66b6391727bbb68c466ea1c5a27e523505c6ec65968"
+    },
+    "report": "docs/INITIALIZATION_EXPOSURE_20260917.md",
+    "v9_consumed_rows": 77312,
+    "v9_consumed_months": 60,
+    "seed_latest_year_rows": 65295,
+    "full_train_ancestor_rows": 313399,
+    "normalization_entry_fit_rows": 313399,
+    "new_model_forwards": 0,
+    "new_fits": 0,
+    "new_targets": 0,
+    "native_training_authorized": false,
+    "next_scope": "prepare_one_frozen_chronological_learning_contract_same_architecture_unexposed_initialization_prefix_normalization"
   }
 }

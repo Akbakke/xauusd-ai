@@ -60,13 +60,23 @@ Disse35 er fortsatt gjenbrukt TRAIN, ikke et nytt holdout eller tuningutvalg.
 Overlapp beviser avhengighet, ikke alene årsaken til juni-svikten eller
 framtidslekkasje i kausale modellinputs. Se docs/TRAIN_TEMPORAL_OVERLAP_20260917.md.
 
-Neste ene skrivebeskyttede kontroll er initialiseringsvektenes dokumenterte
-treningsdatoer: finnes et eksisterende startpunkt som ikke allerede har sett
-en senere kronologisk TRAIN-kontroll? Bruk eksisterende manifests/cursors/
-receipts. Et senere forsøk må skille hele observerte fasitvinduer og tidligere
-vekteksponering, ikke bare Entry-ID-er. Dette innfører ingen holdetidsgrense.
-Ingen nye forwards, fits, targets, trening, VAL eller TEST er åpnet. Ingen
-tilpasning til de35 kontrollene eller juni. Ikke gjenta ferdige auditer.
+Initialiseringskontrollen er også ferdig. Den eldre V9-forgjengeren har brukt
+77 312 shufflede rader fra alle60 TRAIN-måneder, frem til2026-05-29;16 016
+fra siste treningsår. Bundet seed har fullført65 295 ettårsrader, og315 har
+fullført hele313 399-raders TRAIN. Normaliseringen er også fittet på hele
+TRAIN. Ingen undersøkt startvekt i den aktive kjeden gir en usett senere
+TRAIN-periode. Å nullstille bare hodene eller velge nye Entry-ID-er løser ikke
+dette. Se docs/INITIALIZATION_EXPOSURE_20260917.md.
+
+Neste arbeid er én frosset kronologisk forsøkskontrakt med samme arkitektur,
+200 features/åtte familier/MTF, ueksponert initialisering og normalisering
+fittet bare før kontrollperioden. Bind tidssplitt, full observert fasitstøtte,
+Entry/Exit-mål, budsjett og forkastelseskriterier før fit. Eksisterende native
+eier tvinger inn trent EMA og gammel normalisering; beskriv minste nødvendige
+rettelse av denne konkrete blokkeringen før kodeendring. Ingen nye rammeverk
+eller separat runner. Gamle utviklingsperioder blir ikke forskningsmessig
+urørte av nye vekter. Ingen forwards, fits, targets, trening, VAL eller TEST
+er åpnet i planleggingssteget. Ingen holdetidsgrense innføres. Ikke gjenta auditene.
 
 ## Start her
 

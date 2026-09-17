@@ -1,0 +1,252 @@
+{
+  "bindings": {
+    "full315_contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "676fee85c03cce2c04fc51032ca7fe8db6d002444a3abc043ece72b978318cd2"
+    },
+    "full315_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/.gx1-candidate-training-session.FULL_TRAIN_VAL128_PAUSEFIX_CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "253c0302706bfeb67f0987b739f70789fba62a020018d1cdd264305fbe1de7d5"
+    },
+    "latest_year_transition": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_BASELINE_128C55F2_REFERENCE/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_ECONOMICS_TRANSITION.json",
+      "sha256": "67502d259848937a17b5c53570b5ca95573fb0fa750acb588123a1808284ef86"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/CUDA_SMOKE_PREP_V21_ADCE4082_BOOT363/BOOTSTRAP_COMPOSITE_NORMALIZATION.json",
+      "sha256": "18ba775627e98e71b4aaf99505955ffeb485ef4c40f0f5f3cd23af2d4db420f0"
+    },
+    "normalization_metadata": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z/ENTRY_V9_LOCAL_3090_SOURCE_CURRENT_SMOKE_20260908T084056Z_BUNDLE/bundle_metadata.json",
+      "sha256": "9870b87899719e4282f87b5191b96bd661a8f4daf015c5ebdf8f96d0694d0a87"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_READOUT_CANDIDATE_NUMERIC_RETRY_20260917/NATIVE_RECIPE_866e2e33.json",
+      "sha256": "cb735cafcb12cafae62958b98e8939106b2a0c45fafd3ad53314e06c1e90f06d"
+    },
+    "seed_authority": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/PRE_FULL_VAL_V25_95852292_BOOT373/FINAL_TRAIN_CHECKPOINT_AUTHORITY.json",
+      "sha256": "93178f73dbc96f8b8b1bfa2dee914299faff9caff925c1f81d921b6020de398e"
+    },
+    "seed_final_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/CHECKPOINTS_FULL_YEAR_V24_9624C577_BOOT372/RESUME_POINTER.json",
+      "sha256": "813fd091735facfcea5c93da0c6a8e600a94cc4a86b88d92c5916527ff048d91"
+    },
+    "seed_final_progress": {
+      "path": "/home/andre2/GX1_RUNS/UNIFIED_EXIT_RANDOM_ACCESS_V21_ADCE4082_BOOT363/FULL_YEAR_V24/invocation-evidence/invocation-0001/PROGRESS.json",
+      "sha256": "b553ca0581f3d1dcce7e1050c0656dcbd7ba94d2133ee2967461a4d090521b36"
+    },
+    "seed_launch": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/CUDA_SMOKE_PRELAUNCH_V21_ADCE4082_BOOT363/LAUNCH_MANIFEST.json",
+      "sha256": "8987348972bf213c217ac1164f3f654caf145ec770fcce76a6cfb6c9ecf52800"
+    },
+    "seed_schedule": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/CHECKPOINTS_FULL_YEAR_V24_9624C577_BOOT372/EPOCH_SCHEDULE.json",
+      "sha256": "612c0ed36ba53d0868f91f393b65243cba21d3cc43943fd51331df8226935403"
+    },
+    "train_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+      "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+    },
+    "train_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.parquet",
+      "sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+    },
+    "v9_contract": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+      "sha256": "333ef6bcef013f39d317ecc28bdc093b7ab75af04c688fb6ab2c694d494767cf"
+    },
+    "v9_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "1a7cca732f7b95132aa632ffc6d79f01a685318ada39ab7c3c4a91117c3ac8df"
+    },
+    "v9_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE/candidate_training_state_slot_1.pt",
+      "sha256": "3e1d1476e55bb83829055528c8c243f9b985e864a4d1a1ba555ea4e5a8e8da12"
+    }
+  },
+  "bound_seed": {
+    "decision": "PASS_FULL_VAL_ELIGIBLE",
+    "entry_pair_count": 65295,
+    "epoch_complete": true,
+    "every_entry_pair_exactly_once": true,
+    "final_pointer": {
+      "batch_size": 16,
+      "epoch_index": 0,
+      "epoch_schedule_sha256": "3a02fcedf01e7e4463796be8efe599cca0260337174b0507b93263fd0321d6d1",
+      "global_step": 4081,
+      "launch_manifest_sha256": "42bba16fef8a9837ad9beb42042f57deff8c0df030ada0a92616178704eafe0e",
+      "next_batch_offset": 4081,
+      "pointer_sha256": "bdebc3232f5e990a54be9bbe733f51e6506684cdb9ef58ae3d7fccd0e07abdee",
+      "schema_version": "gx1_unified_exit_random_access_fixed_step_pointer_v1",
+      "selected_sampler_artifact_sha256": "c8b9605194d3cdcd4408b5c20ce07f4c1857532e11418c104d00671db8cde7e6",
+      "state_file_sha256": "6ac2d63b8023a5d58e0b9e450085d9173127b3cb99c86762a4d6cbdf1b1c59ea",
+      "state_path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_LOCAL_PILOT_20260910/CHECKPOINTS_FULL_YEAR_V24_9624C577_BOOT372/state_00004081.pt"
+    },
+    "global_optimizer_steps": 4081,
+    "progress_scalars": {
+      "completed_units": 4081,
+      "epoch_index": 0,
+      "epoch_schedule_sha256": "3a02fcedf01e7e4463796be8efe599cca0260337174b0507b93263fd0321d6d1",
+      "global_optimizer_steps": 4081,
+      "invocation_sha256": "bb0b7c44b9032783edf398cfb2c5f0973d5007694612fa89d3bf6b7ca33df391",
+      "next_batch_offset": 4081,
+      "observed_utc": "2026-09-11T22:15:29.024644+00:00",
+      "outcome": "COMPLETE",
+      "phase": "epoch1_window",
+      "plan_sha256": "f6d02789e1f11a2dbfe522aff904685057f47b92e18436e73bf4d921909f61d6",
+      "progress_sha256": "fbf11f6e6a511ddffdd9ae24614cc49609b7dc6603a1d69bdd7bb9dd82e26581",
+      "schema_version": "gx1_local_random_access_progress_v2",
+      "selection_receipt_sha256": "c43bd622f27034c2c056953d7e2090062dabbdfa0c78d9753669e0065641d13f",
+      "terminal": true,
+      "total_batches": 4081,
+      "total_units": 4081
+    }
+  },
+  "consequences": [
+    "A later slice of existing TRAIN is not unexposed to the bound pretrained models.",
+    "Resetting only a readout/Exit head does not erase backbone exposure.",
+    "Existing normalization fitted on full TRAIN is not prefix-only preprocessing for a retrospective control.",
+    "A valid future chronological experiment needs a proven unexposed initialization and prefix-only preprocessing, or a fresh initialization of the same architecture with prefix-only normalization.",
+    "No such experiment, new fit, new forward, TEST access or full training is authorized by this audit."
+  ],
+  "decision": "NO_CHRONOLOGICALLY_CLEAN_INITIALIZATION_IN_CHECKED_ACTIVE_LINEAGE",
+  "earlier_v9_initialization": {
+    "batch_size": 8,
+    "by_month": {
+      "2021-06": 1106,
+      "2021-07": 1101,
+      "2021-08": 1034,
+      "2021-09": 1018,
+      "2021-10": 1057,
+      "2021-11": 1184,
+      "2021-12": 1030,
+      "2022-01": 999,
+      "2022-02": 1067,
+      "2022-03": 1423,
+      "2022-04": 1210,
+      "2022-05": 1319,
+      "2022-06": 1353,
+      "2022-07": 1278,
+      "2022-08": 1367,
+      "2022-09": 1294,
+      "2022-10": 1327,
+      "2022-11": 1338,
+      "2022-12": 1382,
+      "2023-01": 1299,
+      "2023-02": 1179,
+      "2023-03": 1395,
+      "2023-04": 1146,
+      "2023-05": 1421,
+      "2023-06": 1195,
+      "2023-07": 1233,
+      "2023-08": 1486,
+      "2023-09": 1373,
+      "2023-10": 1372,
+      "2023-11": 1323,
+      "2023-12": 1243,
+      "2024-01": 1380,
+      "2024-02": 1276,
+      "2024-03": 1225,
+      "2024-04": 1317,
+      "2024-05": 1383,
+      "2024-06": 1259,
+      "2024-07": 1501,
+      "2024-08": 1358,
+      "2024-09": 1343,
+      "2024-10": 1433,
+      "2024-11": 1283,
+      "2024-12": 1343,
+      "2025-01": 1379,
+      "2025-02": 1219,
+      "2025-03": 1356,
+      "2025-04": 1316,
+      "2025-05": 1373,
+      "2025-06": 1325,
+      "2025-07": 1417,
+      "2025-08": 1302,
+      "2025-09": 1344,
+      "2025-10": 1444,
+      "2025-11": 1259,
+      "2025-12": 1391,
+      "2026-01": 1328,
+      "2026-02": 1218,
+      "2026-03": 1417,
+      "2026-04": 1266,
+      "2026-05": 1305
+    },
+    "consumed_calendar_months": 60,
+    "consumed_latest_year_rows": 16016,
+    "consumed_loader_rows": 77312,
+    "consumed_unique_rows": 77312,
+    "epoch_order_sha256": "8cf25a8b6cff0f867d89f2acd3c7a3dbbadcfc27088ba0bcc4d2fdf09bd35a9a",
+    "first_consumed_date_utc": "2021-06-01T00:10:00+00:00",
+    "last_consumed_date_utc": "2026-05-29T14:00:00+00:00",
+    "pointer": {
+      "checkpoint_index": 152,
+      "complete": false,
+      "epoch_index": 0,
+      "global_optimizer_steps": 9664,
+      "next_batch_offset": 9664,
+      "phase": "train",
+      "schema_version": "gx1_candidate_training_session_v1",
+      "session_contract_sha256": "333ef6bcef013f39d317ecc28bdc093b7ab75af04c688fb6ab2c694d494767cf",
+      "slot": 1,
+      "state_sha256": "3e1d1476e55bb83829055528c8c243f9b985e864a4d1a1ba555ea4e5a8e8da12"
+    },
+    "saved_training_progress_scalars": {
+      "schema_version": "gx1_candidate_training_progress_v1",
+      "validation_snapshot": null
+    },
+    "semantics": "rows in completed loader prefix; no assertion that every task had a valid label for every row",
+    "unused_ids_are_not_unseen_later_period": true,
+    "unused_latest_year_row_ids": 49279
+  },
+  "elapsed_seconds": 14.691521140000077,
+  "full_train_ancestor": {
+    "batch_size": 16,
+    "completed_full_epochs": 1,
+    "first_epoch_batches": 19588,
+    "next_epoch_batches": 320,
+    "pointer": {
+      "checkpoint_index": 315,
+      "complete": false,
+      "epoch_index": 1,
+      "global_optimizer_steps": 19908,
+      "next_batch_offset": 320,
+      "phase": "train",
+      "schema_version": "gx1_candidate_training_session_v1",
+      "session_contract_sha256": "676fee85c03cce2c04fc51032ca7fe8db6d002444a3abc043ece72b978318cd2",
+      "slot": 0,
+      "state_sha256": "2f70fe5a405a4ddcabd26de4bfc305e51c623a62ffc44514109c43c4fa27c502"
+    },
+    "rows_in_complete_epoch": 313399,
+    "semantics": "native full-population epoch consumed before latest-year transition; heads may have different valid-label masks"
+  },
+  "normalization_exposure": {
+    "entry_train_decision_row_count": 313399,
+    "exit_train_decision_row_count": 1764423,
+    "fit_scope": "train_only",
+    "local_fit_row_count": 2119495,
+    "proof_sha256": "44832ae1a5c8998d3264fb2858b6ba00c844098f00e56689b5986161a23c56ca",
+    "test_fit_row_count": 0,
+    "val_fit_row_count": 0
+  },
+  "schema_version": "gx1_existing_initialization_exposure_audit_v1",
+  "scope": {
+    "checkpoint_access": "mmap metadata and epoch_order only; no model/optimizer tensor computations",
+    "inventory_scope": "bound seed, V9 recovery ancestor, full TRAIN315 and transition to latest-year descendant; not exhaustive all files",
+    "new_fits": 0,
+    "new_model_forwards": 0,
+    "new_models_constructed": 0,
+    "new_targets": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false
+  },
+  "source_commit": "e25125fdcb755975e0c51f777fb5b4b90e01924d",
+  "train_population": {
+    "count": 313399,
+    "max_utc": "2026-05-29T14:50:00+00:00",
+    "min_utc": "2021-06-01T00:00:00+00:00"
+  }
+}
