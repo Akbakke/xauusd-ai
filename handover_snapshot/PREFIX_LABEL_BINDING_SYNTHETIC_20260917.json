@@ -1,0 +1,60 @@
+{
+  "schema_version": "gx1_prefix_label_dataset_binding_synthetic_v1",
+  "decision": "NATIVE_DATASET_LABEL_BINDING_SYNTHETIC_PASS_NOT_CAMPAIGN_READY",
+  "completed_utc": "2026-09-17T02:52:13.415184+00:00",
+  "base_source_commit": "8157232b018a50ed4070a0654310f4152dddf409",
+  "owner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+    "sha256": "f7fed40a4cc832059de5403bbc343305bf6625c6628806209d110eb0f4223713"
+  },
+  "test_file": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_prefix_auxiliary_binding.py",
+    "sha256": "11286470cfc55f88443501e9effe3ab2dd31d1f1a41232e4d581de22eb61f4f9"
+  },
+  "junit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_LABEL_BINDING_SYNTHETIC_20260917/JUNIT.xml",
+    "sha256": "1335080535b99f1a63b550f0e0cdec39b762dc7c4216f9f50da141f482ed7c07"
+  },
+  "log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_LABEL_BINDING_SYNTHETIC_20260917/TEST.log",
+    "sha256": "e5bb38ad6716c531a8b19ee44113d64ed3f345d1f0b6d2cf98301311645d28a9"
+  },
+  "tests_passed": 21,
+  "first_attempt_pass": true,
+  "source_scope": {
+    "unchanged_other_top_level_definitions": 185,
+    "unchanged_dataset_methods": 15,
+    "changed_existing_methods": [
+      "__getitem__"
+    ],
+    "added_methods": [
+      "bind_policy_dependent_auxiliary_targets"
+    ],
+    "active_policy_target_count": 10,
+    "unchanged_raw_active_target_count": 37
+  },
+  "checks": [
+    "Real EntryV10CtxDataset construction/getitem on synthetic parquet, existing MTF fixture",
+    "TRAIN and CONTROL256 parent-ID/time/role binding, sampler order retained",
+    "Exact emitted labels; all input tensors and 37 raw targets unchanged",
+    "Hash/source/design/policy/row/time/domain/cutoff failures are atomic",
+    "Unbound row and repeated binding rejected; legacy usable before binding and after invalid binding",
+    "Parent source unchanged; inactive diagnostics explicitly not refreshed"
+  ],
+  "reused_actual_label_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+    "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+  },
+  "scope": {
+    "actual_model_forwards": 0,
+    "optimizer_steps": 0,
+    "new_policy_fits": 0,
+    "new_label_materializations": 0,
+    "normalization_fits": 0,
+    "actual_native_dataset_instantiated": false,
+    "test_accessed": false,
+    "native_launch_authorized": false,
+    "learning_demonstrated": false
+  },
+  "limits": "Opt-in dataset owner implemented and synthetic integration verified. Native fresh-prefix recipe must explicitly call it and carry policy provenance. Actual prefix normalizations, fresh initialization, TRAIN-source logical CONTROL256 bindings and a guarded bounded recipe remain required. No control tuning or new learning result."
+}

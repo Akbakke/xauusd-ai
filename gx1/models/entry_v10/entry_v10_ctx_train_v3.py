@@ -702,14 +702,16 @@ _MODEL_NATIVE_ACTIVE_EVENT_TARGET_COLS = (
     "y_countertrend_short_trap",
     "y_countertrend_long_trap",
 )
-_MODEL_NATIVE_ACTIVE_TARGET_COLS = (
+_MODEL_NATIVE_POLICY_DEPENDENT_TARGET_COLS = (
     _MODEL_NATIVE_ACTIVE_CORE_TARGET_COLS
     + (
         "y_position_size_target",
         "y_position_size_mask",
     )
     + _MODEL_NATIVE_ACTIVE_EVENT_TARGET_COLS
-    + _DIP_FORECAST_TARGET_COLS
+)
+_MODEL_NATIVE_ACTIVE_TARGET_COLS = (
+    _MODEL_NATIVE_POLICY_DEPENDENT_TARGET_COLS + _DIP_FORECAST_TARGET_COLS
 )
 _MODEL_NATIVE_BINARY_TARGET_COLS = (
     "y_position_size_mask",
@@ -5309,6 +5311,171 @@ class EntryV10CtxDataset(Dataset):
             sum(int(array.nbytes) for array in compact_arrays if array is not None) / 1e6,
         )
 
+    def bind_policy_dependent_auxiliary_targets(
+        self,
+        *,
+        result_path: Path,
+        expected_result_sha256: str,
+        expected_design_sha256: str,
+        role: str,
+    ) -> None:
+        """Bind prefix-only auxiliary labels to original parent coordinates.
+
+        This opt-in binding changes only the ten policy-dependent active
+        targets. It neither selects rows nor changes features, raw targets,
+        the parent manifest, or inactive historical diagnostics. Every read
+        outside the bound cohort fails; callers must bind TRAIN and CONTROL
+        on separate dataset instances before starting DataLoader workers.
+        """
+        if (
+            not getattr(self, "_advanced", False)
+            or getattr(self, "_policy_dependent_auxiliary_binding", None) is not None
+            or role not in ("TRAIN", "CONTROL256")
+        ):
+            raise RuntimeError("[ENTRY_PREFIX_LABEL_MODE_INVALID]")
+
+        def require(condition: bool, reason: str) -> None:
+            if not condition:
+                raise RuntimeError(f"[ENTRY_PREFIX_LABEL_{reason}]")
+
+        def bound_file(binding: Mapping[str, Any]) -> Path:
+            path = _sequence_source_exact_regular_file(
+                Path(binding["path"]), label="PREFIX_LABEL_BINDING"
+            )
+            require(_sha256_file(path) == binding["sha256"], "HASH_MISMATCH")
+            return path
+
+        result_binding = {"path": str(result_path), "sha256": expected_result_sha256}
+        result = _sequence_roll_read_json_object(bound_file(result_binding))
+        require(
+            result["schema_version"] == "gx1_prefix_policy_dependent_labels_v1"
+            and tuple(result["active_target_columns"])
+            == _MODEL_NATIVE_POLICY_DEPENDENT_TARGET_COLS,
+            "RESULT_CONTRACT_MISMATCH",
+        )
+        for key, path in (
+            ("parent_entry_parquet", self.parquet_path),
+            ("parent_entry_manifest", self.parquet_path.with_suffix(".manifest.json")),
+        ):
+            require(Path(result[key]["path"]) == Path(path), "PARENT_PATH_MISMATCH")
+            bound_file(result[key])
+        preparation = _sequence_roll_read_json_object(
+            bound_file(result["prefix_preparation"])
+        )
+        require(
+            preparation["frozen_design"]["sha256"] == expected_design_sha256,
+            "DESIGN_MISMATCH",
+        )
+        design = _sequence_roll_read_json_object(bound_file(preparation["frozen_design"]))
+        calendar = design["calendar"]
+
+        def utc_ns(value: Any) -> int:
+            timestamp = pd.Timestamp(value)
+            require(not pd.isna(timestamp) and timestamp.tzinfo is not None, "CLOCK_INVALID")
+            return int(timestamp.value)
+
+        start = utc_ns(calendar["train_entry_start_inclusive"])
+        cutoff = utc_ns(calendar["train_control_cutoff"])
+        end = utc_ns(calendar["development_control_entry_end_exclusive"])
+        require(
+            start < cutoff < end
+            and utc_ns(preparation["train_start_inclusive"]) == start
+            and utc_ns(preparation["support_end_inclusive"]) == cutoff
+            and utc_ns(result["train_support_end_inclusive"]) == cutoff
+            and utc_ns(result["control_support_end_inclusive"]) == end,
+            "SUPPORT_BINDING_MISMATCH",
+        )
+        policies = {}
+        for key in ("direction_policy", "position_size_policy"):
+            require(result[key] == preparation[key], "POLICY_BINDING_MISMATCH")
+            policy = _sequence_roll_read_json_object(bound_file(result[key]))
+            require(
+                policy["policy_sha256"] == preparation[key + "_sha256"]
+                and policy["fit_scope"] == "TRAIN_ONLY"
+                and policy["val_test_rows_used_for_fit"] == 0
+                and utc_ns(policy["train_start_utc"]) == start
+                and utc_ns(policy["train_end_utc"]) == cutoff,
+                "POLICY_FIT_SCOPE_INVALID",
+            )
+            policies[key] = policy
+        require(
+            policies["position_size_policy"]["entry_causal_m1_target_policy_sha256"]
+            == policies["direction_policy"]["policy_sha256"],
+            "POLICY_LINEAGE_MISMATCH",
+        )
+        cohort = result["labels"][role]
+        expected_rows = (
+            preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"]
+            if role == "TRAIN"
+            else calendar["bindings"]["CONTROL256_PARENT_ROWS"]
+        )
+        require(cohort["row_binding"] == expected_rows, "COHORT_BINDING_MISMATCH")
+        rows = np.load(bound_file(expected_rows), allow_pickle=False)
+        require(
+            rows.ndim == 1 and rows.dtype == np.dtype("int64") and rows.size > 0
+            and len(rows) == cohort["rows"] and np.all(np.diff(rows) > 0)
+            and rows[0] >= 0 and rows[-1] < len(self.df),
+            "PARENT_ROWS_INVALID",
+        )
+        labels = pd.read_parquet(bound_file(cohort))
+        require(not labels.columns.duplicated().any(), "DUPLICATE_COLUMNS")
+        require(
+            labels["parent_entry_row_index"].dtype == np.dtype("int64")
+            and np.array_equal(labels["parent_entry_row_index"].to_numpy(), rows),
+            "ROW_ORDER_MISMATCH",
+        )
+        times = pd.DatetimeIndex(labels["time"])
+        require(times.tz is not None and not times.hasnans, "CLOCK_INVALID")
+        times_ns = times.as_unit("ns").asi8
+        parent_times = pd.DatetimeIndex(self.df.iloc[rows]["time"]).as_unit("ns").asi8
+        low, high = (start, cutoff) if role == "TRAIN" else (cutoff, end)
+        require(
+            np.array_equal(times_ns, parent_times)
+            and np.all(times_ns >= low) and np.all(times_ns < high),
+            "ENTRY_CLOCK_MISMATCH",
+        )
+        for name in ("m1_outcome_end_time_ns", "line_outcome_end_time_ns"):
+            ends = labels[name].to_numpy()
+            require(
+                ends.dtype == np.dtype("int64")
+                and np.all(ends > times_ns) and np.all(ends <= high),
+                "OUTCOME_CROSSES_BOUNDARY",
+            )
+        columns = list(_MODEL_NATIVE_POLICY_DEPENDENT_TARGET_COLS)
+        require(all(labels[name].dtype == np.dtype("float32") for name in columns),
+                "TARGET_DTYPE_INVALID")
+        candidate = self.df.iloc[rows][list(_MODEL_NATIVE_ACTIVE_TARGET_COLS)].copy()
+        candidate[columns] = labels[columns].to_numpy()
+        failures = _model_native_active_target_failures(role, candidate)
+        require(not failures, "TARGET_DOMAIN_INVALID: " + "; ".join(failures))
+        require(
+            np.all(labels.loc[labels["y_position_size_mask"] == 0,
+                              "y_position_size_target"].to_numpy() == 0),
+            "MASK_SENTINEL_INVALID",
+        )
+        # Commit only after every source, cohort, clock and value check passes.
+        # A shallow frame copy replaces only changed columns, sharing features
+        # and the other 37 active targets without duplicating the parent data.
+        updated = self.df.copy(deep=False)
+        for name in columns:
+            values = self.df[name].to_numpy(copy=True)
+            values[rows] = labels[name].to_numpy()
+            updated[name] = values
+        bound_rows = np.zeros(len(self.df), dtype=np.bool_)
+        bound_rows[rows] = True
+        self.df = updated
+        self._policy_dependent_auxiliary_bound_rows = bound_rows
+        self._policy_dependent_auxiliary_binding = {
+            "result": result_binding,
+            "design": preparation["frozen_design"],
+            "prefix_preparation": result["prefix_preparation"],
+            "role": role,
+            "labels": cohort,
+            "active_target_columns": columns,
+            "policies": policies,
+            "inactive_diagnostics_refreshed": False,
+        }
+
     def bind_unified_exit_lifecycle(
         self,
         lifecycle: UnifiedExitLifecycleSplit,
@@ -5387,6 +5554,9 @@ class EntryV10CtxDataset(Dataset):
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         if self._advanced:
             t = int(self.indices[i])
+            bound_rows = getattr(self, "_policy_dependent_auxiliary_bound_rows", None)
+            if bound_rows is not None and (t < 0 or t >= len(bound_rows) or not bound_rows[t]):
+                raise RuntimeError("[ENTRY_PREFIX_LABEL_UNBOUND_ROW]")
             row = self.df.iloc[t]
             # V12.2: nested cols were pre-converted to np arrays in __init__;
             # __getitem__ now just slices for speed + memory efficiency.

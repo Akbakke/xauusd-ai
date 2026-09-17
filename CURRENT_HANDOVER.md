@@ -177,6 +177,21 @@ dataset; originale datasett og features er uendret. Deretter gjenstår faktiske
 prefix-normaliseringer og ferske native vekter/lærer/EMA/optimizer/bindinger.
 Se docs/PREFIX_DEPENDENT_LABELS_20260917.md. Ikke gjenta ferdig materialisering.
 
+## Native datasettbinding klar i kode
+
+De ti nye policyavhengige fasitene kan nå bindes eksplisitt i eksisterende
+EntryV10CtxDataset. Kilde-, design-, policy-, kohort- og tidsgrenser kontrolleres
+før verdiene erstattes; uavgrensede rader stopper før modellinput bygges.
+21 syntetiske integrasjons-/avvisningstester består på første forsøk. Features,
+MTF, de37 rå fasitene og radrekkefølgen er uendret. Inaktive gamle diagnostikkfelt
+regnes ikke som oppfrisket. Ingen modell-forward eller ny tilpasning er kjørt.
+
+Native forsøksoppskriften må fortsatt kalle bindingen og føre riktig
+policyopphav. Faktisk prefix-normalisering og fersk modell/lærer/EMA/optimizer
+samt TRAIN-kilde for senere CONTROL256 gjenstår. Kun nødvendige kilde-/
+bindingsrettelser og fokuserte syntetiske tester er åpnet nå. Gjenbruk ferdige
+fasitfiler og tester. Se docs/PREFIX_LABEL_BINDING_20260917.md.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

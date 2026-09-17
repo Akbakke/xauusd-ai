@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Prefix dependent labels are materialized and verified for frozen47814TRAIN and CONTROL256. All10 active policy-dependent columns plus4 related diagnostics use frozenK18 policies. Original464244-row M5context hash matched exactly (history starts2019Nov11). TRAIN outcome clocks<=March1,control<=June1; no dropped/replaced rows, refit, controlquality metric or model call. Reuse label parquet/manifest and completed12synthetic+legacyparity checks. Next concrete work: explicitly bind these labels by original parent Entry ID/time/policy/source hashes inside existing native datasets, reject unbound access, then actual prefix normalization/fresh whole-model/target/EMA/optimizer and sourceTRAIN/logicalcontrol bindings under narrowlyboundpreparation. Only minimal source/binding corrections and focused synthetic tests currently open; no further actual label/normalizationfit, modelforward, optimizer or native launch. Preserve all200features/eightfamilies/MTF,raw37targets,sampler/checkpoints/guards. TESTsealed; nocontrolretuning.",
+  "rule": "Existing EntryV10CtxDataset now has explicit prefix-policy label binding;21 synthetic integration/rejection tests pass. Only10 active policy-dependent columns change;37 raw targets/features/MTF/original parent coordinates and sampler order remain. Source/design/policy/cohort/time/support domains hash-checked; unbound access fails, invalid binding is atomic. Actual native recipe has not yet called this owner. Reuse completed policies, labels, clocks and tests. Next: actual prefix normalizations via existing tested owners and minimal fresh whole-model/target/EMA/optimizer plus sourceTRAIN/logicalCONTROL256 recipe integration, including this binding and correct metadata, under narrowly bound preparation. Only necessary source/binding fixes and focused synthetic tests are currently open; no new actual fit, label refresh, model forward, optimizer or native launch. No same-control retuning; TEST sealed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix dependent labels are materialized and verified for frozen47814TRAIN and CONTROL256. All10 active policy-dependent columns plus4 related diagnostics use frozenK18 policies. Original464244-row M5context hash matched exactly (history starts2019Nov11). TRAIN outcome clocks<=March1,control<=June1; no dropped/replaced rows, refit, controlquality metric or model call. Reuse label parquet/manifest and completed12synthetic+legacyparity checks. Next concrete work: explicitly bind these labels by original parent Entry ID/time/policy/source hashes inside existing native datasets, reject unbound access, then actual prefix normalization/fresh whole-model/target/EMA/optimizer and sourceTRAIN/logicalcontrol bindings under narrowlyboundpreparation. Only minimal source/binding corrections and focused synthetic tests currently open; no further actual label/normalizationfit, modelforward, optimizer or native launch. Preserve all200features/eightfamilies/MTF,raw37targets,sampler/checkpoints/guards. TESTsealed; nocontrolretuning."
+    "next_scope": "Existing EntryV10CtxDataset now has explicit prefix-policy label binding;21 synthetic integration/rejection tests pass. Only10 active policy-dependent columns change;37 raw targets/features/MTF/original parent coordinates and sampler order remain. Source/design/policy/cohort/time/support domains hash-checked; unbound access fails, invalid binding is atomic. Actual native recipe has not yet called this owner. Reuse completed policies, labels, clocks and tests. Next: actual prefix normalizations via existing tested owners and minimal fresh whole-model/target/EMA/optimizer plus sourceTRAIN/logicalCONTROL256 recipe integration, including this binding and correct metadata, under narrowly bound preparation. Only necessary source/binding fixes and focused synthetic tests are currently open; no new actual fit, label refresh, model forward, optimizer or native launch. No same-control retuning; TEST sealed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -492,6 +492,16 @@
       "sha256": "369f7759580a3ca23e810d4518ac73a747014ff3962e767847fb6d0cbc4c24d6"
     },
     "report": "docs/PREFIX_DEPENDENT_LABELS_20260917.md",
+    "native_launch_authorized": false
+  },
+  "completed_prefix_label_dataset_binding": {
+    "status": "NATIVE_DATASET_LABEL_BINDING_SYNTHETIC_PASS_NOT_CAMPAIGN_READY",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_LABEL_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "32d1eb2ac2d5600ed8f9d6241b69cd0b44a27ade95c41f375f42abd294cb4d1c"
+    },
+    "report": "docs/PREFIX_LABEL_BINDING_20260917.md",
+    "tests_passed": 21,
     "native_launch_authorized": false
   }
 }
