@@ -75,6 +75,18 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 
 
+class _InputNormalizedResidualLinear(nn.Linear):
+    """Bound residual input scale without new parameters or changed state keys.
+
+    Normalization is per row, so it cannot mix observations or time steps.
+    The existing zero weight/bias initialization keeps fresh outputs unchanged.
+    """
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        normalized = nn.functional.layer_norm(input, (self.in_features,))
+        return super().forward(normalized)
+
+
 def _assert_shape(name: str, t: torch.Tensor, nd: int) -> None:
     if not isinstance(t, torch.Tensor):
         raise RuntimeError(f"TYPE_MISMATCH: {name} is not a torch.Tensor (got {type(t)})")
@@ -1163,7 +1175,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         self.specialist_gate = nn.Linear(d_model, len(self._specialist_names))
         self.specialist_token_gate = nn.Linear(d_model, 1)
-        self.specialist_out = nn.Linear(d_model, d_model)
+        self.specialist_out = _InputNormalizedResidualLinear(d_model, d_model)
         nn.init.zeros_(self.specialist_out.weight)
         nn.init.zeros_(self.specialist_out.bias)
         self.register_buffer(
@@ -1303,7 +1315,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             cooperation_token_count,
         )
         self.family_tf_token_gate = nn.Linear(d_model, 1)
-        self.family_tf_cooperation_out = nn.Linear(d_model, d_model)
+        self.family_tf_cooperation_out = _InputNormalizedResidualLinear(d_model, d_model)
         nn.init.zeros_(self.family_tf_cooperation_out.weight)
         nn.init.zeros_(self.family_tf_cooperation_out.bias)
         self.family_tf_token_order = tuple(
@@ -1327,7 +1339,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.tf_gate_logits = nn.Parameter(torch.zeros(5))
         self.tf_context_gate = nn.Linear(d_model, 5)
         self.tf_token_gate = nn.Linear(d_model, 1)
-        self.cross_tf_out = nn.Linear(d_model, d_model)
+        self.cross_tf_out = _InputNormalizedResidualLinear(d_model, d_model)
         nn.init.zeros_(self.cross_tf_out.weight)
         nn.init.zeros_(self.cross_tf_out.bias)
         self._expected_m5_seq_dim = int(self.cfg.m5_seq_dim)

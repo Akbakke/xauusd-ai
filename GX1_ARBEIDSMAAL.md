@@ -4,11 +4,8 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: kausal256 er avvist, signaldiagnosen og skalaauditen er fullført. Neste
-er én kontrollert hypotese mot målte nesten konstante mellomrepresentasjoner:
-normalisering ved tre residualprojeksjoner. Kandidaten er ikke implementert
-eller kjøreautorisert ennå. Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md.
-Gjenbruk ferdige bevis; ingen ny trening uten separat bundet policy.
+Nå: Residualnormalisering er implementert og kontrollert; én native TRAIN16/256-prøve er bundet, ikke startet. Læringsporten er fortsatt ikke bestått.
+Følg CURRENT_HANDOVER.md og VEIEN_VIDERE.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

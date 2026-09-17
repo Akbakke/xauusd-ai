@@ -5,15 +5,10 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Native256 med korrekt kausal Entry-fasit er ferdig. Slutt-ONLINE, bare TRAIN,
-frossen lærer og eksakt bevart målgrunnlag er teknisk bekreftet. GuardPASS er
-ikke læringsbevis. Den parete analysen er ferdig og porten ikke bestått:
-Entry all-FLAT, svak LONG−SHORT-kontrast, Exit konstant per side og dårligere
-enn forrige kandidat. Brukt launch-unntak er stengt. Signaldiagnosen og
-CPU-skalaauditen er
-fullført. Brukt scope er stengt. Neste er én kontrollert residualnormaliserings-
-kandidat etter bevart initiering/lærer er bevist, deretter separat planbinding.
-Ingen ny modellkjøring,CONTROL/VAL/TEST eller trening er åpnet.
+Residualnormalisering er implementert og kontrollert; én native TRAIN16/256-prøve er bundet, ikke startet. Læringsporten er fortsatt ikke bestått.
+Samme ferske state/RNG og frosne lærer er bevart. Tekniske tester er ikke
+læringsbevis. Ingen CONTROL/VAL/TEST, full epoch/full VAL eller automatisk
+utvidelse er åpnet. Neste er den bundne prøven og paret vurdering.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke

@@ -47,9 +47,9 @@ Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
 beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLAT,
 Exit alltid HOLD for LONG / EXIT for SHORT. Signaldiagnosen er fullført: kraftig
 vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
-Entry-hidden. Inputnormaliseringen er uendret. Neste er én uprøvd hypotese om
-normalisering før tre residualprojeksjoner; se VEIEN_VIDERE.md. Ingen ny trening
-er åpnet. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
+Entry-hidden. Inputnormaliseringen er uendret. Normalisering før tre residualprojeksjoner er implementert og testet;
+én native256-prøve er særskilt bundet. Se VEIEN_VIDERE.md. Effekten på læring
+er ennå ikke målt. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
 bevaring av lærerens Entry-/Exit-outputs og frosne mål.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert

@@ -1,0 +1,85 @@
+{
+  "schema_version": "gx1_residual_normalization_fixed256_plan_v1",
+  "created_utc": "2026-09-17T20:00:58.392408+00:00",
+  "decision": "ONE_RESIDUAL_INPUT_SCALE_CONTRAST_BOUND_BEFORE_FIT",
+  "run_scope": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "8a5289d4f6fbb83ac7d2c8ef9fae4b223349f56d9b3ccbef8eaac263aa39816c",
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "max_invocations": 1,
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+    },
+    "chronological_train_only_measurement": true,
+    "chronological_entry_baseline": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+      "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+    }
+  },
+  "derived_entry_baseline": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/RESULT.json",
+    "sha256": "53d85f84c2d5ae6e3b53ce88c8e9f0422a889a670c24ad39f388ed214833cf86"
+  },
+  "change": "Parameter-free per-row input LayerNorm at specialist_out, cross_tf_out and family_tf_cooperation_out only. Same state keys/count,fresh state/RNG,frozen teacher,features,timeframes,targets,losses and optimizer. Trained-candidate computation intentionally changes.",
+  "optimizer_steps": 256,
+  "maximum_trained_entry_rows": 4096,
+  "final_model_variant": "ONLINE",
+  "measurement_roles": [
+    "train"
+  ],
+  "measurement_entries": 256,
+  "measurement_exit_anchor_states": 256,
+  "measurement_exit_sampled_states": 1024,
+  "new_control_forwards": 0,
+  "teacher_refresh_allowed": false,
+  "loss_or_threshold_search_allowed": false,
+  "automatic_repeat_or_extension": false,
+  "full_epoch_allowed": false,
+  "full_val_allowed": false,
+  "test_data_used": false,
+  "comparisons": [
+    "saved initial with corrected targets",
+    "saved causal ONLINE256",
+    "saved connected with corrected targets",
+    "TRAIN constants including FLAT zero"
+  ],
+  "criteria": {
+    "entry": "Report LONG/SHORT MSE and centered error, correlations, every TRAIN month, common/contrast fit, LONG/SHORT/FLAT counts and selected reference value. Require both-side conditional improvement and better decisions than TRAIN constants; a bias shift or all-FLAT is insufficient.",
+    "exit": "Report unchanged anchor and sampled HOLD targets on both sides against initial, connected256 and TRAIN constants. Require state-dependent improvement and useful HOLD/EXIT decisions; Entry-only improvement does not pass the full gate.",
+    "limits": "This is reused TRAIN with fitted overlap, not generalization. Targets evaluate the declared reference policy, not realized learned-policy profit. No automatic expansion even after a technical PASS."
+  },
+  "cause_evidence": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/REVIEW.json",
+    "sha256": "3076db764620b9a55101d74fb3e4736bba9ee61dc5bbb4a6b61f860563cb76e9"
+  },
+  "initialization_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/INITIALIZATION_AUDIT.json",
+    "sha256": "ac709f8ddbe2b922f22509110047ef211b4c8832fe3191527cfbb74d75f4ba24"
+  },
+  "previous_causal_run": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+    "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
+  }
+}
