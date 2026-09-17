@@ -1,0 +1,66 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "a3df5cd1e99c126220136dea523d1ebb77d249610c29cc723934571bcb34e7e1"
+  },
+  "result": {
+    "schema_version": "gx1_sampled_reference_measurement_synthetic_v1",
+    "decision": "SAMPLED_REFERENCE_AND_REPORT_INTEGRATION_VERIFIED_NO_LEARNING_MEASURED",
+    "completed_utc": "2026-09-17T06:27:17.879496+00:00",
+    "source_commit_before": "5b0e9748c5dc9c118f6383beb50dcc11d8c9a59a",
+    "source_files": {
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": "67ff730c089c1974528eacdebfc1eaa1ddf13840d13bcc30afbb56593658cf4f",
+      "tests/test_chronological_sampled_targets.py": "7c55de2b8524e5c9279ddc8ecfbf594cbfa9eaa17e1659cc54a6a4458da73859"
+    },
+    "changed_functions": [
+      "_bounded_reference_trace",
+      "_bounded_reference_exit_observations",
+      "_entry_representations"
+    ],
+    "unique_tests_passed": 26,
+    "test_executions": 27,
+    "evidence": {
+      "SCOPE.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/SCOPE.json",
+        "sha256": "f5741b234a5495fb4f48ee03bc413a2c9241541b4a7bb71be1b4d3536405d2ff"
+      },
+      "SCOPE_INTEGRATED.json": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/SCOPE_INTEGRATED.json",
+        "sha256": "09565895fcbaa24b8f0a7b63d8fbfe76921089203b36d24f2f9766e28a39eb38"
+      },
+      "JUNIT.xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/JUNIT.xml",
+        "sha256": "355485799a64dce77558b51c6eb4ac6c606230a75f20eea94560b9cba52a5da5"
+      },
+      "TEST.log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/TEST.log",
+        "sha256": "c182646fe311a6334f396e894698ad68634b3b42eb1d61228ee21013287882ea"
+      },
+      "INTEGRATION_JUNIT.xml": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/INTEGRATION_JUNIT.xml",
+        "sha256": "71a1c41e7e09cdd872d9ae5aad12c86d7b419dfa618a55c60d40192333d78e01"
+      },
+      "INTEGRATION_TEST.log": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/INTEGRATION_TEST.log",
+        "sha256": "272e68054e6919f9d0b2f0aedda1ca2c2d44758b397ed61d0f60f99f1ce503ce"
+      }
+    },
+    "verified": [
+      "Sampled Exit targets bit-exact against native TRAIN for four combinations of nonzero state and lifetime, including censoring.",
+      "Repeated Entry identities and sampled-state order preserved; no state replacement or outcome filtering.",
+      "Cutoff uses shifted boundary close; invalid offsets and selections rejected before model forwards.",
+      "All four samples per Entry present in existing report; online and teacher Entry representations reused.",
+      "Anchor Entry targets still use state0; default bounded-control integration unchanged."
+    ],
+    "real_model_forwards": 0,
+    "optimizer_steps": 0,
+    "normalization_refits": 0,
+    "test_data_used": false,
+    "learning_proven": false,
+    "remaining": [
+      "Bind TRAIN256 probe and fixed CONTROL sampled-state coordinates in the existing native measurement context.",
+      "Prepare frozen targets and initial predictions from saved INITIAL_STATE.pt under a separately bound native window.",
+      "Dispatch fixed final ONLINE measurement after the one predeclared256-step experiment; paired learning review before economics."
+    ]
+  }
+}

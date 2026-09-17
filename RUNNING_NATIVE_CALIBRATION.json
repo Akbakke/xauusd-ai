@@ -1,5 +1,5 @@
 {
-  "status": "ACTUAL_FRESH_INITIALIZATION_READY_TARGET_MEASUREMENT_NEXT",
+  "status": "SAMPLED_REFERENCE_READY_NATIVE_MEASUREMENT_BINDING_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST.",
+  "next_action": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T06:07:21.221946+00:00",
+  "observed_utc": "2026-09-17T06:27:17.879496+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST."
+    "next_scope": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -625,5 +625,14 @@
     },
     "online_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
     "native_launch_authorized": false
+  },
+  "completed_sampled_reference_measurement": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a3df5cd1e99c126220136dea523d1ebb77d249610c29cc723934571bcb34e7e1"
+    },
+    "report": "docs/SAMPLED_REFERENCE_MEASUREMENT_20260917.md",
+    "unique_tests_passed": 26,
+    "learning_proven": false
   }
 }

@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST.",
+  "rule": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Actual CPU construction through the existing full native component owner completed. Fresh online, frozen target and zero-step EMA are exactly equal; AdamW has no learned state; prefix normalization, role-specific labels, native eligible order and physical TRAIN-sourced CONTROL256 are bound. Preserve INITIAL_STATE.pt and completed preparation; do not repeat it for documentation. Next: bound frozen TRAIN/control target and initial-prediction preparation through native guards, then fixed ONLINE snapshot measurement dispatch and the single predeclared256-step experiment. No chronological_learning_run authority is present and training_enabled remains false. No actual model forward or optimizer step has been performed by this preparation; no full epoch/fullVAL or TEST."
+    "next_scope": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -697,5 +697,14 @@
     },
     "online_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
     "native_launch_authorized": false
+  },
+  "completed_sampled_reference_measurement": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/SAMPLED_REFERENCE_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a3df5cd1e99c126220136dea523d1ebb77d249610c29cc723934571bcb34e7e1"
+    },
+    "report": "docs/SAMPLED_REFERENCE_MEASUREMENT_20260917.md",
+    "unique_tests_passed": 26,
+    "learning_proven": false
   }
 }

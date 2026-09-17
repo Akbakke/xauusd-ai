@@ -1,18 +1,17 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: frosne target- og sammenligningsmålinger
+## Gjeldende neste steg: bind native target- og sammenligningsmåling
 
-Faktisk fersk native komponentoppstart er ferdig på CPU med de nye
-normaliseringsreferansene. ONLINE, frossen target og nullstegs-EMA er eksakt
-like; AdamW har tom momenttilstand. Full fysisk TRAIN, eligible prefix,
-separate TRAIN-/kontrollfasiter og frosset CONTROL256 er kontrollert gjennom
-eksisterende eiere. INITIAL_STATE.pt er bevart i GX1_DATA.
+Fersk native initialtilstand er lagret og kontrollert. Den eksisterende
+målefunksjonen støtter nå også fire fryste Exit-tilstander senere i handelen,
+med samme fasit som TRAIN og uendret state0-fasit for Entry.26 unike syntetiske
+kontroller består. Ingen faktisk modell-forward, optimizersteg eller refit.
 
-Ingen modell-forward, optimizersteg eller refit ble kjørt. Neste er å binde
-frosne target-/førmålinger og fast ONLINE-sluttmåling gjennom native vakter.
-Ingen chronological_learning_run er åpnet; training_enabled er fortsatt
-false.256-stegsforsøket har ennå ingen læringsresultater. Se
-docs/PREFIX_FRESH_INITIALIZATION_20260917.md. Ikke gjenta ferdig oppstart.
+Neste er eksplisitt TRAIN256-binding og fryste CONTROL-samplekoordinater,
+så target-/førmåling fra INITIAL_STATE.pt og fast ONLINE-sluttmåling gjennom
+native vakter. Ingen chronological_learning_run er åpnet; training_enabled
+er false. Ikke gjenta ferdig oppstart eller tester. Se
+docs/SAMPLED_REFERENCE_MEASUREMENT_20260917.md. Ingen ny læring er bevist.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

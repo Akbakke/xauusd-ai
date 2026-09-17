@@ -389,8 +389,9 @@ def _candidate_anchor_targets(
     )
 
 
-def _bounded_reference_trace(*, state_factory, child_rows, device, reference_policy=None, reference_cutoff_time_ns=None):
-    """The existing reference target on VAL anchors; no prediction or fitting.
+def _bounded_reference_trace(*, state_factory, child_rows, device, reference_policy=None,
+        reference_cutoff_time_ns=None, start_state_indices=None):
+    """The existing reference target on bound states; no prediction or fitting.
 
     The verified VAL index has no economic terminals and equal side lifetimes.
     Available observations may end early; their boundary always retains bootstrap.
@@ -407,13 +408,18 @@ def _bounded_reference_trace(*, state_factory, child_rows, device, reference_pol
             or reference_cutoff_time_ns <= 0 or reference_policy is None):
         raise RuntimeError("BOUNDED_REFERENCE_CUTOFF_BINDING_INVALID")
     policy = reference_policy_contract() if reference_policy is None else require_reference_policy_contract(reference_policy)
+    starts = [0] * len(child_rows) if start_state_indices is None else list(start_state_indices)
+    if (len(starts) != len(child_rows)
+            or any(type(offset) is not int or offset < 0 for offset in starts)):
+        raise RuntimeError("BOUNDED_REFERENCE_STATE_INDICES_INVALID")
     lengths = [min(policy["maximum_observed_backup_steps"],
-                   state_factory.entries[i]["available_state_count"] - 1) for i in child_rows]
+                   state_factory.entries[i]["available_state_count"] - 1 - offset)
+               for i, offset in zip(child_rows, starts)]
     if not lengths or min(lengths) < 1:
         raise RuntimeError("BOUNDED_REFERENCE_SUCCESSOR_REQUIRED")
     if reference_cutoff_time_ns is not None:
-        for child, length in zip(child_rows, lengths):
-            boundary_row = state_factory.entries[child]["entry_m1_start_row"] + length
+        for child, offset, length in zip(child_rows, starts, lengths):
+            boundary_row = state_factory.entries[child]["entry_m1_start_row"] + offset + length
             if int(state_factory.times.asi8[boundary_row]) + 60_000_000_000 > reference_cutoff_time_ns:
                 raise RuntimeError("BOUNDED_REFERENCE_SUPPORT_CROSSES_CUTOFF")
     width = max(lengths)
@@ -422,9 +428,9 @@ def _bounded_reference_trace(*, state_factory, child_rows, device, reference_pol
     available = np.zeros((len(child_rows), width), dtype=np.bool_)
     censored = np.zeros((len(child_rows), 2), dtype=np.bool_)
     projections = []
-    for row, (child, length) in enumerate(zip(child_rows, lengths)):
+    for row, (child, state_index, length) in enumerate(zip(child_rows, starts, lengths)):
         entry = state_factory.entries[child]
-        start = entry["entry_m1_start_row"]
+        start = entry["entry_m1_start_row"] + state_index
         gamma64 = []
         for offset in range(length):
             index = start + offset
@@ -438,9 +444,10 @@ def _bounded_reference_trace(*, state_factory, child_rows, device, reference_pol
         gamma64 = np.asarray(gamma64, dtype=np.float64)
         for side in range(2):
             projection = require_economic_training_projection(
-                state_factory.economic_step_provider.materialize_training_projection(child, side, 0, length+1, length),
-                entry_row_index=child, side_index=side, start_state_index=0,
-                stop_state_index=length+1, hold_stop_state_index=length,
+                state_factory.economic_step_provider.materialize_training_projection(
+                    child, side, state_index, state_index+length+1, state_index+length),
+                entry_row_index=child, side_index=side, start_state_index=state_index,
+                stop_state_index=state_index+length+1, hold_stop_state_index=state_index+length,
                 economic_manifest=state_factory.economic_step_manifest)
             if np.any(projection["exit_event_kind_index"] != 0) or np.any(projection["hold_event_kind_index"] != 1):
                 raise RuntimeError("BOUNDED_REFERENCE_VAL_INDEX_NONTERMINAL_REQUIRED")
@@ -450,7 +457,7 @@ def _bounded_reference_trace(*, state_factory, child_rows, device, reference_pol
             projections.append(projection["projection_sha256"])
         gammas[row, :length] = gamma64
         available[row, :length] = True
-        censored[row, :] = length == entry["available_state_count"] - 1
+        censored[row, :] = state_index + length == entry["available_state_count"] - 1
     tensor = lambda value: torch.from_numpy(value).to(device)
     return lengths, policy, projections, {
         "hold_reward_bps": tensor(rewards), "elapsed_wall_clock_gamma": tensor(gammas),
@@ -463,11 +470,14 @@ def _bounded_reference_trace(*, state_factory, child_rows, device, reference_pol
 
 def _bounded_reference_exit_observations(*, model, boundary_model, entry_output,
         boundary_entry_output, state_factory, child_rows, device,
-        reference_policy=None, reference_cutoff_time_ns=None, return_reference_targets=False):
+        reference_policy=None, reference_cutoff_time_ns=None, return_reference_targets=False,
+        start_state_indices=None):
     from gx1.contracts.unified_exit_reference_policy_v1 import build_reference_policy_hold_targets
     lengths, policy, projections, trace = _bounded_reference_trace(
         state_factory=state_factory, child_rows=child_rows, device=device,
-        reference_policy=reference_policy, reference_cutoff_time_ns=reference_cutoff_time_ns)
+        reference_policy=reference_policy, reference_cutoff_time_ns=reference_cutoff_time_ns,
+        start_state_indices=start_state_indices)
+    starts = [0] * len(child_rows) if start_state_indices is None else list(start_state_indices)
     def forward(which, source, offsets):
         inputs = collate_random_access_states_v1(
             [state_factory.materialize_state(state_factory.entries[i], offset)
@@ -476,12 +486,13 @@ def _bounded_reference_exit_observations(*, model, boundary_model, entry_output,
         inputs.update(entry_decision_representation=source[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY],
                       action_valid_mask=trace["boundary_action_valid_mask"], liquidation_relative_values=True)
         return which.forward_exit_random_access_batch(**inputs)["exit_action_q_bps"]
-    predicted = forward(model, entry_output, [0]*len(child_rows))
-    boundary_q = forward(boundary_model, boundary_entry_output, lengths)
+    predicted = forward(model, entry_output, starts)
+    boundary_q = forward(boundary_model, boundary_entry_output,
+                         [offset + length for offset, length in zip(starts, lengths)])
     target = build_reference_policy_hold_targets(policy=policy, boundary_action_q_bps=boundary_q, **trace)
     rows = []
     for n, child in enumerate(child_rows):
-        rows.append({"entry_row_index":int(child), "state_index":0,
+        rows.append({"entry_row_index":int(child), "state_index":starts[n],
             "prediction_hold_bps":predicted[n,:,0].cpu().tolist(),
             "target_hold_bps":target["hold_target_bps"][n].cpu().tolist(),
             "observed_component_bps":target["observed_reward_component_bps"][n].cpu().tolist(),
@@ -506,6 +517,7 @@ def _entry_representations(
     candidate_child_rows: Sequence[int] | None = None,
     exit_boundary_model: torch.nn.Module | None = None,
     evaluation_cohort: Mapping[str, Any] | None = None,
+    candidate_sampled_state_indices: Sequence[Sequence[int]] | None = None,
 ) -> tuple[torch.Tensor, dict[str, Any], torch.Tensor]:
     expected_child_rows = list(range(5_508))
     coherent_reference = None
@@ -545,7 +557,28 @@ def _entry_representations(
     if exit_boundary_model is not None and (evaluation_cohort is None or not candidate
             or exit_boundary_model.training or any(p.requires_grad for p in exit_boundary_model.parameters())):
         raise RuntimeError("BOUNDED_REFERENCE_FROZEN_TEACHER_REQUIRED")
+    sampled_states = None
+    if candidate_sampled_state_indices is not None:
+        sampled_states = [list(row) for row in candidate_sampled_state_indices]
+        if (coherent_reference is None or len(sampled_states) != len(parent_rows)
+                or any(len(row) != 4 or any(type(i) is not int or i < 0 for i in row)
+                       for row in sampled_states)):
+            raise RuntimeError("CHRONOLOGICAL_SAMPLED_STATES_INVALID")
+        # Reject the entire fixed selection before any model call. Never drop
+        # or replace an inconvenient control state after seeing its outcome.
+        for child, offsets in zip(candidate_child_rows, sampled_states):
+            entry = candidate_state_factory.entries[child]
+            for offset in offsets:
+                length = min(coherent_reference["reference_policy"]["maximum_observed_backup_steps"],
+                             entry["available_state_count"] - 1 - offset)
+                if length < 1:
+                    raise RuntimeError("CHRONOLOGICAL_SAMPLED_SUCCESSOR_REQUIRED")
+                boundary_row = entry["entry_m1_start_row"] + offset + length
+                if (int(candidate_state_factory.times.asi8[boundary_row]) + 60_000_000_000
+                        > coherent_reference["reference_cutoff_time_ns"]):
+                    raise RuntimeError("CHRONOLOGICAL_SAMPLED_SUPPORT_CROSSES_CUTOFF")
     bounded_exit_observations = []
+    sampled_exit_observations = []
     active_heads = _new_active_head_epoch_accumulator() if candidate else None
     anchor_bindings: list[str] = []
     bounded_entry_observations: list[dict[str, Any]] = []
@@ -614,6 +647,21 @@ def _entry_representations(
                         observed, reference_targets = observed
                         reference_hold_targets = reference_targets["hold_target_bps"]
                     bounded_exit_observations.extend(observed)
+                    if sampled_states is not None:
+                        children = candidate_child_rows[consumed:consumed+len(observed_rows)]
+                        offsets = sampled_states[consumed:consumed+len(observed_rows)]
+                        sampled_output = {UNIFIED_EXIT_MODEL_REPRESENTATION_KEY:
+                            output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY].repeat_interleave(4, dim=0)}
+                        sampled_boundary_output = {UNIFIED_EXIT_MODEL_REPRESENTATION_KEY:
+                            boundary_entry_output[UNIFIED_EXIT_MODEL_REPRESENTATION_KEY].repeat_interleave(4, dim=0)}
+                        sampled_exit_observations.extend(_bounded_reference_exit_observations(
+                            model=model, boundary_model=exit_boundary_model,
+                            entry_output=sampled_output, boundary_entry_output=sampled_boundary_output,
+                            state_factory=candidate_state_factory,
+                            child_rows=[child for child in children for _ in range(4)],
+                            start_state_indices=[i for row in offsets for i in row], device=device,
+                            reference_policy=coherent_reference["reference_policy"],
+                            reference_cutoff_time_ns=coherent_reference["reference_cutoff_time_ns"]))
                 targets, target_valid, anchor_binding = _candidate_anchor_targets(
                     target_model=candidate_target_model, target_entry_output=target_output,
                     state_factory=candidate_state_factory,
@@ -669,6 +717,10 @@ def _entry_representations(
     if evaluation_cohort is not None:
         diagnostics["bounded_entry_observations"] = bounded_entry_observations
         diagnostics["bounded_exit_anchor_observations"] = bounded_exit_observations
+        if sampled_states is not None:
+            diagnostics["bounded_exit_sampled_observations"] = sampled_exit_observations
+            diagnostics["sampled_state_coordinates_sha256"] = canonical_sha256({
+                "entry_row_indices": list(candidate_child_rows), "state_indices": sampled_states})
     if candidate:
         head_stats, _ = _active_head_epoch_diagnostics(active_heads)
         diagnostics["candidate_active_head_evidence"] = {
