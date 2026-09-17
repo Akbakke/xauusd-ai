@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Initial native measurement is complete and verified: TRAIN256 and CONTROL256 each have256 Entry and anchor Exit observations plus1024 frozen sampled Exit observations. Exact saved initial model, target, AdamW, EMA, scheduler and CPU/Python/NumPy RNG are preserved; native guardPASS and zero optimizer steps. Reuse these observations and TRAIN-only constants, never repeat preparation or initial measurement. Next bind the one predeclared256-step native experiment to the saved initial state and its fixed final ONLINE measurement through the existing measurement owner. Preserve the same teacher, cohorts and targets; compare directions/months and paired week uncertainty before economics. No additional learning scope is open yet; training_enabled=false, no full epoch/fullVAL, target refresh, retuning or TEST. No learning or generalization has been proved.",
+  "rule": "Commit and bind this exact source, then execute the one predeclared native256-step prefix experiment from saved INITIAL_STATE.pt. Use the original eligible native order, TRAIN16, unchanged losses/features/MTF and frozen initial teacher. Up to three existing guarded windows permit only continuation to the same total256-step ceiling. At that boundary measure final ONLINE, never best or EMA, through the existing TRAIN256/CONTROL256 measurement owner. Require exact equality to every saved initial target, validity mask, cohort and coordinate. Preserve checkpoint/RNG during measurement and stop for paired learning review before any economic rollout. No full epoch/fullVAL, target refresh, retuning, TEST or automatic extension. training_enabled remains false outside this bound exception.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Initial native measurement is complete and verified: TRAIN256 and CONTROL256 each have256 Entry and anchor Exit observations plus1024 frozen sampled Exit observations. Exact saved initial model, target, AdamW, EMA, scheduler and CPU/Python/NumPy RNG are preserved; native guardPASS and zero optimizer steps. Reuse these observations and TRAIN-only constants, never repeat preparation or initial measurement. Next bind the one predeclared256-step native experiment to the saved initial state and its fixed final ONLINE measurement through the existing measurement owner. Preserve the same teacher, cohorts and targets; compare directions/months and paired week uncertainty before economics. No additional learning scope is open yet; training_enabled=false, no full epoch/fullVAL, target refresh, retuning or TEST. No learning or generalization has been proved."
+    "next_scope": "Commit and bind this exact source, then execute the one predeclared native256-step prefix experiment from saved INITIAL_STATE.pt. Use the original eligible native order, TRAIN16, unchanged losses/features/MTF and frozen initial teacher. Up to three existing guarded windows permit only continuation to the same total256-step ceiling. At that boundary measure final ONLINE, never best or EMA, through the existing TRAIN256/CONTROL256 measurement owner. Require exact equality to every saved initial target, validity mask, cohort and coordinate. Preserve checkpoint/RNG during measurement and stop for paired learning review before any economic rollout. No full epoch/fullVAL, target refresh, retuning, TEST or automatic extension. training_enabled remains false outside this bound exception."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -772,5 +772,44 @@
     "windows_task_state": "Disabled",
     "windows_task_enabled": false,
     "learning_proven": false
+  },
+  "chronological_learning_run": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_PREFIX_FIXED256_LEARNING_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "bb0c719f266b502a555eff329a1fb19edcd80fa5a3a12b09990c45ee906bd687",
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "max_invocations": 3,
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+    }
+  },
+  "completed_native_prefix_learning_measurement_dispatch": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_LEARNING_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "dd19cdc63ab33c997e211e7d67f447e1c4928518ba5d9dafd0efb680acf79341"
+    },
+    "tests_passed": 14,
+    "report": "docs/NATIVE_PREFIX_FIXED256_20260917.md"
   }
 }

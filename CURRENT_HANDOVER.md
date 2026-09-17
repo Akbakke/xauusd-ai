@@ -1,26 +1,21 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: bind det fryste256-stegsforsøket
+## Gjeldende neste steg: start det bundne256-stegsforsøket
 
-Den faktiske native førmålingen er ferdig og kontrollert. TRAIN256 og CONTROL256
-har hver256 Entry-/Exit-ankermålinger og1024 fryste Exit-samples. Alle mål og
-prediksjoner er numerisk endelige, utvalg/rekkefølge er eksakt riktige. Original modell,
-target, AdamW, EMA, scheduler og CPU/Python/NumPy-tilstand er bevart eksakt.
-Checkpoint står ved epoch0/offset0/steg0. GuardPASS, trainer0, observer0.
-Windows-tasken er deaktivert; ingen native jobb kjører. Ikke gjenta førmålingen.
+Førmålingen er ferdig og verifisert; ikke gjenta den. Native trening er nå
+koblet til dens lagrede initialtilstand og fast ONLINE-sluttmåling ved256 steg.
+14 fokuserte CPU-kontroller og bindingen til faktiske førbevis består.
+Modell, tap, features, MTF, normalisering, sampler og treningskoordinator er uendret.
 
-Utrent Exit velger HOLD på1013/1022 av1024 TRAIN-samples og1001/1019 kontroll-
-samples for LONG/SHORT. Dette er startatferd, ingen dokumentert tålmodighet
-eller læring. TRAIN-konstanter og samme fryste fasiter er lagret som baseliner.
-
-Neste er én native recipe for det på forhånd bestemte256-stegsforsøket, bundet
-til samme lagrede initialtilstand og fast ONLINE-sluttmåling. Bruk eksisterende
-måleeier og sammenlign samme Entry/Exit-mål, sider og perioder. Ingen ny
-initialisering, sampling, fit, target-refresh eller valg av beste checkpoint.
-Førmålingsunntaket er stengt; chronological_learning_run er ikke åpnet ennå.
-training_enabled=false. Full epoch/fullVAL, økonomi og TEST er fortsatt stengt.
-Ingen læringsport er bestått. Se docs/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917.md
-og handover_snapshot/NATIVE_PREFIX_INITIAL_MEASUREMENT_RESULT_20260917.json.
+NEXT_RUN_POLICY åpner kun ett forhåndsbestemt forsøk: TRAIN16, opprinnelig
+prefix-rekkefølge, maksimum4096 Entries/256 optimizersteg, uendret frossen lærer.
+Tre eksisterende native vinduer kan bare fortsette mot samme samlede grense.
+Sluttmålingen bruker siste ONLINE og krever eksakt samme fryste mål/utvalg som
+førmålingen. Ingen EMA-/best-valg, target-refresh, full epoch/fullVAL eller økonomi.
+Commit og bind denne kilden før start med eksisterende campaign og vakter.
+Ingen ny trening er startet; ingen læringsport er bestått. TEST er forseglet.
+Se docs/NATIVE_PREFIX_FIXED256_20260917.md. Stopp for paret læringsgjennomgang
+etter forsøket; ingen automatisk utvidelse eller gjentakelse.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

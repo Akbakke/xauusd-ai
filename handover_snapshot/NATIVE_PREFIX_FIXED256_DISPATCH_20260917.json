@@ -1,0 +1,53 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_LEARNING_MEASUREMENT_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "dd19cdc63ab33c997e211e7d67f447e1c4928518ba5d9dafd0efb680acf79341"
+  },
+  "result": {
+    "schema_version": "gx1_native_prefix_learning_measurement_dispatch_v1",
+    "decision": "FIXED256_NATIVE_LEARNING_AND_FINAL_ONLINE_BINDING_VERIFIED_NOT_STARTED",
+    "completed_utc": "2026-09-17T08:10:30.203074+00:00",
+    "source_commit_before": "967097bd402826eda91fee79daa64623dc0b07a2",
+    "source_files": {
+      "tests/test_native_prefix_learning_measurement.py": "0c6591c0e6a9eeb53f28b63a527c54578fb06fa06f6b78e29278b0adb641d8fa",
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "f8c3138d81516e53344c91f30e955c6fe5a420098f3b82af420c435bd33659ae",
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "2f70b89dfab01085e61c509c80f7190860bdd6f8deecfd7fba00c834e98945ec"
+    },
+    "changed_functions": {
+      "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": [
+        "require_chronological_learning_measurement",
+        "require_chronological_prefix_run"
+      ],
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": [
+        "_require_native_full_train_recipe",
+        "run_guarded_native_candidate_invocation",
+        "_run_prefix_initial_measurement"
+      ]
+    },
+    "tests_passed": 14,
+    "junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_LEARNING_MEASUREMENT_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "6cbd72090996228484b36b3bc346f4c67489b3e49cdf9135270ff3eeae431c56"
+    },
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_LEARNING_MEASUREMENT_SYNTHETIC_20260917/TEST.log",
+      "sha256": "e51e317b41a828e1abe89f28136e22f1f96bc19814a06b9429d2ecf0bbc41065"
+    },
+    "initial_measurement_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+    },
+    "fixed_optimizer_steps": 256,
+    "final_model_variant": "ONLINE",
+    "saved_initial_state_restored_before_native_training_or_resume": true,
+    "intermediate_wall_pause_does_not_measure_final": true,
+    "final_targets_must_equal_saved_initial_exactly": true,
+    "measurement_preserves_trained_checkpoint_and_rng": true,
+    "native_campaign_stops_after_fixed256": true,
+    "actual_model_forwards": 0,
+    "actual_optimizer_steps": 0,
+    "learning_proven": false,
+    "test_data_used": false,
+    "next_action": "Commit and bind this exact source, then execute the one predeclared native256-step prefix experiment from saved INITIAL_STATE.pt. Use the original eligible native order, TRAIN16, unchanged losses/features/MTF and frozen initial teacher. Up to three existing guarded windows permit only continuation to the same total256-step ceiling. At that boundary measure final ONLINE, never best or EMA, through the existing TRAIN256/CONTROL256 measurement owner. Require exact equality to every saved initial target, validity mask, cohort and coordinate. Preserve checkpoint/RNG during measurement and stop for paired learning review before any economic rollout. No full epoch/fullVAL, target refresh, retuning, TEST or automatic extension. training_enabled remains false outside this bound exception."
+  }
+}

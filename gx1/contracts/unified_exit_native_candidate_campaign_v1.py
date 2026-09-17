@@ -426,6 +426,56 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
     return {"artifacts": artifacts, "initialization": initial, "measurement": measurement}
 
 
+def require_chronological_learning_measurement(recipe):
+    """Bind the completed initial observation; prefix identity is checked by the caller."""
+    binding = require_binding(recipe.get("chronological_learning_measurement"),
+                              label="completed initial measurement audit", verify_file=True)
+    audit = read_bound_json(Path(binding["path"]), binding["sha256"])
+    def load(value, label):
+        checked = require_binding(value, label=label, verify_file=True)
+        return read_bound_json(Path(checked["path"]), checked["sha256"])
+    result = load(audit.get("result"), "initial measurement result")
+    initial = load(result.get("initialization_result"), "saved fresh initialization")
+    measurement = load(result.get("measurement_binding_result"), "frozen measurement coordinates")
+    receipt = load(audit.get("receipt"), "initial native terminal receipt")
+    expected = initial.get("online_model_state_sha256")
+    if (audit.get("schema_version") != "gx1_native_prefix_initial_measurement_audit_v1"
+            or audit.get("decision") != "FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED"
+            or audit.get("optimizer_steps") != 0 or audit.get("test_data_used") is not False
+            or audit.get("fresh_model_optimizer_ema_scheduler_exactly_preserved") is not True
+            or audit.get("saved_cpu_python_numpy_rng_exactly_preserved") is not True
+            or result.get("schema_version") != "gx1_native_prefix_initial_measurement_v1"
+            or result.get("decision") != "FROZEN_INITIAL_TARGETS_AND_PREDICTIONS_READY_NO_LEARNING_MEASURED"
+            or result.get("optimizer_steps") != 0 or result.get("teacher_refreshed") is not False
+            or result.get("economic_rollout") is not False or result.get("test_data_used") is not False
+            or initial.get("chronological_prefix") != recipe.get("chronological_prefix")
+            or initial.get("files") != recipe.get("files")
+            or not isinstance(expected, str) or len(expected) != 64
+            or result.get("model_state_sha256") != expected or result.get("target_model_state_sha256") != expected
+            or receipt.get("guard_decision") != "PASS" or receipt.get("outcome") != "RESUMABLE"
+            or receipt.get("trainer_guard_exit_code") != 0 or receipt.get("progress_observer_exit_code") != 0
+            or receipt.get("test_data_used") is not False
+            or set(result.get("observations", {})) != {"train", "control"}):
+        raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MEASUREMENT_INVALID")
+    require_binding(initial["initial_state"], label="saved fresh state", verify_file=True)
+    for role in ("train", "control"):
+        observation = load(result["observations"][role], "initial " + role + " observations")
+        cohort = observation.get("cohort", {})
+        if (observation.get("role") != role or observation.get("optimizer_steps") != 0
+                or observation.get("model_state_sha256") != expected
+                or observation.get("target_model_state_sha256") != expected
+                or observation.get("test_data_used") is not False
+                or cohort.get("plan") != recipe["chronological_prefix"]["design"]
+                or cohort.get("measurement_coordinates") != measurement.get("coordinate_result")
+                or cohort.get("measurement_role") != role
+                or len(cohort.get("entry_row_indices", [])) != 256):
+            raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_OBSERVATION_INVALID")
+    return {"artifacts": {"initialization_result": result["initialization_result"],
+                          "measurement_binding_result": result["measurement_binding_result"],
+                          "initial_measurement_audit": binding, "initial_measurement_result": audit["result"]},
+            "initialization": initial, "measurement": measurement, "initial_measurement": result}
+
+
 def require_chronological_prefix_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit only the explicitly bound single experiment through native guards."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -444,12 +494,15 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
                 "optimizer_steps":256, "maximum_trained_entry_rows":4096, "max_invocations":windows,
                 "final_model_variant":"ONLINE", "teacher_refresh_allowed":False,
                 "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
+    if "chronological_learning_measurement" in recipe:
+        measured = require_chronological_learning_measurement(recipe)
+        expected["chronological_learning_measurement"] = measured["artifacts"]["initial_measurement_audit"]
     if (policy.get("training_enabled") is not False or scope != expected
             or type(windows) is not int or windows < 1
             or type(scope.get("optimizer_steps")) is not int
             or type(scope.get("maximum_trained_entry_rows")) is not int
             or any(scope.get(key) is not False for key in ("teacher_refresh_allowed", "full_epoch_training_allowed", "full_val_allowed", "test_data_used"))
-            or any(key in policy for key in ("native_learning_calibration", "frozen_readout_evaluation"))):
+            or any(key in policy for key in ("native_learning_calibration", "frozen_readout_evaluation", "chronological_initial_measurement"))):
         raise RuntimeError("NATIVE_PREFIX_RUN_NOT_AUTHORIZED")
     if invocation_number is not None and (type(invocation_number) is not int or not 1 <= invocation_number <= windows):
         raise RuntimeError("NATIVE_PREFIX_INVOCATION_INVALID")
