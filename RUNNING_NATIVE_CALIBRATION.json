@@ -1,8 +1,8 @@
 {
-  "status": "FIXED256_COMPLETE_LEARNING_GATE_FAILED",
+  "status": "ENTRY_GRADIENT_DIAGNOSTIC_BOUND_NOT_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
-  "source_commit_scope": "Completed fixed256 training and final ONLINE source; documentation commit follows.",
+  "source_commit_scope": "Previous completed model run source retained; commit and bind diagnostic owner before launch.",
   "latest_observation_utc": "2026-09-17T09:54:01.389151+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_FIXED256_LEARNING_20260917_BOOT452",
@@ -66,7 +66,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Fixed256 complete and rejected for expansion. Preserve checkpoints and cached predictions. No repeat, extension, same-CONTROL retuning, economics, full epoch/fullVAL or TEST. Entry first: V4 detaches its representation; source and actual unused Entry gradients on routing confirm this limitation. Next one TRAIN-only gradient-path comparison on identical saved state/batch, without optimizer steps. Bind any actual model work separately through existing native guards. No model change or new training is authorized by this result; reconnecting gradients is a hypothesis, not a proven generalization fix.",
+  "next_action": "Run one existing guarded native window for the declared TRAIN16 Entry-gradient diagnostic. Load fixedONLINE256 read-only, reuse frozen targets and prefix inputs, perform exactly two eval-mode forwards with the existing detach flag, compare Entry/auxiliary gradients without optimizer steps, preserve original state/RNG and cache the input batch. No CONTROL/Exit/TEST forwards, fit, training, same-control retuning, economic rollout or automatic repeat. Review the result before changing the model.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -173,7 +173,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T09:54:01.389151+00:00",
+  "observed_utc": "2026-09-17T10:08:58.908710+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -750,5 +750,35 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/ENTRY_GRADIENT_SOURCE_REVIEW.json",
       "sha256": "ccca790ad82cffd790fd4904704727ea072767b4c1cc225f382f42b253cbb2e5"
     }
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/PLAN.json",
+      "sha256": "dc600149c04002351d8e7325c29b5279f9021c9ac6fdcc087f11706aac922d98"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "9bf39f83f69c91b385c9abbcb7101cc99bdee15e8f30ef7d7c205cef40db3ddc",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "test_data_used": false
   }
 }

@@ -369,6 +369,87 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
     return {"artifacts":artifacts, "design":design, "train_rows":len(rows)}
 
 
+
+def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, execution_budget=None):
+    """One frozen TRAIN16 gradient contrast; no optimizer or control forwards."""
+    prefix = require_chronological_prefix_recipe(recipe)
+    if any(k in recipe for k in ("chronological_initial_measurement", "chronological_learning_measurement",
+                                  "candidate_resume_origin", "native_calibration", "frozen_readout_evaluation")):
+        raise RuntimeError("ENTRY_GRADIENT_MIXED_SCOPE")
+    def load(value, label):
+        binding = require_binding(value, label=label, verify_file=True)
+        return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
+    plan_binding, plan = load(recipe.get("entry_gradient_diagnostic"), "Entry gradient plan")
+    fixed = {"schema_version":"gx1_entry_gradient_diagnostic_plan_v1", "optimizer_steps":0,
+             "train_entries":16, "model_forwards":2, "control_forwards":0, "max_invocations":1,
+             "mode":"eval", "selection":"first16_existing_frozen_TRAIN_probe",
+             "variants":["detached", "connected"], "test_data_used":False}
+    if any(type(plan.get(k)) is not type(v) or plan[k] != v for k,v in fixed.items()):
+        raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
+    _, review = load(plan.get("review"), "completed fixed256 review")
+    _, result = load(review.get("final_result"), "fixed final ONLINE")
+    _, initial = load(result.get("initialization_result"), "prefix initialization")
+    _, raw = load(plan.get("origin_cursor"), "fixed256 origin cursor")
+    cursor = require_native_cursor(raw, expected_recipe=raw["recipe"], verify_files=True)
+    state = cursor["resume_state"]
+    _, origin_recipe = load(raw["recipe"], "completed origin recipe")
+    repo = Path(__file__).resolve().parents[2]
+    for key in ("gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+                "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"):
+        artifact = origin_recipe["source_bindings"]["python:" + key]
+        source = require_binding({k: artifact[k] for k in ("path", "sha256")},
+                                 label="unchanged model/trainer", verify_file=True)
+        if Path(source["path"]) != repo/key:
+            raise RuntimeError("ENTRY_GRADIENT_SOURCE_INVALID")
+    _, observation = load(plan.get("train_observation"), "frozen TRAIN observation")
+    if (review.get("schema_version") != "gx1_native_fixed256_paired_learning_review_v1"
+            or review.get("decision") != "REJECT_EXPANSION_LEARNING_GATE_FAILED"
+            or result.get("schema_version") != "gx1_native_prefix_final_online_measurement_v1"
+            or result.get("selected_model_variant") != "ONLINE" or result.get("optimizer_steps") != 256
+            or result.get("frozen_targets_exactly_preserved") is not True
+            or result.get("teacher_refreshed") is not False or result.get("test_data_used") is not False
+            or review.get("training_pointer") != state.get("training_pointer")
+            or review.get("training_state") != state.get("training_state")
+            or state.get("global_optimizer_steps") != 256 or state.get("next_batch_offset") != 256
+            or state.get("epoch_index") != 0 or state.get("phase") != "train"
+            or state.get("complete") is not False or state.get("active_val_cursor") is not None
+            or cursor.get("outcome") != "RESUMABLE"
+            or initial.get("chronological_prefix") != prefix["artifacts"] or initial.get("files") != recipe.get("files")
+            or plan.get("train_observation") != result.get("observations",{}).get("train")
+            or observation.get("role") != "train" or observation.get("optimizer_steps") != 256
+            or observation.get("test_data_used") is not False
+            or observation.get("model_state_sha256") != result.get("model_state_sha256")
+            or observation.get("cohort",{}).get("measurement_role") != "train"
+            or observation.get("cohort",{}).get("plan") != prefix["artifacts"]["design"]
+            or len(observation.get("diagnostics",{}).get("bounded_entry_observations",[])) != 256):
+        raise RuntimeError("ENTRY_GRADIENT_ORIGIN_INVALID")
+    policy_binding, policy = load(recipe.get("next_run_policy"), "Entry gradient policy")
+    if Path(policy_binding["path"]) != repo/"NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {"plan":plan_binding, "chronological_prefix":prefix["artifacts"],
+        "run_id":recipe.get("run_id"), "out_bundle_dir":recipe.get("out_bundle_dir"),
+        "source_bindings_sha256":recipe.get("source_bindings_sha256"),
+        "optimizer_steps":0, "origin_optimizer_steps":256, "max_invocations":1,
+        "train_entries":16, "model_forwards":2, "control_forwards":0, "test_data_used":False}
+    if (policy.get("training_enabled") is not False or policy.get("entry_gradient_diagnostic") != expected
+            or any(k in policy for k in ("chronological_learning_run", "chronological_initial_measurement",
+                                         "native_learning_calibration", "frozen_readout_evaluation"))):
+        raise RuntimeError("ENTRY_GRADIENT_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or invocation_number != 1):
+        raise RuntimeError("ENTRY_GRADIENT_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != 256
+            or execution_budget.get("expected_active_pointer_sha256") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("ENTRY_GRADIENT_BUDGET_INVALID")
+    return {"plan":plan, "plan_binding":plan_binding, "result":result,
+            "observation":observation, "origin_resume_state":state}
+
+
 def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
     """One native initial measurement, using saved fresh weights and zero steps."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -706,6 +787,9 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "entry_gradient_diagnostic" in recipe:
+        scope = require_entry_gradient_diagnostic(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
+        return scope["origin_resume_state"]["global_optimizer_steps"]
     if "chronological_initial_measurement" in recipe:
         require_chronological_initial_measurement(recipe, invocation_number=invocation_number,
                                                   execution_budget=execution_budget)

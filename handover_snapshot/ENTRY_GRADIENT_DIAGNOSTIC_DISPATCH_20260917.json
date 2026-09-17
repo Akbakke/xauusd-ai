@@ -1,0 +1,71 @@
+{
+  "result_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "0da76ce58a73da2b404ad43655a5f39a869ff5f72fac8533362c2b977bc4cebc"
+  },
+  "result": {
+    "schema_version": "gx1_entry_gradient_diagnostic_synthetic_v1",
+    "decision": "READONLY_NATIVE_SCOPE_AND_GRADIENT_CONTRAST_VERIFIED",
+    "tests_passed": 14,
+    "binding_recheck_cases": 11,
+    "first_preflight_failed": true,
+    "preflight_failure": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_SYNTHETIC_20260917/PREFLIGHT_FAILURE.json",
+      "sha256": "88d970b2ce05cf79b8b884e18bb8fa4ff22c15c3637e9f147b4d379052fa2ce1"
+    },
+    "test_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_SYNTHETIC_20260917/TEST.log",
+      "sha256": "1ce64cd52a4b0175e7d7641153bee1d7688f24599ded23fb347fd0ee5d61a704"
+    },
+    "actual_scope_verified": true,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_DIAGNOSTIC_20260917/PLAN.json",
+      "sha256": "dc600149c04002351d8e7325c29b5279f9021c9ac6fdcc087f11706aac922d98"
+    },
+    "source_bindings_sha256": "9bf39f83f69c91b385c9abbcb7101cc99bdee15e8f30ef7d7c205cef40db3ddc",
+    "optimizer_steps": 0,
+    "actual_model_forwards": 0,
+    "model_and_trainer_source_unchanged": true,
+    "learning_proven": false,
+    "test_data_used": false
+  },
+  "plan": {
+    "schema_version": "gx1_entry_gradient_diagnostic_plan_v1",
+    "created_utc": "2026-09-17T10:08:55.748804+00:00",
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/PAIRED_LEARNING_REVIEW.json",
+      "sha256": "f52f81ac451d1dc0413df447a3587612537ae0300b02029e28fef5e305e25c78"
+    },
+    "origin_cursor": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_FIXED256_LEARNING_20260917_BOOT452/native-candidate-cursor/RESUME_CURSOR.json",
+      "sha256": "6ec63787445a527808cd0e3ef28bf62cd39cffb5d9e268a5c4734abf8cd130e7"
+    },
+    "train_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_FIXED256_LEARNING_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+      "sha256": "4be70dc59670f1d3950a680fac3509c613fb8d21ffc438e40beba2ea8105d242"
+    },
+    "optimizer_steps": 0,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "max_invocations": 1,
+    "mode": "eval",
+    "selection": "first16_existing_frozen_TRAIN_probe",
+    "variants": [
+      "detached",
+      "connected"
+    ],
+    "test_data_used": false,
+    "question": "Does the existing Entry Q loss have finite nonzero upstream/routing gradients when its current detach is removed in an otherwise identical diagnostic forward?",
+    "interpretation": "Compare raw/weighted loss, by-side gradients and cosine/norm ratio against existing auxiliary task gradients. No gradient update, search, control tuning or learning claim.",
+    "invariants": [
+      "same finalONLINE256 model",
+      "same saved TRAIN16 targets",
+      "identical forward predictions and Entry-head gradients",
+      "unchanged original checkpoint and RNG",
+      "no optimizer",
+      "no Exit/control/TEST forward"
+    ],
+    "decision": "One report; finite connected gradients show access only. Conflicting or dominating gradients inform the narrow hypothesis; neither result authorizes training or predicts transfer."
+  }
+}

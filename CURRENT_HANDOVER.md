@@ -21,8 +21,11 @@ samme-CONTROL-tuning, full epoch/fullVAL eller TEST. Bevar alle bevis.
 Neste hypotese: V4 detach lar Entry trene verdilaget, men ikke feature-/MTF-
 representasjonen. Kilde og faktisk førstebatchgradient bekrefter dette;
 andre oppgaver endrer routingvektene. Dette beviser ikke årsaken til svikten.
-Neste er én TRAIN-only gradientkontrast uten optimizersteg, separat bundet
-før faktiske modellkall. Ingen modellendring eller ny trening er åpnet nå.
+Den ene TRAIN-only gradientkontrasten er nå bundet etter14 beståtte CPU-
+kontroller. Eksisterende native owner utfører to forwards på de første16
+fryste TRAIN-proberadene, med identiske mål og ONLINE256. Ingen optimizer,
+Exit-/CONTROL-forward eller ny trening. Modell-/treningskode er uendret.
+Commit og bind kilden før én vanlig native campaign. Ikke gjenta gamle målinger.
 Se docs/NATIVE_PREFIX_FIXED256_REVIEW_20260917.md og tilhørende snapshot.
 
 ## Historiske resultater og fullført arbeid — ikke startinstrukser
