@@ -131,6 +131,22 @@ Se docs/AUXILIARY_POLICY_EXPOSURE_20260917.md. Ingen nye fasiter, fit, modell-
 forward eller optimizersteg. Trening er stengt. Frosset DESIGN/CONTROL256 og
 alle eksisterende features/tidsrammer beholdes. Ikke gjenta ferdig kildeaudit.
 
+## Eksakt tidsstøtte og avgrenset klargjøring
+
+Klokkene er målt uten pris-/fasitverdier:76 av49017 kalenderinnganger har
+rå96-M5-fasit over cutoff;5 har anker120 over cutoff.1198 innganger har minst
+ett av de fire opprinnelige native Exit-samplene over grensen,1452 overganger.
+Samlet47814 består disse datogrenser. Eksakt M1-fasitdekning er målt for alle
+eksisterende horisonter1..96 uten utfallsvalg; ved96 er33212 kvalifisert.
+Ingen samplerendring eller forkorting av markedslivsløp. Originale counts,
+native epoch0-rekkefølge og alle fire samples per beholdt Entry videreføres.
+
+Én eksplisitt CPU-klargjøring er bundet i NEXT_RUN_POLICY:tilpass de to
+eksisterende fasitpolicyene kun juni2025–februar2026 og frys deretter lovlige
+TRAIN-ID-er/native4096/TRAIN256. Ingen senere kontrollpriser, label-refresh,
+normaliseringsfit, modell-forward, optimizer eller native kjøring er åpnet.
+Se docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md. Klokkemålingen gjenbrukes.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Bound direction/path and position-size policies were fitted through2026-05-31, overlapping frozen March-May control. Source/metadata audit complete; do not repeat it. Existing policy fit owners accept a prefix. Complete clock-only raw37 M5 and sampled Exit/reference/bootstrap eligibility; bind the smallest prefix-only auxiliary-policy/label rebuild through existing owners. Do not treat calendar IDs, fresh weights or prefix normalization as sufficient. Freeze eligible TRAIN/native4096 order/TRAIN256 probe after all support and policy scope are explicit. Then prepare prefix artifacts and fresh native initialization/control bindings under a narrowly bound policy. No actual-data policy or normalization fit, label refresh, model forward, optimizer or native launch yet. Frozen DESIGN/CONTROL256, all200 features/eight families/MTF, completed checks and hardware guards unchanged; TEST sealed; no control retuning.",
+  "rule": "Clock-only support measurement complete:49017 calendar rows,76 raw96M5 crossings,5anchor120 crossings,1198 Entries with1452 sampled-reference crossings;47814 base eligible. Reuse CLOCK_ELIGIBILITY.npz. Exactly one prefix_auxiliary_policy_preparation PLAN is authorized:existing direction-policy fit and sizeECDF only on2025Jun01..2026Mar01,then freeze eligible IDs/native4096/TRAIN256. No control outcome reads, dependent-label rebuild, normalization fit, model forward, optimizer or native launch. Frozen DESIGN/CONTROL256 and hardware guards unchanged; TEST sealed.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Bound direction/path and position-size policies were fitted through2026-05-31, overlapping frozen March-May control. Source/metadata audit complete; do not repeat it. Existing policy fit owners accept a prefix. Complete clock-only raw37 M5 and sampled Exit/reference/bootstrap eligibility; bind the smallest prefix-only auxiliary-policy/label rebuild through existing owners. Do not treat calendar IDs, fresh weights or prefix normalization as sufficient. Freeze eligible TRAIN/native4096 order/TRAIN256 probe after all support and policy scope are explicit. Then prepare prefix artifacts and fresh native initialization/control bindings under a narrowly bound policy. No actual-data policy or normalization fit, label refresh, model forward, optimizer or native launch yet. Frozen DESIGN/CONTROL256, all200 features/eight families/MTF, completed checks and hardware guards unchanged; TEST sealed; no control retuning."
+    "next_scope": "Clock-only support measurement complete:49017 calendar rows,76 raw96M5 crossings,5anchor120 crossings,1198 Entries with1452 sampled-reference crossings;47814 base eligible. Reuse CLOCK_ELIGIBILITY.npz. Exactly one prefix_auxiliary_policy_preparation PLAN is authorized:existing direction-policy fit and sizeECDF only on2025Jun01..2026Mar01,then freeze eligible IDs/native4096/TRAIN256. No control outcome reads, dependent-label rebuild, normalization fit, model forward, optimizer or native launch. Frozen DESIGN/CONTROL256 and hardware guards unchanged; TEST sealed."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -418,5 +418,23 @@
     },
     "report": "docs/AUXILIARY_POLICY_EXPOSURE_20260917.md",
     "native_launch_authorized": false
+  },
+  "completed_prefix_target_clock_eligibility": {
+    "status": "CLOCK_SUPPORT_MEASURED_PREFIX_POLICY_FIT_REQUIRED",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917/RESULT.json",
+      "sha256": "1ce7ec74192415c50fe8f051bae023793f9c01e24d873851b6f0ef50231e08dc"
+    },
+    "report": "docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md"
+  },
+  "prefix_auxiliary_policy_preparation": {
+    "enabled": true,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/PLAN.json",
+      "sha256": "8cb54d4cc005707eb5f3ab78aee1891f1afa6680c1ccdd2bc19e6963fd672af6"
+    },
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "one_preparation_only": true
   }
 }
