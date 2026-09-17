@@ -2,8 +2,8 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — gjeldende residualnormaliseringsforsøk og kjørestatus.
-2. VEIEN_VIDERE.md — konkret native oppstart og læringsvurdering.
+1. CURRENT_HANDOVER.md — fullført avvist residualprøve og neste avgrensning.
+2. VEIEN_VIDERE.md — avgrenset binding av neste representasjonsmåling.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
@@ -11,8 +11,11 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
-- docs/RESIDUAL_NORMALIZATION_FIXED256_20260917.md — eneste nye forsøk.
-- handover_snapshot/RESIDUAL_NORMALIZATION_FIXED256_PLAN_20260917.json — bundet plan.
+- docs/RESIDUAL_NORMALIZATION_REVIEW_20260917.md — gjeldende konklusjon.
+- handover_snapshot/RESIDUAL_NORMALIZATION_{REVIEW,VERDICT,COMPLETION,BOUND_AUDIT}_20260917.json — fullførte aggregater og bindinger.
+
+- docs/RESIDUAL_NORMALIZATION_FIXED256_20260917.md — fullført forsøksdesign, ikke startinstruksjon.
+- handover_snapshot/RESIDUAL_NORMALIZATION_FIXED256_PLAN_20260917.json — brukt historisk plan.
 - handover_snapshot/RESIDUAL_NORMALIZATION_INITIALIZATION_20260917.json — fem tester og faktisk initialisering.
 
 - handover_snapshot/ENTRY_SIGNAL_INFERENCE_CHECK_{RESULT,REVIEW}_20260917.json — nyeste signalmåling og vurdering.

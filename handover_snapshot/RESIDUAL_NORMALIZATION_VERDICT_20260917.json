@@ -1,0 +1,40 @@
+{
+  "schema_version": "gx1_residual_normalization_learning_verdict_v1",
+  "created_utc": "2026-09-17T21:40:07.520267+00:00",
+  "decision": "REJECT_EXPANSION_RESIDUAL_NORMALIZATION_NO_DECISION_IMPROVEMENT",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+  },
+  "residual_bound_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/RESIDUAL_BOUND_AUDIT.json",
+    "sha256": "d0c0f6417a1c6b457f5106f1d2e58bb98faa069dbecd451a94763423608d815b"
+  },
+  "entry_actions_identical_to_causal_and_constant": true,
+  "exit_actions_identical_to_causal_both_surfaces": true,
+  "entry_both_sides_mse_better_than_constants": false,
+  "entry_both_sides_centered_mse_better_than_causal": true,
+  "mse_change_from_causal": {
+    "entry": {
+      "LONG": 1.0328838281125172,
+      "SHORT": -1.1816461489737549
+    },
+    "exit_anchor": {
+      "LONG": 0.27300128062302065,
+      "SHORT": -0.20708680251641454
+    },
+    "exit_sampled": {
+      "LONG": 0.38838805697923817,
+      "SHORT": -0.12073949871091827
+    }
+  },
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "training_expansion_authorized": false,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "test_data_used": false,
+  "next_action": "Do not repeat or extend the rejected trial. First inspect whether the existing cached TRAIN16 inputs can be joined exactly to the new native TRAIN observations/checkpoint. Then, if the current native diagnostic contract permits, bind one representation-only comparison to locate remaining attenuation in raw local/MTF/context versus Entry hidden. No new optimizer steps, extra normalization, loss change or model search before that evidence. Old nonzero checkpoints must not be forwarded through the changed architecture and called original baselines; reuse their saved outputs. No CONTROL/VAL/TEST or economic claim.",
+  "limitation": "Minor fitted-TRAIN metric changes are mixed across sides and months. Residual input scale control alone did not improve decisions. Analytical port bounds are not observed global representations; remaining attenuation location is unmeasured."
+}

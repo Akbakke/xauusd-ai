@@ -1,0 +1,83 @@
+{
+  "schema_version": "gx1_residual_projection_bound_audit_v1",
+  "created_utc": "2026-09-17T21:35:05.363866+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+  },
+  "model_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "sha256": "cd09eb6bc798b9335c55f7b6d8c011abe5565e737bae29199edf308678a3c35a"
+  },
+  "training_states": {
+    "causal": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "108d3a4641531ddaed75c2fa1c103199076f7460d837d8ae9fda0dbc81bc69d2"
+    },
+    "residual": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "d00e1107282ffb1c1d1b5878403a7f0cdc85e8517042c73266bcd8049928feaa"
+    }
+  },
+  "ports": {
+    "specialist_out": {
+      "causal": {
+        "input_width": 128,
+        "spectral_norm": 0.9847396145240774,
+        "bias_l2": 0.03698701479886206,
+        "fusion_scale": 0.25,
+        "top1_energy_fraction": 0.9902992327701347
+      },
+      "residual": {
+        "input_width": 128,
+        "spectral_norm": 0.55010340345308,
+        "bias_l2": 0.04747225515578399,
+        "fusion_scale": 0.25,
+        "top1_energy_fraction": 0.9864503362666986,
+        "scaled_correction_l2_bound": 1.5677954515308343
+      }
+    },
+    "cross_tf_out": {
+      "causal": {
+        "input_width": 128,
+        "spectral_norm": 0.7067596259785451,
+        "bias_l2": 0.04842334451369624,
+        "fusion_scale": 0.5,
+        "top1_energy_fraction": 0.9234702322626669
+      },
+      "residual": {
+        "input_width": 128,
+        "spectral_norm": 0.60859599579973,
+        "bias_l2": 0.06276243119203763,
+        "fusion_scale": 0.5,
+        "top1_energy_fraction": 0.9573132625562271,
+        "scaled_correction_l2_bound": 3.4741200606597684
+      }
+    },
+    "family_tf_cooperation_out": {
+      "causal": {
+        "input_width": 128,
+        "spectral_norm": 0.7303953563699909,
+        "bias_l2": 0.048422629527695396,
+        "fusion_scale": 0.25,
+        "top1_energy_fraction": 0.924847772737042
+      },
+      "residual": {
+        "input_width": 128,
+        "spectral_norm": 0.614056175170866,
+        "bias_l2": 0.06276154048278053,
+        "fusion_scale": 0.25,
+        "top1_energy_fraction": 0.9530922564151953,
+        "scaled_correction_l2_bound": 1.7525035270918705
+      }
+    }
+  },
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "bound_semantics": "For the new per-row parameter-free LayerNorm only: ||scale*(W*LN(x)+b)||_2 <= abs(scale)*(sigma_max(W)*sqrt(d)+||b||_2), in real arithmetic for finite inputs. This is an analytical bound from saved weights, not a measured representation norm or floating-point safety limit.",
+  "local_residual_bound": 1.5677954515308343,
+  "additional_mtf_residual_sum_bound": 5.226623587751639,
+  "limitations": "These bounds do not cover the unnormalized main fuse or raw MTF representation that also reaches Entry-Q. The failed decision comparison does not show where any remaining hidden attenuation occurs.",
+  "learning_gate_passed": false
+}

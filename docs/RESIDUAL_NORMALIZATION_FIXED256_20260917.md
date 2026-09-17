@@ -1,4 +1,8 @@
-# Én residualnormaliseringsprøve — bundet, ikke startet
+# Residualnormaliseringsprøve — fullført historikk
+
+Forsøket er fullført og avvist. Se RESIDUAL_NORMALIZATION_REVIEW_20260917.md.
+Oppskriften nedenfor er historikk og skal ikke relanseres.
+
 
 Kandidaten normaliserer input per rad før specialist_out, cross_tf_out og
 family_tf_cooperation_out. Ingen nye parametere eller RNG-trekk; ingen blanding

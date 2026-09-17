@@ -5,10 +5,9 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Residualnormalisering er implementert og kontrollert; én native TRAIN16/256-prøve er bundet, ikke startet. Læringsporten er fortsatt ikke bestått.
-Samme ferske state/RNG og frosne lærer er bevart. Tekniske tester er ikke
-læringsbevis. Ingen CONTROL/VAL/TEST, full epoch/full VAL eller automatisk
-utvidelse er åpnet. Neste er den bundne prøven og paret vurdering.
+Residualnormalisering er fullført og avvist: samme FLAT/sidekonstante valg. Ingen jobb eller aktiv kjøreplan; læringsporten er ikke bestått.
+Ny kandidat gir blandede MSE-endringer og identiske handlinger mot kausal256.
+Eksakt fasit/lærer er bevart. Neste er én avgrenset diagnose, ikke mer trening.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke
