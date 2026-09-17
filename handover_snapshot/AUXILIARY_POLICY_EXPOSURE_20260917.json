@@ -1,0 +1,116 @@
+{
+  "schema_version": "gx1_auxiliary_policy_exposure_audit_v1",
+  "decision": "BOUND_AUXILIARY_POLICIES_EXPOSED_TO_LATER_DEVELOPMENT_CONTROL",
+  "observed_utc": "2026-09-17T01:50:04.501140+00:00",
+  "source_commit": "edd66586c1eb6f7e322e7c4d1ab153edf9fda492",
+  "cutoff_utc": "2026-03-01T00:00:00+00:00",
+  "frozen_design": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+    "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+  },
+  "bindings": {
+    "index_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.manifest.json",
+      "sha256": "93e1424591f509540db9e822ab914e552f8eb624e332c8c5f58c259b72fbcf7e"
+    },
+    "parent_entry_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q_train.manifest.json",
+      "sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6"
+    },
+    "signal_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20260905T135917Z.json",
+      "sha256": "556b1fdbad918cb054264ddfec9df90bd4475c581045e1771cbc8b92352ceca0"
+    },
+    "ranking_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20260905T132535Z.json",
+      "sha256": "147d70cc79cddf35b8a3b95968f6092d0a998f98967e3acf23185e0dec1efe92"
+    },
+    "mtf_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/PRETEST_V3_ENRICHED_20260829T173000Z/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "842ca1ba3a98c3cc2a5c20ff73dfd83c258747a9cfa8824df0c18aec965192c9"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_PRETEST_20260829T172500Z/manifest.json",
+      "sha256": "eae9b347f86e147d564282e53f98f69d64016bc779cd88e3f33d76f1c41a8ea8"
+    }
+  },
+  "source_owners": {
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+      "sha256": "60e962f0d82e78574cb7e6fd6e614d872d2756c01ca976a745c4caedae7f020b"
+    },
+    "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py",
+      "sha256": "32bdb9e567c48bd88e36c803f1225c60fccc2cfaefa604b8414647568ea405a0"
+    },
+    "gx1/contracts/entry_causal_m1_target_policy_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_target_policy_v1.py",
+      "sha256": "fc4e2aa553eba698e5bd39f31339c66d4a1d6feeb8bf298d8bd4979b0dec5564"
+    },
+    "gx1/contracts/entry_causal_m1_position_size_target_policy_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_position_size_target_policy_v1.py",
+      "sha256": "fa91d832e1208fe5024d48fcf05167c71e1944e6778ca6c23102471630f3183b"
+    },
+    "gx1/contracts/entry_model_native_aux_targets_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_aux_targets_v3.py",
+      "sha256": "235204542fb0b7be6848818ff5f40dea39ea983e00e15dfff3c2173ea17b108c"
+    },
+    "gx1/features/trendline_registry_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/trendline_registry_v1.py",
+      "sha256": "246565bbf4cca923bbb62d5f2f8d224569db2de3e4e147dbfdaea78ead6e570d"
+    }
+  },
+  "direction_policy": {
+    "policy_sha256": "208fa387f4054594aa3a38f4f538f828dcfa9d005e5fb158eb0c047d6a77f8a2",
+    "train_start_utc": "2021-06-01T00:00:00+00:00",
+    "train_end_utc": "2026-05-31T23:50:00+00:00",
+    "selected_direction_horizon_bars": 19,
+    "path_quality_horizon_bars": 19
+  },
+  "position_size_policy": {
+    "policy_sha256": "793b305565848827675a421838d8aff0a302c77613b30c3df454ab5e0f59430b",
+    "entry_causal_m1_target_policy_sha256": "208fa387f4054594aa3a38f4f538f828dcfa9d005e5fb158eb0c047d6a77f8a2",
+    "train_start_utc": "2021-06-01T00:00:00+00:00",
+    "train_end_utc": "2026-05-31T23:50:00+00:00",
+    "fit_candidate_rows": 313455,
+    "fit_population_rows": 266740,
+    "path_horizon_bars": 19,
+    "ecdf_artifact_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/dataset/entry_dataset__ENTRY_FITTED_Q.entry_position_size_train_ecdf.npy",
+    "ecdf_artifact_sha256": "4f5b79f42ffa41ca47ac1f8d69ae08e1a2d9cdfa86fcbda9004bb4b2640384f9"
+  },
+  "active_loss_dependencies": {
+    "position_size": "Selected side, tradability mask and exact ECDF use the two exposed policies. Active masked MSE.",
+    "side_mae": "Raw long/short exact-M1 MAE uses horizon19 selected by the exposed direction policy. Active L1.",
+    "trendline_event": "Held-line labels use selected horizon19 on complete M5 registry; dense trap labels additionally use fitted path thresholds, side margin and direction. Active event loss.",
+    "dip_forecast_timing_tail_risk_vol_forecast": "37 raw targets at fixed M5 horizons; no fitted direction-policy values in these formulas. Purge actual future support, including maximum96 observed M5 bars.",
+    "entry_exit": "Coherent observed-reference owner already fixed; sampled-state/reference/bootstrap support still requires cutoff eligibility."
+  },
+  "source_locations": {
+    "active_losses": "entry_v10_ctx_train_v3.py:9421-9446; helpers5899/5935",
+    "diagnostic_support": "build_entry_v10_ctx_training_dataset_v3.py:3340,3870,4169,4180,4226,4317",
+    "raw_aux_support": "build_entry_v10_ctx_training_dataset_v3.py:440,3724",
+    "existing_prefix_policy_fit": "entry_causal_m1_target_policy_v1.py:246-290"
+  },
+  "reusable_metadata": {
+    "registry_declared_fit_end_utc": "2025-05-31T23:59:59+00:00",
+    "squeeze_declared_fit_end_utc": "2025-05-31T23:59:59+00:00",
+    "ranking_is_upstream_not_runtime_authority": true,
+    "limits": "Metadata dates only for registry/squeeze; not a replay of fitted parameter lineage. Exposed ranking must not drive new feature selection. All existing200 features/eight families/timeframes remain fixed."
+  },
+  "minimum_remedy": "Use existing direction-policy and position-size ECDF fit owners on the frozen earlier TRAIN period with complete pre-cutoff outcome support; freeze policies before applying to TRAIN and later control. Rebuild only dependent labels/masks with existing owners and explicit bindings. Do not keep19 because of control results, drop active heads, substitute zeros, refit on control or change the frozen design.",
+  "existing_owner_capability": "Direction fit already accepts train_start/train_end and requires every candidate maximum-horizon exit <=train_end. Size fit binds the direction policy. No new fitting algorithm or broad search is needed.",
+  "eligibility_status": "NOT_COMPLETE: raw37 M5 supports, sampled Exit/reference/bootstrap states and final prefix-policy bindings must be checked before fit-ready TRAIN IDs/order/probe are frozen.",
+  "scope": {
+    "metadata_and_source_only": true,
+    "price_target_values_read": false,
+    "actual_policy_fits": 0,
+    "actual_normalization_fits": 0,
+    "actual_model_forwards": 0,
+    "optimizer_steps": 0,
+    "gpu_used": false,
+    "test_accessed": false,
+    "learning_demonstrated": false,
+    "native_launch_authorized": false
+  },
+  "interpretation": "Exposure invalidates the proposed chronological independence if reused; it does not establish the cause of the earlier June failure or quantify overfitting. March-May remain reused development even after correction."
+}

@@ -111,6 +111,26 @@ ingen ny arkitektur eller separat runner. Ingen fit, trening, VAL eller TEST
 er åpnet. Gamle utviklingsperioder blir ikke urørte av nye vekter. Ingen
 holdetidsgrense eller automatisk forlengelse. Ikke gjenta ferdige auditer.
 
+## Bekreftet lekkasje i foreslått kontroll — 2026-09-17
+
+Bundet retning-/path-policy og posisjonsstørrelsens ECDF er fittet til
+2026-05-31, altså gjennom den planlagte mars–mai-kontrollen. Aktiv loss bruker
+disse i posisjonsstørrelse, sidevis MAE og trendlinjeutfall. Tidlige Entry-ID-er,
+ferske vekter og prefix-normalisering alene gir derfor ikke en ueksponert
+kontroll. Dette beviser ikke årsaken til tidligere juni-svikt.
+
+Minste rettelse er å bruke eksisterende policy-eiere på den tidligere TRAIN-
+perioden og fryse resultatet før avhengige fasiter/masker beregnes. Ikke behold
+19-stegshorisonten fordi kontrollen ser bra ut, fjern hoder eller endre designet.
+De37 rå hjelpefasitene har egne faste horisonter opptil96 observerte M5-bars;
+deres faktiske tidsstøtte og samplede Exit/bootstraps må fortsatt avgrenses.
+Registry-/squeeze-metadata oppgir fit-slutt i mai2025; ingen ny featuretilpasning
+er bestilt. Metadata er ikke en ny gjennomkjøring av hele featurekjeden.
+
+Se docs/AUXILIARY_POLICY_EXPOSURE_20260917.md. Ingen nye fasiter, fit, modell-
+forward eller optimizersteg. Trening er stengt. Frosset DESIGN/CONTROL256 og
+alle eksisterende features/tidsrammer beholdes. Ikke gjenta ferdig kildeaudit.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
