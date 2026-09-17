@@ -40,14 +40,16 @@ kostnader er bevart. Femstegsoppsettet er historisk sammenligningsgrunnlag.
 
 ## Aktuell forsøksstatus og drift
 
-Den korrigerte native256-prøven er fullført på955abf19. Fersk lagret
+Den tidligere korrigerte native256-prøven ble fullført på955abf19. Fersk lagret
 initialisering, normalisering/labels fittet på prefix-TRAIN, samme4096 Entries,
 frossen lærer og slutt-ONLINE. Bare TRAIN256/Exit-anker/samplede states er målt.
 Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
 beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLAT,
 Exit alltid HOLD for LONG / EXIT for SHORT. Signaldiagnosen er fullført: kraftig
 vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
-Entry-hidden. Inputnormaliseringen er uendret. Normaliseringen før tre residualprojeksjoner er prøvd med native256 og
+Entry-hidden. Dette er målt før residualnormaliseringen; den nye modellens
+representasjoner er ennå ikke målt. Inputnormaliseringen er uendret.
+Normaliseringen før tre residualprojeksjoner ble prøvd på88310075 med native256 og
 avvist: samme FLAT/sidekonstante handlinger. Ingen aktiv kjøreplan. Koden
 bevares for kildesamsvar; neste er avgrenset representasjonsdiagnose. Entry-hidden/Q inngår i Exit-tokenet, så endringer må også kontrollere
 bevaring av lærerens Entry-/Exit-outputs og frosne mål.

@@ -3,7 +3,7 @@
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Latest completed residual trial source; current working HEAD is separate.",
-  "latest_observation_utc": "2026-09-17T21:40:07.520267+00:00",
+  "latest_observation_utc": "2026-09-17T21:51:45.292433+00:00",
   "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917_BOOT460",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
@@ -211,7 +211,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T16:16:33.701806+00:00",
+  "observed_utc": "2026-09-17T21:51:45.292433+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -1068,5 +1068,22 @@
     "native_frozen_targets_exactly_preserved": true,
     "generalization_proven": false,
     "profitability_proven": false
+  },
+  "handover_resume_point": {
+    "observed_utc": "2026-09-17T21:51:45.292433+00:00",
+    "source_before_documentation_update": "1634c00202cf554e764a3060706d60b013b5252a",
+    "windows_task_observation": {
+      "observed_utc": "2026-09-17T21:51:45.1670597Z",
+      "task_name": "GX1NativeLearningCalibration",
+      "state": "Disabled",
+      "enabled": false
+    },
+    "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
+    "cache_files_exist_and_sha_verified": true,
+    "cache_schema_and_new_prediction_row_join_complete": false,
+    "new_diagnostic_bound": false,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "next_deliverable": "CPU-only cache/observation identity audit and native diagnostic compatibility decision; no model forward or training."
   }
 }

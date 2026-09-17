@@ -14,6 +14,10 @@ Data: /home/andre2/GX1_DATA. Mac er overleveringskopi. Start med
 current_work er nåstatus; COMPLETED_RUN og gamle VAL-felt er historikk.
 
 Les docs/RESIDUAL_NORMALIZATION_REVIEW_20260917.md og VEIEN_VIDERE.md.
+Overtakelsespunkt: cachefilenes eksistens og SHA er kontrollert; koblingen
+mellom cache-rader og den nye sluttmodellens prediksjoner er ennå ikke
+undersøkt. Ingen ny representasjonsdiagnose er bundet eller startet.
+VEIEN_VIDERE.md gir eksakte inputfiler og funksjoner for dette neste steget.
 BASE=/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912.
 Siste artefaktmappe er BASE/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917 med
 PAIRED_TRAIN_REVIEW,VERDICT,RESIDUAL_BOUND_AUDIT og COMPLETION_REVIEWED.json.

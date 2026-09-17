@@ -28,8 +28,9 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
   teknisk kontroll skal ikke automatisk gjentas eller utløse større trening.
   Gjeldende tillatt omfang står i NEXT_RUN_POLICY.json; training_enabled er false.
 - Bevar alle 200 features, åtte familier, tidsrammer og kausalitet. «Ingen fast
-  grense»: ingen fast tapsgrense eller maksimal holdetid. Femstegs targetberegning
-  er en læringsberegning med bootstrap, ikke en handelsregel om holdetid.
+  grense»: ingen fast tapsgrense eller maksimal holdetid. Beregningshorisont
+  og bootstrap er læringsberegning, ikke en handelsregel om holdetid. Gjeldende
+  120-stegs referanseberegning er beskrevet i SYSTEM_MAP.md; fem steg er historikk.
 - Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT
   er ikke dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet.
   TRAIN-tilpasning, senere VAL-kvalitet og samlet økonomi rapporteres hver for seg.
