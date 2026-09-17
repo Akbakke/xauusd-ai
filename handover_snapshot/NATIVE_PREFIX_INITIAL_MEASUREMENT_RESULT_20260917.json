@@ -1,0 +1,234 @@
+{
+  "audit_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/INITIAL_MEASUREMENT_AUDIT.json",
+    "sha256": "cc73c1f41043fdd7a38ab8816b512a322cf2ac906834885417379a9d9dd3ae3b"
+  },
+  "audit": {
+    "baseline_constants_use_train_only": true,
+    "completed_utc": "2026-09-17T07:53:56.456770+00:00",
+    "cuda_rng_seed": 20260911,
+    "decision": "FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED",
+    "economic_rollout": false,
+    "finished_utc": "2026-09-17T07:44:33.772085+00:00",
+    "fresh_model_optimizer_ema_scheduler_exactly_preserved": true,
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+      "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+    },
+    "learning_proven": false,
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "optimizer_steps": 0,
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917_BOOT451/receipts/invocation-0001.json",
+      "sha256": "fe01377b5f92ead375617756be979b025010f3f7e84ac347f0f207a21ffb8f55"
+    },
+    "remaining": "One predeclared256-step native experiment; fixed final ONLINE measurement against these frozen targets; no tuning on CONTROL.",
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+      "sha256": "0055346b38d9faa0d98603a8d355150e9ad07ca8192d0c841e389dde6157bb81"
+    },
+    "saved_cpu_python_numpy_rng_exactly_preserved": true,
+    "schema_version": "gx1_native_prefix_initial_measurement_audit_v1",
+    "source_commit": "0d50bbd9314f2124a1321b63d1008452e84cf468",
+    "started_utc": "2026-09-17T07:30:23.646868+00:00",
+    "summary": {
+      "control": {
+        "cohort_sha256": "0aa3ffe2e645339b2caa1479d2fe7d6f4648a939ae868ff9584ea327f0a3d646",
+        "entries": 256,
+        "entry_action_counts": {
+          "FLAT": 67,
+          "LONG": 27,
+          "SHORT": 162
+        },
+        "exit_hold_counts": {
+          "exit_anchor": {
+            "LONG": 255,
+            "SHORT": 255
+          },
+          "exit_sampled": {
+            "LONG": 1001,
+            "SHORT": 1019
+          }
+        },
+        "initial_metrics": {
+          "entry": {
+            "LONG": {
+              "initial_centered_mse": 496.08473933187395,
+              "initial_mse": 530.4488927961684,
+              "prediction_mean_bps": 1.0736844917410053,
+              "prediction_std_bps": 0.29744844084433475,
+              "target_mean_bps": 6.935779122868553,
+              "target_std_bps": 22.312252049637355,
+              "train_constant_bps": 3.8568875598721206,
+              "train_constant_mse": 507.31616478323696
+            },
+            "SHORT": {
+              "initial_centered_mse": 412.58824699476907,
+              "initial_mse": 432.70688651503826,
+              "prediction_mean_bps": 1.5341610561226844,
+              "prediction_std_bps": 0.4538190371104782,
+              "target_mean_bps": 6.019541699977708,
+              "target_std_bps": 20.287388877217612,
+              "train_constant_bps": 1.803549165430013,
+              "train_constant_mse": 429.35274050681494
+            }
+          },
+          "exit_anchor": {
+            "LONG": {
+              "initial_centered_mse": 1159.4043752266593,
+              "initial_mse": 1159.8781356315621,
+              "prediction_mean_bps": 0.09766644315095618,
+              "prediction_std_bps": 0.0315883119520664,
+              "target_mean_bps": 0.7859689964680001,
+              "target_std_bps": 34.048623286234076,
+              "train_constant_bps": 2.2173689806077164,
+              "train_constant_mse": 1161.3576536024766
+            },
+            "SHORT": {
+              "initial_centered_mse": 1157.6039623754868,
+              "initial_mse": 1158.3270897448128,
+              "prediction_mean_bps": 0.08048471674555913,
+              "prediction_std_bps": 0.024831421957306858,
+              "target_mean_bps": -0.769884243956767,
+              "target_std_bps": 34.02413646904705,
+              "train_constant_bps": -2.198963167727925,
+              "train_constant_mse": 1159.6841290347047
+            }
+          },
+          "exit_sampled": {
+            "LONG": {
+              "initial_centered_mse": 1143.407210679153,
+              "initial_mse": 1143.467738233162,
+              "prediction_mean_bps": 0.08890537152137767,
+              "prediction_std_bps": 0.04985195260247526,
+              "target_mean_bps": -0.15711811111577845,
+              "target_std_bps": 33.815948189326065,
+              "train_constant_bps": -0.1634380246468936,
+              "train_constant_mse": 1143.5183918844918
+            },
+            "SHORT": {
+              "initial_centered_mse": 1140.4750447659558,
+              "initial_mse": 1140.475934784089,
+              "prediction_mean_bps": 0.08357262881190763,
+              "prediction_std_bps": 0.0319760525704736,
+              "target_mean_bps": 0.11340580050455173,
+              "target_std_bps": 33.770988565770914,
+              "train_constant_bps": 0.107080012174265,
+              "train_constant_mse": 1140.479708725028
+            }
+          }
+        },
+        "sampled_exit_states": 1024,
+        "sampled_state_coordinates_sha256": "2a4f5f78b396894781afd8b4a830b8c8c50f1a4d301edb5c32379b027fe88aef"
+      },
+      "train": {
+        "cohort_sha256": "5f57f50bb939a043c522ce90786215f8e5887fe69d04efc9c0ac90183cff4c1c",
+        "entries": 256,
+        "entry_action_counts": {
+          "FLAT": 39,
+          "LONG": 127,
+          "SHORT": 90
+        },
+        "exit_hold_counts": {
+          "exit_anchor": {
+            "LONG": 256,
+            "SHORT": 256
+          },
+          "exit_sampled": {
+            "LONG": 1013,
+            "SHORT": 1022
+          }
+        },
+        "initial_metrics": {
+          "entry": {
+            "LONG": {
+              "initial_centered_mse": 239.61087652852973,
+              "initial_mse": 246.11928317478655,
+              "prediction_mean_bps": 1.3057296568294987,
+              "prediction_std_bps": 0.40543179225095904,
+              "target_mean_bps": 3.8568875598721206,
+              "target_std_bps": 15.512589261404996,
+              "train_constant_bps": 3.8568875598721206,
+              "train_constant_mse": 240.6404255930576
+            },
+            "SHORT": {
+              "initial_centered_mse": 236.8308455973738,
+              "initial_mse": 237.2181091379066,
+              "prediction_mean_bps": 1.181244143328513,
+              "prediction_std_bps": 0.4805911960419352,
+              "target_mean_bps": 1.803549165430013,
+              "target_std_bps": 15.415551823798879,
+              "train_constant_bps": 1.803549165430013,
+              "train_constant_mse": 237.63923803222895
+            }
+          },
+          "exit_anchor": {
+            "LONG": {
+              "initial_centered_mse": 625.1619386343694,
+              "initial_mse": 629.6484486061577,
+              "prediction_mean_bps": 0.09923065373004647,
+              "prediction_std_bps": 0.03163033681453533,
+              "target_mean_bps": 2.2173689806077164,
+              "target_std_bps": 25.000738704983654,
+              "train_constant_bps": 2.2173689806077164,
+              "train_constant_mse": 625.0369357948678
+            },
+            "SHORT": {
+              "initial_centered_mse": 622.5319091555416,
+              "initial_mse": 627.7748292045669,
+              "prediction_mean_bps": 0.0907791865611216,
+              "prediction_std_bps": 0.030010072241123342,
+              "target_mean_bps": -2.198963167727925,
+              "target_std_bps": 24.95218472753857,
+              "train_constant_bps": -2.198963167727925,
+              "train_constant_mse": 622.611522677209
+            }
+          },
+          "exit_sampled": {
+            "LONG": {
+              "initial_centered_mse": 864.7144002389105,
+              "initial_mse": 864.7876983971744,
+              "prediction_mean_bps": 0.10729830144146035,
+              "prediction_std_bps": 0.055330339720148884,
+              "target_mean_bps": -0.1634380246468936,
+              "target_std_bps": 29.405953389739217,
+              "train_constant_bps": -0.1634380246468936,
+              "train_constant_mse": 864.7100947595153
+            },
+            "SHORT": {
+              "initial_centered_mse": 859.5025937348298,
+              "initial_mse": 859.5027041253611,
+              "prediction_mean_bps": 0.09657332233564375,
+              "prediction_std_bps": 0.03576259754004657,
+              "target_mean_bps": 0.107080012174265,
+              "target_std_bps": 29.315869375693886,
+              "train_constant_bps": 0.107080012174265,
+              "train_constant_mse": 859.4201972527467
+            }
+          }
+        },
+        "sampled_exit_states": 1024,
+        "sampled_state_coordinates_sha256": "3ea9dc788cf3770bc6e908cb5be63d132ac811fa8cfd9c2cff090991b5fe4072"
+      }
+    },
+    "teacher_refreshed": false,
+    "test_data_used": false,
+    "training_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "6fbc70754ca4dc46554fbe816b31bd4fef6e0af28acdd043405e9de075d57766"
+    },
+    "training_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "4305e60e5141fd2d9ccf57f397e433f9221a6e9bb6629355aa268811cd66d9a5"
+    }
+  },
+  "native_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "0055346b38d9faa0d98603a8d355150e9ad07ca8192d0c841e389dde6157bb81"
+  },
+  "windows_task_state": "Disabled",
+  "windows_task_enabled": false
+}

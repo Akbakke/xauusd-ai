@@ -7,8 +7,9 @@ samt recipe/campaign er koblet og syntetisk kontrollert. Kontrollens Entry/Exit
 bruker samme observerte referanse som TRAIN. Transformreferansene er nå
 oppdatert med uendrede fysiske data. Faktisk fersk native oppstart er ferdig
 på CPU; initial ONLINE/target/EMA er like og AdamW er fersk. TRAIN-/kontroll-
-utvalg og samples er nå fryst og native bundet. Faktiske target-/førmålinger
-og fast ONLINE-sluttmåling gjenstår før læringsresultatet kan vurderes.
+utvalg og samples er fryst og native bundet. Faktiske target-/førmålinger er
+nå ferdige med bevart starttilstand og null optimizersteg. Det ene fryste256-
+stegsforsøket og fast ONLINE-sluttmåling gjenstår før læring kan vurderes.
 CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json avgjør neste arbeid; teksten
 lenger ned beskriver historiske beslutninger.
 

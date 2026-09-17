@@ -1,18 +1,26 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: kjør den bundne native førmålingen
+## Gjeldende neste steg: bind det fryste256-stegsforsøket
 
-Nullstegskoblingen er ferdig:12 fokuserte CPU-tester og faktisk artefaktbinding
-består. Eksisterende native koordinator lagrer startcheckpoint før TRAIN og
-måler fryste TRAIN256/CONTROL256 med1024 Exit-samples hver. Vekter, tilfeldig
-tilstand og checkpointpeker bevares, også ved målefeil. Ingen ny modell-forward.
+Den faktiske native førmålingen er ferdig og kontrollert. TRAIN256 og CONTROL256
+har hver256 Entry-/Exit-ankermålinger og1024 fryste Exit-samples. Alle mål og
+prediksjoner er numerisk endelige, utvalg/rekkefølge er eksakt riktige. Original modell,
+target, AdamW, EMA, scheduler og CPU/Python/NumPy-tilstand er bevart eksakt.
+Checkpoint står ved epoch0/offset0/steg0. GuardPASS, trainer0, observer0.
+Windows-tasken er deaktivert; ingen native jobb kjører. Ikke gjenta førmålingen.
 
-NEXT_RUN_POLICY åpner kun ett native nullstegsvindu fra lagret INITIAL_STATE.pt.
-Commit og bind gjeldende kilde før campaign startes gjennom eksisterende vakter.
-Ingen optimizersteg, refit, target-refresh, økonomi, full epoch/fullVAL eller TEST.
-Etter førmålingen gjenstår det fryste256-stegsforsøket og fast ONLINE-sluttmåling.
-Ingen læringsport er bestått. Ikke gjenta ferdige forberedelser eller tester.
-Se docs/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917.md.
+Utrent Exit velger HOLD på1013/1022 av1024 TRAIN-samples og1001/1019 kontroll-
+samples for LONG/SHORT. Dette er startatferd, ingen dokumentert tålmodighet
+eller læring. TRAIN-konstanter og samme fryste fasiter er lagret som baseliner.
+
+Neste er én native recipe for det på forhånd bestemte256-stegsforsøket, bundet
+til samme lagrede initialtilstand og fast ONLINE-sluttmåling. Bruk eksisterende
+måleeier og sammenlign samme Entry/Exit-mål, sider og perioder. Ingen ny
+initialisering, sampling, fit, target-refresh eller valg av beste checkpoint.
+Førmålingsunntaket er stengt; chronological_learning_run er ikke åpnet ennå.
+training_enabled=false. Full epoch/fullVAL, økonomi og TEST er fortsatt stengt.
+Ingen læringsport er bestått. Se docs/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917.md
+og handover_snapshot/NATIVE_PREFIX_INITIAL_MEASUREMENT_RESULT_20260917.json.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får
