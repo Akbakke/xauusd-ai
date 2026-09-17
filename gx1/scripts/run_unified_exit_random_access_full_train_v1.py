@@ -362,6 +362,9 @@ def _build_bound_full_train_components(
                 result_path=Path(chronological_prefix["labels_result"]["path"]),
                 expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
                 expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
+        # Measurement shares the TRAIN inputs and bound labels, while lifecycle
+        # materialization remains attached only to the optimizer's dataset.
+        train_probe_ds = copy.copy(datasets["train"])
     corpus = val.UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
         entry_parquets={split: files[f"entry_{split}_parquet"] for split in physical_splits},
@@ -541,6 +544,7 @@ def _build_bound_full_train_components(
         "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
         "full_population_schedule": schedule,
         **({"chronological_prefix": prefix["bindings"], "prefix_parent_population": prefix["eligible_parent_rows"],
+            "train_probe_ds": train_probe_ds,
             "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
         "effective_train_rows": effective_train_rows,
         "unified_exit_lifecycle_evidence": {

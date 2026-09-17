@@ -19,6 +19,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
 
 SCHEMA = "gx1_bounded_val_cohort_v1"
 CHRONOLOGICAL_SCHEMA = "gx1_chronological_development_control_cohort_v1"
+MEASUREMENT_SCHEMA = "gx1_chronological_measurement_cohort_v1"
 
 
 def build_bounded_val_cohort(plan_binding: Mapping[str, str]) -> dict[str, Any]:
@@ -125,7 +126,86 @@ def build_chronological_control_cohort(
     return value
 
 
+def build_chronological_measurement_cohort(
+    design_binding: Mapping[str, str], coordinates_binding: Mapping[str, str], *, role: str,
+) -> dict[str, Any]:
+    """Bind frozen TRAIN/control measurements, without authorizing a rollout."""
+    if role not in {"train", "control"}:
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_ROLE_INVALID")
+    control = build_chronological_control_cohort(design_binding)
+    binding = require_binding(coordinates_binding, label="measurement coordinates", verify_file=True)
+    result = read_bound_json(Path(binding["path"]), binding["sha256"])
+    if (result.get("schema_version") != "gx1_prefix_measurement_coordinates_v1"
+            or result.get("decision") != "TRAIN_AND_CONTROL_COORDINATES_FROZEN_NO_MODEL_MEASUREMENTS"
+            or result.get("design") != control["plan"]
+            or result.get("source_index") != control["source_index"]
+            or result.get("population_rows") != control["population_rows"]
+            or any(result.get(k) is not True for k in (
+                "train_samples_exactly_reused", "control_entry_ids_unchanged", "all_samples_preserved"))
+            or result.get("test_data_used") is not False
+            or any(result.get(k) != 0 for k in ("model_forwards", "optimizer_steps", "fits"))):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_RESULT_INVALID")
+    design = read_bound_json(Path(control["plan"]["path"]), control["plan"]["sha256"])
+    aux_binding = require_binding(result["auxiliary_policies"], label="prefix policies", verify_file=True)
+    aux = read_bound_json(Path(aux_binding["path"]), aux_binding["sha256"])
+    if aux.get("frozen_design") != control["plan"]:
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PREFIX_MISMATCH")
+    row_binding = (aux["bindings"]["TRAIN256_PROBE_PARENT_ROWS"] if role == "train"
+                   else design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
+    row_binding = require_binding(row_binding, label="frozen measurement rows", verify_file=True)
+    expected = np.load(row_binding["path"], allow_pickle=False)
+    array_binding = require_binding(result["coordinates"][role], label="measurement array", verify_file=True)
+    with np.load(array_binding["path"], allow_pickle=False) as arrays:
+        required = {"parent_rows": (256,), "child_rows": (256,), "entry_time_ns": (256,),
+                    "sampled_state_indices": (256, 4), "sampled_reference_end_close_ns": (256, 4),
+                    "anchor_reference_end_close_ns": (256,)}
+        if (set(arrays.files) != set(required)
+                or any(arrays[k].dtype != np.dtype("int64") or arrays[k].shape != shape
+                       for k, shape in required.items())):
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_ARRAY_INVALID")
+        data = {k: arrays[k].copy() for k in required}
+    parents, children, offsets = data["parent_rows"], data["child_rows"], data["sampled_state_indices"]
+    if (not np.array_equal(parents, expected) or len(np.unique(parents)) != 256
+            or len(np.unique(children)) != 256 or np.any(children < 0)
+            or np.any(children >= control["population_rows"]) or np.any(offsets < 0)):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_COORDINATES_INVALID")
+    frame = pd.read_parquet(control["source_index"]["path"], columns=[
+        "entry_row_index", "parent_entry_row_index", "entry_time_ns", "successor_transition_count"])
+    selected = frame.iloc[children]
+    cutoff_key = "train_control_cutoff" if role == "train" else "development_control_entry_end_exclusive"
+    start_key = "train_entry_start_inclusive" if role == "train" else "train_control_cutoff"
+    start, cutoff = (pd.Timestamp(design["calendar"][k]) for k in (start_key, cutoff_key))
+    if (start.tzinfo is None or cutoff.tzinfo is None or start >= cutoff
+            or not np.array_equal(selected.entry_row_index, children)
+            or not np.array_equal(selected.parent_entry_row_index, parents)
+            or not np.array_equal(selected.entry_time_ns, data["entry_time_ns"])
+            or np.any(data["entry_time_ns"] < start.value) or np.any(data["entry_time_ns"] >= cutoff.value)
+            or np.any(offsets >= selected.successor_transition_count.to_numpy()[:, None])
+            or np.any(data["sampled_reference_end_close_ns"] > cutoff.value)
+            or np.any(data["anchor_reference_end_close_ns"] > cutoff.value)):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_SUPPORT_INVALID")
+    value = {
+        "schema_version": MEASUREMENT_SCHEMA, "split": "train" if role == "train" else "val",
+        "source_split": "train", "measurement_only": True, "measurement_role": role,
+        "evaluation_role": ("chronological_training_probe" if role == "train"
+                            else "chronological_reused_development_control"),
+        "plan": control["plan"], "measurement_coordinates": binding,
+        "source_index": control["source_index"], "population_rows": control["population_rows"],
+        "entry_row_indices": children.tolist(), "parent_entry_row_indices": parents.tolist(),
+        "sampled_state_indices": offsets.tolist(), "reference_cutoff_time_ns": int(cutoff.value),
+        "test_data_used": False,
+    }
+    value["cohort_sha256"] = canonical_sha256(value)
+    return value
+
+
 def require_bounded_val_cohort(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping) and value.get("schema_version") == MEASUREMENT_SCHEMA:
+        expected = build_chronological_measurement_cohort(
+            value.get("plan"), value.get("measurement_coordinates"), role=value.get("measurement_role"))
+        if dict(value) != expected:
+            raise RuntimeError("BOUNDED_VAL_COHORT_BINDING_MISMATCH")
+        return expected
     if isinstance(value, Mapping) and value.get("schema_version") == CHRONOLOGICAL_SCHEMA:
         expected = build_chronological_control_cohort(
             value.get("plan"), source_index_binding=value.get("source_index"))

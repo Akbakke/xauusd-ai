@@ -525,7 +525,8 @@ def _entry_representations(
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         checked_cohort = require_bounded_val_cohort(evaluation_cohort)
         expected_child_rows = checked_cohort["entry_row_indices"]
-        if checked_cohort.get("evaluation_role") == "chronological_reused_development_control":
+        if checked_cohort.get("evaluation_role") in {
+                "chronological_reused_development_control", "chronological_training_probe"}:
             from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
             plan_binding = checked_cohort["plan"]
             plan = read_bound_json(Path(plan_binding["path"]), plan_binding["sha256"])
@@ -540,8 +541,19 @@ def _entry_representations(
                 "semantics":"observed_reference_anchor_Q_mu_with_greedy_first_action",
                 "frozen_design":plan_binding,
                 "reference_policy":require_reference_policy_contract(plan["targets"]["reference_policy"]),
-                "reference_cutoff_time_ns":int(pd.Timestamp(plan["calendar"]["development_control_entry_end_exclusive"]).value),
+                "reference_cutoff_time_ns":int(pd.Timestamp(plan["calendar"][
+                    "train_control_cutoff" if checked_cohort["evaluation_role"] == "chronological_training_probe"
+                    else "development_control_entry_end_exclusive"]).value),
             }
+            if checked_cohort.get("measurement_only") is True:
+                if (getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index")
+                        != checked_cohort["source_index"]["sha256"]):
+                    raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_SOURCE_BINDING_MISMATCH")
+                bound_samples = checked_cohort["sampled_state_indices"]
+                if (candidate_sampled_state_indices is not None
+                        and [list(row) for row in candidate_sampled_state_indices] != bound_samples):
+                    raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_SAMPLE_BINDING_MISMATCH")
+                candidate_sampled_state_indices = bound_samples
     if len(parent_rows) != len(expected_child_rows) or len(set(parent_rows)) != len(parent_rows):
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_PARENT_ENTRY_MAPPING_INVALID")
     candidate = candidate_target_model is not None
@@ -814,6 +826,8 @@ def evaluate_bound_full_val_v1(
     if evaluation_cohort is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(evaluation_cohort)
+        if scope.get("measurement_only") is True:
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT")
         if (frame["entry_row_index"].astype("int64").tolist() != scope["entry_row_indices"]
                 or ("parent_entry_row_indices" in scope and
                     frame["parent_entry_row_index"].astype("int64").tolist() != scope["parent_entry_row_indices"])):

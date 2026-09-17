@@ -1,5 +1,5 @@
 {
-  "status": "SAMPLED_REFERENCE_READY_NATIVE_MEASUREMENT_BINDING_NEXT",
+  "status": "ACTUAL_MEASUREMENT_BINDINGS_READY_INITIAL_NATIVE_DISPATCH_NEXT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Historical TRAIN source is preserved separately. Completed baseline89c and candidate866 differ only in the numerical parity assertion/log; no active native run.",
@@ -60,7 +60,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed.",
+  "next_action": "Frozen TRAIN256 and CONTROL256 coordinates are now bound through the existing native measurement owners:1024 sampled Exit states per role, unchanged original TRAIN samples and CONTROL Entry IDs, exact original physical source and separate March1/June1 support cutoffs.18 focused synthetic tests and actual artifact binding passed. TRAIN probe shares the original inputs and bound TRAIN labels without attaching the training lifecycle materializer. Reuse these coordinates, tests and saved INITIAL_STATE.pt; no reinitialization or sampling rerun. Next is the narrow initial frozen-target/prediction dispatch through the existing native campaign and guards, then the single predeclared256-step experiment and fixed ONLINE final measurement. No actual model forward, optimizer step, fit, full epoch/fullVAL, economics or TEST is authorized merely by this binding result; training_enabled remains false and chronological_learning_run is absent.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -167,7 +167,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-17T06:27:17.879496+00:00",
+  "observed_utc": "2026-09-17T06:47:20.700416+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -301,7 +301,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Existing native reference measurement now supports all four fixed sampled Exit states per Entry, with exact TRAIN target parity and state0 Entry targets retained;26 unique synthetic tests passed. Reuse these tests and saved INITIAL_STATE.pt. Next: bind TRAIN256 and fixed CONTROL sample coordinates, then frozen target/initial-prediction preparation and fixed final ONLINE dispatch through existing native guards. No actual market-model forwards, optimizer steps, refits, chronological_learning_run, full epoch/fullVAL or TEST are authorized by this code evidence; training_enabled remains false. Do not rebuild the fresh initialization solely because measurement-only source changed."
+    "next_scope": "Frozen TRAIN256 and CONTROL256 coordinates are now bound through the existing native measurement owners:1024 sampled Exit states per role, unchanged original TRAIN samples and CONTROL Entry IDs, exact original physical source and separate March1/June1 support cutoffs.18 focused synthetic tests and actual artifact binding passed. TRAIN probe shares the original inputs and bound TRAIN labels without attaching the training lifecycle materializer. Reuse these coordinates, tests and saved INITIAL_STATE.pt; no reinitialization or sampling rerun. Next is the narrow initial frozen-target/prediction dispatch through the existing native campaign and guards, then the single predeclared256-step experiment and fixed ONLINE final measurement. No actual model forward, optimizer step, fit, full epoch/fullVAL, economics or TEST is authorized merely by this binding result; training_enabled remains false and chronological_learning_run is absent."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -634,5 +634,22 @@
     "report": "docs/SAMPLED_REFERENCE_MEASUREMENT_20260917.md",
     "unique_tests_passed": 26,
     "learning_proven": false
+  },
+  "completed_prefix_native_measurement_binding": {
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "report": "docs/PREFIX_NATIVE_MEASUREMENT_BINDING_20260917.md",
+    "coordinate_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_COORDINATES_20260917/RESULT.json",
+      "sha256": "0a99d64a08ec57b2b305e3574f211b07fc1f4101f9d7f2e5f2092c8b580d703c"
+    },
+    "native_cohorts": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/ACTUAL_NATIVE_COHORTS.json",
+      "sha256": "b40e8614ed705dc907712828098da09a58eeb7512d3c447ecd1c2b187dc63bdb"
+    },
+    "tests_passed": 18,
+    "actual_model_forwards": 0
   }
 }

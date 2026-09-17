@@ -1,0 +1,122 @@
+{
+  "binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+  },
+  "result": {
+    "schema_version": "gx1_prefix_native_measurement_binding_result_v1",
+    "decision": "FROZEN_TRAIN_CONTROL_COORDINATES_AND_NATIVE_MEASUREMENT_BINDING_READY",
+    "completed_utc": "2026-09-17T06:47:20.700416+00:00",
+    "source_commit_before": "a9d45df5d6b63ffa541dba0cac819624334c6a4e",
+    "source_files": {
+      "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": "1d40e538ecac6ca934dfa211b13b906515d84643f67b6a5ad9adc290ffb3f218",
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "fa4c868e8b7be4f5bcde0570d8bf4151b997f8ef779c59f42e774c97b7c229da",
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": "25e67111d24a9ee18be37401ccb8fd48dcdfd701c3cc4c2cdbc1369ec9bae347",
+      "tests/test_native_fresh_prefix_components.py": "2372772140f54b87bb4d7ab536680d7277385217eafb646a2c7bd8649075d397",
+      "tests/test_chronological_measurement_binding.py": "5689216b3d7317ef05a9f305ca2da37f780fe2247d22ccc911846b32d131db19"
+    },
+    "changed_functions": {
+      "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": [
+        "build_chronological_measurement_cohort",
+        "require_bounded_val_cohort"
+      ],
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": [
+        "_build_bound_full_train_components"
+      ],
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": [
+        "_entry_representations",
+        "evaluate_bound_full_val_v1"
+      ]
+    },
+    "tests_passed": 18,
+    "synthetic_junit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/JUNIT.xml",
+      "sha256": "698c5b8da185b51a3f0ea7166ed100732719fa2712ab35c06fdd53c377a5dd69"
+    },
+    "synthetic_log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/TEST.log",
+      "sha256": "34bb4535df331f81e8c5577ce37b32a12b33ee6301e04e75d1467f29942ebec0"
+    },
+    "coordinate_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_COORDINATES_20260917/RESULT.json",
+      "sha256": "0a99d64a08ec57b2b305e3574f211b07fc1f4101f9d7f2e5f2092c8b580d703c"
+    },
+    "coordinate_summary": {
+      "train": {
+        "entries": 256,
+        "sampled_states": 1024,
+        "samples_per_entry": 4,
+        "by_month": {
+          "2025-06": 31,
+          "2025-07": 36,
+          "2025-08": 22,
+          "2025-09": 38,
+          "2025-10": 31,
+          "2025-11": 24,
+          "2025-12": 33,
+          "2026-01": 27,
+          "2026-02": 14
+        },
+        "min_state_index": 0,
+        "max_state_index": 38515,
+        "maximum_support_close_utc": "2026-02-25T12:14:00+00:00",
+        "support_cutoff_time_ns": 1772323200000000000,
+        "right_censored_sample_states": 17,
+        "right_censored_anchors": 0
+      },
+      "control": {
+        "entries": 256,
+        "sampled_states": 1024,
+        "samples_per_entry": 4,
+        "by_month": {
+          "2026-03": 83,
+          "2026-04": 87,
+          "2026-05": 86
+        },
+        "min_state_index": 0,
+        "max_state_index": 46725,
+        "maximum_support_close_utc": "2026-06-01T00:00:00+00:00",
+        "support_cutoff_time_ns": 1780272000000000000,
+        "right_censored_sample_states": 13,
+        "right_censored_anchors": 0
+      }
+    },
+    "actual_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/ACTUAL_BINDING_RESULT.json",
+      "sha256": "cc4a744bf4147cb939788f9587b710424e46ab1e6cc95634a19a1d5e8e225da1"
+    },
+    "native_cohorts": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/ACTUAL_NATIVE_COHORTS.json",
+      "sha256": "b40e8614ed705dc907712828098da09a58eeb7512d3c447ecd1c2b187dc63bdb"
+    },
+    "native_cohort_summary": {
+      "train": {
+        "cohort_sha256": "5f57f50bb939a043c522ce90786215f8e5887fe69d04efc9c0ac90183cff4c1c",
+        "entries": 256,
+        "sampled_states": 1024,
+        "evaluation_role": "chronological_training_probe",
+        "reference_cutoff_time_ns": 1772323200000000000
+      },
+      "control": {
+        "cohort_sha256": "0aa3ffe2e645339b2caa1479d2fe7d6f4648a939ae868ff9584ea327f0a3d646",
+        "entries": 256,
+        "sampled_states": 1024,
+        "evaluation_role": "chronological_reused_development_control",
+        "reference_cutoff_time_ns": 1780272000000000000
+      }
+    },
+    "train_samples_reused_exactly": true,
+    "control_entry_ids_unchanged": true,
+    "train_probe_dataset_shares_inputs_and_train_labels_without_lifecycle_materializer": true,
+    "measurement_cohort_cannot_authorize_economic_rollout": true,
+    "actual_model_forwards": 0,
+    "optimizer_steps": 0,
+    "new_fits": 0,
+    "test_data_used": false,
+    "learning_proven": false,
+    "remaining": [
+      "Dispatch a narrowly bound initial target/prediction measurement from saved INITIAL_STATE.pt through the existing native campaign and guards.",
+      "Bind the one predeclared256-step experiment and fixed final ONLINE measurement; paired learning review before economics."
+    ]
+  }
+}

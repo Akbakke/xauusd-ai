@@ -1,17 +1,18 @@
 # GX1 — gjeldende overlevering, 2026-09-17
 
-## Gjeldende neste steg: bind native target- og sammenligningsmåling
+## Gjeldende neste steg: native førmåling fra lagret initialtilstand
 
-Fersk native initialtilstand er lagret og kontrollert. Den eksisterende
-målefunksjonen støtter nå også fire fryste Exit-tilstander senere i handelen,
-med samme fasit som TRAIN og uendret state0-fasit for Entry.26 unike syntetiske
-kontroller består. Ingen faktisk modell-forward, optimizersteg eller refit.
+TRAIN256 og CONTROL256 er nå koblet til eksisterende native måleeiere med
+1024 fryste Exit-tilstander hver. Opprinnelige TRAIN-samples og kontroll-ID-er
+er uendret, riktige datogrenser er kontrollert.18 fokuserte syntetiske tester
+og binding av begge faktiske kohorter består. TRAIN-lesekopien deler input/
+labels, uten å utløse treningssampleren. Ingen faktisk modell-forward eller fit.
 
-Neste er eksplisitt TRAIN256-binding og fryste CONTROL-samplekoordinater,
-så target-/førmåling fra INITIAL_STATE.pt og fast ONLINE-sluttmåling gjennom
-native vakter. Ingen chronological_learning_run er åpnet; training_enabled
-er false. Ikke gjenta ferdig oppstart eller tester. Se
-docs/SAMPLED_REFERENCE_MEASUREMENT_20260917.md. Ingen ny læring er bevist.
+Neste er avgrenset target-/førmåling fra INITIAL_STATE.pt gjennom eksisterende
+native campaign og vakter, deretter det ene256-stegsforsøket og fast ONLINE-
+sluttmåling. Ingen chronological_learning_run er åpnet; training_enabled er
+false. Gjenbruk ferdige utvalg, initialtilstand og tester. Se
+docs/PREFIX_NATIVE_MEASUREMENT_BINDING_20260917.md. Ingen ny læring er bevist.
 
 **Den frosne kandidaten forkastes for utvidelse. Begge juni256-målinger er ferdige.**
 Baseline velger256FLAT og0Bps. Kandidaten velger212LONG/15SHORT/29FLAT og får

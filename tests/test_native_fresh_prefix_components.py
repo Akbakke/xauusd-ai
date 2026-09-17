@@ -227,6 +227,12 @@ def test_existing_component_owner_uses_fresh_state_labels_and_physical_train(com
     train,control=c['train_ds'],c['val_ds']
     assert train is not control and train.storage is control.storage
     assert train.role=='TRAIN' and control.role=='CONTROL256'
+    probe=c['train_probe_ds']
+    assert probe is not train and probe is not control
+    assert probe.storage is train.storage and probe.df is train.df
+    assert probe.role=='TRAIN' and probe.label_binding==train.label_binding
+    assert not hasattr(probe,'_unified_exit_lifecycle_v2')
+    assert not hasattr(probe,'_random_access_child_index_by_parent')
     assert len(seen['dataset_constructors'])==1
     assert not hasattr(control,'_unified_exit_lifecycle_v2')
     assert seen['control_factory']['source_split']=='train'
