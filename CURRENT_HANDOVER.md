@@ -34,10 +34,10 @@ checkpoints, planer, resultater og den mislykkede kjøringen er bevart.
 Brukeren godkjente offentlig push2026-09-17 og ga stående autorisasjon for
 ferdig GX1-kode, dokumentasjon og aggregerte bevis til Akbakke/xauusd-ai.
 Ikke be om samme godkjenning på nytt. Rådata, vekter og hemmeligheter inngår ikke.
-Selve pushen ble likevel blokkert av automatisk godkjenningskontroll, som
-krever uttrykkelig bekreftelse på offentlig mål og innhold sammen. Det presise
-spørsmålet er allerede stilt; vent på svaret før nytt pushforsøk. Koden er
-committet lokalt. Ikke omgå plattformkontrollen eller spør gjentatte ganger.
+Brukeren har også besvart plattformens presise spørsmål om offentlig mål og
+innhold med «Ja, godkjenn dette og tilsvarende fremtidige GX1-push».
+Den tidligere avvisningen er dermed møtt med uttrykkelig godkjenning; ingen
+ny prosjektbekreftelse kreves for samme publiseringsomfang.
 
 ## Kontrollert etter avvisningen
 
