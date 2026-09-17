@@ -701,6 +701,263 @@ def _position_size_target_from_path(
     return result["target"], result["mask"]
 
 
+def build_policy_dependent_entry_auxiliary_targets(
+    *,
+    outcome_frame: pd.DataFrame,
+    line_labels: pd.DataFrame,
+    direction_target_policy: Mapping[str, Any],
+    position_size_target_policy: Mapping[str, Any],
+) -> Dict[str, np.ndarray]:
+    """Apply frozen policies to the existing active size/MAE/line targets.
+
+    The full builder and prefix materialization share these exact formulas.
+    Callers retain responsibility for complete outcome support and emission
+    masks; this function neither fits policies nor changes features or rows.
+    The full builder's float32 outcome conversion is deliberately preserved.
+    Four related diagnostic columns are returned from the same line rules.
+    """
+    direction_target_policy = require_causal_m1_target_policy(direction_target_policy)
+    position_size_target_policy = require_causal_m1_position_size_target_policy(
+        position_size_target_policy,
+        expected_source_parquet_sha256=direction_target_policy["source_parquet_sha256"],
+        expected_tape_provenance_sha256=direction_target_policy["tape_provenance_sha256"],
+        expected_m1_source_sha256=direction_target_policy["m1_source_sha256"],
+        expected_direction_policy_sha256=direction_target_policy["policy_sha256"],
+    )
+    times = pd.DatetimeIndex(pd.to_datetime(outcome_frame["time"], utc=True, errors="raise"))
+    line_times = pd.DatetimeIndex(pd.to_datetime(line_labels.index, utc=True, errors="raise"))
+    if not len(times) or not times.is_unique or not times.is_monotonic_increasing or not times.equals(line_times):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_CLOCK_MISMATCH")
+    for name in ("y_line_support_touch_held", "y_line_support_touch_mask",
+                 "y_line_resistance_touch_held", "y_line_resistance_touch_mask"):
+        if name not in line_labels or not np.isin(line_labels[name].to_numpy(), (0.0, 1.0)).all():
+            raise RuntimeError("ENTRY_POLICY_AUXILIARY_LINE_LABEL_INVALID")
+    merged3 = outcome_frame
+    _v29_line_labels = line_labels
+    direction_horizon_bars = int(direction_target_policy["selected_direction_horizon_bars"])
+    thresholds = direction_target_policy["path_aux_thresholds_bps"]
+    mae_high_threshold_bps = thresholds["mae_high_bps"]
+    mfe_high_threshold_bps = thresholds["mfe_high_bps"]
+    path_low_threshold_bps = thresholds["path_low_bps"]
+    _mfe_long = merged3["mfe_long_first_n_bps"].astype(np.float32).to_numpy()
+    _mae_long = merged3["mae_long_first_n_bps"].astype(np.float32).to_numpy()
+    _mfe_short = merged3["mfe_short_first_n_bps"].astype(np.float32).to_numpy()
+    _mae_short = merged3["mae_short_first_n_bps"].astype(np.float32).to_numpy()
+    _bad_path_long = (
+        merged3["bad_path_long_first_n"].astype(np.float32).to_numpy() > 0.5
+    )
+    # V2: also extract bad_path_short for symmetric BIDIR auxiliary labels.
+    _bad_path_short = (
+        merged3["bad_path_short_first_n"].astype(np.float32).to_numpy() > 0.5
+    )
+    _path_long = (_mfe_long - _mae_long).astype(np.float32)
+    _path_short = (_mfe_short - _mae_short).astype(np.float32)
+    _path_lead_long = (_path_long - _path_short).astype(np.float32)
+    _path_lead_short = (_path_short - _path_long).astype(np.float32)
+    _mfe_lead_long = (_mfe_long - _mfe_short).astype(np.float32)
+    _mfe_lead_short = (_mfe_short - _mfe_long).astype(np.float32)
+
+    # Core direction is an executable outcome under the immutable TRAIN-fitted
+    # policy. No caller-selected horizon, hand-weighted MFE/MAE utility, target
+    # class ratio, or fixed edge threshold participates.
+    _dir_long_col = "v11_pnl_long_at_dir_horizon_bps"
+    _dir_short_col = "v11_pnl_short_at_dir_horizon_bps"
+    if _dir_long_col not in merged3.columns or _dir_short_col not in merged3.columns:
+        raise RuntimeError(
+            f"ENTRY_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} "
+            f"(H={direction_horizon_bars})"
+        )
+    _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
+    _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
+
+    _direction_targets = causal_m1_direction_targets_from_policy(
+        policy=direction_target_policy,
+        long_executable_pnl_bps=_pnl_long_at_h,
+        short_executable_pnl_bps=_pnl_short_at_h,
+    )
+    _side_score_long = _direction_targets["long_score_bps"]
+    _side_score_short = _direction_targets["short_score_bps"]
+    _side_margin = _direction_targets["side_margin_bps"]
+    _tradable_long = _direction_targets["tradable_long"]
+    _tradable_short = _direction_targets["tradable_short"]
+    _side = _direction_targets["side"]
+
+    _direction_side = _side.copy()
+
+    _quality_side = _direction_side.copy()
+    y_trade = (_direction_side != -1).astype(np.float32)
+    y_mfe_first_n = np.zeros(len(merged3), dtype=np.float32)
+    y_mae_first_n = np.zeros(len(merged3), dtype=np.float32)
+    long_quality = _quality_side == MODEL_DIRECTION_LONG_INDEX
+    short_quality = _quality_side == MODEL_DIRECTION_SHORT_INDEX
+    y_mfe_first_n[long_quality] = _mfe_long[long_quality]
+    y_mfe_first_n[short_quality] = _mfe_short[short_quality]
+    y_mae_first_n[long_quality] = _mae_long[long_quality]
+    y_mae_first_n[short_quality] = _mae_short[short_quality]
+    y_long_expected_mae_bps = _mae_long.astype(np.float32)
+    y_short_expected_mae_bps = _mae_short.astype(np.float32)
+    y_position_size, y_position_size_mask = _position_size_target_from_path(
+        y_mfe_first_n,
+        y_mae_first_n,
+        _quality_side,
+        y_trade,
+        target_policy=position_size_target_policy,
+    )
+    y_line_support_touch_held = (
+        _v29_line_labels["y_line_support_touch_held"].to_numpy(dtype=np.float32)
+    )
+    y_line_support_touch_mask = (
+        _v29_line_labels["y_line_support_touch_mask"].to_numpy(dtype=np.float32)
+    )
+    y_line_resistance_touch_held = (
+        _v29_line_labels["y_line_resistance_touch_held"].to_numpy(
+            dtype=np.float32
+        )
+    )
+    y_line_resistance_touch_mask = (
+        _v29_line_labels["y_line_resistance_touch_mask"].to_numpy(
+            dtype=np.float32
+        )
+    )
+    _side_margin_bps = float(direction_target_policy["side_margin_floor_bps"])
+    _long_high_mae_low_mfe = (_mae_long >= mae_high_threshold_bps) & (
+        (_mfe_long <= mfe_high_threshold_bps)
+        | (_path_long <= path_low_threshold_bps)
+    )
+    _short_high_mae_low_mfe = (_mae_short >= mae_high_threshold_bps) & (
+        (_mfe_short <= mfe_high_threshold_bps)
+        | (_path_short <= path_low_threshold_bps)
+    )
+    _support_line_held = (
+        (y_line_support_touch_mask > 0.5)
+        & (y_line_support_touch_held > 0.5)
+    )
+    _resistance_line_held = (
+        (y_line_resistance_touch_mask > 0.5)
+        & (y_line_resistance_touch_held > 0.5)
+    )
+    _support_retest_continuation = (
+        _support_line_held
+        & (
+            _side_score_long
+            > float(direction_target_policy["tradable_edge_floor_bps"])
+        )
+        & ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        & (~_bad_path_long)
+    )
+    _resistance_retest_continuation = (
+        _resistance_line_held
+        & (
+            _side_score_short
+            > float(direction_target_policy["tradable_edge_floor_bps"])
+        )
+        & ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        & (~_bad_path_short)
+    )
+    _countertrend_short_trap = _support_line_held & (
+        _bad_path_short
+        | _short_high_mae_low_mfe
+        | ((_side_score_long - _side_score_short) >= _side_margin_bps)
+        | (_direction_side == MODEL_DIRECTION_LONG_INDEX)
+    )
+    _countertrend_long_trap = _resistance_line_held & (
+        _bad_path_long
+        | _long_high_mae_low_mfe
+        | ((_side_score_short - _side_score_long) >= _side_margin_bps)
+        | (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
+    )
+    y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
+    y_resistance_retest_continuation = _resistance_retest_continuation.astype(
+        np.float32
+    )
+    y_countertrend_short_trap = _countertrend_short_trap.astype(np.float32)
+    y_countertrend_long_trap = _countertrend_long_trap.astype(np.float32)
+    y_long_high_mae_low_mfe_early_failure = _long_high_mae_low_mfe.astype(np.float32)
+    y_short_high_mae_low_mfe_early_failure = _short_high_mae_low_mfe.astype(np.float32)
+    return {
+        'y_long_expected_mae_bps': y_long_expected_mae_bps,
+        'y_short_expected_mae_bps': y_short_expected_mae_bps,
+        'y_position_size_target': y_position_size,
+        'y_position_size_mask': y_position_size_mask,
+        'y_line_support_touch_held': y_line_support_touch_held,
+        'y_line_support_touch_mask': y_line_support_touch_mask,
+        'y_line_resistance_touch_held': y_line_resistance_touch_held,
+        'y_line_resistance_touch_mask': y_line_resistance_touch_mask,
+        'y_countertrend_short_trap': y_countertrend_short_trap,
+        'y_countertrend_long_trap': y_countertrend_long_trap,
+        'y_support_retest_continuation': y_support_retest_continuation,
+        'y_resistance_retest_continuation': y_resistance_retest_continuation,
+        'y_long_high_mae_low_mfe_early_failure': y_long_high_mae_low_mfe_early_failure,
+        'y_short_high_mae_low_mfe_early_failure': y_short_high_mae_low_mfe_early_failure,
+    }
+
+
+def materialize_policy_dependent_entry_auxiliary_targets(
+    *,
+    entry_times: pd.DatetimeIndex,
+    closed_m5: pd.DataFrame,
+    closed_m1: pd.DataFrame,
+    registry_constants: Mapping[str, Any],
+    direction_target_policy: Mapping[str, Any],
+    position_size_target_policy: Mapping[str, Any],
+    supervision_end: pd.Timestamp,
+) -> pd.DataFrame:
+    """Materialize only dependent auxiliary labels with existing owners.
+
+    Complete historical M5 context is supplied for the original registry;
+    features, fixed-horizon targets, policies and market lifecycles are not
+    rebuilt or fitted. Both quote frames must end before the support boundary.
+    Missing chosen rows fail instead of being replaced or filled with zeros.
+    """
+    policy = require_causal_m1_target_policy(direction_target_policy)
+    cutoff = pd.Timestamp(supervision_end)
+    times = pd.DatetimeIndex(entry_times)
+    m5_times = pd.DatetimeIndex(closed_m5["time"])
+    m1_times = pd.DatetimeIndex(closed_m1["time"])
+    for clock in (times, m5_times, m1_times):
+        if not len(clock) or clock.tz is None or clock.hasnans or not clock.is_unique or not clock.is_monotonic_increasing:
+            raise RuntimeError("ENTRY_POLICY_AUXILIARY_CLOCK_INVALID")
+    if cutoff.tzinfo is None or pd.isna(cutoff):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_CUTOFF_INVALID")
+    if pd.Timestamp(policy["train_end_utc"]) > cutoff:
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_POLICY_FIT_AFTER_CUTOFF")
+    if (m5_times[-1] + pd.Timedelta(minutes=5) > cutoff
+            or m1_times[-1] + pd.Timedelta(minutes=1) > cutoff):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_SOURCE_AFTER_CUTOFF")
+    positions = m5_times.get_indexer(times)
+    horizon = int(policy["path_quality_horizon_bars"])
+    if np.any(positions < 0) or np.any(positions + horizon >= len(m5_times)):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_M5_SUPPORT_MISSING")
+    if np.any(m5_times[positions + horizon] + pd.Timedelta(minutes=5) > cutoff):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_TARGET_AFTER_CUTOFF")
+    outcomes = materialize_causal_m1_auxiliary_outcomes(
+        policy=policy, m5_decision_times=times, closed_m1=closed_m1,
+    )
+    if (not outcomes["outcome_valid"].all()
+            or outcomes["exit_decision_at"].isna().any()
+            or (outcomes["exit_decision_at"] > cutoff).any()):
+        raise RuntimeError("ENTRY_POLICY_AUXILIARY_M1_SUPPORT_MISSING")
+    from gx1.features.htf_features import _atr as _htf_atr14
+    from gx1.features.trendline_registry_v1 import compute_trendline_touch_hold_labels_v1
+
+    registry_frame = closed_m5.set_index("time")[["high", "low", "close"]].astype(np.float64)
+    registry_frame["atr"] = _htf_atr14(
+        registry_frame["high"], registry_frame["low"], registry_frame["close"], 14,
+    )
+    line_labels = compute_trendline_touch_hold_labels_v1(
+        registry_frame,
+        seq_len=int(registry_constants["entry_m5"]["seq_len"]),
+        band_atr=float(registry_constants["entry_m5"]["trendline_band_atr"]),
+        horizon_bars=horizon,
+    ).loc[times]
+    targets = build_policy_dependent_entry_auxiliary_targets(
+        outcome_frame=outcomes, line_labels=line_labels,
+        direction_target_policy=policy,
+        position_size_target_policy=position_size_target_policy,
+    )
+    return pd.DataFrame({"time": times, **targets})
+
+
 # -----------------------------------------------------------------------------
 # Misc helpers
 # -----------------------------------------------------------------------------
@@ -4132,15 +4389,6 @@ def build_dataset_canonical(
     _trend_conflict = (
         (_long_trend_bias > 0.0) & (_short_trend_bias > 0.0)
     )
-    _side_margin_bps = float(direction_target_policy["side_margin_floor_bps"])
-    _long_high_mae_low_mfe = (_mae_long >= mae_high_threshold_bps) & (
-        (_mfe_long <= mfe_high_threshold_bps)
-        | (_path_long <= path_low_threshold_bps)
-    )
-    _short_high_mae_low_mfe = (_mae_short >= mae_high_threshold_bps) & (
-        (_mfe_short <= mfe_high_threshold_bps)
-        | (_path_short <= path_low_threshold_bps)
-    )
     _mtf_conflict_m5_vs_higher = (
         _trend_conflict
         | ((_trend_score > 0.0) & (_short_trend_bias > _long_trend_bias))
@@ -4166,8 +4414,6 @@ def build_dataset_canonical(
     y_short_valid_trade = _tradable_short.astype(np.float32)
     y_long_bad_path = _bad_path_long.astype(np.float32)
     y_short_bad_path = _bad_path_short.astype(np.float32)
-    y_long_expected_mae_bps = _mae_long.astype(np.float32)
-    y_short_expected_mae_bps = _mae_short.astype(np.float32)
     y_clean_edge_bidir = np.maximum(y_clean_edge_long, y_clean_edge_short).astype(
         np.float32
     )
@@ -4176,30 +4422,6 @@ def build_dataset_canonical(
         _quality_side,
         y_long_bad_path,
         y_short_bad_path,
-    )
-    y_position_size, y_position_size_mask = _position_size_target_from_path(
-        y_mfe_first_n,
-        y_mae_first_n,
-        _quality_side,
-        y_trade,
-        target_policy=position_size_target_policy,
-    )
-    if (
-        len(y_position_size) != len(merged3)
-        or not np.isfinite(y_position_size).all()
-        or not np.array_equal(y_position_size_mask, y_trade)
-    ):
-        raise RuntimeError("V3_POSITION_SIZE_INVALID: target is missing or non-finite")
-    if np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2:
-        raise RuntimeError("V3_POSITION_SIZE_DEAD: target is constant")
-    log.info(
-        "[V3_POSITION_SIZE] source=train_ecdf_selected_future_path "
-        "tradable_n=%d p10=%.3f p50=%.3f p90=%.3f policy_sha256=%s",
-        int(np.count_nonzero(y_position_size_mask)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 10)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 50)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 90)),
-        position_size_target_policy["policy_sha256"],
     )
     # ── V29 aux rail-target replacement (chart report B.8; design §5.2.8) ──
     # The retired y_rising_channel_support_touch /
@@ -4288,53 +4510,44 @@ def build_dataset_canonical(
     # causal registry observed a real line touch and the forward label proves
     # that exact line held over the named horizon. Directional continuation or
     # trap status then comes solely from the already-owned future path outcome.
-    _support_line_held = (
-        (y_line_support_touch_mask > 0.5)
-        & (y_line_support_touch_held > 0.5)
+    _policy_auxiliary_targets = build_policy_dependent_entry_auxiliary_targets(
+        outcome_frame=merged3,
+        line_labels=_v29_line_labels,
+        direction_target_policy=direction_target_policy,
+        position_size_target_policy=position_size_target_policy,
     )
-    _resistance_line_held = (
-        (y_line_resistance_touch_mask > 0.5)
-        & (y_line_resistance_touch_held > 0.5)
+    y_long_expected_mae_bps = _policy_auxiliary_targets['y_long_expected_mae_bps']
+    y_short_expected_mae_bps = _policy_auxiliary_targets['y_short_expected_mae_bps']
+    y_position_size = _policy_auxiliary_targets['y_position_size_target']
+    y_position_size_mask = _policy_auxiliary_targets['y_position_size_mask']
+    y_line_support_touch_held = _policy_auxiliary_targets['y_line_support_touch_held']
+    y_line_support_touch_mask = _policy_auxiliary_targets['y_line_support_touch_mask']
+    y_line_resistance_touch_held = _policy_auxiliary_targets['y_line_resistance_touch_held']
+    y_line_resistance_touch_mask = _policy_auxiliary_targets['y_line_resistance_touch_mask']
+    y_countertrend_short_trap = _policy_auxiliary_targets['y_countertrend_short_trap']
+    y_countertrend_long_trap = _policy_auxiliary_targets['y_countertrend_long_trap']
+    y_support_retest_continuation = _policy_auxiliary_targets['y_support_retest_continuation']
+    y_resistance_retest_continuation = _policy_auxiliary_targets['y_resistance_retest_continuation']
+    y_long_high_mae_low_mfe_early_failure = _policy_auxiliary_targets['y_long_high_mae_low_mfe_early_failure']
+    y_short_high_mae_low_mfe_early_failure = _policy_auxiliary_targets['y_short_high_mae_low_mfe_early_failure']
+    if (
+        len(y_position_size) != len(merged3)
+        or not np.isfinite(y_position_size).all()
+        or not np.array_equal(y_position_size_mask, y_trade)
+    ):
+        raise RuntimeError("V3_POSITION_SIZE_INVALID: target is missing or non-finite")
+    if np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2:
+        raise RuntimeError("V3_POSITION_SIZE_DEAD: target is constant")
+    log.info(
+        "[V3_POSITION_SIZE] source=train_ecdf_selected_future_path "
+        "tradable_n=%d p10=%.3f p50=%.3f p90=%.3f policy_sha256=%s",
+        int(np.count_nonzero(y_position_size_mask)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 10)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 50)),
+        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 90)),
+        position_size_target_policy["policy_sha256"],
     )
-    _support_retest_continuation = (
-        _support_line_held
-        & (
-            _side_score_long
-            > float(direction_target_policy["tradable_edge_floor_bps"])
-        )
-        & ((_side_score_long - _side_score_short) >= _side_margin_bps)
-        & (~_bad_path_long)
-    )
-    _resistance_retest_continuation = (
-        _resistance_line_held
-        & (
-            _side_score_short
-            > float(direction_target_policy["tradable_edge_floor_bps"])
-        )
-        & ((_side_score_short - _side_score_long) >= _side_margin_bps)
-        & (~_bad_path_short)
-    )
-    _countertrend_short_trap = _support_line_held & (
-        _bad_path_short
-        | _short_high_mae_low_mfe
-        | ((_side_score_long - _side_score_short) >= _side_margin_bps)
-        | (_direction_side == MODEL_DIRECTION_LONG_INDEX)
-    )
-    _countertrend_long_trap = _resistance_line_held & (
-        _bad_path_long
-        | _long_high_mae_low_mfe
-        | ((_side_score_short - _side_score_long) >= _side_margin_bps)
-        | (_direction_side == MODEL_DIRECTION_SHORT_INDEX)
-    )
-    y_support_retest_continuation = _support_retest_continuation.astype(np.float32)
-    y_resistance_retest_continuation = _resistance_retest_continuation.astype(
-        np.float32
-    )
-    y_countertrend_short_trap = _countertrend_short_trap.astype(np.float32)
-    y_countertrend_long_trap = _countertrend_long_trap.astype(np.float32)
     y_mtf_conflict_m5_vs_higher_side = _mtf_conflict_m5_vs_higher.astype(np.float32)
-    y_long_high_mae_low_mfe_early_failure = _long_high_mae_low_mfe.astype(np.float32)
-    y_short_high_mae_low_mfe_early_failure = _short_high_mae_low_mfe.astype(np.float32)
 
     log.info(
         "[ENTRY_HIER_LABEL_PROOF] trade=%.4f side_mask=%.4f line_support_touch=%.4f line_resistance_touch=%.4f "

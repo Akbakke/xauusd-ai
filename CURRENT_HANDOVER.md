@@ -156,6 +156,21 @@ modell-forward eller optimizersteg er kjørt. Ingen læring er dokumentert.
 Se docs/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.md og
 docs/PREFIX_AUXILIARY_POLICIES_20260917.md. TEST og modelltrening er stengt.
 
+## Avhengige fasiter: eier kontrollert, én materialisering bundet
+
+Eksisterende builder deler nå nøyaktig samme size/sideMAE/trendline-beregning
+med en avgrenset label-materialisering.12 syntetiske kontroller består.
+Gammel/ny beregning er bitlik på3x213 rader og14 aktive/relaterte felt;42 andre
+funksjoner er AST-uendret. Framtidige priser+5000 endrer ingen tidligere labels.
+Ingen modell-/featurekode er endret; registry replay brukes bare for fasit.
+
+Opprinnelig Group-A-cache viser at registry-konteksten starter2019-11-11T00Z,
+ikke den tidligere råkildestarten. Én CPU-jobb er bundet for47814TRAIN og den
+frosne CONTROL256. Faktisk M5-kontekst må matche originalhash før beregning.
+TRAIN-fasiter må slutte før mars1; kontroll før juni1. Ingen refit/utvalgsbytte.
+Modell-forward/optimizer/normaliseringsfit/native kjøring er fortsatt stengt.
+Se docs/PREFIX_DEPENDENT_LABELS_20260917.md. Ikke gjenta beståtte kontroller.
+
 ## Start her
 
 Aktiv arbeidsmappe: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.

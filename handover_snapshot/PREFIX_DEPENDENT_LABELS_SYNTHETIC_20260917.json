@@ -1,0 +1,52 @@
+{
+  "schema_version": "gx1_prefix_dependent_label_synthetic_evidence_v1",
+  "decision": "SHARED_LABEL_OWNER_SYNTHETIC_AND_LEGACY_PARITY_PASS",
+  "source_parent_commit": "35748c9d4c19b57ffe136615bb4113592710e77b",
+  "source_builder": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py",
+    "sha256": "bbffe339b6e873dddbc9b26c6377b21d9715d0557f492d7674fe0d6f5b6a0459"
+  },
+  "tests": [
+    "test_shared_targets_preserve_direction_masks_and_side_order",
+    "test_absent_line_events_cannot_become_dense_traps",
+    "test_raw_side_mae_keeps_bps_and_float32",
+    "test_misaligned_registry_times_fail",
+    "test_nonbinary_registry_mask_fails",
+    "test_wrong_size_policy_cannot_be_applied",
+    "test_materializer_uses_actual_m1_and_registry_owners_without_feature_mutation",
+    "test_exposed_policy_rejected_before_outcomes",
+    "test_late_source_rejected_before_outcomes",
+    "test_incomplete_m5_future_is_not_truncated_or_zero_filled",
+    "test_missing_m1_minute_is_not_filled",
+    "test_later_price_poison_cannot_change_earlier_labels"
+  ],
+  "tests_passed": 12,
+  "junit": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917/TEST_ATTEMPT1.xml",
+      "sha256": "5334ecf94e39ebe74718d5637c774624781983c8f4bcb4d86b3d12e3e12f9e5e"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917/FUTURE_POISON.xml",
+      "sha256": "48916d5b6ca7ae9982fee99a8360748e623b0e651fe05d4275655178f87933fa"
+    }
+  ],
+  "legacy_parity": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917/PARITY.json",
+    "sha256": "b65dd8d258a93e03bde240913395926f9326666753496ce25a78e9a7488b65d2"
+  },
+  "checks": [
+    "Exact old/new float32 outputs for14 active/related columns on3x213 synthetic rows",
+    "42 unaffected top-level functions AST-equal, including raw37 target owner",
+    "Actual M1 and registry owners used on synthetic frames",
+    "Later M1/M5 prices+5000 leave earlier labels exactly unchanged",
+    "Exposed fit dates, late sources, missing M1/M5 support and misaligned/malformed registry labels rejected",
+    "Feature input frames unchanged"
+  ],
+  "scope": {
+    "real_data_labels_materialized": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "learning_demonstrated": false
+  }
+}

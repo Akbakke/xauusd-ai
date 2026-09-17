@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Prefix auxiliary policies are now fitted once using only2025Jun01..2026Mar01:existing owner selected18M5, direction34030 rows, sizeECDF42644 rows. CLOCK_ELIGIBILITY yields47814 eligible TRAIN Entries; native epoch0 order, first4096 and TRAIN256 probe are hash-frozen. Reuse all artifacts; do not refit/reselect/repeat clock measurement. Next: smallest existing-owner binding/materialization of dependent size/sideMAE/trendline labels and masks using these frozen policies, then actual prefix normalization and fresh native/control bindings under a narrowly bound preparation policy. Source inspection/minimum binding fixes/synthetic checks are authorized; no actual dependent-label refresh, normalization fit, model forward, optimizer or native launch yet. Original200 features/eight families/MTF, physical successor counts, all4 samples and frozen DESIGN/CONTROL256 unchanged. TEST sealed; no control retuning.",
+  "rule": "Shared existing-builder label projection/materializer passed12 synthetic tests, exactlegacyparity3x213x14 and futurepricepoison invariance. All42 unaffected functions unchanged. Exactly one bound label-only CPU preparation now allowed:10 policy-dependent active targets plus4 related diagnostics for frozen47814TRAIN and CONTROL256. Policies remain fixedK18; original Group-A M5context hash must match; TRAIN support<=March1 and control<=June1. No row replacement, quality-based selection, feature artifact rebuild, policy/normalizationfit, model forward, optimizer, native launch or TEST. Dataset binding and prefix normalization/fresh native setup follow; reuse completed proofs.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -373,7 +373,7 @@
     "actual_data_model_forwards_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_cpu_contract_tests_authorized": true,
-    "next_scope": "Prefix auxiliary policies are now fitted once using only2025Jun01..2026Mar01:existing owner selected18M5, direction34030 rows, sizeECDF42644 rows. CLOCK_ELIGIBILITY yields47814 eligible TRAIN Entries; native epoch0 order, first4096 and TRAIN256 probe are hash-frozen. Reuse all artifacts; do not refit/reselect/repeat clock measurement. Next: smallest existing-owner binding/materialization of dependent size/sideMAE/trendline labels and masks using these frozen policies, then actual prefix normalization and fresh native/control bindings under a narrowly bound preparation policy. Source inspection/minimum binding fixes/synthetic checks are authorized; no actual dependent-label refresh, normalization fit, model forward, optimizer or native launch yet. Original200 features/eight families/MTF, physical successor counts, all4 samples and frozen DESIGN/CONTROL256 unchanged. TEST sealed; no control retuning."
+    "next_scope": "Shared existing-builder label projection/materializer passed12 synthetic tests, exactlegacyparity3x213x14 and futurepricepoison invariance. All42 unaffected functions unchanged. Exactly one bound label-only CPU preparation now allowed:10 policy-dependent active targets plus4 related diagnostics for frozen47814TRAIN and CONTROL256. Policies remain fixedK18; original Group-A M5context hash must match; TRAIN support<=March1 and control<=June1. No row replacement, quality-based selection, feature artifact rebuild, policy/normalizationfit, model forward, optimizer, native launch or TEST. Dataset binding and prefix normalization/fresh native setup follow; reuse completed proofs."
   },
   "completed_coherent_reference_entry": {
     "status": "SYNTHETIC_CONTRACT_PASS_NOT_LEARNING_EVIDENCE",
@@ -455,6 +455,25 @@
     "report": "docs/PREFIX_AUXILIARY_POLICIES_20260917.md",
     "model_forwards": 0,
     "optimizer_steps": 0,
+    "native_launch_authorized": false
+  },
+  "completed_prefix_dependent_label_synthetic": {
+    "status": "SHARED_LABEL_OWNER_SYNTHETIC_AND_LEGACY_PARITY_PASS",
+    "binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "f409edd1359cf516ac6d777dc3688584b97a9e0afe388815527af2740f0a6f9d"
+    },
+    "tests_passed": 12,
+    "report": "docs/PREFIX_DEPENDENT_LABELS_20260917.md"
+  },
+  "prefix_dependent_label_preparation": {
+    "enabled": true,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/PLAN.json",
+      "sha256": "c5d349c02f624c8ded258950395d1152e9052494cdab074a990022cde94e2fd1"
+    },
+    "one_materialization_only": true,
+    "training_enabled": false,
     "native_launch_authorized": false
   }
 }
