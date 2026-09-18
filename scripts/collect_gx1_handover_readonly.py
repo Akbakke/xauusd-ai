@@ -174,7 +174,7 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "working_tree_clean": not bool(_git(source, "status", "--porcelain=v1")),
         "training_source_commit": record.get("source_commit"),
         "runtime_root": record.get("runtime_root"),
-        "latest_completed_native": record.get("completed_residual_normalized_fixed256") or record.get("completed_causal_entry_fixed256"),
+        "latest_completed_native": record.get("completed_main_encoder_fixed256") or record.get("completed_residual_normalized_fixed256") or record.get("completed_causal_entry_fixed256"),
         "recorded_next_diagnostic": record.get("next_diagnostic"),
         "last_diagnostic_failure": record.get("completed_entry_signal_failure"),
         "latest_completed_diagnostic": record.get("completed_residual_representation") or record.get("completed_entry_signal_inference_check") or record.get("completed_entry_forward_parity"),
@@ -230,6 +230,20 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
             result["next_action"] = "Observe the active bound run; do not relaunch or change its frozen source. " + ("Review the diagnostic result; no optimizer steps are allowed." if diagnostic is not None else "Verify the zero-step TRAIN-only initial measurement; no learning is measured." if initial is not None else "Review final ONLINE at the declared ceiling.")
         elif result.get("latest_terminal_receipt") is not None:
             result["next_action"] = "The bound invocation has a terminal receipt. " + ("Review the diagnostic result and close its used scope; completion is not learning evidence." if diagnostic is not None else "Audit the initial baseline and close its used scope; no learning is measured." if initial is not None else "Verify final measurement and review learning before any new run.")
+    # Closing a consumed policy must keep its latest terminal evidence visible.
+    # Never fall back to an older run just because the launch exception is gone.
+    if scope is None:
+        completed = result.get("latest_completed_native") or {}
+        if completed.get("run_id"):
+            result["last_completed_run_id"] = completed["run_id"]
+            result["checkpoint_selection"] = "latest_completed_session_no_active_scope"
+            for role, output_key in (("receipt", "latest_terminal_receipt"),
+                                     ("result", "latest_final_measurement")):
+                artifact = completed[role]
+                evidence_path = _regular_file(artifact["path"], label="completed " + role)
+                if _sha256(evidence_path) != artifact["sha256"]:
+                    raise ValueError("Completed native evidence hash mismatch: " + role)
+                result[output_key] = json.loads(evidence_path.read_text())
     if directory:
         pointer_path = Path(directory) / "CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json"
         result["session_directory"] = directory

@@ -1,0 +1,37 @@
+{
+  "schema_version": "gx1_main_encoder_handover_refresh_verification_v1",
+  "observed_utc": "2026-09-18T01:51:20.784631+00:00",
+  "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
+  "current_source_before_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
+  "source_changes": "handover documentation, consumed policy, read-only collector and focused regression test only",
+  "tests_passed": 12,
+  "test_report": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/HANDOVER_REFRESH_TESTS.xml",
+    "sha256": "908da357367e3529529b499a553404a44692e7f4b8583b7eccfcc2ed3af8a33f"
+  },
+  "test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/HANDOVER_REFRESH_TESTS.log",
+    "sha256": "d79710c8da6959ce30e87d95284050423b631e270fd190c4d29cb5c9ce39d1ae"
+  },
+  "shell_syntax_passed": true,
+  "json_parse_passed": true,
+  "diff_check_passed": true,
+  "current_run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
+  "checkpoint_steps": 256,
+  "guard_decision": "PASS",
+  "observation_counts": {
+    "entry": 256,
+    "exit_anchor": 256,
+    "exit_sampled": 1024
+  },
+  "current_source_has_active_run_scope": false,
+  "training_enabled": false,
+  "native_processes": [],
+  "completed_scope_retains_latest_receipt_and_measurement": true,
+  "corrupted_completed_receipt_rejected_by_test": true,
+  "review_pending": true,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "model_training_files_changed": [],
+  "test_data_used": false
+}

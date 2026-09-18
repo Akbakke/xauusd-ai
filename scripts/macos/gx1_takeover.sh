@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Completed scopes are consumed; current_work.next_action is the resume point.
 # Use current_work for the current policy/session; COMPLETED_RUN is history.
 # current_work.handover_resume_point and latest_model_correction identify the stop point.
 # This read-only entrypoint never starts training. Require measured learning first.

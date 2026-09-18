@@ -5,9 +5,9 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Ny ONLINE-startbaseline er målt: frosne Entry-/Exit-targets, vekter og RNG er eksakt bevart. Én separat native256 TRAIN-prøve er bundet. Læringsporten er fortsatt ikke bestått.
-Siste residual256 ga identiske, sidekonstante handlinger. Ny ONLINE-funksjon
-krever ny startbaseline selv med identiske vekter; læreren bevares eksplisitt.
+Native hovedencoder-prøve er fullført med256 optimizersteg og guard PASS. Final ONLINE er lagret, Windows-task Disabled og brukt scope stengt. Paret Entry/Exit-læringsvurdering gjenstår; læringsporten er ikke bestått.
+Siste residual256 ga identiske, sidekonstante handlinger. Den nye ONLINE-startbaselinen
+er målt selv med identiske vekter; læreren er eksplisitt bevart.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke
@@ -15,8 +15,9 @@ nye kjøreordre. Ingen full epoch, full VAL, CONTROL/TEST eller trading er åpne
 
 ## Kriterier brukt i den fullførte vurderingen — bevares videre
 
-1. Bruk sammenlignbare frosne targets. Entry skal bruke korrekt avledet
-   DERIVED_TRAIN_BASELINE, ikke tidligere etterpåkloke targets. Exit-targets,
+1. Bruk sammenlignbare frosne targets. Nåværende native initialmåling inneholder
+   allerede kausal Entry-fasit. DERIVED_TRAIN_BASELINE brukes bare til historiske
+   modeller med gammel etterpåklok Entry-fasit, aldri som ny ONLINE-startbaseline. Exit-targets,
    lærer, utvalg, tidsgrenser og masks skal være de samme. Gjenbruk lagrede
    historiske prediksjoner. Ny ONLINE-funksjon må få egen nullstegs baseline;
    initialvektenes hash alene beviser ikke samme prediksjonsfunksjon.

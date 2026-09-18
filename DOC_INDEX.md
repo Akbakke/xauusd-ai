@@ -2,8 +2,8 @@
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — verifisert startbaseline og separat bundet256-prøve.
-2. VEIEN_VIDERE.md — én direkte256-prøve og påkrevd læringsvurdering.
+1. CURRENT_HANDOVER.md — fullført256-prøve; paret læringsvurdering gjenstår.
+2. VEIEN_VIDERE.md — eksakt neste analyse og gjenbruk av ferdige bevis.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
 5. SYSTEM_MAP.md — gjeldende Entry/Exit-kobling og korrekt kausal targetberegning.
@@ -11,14 +11,18 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- handover_snapshot/HANDOVER_MAIN_ENCODER_COMPLETE_20260918.json —12 beståtte handover-tester, kontroll av scope og terminalstatus.
+
+- handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json — terminalstatus, hasher, task og uferdig læringsvurdering.
+
 - docs/MAIN_ENCODER_FIXED256_20260918.md — gjeldende læringsprøve og kriterier.
 - handover_snapshot/MAIN_ENCODER_INITIAL_MEASUREMENT_AUDIT_20260918.json — fullført nullstegsaudit.
-- handover_snapshot/MAIN_ENCODER_FIXED256_PLAN_20260918.json — gjeldende avgrensning.
+- handover_snapshot/MAIN_ENCODER_FIXED256_PLAN_20260918.json — brukt avgrensning; scope stengt.
 
 - docs/MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md — fullført startmåling, ikke relanser.
 - handover_snapshot/MAIN_ENCODER_INITIAL_MEASUREMENT_PLAN_20260918.json — scope og bevis.
 
-- docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md — kode, tester, bindinger og restarbeid.
+- docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md — fullførte kode-/lærerkontroller og historisk stoppunkt.
 - handover_snapshot/MAIN_ENCODER_{INITIALIZATION_AUDIT,TEST_REVIEW}_20260918.json — ferdige kontroller.
 
 - docs/RESIDUAL_REPRESENTATION_REVIEW_20260918.md — gjeldende funn og begrensninger.

@@ -58,7 +58,8 @@ Prefix-læreren kopieres uten denne nye normaliseringen; original lærerfunksjon
 og initialvekter/RNG er kontrollert. Entry-hidden/Q inngår i Exit-tokenet;
 full lærerparitet er testet for begge. Ny ONLINE-funksjon krever egen native
 nullstegsbaseline. Denne er nå målt med identiske frosne targets og bevart
-tilstand/RNG. Én separat256-prøve er bundet; se docs/MAIN_ENCODER_FIXED256_20260918.md.
+tilstand/RNG. Prøven på256 steg er nå fullført med guard PASS, final ONLINE
+og stengt scope. Paret læringsanalyse gjenstår; se docs/MAIN_ENCODER_FIXED256_20260918.md.
 
 Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
 Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.

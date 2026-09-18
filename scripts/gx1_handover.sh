@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Completed scopes are consumed; current_work.next_action is the resume point.
 # Read-only current policy/session and exact handover resume point.
 # Completed runs remain history; no native launch or model forward occurs.
 set -euo pipefail

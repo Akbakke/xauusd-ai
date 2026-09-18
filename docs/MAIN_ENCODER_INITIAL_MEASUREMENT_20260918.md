@@ -2,7 +2,9 @@
 
 Native guard PASS; ny startbaseline og eksakt bevarte targets/state/RNG er
 kontrollert i INITIAL_MEASUREMENT_AUDIT.json. Brukt scope stengt, task Disabled.
-Se MAIN_ENCODER_FIXED256_20260918.md for den nye separat bundne prøven.
+Den separate256-prøven er også fullført; paret læringsvurdering gjenstår.
+Se MAIN_ENCODER_FIXED256_20260918.md. Instruksjonene nedenfor er historisk
+utførelsesbeskrivelse, ikke gjeldende startordre.
 
 # Hovedencoder — én native TRAIN-startmåling
 
@@ -26,7 +28,7 @@ Original INITIAL_STATE.pt gjenbrukes byteeksakt; original RESULT er bevart.
 Proveniens og constructor-audit er bundet. Ny ONLINE-funksjon krever nye
 startprediksjoner; gamle prediksjoner er ikke ny baseline.
 
-## Forbered og aktiver én gang
+## Historisk utførelse — allerede gjennomført
 
 OPERATOR_HANDOVER/OPERATORS_MANIFEST.json under run-mappen binder operatørene.
 BIND.py er allerede utført; ikke gjenta. Kjør PREPARE.py fra ren og pushet
@@ -37,7 +39,7 @@ ACTIVATE_TEMPLATE.ps1, og aktiver én gang via den etablerte Windows-tasken.
 Ingen gammel plan kan relanseres. Kilden fryses under kjøring. Observer prosess,
 progress og terminal receipt; stabil kjøring kontrolleres omtrent hver time.
 
-## Etter terminalt resultat
+## Historisk sluttkontroll — allerede gjennomført
 
 Deaktiver brukt Windows-task og bevar alle resultater. Tilpass AUDIT_INITIAL.py
 fra BASE/NATIVE_PREFIX_INITIAL_MEASUREMENT_20260917 til ny kilde/runtime og bare

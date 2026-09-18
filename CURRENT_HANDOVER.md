@@ -1,36 +1,39 @@
 # GX1 — overlevering 18. september 2026
 
-Ny startbaseline er fullført og kontrollert. Én separat256-prøve er bundet:
-NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918. Kjøringens faktiske tilstand
-må leses fra current_work/prosess/receipt; bundet er ikke det samme som startet.
-Ingen ny læring, generalisering eller lønnsomhet er ennå bevist.
+**Stoppunkt: native256 er fullført; paret læringsvurdering gjenstår.**
+NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 avsluttet med guard PASS,
+eksakt256 optimizersteg og lagret final ONLINE. Windows-task er Disabled;
+ingen native prosess eller controller ble observert ved overleveringen.
+Brukt scope er stengt. Ikke kjør BIND/PREPARE/ACTIVATE eller resume på nytt.
 
-Kode: /home/andre2/src/GX1_CURRENT, work/gx1-current.
-Data: /home/andre2/GX1_DATA. Mac er overleveringskopi. Start med ./handover.sh
---check på Mac eller bash scripts/gx1_handover.sh --check i Linux.
-current_work gjelder nå; COMPLETED_RUN og eldre VAL-felt er historikk.
+Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Data: /home/andre2/GX1_DATA. GX1_ENGINE/.git er felles Git-lagring, ikke startvei.
+Mac-mappen er overleveringskopi. Kjør ./handover.sh --check på Mac, eller
+bash scripts/gx1_handover.sh --check i Linux. current_work er nåstatus;
+COMPLETED_RUN.json og gamle VAL-/checkpoint-felt utenfor current_work er historikk.
 
-Rettelsen er parameterfri final LayerNorm på hovedencoder. Prefix-læreren
-kopieres uten denne nye normaliseringen. Native nullstegsaudit bekrefter eksakt
-bevart kausal Entry-fasit, original Exit-fasit, koordinater, vekter, optimizer,
-EMA, scheduler og RNG. Nye ONLINE-startprediksjoner er lagret. Samme vekthash
-betyr ikke samme funksjon; gammel initialprediksjon er ikke ny baseline.
-Nullstegskilde a1c4b443, guard PASS, 0 optimizersteg. Brukt task Disabled.
+Treningskilde: 6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d.
+Start: 18. september00:15:39 UTC /02:15:39 Oslo.
+Slutt: 18. september01:29:46 UTC /03:29:46 Oslo.
+Checkpoint5, slot0, epoch0, offset256. complete=false/outcome=RESUMABLE betyr
+avgrenset stopp, ikke tillatelse til å fortsette. Checkpointfilens SHA er kontrollert.
+Ingen modell-/treningskode er endret etter a1c4b443; nyere handover-commit er separat.
 
-Siste residual256 ga Entry FLAT256/256 og Exit fast valg per side. Diagnosen
-målte hoved-fuse L2 1,05→117,71 og 9,51 ganger mindre variasjon etter joint-
-normalisering enn initialt. Dette begrunner én hypotese, ikke en læringspåstand.
-Ingen modell-/treningskode er endret etter den verifiserte nullstegsmålingen.
+Hypotesen er parameterfri final LayerNorm i hovedencoder. Opprinnelig lærer
+uten denne nye normaliseringen er bevart. Ny nullstegsbaseline er fullført og
+auditiert; gammel initialprediksjon er ikke riktig baseline for endret ONLINE.
+Native sluttmåling bekrefter uendrede targets/koordinater mot ny initial.
+Dette beviser ennå ikke bedre læring, generalisering eller lønnsomhet.
 
-Neste: følg VEIEN_VIDERE.md og docs/MAIN_ENCODER_FIXED256_20260918.md.
-Bare samme4096 TRAIN-Entries/256 steg og final ONLINE TRAIN256/Exit256/1024.
-PLAN/operatører ligger under BASE/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918;
-BASE=/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912.
-Forbered og aktiver én gang. Ikke relanser aktiv eller avsluttet plan.
+**Neste handling:** følg VEIEN_VIDERE.md og docs/MAIN_ENCODER_FIXED256_20260918.md.
+Tilpass eksisterende CPU-analyse av lagrede outputs til ny initial og sluttmodell.
+Sammenlign Entry OG Exit mot residual256, kausal256 og TRAIN-konstanter, begge
+sider og alle TRAIN-måneder. PAIRED_TRAIN_REVIEW.json og VERDICT.json finnes ennå
+ikke for denne prøven. Ikke start nye forwards eller trening for å lage analysen.
 
-Én agent/én tung jobb; kilden fryses under kjøring. Bevar alle200 features,
-åtte familier/tidsrammer, kausalitet, kostnader og originale checkpoints.
-Ingen full epoch/VAL, CONTROL/TEST, live/paper, spending eller brede søk.
-training_enabled=false; bare eksakt bundet256-scope er åpnet. Ingen automatisk
-utvidelse. Offentlig push av ferdig kode/docs/stier/aggregater er stående godkjent;
-rådata, vekter og hemmeligheter er unntatt. Gjenbruk beståtte kontroller.
+Bindingsfiler, kvittering, checkpoint-hasher og gjenbruksoperatører står i
+handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json.
+Én agent/én tung jobb. Bevar alle200 features/familier/tidsrammer, kausalitet,
+kostnader og originale resultater. training_enabled=false; ingen aktivt kjøreunntak.
+Ingen CONTROL/VAL/TEST, live/paper, spending eller brede søk. Stående offentlig
+push gjelder ferdig kode/docs/stier/aggregater, uten rådata, vekter eller hemmeligheter.

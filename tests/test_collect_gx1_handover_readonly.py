@@ -129,6 +129,40 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
 
 
+def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch):
+    from scripts.collect_gx1_handover_readonly import _current_work_status
+    repo, binding, *_ = fixture
+    session = binding.parent / 'completed-main'; session.mkdir()
+    pointer = {'global_optimizer_steps': 256, 'phase': 'train'}
+    (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(pointer))
+    receipt = session/'receipt.json'; receipt.write_text('{"guard_decision":"PASS"}')
+    result = session/'result.json'; result.write_text('{"optimizer_steps":256}')
+    def bind(path):
+        return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    latest = {'run_id': 'MAIN256', 'receipt': bind(receipt), 'result': bind(result),
+              'learning_review_complete': False}
+    (binding.parent/'NEXT_RUN_POLICY.json').write_text('{"training_enabled":false}')
+    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
+        'status': 'COMPLETE_REVIEW_PENDING', 'source_repo': str(repo),
+        'source_commit': 'training-source', 'session_directory': str(session),
+        'next_action': 'Review saved outputs; no relaunch',
+        'completed_residual_normalized_fixed256': {'run_id': 'OLD'},
+        'completed_main_encoder_fixed256': latest}))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', lambda _: [])
+    out = _current_work_status(binding.parent, source_only=False)
+    assert out['latest_completed_native'] == latest
+    assert out['last_completed_run_id'] == 'MAIN256' and 'declared_run_id' not in out
+    assert out['checkpoint'] == pointer and out['training_source_commit'] == 'training-source'
+    assert out['latest_terminal_receipt']['guard_decision'] == 'PASS'
+    assert out['latest_final_measurement']['optimizer_steps'] == 256
+    assert out['next_action'] == 'Review saved outputs; no relaunch'
+    assert out['observation_is_run_authority'] is False
+    receipt.write_text('{}')
+    with pytest.raises(ValueError, match='Completed native evidence hash mismatch'):
+        _current_work_status(binding.parent, source_only=False)
+    assert 'latest_terminal_receipt' not in _current_work_status(binding.parent, source_only=True)
+
+
 def test_enabled_flag_alone_cannot_bypass_missing_proofs(fixture):
     repo,*_=fixture;path,p=_policy(repo)
     p['training_enabled']=True;path.write_text(json.dumps(p))

@@ -4,9 +4,9 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Ny ONLINE-startbaseline er målt: frosne Entry-/Exit-targets, vekter og RNG er eksakt bevart. Én separat native256 TRAIN-prøve er bundet. Læringsporten er fortsatt ikke bestått.
-Neste: utfør én bundet256-prøve og vurder tilstandsavhengig Entry OG Exit.
-Ingen ny læring er målt med rettelsen. Se VEIEN_VIDERE.md.
+Nå: Native hovedencoder-prøve er fullført med256 optimizersteg og guard PASS. Final ONLINE er lagret, Windows-task Disabled og brukt scope stengt. Paret Entry/Exit-læringsvurdering gjenstår; læringsporten er ikke bestått.
+Neste: analyser de lagrede resultatene mot ny initial, tidligere modeller og
+TRAIN-konstanter. Bedre læring med rettelsen er ennå ikke vurdert. Se VEIEN_VIDERE.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

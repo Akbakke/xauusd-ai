@@ -1,0 +1,30 @@
+{
+  "schema_version": "gx1_main_encoder_fixed256_handover_status_v1",
+  "observed_utc": "2026-09-18T01:48:20.028025+00:00",
+  "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+  "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
+  "completion": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_FOR_HANDOVER.json",
+    "sha256": "27bf7ab8cdb34537b46016f6c3692149ad4460d7db91ec977fed6280e5267c42"
+  },
+  "windows_task_observation": {
+    "observed_utc": "2026-09-18T01:43:51.7626906Z",
+    "task_name": "GX1NativeLearningCalibration",
+    "state": "Disabled",
+    "enabled": false,
+    "last_result": 0,
+    "actions": [
+      {
+        "Execute": "powershell.exe",
+        "Arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 71b037e4674afd4a4c7536f6e909fbabcc433d26870ae8321c1b9465d6a43422 -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
+      }
+    ],
+    "controllers": []
+  },
+  "native_processes": [],
+  "optimizer_steps": 256,
+  "active_run_scope": false,
+  "next_observation_due_utc": null,
+  "next_action": "Review saved final ONLINE TRAIN outputs from NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 against the NEW native initial baseline, saved residual256, causal256 and TRAIN constants, both sides/all TRAIN months/Entry and Exit. Adapt historical review operators; do not execute them unchanged. Write PAIRED_TRAIN_REVIEW.json and VERDICT.json with evidence and update handover. No model forward, refit, relaunch, extension, CONTROL/VAL/TEST or economic rollout. See VEIEN_VIDERE.md and docs/MAIN_ENCODER_FIXED256_20260918.md.",
+  "supersedes": "Earlier Mac-only live64-step status is historical; final256 and guard PASS now verified."
+}

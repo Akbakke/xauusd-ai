@@ -1,8 +1,11 @@
 # Hovedencoder — historisk overlevering før målebinding
 
-Måleporten er senere rettet og én nullstegsmåling bundet. Se
-MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md. Restarbeid omtalt nedenfor
-beskriver det tidligere stoppunktet.
+Måleporten er senere rettet, nullstegsmålingen er ferdig auditiert og den
+separate native256-prøven er fullført med guard PASS. Nå gjenstår paret review.
+Se MAIN_ENCODER_FIXED256_20260918.md og VEIEN_VIDERE.md. Restarbeid, manglende
+logger og autorisasjonsstatus nedenfor beskriver kun det tidligere stoppunktet.
+TRAIN_ONLY_TESTS.* finnes nå og dokumenterer44 bestått/3 utelatt; ikke rett
+eller gjenta dette historiske arbeidet. Original tekst bevares som historikk.
 
 Bekreftet 18. september 2026. Modellrettelsen er en hypotese støttet av
 representasjonsmålingen, ikke et nytt læringsresultat.
