@@ -1,3 +1,9 @@
+# Fullført nullstegsmåling — historisk plan, ikke relanser
+
+Native guard PASS; ny startbaseline og eksakt bevarte targets/state/RNG er
+kontrollert i INITIAL_MEASUREMENT_AUDIT.json. Brukt scope stengt, task Disabled.
+Se MAIN_ENCODER_FIXED256_20260918.md for den nye separat bundne prøven.
+
 # Hovedencoder — én native TRAIN-startmåling
 
 Run-id: NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.

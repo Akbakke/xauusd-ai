@@ -1,41 +1,36 @@
 # GX1 — overlevering 18. september 2026
 
-Stoppunkt: modellrettelsen, original lærer og TRAIN-only-måleporten er kontrollert.
-Én native nullstegsmåling er bundet, ikke startet ved binding:
-NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918. Faktisk nåstatus må leses fra
-current_work/prosess/receipt; kilden fryses når jobben starter.
-Læringsporten er ikke bestått.
+Ny startbaseline er fullført og kontrollert. Én separat256-prøve er bundet:
+NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918. Kjøringens faktiske tilstand
+må leses fra current_work/prosess/receipt; bundet er ikke det samme som startet.
+Ingen ny læring, generalisering eller lønnsomhet er ennå bevist.
 
-Kode: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Data: `/home/andre2/GX1_DATA`. Mac-mappen er overleveringskopi.
-Start med `./handover.sh --check` på Mac eller
-`bash scripts/gx1_handover.sh --check` i Linux. `current_work` viser nåstatus,
-rettelse og stoppunkt; øvrige gamle checkpoint-/VAL-felt er historikk.
-`working_head` og `working_tree_clean` må leses fra fersk scriptutgang.
+Kode: /home/andre2/src/GX1_CURRENT, work/gx1-current.
+Data: /home/andre2/GX1_DATA. Mac er overleveringskopi. Start med ./handover.sh
+--check på Mac eller bash scripts/gx1_handover.sh --check i Linux.
+current_work gjelder nå; COMPLETED_RUN og eldre VAL-felt er historikk.
 
-Siste læringsprøve (residualnormalisering, kilde 88310075) ble avvist:
-Entry FLAT 256/256; Exit fast valg per side. Påfølgende diagnose (bff19fbe)
-målte stor nesten felles hovedbane: main-fuse L2 1,05→117,71. Variasjonen
-etter felles Entry-normalisering var 9,51 ganger mindre enn initialt,
-Entry-hidden 7,07 ganger mindre. Rå MTF/context varierer fortsatt.
-Dette lokaliserer et problem, men beviser ikke at neste rettelse gir læring.
+Rettelsen er parameterfri final LayerNorm på hovedencoder. Prefix-læreren
+kopieres uten denne nye normaliseringen. Native nullstegsaudit bekrefter eksakt
+bevart kausal Entry-fasit, original Exit-fasit, koordinater, vekter, optimizer,
+EMA, scheduler og RNG. Nye ONLINE-startprediksjoner er lagret. Samme vekthash
+betyr ikke samme funksjon; gammel initialprediksjon er ikke ny baseline.
+Nullstegskilde a1c4b443, guard PASS, 0 optimizersteg. Brukt task Disabled.
 
-Rettelsen er én parameterfri LayerNorm på utgangen av hovedencoder.
-ONLINE-funksjonen endres. Prefix-læreren kopieres eksplisitt uten den nye
-normaliseringen, slik at original lærerfunksjon bevares. Faktisk produksjons-
-initialisering bekrefter identiske vekter og RNG; komplette syntetiske Entry-/
-Exit-tester bekrefter lærerparitet. Ingen ny native startmåling eller trening.
-Gamle ONLINE-startprediksjoner kan IKKE brukes som ny modellbaseline.
+Siste residual256 ga Entry FLAT256/256 og Exit fast valg per side. Diagnosen
+målte hoved-fuse L2 1,05→117,71 og 9,51 ganger mindre variasjon etter joint-
+normalisering enn initialt. Dette begrunner én hypotese, ikke en læringspåstand.
+Ingen modell-/treningskode er endret etter den verifiserte nullstegsmålingen.
 
-TRAIN-only-admission og kontroll mot foreldet ONLINE-modellkilde er nå rettet.
-44 kontrakttester besto / 3 utelatt; ni handover-tester besto. Den tidligere
-påstanden om TRAIN_ONLY_TESTS.log var feil; filen er nå faktisk produsert og
-bundet i planen. Neste steg er én forberedelse/aktivering og baseline-kontroll.
-Se VEIEN_VIDERE.md og docs/MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md.
+Neste: følg VEIEN_VIDERE.md og docs/MAIN_ENCODER_FIXED256_20260918.md.
+Bare samme4096 TRAIN-Entries/256 steg og final ONLINE TRAIN256/Exit256/1024.
+PLAN/operatører ligger under BASE/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918;
+BASE=/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912.
+Forbered og aktiver én gang. Ikke relanser aktiv eller avsluttet plan.
 
-Bevar original initialisering, avsluttede checkpoints, targets, alle 200 features,
-åtte familier/tidsrammer, kausalitet og kostnader. Én agent/én tung jobb.
+Én agent/én tung jobb; kilden fryses under kjøring. Bevar alle200 features,
+åtte familier/tidsrammer, kausalitet, kostnader og originale checkpoints.
 Ingen full epoch/VAL, CONTROL/TEST, live/paper, spending eller brede søk.
-`training_enabled=false`; bare eksakt bundet nullstegsscope er åpnet.
-Stående offentlig push gjelder ferdig kode/docs/stier/aggregater, aldri rådata,
-modellvekter eller hemmeligheter. Historiske operatører skal ikke relanseres.
+training_enabled=false; bare eksakt bundet256-scope er åpnet. Ingen automatisk
+utvidelse. Offentlig push av ferdig kode/docs/stier/aggregater er stående godkjent;
+rådata, vekter og hemmeligheter er unntatt. Gjenbruk beståtte kontroller.

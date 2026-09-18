@@ -1,0 +1,146 @@
+{
+  "baseline_constants_use_train_only": true,
+  "causal_entry_baseline": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/DERIVED_TRAIN_BASELINE.json",
+    "sha256": "cf816df7ab079bd1605480bf0bbb4c07b6a5901a7426a2d4ad5260287eb363fc"
+  },
+  "completed_utc": "2026-09-17T23:59:47.377300+00:00",
+  "corrected_entry_targets_exact": true,
+  "cuda_rng_seed": 20260911,
+  "decision": "FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED",
+  "economic_rollout": false,
+  "finished_utc": "2026-09-17T23:53:46.102283+00:00",
+  "fresh_model_optimizer_ema_scheduler_exactly_preserved": true,
+  "initialization_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_INITIALIZATION_20260918/RESULT.json",
+    "sha256": "c540124c5f38b236b7369f24005db4f7d6cb9035c9a451e372e93b7e6eb9edfa"
+  },
+  "learning_proven": false,
+  "measurement_binding_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+  },
+  "model_functions": {
+    "online": "main_encoder_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "new_online_predictions_measured": true,
+  "old_initial_max_prediction_difference_bps": 0.1468881368637085,
+  "optimizer_steps": 0,
+  "original_cohort_exact": true,
+  "original_exit_targets_exact": true,
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918_BOOT462/receipts/invocation-0001.json",
+    "sha256": "aea19626481c912c0947b2fa716524a4e0f4d3c66a4bbe8255fad22822f6d35d"
+  },
+  "remaining": "Review and close zero-step scope before any separately bound fixed256 TRAIN-only trial.",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "e24482663888d850c6e41a72cf09bc8a71cfbac024bf8cb6cdf3802f63c66f90"
+  },
+  "saved_cpu_python_numpy_rng_exactly_preserved": true,
+  "schema_version": "gx1_native_prefix_initial_measurement_audit_v1",
+  "source_commit": "a1c4b44385b7fa5582d366033164ca2b6eea4c5d",
+  "started_utc": "2026-09-17T23:39:56.073972+00:00",
+  "summary": {
+    "train": {
+      "cohort_sha256": "5f57f50bb939a043c522ce90786215f8e5887fe69d04efc9c0ac90183cff4c1c",
+      "entries": 256,
+      "entry_action_counts": {
+        "FLAT": 40,
+        "LONG": 116,
+        "SHORT": 100
+      },
+      "exit_hold_counts": {
+        "exit_anchor": {
+          "LONG": 256,
+          "SHORT": 256
+        },
+        "exit_sampled": {
+          "LONG": 1014,
+          "SHORT": 1022
+        }
+      },
+      "initial_metrics": {
+        "entry": {
+          "LONG": {
+            "initial_centered_mse": 608.8183433300268,
+            "initial_mse": 633.9526139723948,
+            "prediction_mean_bps": 1.2634539169957861,
+            "prediction_std_bps": 0.4012923392459167,
+            "target_mean_bps": -3.7499551668879576,
+            "target_std_bps": 24.673928681420314,
+            "train_constant_bps": -3.7499551668879576,
+            "train_constant_mse": 608.8027565758159
+          },
+          "SHORT": {
+            "initial_centered_mse": 600.9970482042602,
+            "initial_mse": 685.2925939110652,
+            "prediction_mean_bps": 1.2211935651721433,
+            "prediction_std_bps": 0.4714615473718963,
+            "target_mean_bps": -7.960067007690668,
+            "target_std_bps": 24.572632173721594,
+            "train_constant_bps": -7.960067007690668,
+            "train_constant_mse": 603.8142519450176
+          }
+        },
+        "exit_anchor": {
+          "LONG": {
+            "initial_centered_mse": 625.1623575373238,
+            "initial_mse": 629.6338117169798,
+            "prediction_mean_bps": 0.1027876556981937,
+            "prediction_std_bps": 0.03151105609204425,
+            "target_mean_bps": 2.2173689806077164,
+            "target_std_bps": 25.000738704983654,
+            "train_constant_bps": 2.2173689806077164,
+            "train_constant_mse": 625.0369357948678
+          },
+          "SHORT": {
+            "initial_centered_mse": 622.5304881719259,
+            "initial_mse": 627.7826334597229,
+            "prediction_mean_bps": 0.09279277211317094,
+            "prediction_std_bps": 0.02973920752490457,
+            "target_mean_bps": -2.198963167727925,
+            "target_std_bps": 24.95218472753857,
+            "train_constant_bps": -2.198963167727925,
+            "train_constant_mse": 622.611522677209
+          }
+        },
+        "exit_sampled": {
+          "LONG": {
+            "initial_centered_mse": 864.7140241717925,
+            "initial_mse": 864.7889793023725,
+            "prediction_mean_bps": 0.11034132187114665,
+            "prediction_std_bps": 0.05545567323698286,
+            "target_mean_bps": -0.1634380246468936,
+            "target_std_bps": 29.405953389739217,
+            "train_constant_bps": -0.1634380246468936,
+            "train_constant_mse": 864.7100947595153
+          },
+          "SHORT": {
+            "initial_centered_mse": 859.5020320382546,
+            "initial_mse": 859.5021101622112,
+            "prediction_mean_bps": 0.09824123642192717,
+            "prediction_std_bps": 0.035478776466120514,
+            "target_mean_bps": 0.107080012174265,
+            "target_std_bps": 29.315869375693886,
+            "train_constant_bps": 0.107080012174265,
+            "train_constant_mse": 859.4201972527467
+          }
+        }
+      },
+      "sampled_exit_states": 1024,
+      "sampled_state_coordinates_sha256": "3ea9dc788cf3770bc6e908cb5be63d132ac811fa8cfd9c2cff090991b5fe4072"
+    }
+  },
+  "teacher_refreshed": false,
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "3ccc973a7a7720f6184b3100a4292b9a3a354bccd2895ca319a5a1fc5fde1a1a"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "cfc07c70ca8f76bd71b062c69cfa9edb5539277a2e131a1e7b73045e63b22efb"
+  }
+}

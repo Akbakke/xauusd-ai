@@ -1,21 +1,23 @@
-# Veien videre — mål det nye utgangspunktet
+# Veien videre — én direkte læringsprøve
 
 ## Nøyaktig stoppunkt for neste agent
 
-Modellrettelse, bevart lærer og TRAIN-only-måleport er kontrollert. Kontrakttester:
-44 bestått / 3 utelatt; handover: ni bestått. Ikke gjenta disse kontrollene.
-Én plan er bundet: NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.
+Nullstegsbaselinen er fullført og kontrollert. Ikke gjenta den, representasjons-
+diagnosen eller beståtte tester. Modell, lærer og targets er nå sammenlignbare.
+Gjeldende plan: NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918.
+Se docs/MAIN_ENCODER_FIXED256_20260918.md for bindingsfiler, operatører og kriterier.
 
-Følg docs/MAIN_ENCODER_INITIAL_MEASUREMENT_20260918.md og bundne operatører.
-PREPARE.py og aktivering utføres én gang. Se først PREPARATION_RESULT, faktisk
-prosess og terminal receipt; ikke relanser en aktiv eller avsluttet jobb.
-Kun null optimizersteg og TRAIN 256/256/1024 er tillatt.
+Forbered og aktiver planen én gang hvis dette ennå ikke er gjort. Kontroller
+PREPARATION_RESULT, Windows-task, faktisk prosess og terminal receipt først.
+Ingen relansering på grunn av SSH-timeout eller planlagt fysisk omstart.
+Bevar frosset kilde under kjøring. Observer stabil drift omtrent hver time.
 
-Etter målingen: kontroller nye ONLINE-startprediksjoner, samme frosne lærer og
-kausale targets, uendret state/optimizer/EMA/RNG og koordinater. Gamle prediksjoner
-er ikke baseline for ny funksjon. Deaktiver brukt Windows-task, steng scope og
-oppdater handover etter terminalt resultat. Først da kan én separat256-prøve
-bindes. Ingen automatisk trening. Krev bedre tilstandsavhengig Entry OG Exit,
-per side/måned; lavere bias, større variasjon eller all-FLAT/all-HOLD er ikke PASS.
-TRAIN-fit, senere kronologisk kvalitet og samlet økonomi er separate porter.
-Ingen full epoch/full VAL, CONTROL/TEST, live/paper eller spending.
+Etter terminalt resultat: deaktiver task, kontroller guard/receipt, eksakt256
+steg, original lærer og identiske mål/koordinater mot ny initialbaseline.
+Gjenbruk lagrede historiske outputs. Vurder Entry OG Exit per side/måned mot
+ny initial, residual256 og TRAIN-konstanter. Lavere bias, større variasjon,
+all-FLAT/all-HOLD eller Entry alene er ikke PASS.
+
+Steng scope og oppdater handover før neste beslutning. Ingen ekstra trening
+eller bredt søk ved svakt resultat. TRAIN-fit, senere kronologisk kvalitet og
+samlet kostnadsjustert økonomi er separate porter. TEST forseglet.

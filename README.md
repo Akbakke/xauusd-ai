@@ -9,7 +9,7 @@ Dette er lesende observasjon og starter aldri trening.
 4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Mac-mappen er overlevering. Hovedencoder-rettelsen, bevart lærer og måleport er kontrollert. Én TRAIN-only startmåling med null optimizersteg er bundet; native campaign må forberedes og aktiveres én gang. Læringsporten er ikke bestått.
+Mac-mappen er overlevering. Ny ONLINE-startbaseline er målt: frosne Entry-/Exit-targets, vekter og RNG er eksakt bevart. Én separat native256 TRAIN-prøve er bundet. Læringsporten er fortsatt ikke bestått.
 
 `current_work` viser også `latest_model_correction` og `handover_resume_point`.
 Disse angir ferdige kontroller og nøyaktig uferdig neste steg. Øvrige gamle checkpoint-/VAL-felt i scriptets

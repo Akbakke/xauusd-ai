@@ -5,7 +5,7 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Hovedencoder-rettelsen, bevart lærer og måleport er kontrollert. Én TRAIN-only startmåling med null optimizersteg er bundet; native campaign må forberedes og aktiveres én gang. Læringsporten er ikke bestått.
+Ny ONLINE-startbaseline er målt: frosne Entry-/Exit-targets, vekter og RNG er eksakt bevart. Én separat native256 TRAIN-prøve er bundet. Læringsporten er fortsatt ikke bestått.
 Siste residual256 ga identiske, sidekonstante handlinger. Ny ONLINE-funksjon
 krever ny startbaseline selv med identiske vekter; læreren bevares eksplisitt.
 
