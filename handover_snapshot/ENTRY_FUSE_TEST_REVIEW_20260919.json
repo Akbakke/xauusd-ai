@@ -1,0 +1,14 @@
+{
+  "schema_version": "gx1_focused_test_evidence_v1",
+  "passed": 5,
+  "log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_REPRESENTATION_20260919/FUSE_CANDIDATE_TESTS.log",
+    "sha256": "b5add3b037c021342cc007f51ac74e0a7cc33f41524a15e9287cf0251ca47f3c"
+  },
+  "command": "python -m pytest -q tests/test_entry_main_encoder_normalization.py",
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_main_encoder_normalization.py",
+    "sha256": "1a7c304141eb6bcc148dedc6f094ccf8ace19b81bdd1b6be22ed2b4b60545478"
+  },
+  "scope": "Per-row scale bounds and gradients; exact frozen teacher Entry/token/Exit outputs and unchanged constructor RNG/state. No learning claim."
+}

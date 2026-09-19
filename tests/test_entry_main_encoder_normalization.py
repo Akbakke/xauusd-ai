@@ -47,11 +47,14 @@ def test_frozen_teacher_entry_token_exit_and_rng_match_original_constructor(monk
         patch.setattr(module.nn, 'TransformerEncoder', original_constructor)
         torch.manual_seed(20260911)
         original = _make_model(dropout=0.0).eval().requires_grad_(False)
+        # The original six-layer fuse has no final normalization or extra RNG draw.
+        original.fuse = original.fuse[:-1]
     assert torch.equal(rng, torch.get_rng_state())
     _assert_equal(online.state_dict(), original.state_dict())
     teacher = trainer._copy_frozen_prefix_reference_model(online)
     assert not teacher.training and all(not p.requires_grad for p in teacher.parameters())
     assert online.encoder.norm is not None and teacher.encoder.norm is None
+    assert len(online.fuse) == 7 and len(teacher.fuse) == len(original.fuse) == 6
     _assert_equal(teacher.state_dict(), online.state_dict())
     seq, snap, cat, ctx, mtf = _make_inputs(2)
     exits = _exit_inputs(2)
@@ -75,3 +78,22 @@ def test_reference_copy_rejects_unbound_affine_norm_and_preserves_online():
     with pytest.raises(RuntimeError, match='REFERENCE_ENCODER_FUNCTION_INVALID'):
         trainer._copy_frozen_prefix_reference_model(model)
     assert model.encoder.norm is before
+
+
+def test_entry_fuse_bounds_each_row_without_mixing_inputs_or_losing_gradients():
+    torch.manual_seed(919)
+    model = _make_model(dropout=0.0).train()
+    fuse = model.fuse
+    d = fuse[0].out_features
+    assert fuse[-1].state_dict() == {} and not fuse[-1].elementwise_affine
+    x = (torch.randn(2, 3*d) + 100*torch.randn(1, 3*d)).requires_grad_()
+    out = fuse(x)
+    assert torch.all(torch.linalg.vector_norm(out, dim=-1) <= math.sqrt(d) + 1e-5)
+    changed = x.detach().clone(); changed[1] *= 1000
+    torch.testing.assert_close(out[0], fuse(changed)[0], atol=0, rtol=0)
+    (out*torch.randn_like(out)).sum().backward()
+    assert torch.isfinite(x.grad).all() and torch.count_nonzero(x.grad) > 0
+    assert all(p.grad is not None and torch.count_nonzero(p.grad) > 0 for p in fuse.parameters())
+    model.fuse[-1] = torch.nn.LayerNorm(d)
+    with pytest.raises(RuntimeError, match='REFERENCE_FUSE_FUNCTION_INVALID'):
+        trainer._copy_frozen_prefix_reference_model(model)

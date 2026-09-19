@@ -1,0 +1,51 @@
+{
+  "schema_version": "gx1_entry_fuse_normalization_initialization_audit_v1",
+  "created_utc": "2026-09-19T10:42:08.256493+00:00",
+  "decision": "ONLINE_FUNCTION_CHANGED_FROZEN_REFERENCE_FUNCTION_PRESERVED_NEW_INITIAL_MEASUREMENT_REQUIRED",
+  "model_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "sha256": "ab6e5e270c0ee35ee3d88f3eba9461891c87374d10e0a692835d4c40d1820bed"
+  },
+  "trainer_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+    "sha256": "c17c000e6e2b1e289348e660847eb08a22065a540be0ec9a16b972bf2323c347"
+  },
+  "reference_model_source_commit": "6f149e37423ae122155818d86ca7701a9946e264",
+  "reference_model_source_sha256": "cd09eb6bc798b9335c55f7b6d8c011abe5565e737bae29199edf308678a3c35a",
+  "model_source_change": "Adds one parameter-free final LayerNorm to Entry fuse relative to the completed main-encoder candidate. Both final norms are absent from the preserved original teacher.",
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "initialization_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+    "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+  },
+  "initial_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/INITIAL_STATE.pt",
+    "sha256": "f25206898ff121d78f6d042c897886aacd4ec95f2d861b2cf2abbe01dfb28bfe"
+  },
+  "fresh_binding": {
+    "initialization": "fresh_existing_model_constructor_no_checkpoint_weights",
+    "seed": 20260911,
+    "model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "input_normalization_sha256": "0c73327b125ef653071d00124d985e87019449e7f3b2885179a6f6cdf96cfb59",
+    "checkpoint_loaded": false
+  },
+  "model_parameter_count": 9617497,
+  "constructor_rng_exact": true,
+  "constructor_state_exact": true,
+  "teacher_state_exact": true,
+  "teacher_function_preserved": true,
+  "candidate_initial_function_preserved": false,
+  "new_initial_measurement_required": true,
+  "previous_initial_predictions_are_new_candidate_baseline": false,
+  "parameter_free_main_encoder_token_l2_bound": 11.313708498984761,
+  "parameter_free_entry_fuse_row_l2_bound": 11.313708498984761,
+  "bound_scope": "Finite real-arithmetic encoder outputs and their temporal mean; also bounds Entry fuse output before specialist residuals, but does not bound later residual sums or prove directional learning.",
+  "proof_scope": "Actual production constructor/state/RNG audit plus separate complete synthetic Entry-token/Exit parity tests. No native input forward or learning result.",
+  "native_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "learning_gate_passed": false
+}

@@ -854,6 +854,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             nn.Linear(d_model, d_model),
             nn.GELU(),
             nn.Dropout(dropout),
+            nn.LayerNorm(d_model, elementwise_affine=False),
         )
 
         # Exact eight-specialist contract.  Do not normalize malformed input:

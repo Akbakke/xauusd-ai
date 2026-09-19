@@ -12790,7 +12790,7 @@ def _candidate_training_parent_rows(
 
 
 _PREFIX_MODEL_FUNCTIONS = {
-    "online": "main_encoder_final_layernorm_no_affine_v1",
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
     "target": "main_encoder_no_final_norm_v1",
 }
 
@@ -12798,8 +12798,8 @@ _PREFIX_MODEL_FUNCTIONS = {
 def _copy_frozen_prefix_reference_model(model):
     """Preserve the pre-correction teacher function, not just its state tensors.
 
-    Only the main encoder's new parameter-free final norm differs. Prefix
-    supervision remains tied to the original encoder without that norm.
+    The main encoder and Entry fuse add parameter-free final norms. Prefix
+    supervision remains tied to the original function without either norm.
     """
     encoder = getattr(model, "encoder", None)
     norm = getattr(encoder, "norm", None)
@@ -12808,8 +12808,15 @@ def _copy_frozen_prefix_reference_model(model):
             or tuple(norm.normalized_shape) != (encoder.layers[0].self_attn.embed_dim,)
             or norm.eps != 1e-5 or norm.state_dict()):
         raise RuntimeError("[PREFIX_REFERENCE_ENCODER_FUNCTION_INVALID]")
+    fuse = getattr(model, "fuse", None)
+    if (not isinstance(fuse, nn.Sequential) or len(fuse) != 7
+            or not isinstance(fuse[-1], nn.LayerNorm) or fuse[-1].elementwise_affine
+            or tuple(fuse[-1].normalized_shape) != tuple(norm.normalized_shape)
+            or fuse[-1].eps != 1e-5 or fuse[-1].state_dict()):
+        raise RuntimeError("[PREFIX_REFERENCE_FUSE_FUNCTION_INVALID]")
     target = copy.deepcopy(model)
     target.encoder.norm = None
+    target.fuse = target.fuse[:-1]
     return target.eval().requires_grad_(False)
 
 

@@ -1,0 +1,309 @@
+{
+  "schema_version": "gx1_saved_signal_scale_audit_v1",
+  "signal_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_REPRESENTATION_20260919/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "af2b523ec4253d9b29ef22b2f021ed8f6867938a0295a7fd092cec7d1b38913e"
+  },
+  "state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "88db1e2d955ff561251b21a134ecdd6d7871b67cf474a5a5128eb00ff44f3056"
+  },
+  "normalization_buffers_equal_count": 33,
+  "normalization_buffers_changed": false,
+  "normalization": {},
+  "training_progress": {
+    "schema_version": "gx1_candidate_training_progress_v1",
+    "joint_task_supervision_observed": {
+      "entry_action_q": true,
+      "unified_exit_action": true,
+      "side_mae_bps": true,
+      "trendline_event": true,
+      "position_size": true,
+      "dip_bps": true,
+      "forecast_return_bps": true,
+      "dip_timing_fraction": true,
+      "tail_risk_bps": true,
+      "forward_volatility_bps": true
+    },
+    "joint_task_gradient_observed": {
+      "entry_action_q": true,
+      "unified_exit_action": true,
+      "side_mae_bps": true,
+      "trendline_event": true,
+      "position_size": true,
+      "dip_bps": true,
+      "forecast_return_bps": true,
+      "dip_timing_fraction": true,
+      "tail_risk_bps": true,
+      "forward_volatility_bps": true
+    },
+    "checkpoint_selection": {
+      "checkpoint_policy": {
+        "schema_version": "gx1_entry_candidate_checkpoint_policy_v5",
+        "max_epochs": 30,
+        "validation_frequency_epochs": 1,
+        "early_stop_patience": 5,
+        "minimum_epochs_before_stop": 1,
+        "save_top_k": 1,
+        "early_stop_min_delta": 0.0,
+        "checkpoint_monitor": "marked_policy_evaluation.single_position_replay.net_cash_plus_open_value_bps_sum",
+        "checkpoint_mode": "max"
+      },
+      "best_checkpoint": null,
+      "best_state": null,
+      "best_val": {
+        "nonfinite_metadata": "inf"
+      },
+      "best_policy_pnl": {
+        "nonfinite_metadata": "-inf"
+      },
+      "best_unique_target_action_agreement": {
+        "nonfinite_metadata": "-inf"
+      },
+      "best_unified_exit_validation": {},
+      "best_unified_exit_full_trajectory_validation": {},
+      "best_unified_exit_fitted_q_state": {},
+      "best_entry_fitted_q_state": {},
+      "best_fitted_q_target_state": null,
+      "best_epoch": -1,
+      "epochs_since_improve": 0,
+      "last_epoch": 0,
+      "last_val_stats": {},
+      "early_stopped": false
+    },
+    "validation_snapshot": null
+  },
+  "task_effective_precision": {
+    "task_log_variances.dip_bps": 0.9788991212844849,
+    "task_log_variances.dip_timing_fraction": 1.0237302780151367,
+    "task_log_variances.entry_action_q": 0.9752684831619263,
+    "task_log_variances.forecast_return_bps": 0.976329505443573,
+    "task_log_variances.forward_volatility_bps": 0.9829914569854736,
+    "task_log_variances.position_size": 1.0227301120758057,
+    "task_log_variances.side_mae_bps": 0.9793106913566589,
+    "task_log_variances.tail_risk_bps": 0.9783147573471069,
+    "task_log_variances.trendline_event": 1.0276026725769043,
+    "task_log_variances.unified_exit_action": 0.9758655428886414
+  },
+  "weights": {
+    "seq_proj.weight": {
+      "initial": {
+        "frobenius": 6.540928365968979,
+        "spectral": 0.9837255300106709,
+        "top1_energy_fraction": 0.02261877597508517
+      },
+      "final": {
+        "frobenius": 6.5266429271893065,
+        "spectral": 0.9907606854360604,
+        "top1_energy_fraction": 0.023043997726145855
+      },
+      "delta_frobenius": 0.41465492519617503
+    },
+    "snap_proj.weight": {
+      "initial": {
+        "frobenius": 6.536955955930946,
+        "spectral": 1.067589019449649,
+        "top1_energy_fraction": 0.026672091899374466
+      },
+      "final": {
+        "frobenius": 6.563764904772802,
+        "spectral": 1.0938001084185476,
+        "top1_energy_fraction": 0.02776961695131192
+      },
+      "delta_frobenius": 0.49976915101618086
+    },
+    "fuse.0.weight": {
+      "initial": {
+        "frobenius": 6.529171462380746,
+        "spectral": 0.8959865347865171,
+        "top1_energy_fraction": 0.018831582553869877
+      },
+      "final": {
+        "frobenius": 6.664283390046361,
+        "spectral": 1.535083121722553,
+        "top1_energy_fraction": 0.053058733599314845
+      },
+      "delta_frobenius": 1.123403060581793
+    },
+    "fuse.3.weight": {
+      "initial": {
+        "frobenius": 6.517608887769248,
+        "spectral": 1.107911527469083,
+        "top1_energy_fraction": 0.02889572337910973
+      },
+      "final": {
+        "frobenius": 6.589140554846384,
+        "spectral": 1.3321856476444092,
+        "top1_energy_fraction": 0.040876335731089085
+      },
+      "delta_frobenius": 0.7422431229020935
+    },
+    "specialist_out.weight": {
+      "initial": {
+        "frobenius": 0.0,
+        "spectral": 0.0,
+        "top1_energy_fraction": null
+      },
+      "final": {
+        "frobenius": 0.8827802361299545,
+        "spectral": 0.8797020451932065,
+        "top1_energy_fraction": 0.9930383030878426
+      },
+      "delta_frobenius": 0.8827802361299557
+    },
+    "cross_tf_out.weight": {
+      "initial": {
+        "frobenius": 0.0,
+        "spectral": 0.0,
+        "top1_energy_fraction": null
+      },
+      "final": {
+        "frobenius": 1.0343837080180187,
+        "spectral": 1.0247780779828863,
+        "top1_energy_fraction": 0.9815135729062224
+      },
+      "delta_frobenius": 1.0343837080180205
+    },
+    "family_tf_cooperation_out.weight": {
+      "initial": {
+        "frobenius": 0.0,
+        "spectral": 0.0,
+        "top1_energy_fraction": null
+      },
+      "final": {
+        "frobenius": 1.048772446395962,
+        "spectral": 1.0382268929859597,
+        "top1_energy_fraction": 0.9799908265325904
+      },
+      "delta_frobenius": 1.048772446395966
+    },
+    "entry_q_joint_in.weight": {
+      "initial": {
+        "frobenius": 14.316895067308407,
+        "spectral": 1.876128171936104,
+        "top1_energy_fraction": 0.017172254881550563
+      },
+      "final": {
+        "frobenius": 14.321153904248902,
+        "spectral": 1.877721321651233,
+        "top1_energy_fraction": 0.01719120232267566
+      },
+      "delta_frobenius": 0.4803845925048562
+    },
+    "head_entry_action_q.weight": {
+      "initial": {
+        "frobenius": 2.421642322350949,
+        "spectral": 1.4482095139546982,
+        "top1_energy_fraction": 0.3576372908296518
+      },
+      "final": {
+        "frobenius": 2.4099757225625265,
+        "spectral": 1.4345161845988632,
+        "top1_energy_fraction": 0.35431176189369706
+      },
+      "delta_frobenius": 0.04086058244016172
+    },
+    "head_forecast.weight": {
+      "initial": {
+        "frobenius": 1.1692497337195844,
+        "spectral": 0.6362692490816949,
+        "top1_energy_fraction": 0.2961197057754718
+      },
+      "final": {
+        "frobenius": 1.1688876638029932,
+        "spectral": 0.6282065193830751,
+        "top1_energy_fraction": 0.2888413244793265
+      },
+      "delta_frobenius": 0.1405687131016457
+    },
+    "head_vol_forecast.weight": {
+      "initial": {
+        "frobenius": 0.9595519227044204,
+        "spectral": 0.5678129318517408,
+        "top1_energy_fraction": 0.3501656963615045
+      },
+      "final": {
+        "frobenius": 1.0754550474611067,
+        "spectral": 0.7414889839666496,
+        "top1_energy_fraction": 0.47536246020820716
+      },
+      "delta_frobenius": 0.3434813788883309
+    },
+    "head_side_mae.weight": {
+      "initial": {
+        "frobenius": 0.8291679213378964,
+        "spectral": 0.6094226150465595,
+        "top1_energy_fraction": 0.540196976496986
+      },
+      "final": {
+        "frobenius": 1.056748999905421,
+        "spectral": 0.8927148499545383,
+        "top1_energy_fraction": 0.7136443426585608
+      },
+      "delta_frobenius": 0.4336919317677504
+    },
+    "family_context_global.1.weight": {
+      "initial": {
+        "frobenius": 6.542121073056942,
+        "spectral": 0.7726978275208535,
+        "top1_energy_fraction": 0.013950257624920801
+      },
+      "final": {
+        "frobenius": 6.589829097626522,
+        "spectral": 0.9203530954670486,
+        "top1_energy_fraction": 0.01950566007111396
+      },
+      "delta_frobenius": 0.7288531492899656
+    }
+  },
+  "fixed_fusion_scales": {
+    "specialist_fusion_scale": {
+      "initial": 0.25,
+      "final": 0.25
+    },
+    "multi_tf_scale": {
+      "initial": 0.5,
+      "final": 0.5
+    },
+    "cross_family_fusion_scale": {
+      "initial": 0.25,
+      "final": 0.25
+    }
+  },
+  "entry_joint_layer_norm": {
+    "entry_q_joint_norm.weight": {
+      "initial": {
+        "max_abs": 1.0,
+        "l2": 22.627416997969522
+      },
+      "final": {
+        "max_abs": 1.0047045946121216,
+        "l2": 22.619326181055914
+      }
+    },
+    "entry_q_joint_norm.bias": {
+      "initial": {
+        "max_abs": 0.0,
+        "l2": 0.0
+      },
+      "final": {
+        "max_abs": 0.004721976816654205,
+        "l2": 0.03295422727189551
+      }
+    }
+  },
+  "derived_signal_metrics": {
+    "mse_improvement_fraction_by_component": {
+      "common": 1.0039191408137216,
+      "contrast": -0.018400189378772504,
+      "flat": 0.014480883025518119
+    },
+    "final_contrast_fraction_of_mse": 0.999647506031075,
+    "hidden_rms_feature_std_final_over_initial": 0.3801206236362725,
+    "joint_normalized_std_reduction_factor": 3.243752166614735
+  },
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "limitations": "One reused TRAIN16. Saved weights and completed representation measurements only. No new activation or gradient calculation. Spectral norms do not identify each branch activation contribution or prove a corrective architecture. Entry-private eval gradients are not a full clipped Adam update."
+}
