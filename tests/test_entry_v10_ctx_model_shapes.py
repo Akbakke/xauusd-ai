@@ -193,9 +193,13 @@ def test_weight_ema_preserves_immutable_input_normalization_on_export() -> None:
     ema = trainer._WeightEma(model, 0.5)
     parameter_name, parameter = next(iter(model.named_parameters()))
     initial_parameter = parameter.detach().clone()
-    with torch.no_grad():
-        parameter.add_(1.0)
+    # Move the weights between updates so the averaged shadow genuinely lags
+    # the live trajectory. (Under the unbiased warmup schedule a stationary
+    # trajectory correctly averages to itself, so a single pre-loop bump
+    # would no longer produce an observable blend.)
     for _ in range(60):
+        with torch.no_grad():
+            parameter.add_(1.0)
         ema.update(model)
 
     exported_state = ema.state_dict_clone()
@@ -1466,6 +1470,8 @@ def test_exit_scale_nonfinite_guard_survives_hoist(route, invalid_scale):
 
 @pytest.mark.parametrize("route", ("prefix", "step_append"))
 def test_exit_scale_nonfinite_gradient_still_blocks_existing_optimizer_owner(monkeypatch, route):
+    monkeypatch.setattr(trainer, "_GRAD_CLIP_NORM", 1.0)
+    monkeypatch.setattr(trainer, "_WEIGHT_DECAY", 0.0)
     model = _make_model(dropout=0.0).eval()
     output = _exit_scale_route(model, _make_exit_episode_inputs(state_count=3), route)
     sum(value.square().mean() for name, value in output.items() if name.endswith("exit_action_q_bps")).backward()

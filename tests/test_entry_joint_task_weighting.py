@@ -30,7 +30,10 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize("bad_gradient", [float("nan"), float("inf"), 1e30])
 def test_optimizer_rejects_bad_backbone_norm_before_state_mutation(
     partial_accumulation: bool, bad_gradient: float,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(trainer, "_GRAD_CLIP_NORM", 1.0)
+    monkeypatch.setattr(trainer, "_WEIGHT_DECAY", 0.0)
     model = torch.nn.Linear(2, 1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
     ema = trainer._WeightEma(model, 0.5)
@@ -59,7 +62,12 @@ def test_optimizer_rejects_bad_backbone_norm_before_state_mutation(
 @pytest.mark.parametrize("partial_accumulation", [False, True])
 def test_finite_optimizer_step_advances_weights_optimizer_and_ema_once(
     partial_accumulation: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # Learning globals have no default: bind them explicitly, exactly as a
+    # real caller (main() or the resume verifier) must.
+    monkeypatch.setattr(trainer, "_GRAD_CLIP_NORM", 1.0)
+    monkeypatch.setattr(trainer, "_WEIGHT_DECAY", 0.0)
     model = torch.nn.Linear(2, 1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
     ema = trainer._WeightEma(model, 0.5)

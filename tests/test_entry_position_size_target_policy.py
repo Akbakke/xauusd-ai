@@ -326,15 +326,16 @@ def test_position_size_training_loss_has_zero_gradient_outside_policy_mask() -> 
     assert float(logits.grad[1]) != 0.0
     assert float(logits.grad[2]) == 0.0
 
+    # An all-FLAT batch must never produce a loss value: the caller omits the
+    # task entirely (see _joint_task_loss), and an exact-zero loss here would
+    # drive the task's learned log-variance to -inf. Fail closed instead.
     all_flat_logits = torch.tensor([[1.0], [-1.0]], requires_grad=True)
-    flat_loss = _masked_position_size_mse(
-        all_flat_logits,
-        torch.zeros(2),
-        torch.zeros(2),
-    )
-    flat_loss.backward()
-    assert float(flat_loss) == 0.0
-    assert torch.equal(all_flat_logits.grad, torch.zeros_like(all_flat_logits))
+    with pytest.raises(RuntimeError, match="EMPTY_MASK"):
+        _masked_position_size_mse(
+            all_flat_logits,
+            torch.zeros(2),
+            torch.zeros(2),
+        )
 
     with pytest.raises(RuntimeError, match="MASK_INVALID"):
         _masked_position_size_mse(

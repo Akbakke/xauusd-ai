@@ -42,6 +42,10 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data._utils.collate import default_collate
 
 # Canonical context ordering; exact model-native dimensions are verified below.
+from gx1.time.session_detector import get_session_vectorized
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_DIP_TARGET_DEFINITIONS,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -180,6 +184,8 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
     seal_unified_exit_episode_pack,
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
+    UNIFIED_EXIT_FITTED_Q_GAMMA,
+    UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
     unified_exit_first_state_side_values,
@@ -339,10 +345,13 @@ def _masked_position_size_mse(
     ):
         raise RuntimeError("[ENTRY_POSITION_SIZE_MASK_INVALID]")
     active = observed_mask == 1.0
-    if bool(active.any()):
-        return torch.nn.functional.mse_loss(prediction[active], expected[active])
-    # Preserve the graph while contributing exactly zero on an all-FLAT batch.
-    return position_size_logit.sum() * 0.0
+    if not bool(active.any()):
+        # Both call sites guard on a nonempty mask before calling; an all-FLAT
+        # batch omits the task entirely (see _joint_task_loss docstring). An
+        # exact-zero loss here would drive this task's learned log-variance to
+        # -inf under the Kendall scalarization, so it must never be produced.
+        raise RuntimeError("[ENTRY_POSITION_SIZE_LOSS_EMPTY_MASK]")
+    return torch.nn.functional.mse_loss(prediction[active], expected[active])
 
 
 def _joint_task_loss(
@@ -430,12 +439,11 @@ def dip_forecast_task_losses(
     for d in DIP_DIRECTIONS:
         for K in DIP_HORIZONS:
             for tgt in DIP_TARGETS:
-                if tgt.startswith("recovery"):
-                    tgts.append(batch[f"y_dip_mfe_{d}_K{K}"])
-                    qs.append(0.5)
-                else:  # dip_p50 / dip_p90
-                    tgts.append(batch[f"y_dip_mae_{d}_K{K}"])
-                    qs.append(0.9 if "p90" in tgt else 0.5)
+                # Column family and pinball quantile are owned by the aux
+                # target contract; no substring matching on target names.
+                definition = MODEL_NATIVE_DIP_TARGET_DEFINITIONS[tgt]
+                tgts.append(batch[f"{definition['source_family']}_{d}_K{K}"])
+                qs.append(float(definition["pinball_quantile"]))
     tgt = torch.stack(tgts, dim=1).to(device).float()
     q = torch.tensor(qs, device=device, dtype=tgt.dtype).view(1, -1)
     err = tgt - dip_pred.float()
@@ -641,6 +649,12 @@ _ACTIVE_HEAD_COMPONENT_WIDTHS = {
     for components in _ACTIVE_HEAD_OUTPUT_COMPONENTS.values()
     for component in components
 }
+# Origin: the decile diagnostic below needs at least 10 rows for ten
+# nonempty deciles and the correlation diagnostics need at least 2; this
+# floor sits conservatively above both. It is compared against COMPLETE
+# per-column supervised VAL populations (thousands of rows for a candidate),
+# so it can only reject near-empty supervision, never sample a statistic
+# (rule 2f: the comparison population is the full declared one).
 _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS = 16
 # A two-row floor is not an empirical quality threshold: it is the minimum
 # population on which a range-based liveness assertion can establish that a
@@ -648,7 +662,6 @@ _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS = 16
 # smoke uses this only as a technical execution proof. Candidate training
 # keeps the stricter 16-row diagnostic above and never consults this floor.
 _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS = 2
-_ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS = 1e-8
 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS = {
     "entry_action_q_bps": frozenset({2}),
 }
@@ -2934,9 +2947,23 @@ def _entry_fitted_q_movement_proof(
 
 
 # V12.2: grad-clip norm + weight-decay set at runtime via CLI flag. Module-level
-# so we don't have to thread through 6 layers of function args.
-_GRAD_CLIP_NORM: float = 1.0
-_WEIGHT_DECAY: float = 1e-5
+# so we don't have to thread through 6 layers of function args. There is no
+# default: every caller (main() from the required CLI flags, or a library
+# caller such as verify_candidate_checkpoint_resume_v1) must bind both
+# explicitly, and run_train fails closed if either is unbound (rule 14 — a
+# module-level literal is not a legitimate origin for a learning value).
+_GRAD_CLIP_NORM: Optional[float] = None
+_WEIGHT_DECAY: Optional[float] = None
+
+
+def _require_bound_learning_globals() -> tuple[float, float]:
+    if _GRAD_CLIP_NORM is None or _WEIGHT_DECAY is None:
+        raise RuntimeError(
+            "[ENTRY_TRAIN_LEARNING_GLOBALS_UNBOUND] grad_clip_norm and "
+            "weight_decay must be explicitly bound by the caller before "
+            "run_train; there is no default"
+        )
+    return float(_GRAD_CLIP_NORM), float(_WEIGHT_DECAY)
 # Below the outer guard's 12 GiB observation boundary. An unsafe
 # activation-retention run fails locally as CUDA OOM before it can reserve
 # enough VRAM to destabilise WSL or the workstation.
@@ -5099,12 +5126,15 @@ def _accumulate_cooperation_gate_epoch(
             raise RuntimeError(
                 f"[ENTRY_MODEL_NATIVE_GATE_NONFINITE] output={output_name}"
             )
-        clipped = detached.clamp(min=1e-12)
         state = accumulator[output_name]
         state["rows"] = int(state["rows"]) + int(detached.shape[0])
         state["sum"] += detached.sum(dim=0).cpu().numpy()
+        # Exact entropy: xlogy(p, p) is 0 at p == 0, so a hard one-hot row
+        # contributes exactly 0.0 and the downstream `entropy <= 0.0`
+        # deterministic-routing check can actually fire. The previous
+        # clamp(min=1e-12) floor made that check unreachable (fail-open).
         state["entropy_sum"] = float(state["entropy_sum"]) + float(
-            (-(clipped * clipped.log()).sum(dim=1).sum()).cpu().item()
+            (-torch.special.xlogy(detached, detached).sum(dim=1).sum()).cpu().item()
         )
 
 
@@ -5463,8 +5493,10 @@ def _trendline_event_aux_loss(
 class _WeightEma:
     """Exponential moving average of the model weights (V30 package 5).
 
-    ``shadow <- decay*shadow + (1 - decay)*current`` after every optimizer
-    step, over model *parameters* only.  Every buffer is carried by exact copy,
+    ``shadow <- d_t*shadow + (1 - d_t)*current`` after every optimizer step,
+    over model *parameters* only, with ``d_t = min(decay, t/(t+1))`` — the
+    unbiased running-mean warmup that removes the random-initialization bias
+    the shadow would otherwise carry into early validated epochs.  Every buffer is carried by exact copy,
     including floating-point buffers: buffers encode architecture, positional
     state, and immutable input-normalization metadata rather than learned model
     weights.  Averaging an unchanged float buffer can still introduce a rounding
@@ -5506,11 +5538,22 @@ class _WeightEma:
         current = model.state_dict()
         if set(current) != set(self._shadow):
             raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_STATE_KEYS_CHANGED]")
+        # Initialization-bias removal: with t prior updates, cap the decay at
+        # t/(t+1) — the exact unbiased running-mean schedule. The first update
+        # copies the trained weights exactly (decay 0), so the random
+        # initialization the shadow was seeded with carries zero weight into
+        # any validated state; once t/(t+1) exceeds the configured decay the
+        # schedule is the configured EMA unchanged. Without this cap the
+        # epoch-1 validated weights carried (1-1/N)^N -> e^-1 = 36.8%
+        # untrained initialization by construction.
+        effective_decay = min(
+            self.decay, float(self._steps) / float(self._steps + 1)
+        )
         for name, tensor in current.items():
             shadow = self._shadow[name]
             if name in self._parameter_names:
-                shadow.mul_(self.decay).add_(
-                    tensor.detach(), alpha=1.0 - self.decay
+                shadow.mul_(effective_decay).add_(
+                    tensor.detach(), alpha=1.0 - effective_decay
                 )
             else:
                 shadow.copy_(tensor.detach())
@@ -5594,8 +5637,9 @@ def _optimizer_step_with_finite_gradients(
 ) -> None:
     """Reject a nonfinite norm before mutating weights, optimizer or EMA."""
 
+    grad_clip_norm, _ = _require_bound_learning_globals()
     torch.nn.utils.clip_grad_norm_(
-        model.parameters(), _GRAD_CLIP_NORM, error_if_nonfinite=True
+        model.parameters(), grad_clip_norm, error_if_nonfinite=True
     )
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
@@ -6838,6 +6882,7 @@ def _episode_native_exit_train_chunked(
             - profile_backward_s,
             profile_end - profile_start,
         )
+    stats["eligible_entry_rows"] = len(selected_episodes)
     return (
         entry_gradients,
         {**stats, "raw_loss": raw_loss_sum / float(total_valid)},
@@ -7990,8 +8035,8 @@ def _finalize_unified_exit_full_trajectory_validation(
         "target_model_state_sha256": accumulator["target_model_state_sha256"],
         "future_outcomes_used_as_model_inputs": False,
         "predicted_exact_q_tie_runtime_policy": "fail_closed",
-        "gamma": 1.0,
-        "intermediate_hold_reward_bps": 0.0,
+        "gamma": UNIFIED_EXIT_FITTED_Q_GAMMA,
+        "intermediate_hold_reward_bps": UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
         **dict(exit_gate_stats),
     }
 
@@ -8695,14 +8740,18 @@ def _active_head_target_surfaces(
         dim=1,
     )
 
+    # No clamp: negative MAE targets are rejected fail-closed at dataset load
+    # (_model_native_active_target_failures) and again by the loss owner's
+    # _require_nonnegative_target. A silent clamp here is the exact absorber
+    # class that let the V24 signed-target corruption survive.
     side_mae_target = torch.stack(
         [
             _active_head_batch_target(
                 batch, "y_long_expected_mae_bps", device
-            ).reshape(-1).clamp_min(0.0),
+            ).reshape(-1),
             _active_head_batch_target(
                 batch, "y_short_expected_mae_bps", device
-            ).reshape(-1).clamp_min(0.0),
+            ).reshape(-1),
         ],
         dim=1,
     )
@@ -8718,7 +8767,7 @@ def _active_head_target_surfaces(
             _active_head_batch_target(batch, "y_countertrend_long_trap", device),
         ],
         dim=1,
-    ).clamp(0.0, 1.0)
+    )
     # Exact loss mask: the two line-hold outcomes only exist after their own
     # registry touch events, while the two trap labels are dense.
     trendline_mask = torch.stack(
@@ -9094,8 +9143,8 @@ def _finite_pearson(left: np.ndarray, right: np.ndarray) -> float | None:
         left.size < 2
         or not np.isfinite(left).all()
         or not np.isfinite(right).all()
-        or float(np.std(left)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
-        or float(np.std(right)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+        or float(np.std(left)) <= 0.0
+        or float(np.std(right)) <= 0.0
     ):
         return None
     value = float(np.corrcoef(left, right)[0, 1])
@@ -9292,12 +9341,11 @@ def _entry_action_q_primary_validation_diagnostics(
         return result
 
     month = times.dt.strftime("%Y-%m").to_numpy()
-    hour = times.dt.hour.to_numpy()
-    utc_session = np.select(
-        [hour < 7, hour < 13, hour < 22],
-        ["asia_utc", "london_utc", "new_york_utc"],
-        default="asia_utc",
-    )
+    # One session clock: the SSoT owner (gx1.time.session_detector) defines
+    # the four UTC sessions the model's own session_id context uses. The
+    # previous inline three-session clock (boundaries 7/13/22) bucketed VAL
+    # rows by a clock that exists nowhere else in the system.
+    utc_session = get_session_vectorized(times).to_numpy()
     return {
         "primary_head": "entry_action_q",
         "selection": "highest_valid_raw_bps_q",
@@ -9400,7 +9448,11 @@ def _active_head_epoch_diagnostics(
             mask_chunks = (
                 component.get("mask") if isinstance(component, dict) else None
             )
-            if not prediction_chunks or not target_chunks:
+            if not prediction_chunks or not target_chunks or not mask_chunks:
+                # Missing mask evidence is missing evidence, never implicit
+                # dense supervision (rule 2e): a fabricated all-ones mask would
+                # let the row-count and dead-column checks pass on cells that
+                # were never supervised. Real training always records a mask.
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_MISSING] "
                     f"head={head_name} component={component_name}"
@@ -9415,16 +9467,9 @@ def _active_head_epoch_diagnostics(
                     [np.asarray(value, dtype=np.float64) for value in target_chunks],
                     axis=0,
                 )
-                # Compatibility for synthetic legacy test accumulators: real
-                # training always records a mask.  Missing mask data is only
-                # equivalent to dense supervision, never a partial mask.
-                element_mask = (
-                    np.concatenate(
-                        [np.asarray(value, dtype=bool) for value in mask_chunks],
-                        axis=0,
-                    )
-                    if mask_chunks
-                    else np.ones_like(prediction, dtype=bool)
+                element_mask = np.concatenate(
+                    [np.asarray(value, dtype=bool) for value in mask_chunks],
+                    axis=0,
                 )
             except Exception as exc:
                 failures.append(
@@ -9483,10 +9528,10 @@ def _active_head_epoch_diagnostics(
                 [np.std(target[element_mask[:, col], col]) for col in range(target.shape[1])]
             )
             dead_prediction_columns = np.flatnonzero(
-                prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+                prediction_range <= 0.0
             ).astype(int).tolist()
             dead_target_columns = np.flatnonzero(
-                target_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+                target_range <= 0.0
             ).astype(int).tolist()
             structural_constant_columns = set(
                 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS.get(
@@ -9494,8 +9539,13 @@ def _active_head_epoch_diagnostics(
                     frozenset(),
                 )
             )
+            # The structural-constancy exemption holds for the TARGET only
+            # (FLAT's fitted-Q target is exactly 0.0 by contract). The
+            # PREDICTION is a learned output on every column: a FLAT Q that
+            # is bit-identical across all rows is a genuinely dead third
+            # action and must block, not pass.
             blocking_dead_prediction_columns = sorted(
-                set(dead_prediction_columns) - structural_constant_columns
+                set(dead_prediction_columns)
             )
             blocking_dead_target_columns = sorted(
                 set(dead_target_columns) - structural_constant_columns
@@ -11785,6 +11835,7 @@ def run_train(
     candidate_epoch_seal: Optional[Mapping[str, Any]] = None,
 ) -> None:
     run_started = time.perf_counter()
+    _require_bound_learning_globals()
     from gx1.contracts.entry_model_native_train_launch_v1 import (
         require_training_recipe_source_provenance_metadata,
     )
@@ -13546,9 +13597,19 @@ def run_train(
                 float("nan"),
             )
         )
-        _improved = np.isfinite(_policy_pnl) and (
-            _policy_pnl - best_policy_pnl
-        ) > float(early_stopping_min_delta)
+        # One selection authority (rule 13): the same policy-owner calls as
+        # the resumable candidate path, never an inline re-implementation.
+        _improved = bool(
+            np.isfinite(_policy_pnl)
+            and (
+                best_epoch < 0
+                or candidate_metric_improved(
+                    candidate=_policy_pnl,
+                    best=float(best_policy_pnl),
+                    min_delta=float(early_stopping_min_delta),
+                )
+            )
+        )
         _strict_active_head_health_ok = bool(
             val_stats.get("active_head_health_ok", False)
         ) if val_stats else False
@@ -13652,7 +13713,12 @@ def run_train(
             )
         else:
             epochs_since_improve += 1
-            if epochs_since_improve >= int(early_stopping_patience):
+            if candidate_should_early_stop(
+                completed_epochs=epoch + 1,
+                epochs_since_improve=int(epochs_since_improve),
+                patience=int(early_stopping_patience),
+                minimum_epochs_before_stop=int(minimum_epochs_before_stop),
+            ):
                 early_stopped = True
                 log.info(
                     "[EARLY_STOP] epoch=%d best_epoch=%d "
@@ -13899,8 +13965,8 @@ def run_train(
         "exit_action_task_name": "unified_exit_action",
         "exit_action_target": "train_fitted_raw_bps_q_iteration",
         "exit_action_loss": "mean_squared_error_over_valid_q_cells",
-        "gamma": 1.0,
-        "intermediate_hold_reward_bps": 0.0,
+        "gamma": UNIFIED_EXIT_FITTED_Q_GAMMA,
+        "intermediate_hold_reward_bps": UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
         "baseline_cross_entropy_authority": False,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
         "selected_fitted_q_iteration_state": (
@@ -14385,6 +14451,15 @@ def run_train(
         "target_regression_units": "raw_native_units",
         "grad_clip_norm": float(_GRAD_CLIP_NORM),
         "weight_decay": float(_WEIGHT_DECAY),
+        # Complete optimizer identity: family plus the library-default betas
+        # and eps actually in effect, read from the constructed optimizer
+        # rather than restated, so the published training identity carries
+        # every decision-affecting optimizer magnitude.
+        "optimizer": {
+            "family": type(optimizer).__name__,
+            "betas": [float(b) for b in optimizer.defaults["betas"]],
+            "eps": float(optimizer.defaults["eps"]),
+        },
         "train_recipe": {
             "entry_action_q_loss": "masked_raw_bps_mean_squared_error",
             "main_direction_loss": "retired",
@@ -14903,6 +14978,23 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
+        from gx1.contracts.entry_model_native_train_launch_v1 import (
+            RECIPE_AUDIT_SCHEMA as _LEGACY_RECIPE_AUDIT_SCHEMA,
+        )
+
+        # Exactly one alternate schema is admissible: the legacy recipe-audit
+        # schema whose full CLI comparison is owned by the launch wrapper.
+        # Any other payload silently passing here would let a direct caller
+        # run the trainer with unbound learning values (rule 14).
+        if (
+            not isinstance(payload, Mapping)
+            or payload.get("schema_version") != _LEGACY_RECIPE_AUDIT_SCHEMA
+        ):
+            raise RuntimeError(
+                "[ENTRY_TRAIN_RECIPE_SCHEMA_UNRECOGNIZED] recipe_audit_json "
+                "must be a pre-TEST technical recipe or a legacy "
+                "wrapper-validated recipe audit"
+            )
         return
     try:
         recipe = require_pretest_technical_recipe_metadata(

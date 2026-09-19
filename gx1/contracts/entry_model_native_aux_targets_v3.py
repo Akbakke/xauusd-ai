@@ -10,6 +10,23 @@ MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
 MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
 MODEL_NATIVE_DIP_DIRECTIONS = ("long", "short")
 MODEL_NATIVE_DIP_OUTPUT_TARGETS = ("dip_p50", "dip_p90", "recovery_p50")
+# Executable definition of each dip output target: which label family it
+# regresses and at which pinball quantile. The quantile IS the declared
+# target identity (p50 = median, p90 = 90th percentile); this mapping makes
+# that identity executable so no consumer re-derives it by substring
+# matching on the target name (rule 13).
+MODEL_NATIVE_DIP_TARGET_DEFINITIONS = MappingProxyType(
+    {
+        "dip_p50": {"source_family": "y_dip_mae", "pinball_quantile": 0.5},
+        "dip_p90": {"source_family": "y_dip_mae", "pinball_quantile": 0.9},
+        "recovery_p50": {"source_family": "y_dip_mfe", "pinball_quantile": 0.5},
+    }
+)
+if tuple(MODEL_NATIVE_DIP_TARGET_DEFINITIONS) != MODEL_NATIVE_DIP_OUTPUT_TARGETS:
+    raise AssertionError(
+        "MODEL_NATIVE_DIP_TARGET_DEFINITIONS must cover exactly "
+        "MODEL_NATIVE_DIP_OUTPUT_TARGETS in declared order"
+    )
 MODEL_NATIVE_DIP_OUTPUT_DIM = (
     len(MODEL_NATIVE_DIP_DIRECTIONS)
     * len(MODEL_NATIVE_AUX_RISK_HORIZONS)

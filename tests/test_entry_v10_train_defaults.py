@@ -42,6 +42,10 @@ def _live_active_head_epoch_accumulator() -> dict:
             accumulator["heads"][head_name]["components"][component_name] = {
                 "prediction": [prediction],
                 "target": [target],
+                # Real training always records an element mask; missing mask
+                # evidence now fails closed instead of implying dense
+                # supervision, so the fixture records it explicitly.
+                "mask": [np.ones_like(prediction, dtype=bool)],
             }
     return accumulator
 

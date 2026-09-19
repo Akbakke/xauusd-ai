@@ -20,6 +20,7 @@ import torch
 
 UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v1"
 UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
+UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS = 0.0
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
 UNIFIED_EXIT_FITTED_Q_TARGET_UNIT = "raw_bps"
 UNIFIED_EXIT_FIRST_STATE_VALUE_SCHEMA_VERSION = (
@@ -61,7 +62,7 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "action_order": ["HOLD", "EXIT_NOW"],
         "target_unit": UNIFIED_EXIT_FITTED_Q_TARGET_UNIT,
         "gamma": UNIFIED_EXIT_FITTED_Q_GAMMA,
-        "intermediate_hold_reward_bps": 0.0,
+        "intermediate_hold_reward_bps": UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
         "exit_target": "current_executable_trade_pnl_bps",
         "hold_target": "stop_gradient(max_valid_q_target_at_next_causal_state)",
         "entry_bridge": (
