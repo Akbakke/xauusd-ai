@@ -1,0 +1,265 @@
+{
+  "agent_reviews_completed": [
+    "entry_edge_review",
+    "exit_edge_review",
+    "research_efficiency_review"
+  ],
+  "cache_reuse_condition": {
+    "requirement": "Reconstruct the original contract using original factory/cohort/model/checkpoint/budgets and extracted original tokens and require the stored contract hash. Candidate selector must not feed Exit. This parity has not yet been measured.",
+    "source": "gx1/contracts/unified_exit_random_access_val_rollout_v1.py:249; gx1/contracts/unified_exit_random_access_val_factory_v1.py:733",
+    "stored_rollout_contract_sha256": "25228b9c463c18942f1f15432731620751e1a5d26165401d3935930ca24aca28"
+  },
+  "created_utc": "2026-09-19T20:11:44.577143+00:00",
+  "dataset_review": {
+    "baseline": {
+      "all": {
+        "labels": {
+          "FLAT": {
+            "baseline_centered_mse_bps2": 0.010396638215806381,
+            "baseline_mse_bps2": 0.011036677039544198,
+            "mean_bps": 0.0,
+            "negative_count": 0,
+            "std_bps": 0.0,
+            "train_constant_mse_bps2": 0.0
+          },
+          "LONG": {
+            "baseline_centered_mse_bps2": 543.4477714949072,
+            "baseline_mse_bps2": 543.6584379085093,
+            "mean_bps": -4.107952149686753,
+            "negative_count": 183,
+            "std_bps": 23.373878182912236,
+            "train_constant_mse_bps2": 547.2638854499073
+          },
+          "SHORT": {
+            "baseline_centered_mse_bps2": 63.99142494574854,
+            "baseline_mse_bps2": 67.46870404030845,
+            "mean_bps": -5.189260569575708,
+            "negative_count": 226,
+            "std_bps": 8.017540263308765,
+            "train_constant_mse_bps2": 64.55357825708681
+          }
+        },
+        "original_Entry_actions": {
+          "FLAT": 256,
+          "LONG": 0,
+          "SHORT": 0
+        },
+        "original_selected_mean_bps": 0.0,
+        "rows": 256,
+        "train_constant_action": "FLAT",
+        "train_constant_selected_mean_bps": 0.0
+      },
+      "selector_check": {
+        "labels": {
+          "FLAT": {
+            "baseline_centered_mse_bps2": 0.010568703761959234,
+            "baseline_mse_bps2": 0.011537348660119483,
+            "mean_bps": 0.0,
+            "negative_count": 0,
+            "std_bps": 0.0,
+            "train_constant_mse_bps2": 0.0
+          },
+          "LONG": {
+            "baseline_centered_mse_bps2": 648.3354945182751,
+            "baseline_mse_bps2": 650.6438558600225,
+            "mean_bps": -3.16073377592157,
+            "negative_count": 90,
+            "std_bps": 25.526587621123518,
+            "train_constant_mse_bps2": 655.252306643005
+          },
+          "SHORT": {
+            "baseline_centered_mse_bps2": 110.16021232587683,
+            "baseline_mse_bps2": 116.13111039753875,
+            "mean_bps": -4.675219342343567,
+            "negative_count": 105,
+            "std_bps": 10.537646534671127,
+            "train_constant_mse_bps2": 112.1156584916242
+          }
+        },
+        "original_Entry_actions": {
+          "FLAT": 129,
+          "LONG": 0,
+          "SHORT": 0
+        },
+        "original_selected_mean_bps": 0.0,
+        "rows": 129,
+        "train_constant_action": "FLAT",
+        "train_constant_selected_mean_bps": 0.0
+      },
+      "selector_fit": {
+        "labels": {
+          "FLAT": {
+            "baseline_centered_mse_bps2": 0.010152412424552093,
+            "baseline_mse_bps2": 0.010528120826518906,
+            "mean_bps": 0.0,
+            "negative_count": 0,
+            "std_bps": 0.0,
+            "train_constant_mse_bps2": 0.0
+          },
+          "LONG": {
+            "baseline_centered_mse_bps2": 434.60621284256274,
+            "baseline_mse_bps2": 434.98821022547605,
+            "mean_bps": -5.0700873482356394,
+            "negative_count": 93,
+            "std_bps": 20.918290063928524,
+            "train_constant_mse_bps2": 437.57485919865076
+          },
+          "SHORT": {
+            "baseline_centered_mse_bps2": 16.409650995429967,
+            "baseline_mse_bps2": 18.03996057509029,
+            "mean_bps": -5.7113969342445765,
+            "negative_count": 121,
+            "std_bps": 4.030197127312467,
+            "train_constant_mse_bps2": 16.24248888499766
+          }
+        },
+        "original_Entry_actions": {
+          "FLAT": 127,
+          "LONG": 0,
+          "SHORT": 0
+        },
+        "original_selected_mean_bps": 0.0,
+        "rows": 127,
+        "train_constant_action": "FLAT",
+        "train_constant_selected_mean_bps": 0.0
+      },
+      "train_constant_q_bps": [
+        -5.0700873482356394,
+        -5.7113969342445765,
+        0.0
+      ]
+    },
+    "costs_included_once_from_native_result": true,
+    "created_utc": "2026-09-19T19:57:59.908510+00:00",
+    "dataset": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/ENTRY_RETURN_DATASET.json",
+      "sha256": "2f722c1460d67f7f55486a52ed2ac959c3420ada9e75decfcb6dfa1d9e9f780b"
+    },
+    "decision": "POLICY_VERSIONED_SIGNED_RETURN_LABELS_AND_CACHED_BASELINE_VERIFIED",
+    "design": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/DESIGN.json",
+      "sha256": "8fc5fa3157a33b8f24c509c7b784086b7341157f89e2afc3988663b88a6e8706"
+    },
+    "entries_preserved": 256,
+    "execution_note": "Initial capped attempt did not execute because another full pytest owns the heavy-job lock. This completed metadata-only operator uses the standard library, hashes small saved JSON results, and loads no weights or market datasets.",
+    "existing_model_code_modified": false,
+    "flat_targets_exactly_zero": true,
+    "learning_or_profitability_proven": false,
+    "max_float32_rounding_bps": 4.881310047721854e-06,
+    "negative_labels_preserved": 409,
+    "new_fits": 0,
+    "new_model_forwards": 0,
+    "open_sides_dropped": 0,
+    "operator": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/DATASET_OPERATOR.py",
+      "sha256": "8bf9d5abfaac568da367e496c5209dcd790ab7652e84353951fb8f921c2847e3"
+    },
+    "optimizer_steps": 0,
+    "schema_version": "gx1_frozen_policy_entry_dataset_review_v1",
+    "sides_preserved": 512,
+    "source_entry_month_membership_exactly_verified": true,
+    "test_data_used": false,
+    "training_enabled": false
+  },
+  "dataset_review_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/REVIEW.json",
+    "sha256": "a0d85626211c1eb397f2aa69172c165fe86e60a355d307899a2afa81cca15276"
+  },
+  "decision": "ONE_PREDECLARED_FALSIFICATION_CANDIDATE_NOT_FIT_OR_LAUNCH_AUTHORITY",
+  "design": {
+    "completed_policy_evaluation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/COMPLETION_REVIEWED.json",
+      "sha256": "9802a476b5d113309d2875f64bb8a3b65c07ceb735c3cc9863f38675a18385c8"
+    },
+    "costs_changed": false,
+    "coverage": "All256 fixed entries and512 sides preserved. Require complete model exits before cutoff for the whole fixed cohort; never select closed/winning rows out of an incomplete cohort.",
+    "created_utc": "2026-09-19T19:57:59.908510+00:00",
+    "dataset": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/ENTRY_RETURN_DATASET.json",
+      "sha256": "2f722c1460d67f7f55486a52ed2ac959c3420ada9e75decfcb6dfa1d9e9f780b"
+    },
+    "decision": "DESIGN_AND_CACHED_RETURN_LABELS_NOT_FIT_OR_LAUNCH_AUTHORITY",
+    "frozen_policy_definition": "Entire original ONLINE512 Entry-forward/token plus Exit mapping. The original three Entry Q values remain inputs to Exit; freezing only Exit-head weights or detaching gradients is insufficient.",
+    "frozen_policy_model_state_sha256": "67b1be8e694b0ba6859fc5bc369dc668ea6e68b9dd5a110b7d3f0e8a4bb0896d",
+    "inference_inputs": "Only existing causal Entry inputs and original entry_q_joint_hidden; label, fill and exit metadata never enter model inputs. Month membership is hash-proven against canonical Entry-clock audit.",
+    "minimal_composition": "Apply a copy of the existing linear Entry readout to the frozen entry_q_joint_hidden after the original forward has formed the original Exit token. Its selection Q must never overwrite original Entry Q in the Exit context. Bind selector weights separately. Existing full-policy outcomes remain reusable only while the complete Exit function and context are preserved.",
+    "model_changes_authorized": false,
+    "native_launch_authorized": false,
+    "new_fits": 0,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "remaining_gap": "Current ONLINE512 entry_q_joint_hidden for256 rows was not persisted. TRAIN16 input/target diagnostic caches do not provide these256 representations. Bind one minimal native extraction and any analytic readout fit separately before execution; no fits/forwards are activated here. Evaluator must separate selection Q from original Exit token without altering that token.",
+    "reuse": "Existing native campaign and guards, current causal dataset/forward, checkpoint owner, existing proven readout formula, Entry policy builder and marked one-position accounting. No new architecture, market engine, features, threshold search or separate VAL runner.",
+    "schema_version": "gx1_frozen_policy_consistent_entry_design_v1",
+    "selector_split": {
+      "all_fit_exits_before_check_period": true,
+      "check_rows": 129,
+      "fit_before_utc": "2025-10-01T00:00:00Z",
+      "fit_rows": 127,
+      "independent_chronological_holdout": false,
+      "semantics": "Disjoint labels for a possible selector-fit diagnostic on reused TRAIN; source model/outcomes are already development evidence, not independent validation.",
+      "source_model_fitted_on_reused_TRAIN": true
+    },
+    "source_files": {
+      "gx1/contracts/entry_decision_token_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_decision_token_v1.py",
+        "sha256": "dd178baa20f50abba6d8c7c640369146c32ea62b1bde2cf25df2fec3e4e7abea"
+      },
+      "gx1/contracts/entry_fitted_q_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_fitted_q_v1.py",
+        "sha256": "ce77ca0d566c16a0f884a5098fb1ac4f9e6ecb848d9c3594ae6e3edc877e4fd1"
+      },
+      "gx1/contracts/unified_exit_random_access_training_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+        "sha256": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab"
+      },
+      "gx1/contracts/unified_exit_reference_policy_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+        "sha256": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "ab6e5e270c0ee35ee3d88f3eba9461891c87374d10e0a692835d4c40d1820bed"
+      },
+      "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+        "sha256": "c20cfdf868ca7b40e11545b5a3be25ba87ee1f49e4ddee108f01fbd4c523b670"
+      }
+    },
+    "source_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/TRAIN_RESULT.json",
+      "sha256": "c8dbadd7910b1f1d0d58a5b24fcc8893564873f5e4b98f45539e853deca17a8b"
+    },
+    "target_semantics": "Signed realised net returns from the predetermined frozen policy for both sides, as noisy regression samples. Costs already included once; FLAT0. No pathwise max, winner selection, added liquidation, fake EXIT or teacher bootstrap. Not conditional-expectation truth.",
+    "teacher_refreshed": false,
+    "test_data_used": false,
+    "training_enabled": false
+  },
+  "design_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/DESIGN.json",
+    "sha256": "8fc5fa3157a33b8f24c509c7b784086b7341157f89e2afc3988663b88a6e8706"
+  },
+  "fixed_method": "Center fit127 X and Y only; Ledoit-Wolf delta from fit X only; Sxx=X.T@X/n; lambda=delta*trace(Sxx)/d/(1-delta); solve (Sxx+lambda I)W=Sxy with unpenalized intercept; all three actions, FLAT target0. No search or check-driven adaptation. Historical operator is a formula reference, never a launch path.",
+  "model_code_changed": false,
+  "native_launch_authorized": false,
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "next_missing_measurement": "Bind exactly one native extraction of original ONLINE512 entry_q_joint_hidden for the same256 rows; verify original Entry Q and full original Exit context before a single separately scoped analytic fit.",
+  "positive_result_means": "At most grounds for separately bound chronological development assessment; no independent generalization or profitability claim.",
+  "predeclared_go_requirements": [
+    "Exact cohort, original Q and Exit-context parity; finite outputs; all labels and costs preserved.",
+    "On check129, both LONG and SHORT MSE and centered error improve versus original512 and fit-only constants.",
+    "Fixed argmax with FLAT0 selects trades and net is positive over all129 opportunities and in existing one-position accounting.",
+    "Report months, action counts and concentration; unclear or concentrated evidence does not automatically authorize escalation."
+  ],
+  "regularization_method_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/ENTRY_STABLE_READOUT_20260916/OPERATOR.py",
+    "sha256": "e2d49f557201f25e034041492d5a588a166945db2115eb341352ef16e54e2168"
+  },
+  "review_consensus": "One existing regularized linear selector on original frozen Entry hidden, targeting realised signed frozen pi512 returns. This is a reused-TRAIN falsification diagnostic, not demonstrated edge. Original Entry Q and entire Exit token/function stay unchanged.",
+  "risk": "127 fit rows versus128 hidden coordinates plus intercept; regularization does not prove generalization. Both fit and check are reused TRAIN and source model was already fitted.",
+  "schema_version": "gx1_policy_consistent_entry_review_v1",
+  "stop_rule": "If a requirement fails or economics remain unclear, close this selector hypothesis. Do not change lambda, thresholds, costs, split, features or training steps to rescue it. A technical extraction failure may receive only its minimal evidenced correction.",
+  "test_data_used": false,
+  "training_enabled": false
+}

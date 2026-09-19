@@ -1268,6 +1268,14 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/ENTRY_RANKING_AUDIT/RESULT.json",
     "sha256": "311868794bc7563eaf9bc0f49650acb3476fa8f9a22175515447a459e918464c"
   },
+  "entry_representation_preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PREPARATION.json",
+    "sha256": "93efab27aa6d0caec7576c878ec737a2eb5da0b7048f1f48c9077e93267c2269"
+  },
+  "entry_representation_tests": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
+    "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
+  },
   "exit_reference_policy": {
     "hold_probability_denominator": 120,
     "hold_probability_numerator": 119,
@@ -1281,6 +1289,46 @@
     "value_semantics": "Q_mu_stationary_reference_after_first_action"
   },
   "exit_value_initialization": "close_now_baseline_v1",
+  "frozen_entry_selector_probe": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "control_forwards": 0,
+    "exit_rollout_forwards": 0,
+    "max_entry_forwards": 16,
+    "max_invocations": 1,
+    "new_fits": 0,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/CANDIDATE_BUNDLE",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PLAN.json",
+      "sha256": "cdec83b099f266b823b68566a716dad1489dc09a8e6e03e8d7785423bd3ab95b"
+    },
+    "run_id": "NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919",
+    "source_bindings_sha256": "19a2c8b68d28383343f64cb5e6faed50d073d12c34fb834c3e1aa28947b78e6e",
+    "test_data_used": false,
+    "train_entries": 256,
+    "val_limits": {
+      "cpu_pipeline_workers": 8,
+      "max_model_forwards": 46573,
+      "max_state_views": 3375234,
+      "max_wall_seconds": 10800,
+      "policy_batch_size": 256,
+      "progress_interval_forwards": 64
+    }
+  },
   "frozen_exit_train_footprint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/FOOTPRINT.json",
     "sha256": "821aa8f2073d01380760e1009882033f9f3a59788bb0872c18818e045adfd9b8"
@@ -1297,49 +1345,14 @@
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "handover_resume_point": {
-    "activation_executed": false,
-    "consumed_run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
-    "input_binding_audit": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/JOINT_UPDATE_INPUT_AUDIT_20260919/RESULT.json",
-      "sha256": "41eb60b03e4663502905a09a84bbdf583b4b7ab0a46782c2a421dc2c9e31b1ed"
-    },
-    "instructions": "VEIEN_VIDERE.md#n\u00f8yaktig-stoppunkt-for-neste-agent",
-    "new_diagnostic_bound": false,
+    "instructions": "VEIEN_VIDERE.md",
     "new_native_run_bound": true,
-    "next_deliverable": "Execute one bound native256-to512 TRAIN convergence experiment, preserving ONLINE/teacher, Adam/EMA/scheduler/RNG and exact order in a new session. Only the next4096 rows of the existing chronological TRAIN prefix are added. Measure the same TRAIN256 and1024 Exit samples at512 against saved initial/256/constants, then stop for Entry/Exit decision review. No full epoch/CONTROL/VAL/TEST, target refresh, loss/model change, rescaling or automatic extension.",
-    "observed_utc": "2026-09-19T15:29:45.402618+00:00",
-    "optimizer_steps_completed": 256,
-    "paired_learning_review_complete": true,
-    "preparation_executed": false,
-    "review": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
-      "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
-    },
-    "reviewed_completion": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/COMPLETION_REVIEWED.json",
-      "sha256": "260ddca5911ea7dcd1aef31880621d9fed151e3543b946f430e00cb41cba44c5"
-    },
-    "saved_optimizer_audit": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/SAVED_OPTIMIZER_CAUSE/STATE_AUDIT.json",
-      "sha256": "82c3d5e248a207d60a4133f71782ab6e9cb3e0d6e049e70d718167b0406c1b69"
-    },
-    "scope_consumed": false,
-    "source_state_at_observation": "Native terminal, task Disabled, no native process. Review complete; source freeze released. Model/trainer unchanged since candidate commit027b5d48.",
-    "status": "CONVERGENCE512_BOUND_NOT_STARTED",
-    "training_scope_closed": true,
-    "training_source_commit": "bdce4ad3bfebcb7b69506b9058f87464256b34ad",
-    "verdict": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/VERDICT.json",
-      "sha256": "2ee08068d96c3d0dc215b3116f9e31a07d8aea8712c6a23a5bc3a6ed114f306e"
-    },
-    "windows_task_observation": {
-      "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\"",
-      "enabled": false,
-      "last_result": 0,
-      "observed_utc": "2026-09-19T13:15:29.9228962Z",
-      "plan_json": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
-      "state": "Disabled",
-      "task_name": "GX1NativeLearningCalibration"
+    "next_deliverable": "The Entry representation probe passed19 targeted tests. One extraction-only scope is bound: NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 original Entry forwards,0 Exit rollouts,0 fits and0 optimizer steps. Finish mandatory commit/push, materialize the existing native campaign and follow its guarded Windows launch protocol. Verify exact original Q and original rollout-contract hash, preserve the origin cursor and checkpoint. Then freeze the resulting cache and bind one existing Ledoit-Wolf fit127/check129 using the already recorded stop criteria. Do not repeat the full policy evaluation or tune thresholds/splits/costs. TEST sealed.",
+    "optimizer_steps_completed": 512,
+    "status": "ENTRY_REPRESENTATION_PROBE_BOUND_NOT_STARTED",
+    "tests": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
+      "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
     }
   },
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
@@ -1594,9 +1607,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "The frozen TRAIN policy evaluation is complete and its scope is consumed. Do not repeat it, alter costs/thresholds or extend training. Read POLICY_REVIEW and TARGET_ALIGNMENT. Next bounded design question: can Entry be assigned causal values for the same frozen Exit policy that will execute, using the existing native target machinery? Entry currently learns Q_mu while execution used pi512; the paired targets differ. First inspect existing target owners and specify one policy-consistent target calculation and cached baseline, with frozen teacher, costs, TRAIN cutoff and FLAT0 preserved. This mismatch is not itself a code defect or proof of profitable signal; do not implement or fit a new model without a concrete justified scope. No new fits/forwards are currently bound. TEST remains sealed.",
-  "observed_utc": "2026-09-19T18:15:39.621422+00:00",
+  "next_action": "The Entry representation probe passed19 targeted tests. One extraction-only scope is bound: NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 original Entry forwards,0 Exit rollouts,0 fits and0 optimizer steps. Finish mandatory commit/push, materialize the existing native campaign and follow its guarded Windows launch protocol. Verify exact original Q and original rollout-contract hash, preserve the origin cursor and checkpoint. Then freeze the resulting cache and bind one existing Ledoit-Wolf fit127/check129 using the already recorded stop criteria. Do not repeat the full policy evaluation or tune thresholds/splits/costs. TEST sealed.",
+  "observed_utc": "2026-09-19T20:30:36.681854+00:00",
   "outer_guard_seconds": 13800,
+  "policy_consistent_entry_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
+    "sha256": "0b2d5bd8184d8c9c7f449e36a550142c607716fb50ab887228a5c127acf0308d"
+  },
   "precision": "float32",
   "prefix_auxiliary_policy_preparation": {
     "enabled": false,
@@ -1747,7 +1764,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "FROZEN_TRAIN_POLICY_COMPLETE_NET_NEGATIVE_ENTRY_GATE_FAILED",
+  "status": "ENTRY_REPRESENTATION_PROBE_BOUND_NOT_STARTED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {

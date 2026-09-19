@@ -1003,14 +1003,55 @@ def _require_native_profile_and_economics(recipe, policy, repo):
 
 
 def require_frozen_train_policy_evaluation(recipe, *, invocation_number=None, execution_budget=None):
-    """One native frozen TRAIN evaluation; no training, target refresh or CONTROL."""
+    """One frozen TRAIN rollout or separately bound Entry representation probe."""
     from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import require_frozen_train_policy_plan
     prefix = require_chronological_prefix_recipe(recipe)
     if any(key in recipe for key in ("chronological_initial_measurement","chronological_learning_measurement",
             "chronological_learning_continuation","chronological_train_only_measurement","chronological_entry_baseline",
             "entry_gradient_diagnostic","frozen_readout_evaluation","candidate_resume_origin","native_calibration")):
         raise RuntimeError("FROZEN_TRAIN_POLICY_MIXED_SCOPE")
-    scope = require_frozen_train_policy_plan(recipe.get("frozen_train_policy_evaluation"))
+    probe_binding = recipe.get("frozen_entry_selector_probe")
+    probe = None
+    if probe_binding is not None:
+        if "frozen_train_policy_evaluation" in recipe:
+            raise RuntimeError("FROZEN_ENTRY_PROBE_MIXED_SCOPE")
+        probe_binding = require_binding(probe_binding, label="frozen Entry probe", verify_file=True)
+        probe = read_bound_json(Path(probe_binding["path"]), probe_binding["sha256"])
+        fixed = {"schema_version":"gx1_frozen_entry_representation_probe_v1",
+            "stage":"cache_original_entry_representations_only", "optimizer_steps":0,
+            "new_fits":0, "max_entry_forwards":16, "entry_batch_size":16,
+            "entries":256, "control_forwards":0, "exit_rollout_forwards":0,
+            "training_enabled":False, "test_data_used":False}
+        if any(type(probe.get(k)) is not type(v) or probe[k] != v for k,v in fixed.items()):
+            raise RuntimeError("FROZEN_ENTRY_PROBE_PLAN_INVALID")
+    scope = require_frozen_train_policy_plan(
+        probe["source_policy_plan"] if probe is not None else recipe.get("frozen_train_policy_evaluation"))
+    if probe is not None:
+        payloads = {}
+        for key in ("completed_policy", "source_result", "dataset_review", "dataset", "review"):
+            b = require_binding(probe.get(key), label="frozen Entry probe " + key, verify_file=True)
+            payloads[key] = read_bound_json(Path(b["path"]), b["sha256"])
+        completed, result = payloads["completed_policy"], payloads["source_result"]
+        dataset, reviewed = payloads["dataset"], payloads["dataset_review"]
+        if (completed.get("result") != probe["source_result"]
+                or completed.get("evaluation_plan") != scope["plan_binding"]
+                or completed.get("learning_review_complete") is not True
+                or completed.get("optimizer_steps") != 0 or completed.get("exited_side_trade_count") != 512
+                or completed.get("model_state_sha256") != scope["completion"]["model_state_sha256"]
+                or result.get("decision") != "PASS_COMPLETE"
+                or result.get("evaluation_cohort") != scope["cohort"]
+                or result.get("exited_side_trade_count") != 512
+                or len(result.get("trade_outcomes", [])) != 512
+                or any(row.get("status") != "EXITED" for row in result["trade_outcomes"])
+                or dataset.get("source_result") != probe["source_result"]
+                or dataset.get("source_policy_model_state_sha256") != completed["model_state_sha256"]
+                or reviewed.get("dataset") != probe["dataset"]
+                or reviewed.get("entries_preserved") != 256 or reviewed.get("negative_labels_preserved") != 409
+                or payloads["review"].get("dataset_review_binding") != probe["dataset_review"]
+                or [r.get("child_entry_row_index") for r in dataset.get("rows", [])] != scope["cohort"]["entry_row_indices"]
+                or [r.get("parent_entry_row_index") for r in dataset["rows"]] != scope["cohort"]["parent_entry_row_indices"]):
+            raise RuntimeError("FROZEN_ENTRY_PROBE_SOURCE_OR_COHORT_INVALID")
+        scope["entry_selector_probe"] = {"binding":probe_binding,"plan":probe,**payloads}
     repo = Path(__file__).resolve().parents[2]
     binding = require_binding(recipe.get("next_run_policy"), label="frozen TRAIN native policy", verify_file=True)
     if Path(binding["path"]) != repo/"NEXT_RUN_POLICY.json":
@@ -1022,7 +1063,14 @@ def require_frozen_train_policy_evaluation(recipe, *, invocation_number=None, ex
         "source_bindings_sha256":recipe.get("source_bindings_sha256"),"optimizer_steps":0,
         "origin_optimizer_steps":512,"max_invocations":1,"train_entries":256,"control_forwards":0,
         "val_limits":scope["plan"]["val_limits"],"test_data_used":False}
-    if (policy.get("training_enabled") is not False or policy.get("frozen_train_policy_evaluation") != expected
+    scope_key = "frozen_train_policy_evaluation"
+    if probe is not None:
+        scope_key = "frozen_entry_selector_probe"
+        expected.update(plan=probe_binding, new_fits=0, max_entry_forwards=16, exit_rollout_forwards=0)
+        if ("frozen_train_policy_evaluation" in policy
+                or policy.get("policy_consistent_entry_review") != probe["review"]):
+            raise RuntimeError("FROZEN_ENTRY_PROBE_POLICY_REVIEW_INVALID")
+    if (policy.get("training_enabled") is not False or policy.get(scope_key) != expected
             or any(key in policy for key in ("chronological_learning_run","native_learning_calibration",
                                             "entry_gradient_diagnostic","frozen_readout_evaluation"))
             or recipe.get("files") != scope["origin_recipe"]["files"]
@@ -1098,7 +1146,7 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
-    if "frozen_train_policy_evaluation" in recipe:
+    if "frozen_train_policy_evaluation" in recipe or "frozen_entry_selector_probe" in recipe:
         scope = require_frozen_train_policy_evaluation(recipe, invocation_number=invocation_number,
                                                       execution_budget=execution_budget)
         return scope["origin_resume_state"]["global_optimizer_steps"]

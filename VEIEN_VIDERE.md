@@ -1,35 +1,75 @@
-# Neste: avklar Entry-mål for samme frosne Exit-policy
+# Neste: én avgrenset prøve av policykonsistent Entry
 
-Hele frosne512-policyen er allerede kjørt og vurdert. Gjenbruk
-completed_frozen_train_policy og entry_complete_policy_target_alignment i
-NEXT_RUN_POLICY.json. Ingen jobb er aktiv; forrige scope er brukt og fjernet.
-Ikke gjenta denne evalueringen, rangeringstesten eller de beståtte tekniske testene.
+Designavklaringen og tre brukerbestilte agentgjennomganger er ferdige.
+Gjenbruk handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json.
+Ingen ny fit, forward eller optimizeroppdatering er utført. Kun uttrekking er bundet.
+Selve modell-/treningsmatematikken er uendret. Native uttrekking er implementert:
+en midlertidig observer-hook leser eksisterende Entry-head-input uten å erstatte
+input/output. Den krever16 kall,256 rader, eksakt gammel Q og identisk full
+Exit-kontrakt. Cachen bevarer hidden/Q/tokens; originalmodell/cursor kontrolleres.
+Planen tillater0 fits og0 Exit-rollout-kall. Native oppstart gjenstår.
 
-Netto på TRAIN256 er LONG−4,1080 /SHORT−5,1893 Bps, tross bedring mot
-umiddelbar EXIT. Øvre rangert halvdel er−3,3433 Bps; alle130 velger LONG.
-Faktisk Entry er FLAT256/256. Alle512 forløp er avsluttet av modellen; ingen
-åpne posisjoner eller skjulte tap er utelatt. Ingen læringsport eller profittbevis.
+Syntaks og diff er kontrollert;19 målrettede tester bestod under eksisterende
+beregningsvakt. Låseieren avsluttet, og den ene kølagte testprosessen fullførte.
+Ikke gjenta disse testene uten nye relevante endringer. TEST_REVIEW ligger i
+NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919 og handover_snapshot.
 
-Den konkrete gjenværende designforskjellen er nå målt: Entry-target beskriver
-Q_mu; handelsforløpet bruker frossen pi512. Referansetarget mot fullpolicy-utfall
-har Pearson0,408 LONG/0,391 SHORT; middelavvik+0,358/−2,771 Bps. Entry512s
-LONG−SHORT-korrelasjon er0,208 mot referansetarget og0,158 mot fullpolicyutfall.
-Dette er globale, deskriptive tall på brukt TRAIN, ikke innenmånedstall eller
-fasit på betinget forventningsverdi. Ingen target skal omskrives bare fordi
-et annet target passer de observerte vinnerne bedre.
+Én uttrekking er nå bundet i frozen_entry_selector_probe i NEXT_RUN_POLICY.json.
+Fullfør obligatoriske commit-kontroller/push, materialiser én native campaign
+med eksisterende klargjøringsrutine og følg controllerens vanlige maskinvare- og
+oppstartskrav. Planen i entry_representation_preparation er kildeavhengighet.
+Native paritet er fortsatt umålt; ingen fit er tillatt av uttrekkingsplanen.
+Den fullførte fullpolicy-planen må ikke relanseres. Etter paritets-PASS bindes
+én separat, kort cache-fit under auditvakten med reglene nedenfor.
 
-Neste avgrensede arbeid er å lese eksisterende Entry-/referansetarget-eiere og
-avklare én kausal beregning av verdien av samme frosne Exit-policy som utføres.
-Gjenbruk lagrede fullpolicy-utfall, opprinnelige prediksjoner og samme identiteter
-som en cachet baseline. Bevar lærer, alle200 features/åtte familier, priser,
-kostnader, FLAT0 og TRAIN-grensen. Etiketter kan bruke senere TRAIN-utfall;
-framtidig beste side/gevinst kan aldri brukes som Entry-input eller utvalgsregel.
-Avklar korrekt scope og målekrav før eventuell implementering/fit; ingen slike
-nye fits eller modellforwards er nå bundet. Dette er én designavklaring, ikke
-bredt modell-/terskel-/tapsvektsøk eller tillatelse til ekstra trening.
+Netto for hele frosne Exit512 på TRAIN256 er LONG−4,1080 / SHORT−5,1893 Bps.
+Øvre rangerte halvdel gir−3,3433 Bps; faktisk Entry er FLAT256/256.
+Exit slår umiddelbar lukking, men ingen profitabel Entry/Exit-strategi er påvist.
 
-Selv korrekte policyverdier skaper ikke en handelsfordel som mangler i kausale
-inputs. Hvis ingen konkret begrunnet forbedring finnes, behold koden og stopp
-eskalering. Separate quote/ordre/fill-logger kan avklare slippage når de foreligger;
-manglende kalibrering er ikke tillatelse til å senke kostnader for å få PASS.
-Ingen full epoch/full VAL, CONTROL/TEST, live/paper/spending. Målet er aktivt.
+Entry lærer Q_mu, mens forløpene følger pi512. Lagrede fullpolicy-utfall er nå
+bundet som støyende signerte labels for samme frosne pi512: begge sider for
+alle256 rader, alle409 negative labels, opprinnelige kostnader og FLAT0.
+Ingen framtidig beste side, gevinstutvalg, ekstra likvidasjon eller bootstrap.
+Fill-/exitmetadata er labelproveniens og skal aldri brukes som Entry-input.
+
+Entry-Q og entry_q_joint_hidden inngår begge i Exit-tokenet. Derfor bevarer
+kandidaten hele original512-forwarden, originale Q-verdier og Exit-kontekst.
+Et separat eksemplar av eksisterende lineære readout kan bare levere valg-Q
+etter at originaltokenet er laget. Frysing av Exit-vekter alene er utilstrekkelig.
+
+Neste konkrete leveranse er ett separat bundet native omfang som henter
+original hidden for de samme256 radene og kontrollerer opprinnelige Q-verdier
+og Exit-token. Sistnevnte er allerede hashbundet i lagret rollout-kontrakt;
+gjenoppbygg nøyaktig samme kontrakt med original factory/cohort/modell/budsjett.
+Ved identisk kontrakt kan fullpolicy-utfallene gjenbrukes uten1083 nye
+Exit-forwards. Pariteten er foreløpig ikke målt. Gjenbruk eksisterende native
+campaign, vakter, checkpoint-eier, inputs, readoutmatematikk og posisjonsregnskap.
+Ingen separat runner, ny modellarkitektur eller ny targetsimulering.
+
+Én forhåndslåst analytisk fit kan deretter undersøke hypotesen: fit127 fra
+juni–september2025 og check129 fra oktober2025–februar2026. Alle fit-handler
+avsluttes før checkperioden. Dette er likevel brukt TRAIN; originalmodellen
+har allerede vært trent, og kontrollutfallene er kjent utviklingsbevis.
+127 fitrader mot128 koordinater pluss intercept gir høy overtilpasningsrisiko.
+Bruk den eksisterende Ledoit–Wolf-regelen fra fit-inputs alene, samme lambda
+for alle tre handlinger og upenalisert intercept. Ikke gjenbruk gammel lambda.
+Frys koeffisientene før check vurderes. Ingen parameter-, feature- eller terskelsøk.
+Den historiske operatøren er matematikkreferanse, aldri alternativ oppstartsvei.
+
+Forhåndsbestemt stopp: Brutt paritet/ugyldige tall avviser beregningen. På
+check129 må både LONG og SHORT forbedre MSE og sentrert feil mot original512
+og fit-konstanter. Uendret argmax med FLAT0 må velge handler og gi positiv netto
+både over alle129 muligheter og i eksisterende én-posisjonsregnskap. Rapporter
+måneder, antall handler og gevinstkonsentrasjon. Uklare eller konsentrerte
+resultater gir ikke automatisk GO. Ingen handler eller svak økonomi gir STOP.
+Ved STOP lukkes denne selector-hypotesen uten ny lambda, terskel, split eller
+mer uendret trening. En teknisk feil kan bare få sin minste begrunnede rettelse.
+
+Selv tydelig positivt utfall kan bare begrunne en separat bundet kronologisk
+utviklingsmåling; det beviser ikke varig handelsfordel. Mars–mai og juni2026
+er allerede utviklingsdata. TEST forblir forseglet. Ingen full epoch/full VAL,
+live/paper/spending eller kostnadsendring. training_enabled er fortsatt false.
+
+Ikke gjenta fullpolicy-rollout, rangeringstest, forkastet FLAT-bias/forecast-
+hypotese eller beståtte fullsuiter. De tre agentene har levert; én tung jobb
+om gangen gjelder fortsatt. Målet er aktivt og ikke oppnådd.

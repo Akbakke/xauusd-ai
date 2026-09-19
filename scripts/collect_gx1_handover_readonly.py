@@ -195,7 +195,7 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
     # point at the previous run; the explicit current policy owns the selection.
     policy_path = repo / "NEXT_RUN_POLICY.json"
     policy = json.loads(policy_path.read_text()) if policy_path.is_file() else {}
-    diagnostic = policy.get("entry_gradient_diagnostic") or policy.get("frozen_train_policy_evaluation")
+    diagnostic = policy.get("entry_gradient_diagnostic") or policy.get("frozen_train_policy_evaluation") or policy.get("frozen_entry_selector_probe")
     initial = policy.get("chronological_initial_measurement")
     scope = policy.get("chronological_learning_run") or initial or diagnostic
     if scope is not None:

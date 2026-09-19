@@ -1,0 +1,39 @@
+{
+  "actual_model_forwards": 0,
+  "cases_passed": 19,
+  "decision": "TARGETED_TESTS_PASS_NATIVE_PARITY_NOT_YET_MEASURED",
+  "execution_guard": "gx1_capped_run audit 4G/512M verified",
+  "exit_code": 0,
+  "fits": 0,
+  "observed_utc": "2026-09-19T20:30:36.681854+00:00",
+  "preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PREPARATION.json",
+    "sha256": "93efab27aa6d0caec7576c878ec737a2eb5da0b7048f1f48c9077e93267c2269"
+  },
+  "schema_version": "gx1_entry_representation_test_review_v1",
+  "source_files": {
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+      "sha256": "62b66ad330705a0842b6bbc4925c2b6f5e0d0bf809242bf285cae56318b318d0"
+    },
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+      "sha256": "7ef27ee0b678bffc7f837eb5673504cf17c8ebc6c8ca6e05572b85e0f7db3f9f"
+    },
+    "scripts/collect_gx1_handover_readonly.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/collect_gx1_handover_readonly.py",
+      "sha256": "bfe85ec4be12985a63f28ab658fa2eba0977f7b6ad4d904c836b7e5f30a0a213"
+    },
+    "tests/test_native_frozen_train_policy.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_frozen_train_policy.py",
+      "sha256": "c8564166d7118e9da7da90154b3a1806b0371817bf1ec7c2986d301098119da5"
+    }
+  },
+  "target": "tests/test_native_frozen_train_policy.py",
+  "test_data_used": false,
+  "test_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_frozen_train_policy.py",
+    "sha256": "c8564166d7118e9da7da90154b3a1806b0371817bf1ec7c2986d301098119da5"
+  },
+  "tool_session_id": 97487
+}

@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -666,7 +666,7 @@ def run_guarded_native_candidate_invocation(
     require_native_run_scope(recipe, execution_budget=budget)
     controls = recipe["trainer_cli"]
     frozen_train_scope = None
-    if "frozen_train_policy_evaluation" in recipe:
+    if "frozen_train_policy_evaluation" in recipe or "frozen_entry_selector_probe" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_train_policy_evaluation
         frozen_train_scope = require_frozen_train_policy_evaluation(recipe, execution_budget=budget)
     prefix_mode = "chronological_prefix" in recipe
@@ -690,6 +690,10 @@ def run_guarded_native_candidate_invocation(
         if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
             raise RuntimeError("NATIVE_FULL_TRAIN_ACTUAL_SEED_MODEL_MISMATCH")
     if frozen_train_scope is not None:
+        if "entry_selector_probe" in frozen_train_scope:
+            return _run_frozen_entry_representation_probe(components=components, scope=frozen_train_scope,
+                recipe=recipe, device=device, output=output, recipe_file_sha256=recipe_file_sha256,
+                invocation_started=started)
         return _run_frozen_train_policy_validation(components=components, scope=frozen_train_scope,
             recipe=recipe, device=device, output=output, recipe_file_sha256=recipe_file_sha256,
             invocation_started=started)
@@ -1506,6 +1510,103 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     trainer._candidate_training_session_atomic_write_json(path, result)
     return {"path": str(path), "sha256": val.file_sha256(path)}
 
+
+
+def _capture_frozen_entry_representations(*, model, dataset, frame, state_factory,
+                                          scope, binding, device):
+    """Observe the existing head input without replacing any model output."""
+    head = getattr(model, "head_entry_action_q", None)
+    if (not isinstance(head, torch.nn.Linear) or head.in_features != 128 or head.out_features != 3
+            or model.training or any(p.requires_grad for p in model.parameters())):
+        raise RuntimeError("FROZEN_ENTRY_PROBE_MODEL_NOT_FROZEN")
+    hidden = []
+    def capture(_module, args):
+        value = args[0]
+        if (value.dtype != torch.float32 or value.ndim != 2 or value.shape[1] != 128
+                or not bool(torch.isfinite(value).all().item())):
+            raise RuntimeError("FROZEN_ENTRY_PROBE_HIDDEN_INVALID")
+        hidden.append(value.detach().cpu().clone())
+        # Returning None leaves the actual head input unchanged.
+    hook = head.register_forward_pre_hook(capture)
+    try:
+        tokens, diagnostics, q = val._entry_representations(
+            model=model, dataset=dataset,
+            parent_rows=frame["parent_entry_row_index"].astype("int64").tolist(),
+            device=device, batch_size=16, evaluation_cohort=scope["cohort"])
+    finally:
+        hook.remove()
+    x = torch.cat(hidden, dim=0) if hidden else torch.empty((0,128))
+    probe = scope["entry_selector_probe"]
+    expected_q = torch.tensor(probe["source_result"]["entry_policy_decisions"]["entry_action_q_bps"], dtype=torch.float32)
+    if (len(hidden) != 16 or x.shape != (256,128) or q.shape != (256,3)
+            or not torch.equal(q.cpu(), expected_q)):
+        raise RuntimeError("FROZEN_ENTRY_PROBE_ORIGINAL_ENTRY_PARITY_FAILED")
+    limits = scope["plan"]["val_limits"]
+    contract, _ = state_factory.bind_rollout(
+        entry_decision_representations=tokens,
+        model_state_sha256=binding["model_state_sha256"],
+        checkpoint_file_sha256=binding["checkpoint_file_sha256"],
+        compute_guard_max_model_forwards=limits["max_model_forwards"],
+        compute_guard_max_materialized_state_views=limits["max_state_views"],
+        compute_guard_max_wall_seconds=limits["max_wall_seconds"],
+        resumable_wall_limit=True, evaluation_cohort=scope["cohort"])
+    if contract["contract_sha256"] != probe["source_result"]["contract_sha256"]:
+        raise RuntimeError("FROZEN_ENTRY_PROBE_EXIT_CONTEXT_PARITY_FAILED")
+    return {"entry_q_joint_hidden":x, "original_entry_q_bps":q.cpu(),
+        "original_exit_tokens":tokens.detach().cpu(),
+        "parent_rows":scope["cohort"]["parent_entry_row_indices"],
+        "child_rows":scope["cohort"]["entry_row_indices"],
+        "original_rollout_contract":contract, "entry_forward_count":len(hidden)}, diagnostics
+
+
+def _run_frozen_entry_representation_probe(*, components, scope, recipe, device, output,
+                                          recipe_file_sha256, invocation_started):
+    """Native extraction only; never run Exit or fit/replace the Entry readout."""
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_train_policy_evaluation
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_frozen_train_policy_checkpoint_v1
+    if device.type != "cuda":
+        raise RuntimeError("FROZEN_ENTRY_PROBE_CUDA_REQUIRED")
+    directory = output.parent / "frozen_entry_representations"
+    if directory.exists() or directory.is_symlink():
+        raise RuntimeError("FROZEN_ENTRY_PROBE_OUTPUT_EXISTS")
+    context = components["native_val_context"]
+    frame = context["frame"]
+    if (context.get("evaluation_cohort") != scope["cohort"]
+            or frame["entry_row_index"].tolist() != scope["cohort"]["entry_row_indices"]
+            or frame["parent_entry_row_index"].tolist() != scope["cohort"]["parent_entry_row_indices"]
+            or context["state_factory"].source_split != "train"):
+        raise RuntimeError("FROZEN_ENTRY_PROBE_CONTEXT_INVALID")
+    model = components["model"]
+    function_probe = trainer._copy_frozen_prefix_reference_model(model)
+    del function_probe
+    binding = bind_frozen_train_policy_checkpoint_v1(plan_binding=scope["plan_binding"], model=model)
+    before = dict(scope["origin_resume_state"])
+    directory.mkdir(parents=True)
+    cache, diagnostics = _capture_frozen_entry_representations(model=model,
+        dataset=components["train_probe_ds"], frame=frame, state_factory=context["state_factory"],
+        scope=scope, binding=binding, device=device)
+    after = require_frozen_train_policy_evaluation(recipe)["origin_resume_state"]
+    if after != before or trainer._model_state_sha256(model) != binding["model_state_sha256"]:
+        raise RuntimeError("FROZEN_ENTRY_PROBE_CHANGED_MODEL_OR_ORIGIN")
+    cache_path = directory / "ENTRY_REPRESENTATIONS.pt"
+    torch.save(cache, cache_path)
+    report = {"schema_version":"gx1_native_frozen_entry_representation_observation_v1",
+        "decision":"ORIGINAL_ENTRY_AND_EXIT_CONTEXT_PARITY_PASS_NOT_FIT_AUTHORITY",
+        "plan":scope["entry_selector_probe"]["binding"], "checkpoint_binding":binding,
+        "cache":{"path":str(cache_path),"sha256":val.file_sha256(cache_path)},
+        "original_rollout_contract_sha256":cache["original_rollout_contract"]["contract_sha256"],
+        "original_entry_q_exactly_preserved":True,"original_exit_context_exactly_preserved":True,
+        "entry_forward_count":cache["entry_forward_count"],"exit_rollout_forwards":0,
+        "origin_resume_state":before,"optimizer_steps":0,"new_fits":0,
+        "training_enabled":False,"test_data_used":False,
+        "entry_route_diagnostics":diagnostics,
+        "native_invocation_elapsed_seconds":time.monotonic()-invocation_started}
+    path = directory / "OBSERVATION.json"
+    trainer._candidate_training_session_atomic_write_json(path, report)
+    print(json.dumps({"event":"FROZEN_ENTRY_REPRESENTATIONS_COMPLETED","observation":str(path)}),flush=True)
+    return {"decision":"PAUSED_RESUMABLE","resume_state":before,
+        "observation":{"path":str(path),"sha256":val.file_sha256(path)},
+        "recipe_file_sha256":recipe_file_sha256,"bundle_written":False,"test_data_used":False}
 
 
 def _run_frozen_train_policy_validation(*, components, scope, recipe, device, output,

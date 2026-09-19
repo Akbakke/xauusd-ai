@@ -23,11 +23,22 @@ Disabled19:33:30 UTC. Ingen aktiv jobb eller ny kjøreautorisasjon.
 
 Entry lærer fortsatt Q_mu, mens hele forløpet brukte pi512. Cachet sammenligning
 bekrefter ulike mål/utfall; dette er et designspørsmål, ikke automatisk en kodefeil.
-Følg VEIEN_VIDERE.md før eventuell ny målberegning eller kodeendring. Ingen
-nye fits/forwards er bundet. Kostnader og terskler er uendret. Ikke relanser planen.
+Policykonsistente fullpolicy-labels og cachet baseline er nå ferdige: alle256
+rader/512 sider og409 negative labels er bevart, FLAT0. Tre uttrykkelig bestilte
+agentgjennomganger prioriterer én regularisert Entry-selector som avkreftingsprøve.
+Entry-Q inngår også i Exit-tokenet; kandidatens valgverdier må holdes separat
+fra hele originalfunksjonen. Fit127/check129 er brukt TRAIN, ikke uavhengig VAL.
+Følg VEIEN_VIDERE.md for konkret måling og stoppkriterier. Ingen fits er bundet. Kun den avgrensede uttrekkingen nedenfor er tillatt. Kostnader og terskler er uendret. Ikke relanser planen.
 
 Bevis: docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md og de tre nye snapshotene
 FROZEN_TRAIN_POLICY_REVIEW, FROZEN_TRAIN_POLICY_COMPLETION og
 ENTRY_COMPLETE_POLICY_TARGET_ALIGNMENT under handover_snapshot.
 Kun /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overleveringskopi.
 Tidligere operatørkopi under kildefrys er historikk. Målet er fortsatt aktivt.
+
+Minimal native uttrekking av eksisterende Entry-representasjoner er implementert.
+19 målrettede tester bestod under beregningsvakt. Én uttrekking er nå bundet:
+NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 Entry-kall,0 fits/0 Exit-rollout,
+0 optimizersteg og krav om eksakt original Q og Exit-kontrakt. Native måling er
+ikke startet. Fullfør commit/push og eksisterende native klargjøring; følg
+VEIEN_VIDERE.md. Ingen forbedret handelsfordel er påvist.

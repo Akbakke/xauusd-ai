@@ -227,3 +227,115 @@ def test_saved_entry_predictions_checked_before_exit_rollout(frozen_train,tmp_pa
     else:
         assert runner.val.evaluate_bound_full_val_v1(**kwargs)=={"ok":True}
         assert seen==["bound","rollout"]
+
+
+@pytest.fixture
+def entry_probe(frozen_train,tmp_path):
+    policy,recipe,seal,state,model,cohort=frozen_train
+    source_plan=recipe.pop("frozen_train_policy_evaluation")
+    result=_write(tmp_path/"full-policy-result.json",{
+        "decision":"PASS_COMPLETE","evaluation_cohort":cohort,"exited_side_trade_count":512,
+        "trade_outcomes":[{"status":"EXITED"} for _ in range(512)]})
+    completed=_write(tmp_path/"full-policy-completed.json",{
+        "result":result,"evaluation_plan":source_plan,"learning_review_complete":True,
+        "optimizer_steps":0,"exited_side_trade_count":512,
+        "model_state_sha256":checkpoints.canonical_model_state_sha256(model.state_dict())})
+    dataset=_write(tmp_path/"return-dataset.json",{
+        "source_result":result,"source_policy_model_state_sha256":json.loads(Path(completed["path"]).read_text())["model_state_sha256"],
+        "rows":[{"child_entry_row_index":child,"parent_entry_row_index":parent}
+                for child,parent in zip(cohort["entry_row_indices"],cohort["parent_entry_row_indices"])]})
+    reviewed=_write(tmp_path/"dataset-review.json",{"dataset":dataset,"entries_preserved":256,"negative_labels_preserved":409})
+    review=_write(tmp_path/"selector-review.json",{"dataset_review_binding":reviewed})
+    plan={"schema_version":"gx1_frozen_entry_representation_probe_v1",
+        "stage":"cache_original_entry_representations_only","optimizer_steps":0,"new_fits":0,
+        "max_entry_forwards":16,"entry_batch_size":16,"entries":256,"control_forwards":0,
+        "exit_rollout_forwards":0,"training_enabled":False,"test_data_used":False,
+        "source_policy_plan":source_plan,"completed_policy":completed,"source_result":result,
+        "dataset_review":reviewed,"dataset":dataset,"review":review}
+    pb=_write(tmp_path/"entry-probe-plan.json",plan)
+    recipe["frozen_entry_selector_probe"]=pb
+    admission=policy.pop("frozen_train_policy_evaluation")
+    admission.update(plan=pb,new_fits=0,max_entry_forwards=16,exit_rollout_forwards=0)
+    policy["frozen_entry_selector_probe"]=admission;policy["policy_consistent_entry_review"]=review
+    seal()
+    return policy,recipe,seal,state,model,cohort,plan
+
+
+def test_entry_probe_scope_never_admits_fits_or_rollout(entry_probe,tmp_path):
+    policy,recipe,seal,_,_,_,plan=entry_probe
+    assert native.require_native_run_scope(recipe,invocation_number=1)==512
+    for key,value in [("new_fits",1),("exit_rollout_forwards",1),("max_entry_forwards",17),("training_enabled",True)]:
+        bad={**plan,key:value};binding=_write(tmp_path/"entry-probe-plan.json",bad)
+        recipe["frozen_entry_selector_probe"]=binding;policy["frozen_entry_selector_probe"]["plan"]=binding;seal()
+        with pytest.raises(RuntimeError,match="FROZEN_ENTRY_PROBE_PLAN_INVALID"):
+            native.require_native_run_scope(recipe,invocation_number=1)
+    binding=_write(tmp_path/"entry-probe-plan.json",plan)
+    recipe["frozen_entry_selector_probe"]=binding;policy["frozen_entry_selector_probe"]["plan"]=binding
+    recipe["frozen_train_policy_evaluation"]=plan["source_policy_plan"];seal()
+    with pytest.raises(RuntimeError,match="FROZEN_ENTRY_PROBE_MIXED_SCOPE"):
+        native.require_native_run_scope(recipe)
+
+
+@pytest.mark.parametrize("fault",[None,"q","token","nonfinite","forward_error"])
+def test_entry_capture_preserves_model_and_rejects_changed_context(monkeypatch,fault):
+    model=torch.nn.Module();model.head_entry_action_q=torch.nn.Linear(128,3)
+    model.eval().requires_grad_(False)
+    x=torch.arange(256*128,dtype=torch.float32).reshape(256,128)/10000
+    q=torch.cat([model.head_entry_action_q(batch) for batch in x.split(16)]).detach()
+    tokens=x[:,:8].clone();before={k:v.clone() for k,v in model.state_dict().items()}
+    cohort={"entry_row_indices":list(range(256)),"parent_entry_row_indices":list(range(1000,1256))}
+    frame=pd.DataFrame({"entry_row_index":cohort["entry_row_indices"],"parent_entry_row_index":cohort["parent_entry_row_indices"]})
+    scope={"cohort":cohort,"plan":{"val_limits":{"max_model_forwards":33,"max_state_views":500,"max_wall_seconds":10800}},
+        "entry_selector_probe":{"source_result":{"entry_policy_decisions":{"entry_action_q_bps":q.tolist()},"contract_sha256":"a"*64}}}
+    def forward(**kw):
+        assert kw["model"] is model and kw["batch_size"]==16 and kw["evaluation_cohort"]==cohort
+        outputs=[]
+        for batch in x.split(16):
+            if fault=="forward_error":raise RuntimeError("synthetic forward failed")
+            value=batch.clone()
+            if fault=="nonfinite":value[0,0]=float("nan")
+            outputs.append(model.head_entry_action_q(value))
+        actual=torch.cat(outputs)
+        if fault=="q":actual[0,0]+=1
+        return tokens,{},actual
+    def bind(**kw):
+        assert torch.equal(kw["entry_decision_representations"],tokens)
+        assert kw["compute_guard_max_model_forwards"]==33 and kw["resumable_wall_limit"] is True
+        return {"contract_sha256":("b" if fault=="token" else "a")*64},None
+    monkeypatch.setattr(runner.val,"_entry_representations",forward)
+    kwargs=dict(model=model,dataset=object(),frame=frame,state_factory=SimpleNamespace(bind_rollout=bind),
+        scope=scope,binding={"model_state_sha256":"c"*64,"checkpoint_file_sha256":"d"*64},device=torch.device("cpu"))
+    if fault:
+        with pytest.raises(RuntimeError):runner._capture_frozen_entry_representations(**kwargs)
+    else:
+        cache,_=runner._capture_frozen_entry_representations(**kwargs)
+        assert torch.equal(cache["entry_q_joint_hidden"],x)
+        assert torch.equal(cache["original_entry_q_bps"],q) and torch.equal(cache["original_exit_tokens"],tokens)
+        assert cache["entry_forward_count"]==16
+    assert not model.head_entry_action_q._forward_pre_hooks
+    assert all(torch.equal(value,before[key]) for key,value in model.state_dict().items())
+
+
+def test_entry_probe_dispatch_excludes_training_and_exit_rollout(entry_probe,tmp_path,monkeypatch):
+    _,recipe,_,state,_,_,_=entry_probe
+    budget={"stop_after_optimizer_steps":512,"max_invocation_seconds":12000,
+        "expected_active_pointer_sha256":None,"stop_after_completed_val_epochs":None}
+    monkeypatch.setattr(runner.trainer,"_require_cuda_trainer_guard_execution",lambda **kw:None)
+    monkeypatch.setattr(runner.trainer,"_resolve_device",lambda _:torch.device("cuda"))
+    monkeypatch.setattr(runner,"_require_native_full_train_recipe",lambda *a:(recipe,{},{}))
+    monkeypatch.setattr(runner.launch_owner,"require_candidate_execution_budget",lambda *a,**kw:budget)
+    def build(**kw):
+        assert "entry_selector_probe" in kw["frozen_train_policy_scope"]
+        return {"synthetic":True}
+    monkeypatch.setattr(runner,"_build_bound_full_train_components",build)
+    def forbidden(**kw):pytest.fail("Entry extraction reached training or Exit rollout")
+    monkeypatch.setattr(runner,"_run_bound_full_train_candidate",forbidden)
+    monkeypatch.setattr(runner,"_run_frozen_train_policy_validation",forbidden)
+    calls=[]
+    def extract(**kw):
+        assert kw["components"]=={"synthetic":True}
+        calls.append("entry_only");return {"resume_state":state,"new_fits":0}
+    monkeypatch.setattr(runner,"_run_frozen_entry_representation_probe",extract)
+    result=runner.run_guarded_native_candidate_invocation(recipe_path=tmp_path/"recipe.json",recipe_file_sha256="a"*64,
+        execution_budget_path=tmp_path/"budget.json",execution_budget_file_sha256="b"*64)
+    assert calls==["entry_only"] and result["resume_state"]==state and result["new_fits"]==0
