@@ -1,0 +1,81 @@
+{
+  "schema_version": "gx1_entry_fuse_initial_measurement_plan_v1",
+  "created_utc": "2026-09-19T10:46:14.255594+00:00",
+  "run_id": "NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919",
+  "scope": {
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_INITIALIZATION_20260919/RESULT.json",
+      "sha256": "2f13dfc8ddf9ed444cccf617b28dbaee6791aaf3b8e49396e71e2951645725c8"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "98860701e50c60b6193f0f6d35f0430093bb02eefbe00a970bf3fc8e3aa1ac98",
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_train_only_measurement": true
+  },
+  "question": "Measure initial ONLINE predictions after final Entry fuse normalization against the preserved frozen teacher and corrected causal Entry targets.",
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "constructor_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_NORMALIZATION_20260919/INITIALIZATION_AUDIT.json",
+    "sha256": "1683ad95b52cdb14e990c0b82223ed09b8616227e92b3ed7857cf72f1015e38b"
+  },
+  "original_initialization": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_FRESH_INITIALIZATION_20260917/RESULT.json",
+    "sha256": "0c3566aac54b866d4c18d148a725cd1c66e9a135f36d94da1391f14151fba4af"
+  },
+  "new_initialization_binding": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_INITIALIZATION_20260919/RESULT.json",
+    "sha256": "2f13dfc8ddf9ed444cccf617b28dbaee6791aaf3b8e49396e71e2951645725c8"
+  },
+  "test_evidence": {
+    "fuse_teacher_and_initialization": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_NORMALIZATION_20260919/TEST_REVIEW.json",
+      "sha256": "4678f3dd497f8620a782c0f30fa6e931b08cad75ad786e38c94226dbc3f4d99b"
+    },
+    "reused_train_only_admission": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/TRAIN_ONLY_TESTS.xml",
+      "sha256": "1c095b60d8f6b4e1161909b2832590b2ade931b0178d30ab8463c065772fffd4"
+    }
+  },
+  "measurement_roles": [
+    "train"
+  ],
+  "entry_count": 256,
+  "exit_anchor_count": 256,
+  "exit_sampled_count": 1024,
+  "optimizer_steps": 0,
+  "control_forwards": 0,
+  "test_data_used": false,
+  "review_requirements": [
+    "New ONLINE baseline cannot be substituted by old predictions with same tensor digest.",
+    "Original teacher target values, cohorts and masks must match the corrected causal TRAIN baseline and original Exit observations.",
+    "Native receipt/guard PASS and exact saved model/teacher/optimizer/EMA/scheduler/CPU-Python-NumPy RNG preservation.",
+    "No learning or economics claim; close this scope before separately binding any fixed256 trial."
+  ]
+}

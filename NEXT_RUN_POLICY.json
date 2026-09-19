@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Bind one new TRAIN-only zero-step native initial ONLINE measurement for the tested Entry fuse candidate, reusing NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918 operators and original initial weights/RNG. Compare frozen teacher/targets and cohorts exactly. No fixed256 training until this new initial baseline has passed its audit; no full epoch/VAL/CONTROL/TEST. Model/teacher tests and production initialization audit are complete and must be reused.",
+  "rule": "Prepare and activate the separately bound native ENTRY_FUSE initial measurement once, TRAIN-only and zero optimizer steps. Verify the new ONLINE baseline, unchanged original teacher/targets and saved optimizer/EMA/RNG. No learning claim or automatic256 trial. Follow VEIEN_VIDERE.md and the declared operator handover under source freeze.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1166,8 +1166,8 @@
     "evidence_scope": "Model correction and initial audit are complete; training progress/result is in completed_main_encoder_fixed256."
   },
   "handover_resume_point": {
-    "observed_utc": "2026-09-19T09:05:27.264394+00:00",
-    "status": "ENTRY_FUSE_CANDIDATE_AND_TEACHER_PARITY_VERIFIED_NEW_INITIAL_REQUIRED",
+    "observed_utc": "2026-09-19T10:46:14.255594+00:00",
+    "status": "ENTRY_FUSE_INITIAL_MEASUREMENT_BOUND_NOT_STARTED",
     "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
     "source_state_at_observation": "Native run and controller terminal; Windows task Disabled; source clean before this handover-only update. Use live working_head for the later documentation commit. Model/training code unchanged after a1c4b443.",
     "windows_task_observation": {
@@ -1185,8 +1185,8 @@
       "controllers": []
     },
     "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Bind one new TRAIN-only zero-step native initial ONLINE measurement for the tested Entry fuse candidate, reusing NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918 operators and original initial weights/RNG. Compare frozen teacher/targets and cohorts exactly. No fixed256 training until this new initial baseline has passed its audit; no full epoch/VAL/CONTROL/TEST. Model/teacher tests and production initialization audit are complete and must be reused.",
-    "new_native_run_bound": false,
+    "next_deliverable": "Prepare and activate the separately bound native ENTRY_FUSE initial measurement once, TRAIN-only and zero optimizer steps. Verify the new ONLINE baseline, unchanged original teacher/targets and saved optimizer/EMA/RNG. No learning claim or automatic256 trial. Follow VEIEN_VIDERE.md and the declared operator handover under source freeze.",
+    "new_native_run_bound": true,
     "consumed_run_id": "NATIVE_MAIN_ENCODER_REPRESENTATION_20260919",
     "optimizer_steps_completed": 256,
     "initial_measurement_completed": true,
@@ -1259,9 +1259,9 @@
     "saved_state_rng_exactly_preserved": true,
     "learning_proven": false
   },
-  "status": "ENTRY_FUSE_CANDIDATE_AND_TEACHER_PARITY_VERIFIED_NEW_INITIAL_REQUIRED",
+  "status": "ENTRY_FUSE_INITIAL_MEASUREMENT_BOUND_NOT_STARTED",
   "observed_utc": "2026-09-19T09:54:52.996003+00:00",
-  "next_action": "Bind one new TRAIN-only zero-step native initial ONLINE measurement for the tested Entry fuse candidate, reusing NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918 operators and original initial weights/RNG. Compare frozen teacher/targets and cohorts exactly. No fixed256 training until this new initial baseline has passed its audit; no full epoch/VAL/CONTROL/TEST. Model/teacher tests and production initialization audit are complete and must be reused.",
+  "next_action": "Prepare and activate the separately bound native ENTRY_FUSE initial measurement once, TRAIN-only and zero optimizer steps. Verify the new ONLINE baseline, unchanged original teacher/targets and saved optimizer/EMA/RNG. No learning claim or automatic256 trial. Follow VEIEN_VIDERE.md and the declared operator handover under source freeze.",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "completed_main_encoder_fixed256": {
@@ -1495,7 +1495,41 @@
     "teacher_function_preserved": true,
     "new_initial_measurement_required": true,
     "native_initial_measurement_completed": false,
-    "new_native_run_bound": false,
+    "new_native_run_bound": true,
     "learning_gate_passed": false
+  },
+  "chronological_initial_measurement": {
+    "initialization_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_INITIALIZATION_20260919/RESULT.json",
+      "sha256": "2f13dfc8ddf9ed444cccf617b28dbaee6791aaf3b8e49396e71e2951645725c8"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+      "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "98860701e50c60b6193f0f6d35f0430093bb02eefbe00a970bf3fc8e3aa1ac98",
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_train_only_measurement": true
   }
 }
