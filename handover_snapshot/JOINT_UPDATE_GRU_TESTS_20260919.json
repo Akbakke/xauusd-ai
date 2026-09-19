@@ -1,0 +1,9 @@
+{
+  "passed": 5,
+  "log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/JOINT_UPDATE_INPUT_AUDIT_20260919/GRU_FIX_TESTS.log",
+    "sha256": "5ceb345f59241172dc9c62cde28a5ea835d362c2dab0df5bfffdce4d6200f360"
+  },
+  "test_scope": "Real GRU CPU mode/gradient/parity, error cleanup, v2 six-forward contract. Prior AdamW tests reused. CUDA parity/backward still requires the bound native diagnosis.",
+  "model_and_trainer_unchanged": true
+}

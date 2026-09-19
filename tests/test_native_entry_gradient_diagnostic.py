@@ -267,7 +267,7 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
         plan['input_binding_audit']=_write(tmp_path/'input_audit.json',audit)
     if parity_only in ('main_encoder','joint'):
         plan['schema_version']='gx1_entry_representation_diagnostic_plan_v2'
-        if parity_only=='joint':plan.update(diagnostic_kind='final_joint_update',schema_version='gx1_joint_update_diagnostic_plan_v1',variants=['final'],model_forwards=5)
+        if parity_only=='joint':plan.update(diagnostic_kind='final_joint_update',schema_version='gx1_joint_update_diagnostic_plan_v2',variants=['final'],model_forwards=6)
         functions={'online':'normalized_online','target':'frozen_teacher'}
         initialization=json.loads(Path(final['initialization_result']['path']).read_text())
         initialization.update(online_model_state_sha256='c'*64,model_functions=functions)

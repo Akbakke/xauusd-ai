@@ -1,0 +1,38 @@
+{
+  "schema_version": "gx1_joint_update_failure_v1",
+  "observed_utc": "2026-09-19T14:27:22.304578+00:00",
+  "run_id": "NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919",
+  "source_commit": "b61f5793105252d7c3d80447b38d2b97ddabc91b",
+  "status": "FAILED_CUDNN_GRU_EVAL_BACKWARD",
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919_BOOT467/progress/.invocation-0001.json.trainer.sHlSRRjq.log",
+    "sha256": "eb70594caa269d749748182d70c5ef513ca19d33108379e2889154048b29147c"
+  },
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919_BOOT467/guard/invocation-0001.log",
+    "sha256": "21f2229094ca051688faafca2262ff6491d17f846c5b11516ee7611c8809ace6"
+  },
+  "guard_terminal": "2026-09-19T14:08:16Z event=exit child_status=1 stage=canonical telemetry_samples=590 peak_core_temp_c=49 peak_memory_temp_c=50 peak_power_draw_w=141.85 peak_memory_used_mib=4740",
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919_DISABLED.json",
+    "sha256": "13cbfe7585dadb97c68c70c5074c11723527a03603039a65d89e4ab0aa05de8e"
+  },
+  "native_processes": [],
+  "result_present": false,
+  "canonical_receipt_present": false,
+  "optimizer_steps": 0,
+  "original_checkpoint_verified": {
+    "training_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+    },
+    "training_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "af647c4d76145fc30df126b853cc9d9de43fc03ef69c756256279e98007468a8"
+    }
+  },
+  "scope_consumed": true,
+  "resume_authorized": false,
+  "learning_or_gradient_result": false,
+  "failure": "Native Exit GRU backward requires training-mode reserve; synthetic Linear-only test missed CUDA-specific behavior."
+}

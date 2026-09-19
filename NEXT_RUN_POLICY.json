@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
+  "rule": "Execute one corrected native joint-update diagnosis on the existing TRAIN16, six forwards, zero optimizer steps. Original failed plan consumed and disabled. Verify canonical Exit inference parity before backward, then review full saved-Adam Entry contrast and Exit directions. No automatic training or expansion.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1170,8 +1170,8 @@
     "evidence_scope": "Model correction and initial audit are complete; training progress/result is in completed_main_encoder_fixed256."
   },
   "handover_resume_point": {
-    "observed_utc": "2026-09-19T13:42:50.812492+00:00",
-    "status": "JOINT_UPDATE_DIAGNOSTIC_BOUND_NOT_STARTED",
+    "observed_utc": "2026-09-19T14:27:22.304578+00:00",
+    "status": "JOINT_UPDATE_GRU_RETRY_BOUND_NOT_STARTED",
     "training_source_commit": "bdce4ad3bfebcb7b69506b9058f87464256b34ad",
     "source_state_at_observation": "Native terminal, task Disabled, no native process. Review complete; source freeze released. Model/trainer unchanged since candidate commit027b5d48.",
     "windows_task_observation": {
@@ -1184,7 +1184,7 @@
       "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
     },
     "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
+    "next_deliverable": "Execute one corrected native joint-update diagnosis on the existing TRAIN16, six forwards, zero optimizer steps. Original failed plan consumed and disabled. Verify canonical Exit inference parity before backward, then review full saved-Adam Entry contrast and Exit directions. No automatic training or expansion.",
     "new_native_run_bound": true,
     "consumed_run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
     "optimizer_steps_completed": 256,
@@ -1251,9 +1251,9 @@
     "saved_state_rng_exactly_preserved": true,
     "learning_proven": false
   },
-  "status": "JOINT_UPDATE_DIAGNOSTIC_BOUND_NOT_STARTED",
-  "observed_utc": "2026-09-19T13:42:50.812492+00:00",
-  "next_action": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
+  "status": "JOINT_UPDATE_GRU_RETRY_BOUND_NOT_STARTED",
+  "observed_utc": "2026-09-19T14:27:22.304578+00:00",
+  "next_action": "Execute one corrected native joint-update diagnosis on the existing TRAIN16, six forwards, zero optimizer steps. Original failed plan consumed and disabled. Verify canonical Exit inference parity before backward, then review full saved-Adam Entry contrast and Exit directions. No automatic training or expansion.",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "completed_main_encoder_fixed256": {
@@ -1705,8 +1705,8 @@
   },
   "entry_gradient_diagnostic": {
     "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/PLAN.json",
-      "sha256": "9df21d6181552fda66151400e98aace7cf10359aba67cbb58121f5d92a5a0ada"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/PLAN.json",
+      "sha256": "3e0d104091ff2d2c4ff4250d037b0c446a24aaf52a20fd4378223668a3db06fd"
     },
     "chronological_prefix": {
       "design": {
@@ -1722,15 +1722,19 @@
         "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
       }
     },
-    "run_id": "NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/CANDIDATE_BUNDLE",
-    "source_bindings_sha256": "92f6b38ae7a237754b5cccb57a21de3a33f0ae3644631fc188d7df1782435d76",
+    "run_id": "NATIVE_JOINT_UPDATE_GRU_RETRY_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "9d1c3838e0d8e37056f849b3b1ca8bf693a91cd5c557e46e1c7b42806c35e127",
     "optimizer_steps": 0,
     "origin_optimizer_steps": 256,
     "max_invocations": 1,
     "train_entries": 16,
-    "model_forwards": 5,
+    "model_forwards": 6,
     "control_forwards": 0,
     "test_data_used": false
+  },
+  "last_diagnostic_failure": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
+    "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   }
 }

@@ -1,0 +1,74 @@
+{
+  "schema_version": "gx1_joint_update_diagnostic_plan_v2",
+  "diagnostic_kind": "final_joint_update",
+  "created_utc": "2026-09-19T14:27:22.304578+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/VERDICT.json",
+    "sha256": "2ee08068d96c3d0dc215b3116f9e31a07d8aea8712c6a23a5bc3a6ed114f306e"
+  },
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "f28b882c8d9e4d031c5380c4aa3f19c5556bf04aa3de95865df57335c661f74f"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "908ad63a049cab00c668226f6cfd1a0ed8f00035f05efdbd4775ae31549a23b5"
+  },
+  "cached_input_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
+    "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
+  },
+  "optimizer_steps": 0,
+  "train_entries": 16,
+  "model_forwards": 6,
+  "control_forwards": 0,
+  "max_invocations": 1,
+  "mode": "eval",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "variants": [
+    "final"
+  ],
+  "test_data_used": false,
+  "question": "Does the full clipped AdamW direction improve or oppose Entry contrast and Exit loss on the frozen TRAIN16, including shared fuse and all prediction parameters?",
+  "measurement": [
+    "Same frozen TRAIN16: ONLINE Entry inference and gradient, teacher Entry, ONLINE Exit canonical eval and gradient-reserve GRU forward, frozen teacher Exit. Six forwards, zero updates.",
+    "Reuse native Exit backward and exact Entry/aux losses. Verify all accumulated parameter gradients against the independent decomposition, original Entry targets/masks and saved native inference.",
+    "Estimate one FP64 AdamW direction from saved moments with native separate model/task-weight clipping and weight decay, without executing any optimizer step.",
+    "Compare full joint direction with omission of current auxiliary gradients only; retained moments still contain historical auxiliary contributions. No weight, threshold or optimizer search.",
+    "Only dropout-free GRUs temporarily use training=True to retain cuDNN backward reserve. All other modules remain eval. Compare Exit Q with canonical eval at unchanged1e-4 absolute tolerance and identical argmax; restore flags/method even on failure."
+  ],
+  "interpretation": "Eval-function diagnosis with explicitly checked Exit GRU reserve-mode parity; not a historical training/dropout replay, finite optimizer step, generalization or profitability result.",
+  "preserve": [
+    "original initial/final/target models",
+    "optimizer state and step count",
+    "RNG and model modes",
+    "all features/timeframes and causal inputs",
+    "costs/targets/teacher",
+    "native guards and source binding"
+  ],
+  "prohibited": [
+    "optimizer step or fitted candidate",
+    "CONTROL/VAL/TEST",
+    "search or automatic extension",
+    "treating small predicted variance as proof that target noise is predictable",
+    "raising cached-inference tolerance",
+    "claiming cross-mode numerical parity",
+    "changing model/training mathematics for the measured mode difference"
+  ],
+  "input_binding_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/JOINT_UPDATE_INPUT_AUDIT_20260919/RESULT.json",
+    "sha256": "41eb60b03e4663502905a09a84bbdf583b4b7ab0a46782c2a421dc2c9e31b1ed"
+  },
+  "saved_optimizer_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/SAVED_OPTIMIZER_CAUSE/STATE_AUDIT.json",
+    "sha256": "82c3d5e248a207d60a4133f71782ab6e9cb3e0d6e049e70d718167b0406c1b69"
+  },
+  "previous_failed_attempt": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
+    "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
+  }
+}

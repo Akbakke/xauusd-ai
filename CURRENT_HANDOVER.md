@@ -1,20 +1,23 @@
-# GX1 — overlevering 19. september 2026
+# GX1 — gjeldende overlevering 19. september 2026
 
-Entry fuse256 er ferdig analysert: bedre verdiestimater, men FLAT256/256 og
-uendret sidefast Exit. Samlet læringsport er ikke bestått. Tidligere prøve er
-stengt og skal ikke relanseres. Se docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md.
+Entry fuse256: bedre verdiestimater, men FLAT256/256 og uendret sidefast Exit.
+Læringsport ikke bestått; kronologisk handelsfordel og profitt ikke dokumentert.
 
-Nå er NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919 bundet, ikke forberedt/startet.
-Eksakt TRAIN16-cache/target/initialfunksjon er kontrollert. Seks diagnosetester
-og to handover-tester bestod. Ingen modell- eller treningsmatematikk er endret.
-Fem native forwards inkludert Exit, null optimizersteg. Se VEIEN_VIDERE.md og
-docs/JOINT_UPDATE_DIAGNOSTIC_20260919.md. Ingen annen kjøring er bundet.
+Forrige joint-diagnose feilet i cuDNN GRU-backward i evalmodus. Guard/task exit1,
+task deaktivert, ingen RESULT eller canonical receipt. Originalt checkpoint og
+pointer er kontrollert uendret. Brukt plan er stengt og må aldri relanseres.
 
-Eneste kilde er /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overlevering.
-Start med handover --check. Prosesser, PREPARATION_RESULT.json og receipts avgjør
-faktisk status. Ikke relanser aktiv/fullført plan. Operatørkopi under kildefrys:
-/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/OPERATOR_HANDOVER/CURRENT_HANDOVER.md.
+Minste målerrettelse er kontrollert med fem fokuserte CPU-tester: kun dropoutfrie
+GRU-er lagrer backward-reserve; øvrige moduler forblir eval. Ekstra Exit-inferens
+kontrollerer verdier og valg. Ingen modell-/treningsmatematikk er endret.
+NATIVE_JOINT_UPDATE_GRU_RETRY_20260919 er bundet, ikke startet: samme TRAIN16-cache,
+seks forwards, null optimizer. GPU-paritet/backward er ennå ikke kontrollert.
+Se VEIEN_VIDERE.md og docs/JOINT_UPDATE_DIAGNOSTIC_20260919.md.
 
-TEST forseglet. Ingen full epoch/VAL/CONTROL, live/paper, spending, brede søk eller
-automatisk trening etter diagnose. Målet om bedre Entry/Exit og full nettoøkonomi
-inkludert åpne posisjoner er fortsatt aktivt; profitt er ikke dokumentert.
+Kilde: /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er kopi.
+Operatørstatus under kildefrys: /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/OPERATOR_HANDOVER/CURRENT_HANDOVER.md.
+Prosesser og receipts avgjør nåstatus. TEST forseglet; ingen full epoch/VAL,
+live/paper/spending eller automatisk trening etter diagnose.
+
+Brukeren autoriserte nå eksplisitt tre read-only underagenter til forslag om
+handelsfordel; bare hovedagent endrer kode og bare én tung jobb tillates.

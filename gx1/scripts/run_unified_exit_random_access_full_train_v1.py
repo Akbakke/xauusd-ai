@@ -7,6 +7,7 @@ They do not provide a standalone launch authority or a second training loop.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import contextmanager
 import argparse
 import copy
 import json
@@ -963,6 +964,45 @@ def _joint_probe_adam_delta(*, model, optimizer, saved_optimizer, gradients):
     return delta, norms
 
 
+@contextmanager
+def _joint_probe_exit_forward(model):
+    """Retain cuDNN backward state only in dropout-free GRUs; verify eval parity."""
+    recurrent = [m for m in model.modules() if isinstance(m, torch.nn.RNNBase)]
+    if (not recurrent or any(m.training for m in model.modules())
+            or any(not isinstance(m, torch.nn.GRU) or m.dropout != 0 for m in recurrent)):
+        raise RuntimeError('JOINT_PROBE_RECURRENT_MODE_INVALID')
+    original = model.forward_exit_random_access_batch
+    had_override = 'forward_exit_random_access_batch' in model.__dict__
+    report = {'online_calls': 0, 'max_abs_difference_bps': 0., 'actions_identical': False,
+              'recurrent_modules': len(recurrent), 'dropout_enabled': False}
+    def checked(**kwargs):
+        report['online_calls'] += 1
+        if report['online_calls'] != 1 or not torch.is_grad_enabled():
+            raise RuntimeError('JOINT_PROBE_EXIT_FORWARD_COUNT_INVALID')
+        with torch.inference_mode():
+            expected = original(**kwargs)['exit_action_q_bps']
+        try:
+            for module in recurrent: module.training = True
+            output = original(**kwargs)
+        finally:
+            for module in recurrent: module.training = False
+        actual = output['exit_action_q_bps'].detach()
+        report['max_abs_difference_bps'] = float((actual - expected).abs().max())
+        report['actions_identical'] = torch.equal(actual.argmax(-1), expected.argmax(-1))
+        if not torch.allclose(actual, expected, atol=1e-4, rtol=0) or not report['actions_identical']:
+            raise RuntimeError('JOINT_PROBE_EXIT_INFERENCE_PARITY_INVALID')
+        return output
+    model.forward_exit_random_access_batch = checked
+    try:
+        yield report
+        if report['online_calls'] != 1:
+            raise RuntimeError('JOINT_PROBE_EXIT_FORWARD_COUNT_INVALID')
+    finally:
+        if had_override: model.forward_exit_random_access_batch = original
+        else: delattr(model, 'forward_exit_random_access_batch')
+        for module in recurrent: module.training = False
+
+
 def _joint_update_probe(*, model, optimizer, saved_state, batch, target, valid, expected, dataset, device):
     """One frozen TRAIN16 eval probe of native Entry/Exit/aux gradients; never steps."""
     parameters = dict(model.named_parameters())
@@ -996,12 +1036,13 @@ def _joint_update_probe(*, model, optimizer, saved_state, batch, target, valid, 
             raise RuntimeError('JOINT_PROBE_GRADIENT_ACTION_CHANGED')
         with torch.no_grad(): teacher_out = forward(teacher)
         representation = out[trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
-        token_gradient, exit_stats, measured_target, measured_valid = trainer._train_unified_exit_full_population(
-            model=model, target_model=teacher, entry_decision_representations=representation,
-            target_entry_decision_representations=teacher_out[trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY],
-            entry_row_indices=batch['entry_row_index'], dataset=dataset, device=device, grad_accum_steps=1,
-            exit_cooperation_gate_epoch=trainer._new_cooperation_gate_epoch_accumulator(trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS),
-            exit_feature_tf_gate_epoch=trainer._new_feature_tf_gate_epoch_accumulator(trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE))
+        with _joint_probe_exit_forward(model) as exit_parity:
+            token_gradient, exit_stats, measured_target, measured_valid = trainer._train_unified_exit_full_population(
+                model=model, target_model=teacher, entry_decision_representations=representation,
+                target_entry_decision_representations=teacher_out[trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY],
+                entry_row_indices=batch['entry_row_index'], dataset=dataset, device=device, grad_accum_steps=1,
+                exit_cooperation_gate_epoch=trainer._new_cooperation_gate_epoch_accumulator(trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS),
+                exit_feature_tf_gate_epoch=trainer._new_feature_tf_gate_epoch_accumulator(trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE))
         if (not torch.equal(measured_valid, valid) or not torch.allclose(measured_target, target, atol=1e-4, rtol=0)
                 or exit_stats.get('random_access_online_forward_calls') != 1
                 or exit_stats.get('random_access_target_forward_calls') != 1
@@ -1065,7 +1106,7 @@ def _joint_update_probe(*, model, optimizer, saved_state, batch, target, valid, 
             'raw_entry_loss_decomposition':{k:float(v.detach()) for k,v in parts.items()},
             'raw_exit_mse':exit_stats['raw_loss'],'exit_transition_count':exit_stats['random_access_transition_count'],
             'gradients':gradient_report,'adam_directions':directions,
-            'optimizer_steps':0,'model_forwards':5,
+            'optimizer_steps':0,'model_forwards':6,'exit_inference_parity':exit_parity,
             'limitations':'One eval-mode TRAIN16, not a replay of historical training/dropout. FP64 first-order AdamW estimates with frozen saved moments, not executed finite-step gains. Removing current auxiliary gradients retains historical auxiliary momentum. No predictability, learning or economic claim.'}
     finally:
         for p in parameters.values(): p.grad = None
@@ -1251,9 +1292,9 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
         report.pop("variant_forward_values_and_entry_head_gradients_identical")
         if scope["plan"].get("diagnostic_kind") == "final_joint_update":
-            report.update(schema_version="gx1_joint_update_diagnostic_result_v1",
+            report.update(schema_version="gx1_joint_update_diagnostic_result_v2",
                 decision="JOINT_GRADIENT_AND_ADAM_DIRECTION_MEASURED_NO_OPTIMIZER_STEP",
-                variants=["final"],model_forwards=5,
+                variants=["final"],model_forwards=6,
                 limitations=measured["final"]["limitations"])
         if scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
             report.update(schema_version="gx1_entry_representation_diagnostic_result_v1",

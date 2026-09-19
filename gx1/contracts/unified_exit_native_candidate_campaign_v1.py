@@ -394,7 +394,7 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
     if signal:
         fixed.update(schema_version="gx1_entry_signal_diagnostic_plan_v1", variants=["initial", "final"])
     if joint:
-        fixed.update(schema_version="gx1_joint_update_diagnostic_plan_v1",variants=["final"],model_forwards=5)
+        fixed.update(schema_version="gx1_joint_update_diagnostic_plan_v2",variants=["final"],model_forwards=6)
     if representations:
         fixed.update(schema_version=("gx1_entry_representation_diagnostic_plan_v2" if main_encoder
                                      else "gx1_entry_representation_diagnostic_plan_v1"))
