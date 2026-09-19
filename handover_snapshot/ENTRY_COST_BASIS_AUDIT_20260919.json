@@ -1,0 +1,71 @@
+{
+  "additional_slippage_bps_entry_plus_exit": 4.0,
+  "additional_slippage_bps_per_execution": 2.0,
+  "broker_evidence": {
+    "artifact_sha256": "850a36e49d2bb43c1b875540763be57bc6e95c9133de2b2ac8ee9c045850a128",
+    "file_sha256": "c0f36264a2689a712b090f0abb78cefa085eb5bf277e592c2a8a2d58e1d72579",
+    "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/UNIFIED_EXIT_BROKER_EVIDENCE_V1_20260910.json"
+  },
+  "broker_fill_count": 258,
+  "broker_fill_row_fields": [
+    "commission_account_units",
+    "financing_account_units",
+    "full_vwap",
+    "guaranteed_execution_fee_account_units",
+    "half_spread_cost_account_units",
+    "instrument",
+    "price",
+    "quote_guaranteed_execution_fee",
+    "reason",
+    "time",
+    "units"
+  ],
+  "commission_bps_per_execution": 0.0,
+  "cost_authority": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PROSPECTIVE_COST_POLICY_V1/parameter_authority.json",
+    "sha256": "b5cfc8ebaf5b5116747266c667edbbf73f4b862f6c4259c4c0fa202fd1095e37"
+  },
+  "cost_parameter_changed": false,
+  "created_utc": "2026-09-19T17:44:22.612551+00:00",
+  "fill_minus_full_vwap_measures_decision_to_fill_slippage": false,
+  "fixed_slippage_share_of_reconstructed_drag_percent": 68.21122687665063,
+  "historical_cost_truth_qualified": false,
+  "interpretation": "4 Bps of reconstructed entry drag is an explicit conservative assumption. Existing258 fills verify commission/VWAP facts but do not identify decision-quote-to-fill slippage. This does not prove2 Bps is too high or justify lowering it to obtain positive results. Locate matching existing logs before treating execution costs as measured; do not place new trades.",
+  "linkage_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ENTRY_EXIT_LINKAGE_AUDIT.json",
+    "sha256": "c6e39ef4f0b80dcc357becbe88caee4ad367eb926da1743e999c5c71d5225b0b"
+  },
+  "model_or_cost_code_changed": false,
+  "needed_evidence": [
+    "quote timestamp and side-correct bid/ask at actual order decision/send",
+    "order identifier or verified link to fill",
+    "fill timestamp, side, quantity and actual fill price",
+    "consistent instrument, account pricing and order size"
+  ],
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "observed_fill_minus_full_vwap_nonzero_count": 0,
+  "paired_mean_inferred_first_liquidation_drag_bps": 5.8641373028422095,
+  "policy": {
+    "artifact_sha256": "253215b1f076c55da0d219b5aabe11be9cf540fd5be4046169e6f12be38d45dc",
+    "file_sha256": "a48f8e56da21cfa670a80c3b4bfdf735d8ce0b29a25e269184bd5f44fb240a69",
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PROSPECTIVE_COST_POLICY_V1/policy.json"
+  },
+  "policy_pass_means": "complete explicit prospective parameters, not empirical historical slippage",
+  "remaining_drag_is_pure_spread_claimed": false,
+  "remaining_reconstructed_drag_bps": 1.8641373028422095,
+  "schema_version": "gx1_entry_cost_basis_audit_v1",
+  "searched_local_scope": [
+    "bound broker evidence and cost policy",
+    "canonical logs/reports/runs filename search"
+  ],
+  "searched_scope_is_exhaustive_of_all_archives": false,
+  "slippage_measurement_status": "UNKNOWN_NO_PRE_CUTOFF_DECISION_QUOTE_TO_FILL_CLOCK_BINDING",
+  "slippage_origin": "explicit_conservative_nonfitted_preregistration",
+  "source_provider": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_economic_step_provider_v1.py",
+    "sha256": "f01e5d6f5e9eb7f786cb404103e2afbae29582a4420083671ebd82f8d1613125"
+  },
+  "test_data_used": false
+}

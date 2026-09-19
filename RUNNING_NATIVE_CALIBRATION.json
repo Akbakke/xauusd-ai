@@ -1318,6 +1318,14 @@
     "training_enabled": false,
     "verified_entries": 275
   },
+  "entry_cost_basis_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COST_BASIS_AUDIT.json",
+    "sha256": "d05a0f2a5f929f95bd0bfc16e813d37b90d93770d037c6cf784e7c835b127f13"
+  },
+  "entry_exit_linkage_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ENTRY_EXIT_LINKAGE_AUDIT.json",
+    "sha256": "c6e39ef4f0b80dcc357becbe88caee4ad367eb926da1743e999c5c71d5225b0b"
+  },
   "entry_fuse_correction": {
     "initialization_audit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_NORMALIZATION_20260919/INITIALIZATION_AUDIT.json",
@@ -1452,7 +1460,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/CONVERGENCE512_REVIEW_20260919.md and VEIEN_VIDERE.md; no run bound.",
+  "handover_resume_point": "VEIEN_VIDERE.md and docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md; frozen Exit-policy evaluation feasibility, no run bound.",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1482,7 +1490,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "866e2e3305d36e4973554bb2b0a495c58f0e1ad3",
-  "latest_observation_utc": "2026-09-19T17:24:39.901758+00:00",
+  "latest_observation_utc": "2026-09-19T17:44:22.612551+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1763,7 +1771,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Reuse completed512 paired review and saved Entry decision-gap audit. Exit now improves pooled TRAIN choices on both sides; Entry remains FLAT256/256, within-month contrast correlation fell and forced direction worsened. Do not extend training or repeat gradient/normalization tests. Next, inspect existing Entry target/Exit policy linkage and retained native evaluation evidence to distinguish inadequate conditional Entry prediction under Q_mu from a reference-policy value that does not evaluate the improved Exit policy. This is an unresolved question, not proof of a target bug or authority for target changes/new runs. No full epoch/VAL/CONTROL/TEST, threshold tuning or trading.",
+  "next_action": "Reuse completed512 and linkage/cost audits. Entry remains FLAT256/256; no Entry code change or more training is justified. Clarify whether one bounded evaluation of the complete frozen512 Exit policy can use the existing native evaluator on TRAIN, both counterfactual sides, unchanged costs, a strict observation boundary before CONTROL, and open-position valuation. Preserve the current measurement_only guard; bind model, data, budget and decision criteria before any job. No new runner or automatic launch. Negative unconditional means do not disprove conditional edge. Missing decision-quote/order/fill linkage prevents empirical slippage calibration, not all signal investigation under unchanged assumptions; inspect user-supplied existing logs if available. No cost reduction to pass, full epoch/full VAL, CONTROL/TEST, live/paper/spending.",
   "observed_processes": [],
   "observed_utc": "2026-09-19T17:24:39.901758+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",

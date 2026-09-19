@@ -1216,6 +1216,14 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
+  "entry_cost_basis_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COST_BASIS_AUDIT.json",
+    "sha256": "d05a0f2a5f929f95bd0bfc16e813d37b90d93770d037c6cf784e7c835b127f13"
+  },
+  "entry_exit_linkage_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ENTRY_EXIT_LINKAGE_AUDIT.json",
+    "sha256": "c6e39ef4f0b80dcc357becbe88caee4ad367eb926da1743e999c5c71d5225b0b"
+  },
   "entry_fuse_correction": {
     "initialization_audit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_NORMALIZATION_20260919/INITIALIZATION_AUDIT.json",
@@ -1566,8 +1574,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "Execute one bound native256-to512 TRAIN convergence experiment, preserving ONLINE/teacher, Adam/EMA/scheduler/RNG and exact order in a new session. Only the next4096 rows of the existing chronological TRAIN prefix are added. Measure the same TRAIN256 and1024 Exit samples at512 against saved initial/256/constants, then stop for Entry/Exit decision review. No full epoch/CONTROL/VAL/TEST, target refresh, loss/model change, rescaling or automatic extension.",
-  "observed_utc": "2026-09-19T15:29:45.402618+00:00",
+  "next_action": "Reuse completed512 and linkage/cost audits. Entry remains FLAT256/256; no Entry code change or more training is justified. Clarify whether one bounded evaluation of the complete frozen512 Exit policy can use the existing native evaluator on TRAIN, both counterfactual sides, unchanged costs, a strict observation boundary before CONTROL, and open-position valuation. Preserve the current measurement_only guard; bind model, data, budget and decision criteria before any job. No new runner or automatic launch. Negative unconditional means do not disprove conditional edge. Missing decision-quote/order/fill linkage prevents empirical slippage calibration, not all signal investigation under unchanged assumptions; inspect user-supplied existing logs if available. No cost reduction to pass, full epoch/full VAL, CONTROL/TEST, live/paper/spending.",
+  "observed_utc": "2026-09-19T17:50:53.855170+00:00",
   "outer_guard_seconds": 13800,
   "precision": "float32",
   "prefix_auxiliary_policy_preparation": {
@@ -1713,13 +1721,13 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PLAN.json",
     "sha256": "a83582d40a32444e92e346a9a15fcfe50cabe4a77fd3310e579246909fdf2fce"
   },
-  "rule": "Reuse completed512 paired review and saved Entry decision-gap audit. Exit now improves pooled TRAIN choices on both sides; Entry remains FLAT256/256, within-month contrast correlation fell and forced direction worsened. Do not extend training or repeat gradient/normalization tests. Next, inspect existing Entry target/Exit policy linkage and retained native evaluation evidence to distinguish inadequate conditional Entry prediction under Q_mu from a reference-policy value that does not evaluate the improved Exit policy. This is an unresolved question, not proof of a target bug or authority for target changes/new runs. No full epoch/VAL/CONTROL/TEST, threshold tuning or trading.",
+  "rule": "Reuse completed512 and linkage/cost audits. Entry remains FLAT256/256; no Entry code change or more training is justified. Clarify whether one bounded evaluation of the complete frozen512 Exit policy can use the existing native evaluator on TRAIN, both counterfactual sides, unchanged costs, a strict observation boundary before CONTROL, and open-position valuation. Preserve the current measurement_only guard; bind model, data, budget and decision criteria before any job. No new runner or automatic launch. Negative unconditional means do not disprove conditional edge. Missing decision-quote/order/fill linkage prevents empirical slippage calibration, not all signal investigation under unchanged assumptions; inspect user-supplied existing logs if available. No cost reduction to pass, full epoch/full VAL, CONTROL/TEST, live/paper/spending.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "CONVERGENCE512_BOUND_NOT_STARTED",
+  "status": "CONVERGENCE512_COMPLETE_EXIT_IMPROVED_ENTRY_GATE_FAILED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_population_scope": "latest_year_2025_2026_v1",

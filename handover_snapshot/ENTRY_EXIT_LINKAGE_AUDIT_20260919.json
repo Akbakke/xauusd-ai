@@ -1,0 +1,132 @@
+{
+  "actual_entry512_actions": {
+    "FLAT": 256,
+    "LONG": 0,
+    "SHORT": 0
+  },
+  "actual_entry512_selected_reference_value_bps": 0.0,
+  "all_three_constant_entry_options_best": "FLAT for original reference and both one-decision deviations",
+  "analysis_source_commit": "10af6b722b4979b457d7bac12e8473a172e0213e",
+  "complete_learned_exit_policy_evaluated": false,
+  "created_utc": "2026-09-19T17:32:54.444884+00:00",
+  "current_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "aa92a7b04639f2972a108c85796a63448670e10d9368b6fdd6d1bfb1d23d4ffb"
+  },
+  "entry_target_formula": "L_first_executable_liquidation + (119/120)*Q_mu(anchor,HOLD); no ONLINE action selection",
+  "frozen_teacher_refresh_would_replace_fixed_reference_probabilities": false,
+  "generalization_proven": false,
+  "inferred_liquidation_fp32_rounding_caveat": true,
+  "inferred_liquidation_mean_bps": [
+    -5.948846072657279,
+    -5.779428533027141
+  ],
+  "interpretation": "The static reference target does not follow learned Exit decisions. Existing saved anchors measure only one causal Exit deviation followed by reference continuation. Improved Exit raises these TRAIN Entry outcomes, but both unconditional side means remain negative. This neither proves a target bug nor rules out conditional or full-policy edge. A full learned-policy value requires native path evaluation; no hindsight action selection, forced entry policy, target rewrite or training expansion is authorized by this audit.",
+  "mean_entry_gain512_vs256_anchor_bps": [
+    0.7420998801244423,
+    1.1470223406795412
+  ],
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "one_decision_deviations": {
+    "anchor256_then_mu": {
+      "LONG": {
+        "exit_count": 0,
+        "hold_count": 256,
+        "mean_anchor_selected_relative_value_bps": 2.2173689806077164,
+        "mean_entry_value_bps": -3.73147709204956,
+        "mean_gain_vs_reference_entry_bps": 0.018478074838397546,
+        "positive_return_sample_count": 112
+      },
+      "SHORT": {
+        "exit_count": 256,
+        "hold_count": 0,
+        "mean_anchor_selected_relative_value_bps": 0.0,
+        "mean_entry_value_bps": -5.779428533027143,
+        "mean_gain_vs_reference_entry_bps": 2.180638474663526,
+        "positive_return_sample_count": 10
+      }
+    },
+    "anchor512_then_mu": {
+      "LONG": {
+        "exit_count": 69,
+        "hold_count": 187,
+        "mean_anchor_selected_relative_value_bps": 2.9594688607321586,
+        "mean_entry_value_bps": -2.9893772119251176,
+        "mean_gain_vs_reference_entry_bps": 0.7605779549628399,
+        "positive_return_sample_count": 89
+      },
+      "SHORT": {
+        "exit_count": 173,
+        "hold_count": 83,
+        "mean_anchor_selected_relative_value_bps": 1.1470223406795412,
+        "mean_entry_value_bps": -4.6324061923476005,
+        "mean_gain_vs_reference_entry_bps": 3.3276608153430667,
+        "positive_return_sample_count": 39
+      }
+    }
+  },
+  "one_decision_formula": "original_Entry_target + (I[predicted_anchor_HOLD>0] - 119/120)*observed_Q_mu(anchor,HOLD)",
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ENTRY_EXIT_LINKAGE_OPERATOR.py",
+    "sha256": "ad053e0428cbd19a24491e2f5c5cfc597f0fa9fb23e4b6636068d3fb3cdc196c"
+  },
+  "original_reference_entry_mean_bps": [
+    -3.7499551668879576,
+    -7.960067007690668
+  ],
+  "previous_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "908ad63a049cab00c668226f6cfd1a0ed8f00035f05efdbd4775ae31549a23b5"
+  },
+  "profitability_proven": false,
+  "reference_policy": {
+    "hold_probability_denominator": 120,
+    "hold_probability_numerator": 119,
+    "maximum_observed_backup_steps": 120,
+    "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+    "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+    "schema_version": "gx1_exit_reference_policy_v1",
+    "selection": "analytical_expectation_no_random_action_draw",
+    "terminal_policy": "exit_if_economic_terminal",
+    "value_coordinates": "advantage_over_executable_liquidation_bps",
+    "value_semantics": "Q_mu_stationary_reference_after_first_action"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
+  },
+  "schema_version": "gx1_saved_entry_exit_policy_linkage_v1",
+  "selection_time": "causal_first_executable_exit_state_after_entry; not an input available to earlier Entry action",
+  "selection_uses_anchor_prediction": true,
+  "selection_uses_observed_target": false,
+  "source_bindings_verified_against_training_recipe": {
+    "gx1/contracts/entry_fitted_q_v1.py": {
+      "device": 2096,
+      "inode": 338934,
+      "mtime_ns": 1789368061876434541,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_fitted_q_v1.py",
+      "sha256": "ce77ca0d566c16a0f884a5098fb1ac4f9e6ecb848d9c3594ae6e3edc877e4fd1",
+      "size_bytes": 14317
+    },
+    "gx1/contracts/unified_exit_random_access_training_v1.py": {
+      "device": 2096,
+      "inode": 339023,
+      "mtime_ns": 1789654018438987266,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+      "sha256": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab",
+      "size_bytes": 46398
+    },
+    "gx1/contracts/unified_exit_reference_policy_v1.py": {
+      "device": 2096,
+      "inode": 163667,
+      "mtime_ns": 1789654018438489229,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+      "sha256": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35",
+      "size_bytes": 7970
+    }
+  },
+  "test_data_used": false,
+  "training_targets_changed": false
+}
