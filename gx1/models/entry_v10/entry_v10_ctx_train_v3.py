@@ -13819,6 +13819,39 @@ def _load_candidate_val_batch_successor_state(
     return state
 
 
+def _load_prefix_continuation_state(*, session, continuation):
+    """Transfer the exact stopped state to a separate session, changing only its contract ID."""
+    contract = continuation["origin_contract"]
+    old = _CandidateTrainingSession(out_bundle_dir=Path(contract["out_bundle_dir"]), contract=contract, read_only=True)
+    review = continuation["origin_review"]
+    if (old.directory == session.directory or session._active_path.exists()
+            or str(old._active_path) != continuation["origin_pointer"]["path"]
+            or _sha256_file(old._active_path) != continuation["origin_pointer"]["sha256"]):
+        raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_SESSION_INVALID]")
+    previous, requested = copy.deepcopy(contract), copy.deepcopy(session._contract)
+    for value in (previous, requested):
+        for key in ("source_commit", "run_id", "out_bundle_dir", "recipe_source_provenance"): value.pop(key)
+    previous["chronological_prefix"]["maximum_optimizer_steps"] = 512
+    if (requested["chronological_prefix"].pop("continuation", None) != continuation["plan_binding"]
+            or previous != requested):
+        raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_CONTRACT_CHANGED]")
+    state = old.load_checkpoint()
+    if (state is None or state["global_optimizer_steps"] != 256 or state["next_batch_offset"] != 256
+            or state["epoch_index"] != 0 or state["phase"] != "train" or state["complete"]
+            or state["weight_ema_state"]["steps"] != 256
+            or _sha256_file(Path(review["training_state"]["path"])) != review["training_state"]["sha256"]):
+        raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_STATE_INVALID]")
+    # load_checkpoint returns a new in-memory object. All learning state and original files remain intact.
+    state["session_contract_sha256"] = session.contract_sha256
+    _candidate_training_session_atomic_write_json(session.directory / "PREFIX_CONTINUATION_RECEIPT.json", {
+        "schema_version":"gx1_prefix_continuation_state_transfer_v1", "plan":continuation["plan_binding"],
+        "origin_pointer":continuation["origin_pointer"], "origin_state":review["training_state"],
+        "new_session_contract_sha256":session.contract_sha256, "changed_state_fields":["session_contract_sha256"],
+        "optimizer_steps_before":256, "stop_after_optimizer_steps":512,
+        "original_state_preserved":True, "target_refreshed":False, "optimizer_reset":False, "test_data_used":False})
+    return state
+
+
 def _run_resumable_candidate_training(
     *,
     model: nn.Module,
@@ -13871,6 +13904,7 @@ def _run_resumable_candidate_training(
     native_val_context: Optional[Mapping[str, Any]] = None,
     candidate_resume_origin: Optional[Mapping[str, Any]] = None,
     chronological_prefix: Mapping[str, Any] | None = None,
+    chronological_continuation: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -13885,11 +13919,17 @@ def _run_resumable_candidate_training(
     parent_population = None
     prefix_binding = None
     prefix_epoch0_order = None
+    prefix_ceiling = 256
+    if chronological_continuation is not None:
+        if (chronological_prefix is None or chronological_continuation["plan"]["from_optimizer_steps"] != 256
+                or chronological_continuation["plan"]["stop_after_optimizer_steps"] != 512):
+            raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_SCOPE_INVALID]")
+        prefix_ceiling = 512
     if chronological_prefix is not None:
         if (candidate_resume_origin is not None or execution_budget is None or native_val_context is None
                 or "evaluation_cohort" not in native_val_context
                 or type(execution_budget.get("stop_after_optimizer_steps")) is not int
-                or not 0 <= execution_budget["stop_after_optimizer_steps"] <= 256
+                or not 0 <= execution_budget["stop_after_optimizer_steps"] <= prefix_ceiling
                 or execution_budget.get("stop_after_completed_val_epochs") is not None
                 or "resume_probe_val_rows" in execution_budget):
             raise RuntimeError("[CANDIDATE_PREFIX_FIXED_BUDGET_REQUIRED]")
@@ -13897,6 +13937,8 @@ def _run_resumable_candidate_training(
             chronological_prefix=chronological_prefix, train_ds=train_ds, val_ds=val_ds,
             train_parquet=train_parquet, val_parquet=val_parquet, input_normalization=input_normalization,
             model=model, seed=seed, batch_size=batch_size, learning_rate=lr, weight_decay=weight_decay)
+        if chronological_continuation is not None:
+            prefix_binding.update(maximum_optimizer_steps=512, continuation=chronological_continuation["plan_binding"])
     if (candidate_resume_origin is not None
             and candidate_resume_origin.get("train_population_scope") == "latest_year_2025_2026_v1"):
         from gx1.contracts.unified_exit_random_access_index_v1 import require_latest_year_index_root, latest_year_selected_entry_rows
@@ -14012,6 +14054,9 @@ def _run_resumable_candidate_training(
         and candidate_resume_origin.get("inference_only_cpu_pipeline") is True else None
     )
     restored_state = session.load_checkpoint()
+    if restored_state is None and chronological_continuation is not None:
+        restored_state = _load_prefix_continuation_state(session=session, continuation=chronological_continuation)
+        session.save_checkpoint(restored_state)
     if restored_state is None and candidate_resume_origin is not None:
         if candidate_resume_origin.get("schema_version") == _CANDIDATE_ECONOMICS_TRANSITION_SCHEMA:
             restored_state = _load_candidate_economics_successor_state(

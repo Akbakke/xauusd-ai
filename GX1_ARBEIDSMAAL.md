@@ -4,10 +4,10 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Entry fuse256 er ferdig analysert: begge Entry-sider har bedre samlet verdiestimering enn tidligere modeller og TRAIN-konstanter, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
+Nå: Entry fuse256 er ferdig analysert: begge Entry-sider har bedre samlet verdiestimering enn tidligere modeller og TRAIN-konstanter, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt256-scope er stengt. Én separat256→512-videreføring er bundet, ikke startet; se CURRENT_HANDOVER.md.
 Neste: joint-oppdateringen er kontrollert; konfliktforklaringen støttes ikke på
 TRAIN16. Avgrens faktisk verdilæring/konvergens med uendret modell og mål.
-Se VEIEN_VIDERE.md. Ingen ny kjøring er bundet.
+Se VEIEN_VIDERE.md og docs/CONVERGENCE512_20260919.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

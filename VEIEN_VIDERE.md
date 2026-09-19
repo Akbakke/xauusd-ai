@@ -1,21 +1,20 @@
-# Veien videre — fra gradientdiagnose til faktisk læring
+# Neste handling — ett fast konvergensforsøk
 
-Stoppunkt: joint-diagnosen er terminalt fullført, vurdert og deaktivert.
-Gjenbruk docs/JOINT_UPDATE_REVIEW_20260919.md, inputaudit, originale checkpoints,
-alle fullførte normaliseringsforsøk og beståtte tester. Ingen plan er aktiv.
+NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919 er bundet, ikke startet. Gjenbruk beståtte
+14 tester, faktiske kilde-/rekkefølgebindinger og alle tidligere målinger.
 
-Samlet førsteordens Adam-effekt forbedrer både Entry-kontrast og Exit-tap på
-TRAIN16. Ikke endre tapsvekter, reset momentum eller legg til normalisering
-på dette grunnlaget. Ingen ny teknisk diagnose uten en ny observert feil.
+1. Etter ren commit/push, kjør /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/PREPARE.py via audit-vakt én gang.
+2. Bind kilde/campaign-hash i ACTIVATE_TEMPLATE.ps1 og aktiver eksisterende
+   Windows native controller én gang. Fysisk reboot og vakter beholdes.
+3. Frys kilden. Native skal laste bevart256-state i ny session, fortsette den
+   eksakte rekkefølgen til512 og måle samme TRAIN256 og1024Exit-samples.
+   Ikke start ny initialmåling, lærer, tester eller alternativ kjører.
+4. Ved stabil drift kontroller omtrent hver time. Ved terminal status, deaktiver
+   task og vurder512 mot lagret256/initial/konstanter med eksisterende review.
+   Samme mål, begge sider, alle ni måneder, handlingsvalg og referanseverdi.
+5. Steng brukt scope. Svakt eller uklart resultat gir ingen automatisk utvidelse.
+   Læringsporten krever bedre Entry og Exit, ikke bare lavere loss eller flere handler.
 
-Neste avklaring er én avgrenset faktisk lærings-/konvergenskontroll på eksisterende
-TRAIN, med samme modell, native mål og frosne lærer. Før eventuell utførelse:
-fastsett minste omfang som skiller manglende finit tilpasning fra en teknisk
-blokkering, og bind det med eksisterende native eier. Ingen ny treningsmotor,
-bredt søk, automatisk utvidelse eller endret handelsgrense. Nåværende positive
-TRAIN-residualkovarians begrunner dette spørsmålet, ikke en profittpåstand eller
-at flere steg nødvendigvis vil lykkes. Ingen ny kjøring er bundet nå.
-
-Bedre Entry/Exit-handlinger må dokumenteres før separat kronologisk vurdering
-og fulløkonomi inklusive åpne posisjoner. Læringsporten er ikke bestått. Ingen
-full epoch/full VAL, CONTROL/TEST eller trading. Bevar samtlige originaler.
+Modell-/treningsmatematikk, features og alle originale checkpoints bevares.
+Ingen full epoch/full VAL, CONTROL/TEST, live/paper/spending. Senere kronologisk
+vurdering og full økonomi inklusive åpne posisjoner krever læringsport først.

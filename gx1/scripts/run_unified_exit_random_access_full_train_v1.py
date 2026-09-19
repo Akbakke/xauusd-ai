@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -607,6 +607,7 @@ def _run_bound_full_train_candidate(
             val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
         ),
         candidate_resume_origin=candidate_resume_origin,
+        chronological_continuation=components.get("chronological_continuation"),
         **({"chronological_prefix": components["chronological_prefix"]} if "chronological_prefix" in components else {}),
     )
 
@@ -672,6 +673,11 @@ def run_guarded_native_candidate_invocation(
     if "chronological_learning_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_learning_measurement
         learning_scope = require_chronological_learning_measurement(recipe)
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_continuation
+        continuation = require_chronological_continuation(recipe)
+        if continuation:
+            learning_scope["continuation"] = continuation
+            components["chronological_continuation"] = continuation
         _restore_prefix_initial_measurement_state(components=components, scope=learning_scope, device=device)
     try:
         result = _run_bound_full_train_candidate(
@@ -692,10 +698,10 @@ def run_guarded_native_candidate_invocation(
                 device=device, invocation_started=started, pause_evidence=paused.evidence)
         if ("chronological_learning_measurement" in recipe
                 and paused.evidence["reason"] == "optimizer_step_ceiling"
-                and paused.evidence["global_optimizer_steps"] == 256):
+                and paused.evidence["global_optimizer_steps"] == (512 if learning_scope.get("continuation") else 256)):
             paused.evidence["chronological_final_measurement"] = _run_prefix_initial_measurement(
                 components=components, scope=learning_scope, recipe=recipe, output=output,
-                device=device, invocation_started=started, pause_evidence=paused.evidence, optimizer_steps=256)
+                device=device, invocation_started=started, pause_evidence=paused.evidence, optimizer_steps=paused.evidence["global_optimizer_steps"])
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
         calibration = require_native_calibration_run(recipe)
         if (calibration is not None and calibration["report_only_val"]
@@ -1355,7 +1361,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                   invocation_started, pause_evidence, optimizer_steps=0):
     """Measure initial or fixed final ONLINE state at a durable native boundary."""
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
-    if (type(optimizer_steps) is not int or optimizer_steps not in (0, 256)
+    final_step = 512 if scope.get("continuation") else 256
+    if (type(optimizer_steps) is not int or optimizer_steps not in (0, final_step)
             or pause_evidence.get("reason") != "optimizer_step_ceiling" or pause_evidence.get("phase") != "train"
             or any(type(pause_evidence.get(k)) is not int or pause_evidence[k] != value
                    for k, value in (("epoch_index", 0), ("next_batch_offset", optimizer_steps),
@@ -1378,8 +1385,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     if (state["global_optimizer_steps"] != optimizer_steps
             or val.canonical_model_state_sha256(state["model_state"]) != expected
             or (optimizer_steps == 0 and (state["optimizer_state"]["state"] or expected != target_hash))
-            or (optimizer_steps == 256 and (not state["optimizer_state"]["state"]
-                                           or state["weight_ema_state"]["steps"] != 256))
+            or (optimizer_steps == final_step and (not state["optimizer_state"]["state"]
+                                           or state["weight_ema_state"]["steps"] != final_step))
             or val.canonical_model_state_sha256(state["target_model_state"]) != target_hash):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_CHECKPOINT_MISMATCH")
     target = trainer._copy_frozen_prefix_reference_model(model).to(device)
@@ -1411,7 +1418,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                 raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INCOMPLETE")
             if time.monotonic() >= deadline:
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
-            if optimizer_steps == 256:
+            if optimizer_steps == final_step:
                 baseline = val._read(_bound_artifact(scope["initial_measurement"]["observations"][role]))
                 if "entry_baseline" in scope:
                     if role != "train" or recipe.get("chronological_train_only_measurement") is not True:
@@ -1446,7 +1453,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     result = {"schema_version": ("gx1_native_prefix_initial_measurement_v1" if optimizer_steps == 0
                                 else "gx1_native_prefix_final_online_measurement_v1"),
         "decision": ("FROZEN_INITIAL_TARGETS_AND_PREDICTIONS_READY_NO_LEARNING_MEASURED" if optimizer_steps == 0
-                     else "FIXED256_FINAL_ONLINE_MEASURED_PAIRED_LEARNING_REVIEW_REQUIRED"),
+                     else f"FIXED{optimizer_steps}_FINAL_ONLINE_MEASURED_PAIRED_LEARNING_REVIEW_REQUIRED"),
         "initialization_result": scope["artifacts"]["initialization_result"],
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
@@ -1455,7 +1462,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}
-    if optimizer_steps == 256:
+    if optimizer_steps == final_step:
         result.update(initial_measurement=scope["artifacts"]["initial_measurement_result"],
                       initial_measurement_audit=scope["artifacts"]["initial_measurement_audit"],
                       selected_model_variant="ONLINE", frozen_targets_exactly_preserved=True)

@@ -1,0 +1,44 @@
+{
+  "all_required": true,
+  "created_utc": "2026-09-19T15:38:48.822381+00:00",
+  "entry": {
+    "actions": "native_argmax_LONG_SHORT_FLAT_without_rescaling_or_threshold_change",
+    "conditional_fit_required": "LONG_and_SHORT_MSE_and_centered_MSE_lower_than_both_256_and_TRAIN_constant; LONG_minus_SHORT_centered_MSE_lower_than_256",
+    "reference_value_required": "strictly_greater_than_max(0, mean_target_LONG, mean_target_SHORT, value_at_256, initial_value)"
+  },
+  "evaluation": "same_reused_TRAIN_only_not_profitability_or_generalization",
+  "exit": {
+    "actions": "native_HOLD_if_predicted_relative_value_positive_else_EXIT",
+    "conditional_fit_required": "MSE_and_centered_MSE_lower_than_both_256_and_TRAIN_constant",
+    "for_each": [
+      "anchor_LONG",
+      "anchor_SHORT",
+      "sampled_LONG",
+      "sampled_SHORT"
+    ],
+    "reference_value_required": "strictly_greater_than_max(0, mean_target_HOLD, value_at_256, initial_value)",
+    "regret_required": "lower_than_256_and_best_constant"
+  },
+  "failure_action": "close_this_scope_no_automatic_training_extension_or_repeat_diagnosis",
+  "origin_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "parity_required": [
+    "same_targets_masks_cohorts",
+    "same_online_function",
+    "unchanged_frozen_teacher",
+    "preserved_origin_checkpoint",
+    "exact_256_additional_updates"
+  ],
+  "pass_meaning": "TRAIN_learning_screen_only_separately_bound_chronological_assessment_required",
+  "periods": "pooled_and_all_nine_months_reported_without_period_selection",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PLAN.json",
+    "sha256": "3f53d1e8b6e86cae9c8776ec87183189b42e1e73b1acfec999db64170f1c6907"
+  },
+  "profitability_proven": false,
+  "schema_version": "gx1_convergence512_review_criteria_v1",
+  "test_data_used": false,
+  "unclear_or_numerically_negligible_effect": "INCONCLUSIVE_NOT_PASS"
+}

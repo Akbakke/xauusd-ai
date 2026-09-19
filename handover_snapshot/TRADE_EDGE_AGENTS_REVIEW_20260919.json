@@ -1,0 +1,50 @@
+{
+  "agents_completed": 3,
+  "created_utc": "2026-09-19T15:38:48.822381+00:00",
+  "exit_covariance": {
+    "exit_anchor": {
+      "LONG": {
+        "months": 9,
+        "positive_months": 6,
+        "within_month_prediction_residual_covariance_bps2": 0.28381267753022843
+      },
+      "SHORT": {
+        "months": 9,
+        "positive_months": 7,
+        "within_month_prediction_residual_covariance_bps2": 0.9302151307153664
+      }
+    },
+    "exit_sampled": {
+      "LONG": {
+        "months": 9,
+        "positive_months": 8,
+        "within_month_prediction_residual_covariance_bps2": 0.38325575491474195
+      },
+      "SHORT": {
+        "months": 9,
+        "positive_months": 8,
+        "within_month_prediction_residual_covariance_bps2": 1.0531087144418356
+      }
+    }
+  },
+  "findings": [
+    "No documented transferable trading edge",
+    "No observed Exit pricing/relative_reward accounting error",
+    "Entry direction and Exit conditional TRAIN fitting remain incomplete",
+    "512 tests marginal TRAIN improvement only; cannot distinguish missing transferable signal from undertraining"
+  ],
+  "model_change_justified": false,
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "new_training_runs": 0,
+  "next_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/REVIEW_CRITERIA.json",
+    "sha256": "4c6e809f024a0e32491873a828ff75cd4cc5065c4980050427bc2c1d37284c92"
+  },
+  "origin_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "schema_version": "gx1_readonly_trade_edge_review_v1",
+  "test_data_used": false
+}

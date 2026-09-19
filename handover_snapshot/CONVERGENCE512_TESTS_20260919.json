@@ -1,0 +1,35 @@
+{
+  "unique_focused_tests_passed": 14,
+  "new_tests": 8,
+  "legacy_scope_tests": 6,
+  "logs": {
+    "FOCUSED_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/FOCUSED_TESTS.log",
+      "sha256": "7f02ae7c52c6b607bc93e2b7c42d5e89d1c8c0e2eeb8b1332bd2a40bdb807f07"
+    },
+    "FOCUSED_TESTS_RECHECK.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/FOCUSED_TESTS_RECHECK.log",
+      "sha256": "bcccf5409bd5091796242343c81731f71251c56c37e380a71c7979d57b0d40ff"
+    },
+    "DISPATCH_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/DISPATCH_TESTS.log",
+      "sha256": "d5ed61766a40e4d928d9c51a7b129ab7b05f7a25e2235d17bca2ab5cb4e38b23"
+    },
+    "LEGACY_SCOPE_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/LEGACY_SCOPE_TESTS.log",
+      "sha256": "3d5b7b7278ae7a7cd8722145d6f56bad7cc5c0e293dc56579040f387f3bfa3e8"
+    },
+    "ACTUAL_BINDING_AUDIT.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ACTUAL_BINDING_AUDIT.log",
+      "sha256": "5f63b0e938307b183425ca0f183535cc2c218f886f0300bc51deb43ab2aeb0fa"
+    }
+  },
+  "resolved_test_failures": "Missing local numpy import caught and fixed before native preparation; source binding aliases corrected after actual binding audit. Affected tests and actual binding audit passed.",
+  "proof": "Real serialized native-session fork preserves model/teacher/Adam/EMA/scheduler/RNG/order/progress; continued split execution matches uninterrupted successor steps; original files unchanged. Reject changed teacher/source/order/origin/authority, extra invocations and other ceilings. Dispatch measures512. Prior256 gates remain closed.",
+  "trainer_definition_changes_only": [
+    "_load_prefix_continuation_state",
+    "_run_resumable_candidate_training"
+  ],
+  "model_loss_optimizer_math_changed": false,
+  "gpu_run_started": false
+}

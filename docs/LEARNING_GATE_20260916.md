@@ -5,7 +5,7 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Entry fuse256 er ferdig analysert: begge Entry-sider har bedre samlet verdiestimering enn tidligere modeller og TRAIN-konstanter, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
+Entry fuse256 er ferdig analysert: begge Entry-sider har bedre samlet verdiestimering enn tidligere modeller og TRAIN-konstanter, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt256-scope er stengt. Én separat256→512-videreføring er bundet, ikke startet; se CURRENT_HANDOVER.md.
 Siste residual256 ga identiske, sidekonstante handlinger. Den nye ONLINE-startbaselinen
 er målt selv med identiske vekter; læreren er eksplisitt bevart.
 

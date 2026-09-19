@@ -736,6 +736,84 @@ def require_chronological_learning_measurement(recipe):
             "initialization": initial, "measurement": measurement, "initial_measurement": result}
 
 
+def require_chronological_continuation(recipe):
+    """One separately bound256-to512 continuation; preserve the completed origin."""
+    import numpy as np
+    value = recipe.get("chronological_learning_continuation")
+    if value is None: return None
+    def load(binding, label):
+        checked = require_binding(binding, label=label, verify_file=True)
+        return checked, read_bound_json(Path(checked["path"]), checked["sha256"])
+    binding, plan = load(value, "prefix continuation plan")
+    fixed = {"schema_version":"gx1_prefix_learning_continuation_plan_v1",
+        "from_optimizer_steps":256, "stop_after_optimizer_steps":512, "additional_optimizer_steps":256,
+        "maximum_trained_entry_rows":8192, "maximum_additional_entry_rows":4096, "max_invocations":1,
+        "teacher_refresh_allowed":False, "control_forwards":0, "full_epoch_allowed":False,
+        "full_val_allowed":False, "test_data_used":False, "automatic_extension_allowed":False}
+    if (any(type(plan.get(k)) is not type(v) or plan.get(k) != v for k,v in fixed.items())
+            or recipe.get("chronological_train_only_measurement") is not True
+            or "chronological_learning_measurement" not in recipe
+            or any(k in recipe for k in ("candidate_resume_origin", "entry_gradient_diagnostic",
+                                         "chronological_initial_measurement", "native_calibration", "frozen_readout_evaluation"))):
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_SCOPE_INVALID")
+    _, review = load(plan.get("origin_review"), "continuation origin review")
+    contract_binding, contract = load(plan.get("origin_contract"), "continuation origin contract")
+    _, before = load(plan.get("origin_recipe"), "continuation origin recipe")
+    _, cause = load(plan.get("cause_review"), "joint update review")
+    _, audit = load(plan.get("order_audit"), "continuation order audit")
+    pointer_binding, pointer = load(review.get("training_pointer"), "continuation origin pointer")
+    if (review.get("schema_version") != "gx1_entry_fuse_normalization_fixed256_train_review_v1"
+            or review.get("optimizer_steps") != 256 or review.get("same_corrected_targets_masks_cohorts_verified") is not True
+            or review.get("original_target_model_preserved") is not True
+            or cause.get("schema_version") != "gx1_joint_update_review_v2"
+            or cause.get("decision") != "REJECT_AUXILIARY_CONFLICT_AS_CAUSE_ON_MEASURED_TRAIN16"
+            or cause.get("training_state") != review.get("training_state")
+            or cause.get("training_pointer") != pointer_binding
+            or cause.get("scope_consumed") is not True or cause.get("resume_authorized") is not False
+            or pointer.get("global_optimizer_steps") != 256 or pointer.get("next_batch_offset") != 256
+            or pointer.get("epoch_index") != 0 or pointer.get("phase") != "train" or pointer.get("complete") is not False
+            or pointer.get("session_contract_sha256") != contract_binding["sha256"]
+            or pointer.get("state_sha256") != review["training_state"]["sha256"]
+            or contract.get("out_bundle_dir") != before.get("out_bundle_dir")
+            or before.get("out_bundle_dir") == recipe.get("out_bundle_dir")
+            or contract.get("chronological_prefix", {}).get("artifacts") != recipe.get("chronological_prefix")):
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_ORIGIN_INVALID")
+    mutable = {"source_commit", "source_bindings", "source_bindings_sha256", "run_id", "out_bundle_dir",
+               "recipe_sha256", "next_run_policy", "chronological_learning_continuation"}
+    if {k:v for k,v in before.items() if k not in mutable} != {k:v for k,v in recipe.items() if k not in mutable}:
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_RECIPE_CHANGED")
+    allowed_sources = {"wrapper", "python:gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+                       "python:gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+                       "python:gx1/contracts/unified_exit_native_candidate_campaign_v1.py"}
+    old_sources, new_sources = before["source_bindings"], recipe["source_bindings"]
+    if (old_sources.keys() != new_sources.keys()
+            or any(old_sources[k] != new_sources[k] for k in old_sources if k not in allowed_sources)):
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_MODEL_OR_TARGET_SOURCE_CHANGED")
+    prefix = contract["chronological_prefix"]
+    audit_fixed = {"schema_version":"gx1_prefix_continuation_order_audit_v1", "origin_optimizer_steps":256,
+        "stop_after_optimizer_steps":512, "batch_size":16, "previous_entries":4096, "additional_entries":4096,
+        "total_entries":8192, "all_unique":True, "all_within_existing_prefix":True, "control_overlap":0,
+        "new_model_forwards":0, "new_targets":0, "new_fits":0, "test_data_used":False}
+    if (any(type(audit.get(k)) is not type(v) or audit.get(k) != v for k,v in audit_fixed.items())
+            or audit.get("parent_order") != prefix["epoch0_parent_order"]
+            or audit.get("train_rows") != prefix["train_parent_rows"]
+            or audit.get("control_rows") != prefix["control_parent_rows"]):
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_ORDER_AUDIT_INVALID")
+    def rows(key):
+        b = require_binding(audit[key], label="continuation rows", verify_file=True)
+        a = np.load(b["path"], allow_pickle=False)
+        if a.ndim != 1 or a.dtype != np.dtype("int64"): raise RuntimeError("NATIVE_PREFIX_CONTINUATION_ORDER_INVALID")
+        return a
+    order, parents, control, selected = (rows(k) for k in ("parent_order", "train_rows", "control_rows", "next_rows"))
+    if (len(order) <= 8192 or not np.array_equal(np.sort(order), parents)
+            or len(np.unique(order[:8192])) != 8192 or np.intersect1d(order, control).size
+            or not np.array_equal(order[4096:8192], selected)):
+        raise RuntimeError("NATIVE_PREFIX_CONTINUATION_ORDER_INVALID")
+    return {"plan_binding":binding, "plan":plan, "origin_review":review,
+            "origin_contract":contract, "origin_contract_binding":contract_binding,
+            "origin_pointer":pointer_binding}
+
+
 def require_chronological_prefix_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit only the explicitly bound single experiment through native guards."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -748,12 +826,17 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
     scope = policy.get("chronological_learning_run")
     if not isinstance(scope, Mapping):
         raise RuntimeError("NATIVE_PREFIX_RUN_NOT_AUTHORIZED")
+    continuation = require_chronological_continuation(recipe)
+    ceiling = 512 if continuation else 256
     windows = scope.get("max_invocations")
     expected = {"chronological_prefix":prefix["artifacts"], "run_id":recipe.get("run_id"),
                 "out_bundle_dir":recipe.get("out_bundle_dir"), "source_bindings_sha256":recipe.get("source_bindings_sha256"),
-                "optimizer_steps":256, "maximum_trained_entry_rows":4096, "max_invocations":windows,
+                "optimizer_steps":ceiling, "maximum_trained_entry_rows":ceiling * 16, "max_invocations":windows,
                 "final_model_variant":"ONLINE", "teacher_refresh_allowed":False,
                 "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
+    if continuation:
+        expected["chronological_learning_continuation"] = continuation["plan_binding"]
+        if windows != 1: raise RuntimeError("NATIVE_PREFIX_CONTINUATION_INVOCATION_INVALID")
     if "chronological_learning_measurement" in recipe:
         measured = require_chronological_learning_measurement(recipe)
         expected["chronological_learning_measurement"] = measured["artifacts"]["initial_measurement_audit"]
@@ -775,12 +858,12 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
         raise RuntimeError("NATIVE_PREFIX_INVOCATION_INVALID")
     if execution_budget is not None and (
             type(execution_budget.get("stop_after_optimizer_steps")) is not int
-            or execution_budget["stop_after_optimizer_steps"] != 256
+            or execution_budget["stop_after_optimizer_steps"] != ceiling
             or execution_budget.get("stop_after_completed_val_epochs") is not None
             or execution_budget.get("max_invocation_seconds") != 12000
             or "resume_probe_val_rows" in execution_budget):
         raise RuntimeError("NATIVE_PREFIX_BUDGET_INVALID")
-    return prefix
+    return {**prefix, "optimizer_step_ceiling":ceiling, "continuation":continuation}
 
 
 def require_native_recipe_metadata(
@@ -988,8 +1071,8 @@ def require_native_run_scope(
                                                   execution_budget=execution_budget)
         return 0
     if "chronological_prefix" in recipe:
-        require_chronological_prefix_run(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
-        return 256
+        scope = require_chronological_prefix_run(recipe, invocation_number=invocation_number, execution_budget=execution_budget)
+        return scope["optimizer_step_ceiling"]
     if "frozen_readout_evaluation" in recipe:
         scope = require_frozen_readout_evaluation(recipe, invocation_number=invocation_number,
                                                 execution_budget=execution_budget)

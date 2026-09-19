@@ -1,10 +1,10 @@
 {
-  "status": "JOINT_UPDATE_REVIEW_COMPLETE_NO_RUN_BOUND",
+  "status": "CONVERGENCE512_BOUND_NOT_STARTED",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Training source of latest completed main-encoder fixed256; current working HEAD may include later handover-only updates.",
-  "latest_observation_utc": "2026-09-19T15:04:37.841830+00:00",
-  "source_frozen_while_running": false,
+  "latest_observation_utc": "2026-09-19T15:29:45.402618+00:00",
+  "source_frozen_while_running": true,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919_BOOT468",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
@@ -116,7 +116,7 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Joint-gradient conflict hypothesis rejected on the audited TRAIN16. No further normalization, loss-weight or threshold change is justified. Existing TRAIN outputs still show positive prediction/residual covariance: incomplete conditional value fitting, not evidence of predictable target variance or profit. Next: specify the smallest bounded native finite-learning/convergence check using existing TRAIN data and unchanged model/loss/teacher before execution; reuse this diagnosis and all prior tests. No run is bound, no full epoch/VAL/CONTROL/TEST or automatic expansion.",
+  "next_action": "Execute one bound native256-to512 TRAIN convergence experiment, preserving ONLINE/teacher, Adam/EMA/scheduler/RNG and exact order in a new session. Only the next4096 rows of the existing chronological TRAIN prefix are added. Measure the same TRAIN256 and1024 Exit samples at512 against saved initial/256/constants, then stop for Entry/Exit decision review. No full epoch/CONTROL/VAL/TEST, target refresh, loss/model change, rescaling or automatic extension.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
@@ -223,7 +223,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-19T15:04:37.841830+00:00",
+  "observed_utc": "2026-09-19T15:29:45.402618+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -1077,8 +1077,8 @@
     "profitability_proven": false
   },
   "handover_resume_point": {
-    "observed_utc": "2026-09-19T15:04:37.841830+00:00",
-    "status": "JOINT_UPDATE_REVIEW_COMPLETE_NO_RUN_BOUND",
+    "observed_utc": "2026-09-19T15:29:45.402618+00:00",
+    "status": "CONVERGENCE512_BOUND_NOT_STARTED",
     "training_source_commit": "bdce4ad3bfebcb7b69506b9058f87464256b34ad",
     "source_state_at_observation": "Native terminal, task Disabled, no native process. Review complete; source freeze released. Model/trainer unchanged since candidate commit027b5d48.",
     "windows_task_observation": {
@@ -1091,8 +1091,8 @@
       "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
     },
     "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Joint-gradient conflict hypothesis rejected on the audited TRAIN16. No further normalization, loss-weight or threshold change is justified. Existing TRAIN outputs still show positive prediction/residual covariance: incomplete conditional value fitting, not evidence of predictable target variance or profit. Next: specify the smallest bounded native finite-learning/convergence check using existing TRAIN data and unchanged model/loss/teacher before execution; reuse this diagnosis and all prior tests. No run is bound, no full epoch/VAL/CONTROL/TEST or automatic expansion.",
-    "new_native_run_bound": false,
+    "next_deliverable": "Execute one bound native256-to512 TRAIN convergence experiment, preserving ONLINE/teacher, Adam/EMA/scheduler/RNG and exact order in a new session. Only the next4096 rows of the existing chronological TRAIN prefix are added. Measure the same TRAIN256 and1024 Exit samples at512 against saved initial/256/constants, then stop for Entry/Exit decision review. No full epoch/CONTROL/VAL/TEST, target refresh, loss/model change, rescaling or automatic extension.",
+    "new_native_run_bound": true,
     "consumed_run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
     "optimizer_steps_completed": 256,
     "paired_learning_review_complete": true,
@@ -1120,7 +1120,7 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/SAVED_OPTIMIZER_CAUSE/STATE_AUDIT.json",
       "sha256": "82c3d5e248a207d60a4133f71782ab6e9cb3e0d6e049e70d718167b0406c1b69"
     },
-    "scope_consumed": true
+    "scope_consumed": false
   },
   "completed_residual_representation": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/REVIEW.json",
@@ -1158,8 +1158,8 @@
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
   },
   "handover_operator_manifest": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
-    "sha256": "1aaaa1d88560de7f39eda8ed362de5b46cfe1508700582c387b6c259257293a7"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
+    "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
   "main_encoder_initial_measurement": {
     "plan": {
@@ -1729,5 +1729,55 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/REVIEW.json",
     "sha256": "d3a9d64b3c05085a0b06a86409640a28a69c351d2f4f780fa20826310846484e"
   },
-  "diagnostic_source_commit": "c71df2271863ec1fd118e4ae9e608841f7f6cfd0"
+  "diagnostic_source_commit": "c71df2271863ec1fd118e4ae9e608841f7f6cfd0",
+  "chronological_learning_run": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "37673ccf65ede6eeea393c666b8046f10ab23ef0c1a3397919d8cf7fff54a161",
+    "optimizer_steps": 512,
+    "maximum_trained_entry_rows": 8192,
+    "max_invocations": 1,
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
+    },
+    "chronological_train_only_measurement": true,
+    "chronological_learning_continuation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PLAN.json",
+      "sha256": "3f53d1e8b6e86cae9c8776ec87183189b42e1e73b1acfec999db64170f1c6907"
+    }
+  },
+  "run_id": "NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919",
+  "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
+  "runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PREPARATION_RESULT.json",
+  "next_learning_run": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PLAN.json",
+      "sha256": "3f53d1e8b6e86cae9c8776ec87183189b42e1e73b1acfec999db64170f1c6907"
+    },
+    "origin_optimizer_steps": 256,
+    "additional_optimizer_steps": 256,
+    "stop_after_optimizer_steps": 512,
+    "preparation_executed": false,
+    "activation_executed": false
+  }
 }

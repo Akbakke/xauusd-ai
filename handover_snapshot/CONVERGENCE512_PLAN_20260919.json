@@ -1,0 +1,41 @@
+{
+  "schema_version": "gx1_prefix_learning_continuation_plan_v1",
+  "created_utc": "2026-09-19T15:13:56.335924+00:00",
+  "origin_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "origin_contract": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_CONTRACT.json",
+    "sha256": "cbdcc3c20dea6a612f70381118c8209a641844158ffc4bc56d364692090140a4"
+  },
+  "origin_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/NATIVE_RECIPE.json",
+    "sha256": "8bdc047e20b3d5b059505e6c9c67a70f57d2c59573d941f39f2de25185da1683"
+  },
+  "cause_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/REVIEW.json",
+    "sha256": "d3a9d64b3c05085a0b06a86409640a28a69c351d2f4f780fa20826310846484e"
+  },
+  "order_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/ORDER_AUDIT.json",
+    "sha256": "5b9cb5fa785233401e7a4a656eb3d1c8100f57c64cd35d051749a329ec40084e"
+  },
+  "from_optimizer_steps": 256,
+  "stop_after_optimizer_steps": 512,
+  "additional_optimizer_steps": 256,
+  "maximum_trained_entry_rows": 8192,
+  "maximum_additional_entry_rows": 4096,
+  "max_invocations": 1,
+  "teacher_refresh_allowed": false,
+  "control_forwards": 0,
+  "full_epoch_allowed": false,
+  "full_val_allowed": false,
+  "test_data_used": false,
+  "automatic_extension_allowed": false,
+  "question": "Does continued native fitting with preserved Adam/EMA/RNG, unchanged model and same frozen reference targets improve conditional Entry/Exit values and decisions beyond the completed256 checkpoint?",
+  "measurement": "Reuse the same TRAIN256 Entry/Exit anchors and1024 sampled Exit states, all nine months. Compare saved initial, ONLINE256, ONLINE512 and fixed TRAIN constants. No new initial measurement because ONLINE function is unchanged.",
+  "decision": "Improved conditional values on both sides and better Entry and Exit decisions are required for the learning gate. A lower total loss or more trades alone is insufficient. A weak result ends this fixed test; no automatic extension or checkpoint search.",
+  "preserve": "Continue the exact next256 native batches of the existing47814-row chronological TRAIN prefix. Keep model, loss, features, all source data/normalization, reference policy, frozen teacher, optimizer moments, EMA, scheduler, RNG and order. Original256 state and all earlier artifacts remain read-only. New output directory only.",
+  "scope_note": "This is one separately specified bounded TRAIN convergence experiment based on measured conditional underfit and descending joint direction. It is not a full epoch, chronological evaluation, economics run or declaration that extra steps will help."
+}

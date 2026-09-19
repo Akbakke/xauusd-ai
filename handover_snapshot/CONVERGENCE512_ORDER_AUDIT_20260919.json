@@ -1,0 +1,32 @@
+{
+  "schema_version": "gx1_prefix_continuation_order_audit_v1",
+  "parent_order": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_NATIVE_EPOCH0_ORDER.npy",
+    "sha256": "40963221da4606bc0899a2a9237998c03994ca83ede0bdc645ab11fb7c90c027"
+  },
+  "train_rows": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_AUXILIARY_POLICIES_20260917/TRAIN_ELIGIBLE_PARENT_ROWS.npy",
+    "sha256": "ac883a1d4fda5d8c8101f025d90a699cc56118ed853ddef86975bd93b66baf86"
+  },
+  "control_rows": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/CONTROL256_PARENT_ROWS.npy",
+    "sha256": "911b5d0013ecec10b668a72f7466893780e059c31496c7c4d491bbb6f2dc70eb"
+  },
+  "next_rows": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/NEXT4096_PARENT_ROWS.npy",
+    "sha256": "b5c91a9c4a43a38031a2f86f2e863bdf382e3d54fc37fc29a2e6584de9c25a7b"
+  },
+  "origin_optimizer_steps": 256,
+  "stop_after_optimizer_steps": 512,
+  "batch_size": 16,
+  "previous_entries": 4096,
+  "additional_entries": 4096,
+  "total_entries": 8192,
+  "all_unique": true,
+  "all_within_existing_prefix": true,
+  "control_overlap": 0,
+  "new_model_forwards": 0,
+  "new_targets": 0,
+  "new_fits": 0,
+  "test_data_used": false
+}
