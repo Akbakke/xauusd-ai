@@ -1,4 +1,4 @@
-# Arbeidsregler for GX1 — oppdatert 2026-09-18
+# Arbeidsregler for GX1 — oppdatert 2026-09-19
 
 Krev målbar læring før mer omfattende trening. Teknisk PASS er ikke bevis på
 bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
@@ -11,8 +11,8 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
   NEXT_RUN_POLICY.json, VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.
   CURRENT_HANDOVER.md angir eventuell operatørkopi under kildefrys.
   Ikke relanser en allerede aktiv eller fullført plan.
-  Nå er hovedencoder256 fullført og scope stengt; vurder lagrede TRAIN-outputs
-  mot ny native initialbaseline. Guard PASS er ikke et læringsverdict.
+  Hovedencoder256 er ferdig analysert: begrenset Entry-forbedring, uendrede valg,
+  læringsport ikke bestått. Gjenbruk review; neste binding står i VEIEN_VIDERE.md.
 - CURRENT_HANDOVER.md er eneste gjeldende fortelling. RUNNING_NATIVE_CALIBRATION.json
   beskriver siste arbeid; prosesser, checkpoints og receipts må bekrefte nåstatus.
   COMPLETED_RUN.json og filer merket historikk er bevis, aldri startinstrukser.

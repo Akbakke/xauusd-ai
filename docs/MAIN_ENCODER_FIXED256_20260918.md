@@ -1,3 +1,9 @@
+# Historisk stoppunkt før review — analysen er nå fullført
+
+Se MAIN_ENCODER_FIXED256_REVIEW_20260919.md for gjeldende konklusjon.
+PAIRED_TRAIN_REVIEW.json, DECISION_GAP_AUDIT.json og VERDICT.json finnes nå;
+ikke gjenta operatorene eller følg de tidligere neste-stegene nedenfor.
+
 # Hovedencoder256 — fullført, læringsvurdering gjenstår
 
 Run-id: NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918.

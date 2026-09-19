@@ -1,0 +1,58 @@
+{
+  "schema_version": "gx1_main_encoder_normalization_learning_verdict_v1",
+  "created_utc": "2026-09-19T09:05:27.264394+00:00",
+  "decision": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+  },
+  "decision_gap_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/DECISION_GAP_AUDIT.json",
+    "sha256": "66da71149a93c5aa76835e725a23f0396aa2f16e214c06f0bc2b7c031a0d7779"
+  },
+  "entry_actions_identical_to_residual_and_constant": true,
+  "exit_actions_identical_to_residual_both_surfaces": true,
+  "entry_both_sides_mse_better_than_constants": false,
+  "entry_both_sides_centered_mse_better_than_residual": true,
+  "entry_both_sides_centered_mse_better_than_new_initial": false,
+  "entry_within_month_contrast_improved": true,
+  "entry_within_month_contrast": {
+    "initial": {
+      "pooled_within_month_correlation": 0.06595774350008665,
+      "prediction_std_bps": 0.5577098141179405,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 1.7878180212530181,
+      "centered_mse": 2358.83643205994,
+      "positive_monthly_correlations": 6,
+      "months": 9
+    },
+    "residual": {
+      "pooled_within_month_correlation": 0.1149150740393863,
+      "prediction_std_bps": 0.10077905879354222,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 0.5628550066558734,
+      "centered_mse": 2360.9854742710622,
+      "positive_monthly_correlations": 8,
+      "months": 9
+    },
+    "main": {
+      "pooled_within_month_correlation": 0.23128507071149895,
+      "prediction_std_bps": 0.3598338900300137,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 4.044817194148636,
+      "centered_mse": 2354.1408739057997,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    }
+  },
+  "exit_all_surfaces_sides_centered_mse_worse_than_residual": true,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "training_expansion_authorized": false,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "test_data_used": false,
+  "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
+  "limitation": "Measured partial Entry signal improvement on reused TRAIN, including within-month association. No improved Entry/Exit actions or combined learning gate. More target outcome variance is not necessarily predictable. Remaining representation collapse versus optimization underfit is not yet distinguished."
+}

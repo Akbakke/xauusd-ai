@@ -1,8 +1,8 @@
-# Gjeldende dokumenter — 18. september 2026
+# Gjeldende dokumenter — 19. september 2026
 
 Les i denne rekkefølgen:
 
-1. CURRENT_HANDOVER.md — fullført256-prøve; paret læringsvurdering gjenstår.
+1. CURRENT_HANDOVER.md — ferdig paret analyse; neste årsaksmåling er ikke bundet.
 2. VEIEN_VIDERE.md — eksakt neste analyse og gjenbruk av ferdige bevis.
 3. AGENTS.md og GX1_ARBEIDSMAAL.md — brukerregler og uoppfylt læringsmål.
 4. RUNNING_NATIVE_CALIBRATION.json og NEXT_RUN_POLICY.json — siste arbeid og tillatt omfang.
@@ -11,9 +11,13 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md — siste konklusjon og begrensninger.
+- handover_snapshot/MAIN_ENCODER_FIXED256_{REVIEW,VERDICT,REVIEWED_COMPLETION}_20260919.json — fullført paret analyse og bindinger.
+- handover_snapshot/MAIN_ENCODER_DECISION_GAP_20260919.json — handlingsmarginer og signal innen månedene.
+
 - handover_snapshot/HANDOVER_MAIN_ENCODER_COMPLETE_20260918.json —12 beståtte handover-tester, kontroll av scope og terminalstatus.
 
-- handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json — terminalstatus, hasher, task og uferdig læringsvurdering.
+- handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json — historisk terminalstatus før nå fullført review.
 
 - docs/MAIN_ENCODER_FIXED256_20260918.md — gjeldende læringsprøve og kriterier.
 - handover_snapshot/MAIN_ENCODER_INITIAL_MEASUREMENT_AUDIT_20260918.json — fullført nullstegsaudit.

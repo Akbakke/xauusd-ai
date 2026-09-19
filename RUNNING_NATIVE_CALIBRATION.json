@@ -1,10 +1,10 @@
 {
-  "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+  "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "source_branch": "work/gx1-current",
   "source_commit_scope": "Training source of latest completed main-encoder fixed256; current working HEAD may include later handover-only updates.",
-  "latest_observation_utc": "2026-09-18T01:48:20.028025+00:00",
-  "source_frozen_while_running": true,
+  "latest_observation_utc": "2026-09-19T09:05:27.264394+00:00",
+  "source_frozen_while_running": false,
   "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463",
   "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
   "windows_task": "GX1NativeLearningCalibration",
@@ -42,7 +42,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "learning_gate": {
-    "decision": "MAIN_ENCODER_FIXED256_PAIRED_REVIEW_PENDING",
+    "decision": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
     "specification": "docs/LEARNING_GATE_20260916.md",
     "technical_pass_is_not_learning_pass": true,
     "entry_exit_learning_demonstrated": false,
@@ -87,17 +87,22 @@
       "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
     },
     "latest_measurement": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
-      "sha256": "f406745b947e30a0f75ac039a6e8dfb9e14d4add21c816c59603e0dbe2c2c61e"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
     },
-    "latest_measurement_scope": "Completed fixed256 reused-TRAIN measurement; learning review pending. Earlier reviewed metrics remain historical; no current pass or fail verdict yet.",
+    "latest_measurement_scope": "Reviewed main-encoder reused-TRAIN comparison. Partial Entry within-month signal improvement; actions unchanged and combined gate failed.",
     "residual_normalization_verdict": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
       "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
     },
     "previous_review_decision": "REJECT_EXPANSION_RESIDUAL_NORMALIZATION_NO_DECISION_IMPROVEMENT",
-    "current_trial_review_complete": false,
-    "current_trial_learning_gate_passed": null
+    "current_trial_review_complete": true,
+    "current_trial_learning_gate_passed": false,
+    "main_encoder_verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+      "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+    },
+    "entry_within_month_contrast_improved": true
   },
   "profile": {
     "train_batch": 16,
@@ -107,14 +112,14 @@
     "precision": "float32",
     "tf32_allowed": false
   },
-  "next_action": "Review saved final ONLINE TRAIN outputs from NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 against the NEW native initial baseline, saved residual256, causal256 and TRAIN constants, both sides/all TRAIN months/Entry and Exit. Adapt historical review operators; do not execute them unchanged. Write PAIRED_TRAIN_REVIEW.json and VERDICT.json with evidence and update handover. No model forward, refit, relaunch, extension, CONTROL/VAL/TEST or economic rollout. See VEIEN_VIDERE.md and docs/MAIN_ENCODER_FIXED256_20260918.md.",
+  "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
   "completed_plan_must_not_restart": true,
   "test_data_used": false,
   "profitability_proven": false,
   "production_trade_execution_allowed": false,
   "learning_measurement": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
-    "sha256": "f406745b947e30a0f75ac039a6e8dfb9e14d4add21c816c59603e0dbe2c2c61e"
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
   },
   "value_learning_diagnosis": {
     "report": "docs/VALUE_LEARNING_CAUSE_20260916.md",
@@ -214,7 +219,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
-  "observed_utc": "2026-09-18T01:48:20.028025+00:00",
+  "observed_utc": "2026-09-19T09:05:27.264394+00:00",
   "reference_policy_review": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
   "readout_diagnosis": {
     "decision": "FROZEN_TRAIN_LEARNABILITY_CANDIDATE_GENERALIZATION_UNPROVEN",
@@ -1069,8 +1074,8 @@
     "profitability_proven": false
   },
   "handover_resume_point": {
-    "observed_utc": "2026-09-18T01:48:20.028025+00:00",
-    "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+    "observed_utc": "2026-09-19T09:05:27.264394+00:00",
+    "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
     "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
     "source_state_at_observation": "Native run and controller terminal; Windows task Disabled; source clean before this handover-only update. Use live working_head for the later documentation commit. Model/training code unchanged after a1c4b443.",
     "windows_task_observation": {
@@ -1088,7 +1093,7 @@
       "controllers": []
     },
     "instructions": "VEIEN_VIDERE.md#n\u00f8yaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Review saved final ONLINE TRAIN outputs from NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 against the NEW native initial baseline, saved residual256, causal256 and TRAIN constants, both sides/all TRAIN months/Entry and Exit. Adapt historical review operators; do not execute them unchanged. Write PAIRED_TRAIN_REVIEW.json and VERDICT.json with evidence and update handover. No model forward, refit, relaunch, extension, CONTROL/VAL/TEST or economic rollout. See VEIEN_VIDERE.md and docs/MAIN_ENCODER_FIXED256_20260918.md.",
+    "next_deliverable": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
     "new_native_run_bound": false,
     "consumed_run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
     "optimizer_steps_completed": 256,
@@ -1101,10 +1106,22 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_FOR_HANDOVER.json",
       "sha256": "27bf7ab8cdb34537b46016f6c3692149ad4460d7db91ec977fed6280e5267c42"
     },
-    "paired_learning_review_complete": false,
-    "review_operator_prepared": false,
+    "paired_learning_review_complete": true,
+    "review_operator_prepared": true,
     "training_scope_closed": true,
-    "reuse": "Completed initial audit, representation diagnosis, saved historical outputs and passing focused tests. All originals retained. Remote review operators are durable; /private/tmp copies are optional convenience only."
+    "reuse": "Completed initial audit, representation diagnosis, saved historical outputs and passing focused tests. All originals retained. Remote review operators are durable; /private/tmp copies are optional convenience only.",
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+    },
+    "verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+      "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+    },
+    "reviewed_completion": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_REVIEWED.json",
+      "sha256": "3428846592174e0faee253d33bf689195c06cf2e9058feb1ce91fa30eeaf9835"
+    }
   },
   "diagnostic_runtime_from_preparation_result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/PREPARATION_RESULT.json",
   "completed_residual_representation": {
@@ -1112,7 +1129,7 @@
     "sha256": "754fe0677135733f83c2c8e47426ab4ca2dbf100da7da137e22760e3af584bf1"
   },
   "completed_main_encoder_correction": {
-    "status": "INITIAL_AUDITED_FIXED256_COMPLETE_REVIEW_PENDING",
+    "status": "FIXED256_REVIEWED_PARTIAL_ENTRY_SIGNAL_NO_DECISION_PASS",
     "report": "docs/MAIN_ENCODER_NORMALIZATION_HANDOVER_20260918.md",
     "initialization_audit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_NORMALIZATION_20260918/INITIALIZATION_AUDIT.json",
@@ -1207,17 +1224,22 @@
     "measurement_roles": [
       "train"
     ],
-    "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+    "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
     "scope_consumed": true,
     "completion": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_FOR_HANDOVER.json",
       "sha256": "27bf7ab8cdb34537b46016f6c3692149ad4460d7db91ec977fed6280e5267c42"
+    },
+    "learning_review_complete": true,
+    "verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+      "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
     }
   },
   "completed_main_encoder_fixed256": {
     "schema_version": "gx1_main_encoder_fixed256_completion_v1",
     "created_utc": "2026-09-18T01:48:20.028025+00:00",
-    "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+    "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
     "run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
     "source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463",
@@ -1293,14 +1315,14 @@
       "sha256": "88db1e2d955ff561251b21a134ecdd6d7871b67cf474a5a5128eb00ff44f3056"
     },
     "state_payload_rehashed": true,
-    "state_model_tensors_independently_rehashed_this_handover": false,
+    "state_model_tensors_independently_rehashed_this_handover": true,
     "model_state_sha256": "c82ec1133aa6b590b88bc5367122507e94586271520fce596286e22de3f6c578",
     "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
     "model_functions": {
       "online": "main_encoder_final_layernorm_no_affine_v1",
       "target": "main_encoder_no_final_norm_v1"
     },
-    "model_digest_source": "Native final measurement; saved checkpoint bytes rehashed independently. Paired review must verify tensor digests and optimizer state.",
+    "model_digest_source": "Paired CPU review independently verified saved ONLINE and target tensor digests, optimizer/EMA steps and native cursor/receipts.",
     "native_frozen_targets_exactly_preserved": true,
     "initial_measurement": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
@@ -1332,8 +1354,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
       "sha256": "0802e801fd3b5ee995bc232892835127182b5da70d962352315b5654e1c33b5a"
     },
-    "learning_review_complete": false,
-    "learning_gate_passed": null,
+    "learning_review_complete": true,
+    "learning_gate_passed": false,
     "generalization_proven": false,
     "profitability_proven": false,
     "economic_rollout": false,
@@ -1341,7 +1363,7 @@
     "scope_consumed": true,
     "resume_authorized": false,
     "training_expansion_authorized": false,
-    "next_action": "Review saved TRAIN outputs against the new native initial baseline, residual256, causal256 and TRAIN constants. No model reruns, new training or launch.",
+    "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
     "reuse_previous_review_operators": {
       "REVIEW_OPERATOR.py": {
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/REVIEW_OPERATOR.py",
@@ -1363,7 +1385,20 @@
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
         "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
       }
-    }
+    },
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+    },
+    "verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+      "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+    },
+    "decision_gap_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/DECISION_GAP_AUDIT.json",
+      "sha256": "66da71149a93c5aa76835e725a23f0396aa2f16e214c06f0bc2b7c031a0d7779"
+    },
+    "review_completed_utc": "2026-09-19T09:05:27.264394+00:00"
   },
   "completed_main_encoder_fixed256_scope": {
     "status": "CONSUMED_CLOSED_NO_RESUME",
@@ -1375,7 +1410,11 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_FOR_HANDOVER.json",
       "sha256": "27bf7ab8cdb34537b46016f6c3692149ad4460d7db91ec977fed6280e5267c42"
     },
-    "run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918"
+    "run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
+    "reviewed_completion": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_REVIEWED.json",
+      "sha256": "3428846592174e0faee253d33bf689195c06cf2e9058feb1ce91fa30eeaf9835"
+    }
   },
   "windows_task_observation": {
     "observed_utc": "2026-09-18T01:43:51.7626906Z",

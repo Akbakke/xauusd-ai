@@ -1,0 +1,164 @@
+{
+  "schema_version": "gx1_main_encoder_fixed256_completion_v1",
+  "created_utc": "2026-09-18T01:48:20.028025+00:00",
+  "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
+  "run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
+  "source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PLAN.json",
+    "sha256": "e85b9f23aed4d111cbb1c27f1902786756e50ff78986ee3a7131c3c8a313b810"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/NATIVE_RECIPE.json",
+    "sha256": "246da2415db80eb9105da76ec80b1541a09a61b3cadac95379affc7dd0688748"
+  },
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "71b037e4674afd4a4c7536f6e909fbabcc433d26870ae8321c1b9465d6a43422"
+  },
+  "preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PREPARATION_RESULT.json",
+    "sha256": "c28600505acfef8dc309b923767e1abffc15f9b68379d1b0e83fd35d268c103b"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+    "sha256": "f406745b947e30a0f75ac039a6e8dfb9e14d4add21c816c59603e0dbe2c2c61e"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "ca182a9091e1aa6d7dce1e2a4a4a6f8c2562f7d7a65236e04cc3b1b7259381ee"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463/receipts/invocation-0001.json",
+    "sha256": "0ffb4718aa1c98a3a9c463af2c67611da977a533bfe7547bf6876bf111c2270a"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_DISABLED.json",
+    "sha256": "b26ef6384470a80e448196808565e2a6a11b3857dfbd9b5b0d75edccbf12c77a"
+  },
+  "windows_task_observation": {
+    "observed_utc": "2026-09-18T01:43:51.7626906Z",
+    "task_name": "GX1NativeLearningCalibration",
+    "state": "Disabled",
+    "enabled": false,
+    "last_result": 0,
+    "actions": [
+      {
+        "Execute": "powershell.exe",
+        "Arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 71b037e4674afd4a4c7536f6e909fbabcc433d26870ae8321c1b9465d6a43422 -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
+      }
+    ],
+    "controllers": []
+  },
+  "native_processes": [],
+  "started_utc": "2026-09-18T00:15:39.085589+00:00",
+  "finished_utc": "2026-09-18T01:29:46.718731+00:00",
+  "optimizer_steps": 256,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "5eccabc85ac5526de8fc725ea2c9e6267c791a6eb647a16ae3e14c62d499649f"
+  },
+  "checkpoint": {
+    "checkpoint_index": 5,
+    "complete": false,
+    "epoch_index": 0,
+    "global_optimizer_steps": 256,
+    "next_batch_offset": 256,
+    "phase": "train",
+    "schema_version": "gx1_candidate_training_session_v1",
+    "session_contract_sha256": "1b2ab9215a93a4a618ffdf26d12e80d6867523c188c83f3920c4c8e8b9fb5da3",
+    "slot": 0,
+    "state_sha256": "88db1e2d955ff561251b21a134ecdd6d7871b67cf474a5a5128eb00ff44f3056"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "88db1e2d955ff561251b21a134ecdd6d7871b67cf474a5a5128eb00ff44f3056"
+  },
+  "state_payload_rehashed": true,
+  "state_model_tensors_independently_rehashed_this_handover": true,
+  "model_state_sha256": "c82ec1133aa6b590b88bc5367122507e94586271520fce596286e22de3f6c578",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "model_functions": {
+    "online": "main_encoder_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "model_digest_source": "Paired CPU review independently verified saved ONLINE and target tensor digests, optimizer/EMA steps and native cursor/receipts.",
+  "native_frozen_targets_exactly_preserved": true,
+  "initial_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "e24482663888d850c6e41a72cf09bc8a71cfbac024bf8cb6cdf3802f63c66f90"
+  },
+  "initial_measurement_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/INITIAL_MEASUREMENT_AUDIT.json",
+    "sha256": "187a9f0bfc52f0002613b40911e0602c952e56bd7d2c9c7978ab3983f034383e"
+  },
+  "teacher_refreshed": false,
+  "measurement_roles": [
+    "train"
+  ],
+  "observation_counts": {
+    "entry": 256,
+    "exit_anchor": 256,
+    "exit_sampled": 1024
+  },
+  "guard_decision": "PASS",
+  "trainer_guard_exit_code": 0,
+  "progress_observer_exit_code": 0,
+  "peak_hardware": {
+    "core_c": 59,
+    "memory_c": 66,
+    "power_w": 180.11,
+    "vram_mib": 8016
+  },
+  "peak_hardware_source": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "0802e801fd3b5ee995bc232892835127182b5da70d962352315b5654e1c33b5a"
+  },
+  "learning_review_complete": true,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "economic_rollout": false,
+  "test_data_used": false,
+  "scope_consumed": true,
+  "resume_authorized": false,
+  "training_expansion_authorized": false,
+  "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
+  "reuse_previous_review_operators": {
+    "REVIEW_OPERATOR.py": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/REVIEW_OPERATOR.py",
+      "sha256": "f061627f2b5e8456ec634bd7c100e2ec3b07cf6b74ad7f953a6e70f0973a6284"
+    },
+    "PREPARE_REVIEW_OPERATOR.py": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PREPARE_REVIEW_OPERATOR.py",
+      "sha256": "23f02b8d9cd6ece03cac4b813889deb852b9081c438db5dd24698d19f670cee7"
+    },
+    "RECORD_REVIEW_OPERATOR.py": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/RECORD_REVIEW_OPERATOR.py",
+      "sha256": "512d03d6081e7fd374f493dd84a517a01f2cc9ebd38fc9a9f4df8d3cf3e702ac"
+    },
+    "PAIRED_TRAIN_REVIEW.json": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+    },
+    "VERDICT.json": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
+      "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
+    }
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+    "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+  },
+  "decision_gap_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/DECISION_GAP_AUDIT.json",
+    "sha256": "66da71149a93c5aa76835e725a23f0396aa2f16e214c06f0bc2b7c031a0d7779"
+  },
+  "review_completed_utc": "2026-09-19T09:05:27.264394+00:00"
+}

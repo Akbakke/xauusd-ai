@@ -1,0 +1,133 @@
+{
+  "schema_version": "gx1_main_encoder_saved_decision_gap_audit_v1",
+  "created_utc": "2026-09-19T09:02:04.463501+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "ca182a9091e1aa6d7dce1e2a4a4a6f8c2562f7d7a65236e04cc3b1b7259381ee"
+  },
+  "within_month_entry_contrast": {
+    "initial": {
+      "pooled_within_month_correlation": 0.06595774350008665,
+      "prediction_std_bps": 0.5577098141179405,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 1.7878180212530181,
+      "centered_mse": 2358.83643205994,
+      "positive_monthly_correlations": 6,
+      "months": 9
+    },
+    "residual": {
+      "pooled_within_month_correlation": 0.1149150740393863,
+      "prediction_std_bps": 0.10077905879354222,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 0.5628550066558734,
+      "centered_mse": 2360.9854742710622,
+      "positive_monthly_correlations": 8,
+      "months": 9
+    },
+    "main": {
+      "pooled_within_month_correlation": 0.23128507071149895,
+      "prediction_std_bps": 0.3598338900300137,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 4.044817194148636,
+      "centered_mse": 2354.1408739057997,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    }
+  },
+  "entry_q_bps": {
+    "LONG": {
+      "n": 256,
+      "mean": -5.658358335494995,
+      "std": 0.1863529636551866,
+      "min": -6.187465667724609,
+      "max": -5.145648002624512
+    },
+    "SHORT": {
+      "n": 256,
+      "mean": -6.274768691509962,
+      "std": 0.2762796636065082,
+      "min": -7.052831172943115,
+      "max": -5.696935653686523
+    },
+    "FLAT": {
+      "n": 256,
+      "mean": 0.19929854208385223,
+      "std": 0.12390067961734656,
+      "min": -0.11780508607625961,
+      "max": 0.6718872785568237
+    }
+  },
+  "entry_trade_minus_flat_bps": {
+    "LONG": {
+      "n": 256,
+      "mean": -5.857656877578847,
+      "std": 0.24260142639663917,
+      "min": -6.543976187705994,
+      "max": -5.316663540899754
+    },
+    "SHORT": {
+      "n": 256,
+      "mean": -6.474067233593814,
+      "std": 0.28268251648216197,
+      "min": -7.35318261384964,
+      "max": -5.866390183568001
+    }
+  },
+  "exit_hold_minus_exit_bps": {
+    "anchor": {
+      "LONG": {
+        "n": 256,
+        "mean": 0.7811842369847,
+        "std": 0.06285104029643435,
+        "min": 0.5579463243484497,
+        "max": 0.9286940693855286
+      },
+      "SHORT": {
+        "n": 256,
+        "mean": -0.8017494064988568,
+        "std": 0.24329876423216806,
+        "min": -1.5754998922348022,
+        "max": -0.23261091113090515
+      }
+    },
+    "sampled": {
+      "LONG": {
+        "n": 1024,
+        "mean": 0.6701800737937447,
+        "std": 0.13576992335821098,
+        "min": 0.3746594488620758,
+        "max": 0.9800640344619751
+      },
+      "SHORT": {
+        "n": 1024,
+        "mean": -0.7192060786910588,
+        "std": 0.27291730141650444,
+        "min": -1.6742879152297974,
+        "max": -0.17858654260635376
+      }
+    }
+  },
+  "entry_within_month_signal_improved_against_initial_and_residual": true,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918_BOOT463/progress/.invocation-0001.json.trainer.yUghGaMV.log",
+    "sha256": "de62f2f27450be6904ce4572c231f728b834418c67ace0579368568e6d7169f7"
+  },
+  "first_batch_entry_routing_gradient_l2": 21.2365970740968,
+  "first_batch_gradient_is_not_full_update_attribution": true,
+  "no_action_improvement_vs_residual": true,
+  "interpretation": "Entry has more within-month association with frozen targets on reused TRAIN. Every trade Q remains below its FLAT Q; Exit HOLD predictions keep a fixed sign by side. These are the measured output conditions behind unchanged actions, not a causal diagnosis of the remaining weak variation. Target outcome variance is not necessarily predictable; do not rescale forecasts to match target variance or tune action thresholds.",
+  "new_model_forwards": 0,
+  "new_fits": 0,
+  "new_optimizer_steps": 0,
+  "test_data_used": false,
+  "generalization_proven": false,
+  "learning_gate_passed": false,
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/DECISION_GAP_OPERATOR.py",
+    "sha256": "c8d7d8b54d99de30349f5686baf83680968727b8c28d7d998058e6f13f609f6c"
+  }
+}

@@ -9,7 +9,7 @@ Dette er lesende observasjon og starter aldri trening.
 4. NEXT_RUN_POLICY.json og docs/LEARNING_GATE_20260916.md: faktisk tillatt omfang.
 
 Eneste treningsrepo er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Mac-mappen er overlevering. Native hovedencoder-prøve er fullført med256 optimizersteg og guard PASS. Final ONLINE er lagret, Windows-task Disabled og brukt scope stengt. Paret Entry/Exit-læringsvurdering gjenstår; læringsporten er ikke bestått.
+Mac-mappen er overlevering. Hovedencoder256 er ferdig analysert: mer Entry-signal innen TRAIN-månedene, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
 
 `current_work` viser siste fullførte prøve, sluttkvittering, finalmåling,
 `latest_model_correction` og `handover_resume_point`.

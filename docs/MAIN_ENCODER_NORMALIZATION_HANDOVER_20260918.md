@@ -1,3 +1,6 @@
+Gjeldende19. september: hovedencoder256 er ferdig analysert; se
+MAIN_ENCODER_FIXED256_REVIEW_20260919.md. Teksten nedenfor er historikk.
+
 # Hovedencoder — historisk overlevering før målebinding
 
 Måleporten er senere rettet, nullstegsmålingen er ferdig auditiert og den

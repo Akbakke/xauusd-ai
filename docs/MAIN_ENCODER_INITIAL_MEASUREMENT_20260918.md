@@ -1,3 +1,6 @@
+Gjeldende19. september: hovedencoder256 er ferdig analysert; se
+MAIN_ENCODER_FIXED256_REVIEW_20260919.md. Teksten nedenfor er historikk.
+
 # Fullført nullstegsmåling — historisk plan, ikke relanser
 
 Native guard PASS; ny startbaseline og eksakt bevarte targets/state/RNG er

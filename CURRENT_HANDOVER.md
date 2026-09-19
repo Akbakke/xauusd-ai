@@ -1,39 +1,31 @@
-# GX1 — overlevering 18. september 2026
+# GX1 — overlevering19. september2026
 
-**Stoppunkt: native256 er fullført; paret læringsvurdering gjenstår.**
-NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 avsluttet med guard PASS,
-eksakt256 optimizersteg og lagret final ONLINE. Windows-task er Disabled;
-ingen native prosess eller controller ble observert ved overleveringen.
-Brukt scope er stengt. Ikke kjør BIND/PREPARE/ACTIVATE eller resume på nytt.
+Paret analyse av NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 er ferdig.
+Entry har mer tilstandsavhengig TRAIN-signal; samlet Entry/Exit-port er ikke
+bestått. Entry er fortsatt FLAT256/256; Exit HOLD for alle LONG / EXIT for alle
+SHORT. Ingen beslutningsforbedring mot residual256. Se
+[analysen](docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md) og VEIEN_VIDERE.md.
 
-Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Eneste kodevei: /home/andre2/src/GX1_CURRENT, work/gx1-current.
 Data: /home/andre2/GX1_DATA. GX1_ENGINE/.git er felles Git-lagring, ikke startvei.
-Mac-mappen er overleveringskopi. Kjør ./handover.sh --check på Mac, eller
-bash scripts/gx1_handover.sh --check i Linux. current_work er nåstatus;
-COMPLETED_RUN.json og gamle VAL-/checkpoint-felt utenfor current_work er historikk.
+Mac er overlevering: ./handover.sh --check. Linux: bash scripts/gx1_handover.sh --check.
+current_work er nåstatus; eldre toppnivåfelt fra COMPLETED_RUN er historikk.
 
-Treningskilde: 6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d.
-Start: 18. september00:15:39 UTC /02:15:39 Oslo.
-Slutt: 18. september01:29:46 UTC /03:29:46 Oslo.
-Checkpoint5, slot0, epoch0, offset256. complete=false/outcome=RESUMABLE betyr
-avgrenset stopp, ikke tillatelse til å fortsette. Checkpointfilens SHA er kontrollert.
-Ingen modell-/treningskode er endret etter a1c4b443; nyere handover-commit er separat.
+Treningskilde6b44c23d; analyse påda56102f. Ingen modell-/treningskode endret
+siden a1c4b443. Native prøve avsluttet18Sep01:29:46UTC /03:29:46Oslo med
+guard PASS,256 steg, checkpoint5/slot0/offset256. Task Disabled; ingen native
+prosess. Brukt scope stengt; RESUMABLE/complete=false gir ingen fortsettelsesrett.
+Ny initialbaseline og final ONLINE har eksakt samme kausale targets; state,
+frossen lærer, optimizer/EMA og historiske sammenligninger er verifisert.
 
-Hypotesen er parameterfri final LayerNorm i hovedencoder. Opprinnelig lærer
-uten denne nye normaliseringen er bevart. Ny nullstegsbaseline er fullført og
-auditiert; gammel initialprediksjon er ikke riktig baseline for endret ONLINE.
-Native sluttmåling bekrefter uendrede targets/koordinater mot ny initial.
-Dette beviser ennå ikke bedre læring, generalisering eller lønnsomhet.
+Fullstendige bevis: handover_snapshot/MAIN_ENCODER_FIXED256_REVIEW_20260919.json,
+MAIN_ENCODER_FIXED256_VERDICT_20260919.json og MAIN_ENCODER_DECISION_GAP_20260919.json.
+Neste: avklar gjenværende representasjonsproblem med eksisterende cached TRAIN16
+og måler. Før native forward må nåværende kontrakt/binding for NY initialfunksjon
+kontrolleres og separat scope bindes. Ingen mer modellkode før målt blokkering.
 
-**Neste handling:** følg VEIEN_VIDERE.md og docs/MAIN_ENCODER_FIXED256_20260918.md.
-Tilpass eksisterende CPU-analyse av lagrede outputs til ny initial og sluttmodell.
-Sammenlign Entry OG Exit mot residual256, kausal256 og TRAIN-konstanter, begge
-sider og alle TRAIN-måneder. PAIRED_TRAIN_REVIEW.json og VERDICT.json finnes ennå
-ikke for denne prøven. Ikke start nye forwards eller trening for å lage analysen.
-
-Bindingsfiler, kvittering, checkpoint-hasher og gjenbruksoperatører står i
-handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json.
-Én agent/én tung jobb. Bevar alle200 features/familier/tidsrammer, kausalitet,
-kostnader og originale resultater. training_enabled=false; ingen aktivt kjøreunntak.
-Ingen CONTROL/VAL/TEST, live/paper, spending eller brede søk. Stående offentlig
-push gjelder ferdig kode/docs/stier/aggregater, uten rådata, vekter eller hemmeligheter.
+Én agent/én tung jobb; gjenbruk ferdige analyser og beståtte tester. Bevar alle200
+features/familier/tidsrammer, kausalitet, kostnader og originalfiler. Ingen
+terskel-/tapsvektsøk, ny trening/full VAL/CONTROL/TEST, live/paper eller spending.
+TRAIN-funn er ikke generalisering eller profitt. Stående offentlig push gjelder
+ferdig kode/docs/stier/aggregater, uten rådata, vekter eller hemmeligheter.

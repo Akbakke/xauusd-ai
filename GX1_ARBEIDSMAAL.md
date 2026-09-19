@@ -4,9 +4,9 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå: Native hovedencoder-prøve er fullført med256 optimizersteg og guard PASS. Final ONLINE er lagret, Windows-task Disabled og brukt scope stengt. Paret Entry/Exit-læringsvurdering gjenstår; læringsporten er ikke bestått.
-Neste: analyser de lagrede resultatene mot ny initial, tidligere modeller og
-TRAIN-konstanter. Bedre læring med rettelsen er ennå ikke vurdert. Se VEIEN_VIDERE.md.
+Nå: Hovedencoder256 er ferdig analysert: mer Entry-signal innen TRAIN-månedene, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
+Neste: avklar om gjenværende representasjonskollaps forklarer de uendrede
+valgene. Bruk eksisterende cached input/måler og bind før kjøring. Se VEIEN_VIDERE.md.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

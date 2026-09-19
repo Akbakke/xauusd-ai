@@ -1,11 +1,11 @@
-# Læringsport for GX1 — gjeldende 18. september 2026
+# Læringsport for GX1 — gjeldende 19. september 2026
 
 Brukerens prioritet er målbar læring før mer omfattende trening. Målet er
 robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 
 ## Nåstatus
 
-Native hovedencoder-prøve er fullført med256 optimizersteg og guard PASS. Final ONLINE er lagret, Windows-task Disabled og brukt scope stengt. Paret Entry/Exit-læringsvurdering gjenstår; læringsporten er ikke bestått.
+Hovedencoder256 er ferdig analysert: mer Entry-signal innen TRAIN-månedene, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
 Siste residual256 ga identiske, sidekonstante handlinger. Den nye ONLINE-startbaselinen
 er målt selv med identiske vekter; læreren er eksplisitt bevart.
 

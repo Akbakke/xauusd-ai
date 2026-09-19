@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_main_encoder_fixed256_handover_status_v1",
   "observed_utc": "2026-09-18T01:48:20.028025+00:00",
-  "status": "MAIN_ENCODER_FIXED256_COMPLETE_PAIRED_REVIEW_REQUIRED",
+  "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
   "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
   "completion": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_FOR_HANDOVER.json",
@@ -25,6 +25,16 @@
   "optimizer_steps": 256,
   "active_run_scope": false,
   "next_observation_due_utc": null,
-  "next_action": "Review saved final ONLINE TRAIN outputs from NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918 against the NEW native initial baseline, saved residual256, causal256 and TRAIN constants, both sides/all TRAIN months/Entry and Exit. Adapt historical review operators; do not execute them unchanged. Write PAIRED_TRAIN_REVIEW.json and VERDICT.json with evidence and update handover. No model forward, refit, relaunch, extension, CONTROL/VAL/TEST or economic rollout. See VEIEN_VIDERE.md and docs/MAIN_ENCODER_FIXED256_20260918.md.",
-  "supersedes": "Earlier Mac-only live64-step status is historical; final256 and guard PASS now verified."
+  "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
+  "supersedes": "Earlier Mac-only live64-step status is historical; final256 and guard PASS now verified.",
+  "review_completed_utc": "2026-09-19T09:05:27.264394+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+    "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+  },
+  "review_pending": false
 }
