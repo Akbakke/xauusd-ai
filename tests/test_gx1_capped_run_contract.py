@@ -89,6 +89,7 @@ def _guard_env(
     if any(not path.is_file() for path in control_files.values()):
         pytest.skip("requires a delegated cgroup-v2 scope")
     protected = {
+        "CUDA_VISIBLE_DEVICES": "0",
         "GX1_CAPPED_CLASS": "trainer",
         "GX1_CAPPED_MEMORY_BYTES": control_files["memory"].read_text().strip(),
         "GX1_CAPPED_SWAP_BYTES": control_files["swap"].read_text().strip(),
@@ -105,6 +106,8 @@ def _guard_env(
             attended_stage_required
         ).lower(),
         "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_CUDA_VISIBLE_DEVICES": "0",
+        "GX1_TRAINER_TELEMETRY_OWNER": "signed_windows_bridge",
         "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "78",
         "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "90",
         "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": str(max_power_limit_w),
@@ -131,6 +134,7 @@ def _guard_env(
             "GX1_TRAINER_DEVICE",
             "GX1_TRAINER_EXECUTION_MODE",
             "GX1_TRAINER_ATTENDED_STAGE_REQUIRED",
+            "GX1_TRAINER_TELEMETRY_OWNER",
             "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH",
             "GX1_TRAINER_HOST_TELEMETRY_URL",
             "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH",

@@ -1,5 +1,12 @@
 # TRAIN window widening — derivation, measurements, and what stays unproved
 
+> **Current-status boundary — 2026-09-08:** This is retained historical
+> design/evidence and grants no current execution authority. The canonical
+> repo is blocked by an active pretraining review hold; no trainer is running,
+> TEST remains sealed, and the uncommitted cloud package is not launchable.
+> Read [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md)
+> before using any command, path, result or recommendation below.
+
 > **2026-09-03 re-entry note:** historical split derivation only. V9 completed
 > the declared technical TRAIN+VAL path, while TEST remains sealed and fresh
 > CUDA is blocked pending signed host telemetry. See

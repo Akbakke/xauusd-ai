@@ -1,5 +1,12 @@
 # Pre-registered direction test — V34 substrate (aborted; rules retained)
 
+> **Current-status boundary — 2026-09-08:** This is retained historical
+> design/evidence and grants no current execution authority. The canonical
+> repo is blocked by an active pretraining review hold; no trainer is running,
+> TEST remains sealed, and the uncommitted cloud package is not launchable.
+> Read [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md)
+> before using any command, path, result or recommendation below.
+
 > **2026-09-06 scope correction, not a protocol revision:** the historical
 > 13-month VAL power statement below does not describe the current five-year
 > TRAIN candidate's June-2026 VAL window (5,509 emitted smoke predictions).

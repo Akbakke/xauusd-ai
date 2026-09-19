@@ -457,6 +457,7 @@ TRAIN_CMD=(
   "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
   --train --profile "$PROFILE" --run-id "$RUN_ID" --dataset-run-id "$DATASET_RUN_ID"
   --seed "$SEED" --device "$DEVICE"
+  --precision-policy deterministic_fp32
   --execution-tier "$EXECUTION_TIER"
   --train-manifest-json "$TRAIN_MANIFEST_JSON"
   --val-manifest-json "$VAL_MANIFEST_JSON"

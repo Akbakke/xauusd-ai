@@ -31,6 +31,14 @@ from gx1.contracts.entry_model_native_train_launch_v1 import (
 )
 from gx1.contracts.entry_model_native_train_recipe_v1 import MODEL_NATIVE_RECIPE_ENV
 from gx1.contracts.entry_training_precision_v1 import DETERMINISTIC_FP32
+from gx1.contracts.cloud_training_host_profile_v1 import (
+    CloudTrainingHostProfileError,
+    require_cloud_training_host_profile_file,
+)
+from gx1.contracts.cloud_training_capacity_gate_v1 import (
+    CloudTrainingCapacityGateError,
+    require_cloud_training_capacity_gate_for_candidate,
+)
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -97,6 +105,13 @@ def _recipe(path: Path, expected_sha256: str) -> dict[str, Any]:
     return payload
 
 
+def _cgroup_size(value: int) -> str:
+    for unit, multiplier in (("T", 1024**4), ("G", 1024**3), ("M", 1024**2), ("K", 1024)):
+        if value >= multiplier and value % multiplier == 0:
+            return f"{value // multiplier}{unit}"
+    raise PretestTechnicalLaunchError("cloud cgroup size is not an exact KiB multiple")
+
+
 def build_pretest_technical_launch(
     *,
     recipe_path: Path,
@@ -129,6 +144,51 @@ def build_pretest_technical_launch(
         raise PretestTechnicalLaunchError("validated recipe lost its exact bindings")
     if provenance.get("source_commit") != validated["source_commit"]:
         raise PretestTechnicalLaunchError("source provenance does not match recipe")
+    cloud_host_profile: dict[str, Any] | None = None
+    cloud_host_profile_path_raw = cli.get("cloud_host_profile_path")
+    cloud_host_profile_sha256_raw = cli.get("cloud_host_profile_sha256")
+    if cloud_host_profile_path_raw is not None or cloud_host_profile_sha256_raw is not None:
+        if not isinstance(cloud_host_profile_path_raw, str) or not isinstance(
+            cloud_host_profile_sha256_raw, str
+        ):
+            raise PretestTechnicalLaunchError("cloud host profile binding is incomplete")
+        try:
+            cloud_host_profile = require_cloud_training_host_profile_file(
+                Path(cloud_host_profile_path_raw),
+                cloud_host_profile_sha256_raw,
+                repo=REPO,
+                verify_runtime=False,
+            )
+        except (CloudTrainingHostProfileError, OSError, ValueError) as exc:
+            raise PretestTechnicalLaunchError(
+                f"cloud host profile rejected: {exc}"
+            ) from exc
+        if cloud_host_profile["source"]["commit"] != validated["source_commit"]:
+            raise PretestTechnicalLaunchError(
+                "cloud host profile source commit differs from recipe"
+            )
+    cloud_capacity_gate_path_raw = cli.get("cloud_capacity_gate_path")
+    cloud_capacity_gate_sha256_raw = cli.get("cloud_capacity_gate_sha256")
+    if cloud_capacity_gate_path_raw is not None or cloud_capacity_gate_sha256_raw is not None:
+        if (
+            cloud_host_profile is None
+            or not isinstance(cloud_capacity_gate_path_raw, str)
+            or not isinstance(cloud_capacity_gate_sha256_raw, str)
+        ):
+            raise PretestTechnicalLaunchError("cloud capacity gate binding is incomplete")
+        try:
+            require_cloud_training_capacity_gate_for_candidate(
+                Path(cloud_capacity_gate_path_raw),
+                cloud_capacity_gate_sha256_raw,
+                expected_source_commit=str(validated["source_commit"]),
+                expected_host_profile_path=Path(str(cloud_host_profile_path_raw)),
+                expected_host_profile_sha256=str(cloud_host_profile_sha256_raw),
+                expected_batch_size=int(cli["batch_size"]),
+            )
+        except (CloudTrainingCapacityGateError, OSError, ValueError) as exc:
+            raise PretestTechnicalLaunchError(
+                f"cloud capacity gate rejected: {exc}"
+            ) from exc
     candidate_profile = str(validated["profile"]) == "candidate"
     if candidate_profile:
         if candidate_gate_path is None or candidate_gate_sha256 is None:
@@ -235,6 +295,16 @@ def build_pretest_technical_launch(
         "--grad-clip-norm", str(cli["grad_clip_norm"]),
         "--weight-decay", str(cli["weight_decay"]), "--dropout", str(cli["dropout"]),
     ]
+    if cloud_host_profile is not None:
+        trainer_command.extend((
+            "--cloud-host-profile-json", str(cloud_host_profile_path_raw),
+            "--cloud-host-profile-sha256", str(cloud_host_profile_sha256_raw),
+        ))
+    if cloud_capacity_gate_path_raw is not None:
+        trainer_command.extend((
+            "--cloud-capacity-gate-json", str(cloud_capacity_gate_path_raw),
+            "--cloud-capacity-gate-sha256", str(cloud_capacity_gate_sha256_raw),
+        ))
     if candidate_profile:
         # The trainer independently revalidates this separate immutable gate.
         # Putting it into the recipe would create a recipe/gate hash cycle.
@@ -256,9 +326,21 @@ def build_pretest_technical_launch(
     environment["GX1_V10_MULTI_TF_V4_CACHE_DIR"] = str(cache_manifest.parent)
     # Canonical smoke remains guarded by gx1_capped_run's normal CUDA path;
     # only the attended diagnostic needs the shorter attended-only envelope.
-    command = [
-        str(CAPPED_RUNNER), "--class", "trainer", "--mem", "20G", "--swap", "512M",
-    ]
+    memory_limit = "20G"
+    swap_limit = "512M"
+    command = [str(CAPPED_RUNNER), "--class", "trainer"]
+    if cloud_host_profile is not None:
+        memory_limit = _cgroup_size(
+            int(cloud_host_profile["limits"]["memory_max_bytes"])
+        )
+        swap_limit = _cgroup_size(
+            int(cloud_host_profile["limits"]["memory_swap_max_bytes"])
+        )
+        command.extend((
+            "--host-profile", str(cloud_host_profile_path_raw),
+            "--host-profile-sha256", str(cloud_host_profile_sha256_raw),
+        ))
+    command.extend(("--mem", memory_limit, "--swap", swap_limit))
     if execution_tier == "attended_only":
         command.append("--attended-smoke")
     command.extend(("--", *trainer_command))

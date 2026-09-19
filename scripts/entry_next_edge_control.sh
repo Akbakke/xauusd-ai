@@ -21,6 +21,7 @@ Usage: scripts/entry_next_edge_control.sh COMMAND [explicit arguments]
 
 Model-native seq513 evidence:
   handover [--check|--verbose]
+  model-native-training-efficiency-report --recipe <json> --recipe-sha256 <sha256> --trainer-log <path> --trainer-log-sha256 <sha256> --guard-log <path> --guard-log-sha256 <sha256> --bundle <dir> --bundle-commit-sha256 <sha256> --output-dir <new-dir>
   model-native-state
   model-native-state-selftest
   model-native-native-m1-source --publication-mode bootstrap|successor --vedtak <id> [--start-utc <M1 UTC>] --end-utc <exclusive M1 UTC> --out-root <new-dir> [--parent-root <immutable-dir> --expected-parent-manifest-sha256 <sha256>]
@@ -224,6 +225,10 @@ case "$cmd" in
       *) die "handover accepts only --check or --verbose" ;;
     esac
     exec "$REPO/scripts/gx1_handover.sh" "$@"
+    ;;
+
+  model-native-training-efficiency-report)
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.report_training_efficiency_v1 "$@"
     ;;
 
   model-native-state)

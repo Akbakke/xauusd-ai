@@ -25,6 +25,10 @@ from gx1.contracts.entry_training_precision_v1 import (
     TrainingPrecisionPolicyError,
     require_training_precision_policy,
 )
+from gx1.contracts.cloud_training_smoke_measurement_v1 import (
+    MEASURED_OPTIMIZER_STEPS as CLOUD_MEASURED_OPTIMIZER_STEPS,
+    WARMUP_OPTIMIZER_STEPS as CLOUD_WARMUP_OPTIMIZER_STEPS,
+)
 
 
 SCHEMA_VERSION = "entry_model_native_pretest_technical_recipe_v1"
@@ -112,6 +116,14 @@ LEGACY_TRAINER_CLI_KEYS = frozenset(
     }
 )
 TRAINER_CLI_KEYS = LEGACY_TRAINER_CLI_KEYS | {"precision_policy"}
+CLOUD_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
+    "cloud_host_profile_path",
+    "cloud_host_profile_sha256",
+}
+CLOUD_CANDIDATE_TRAINER_CLI_KEYS = CLOUD_TRAINER_CLI_KEYS | {
+    "cloud_capacity_gate_path",
+    "cloud_capacity_gate_sha256",
+}
 SIDE_EFFECTS_ZERO = {
     "training": False,
     "replay": False,
@@ -288,9 +300,12 @@ def require_pretest_technical_recipe_metadata(
             if bindings[key] != guard[guard_key]:
                 raise PretestTechnicalRecipeError(f"{key}: differs from unopened-TEST guard")
     trainer_cli = recipe.get("trainer_cli")
-    if not isinstance(trainer_cli, Mapping) or frozenset(trainer_cli) not in {
+    trainer_cli_keys = frozenset(trainer_cli) if isinstance(trainer_cli, Mapping) else frozenset()
+    if not isinstance(trainer_cli, Mapping) or trainer_cli_keys not in {
         LEGACY_TRAINER_CLI_KEYS,
         TRAINER_CLI_KEYS,
+        CLOUD_TRAINER_CLI_KEYS,
+        CLOUD_CANDIDATE_TRAINER_CLI_KEYS,
     }:
         raise PretestTechnicalRecipeError("trainer CLI contract keys invalid")
     for key in (
@@ -326,6 +341,49 @@ def require_pretest_technical_recipe_metadata(
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc
+    cloud_profile_present = trainer_cli_keys in {
+        CLOUD_TRAINER_CLI_KEYS,
+        CLOUD_CANDIDATE_TRAINER_CLI_KEYS,
+    }
+    if precision_policy == DETERMINISTIC_BF16_HOPPER and not cloud_profile_present:
+        raise PretestTechnicalRecipeError(
+            "Hopper BF16 requires an exact cloud host profile binding"
+        )
+    if precision_policy != DETERMINISTIC_BF16_HOPPER and cloud_profile_present:
+        raise PretestTechnicalRecipeError(
+            "cloud host profile is reserved for the Hopper BF16 policy"
+        )
+    if cloud_profile_present:
+        _absolute(
+            trainer_cli.get("cloud_host_profile_path"),
+            label="trainer CLI cloud host profile path",
+        )
+        _sha(
+            trainer_cli.get("cloud_host_profile_sha256"),
+            label="trainer CLI cloud host profile sha256",
+        )
+    cloud_capacity_gate_present = trainer_cli_keys == CLOUD_CANDIDATE_TRAINER_CLI_KEYS
+    if (
+        precision_policy == DETERMINISTIC_BF16_HOPPER
+        and profile == "candidate"
+        and not cloud_capacity_gate_present
+    ):
+        raise PretestTechnicalRecipeError(
+            "Hopper BF16 candidate requires an exact capacity gate binding"
+        )
+    if cloud_capacity_gate_present and profile != "candidate":
+        raise PretestTechnicalRecipeError(
+            "cloud capacity gate is reserved for the Hopper candidate"
+        )
+    if cloud_capacity_gate_present:
+        _absolute(
+            trainer_cli.get("cloud_capacity_gate_path"),
+            label="trainer CLI cloud capacity gate path",
+        )
+        _sha(
+            trainer_cli.get("cloud_capacity_gate_sha256"),
+            label="trainer CLI cloud capacity gate sha256",
+        )
     window = trainer_cli.get("train_time_window")
     if window is not None and (
         not isinstance(window, Mapping)
@@ -348,7 +406,7 @@ def require_pretest_technical_recipe_metadata(
         ("attended_only", "cuda"),
         ("attended_cpu_only", "cpu"),
     }
-    if profile == "smoke" and precision_policy == DETERMINISTIC_FP32 and (
+    if profile == "smoke" and (
         trainer_cli["epochs"] != 1
         or trainer_cli["grad_accum_steps"] != 1
         or smoke_execution_identity not in allowed_smoke_execution_identities
@@ -378,6 +436,17 @@ def require_pretest_technical_recipe_metadata(
         and trainer_cli["batch_size"] not in {8, 32, 64}
     ):
         raise PretestTechnicalRecipeError("bounded Hopper smoke batch geometry invalid")
+    if (
+        profile == "smoke"
+        and precision_policy == DETERMINISTIC_BF16_HOPPER
+        and trainer_cli["batch_size"] in {32, 64}
+        and trainer_cli["subsample_rows"]
+        != trainer_cli["batch_size"]
+        * (CLOUD_WARMUP_OPTIMIZER_STEPS + CLOUD_MEASURED_OPTIMIZER_STEPS)
+    ):
+        raise PretestTechnicalRecipeError(
+            "Hopper capacity smoke must contain exact warmup and measured steps"
+        )
     if smoke_execution_identity == ("canonical", "cuda") and window is not None:
         raise PretestTechnicalRecipeError(
             "canonical smoke must use deterministic uniform sampling without a time window"

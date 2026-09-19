@@ -73,6 +73,7 @@ for variable in \
   GX1_TRAINER_MODEL_MAX_WALL_SECONDS \
   GX1_TRAINER_ATTENDED_STAGE_REQUIRED \
   GX1_TRAINER_GPU_INDEX \
+  GX1_TRAINER_CUDA_VISIBLE_DEVICES \
   GX1_TRAINER_GPU_MAX_CORE_TEMP_C \
   GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C \
   GX1_TRAINER_GPU_MAX_POWER_LIMIT_W \
@@ -84,7 +85,8 @@ for variable in \
   GX1_TRAINER_HOST_TELEMETRY_CERT_PATH \
   GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256 \
   GX1_TRAINER_HOST_TELEMETRY_GPU_UUID \
-  GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS; do
+  GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS \
+  GX1_TRAINER_TELEMETRY_OWNER; do
   [[ -n "${!variable:-}" ]] || die "missing protected environment: $variable"
 done
 case "$GX1_CAPPED_CLASS" in
@@ -131,10 +133,30 @@ for variable in \
 done
 [[ "$GX1_TRAINER_GPU_INDEX" =~ ^[0-9]+$ ]] \
   || die "GX1_TRAINER_GPU_INDEX must be a non-negative integer"
+[[ "${CUDA_VISIBLE_DEVICES:-}" == "$GX1_TRAINER_CUDA_VISIBLE_DEVICES" ]] \
+  || die "CUDA_VISIBLE_DEVICES differs from the protected GPU binding"
 [[ -x "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" && ! -L "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" ]] \
   || die "signed host telemetry query is unavailable"
-[[ "$GX1_TRAINER_HOST_TELEMETRY_URL" =~ ^http://172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}:[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
-  || die "signed host telemetry URL is not an approved private WSL endpoint"
+case "$GX1_TRAINER_TELEMETRY_OWNER" in
+  signed_windows_bridge)
+    [[ "$GX1_TRAINER_CUDA_VISIBLE_DEVICES" == 0 ]] \
+      || die "local Windows telemetry requires CUDA device zero"
+    [[ "$GX1_TRAINER_HOST_TELEMETRY_URL" =~ ^http://172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}:[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
+      || die "signed host telemetry URL is not an approved private WSL endpoint"
+    ;;
+  root_owned_linux_loopback_v1)
+    [[ "$GX1_TRAINER_CUDA_VISIBLE_DEVICES" == "$GX1_TRAINER_HOST_TELEMETRY_GPU_UUID" ]] \
+      || die "cloud CUDA device differs from signed telemetry GPU UUID"
+    [[ "$GX1_TRAINER_HOST_TELEMETRY_URL" =~ ^http://127\.0\.0\.1:[1-9][0-9]{0,4}/gx1/v1/telemetry/$ ]] \
+      || die "signed Linux host telemetry URL is not loopback-only"
+    [[ "${GX1_CLOUD_HOST_PROFILE_PATH:-}" == /* \
+      && -f "$GX1_CLOUD_HOST_PROFILE_PATH" \
+      && ! -L "$GX1_CLOUD_HOST_PROFILE_PATH" \
+      && "${GX1_CLOUD_HOST_PROFILE_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] \
+      || die "cloud host profile binding is unavailable"
+    ;;
+  *) die "signed host telemetry owner is invalid" ;;
+esac
 [[ "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" == /* && -f "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" && ! -L "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" ]] \
   || die "signed host telemetry certificate is unavailable"
 [[ "$GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]] \
@@ -371,20 +393,22 @@ if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
   assert_safe_telemetry preflight
 fi
 
-printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s attended_stage_required=%s gpu_index=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s max_memory_used_mib=%s monitor_interval_seconds=%s telemetry_owner=signed_windows_bridge\n' \
+printf '[trainer_safety_guard] execution_mode=%s device=%s data_preflight_max_wall_seconds=%s model_max_wall_seconds=%s attended_stage_required=%s gpu_index=%s cuda_visible_devices=%s max_core_temp_c=%s max_memory_temp_c=%s max_power_limit_w=%s max_power_draw_w=%s max_memory_used_mib=%s monitor_interval_seconds=%s telemetry_owner=%s\n' \
   "$GX1_TRAINER_EXECUTION_MODE" \
   "$GX1_TRAINER_DEVICE" \
   "$GX1_TRAINER_MAX_WALL_SECONDS" \
   "$GX1_TRAINER_MODEL_MAX_WALL_SECONDS" \
   "$GX1_TRAINER_ATTENDED_STAGE_REQUIRED" \
   "$GX1_TRAINER_GPU_INDEX" \
+  "$GX1_TRAINER_CUDA_VISIBLE_DEVICES" \
   "$GX1_TRAINER_GPU_MAX_CORE_TEMP_C" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
   "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
   "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
   "$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB" \
-  "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" >&2
-guard_log "event=start execution_mode=$GX1_TRAINER_EXECUTION_MODE device=$GX1_TRAINER_DEVICE data_preflight_max_wall_seconds=$GX1_TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS max_core_temp_c=$GX1_TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$GX1_TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB telemetry_owner=signed_windows_bridge"
+  "$GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS" \
+  "$GX1_TRAINER_TELEMETRY_OWNER" >&2
+guard_log "event=start execution_mode=$GX1_TRAINER_EXECUTION_MODE device=$GX1_TRAINER_DEVICE data_preflight_max_wall_seconds=$GX1_TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$GX1_TRAINER_MODEL_MAX_WALL_SECONDS max_core_temp_c=$GX1_TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$GX1_TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB telemetry_owner=$GX1_TRAINER_TELEMETRY_OWNER"
 if [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_smoke ]]; then
   printf '[trainer_safety_attended_only] signed Windows junction telemetry is mandatory; this run has no candidate, TEST, promotion, or live authority\n' >&2
 elif [[ "$GX1_TRAINER_EXECUTION_MODE" == attended_cpu_smoke ]]; then

@@ -1,5 +1,13 @@
 # GX1 current re-entry — updated 2026-09-08
 
+> **Authoritative status — 2026-09-08:** Read
+> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
+> handover currently returns `BLOCK`; the review hold is active, no trainer is
+> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
+> The cloud-control package is uncommitted and has known failing CPU tests.
+> This block supersedes every lower runtime/status statement; lower dated text
+> remains architecture, policy or historical evidence only.
+
 **Operator override: guarded local smoke complete, hold restored.** The one
 authorized source-current 32-row CUDA smoke completed successfully on the local
 GX1 RTX 3090 through the canonical capped runner. The guard exited with child

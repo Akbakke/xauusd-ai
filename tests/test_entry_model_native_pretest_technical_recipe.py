@@ -211,6 +211,9 @@ def test_canonical_smoke_allows_only_bounded_throughput_batch_geometries(
 
 
 def test_hopper_recipe_requires_explicit_bf16_batch_geometry(tmp_path: Path) -> None:
+    from gx1.contracts.cloud_training_smoke_measurement_v1 import (
+        WARMUP_OPTIMIZER_STEPS, MEASURED_OPTIMIZER_STEPS,
+    )
     recipe = _recipe(tmp_path)
     cli = recipe["trainer_cli"]
     assert isinstance(cli, dict)
@@ -220,6 +223,9 @@ def test_hopper_recipe_requires_explicit_bf16_batch_geometry(tmp_path: Path) -> 
             "train_time_window": None,
             "precision_policy": DETERMINISTIC_BF16_HOPPER,
             "batch_size": 32,
+            "subsample_rows": 32 * (WARMUP_OPTIMIZER_STEPS + MEASURED_OPTIMIZER_STEPS),
+            "cloud_host_profile_path": str((tmp_path / "cloud-host.json").resolve()),
+            "cloud_host_profile_sha256": "c" * 64,
         }
     )
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
@@ -232,6 +238,8 @@ def test_hopper_recipe_requires_explicit_bf16_batch_geometry(tmp_path: Path) -> 
             "early_stop_patience": 5,
             "subsample_rows": 0,
             "batch_size": 64,
+            "cloud_capacity_gate_path": str((tmp_path / "capacity-gate.json").resolve()),
+            "cloud_capacity_gate_sha256": "d" * 64,
         }
     )
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)

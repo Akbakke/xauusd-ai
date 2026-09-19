@@ -1,5 +1,13 @@
 # GX1 data contract
 
+> **Authoritative status — 2026-09-08:** Read
+> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
+> handover currently returns `BLOCK`; the review hold is active, no trainer is
+> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
+> The cloud-control package is uncommitted and has known failing CPU tests.
+> This block supersedes every lower runtime/status statement; lower dated text
+> remains architecture, policy or historical evidence only.
+
 Current recovery, 2026-09-06: the operator-approved guard-only repair and exact
 CPU checkpoint transfer are verified. No data, learning-source or training
 setting changed. The original session is retained, and a new standard session

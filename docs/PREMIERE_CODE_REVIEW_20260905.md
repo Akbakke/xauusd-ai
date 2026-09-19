@@ -1,5 +1,13 @@
 # Pre-training code review — 2026-09-05
 
+> **Authoritative status — 2026-09-08:** Read
+> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
+> handover currently returns `BLOCK`; the review hold is active, no trainer is
+> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
+> The cloud-control package is uncommitted and has known failing CPU tests.
+> This block supersedes every lower runtime/status statement; lower dated text
+> remains architecture, policy or historical evidence only.
+
 ## Current operator override — local guarded smoke complete, 2026-09-08
 
 The one authorized source-current 32-row CUDA smoke completed successfully on

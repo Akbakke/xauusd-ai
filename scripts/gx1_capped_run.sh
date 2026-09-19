@@ -4,6 +4,7 @@
 # GX1_RULES.md and AGENTS.md require this wrapper for every heavy operation.
 #
 # Usage: scripts/gx1_capped_run.sh --class audit|producer|trainer [--mem 4G] [--swap 512M]
+#          [--host-profile /abs/profile.json --host-profile-sha256 HEX]
 #          [--attended-smoke|--cuda-producer] -- <command ...>
 #   --class audit is capped at 4G and cannot launch the trainer.
 #   --class producer is for the heavy offline dataset producers (feature lanes,
@@ -44,6 +45,7 @@ RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
 CAPPED_EXECUTION_OWNER="$REPO_ROOT/gx1/contracts/gx1_capped_execution_v1.py"
+CLOUD_HOST_PROFILE_OWNER="$REPO_ROOT/gx1/contracts/cloud_training_host_profile_v1.py"
 GPU_GUARD_PATH="$REPO_ROOT/scripts/gx1_guarded_trainer_exec.sh"
 
 # Crash-response safety freeze (2026-08-23). These are source-bound constants,
@@ -68,9 +70,13 @@ TRAINER_HOST_TELEMETRY_CERT_PATH='/mnt/c/ProgramData/GX1/HostTelemetryBridgeV4/G
 TRAINER_HOST_TELEMETRY_CERT_SHA256='25c9260c2168db53cf58c5f963f2008d5163d80aa69699c5726e0680ed74eb6e'
 TRAINER_HOST_TELEMETRY_GPU_UUID='GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
 TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS=2
+TRAINER_TELEMETRY_OWNER=signed_windows_bridge
+TRAINER_CUDA_VISIBLE_DEVICES=0
 TRAINER_DEVICE=
 TRAINER_OUT_BUNDLE_DIR=
 CUDA_PRODUCER_GUARD=false
+HOST_PROFILE_PATH=
+HOST_PROFILE_SHA256=
 
 SAFE_JOB_MEMORY_KIB=$((20 * 1024 * 1024))
 SAFE_AUDIT_MEMORY_KIB=$((4 * 1024 * 1024))
@@ -125,7 +131,9 @@ validate_target_command() {
   local trainer_reference=false hardware_smoke_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
+  local host_profile_count=0 host_profile_sha_count=0
   local profile_value= execution_tier_value=
+  local inner_host_profile= inner_host_profile_sha256=
   local -a target_args=("$@")
 
   case "$executable_basename" in
@@ -265,6 +273,22 @@ validate_target_command() {
         }
         TRAINER_OUT_BUNDLE_DIR="${target_args[$((target_index + 1))]}"
         ;;
+      --cloud-host-profile-json)
+        host_profile_count=$((host_profile_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || {
+          echo "FATAL: trainer class requires a value after --cloud-host-profile-json" >&2
+          exit 75
+        }
+        inner_host_profile="${target_args[$((target_index + 1))]}"
+        ;;
+      --cloud-host-profile-sha256)
+        host_profile_sha_count=$((host_profile_sha_count + 1))
+        (( target_index + 1 < ${#target_args[@]} )) || {
+          echo "FATAL: trainer class requires a value after --cloud-host-profile-sha256" >&2
+          exit 75
+        }
+        inner_host_profile_sha256="${target_args[$((target_index + 1))]}"
+        ;;
     esac
   done
   if (( trainer_device_count != 1 )) \
@@ -291,6 +315,18 @@ validate_target_command() {
           exit 75
           ;;
       esac
+    fi
+    if [[ -n "$HOST_PROFILE_PATH" || -n "$HOST_PROFILE_SHA256" ]]; then
+      if (( host_profile_count != 1 || host_profile_sha_count != 1 )) \
+        || [[ "$inner_host_profile" != "$HOST_PROFILE_PATH" \
+          || "$inner_host_profile_sha256" != "$HOST_PROFILE_SHA256" \
+          || "$TRAINER_DEVICE" != cuda ]]; then
+        echo "FATAL: outer and trainer cloud host profile bindings must match exactly for CUDA" >&2
+        exit 75
+      fi
+    elif (( host_profile_count != 0 || host_profile_sha_count != 0 )); then
+      echo "FATAL: trainer cloud host profile requires the matching capped-runner binding" >&2
+      exit 75
     fi
     if [[ "$ATTENDED_SMOKE" == true ]]; then
       # Only the exact canonical trainer can advance from the complete
@@ -335,6 +371,14 @@ while [[ $# -gt 0 ]]; do
     --cuda-producer)
       CUDA_PRODUCER_GUARD=true; shift
       ;;
+    --host-profile)
+      [[ $# -ge 2 ]] || { echo "FATAL: --host-profile requires a value" >&2; exit 2; }
+      HOST_PROFILE_PATH="$2"; shift 2
+      ;;
+    --host-profile-sha256)
+      [[ $# -ge 2 ]] || { echo "FATAL: --host-profile-sha256 requires a value" >&2; exit 2; }
+      HOST_PROFILE_SHA256="$2"; shift 2
+      ;;
     --research-smoke)
       echo "FATAL: --research-smoke is disabled after the WSL/GPU reset; use only the bounded attended hardware diagnostic" >&2
       exit 75
@@ -349,24 +393,98 @@ done
   exit 2
 }
 
+if [[ -n "$HOST_PROFILE_PATH" || -n "$HOST_PROFILE_SHA256" ]]; then
+  [[ "$JOB_CLASS" == trainer \
+    && "$HOST_PROFILE_PATH" == /* \
+    && -f "$HOST_PROFILE_PATH" \
+    && ! -L "$HOST_PROFILE_PATH" \
+    && "$HOST_PROFILE_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+    echo "FATAL: cloud host profile requires trainer class, an absolute regular file, and lowercase SHA-256" >&2
+    exit 75
+  }
+fi
+
 requested_mem_kib=$(size_to_kib "$MEM")
 requested_swap_kib=$(size_to_kib "$SWAP")
-if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
-  echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (20G)" >&2
-  exit 75
+if [[ -z "$HOST_PROFILE_PATH" ]]; then
+  if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
+    echo "FATAL: requested MemoryMax exceeds GX1 safety ceiling (20G)" >&2
+    exit 75
+  fi
+  if [[ "$JOB_CLASS" == "audit" ]] && (( requested_mem_kib > SAFE_AUDIT_MEMORY_KIB )); then
+    echo "FATAL: audit jobs may request at most 4G" >&2
+    exit 75
+  fi
+  if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
+    echo "FATAL: requested MemorySwapMax exceeds GX1 safety ceiling (512M)" >&2
+    exit 75
+  fi
 fi
-if [[ "$JOB_CLASS" == "audit" ]] && (( requested_mem_kib > SAFE_AUDIT_MEMORY_KIB )); then
-  echo "FATAL: audit jobs may request at most 4G" >&2
-  exit 75
-fi
-if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
-  echo "FATAL: requested MemorySwapMax exceeds GX1 safety ceiling (512M)" >&2
-  exit 75
-fi
+
 validate_target_command "$@"
+unset CUDA_VISIBLE_DEVICES
+if [[ -n "$HOST_PROFILE_PATH" ]]; then
+  [[ -x "$CANONICAL_TRAINER_PYTHON" && -f "$CLOUD_HOST_PROFILE_OWNER" ]] || {
+    echo "FATAL: cloud host profile owner is unavailable" >&2
+    exit 75
+  }
+  profile_fields=$(
+    "$CANONICAL_TRAINER_PYTHON" -I -B "$CLOUD_HOST_PROFILE_OWNER" \
+      --profile-json "$HOST_PROFILE_PATH" \
+      --profile-sha256 "$HOST_PROFILE_SHA256" \
+      --repo "$REPO_ROOT" \
+      --emit-runner-fields
+  ) || {
+    echo "FATAL: live cloud host profile verification failed" >&2
+    exit 75
+  }
+  declare -A profile_fields_seen=()
+  while IFS=$'\t' read -r profile_field profile_value; do
+    case "$profile_field" in
+      CUDA_VISIBLE_DEVICES|CPU_AFFINITY|NUMERICAL_THREAD_COUNT|SAFE_JOB_MEMORY_KIB|SAFE_JOB_SWAP_KIB|MIN_HOST_MEMORY_KIB|MIN_AVAILABLE_MEMORY_KIB|TASKS_MAX|TRAINER_TASKS_MAX|TRAINER_MAX_WALL_SECONDS|TRAINER_MODEL_MAX_WALL_SECONDS|TRAINER_GPU_MAX_CORE_TEMP_C|TRAINER_GPU_MAX_MEMORY_TEMP_C|TRAINER_GPU_MAX_POWER_LIMIT_W|TRAINER_GPU_MAX_POWER_DRAW_W|TRAINER_GPU_MAX_MEMORY_USED_MIB|TRAINER_GPU_MONITOR_INTERVAL_SECONDS|TRAINER_HOST_TELEMETRY_URL|TRAINER_HOST_TELEMETRY_CERT_PATH|TRAINER_HOST_TELEMETRY_CERT_SHA256|TRAINER_HOST_TELEMETRY_GPU_UUID|TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS|TRAINER_TELEMETRY_OWNER)
+        ;;
+      *)
+        echo "FATAL: cloud host profile emitted an unknown runner field" >&2
+        exit 75
+        ;;
+    esac
+    [[ -z "${profile_fields_seen[$profile_field]:-}" && -n "$profile_value" ]] || {
+      echo "FATAL: cloud host profile emitted duplicate or empty runner field" >&2
+      exit 75
+    }
+    profile_fields_seen[$profile_field]=true
+    if [[ "$profile_field" == CUDA_VISIBLE_DEVICES ]]; then
+      TRAINER_CUDA_VISIBLE_DEVICES="$profile_value"
+    else
+      printf -v "$profile_field" '%s' "$profile_value"
+    fi
+  done <<<"$profile_fields"
+  (( ${#profile_fields_seen[@]} == 23 )) || {
+    echo "FATAL: cloud host profile runner field set is incomplete" >&2
+    exit 75
+  }
+fi
+
+if [[ -n "$HOST_PROFILE_PATH" ]]; then
+  if (( requested_mem_kib > SAFE_JOB_MEMORY_KIB )); then
+    echo "FATAL: requested MemoryMax exceeds cloud host profile ceiling" >&2
+    exit 75
+  fi
+  if (( requested_swap_kib > SAFE_JOB_SWAP_KIB )); then
+    echo "FATAL: requested MemorySwapMax exceeds cloud host profile ceiling" >&2
+    exit 75
+  fi
+  if (( requested_mem_kib != SAFE_JOB_MEMORY_KIB \
+    || requested_swap_kib != SAFE_JOB_SWAP_KIB )); then
+    echo "FATAL: cloud trainer memory and swap requests must equal the host profile" >&2
+    exit 75
+  fi
+fi
 
 if [[ "$JOB_CLASS" == trainer ]]; then
-  NUMERICAL_THREAD_COUNT=8
+  if [[ -z "$HOST_PROFILE_PATH" ]]; then
+    NUMERICAL_THREAD_COUNT=8
+  fi
   TASKS_MAX="$TRAINER_TASKS_MAX"
 fi
 
@@ -543,7 +661,7 @@ if ! flock -n 9; then
   echo "FATAL: another GX1 heavy job owns the exclusive lock: $LOCK_PATH" >&2
   exit 75
 fi
-echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY NumericalThreads=$NUMERICAL_THREAD_COUNT TasksMax=$TASKS_MAX" >&2
+echo "[capped_run] Class=$JOB_CLASS MemoryMax=$MEM MemoryHigh=$MEM MemorySwapMax=$SWAP CPUAffinity=$CPU_AFFINITY NumericalThreads=$NUMERICAL_THREAD_COUNT TasksMax=$TASKS_MAX HostProfile=${HOST_PROFILE_PATH:-local}" >&2
 echo "[capped_run] cmd: $*" >&2
 TRAINER_GUARD_LOG_PATH=
 TRAINER_STDIO_LOG_PATH=
@@ -570,7 +688,7 @@ if [[ ( "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ) && -n "$TRAI
   echo "[capped_run_trainer_stdio_log] path=$TRAINER_STDIO_LOG_PATH" >&2
 fi
 if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
-echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=signed_windows_bridge telemetry_url=$TRAINER_HOST_TELEMETRY_URL" >&2
+echo "[capped_run_trainer_safety] execution_mode=$TRAINER_EXECUTION_MODE device=$TRAINER_DEVICE data_preflight_max_wall_seconds=$TRAINER_MAX_WALL_SECONDS model_max_wall_seconds=$TRAINER_MODEL_MAX_WALL_SECONDS attended_stage_required=$TRAINER_ATTENDED_STAGE_REQUIRED gpu_index=$TRAINER_GPU_INDEX cuda_visible_devices=$TRAINER_CUDA_VISIBLE_DEVICES max_core_temp_c=$TRAINER_GPU_MAX_CORE_TEMP_C max_memory_temp_c=$TRAINER_GPU_MAX_MEMORY_TEMP_C max_power_limit_w=$TRAINER_GPU_MAX_POWER_LIMIT_W max_power_draw_w=$TRAINER_GPU_MAX_POWER_DRAW_W max_memory_used_mib=$TRAINER_GPU_MAX_MEMORY_USED_MIB monitor_interval_seconds=$TRAINER_GPU_MONITOR_INTERVAL_SECONDS telemetry_owner=$TRAINER_TELEMETRY_OWNER telemetry_url=$TRAINER_HOST_TELEMETRY_URL" >&2
 fi
 
 # systemd can accept CPUQuota/IOWeight properties even when the delegated cgroup
@@ -619,6 +737,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_MODEL_MAX_WALL_SECONDS="$TRAINER_MODEL_MAX_WALL_SECONDS" \
   --setenv=GX1_TRAINER_ATTENDED_STAGE_REQUIRED="$TRAINER_ATTENDED_STAGE_REQUIRED" \
   --setenv=GX1_TRAINER_GPU_INDEX="$TRAINER_GPU_INDEX" \
+  --setenv=GX1_TRAINER_CUDA_VISIBLE_DEVICES="$TRAINER_CUDA_VISIBLE_DEVICES" \
+  --setenv=CUDA_VISIBLE_DEVICES="$TRAINER_CUDA_VISIBLE_DEVICES" \
   --setenv=GX1_TRAINER_GPU_MAX_CORE_TEMP_C="$TRAINER_GPU_MAX_CORE_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C="$TRAINER_GPU_MAX_MEMORY_TEMP_C" \
   --setenv=GX1_TRAINER_GPU_MAX_POWER_LIMIT_W="$TRAINER_GPU_MAX_POWER_LIMIT_W" \
@@ -631,6 +751,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256="$TRAINER_HOST_TELEMETRY_CERT_SHA256" \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_GPU_UUID="$TRAINER_HOST_TELEMETRY_GPU_UUID" \
   --setenv=GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS="$TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" \
+  --setenv=GX1_TRAINER_TELEMETRY_OWNER="$TRAINER_TELEMETRY_OWNER" \
+  --setenv=GX1_CLOUD_HOST_PROFILE_PATH="$HOST_PROFILE_PATH" \
+  --setenv=GX1_CLOUD_HOST_PROFILE_SHA256="$HOST_PROFILE_SHA256" \
   --setenv=OMP_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=MKL_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \
   --setenv=OPENBLAS_NUM_THREADS="$NUMERICAL_THREAD_COUNT" \

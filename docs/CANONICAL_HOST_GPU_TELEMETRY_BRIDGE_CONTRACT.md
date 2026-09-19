@@ -1,5 +1,13 @@
 # Canonical GPU telemetry — V9 signed Windows bridge contract
 
+> **Authoritative status — 2026-09-08:** Read
+> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
+> handover currently returns `BLOCK`; the review hold is active, no trainer is
+> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
+> The cloud-control package is uncommitted and has known failing CPU tests.
+> This block supersedes every lower runtime/status statement; lower dated text
+> remains architecture, policy or historical evidence only.
+
 > **Runtime-status rule:** the bridge contract remains required. A historical
 > signed 160 W response is evidence only, not a standing host state: reboot,
 > driver reset or a power-policy change invalidates it. CUDA remains fail-closed

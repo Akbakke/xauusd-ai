@@ -1,5 +1,13 @@
 # Pre-training repair and architecture decision — 2026-09-06
 
+> **Authoritative status — 2026-09-08:** Read
+> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
+> handover currently returns `BLOCK`; the review hold is active, no trainer is
+> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
+> The cloud-control package is uncommitted and has known failing CPU tests.
+> This block supersedes every lower runtime/status statement; lower dated text
+> remains architecture, policy or historical evidence only.
+
 ## Authority and objective
 
 **Approved implementation items 1/2/3/5, the measured retention-reference

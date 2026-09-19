@@ -546,6 +546,7 @@ def test_smoke_wrapper_source_is_exact_model_native_and_has_no_stale_launch_path
     assert "s.MODEL_NATIVE_CONTRACT_MODE" in text
     assert "s.MODEL_NATIVE_SIGNAL_DIM" in text
     assert "MODEL_NATIVE_DIRECTION_LOGIT_MODE=model_native" in text
+    assert "--precision-policy deterministic_fp32" in text
     for flag in (
         "--enable-pos-enc",
         "--enable-regime-film",
