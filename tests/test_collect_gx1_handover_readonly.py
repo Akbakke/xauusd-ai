@@ -129,15 +129,16 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
 
 
-@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256'])
+@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256','completed_convergence512'])
 def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, latest_key):
     from scripts.collect_gx1_handover_readonly import _current_work_status
     repo, binding, *_ = fixture
     session = binding.parent / 'completed-main'; session.mkdir()
-    pointer = {'global_optimizer_steps': 256, 'phase': 'train'}
+    steps = 512 if latest_key == 'completed_convergence512' else 256
+    pointer = {'global_optimizer_steps': steps, 'phase': 'train'}
     (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(pointer))
     receipt = session/'receipt.json'; receipt.write_text('{"guard_decision":"PASS"}')
-    result = session/'result.json'; result.write_text('{"optimizer_steps":256}')
+    result = session/'result.json'; result.write_text(json.dumps({'optimizer_steps':steps}))
     def bind(path):
         return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     latest = {'run_id': 'MAIN256', 'receipt': bind(receipt), 'result': bind(result),
@@ -149,6 +150,7 @@ def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, la
         'next_action': 'Review saved outputs; no relaunch',
         'completed_residual_normalized_fixed256': {'run_id': 'OLD'},
         'completed_main_encoder_fixed256': {'run_id':'OLDER_MAIN'},
+        **({'completed_entry_fuse_fixed256':{'run_id':'OLDER_FUSE'}} if latest_key=='completed_convergence512' else {}),
         latest_key: latest}))
     monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', lambda _: [])
     out = _current_work_status(binding.parent, source_only=False)
@@ -156,7 +158,7 @@ def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, la
     assert out['last_completed_run_id'] == 'MAIN256' and 'declared_run_id' not in out
     assert out['checkpoint'] == pointer and out['training_source_commit'] == 'training-source'
     assert out['latest_terminal_receipt']['guard_decision'] == 'PASS'
-    assert out['latest_final_measurement']['optimizer_steps'] == 256
+    assert out['latest_final_measurement']['optimizer_steps'] == steps
     assert out['next_action'] == 'Review saved outputs; no relaunch'
     assert out['observation_is_run_authority'] is False
     receipt.write_text('{}')

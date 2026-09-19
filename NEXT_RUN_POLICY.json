@@ -23,42 +23,6 @@
     "synthetic_cpu_contract_tests_authorized": true,
     "training_enabled": false
   },
-  "chronological_learning_run": {
-    "chronological_learning_continuation": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PLAN.json",
-      "sha256": "3f53d1e8b6e86cae9c8776ec87183189b42e1e73b1acfec999db64170f1c6907"
-    },
-    "chronological_learning_measurement": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
-    },
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "chronological_train_only_measurement": true,
-    "final_model_variant": "ONLINE",
-    "full_epoch_training_allowed": false,
-    "full_val_allowed": false,
-    "max_invocations": 1,
-    "maximum_trained_entry_rows": 8192,
-    "optimizer_steps": 512,
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
-    "run_id": "NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919",
-    "source_bindings_sha256": "37673ccf65ede6eeea393c666b8046f10ab23ef0c1a3397919d8cf7fff54a161",
-    "teacher_refresh_allowed": false,
-    "test_data_used": false
-  },
   "completed_auxiliary_policy_exposure_audit": {
     "binding": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/AUXILIARY_POLICY_EXPOSURE_20260917/RESULT.json",
@@ -208,6 +172,10 @@
     },
     "supersedes_ema_specific_exception": true,
     "tests_passed": 41
+  },
+  "completed_convergence512": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COMPLETION_REVIEWED.json",
+    "sha256": "7f1c1001a3d1201971ef74a3fee3088de7e3ee93376c6be6e7f0293bfc56d671"
   },
   "completed_derived_entry_baseline": {
     "actual_baseline_admission_verified": true,
@@ -1421,12 +1389,16 @@
       "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
       "training_enabled": false
     },
+    "convergence512_verdict": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/VERDICT.json",
+      "sha256": "e7f02c216f005fedcc8e357bc94ba0b682161eda52a53e3be9b3f1f9217c0993"
+    },
     "corrected_entry_baseline_required": false,
     "corrected_entry_learning_assessed": true,
     "corrected_entry_learning_measured": true,
     "current_trial_learning_gate_passed": false,
     "current_trial_review_complete": true,
-    "decision": "REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED",
+    "decision": "REJECT_EXPANSION_CONVERGENCE512_ACTION_GATE_FAILED",
     "entry_anchor_outcome_diagnosis": {
       "comparison_sha256": "90de1ac8c75b9a0fe8456682938766ecd41c2bf2c277b500c332a64634026e7a",
       "learning_gate_passed": false,
@@ -1438,16 +1410,17 @@
       "training_enabled": false,
       "verified_entries": 275
     },
-    "entry_conditional_train_fit_improved": false,
+    "entry_conditional_train_fit_improved": true,
     "entry_decisions_beat_constant": false,
     "entry_exit_learning_demonstrated": false,
     "entry_fuse_verdict": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/VERDICT.json",
       "sha256": "2ee08068d96c3d0dc215b3116f9e31a07d8aea8712c6a23a5bc3a6ed114f306e"
     },
-    "entry_within_month_contrast_improved": true,
-    "exit_improved_against_previous_model": false,
-    "exit_market_conditional_improvement_demonstrated": false,
+    "entry_within_month_contrast_improved": false,
+    "exit_improved_against_previous_model": true,
+    "exit_improvement_scope": "Pooled reused TRAIN anchors and sampled states on both sides; monthly variation remains; not generalization or realized strategy profit.",
+    "exit_market_conditional_improvement_demonstrated": true,
     "exit_private_clip_hypothesis": {
       "additional_optimizer_steps": 32,
       "baseline_checkpoint": 96,
@@ -1497,10 +1470,10 @@
     },
     "generalization_demonstrated": false,
     "latest_measurement": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
-      "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
     },
-    "latest_measurement_scope": "Reviewed Entry fuse TRAIN comparison: six value cells improve against main256, both Entry cells beat constants, but actions unchanged; combined learning gate failed.",
+    "latest_measurement_scope": "Reused TRAIN256, all256 direct entries fitted before step256; targets, masks and initialbaseline unchanged; no chronological generalization.",
     "local_entry_fit_improved": false,
     "main_encoder_verdict": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
@@ -1550,7 +1523,7 @@
       "training_authorized": false
     },
     "technical_scope_complete": true,
-    "training_fit_improved_against_constants_both_sides": false,
+    "training_fit_improved_against_constants_both_sides": true,
     "value_learning_diagnosis": {
       "attribution_result": {
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_RESULT.json",
@@ -1740,7 +1713,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PLAN.json",
     "sha256": "a83582d40a32444e92e346a9a15fcfe50cabe4a77fd3310e579246909fdf2fce"
   },
-  "rule": "Execute one bound native256-to512 TRAIN convergence experiment, preserving ONLINE/teacher, Adam/EMA/scheduler/RNG and exact order in a new session. Only the next4096 rows of the existing chronological TRAIN prefix are added. Measure the same TRAIN256 and1024 Exit samples at512 against saved initial/256/constants, then stop for Entry/Exit decision review. No full epoch/CONTROL/VAL/TEST, target refresh, loss/model change, rescaling or automatic extension.",
+  "rule": "Reuse completed512 paired review and saved Entry decision-gap audit. Exit now improves pooled TRAIN choices on both sides; Entry remains FLAT256/256, within-month contrast correlation fell and forced direction worsened. Do not extend training or repeat gradient/normalization tests. Next, inspect existing Entry target/Exit policy linkage and retained native evaluation evidence to distinguish inadequate conditional Entry prediction under Q_mu from a reference-policy value that does not evaluate the improved Exit policy. This is an unresolved question, not proof of a target bug or authority for target changes/new runs. No full epoch/VAL/CONTROL/TEST, threshold tuning or trading.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"

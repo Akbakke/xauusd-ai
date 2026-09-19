@@ -1,0 +1,41 @@
+{
+  "all_numeric_requirements_passed": false,
+  "automatic_extension_allowed": false,
+  "checks": {
+    "entry_LONG_conditional_fit": true,
+    "entry_SHORT_conditional_fit": true,
+    "entry_contrast_centered_error": true,
+    "entry_selected_value": false,
+    "exit_anchor_LONG_conditional_fit": true,
+    "exit_anchor_LONG_regret": true,
+    "exit_anchor_LONG_selected_value": true,
+    "exit_anchor_SHORT_conditional_fit": true,
+    "exit_anchor_SHORT_regret": true,
+    "exit_anchor_SHORT_selected_value": true,
+    "exit_sampled_LONG_conditional_fit": true,
+    "exit_sampled_LONG_regret": true,
+    "exit_sampled_LONG_selected_value": true,
+    "exit_sampled_SHORT_conditional_fit": true,
+    "exit_sampled_SHORT_regret": true,
+    "exit_sampled_SHORT_selected_value": true
+  },
+  "created_utc": "2026-09-19T17:16:18.813164+00:00",
+  "criteria": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/REVIEW_CRITERIA.json",
+    "sha256": "4c6e809f024a0e32491873a828ff75cd4cc5065c4980050427bc2c1d37284c92"
+  },
+  "decision": "REJECT_EXPANSION_CONVERGENCE512_ACTION_GATE_FAILED",
+  "generalization_proven": false,
+  "learning_gate_passed": false,
+  "origin_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "profitability_proven": false,
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
+  },
+  "schema_version": "gx1_convergence512_verdict_v1",
+  "test_data_used": false
+}

@@ -174,7 +174,7 @@ def _current_work_status(repo: Path, *, source_only: bool) -> dict | None:
         "working_tree_clean": not bool(_git(source, "status", "--porcelain=v1")),
         "training_source_commit": record.get("source_commit"),
         "runtime_root": record.get("runtime_root"),
-        "latest_completed_native": record.get("completed_entry_fuse_fixed256") or record.get("completed_main_encoder_fixed256") or record.get("completed_residual_normalized_fixed256") or record.get("completed_causal_entry_fixed256"),
+        "latest_completed_native": record.get("completed_convergence512") or record.get("completed_entry_fuse_fixed256") or record.get("completed_main_encoder_fixed256") or record.get("completed_residual_normalized_fixed256") or record.get("completed_causal_entry_fixed256"),
         "recorded_next_diagnostic": record.get("next_diagnostic"),
         "last_diagnostic_failure": record.get("last_diagnostic_failure") or record.get("completed_entry_signal_failure"),
         "latest_completed_diagnostic": record.get("completed_joint_update_diagnostic") or record.get("completed_main_encoder_representation") or record.get("completed_residual_representation") or record.get("completed_entry_signal_inference_check") or record.get("completed_entry_forward_parity"),

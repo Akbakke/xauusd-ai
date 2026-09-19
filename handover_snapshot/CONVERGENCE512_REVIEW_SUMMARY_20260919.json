@@ -1,0 +1,1557 @@
+{
+  "checks": {
+    "entry_LONG_conditional_fit": true,
+    "entry_SHORT_conditional_fit": true,
+    "entry_contrast_centered_error": true,
+    "entry_selected_value": false,
+    "exit_anchor_LONG_conditional_fit": true,
+    "exit_anchor_LONG_regret": true,
+    "exit_anchor_LONG_selected_value": true,
+    "exit_anchor_SHORT_conditional_fit": true,
+    "exit_anchor_SHORT_regret": true,
+    "exit_anchor_SHORT_selected_value": true,
+    "exit_sampled_LONG_conditional_fit": true,
+    "exit_sampled_LONG_regret": true,
+    "exit_sampled_LONG_selected_value": true,
+    "exit_sampled_SHORT_conditional_fit": true,
+    "exit_sampled_SHORT_regret": true,
+    "exit_sampled_SHORT_selected_value": true
+  },
+  "criteria": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/REVIEW_CRITERIA.json",
+    "sha256": "4c6e809f024a0e32491873a828ff75cd4cc5065c4980050427bc2c1d37284c92"
+  },
+  "decisions": {
+    "2025-06": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.40291300127583,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.40291300127583,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.40291300127583,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 7,
+            "HOLD": 24,
+            "reference_regret_bps": 5.4529506352639965,
+            "selected_reference_value_bps": 4.466277441670818
+          },
+          "SHORT": {
+            "EXIT": 22,
+            "HOLD": 9,
+            "reference_regret_bps": 5.543813401652921,
+            "selected_reference_value_bps": -0.982971687470713
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 31,
+            "reference_regret_bps": 4.556581731765501,
+            "selected_reference_value_bps": 5.362646345169313
+          },
+          "SHORT": {
+            "EXIT": 31,
+            "HOLD": 0,
+            "reference_regret_bps": 4.5608417141822075,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 31,
+            "reference_regret_bps": 4.556581731765501,
+            "selected_reference_value_bps": 5.362646345169313
+          },
+          "SHORT": {
+            "EXIT": 31,
+            "HOLD": 0,
+            "reference_regret_bps": 4.5608417141822075,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 38,
+            "HOLD": 86,
+            "reference_regret_bps": 6.565313483438184,
+            "selected_reference_value_bps": 1.0490215495529194
+          },
+          "SHORT": {
+            "EXIT": 81,
+            "HOLD": 43,
+            "reference_regret_bps": 6.197295428764436,
+            "selected_reference_value_bps": -0.02919219734687959
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 124,
+            "reference_regret_bps": 6.193593481375325,
+            "selected_reference_value_bps": 1.4207415516157784
+          },
+          "SHORT": {
+            "EXIT": 124,
+            "HOLD": 0,
+            "reference_regret_bps": 6.168103231417556,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 124,
+            "HOLD": 0,
+            "reference_regret_bps": 7.614335032991104,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 124,
+            "reference_regret_bps": 7.602648764728539,
+            "selected_reference_value_bps": -1.4345455333109824
+          }
+        }
+      }
+    },
+    "2025-07": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 36,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 8.511072052849663,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 36,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 8.511072052849663,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 36,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 8.511072052849663,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 8,
+            "HOLD": 28,
+            "reference_regret_bps": 5.398399621248245,
+            "selected_reference_value_bps": 1.166122340493732
+          },
+          "SHORT": {
+            "EXIT": 25,
+            "HOLD": 11,
+            "reference_regret_bps": 4.968883994552824,
+            "selected_reference_value_bps": 1.8011497623390622
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 36,
+            "reference_regret_bps": 6.701510376400417,
+            "selected_reference_value_bps": -0.13698841465844047
+          },
+          "SHORT": {
+            "EXIT": 36,
+            "HOLD": 0,
+            "reference_regret_bps": 6.770033756891887,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 36,
+            "reference_regret_bps": 6.701510376400417,
+            "selected_reference_value_bps": -0.13698841465844047
+          },
+          "SHORT": {
+            "EXIT": 36,
+            "HOLD": 0,
+            "reference_regret_bps": 6.770033756891887,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 36,
+            "HOLD": 108,
+            "reference_regret_bps": 5.291769746277067,
+            "selected_reference_value_bps": 0.5688444096595049
+          },
+          "SHORT": {
+            "EXIT": 97,
+            "HOLD": 47,
+            "reference_regret_bps": 5.234269244156571,
+            "selected_reference_value_bps": -0.373727663523621
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 144,
+            "reference_regret_bps": 4.84710986374153,
+            "selected_reference_value_bps": 1.013504292195042
+          },
+          "SHORT": {
+            "EXIT": 144,
+            "HOLD": 0,
+            "reference_regret_bps": 4.86054158063295,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 144,
+            "HOLD": 0,
+            "reference_regret_bps": 5.860614155936572,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 144,
+            "reference_regret_bps": 5.843614569761687,
+            "selected_reference_value_bps": -0.983072989128737
+          }
+        }
+      }
+    },
+    "2025-08": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 22,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 1.6288837086070667,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 22,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 1.6288837086070667,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 22,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 1.6288837086070667,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 4,
+            "HOLD": 18,
+            "reference_regret_bps": 2.49565834348852,
+            "selected_reference_value_bps": 0.7408056584271517
+          },
+          "SHORT": {
+            "EXIT": 18,
+            "HOLD": 4,
+            "reference_regret_bps": 2.482898112047802,
+            "selected_reference_value_bps": 0.5543485988270153
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 22,
+            "reference_regret_bps": 3.043443430553783,
+            "selected_reference_value_bps": 0.19302057136188855
+          },
+          "SHORT": {
+            "EXIT": 22,
+            "HOLD": 0,
+            "reference_regret_bps": 3.037246710874818,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 22,
+            "reference_regret_bps": 3.043443430553783,
+            "selected_reference_value_bps": 0.19302057136188855
+          },
+          "SHORT": {
+            "EXIT": 22,
+            "HOLD": 0,
+            "reference_regret_bps": 3.037246710874818,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 15,
+            "HOLD": 73,
+            "reference_regret_bps": 3.595884141046554,
+            "selected_reference_value_bps": 1.8639750995419242
+          },
+          "SHORT": {
+            "EXIT": 72,
+            "HOLD": 16,
+            "reference_regret_bps": 3.640780834311789,
+            "selected_reference_value_bps": -0.2222930847836489
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 88,
+            "reference_regret_bps": 3.4090429788286034,
+            "selected_reference_value_bps": 2.0508162617598744
+          },
+          "SHORT": {
+            "EXIT": 88,
+            "HOLD": 0,
+            "reference_regret_bps": 3.41848774952814,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 88,
+            "HOLD": 0,
+            "reference_regret_bps": 5.459859240588478,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 88,
+            "reference_regret_bps": 5.475196085870266,
+            "selected_reference_value_bps": -2.056708336342126
+          }
+        }
+      }
+    },
+    "2025-09": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 38,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.702660430026683,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 38,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.702660430026683,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 38,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 9.702660430026683,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 5,
+            "HOLD": 33,
+            "reference_regret_bps": 2.8869443543647466,
+            "selected_reference_value_bps": 8.286918955217851
+          },
+          "SHORT": {
+            "EXIT": 33,
+            "HOLD": 5,
+            "reference_regret_bps": 2.9028566079704383,
+            "selected_reference_value_bps": 0.1546851600471296
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 38,
+            "reference_regret_bps": 3.0250816015820754,
+            "selected_reference_value_bps": 8.148781708000522
+          },
+          "SHORT": {
+            "EXIT": 38,
+            "HOLD": 0,
+            "reference_regret_bps": 3.0575417680175683,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 38,
+            "reference_regret_bps": 3.0250816015820754,
+            "selected_reference_value_bps": 8.148781708000522
+          },
+          "SHORT": {
+            "EXIT": 38,
+            "HOLD": 0,
+            "reference_regret_bps": 3.0575417680175683,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 23,
+            "HOLD": 129,
+            "reference_regret_bps": 3.3879632685137424,
+            "selected_reference_value_bps": 4.925431817230818
+          },
+          "SHORT": {
+            "EXIT": 129,
+            "HOLD": 23,
+            "reference_regret_bps": 3.298725156897777,
+            "selected_reference_value_bps": 0.7683508898082533
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 152,
+            "reference_regret_bps": 4.033690104555142,
+            "selected_reference_value_bps": 4.2797049811894174
+          },
+          "SHORT": {
+            "EXIT": 152,
+            "HOLD": 0,
+            "reference_regret_bps": 4.06707604670603,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 152,
+            "HOLD": 0,
+            "reference_regret_bps": 8.31339508574456,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 152,
+            "reference_regret_bps": 8.335586637650666,
+            "selected_reference_value_bps": -4.2685105909446355
+          }
+        }
+      }
+    },
+    "2025-10": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.76911247930219,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.76911247930219,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 31,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.76911247930219,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 13,
+            "HOLD": 18,
+            "reference_regret_bps": 15.168781238217507,
+            "selected_reference_value_bps": -2.9531262843839583
+          },
+          "SHORT": {
+            "EXIT": 16,
+            "HOLD": 15,
+            "reference_regret_bps": 12.146287120157673,
+            "selected_reference_value_bps": -1.9116282405391816
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 31,
+            "reference_regret_bps": 10.256808230953832,
+            "selected_reference_value_bps": 1.9588467228797175
+          },
+          "SHORT": {
+            "EXIT": 31,
+            "HOLD": 0,
+            "reference_regret_bps": 10.234658879618491,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 31,
+            "reference_regret_bps": 10.256808230953832,
+            "selected_reference_value_bps": 1.9588467228797175
+          },
+          "SHORT": {
+            "EXIT": 31,
+            "HOLD": 0,
+            "reference_regret_bps": 10.234658879618491,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 39,
+            "HOLD": 85,
+            "reference_regret_bps": 11.942865894686792,
+            "selected_reference_value_bps": -2.6386375088364846
+          },
+          "SHORT": {
+            "EXIT": 80,
+            "HOLD": 44,
+            "reference_regret_bps": 11.097167166010026,
+            "selected_reference_value_bps": 2.931391665772084
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 124,
+            "reference_regret_bps": 14.144783206524387,
+            "selected_reference_value_bps": -4.840554820674081
+          },
+          "SHORT": {
+            "EXIT": 124,
+            "HOLD": 0,
+            "reference_regret_bps": 14.02855883178211,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 124,
+            "HOLD": 0,
+            "reference_regret_bps": 9.304228385850307,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 124,
+            "reference_regret_bps": 9.310699319406863,
+            "selected_reference_value_bps": 4.717859512375247
+          }
+        }
+      }
+    },
+    "2025-11": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 24,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 11.032370323936144,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 24,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 11.032370323936144,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 24,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 11.032370323936144,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 5,
+            "HOLD": 19,
+            "reference_regret_bps": 5.784978806972504,
+            "selected_reference_value_bps": 5.143864115079244
+          },
+          "SHORT": {
+            "EXIT": 17,
+            "HOLD": 7,
+            "reference_regret_bps": 6.449378540118535,
+            "selected_reference_value_bps": 0.07143118977546692
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 24,
+            "reference_regret_bps": 6.539490898450215,
+            "selected_reference_value_bps": 4.389352023601532
+          },
+          "SHORT": {
+            "EXIT": 24,
+            "HOLD": 0,
+            "reference_regret_bps": 6.520809729894002,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 24,
+            "reference_regret_bps": 6.539490898450215,
+            "selected_reference_value_bps": 4.389352023601532
+          },
+          "SHORT": {
+            "EXIT": 24,
+            "HOLD": 0,
+            "reference_regret_bps": 6.520809729894002,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 28,
+            "HOLD": 68,
+            "reference_regret_bps": 7.284001665500303,
+            "selected_reference_value_bps": 2.199390363569061
+          },
+          "SHORT": {
+            "EXIT": 60,
+            "HOLD": 36,
+            "reference_regret_bps": 6.652983920648694,
+            "selected_reference_value_bps": 2.165599123419573
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 96,
+            "reference_regret_bps": 8.816306533291936,
+            "selected_reference_value_bps": 0.6670854957774282
+          },
+          "SHORT": {
+            "EXIT": 96,
+            "HOLD": 0,
+            "reference_regret_bps": 8.818583044068268,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 96,
+            "HOLD": 0,
+            "reference_regret_bps": 9.483392029069364,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 96,
+            "reference_regret_bps": 9.475719256326556,
+            "selected_reference_value_bps": -0.6571362122582892
+          }
+        }
+      }
+    },
+    "2025-12": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 33,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.368128682627823,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 33,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.368128682627823,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 33,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 16.368128682627823,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 13,
+            "HOLD": 20,
+            "reference_regret_bps": 7.92099790500872,
+            "selected_reference_value_bps": 0.6183154537822261
+          },
+          "SHORT": {
+            "EXIT": 19,
+            "HOLD": 14,
+            "reference_regret_bps": 7.721544814832283,
+            "selected_reference_value_bps": 4.679697282386549
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 33,
+            "reference_regret_bps": 12.54876629150275,
+            "selected_reference_value_bps": -4.009452932711803
+          },
+          "SHORT": {
+            "EXIT": 33,
+            "HOLD": 0,
+            "reference_regret_bps": 12.401242097218832,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 33,
+            "reference_regret_bps": 12.54876629150275,
+            "selected_reference_value_bps": -4.009452932711803
+          },
+          "SHORT": {
+            "EXIT": 33,
+            "HOLD": 0,
+            "reference_regret_bps": 12.401242097218832,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 39,
+            "HOLD": 93,
+            "reference_regret_bps": 11.301661889830774,
+            "selected_reference_value_bps": -4.701485366306522
+          },
+          "SHORT": {
+            "EXIT": 90,
+            "HOLD": 42,
+            "reference_regret_bps": 11.56001547374057,
+            "selected_reference_value_bps": 3.8627474697476085
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 132,
+            "reference_regret_bps": 15.562458465045149,
+            "selected_reference_value_bps": -8.962281941520898
+          },
+          "SHORT": {
+            "EXIT": 132,
+            "HOLD": 0,
+            "reference_regret_bps": 15.422762943488179,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 132,
+            "HOLD": 0,
+            "reference_regret_bps": 6.600176523524252,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 132,
+            "reference_regret_bps": 6.654768028606971,
+            "selected_reference_value_bps": 8.767994914881207
+          }
+        }
+      }
+    },
+    "2026-01": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 27,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 17.847642563007497,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 27,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 17.847642563007497,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 27,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 17.847642563007497,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 8,
+            "HOLD": 19,
+            "reference_regret_bps": 8.16182068542198,
+            "selected_reference_value_bps": 5.542680254688969
+          },
+          "SHORT": {
+            "EXIT": 18,
+            "HOLD": 9,
+            "reference_regret_bps": 7.688256744985227,
+            "selected_reference_value_bps": 1.850496930104715
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 27,
+            "reference_regret_bps": 9.508808482576299,
+            "selected_reference_value_bps": 4.195692457534649
+          },
+          "SHORT": {
+            "EXIT": 27,
+            "HOLD": 0,
+            "reference_regret_bps": 9.538753675089943,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 27,
+            "reference_regret_bps": 9.508808482576299,
+            "selected_reference_value_bps": 4.195692457534649
+          },
+          "SHORT": {
+            "EXIT": 27,
+            "HOLD": 0,
+            "reference_regret_bps": 9.538753675089943,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 31,
+            "HOLD": 77,
+            "reference_regret_bps": 9.16213136828608,
+            "selected_reference_value_bps": 8.362808828276616
+          },
+          "SHORT": {
+            "EXIT": 76,
+            "HOLD": 32,
+            "reference_regret_bps": 9.162083159994197,
+            "selected_reference_value_bps": 4.574237231855039
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 108,
+            "reference_regret_bps": 13.894210671937024,
+            "selected_reference_value_bps": 3.6307295246256723
+          },
+          "SHORT": {
+            "EXIT": 108,
+            "HOLD": 0,
+            "reference_regret_bps": 13.736320391849235,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 108,
+            "HOLD": 0,
+            "reference_regret_bps": 17.524940196562696,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 108,
+            "reference_regret_bps": 17.47799327745344,
+            "selected_reference_value_bps": -3.7416728856042027
+          }
+        }
+      }
+    },
+    "2026-02": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 14,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 20.36172536441258,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 14,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 20.36172536441258,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 14,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 20.36172536441258,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 6,
+            "HOLD": 8,
+            "reference_regret_bps": 9.558411410876683,
+            "selected_reference_value_bps": 3.1446984154837474
+          },
+          "SHORT": {
+            "EXIT": 5,
+            "HOLD": 9,
+            "reference_regret_bps": 9.872880816459656,
+            "selected_reference_value_bps": 6.739103163991656
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 14,
+            "reference_regret_bps": 16.603438309260778,
+            "selected_reference_value_bps": -3.900328482900347
+          },
+          "SHORT": {
+            "EXIT": 14,
+            "HOLD": 0,
+            "reference_regret_bps": 16.61198398045131,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 14,
+            "reference_regret_bps": 16.603438309260778,
+            "selected_reference_value_bps": -3.900328482900347
+          },
+          "SHORT": {
+            "EXIT": 14,
+            "HOLD": 0,
+            "reference_regret_bps": 16.61198398045131,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 17,
+            "HOLD": 39,
+            "reference_regret_bps": 10.000892332621984,
+            "selected_reference_value_bps": 3.367564861396594
+          },
+          "SHORT": {
+            "EXIT": 33,
+            "HOLD": 23,
+            "reference_regret_bps": 10.369644662964024,
+            "selected_reference_value_bps": 2.832657767193658
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 56,
+            "reference_regret_bps": 13.250119302953992,
+            "selected_reference_value_bps": 0.11833789106458426
+          },
+          "SHORT": {
+            "EXIT": 56,
+            "HOLD": 0,
+            "reference_regret_bps": 13.202302430157683,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 56,
+            "HOLD": 0,
+            "reference_regret_bps": 13.368457194018577,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 56,
+            "reference_regret_bps": 13.493447569864136,
+            "selected_reference_value_bps": -0.2911451397064541
+          }
+        }
+      }
+    },
+    "ALL": {
+      "entry": {
+        "continued": {
+          "action_counts": {
+            "FLAT": 256,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 12.08649828255875,
+          "selected_reference_value_bps": 0.0
+        },
+        "fuse": {
+          "action_counts": {
+            "FLAT": 256,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 12.08649828255875,
+          "selected_reference_value_bps": 0.0
+        },
+        "train_constant": {
+          "action_counts": {
+            "FLAT": 256,
+            "LONG": 0,
+            "SHORT": 0
+          },
+          "reference_regret_bps": 12.08649828255875,
+          "selected_reference_value_bps": 0.0
+        }
+      },
+      "exit_anchor": {
+        "continued": {
+          "LONG": {
+            "EXIT": 69,
+            "HOLD": 187,
+            "reference_regret_bps": 6.846264781081118,
+            "selected_reference_value_bps": 2.9594688607321586
+          },
+          "SHORT": {
+            "EXIT": 173,
+            "HOLD": 83,
+            "reference_regret_bps": 6.435955378692597,
+            "selected_reference_value_bps": 1.1470223406795412
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 256,
+            "reference_regret_bps": 7.58836466120556,
+            "selected_reference_value_bps": 2.2173689806077164
+          },
+          "SHORT": {
+            "EXIT": 256,
+            "HOLD": 0,
+            "reference_regret_bps": 7.582977719372138,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 256,
+            "reference_regret_bps": 7.58836466120556,
+            "selected_reference_value_bps": 2.2173689806077164
+          },
+          "SHORT": {
+            "EXIT": 256,
+            "HOLD": 0,
+            "reference_regret_bps": 7.582977719372138,
+            "selected_reference_value_bps": 0.0
+          }
+        }
+      },
+      "exit_sampled": {
+        "continued": {
+          "LONG": {
+            "EXIT": 266,
+            "HOLD": 758,
+            "reference_regret_bps": 7.450274409497069,
+            "selected_reference_value_bps": 1.4451260285750323
+          },
+          "SHORT": {
+            "EXIT": 718,
+            "HOLD": 306,
+            "reference_regret_bps": 7.280133448730339,
+            "selected_reference_value_bps": 1.7321388009622751
+          }
+        },
+        "fuse": {
+          "LONG": {
+            "EXIT": 0,
+            "HOLD": 1024,
+            "reference_regret_bps": 9.058838462718995,
+            "selected_reference_value_bps": -0.1634380246468936
+          },
+          "SHORT": {
+            "EXIT": 1024,
+            "HOLD": 0,
+            "reference_regret_bps": 9.012272249692614,
+            "selected_reference_value_bps": 0.0
+          }
+        },
+        "train_constant": {
+          "LONG": {
+            "EXIT": 1024,
+            "HOLD": 0,
+            "reference_regret_bps": 8.895400438072102,
+            "selected_reference_value_bps": 0.0
+          },
+          "SHORT": {
+            "EXIT": 0,
+            "HOLD": 1024,
+            "reference_regret_bps": 8.90519223751835,
+            "selected_reference_value_bps": 0.107080012174265
+          }
+        }
+      }
+    }
+  },
+  "entry_decomposition": {
+    "continued": {
+      "common_value": {
+        "bias_bps": 0.04453947805450298,
+        "centered_mse": 0.09291511906804525,
+        "mae": 0.19690058668493293,
+        "mse": 0.09489888417341281,
+        "pearson": 0.7248294153282959,
+        "prediction_mean_bps": -5.81047160923481,
+        "prediction_std_bps": 0.22060899371917564,
+        "target_mean_bps": -5.855011087289313,
+        "target_std_bps": 0.4241311468123303
+      },
+      "long_short_contrast": {
+        "bias_bps": -1.7230411425116472,
+        "centered_mse": 2402.5513615669897,
+        "mae": 33.72393308876781,
+        "mse": 2405.520232345778,
+        "pearson": 0.20771627483845923,
+        "prediction_mean_bps": 2.4870706982910633,
+        "prediction_std_bps": 1.1368801813826472,
+        "target_mean_bps": 4.2101118408027105,
+        "target_std_bps": 49.23935893289922
+      }
+    },
+    "fuse": {
+      "common_value": {
+        "bias_bps": 0.05882945322082378,
+        "centered_mse": 0.12487457376777196,
+        "mae": 0.23246400206699036,
+        "mse": 0.12833547833403308,
+        "pearson": 0.6004388826482645,
+        "prediction_mean_bps": -5.796181634068489,
+        "prediction_std_bps": 0.15546039311597323,
+        "target_mean_bps": -5.855011087289313,
+        "target_std_bps": 0.4241311468123303
+      },
+      "long_short_contrast": {
+        "bias_bps": -3.3094795562210493,
+        "centered_mse": 2408.2698097338894,
+        "mae": 33.95815007312922,
+        "mse": 2419.222464666934,
+        "pearson": 0.24785384926743845,
+        "prediction_mean_bps": 0.9006322845816612,
+        "prediction_std_bps": 0.6847472857761787,
+        "target_mean_bps": 4.2101118408027105,
+        "target_std_bps": 49.23935893289922
+      }
+    }
+  },
+  "generalization_proven": false,
+  "metrics": {
+    "entry": {
+      "LONG": {
+        "continued": {
+          "bias_bps": -0.8169810932013206,
+          "centered_mse": 602.923420543846,
+          "mae": 16.91235044709174,
+          "mse": 603.5908786504943,
+          "pearson": 0.20778927711622266,
+          "prediction_mean_bps": -4.566936260089278,
+          "prediction_std_bps": 0.6096151474114803,
+          "target_mean_bps": -3.7499551668879576,
+          "target_std_bps": 24.673928681420314
+        },
+        "fuse": {
+          "bias_bps": -1.5959103248897009,
+          "centered_mse": 604.661324189728,
+          "mae": 17.036164782184642,
+          "mse": 607.2082539548175,
+          "pearson": 0.2285155243396856,
+          "prediction_mean_bps": -5.3458654917776585,
+          "prediction_std_bps": 0.38006340550982987,
+          "target_mean_bps": -3.7499551668879576,
+          "target_std_bps": 24.673928681420314
+        },
+        "initial": {
+          "bias_bps": 4.7187177916639484,
+          "centered_mse": 608.5210700908782,
+          "mae": 17.180787479446735,
+          "mse": 630.7873676882441,
+          "pearson": 0.021670222830484264,
+          "prediction_mean_bps": 0.9687626247759908,
+          "prediction_std_bps": 0.4698326797451843,
+          "target_mean_bps": -3.7499551668879576,
+          "target_std_bps": 24.673928681420314
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 608.8027565758159,
+          "mae": 16.917748797976856,
+          "mse": 608.8027565758159,
+          "pearson": null,
+          "prediction_mean_bps": -3.7499551668879576,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": -3.7499551668879576,
+          "target_std_bps": 24.673928681420314
+        }
+      },
+      "SHORT": {
+        "continued": {
+          "bias_bps": 0.9060600493103266,
+          "centered_mse": 598.5380904777851,
+          "mae": 16.811904123052955,
+          "mse": 599.3590352907413,
+          "pearson": 0.18844174687178245,
+          "prediction_mean_bps": -7.0540069583803415,
+          "prediction_std_bps": 0.6098805634518729,
+          "target_mean_bps": -7.960067007690668,
+          "target_std_bps": 24.572632173721594
+        },
+        "fuse": {
+          "bias_bps": 1.7135692313313484,
+          "centered_mse": 599.7233298247521,
+          "mae": 16.930889923125505,
+          "mse": 602.6596493353177,
+          "pearson": 0.23138114674229018,
+          "prediction_mean_bps": -6.24649777635932,
+          "prediction_std_bps": 0.3719235111373552,
+          "target_mean_bps": -7.960067007690668,
+          "target_std_bps": 24.572632173721594
+        },
+        "initial": {
+          "bias_bps": 9.511761804693379,
+          "centered_mse": 602.5332885563035,
+          "mae": 19.55589348229114,
+          "mse": 693.0069011855275,
+          "pearson": 0.055305967107366266,
+          "prediction_mean_bps": 1.5516947970027104,
+          "prediction_std_bps": 0.606714407649726,
+          "target_mean_bps": -7.960067007690668,
+          "target_std_bps": 24.572632173721594
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 603.8142519450176,
+          "mae": 16.791301223944174,
+          "mse": 603.8142519450176,
+          "pearson": null,
+          "prediction_mean_bps": -7.960067007690668,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": -7.960067007690668,
+          "target_std_bps": 24.572632173721594
+        }
+      }
+    },
+    "exit_anchor": {
+      "LONG": {
+        "continued": {
+          "bias_bps": -1.0840815395713435,
+          "centered_mse": 615.5754503044353,
+          "mae": 17.10046270769817,
+          "mse": 616.7506830888748,
+          "pearson": 0.18892380449958063,
+          "prediction_mean_bps": 1.133287441036373,
+          "prediction_std_bps": 1.1388992698525724,
+          "target_mean_bps": 2.2173689806077164,
+          "target_std_bps": 25.000738704983654
+        },
+        "fuse": {
+          "bias_bps": -1.4162421454384457,
+          "centered_mse": 624.2982359080919,
+          "mae": 17.265379379532533,
+          "mse": 626.303977722608,
+          "pearson": 0.17066576216541637,
+          "prediction_mean_bps": 0.8011268351692706,
+          "prediction_std_bps": 0.08746068288472475,
+          "target_mean_bps": 2.2173689806077164,
+          "target_std_bps": 25.000738704983654
+        },
+        "initial": {
+          "bias_bps": -2.1215662229296868,
+          "centered_mse": 625.015157580644,
+          "mae": 17.37537532357237,
+          "mse": 629.5162008189201,
+          "pearson": 0.011971393329605206,
+          "prediction_mean_bps": 0.0958027576780296,
+          "prediction_std_bps": 0.03891224364737394,
+          "target_mean_bps": 2.2173689806077164,
+          "target_std_bps": 25.000738704983654
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 625.0369357948678,
+          "mae": 17.088237921004293,
+          "mse": 625.0369357948678,
+          "pearson": null,
+          "prediction_mean_bps": 2.2173689806077164,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": 2.2173689806077164,
+          "target_std_bps": 25.000738704983654
+        }
+      },
+      "SHORT": {
+        "continued": {
+          "bias_bps": 1.2160305198776769,
+          "centered_mse": 608.1207810654387,
+          "mae": 17.04653846223664,
+          "mse": 609.5995112907126,
+          "pearson": 0.20214595440835098,
+          "prediction_mean_bps": -0.982932647850248,
+          "prediction_std_bps": 1.7347499206208878,
+          "target_mean_bps": -2.198963167727925,
+          "target_std_bps": 24.95218472753857
+        },
+        "fuse": {
+          "bias_bps": 1.3519517373060808,
+          "centered_mse": 620.0554556977387,
+          "mae": 17.212211357080378,
+          "mse": 621.8832291977436,
+          "pearson": 0.17227546319623385,
+          "prediction_mean_bps": -0.8470114304218441,
+          "prediction_std_bps": 0.3083712705944986,
+          "target_mean_bps": -2.198963167727925,
+          "target_std_bps": 24.95218472753857
+        },
+        "initial": {
+          "bias_bps": 2.3009741342903,
+          "centered_mse": 622.6266714876226,
+          "mae": 17.385676023601263,
+          "mse": 627.9211534542956,
+          "pearson": -0.006285834645954878,
+          "prediction_mean_bps": 0.10201096656237496,
+          "prediction_std_bps": 0.04252685936231425,
+          "target_mean_bps": -2.198963167727925,
+          "target_std_bps": 24.95218472753857
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 622.611522677209,
+          "mae": 17.059600886989756,
+          "mse": 622.611522677209,
+          "pearson": null,
+          "prediction_mean_bps": -2.198963167727925,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": -2.198963167727925,
+          "target_std_bps": 24.95218472753857
+        }
+      }
+    },
+    "exit_sampled": {
+      "LONG": {
+        "continued": {
+          "bias_bps": 1.2545310265577427,
+          "centered_mse": 857.35885180227,
+          "mae": 17.801255315016533,
+          "mse": 858.9326998988661,
+          "pearson": 0.1359234282738303,
+          "prediction_mean_bps": 1.0910930019108491,
+          "prediction_std_bps": 1.0602199645477435,
+          "target_mean_bps": -0.1634380246468936,
+          "target_std_bps": 29.405953389739217
+        },
+        "fuse": {
+          "bias_bps": 0.8764237261275412,
+          "centered_mse": 863.9343892797467,
+          "mae": 17.89823808926303,
+          "mse": 864.7025078274661,
+          "pearson": 0.1250707432782997,
+          "prediction_mean_bps": 0.7129857014806475,
+          "prediction_std_bps": 0.10701400912482711,
+          "target_mean_bps": -0.1634380246468936,
+          "target_std_bps": 29.405953389739217
+        },
+        "initial": {
+          "bias_bps": 0.26428988216002836,
+          "centered_mse": 864.6766933219772,
+          "mae": 17.947385256281905,
+          "mse": 864.7465424637893,
+          "pearson": 0.011212926476368545,
+          "prediction_mean_bps": 0.10085185751313475,
+          "prediction_std_bps": 0.055284958506754675,
+          "target_mean_bps": -0.1634380246468936,
+          "target_std_bps": 29.405953389739217
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 864.7100947595153,
+          "mae": 17.96828435603419,
+          "mse": 864.7100947595153,
+          "pearson": null,
+          "prediction_mean_bps": -0.1634380246468936,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": -0.1634380246468936,
+          "target_std_bps": 29.405953389739217
+        }
+      },
+      "SHORT": {
+        "continued": {
+          "bias_bps": -1.1803032547009025,
+          "centered_mse": 846.8030126877195,
+          "mae": 17.719319961850033,
+          "mse": 848.196128460777,
+          "pearson": 0.15744281431831014,
+          "prediction_mean_bps": -1.0732232425266375,
+          "prediction_std_bps": 1.668315040095187,
+          "target_mean_bps": 0.107080012174265,
+          "target_std_bps": 29.315869375693886
+        },
+        "fuse": {
+          "bias_bps": -0.863189517363935,
+          "centered_mse": 857.1337637666579,
+          "mae": 17.834110157451505,
+          "mse": 857.8788599095449,
+          "pearson": 0.12437994769366069,
+          "prediction_mean_bps": -0.75610950518967,
+          "prediction_std_bps": 0.32830748338916765,
+          "target_mean_bps": 0.107080012174265,
+          "target_std_bps": 29.315869375693886
+        },
+        "initial": {
+          "bias_bps": -0.004571575136651518,
+          "centered_mse": 859.5200891707896,
+          "mae": 17.928908790720016,
+          "mse": 859.5201100700889,
+          "pearson": -0.038047147173989146,
+          "prediction_mean_bps": 0.10250843703761348,
+          "prediction_std_bps": 0.04391461571391247,
+          "target_mean_bps": 0.107080012174265,
+          "target_std_bps": 29.315869375693886
+        },
+        "train_constant": {
+          "bias_bps": 0.0,
+          "centered_mse": 859.4201972527467,
+          "mae": 17.926541159484174,
+          "mse": 859.4201972527467,
+          "pearson": null,
+          "prediction_mean_bps": 0.107080012174265,
+          "prediction_std_bps": 0.0,
+          "target_mean_bps": 0.107080012174265,
+          "target_std_bps": 29.315869375693886
+        }
+      }
+    }
+  },
+  "profitability_proven": false,
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
+  },
+  "test_data_used": false
+}

@@ -1,0 +1,163 @@
+{
+  "created_utc": "2026-09-19T17:20:21.303607+00:00",
+  "entry_trade_minus_flat_bps": {
+    "LONG": {
+      "max": -3.263061571866274,
+      "mean": -4.592235248680481,
+      "min": -6.029725357890129,
+      "n": 256,
+      "std": 0.6097415562036662
+    },
+    "SHORT": {
+      "max": -5.606676207855344,
+      "mean": -7.0793059469715445,
+      "min": -8.807467356324196,
+      "n": 256,
+      "std": 0.6432909607226429
+    }
+  },
+  "exit_hold_minus_exit_bps": {
+    "anchor": {
+      "LONG": {
+        "max": 2.695234775543213,
+        "mean": 1.133287441036373,
+        "min": -0.6474226117134094,
+        "n": 256,
+        "std": 1.1388992698525724
+      },
+      "SHORT": {
+        "max": 1.8710355758666992,
+        "mean": -0.982932647850248,
+        "min": -3.4803977012634277,
+        "n": 256,
+        "std": 1.7347499206208878
+      }
+    },
+    "sampled": {
+      "LONG": {
+        "max": 2.695235252380371,
+        "mean": 1.0910930019108491,
+        "min": -0.6483441591262817,
+        "n": 1024,
+        "std": 1.0602199645477435
+      },
+      "SHORT": {
+        "max": 1.8688806295394897,
+        "mean": -1.0732232425266375,
+        "min": -3.503279209136963,
+        "n": 1024,
+        "std": 1.668315040095187
+      }
+    }
+  },
+  "fixed_forced_direction_diagnostic": {
+    "continued": {
+      "LONG": 254,
+      "SHORT": 2,
+      "actual_entry_policy": false,
+      "mean_reference_bps": -3.852350110944826
+    },
+    "fuse": {
+      "LONG": 234,
+      "SHORT": 22,
+      "actual_entry_policy": false,
+      "mean_reference_bps": -1.415482216340024
+    }
+  },
+  "interpretation": "Actual Entry stays FLAT. Forced direction is an unchanged diagnostic on all256 opportunities, not an authorized policy or strategy profit. Contrast rank association and amplitude must be separated from mean-bias fitting. Exit choices improve pooled reference value but monthly variation and reused TRAIN prevent a generalization claim. Direct entry overlap is not all temporal/target overlap. No rescaling, threshold search or training extension follows.",
+  "monthly_exit_improvement": {
+    "exit_anchor": {
+      "LONG": {
+        "months": 9,
+        "months_better_than256": 7,
+        "months_better_than_global_train_constant": 7
+      },
+      "SHORT": {
+        "months": 9,
+        "months_better_than256": 7,
+        "months_better_than_global_train_constant": 7
+      }
+    },
+    "exit_sampled": {
+      "LONG": {
+        "months": 9,
+        "months_better_than256": 6,
+        "months_better_than_global_train_constant": 7
+      },
+      "SHORT": {
+        "months": 9,
+        "months_better_than256": 6,
+        "months_better_than_global_train_constant": 7
+      }
+    }
+  },
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/DECISION_GAP_OPERATOR.py",
+    "sha256": "df06a743b3b50f2203cb2b89a86cab51920e604e3a05399974832ed018ad8b7e"
+  },
+  "probe_direct_entry_training_overlap_by_step": {
+    "256": 256,
+    "512": 256
+  },
+  "probe_entries": 256,
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
+  },
+  "schema_version": "gx1_convergence512_saved_decision_gap_audit_v1",
+  "test_data_used": false,
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "aa92a7b04639f2972a108c85796a63448670e10d9368b6fdd6d1bfb1d23d4ffb"
+  },
+  "within_month_entry_contrast": {
+    "continued": {
+      "centered_mse": 2343.6221829625256,
+      "covariance_bps2": 9.8036751453635,
+      "months": 9,
+      "pooled_within_month_correlation": 0.18988377595714204,
+      "positive_monthly_correlations": 8,
+      "prediction_std_bps": 1.0623113421074082,
+      "target_std_bps": 48.601450882310935
+    },
+    "fuse": {
+      "centered_mse": 2347.988964805866,
+      "covariance_bps2": 7.253178260033182,
+      "months": 9,
+      "pooled_within_month_correlation": 0.23766724389048946,
+      "positive_monthly_correlations": 9,
+      "prediction_std_bps": 0.6279279100739019,
+      "target_std_bps": 48.601450882310935
+    },
+    "initial": {
+      "centered_mse": 2358.703120636463,
+      "covariance_bps2": 1.9121887940297084,
+      "months": 9,
+      "pooled_within_month_correlation": 0.06024723341654507,
+      "positive_monthly_correlations": 6,
+      "prediction_std_bps": 0.6530469805763843,
+      "target_std_bps": 48.601450882310935
+    },
+    "main": {
+      "centered_mse": 2354.1408739057997,
+      "covariance_bps2": 4.044817194148636,
+      "months": 9,
+      "pooled_within_month_correlation": 0.23128507071149895,
+      "positive_monthly_correlations": 9,
+      "prediction_std_bps": 0.3598338900300137,
+      "target_std_bps": 48.601450882310935
+    },
+    "residual": {
+      "centered_mse": 2360.9854742710622,
+      "covariance_bps2": 0.5628550066558734,
+      "months": 9,
+      "pooled_within_month_correlation": 0.1149150740393863,
+      "positive_monthly_correlations": 8,
+      "prediction_std_bps": 0.10077905879354222,
+      "target_std_bps": 48.601450882310935
+    }
+  }
+}

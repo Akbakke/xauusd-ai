@@ -1,0 +1,113 @@
+{
+  "additional_optimizer_steps": 256,
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "e734dd7249ff69a02801ccc58984e20a378dc57ad0096f06511c2ba20904b330"
+  },
+  "checkpoint": {
+    "checkpoint_index": 9,
+    "complete": false,
+    "epoch_index": 0,
+    "global_optimizer_steps": 512,
+    "next_batch_offset": 512,
+    "phase": "train",
+    "schema_version": "gx1_candidate_training_session_v1",
+    "session_contract_sha256": "722a30e98fee5fefa167b3e35cba419b0302a02a6c60535cbc50ca3739fb4c0e",
+    "slot": 0,
+    "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
+  },
+  "created_utc": "2026-09-19T17:24:39.901758+00:00",
+  "decision_gap_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/DECISION_GAP_AUDIT.json",
+    "sha256": "ad9cac8e3183b0f4a071968a42b5664e400ef2218dcb9ec0626a7b70ee93d331"
+  },
+  "economic_rollout": false,
+  "entry_actions_improved": false,
+  "exit_pooled_train_decisions_improved": true,
+  "finished_utc": "2026-09-19T17:08:23.517463+00:00",
+  "generalization_proven": false,
+  "learning_gate_passed": false,
+  "learning_review_complete": true,
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "model_state_sha256": "67b1be8e694b0ba6859fc5bc369dc668ea6e68b9dd5a110b7d3f0e8a4bb0896d",
+  "native_processes": [],
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/NATIVE_RECIPE.json",
+    "sha256": "0fb3a8a9c29ecf7a7f5c5ba89a067f679580377c7bc53e2b1b45e175c20f0b6c"
+  },
+  "next_action": "Reuse completed512 paired review and saved Entry decision-gap audit. Exit now improves pooled TRAIN choices on both sides; Entry remains FLAT256/256, within-month contrast correlation fell and forced direction worsened. Do not extend training or repeat gradient/normalization tests. Next, inspect existing Entry target/Exit policy linkage and retained native evaluation evidence to distinguish inadequate conditional Entry prediction under Q_mu from a reference-policy value that does not evaluate the improved Exit policy. This is an unresolved question, not proof of a target bug or authority for target changes/new runs. No full epoch/VAL/CONTROL/TEST, threshold tuning or trading.",
+  "optimizer_steps": 512,
+  "origin_optimizer_steps": 256,
+  "original256_checkpoint_and_pointer_verified": true,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PLAN.json",
+    "sha256": "3f53d1e8b6e86cae9c8776ec87183189b42e1e73b1acfec999db64170f1c6907"
+  },
+  "preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PREPARATION_RESULT.json",
+    "sha256": "8149bc3a1dda5e9dc5f0e8bd4dac5f7d60128f8b2783a2a921af19ccc63e686a"
+  },
+  "profitability_proven": false,
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919_BOOT469/receipts/invocation-0001.json",
+    "sha256": "3bde0fd2db2bf8a3d6a930e10e74efa3905a5cf9df59ed6ef5553e0cc33a982f"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+    "sha256": "d1949f9798a2e4e09a35304d1936dea184901997a3ef954b0d8e76f2269d2a1f"
+  },
+  "resume_authorized": false,
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "1c55142dbec6f326000e194a8107a0812338a93d35863d4a68d8c02cbd4b0a5d"
+  },
+  "review_criteria": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/REVIEW_CRITERIA.json",
+    "sha256": "4c6e809f024a0e32491873a828ff75cd4cc5065c4980050427bc2c1d37284c92"
+  },
+  "run_id": "NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919_BOOT469",
+  "same_targets_masks_cohorts_verified": true,
+  "schema_version": "gx1_convergence512_completion_v1",
+  "scope_consumed": true,
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "source_commit": "0ad6aea43423a08f53f39622dc1196b08131d914",
+  "started_utc": "2026-09-19T15:53:27.721659+00:00",
+  "status": "REJECT_EXPANSION_CONVERGENCE512_ACTION_GATE_FAILED",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "teacher_refreshed": false,
+  "test_data_used": false,
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "aa92a7b04639f2972a108c85796a63448670e10d9368b6fdd6d1bfb1d23d4ffb"
+  },
+  "training_expansion_authorized": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "1e0d173855925d95f596825c52e20d48d426b2b9941c79e024446d617f261973"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/VERDICT.json",
+    "sha256": "e7f02c216f005fedcc8e357bc94ba0b682161eda52a53e3be9b3f1f9217c0993"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919_DISABLED.json",
+    "sha256": "1caa5691f72d8d211ed0d54f185913e7ecd8c7a16f390c43a7df811ef768dca2"
+  },
+  "windows_task_observation": {
+    "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 e734dd7249ff69a02801ccc58984e20a378dc57ad0096f06511c2ba20904b330 -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\"",
+    "enabled": false,
+    "last_result": 0,
+    "observed_utc": "2026-09-19T17:14:09.8891856+00:00",
+    "plan_json": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "state": "Disabled",
+    "task_name": "GX1NativeLearningCalibration"
+  }
+}
