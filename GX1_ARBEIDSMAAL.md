@@ -5,8 +5,9 @@ beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
 Nå: Entry fuse256 er ferdig analysert: begge Entry-sider har bedre samlet verdiestimering enn tidligere modeller og TRAIN-konstanter, men fortsatt FLAT256/256 og uendret sidefast Exit. Samlet læringsport er ikke bestått. Brukt scope er stengt; ingen ny kjøring er bundet.
-Neste: kontroller eksisterende bevis og gradientmålers dekning av den felles
-oppdateringen gjennom fuse og begge verdi-hoder. Se VEIEN_VIDERE.md.
+Neste: joint-oppdateringen er kontrollert; konfliktforklaringen støttes ikke på
+TRAIN16. Avgrens faktisk verdilæring/konvergens med uendret modell og mål.
+Se VEIEN_VIDERE.md. Ingen ny kjøring er bundet.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast
 tapsgrense eller maksimal holdetid. Beregningshorisont og bootstrap er ikke

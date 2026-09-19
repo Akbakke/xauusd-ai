@@ -1,0 +1,135 @@
+{
+  "schema_version": "gx1_joint_update_review_v2",
+  "created_utc": "2026-09-19T15:04:37.841830+00:00",
+  "decision": "REJECT_AUXILIARY_CONFLICT_AS_CAUSE_ON_MEASURED_TRAIN16",
+  "run_id": "NATIVE_JOINT_UPDATE_GRU_RETRY_20260919",
+  "source_commit": "c71df2271863ec1fd118e4ae9e608841f7f6cfd0",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919_BOOT468",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/entry_gradient_diagnostic/RESULT.json",
+    "sha256": "6c56581d1e38a250b9f55a41cfd4092a7e0a4676aed9817ee414bc631f091d8f"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919_BOOT468/receipts/invocation-0001.json",
+    "sha256": "a9203dfa340dad20fff691662d5856a6318f2055815c02872b4377189e156e76"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919_DISABLED.json",
+    "sha256": "5fbb2bc05c27f602ea76b571d37857fd7bf71a7275fcc5867c231c39732a98b9"
+  },
+  "started_utc": "2026-09-19T14:40:11.235926+00:00",
+  "finished_utc": "2026-09-19T14:52:53.351940+00:00",
+  "guard_decision": "PASS",
+  "native_processes": [],
+  "optimizer_steps": 0,
+  "model_forwards": 6,
+  "original_checkpoint_independently_rehashed": true,
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+  },
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "af647c4d76145fc30df126b853cc9d9de43fc03ef69c756256279e98007468a8"
+  },
+  "model_state_sha256": "0df40a95433479b6aed5ca4dfb07cbcbcf639879f622cb89b2625525538ece02",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "parity": {
+    "actions_identical": true,
+    "dropout_enabled": false,
+    "max_abs_difference_bps": 3.898143768310547e-05,
+    "online_calls": 1,
+    "recurrent_modules": 18
+  },
+  "native_gradient_max_abs_difference": 1.5236437320709229e-06,
+  "joint_first_order_weighted_loss_change": {
+    "auxiliary": -0.08543239461502888,
+    "common": -0.0010419106888607756,
+    "contrast": -0.1281114529983152,
+    "entry": -0.12924425572181847,
+    "exit": -0.16543927458125351,
+    "flat": -9.089695359324288e-05
+  },
+  "without_current_auxiliary_first_order_weighted_loss_change": {
+    "auxiliary": -0.03346409435458225,
+    "common": -0.001052981172552455,
+    "contrast": -0.133971128808704,
+    "entry": -0.1351279568425363,
+    "exit": -0.17000899335668296,
+    "flat": -0.00010385014135339347
+  },
+  "entry_head_contrast_first_order_change": 0.00620830922176771,
+  "entry_head_limit": "Positive contribution on this reused batch is not proof that saved Adam momentum is globally wrong; shared parameters make the total effect negative. Do not reset momentum from this observation.",
+  "train_covariance_diagnostic": {
+    "2025-06": {
+      "prediction_variance_bps2": 0.24593838504701496,
+      "prediction_target_covariance_bps2": 1.977608243624523,
+      "prediction_residual_covariance_bps2": 1.731669858577508
+    },
+    "2025-07": {
+      "prediction_variance_bps2": 0.37595197580356987,
+      "prediction_target_covariance_bps2": 3.3717993632958985,
+      "prediction_residual_covariance_bps2": 2.9958473874923284
+    },
+    "2025-08": {
+      "prediction_variance_bps2": 0.19674655445045056,
+      "prediction_target_covariance_bps2": 2.5779525349214474,
+      "prediction_residual_covariance_bps2": 2.381205980470997
+    },
+    "2025-09": {
+      "prediction_variance_bps2": 0.4283990219662297,
+      "prediction_target_covariance_bps2": 3.8390168647265233,
+      "prediction_residual_covariance_bps2": 3.410617842760294
+    },
+    "2025-10": {
+      "prediction_variance_bps2": 0.5990165783506577,
+      "prediction_target_covariance_bps2": 14.320096105141799,
+      "prediction_residual_covariance_bps2": 13.721079526791142
+    },
+    "2025-11": {
+      "prediction_variance_bps2": 0.4751345788530408,
+      "prediction_target_covariance_bps2": 1.535861313048934,
+      "prediction_residual_covariance_bps2": 1.0607267341958933
+    },
+    "2025-12": {
+      "prediction_variance_bps2": 0.4017801418201604,
+      "prediction_target_covariance_bps2": 17.069993517574684,
+      "prediction_residual_covariance_bps2": 16.668213375754522
+    },
+    "2026-01": {
+      "prediction_variance_bps2": 0.452202146659186,
+      "prediction_target_covariance_bps2": 14.282290162804507,
+      "prediction_residual_covariance_bps2": 13.830088016145321
+    },
+    "2026-02": {
+      "prediction_variance_bps2": 0.2665879474802808,
+      "prediction_target_covariance_bps2": 2.9864381472389914,
+      "prediction_residual_covariance_bps2": 2.7198501997587106
+    },
+    "ALL": {
+      "prediction_variance_bps2": 0.46887884537784374,
+      "prediction_target_covariance_bps2": 8.356768617185221,
+      "prediction_residual_covariance_bps2": 7.8878897718073775
+    },
+    "POOLED_WITHIN_MONTH": {
+      "prediction_variance_bps2": 0.39429346024977824,
+      "prediction_target_covariance_bps2": 7.253178260033182,
+      "prediction_residual_covariance_bps2": 6.858884799783404
+    }
+  },
+  "covariance_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "covariance_interpretation": "Residual covariance is a descriptive in-sample optimization gap. No rescaling, fitted coefficients, thresholds, candidate or new prediction. It does not prove that another training budget will improve decisions or generalize.",
+  "scope_consumed": true,
+  "resume_authorized": false,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "new_fits": 0,
+  "new_model_forwards_for_review": 0,
+  "test_data_used": false,
+  "next_action": "Joint-gradient conflict hypothesis rejected on the audited TRAIN16. No further normalization, loss-weight or threshold change is justified. Existing TRAIN outputs still show positive prediction/residual covariance: incomplete conditional value fitting, not evidence of predictable target variance or profit. Next: specify the smallest bounded native finite-learning/convergence check using existing TRAIN data and unchanged model/loss/teacher before execution; reuse this diagnosis and all prior tests. No run is bound, no full epoch/VAL/CONTROL/TEST or automatic expansion.",
+  "limitations": "One eval-mode TRAIN16, not a replay of historical training/dropout. FP64 first-order AdamW estimates with frozen saved moments, not executed finite-step gains. Removing current auxiliary gradients retains historical auxiliary momentum. No predictability, learning or economic claim."
+}

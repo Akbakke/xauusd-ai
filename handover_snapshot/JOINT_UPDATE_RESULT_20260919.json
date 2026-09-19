@@ -1,0 +1,234 @@
+{
+  "cached_actions_identical": true,
+  "cached_prediction_absolute_tolerance_bps": 0.0001,
+  "control_forwards": 0,
+  "decision": "JOINT_GRADIENT_AND_ADAM_DIRECTION_MEASURED_NO_OPTIMIZER_STEP",
+  "exact_native_entry_mse_decomposition": true,
+  "input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "bd5e00894940ea1893eb28d595dc2ff84b258bc40c7ac97a63a3288f5c4db513"
+  },
+  "limitations": "One eval-mode TRAIN16, not a replay of historical training/dropout. FP64 first-order AdamW estimates with frozen saved moments, not executed finite-step gains. Removing current auxiliary gradients retains historical auxiliary momentum. No predictability, learning or economic claim.",
+  "measurements": {
+    "final": {
+      "adam_directions": {
+        "joint": {
+          "by_parameter_group": {
+            "all_prediction": {
+              "delta_l2": 0.10618012560143392,
+              "first_order_weighted_loss_change": {
+                "auxiliary": -0.08543239461502888,
+                "common": -0.0010419106888607756,
+                "contrast": -0.1281114529983152,
+                "entry": -0.12924425572181847,
+                "exit": -0.16543927458125351,
+                "flat": -9.089695359324288e-05
+              }
+            },
+            "entry_head": {
+              "delta_l2": 0.0033816320676686397,
+              "first_order_weighted_loss_change": {
+                "auxiliary": 0,
+                "common": -0.00019752282634573798,
+                "contrast": 0.00620830922176771,
+                "entry": 0.0058666887583764165,
+                "exit": -2.432246561589478e-06,
+                "flat": -0.00014409716157818818
+              }
+            },
+            "exit": {
+              "delta_l2": 0.10010809996166536,
+              "first_order_weighted_loss_change": {
+                "auxiliary": 0,
+                "common": 0,
+                "contrast": 0,
+                "entry": 0,
+                "exit": -0.15567652797052545,
+                "flat": 0
+              }
+            },
+            "fuse": {
+              "delta_l2": 0.003405150801460384,
+              "first_order_weighted_loss_change": {
+                "auxiliary": -0.005547653226641671,
+                "common": -0.00020427303567964087,
+                "contrast": -0.014527788730340007,
+                "entry": -0.014685899809013478,
+                "exit": -0.00018027810837280156,
+                "flat": 4.616394775128108e-05
+              }
+            }
+          },
+          "preclip_norms": {
+            "prediction": 57.900085684418464,
+            "task_weights": 549.2496686720111
+          }
+        },
+        "without_current_auxiliary": {
+          "by_parameter_group": {
+            "all_prediction": {
+              "delta_l2": 0.10663739326988396,
+              "first_order_weighted_loss_change": {
+                "auxiliary": -0.03346409435458225,
+                "common": -0.001052981172552455,
+                "contrast": -0.133971128808704,
+                "entry": -0.1351279568425363,
+                "exit": -0.17000899335668296,
+                "flat": -0.00010385014135339347
+              }
+            },
+            "entry_head": {
+              "delta_l2": 0.0033883546198990385,
+              "first_order_weighted_loss_change": {
+                "auxiliary": 0,
+                "common": -0.00019973163906287624,
+                "contrast": 0.0045395208678289415,
+                "entry": 0.004195086591321864,
+                "exit": -4.226925292837126e-06,
+                "flat": -0.0001447021710782654
+              }
+            },
+            "exit": {
+              "delta_l2": 0.10107790490976824,
+              "first_order_weighted_loss_change": {
+                "auxiliary": 0,
+                "common": 0,
+                "contrast": 0,
+                "entry": 0,
+                "exit": -0.15992913240707068,
+                "flat": 0
+              }
+            },
+            "fuse": {
+              "delta_l2": 0.0032817208100799026,
+              "first_order_weighted_loss_change": {
+                "auxiliary": -0.0034071959264898423,
+                "common": -0.00021318269705655627,
+                "contrast": -0.014811022006166906,
+                "entry": -0.014980213382061363,
+                "exit": -0.0001853298869987808,
+                "flat": 4.399375583312897e-05
+              }
+            }
+          },
+          "preclip_norms": {
+            "prediction": 56.14003515878464,
+            "task_weights": 547.6125549561908
+          }
+        }
+      },
+      "exit_inference_parity": {
+        "actions_identical": true,
+        "dropout_enabled": false,
+        "max_abs_difference_bps": 3.898143768310547e-05,
+        "online_calls": 1,
+        "recurrent_modules": 18
+      },
+      "exit_transition_count": 64,
+      "gradient_cached_max_abs_difference_bps": 3.147125244140625e-05,
+      "gradients": {
+        "all_prediction": {
+          "contrast_dot_auxiliary": 25.189879153529056,
+          "exit_dot_auxiliary": 0.2996517936512207,
+          "norms": {
+            "auxiliary": 12.23711053981027,
+            "common": 1.16367028491025,
+            "contrast": 54.21624460191696,
+            "entry": 54.27878909561337,
+            "exit": 13.114830969394124,
+            "flat": 0.4369223254887901,
+            "joint": 57.90008374776192
+          },
+          "parameter_tensors": 722
+        },
+        "entry_head": {
+          "contrast_dot_auxiliary": 0,
+          "exit_dot_auxiliary": 0,
+          "norms": {
+            "auxiliary": 0.0,
+            "common": 0.6130096446080332,
+            "contrast": 38.93263327239617,
+            "entry": 38.946660593031424,
+            "exit": 0.21627221524545956,
+            "flat": 0.3140523987884036,
+            "joint": 38.96760545389041
+          },
+          "parameter_tensors": 6
+        },
+        "exit": {
+          "contrast_dot_auxiliary": 0,
+          "exit_dot_auxiliary": 0,
+          "norms": {
+            "auxiliary": 0.0,
+            "common": 0.0,
+            "contrast": 0.0,
+            "entry": 0.0,
+            "exit": 12.88099365331314,
+            "flat": 0.0,
+            "joint": 12.88099365331314
+          },
+          "parameter_tensors": 145
+        },
+        "fuse": {
+          "contrast_dot_auxiliary": 21.550045875499354,
+          "exit_dot_auxiliary": 0.2452827918632329,
+          "norms": {
+            "auxiliary": 5.87643502056006,
+            "common": 0.8170892117242591,
+            "contrast": 25.944294968098387,
+            "entry": 26.02694296771499,
+            "exit": 1.2145555442677498,
+            "flat": 0.2169042916532055,
+            "joint": 27.815191546190576
+          },
+          "parameter_tensors": 4
+        }
+      },
+      "inference_cached_max_abs_difference_bps": 0.0,
+      "limitations": "One eval-mode TRAIN16, not a replay of historical training/dropout. FP64 first-order AdamW estimates with frozen saved moments, not executed finite-step gains. Removing current auxiliary gradients retains historical auxiliary momentum. No predictability, learning or economic claim.",
+      "model_forwards": 6,
+      "native_accumulation_all_parameter_gradients_matched": true,
+      "native_accumulation_max_abs_gradient_difference": 1.5236437320709229e-06,
+      "native_target_max_abs_difference_bps": 0.0,
+      "optimizer_steps": 0,
+      "raw_entry_loss_decomposition": {
+        "common": 0.06254839152097702,
+        "contrast": 309.8437194824219,
+        "flat": 0.007246731780469418
+      },
+      "raw_entry_mse": 309.91351318359375,
+      "raw_exit_mse": 469.6402893066406,
+      "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d"
+    }
+  },
+  "model_and_original_checkpoint_preserved": true,
+  "model_forwards": 6,
+  "model_mode": "eval",
+  "model_state_sha256": "0df40a95433479b6aed5ca4dfb07cbcbcf639879f622cb89b2625525538ece02",
+  "native_elapsed_seconds": 671.97128107,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/PLAN.json",
+    "sha256": "3e0d104091ff2d2c4ff4250d037b0c446a24aaf52a20fd4378223668a3db06fd"
+  },
+  "reused_input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "99079cf43cd423686edc1197d3070a6f6e26a4e5e37f81ce8e70ea06731dc02d"
+  },
+  "rng_restored": true,
+  "schema_version": "gx1_joint_update_diagnostic_result_v2",
+  "selection": "first16_existing_frozen_TRAIN_probe",
+  "source_commit": "c71df2271863ec1fd118e4ae9e608841f7f6cfd0",
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "af647c4d76145fc30df126b853cc9d9de43fc03ef69c756256279e98007468a8"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+  },
+  "variants": [
+    "final"
+  ]
+}

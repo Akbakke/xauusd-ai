@@ -1,23 +1,18 @@
-# GX1 — gjeldende overlevering 19. september 2026
+# GX1 — gjeldende overlevering19. september2026
 
-Entry fuse256: bedre verdiestimater, men FLAT256/256 og uendret sidefast Exit.
-Læringsport ikke bestått; kronologisk handelsfordel og profitt ikke dokumentert.
+Joint-diagnosen er fullført og vurdert: samlet beregnet Adam-retning forbedrer
+Entry-kontrast og Exit-tap på TRAIN16. Konfliktforklaringen støttes ikke her.
+Seks forwards, null optimizer; guard PASS, task deaktivert, ingen native prosess.
+Originalt checkpoint/pointer er kontrollert uendret. Begge gamle diagnoseplaner
+er brukt; ingen skal relanseres. Kilde er frigitt etter terminal bekreftelse.
 
-Forrige joint-diagnose feilet i cuDNN GRU-backward i evalmodus. Guard/task exit1,
-task deaktivert, ingen RESULT eller canonical receipt. Originalt checkpoint og
-pointer er kontrollert uendret. Brukt plan er stengt og må aldri relanseres.
+Les docs/JOINT_UPDATE_REVIEW_20260919.md og VEIEN_VIDERE.md. Ingen ny kjøring er
+bundet. Ingen endring i modell/treningsmatematikk er begrunnet av diagnosen.
+Entry fuse256 velger fortsatt FLAT256/256, Exit sidefast; læringsport ikke bestått.
+Gjenværende spørsmål er faktisk betinget verdilæring/konvergens på eksisterende
+TRAIN, ikke enda en teknisk gradient-/normaliseringskontroll.
 
-Minste målerrettelse er kontrollert med fem fokuserte CPU-tester: kun dropoutfrie
-GRU-er lagrer backward-reserve; øvrige moduler forblir eval. Ekstra Exit-inferens
-kontrollerer verdier og valg. Ingen modell-/treningsmatematikk er endret.
-NATIVE_JOINT_UPDATE_GRU_RETRY_20260919 er bundet, ikke startet: samme TRAIN16-cache,
-seks forwards, null optimizer. GPU-paritet/backward er ennå ikke kontrollert.
-Se VEIEN_VIDERE.md og docs/JOINT_UPDATE_DIAGNOSTIC_20260919.md.
-
-Kilde: /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er kopi.
-Operatørstatus under kildefrys: /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/OPERATOR_HANDOVER/CURRENT_HANDOVER.md.
-Prosesser og receipts avgjør nåstatus. TEST forseglet; ingen full epoch/VAL,
-live/paper/spending eller automatisk trening etter diagnose.
-
-Brukeren autoriserte nå eksplisitt tre read-only underagenter til forslag om
-handelsfordel; bare hovedagent endrer kode og bare én tung jobb tillates.
+Kun /home/andre2/src/GX1_CURRENT, work/gx1-current; Mac er kopi. Én agent og én
+tung jobb. De tre tidligere eksplisitt bestilte underagentene er ferdige.
+TEST forseglet; ingen full epoch/VAL/CONTROL, live/paper/spending. Profitt og
+senere generalisering er ikke dokumentert. Målet forblir aktivt.
