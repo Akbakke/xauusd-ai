@@ -20,9 +20,7 @@ frossen lærer, optimizer/EMA og historiske sammenligninger er verifisert.
 
 Fullstendige bevis: handover_snapshot/MAIN_ENCODER_FIXED256_REVIEW_20260919.json,
 MAIN_ENCODER_FIXED256_VERDICT_20260919.json og MAIN_ENCODER_DECISION_GAP_20260919.json.
-Neste: avklar gjenværende representasjonsproblem med eksisterende cached TRAIN16
-og måler. Før native forward må nåværende kontrakt/binding for NY initialfunksjon
-kontrolleres og separat scope bindes. Ingen mer modellkode før målt blokkering.
+Neste: én bundet native representasjonsmåling, NATIVE_MAIN_ENCODER_REPRESENTATION_20260919. Inputkontroll og 16 kontrakttester bestod. Ny initialfunksjon er kildebundet. Recipe/campaign er ikke forberedt; se VEIEN_VIDERE.md. Modellkode er uendret.
 
 Én agent/én tung jobb; gjenbruk ferdige analyser og beståtte tester. Bevar alle200
 features/familier/tidsrammer, kausalitet, kostnader og originalfiler. Ingen

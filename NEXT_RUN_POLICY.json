@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
+  "rule": "Run the separately bound main-encoder representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1167,7 +1167,7 @@
   },
   "handover_resume_point": {
     "observed_utc": "2026-09-19T09:05:27.264394+00:00",
-    "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
+    "status": "MAIN_ENCODER_REPRESENTATION_BOUND_NOT_STARTED",
     "training_source_commit": "6b44c23d2b685bbfdaaf0bdeb3b162518101fa0d",
     "source_state_at_observation": "Native run and controller terminal; Windows task Disabled; source clean before this handover-only update. Use live working_head for the later documentation commit. Model/training code unchanged after a1c4b443.",
     "windows_task_observation": {
@@ -1184,9 +1184,9 @@
       ],
       "controllers": []
     },
-    "instructions": "VEIEN_VIDERE.md#n\u00f8yaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
-    "new_native_run_bound": false,
+    "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
+    "next_deliverable": "Run the separately bound main-encoder representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
+    "new_native_run_bound": true,
     "consumed_run_id": "NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918",
     "optimizer_steps_completed": 256,
     "initial_measurement_completed": true,
@@ -1213,6 +1213,13 @@
     "reviewed_completion": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_REVIEWED.json",
       "sha256": "3428846592174e0faee253d33bf689195c06cf2e9058feb1ce91fa30eeaf9835"
+    },
+    "new_diagnostic_bound": true,
+    "preparation_executed": false,
+    "activation_executed": false,
+    "input_binding_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_REPRESENTATION_INPUT_AUDIT_20260919/RESULT.json",
+      "sha256": "e92cbfaf7232fb5dbbacfde998938563924d4125554eeb2e99e8c07f77779e5a"
     }
   },
   "completed_main_encoder_initial_measurement": {
@@ -1252,9 +1259,9 @@
     "saved_state_rng_exactly_preserved": true,
     "learning_proven": false
   },
-  "status": "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT",
-  "observed_utc": "2026-09-19T09:05:27.264394+00:00",
-  "next_action": "Determine whether the former representation collapse remains after the main-encoder correction, before any further model change. Reuse the existing cached TRAIN16 and native representation diagnostic; first verify exact input/coordinate/target bindings and use the NEW native initial ONLINE predictions plus current final predictions. Audit the existing contract for this new completed-review binding before preparing one native inference-only initial/final comparison of seq_pool, main_fuse, normalized joint Entry input and Entry hidden. No optimizer steps, rescaling to target variance, loss/threshold search or additional normalization without measured remaining cause. Any native forwards require a separately bound policy; no run is currently authorized. Reuse completed paired metrics and audits. See docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md and VEIEN_VIDERE.md.",
+  "status": "MAIN_ENCODER_REPRESENTATION_BOUND_NOT_STARTED",
+  "observed_utc": "2026-09-19T09:54:52.996003+00:00",
+  "next_action": "Run the separately bound main-encoder representation diagnostic once: same verified TRAIN16, two initial/final canonical inference forwards, zero optimizer steps and backward passes. Validate against saved native predictions, measure raw and normalized representation spread. No training, CONTROL/VAL/TEST, Exit forwards or automatic extension; review evidence before any model change.",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "completed_main_encoder_fixed256": {
@@ -1436,5 +1443,35 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/COMPLETION_REVIEWED.json",
       "sha256": "3428846592174e0faee253d33bf689195c06cf2e9058feb1ce91fa30eeaf9835"
     }
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_REPRESENTATION_20260919/PLAN.json",
+      "sha256": "d49bd154a867a5ec112dee4ff95699887897b8a13936ba96887c5a70f80299d2"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_MAIN_ENCODER_REPRESENTATION_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_REPRESENTATION_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "b504a7cb3bf3ed236ad0d7e172157849348a5ef12e5067b2daec207ffe87f648",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 2,
+    "control_forwards": 0,
+    "test_data_used": false
   }
 }

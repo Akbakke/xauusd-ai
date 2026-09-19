@@ -1,0 +1,19 @@
+{
+  "schema_version": "gx1_focused_test_evidence_v1",
+  "test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/MAIN_ENCODER_REPRESENTATION_INPUT_AUDIT_20260919/CONTRACT_TESTS.log",
+    "sha256": "ee5f21561332032205c9968bd8f86702b993c6f36da8cd1cc7bc90dc375918e8"
+  },
+  "command": "python -m pytest -q tests/test_native_entry_gradient_diagnostic.py -k 'scope or dispatch'",
+  "passed": 16,
+  "model_and_trainer_changed": false,
+  "numeric_representation_test_reused": true,
+  "contract": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+    "sha256": "1961767c672de908504f7b6a2404aaf0a74d42fa06ced956ec65b4eca7044c63"
+  },
+  "test_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_entry_gradient_diagnostic.py",
+    "sha256": "742d3adc0b39eb924bd8a1efa2d80850e2eaaf3089c42df5f4198a9a4bb4d1c9"
+  }
+}
