@@ -45,6 +45,120 @@ CANDIDATE_VAL_BINDING_SCHEMA_VERSION = "gx1_candidate_weight_ema_val_binding_v1"
 FROZEN_READOUT_BINDING_SCHEMA_VERSION = "gx1_frozen_online_readout_val_binding_v1"
 
 
+
+FROZEN_TRAIN_POLICY_BINDING_SCHEMA_VERSION = "gx1_frozen_online_train_policy_binding_v1"
+
+
+def require_frozen_train_policy_plan(plan_binding):
+    """Bind the completed ONLINE512 and existing TRAIN cohort; not launch permission."""
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort, TRAIN_ROLLOUT_SCHEMA
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_cursor
+    def load(value, label):
+        binding = require_binding(value, label=label, verify_file=True)
+        return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
+    binding, plan = load(plan_binding, "frozen TRAIN policy plan")
+    fixed = {"schema_version":"gx1_frozen_train_policy_evaluation_plan_v1",
+        "decision":"FROZEN_TRAIN_POLICY_AND_COHORT_NOT_LAUNCH_AUTHORITY",
+        "optimizer_steps":0,"origin_optimizer_steps":512,"max_invocations":1,
+        "control_forwards":0,"training_enabled":False,"test_data_used":False,
+        "selected_model_variant":"ONLINE","teacher_refresh_allowed":False,
+        "full_epoch_allowed":False,"full_val_allowed":False,"native_launch_authorized":False}
+    if any(type(plan.get(k)) is not type(v) or plan[k] != v for k,v in fixed.items()):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_PLAN_INVALID")
+    _, completion = load(plan.get("completed512"), "completed ONLINE512")
+    _, footprint = load(plan.get("footprint"), "frozen TRAIN footprint")
+    cohort_binding, raw_cohort = load(plan.get("cohort"), "frozen TRAIN rollout cohort")
+    cohort = require_bounded_val_cohort(raw_cohort)
+    cursor_binding, raw = load(plan.get("origin_cursor"), "completed512 cursor")
+    cursor = require_native_cursor(raw, expected_recipe=raw["recipe"], verify_files=True)
+    state = cursor["resume_state"]
+    _, origin_recipe = load(completion.get("native_recipe"), "completed512 recipe")
+    if (completion.get("schema_version") != "gx1_convergence512_completion_v1"
+            or completion.get("learning_review_complete") is not True
+            or completion.get("optimizer_steps") != 512 or completion.get("teacher_refreshed") is not False
+            or completion.get("test_data_used") is not False
+            or completion.get("model_functions") != {"online":"main_encoder_and_fuse_final_layernorm_no_affine_v1", "target":"main_encoder_no_final_norm_v1"}
+            or raw["recipe"] != completion["native_recipe"] or cursor["outcome"] != "RESUMABLE"
+            or state["training_state"] != completion["training_state"]
+            or state["training_pointer"] != completion["training_pointer"]
+            or state["global_optimizer_steps"] != 512 or state["next_batch_offset"] != 512
+            or state["epoch_index"] != 0 or state["phase"] != "train" or state["complete"] is not False
+            or state["active_val_cursor"] is not None or state["active_val_model_forwards"] != 0
+            or cohort["schema_version"] != TRAIN_ROLLOUT_SCHEMA or len(cohort["entry_row_indices"]) != 256
+            or cohort["plan"] != origin_recipe["chronological_prefix"]["design"]
+            or footprint.get("schema_version") != "gx1_frozen_exit_train_policy_footprint_v1"
+            or footprint.get("completed512") != plan["completed512"] or footprint.get("cohort") != cohort_binding
+            or footprint.get("frozen_training_state") != state["training_state"]
+            or footprint.get("source_index") != cohort["source_index"]
+            or footprint.get("test_data_used") is not False):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_ORIGIN_OR_COHORT_INVALID")
+    limits = {"max_model_forwards":footprint["bounded_native_policy_forwards_upper_bound_at_batch256"],
+        "max_state_views":footprint["bounded_state_views_upper_bound"],"max_wall_seconds":10800,
+        "policy_batch_size":256,"cpu_pipeline_workers":8,"progress_interval_forwards":64}
+    if (plan.get("val_limits") != limits or any(type(v) is not int or v <= 0 for v in limits.values())
+            or any(type(v) is not int for v in plan["val_limits"].values())
+            or not isinstance(plan.get("review_criteria"), Mapping) or not plan["review_criteria"]):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_LIMITS_OR_REVIEW_INVALID")
+    repo = Path(__file__).resolve().parents[2]
+    sources = {}
+    for name in ("gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+                 "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+                 "gx1/contracts/unified_exit_random_access_model_v1.py",
+                 "gx1/contracts/unified_exit_random_access_training_v1.py"):
+        old = origin_recipe["source_bindings"]["python:" + name]
+        source = require_binding({k:old[k] for k in ("path","sha256")}, label="frozen model function", verify_file=True)
+        if Path(source["path"]) != repo/name:
+            raise RuntimeError("FROZEN_TRAIN_POLICY_MODEL_SOURCE_INVALID")
+        sources[name] = source
+    return {"plan_binding":binding,"plan":plan,"completion":completion,"cohort":cohort,
+        "origin_recipe":origin_recipe,"origin_resume_state":state,"model_function_sources":sources}
+
+
+def _frozen_train_policy_binding(scope):
+    completion, plan = scope["completion"], scope["plan"]
+    value = {"schema_version":FROZEN_TRAIN_POLICY_BINDING_SCHEMA_VERSION,"decision":"PASS",
+        "model_variant":"frozen_online_train_policy","model_architecture_schema_version":RANDOM_ACCESS_MODEL_SCHEMA_VERSION,
+        "model_architecture_sha256":RANDOM_ACCESS_MODEL_SCHEMA_SHA256,
+        "model_state_sha256":completion["model_state_sha256"],"online_model_state_sha256":completion["model_state_sha256"],
+        "target_model_state_sha256":completion["target_model_state_sha256"],
+        "checkpoint_path":completion["training_state"]["path"],"checkpoint_file_sha256":completion["training_state"]["sha256"],
+        "evaluation_plan":scope["plan_binding"],"evaluation_cohort_sha256":scope["cohort"]["cohort_sha256"],
+        "reference_train_observation":completion["train_observation"],"model_function_sources":scope["model_function_sources"],
+        "model_functions":completion["model_functions"],"origin_cursor":plan["origin_cursor"],
+        "optimizer_or_scheduler_restored":False,"ema_used":False,"source_checkpoint_modified":False,
+        "rng_mutated":False,"test_data_used":False}
+    value["binding_sha256"] = canonical_sha256(value)
+    return value
+
+
+def bind_frozen_train_policy_checkpoint_v1(*, plan_binding, model):
+    scope = require_frozen_train_policy_plan(plan_binding)
+    binding = _frozen_train_policy_binding(scope)
+    state = torch.load(binding["checkpoint_path"], map_location="cpu", weights_only=False, mmap=True)
+    if (state.get("schema_version") != "gx1_candidate_training_session_v1"
+            or state.get("global_optimizer_steps") != 512
+            or canonical_model_state_sha256(state["model_state"]) != binding["model_state_sha256"]
+            or canonical_model_state_sha256(state["target_model_state"]) != binding["target_model_state_sha256"]):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_CHECKPOINT_INVALID")
+    rng = torch.get_rng_state().clone()
+    strict_load_random_access_v2_state(model, state["model_state"])
+    model.eval().requires_grad_(False)
+    if (not torch.equal(rng, torch.get_rng_state())
+            or canonical_model_state_sha256(model.state_dict()) != binding["model_state_sha256"]):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_RESTORE_INVALID")
+    return binding
+
+
+def require_frozen_train_policy_checkpoint_binding_v1(value):
+    if not isinstance(value, Mapping):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_BINDING_INVALID")
+    expected = _frozen_train_policy_binding(require_frozen_train_policy_plan(value.get("evaluation_plan")))
+    if dict(value) != expected:
+        raise RuntimeError("FROZEN_TRAIN_POLICY_BINDING_MISMATCH")
+    return expected
+
+
 def _frozen_readout_states(plan_binding):
     """Compose immutable ONLINE weights; never load optimizer or EMA history."""
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
@@ -524,6 +638,8 @@ def require_selected_weight_ema_checkpoint_binding_v1(
     value: Mapping[str, Any], *, verify_files: bool = True
 ) -> dict[str, Any]:
     """Validate EMA selection or an explicitly bound frozen ONLINE composition."""
+    if isinstance(value, Mapping) and value.get("schema_version") == FROZEN_TRAIN_POLICY_BINDING_SCHEMA_VERSION:
+        return require_frozen_train_policy_checkpoint_binding_v1(value)
     if isinstance(value, Mapping) and value.get("schema_version") == FROZEN_READOUT_BINDING_SCHEMA_VERSION:
         return require_frozen_readout_checkpoint_binding_v1(value)
     if isinstance(value, Mapping) and value.get("schema_version") == CANDIDATE_VAL_BINDING_SCHEMA_VERSION:

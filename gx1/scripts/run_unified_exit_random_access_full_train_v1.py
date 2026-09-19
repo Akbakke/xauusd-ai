@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -283,6 +283,7 @@ def _build_bound_full_train_components(
     exit_backup_steps: int = 1,
     exit_reference_policy: Mapping[str, Any] | None = None,
     chronological_prefix: Mapping[str, Any] | None = None,
+    frozen_train_policy_scope: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind legacy full TRAIN/June or explicit fresh-prefix components.
 
@@ -301,6 +302,11 @@ def _build_bound_full_train_components(
         raise RuntimeError("NATIVE_FULL_TRAIN_DEVICE_INVALID")
     trainer._set_deterministic(seed, device, "deterministic_fp32")
     prefix = None
+    if frozen_train_policy_scope is not None and (
+            chronological_prefix is None
+            or frozen_train_policy_scope["origin_recipe"]["chronological_prefix"] != chronological_prefix
+            or frozen_train_policy_scope["plan"]["val_limits"] != val_limits):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_COMPONENT_SCOPE_INVALID")
     if chronological_prefix is not None:
         if any(value is not None for value in (seed_launch_path, seed_authority_path, seed_authority_file_sha256)):
             raise RuntimeError("NATIVE_PREFIX_OLD_INITIALIZATION_FORBIDDEN")
@@ -358,7 +364,8 @@ def _build_bound_full_train_components(
         # Role-specific label replacement is atomic and shares unchanged input columns.
         # The copy precedes any lifecycle or label binding; workers are not running.
         datasets["val"] = copy.copy(datasets["train"])
-        for split, role in (("train", "TRAIN"), ("val", "CONTROL256")):
+        label_roles = (("train", "TRAIN"),) if frozen_train_policy_scope is not None else (("train", "TRAIN"), ("val", "CONTROL256"))
+        for split, role in label_roles:
             datasets[split].bind_policy_dependent_auxiliary_targets(
                 result_path=Path(chronological_prefix["labels_result"]["path"]),
                 expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
@@ -366,6 +373,8 @@ def _build_bound_full_train_components(
         # Measurement shares the TRAIN inputs and bound labels, while lifecycle
         # materialization remains attached only to the optimizer's dataset.
         train_probe_ds = copy.copy(datasets["train"])
+        if frozen_train_policy_scope is not None:
+            datasets["val"] = copy.copy(train_probe_ds)
     corpus = val.UnifiedExitLifecycleCorpus(
         root_manifest_path=files["feature_lifecycle_root"],
         entry_parquets={split: files[f"entry_{split}_parquet"] for split in physical_splits},
@@ -433,13 +442,19 @@ def _build_bound_full_train_components(
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_JUNE_VAL_BINDING_INVALID")
     evaluation_cohort = None
-    if prefix is not None:
+    if frozen_train_policy_scope is not None:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort, TRAIN_ROLLOUT_SCHEMA
+        evaluation_cohort = require_bounded_val_cohort(frozen_train_policy_scope["cohort"])
+        if (evaluation_cohort["schema_version"] != TRAIN_ROLLOUT_SCHEMA
+                or evaluation_cohort["source_index"] != {"path":str(index_path),"sha256":val.file_sha256(index_path)}):
+            raise RuntimeError("FROZEN_TRAIN_POLICY_COMPONENT_COHORT_INVALID")
+    elif prefix is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_control_cohort
         evaluation_cohort = build_chronological_control_cohort(
             chronological_prefix["design"], source_index_binding={"path": str(index_path), "sha256": val.file_sha256(index_path)})
     control_frame = frame if evaluation_cohort is None else frame.iloc[evaluation_cohort["entry_row_indices"]].copy()
     all_val_states = int(control_frame["lifecycle_state_count"].sum())
-    if (
+    if frozen_train_policy_scope is None and (
         val_limits["max_state_views"] < all_val_states
         or val_limits["max_model_forwards"] < all_val_states
     ):
@@ -479,6 +494,16 @@ def _build_bound_full_train_components(
         economics_objective_contract=readiness["economics_objective_contract"],
         **({"source_split": "train"} if prefix is not None else {}),
     )
+    if frozen_train_policy_scope is not None:
+        # Retain physical lifecycles; only the observation support is bounded.
+        end = np.searchsorted(val_factory.times.asi8 + 60_000_000_000,
+                              evaluation_cohort["observation_cutoff_time_ns"], side="right")
+        counts = np.minimum(control_frame["lifecycle_state_count"].to_numpy(dtype="int64"),
+                            end - control_frame["child_m1_start_row"].to_numpy(dtype="int64"))
+        if (len(counts) != 256 or np.any(counts <= 0)
+                or val_limits["max_state_views"] != int(counts.sum())
+                or val_limits["max_model_forwards"] != int(counts.max())):
+            raise RuntimeError("FROZEN_TRAIN_POLICY_ACTUAL_FOOTPRINT_MISMATCH")
     child = val.require_composite_normalization_binding(
         val._read(files["child_composite_normalization"]),
     )
@@ -640,6 +665,10 @@ def run_guarded_native_candidate_invocation(
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
     require_native_run_scope(recipe, execution_budget=budget)
     controls = recipe["trainer_cli"]
+    frozen_train_scope = None
+    if "frozen_train_policy_evaluation" in recipe:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_train_policy_evaluation
+        frozen_train_scope = require_frozen_train_policy_evaluation(recipe, execution_budget=budget)
     prefix_mode = "chronological_prefix" in recipe
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")
@@ -654,11 +683,16 @@ def run_guarded_native_candidate_invocation(
         exit_backup_steps=recipe.get("exit_backup_steps", 1),
         exit_reference_policy=recipe.get("exit_reference_policy"),
         **({"chronological_prefix":recipe["chronological_prefix"]} if prefix_mode else {}),
+        **({"frozen_train_policy_scope":frozen_train_scope} if frozen_train_scope is not None else {}),
     )
     if not prefix_mode:
         smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
         if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:
             raise RuntimeError("NATIVE_FULL_TRAIN_ACTUAL_SEED_MODEL_MISMATCH")
+    if frozen_train_scope is not None:
+        return _run_frozen_train_policy_validation(components=components, scope=frozen_train_scope,
+            recipe=recipe, device=device, output=output, recipe_file_sha256=recipe_file_sha256,
+            invocation_started=started)
     if "entry_gradient_diagnostic" in recipe:
         return _run_entry_gradient_diagnostic(components=components,recipe=recipe,device=device,output=output,
             recipe_file_sha256=recipe_file_sha256,invocation_started=started)
@@ -1471,6 +1505,64 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     path = out / "RESULT.json"
     trainer._candidate_training_session_atomic_write_json(path, result)
     return {"path": str(path), "sha256": val.file_sha256(path)}
+
+
+
+def _run_frozen_train_policy_validation(*, components, scope, recipe, device, output,
+                                      recipe_file_sha256, invocation_started):
+    """Evaluate the exact saved ONLINE512; preserve its source training cursor."""
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_frozen_train_policy_evaluation
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import bind_frozen_train_policy_checkpoint_v1
+    if device.type != "cuda":
+        raise RuntimeError("FROZEN_TRAIN_POLICY_CUDA_REQUIRED")
+    directory = output.parent / "frozen_train_policy"
+    if directory.exists() or directory.is_symlink():
+        raise RuntimeError("FROZEN_TRAIN_POLICY_OUTPUT_EXISTS")
+    context = components["native_val_context"]
+    frame = context["frame"]
+    if (context.get("evaluation_cohort") != scope["cohort"]
+            or frame["entry_row_index"].tolist() != scope["cohort"]["entry_row_indices"]
+            or frame["parent_entry_row_index"].tolist() != scope["cohort"]["parent_entry_row_indices"]
+            or context["state_factory"].source_split != "train"):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_ACTUAL_CONTEXT_INVALID")
+    if time.monotonic() - invocation_started + context["max_wall_seconds"] + 60 >= 12000:
+        raise RuntimeError("FROZEN_TRAIN_POLICY_INSUFFICIENT_WINDOW")
+    model = components["model"]
+    # Reuse the existing function check for both parameter-free ONLINE norms.
+    function_probe = trainer._copy_frozen_prefix_reference_model(model)
+    del function_probe
+    binding = bind_frozen_train_policy_checkpoint_v1(plan_binding=scope["plan_binding"], model=model)
+    before = dict(scope["origin_resume_state"])
+    directory.mkdir(parents=True)
+    result = val.evaluate_bound_full_val_v1(
+        model=model, entry_dataset=components["train_probe_ds"], frame=frame,
+        state_factory=context["state_factory"], checkpoint_binding=binding,
+        parent_coordinate_evidence=context["parent_coordinate_evidence"],
+        val_sequence_audit=context["val_sequence_audit"], device=device, selected_batch_size=16,
+        evaluation_cohort=scope["cohort"], rollout_progress_path=directory/"ROLLOUT_PROGRESS.json",
+        result_path=directory/"TRAIN_RESULT.json", max_forwards_this_invocation=context["max_model_forwards"],
+        progress_interval_forwards=context["progress_interval_forwards"],
+        compute_guard_max_model_forwards=context["max_model_forwards"],
+        compute_guard_max_materialized_state_views=context["max_state_views"],
+        compute_guard_max_wall_seconds=context["max_wall_seconds"],
+        exit_policy_batch_size=context["policy_batch_size"], cpu_pipeline_workers=context["cpu_pipeline_workers"])
+    after = require_frozen_train_policy_evaluation(recipe)["origin_resume_state"]
+    if after != before or trainer._model_state_sha256(model) != binding["model_state_sha256"]:
+        raise RuntimeError("FROZEN_TRAIN_POLICY_CHANGED_MODEL_OR_ORIGIN")
+    report = {"schema_version":"gx1_native_frozen_train_policy_observation_v1",
+        "decision":"OBSERVATION_REQUIRES_REVIEW","checkpoint_binding":binding,"evaluation_cohort":scope["cohort"],
+        "evaluation_decision":result["decision"],"origin_resume_state":before,
+        "optimizer_steps":0,"training_enabled":False,"test_data_used":False,
+        "native_invocation_elapsed_seconds":time.monotonic()-invocation_started}
+    for key,name in (("progress","ROLLOUT_PROGRESS.json"),("result","TRAIN_RESULT.json")):
+        path=directory/name
+        if path.is_file(): report[key]={"path":str(path),"sha256":val.file_sha256(path)}
+    path=directory/"OBSERVATION.json"
+    trainer._candidate_training_session_atomic_write_json(path,report)
+    print(json.dumps({"event":"FROZEN_TRAIN_POLICY_COMPLETED","decision":result["decision"],"observation":str(path)}),flush=True)
+    return {"decision":"PAUSED_RESUMABLE","resume_state":before,
+        "observation":{"path":str(path),"sha256":val.file_sha256(path)},
+        "recipe_file_sha256":recipe_file_sha256,"bundle_written":False,"test_data_used":False}
 
 
 def _run_frozen_readout_validation(*, components, recipe, device, output,

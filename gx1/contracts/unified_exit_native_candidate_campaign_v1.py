@@ -1001,6 +1001,48 @@ def _require_native_profile_and_economics(recipe, policy, repo):
     return profile, evidence, objective
 
 
+
+def require_frozen_train_policy_evaluation(recipe, *, invocation_number=None, execution_budget=None):
+    """One native frozen TRAIN evaluation; no training, target refresh or CONTROL."""
+    from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import require_frozen_train_policy_plan
+    prefix = require_chronological_prefix_recipe(recipe)
+    if any(key in recipe for key in ("chronological_initial_measurement","chronological_learning_measurement",
+            "chronological_learning_continuation","chronological_train_only_measurement","chronological_entry_baseline",
+            "entry_gradient_diagnostic","frozen_readout_evaluation","candidate_resume_origin","native_calibration")):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_MIXED_SCOPE")
+    scope = require_frozen_train_policy_plan(recipe.get("frozen_train_policy_evaluation"))
+    repo = Path(__file__).resolve().parents[2]
+    binding = require_binding(recipe.get("next_run_policy"), label="frozen TRAIN native policy", verify_file=True)
+    if Path(binding["path"]) != repo/"NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {"plan":scope["plan_binding"],"chronological_prefix":prefix["artifacts"],
+        "run_id":recipe.get("run_id"),"out_bundle_dir":recipe.get("out_bundle_dir"),
+        "source_bindings_sha256":recipe.get("source_bindings_sha256"),"optimizer_steps":0,
+        "origin_optimizer_steps":512,"max_invocations":1,"train_entries":256,"control_forwards":0,
+        "val_limits":scope["plan"]["val_limits"],"test_data_used":False}
+    if (policy.get("training_enabled") is not False or policy.get("frozen_train_policy_evaluation") != expected
+            or any(key in policy for key in ("chronological_learning_run","native_learning_calibration",
+                                            "entry_gradient_diagnostic","frozen_readout_evaluation"))
+            or recipe.get("files") != scope["origin_recipe"]["files"]
+            or recipe.get("chronological_prefix") != scope["origin_recipe"]["chronological_prefix"]
+            or recipe.get("exit_reference_policy") != scope["origin_recipe"]["exit_reference_policy"]
+            or recipe.get("val_limits") != scope["plan"]["val_limits"]):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_NATIVE_SCOPE_INVALID")
+    if invocation_number is not None and (type(invocation_number) is not int or invocation_number != 1):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != 512
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or execution_budget.get("expected_active_pointer_sha256") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("FROZEN_TRAIN_POLICY_EXECUTION_BUDGET_INVALID")
+    return scope
+
+
 def require_frozen_readout_evaluation(recipe, *, invocation_number=None, execution_budget=None):
     """One bound, read-only native VAL window per arm; no training admission."""
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_bounded_val_cohort
@@ -1056,6 +1098,10 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "frozen_train_policy_evaluation" in recipe:
+        scope = require_frozen_train_policy_evaluation(recipe, invocation_number=invocation_number,
+                                                      execution_budget=execution_budget)
+        return scope["origin_resume_state"]["global_optimizer_steps"]
     if "chronological_entry_baseline" in recipe and recipe.get("chronological_train_only_measurement") is not True:
         raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
     if "chronological_train_only_measurement" in recipe and (

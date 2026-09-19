@@ -98,3 +98,29 @@ rettet til den verifiserte native time-kolonnen. Feilloggen er bevart.
 Bevis: handover_snapshot/TRAIN_OBSERVATION_CUTOFF_REVIEW_20260919.json og
 handover_snapshot/FROZEN_EXIT_TRAIN_FOOTPRINT_20260919.json. Frossen ONLINE512-
 checkpointbinding og eget nullstegs native kjøreomfang er neste arbeid.
+
+Native ONLINE512-binding og eget nullstegs TRAIN-omfang er nå implementert.
+24 målrettede tilfeller bestod; original checkpoint/cursor og modellkilder er
+kontrollert mot faktiske filer. Én test avdekket manglende outputforelder;
+mkdir(parents=True) rettet dette. TRAIN-labels, faktisk støttebudsjett,
+Entry-paritet før Exit, umiddelbar EXIT-baseline og handover er kontrollert.
+Ingen modell-/treningsmatematikk er endret. Se FROZEN_TRAIN_NATIVE_BINDING_REVIEW
+og FROZEN_TRAIN_EVALUATION_PLAN under handover_snapshot; ingen jobb startet.
+
+Tre nye underagentoppgaver ble utført etter brukerens uttrykkelige bestilling.
+En forhåndsdefinert cachet rangeringstest bruker max(Q_LONG,Q_SHORT)−Q_FLAT,
+valgt side, øvre ceil(n/2) og nedre floor(n/2) innen hver måned, stabile parent-ID-er.
+Alle256 identiteter kobles eksakt. Øvre130:−0,3998 Bps; nedre126:−5,7213 Bps;
+øvre bedre i6/9 og positiv i3/9 måneder. Øvre velger bare LONG og slår ikke
+alltid LONG på samme rader. Dette er retrospektiv TRAIN-gruppering og hybrid
+ankervalg/referanseutfall, ikke gjennomførbar seleksjonsregel eller fullpolicyprofitt.
+Resultatet begrunner videre kontroll av rangering, ingen terskelendring.
+Bevis: handover_snapshot/ENTRY_RANKING_AUDIT_20260919.json.
+
+To andre billige hypoteser er avkreftet med faktiske512-outputs: FLAT-Q satt
+nøyaktig0 endrer0/256 handlinger; LONG-Q har maksimum−3,0898 og SHORT-Q−5,5424.
+K12/K24 forecast har positivt fortegn256/256 og rangkorrelasjon−0,1885/−0,0453.
+Disse hodene leverer derfor ikke et allerede påvist retningssignal som bare
+kan kobles inn. Kilde er den bundne TRAIN_OBSERVATION.json: bounded_entry_observations
+og candidate_active_head_evidence.active_head_diagnostics.forecast. Ingen nye
+forwards/fits, kostnadsendringer eller modellrettelser ble brukt i disse analysene.

@@ -1,0 +1,51 @@
+{
+  "cohort": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TRAIN_ROLLOUT_COHORT.json",
+    "sha256": "50255e858ee661e3d5e63aff39aa8fb55d0b69d096377010c5617483700abdd1"
+  },
+  "completed512": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COMPLETION_REVIEWED.json",
+    "sha256": "7f1c1001a3d1201971ef74a3fee3088de7e3ee93376c6be6e7f0293bfc56d671"
+  },
+  "control_forwards": 0,
+  "created_utc": "2026-09-19T18:54:27.009470+00:00",
+  "decision": "FROZEN_TRAIN_POLICY_AND_COHORT_NOT_LAUNCH_AUTHORITY",
+  "footprint": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/FOOTPRINT.json",
+    "sha256": "821aa8f2073d01380760e1009882033f9f3a59788bb0872c18818e045adfd9b8"
+  },
+  "full_epoch_allowed": false,
+  "full_val_allowed": false,
+  "max_invocations": 1,
+  "native_launch_authorized": false,
+  "optimizer_steps": 0,
+  "origin_cursor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919_BOOT469/native-candidate-cursor/RESUME_CURSOR.json",
+    "sha256": "13c27ab9742999de5378131466af68107fd1c9ca36de02256082bd2e2b995385"
+  },
+  "origin_optimizer_steps": 512,
+  "review_criteria": {
+    "conditional_ranking": "One descriptive frozen-score comparison: max(Q_LONG,Q_SHORT)-Q_FLAT, chosen side argmax(LONG,SHORT); top versus bottom half within each TRAIN month, stable parent-ID ties, upper half ceil(n/2). Compare same rows against always LONG. No cutpoint search, threshold adjustment or fitting. Reused TRAIN evidence only; no generalization claim.",
+    "entry_policy": "Report actual Entry choices and one-position marked economics separately from hypothetical BOTH-side opportunities. Future best sides or profitable rows are never admissible Entry inputs.",
+    "interpretation": "Complete finite accounting is required. Positive counterfactual means do not prove a causal Entry strategy; negative side means alone do not rule out conditional edge. Report variation across all months, not selected winners.",
+    "next_decision": "Keep the learning gate unpassed unless improved causal Entry and Exit choices are established. Separately bind any later chronological check; no full epoch/VAL, CONTROL/TEST, trading, spending, cost change or teacher refresh.",
+    "open_positions": "Include every open position at its last executable liquidation value plus cashflows. The TRAIN cutoff is an observation boundary, never a forced model EXIT or maximum holding rule. Unknown source gaps remain non-authoritative and reported separately.",
+    "paired_baselines": "Same-entry immediate executable EXIT with identical quotes and costs, plus FLAT0. Aggregate and per-side/per-month net Bps, differences, decisions, and closed/open counts. Relative improvement alone is not positive edge.",
+    "population": "Exact existing TRAIN256, both counterfactual sides, all nine calendar months, in chronological order. No new selection or target fitting.",
+    "question": "Does the complete frozen ONLINE512 Exit policy preserve its conditional TRAIN improvement through consecutive decisions under the unchanged executable BID/ASK and slippage policy?",
+    "resource_stop": "One native three-hour observation window; any exhausted wall/forward/state budget is INCOMPLETE, not an economic rejection or completed evaluation. No automatic extension or relaunch."
+  },
+  "schema_version": "gx1_frozen_train_policy_evaluation_plan_v1",
+  "selected_model_variant": "ONLINE",
+  "teacher_refresh_allowed": false,
+  "test_data_used": false,
+  "training_enabled": false,
+  "val_limits": {
+    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 46573,
+    "max_state_views": 3375234,
+    "max_wall_seconds": 10800,
+    "policy_batch_size": 256,
+    "progress_interval_forwards": 64
+  }
+}

@@ -861,6 +861,20 @@ def evaluate_bound_full_val_v1(
         evaluation_cohort=evaluation_cohort,
         exit_boundary_model=exit_boundary_model,
     )
+    if checkpoint_binding["model_variant"] == "frozen_online_train_policy":
+        reference = checkpoint_binding["reference_train_observation"]
+        saved = read_bound_json(Path(reference["path"]), reference["sha256"])
+        rows = {row["parent_entry_row_index"]:row["predicted_q_bps"]
+                for row in saved["diagnostics"]["bounded_entry_observations"]}
+        expected = np.asarray([rows[parent] for parent in parent_rows], dtype=np.float32)
+        actual = entry_q_values.numpy()
+        difference = float(np.max(np.abs(actual - expected)))
+        # Reuse the native first-batch numerical tolerance; actions must agree.
+        if (not np.isfinite(expected).all() or not np.isfinite(actual).all()
+                or difference > 1e-3 or not np.array_equal(np.argmax(actual,axis=1),np.argmax(expected,axis=1))):
+            raise RuntimeError("FROZEN_TRAIN_POLICY_SAVED_ENTRY_PREDICTION_MISMATCH")
+        entry_routes["frozen_entry_reference_check"] = {"reference":dict(reference),
+            "max_absolute_q_difference_bps":difference,"q_absolute_tolerance_bps":1e-3,"same_actions":True}
     entry_routes["parent_entry_coordinate_evidence"] = parent_coordinate_evidence
     entry_routes["sequence_source_reconstruction_audit"] = {
         "path": str(val_sequence_audit), "sha256": file_sha256(val_sequence_audit),
@@ -879,10 +893,23 @@ def evaluate_bound_full_val_v1(
     )
     if contract["entry_pair_cohort_size"] != expected_count:
         raise RuntimeError("UNIFIED_EXIT_VAL_CLI_FULL_COHORT_REQUIRED")
+    if checkpoint_binding["model_variant"] == "frozen_online_train_policy":
+        requests = [{"entry_row_index":int(row),"side_index":side,"state_index":0,"action":"exit_now"}
+                    for row in frame["entry_row_index"] for side in (0,1)]
+        baseline = adapter.compose_selected_actions(requests)
+        rows = [{"entry_row_index":request["entry_row_index"],"side_index":request["side_index"],
+                 "net_cash_bps":float(step["undiscounted_net_cash_pnl_increment_bps"]),"economic_slice_sha256":sha}
+                for request,(step,sha) in zip(requests,baseline)]
+        if len(rows) != 2 * expected_count or not all(np.isfinite(row["net_cash_bps"]) for row in rows):
+            raise RuntimeError("FROZEN_TRAIN_POLICY_IMMEDIATE_EXIT_BASELINE_INVALID")
+        entry_routes["frozen_immediate_exit_baseline"] = {
+            "semantics":"first_executable_exit_same_entries_sides_prices_and_costs_no_model_forwards",
+            "rows":rows,"flat_bps":0.0}
     entry_policy = build_entry_policy_decisions(
         predicted_q_bps=entry_q_values.numpy(),
         entry_row_indices=frame["entry_row_index"].astype("int64").tolist(),
         checkpoint_binding_sha256=checkpoint_binding["binding_sha256"],
+        model_variant=checkpoint_binding["model_variant"],
     )
     try:
         result = run_resumable_random_access_val_evaluation_v1(

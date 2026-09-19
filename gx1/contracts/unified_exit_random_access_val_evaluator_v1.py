@@ -1077,8 +1077,8 @@ def run_resumable_random_access_val_evaluation_v1(
     )
     checkpoint_binding_sha = checked_checkpoint["binding_sha256"]
     if (
-        checked_checkpoint["model_variant"] not in {"weight_ema", "frozen_online_readout"}
-        or (checked_checkpoint["model_variant"] == "frozen_online_readout" and (
+        checked_checkpoint["model_variant"] not in {"weight_ema", "frozen_online_readout", "frozen_online_train_policy"}
+        or (checked_checkpoint["model_variant"] in {"frozen_online_readout", "frozen_online_train_policy"} and (
             checked_checkpoint["evaluation_cohort_sha256"]
             != contract.get("evaluation_cohort", {}).get("cohort_sha256")))
         or checked_checkpoint["model_state_sha256"] != contract["model_state_sha256"]

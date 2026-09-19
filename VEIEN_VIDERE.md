@@ -1,43 +1,46 @@
-# Neste: koble frossen ONLINE512 til én native TRAIN-vurdering
+# Neste: forbered og kjør den bundne frosne TRAIN-policyen
 
-Observasjonsgrensen og det faste utvalget er ferdige. Gjenbruk
-train_observation_cutoff_review og frozen_exit_train_footprint i
-NEXT_RUN_POLICY.json. 13 målrettede tester er bestått; ikke gjenta dem uten
-berørte endringer. Ingen kjøring er bundet eller startet.
+Kode, egen ONLINE512-checkpointbinding, observasjonsgrense og utvalg er ferdige.
+24 målrettede tilfeller er bestått i native-binding/evaluator/handover; gjenbruk
+også de tidligere13 cutoff-testene. Ekte originalcursor, checkpointbinding,
+TRAIN256-kohort og uendrede modellfunksjonskilder er verifisert. Ingen nye
+optimizersteg eller modellforwards er kjørt.
 
-Neste konkrete rettelse er egen frossen ONLINE512-checkpointbinding og et
-nullstegs TRAIN-evalueringsomfang i eksisterende native campaign/dispatcher.
-Gjenbruk prefix TRAIN-state factory, train_probe_ds, full evaluator og alle
-vakter. Den gamle fitted-readout-veien er bundet til VAL5508 og er ingen
-fallback. Ingen ny runner, modell, target, normalisering eller treningsendring.
+NEXT_RUN_POLICY.json.frozen_train_policy_evaluation binder null optimizersteg,
+original512, faste256 TRAIN-rader, begge sider og én native invokasjon.
+EVALUATION_PLAN.json og NATIVE_BINDING_REVIEW.json ligger i
+/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919.
+Snapshotene ligger under handover_snapshot. training_enabled er fortsatt false.
 
-Eksisterende utvidelsespunkter er require_native_run_scope i
-unified_exit_native_candidate_campaign_v1.py, checkpointvalidering i
-unified_exit_random_access_val_checkpoint_v1.py og dispatch før trening i
-run_unified_exit_random_access_full_train_v1.py. evaluate_bound_full_val_v1
-og build_chronological_train_rollout_cohort håndterer allerede det nye utvalget.
-Bevar gjeldende measurement_only-sperre og originalt 512-checkpoint/lærer.
+Neste handling: commit/push ferdig kilde og bind eksisterende native campaign
+fra ren kilde. Gjenbruk forrige PREPARATION_OPERATOR-mønster, current boot,
+controller, eksklusive låser og maskinvarevakter. Kontroller det konkrete
+native window før oppstart. Ikke bruk en separat runner. PREPARATION_RESULT.json
+og faktiske prosesser/receipts avgjør om planen allerede er startet/fullført.
+Ikke relanser en brukt plan. Frossen kilde må bevares under kjøringen.
 
-De samme 256 TRAIN-identitetene er bundet i kronologisk rekkefølge, med begge
-kontrafaktiske sider. Observasjonsgrense er 2026-03-01T00:00:00Z. Siste
-observerbare beslutning før grensen er 2026-02-27T22:00:00Z; de tre berørte
-forløpene beholder åpne posisjoner til siste observerbare verdi. Grensen er
-en datagrense, ingen maksimal holdetid eller modellbestemt EXIT.
+Evalueringen bruker eksisterende TRAIN-state factory, cache og full evaluator.
+ONLINE512 skal gjengi lagrede Entry-prediksjoner før Exit-rollout. Den regner
+også umiddelbar EXIT med identiske priser/kostnader uten ekstra forwards.
+Etterpå kontrolleres uendret modell og originalcursor. Ingen lærerrefresh,
+endring av targets, modell, normalisering, tap, slippage eller Entry-terskel.
 
-Øvre omfang hvis alle holder: 3375234 delte tilstander og 46573 native
-policyforwards ved batch256. Dette er en øvre arbeidsmengde, ikke målt
-kjøretid. Bind én invokasjon, uendrede kostnader, åtte CPU-arbeidere og
-etablert tre timers vindu før oppstart. Ressursstopp er ufullstendig vurdering.
-Bind resultatkriterier: begge sider og alle måneder, alle åpne posisjoner,
-modellens faktiske Entry-valg separat fra kontrafaktiske Exit-forløp.
+Grense:2026-03-01T00:00:00Z; tre forløp trenger cutoff. Alle åpne posisjoner
+medregnes med siste utførbare likvidasjonsverdi; grensen konstruerer ingen EXIT
+eller maksimal holdetid. All-HOLD øvre omfang er3375234 delte tilstander og
+46573 policyforwards ved batch256; åtte CPU-arbeidere og10800s evalueringsvindu.
+Dette er ikke målt kjøretid. Ressursstopp gir ufullstendig vurdering.
 
-Spørsmålet er om hele den frosne Exit-policyens forbedring overlever flere
-påfølgende beslutninger under samme kostnader. Et positivt kontrafaktisk
-resultat er ikke en dokumentert kausal Entry-strategi. Negative sidegjennomsnitt
-avkrefter heller ikke alene betinget edge. Entry er fortsatt FLAT256/256;
-læringsport, kronologisk overføring og samlet strategiprofitt er ubevist.
+Vurder alle måneder/begge sider mot umiddelbar EXIT og FLAT0, og modellens
+faktiske Entry-valg/ett-posisjonsregnskap separat. Bind og behold rangeringstesten
+fra ENTRY_RANKING_AUDIT: én øvre/nedre halvdel innen måned, ingen terskelsøk.
+Foreløpig hybridutfall er−0,3998/−5,7213 Bps; høyere rangering hjelper6/9 måneder,
+men beste halvdel er negativ og alle130 velger LONG. Dette er kun en diagnostisk
+TRAIN-gruppering, ingen online strategi eller gevinstbevis.
 
-Separate quote/ordre/fill-logger kan undersøkes når brukeren oppgir dem.
-Manglende logger hindrer ikke denne sammenligningen med uendrede kostnader.
-Ingen blind ekstra trening, terskelsøk, full epoch/full VAL, CONTROL/TEST,
-live/paper eller spending. Målet er aktivt.
+FLAT-Q-konstruksjon og eksisterende lang forecast som retningsgiver er avkreftet
+med lagrede512-outputs; ikke bruk flere runder på disse uten ny konkret evidens.
+Et positivt kontrafaktisk resultat beviser ikke kausal Entry eller generalisering.
+Negative sidegjennomsnitt alene avkrefter heller ikke betinget edge.
+Ingen blind trening, full epoch/full VAL, CONTROL/TEST, live/paper eller spending.
+Målet er aktivt. Oppdater handover og lukk brukt scope etter terminal review.

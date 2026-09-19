@@ -1,0 +1,49 @@
+{
+  "actual_origin_and_cohort_binding_verified": true,
+  "checks": [
+    "strict saved ONLINE512 and model function binding",
+    "zero optimizer dispatch",
+    "TRAIN-only labels and observed-support budget",
+    "saved Entry prediction parity before Exit",
+    "identical-cost immediate EXIT baseline without model forwards",
+    "preserved origin checkpoint in active and terminal handover"
+  ],
+  "created_utc": "2026-09-19T18:56:51.667737+00:00",
+  "decision": "NATIVE_FROZEN_TRAIN_SCOPE_BOUND_NOT_PREPARED_OR_STARTED",
+  "evaluation_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
+    "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
+  },
+  "first_test_failure": "Missing output directory parent; fixed mkdir(parents=True), original checkpoint unchanged.",
+  "learning_or_profitability_proven": false,
+  "logs": {
+    "ACTUAL_PLAN_AUDIT.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/ACTUAL_PLAN_AUDIT.log",
+      "sha256": "72c94e1a563bf6f75fa8652caf557b5289096d891a3f4b594b03774f3621428b"
+    },
+    "BASELINE_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/BASELINE_TESTS.log",
+      "sha256": "75290a328850f4d2917d019f98c58db37806e6b4f234e7ce75a4142b8eb7bbfe"
+    },
+    "BINDING_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/BINDING_TESTS.log",
+      "sha256": "340dbe8258910d130f56e2b2c19727a29b77f7d8a119c1b5c4be02461fad8424"
+    },
+    "HANDOVER_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/HANDOVER_TESTS.log",
+      "sha256": "f79e9b9d781490a455e5b14bd4003c31d420be5fd85454e2acda1ce0c835575f"
+    },
+    "INTEGRATION_TESTS.log": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/INTEGRATION_TESTS.log",
+      "sha256": "cb79400e65a913f11fe1d7320f362bda673c236bb7255c8e1718975e7d9e0fe7"
+    }
+  },
+  "model_forwards": 0,
+  "native_job_started": false,
+  "optimizer_steps": 0,
+  "reused_cutoff_cases": 13,
+  "schema_version": "gx1_frozen_train_native_binding_review_v1",
+  "source_bindings_sha256": "e65d99c0ae1301fe13bb777c95121533fd76f7037c20b45792d17d34b63f66a4",
+  "targeted_unique_passing_cases": 24,
+  "test_data_used": false
+}

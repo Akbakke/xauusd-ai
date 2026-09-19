@@ -1389,6 +1389,10 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/REVIEW.json",
     "sha256": "6e7134771329af52585649b71e6688cbfdce196f7f0ba5a69eddb7e5475b1258"
   },
+  "entry_ranking_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/ENTRY_RANKING_AUDIT/RESULT.json",
+    "sha256": "311868794bc7563eaf9bc0f49650acb3476fa8f9a22175515447a459e918464c"
+  },
   "existing_forecast_transfer_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/TRAIN_VAL_SEMANTICS_AUDIT_20260917/FORECAST_TRANSFER_EXISTING_OUTPUTS.json",
     "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a"
@@ -1456,6 +1460,47 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json",
     "sha256": "e727325e32934fbdad5beeb0b230b6c609e818a9583132a549cc1e9ad8eb57c3"
   },
+  "frozen_train_native_binding_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/NATIVE_BINDING_REVIEW.json",
+    "sha256": "c4405568af34ee0d8072ab020e52286e7eda5314a85cceec1e94d3342aa174f5"
+  },
+  "frozen_train_policy_evaluation": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "control_forwards": 0,
+    "max_invocations": 1,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CANDIDATE_BUNDLE",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
+      "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
+    },
+    "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
+    "source_bindings_sha256": "e65d99c0ae1301fe13bb777c95121533fd76f7037c20b45792d17d34b63f66a4",
+    "test_data_used": false,
+    "train_entries": 256,
+    "val_limits": {
+      "cpu_pipeline_workers": 8,
+      "max_model_forwards": 46573,
+      "max_state_views": 3375234,
+      "max_wall_seconds": 10800,
+      "policy_batch_size": 256,
+      "progress_interval_forwards": 64
+    }
+  },
   "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -1464,7 +1509,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "VEIEN_VIDERE.md; observation cutoff and fixed cohort complete, native frozen ONLINE512 evaluation scope/checkpoint binding remain.",
+  "handover_resume_point": "VEIEN_VIDERE.md; frozen ONLINE512 native scope and plan verified, prepare existing campaign from clean pushed source; no job started.",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1494,7 +1539,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "866e2e3305d36e4973554bb2b0a495c58f0e1ad3",
-  "latest_observation_utc": "2026-09-19T18:15:39.624074+00:00",
+  "latest_observation_utc": "2026-09-19T18:56:51.667737+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1775,7 +1820,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge.",
+  "next_action": "Prepare the existing native campaign for the exact frozen_train_policy_evaluation scope from the clean pushed source. Reuse completed tests, original ONLINE512, fixed TRAIN256 and unchanged costs; one zero-optimizer invocation. Verify native window readiness and existing Windows controller/guards before launch. After the terminal receipt, review all marked outcomes and immediate-EXIT/FLAT baselines, then close the used scope. Do not relaunch512, tune thresholds or expand training. No CONTROL/TEST or full epoch/VAL.",
   "observed_processes": [],
   "observed_utc": "2026-09-19T17:24:39.901758+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
@@ -1948,7 +1993,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "CONVERGENCE512_COMPLETE_EXIT_IMPROVED_ENTRY_GATE_FAILED",
+  "status": "NATIVE_FROZEN_TRAIN_SCOPE_BOUND_NOT_PREPARED_OR_STARTED",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {

@@ -92,10 +92,10 @@ def test_current_work_source_only_does_not_probe_processes_or_checkpoints(fixtur
     assert 'process_observation' not in out['current_work']
 
 
-@pytest.mark.parametrize('scope_kind',['learning','diagnostic','initial'])
+@pytest.mark.parametrize('scope_kind',['learning','diagnostic','initial','frozen_train_policy'])
 @pytest.mark.parametrize('case',['active','before_first_checkpoint','changed_recipe'])
 def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,monkeypatch,case,scope_kind):
-    diagnostic = scope_kind == "diagnostic"
+    diagnostic = scope_kind in {"diagnostic", "frozen_train_policy"}
     from scripts.collect_gx1_handover_readonly import _current_work_status
     repo,binding,*_=fixture
     run=binding.parent/'CURRENT_RUN';run.mkdir();output=run/'CANDIDATE_BUNDLE'
@@ -107,7 +107,7 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         'status':'RECORDED_BEFORE_START','source_repo':str(repo),'source_commit':'old-source',
         'session_directory':str(binding.parent/'session'),'next_action':'old note'}))
     scope={'run_id':run.name,'out_bundle_dir':str(output)}
-    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({{'diagnostic':'entry_gradient_diagnostic','learning':'chronological_learning_run','initial':'chronological_initial_measurement'}[scope_kind]:scope}))
+    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({{'diagnostic':'entry_gradient_diagnostic','learning':'chronological_learning_run','initial':'chronological_initial_measurement','frozen_train_policy':'frozen_train_policy_evaluation'}[scope_kind]:scope}))
     recipe=run/'recipe.json';recipe.write_text(json.dumps({**scope,'source_repo':str(repo),'source_commit':'current-source'}))
     (run/'PREPARATION_RESULT.json').write_text(json.dumps({'source_commit':'current-source',
         'recipe':{'path':str(recipe),'sha256':hashlib.sha256(recipe.read_bytes()).hexdigest()},
@@ -129,12 +129,12 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
 
 
-@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256','completed_convergence512'])
+@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256','completed_convergence512','completed_frozen_train_policy'])
 def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, latest_key):
     from scripts.collect_gx1_handover_readonly import _current_work_status
     repo, binding, *_ = fixture
     session = binding.parent / 'completed-main'; session.mkdir()
-    steps = 512 if latest_key == 'completed_convergence512' else 256
+    steps = 512 if latest_key in {'completed_convergence512','completed_frozen_train_policy'} else 256
     pointer = {'global_optimizer_steps': steps, 'phase': 'train'}
     (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(pointer))
     receipt = session/'receipt.json'; receipt.write_text('{"guard_decision":"PASS"}')
@@ -151,6 +151,7 @@ def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, la
         'completed_residual_normalized_fixed256': {'run_id': 'OLD'},
         'completed_main_encoder_fixed256': {'run_id':'OLDER_MAIN'},
         **({'completed_entry_fuse_fixed256':{'run_id':'OLDER_FUSE'}} if latest_key=='completed_convergence512' else {}),
+        **({'completed_convergence512':{'run_id':'OLDER_512'}} if latest_key=='completed_frozen_train_policy' else {}),
         latest_key: latest}))
     monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', lambda _: [])
     out = _current_work_status(binding.parent, source_only=False)

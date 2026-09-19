@@ -18,12 +18,13 @@ SCHEMA_VERSION = "gx1_unified_exit_entry_policy_decisions_v1"
 
 def build_entry_policy_decisions(
     *, predicted_q_bps: Any, entry_row_indices: Sequence[int],
-    checkpoint_binding_sha256: str,
+    checkpoint_binding_sha256: str, model_variant: str = "weight_ema",
 ) -> dict[str, Any]:
     q = np.asarray(predicted_q_bps)
     rows = list(entry_row_indices)
     if (
-        q.dtype != np.float32 or q.shape != (len(rows), 3) or not rows
+        model_variant not in {"weight_ema", "frozen_online_readout", "frozen_online_train_policy"}
+        or q.dtype != np.float32 or q.shape != (len(rows), 3) or not rows
         or any(type(row) is not int or row < 0 for row in rows)
         or rows != sorted(set(rows))
         or not isinstance(checkpoint_binding_sha256, str)
@@ -39,7 +40,7 @@ def build_entry_policy_decisions(
     value = {
         "schema_version": SCHEMA_VERSION,
         "checkpoint_binding_sha256": checkpoint_binding_sha256,
-        "model_variant": "weight_ema",
+        "model_variant": model_variant,
         "action_order": list(ENTRY_FITTED_Q_ACTION_ORDER),
         "action_validity": "bound_both_side_pair_cohort_plus_flat",
         "entry_row_indices": rows,
@@ -61,7 +62,7 @@ def require_entry_policy_decisions(
     rebuilt = build_entry_policy_decisions(
         predicted_q_bps=np.asarray(value.get("entry_action_q_bps"), dtype=np.float32),
         entry_row_indices=entry_row_indices,
-        checkpoint_binding_sha256=checkpoint_binding_sha256,
+        checkpoint_binding_sha256=checkpoint_binding_sha256, model_variant=value.get("model_variant"),
     )
     if rebuilt != dict(value):
         raise RuntimeError("UNIFIED_EXIT_ENTRY_POLICY_BINDING_INVALID")

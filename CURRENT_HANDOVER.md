@@ -1,30 +1,29 @@
-# GX1 — overlevering etter 512-vurderingen
+# GX1 — frossen TRAIN-evaluering bundet, ikke startet
 
 NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919 er ferdig, vurdert og deaktivert.
-Guard PASS; sluttsteg512; original256/lærer/targets bevart. Ingen aktiv kjøring.
-Exit tar nå bedre tilstandsavhengige valg på gjenbrukt TRAIN. Entry velger fortsatt
-FLAT256/256; samlet læringsport er ikke bestått. Ingen automatisk videreføring.
+Exit har delvis bedre tilstandsavhengige TRAIN-valg. Entry er fortsatt FLAT256/256;
+læringsport, kronologisk generalisering og samlet strategiprofitt er ikke bevist.
+Originale checkpoints, lærer, features og kostnader er bevart.
 
-Entry/Exit-kobling og kostnader er nå gjennomgått uten nye forwards. 4 Bps
-av friksjonen er en valgt slippage-forutsetning. Eksisterende 258 fills mangler
-beslutningsquote/fill-kobling; brukeren er spurt etter matchende logger.
-Se docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md. Ingen kostnader er endret.
-Neste avklaring er separat avgrenset vurdering av hele den frosne Exit-policyen
-med uendrede kostnader. Manglende fill-logger stopper ikke denne avklaringen.
+FROZEN_EXIT_TRAIN_POLICY_20260919 har nå egen ONLINE512-checkpointbinding og
+nullstegs TRAIN-gren i eksisterende native campaign. 24 målrettede testtilfeller
+bestått; de 13 allerede beståtte cutoff-tilfellene gjenbrukes. Den faktiske
+512-cursoren, kohorten og fire modellfunksjonskilder er verifisert uten forwards.
+EVALUATION_PLAN.json binder sammenligninger, kostnader, åpne posisjoner og én
+invokasjon. Forbered campaign fra ren pushet kilde; ingen ny jobb er startet.
 
-Observasjonsgrensen er nå implementert i eksisterende evaluator. 13 målrettede
-CPU-tester bestått: senere state-/økonomidata avvises, åpent tap medregnes uten
-konstruert EXIT, og pause/resume er identisk. Fast TRAIN-utvalg er hashbundet;
-tre forløp ville ellers krysset CONTROL-grensen. Ingen modellforwards eller
-optimizersteg er kjørt. Native ONLINE512-checkpointbinding og eget nullstegs
-kjøreomfang gjenstår; følg VEIEN_VIDERE.md, ikke gjenta grense-/cohort-arbeidet.
+Tre underagenter er brukt etter brukerens uttrykkelige bestilling. En liten
+cachet audit finner bedre hybridutfall i høyere Entry-rangert halvdel:
+−0,3998 mot −5,7213 Bps, bedre i6/9 måneder. Øvre halvdel er fortsatt negativ
+og alle130 velger LONG. Dette er retrospektiv gruppering på brukt TRAIN og
+ett Exit-valg fulgt av referansepolicy, ikke en gjennomførbar handelsregel
+eller full Exit-policy. Ingen terskel skal flyttes på dette grunnlaget.
+FLAT-Q satt eksakt0 endrer0/256 valg; lange forecast-signaler er konstant
+positive. Disse to raske rettelsene er avkreftet uten modellkjøring.
 
-Les docs/CONVERGENCE512_REVIEW_20260919.md, VEIEN_VIDERE.md og de bundne
-review-/verdict-feltene i RUNNING_NATIVE_CALIBRATION.json. Modell-/treningskode
-ble ikke endret etter kjøringen. Handover prioriterer nå korrekt fullført512;
-tre fokuserte rapporteringstester bestod. Kilden er frigitt etter terminal status.
-
+Følg VEIEN_VIDERE.md og NEXT_RUN_POLICY.json. Handover prioriterer nå korrekt
+nytt evalueringsomfang og bevarer originalt treningscheckpoint. Ikke relanser512
+eller gjenta cohort-, gradient- eller testarbeidet uten konkret ny feil.
 Kun /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overleveringskopi.
-De tre eksplisitt bestilte read-only agentene er ferdige. Én agent/én tung jobb.
-Ingen full epoch/VAL/CONTROL/TEST, live/paper/spending. Kronologisk kvalitet og
-samlet netto inklusive åpne posisjoner gjenstår. Målet er fortsatt aktivt.
+Én tung jobb samtidig; underagentenes avgrensede analyser er ferdige.
+Ingen full epoch/full VAL, CONTROL/TEST, live/paper/spending. Målet er aktivt.
