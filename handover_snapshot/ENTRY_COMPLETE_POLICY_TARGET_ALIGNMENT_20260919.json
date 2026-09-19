@@ -1,0 +1,128 @@
+{
+  "bindings": {
+    "full_policy_result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/TRAIN_RESULT.json",
+      "sha256": "c8dbadd7910b1f1d0d58a5b24fcc8893564873f5e4b98f45539e853deca17a8b"
+    },
+    "original_train_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+      "sha256": "aa92a7b04639f2972a108c85796a63448670e10d9368b6fdd6d1bfb1d23d4ffb"
+    },
+    "policy_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_REVIEW.json",
+      "sha256": "5a0c7b87d400c64d49826c0663aa5904c9fb6291b114e48871ee8e36baee0d0c"
+    }
+  },
+  "causal_or_generalization_claim": false,
+  "created_utc": "2026-09-19T19:34:58.756886+00:00",
+  "interpretation_limit": "One noisy realised outcome per side per reused TRAIN entry does not identify conditional expected value. Correlation differences diagnose target/policy mismatch; they alone neither prove a code error nor authorize target replacement, more training or threshold tuning.",
+  "metrics": {
+    "LONG": {
+      "Entry512_vs_complete_Exit512_outcome": {
+        "bias_bps": -0.4589841361490997,
+        "centered_mse_bps2": 543.4477760242632,
+        "estimate_mean_bps": -4.566936260089278,
+        "mean_outcome_constant_mse_bps2": 546.3381858550272,
+        "mse_bps2": 543.6584424614998,
+        "n": 256,
+        "outcome_mean_bps": -4.107952123940178,
+        "pearson": 0.114465028269318
+      },
+      "Entry512_vs_frozen_reference_target": {
+        "bias_bps": -0.8169810932013206,
+        "centered_mse_bps2": 602.923420543846,
+        "estimate_mean_bps": -4.566936260089278,
+        "mean_outcome_constant_mse_bps2": 608.8027565758159,
+        "mse_bps2": 603.5908786504943,
+        "n": 256,
+        "outcome_mean_bps": -3.7499551668879576,
+        "pearson": 0.20778927711622286
+      },
+      "frozen_reference_target_vs_complete_Exit512_outcome": {
+        "bias_bps": 0.357996957052221,
+        "centered_mse_bps2": 684.6230277166383,
+        "estimate_mean_bps": -3.7499551668879576,
+        "mean_outcome_constant_mse_bps2": 546.3381858550272,
+        "mse_bps2": 684.751189537897,
+        "n": 256,
+        "outcome_mean_bps": -4.107952123940178,
+        "pearson": 0.4079219591074182
+      }
+    },
+    "LONG_minus_SHORT": {
+      "Entry512_vs_complete_Exit512_outcome": {
+        "bias_bps": 1.4057622286070095,
+        "centered_mse_bps2": 635.1056948053035,
+        "estimate_mean_bps": 2.4870706982910633,
+        "mean_outcome_constant_mse_bps2": 642.9456620323954,
+        "mse_bps2": 637.0818622486817,
+        "n": 256,
+        "outcome_mean_bps": 1.0813084696840536,
+        "pearson": 0.15840034805181794
+      },
+      "Entry512_vs_frozen_reference_target": {
+        "bias_bps": -1.7230411425116472,
+        "centered_mse_bps2": 2402.5513615669897,
+        "estimate_mean_bps": 2.4870706982910633,
+        "mean_outcome_constant_mse_bps2": 2424.514468122882,
+        "mse_bps2": 2405.520232345778,
+        "n": 256,
+        "outcome_mean_bps": 4.2101118408027105,
+        "pearson": 0.20771627483845942
+      },
+      "frozen_reference_target_vs_complete_Exit512_outcome": {
+        "bias_bps": 3.128803371118657,
+        "centered_mse_bps2": 1816.9930407960132,
+        "estimate_mean_bps": 4.2101118408027105,
+        "mean_outcome_constant_mse_bps2": 642.9456620323954,
+        "mse_bps2": 1826.7824513311366,
+        "n": 256,
+        "outcome_mean_bps": 1.0813084696840536,
+        "pearson": 0.5007751217582778
+      }
+    },
+    "SHORT": {
+      "Entry512_vs_complete_Exit512_outcome": {
+        "bias_bps": -1.8647463647561096,
+        "centered_mse_bps2": 63.99142536139932,
+        "estimate_mean_bps": -7.0540069583803415,
+        "mean_outcome_constant_mse_bps2": 64.28095230996222,
+        "mse_bps2": 67.46870436627044,
+        "n": 256,
+        "outcome_mean_bps": -5.1892605936242315,
+        "pearson": 0.06763968851618397
+      },
+      "Entry512_vs_frozen_reference_target": {
+        "bias_bps": 0.9060600493103266,
+        "centered_mse_bps2": 598.5380904777851,
+        "estimate_mean_bps": -7.0540069583803415,
+        "mean_outcome_constant_mse_bps2": 603.8142519450176,
+        "mse_bps2": 599.3590352907413,
+        "n": 256,
+        "outcome_mean_bps": -7.960067007690668,
+        "pearson": 0.1884417468717828
+      },
+      "frozen_reference_target_vs_complete_Exit512_outcome": {
+        "bias_bps": -2.770806414066436,
+        "centered_mse_bps2": 514.1454476372284,
+        "estimate_mean_bps": -7.960067007690668,
+        "mean_outcome_constant_mse_bps2": 64.28095230996222,
+        "mse_bps2": 521.8228158214602,
+        "n": 256,
+        "outcome_mean_bps": -5.1892605936242315,
+        "pearson": 0.3907114873531734
+      }
+    }
+  },
+  "n": 256,
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT_OPERATOR.py",
+    "sha256": "750f257ddfb441cb10d840f4442b0979ba36d48c952858c921b8a0a1b7658192"
+  },
+  "optimizer_steps": 0,
+  "question": "Does the current Entry reference target preserve ranking for the complete learned Exit policy, after the prespecified higher-ranked half fell from hybrid -0.3998 to full-policy -3.3433 Bps?",
+  "schema_version": "gx1_entry_reference_complete_policy_alignment_v1",
+  "test_data_used": false
+}

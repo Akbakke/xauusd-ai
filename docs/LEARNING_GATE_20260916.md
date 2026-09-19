@@ -9,7 +9,7 @@ robuste Entry/Exit-beslutninger og positiv kostnadsjustert økonomi.
 TRAIN. Entry er fortsatt FLAT256/256. Samlet læringsport er ikke bestått.
 Forhåndsbundne numeriske krav er vurdert; bare Entry-handlingskravet feiler.
 Ingen kronologisk generalisering eller strategiprofitt er dokumentert. Scope er
-stengt; separat nullstegs TRAIN-policyvurdering er bundet, men ikke startet. Se docs/CONVERGENCE512_REVIEW_20260919.md.
+stengt; separat nullstegs TRAIN-policyvurdering er ferdig med negativ netto; ingen ny kjøring er bundet. Se docs/CONVERGENCE512_REVIEW_20260919.md.
 
 CURRENT_HANDOVER.md og VEIEN_VIDERE.md angir aktuelle filbindinger og handling.
 Historiske læringsnotater er bevart i Git og handover_snapshot; de er ikke

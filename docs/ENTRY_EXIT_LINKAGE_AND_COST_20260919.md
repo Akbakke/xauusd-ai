@@ -124,3 +124,36 @@ Disse hodene leverer derfor ikke et allerede påvist retningssignal som bare
 kan kobles inn. Kilde er den bundne TRAIN_OBSERVATION.json: bounded_entry_observations
 og candidate_active_head_evidence.active_head_diagnostics.forecast. Ingen nye
 forwards/fits, kostnadsendringer eller modellrettelser ble brukt i disse analysene.
+
+Hele frosne Exit512-policyen er nå målt på sammeTRAIN256. Alle512 handler fikk
+faktisk modell-EXIT, ingen sensurering eller åpne posisjoner. LONG−4,1080 og
+SHORT−5,1893 Bps; mot umiddelbar EXIT er forbedringen+1,8409/+0,5902 Bps,
+positiv forskjell i8/9 og6/9 måneder. Positiv netto finnes bare i2/9 LONG-måneder
+og0/9 SHORT-måneder. Begge sider samlet er−4,6486 Bps per hypotetisk handel.
+Dette er gjenbrukt TRAIN og kontrafaktiske muligheter, ingen porteføljegevinst.
+
+Den nøyaktig samme forhåndsdefinerte rangeringen gir fullpolicy-utfall
+−3,3433 for øvre130 og−4,8623 for nedre126. Øvre er bedre i5/9 måneder, positiv
+i3/9, og velger bare LONG. Den foreløpige hybridforbedringen overlevde derfor
+ikke som positiv netto. Ingen produksjonsterskel er tilpasset resultatet.
+Faktisk Entry er FLAT256/256; både uavhengige muligheter og ett-posisjonsregnskap
+gir0 handler,0 åpne posisjoner og0 netto. Dette er ikke en profitabel strategi.
+
+Teknisk kjøring:1083 forwards,21333 tilstander,160,51s rollout og776,79s native.
+Batch-/cache-/CPU-paritet var bestått; Entry-prediksjonene var eksakt lik lagret512.
+Native guard og begge exitkoder var0/PASS. Observerte topper56C kjerne,62C minne,
+187,01W og9340MiB. Originalmodell, lærer og cursor er bevart. Kjøringen er vurdert,
+Windows-oppgaven deaktivert og brukt scope fjernet. Ingen automatisk videreføring.
+
+Cachet målsammenligning undersøkte det observerte hybrid/fullpolicy-avviket.
+Referansetargetenes globale Pearson mot fullpolicy-utfall er0,408 LONG/0,391 SHORT;
+middelavvik er+0,358/−2,771 Bps. Entry-prediksjonenes korrelasjon mot fullpolicy-
+utfall er0,114/0,068; LONG−SHORT0,158, mot0,208 for referansetarget. Tallene er
+beskrivende, med ett støyende utfall per side/rad på brukt TRAIN. De verken
+beviser kodefeil eller legitimerer targetbytte/mer trening. Neste designspørsmål
+er kausale Entry-verdier for samme frosne Exit-policy, før noen ny implementering.
+
+Fullt aggregert bevis: handover_snapshot/FROZEN_TRAIN_POLICY_REVIEW_20260919.json,
+handover_snapshot/FROZEN_TRAIN_POLICY_COMPLETION_20260919.json og
+handover_snapshot/ENTRY_COMPLETE_POLICY_TARGET_ALIGNMENT_20260919.json.
+Originale rå resultater/checkpoints beholdes privat. TEST er fortsatt forseglet.

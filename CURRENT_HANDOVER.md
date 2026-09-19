@@ -1,29 +1,33 @@
-# GX1 — frossen TRAIN-evaluering bundet, ikke startet
+# GX1 — hele frosne Exit-policyen er vurdert
 
-NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919 er ferdig, vurdert og deaktivert.
-Exit har delvis bedre tilstandsavhengige TRAIN-valg. Entry er fortsatt FLAT256/256;
-læringsport, kronologisk generalisering og samlet strategiprofitt er ikke bevist.
-Originale checkpoints, lærer, features og kostnader er bevart.
+FROZEN_EXIT_TRAIN_POLICY_20260919 er fullført, vurdert og deaktivert.
+Guard PASS; null nye optimizersteg; original512/lærer/cursor bevart.
+Alle512 kontrafaktiske handler fikk faktiske modell-EXIT. Ingen åpne posisjoner,
+sensurering eller ressursavbrudd. Entry er fortsatt FLAT256/256 og faktisk netto0.
 
-FROZEN_EXIT_TRAIN_POLICY_20260919 har nå egen ONLINE512-checkpointbinding og
-nullstegs TRAIN-gren i eksisterende native campaign. 24 målrettede testtilfeller
-bestått; de 13 allerede beståtte cutoff-tilfellene gjenbrukes. Den faktiske
-512-cursoren, kohorten og fire modellfunksjonskilder er verifisert uten forwards.
-EVALUATION_PLAN.json binder sammenligninger, kostnader, åpne posisjoner og én
-invokasjon. Forbered campaign fra ren pushet kilde; ingen ny jobb er startet.
+|Hele Exit512 på TRAIN256|LONG|SHORT|
+|---|---:|---:|
+|Gjennomsnittlig netto Bps|−4,1080|−5,1893|
+|Bedring mot umiddelbar EXIT Bps|+1,8409|+0,5902|
+|Positive måneder|2/9|0/9|
 
-Tre underagenter er brukt etter brukerens uttrykkelige bestilling. En liten
-cachet audit finner bedre hybridutfall i høyere Entry-rangert halvdel:
-−0,3998 mot −5,7213 Bps, bedre i6/9 måneder. Øvre halvdel er fortsatt negativ
-og alle130 velger LONG. Dette er retrospektiv gruppering på brukt TRAIN og
-ett Exit-valg fulgt av referansepolicy, ikke en gjennomførbar handelsregel
-eller full Exit-policy. Ingen terskel skal flyttes på dette grunnlaget.
-FLAT-Q satt eksakt0 endrer0/256 valg; lange forecast-signaler er konstant
-positive. Disse to raske rettelsene er avkreftet uten modellkjøring.
+Den forhåndsbestemte øvre/nedre rangeringshalvdelen ga−3,3433/−4,8623 Bps.
+Øvre halvdel er bedre i5/9 måneder, men fortsatt negativ. Det foreløpige
+hybridresultatet−0,3998 for øvre halvdel var ikke fullpolicy-resultatet.
+Bedre Exit enn umiddelbar lukking er målt på TRAIN; profitabel Entry/Exit-strategi,
+kronologisk kvalitet og læringsport er fortsatt ikke dokumentert.
 
-Følg VEIEN_VIDERE.md og NEXT_RUN_POLICY.json. Handover prioriterer nå korrekt
-nytt evalueringsomfang og bevarer originalt treningscheckpoint. Ikke relanser512
-eller gjenta cohort-, gradient- eller testarbeidet uten konkret ny feil.
+1083 forwards og21333 tilstander; selve rollout tok160,51s, native arbeid776,79s.
+Kjøring19:14:01–19:29:19 UTC /21:14:01–21:29:19 Oslo2026-09-19; controller
+Disabled19:33:30 UTC. Ingen aktiv jobb eller ny kjøreautorisasjon.
+
+Entry lærer fortsatt Q_mu, mens hele forløpet brukte pi512. Cachet sammenligning
+bekrefter ulike mål/utfall; dette er et designspørsmål, ikke automatisk en kodefeil.
+Følg VEIEN_VIDERE.md før eventuell ny målberegning eller kodeendring. Ingen
+nye fits/forwards er bundet. Kostnader og terskler er uendret. Ikke relanser planen.
+
+Bevis: docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md og de tre nye snapshotene
+FROZEN_TRAIN_POLICY_REVIEW, FROZEN_TRAIN_POLICY_COMPLETION og
+ENTRY_COMPLETE_POLICY_TARGET_ALIGNMENT under handover_snapshot.
 Kun /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overleveringskopi.
-Én tung jobb samtidig; underagentenes avgrensede analyser er ferdige.
-Ingen full epoch/full VAL, CONTROL/TEST, live/paper/spending. Målet er aktivt.
+Tidligere operatørkopi under kildefrys er historikk. Målet er fortsatt aktivt.

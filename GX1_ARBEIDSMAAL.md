@@ -6,7 +6,7 @@ beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt akti
 
 Nå:512-prøven er fullført. Exit tar bedre tilstandsavhengige valg på gjenbrukt
 TRAIN, men Entry er fortsatt FLAT256/256. Samlet læringsport er ikke bestått.
-512-scope er stengt; en separat nullstegs TRAIN-evaluering er nå bundet, men ikke startet. Se VEIEN_VIDERE.md og
+512-scope er stengt; den separate nullstegs TRAIN-evalueringen er ferdig med negativ netto; ingen ny kjøring er bundet. Se VEIEN_VIDERE.md og
 CONVERGENCE512_REVIEW_20260919.md for det gjenværende Entry-spørsmålet.
 
 Bevar alle 200 features, åtte familier, tidsrammer og kausale inputs. Ingen fast

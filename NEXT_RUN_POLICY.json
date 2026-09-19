@@ -505,6 +505,10 @@
       "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
     }
   },
+  "completed_frozen_train_policy": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/COMPLETION_REVIEWED.json",
+    "sha256": "9802a476b5d113309d2875f64bb8a3b65c07ceb735c3cc9863f38675a18385c8"
+  },
   "completed_initialization_exposure_audit": {
     "decision": "NO_CHRONOLOGICALLY_CLEAN_INITIALIZATION_IN_CHECKED_ACTIVE_LINEAGE",
     "full_train_ancestor_rows": 313399,
@@ -1216,6 +1220,10 @@
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
+  "entry_complete_policy_target_alignment": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT.json",
+    "sha256": "6b8147658d7b13f1ce7d23def679ec8aa2910e9a7167ed9319906d50b1b52101"
+  },
   "entry_cost_basis_audit": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COST_BASIS_AUDIT.json",
     "sha256": "d05a0f2a5f929f95bd0bfc16e813d37b90d93770d037c6cf784e7c835b127f13"
@@ -1280,43 +1288,6 @@
   "frozen_train_native_binding_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/NATIVE_BINDING_REVIEW.json",
     "sha256": "c4405568af34ee0d8072ab020e52286e7eda5314a85cceec1e94d3342aa174f5"
-  },
-  "frozen_train_policy_evaluation": {
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "control_forwards": 0,
-    "max_invocations": 1,
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 512,
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CANDIDATE_BUNDLE",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
-      "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
-    },
-    "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
-    "source_bindings_sha256": "e65d99c0ae1301fe13bb777c95121533fd76f7037c20b45792d17d34b63f66a4",
-    "test_data_used": false,
-    "train_entries": 256,
-    "val_limits": {
-      "cpu_pipeline_workers": 8,
-      "max_model_forwards": 46573,
-      "max_state_views": 3375234,
-      "max_wall_seconds": 10800,
-      "policy_batch_size": 256,
-      "progress_interval_forwards": 64
-    }
   },
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -1623,7 +1594,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "Prepare the existing native campaign for the exact frozen_train_policy_evaluation scope from the clean pushed source. Reuse completed tests, original ONLINE512, fixed TRAIN256 and unchanged costs; one zero-optimizer invocation. Verify native window readiness and existing Windows controller/guards before launch. After the terminal receipt, review all marked outcomes and immediate-EXIT/FLAT baselines, then close the used scope. Do not relaunch512, tune thresholds or expand training. No CONTROL/TEST or full epoch/VAL.",
+  "next_action": "The frozen TRAIN policy evaluation is complete and its scope is consumed. Do not repeat it, alter costs/thresholds or extend training. Read POLICY_REVIEW and TARGET_ALIGNMENT. Next bounded design question: can Entry be assigned causal values for the same frozen Exit policy that will execute, using the existing native target machinery? Entry currently learns Q_mu while execution used pi512; the paired targets differ. First inspect existing target owners and specify one policy-consistent target calculation and cached baseline, with frozen teacher, costs, TRAIN cutoff and FLAT0 preserved. This mismatch is not itself a code defect or proof of profitable signal; do not implement or fit a new model without a concrete justified scope. No new fits/forwards are currently bound. TEST remains sealed.",
   "observed_utc": "2026-09-19T18:15:39.621422+00:00",
   "outer_guard_seconds": 13800,
   "precision": "float32",
@@ -1776,7 +1747,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "NATIVE_FROZEN_TRAIN_SCOPE_BOUND_NOT_PREPARED_OR_STARTED",
+  "status": "FROZEN_TRAIN_POLICY_COMPLETE_NET_NEGATIVE_ENTRY_GATE_FAILED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {

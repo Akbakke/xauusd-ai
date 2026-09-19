@@ -602,6 +602,147 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/REVIEW.json",
     "sha256": "3076db764620b9a55101d74fb3e4736bba9ee61dc5bbb4a6b61f860563cb76e9"
   },
+  "completed_frozen_train_policy": {
+    "actual_net_bps": 0.0,
+    "actual_selected_trade_count": 0,
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "a31a9d80fccf265d001a99356cabcb4875bc7e020385e5537de93dece078f59a"
+    },
+    "created_utc": "2026-09-19T19:39:33.851317+00:00",
+    "elapsed_rollout_compute_seconds": 160.5133571839997,
+    "entry_flat_count": 256,
+    "evaluation_plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
+      "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
+    },
+    "exited_side_trade_count": 512,
+    "finished_utc": "2026-09-19T19:29:19.545777+00:00",
+    "full_policy_mean_net_bps": {
+      "LONG": -4.107952123940178,
+      "SHORT": -5.1892605936242315
+    },
+    "generalization_proven": false,
+    "guard_decision": "PASS",
+    "learning_gate_passed": false,
+    "learning_review_complete": true,
+    "materialized_state_views": 21333,
+    "model_forward_count": 1083,
+    "model_state_sha256": "67b1be8e694b0ba6859fc5bc369dc668ea6e68b9dd5a110b7d3f0e8a4bb0896d",
+    "month_counts": {
+      "LONG_beats_immediate_EXIT_months": 8,
+      "LONG_positive_months": 2,
+      "SHORT_beats_immediate_EXIT_months": 6,
+      "SHORT_positive_months": 0,
+      "upper_beats_lower_months": 5,
+      "upper_positive_months": 3
+    },
+    "native_elapsed_seconds": 776.785713443,
+    "native_processes": [],
+    "native_recipe": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/NATIVE_RECIPE.json",
+      "sha256": "59a05f7b2d4b31f752e70560760bd2d3f3495cad447c5cdf13450cddd69a7dd0"
+    },
+    "observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/OBSERVATION.json",
+      "sha256": "b93efa2ea790d8d944c6e8ec3a9babff6abb0e56b5d59545678b10c77052f943"
+    },
+    "open_position_count": 0,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "original_cursor_exactly_preserved": true,
+    "paired_immediate_exit_improvement_bps": {
+      "LONG": 1.8408939509799962,
+      "SHORT": 0.5901679659790953
+    },
+    "peak_hardware": {
+      "core_c": 56,
+      "memory_c": 62,
+      "power_w": 187.01,
+      "vram_mib": 9340
+    },
+    "profitability_proven": false,
+    "progress_observer_exit_code": 0,
+    "ranked_lower_mean_net_bps": -4.86230863343608,
+    "ranked_upper_mean_net_bps": -3.3433404555834736,
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470/receipts/invocation-0001.json",
+      "sha256": "56e48a4a69901933cb94009e63213d09aca21125eccb6500fc82e6e0c236d88d"
+    },
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/TRAIN_RESULT.json",
+      "sha256": "c8dbadd7910b1f1d0d58a5b24fcc8893564873f5e4b98f45539e853deca17a8b"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_REVIEW.json",
+      "sha256": "5a0c7b87d400c64d49826c0663aa5904c9fb6291b114e48871ee8e36baee0d0c"
+    },
+    "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
+    "runtime_root": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470",
+    "schema_version": "gx1_frozen_train_policy_completion_v1",
+    "source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
+    "source_repo": "/home/andre2/src/GX1_CURRENT",
+    "started_utc": "2026-09-19T19:14:01.432566+00:00",
+    "status": "FROZEN_TRAIN_POLICY_COMPLETE_NET_NEGATIVE_ENTRY_GATE_FAILED",
+    "target_alignment": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT.json",
+      "sha256": "6b8147658d7b13f1ce7d23def679ec8aa2910e9a7167ed9319906d50b1b52101"
+    },
+    "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+    "test_data_used": false,
+    "trainer_guard_exit_code": 0,
+    "training_enabled": false,
+    "training_pointer": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+      "sha256": "1e0d173855925d95f596825c52e20d48d426b2b9941c79e024446d617f261973"
+    },
+    "training_state": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+      "sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
+    },
+    "windows_task_disabled": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/FROZEN_EXIT_TRAIN_POLICY_20260919_DISABLED.json",
+      "sha256": "e3df2b085df43e8d29fb50bf309777cd5b9e559183906c7b176883fa6655532f"
+    }
+  },
+  "completed_frozen_train_policy_scope": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "control_forwards": 0,
+    "max_invocations": 1,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CANDIDATE_BUNDLE",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
+      "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
+    },
+    "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
+    "source_bindings_sha256": "e65d99c0ae1301fe13bb777c95121533fd76f7037c20b45792d17d34b63f66a4",
+    "test_data_used": false,
+    "train_entries": 256,
+    "val_limits": {
+      "cpu_pipeline_workers": 8,
+      "max_model_forwards": 46573,
+      "max_state_views": 3375234,
+      "max_wall_seconds": 10800,
+      "policy_batch_size": 256,
+      "progress_interval_forwards": 64
+    }
+  },
   "completed_joint_update_diagnostic": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_GRU_RETRY_20260919/REVIEW.json",
     "sha256": "d3a9d64b3c05085a0b06a86409640a28a69c351d2f4f780fa20826310846484e"
@@ -1318,6 +1459,10 @@
     "training_enabled": false,
     "verified_entries": 275
   },
+  "entry_complete_policy_target_alignment": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT.json",
+    "sha256": "6b8147658d7b13f1ce7d23def679ec8aa2910e9a7167ed9319906d50b1b52101"
+  },
   "entry_cost_basis_audit": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COST_BASIS_AUDIT.json",
     "sha256": "d05a0f2a5f929f95bd0bfc16e813d37b90d93770d037c6cf784e7c835b127f13"
@@ -1464,43 +1609,6 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/NATIVE_BINDING_REVIEW.json",
     "sha256": "c4405568af34ee0d8072ab020e52286e7eda5314a85cceec1e94d3342aa174f5"
   },
-  "frozen_train_policy_evaluation": {
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "control_forwards": 0,
-    "max_invocations": 1,
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 512,
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CANDIDATE_BUNDLE",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
-      "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
-    },
-    "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
-    "source_bindings_sha256": "e65d99c0ae1301fe13bb777c95121533fd76f7037c20b45792d17d34b63f66a4",
-    "test_data_used": false,
-    "train_entries": 256,
-    "val_limits": {
-      "cpu_pipeline_workers": 8,
-      "max_model_forwards": 46573,
-      "max_state_views": 3375234,
-      "max_wall_seconds": 10800,
-      "policy_batch_size": 256,
-      "progress_interval_forwards": 64
-    }
-  },
   "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -1509,7 +1617,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "VEIEN_VIDERE.md; frozen ONLINE512 native scope and plan verified, prepare existing campaign from clean pushed source; no job started.",
+  "handover_resume_point": "VEIEN_VIDERE.md; complete full-policy TRAIN evidence reviewed, no active scope. Policy-consistent Entry target design is the next bounded question.",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1538,8 +1646,8 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
-  "last_evaluation_source_commit": "866e2e3305d36e4973554bb2b0a495c58f0e1ad3",
-  "latest_observation_utc": "2026-09-19T18:56:51.667737+00:00",
+  "last_evaluation_source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
+  "latest_observation_utc": "2026-09-19T19:39:33.851317+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1692,6 +1800,7 @@
       "right_censored_entries": 2,
       "train_only": true
     },
+    "frozen_policy_economics_positive": false,
     "frozen_readout_chronological_review": {
       "all_entries_marked_mean_bps": -15.747744815790465,
       "decision": "REJECT_CANDIDATE_FOR_EXPANSION",
@@ -1701,6 +1810,10 @@
         "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/NATIVE_COMPARISON_20260917/RESULT.json",
         "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
       }
+    },
+    "frozen_train_policy_review": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_REVIEW.json",
+      "sha256": "5a0c7b87d400c64d49826c0663aa5904c9fb6291b114e48871ee8e36baee0d0c"
     },
     "generalization_demonstrated": false,
     "latest_measurement": {
@@ -1820,7 +1933,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Prepare the existing native campaign for the exact frozen_train_policy_evaluation scope from the clean pushed source. Reuse completed tests, original ONLINE512, fixed TRAIN256 and unchanged costs; one zero-optimizer invocation. Verify native window readiness and existing Windows controller/guards before launch. After the terminal receipt, review all marked outcomes and immediate-EXIT/FLAT baselines, then close the used scope. Do not relaunch512, tune thresholds or expand training. No CONTROL/TEST or full epoch/VAL.",
+  "next_action": "The frozen TRAIN policy evaluation is complete and its scope is consumed. Do not repeat it, alter costs/thresholds or extend training. Read POLICY_REVIEW and TARGET_ALIGNMENT. Next bounded design question: can Entry be assigned causal values for the same frozen Exit policy that will execute, using the existing native target machinery? Entry currently learns Q_mu while execution used pi512; the paired targets differ. First inspect existing target owners and specify one policy-consistent target calculation and cached baseline, with frozen teacher, costs, TRAIN cutoff and FLAT0 preserved. This mismatch is not itself a code defect or proof of profitable signal; do not implement or fit a new model without a concrete justified scope. No new fits/forwards are currently bound. TEST remains sealed.",
   "observed_processes": [],
   "observed_utc": "2026-09-19T17:24:39.901758+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
@@ -1976,9 +2089,9 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88/RESULT.json",
     "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
   },
-  "run_id": "NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919",
-  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919_BOOT469",
-  "runtime_root_scope": "Latest completed512; task Disabled and scope consumed.",
+  "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
+  "runtime_root": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470",
+  "runtime_root_scope": "Completed frozen TRAIN policy evaluation; original training session/checkpoint retained.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -1993,7 +2106,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "NATIVE_FROZEN_TRAIN_SCOPE_BOUND_NOT_PREPARED_OR_STARTED",
+  "status": "FROZEN_TRAIN_POLICY_COMPLETE_NET_NEGATIVE_ENTRY_GATE_FAILED",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {
@@ -2042,11 +2155,12 @@
   "windows_task": "GX1NativeLearningCalibration",
   "windows_task_enabled": false,
   "windows_task_observation": {
-    "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\"",
     "enabled": false,
-    "last_result": 0,
-    "observed_utc": "2026-09-19T13:15:29.9228962Z",
-    "plan_json": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "last_task_result": 0,
+    "observed_utc": "2026-09-19T19:33:30.6167758+00:00",
+    "plan_file_sha256": "a31a9d80fccf265d001a99356cabcb4875bc7e020385e5537de93dece078f59a",
+    "relaunch_allowed": false,
+    "source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
     "state": "Disabled",
     "task_name": "GX1NativeLearningCalibration"
   },

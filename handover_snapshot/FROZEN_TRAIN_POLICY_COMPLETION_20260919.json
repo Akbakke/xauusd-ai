@@ -1,0 +1,104 @@
+{
+  "actual_net_bps": 0.0,
+  "actual_selected_trade_count": 0,
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "a31a9d80fccf265d001a99356cabcb4875bc7e020385e5537de93dece078f59a"
+  },
+  "created_utc": "2026-09-19T19:39:33.851317+00:00",
+  "elapsed_rollout_compute_seconds": 160.5133571839997,
+  "entry_flat_count": 256,
+  "evaluation_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/EVALUATION_PLAN.json",
+    "sha256": "26dc47c208a096b12e60c3e20e0f7d1592bd19f16c1043fbc0b9a212cd4d9c89"
+  },
+  "exited_side_trade_count": 512,
+  "finished_utc": "2026-09-19T19:29:19.545777+00:00",
+  "full_policy_mean_net_bps": {
+    "LONG": -4.107952123940178,
+    "SHORT": -5.1892605936242315
+  },
+  "generalization_proven": false,
+  "guard_decision": "PASS",
+  "learning_gate_passed": false,
+  "learning_review_complete": true,
+  "materialized_state_views": 21333,
+  "model_forward_count": 1083,
+  "model_state_sha256": "67b1be8e694b0ba6859fc5bc369dc668ea6e68b9dd5a110b7d3f0e8a4bb0896d",
+  "month_counts": {
+    "LONG_beats_immediate_EXIT_months": 8,
+    "LONG_positive_months": 2,
+    "SHORT_beats_immediate_EXIT_months": 6,
+    "SHORT_positive_months": 0,
+    "upper_beats_lower_months": 5,
+    "upper_positive_months": 3
+  },
+  "native_elapsed_seconds": 776.785713443,
+  "native_processes": [],
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/NATIVE_RECIPE.json",
+    "sha256": "59a05f7b2d4b31f752e70560760bd2d3f3495cad447c5cdf13450cddd69a7dd0"
+  },
+  "observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/OBSERVATION.json",
+    "sha256": "b93efa2ea790d8d944c6e8ec3a9babff6abb0e56b5d59545678b10c77052f943"
+  },
+  "open_position_count": 0,
+  "optimizer_steps": 0,
+  "origin_optimizer_steps": 512,
+  "original_cursor_exactly_preserved": true,
+  "paired_immediate_exit_improvement_bps": {
+    "LONG": 1.8408939509799962,
+    "SHORT": 0.5901679659790953
+  },
+  "peak_hardware": {
+    "core_c": 56,
+    "memory_c": 62,
+    "power_w": 187.01,
+    "vram_mib": 9340
+  },
+  "profitability_proven": false,
+  "progress_observer_exit_code": 0,
+  "ranked_lower_mean_net_bps": -4.86230863343608,
+  "ranked_upper_mean_net_bps": -3.3433404555834736,
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470/receipts/invocation-0001.json",
+    "sha256": "56e48a4a69901933cb94009e63213d09aca21125eccb6500fc82e6e0c236d88d"
+  },
+  "relaunch_allowed": false,
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/frozen_train_policy/TRAIN_RESULT.json",
+    "sha256": "c8dbadd7910b1f1d0d58a5b24fcc8893564873f5e4b98f45539e853deca17a8b"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_REVIEW.json",
+    "sha256": "5a0c7b87d400c64d49826c0663aa5904c9fb6291b114e48871ee8e36baee0d0c"
+  },
+  "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
+  "runtime_root": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470",
+  "schema_version": "gx1_frozen_train_policy_completion_v1",
+  "source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "started_utc": "2026-09-19T19:14:01.432566+00:00",
+  "status": "FROZEN_TRAIN_POLICY_COMPLETE_NET_NEGATIVE_ENTRY_GATE_FAILED",
+  "target_alignment": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT.json",
+    "sha256": "6b8147658d7b13f1ce7d23def679ec8aa2910e9a7167ed9319906d50b1b52101"
+  },
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "test_data_used": false,
+  "trainer_guard_exit_code": 0,
+  "training_enabled": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "1e0d173855925d95f596825c52e20d48d426b2b9941c79e024446d617f261973"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/FROZEN_EXIT_TRAIN_POLICY_20260919_DISABLED.json",
+    "sha256": "e3df2b085df43e8d29fb50bf309777cd5b9e559183906c7b176883fa6655532f"
+  }
+}
