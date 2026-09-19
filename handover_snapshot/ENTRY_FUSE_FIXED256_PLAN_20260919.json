@@ -1,0 +1,94 @@
+{
+  "schema_version": "gx1_entry_fuse_normalization_fixed256_plan_v1",
+  "created_utc": "2026-09-19T11:46:19.891353+00:00",
+  "decision": "ONE_ENTRY_FUSE_SCALE_CONTRAST_BOUND_BEFORE_FIT",
+  "run_scope": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "98860701e50c60b6193f0f6d35f0430093bb02eefbe00a970bf3fc8e3aa1ac98",
+    "optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "max_invocations": 1,
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
+    },
+    "chronological_train_only_measurement": true
+  },
+  "change": "Only one parameter-free final Entry fuse LayerNorm differs from the completed main-encoder256 ONLINE. Exit has its own main path; Entry-token effects are measured, not presumed beneficial. Its new initial predictions were natively measured. Original frozen teacher function and causal Entry/Exit targets are exactly preserved; same fresh tensors, RNG,4096 ordered TRAIN entries,features,labels,losses and optimizer.",
+  "optimizer_steps": 256,
+  "maximum_trained_entry_rows": 4096,
+  "final_model_variant": "ONLINE",
+  "measurement_roles": [
+    "train"
+  ],
+  "measurement_entries": 256,
+  "measurement_exit_anchor_states": 256,
+  "measurement_exit_sampled_states": 1024,
+  "new_control_forwards": 0,
+  "teacher_refresh_allowed": false,
+  "loss_or_threshold_search_allowed": false,
+  "automatic_repeat_or_extension": false,
+  "full_epoch_allowed": false,
+  "full_val_allowed": false,
+  "test_data_used": false,
+  "comparisons": [
+    "new native initial ONLINE against identical frozen causal targets",
+    "saved main-encoder ONLINE256",
+    "saved residual ONLINE256",
+    "saved causal ONLINE256",
+    "TRAIN constants including FLAT zero"
+  ],
+  "criteria": {
+    "entry": "Report LONG/SHORT MSE and centered error, correlations, every TRAIN month, common/contrast fit, LONG/SHORT/FLAT counts and selected reference value. Require both-side conditional improvement and better decisions than TRAIN constants; a bias shift or all-FLAT is insufficient.",
+    "exit": "Report unchanged anchor and sampled HOLD targets on both sides against new initial, saved main-encoder256, residual256 and TRAIN constants. Require state-dependent improvement and useful HOLD/EXIT decisions; Entry-only improvement does not pass the full gate.",
+    "limits": "This is reused TRAIN with fitted overlap, not generalization. Targets evaluate the declared reference policy, not realized learned-policy profit. No automatic expansion even after a technical PASS."
+  },
+  "cause_evidence": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_REPRESENTATION_20260919/REVIEW.json",
+    "sha256": "8d15bcf4c23056e7246f730f7f0347857e7d0e8652319e952148040350189027"
+  },
+  "initialization_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_NORMALIZATION_20260919/INITIALIZATION_AUDIT.json",
+    "sha256": "1683ad95b52cdb14e990c0b82223ed09b8616227e92b3ed7857cf72f1015e38b"
+  },
+  "previous_causal_run": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/VERDICT.json",
+    "sha256": "82b557c623ef92d7351e23afc4b87f4e399adfa7e2373a2480a3f828fcf2756b"
+  },
+  "new_native_initial_measurement_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
+    "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
+  },
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "previous_residual_run": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/VERDICT.json",
+    "sha256": "402bbe053a4995af6f361ebba26c272dfa11c3837def2a8b0a92e36783ea222b"
+  },
+  "previous_main_encoder_run": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/VERDICT.json",
+    "sha256": "883d691321ebddcfc47cb9473379f70760e095e0b0aa1c925be164d2d43f5267"
+  }
+}

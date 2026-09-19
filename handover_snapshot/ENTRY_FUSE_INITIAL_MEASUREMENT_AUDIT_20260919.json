@@ -1,0 +1,151 @@
+{
+  "baseline_constants_use_train_only": true,
+  "causal_entry_baseline": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/CAUSAL_ENTRY_TRAIN_BASELINE_20260917/DERIVED_TRAIN_BASELINE.json",
+    "sha256": "cf816df7ab079bd1605480bf0bbb4c07b6a5901a7426a2d4ad5260287eb363fc"
+  },
+  "completed_utc": "2026-09-19T11:43:42.292100+00:00",
+  "corrected_entry_targets_exact": true,
+  "cuda_rng_seed": 20260911,
+  "decision": "FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED",
+  "economic_rollout": false,
+  "finished_utc": "2026-09-19T11:14:40.747749+00:00",
+  "fresh_model_optimizer_ema_scheduler_exactly_preserved": true,
+  "initialization_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/ENTRY_FUSE_INITIALIZATION_20260919/RESULT.json",
+    "sha256": "2f13dfc8ddf9ed444cccf617b28dbaee6791aaf3b8e49396e71e2951645725c8"
+  },
+  "learning_proven": false,
+  "measurement_binding_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_MEASUREMENT_BINDING_SYNTHETIC_20260917/RESULT.json",
+    "sha256": "a793c6087282be273acdeb9f82ef09d3b61e2718f2d6552acbabd6c059452039"
+  },
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "new_online_predictions_measured": true,
+  "old_initial_max_prediction_difference_bps": 2.552925705909729,
+  "optimizer_steps": 0,
+  "original_cohort_exact": true,
+  "original_exit_targets_exact": true,
+  "previous_main_encoder_initial_max_prediction_difference_bps": 2.549397587776184,
+  "previous_main_encoder_initial_result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_INITIAL_MEASUREMENT_20260918/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "e24482663888d850c6e41a72cf09bc8a71cfbac024bf8cb6cdf3802f63c66f90"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919_BOOT465/receipts/invocation-0001.json",
+    "sha256": "15071b8cf483ca37f37b1b4bf4dbd8cc18e88a915abe7e047f1edfffd3967205"
+  },
+  "remaining": "Review and close zero-step scope before any separately bound fixed256 TRAIN-only trial.",
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "2eb5e3e628987bd921f71db2bebfc1a7b0c84ca5b142f645b1cbbbae8acb96b9"
+  },
+  "saved_cpu_python_numpy_rng_exactly_preserved": true,
+  "schema_version": "gx1_native_prefix_initial_measurement_audit_v1",
+  "source_commit": "9423d5ff270c306ef18158d2c5243eeb3e18d8e9",
+  "started_utc": "2026-09-19T11:00:52.520848+00:00",
+  "summary": {
+    "train": {
+      "cohort_sha256": "5f57f50bb939a043c522ce90786215f8e5887fe69d04efc9c0ac90183cff4c1c",
+      "entries": 256,
+      "entry_action_counts": {
+        "FLAT": 103,
+        "LONG": 24,
+        "SHORT": 129
+      },
+      "exit_hold_counts": {
+        "exit_anchor": {
+          "LONG": 254,
+          "SHORT": 255
+        },
+        "exit_sampled": {
+          "LONG": 1002,
+          "SHORT": 1022
+        }
+      },
+      "initial_metrics": {
+        "entry": {
+          "LONG": {
+            "initial_centered_mse": 608.5210700908782,
+            "initial_mse": 630.7873676882441,
+            "prediction_mean_bps": 0.9687626247759908,
+            "prediction_std_bps": 0.4698326797451843,
+            "target_mean_bps": -3.7499551668879576,
+            "target_std_bps": 24.673928681420314,
+            "train_constant_bps": -3.7499551668879576,
+            "train_constant_mse": 608.8027565758159
+          },
+          "SHORT": {
+            "initial_centered_mse": 602.5332885563035,
+            "initial_mse": 693.0069011855275,
+            "prediction_mean_bps": 1.5516947970027104,
+            "prediction_std_bps": 0.606714407649726,
+            "target_mean_bps": -7.960067007690668,
+            "target_std_bps": 24.572632173721594,
+            "train_constant_bps": -7.960067007690668,
+            "train_constant_mse": 603.8142519450176
+          }
+        },
+        "exit_anchor": {
+          "LONG": {
+            "initial_centered_mse": 625.015157580644,
+            "initial_mse": 629.5162008189201,
+            "prediction_mean_bps": 0.0958027576780296,
+            "prediction_std_bps": 0.03891224364737394,
+            "target_mean_bps": 2.2173689806077164,
+            "target_std_bps": 25.000738704983654,
+            "train_constant_bps": 2.2173689806077164,
+            "train_constant_mse": 625.0369357948678
+          },
+          "SHORT": {
+            "initial_centered_mse": 622.6266714876226,
+            "initial_mse": 627.9211534542956,
+            "prediction_mean_bps": 0.10201096656237496,
+            "prediction_std_bps": 0.04252685936231425,
+            "target_mean_bps": -2.198963167727925,
+            "target_std_bps": 24.95218472753857,
+            "train_constant_bps": -2.198963167727925,
+            "train_constant_mse": 622.611522677209
+          }
+        },
+        "exit_sampled": {
+          "LONG": {
+            "initial_centered_mse": 864.6766933219772,
+            "initial_mse": 864.7465424637893,
+            "prediction_mean_bps": 0.10085185751313475,
+            "prediction_std_bps": 0.055284958506754675,
+            "target_mean_bps": -0.1634380246468936,
+            "target_std_bps": 29.405953389739217,
+            "train_constant_bps": -0.1634380246468936,
+            "train_constant_mse": 864.7100947595153
+          },
+          "SHORT": {
+            "initial_centered_mse": 859.5200891707896,
+            "initial_mse": 859.5201100700889,
+            "prediction_mean_bps": 0.10250843703761348,
+            "prediction_std_bps": 0.04391461571391247,
+            "target_mean_bps": 0.107080012174265,
+            "target_std_bps": 29.315869375693886,
+            "train_constant_bps": 0.107080012174265,
+            "train_constant_mse": 859.4201972527467
+          }
+        }
+      },
+      "sampled_exit_states": 1024,
+      "sampled_state_coordinates_sha256": "3ea9dc788cf3770bc6e908cb5be63d132ac811fa8cfd9c2cff090991b5fe4072"
+    }
+  },
+  "teacher_refreshed": false,
+  "test_data_used": false,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "ad05aaee7eb67844cddc000387363be130a0920725fc2dacb3e7f31602b763c6"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "6dafbac3be772cc2031f177651c6cb4b46273660132149b32f0c57d5b8e59261"
+  }
+}

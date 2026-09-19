@@ -1,19 +1,22 @@
-# Veien videre — ny Entry fuse-baseline
+# Veien videre — én Entry fuse-læringsprøve
 
 ## Nøyaktig stoppunkt for neste agent
 
-NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919 er bundet, ikke forberedt/startet.
-Modellrettelse, fem tester og produksjonsinitialisering er ferdige; gjenbruk dem.
+NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919 er bundet, ikke forberedt/startet.
+Ny initialaudit er bestått; ikke kjør den, tidligere review eller tester om igjen.
 
-1. Etter ren commit/push: kjør /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/OPERATOR_HANDOVER/PREPARE.py via audit-vakt én gang.
-2. Bind faktisk campaign-hash/kildecommit i ACTIVATE_TEMPLATE.ps1 og aktiver én gang
-   via eksisterende Windows native launcher. Ikke relanser aktiv eller brukt plan.
-3. Kilden fryses under kjøring. Oppdater operatørkopien; native receipt og faktisk
-   prosess avgjør status. TRAIN256, Exit-ankre256/samplede1024, null optimizersteg.
-4. Gjenbruk AUDIT_INITIAL.py fra tidligere hovedencoder-initialmåling. Krev uendrede
-   originale teacher-targets/masker/cohort og optimizer/EMA/RNG. Mål NY ONLINE-funksjon.
-5. Steng brukt scope. Først ved bestått initialaudit kan separat native fixed256 bindes
-   på samme inputs/targets. Ingen automatisk trening, full epoch/VAL/CONTROL/TEST.
+1. Etter ren commit/push: kjør OPERATOR_HANDOVER/PREPARE.py via audit-vakt én gang.
+2. Bind faktisk campaign-hash og kildecommit i ACTIVATE_TEMPLATE.ps1; aktiver én
+   gang via eksisterende native Windows-controller. Ikke relanser aktiv/brukt plan.
+3. Kilden fryses. Kontroller stabil drift omtrent hver time; automatiske vakter
+   håndterer maskinvare. Trening er begrenset til 256 steg og 4096 TRAIN-rader.
+4. Etter terminal receipt: deaktiver task. Gjenbruk REVIEW_OPERATOR.py og
+   DECISION_GAP_OPERATOR.py fra hovedencoder256, med NY initialaudit/final og
+   sammenligning også mot bevart hovedencoder256. Ingen nye forwards for review.
+5. Steng brukt scope og vurder både Entry/Exit mot initial og TRAIN-konstanter,
+   sentrerte feil, alle ni måneder og faktisk handlingsendring. Én forbedret del
+   alene er ikke samlet læringsport. Ikke erklær profitt ut fra referanse-Q.
 
-Målbar bedre Entry/Exit-beslutning er fortsatt ikke påvist. Den samlede læringsporten
-må bestås før kronologisk vurdering og økonomi med alle handler/åpne posisjoner.
+Først bestått læringsport, så separat bundet kronologisk kvalitet og økonomi
+med alle handler/åpne posisjoner. Ingen full epoch/VAL/CONTROL/TEST eller automatiske ekstra steg.
+Artefaktrot: /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919.
