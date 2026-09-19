@@ -11871,6 +11871,8 @@ def run_train(
     precision_policy: str = DETERMINISTIC_FP32,
     cloud_host_profile_json: Optional[Path] = None,
     cloud_host_profile_sha256: Optional[str] = None,
+    cloud_capacity_gate_json: Optional[Path] = None,
+    cloud_capacity_gate_sha256: Optional[str] = None,
     train_sequence_roll_audit_json: Optional[Path] = None,
     val_sequence_roll_audit_json: Optional[Path] = None,
     train_sequence_source_audit_json: Optional[Path] = None,
@@ -12302,6 +12304,37 @@ def run_train(
         unified_exit_lifecycle.splits["val"]
     )
     physical_val_rows = int(len(val_ds))
+    if cloud_capacity_gate_json is not None:
+        # Full capacity-gate validation at the decision point (rule 2g): the
+        # projection must describe THESE split populations and fit the host's
+        # remaining life measured now, not at the earlier CLI boundary.
+        from gx1.contracts.cloud_training_capacity_gate_v1 import (
+            CloudTrainingCapacityGateError,
+            require_cloud_training_capacity_gate_for_candidate,
+        )
+
+        if cloud_host_profile_json is None or cloud_host_profile_sha256 is None:
+            raise RuntimeError("[ENTRY_TRAIN_CLOUD_CAPACITY_GATE_UNBOUND_HOST]")
+        if cloud_capacity_gate_sha256 is None:
+            raise RuntimeError("[ENTRY_TRAIN_CLOUD_CAPACITY_GATE_INCOMPLETE]")
+        try:
+            require_cloud_training_capacity_gate_for_candidate(
+                Path(cloud_capacity_gate_json),
+                str(cloud_capacity_gate_sha256),
+                expected_source_commit=str(
+                    recipe_source_provenance["source_commit"]
+                ),
+                expected_host_profile_path=Path(cloud_host_profile_json),
+                expected_host_profile_sha256=str(cloud_host_profile_sha256),
+                expected_batch_size=int(batch_size),
+                now=datetime.now(timezone.utc),
+                expected_train_rows=int(len(train_ds)),
+                expected_val_rows=int(len(val_ds)),
+            )
+        except (CloudTrainingCapacityGateError, OSError, ValueError) as exc:
+            raise RuntimeError(
+                f"[ENTRY_TRAIN_CLOUD_CAPACITY_GATE_REJECTED_AT_DATASET] {exc}"
+            ) from exc
     if (
         not train_ds._sequence_source_reconstructed
         or not val_ds._sequence_source_reconstructed
@@ -15154,6 +15187,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
                 expected_host_profile_path=Path(cloud_host_profile_path),
                 expected_host_profile_sha256=str(cloud_host_profile_sha256),
                 expected_batch_size=int(args.batch_size),
+                now=datetime.now(timezone.utc),
             )
         except (CloudTrainingCapacityGateError, OSError, ValueError) as exc:
             raise RuntimeError(
@@ -15484,6 +15518,10 @@ def main() -> None:
         precision_policy=str(args.precision_policy),
         cloud_host_profile_json=args.cloud_host_profile_json,
         cloud_host_profile_sha256=args.cloud_host_profile_sha256,
+        cloud_capacity_gate_json=getattr(args, "cloud_capacity_gate_json", None),
+        cloud_capacity_gate_sha256=getattr(
+            args, "cloud_capacity_gate_sha256", None
+        ),
         train_sequence_roll_audit_json=args.train_sequence_roll_audit_json,
         val_sequence_roll_audit_json=args.val_sequence_roll_audit_json,
         train_sequence_source_audit_json=args.train_sequence_source_audit_json,

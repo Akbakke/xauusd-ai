@@ -76,10 +76,26 @@ cat >"$FIRE_SCRIPT" <<'EOF'
 #!/usr/bin/env bash
 set -uo pipefail
 export PATH='/usr/sbin:/usr/bin:/sbin:/bin'
-status=0
-/usr/bin/timeout --signal=KILL 120s /etc/gx1-cloud-deadline/provider-delete || status=$?
-/usr/bin/systemctl poweroff --force --no-wall || true
-exit "$status"
+# Power off ONLY after the provider deletion succeeds. A forced poweroff
+# after a FAILED delete does not stop provider billing and destroys the only
+# agent able to retry; the correct failure posture is to stay up, record the
+# failure durably, and keep retrying until the delete verifiably succeeds.
+# Each attempt is bounded by the same 120s kill timeout; the timeout itself
+# paces the retry loop, so no separate sleep constant is introduced.
+attempt=0
+while true; do
+  attempt=$((attempt + 1))
+  status=0
+  /usr/bin/timeout --signal=KILL 120s /etc/gx1-cloud-deadline/provider-delete || status=$?
+  if [ "$status" -eq 0 ]; then
+    /usr/bin/logger -t gx1-cloud-deadline "provider delete succeeded on attempt ${attempt}; powering off"
+    /usr/bin/systemctl poweroff --force --no-wall || true
+    exit 0
+  fi
+  /usr/bin/logger -t gx1-cloud-deadline "provider delete FAILED (attempt ${attempt}, status ${status}); host stays up to retry"
+  printf '%s attempt=%d status=%d\n' "$(/usr/bin/date -u +%Y-%m-%dT%H:%M:%SZ)" "$attempt" "$status" \
+    >>/etc/gx1-cloud-deadline/delete-failures.log || true
+done
 EOF
 /bin/chown root:root "$FIRE_SCRIPT"
 /bin/chmod 0700 "$FIRE_SCRIPT"
@@ -95,7 +111,10 @@ Type=oneshot
 User=root
 Group=root
 ExecStart=/usr/local/libexec/gx1/gx1_cloud_deadline_fire.sh
-TimeoutStartSec=180s
+# The fire script retries the provider delete until it verifiably succeeds
+# and only then powers off; it must never be killed for taking long.
+# (Type=oneshot forbids Restart=, so the retry loop lives in the script.)
+TimeoutStartSec=infinity
 UMask=0077
 ProtectHome=yes
 PrivateTmp=yes

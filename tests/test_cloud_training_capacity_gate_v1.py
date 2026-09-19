@@ -366,3 +366,81 @@ def test_slow_fixed_step_measurement_remains_capacity_fail(
     assert gate["decision"] == FAIL_DECISION
     assert "PROJECTED_WORST_CASE_EXCEEDS_43_2_HOURS" in gate["failures"]
     assert gate["projection"]["projected_worst_case_seconds"] > QUALIFICATION_TIME_LIMIT_SECONDS
+
+
+def test_projection_must_fit_remaining_host_life() -> None:
+    from datetime import datetime, timezone
+
+    import pytest
+
+    from gx1.contracts.cloud_training_capacity_gate_v1 import (
+        CloudTrainingCapacityGateError,
+        HARD_HOST_DEADLINE_SECONDS,
+        QUALIFICATION_TIME_LIMIT_SECONDS,
+        require_projection_fits_remaining_host_life,
+    )
+
+    now = datetime(2026, 9, 20, 12, 0, 0, tzinfo=timezone.utc)
+    fresh_deadline = "2026-09-22T12:00:00Z"  # full 48h remaining
+    # A projection at exactly the admission ceiling fits a fresh host:
+    # ceiling == reserve_fraction * HARD_DEADLINE by construction.
+    require_projection_fits_remaining_host_life(
+        projected_worst_case_seconds=float(QUALIFICATION_TIME_LIMIT_SECONDS),
+        provider_deadline_utc=fresh_deadline,
+        now=now,
+    )
+    # Four hours of remaining life cannot admit a 43.2h projection.
+    with pytest.raises(CloudTrainingCapacityGateError, match="remaining life"):
+        require_projection_fits_remaining_host_life(
+            projected_worst_case_seconds=float(
+                QUALIFICATION_TIME_LIMIT_SECONDS
+            ),
+            provider_deadline_utc="2026-09-20T16:00:00Z",
+            now=now,
+        )
+    # An expired deadline rejects regardless of projection size.
+    with pytest.raises(CloudTrainingCapacityGateError, match="remaining life"):
+        require_projection_fits_remaining_host_life(
+            projected_worst_case_seconds=1.0,
+            provider_deadline_utc="2026-09-20T11:59:59Z",
+            now=now,
+        )
+    # A naive clock is rejected rather than silently compared.
+    with pytest.raises(CloudTrainingCapacityGateError, match="timezone-aware"):
+        require_projection_fits_remaining_host_life(
+            projected_worst_case_seconds=1.0,
+            provider_deadline_utc=fresh_deadline,
+            now=datetime(2026, 9, 20, 12, 0, 0),
+        )
+    # The reserve fraction is derived, not restated: consistency check.
+    assert QUALIFICATION_TIME_LIMIT_SECONDS * 10 == HARD_HOST_DEADLINE_SECONDS * 9
+
+
+def test_benchmark_rows_must_match_candidate_dataset() -> None:
+    import pytest
+
+    from gx1.contracts.cloud_training_capacity_gate_v1 import (
+        CloudTrainingCapacityGateError,
+        require_benchmark_rows_match_candidate,
+    )
+
+    require_benchmark_rows_match_candidate(
+        benchmark_train_rows=313399,
+        benchmark_val_rows=5509,
+        expected_train_rows=313399,
+        expected_val_rows=5509,
+    )
+    with pytest.raises(CloudTrainingCapacityGateError, match="row populations"):
+        require_benchmark_rows_match_candidate(
+            benchmark_train_rows=313399,
+            benchmark_val_rows=5509,
+            expected_train_rows=248028,
+            expected_val_rows=5509,
+        )
+    with pytest.raises(CloudTrainingCapacityGateError, match="row populations"):
+        require_benchmark_rows_match_candidate(
+            benchmark_train_rows=313399,
+            benchmark_val_rows=5509,
+            expected_train_rows=313399,
+            expected_val_rows=70880,
+        )

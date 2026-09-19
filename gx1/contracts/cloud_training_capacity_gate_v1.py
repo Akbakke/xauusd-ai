@@ -554,20 +554,25 @@ def evaluate_cloud_training_capacity(
     measured_seconds = Decimal(str(payload["measured_train_seconds"]))
     train_rows_per_second = measured_rows / measured_seconds
     epoch_count = Decimal(payload["max_epochs"])
+    projected_preflight_seconds = Decimal(str(payload["preflight_seconds"]))
+    train_steps = math.ceil(payload["train_rows"] / payload["batch_size"])
+    val_batches = math.ceil(payload["val_rows"] / payload["batch_size"])
+    # Pessimistic rounding: the trailing partial batch costs a full step, so
+    # the projection charges ceil(rows/batch)*batch rows per epoch rather
+    # than the raw row count — a gate must round against itself.
     projected_train_seconds = (
-        Decimal(payload["train_rows"]) * epoch_count / train_rows_per_second
+        Decimal(train_steps * payload["batch_size"])
+        * epoch_count
+        / train_rows_per_second
     )
     measured_val_rows_per_second = Decimal(payload["measured_val_rows"]) / Decimal(
         str(payload["measured_val_seconds"])
     )
     projected_val_seconds = (
-        Decimal(payload["val_rows"])
+        Decimal(val_batches * payload["batch_size"])
         * epoch_count
         / measured_val_rows_per_second
     )
-    projected_preflight_seconds = Decimal(str(payload["preflight_seconds"]))
-    train_steps = math.ceil(payload["train_rows"] / payload["batch_size"])
-    val_batches = math.ceil(payload["val_rows"] / payload["batch_size"])
     train_checkpoint_count = math.ceil(
         train_steps
         * payload["max_epochs"]
@@ -583,11 +588,23 @@ def evaluate_cloud_training_capacity(
         * Decimal(str(payload["checkpoint_write_seconds"]))
         * CHECKPOINT_WRITE_SAFETY_MULTIPLIER
     )
+    # A restart loses everything since the last durable checkpoint: up to one
+    # full checkpoint interval of training. That bound derives entirely from
+    # declared payload fields (interval steps x batch rows / measured
+    # throughput) — omitting it made the reserve structurally optimistic.
+    restart_lost_work_seconds = (
+        Decimal(
+            candidate_checkpoint_interval(PRECISION_POLICY)
+            * payload["batch_size"]
+        )
+        / train_rows_per_second
+    )
     projected_restart_seconds = (
         (
             projected_preflight_seconds
             + Decimal(str(payload["checkpoint_write_seconds"]))
             * CHECKPOINT_WRITE_SAFETY_MULTIPLIER
+            + restart_lost_work_seconds
         )
         * RESTART_RESERVE_COUNT
     )
@@ -726,11 +743,30 @@ def require_cloud_training_capacity_gate_for_candidate(
     expected_host_profile_path: Path,
     expected_host_profile_sha256: str,
     expected_batch_size: int,
+    now: datetime,
+    expected_train_rows: int | None = None,
+    expected_val_rows: int | None = None,
 ) -> dict[str, Any]:
-    """Require a PASS gate transitively bound to its real smoke and host."""
+    """Require a PASS gate transitively bound to its real smoke and host.
+
+    ``now`` is the caller's launch-time UTC clock: the projection must fit in
+    the host's REMAINING life, not in a fresh 48-hour budget — the same
+    declared reserve fraction (QUALIFICATION_TIME_LIMIT / HARD_DEADLINE)
+    applies to what is actually left. ``expected_train_rows`` /
+    ``expected_val_rows`` bind the projection to the candidate's real split
+    populations; a gate computed for a different dataset must reject. They
+    are optional only for the pre-dataset CLI boundary check — the launch
+    path re-validates with both once the datasets are constructed.
+    """
 
     if _COMMIT_RE.fullmatch(expected_source_commit) is None:
         raise CloudTrainingCapacityGateError("expected source commit is invalid")
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise CloudTrainingCapacityGateError("now must be timezone-aware UTC")
+    if (expected_train_rows is None) != (expected_val_rows is None):
+        raise CloudTrainingCapacityGateError(
+            "expected train/val rows must be provided together"
+        )
     gate_binding = artifact_binding(path, label="capacity gate", forbid_test_like=False)
     if gate_binding["sha256"] != sha256:
         raise CloudTrainingCapacityGateError("capacity gate SHA-256 mismatch")
@@ -800,4 +836,78 @@ def require_cloud_training_capacity_gate_for_candidate(
         != host_profile["budget"]["hard_deadline_seconds"]
     ):
         raise CloudTrainingCapacityGateError("capacity benchmark budget binding mismatch")
+    require_projection_fits_remaining_host_life(
+        projected_worst_case_seconds=float(
+            gate["projection"]["projected_worst_case_seconds"]
+        ),
+        provider_deadline_utc=str(
+            host_profile["termination"]["provider_deadline_utc"]
+        ),
+        now=now,
+    )
+    if expected_train_rows is not None:
+        require_benchmark_rows_match_candidate(
+            benchmark_train_rows=int(benchmark["train_rows"]),
+            benchmark_val_rows=int(benchmark["val_rows"]),
+            expected_train_rows=int(expected_train_rows),
+            expected_val_rows=int(expected_val_rows),
+        )
     return gate
+
+
+def require_projection_fits_remaining_host_life(
+    *,
+    projected_worst_case_seconds: float,
+    provider_deadline_utc: str,
+    now: datetime,
+) -> None:
+    """The projection must fit the host's REMAINING life, measured at launch.
+
+    The reserve fraction is derived from the declared constants
+    (QUALIFICATION_TIME_LIMIT / HARD_DEADLINE = 0.9): the same margin the
+    admission ceiling reserves against a fresh 48-hour host applies to the
+    hours actually left on this one.
+    """
+
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise CloudTrainingCapacityGateError("now must be timezone-aware UTC")
+    provider_deadline = datetime.strptime(
+        provider_deadline_utc, "%Y-%m-%dT%H:%M:%SZ"
+    ).replace(tzinfo=timezone.utc)
+    remaining_seconds = Decimal(str((provider_deadline - now).total_seconds()))
+    reserve_fraction = (
+        Decimal(QUALIFICATION_TIME_LIMIT_SECONDS)
+        / Decimal(HARD_HOST_DEADLINE_SECONDS)
+    )
+    projected_seconds = Decimal(str(projected_worst_case_seconds))
+    if (
+        remaining_seconds <= 0
+        or projected_seconds > reserve_fraction * remaining_seconds
+    ):
+        raise CloudTrainingCapacityGateError(
+            "projected worst case does not fit the host's remaining life "
+            f"(remaining={float(remaining_seconds):.0f}s, "
+            f"projected={float(projected_seconds):.0f}s, "
+            f"reserve_fraction={float(reserve_fraction):.4f})"
+        )
+
+
+def require_benchmark_rows_match_candidate(
+    *,
+    benchmark_train_rows: int,
+    benchmark_val_rows: int,
+    expected_train_rows: int,
+    expected_val_rows: int,
+) -> None:
+    """A projection computed for a different dataset must not admit this one."""
+
+    if (
+        benchmark_train_rows != expected_train_rows
+        or benchmark_val_rows != expected_val_rows
+    ):
+        raise CloudTrainingCapacityGateError(
+            "capacity benchmark row populations do not match the candidate "
+            f"dataset (benchmark train={benchmark_train_rows} "
+            f"val={benchmark_val_rows}, candidate "
+            f"train={expected_train_rows} val={expected_val_rows})"
+        )

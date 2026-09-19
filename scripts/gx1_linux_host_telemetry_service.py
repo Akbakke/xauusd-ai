@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -219,7 +219,14 @@ def _strict_json_object(raw_body: bytes) -> dict[str, Any]:
     return request
 
 
-class TelemetryHTTPServer(HTTPServer):
+class TelemetryHTTPServer(ThreadingHTTPServer):
+    # Threading: a single stalled or slow-written connection must not block
+    # the accept loop — the guard treats one failed 1 Hz sample as terminal
+    # for the whole paid run, so any local process able to occupy the sole
+    # serving thread of a non-threaded server could kill training at will.
+    # Per-connection work stays bounded by the same request timeout and the
+    # unit's TasksMax; daemon threads die with the process.
+    daemon_threads = True
     config: ServiceConfig
     request_timeout_seconds: float
 
