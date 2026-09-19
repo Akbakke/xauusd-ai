@@ -12,6 +12,13 @@ Se docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md. Ingen kostnader er endret.
 Neste avklaring er separat avgrenset vurdering av hele den frosne Exit-policyen
 med uendrede kostnader. Manglende fill-logger stopper ikke denne avklaringen.
 
+Observasjonsgrensen er nå implementert i eksisterende evaluator. 13 målrettede
+CPU-tester bestått: senere state-/økonomidata avvises, åpent tap medregnes uten
+konstruert EXIT, og pause/resume er identisk. Fast TRAIN-utvalg er hashbundet;
+tre forløp ville ellers krysset CONTROL-grensen. Ingen modellforwards eller
+optimizersteg er kjørt. Native ONLINE512-checkpointbinding og eget nullstegs
+kjøreomfang gjenstår; følg VEIEN_VIDERE.md, ikke gjenta grense-/cohort-arbeidet.
+
 Les docs/CONVERGENCE512_REVIEW_20260919.md, VEIEN_VIDERE.md og de bundne
 review-/verdict-feltene i RUNNING_NATIVE_CALIBRATION.json. Modell-/treningskode
 ble ikke endret etter kjøringen. Handover prioriterer nå korrekt fullført512;

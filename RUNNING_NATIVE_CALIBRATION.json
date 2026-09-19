@@ -1408,6 +1408,10 @@
     "right_censored_entries": 2,
     "train_only": true
   },
+  "frozen_exit_train_footprint": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/FOOTPRINT.json",
+    "sha256": "821aa8f2073d01380760e1009882033f9f3a59788bb0872c18818e045adfd9b8"
+  },
   "frozen_native_comparison": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/NATIVE_COMPARISON_20260917/RESULT.json",
     "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e"
@@ -1460,7 +1464,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "VEIEN_VIDERE.md and docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md; frozen Exit-policy evaluation feasibility, no run bound.",
+  "handover_resume_point": "VEIEN_VIDERE.md; observation cutoff and fixed cohort complete, native frozen ONLINE512 evaluation scope/checkpoint binding remain.",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1490,7 +1494,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "866e2e3305d36e4973554bb2b0a495c58f0e1ad3",
-  "latest_observation_utc": "2026-09-19T17:44:22.612551+00:00",
+  "latest_observation_utc": "2026-09-19T18:15:39.624074+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1771,7 +1775,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Reuse completed512 and linkage/cost audits. Entry remains FLAT256/256; no Entry code change or more training is justified. Clarify whether one bounded evaluation of the complete frozen512 Exit policy can use the existing native evaluator on TRAIN, both counterfactual sides, unchanged costs, a strict observation boundary before CONTROL, and open-position valuation. Preserve the current measurement_only guard; bind model, data, budget and decision criteria before any job. No new runner or automatic launch. Negative unconditional means do not disprove conditional edge. Missing decision-quote/order/fill linkage prevents empirical slippage calibration, not all signal investigation under unchanged assumptions; inspect user-supplied existing logs if available. No cost reduction to pass, full epoch/full VAL, CONTROL/TEST, live/paper/spending.",
+  "next_action": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge.",
   "observed_processes": [],
   "observed_utc": "2026-09-19T17:24:39.901758+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
@@ -1947,6 +1951,10 @@
   "status": "CONVERGENCE512_COMPLETE_EXIT_IMPROVED_ENTRY_GATE_FAILED",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
+  "train_observation_cutoff_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/CUTOFF_REVIEW.json",
+    "sha256": "306090b3af9b0401100d715d807a211b77f28af7a0441c0925e1d57929cf61b3"
+  },
   "train_temporal_overlap_audit": {
     "both_sides_lose_to_train_constant_without_target_overlap_at_state0": true,
     "decision": "DEPENDENT_TRAIN_CONTROLS_NOT_GENERALIZATION_EVIDENCE",

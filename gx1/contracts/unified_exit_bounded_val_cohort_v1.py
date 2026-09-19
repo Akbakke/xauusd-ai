@@ -20,6 +20,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
 SCHEMA = "gx1_bounded_val_cohort_v1"
 CHRONOLOGICAL_SCHEMA = "gx1_chronological_development_control_cohort_v1"
 MEASUREMENT_SCHEMA = "gx1_chronological_measurement_cohort_v1"
+TRAIN_ROLLOUT_SCHEMA = "gx1_chronological_train_rollout_cohort_v1"
 
 
 def build_bounded_val_cohort(plan_binding: Mapping[str, str]) -> dict[str, Any]:
@@ -199,7 +200,37 @@ def build_chronological_measurement_cohort(
     return value
 
 
+
+def build_chronological_train_rollout_cohort(
+    design_binding: Mapping[str, str], coordinates_binding: Mapping[str, str],
+) -> dict[str, Any]:
+    """Reuse frozen TRAIN identities with an observation end, never launch authority."""
+    probe = build_chronological_measurement_cohort(
+        design_binding, coordinates_binding, role="train")
+    # Rollout/one-position accounting requires chronological order. Preserve the
+    # exact frozen identities and their parent mapping; no outcome-based selection.
+    pairs = sorted(zip(probe["entry_row_indices"], probe["parent_entry_row_indices"]))
+    value = {
+        "schema_version": TRAIN_ROLLOUT_SCHEMA, "split": "train", "source_split": "train",
+        "evaluation_role": "chronological_training_policy_rollout", "measurement_only": False,
+        "plan": probe["plan"], "measurement_coordinates": probe["measurement_coordinates"],
+        "source_index": probe["source_index"], "population_rows": probe["population_rows"],
+        "entry_row_indices": [child for child, _ in pairs],
+        "parent_entry_row_indices": [parent for _, parent in pairs],
+        "observation_cutoff_time_ns": probe["reference_cutoff_time_ns"],
+        "test_data_used": False,
+    }
+    value["cohort_sha256"] = canonical_sha256(value)
+    return value
+
+
 def require_bounded_val_cohort(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping) and value.get("schema_version") == TRAIN_ROLLOUT_SCHEMA:
+        expected = build_chronological_train_rollout_cohort(
+            value.get("plan"), value.get("measurement_coordinates"))
+        if dict(value) != expected:
+            raise RuntimeError("BOUNDED_VAL_COHORT_BINDING_MISMATCH")
+        return expected
     if isinstance(value, Mapping) and value.get("schema_version") == MEASUREMENT_SCHEMA:
         expected = build_chronological_measurement_cohort(
             value.get("plan"), value.get("measurement_coordinates"), role=value.get("measurement_role"))

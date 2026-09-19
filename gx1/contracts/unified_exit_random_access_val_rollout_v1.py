@@ -133,6 +133,8 @@ def _require_entries(entries: Sequence[Mapping[str, Any]], evaluation_cohort=Non
     if evaluation_cohort is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(evaluation_cohort)
+        if scope.get("measurement_only") is True:
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT")
         if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         expected_ids = scope["entry_row_indices"]
@@ -348,6 +350,8 @@ def require_random_access_val_rollout_contract(
     if "evaluation_cohort" in observed:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         scope = require_bounded_val_cohort(observed["evaluation_cohort"])
+        if scope.get("measurement_only") is True:
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT")
         if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         count = len(scope["entry_row_indices"])
@@ -567,6 +571,10 @@ class RandomAccessValRolloutAdapterV1:
             if stop > len(times):
                 raise RuntimeError("UNIFIED_EXIT_VAL_ENTRY_RANGE_INVALID")
         self.times = times
+        self.observation_cutoff_time_ns = self.contract.get("evaluation_cohort", {}).get("observation_cutoff_time_ns")
+        if self.observation_cutoff_time_ns is not None:
+            for entry in self.entries:
+                self._require_observed_state(entry["entry_row_index"], 0)
         self.closure = closure
         self.closure_by_row = closure_intervals_by_gap_after_row(closure)
         self.economic_step_provider = economic_step_provider
@@ -575,6 +583,28 @@ class RandomAccessValRolloutAdapterV1:
         self.normalization = normalization
         self.state_provider = state_provider
         self._state_hash_pool: ThreadPoolExecutor | None = None
+
+    def _require_observed_state(self, entry_row_index: int, state_index: int) -> int:
+        """Check the clock before any state or economic provider can read inputs."""
+        if entry_row_index not in self._entry_by_index:
+            raise RuntimeError("UNIFIED_EXIT_VAL_ENTRY_IDENTITY_INVALID")
+        entry = self._entry_by_index[entry_row_index]
+        if (type(state_index) is not int or state_index < 0
+                or state_index >= entry["available_state_count"]):
+            raise RuntimeError("UNIFIED_EXIT_VAL_STATE_INDEX_INVALID")
+        row = entry["entry_m1_start_row"] + state_index
+        if (self.observation_cutoff_time_ns is not None
+                and int(self.times.asi8[row]) + 60_000_000_000 > self.observation_cutoff_time_ns):
+            raise RuntimeError("UNIFIED_EXIT_VAL_OBSERVATION_CUTOFF_EXCEEDED")
+        return row
+
+    def _require_observed_action(self, entry_row_index: int, side_index: int,
+                                 state_index: int, action: str) -> None:
+        if side_index not in (0, 1) or action not in {"hold", "exit_now"}:
+            raise RuntimeError("UNIFIED_EXIT_VAL_ACTION_INVALID")
+        self._require_observed_state(entry_row_index, state_index)
+        if action == "hold":
+            self._require_observed_state(entry_row_index, state_index + 1)
 
     def _materialize_unsealed_state(
         self, entry_row_index: int, state_index: int, *,
@@ -590,6 +620,7 @@ class RandomAccessValRolloutAdapterV1:
             or state_index >= entry["available_state_count"]
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_STATE_INDEX_INVALID")
+        self._require_observed_state(entry_row_index, state_index)
         state = _require_state(
             self.state_provider(entry, state_index) if _prepared_cached_state is None else _prepared_cached_state,
             entry=entry,
@@ -604,7 +635,11 @@ class RandomAccessValRolloutAdapterV1:
         successor_available = False
         censor_reason: str | None = None
         transition: dict[str, Any] | None = None
-        if state_index + 1 < entry["available_state_count"]:
+        next_state_exists = state_index + 1 < entry["available_state_count"]
+        if (next_state_exists and self.observation_cutoff_time_ns is not None
+                and int(self.times.asi8[row + 1]) + 60_000_000_000 > self.observation_cutoff_time_ns):
+            censor_reason = "observation_cutoff"
+        elif next_state_exists:
             delta_ns = int(self.times.asi8[row + 1] - self.times.asi8[row])
             if delta_ns == 60_000_000_000:
                 successor_available = True
@@ -688,6 +723,8 @@ class RandomAccessValRolloutAdapterV1:
         cached_market_rows: set[int], workers: int,
     ) -> list[dict[str, Any]]:
         from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
+        for entry in entry_row_indices:
+            self._require_observed_state(entry, state_index)
         factory = getattr(self.state_provider, "__self__", None)
         if not isinstance(factory, RandomAccessValStateFactoryV1):
             raise RuntimeError("UNIFIED_EXIT_VAL_CPU_FACTORY_REQUIRED")
@@ -717,6 +754,8 @@ class RandomAccessValRolloutAdapterV1:
     ) -> tuple[dict[str, Any], str]:
         if side_index not in (0, 1) or action not in {"hold", "exit_now"}:
             raise RuntimeError("UNIFIED_EXIT_VAL_ACTION_INVALID")
+        if self.observation_cutoff_time_ns is not None:
+            self._require_observed_action(entry_row_index, side_index, state_index, action)
         envelope = self.economic_step_provider(
             entry_row_index,
             side_index,
@@ -730,6 +769,9 @@ class RandomAccessValRolloutAdapterV1:
         )
 
     def compose_selected_actions(self, requests: list[dict[str, Any]]) -> list[tuple[dict[str, Any], str]]:
+        if self.observation_cutoff_time_ns is not None:
+            for request in requests:
+                self._require_observed_action(**request)
         batch = getattr(self.economic_step_provider, "materialize_selected_actions", None)
         if batch is None:
             return [self.compose_selected_action(**request) for request in requests]
@@ -960,7 +1002,7 @@ def run_random_access_val_rollout(
                     ]
                 else:
                     reason = envelope["right_censor_reason_if_hold"]
-                    if reason not in {"split_end", "unknown_source_gap"}:
+                    if reason not in {"split_end", "unknown_source_gap", "observation_cutoff"}:
                         raise RuntimeError("UNIFIED_EXIT_VAL_CENSOR_REASON_INVALID")
                     accumulator["status"] = f"RIGHT_CENSORED_{reason.upper()}"
                     active[entry_position, side] = False

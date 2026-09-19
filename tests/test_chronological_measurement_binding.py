@@ -191,3 +191,28 @@ def test_measurement_cohort_cannot_enter_economic_rollout(tmp_path, role):
             max_forwards_this_invocation=1, progress_interval_forwards=1,
             compute_guard_max_model_forwards=1, compute_guard_max_materialized_state_views=1,
             compute_guard_max_wall_seconds=1., evaluation_cohort=cohort)
+
+
+def test_train_rollout_binds_original_probe_and_cutoff_without_changing_measurement(tmp_path):
+    import copy
+    db, rb, _, arrays = _fixture(tmp_path)
+    before = owner.build_chronological_measurement_cohort(db, rb, role="train")
+    cohort = owner.build_chronological_train_rollout_cohort(db, rb)
+    assert owner.require_bounded_val_cohort(cohort) == cohort
+    assert cohort["entry_row_indices"] == sorted(arrays["train"]["child_rows"].tolist())
+    assert dict(zip(cohort["entry_row_indices"], cohort["parent_entry_row_indices"])) == dict(
+        zip(before["entry_row_indices"], before["parent_entry_row_indices"]))
+    assert cohort["observation_cutoff_time_ns"] == before["reference_cutoff_time_ns"]
+    assert cohort["split"] == "train" and cohort["measurement_only"] is False
+    assert owner.build_chronological_measurement_cohort(db, rb, role="train") == before
+    assert before["measurement_only"] is True
+    for key, value in [("observation_cutoff_time_ns", cohort["observation_cutoff_time_ns"] + 1),
+                       ("entry_row_indices", cohort["entry_row_indices"][:-1]),
+                       ("measurement_only", True)]:
+        changed = copy.deepcopy(cohort); changed[key] = value
+        changed.pop("cohort_sha256"); changed["cohort_sha256"] = owner.canonical_sha256(changed)
+        with pytest.raises(RuntimeError, match="COHORT_BINDING_MISMATCH"):
+            owner.require_bounded_val_cohort(changed)
+    from gx1.contracts.unified_exit_random_access_val_rollout_v1 import _require_entries
+    with pytest.raises(RuntimeError, match="MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT"):
+        _require_entries([], before)

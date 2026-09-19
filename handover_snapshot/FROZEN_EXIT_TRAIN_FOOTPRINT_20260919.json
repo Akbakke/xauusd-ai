@@ -1,0 +1,60 @@
+{
+  "bound_assumes_every_side_keeps_holding": true,
+  "bounded_native_policy_forwards_upper_bound_at_batch256": 46573,
+  "bounded_state_views_upper_bound": 3375234,
+  "clock_metadata_and_entry_coordinates_only": true,
+  "cohort": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TRAIN_ROLLOUT_COHORT.json",
+    "sha256": "50255e858ee661e3d5e63aff39aa8fb55d0b69d096377010c5617483700abdd1"
+  },
+  "cohort_entry_count": 256,
+  "completed512": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/COMPLETION_REVIEWED.json",
+    "sha256": "7f1c1001a3d1201971ef74a3fee3088de7e3ee93376c6be6e7f0293bfc56d671"
+  },
+  "counterfactual_side_count": 512,
+  "created_utc": "2026-09-19T18:11:02.905521+00:00",
+  "decision": "COHORT_AND_OBSERVATION_BOUNDARY_VERIFIED_NOT_LAUNCH_AUTHORITY",
+  "first_disallowed_decision_utc": "2026-03-01T23:05:00+00:00",
+  "frozen_training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
+  },
+  "index_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_IMMUTABLE_BINDINGS_20260917/train.manifest.json",
+    "sha256": "736b9cb51f1fb73bccc096d09b5a1f6dfd509c2519b5ef68107a0e3a59424a04"
+  },
+  "last_allowed_decision_utc": "2026-02-27T22:00:00+00:00",
+  "launch_budget_bound": false,
+  "lifecycles_requiring_new_observation_cutoff": 3,
+  "m1_clock_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/M1_CHILD_VIEWS_V1/train.m1.parquet",
+    "sha256": "ee0bdee2bf76846ef0a715a537457cb0653ecac1585742603b84b51de87874f8"
+  },
+  "market_prices_or_outcomes_read": false,
+  "median_available_states": 9644.5,
+  "minimum_available_states": 175,
+  "native_launch_authorized": false,
+  "new_fits": 0,
+  "new_model_forwards": 0,
+  "observation_cutoff_utc": "2026-03-01T00:00:00+00:00",
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/COHORT_OPERATOR.py",
+    "sha256": "e823fa1d7ce6a3810b7e9b5f4d16892059a754c4ed81fd58aaaa97323dfbc0fa"
+  },
+  "optimizer_steps": 0,
+  "original_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/NATIVE_RECIPE.json",
+    "sha256": "0fb3a8a9c29ecf7a7f5c5ba89a067f679580377c7bc53e2b1b45e175c20f0b6c"
+  },
+  "original_state_views_upper_bound": 3395874,
+  "population_rows": 313399,
+  "schema_version": "gx1_frozen_exit_train_policy_footprint_v1",
+  "source_index": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/RANDOM_ACCESS_INDEX_FULL_TRAIN_V1/train.random_access_index.parquet",
+    "sha256": "66004b8c453aa54ecaa74535036e1d1d25b40d1e60e363ede2f2956accfbfb78"
+  },
+  "test_data_used": false,
+  "training_enabled": false,
+  "wall_runtime_measured": false
+}

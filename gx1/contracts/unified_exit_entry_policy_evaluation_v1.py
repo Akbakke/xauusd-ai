@@ -157,8 +157,13 @@ def marked_entry_exit_policy_metrics(
                 raise RuntimeError("UNIFIED_EXIT_MARKED_VALUATION_MISSING")
             value = mark.get("net_cash_plus_open_value_bps")
             remaining = mark.get("remaining_liquidation_value_bps")
-            eligible = outcome["status"] in {"EXITED", "RIGHT_CENSORED_SPLIT_END"}
+            eligible = outcome["status"] in {"EXITED", "RIGHT_CENSORED_SPLIT_END", "RIGHT_CENSORED_OBSERVATION_CUTOFF"}
             if eligible:
+                if outcome["status"] == "RIGHT_CENSORED_OBSERVATION_CUTOFF" and (
+                        type(mark.get("observation_cutoff_time_ns")) is not int
+                        or type(mark.get("valuation_time_ns")) is not int
+                        or mark["valuation_time_ns"] > mark["observation_cutoff_time_ns"]):
+                    raise RuntimeError("UNIFIED_EXIT_MARKED_OBSERVATION_CUTOFF_INVALID")
                 if (value is None or remaining is None or not np.isfinite(value)
                     or not np.isfinite(remaining)
                     or value != float(outcome["undiscounted_net_cash_pnl_bps"]) + remaining):

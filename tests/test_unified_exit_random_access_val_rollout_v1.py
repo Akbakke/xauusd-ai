@@ -620,3 +620,51 @@ def test_marked_hold_cache_is_bounded_by_intervals_not_entry_prices():
         assert observed == (reference if batch is requests else reference[::-1])
         # Both sides in this fixture have identical interval cash costs.
         assert len(adapter._val_composed_hold_cache) == 2
+
+
+def _train_cutoff_fixture(monkeypatch, *, gap=None, threshold=100.0, max_forwards=1000):
+    from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
+    clock = _clock(gap=gap, tail_rows=4)
+    # The clock fixture is synthetic; file-binding validation is exercised in
+    # test_chronological_measurement_binding with real bound parquet/npz inputs.
+    cutoff = int(clock.asi8[479 if gap else 480]) + 60_000_000_000
+    scope = {"schema_version": cohorts.TRAIN_ROLLOUT_SCHEMA, "split": "train",
+        "source_split": "train", "evaluation_role": "chronological_training_policy_rollout",
+        "measurement_only": False, "plan": {}, "measurement_coordinates": {},
+        "source_index": {"path": "/synthetic/index", "sha256": "0" * 64},
+        "population_rows": VAL_ENTRY_COHORT_SIZE, "entry_row_indices": [0, 1],
+        "parent_entry_row_indices": [0, 1], "observation_cutoff_time_ns": cutoff,
+        "test_data_used": False}
+    scope["cohort_sha256"] = cohorts.canonical_sha256(scope)
+    monkeypatch.setattr(cohorts, "build_chronological_train_rollout_cohort", lambda *args: dict(scope))
+    thresholds = np.full((VAL_ENTRY_COHORT_SIZE, 2), threshold, dtype=np.float32)
+    return _fixture(thresholds=thresholds,
+        counts=np.full(VAL_ENTRY_COHORT_SIZE, 2 if gap else 4, dtype=np.int64),
+        gap=gap, max_forwards=max_forwards,
+        reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING, evaluation_cohort=scope)
+
+
+@pytest.mark.parametrize("gap", [None, "weekend"])
+def test_train_cutoff_blocks_future_state_and_economic_reads(monkeypatch, gap):
+    _, _, adapter, _ = _train_cutoff_fixture(monkeypatch, gap=gap)
+    boundary = 0 if gap else 1
+    state = adapter.materialize_state(0, boundary)
+    assert state["right_censor_reason_if_hold"] == "observation_cutoff"
+    assert state["successor_observed"] is False and state["economic_terminal"] is False
+    assert adapter.entries[0]["available_state_count"] == (2 if gap else 4)
+    adapter.compose_selected_action(entry_row_index=0, side_index=0, state_index=boundary, action="exit_now")
+    def forbidden(*args, **kwargs):
+        pytest.fail("provider read beyond the observation boundary")
+    adapter.state_provider = forbidden
+    adapter.economic_step_provider = forbidden
+    calls = [lambda: adapter.materialize_state(0, boundary + 1),
+        lambda: adapter.materialize_active_batch([0, 1], boundary + 1),
+        lambda: adapter.materialize_cached_active_batch([0, 1], boundary + 1,
+            cached_market_rows={480, 481}, workers=8),
+        lambda: adapter.compose_selected_action(entry_row_index=0, side_index=0,
+            state_index=boundary, action="hold"),
+        lambda: adapter.compose_selected_actions([{"entry_row_index":0,"side_index":1,
+            "state_index":boundary,"action":"hold"}])]
+    for call in calls:
+        with pytest.raises(RuntimeError, match="OBSERVATION_CUTOFF_EXCEEDED"):
+            call()

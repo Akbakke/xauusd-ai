@@ -547,3 +547,54 @@ def test_marked_native_result_values_open_loss_without_executing_exit(tmp_path, 
     changed["semantic_result_sha256"] = canonical_sha256(changed)
     with pytest.raises(RuntimeError, match="RESULT_MARKED_POLICY_INVALID"):
         require_random_access_val_evaluation_result_v1(changed, **validation)
+
+
+@pytest.mark.parametrize("threshold, max_forwards", [(100.0, 1000), (1.0, 1000), (100.0, 1)])
+def test_native_train_cutoff_resume_marks_losses_without_forced_exit(tmp_path, monkeypatch, threshold, max_forwards):
+    import copy
+    from tests.test_unified_exit_random_access_val_rollout_v1 import _train_cutoff_fixture
+    from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import require_random_access_val_evaluation_result_v1
+    model, representations, adapter, contract = _train_cutoff_fixture(
+        monkeypatch, threshold=threshold, max_forwards=max_forwards)
+    adapter.economic_step_provider.exit_gross_override = -40.0
+    model = _with_route_outputs(model)
+    binding = _checkpoint_binding(contract, adapter, tmp_path)
+    kwargs = dict(model=model, entry_decision_representations=representations, adapter=adapter,
+        checkpoint_binding=binding, entry_policy_decisions=_entry_policy(adapter,binding),
+        entry_route_diagnostics={}, policy_batch_size=256, progress_interval_forwards=16)
+    full = run_resumable_random_access_val_evaluation_v1(**kwargs, progress_path=tmp_path/"full-progress.json",
+        result_path=tmp_path/"full-result.json", max_forwards_this_invocation=100)
+    if max_forwards > 1:
+        paused = run_resumable_random_access_val_evaluation_v1(**kwargs, progress_path=tmp_path/"split-progress.json",
+            result_path=tmp_path/"split-result.json", max_forwards_this_invocation=1)
+        assert paused["schema_version"] == PAUSE_SCHEMA_VERSION
+        resumed = run_resumable_random_access_val_evaluation_v1(**kwargs, progress_path=tmp_path/"split-progress.json",
+            result_path=tmp_path/"split-result.json", max_forwards_this_invocation=100)
+        assert resumed == full
+    assert full["evaluation_scope"] == "bounded_training_policy_rollout"
+    row = full["trade_outcomes"][0]
+    replay = full["marked_policy_evaluation"]["single_position_replay"]
+    validation = dict(rollout_contract_sha256=full["contract_sha256"], checkpoint_binding_sha256=binding["binding_sha256"],
+        execution_contract_sha256=full["execution_contract_sha256"])
+    assert require_random_access_val_evaluation_result_v1(full, **validation) == full
+    if max_forwards == 1:
+        assert row["status"].startswith("TRUNCATED_COMPUTE_GUARD")
+        assert replay["full_cohort_authoritative"] is False
+        return
+    assert row["decision_count"] == 2 and row["hold_count"] == 1
+    assert replay["full_cohort_authoritative"] is True
+    assert replay["net_cash_plus_open_value_bps_sum"] < 0
+    if threshold == 1.0:
+        assert row["status"] == "EXITED" and row["valuation"]["model_exit_executed"] is True
+    else:
+        assert row["status"] == "RIGHT_CENSORED_OBSERVATION_CUTOFF"
+        assert row["exit_state_index"] is None and row["exit_decision_time_ns"] is None
+        assert row["valuation"]["model_exit_executed"] is False
+        assert row["valuation"]["remaining_liquidation_value_bps"] == -41.0
+        assert replay["open_position_count"] == 1
+        assert full["entry_exit_policy_metrics"]["net_bps_sum"] is None
+        changed = copy.deepcopy(full)
+        changed["trade_outcomes"][0]["valuation"]["observation_cutoff_time_ns"] += 1
+        changed.pop("semantic_result_sha256"); changed["semantic_result_sha256"] = canonical_sha256(changed)
+        with pytest.raises(RuntimeError, match="RESULT_OBSERVATION_CUTOFF_INVALID"):
+            require_random_access_val_evaluation_result_v1(changed, **validation)

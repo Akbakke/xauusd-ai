@@ -559,7 +559,7 @@ def _observed_trade_valuation(trade, *, adapter, entry):
     remaining, time_ns, slice_sha = None, None, None
     if status == "EXITED":
         remaining, time_ns = 0.0, int(trade["exit_decision_time_ns"])
-    elif status in {"RIGHT_CENSORED_SPLIT_END", "RIGHT_CENSORED_UNKNOWN_SOURCE_GAP"}:
+    elif status in {"RIGHT_CENSORED_SPLIT_END", "RIGHT_CENSORED_UNKNOWN_SOURCE_GAP", "RIGHT_CENSORED_OBSERVATION_CUTOFF"}:
         index = int(trade["decision_count"]) - 1
         if index < 0:
             raise RuntimeError("UNIFIED_EXIT_MARKED_BOUNDARY_STATE_INVALID")
@@ -570,11 +570,19 @@ def _observed_trade_valuation(trade, *, adapter, entry):
         remaining = float(step["undiscounted_net_cash_pnl_increment_bps"])
         time_ns = int(step["interval_end_time_ns"])
         expected_time = int(adapter.times.asi8[entry["entry_m1_start_row"] + index]) + 60_000_000_000
+        if status == "RIGHT_CENSORED_OBSERVATION_CUTOFF":
+            cutoff = adapter.observation_cutoff_time_ns
+            next_row = entry["entry_m1_start_row"] + index + 1
+            if (cutoff is None or time_ns > cutoff or index + 1 >= entry["available_state_count"]
+                    or int(adapter.times.asi8[next_row]) + 60_000_000_000 <= cutoff):
+                raise RuntimeError("UNIFIED_EXIT_MARKED_OBSERVATION_CUTOFF_INVALID")
         if time_ns != expected_time or (status == "RIGHT_CENSORED_SPLIT_END" and time_ns != int(adapter.times.asi8[-1]) + 60_000_000_000):
             raise RuntimeError("UNIFIED_EXIT_MARKED_BOUNDARY_CLOCK_INVALID")
     return {
         "schema_version": "gx1_observed_position_valuation_v1",
         "valuation_time_ns": time_ns,
+        **({"observation_cutoff_time_ns": adapter.observation_cutoff_time_ns}
+           if status == "RIGHT_CENSORED_OBSERVATION_CUTOFF" else {}),
         "remaining_liquidation_value_bps": remaining,
         "net_cash_plus_open_value_bps": (float(trade["undiscounted_net_cash_pnl_bps"]) + remaining if remaining is not None else None),
         "discounted_utility_plus_open_value_bps": (float(trade["discounted_risk_adjusted_utility_bps"]) + float(trade["continuation_discount"]) * remaining if remaining is not None else None),
@@ -678,7 +686,7 @@ def _finalize_result(
         "checkpoint_binding_sha256": checkpoint_binding["binding_sha256"],
         "execution_contract": dict(execution_contract),
         **({"evaluation_cohort": adapter.contract["evaluation_cohort"],
-            "evaluation_scope": "bounded_development_val", "source_population_fully_evaluated": False}
+            "evaluation_scope": ("bounded_training_policy_rollout" if "observation_cutoff_time_ns" in adapter.contract["evaluation_cohort"] else "bounded_development_val"), "source_population_fully_evaluated": False}
             if "evaluation_cohort" in adapter.contract else {}),
         "execution_contract_sha256": execution_contract["execution_contract_sha256"],
         "entry_pair_cohort_size": len(adapter.entries),
@@ -779,7 +787,7 @@ def require_random_access_val_evaluation_result_v1(
         if ((scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE)
                 or not isinstance(execution, Mapping)
                 or execution.get("evaluation_cohort_sha256") != scope["cohort_sha256"]
-                or result.get("evaluation_scope") != "bounded_development_val"
+                or result.get("evaluation_scope") != ("bounded_training_policy_rollout" if "observation_cutoff_time_ns" in scope else "bounded_development_val")
                 or result.get("source_population_fully_evaluated") is not False):
             raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_COHORT_MISMATCH")
         ids = scope["entry_row_indices"]
@@ -846,6 +854,15 @@ def require_random_access_val_evaluation_result_v1(
             or (not relative and "exit_q_value_coordinates" in result)):
         raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_VALUE_COORDINATES_INVALID")
     if result["schema_version"] in {MARKED_RESULT_SCHEMA_VERSION, LIQUIDATION_RELATIVE_RESULT_SCHEMA_VERSION}:
+        cutoff = result.get("evaluation_cohort", {}).get("observation_cutoff_time_ns")
+        for row in outcomes:
+            if row["status"] == "RIGHT_CENSORED_OBSERVATION_CUTOFF":
+                mark = row.get("valuation", {})
+                if (cutoff is None or mark.get("observation_cutoff_time_ns") != cutoff
+                        or type(mark.get("valuation_time_ns")) is not int
+                        or mark["valuation_time_ns"] > cutoff
+                        or mark.get("model_exit_executed") is not False):
+                    raise RuntimeError("UNIFIED_EXIT_VAL_RESULT_OBSERVATION_CUTOFF_INVALID")
         marked_metrics = marked_entry_exit_policy_metrics(
             entry_policy=policy, trade_outcomes=outcomes,
             full_cohort_authoritative=rollout_complete,
@@ -1364,7 +1381,7 @@ def run_resumable_random_access_val_evaluation_v1(
                     )
                 else:
                     reason = envelope["right_censor_reason_if_hold"]
-                    if reason not in {"split_end", "unknown_source_gap"}:
+                    if reason not in {"split_end", "unknown_source_gap", "observation_cutoff"}:
                         raise RuntimeError("UNIFIED_EXIT_VAL_CENSOR_REASON_INVALID")
                     trade["status"] = f"RIGHT_CENSORED_{reason.upper()}"
                     active[entry_position, side] = False

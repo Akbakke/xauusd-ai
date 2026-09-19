@@ -76,4 +76,25 @@ Et eventuelt separat omfang må binde rad-ID-er, modell, kalendergrense,
 forwards/state-budsjett og én native invokasjon med eksisterende vakter.
 Den historiske brede VAL-grensen er ikke et målt behov for denne prøven.
 Ressursavbrudd gir ufullstendig resultat, ikke et økonomisk avslag.
-Ingen slik kontraktsutvidelse eller kjøring er utført i denne gjennomgangen.
+Observasjonsgrensen er nå implementert; native kjøretilkobling gjenstår.
+
+Den minimale grenseutvidelsen bruker et separat hashbundet TRAIN-utvalg med
+samme radidentiteter og kronologisk rekkefølge. Dagens målecohort er uendret.
+State- og økonomikall etter grensen avvises før providerne leser data, også
+ved cache-/batchkall. Sensurering beholder modellens HOLD og inkluderer siste
+utførbare åpne verdi. En faktisk EXIT ved grensen er fortsatt en modellhandling.
+13 syntetiske CPU-tilfeller bestod, inkludert uendret opprinnelig sensurering,
+åpent tap, ressursavbrudd, hashdrift og identisk pause/resume. Dette er teknisk
+støtte for nødvendig måling, ikke dokumentasjon på økt handelsfordel.
+
+Den faktiske klokkeavlesningen bekrefter 256 faste TRAIN-rader og tre forløp
+som trenger den nye grensen. Ved alltid HOLD er øvre omfang 3375234 tilstander
+og 46573 native policyforwards ved batch256. Kjøretid er ikke målt.
+Kun tidskolonne og identitets-/levetidsmetadata ble lest; ingen nye priser,
+markedsutfall, modeller eller targets ble beregnet. Første metadataavlesning
+ble avvist fordi parquetfilen ikke har pandas-indeksmetadata; operatøren ble
+rettet til den verifiserte native time-kolonnen. Feilloggen er bevart.
+
+Bevis: handover_snapshot/TRAIN_OBSERVATION_CUTOFF_REVIEW_20260919.json og
+handover_snapshot/FROZEN_EXIT_TRAIN_FOOTPRINT_20260919.json. Frossen ONLINE512-
+checkpointbinding og eget nullstegs native kjøreomfang er neste arbeid.
