@@ -11,8 +11,8 @@ bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
   NEXT_RUN_POLICY.json, VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.
   CURRENT_HANDOVER.md angir eventuell operatørkopi under kildefrys.
   Ikke relanser en allerede aktiv eller fullført plan.
-  Hovedencoder256 er ferdig analysert: begrenset Entry-forbedring, uendrede valg,
-  læringsport ikke bestått. Gjenbruk review; neste binding står i VEIEN_VIDERE.md.
+  Entry fuse256 er ferdig analysert: bedre verdiestimat, uendrede Entry/Exit-valg,
+  læringsport ikke bestått. Gjenbruk review; neste avklaring står i VEIEN_VIDERE.md.
 - CURRENT_HANDOVER.md er eneste gjeldende fortelling. RUNNING_NATIVE_CALIBRATION.json
   beskriver siste arbeid; prosesser, checkpoints og receipts må bekrefte nåstatus.
   COMPLETED_RUN.json og filer merket historikk er bevis, aldri startinstrukser.

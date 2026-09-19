@@ -1,15 +1,22 @@
 # GX1 — overlevering 19. september 2026
 
-Entry fuse-kandidaten har bestått fem tester, produksjonsinitialisering og NY native
-initialmåling. Guard PASS, null optimizersteg; originale teacher-targets/masker/
-cohort, optimizer/EMA/RNG er eksakt bevart. Nullstegsoppgaven er Disabled og brukt scope stengt.
+Entry fuse256 er fullført og analysert. Begge Entry-sider slår forrige modell
+og TRAIN-konstanter på samlet verdi-MSE. Likevel FLAT256/256 og Exit HOLD for
+alle LONG / EXIT for alle SHORT. Samlet læringsport er ikke bestått; profitt
+eller generalisering er ikke dokumentert. Se docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md.
 
-NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919 er nå bundet, ikke forberedt/startet.
-Én 256-stegs prøve, samme 4096 TRAIN-rader, opprinnelig lærer og kostnader.
-Gjenbruk ferdige tester/analyser. Se VEIEN_VIDERE.md og PLAN.json.
-Eneste kodevei er /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overlevering.
-Start med handover --check. Ingen forbedret læring eller profitt er påvist ennå.
+Eneste kodevei: /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overlevering.
+Start med handover --check. Aktuell binding og neste avklaring står i
+NEXT_RUN_POLICY.json og VEIEN_VIDERE.md. Ingen native jobb er aktiv eller bundet.
 
-Operatørkopi under kildefrys: /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/OPERATOR_HANDOVER/CURRENT_HANDOVER.md.
-Prosesser, PREPARATION_RESULT.json og receipts avgjør faktisk status. Ikke relanser.
-Ingen full epoch/VAL/CONTROL/TEST, live/paper, spending eller automatisk utvidelse.
+NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919 avsluttet 13:12:16 UTC /
+15:12:16 Europe/Oslo med guard PASS og 256 steg. Treningskilde bdce4ad3;
+checkpoint5/slot0/offset256. Windows-task Disabled, brukt scope stengt.
+complete=false/RESUMABLE er lagringsstatus, ingen rett til å fortsette.
+Ny initialfunksjon, frossen lærer, targets/masker/cohort og tensorhash er kontrollert.
+
+Gjenbruk fullført review, lagrede outputs og beståtte tester. Før mer modellkode:
+kontroller eksisterende gradientmålers dekning av felles oppdatering og begge
+verdi-hoder. Ingen ny native diagnose er bundet. Ingen nye normaliseringer,
+terskel-/tapsvektsøk, full epoch/VAL/CONTROL/TEST, live/paper eller spending.
+Målet om bedre Entry/Exit og samlet kostnadsjustert økonomi er fortsatt aktivt.

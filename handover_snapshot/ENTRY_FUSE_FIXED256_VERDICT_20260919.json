@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_entry_fuse_normalization_learning_verdict_v1",
+  "created_utc": "2026-09-19T13:22:38.763069+00:00",
+  "decision": "REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "decision_gap_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/DECISION_GAP_AUDIT.json",
+    "sha256": "12a26cd990e0cc65ad46de38a9ea7720491967bbf744afec212ddb722847f852"
+  },
+  "entry_both_sides_mse_and_centered_mse_better_than_all_saved_baselines": true,
+  "all_six_value_cells_mse_and_centered_mse_better_than_main_encoder256": true,
+  "entry_within_month_contrast_improved": true,
+  "entry_within_month_contrast": {
+    "initial": {
+      "pooled_within_month_correlation": 0.06024723341654507,
+      "prediction_std_bps": 0.6530469805763843,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 1.9121887940297084,
+      "centered_mse": 2358.703120636463,
+      "positive_monthly_correlations": 6,
+      "months": 9
+    },
+    "residual": {
+      "pooled_within_month_correlation": 0.1149150740393863,
+      "prediction_std_bps": 0.10077905879354222,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 0.5628550066558734,
+      "centered_mse": 2360.9854742710622,
+      "positive_monthly_correlations": 8,
+      "months": 9
+    },
+    "main": {
+      "pooled_within_month_correlation": 0.23128507071149895,
+      "prediction_std_bps": 0.3598338900300137,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 4.044817194148636,
+      "centered_mse": 2354.1408739057997,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    },
+    "fuse": {
+      "pooled_within_month_correlation": 0.23766724389048946,
+      "prediction_std_bps": 0.6279279100739019,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 7.253178260033182,
+      "centered_mse": 2347.988964805866,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    }
+  },
+  "entry_actions_identical_to_main_and_constant": true,
+  "exit_actions_identical_to_main_both_surfaces": true,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "training_expansion_authorized": false,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "test_data_used": false,
+  "next_action": "Reuse the completed Entry fuse paired review; do not repeat training, baselines or tests. Before another model change, inspect the saved optimizer/state and existing native TRAIN16 gradient diagnostic for coverage of the shared trunk/fuse and both value heads. The recorded first-batch routing gradient covers only four family/timeframe gate parameters, not the full joint update. Distinguish common-value fitting from useful state-dependent Entry/Exit updates; identify missing coverage before binding at most one existing native diagnostic with exact new model-function, initial/final and cache parity. No inference/backward run is currently bound. Do not infer predictable variance from target variance or force trades by rescaling/threshold changes. No training expansion, CONTROL/VAL/TEST or economics claim.",
+  "limitation": "Small improvement in value fitting on reused TRAIN, uneven by month. Entry and Exit action values/regret unchanged versus main256. No causal proof that auxiliary losses or gradient clipping cause the remaining weak state dependence; no out-of-sample or learned-policy profit result."
+}

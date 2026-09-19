@@ -1,3 +1,7 @@
+Siste læringsresultat19. september: Entry fuse256 gir litt bedre verdiestimat,
+men uendrede Entry/Exit-valg. Ingen bestått læringsport. Se
+docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md og CURRENT_HANDOVER.md.
+
 # Gjeldende GX1-systemkart — 18. september 2026
 
 Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current. GX1_ENGINE/.git er

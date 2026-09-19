@@ -11,6 +11,9 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md — siste TRAIN-resultat: bedre verdiestimat, uendrede valg.
+- handover_snapshot/ENTRY_FUSE_FIXED256_{REVIEW,VERDICT,REVIEWED_COMPLETION}_20260919.json og ENTRY_FUSE_DECISION_GAP_20260919.json — fullført analyse og bindinger.
+
 - docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md — siste konklusjon og begrensninger.
 - handover_snapshot/MAIN_ENCODER_FIXED256_{REVIEW,VERDICT,REVIEWED_COMPLETION}_20260919.json — fullført paret analyse og bindinger.
 - handover_snapshot/MAIN_ENCODER_DECISION_GAP_20260919.json — handlingsmarginer og signal innen månedene.

@@ -1,0 +1,144 @@
+{
+  "schema_version": "gx1_entry_fuse_saved_decision_gap_audit_v1",
+  "created_utc": "2026-09-19T13:18:27.069613+00:00",
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "908ad63a049cab00c668226f6cfd1a0ed8f00035f05efdbd4775ae31549a23b5"
+  },
+  "within_month_entry_contrast": {
+    "initial": {
+      "pooled_within_month_correlation": 0.06024723341654507,
+      "prediction_std_bps": 0.6530469805763843,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 1.9121887940297084,
+      "centered_mse": 2358.703120636463,
+      "positive_monthly_correlations": 6,
+      "months": 9
+    },
+    "residual": {
+      "pooled_within_month_correlation": 0.1149150740393863,
+      "prediction_std_bps": 0.10077905879354222,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 0.5628550066558734,
+      "centered_mse": 2360.9854742710622,
+      "positive_monthly_correlations": 8,
+      "months": 9
+    },
+    "main": {
+      "pooled_within_month_correlation": 0.23128507071149895,
+      "prediction_std_bps": 0.3598338900300137,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 4.044817194148636,
+      "centered_mse": 2354.1408739057997,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    },
+    "fuse": {
+      "pooled_within_month_correlation": 0.23766724389048946,
+      "prediction_std_bps": 0.6279279100739019,
+      "target_std_bps": 48.601450882310935,
+      "covariance_bps2": 7.253178260033182,
+      "centered_mse": 2347.988964805866,
+      "positive_monthly_correlations": 9,
+      "months": 9
+    }
+  },
+  "entry_q_bps": {
+    "LONG": {
+      "n": 256,
+      "mean": -5.3458654917776585,
+      "std": 0.3800634055098299,
+      "min": -6.343460559844971,
+      "max": -4.412675857543945
+    },
+    "SHORT": {
+      "n": 256,
+      "mean": -6.24649777635932,
+      "std": 0.3719235111373552,
+      "min": -7.296893119812012,
+      "max": -5.4047932624816895
+    },
+    "FLAT": {
+      "n": 256,
+      "mean": -0.022045296283977223,
+      "std": 0.1270261673981039,
+      "min": -0.34050682187080383,
+      "max": 0.25648173689842224
+    }
+  },
+  "entry_trade_minus_flat_bps": {
+    "LONG": {
+      "n": 256,
+      "mean": -5.323820195493681,
+      "std": 0.40204667923243026,
+      "min": -6.482943668961525,
+      "max": -4.462097015231848
+    },
+    "SHORT": {
+      "n": 256,
+      "mean": -6.2244524800753425,
+      "std": 0.3872208401927964,
+      "min": -7.346314277499914,
+      "max": -5.291934579610825
+    }
+  },
+  "exit_hold_minus_exit_bps": {
+    "anchor": {
+      "LONG": {
+        "n": 256,
+        "mean": 0.8011268351692706,
+        "std": 0.08746068288472476,
+        "min": 0.5147109031677246,
+        "max": 0.985187292098999
+      },
+      "SHORT": {
+        "n": 256,
+        "mean": -0.8470114304218441,
+        "std": 0.3083712705944986,
+        "min": -1.7181177139282227,
+        "max": -0.2271566540002823
+      }
+    },
+    "sampled": {
+      "LONG": {
+        "n": 1024,
+        "mean": 0.7129857014806475,
+        "std": 0.10701400912482713,
+        "min": 0.4862464964389801,
+        "max": 1.029174566268921
+      },
+      "SHORT": {
+        "n": 1024,
+        "mean": -0.75610950518967,
+        "std": 0.32830748338916765,
+        "min": -1.7960000038146973,
+        "max": -0.05834851786494255
+      }
+    }
+  },
+  "entry_within_month_signal_improved_against_initial_and_main": true,
+  "no_action_improvement_vs_main": true,
+  "entry_within_month_signal_improved_against_initial_and_residual": true,
+  "trainer_log": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466/progress/.invocation-0001.json.trainer.PT1Svtv1.log",
+    "sha256": "90aedd7e8d005e7a3c1200ef9702c66da1b255449464adc918e3b42baafdc167"
+  },
+  "first_batch_entry_routing_gradient_l2": 18.151134297552222,
+  "first_batch_gradient_is_not_full_update_attribution": true,
+  "no_action_improvement_vs_residual": true,
+  "interpretation": "Entry has more within-month association with frozen targets on reused TRAIN. Every trade Q remains below its FLAT Q; Exit HOLD predictions keep a fixed sign by side. These are the measured output conditions behind unchanged actions, not a causal diagnosis of the remaining weak variation. Target outcome variance is not necessarily predictable; do not rescale forecasts to match target variance or tune action thresholds.",
+  "new_model_forwards": 0,
+  "new_fits": 0,
+  "new_optimizer_steps": 0,
+  "test_data_used": false,
+  "generalization_proven": false,
+  "learning_gate_passed": false,
+  "operator": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/DECISION_GAP_OPERATOR.py",
+    "sha256": "e452fa0f2d2267cd4f5d7c6e734c919d57ffb8f8483e1b6cc4d11527159d836c"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": "gx1_entry_fuse_fixed256_completion_v1",
+  "created_utc": "2026-09-19T13:17:23.528126+00:00",
+  "status": "REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED",
+  "run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
+  "source_commit": "bdce4ad3bfebcb7b69506b9058f87464256b34ad",
+  "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
+  "session_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE",
+  "plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PLAN.json",
+    "sha256": "7a171b46419fea62b35762ae951c43057b557b246cf20fbf4a726b28441e6110"
+  },
+  "native_recipe": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/NATIVE_RECIPE.json",
+    "sha256": "8bdc047e20b3d5b059505e6c9c67a70f57d2c59573d941f39f2de25185da1683"
+  },
+  "campaign_plan": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee"
+  },
+  "preparation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PREPARATION_RESULT.json",
+    "sha256": "000007f5fc21b8fabb78544322a7f73160e07b1a950c1e28615c7a85646d95ed"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/RESULT.json",
+    "sha256": "f9830c636a4fef9090006fba7b49149e91b8ce782530eb70e8471cf733b4a54c"
+  },
+  "train_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "908ad63a049cab00c668226f6cfd1a0ed8f00035f05efdbd4775ae31549a23b5"
+  },
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466/receipts/invocation-0001.json",
+    "sha256": "777a5aa16be99723b1bcc42b0ae44859c434f4f29e602c42d07382dc2ba6f27f"
+  },
+  "windows_task_disabled": {
+    "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_DISABLED.json",
+    "sha256": "be0ed358084954c077c5059c223c72636ba29e61f1fb4e49b4395d4b9b09e725"
+  },
+  "windows_task_observation": {
+    "observed_utc": "2026-09-19T13:15:29.9228962Z",
+    "task_name": "GX1NativeLearningCalibration",
+    "state": "Disabled",
+    "enabled": false,
+    "last_result": 0,
+    "plan_json": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
+  },
+  "native_processes": [],
+  "started_utc": "2026-09-19T11:58:18.225230+00:00",
+  "finished_utc": "2026-09-19T13:12:16.178867+00:00",
+  "optimizer_steps": 256,
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "af647c4d76145fc30df126b853cc9d9de43fc03ef69c756256279e98007468a8"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+  },
+  "checkpoint": {
+    "checkpoint_index": 5,
+    "complete": false,
+    "epoch_index": 0,
+    "global_optimizer_steps": 256,
+    "next_batch_offset": 256,
+    "phase": "train",
+    "schema_version": "gx1_candidate_training_session_v1",
+    "session_contract_sha256": "cbdcc3c20dea6a612f70381118c8209a641844158ffc4bc56d364692090140a4",
+    "slot": 0,
+    "state_sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+  },
+  "model_state_sha256": "0df40a95433479b6aed5ca4dfb07cbcbcf639879f622cb89b2625525538ece02",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "initial_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "2eb5e3e628987bd921f71db2bebfc1a7b0c84ca5b142f645b1cbbbae8acb96b9"
+  },
+  "initial_measurement_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
+    "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
+  },
+  "teacher_refreshed": false,
+  "measurement_roles": [
+    "train"
+  ],
+  "guard_decision": "PASS",
+  "trainer_guard_exit_code": 0,
+  "progress_observer_exit_code": 0,
+  "learning_review_complete": true,
+  "learning_gate_passed": false,
+  "generalization_proven": false,
+  "profitability_proven": false,
+  "economic_rollout": false,
+  "test_data_used": false,
+  "scope_consumed": true,
+  "resume_authorized": false,
+  "training_expansion_authorized": false,
+  "next_action": "Reuse the completed Entry fuse paired review; do not repeat training, baselines or tests. Before another model change, inspect the saved optimizer/state and existing native TRAIN16 gradient diagnostic for coverage of the shared trunk/fuse and both value heads. The recorded first-batch routing gradient covers only four family/timeframe gate parameters, not the full joint update. Distinguish common-value fitting from useful state-dependent Entry/Exit updates; identify missing coverage before binding at most one existing native diagnostic with exact new model-function, initial/final and cache parity. No inference/backward run is currently bound. Do not infer predictable variance from target variance or force trades by rescaling/threshold changes. No training expansion, CONTROL/VAL/TEST or economics claim.",
+  "previous_main_review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "10c4b6db196ea54b2be7a04976bc06d150b82109bdee3789a6794217bc8f5019"
+  },
+  "reuse_previous_review_operators": {
+    "PAIRED_TRAIN_REVIEW.json": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PAIRED_TRAIN_REVIEW.json",
+      "sha256": "5fcf614ede861ecc0278535423e23bd45632b7a63a0999ed1ca25f0a243d7fd0"
+    },
+    "REVIEW_OPERATOR.py": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_MAIN_ENCODER_NORMALIZED_FIXED256_20260918/REVIEW_OPERATOR.py",
+      "sha256": "552af5c21f2ee5114df046398c2e6673d37e930ab6598090c60b5c1512abace5"
+    }
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/VERDICT.json",
+    "sha256": "2ee08068d96c3d0dc215b3116f9e31a07d8aea8712c6a23a5bc3a6ed114f306e"
+  },
+  "decision_gap_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/DECISION_GAP_AUDIT.json",
+    "sha256": "12a26cd990e0cc65ad46de38a9ea7720491967bbf744afec212ddb722847f852"
+  },
+  "review_completed_utc": "2026-09-19T13:22:38.763069+00:00",
+  "state_model_tensors_independently_rehashed_this_handover": true,
+  "model_digest_source": "Paired CPU review independently checked saved ONLINE and target tensor digests, optimizer/EMA256, cursor and receipts."
+}
