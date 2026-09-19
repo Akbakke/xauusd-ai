@@ -920,6 +920,157 @@ def _entry_signal_pair(*,model,batch,target,valid,predictions,states,device,vali
     return reports
 
 
+def _joint_probe_adam_delta(*, model, optimizer, saved_optimizer, gradients):
+    """FP64 read-only next-step estimate with native clipping and saved AdamW moments."""
+    named = dict(model.named_parameters())
+    by_id = {id(p): n for n, p in named.items()}
+    if set(gradients) != set(named) or len(optimizer.param_groups) != len(saved_optimizer['param_groups']):
+        raise RuntimeError('JOINT_PROBE_OPTIMIZER_BINDING_INVALID')
+    norms = {}
+    for task_weights in (False, True):
+        values = [g for n, g in gradients.items() if g is not None and n.startswith('task_log_variances.') == task_weights]
+        norm = sum(float(g.square().sum()) for g in values) ** .5
+        norms['task_weights' if task_weights else 'prediction'] = norm
+    delta = {n: torch.zeros_like(p, device='cpu', dtype=torch.float64) for n, p in named.items()}
+    seen = set()
+    for live, saved in zip(optimizer.param_groups, saved_optimizer['param_groups']):
+        if (len(live['params']) != len(saved['params']) or saved.get('amsgrad') or saved.get('maximize')
+                or saved.get('differentiable') or saved.get('capturable')):
+            raise RuntimeError('JOINT_PROBE_OPTIMIZER_VARIANT_INVALID')
+        beta1, beta2 = saved['betas']
+        for p, index in zip(live['params'], saved['params']):
+            n = by_id[id(p)]
+            if n in seen: raise RuntimeError('JOINT_PROBE_OPTIMIZER_DUPLICATE')
+            seen.add(n)
+            g = gradients[n]
+            if g is None: continue  # AdamW skips parameters whose gradient is absent.
+            if g.shape != p.shape or not bool(torch.isfinite(g).all()):
+                raise RuntimeError('JOINT_PROBE_GRADIENT_INVALID')
+            norm = norms['task_weights' if n.startswith('task_log_variances.') else 'prediction']
+            clipped = g * min(1., float(trainer._GRAD_CLIP_NORM) / (norm + 1e-6))
+            state = saved_optimizer['state'].get(index, {})
+            step = int(state.get('step', 0)) + 1
+            m = state.get('exp_avg', torch.zeros_like(p)).detach().cpu().double()
+            v = state.get('exp_avg_sq', torch.zeros_like(p)).detach().cpu().double()
+            if m.shape != p.shape or v.shape != p.shape or not bool(torch.isfinite(m).all() & torch.isfinite(v).all()) or bool((v < 0).any()):
+                raise RuntimeError('JOINT_PROBE_MOMENT_INVALID')
+            m = beta1 * m + (1 - beta1) * clipped
+            v = beta2 * v + (1 - beta2) * clipped.square()
+            delta[n] = (-saved['lr'] * m / (1 - beta1 ** step)
+                        / (v.sqrt() / (1 - beta2 ** step) ** .5 + saved['eps'])
+                        - saved['lr'] * saved['weight_decay'] * p.detach().cpu().double())
+    if seen != set(named): raise RuntimeError('JOINT_PROBE_OPTIMIZER_PARAMETER_MISSING')
+    return delta, norms
+
+
+def _joint_update_probe(*, model, optimizer, saved_state, batch, target, valid, expected, dataset, device):
+    """One frozen TRAIN16 eval probe of native Entry/Exit/aux gradients; never steps."""
+    parameters = dict(model.named_parameters())
+    if model.training or any(p.grad is not None for p in parameters.values()):
+        raise RuntimeError('JOINT_PROBE_MODEL_STATE_INVALID')
+    def cpu_grad(values):
+        return {n: None if g is None else g.detach().cpu().double().clone() for n, g in zip(parameters, values)}
+    def grad(loss):
+        return cpu_grad(torch.autograd.grad(loss, tuple(parameters.values()), retain_graph=True, allow_unused=True))
+    def add(*vectors):
+        return {n: sum((v[n] for v in vectors if v[n] is not None), torch.zeros_like(p, device='cpu', dtype=torch.float64))
+                if any(v[n] is not None for v in vectors) else None for n, p in parameters.items()}
+    def forward(which):
+        return trainer._model_forward_fp32(which, batch['seq_x'].to(device), batch['snap_x'].to(device),
+            ctx_cat=batch['ctx_cat'].to(device), ctx_cont=batch['ctx_cont'].to(device),
+            **trainer._multi_tf_kwargs_from_batch(batch, device))
+    with torch.inference_mode():
+        inference = forward(model)['entry_action_q_bps']
+        difference = float((inference - expected).abs().max())
+        if not torch.allclose(inference, expected, atol=1e-4, rtol=0) or not torch.equal(inference.argmax(1), expected.argmax(1)):
+            raise RuntimeError('JOINT_PROBE_CACHED_INFERENCE_CHANGED')
+    teacher = trainer._copy_frozen_prefix_reference_model(model)
+    teacher.load_state_dict(saved_state['target_model_state'], strict=True)
+    target_digest = trainer._model_state_sha256(teacher)
+    if target_digest != val.canonical_model_state_sha256(saved_state['target_model_state']):
+        raise RuntimeError('JOINT_PROBE_TEACHER_STATE_CHANGED')
+    try:
+        out = forward(model)
+        q = out['entry_action_q_bps']
+        if not torch.equal(q.detach().argmax(1), expected.argmax(1)):
+            raise RuntimeError('JOINT_PROBE_GRADIENT_ACTION_CHANGED')
+        with torch.no_grad(): teacher_out = forward(teacher)
+        representation = out[trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY]
+        token_gradient, exit_stats, measured_target, measured_valid = trainer._train_unified_exit_full_population(
+            model=model, target_model=teacher, entry_decision_representations=representation,
+            target_entry_decision_representations=teacher_out[trainer.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY],
+            entry_row_indices=batch['entry_row_index'], dataset=dataset, device=device, grad_accum_steps=1,
+            exit_cooperation_gate_epoch=trainer._new_cooperation_gate_epoch_accumulator(trainer._UNIFIED_EXIT_COOPERATION_GATE_WIDTHS),
+            exit_feature_tf_gate_epoch=trainer._new_feature_tf_gate_epoch_accumulator(trainer._UNIFIED_EXIT_FEATURE_TF_GATE_SHAPE))
+        if (not torch.equal(measured_valid, valid) or not torch.allclose(measured_target, target, atol=1e-4, rtol=0)
+                or exit_stats.get('random_access_online_forward_calls') != 1
+                or exit_stats.get('random_access_target_forward_calls') != 1
+                or exit_stats.get('random_access_backward_calls') != 1):
+            raise RuntimeError('JOINT_PROBE_NATIVE_EXIT_OR_TARGET_PARITY_INVALID')
+        exit_direct = cpu_grad([p.grad for p in parameters.values()])
+        exit_bridge = (representation * token_gradient).sum() + model.task_log_variances['unified_exit_action']
+        exit_gradient = add(exit_direct, grad(exit_bridge))
+        parts = _entry_signal_losses(q, measured_target, measured_valid)
+        precision = torch.exp(-model.task_log_variances['entry_action_q'])
+        entry_loss = trainer._joint_task_loss(model, {'entry_action_q': sum(parts.values())})[0]
+        aux = trainer.dip_forecast_task_losses(out, batch, device)
+        aux['side_mae_bps'] = trainer._side_mae_auxiliary_loss(out, batch, device)[0]
+        aux['trendline_event'] = trainer._trendline_event_aux_loss(out, batch, device)[0]
+        position = trainer._require_active_aux_head_prediction(out, batch, output_name='position_size_logit',
+            target_names=('y_position_size_target', 'y_position_size_mask'))
+        mask = batch['y_position_size_mask'].to(device)
+        if bool((mask.reshape(-1) == 1).any()):
+            aux['position_size'] = trainer._masked_position_size_mse(position, batch['y_position_size_target'].to(device), mask)
+        aux_loss = trainer._joint_task_loss(model, aux)[0]
+        vectors = {k: grad(precision * value) for k, value in parts.items()}
+        vectors.update(entry=grad(entry_loss), auxiliary=grad(aux_loss), exit=exit_gradient)
+        vectors['joint'] = add(vectors['entry'], vectors['auxiliary'], vectors['exit'])
+        # Independent native-style accumulation checks all shared/private/task gradients.
+        (entry_loss + aux_loss + exit_bridge).backward()
+        actual = cpu_grad([p.grad for p in parameters.values()])
+        max_error = 0.
+        for n in parameters:
+            a, b = actual[n], vectors['joint'][n]
+            if (a is None) != (b is None): raise RuntimeError('JOINT_PROBE_GRADIENT_COVERAGE_MISMATCH')
+            if a is not None:
+                torch.testing.assert_close(a, b, atol=2e-5, rtol=2e-5)
+                max_error = max(max_error, float((a-b).abs().max()))
+        groups = {
+            'all_prediction': [n for n in parameters if not n.startswith('task_log_variances.')],
+            'fuse': [n for n in parameters if n.startswith('fuse.')],
+            'entry_head': [n for n in parameters if n.startswith(('entry_q_joint_', 'head_entry_action_q.'))],
+            'exit': [n for n in parameters if n.startswith(('exit_', 'head_exit_action.'))]}
+        if not all(groups.values()): raise RuntimeError('JOINT_PROBE_PARAMETER_SURFACE_MISSING')
+        def dot(a, b, names):
+            return sum(float((a[n]*b[n]).sum()) for n in names if a[n] is not None and b[n] is not None)
+        directions = {}
+        for label, gradients in [('joint', actual), ('without_current_auxiliary', add(vectors['entry'], vectors['exit']))]:
+            delta, norms = _joint_probe_adam_delta(model=model, optimizer=optimizer,
+                saved_optimizer=saved_state['optimizer_state'], gradients=gradients)
+            directions[label] = {'preclip_norms': norms, 'by_parameter_group': {
+                group: {'delta_l2': dot(delta,delta,names)**.5,
+                        'first_order_weighted_loss_change': {task: dot(g,delta,names) for task,g in vectors.items() if task != 'joint'}}
+                for group,names in groups.items()}}
+        gradient_report = {group: {'parameter_tensors':len(names),
+            'norms':{task:dot(g,g,names)**.5 for task,g in vectors.items()},
+            'contrast_dot_auxiliary':dot(vectors['contrast'],vectors['auxiliary'],names),
+            'exit_dot_auxiliary':dot(vectors['exit'],vectors['auxiliary'],names)} for group,names in groups.items()}
+        return {'inference_cached_max_abs_difference_bps':difference,
+            'gradient_cached_max_abs_difference_bps':float((q.detach()-expected).abs().max()),
+            'native_target_max_abs_difference_bps':float((measured_target-target).abs().max()),
+            'native_accumulation_max_abs_gradient_difference':max_error,
+            'native_accumulation_all_parameter_gradients_matched':True,
+            'target_model_state_sha256':target_digest,
+            'raw_entry_mse':float(sum(parts.values()).detach()),
+            'raw_entry_loss_decomposition':{k:float(v.detach()) for k,v in parts.items()},
+            'raw_exit_mse':exit_stats['raw_loss'],'exit_transition_count':exit_stats['random_access_transition_count'],
+            'gradients':gradient_report,'adam_directions':directions,
+            'optimizer_steps':0,'model_forwards':5,
+            'limitations':'One eval-mode TRAIN16, not a replay of historical training/dropout. FP64 first-order AdamW estimates with frozen saved moments, not executed finite-step gains. Removing current auxiliary gradients retains historical auxiliary momentum. No predictability, learning or economic claim.'}
+    finally:
+        for p in parameters.values(): p.grad = None
+
+
 def _entry_representation_pair(*,model,batch,target,valid,predictions,states,device):
     """Two inference-only forwards on the exact saved TRAIN16; no fit or gradients."""
     if model.training or any(p.grad is not None for p in model.parameters()):
@@ -1053,7 +1204,10 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
         if signal:
             initial_rows=scope["initial_observation"]["diagnostics"]["bounded_entry_observations"][:16]
             initial_prediction=torch.tensor([r["predicted_q_bps"] for r in initial_rows],dtype=torch.float32,device=device)
-            if scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
+            if scope["plan"].get("diagnostic_kind") == "final_joint_update":
+                measured={"final":_joint_update_probe(model=model,optimizer=components["optimizer"],saved_state=state,
+                    batch=batch,target=target,valid=valid,expected=prediction,dataset=components["train_ds"],device=device)}
+            elif scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
                 measured=_entry_representation_pair(model=model,batch=batch,target=target,valid=valid,
                     predictions={"initial":initial_prediction,"final":prediction},
                     states={"initial":state["target_model_state"],"final":state["model_state"]},device=device)
@@ -1096,6 +1250,11 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
             exact_native_entry_mse_decomposition=True,
             limitations="One reused TRAIN16 in eval mode. Pre-clipping Entry/auxiliary gradients on Entry-private surfaces only; no Exit forward, full joint optimizer update, training-mode dropout, learning or generalization claim.")
         report.pop("variant_forward_values_and_entry_head_gradients_identical")
+        if scope["plan"].get("diagnostic_kind") == "final_joint_update":
+            report.update(schema_version="gx1_joint_update_diagnostic_result_v1",
+                decision="JOINT_GRADIENT_AND_ADAM_DIRECTION_MEASURED_NO_OPTIMIZER_STEP",
+                variants=["final"],model_forwards=5,
+                limitations=measured["final"]["limitations"])
         if scope["plan"].get("diagnostic_kind") == "initial_final_entry_representations":
             report.update(schema_version="gx1_entry_representation_diagnostic_result_v1",
                 decision="ENTRY_REPRESENTATIONS_MEASURED_NO_OPTIMIZER_STEP",model_forwards=2,backward_passes=0,

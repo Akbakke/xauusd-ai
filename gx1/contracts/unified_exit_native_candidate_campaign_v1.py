@@ -381,10 +381,11 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         return binding, read_bound_json(Path(binding["path"]), binding["sha256"])
     plan_binding, plan = load(recipe.get("entry_gradient_diagnostic"), "Entry gradient plan")
     kind = plan.get("diagnostic_kind")
+    joint = kind == "final_joint_update"
     representations = kind == "initial_final_entry_representations"
     main_encoder = representations and plan.get("schema_version") == "gx1_entry_representation_diagnostic_plan_v2"
-    signal = representations or kind in ("initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked")
-    if not representations and kind not in (None, "initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked"):
+    signal = joint or representations or kind in ("initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked")
+    if not joint and not representations and kind not in (None, "initial_final_entry_signal", "initial_final_forward_parity", "initial_final_entry_signal_inference_checked"):
         raise RuntimeError("ENTRY_GRADIENT_PLAN_INVALID")
     fixed = {"schema_version":"gx1_entry_gradient_diagnostic_plan_v1", "optimizer_steps":0,
              "train_entries":16, "model_forwards":2, "control_forwards":0, "max_invocations":1,
@@ -392,6 +393,8 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
              "variants":["detached", "connected"], "test_data_used":False}
     if signal:
         fixed.update(schema_version="gx1_entry_signal_diagnostic_plan_v1", variants=["initial", "final"])
+    if joint:
+        fixed.update(schema_version="gx1_joint_update_diagnostic_plan_v1",variants=["final"],model_forwards=5)
     if representations:
         fixed.update(schema_version=("gx1_entry_representation_diagnostic_plan_v2" if main_encoder
                                      else "gx1_entry_representation_diagnostic_plan_v1"))
@@ -424,6 +427,8 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         expected_review = (("gx1_main_encoder_normalization_fixed256_train_review_v1" if main_encoder
                             else "gx1_residual_normalization_fixed256_train_review_v1"),
                            "PAIRED_METRICS_COMPLETE_VERDICT_REQUIRED")
+    if joint:
+        expected_review=("gx1_entry_fuse_normalization_fixed256_train_review_v1", "PAIRED_METRICS_COMPLETE_VERDICT_REQUIRED")
     if (review.get("schema_version") != expected_review[0]
             or review.get("decision") != expected_review[1]
             or result.get("schema_version") != "gx1_native_prefix_final_online_measurement_v1"
@@ -457,7 +462,7 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
         _, initial_result = load(result.get("initial_measurement"), "saved initial measurement")
         _, initial_observation = load(initial_result.get("observations",{}).get("train"), "saved initial TRAIN outputs")
         if (verdict.get("review") != plan.get("review")
-                or verdict.get("decision") != ("REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT"
+                or verdict.get("decision") != ("REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED" if joint else "REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT"
                     if main_encoder else "REJECT_EXPANSION_RESIDUAL_NORMALIZATION_NO_DECISION_IMPROVEMENT"
                     if representations else "REJECT_EXPANSION_CAUSAL_ENTRY_ALL_FLAT_EXIT_FIXED_BY_SIDE")
                 or verdict.get("learning_gate_passed") is not False
@@ -471,7 +476,7 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
                 or initial_observation.get("model_state_sha256") != result.get("target_model_state_sha256")
                 or initial_observation.get("test_data_used") is not False):
             raise RuntimeError("ENTRY_SIGNAL_CACHE_OR_BASELINE_INVALID")
-    if main_encoder:
+    if main_encoder or joint:
         # Identical initial tensors do not establish ONLINE function parity.
         measured = require_chronological_learning_measurement(origin_recipe)
         artifacts = measured["artifacts"]
@@ -483,10 +488,10 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
                 or initial.get("model_functions") != initial_result.get("model_functions")
                 or initial.get("model_functions") != result.get("model_functions")):
             raise RuntimeError("ENTRY_REPRESENTATION_INITIAL_FUNCTION_INVALID")
-    if representations:
+    if representations or joint:
         _, audit = load(plan.get("input_binding_audit"), "representation input audit")
         expected_audit = {
-            "schema_version":("gx1_main_encoder_representation_input_audit_v1" if main_encoder
+            "schema_version":("gx1_joint_update_input_audit_v1" if joint else "gx1_main_encoder_representation_input_audit_v1" if main_encoder
                               else "gx1_residual_representation_input_audit_v1"),
             "decision":"EXACT_INPUT_TARGET_AND_ROW_BINDING_CONFIRMED_NATIVE_DIAGNOSTIC_EXTENSION_REQUIRED",
             "review":plan["review"], "verdict":plan["verdict"],
@@ -497,7 +502,7 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
             "entries":16, "batch_identical_to_original_cache":True, "parent_row_order_exact":True,
             "targets_exact":True, "masks_exact":True, "same_prefix_and_file_bindings":True,
             "all_floating_batch_tensors_finite":True, "new_model_forwards":0, "optimizer_steps":0, "test_data_used":False}
-        if main_encoder:
+        if main_encoder or joint:
             expected_audit.update(initial_measurement=artifacts["initial_measurement_result"],
                 initial_measurement_audit=artifacts["initial_measurement_audit"],
                 model_functions=initial["model_functions"], initial_targets_and_masks_exact=True)

@@ -1,0 +1,33 @@
+{
+  "schema_version": "gx1_focused_test_evidence_v1",
+  "passed": 6,
+  "test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/SAVED_OPTIMIZER_CAUSE/JOINT_PROBE_TESTS.log",
+    "sha256": "ebc66b75a3ed17c30e4c42d8018e667394d078829cab646b8b8b7f0b7085c8ed"
+  },
+  "handover_tests_passed": 2,
+  "handover_test_log": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/JOINT_UPDATE_INPUT_AUDIT_20260919/HANDOVER_TESTS.log",
+    "sha256": "5c5a55c5a5466f93be08294cd906d4c07ae998ba237f6bae3ef43c62eed4186b"
+  },
+  "runner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+    "sha256": "1fae6f58e38d34d454acf2fe6aa1ce9ea1089d7bf4c54268352b7ad3e03cd4e5"
+  },
+  "contract": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+    "sha256": "cc110da0183497d5b812db2aa9f0f80378a9ec5c8e2e8c2943b32f673403a419"
+  },
+  "tests": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_joint_update_probe.py",
+      "sha256": "e91ecc1dfa799642842d2ef2e016b79c6ba1de4586ce75a9b811bec1bbc82bcf"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_entry_gradient_diagnostic.py",
+      "sha256": "c84d86e3efee5525abb3c1556020384a7e89a2f5884f10d159f9ee4321076a17"
+    }
+  ],
+  "proof": "Read-only Adam estimate matches real native clipped AdamW with nonempty history, absent gradients and two clipping regimes. Shared Entry/Exit/aux gradient identity, checkpoint preservation and failure cleanup; new scope and old-baseline rejection.",
+  "model_and_trainer_changed": false
+}

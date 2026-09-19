@@ -1,0 +1,257 @@
+{
+  "schema_version": "gx1_joint_update_input_audit_v1",
+  "created_utc": "2026-09-19T13:38:58.676013+00:00",
+  "decision": "EXACT_INPUT_TARGET_AND_ROW_BINDING_CONFIRMED_NATIVE_DIAGNOSTIC_EXTENSION_REQUIRED",
+  "cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "99079cf43cd423686edc1197d3070a6f6e26a4e5e37f81ce8e70ea06731dc02d"
+  },
+  "original_input_cache": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_GRADIENT_NUMERIC_RETRY_20260917/entry_gradient_diagnostic/TRAIN16_INPUTS_AND_TARGETS.pt",
+    "sha256": "0b8cd6351a49e19adf5be366a0f38966394701db3e7e8d36461464e174dc7aab"
+  },
+  "new_training_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/final_online_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "908ad63a049cab00c668226f6cfd1a0ed8f00035f05efdbd4775ae31549a23b5"
+  },
+  "initial_training_observation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/TRAIN_OBSERVATION.json",
+    "sha256": "516feec259da7381b19a6242a14d1e1aa3fe95a3500e106abae6ccf1e30f7e09"
+  },
+  "training_state": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
+    "sha256": "300628e3710aeba510972d6404969025b024665e5a619ea60e941540b94bf608"
+  },
+  "training_pointer": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json",
+    "sha256": "af647c4d76145fc30df126b853cc9d9de43fc03ef69c756256279e98007468a8"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PAIRED_TRAIN_REVIEW.json",
+    "sha256": "f9251cbc561f5013fe5a128458024374a020a3773ba275964763e303e22cd47e"
+  },
+  "verdict": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/VERDICT.json",
+    "sha256": "2ee08068d96c3d0dc215b3116f9e31a07d8aea8712c6a23a5bc3a6ed114f306e"
+  },
+  "model_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "sha256": "ab6e5e270c0ee35ee3d88f3eba9461891c87374d10e0a692835d4c40d1820bed"
+  },
+  "model_state_sha256": "0df40a95433479b6aed5ca4dfb07cbcbcf639879f622cb89b2625525538ece02",
+  "target_model_state_sha256": "f1e8691dd92c133860100bbca5853065ea02088ab762d2772c9f2bb735b3656d",
+  "initial_measurement": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/.gx1-candidate-training-session.CANDIDATE_BUNDLE/initial_measurement/RESULT.json",
+    "sha256": "2eb5e3e628987bd921f71db2bebfc1a7b0c84ca5b142f645b1cbbbae8acb96b9"
+  },
+  "initial_measurement_audit": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_INITIAL_MEASUREMENT_20260919/INITIAL_MEASUREMENT_AUDIT.json",
+    "sha256": "afedd3723db77c8b76f5be45ee9ba17b08f52dae5bda121279a6b3f8a6aae9ca"
+  },
+  "model_functions": {
+    "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+    "target": "main_encoder_no_final_norm_v1"
+  },
+  "initial_targets_and_masks_exact": true,
+  "entries": 16,
+  "batch_identical_to_original_cache": true,
+  "parent_row_order_exact": true,
+  "targets_exact": true,
+  "masks_exact": true,
+  "same_prefix_and_file_bindings": true,
+  "cached_predictions_match_original_causal_model": true,
+  "cached_predictions_match_new_model": false,
+  "old_to_new_prediction_max_abs_difference_bps": 1.2636170387268066,
+  "batch_tensor_shapes": {
+    "entry_row_index": [
+      16
+    ],
+    "seq_x": [
+      16,
+      96,
+      238
+    ],
+    "snap_x": [
+      16,
+      238
+    ],
+    "ctx_cont": [
+      16,
+      71
+    ],
+    "ctx_cat": [
+      16,
+      1
+    ],
+    "y_long_expected_mae_bps": [
+      16
+    ],
+    "y_short_expected_mae_bps": [
+      16
+    ],
+    "y_position_size_target": [
+      16
+    ],
+    "y_position_size_mask": [
+      16
+    ],
+    "y_line_support_touch_held": [
+      16
+    ],
+    "y_line_support_touch_mask": [
+      16
+    ],
+    "y_line_resistance_touch_held": [
+      16
+    ],
+    "y_line_resistance_touch_mask": [
+      16
+    ],
+    "y_countertrend_short_trap": [
+      16
+    ],
+    "y_countertrend_long_trap": [
+      16
+    ],
+    "y_dip_mae_long_K12": [
+      16
+    ],
+    "y_dip_mae_long_K48": [
+      16
+    ],
+    "y_dip_mae_long_K96": [
+      16
+    ],
+    "y_dip_mae_short_K12": [
+      16
+    ],
+    "y_dip_mae_short_K48": [
+      16
+    ],
+    "y_dip_mae_short_K96": [
+      16
+    ],
+    "y_dip_mfe_long_K12": [
+      16
+    ],
+    "y_dip_mfe_long_K48": [
+      16
+    ],
+    "y_dip_mfe_long_K96": [
+      16
+    ],
+    "y_dip_mfe_short_K12": [
+      16
+    ],
+    "y_dip_mfe_short_K48": [
+      16
+    ],
+    "y_dip_mfe_short_K96": [
+      16
+    ],
+    "y_forecast_ret_K1": [
+      16
+    ],
+    "y_forecast_ret_K5": [
+      16
+    ],
+    "y_forecast_ret_K12": [
+      16
+    ],
+    "y_forecast_ret_K24": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K12": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K12": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K48": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K48": [
+      16
+    ],
+    "y_dip_bottom_frac_long_K96": [
+      16
+    ],
+    "y_time_to_mfe_frac_long_K96": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K12": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K12": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K48": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K48": [
+      16
+    ],
+    "y_dip_bottom_frac_short_K96": [
+      16
+    ],
+    "y_time_to_mfe_frac_short_K96": [
+      16
+    ],
+    "y_tail_mae_long_K12": [
+      16
+    ],
+    "y_tail_mae_long_K48": [
+      16
+    ],
+    "y_tail_mae_long_K96": [
+      16
+    ],
+    "y_tail_mae_short_K12": [
+      16
+    ],
+    "y_tail_mae_short_K48": [
+      16
+    ],
+    "y_tail_mae_short_K96": [
+      16
+    ],
+    "y_vol_fwd_K12": [
+      16
+    ],
+    "y_vol_fwd_K48": [
+      16
+    ],
+    "y_vol_fwd_K96": [
+      16
+    ],
+    "seq_m15": [
+      16,
+      64,
+      176
+    ],
+    "seq_h1": [
+      16,
+      96,
+      176
+    ],
+    "seq_h4": [
+      16,
+      96,
+      176
+    ],
+    "seq_d1": [
+      16,
+      252,
+      176
+    ]
+  },
+  "all_floating_batch_tensors_finite": true,
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "diagnostic_contract_obstacles": [
+    "Existing private Entry gradient diagnostic omits shared fuse, Exit and clipped Adam direction."
+  ],
+  "next_action": "Bind one final ONLINE joint-gradient probe with the audited new model function, original cached TRAIN16 and preserved Adam state; zero optimizer steps.",
+  "limitations": "CPU identity audit only; no representation values or learning improvement measured."
+}

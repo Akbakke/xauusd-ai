@@ -129,7 +129,8 @@ def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,m
         assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
 
 
-def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch):
+@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256'])
+def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, latest_key):
     from scripts.collect_gx1_handover_readonly import _current_work_status
     repo, binding, *_ = fixture
     session = binding.parent / 'completed-main'; session.mkdir()
@@ -147,7 +148,8 @@ def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch):
         'source_commit': 'training-source', 'session_directory': str(session),
         'next_action': 'Review saved outputs; no relaunch',
         'completed_residual_normalized_fixed256': {'run_id': 'OLD'},
-        'completed_main_encoder_fixed256': latest}))
+        'completed_main_encoder_fixed256': {'run_id':'OLDER_MAIN'},
+        latest_key: latest}))
     monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', lambda _: [])
     out = _current_work_status(binding.parent, source_only=False)
     assert out['latest_completed_native'] == latest

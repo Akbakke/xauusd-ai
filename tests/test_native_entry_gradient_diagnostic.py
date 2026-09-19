@@ -231,13 +231,13 @@ def test_signal_pair_observes_two_frozen_states_without_accumulation(pair,valida
                 predictions={'initial':initial_q+1,'final':final_q},states={'initial':initial,'final':final},device=pair['device'],validate_inference=True)
 
 
-@pytest.mark.parametrize('parity_only',[False,True,'checked','representations','main_encoder'])
+@pytest.mark.parametrize('parity_only',[False,True,'checked','representations','main_encoder','joint'])
 def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient_scope,tmp_path,parity_only):
     _,recipe,_,seal,plan,obs,final,resume=gradient_scope
     plan.update(diagnostic_kind='initial_final_entry_signal',schema_version='gx1_entry_signal_diagnostic_plan_v1',variants=['initial','final'])
     if parity_only is True:plan.update(diagnostic_kind='initial_final_forward_parity',schema_version='gx1_entry_forward_parity_plan_v1',model_forwards=4,variants=['initial_inference','initial_gradient','final_inference','final_gradient'])
     if parity_only=='checked':plan.update(diagnostic_kind='initial_final_entry_signal_inference_checked',schema_version='gx1_entry_signal_diagnostic_plan_v2',model_forwards=4)
-    if parity_only in ('representations','main_encoder'):plan.update(diagnostic_kind='initial_final_entry_representations',schema_version='gx1_entry_representation_diagnostic_plan_v1')
+    if parity_only in ('representations','main_encoder','joint'):plan.update(diagnostic_kind='initial_final_entry_representations',schema_version='gx1_entry_representation_diagnostic_plan_v1')
     baseline={**obs,'optimizer_steps':0,'model_state_sha256':'c'*64}
     final['target_model_state_sha256']='c'*64
     final['initial_measurement']=_write(tmp_path/'saved_initial.json',{'observations':{'train':_write(tmp_path/'initial_obs.json',baseline)}})
@@ -250,7 +250,7 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
     prior_plan=_write(tmp_path/'cached_plan.json',{'origin_cursor':_write(tmp_path/'cached_cursor.json',{'recipe':prior_recipe})})
     plan['cached_input_review']=_write(tmp_path/'cache_review.json',{'schema_version':'gx1_entry_gradient_diagnostic_result_v1',
         'plan':prior_plan,'input_cache':_bind(cache),'selection':'first16_existing_frozen_TRAIN_probe','optimizer_steps':0,'test_data_used':False})
-    if parity_only in ('representations','main_encoder'):
+    if parity_only in ('representations','main_encoder','joint'):
         review['schema_version']='gx1_residual_normalization_fixed256_train_review_v1'
         plan['review']=_write(tmp_path/'review.json',review)
         plan['verdict']=_write(tmp_path/'verdict.json',{'review':plan['review'],'decision':'REJECT_EXPANSION_RESIDUAL_NORMALIZATION_NO_DECISION_IMPROVEMENT','learning_gate_passed':False})
@@ -265,8 +265,9 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
             'targets_exact':True,'masks_exact':True,'same_prefix_and_file_bindings':True,
             'all_floating_batch_tensors_finite':True,'new_model_forwards':0,'optimizer_steps':0,'test_data_used':False}
         plan['input_binding_audit']=_write(tmp_path/'input_audit.json',audit)
-    if parity_only=='main_encoder':
+    if parity_only in ('main_encoder','joint'):
         plan['schema_version']='gx1_entry_representation_diagnostic_plan_v2'
+        if parity_only=='joint':plan.update(diagnostic_kind='final_joint_update',schema_version='gx1_joint_update_diagnostic_plan_v1',variants=['final'],model_forwards=5)
         functions={'online':'normalized_online','target':'frozen_teacher'}
         initialization=json.loads(Path(final['initialization_result']['path']).read_text())
         initialization.update(online_model_state_sha256='c'*64,model_functions=functions)
@@ -296,12 +297,12 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
             chronological_train_only_measurement=True,chronological_learning_measurement=final['initial_measurement_audit'])
         origin['recipe']=_write(tmp_path/'origin_recipe.json',origin_recipe)
         plan['origin_cursor']=_write(tmp_path/'cursor.json',origin)
-        review.update(schema_version='gx1_main_encoder_normalization_fixed256_train_review_v1',
+        review.update(schema_version=('gx1_entry_fuse_normalization_fixed256_train_review_v1' if parity_only=='joint' else 'gx1_main_encoder_normalization_fixed256_train_review_v1'),
             initial_result=final['initial_measurement'],final_result=_write(tmp_path/'final.json',final))
         plan['review']=_write(tmp_path/'review.json',review)
         plan['verdict']=_write(tmp_path/'verdict.json',{'review':plan['review'],
-            'decision':'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT','learning_gate_passed':False})
-        audit.update(schema_version='gx1_main_encoder_representation_input_audit_v1',review=plan['review'],
+            'decision':('REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED' if parity_only=='joint' else 'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT'),'learning_gate_passed':False})
+        audit.update(schema_version=('gx1_joint_update_input_audit_v1' if parity_only=='joint' else 'gx1_main_encoder_representation_input_audit_v1'),review=plan['review'],
             verdict=plan['verdict'],new_training_observation=plan['train_observation'],
             initial_training_observation=initial_result['observations']['train'],
             initial_measurement=final['initial_measurement'],initial_measurement_audit=final['initial_measurement_audit'],
@@ -324,25 +325,25 @@ def test_signal_scope_binds_prior_cached_inputs_and_initial_predictions(gradient
         with pytest.raises(RuntimeError,match='ENTRY_SIGNAL_PARITY_EVIDENCE_INVALID'):native.require_entry_gradient_diagnostic(recipe)
         parity['measurements']['initial']['comparisons']['inference__cached_reference']['max_abs_difference_bps']=0
         plan['forward_parity_result']=_write(tmp_path/'forward_parity.json',parity);seal()
-    if parity_only in ('representations','main_encoder'):
+    if parity_only in ('representations','main_encoder','joint'):
         for key,value in [('model_state_sha256','d'*64),('parent_row_order_exact',False),('new_model_forwards',1),('entries',16.0)]:
             plan['input_binding_audit']=_write(tmp_path/'input_audit.json',{**audit,key:value});seal()
             with pytest.raises(RuntimeError,match='ENTRY_REPRESENTATION_INPUT_BINDING_INVALID'):native.require_entry_gradient_diagnostic(recipe)
         plan['input_binding_audit']=_write(tmp_path/'input_audit.json',audit);seal()
-    if parity_only=='main_encoder':
+    if parity_only in ('main_encoder','joint'):
         # Same weights and cohort must not admit a substituted older initial function.
         for key,value in [('model_functions',{'online':'old_online','target':'frozen_teacher'}),
                           ('initial_measurement',_write(tmp_path/'old_initial.json',initial_result))]:
             altered={**final,key:value}
             plan['review']=_write(tmp_path/'review.json',{**review,'final_result':_write(tmp_path/'final.json',altered)})
             plan['verdict']=_write(tmp_path/'verdict.json',{'review':plan['review'],
-                'decision':'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT','learning_gate_passed':False})
+                'decision':('REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED' if parity_only=='joint' else 'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT'),'learning_gate_passed':False})
             seal()
             with pytest.raises(RuntimeError,match='ENTRY_REPRESENTATION_INITIAL_FUNCTION_INVALID'):
                 native.require_entry_gradient_diagnostic(recipe)
         plan['review']=_write(tmp_path/'review.json',{**review,'final_result':_write(tmp_path/'final.json',final)})
         plan['verdict']=audit['verdict'];_write(Path(plan['verdict']['path']),{'review':plan['review'],
-            'decision':'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT','learning_gate_passed':False})
+            'decision':('REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED' if parity_only=='joint' else 'REJECT_EXPANSION_MAIN_ENCODER_PARTIAL_ENTRY_SIGNAL_NO_DECISION_IMPROVEMENT'),'learning_gate_passed':False})
         seal()
     cache.write_bytes(b'tampered cache')
     with pytest.raises(RuntimeError):native.require_entry_gradient_diagnostic(recipe)

@@ -11,6 +11,8 @@ Les i denne rekkefølgen:
 
 Aktuelle bevis:
 
+- docs/JOINT_UPDATE_DIAGNOSTIC_20260919.md — bundet nullstegsdiagnose, ikke læringsbevis.
+
 - docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md — siste TRAIN-resultat: bedre verdiestimat, uendrede valg.
 - handover_snapshot/ENTRY_FUSE_FIXED256_{REVIEW,VERDICT,REVIEWED_COMPLETION}_20260919.json og ENTRY_FUSE_DECISION_GAP_20260919.json — fullført analyse og bindinger.
 

@@ -75,7 +75,7 @@
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
   },
   "completed_run_record": "COMPLETED_RUN.json",
-  "rule": "Reuse the completed Entry fuse paired review; do not repeat training, baselines or tests. Before another model change, inspect the saved optimizer/state and existing native TRAIN16 gradient diagnostic for coverage of the shared trunk/fuse and both value heads. The recorded first-batch routing gradient covers only four family/timeframe gate parameters, not the full joint update. Distinguish common-value fitting from useful state-dependent Entry/Exit updates; identify missing coverage before binding at most one existing native diagnostic with exact new model-function, initial/final and cache parity. No inference/backward run is currently bound. Do not infer predictable variance from target variance or force trades by rescaling/threshold changes. No training expansion, CONTROL/VAL/TEST or economics claim.",
+  "rule": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
   "exit_value_initialization": "close_now_baseline_v1",
   "train_population_scope": "latest_year_2025_2026_v1",
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
@@ -1170,8 +1170,8 @@
     "evidence_scope": "Model correction and initial audit are complete; training progress/result is in completed_main_encoder_fixed256."
   },
   "handover_resume_point": {
-    "observed_utc": "2026-09-19T13:22:38.763069+00:00",
-    "status": "REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED",
+    "observed_utc": "2026-09-19T13:42:50.812492+00:00",
+    "status": "JOINT_UPDATE_DIAGNOSTIC_BOUND_NOT_STARTED",
     "training_source_commit": "bdce4ad3bfebcb7b69506b9058f87464256b34ad",
     "source_state_at_observation": "Native terminal, task Disabled, no native process. Review complete; source freeze released. Model/trainer unchanged since candidate commit027b5d48.",
     "windows_task_observation": {
@@ -1183,9 +1183,9 @@
       "plan_json": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json",
       "arguments": "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\\scripts\\windows\\GX1-NativeClockProfileLauncher.ps1\" -PlanJson \"/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/CAMPAIGN/CAMPAIGN_PLAN.json\" -PlanFileSha256 fcf614f9c0bcc4b6a6659b5625eca765d57dd2611e49a560b08a3104fb3592ee -SourceRepo \"/home/andre2/src/GX1_CURRENT\" -CampaignControlRepo \"/home/andre2/src/GX1_CURRENT\" -WindowsSourceRepo \"C:\\Users\\Andre\\GX1_CURRENT_NATIVE_7054EC8B\" -ExpectedControllerSha256 b5f4cd52c474c9f1baa33c4a0c945635e752489e16ac35b0c2271f67be78ccea -Distro \"Ubuntu-22.04\" -LinuxUser \"andre2\""
     },
-    "instructions": "VEIEN_VIDERE.md#n\u00f8yaktig-stoppunkt-for-neste-agent",
-    "next_deliverable": "Reuse the completed Entry fuse paired review; do not repeat training, baselines or tests. Before another model change, inspect the saved optimizer/state and existing native TRAIN16 gradient diagnostic for coverage of the shared trunk/fuse and both value heads. The recorded first-batch routing gradient covers only four family/timeframe gate parameters, not the full joint update. Distinguish common-value fitting from useful state-dependent Entry/Exit updates; identify missing coverage before binding at most one existing native diagnostic with exact new model-function, initial/final and cache parity. No inference/backward run is currently bound. Do not infer predictable variance from target variance or force trades by rescaling/threshold changes. No training expansion, CONTROL/VAL/TEST or economics claim.",
-    "new_native_run_bound": false,
+    "instructions": "VEIEN_VIDERE.md#nøyaktig-stoppunkt-for-neste-agent",
+    "next_deliverable": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
+    "new_native_run_bound": true,
     "consumed_run_id": "NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919",
     "optimizer_steps_completed": 256,
     "paired_learning_review_complete": true,
@@ -1201,6 +1201,17 @@
     "reviewed_completion": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/COMPLETION_REVIEWED.json",
       "sha256": "260ddca5911ea7dcd1aef31880621d9fed151e3543b946f430e00cb41cba44c5"
+    },
+    "new_diagnostic_bound": true,
+    "preparation_executed": false,
+    "activation_executed": false,
+    "input_binding_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/JOINT_UPDATE_INPUT_AUDIT_20260919/RESULT.json",
+      "sha256": "41eb60b03e4663502905a09a84bbdf583b4b7ab0a46782c2a421dc2c9e31b1ed"
+    },
+    "saved_optimizer_audit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/SAVED_OPTIMIZER_CAUSE/STATE_AUDIT.json",
+      "sha256": "82c3d5e248a207d60a4133f71782ab6e9cb3e0d6e049e70d718167b0406c1b69"
     }
   },
   "completed_main_encoder_initial_measurement": {
@@ -1240,9 +1251,9 @@
     "saved_state_rng_exactly_preserved": true,
     "learning_proven": false
   },
-  "status": "REJECT_EXPANSION_ENTRY_FUSE_VALUE_FIT_IMPROVED_ACTIONS_UNCHANGED",
-  "observed_utc": "2026-09-19T13:22:38.763069+00:00",
-  "next_action": "Reuse the completed Entry fuse paired review; do not repeat training, baselines or tests. Before another model change, inspect the saved optimizer/state and existing native TRAIN16 gradient diagnostic for coverage of the shared trunk/fuse and both value heads. The recorded first-batch routing gradient covers only four family/timeframe gate parameters, not the full joint update. Distinguish common-value fitting from useful state-dependent Entry/Exit updates; identify missing coverage before binding at most one existing native diagnostic with exact new model-function, initial/final and cache parity. No inference/backward run is currently bound. Do not infer predictable variance from target variance or force trades by rescaling/threshold changes. No training expansion, CONTROL/VAL/TEST or economics claim.",
+  "status": "JOINT_UPDATE_DIAGNOSTIC_BOUND_NOT_STARTED",
+  "observed_utc": "2026-09-19T13:42:50.812492+00:00",
+  "next_action": "Prepare and execute the one bound final joint-gradient diagnostic on the existing audited TRAIN16. Five native model forwards including canonical Exit; zero optimizer steps. Validate saved Entry inference, frozen targets/masks, all accumulated gradients and saved Adam state. Estimate first-order Entry contrast/Exit effects without updating any model. No training expansion, CONTROL/VAL/TEST, retuning or automatic continuation. Review this evidence before any model/training correction.",
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "completed_main_encoder_fixed256": {
@@ -1691,5 +1702,35 @@
     "review_completed_utc": "2026-09-19T13:22:38.763069+00:00",
     "state_model_tensors_independently_rehashed_this_handover": true,
     "model_digest_source": "Paired CPU review independently checked saved ONLINE and target tensor digests, optimizer/EMA256, cursor and receipts."
+  },
+  "entry_gradient_diagnostic": {
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/PLAN.json",
+      "sha256": "9df21d6181552fda66151400e98aace7cf10359aba67cbb58121f5d92a5a0ada"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "run_id": "NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/CANDIDATE_BUNDLE",
+    "source_bindings_sha256": "92f6b38ae7a237754b5cccb57a21de3a33f0ae3644631fc188d7df1782435d76",
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 256,
+    "max_invocations": 1,
+    "train_entries": 16,
+    "model_forwards": 5,
+    "control_forwards": 0,
+    "test_data_used": false
   }
 }
