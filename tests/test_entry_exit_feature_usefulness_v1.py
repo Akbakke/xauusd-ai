@@ -924,6 +924,8 @@ def _exit_fitted_q_iteration() -> dict[str, object]:
         "normalization_sha256": "e" * 64,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
         "target_updated_from_val_or_test": False,
+        "target_refresh_interval_optimizer_steps": 1,
+        "target_refreshes_completed": 0,
     }
 
 

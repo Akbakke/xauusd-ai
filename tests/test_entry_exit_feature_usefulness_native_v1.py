@@ -685,6 +685,8 @@ def _selected_files_fixture(tmp_path, *, online_state=None, target_state=None, n
         "train_fold_sha256": "f" * 64, "source_lineage_sha256": artifacts["unified_exit_lifecycle_manifest"]["sha256"],
         "normalization_sha256": normalizer["contract_sha256"],
         "fitted_q_contract": unified_exit_fitted_q_contract(), "target_updated_from_val_or_test": False,
+        "target_refresh_interval_optimizer_steps": 1,
+        "target_refreshes_completed": 0,
     }
     entry_iteration = {
         "schema_version": ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,

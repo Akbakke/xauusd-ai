@@ -15,6 +15,7 @@ from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_iteration_state,
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
+    UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
     unified_exit_fitted_q_contract,
 )
 
@@ -24,7 +25,9 @@ _SHA = "a" * 64
 
 def _exit_iteration() -> dict[str, object]:
     return {
-        "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
+        "schema_version": (
+            UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION
+        ),
         "iteration_index": 3,
         "target_model_state_sha256": "1" * 64,
         "train_split_sha256": "2" * 64,
@@ -32,6 +35,8 @@ def _exit_iteration() -> dict[str, object]:
         "source_lineage_sha256": "4" * 64,
         "normalization_sha256": "5" * 64,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
+        "target_refresh_interval_optimizer_steps": 1,
+        "target_refreshes_completed": 0,
         "target_updated_from_val_or_test": False,
     }
 

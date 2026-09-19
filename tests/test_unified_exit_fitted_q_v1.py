@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from gx1.contracts.unified_exit_fitted_q_v1 import (
+    UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
     build_unified_exit_fitted_q_targets,
     build_unified_exit_first_state_value_envelope,
     unified_exit_first_state_side_values,
@@ -105,7 +106,9 @@ def test_first_state_side_values_are_frozen_target_policy_values():
     assert torch.equal(values, torch.tensor([[2.0, -3.0]]))
     assert not values.requires_grad
     state = {
-        "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
+        "schema_version": (
+            UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION
+        ),
         "iteration_index": 4,
         "target_updated_from_val_or_test": False,
         "target_model_state_sha256": "1" * 64,
@@ -114,6 +117,8 @@ def test_first_state_side_values_are_frozen_target_policy_values():
         "source_lineage_sha256": "4" * 64,
         "normalization_sha256": "5" * 64,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
+        "target_refresh_interval_optimizer_steps": 1,
+        "target_refreshes_completed": 0,
     }
     envelope = build_unified_exit_first_state_value_envelope(
         entry_row_indices=[7],

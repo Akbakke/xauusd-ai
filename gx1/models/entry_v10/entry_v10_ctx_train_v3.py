@@ -185,11 +185,13 @@ from gx1.contracts.unified_exit_episode_pack_v1 import (
 )
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     UNIFIED_EXIT_FITTED_Q_GAMMA,
+    UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
     UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
     unified_exit_first_state_side_values,
     unified_exit_fitted_q_contract,
+    unified_exit_target_refresh_interval_optimizer_steps,
 )
 from gx1.contracts.entry_fitted_q_v1 import (
     ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
@@ -8070,6 +8072,7 @@ def train_epoch(
     session_checkpoint_interval_optimizer_steps: Optional[int] = None,
     session_log_label: str = "BOUNDED_TRAINING",
     performance_warmup_optimizer_steps: int = 0,
+    target_refresh_interval_optimizer_steps: Optional[int] = None,
 ) -> tuple[float, dict[str, Any], bool]:
     model.train()
     target_model.eval()
@@ -8389,6 +8392,33 @@ def train_epoch(
                 )
             _accum_count = 0
             _optimizer_steps_this_call += 1
+            if target_refresh_interval_optimizer_steps is not None:
+                # Contract-derived intra-epoch fitted-Q target refresh
+                # (unified_exit_target_refresh_interval_optimizer_steps):
+                # refresh at exact epoch-absolute optimizer-step multiples so
+                # a resume replays the identical refresh boundaries, and
+                # BEFORE the checkpoint hook so a checkpoint at the same step
+                # persists the refreshed snapshot. The target stays a frozen
+                # raw-weight copy: load_state_dict copies values only and the
+                # parameters keep requires_grad=False and eval mode.
+                _absolute_optimizer_steps = (
+                    int(session_batch_offset) // _accum_steps
+                    + _optimizer_steps_this_call
+                )
+                if (
+                    _absolute_optimizer_steps
+                    % int(target_refresh_interval_optimizer_steps)
+                    == 0
+                ):
+                    with torch.no_grad():
+                        target_model.load_state_dict(model.state_dict())
+                    target_model.eval()
+                    log.info(
+                        "[UNIFIED_EXIT_TARGET_REFRESH] epoch_step=%d "
+                        "interval=%d",
+                        _absolute_optimizer_steps,
+                        int(target_refresh_interval_optimizer_steps),
+                    )
             if int(performance_warmup_optimizer_steps) > 0:
                 if _optimizer_steps_this_call == int(
                     performance_warmup_optimizer_steps
@@ -11186,6 +11216,9 @@ def _run_resumable_candidate_training(
     )
     restored_state = session.load_checkpoint()
     expected_train_batches = -(-len(train_ds) // int(batch_size))
+    target_refresh_interval = unified_exit_target_refresh_interval_optimizer_steps(
+        expected_train_batches
+    )
     fixed_val_order = torch.arange(len(val_ds), dtype=torch.int64)
 
     if restored_state is None:
@@ -11422,6 +11455,9 @@ def _run_resumable_candidate_training(
                     train_checkpoint_interval
                 ),
                 session_log_label="CANDIDATE_TRAINING",
+                target_refresh_interval_optimizer_steps=(
+                    target_refresh_interval
+                ),
             )
             # A normal return necessarily finished the remaining sampler. The
             # final callback persisted the exact epoch boundary above.
@@ -11557,7 +11593,9 @@ def _run_resumable_candidate_training(
                 raise RuntimeError("[UNIFIED_EXIT_SELECTED_CHECKPOINT_FULL_VAL_MISSING]")
             target_model_state_sha256 = _model_state_sha256(target_model)
             fitted_q_iteration_state = {
-                "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
+                "schema_version": (
+                    UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION
+                ),
                 "iteration_index": int(epoch_index),
                 "target_model_state_sha256": target_model_state_sha256,
                 "train_split_sha256": _sha256_file(Path(train_parquet)),
@@ -11570,6 +11608,12 @@ def _run_resumable_candidate_training(
                 "normalization_sha256": input_normalization["contract_sha256"],
                 "fitted_q_contract": unified_exit_fitted_q_contract(),
                 "target_updated_from_val_or_test": False,
+                "target_refresh_interval_optimizer_steps": int(
+                    target_refresh_interval
+                ),
+                "target_refreshes_completed": int(
+                    expected_train_batches // target_refresh_interval
+                ),
             }
             entry_fitted_q_iteration_state = {
                 "schema_version": ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
@@ -13313,59 +13357,20 @@ def run_train(
         if candidate_training_already_completed:
             break
         last_epoch = epoch + 1
-        # One immutable fitted-Q target snapshot per declared iteration.  It is
-        # copied before any optimizer step in this epoch, never updated from
-        # VAL/TEST, and all Bellman targets are stop-gradient outputs from it.
+        # Fitted-Q target snapshot: seeded from the raw weights before any
+        # optimizer step in this epoch, then refreshed intra-epoch at the
+        # contract-derived interval inside train_epoch. Never updated from
+        # VAL/TEST; all Bellman targets are stop-gradient outputs from it.
+        # The iteration state is assembled AFTER the epoch's training so its
+        # target sha describes the exact snapshot validation judges.
         target_model = copy.deepcopy(model).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
-        target_model_state_sha256 = _model_state_sha256(target_model)
-        fitted_q_iteration_state = {
-            "schema_version": "gx1_unified_exit_fitted_q_iteration_state_v1",
-            "iteration_index": int(epoch),
-            "target_model_state_sha256": target_model_state_sha256,
-            "train_split_sha256": _sha256_file(Path(train_parquet)),
-            "train_fold_sha256": unified_exit_lifecycle_evidence["splits"][
-                "train"
-            ]["lifecycle_manifest_sha256"],
-            "source_lineage_sha256": unified_exit_lifecycle_evidence[
-                "root_manifest_sha256"
-            ],
-            "normalization_sha256": input_normalization["contract_sha256"],
-            "fitted_q_contract": unified_exit_fitted_q_contract(),
-            "target_updated_from_val_or_test": False,
-        }
-        entry_fitted_q_iteration_state = {
-            "schema_version": ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
-            "iteration_index": int(epoch),
-            "entry_target_model_state_sha256": target_model_state_sha256,
-            "exit_target_model_state_sha256": target_model_state_sha256,
-            "exit_fitted_q_iteration_state_sha256": canonical_json_sha256(
-                fitted_q_iteration_state
-            ),
-            "train_split_sha256": fitted_q_iteration_state[
-                "train_split_sha256"
-            ],
-            "train_fold_sha256": fitted_q_iteration_state["train_fold_sha256"],
-            "source_lineage_sha256": fitted_q_iteration_state[
-                "source_lineage_sha256"
-            ],
-            "normalization_sha256": fitted_q_iteration_state[
-                "normalization_sha256"
-            ],
-            "entry_fitted_q_contract": entry_fitted_q_contract(),
-            "exit_fitted_q_contract": unified_exit_fitted_q_contract(),
-            "target_updated_from_val_or_test": False,
-        }
-        require_entry_fitted_q_iteration_state(
-            entry_fitted_q_iteration_state,
-            exit_fitted_q_iteration_state=fitted_q_iteration_state,
-            context="ENTRY_TRAIN",
-        )
-        log.info(
-            "[UNIFIED_EXIT_FITTED_Q_ITERATION] iteration=%d target_sha256=%s",
-            int(epoch),
-            target_model_state_sha256,
+        epoch_optimizer_steps = -(-len(train_loader) // int(grad_accum_steps))
+        epoch_refresh_interval = (
+            unified_exit_target_refresh_interval_optimizer_steps(
+                epoch_optimizer_steps
+            )
         )
         # Specialist-branch opening observability. `specialist_out` is
         # zero-initialized, so the eight-specialist evidence path contributes
@@ -13420,9 +13425,69 @@ def run_train(
                     and len(train_loader) > 1 else 0
                 )
             ),
+            target_refresh_interval_optimizer_steps=epoch_refresh_interval,
         )
         if not tr_epoch_complete:
             raise RuntimeError("[ENTRY_CANONICAL_TRAIN_EPOCH_PARTIAL_FORBIDDEN]")
+        target_model_state_sha256 = _model_state_sha256(target_model)
+        fitted_q_iteration_state = {
+            "schema_version": (
+                UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION
+            ),
+            "iteration_index": int(epoch),
+            "target_model_state_sha256": target_model_state_sha256,
+            "train_split_sha256": _sha256_file(Path(train_parquet)),
+            "train_fold_sha256": unified_exit_lifecycle_evidence["splits"][
+                "train"
+            ]["lifecycle_manifest_sha256"],
+            "source_lineage_sha256": unified_exit_lifecycle_evidence[
+                "root_manifest_sha256"
+            ],
+            "normalization_sha256": input_normalization["contract_sha256"],
+            "fitted_q_contract": unified_exit_fitted_q_contract(),
+            "target_updated_from_val_or_test": False,
+            "target_refresh_interval_optimizer_steps": int(
+                epoch_refresh_interval
+            ),
+            "target_refreshes_completed": int(
+                epoch_optimizer_steps // epoch_refresh_interval
+            ),
+        }
+        entry_fitted_q_iteration_state = {
+            "schema_version": ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION,
+            "iteration_index": int(epoch),
+            "entry_target_model_state_sha256": target_model_state_sha256,
+            "exit_target_model_state_sha256": target_model_state_sha256,
+            "exit_fitted_q_iteration_state_sha256": canonical_json_sha256(
+                fitted_q_iteration_state
+            ),
+            "train_split_sha256": fitted_q_iteration_state[
+                "train_split_sha256"
+            ],
+            "train_fold_sha256": fitted_q_iteration_state["train_fold_sha256"],
+            "source_lineage_sha256": fitted_q_iteration_state[
+                "source_lineage_sha256"
+            ],
+            "normalization_sha256": fitted_q_iteration_state[
+                "normalization_sha256"
+            ],
+            "entry_fitted_q_contract": entry_fitted_q_contract(),
+            "exit_fitted_q_contract": unified_exit_fitted_q_contract(),
+            "target_updated_from_val_or_test": False,
+        }
+        require_entry_fitted_q_iteration_state(
+            entry_fitted_q_iteration_state,
+            exit_fitted_q_iteration_state=fitted_q_iteration_state,
+            context="ENTRY_TRAIN",
+        )
+        log.info(
+            "[UNIFIED_EXIT_FITTED_Q_ITERATION] iteration=%d target_sha256=%s "
+            "refresh_interval=%d refreshes=%d",
+            int(epoch),
+            target_model_state_sha256,
+            int(epoch_refresh_interval),
+            int(epoch_optimizer_steps // epoch_refresh_interval),
+        )
         # V30 package 5: the LR schedule advances once per epoch, AFTER that
         # epoch's training, so epoch 0 trains at the declared `lr` exactly as
         # before. At the OFF switch this is a no-op branch.

@@ -27,7 +27,7 @@ UNIFIED_EXIT_FIRST_STATE_VALUE_SCHEMA_VERSION = (
     "gx1_unified_exit_first_state_target_value_v1"
 )
 UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION = (
-    "gx1_unified_exit_fitted_q_iteration_state_v1"
+    "gx1_unified_exit_fitted_q_iteration_state_v2"
 )
 _ITERATION_STATE_FIELDS = frozenset(
     {
@@ -40,8 +40,43 @@ _ITERATION_STATE_FIELDS = frozenset(
         "normalization_sha256",
         "fitted_q_contract",
         "target_updated_from_val_or_test",
+        "target_refresh_interval_optimizer_steps",
+        "target_refreshes_completed",
     }
 )
+
+
+def unified_exit_target_refresh_interval_optimizer_steps(
+    steps_per_epoch: int,
+) -> int:
+    """Derive the intra-epoch target-refresh cadence from the episode depth.
+
+    ``Q_hold`` bootstraps exactly one causal state per target-snapshot
+    refresh, so after k refreshes the bootstrapped value spans at most the
+    first k of ``UNIFIED_EXIT_MAX_PATH_BARS`` states (a strictly downward
+    truncation that penalizes only LONG/SHORT against the exact FLAT anchor).
+    Refreshing every ``floor(steps_per_epoch / UNIFIED_EXIT_MAX_PATH_BARS)``
+    optimizer steps guarantees at least ``UNIFIED_EXIT_MAX_PATH_BARS``
+    refreshes within a single epoch, so the value function can span the whole
+    episode horizon before the first checkpoint-selection judgment. Both
+    inputs are named constants or declared recipe geometry; nothing here is a
+    tuned magnitude. An epoch shorter than the path depth refreshes every
+    step (interval 1), the fastest cadence the step clock admits.
+    """
+
+    if isinstance(steps_per_epoch, bool) or not isinstance(steps_per_epoch, int):
+        raise RuntimeError(
+            "[UNIFIED_EXIT_TARGET_REFRESH_STEPS_PER_EPOCH_INVALID]"
+        )
+    if steps_per_epoch < 1:
+        raise RuntimeError(
+            "[UNIFIED_EXIT_TARGET_REFRESH_STEPS_PER_EPOCH_INVALID]"
+        )
+    from gx1.models.entry_v10.direction_decision_contract import (
+        UNIFIED_EXIT_MAX_PATH_BARS,
+    )
+
+    return max(1, int(steps_per_epoch) // int(UNIFIED_EXIT_MAX_PATH_BARS))
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -70,7 +105,9 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
             "post_fill_exit_state_per_side)"
         ),
         "operator": UNIFIED_EXIT_FITTED_Q_OPERATOR,
-        "target_snapshot_update": "explicit_fitted_q_iteration_boundary_only",
+        "target_snapshot_update": (
+            "derived_intra_epoch_interval_steps_per_epoch_over_max_path_bars"
+        ),
         "target_snapshot_fitted_splits": ["train"],
         "validation_or_test_updates_target_snapshot": False,
         "terminal_valid_actions": ["EXIT_NOW"],
@@ -115,6 +152,14 @@ def require_unified_exit_fitted_q_iteration_state(
         or not isinstance(observed["iteration_index"], int)
         or observed["iteration_index"] < 0
         or observed["target_updated_from_val_or_test"] is not False
+        or isinstance(observed["target_refresh_interval_optimizer_steps"], bool)
+        or not isinstance(
+            observed["target_refresh_interval_optimizer_steps"], int
+        )
+        or observed["target_refresh_interval_optimizer_steps"] < 1
+        or isinstance(observed["target_refreshes_completed"], bool)
+        or not isinstance(observed["target_refreshes_completed"], int)
+        or observed["target_refreshes_completed"] < 0
     ):
         raise RuntimeError(f"{context}_UNIFIED_EXIT_FITTED_Q_STATE_INVALID")
     for key in (
