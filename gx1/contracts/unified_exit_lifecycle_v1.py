@@ -57,8 +57,13 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 
+# v11 (2026-09-20, deep-review C-2): episode eligibility additionally
+# requires wall-clock minute-consecutive states (spans_source_gap), so a
+# weekend/closure gap inside the 512-state window excludes the entry —
+# matching the Entry-side exact-completeness convention. v10 lifecycle
+# files carry the old eligibility population and must fail closed.
 UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION = (
-    "gx1_unified_exit_lifecycle_episode_envelope_v10"
+    "gx1_unified_exit_lifecycle_episode_envelope_v11"
 )
 UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION = (
     "gx1_unified_exit_full_authoritative_state_pointer_population_v2"
@@ -1333,7 +1338,23 @@ class UnifiedExitLifecycleSplit:
             + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
             > int(split_end.value)
         )
-        eligible = complete_tail & ~crosses_split_end
+        # C-2: independently reconstruct the wall-clock-continuity rule the
+        # producer applies — episode states must be minute-consecutive, so a
+        # weekend/closure gap inside the 512-state window excludes the entry
+        # (matching the Entry-side exact-completeness convention).
+        decision_delta_ns = int(
+            pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
+        )
+        spans_source_gap = np.zeros(self.entry_row_count, dtype=np.bool_)
+        continuous_positions = np.flatnonzero(
+            complete_tail & ~crosses_split_end
+        )
+        spans_source_gap[continuous_positions] = (
+            m1_ns[start_rows[continuous_positions] + path_state_count - 1]
+            - m1_ns[start_rows[continuous_positions]]
+            != (path_state_count - 1) * decision_delta_ns
+        )
+        eligible = complete_tail & ~crosses_split_end & ~spans_source_gap
         expected_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
         expected_starts = np.asarray(
             start_rows[expected_rows], dtype=np.int64
@@ -1365,6 +1386,7 @@ class UnifiedExitLifecycleSplit:
             ),
             "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
             "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
+            "spans_source_gap": int(np.count_nonzero(spans_source_gap)),
         }
         if (
             manifest.get("entry_rows") != self.entry_row_count

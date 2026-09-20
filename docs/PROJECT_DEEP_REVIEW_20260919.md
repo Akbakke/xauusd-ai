@@ -22,9 +22,18 @@
 > added to the event tape), and the reinstated pure-geometry
 > `level_round_number_dist_{50,100}_atr` fields (+6 columns per lane;
 > HTF matrix contract V21, cache manifest v31, per-TF liveness v21,
-> registry state schema 10). The D-2 break-rule dynamics themselves
-> (`SWING_LOOKBACK` sawtooth) and D-3…D-6 remain open; every cache/bundle
-> built on the V20 surface is invalidated by the schema bumps and the
+> registry state schema 10). Same day, source-only, part 3: D-3 (the three
+> exactly-derived squeeze emissions retired, the two carriers stay; recovery
+> identities at the owner), B15 (the squeeze module contract now states the
+> implemented left-censored release-age clock instead of claiming NaN), A1
+> (unsigned `level_bars_since_break` retired for its signed superset) and B9
+> (`geomline_bars_since_break` renamed and signed by the remembered break
+> side) — net −4 columns per lane; HTF matrix V22, cache manifest v32,
+> per-TF liveness v22, squeeze manifest v2, level registry v16, trendline
+> contract V6 (read all widths by executing the owners). The D-2 break-rule
+> dynamics themselves (`SWING_LOOKBACK` sawtooth) and D-4…D-6 plus the D-3
+> admission-gate medium remain open; every cache/bundle
+> built on the V20/V21 surfaces is invalidated by the schema bumps and the
 > rebuild wave is still pending. Cloud items still open: B-2
 > (plausibility floor needs an independent witness bound into the smoke
 > measurement), A6/A7 (billed instance time vs training time; FX staleness

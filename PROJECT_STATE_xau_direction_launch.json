@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-20T09:05:11Z",
+  "updated_utc": "2026-09-20T10:09:51Z",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
@@ -36,10 +36,10 @@
   "required_same_bundle_shared_encoder": true,
   "required_exact_closed_m1_exit_path_envelope": true,
   "external_decision_models_allowed": false,
-  "required_signal_dim": 244,
+  "required_signal_dim": 240,
   "required_base_signal_dim": 26,
-  "required_selected_feature_count": 218,
-  "required_mandatory_causal_layer_feature_count": 151,
+  "required_selected_feature_count": 214,
+  "required_mandatory_causal_layer_feature_count": 147,
   "required_available_candidate_feature_count": 67,
   "required_mandatory_causal_layer_count": 10,
   "required_ctx_cont_dim": 71,

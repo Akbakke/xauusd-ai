@@ -161,7 +161,17 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 # constant, so ``config_key`` loses the retired ``identity_expiry_bars`` member
 # and every emitted value changes; chunk-carry state from a V4 run must not
 # interoperate silently.
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V5"
+# V6 (2026-09-20, deep review B9): ``geomline_bars_since_break`` is RENAMED
+# ``geomline_bars_since_break_signed`` and its value changes — the raw break
+# age is multiplied by the remembered break side of the most recent first
+# break (+1 up / -1 down), mirroring the level registry's
+# ``level_bars_since_break_signed`` convention.  The unsigned field told the
+# model a line broke ~N bars ago but not which way on ~99% of M5 rows (the
+# one-bar break impulses carry the direction only on the firing row).  The
+# carried state gains ``last_break_side``; a V5 carry cannot supply it and is
+# rejected by the config-key mismatch.  Pre-first-break emission is unchanged:
+# the same honest NaN censoring as before, now via 0 * NaN.
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V6"
 
 TRENDLINE_SIDE_SUPPORT = 1
 TRENDLINE_SIDE_RESISTANCE = -1
@@ -247,8 +257,11 @@ TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 = (
     "geomline_retest_fail_up",
     "geomline_retest_hold_down",
     "geomline_retest_fail_down",
-    # Raw bars since the most recent first-break of any registry line.
-    "geomline_bars_since_break",
+    # Raw bars since the most recent first-break of any registry line, SIGNED
+    # by that break's side (+1 up / -1 down) since V6 (2026-09-20, B9) — the
+    # level registry's ``level_bars_since_break_signed`` convention.  NaN
+    # before the first observed break, exactly as before.
+    "geomline_bars_since_break_signed",
 )
 
 TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1 = (
@@ -297,8 +310,8 @@ TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = hashlib.sha256(
 ).hexdigest()
 
 # Event vector layout — must mirror the per-bar impulse prefix of
-# TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 (geomline_bars_since_break is
-# persistent carry state, emitted from the registry state, not from this
+# TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 (geomline_bars_since_break_signed
+# is persistent carry state, emitted from the registry state, not from this
 # per-bar-reset vector).
 _EV_TOUCH_ABOVE = 0
 _EV_TOUCH_BELOW = 1
@@ -333,7 +346,7 @@ _SLOT_LAST_TOUCH_AGE_BARS = 5
 _SLOT_MAX_DEV_ATR = 6
 _IX_EVENT_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index("geomline_touch_above")
 _IX_BARS_SINCE_BREAK = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
-    "geomline_bars_since_break"
+    "geomline_bars_since_break_signed"
 )
 _IX_CHANNEL_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index("geomchan_active")
 
@@ -524,6 +537,10 @@ class TrendlineRegistryStateV1:
     # V30 break memory: registry bar index of the most recent first-break of
     # any line; -1 is internal state only and emits as an honest NaN age.
     last_break_bar: int = -1
+    # V6 (2026-09-20, B9): the side of that most recent first break, exactly
+    # +1 (up) or -1 (down); 0 only while no break has been observed
+    # (last_break_bar == -1).  It signs the emitted break-age memory.
+    last_break_side: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -856,6 +873,7 @@ def _update_lines_for_bar(
                 line.break_dir = -1
                 events[_EV_BREAK_DOWN] = 1.0
                 state.last_break_bar = t
+                state.last_break_side = -1
                 broken_this_bar.append(line)
                 keep.append(line)
                 if line_log is not None:
@@ -868,6 +886,7 @@ def _update_lines_for_bar(
                 line.break_dir = 1
                 events[_EV_BREAK_UP] = 1.0
                 state.last_break_bar = t
+                state.last_break_side = 1
                 broken_this_bar.append(line)
                 keep.append(line)
                 if line_log is not None:
@@ -1123,9 +1142,12 @@ def _emit_row(
         )
         row[_IX_BELOW_BASE + _SLOT_MAX_DEV_ATR] = below.max_dev_atr
     row[_IX_EVENT_BASE : _IX_EVENT_BASE + _EV_COUNT] = events
-    row[_IX_BARS_SINCE_BREAK] = raw_event_age_from_last_observed_row(
-        t, state.last_break_bar
-    )
+    # B9 (2026-09-20): sign = remembered side of the most recent first break,
+    # exactly +/-1 after any break; pre-first-break the age is NaN and
+    # 0 * NaN keeps the honest NaN censoring unchanged.
+    row[_IX_BARS_SINCE_BREAK] = float(
+        state.last_break_side
+    ) * raw_event_age_from_last_observed_row(t, state.last_break_bar)
     row[
         _IX_CHANNEL_BASE : _IX_CHANNEL_BASE
         + len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1)
@@ -1223,6 +1245,14 @@ def compute_trendline_registry_features_v1(
                 raise RuntimeError("[TRENDLINE_STATE_INDEX_DISCONTINUITY]")
         if state.atr_seen and not np.isfinite(atr).all():
             raise RuntimeError("[TRENDLINE_STATE_ATR_GAP]")
+        # V6 (B9): the carried break-side memory must be exactly +/-1 after a
+        # break and 0 exactly while no break has been observed.
+        if (
+            isinstance(state.last_break_side, bool)
+            or state.last_break_side not in (-1, 0, 1)
+            or (state.last_break_side == 0) != (state.last_break_bar == -1)
+        ):
+            raise RuntimeError("[TRENDLINE_STATE_BREAK_SIDE_INVALID]")
 
     n = swing_lookback
     window = 2 * n + 1

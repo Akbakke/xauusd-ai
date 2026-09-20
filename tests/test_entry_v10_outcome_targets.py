@@ -1307,17 +1307,24 @@ def test_unified_exit_ineligible_entry_is_empty_but_half_pair_fails() -> None:
         split.materialize_causal_episode_core(0)
 
 
-def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() -> None:
+def test_unified_exit_lifecycle_excludes_gap_spanning_episode_windows() -> None:
+    """C-2 (deep review 2026-09-19): wall-clock continuity is an eligibility
+    condition. A source gap INSIDE the 512-state window excludes the entry
+    (spans_source_gap), matching the Entry-side exact-completeness
+    convention: previously the elapsed-time channel said "one minute" across
+    the gap while exit_now_reward jumped by the whole closure with zero
+    financing. A gap-free window remains eligible and proves the row clock.
+    """
+
     entries = pd.DataFrame(
         {"time": pd.to_datetime(["2026-01-01T00:00:00Z"], utc=True)}
     )
     source = _closed_m1_lifecycle_source()
-    gapped = source.drop(index=200).reset_index(drop=True)
     episodes, proof = build_unified_exit_lifecycle_episodes(
         min_m1_start_row=0,
         entry_rows=entries,
-        closed_m1=gapped,
-        split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
+        closed_m1=source,
+        split_end=source["time"].iloc[-1] + pd.Timedelta(minutes=1),
         market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
     )
     assert len(episodes) == 2
@@ -1325,6 +1332,19 @@ def test_unified_exit_lifecycle_uses_authoritative_rows_across_market_closure() 
     assert proof["m1_row_clock"] == (
         "consecutive_authoritative_closed_m1_source_rows"
     )
+    assert proof["skipped_entry_rows"]["spans_source_gap"] == 0
+
+    gapped = source.drop(index=200).reset_index(drop=True)
+    with pytest.raises(
+        RuntimeError, match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES"
+    ):
+        build_unified_exit_lifecycle_episodes(
+            min_m1_start_row=0,
+            entry_rows=entries,
+            closed_m1=gapped,
+            split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
+            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        )
     with pytest.raises(RuntimeError, match="MARKET_CLOSURE_PROOF_REQUIRED"):
         build_unified_exit_lifecycle_episodes(
         min_m1_start_row=0,

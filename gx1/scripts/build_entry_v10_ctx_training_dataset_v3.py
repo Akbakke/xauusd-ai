@@ -2058,12 +2058,30 @@ def build_unified_exit_lifecycle_episodes(
         + decision_delta_ns
         > parsed_split_end.value
     )
-    eligible = complete_tail & ~crosses_split_end
+    # C-2 (docs/PROJECT_DEEP_REVIEW_20260919.md): episode states must be
+    # wall-clock consecutive, not only row-consecutive. A row-consecutive
+    # episode silently bridges weekends/closures: the elapsed-time channel
+    # says "one minute" across the gap while exit_now_reward jumps by the
+    # whole gap with zero financing — the largest spurious reward jumps in
+    # the corpus at exactly the states where the clock feature is wrong.
+    # The Entry-side labels already require exact wall-clock completeness
+    # (a closure inside the horizon invalidates the row); this applies the
+    # same declared convention to the Exit episode. The bound is fully
+    # derived: 511 = path_state_count - 1 one-minute state advances.
+    spans_source_gap = np.zeros(len(entry_time), dtype=np.bool_)
+    continuous_positions = np.flatnonzero(complete_tail & ~crosses_split_end)
+    spans_source_gap[continuous_positions] = (
+        m1_ns[start_rows[continuous_positions] + path_state_count - 1]
+        - m1_ns[start_rows[continuous_positions]]
+        != (path_state_count - 1) * decision_delta_ns
+    )
+    eligible = complete_tail & ~crosses_split_end & ~spans_source_gap
     eligible_entry_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
     skipped = {
         "missing_entry_available_m1_open": int(np.count_nonzero(~exact_open)),
         "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
         "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
+        "spans_source_gap": int(np.count_nonzero(spans_source_gap)),
     }
     if len(eligible_entry_rows) == 0:
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES")

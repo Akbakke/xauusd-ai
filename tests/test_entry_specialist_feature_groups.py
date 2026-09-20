@@ -732,7 +732,10 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         # distance instead of the thresholded vote); same owner.
         "level_above_recurrence_dist_atr",
         "level_above_touch_count",
-        "level_bars_since_break",
+        # ADJUDICATED 2026-09-20 (deep review A1): the unsigned
+        # level_bars_since_break leaves this ledger with the field itself —
+        # bit-identical to abs() of the signed twin below, which stays in
+        # this same specialist.
         "level_bars_since_break_signed",
         "level_below2_dist_atr",
         "level_below2_present",
@@ -827,11 +830,14 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ctx_cont.d1_range_z_20_canon_v2",
         "ctx_cont.m15_range_z_20_canon_v2",
         "rvol_20",
+        # ADJUDICATED 2026-09-20 (deep review D-3): squeeze_active,
+        # duration_at_release and squeeze_release_event leave this ledger
+        # with the fields themselves — each was an exact function of the two
+        # carriers below plus one bar of history, measured bit-identical on
+        # all six clocks.  The routing decision is unchanged: the squeeze
+        # owner keeps the compression/release evidence in this specialist.
         "volatility.bars_in_squeeze",
-        "volatility.duration_at_release",
-        "volatility.squeeze_active",
         "volatility.squeeze_release_age_bars",
-        "volatility.squeeze_release_event",
     ),
     "momentum_flow_encoder": (
         "bear_divergence_event",
@@ -894,7 +900,10 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "chart.geomline_above_max_dev_atr",
         "chart.geomline_above_slope_atr_per_bar",
         "chart.geomline_above_touch_count",
-        "chart.geomline_bars_since_break",
+        # RENAMED 2026-09-20 (deep review B9): the break age is now signed by
+        # the remembered break side, mirroring level_bars_since_break_signed;
+        # same owner, same specialist.
+        "chart.geomline_bars_since_break_signed",
         "chart.geomline_below_active_count",
         "chart.geomline_below_age_bars",
         "chart.geomline_below_dist_atr",

@@ -132,8 +132,14 @@ from gx1.features.smc_v1 import SWING_LOOKBACK, _detect_swing_pivots
 from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
+# v16 (2026-09-20, deep review A1): the unsigned ``level_bars_since_break``
+# is RETIRED — measured bit-identical to ``abs(level_bars_since_break_signed)``
+# on every lane (the 2026-08-19 per-TF duplicate sweep recorded the pair for
+# this owner's adjudication; the exact-abs identity is also proven from source
+# at the emission site: both read the same ``break_age`` and the sign factor
+# is exactly +/-1 or NaN).  The signed superset stays; net -1 column per lane.
 LEVEL_REGISTRY_FEATURE_VERSION = (
-    "level_registry_v15_raw_recurrence_pending_retest_round_number"
+    "level_registry_v16_signed_break_age_only"
 )
 # ---------------------------------------------------------------------------
 # Level kinds — only implemented or explicitly reserved identities remain.
@@ -312,7 +318,10 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_break_up_event",
     "level_break_down_event",
     "level_broken_touch_count",
-    "level_bars_since_break",
+    # 2026-09-20 (deep review A1): the unsigned ``level_bars_since_break`` is
+    # retired from this slot — bit-identical to ``abs(...)`` of the signed
+    # field below on every lane, so the signed superset alone carries the
+    # break-age memory (see LEVEL_REGISTRY_FEATURE_VERSION).
     # V30 (2026-08-13): the same bars-since-break memory signed by the break
     # side of the most recent break bar (+1 up / -1 down). 2026-08-18: the
     # "a same-bar up+down conflict nets to 0" clause is WITHDRAWN — that
@@ -1534,7 +1543,8 @@ def _run_level_registry(
             float(broken_touch_count) if (break_up_fired or break_down_fired) else 0.0
         )
         break_age = raw_event_age_from_last_observed_row(t, last_break_bar)
-        record["level_bars_since_break"].append(break_age)
+        # A1 (2026-09-20): the unsigned break age is no longer emitted; the
+        # signed field below is its exact superset (abs recovers it).
         # V30 signed break memory: sign = side of the most recent break bar,
         # exactly +1 (up) or -1 (down); NaN before any observed break. There
         # is no 0 sign: a same-bar two-sided break is proven unreachable and

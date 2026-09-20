@@ -126,9 +126,11 @@ def test_m1_lane_fit_lower_bound_binds_the_declared_train_population(
     on_extended = _fit(extended)
     assert on_extended == on_trimmed
     assert on_extended["contract_sha256"] == on_trimmed["contract_sha256"]
-    # The population is the declared window, not everything at or before the
-    # declared end.
-    assert on_extended["provenance"]["n_train_m1_rows"] == len(trimmed)
+    # The population is the half-open declared window [start, end) — the bar
+    # opening exactly at the declared end belongs to the next split (C-5).
+    half_open = trimmed[trimmed.index < pd.Timestamp(_TRAIN_END)]
+    assert len(half_open) == len(trimmed) - 1
+    assert on_extended["provenance"]["n_train_m1_rows"] == len(half_open)
     assert on_extended["declared_train_window_start"] == _TRAIN_START
     assert on_extended["provenance"]["declared_train_window_start"] == _TRAIN_START
 

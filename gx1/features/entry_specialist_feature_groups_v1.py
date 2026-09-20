@@ -696,8 +696,11 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 },
                 "owned_specialists": ("vol_compression_encoder",),
                 "purpose": (
-                    "TRAIN-fitted native-clock squeeze state, raw duration, "
-                    "one-shot release edge and release memory."
+                    "TRAIN-fitted native-clock squeeze carriers: raw "
+                    "in-squeeze duration and left-censored release age "
+                    "(D-3 2026-09-20: the active flag, release edge and "
+                    "duration-at-release are exact functions of these two "
+                    "and are no longer emitted)."
                 ),
             },
         ),

@@ -42,11 +42,12 @@ from gx1.features.trendline_registry_v1 import (
 )
 
 # Stage-2 wiring contract: the exact declared name tuple (design doc B.5, the
-# V30 2026-08-13 additions — per-side ACTIVE counts and the
-# geomline_bars_since_break memory — and the 2026-08-15 retirement of the
-# geomline_{above,below}_active presence masks, which were by construction the
-# ">= 1" indicator of the count beside them) and its sha.  Any drift in name,
-# order or count must fail here first.
+# V30 2026-08-13 additions — per-side ACTIVE counts and the break-age
+# memory — the 2026-08-15 retirement of the geomline_{above,below}_active
+# presence masks, which were by construction the ">= 1" indicator of the
+# count beside them, and the 2026-09-20 B9 signed rename
+# geomline_bars_since_break -> geomline_bars_since_break_signed) and its sha.
+# Any drift in name, order or count must fail here first.
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_above_active_count",
     "geomline_above_dist_atr",
@@ -72,7 +73,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_retest_fail_up",
     "geomline_retest_hold_down",
     "geomline_retest_fail_down",
-    "geomline_bars_since_break",
+    "geomline_bars_since_break_signed",
     "geomchan_active",
     "geomchan_width_atr",
     "geomchan_pos_0_1",
@@ -81,7 +82,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomchan_apex_proximity",
 )
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
-    "9415d0e2757579b717e2c5335fdbb8c3fab41a68c642c7054b1836214379ad0c"
+    "06d0d440681b47329f9786de4072921f9507d97b9eeac31e9f88fc467919c157"
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
@@ -221,7 +222,7 @@ def test_three_touch_validation_and_promotion_bar():
     # structural NaN warmup prefix, then a single fully-finite region
     assert feats.iloc[:WARMUP].isna().all().all()
     assert feats.iloc[WARMUP:].drop(
-        columns=["geomline_bars_since_break"]
+        columns=["geomline_bars_since_break_signed"]
     ).notna().all().all()
     below_active_count = feats["geomline_below_active_count"].to_numpy()
     # third pivot lies at bar 50 but participates only from its confirmation
@@ -285,7 +286,7 @@ def test_promoted_line_survives_its_own_promotion_bar_and_emits():
         ln for ln in state.active_lines if ln.state == TRENDLINE_STATE_ACTIVE
     ]
     # ...and the emitted block is not the all-zero surface the defect produced
-    post = feats.iloc[promotion_bar:].drop(columns=["geomline_bars_since_break"])
+    post = feats.iloc[promotion_bar:].drop(columns=["geomline_bars_since_break_signed"])
     live_columns = [name for name in post.columns if post[name].abs().max() > 0.0]
     assert "geomline_below_dist_atr" in live_columns
     assert "geomline_below_slope_atr_per_bar" in live_columns
@@ -549,9 +550,14 @@ def test_first_break_fires_exactly_once_with_broken_line_attributes():
     assert feats["geomline_break_line_touch_count"].iloc[60] == 3.0
     assert feats["geomline_break_line_age_bars"].iloc[60] == 47.0  # 60-(10+3)
     assert feats["geomline_break_line_touch_count"].iloc[61] == 0.0
-    assert np.isnan(feats["geomline_bars_since_break"].iloc[59])
-    assert feats["geomline_bars_since_break"].iloc[60] == 0.0
-    assert feats["geomline_bars_since_break"].iloc[61] == 1.0
+    assert np.isnan(feats["geomline_bars_since_break_signed"].iloc[59])
+    # B9 (2026-09-20): the age is signed by the remembered break side.  The
+    # bar-60 break is a DOWN break, so the age carries sign -1 (the firing
+    # row's -0.0 compares equal to 0.0); the bar-63 break in the flipped role
+    # is an UP break and flips the sign to +1.
+    assert feats["geomline_bars_since_break_signed"].iloc[60] == 0.0
+    assert feats["geomline_bars_since_break_signed"].iloc[61] == -1.0
+    assert feats["geomline_bars_since_break_signed"].iloc[64] == 1.0
     # a BROKEN line leaves the nearest-ACTIVE slots immediately
     assert feats["geomline_below_active_count"].iloc[60] == 0.0
     assert feats["geomline_above_active_count"].iloc[60] == 0.0
@@ -771,7 +777,7 @@ def test_atr_warmup_prefix_is_nan_and_registry_starts_after():
     feats, _ = _compute(df)
     assert feats.iloc[:30].isna().all().all()
     assert feats.iloc[30:].drop(
-        columns=["geomline_bars_since_break"]
+        columns=["geomline_bars_since_break_signed"]
     ).notna().all().all()
     # pivots inside the ATR-unavailable prefix never enter the registry:
     # the first ACTIVE line is (30, 50) validated by pivot 70 at bar 73

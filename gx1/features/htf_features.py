@@ -691,7 +691,21 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # pure-geometry gridline distances. A V20 matrix is six columns per lane
 # narrower and answers the feature-name hash key with the retired thresholded
 # columns; it must not be read as current.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V21"
+# V22 (2026-09-20, deep review D-3/A1/B9): the per-lane surface narrows by
+# FOUR columns and one column is renamed with a value change.  (D-3) the
+# squeeze owner retires its three exactly-derived columns — squeeze_active,
+# squeeze_release_event and duration_at_release were bit-identical functions
+# of the two retained carriers bars_in_squeeze / squeeze_release_age_bars on
+# all six clocks (recovery identities at VOLATILITY_SQUEEZE_FEATURE_NAMES).
+# (A1) the level registry retires mtf_level_bars_since_break, bit-identical
+# to abs(mtf_level_bars_since_break_signed) on all five lanes — the exact-abs
+# pair the 2026-08-19 duplicate sweep recorded for that owner's adjudication.
+# (B9) geomline_bars_since_break -> geomline_bars_since_break_signed: the raw
+# break age is now signed by the remembered break side (+1 up / -1 down),
+# mirroring the level registry's signed convention; pre-first-break NaN
+# censoring is unchanged.  A V21 matrix is four columns per lane wider and
+# holds the sign-blind break age under a name that no longer exists.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V22"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -730,7 +744,13 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V21"
 # (matrix contract V21): a v30 cache is six columns per lane narrower and
 # holds the retired thresholded recurrence binaries under names this owner no
 # longer emits.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v31"
+# v32 (2026-09-20) carries the D-3/A1/B9 surface (matrix contract V22): a v31
+# cache is four columns per lane wider, answers the feature-name hash key
+# with the three retired squeeze columns and the retired unsigned level
+# break age, carries the sign-blind geomline break age under a retired name,
+# and binds a v1 squeeze manifest whose feature_names this owner no longer
+# emits.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v32"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
 )
@@ -752,7 +772,12 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # two renamed recurrence columns and six new columns per lane; a v20 artifact
 # answers liveness for names this surface no longer emits and is silent on
 # the six new ones.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v21"
+# v22 (2026-09-20) describes the D-3/A1/B9 surface: four fewer columns per
+# lane (three squeeze exact-derivatives, one unsigned level break age) and
+# the signed rename of the geomline break age; a v21 artifact answers
+# liveness for five names per lane this surface no longer emits and is
+# silent on geomline_bars_since_break_signed.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v22"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
@@ -1082,7 +1107,10 @@ def require_multi_tf_resolution_pyramid(
 # consuming a fitted identity lifetime (it measures bars-to-projection-break,
 # not bars since a promoted line was touched, and every fitted value was
 # <= SWING_LOOKBACK, which deleted each line on its own promotion bar).
-V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v8"
+# v9 (2026-09-20, C-5): the fit population is half-open [start, end);
+# v8 payloads were fitted on the closed interval under the same
+# declared bounds and must fail closed rather than be reinterpreted.
+V29_REGISTRY_CONSTANTS_SCHEMA_VERSION = "htf_v4_v29_registry_constants_v9"
 V29_REGISTRY_CONSTANTS_PROVENANCE_SCHEMA_VERSION = (
     "htf_v4_v29_registry_constants_provenance_v7"
 )
@@ -1721,7 +1749,12 @@ def fit_v29_registry_constants_from_m5(
     source = m5_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
     train_source = source[
-        (source.index >= window_start) & (source.index <= window_end)
+        # C-5 (deep review 2026-09-19, repaired 2026-09-20): half-open
+        # [start, end) — the bar opening exactly at the declared TRAIN end
+        # belongs to the next split (the builder emits VAL from val_start
+        # inclusive), so a closed fit interval could place VAL's first row
+        # inside the TRAIN fit population when train_end == val_start.
+        (source.index >= window_start) & (source.index < window_end)
     ]
     if train_source.empty:
         raise RuntimeError(
@@ -2192,7 +2225,12 @@ def fit_v29_registry_m1_lane_params_from_m1(
     source = m1_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
     train_source = source[
-        (source.index >= window_start) & (source.index <= window_end)
+        # C-5 (deep review 2026-09-19, repaired 2026-09-20): half-open
+        # [start, end) — the bar opening exactly at the declared TRAIN end
+        # belongs to the next split (the builder emits VAL from val_start
+        # inclusive), so a closed fit interval could place VAL's first row
+        # inside the TRAIN fit population when train_end == val_start.
+        (source.index >= window_start) & (source.index < window_end)
     ]
     if train_source.empty:
         raise RuntimeError(
@@ -3016,6 +3054,8 @@ def compute_per_bar_features_v4(
     # did find, ``mtf_level_bars_since_break ==
     # abs(mtf_level_bars_since_break_signed)`` on all five lanes, belongs to
     # the level-registry owner and is recorded there for its own adjudication.
+    # (Adjudicated 2026-09-20, deep review A1: the unsigned twin is retired
+    # at that owner; the signed superset stays.)
     # The log is GX1_DATA/logs/v31_per_tf_duplicate_sweep_20260819/.
     #
     # The zero-range convention itself is unchanged and still live in the

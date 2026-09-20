@@ -234,7 +234,8 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_break_up_event",
         "level_break_down_event",
         "level_broken_touch_count",
-        "level_bars_since_break",
+        # A1 (2026-09-20): unsigned level_bars_since_break retired; the
+        # signed superset alone carries the break-age memory.
         "level_bars_since_break_signed",
         "level_retest_hold_signed",
         "level_retest_fail_signed",
@@ -387,13 +388,15 @@ def test_same_bar_two_sided_break_fails_closed_instead_of_netting_to_zero(
     m5, names = compute_level_registry_m5_block_v1(
         df, recurrence_threshold_atr=0.6
     )
-    age = _col(m5, names, "level_bars_since_break")
+    # A1 (2026-09-20): the unsigned break age is retired — abs(signed) was
+    # bit-identical to it on every lane, so the signed field is the only
+    # break-age emission and its sign is exactly +/-1 wherever it is finite
+    # and non-zero-aged.
+    assert "level_bars_since_break" not in names
     signed = _col(m5, names, "level_bars_since_break_signed")
-    live = np.isfinite(age) & (age > 0.0)
+    live = np.isfinite(signed) & (np.abs(signed) > 0.0)
     assert live.any()
-    np.testing.assert_array_equal(np.abs(signed[live]), age[live])
     assert set(np.unique(np.sign(signed[live]))) <= {-1.0, 1.0}
-    np.testing.assert_array_equal(np.isnan(signed), np.isnan(age))
 
 
 def test_emitted_names_match_declared_tuples():
@@ -434,7 +437,7 @@ def test_mtf_block_values_equal_m5_registry_fields_on_same_clock():
         "mtf_level_below_mean_reaction_atr": "level_below_mean_reaction_atr",
         "mtf_level_break_up_event": "level_break_up_event",
         "mtf_level_break_down_event": "level_break_down_event",
-        "mtf_level_bars_since_break": "level_bars_since_break",
+        "mtf_level_bars_since_break_signed": "level_bars_since_break_signed",
         "mtf_level_retest_hold_signed": "level_retest_hold_signed",
         "mtf_level_retest_fail_signed": "level_retest_fail_signed",
     }
@@ -453,7 +456,6 @@ def test_s1_warmup_prefix_and_creation():
     m5, names = compute_level_registry_m5_block_v1(df, recurrence_threshold_atr=TOL)
     assert np.isnan(m5[:8]).all()          # NaN until first admitted level (t=8)
     break_age_columns = [
-        names.index("level_bars_since_break"),
         names.index("level_bars_since_break_signed"),
     ]
     assert np.isfinite(np.delete(m5[8:], break_age_columns, axis=1)).all()
@@ -496,7 +498,7 @@ def test_s1_all_immutable_anchors_and_recurrence_accounting():
     # no breaks anywhere in S1
     assert _col(m5, names, "level_break_up_event")[8:].sum() == 0.0
     assert _col(m5, names, "level_break_down_event")[8:].sum() == 0.0
-    assert np.isnan(_col(m5, names, "level_bars_since_break")[8:]).all()
+    assert np.isnan(_col(m5, names, "level_bars_since_break_signed")[8:]).all()
 
 
 def test_s1_reaction_accounting_and_event_gated_zero():
@@ -603,7 +605,7 @@ def test_s2_break_once_retest_hold_and_signed_reactions():
     down = _col(m5, names, "level_break_down_event")
     up = _col(m5, names, "level_break_up_event")
     btc = _col(m5, names, "level_broken_touch_count")
-    bsb = _col(m5, names, "level_bars_since_break")
+    bsb = _col(m5, names, "level_bars_since_break_signed")
     hold = _col(m5, names, "level_retest_hold_signed")
     fail = _col(m5, names, "level_retest_fail_signed")
     below_dist = _col(m5, names, "level_below_dist_atr")
@@ -613,7 +615,10 @@ def test_s2_break_once_retest_hold_and_signed_reactions():
     assert up[8:].sum() == 0.0
     assert btc[13] == 1.0 and btc[8:].sum() == 1.0
     assert np.isnan(bsb[8:13]).all()
-    assert bsb[13] == 0.0 and bsb[14] == 1.0
+    # A1: the surviving break-age memory is the SIGNED field; the t=13 break
+    # is a down-break, so the age carries sign -1 (the firing row's -0.0
+    # compares equal to 0.0).
+    assert bsb[13] == 0.0 and bsb[14] == -1.0
     # broken level leaves the below slot at the break bar
     assert below_dist[9] == pytest.approx((9.0 - 0.09 + 0.3) - 7.0, abs=1e-3)  # 2.21
     assert below_dist[13] == 0.0
@@ -768,7 +773,6 @@ def test_learned_lifetime_expires_eligibility_without_deleting_identity():
     expired = [lv for lv in state["levels"] if lv["status"] == "expired"]
     assert len(expired) == 1 and expired[0]["center_price"] == SHIFT + 12.0
     break_age_columns = [
-        names.index("level_bars_since_break"),
         names.index("level_bars_since_break_signed"),
     ]
     assert np.isfinite(np.delete(m5[8:], break_age_columns, axis=1)).all()
@@ -1018,7 +1022,6 @@ def test_emitted_value_domains_on_generic_series():
         "level_above_bars_since_touch",
         "level_below_bars_since_touch",
         "level_broken_touch_count",
-        "level_bars_since_break",
         "level_above_pending_retest_age_bars",
         "level_below_pending_retest_age_bars",
     ):
