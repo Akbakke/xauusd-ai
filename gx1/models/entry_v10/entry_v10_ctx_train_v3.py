@@ -5060,10 +5060,14 @@ def _accumulate_feature_tf_gate_epoch(
             "[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_SHAPE_INVALID] "
             f"shape={getattr(gate, 'shape', None)}"
         )
-    values = gate.detach().double()
-    if not bool(torch.isfinite(values).all().item()):
+    # Finiteness is invariant under exact float32->float64 widening, and the
+    # widening itself is element-wise and order-independent, so checking on
+    # the float32 tensor and widening host-side transfers half the bytes and
+    # skips a full-width float64 device allocation with bit-identical results.
+    detached = gate.detach()
+    if not bool(torch.isfinite(detached).all().item()):
         raise RuntimeError("[ENTRY_MODEL_NATIVE_FEATURE_TF_GATE_NONFINITE]")
-    array = values.cpu().numpy()
+    array = detached.cpu().numpy().astype(np.float64)
     accumulator["rows"] = int(accumulator["rows"]) + int(array.shape[0])
     accumulator["sum"] += array.sum(axis=0)
     accumulator["sum_sq"] += np.square(array).sum(axis=0)
@@ -5984,27 +5988,23 @@ def _forward_unified_exit_episode_pack(
     return q_values, valid, state_valid, target_terminal, target_lengths
 
 
-def _forward_unified_exit_episode_batch(
+def _assemble_unified_exit_episode_inputs(
     *,
-    model: nn.Module,
-    entry_decision_representations: torch.Tensor,
     episodes: Sequence[Mapping[str, Any]],
     device: torch.device,
-    exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]] = None,
-    exit_feature_tf_gate_epoch: Optional[dict[str, Any]] = None,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Right-pad only batch transport and scan all episodes in one call."""
+) -> dict[str, Any]:
+    """Stack and transfer one episode chunk's model inputs and expectations.
+
+    The online and frozen-target forwards consume byte-identical episode
+    inputs (only ``entry_decision_representation`` differs), and no consumer
+    writes into these tensors, so assembling once per chunk and sharing the
+    transferred tensors between the two forwards is bit-identical to two
+    independent copies while halving the host stacking and H2D transfer.
+    """
 
     batch_size = len(episodes)
-    if (
-        batch_size < 1
-        or entry_decision_representations.ndim != 2
-        or int(entry_decision_representations.shape[0]) != batch_size
-    ):
-        raise RuntimeError("[UNIFIED_EXIT_EPISODE_BATCH_INVALID]")
     tf_names = tuple(tf.lower() for tf in EXIT_MTF_CONTEXT_TIMEFRAMES)
-    inputs: dict[str, Any] = {
-        "entry_decision_representation": entry_decision_representations,
+    prepared: dict[str, Any] = {
         "exit_local_history_x": torch.from_numpy(
             np.stack(
                 [episode["exit_local_history_x"] for episode in episodes],
@@ -6044,16 +6044,84 @@ def _forward_unified_exit_episode_batch(
         )
         for row, history in enumerate(histories):
             padded[row, : len(history)] = history
-        inputs["exit_mtf_histories"][tf] = torch.from_numpy(padded).to(device)
-        inputs["exit_mtf_gathers"][tf] = torch.from_numpy(
+        prepared["exit_mtf_histories"][tf] = torch.from_numpy(padded).to(device)
+        prepared["exit_mtf_gathers"][tf] = torch.from_numpy(
             np.stack(
                 [episode[f"exit_mtf_gather_{tf}"] for episode in episodes],
                 axis=0,
             ).astype(np.int64, copy=False)
         ).to(device)
-        inputs["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
+        prepared["exit_mtf_history_lengths"][tf] = torch.from_numpy(lengths).to(
             device
         )
+    prepared["expected_valid"] = torch.from_numpy(
+        np.stack(
+            [episode["exit_action_valid_mask"] for episode in episodes], axis=0
+        ).astype(np.bool_, copy=False)
+    ).to(device)
+    prepared["expected_state_valid"] = torch.from_numpy(
+        np.stack(
+            [episode["exit_state_valid_mask"] for episode in episodes], axis=0
+        ).astype(np.bool_, copy=False)
+    ).to(device)
+    prepared["expected_terminal"] = torch.from_numpy(
+        np.stack(
+            [episode["exit_terminal_mask"] for episode in episodes], axis=0
+        ).astype(np.bool_, copy=False)
+    ).to(device)
+    prepared["expected_reason"] = torch.from_numpy(
+        np.stack(
+            [episode["exit_terminal_reason_index"] for episode in episodes],
+            axis=0,
+        ).astype(np.int64, copy=False)
+    ).to(device)
+    prepared["expected_lengths"] = torch.from_numpy(
+        np.stack(
+            [episode["exit_episode_lengths"] for episode in episodes], axis=0
+        ).astype(np.int64, copy=False)
+    ).to(device)
+    return prepared
+
+
+def _forward_unified_exit_episode_batch(
+    *,
+    model: nn.Module,
+    entry_decision_representations: torch.Tensor,
+    episodes: Sequence[Mapping[str, Any]],
+    device: torch.device,
+    exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]] = None,
+    exit_feature_tf_gate_epoch: Optional[dict[str, Any]] = None,
+    prepared: Optional[dict[str, Any]] = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Right-pad only batch transport and scan all episodes in one call.
+
+    ``prepared`` shares one chunk's assembled episode inputs between the
+    online and frozen-target forwards (bit-identical: the tensors are leaf,
+    non-grad inputs never written in-place by any consumer). The fail-closed
+    output validation below still runs per forward.
+    """
+
+    batch_size = len(episodes)
+    if (
+        batch_size < 1
+        or entry_decision_representations.ndim != 2
+        or int(entry_decision_representations.shape[0]) != batch_size
+    ):
+        raise RuntimeError("[UNIFIED_EXIT_EPISODE_BATCH_INVALID]")
+    if prepared is None:
+        prepared = _assemble_unified_exit_episode_inputs(
+            episodes=episodes, device=device
+        )
+    inputs: dict[str, Any] = {
+        "entry_decision_representation": entry_decision_representations,
+        "exit_local_history_x": prepared["exit_local_history_x"],
+        "exit_state_ctx_cat": prepared["exit_state_ctx_cat"],
+        "exit_state_ctx_cont": prepared["exit_state_ctx_cont"],
+        "exit_path_x": prepared["exit_path_x"],
+        "exit_mtf_histories": prepared["exit_mtf_histories"],
+        "exit_mtf_gathers": prepared["exit_mtf_gathers"],
+        "exit_mtf_history_lengths": prepared["exit_mtf_history_lengths"],
+    }
     with _training_autocast_context():
         output = model.forward_exit_episode(**inputs)
     output = _float_output_tensors(output)
@@ -6062,32 +6130,11 @@ def _forward_unified_exit_episode_batch(
     terminal = output.get("exit_terminal_mask")
     terminal_reason = output.get("exit_terminal_reason_index")
     lengths = output.get("exit_episode_lengths")
-    valid = torch.from_numpy(
-        np.stack(
-            [episode["exit_action_valid_mask"] for episode in episodes], axis=0
-        ).astype(np.bool_, copy=False)
-    ).to(device)
-    state_valid = torch.from_numpy(
-        np.stack(
-            [episode["exit_state_valid_mask"] for episode in episodes], axis=0
-        ).astype(np.bool_, copy=False)
-    ).to(device)
-    target_terminal = torch.from_numpy(
-        np.stack(
-            [episode["exit_terminal_mask"] for episode in episodes], axis=0
-        ).astype(np.bool_, copy=False)
-    ).to(device)
-    target_reason = torch.from_numpy(
-        np.stack(
-            [episode["exit_terminal_reason_index"] for episode in episodes],
-            axis=0,
-        ).astype(np.int64, copy=False)
-    ).to(device)
-    target_lengths = torch.from_numpy(
-        np.stack(
-            [episode["exit_episode_lengths"] for episode in episodes], axis=0
-        ).astype(np.int64, copy=False)
-    ).to(device)
+    valid = prepared["expected_valid"]
+    state_valid = prepared["expected_state_valid"]
+    target_terminal = prepared["expected_terminal"]
+    target_reason = prepared["expected_reason"]
+    target_lengths = prepared["expected_lengths"]
     expected_shape = (batch_size, 2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
     if (
         not isinstance(q_values, torch.Tensor)
@@ -6215,6 +6262,7 @@ def _fitted_q_targets_for_episode_batch(
     target_entry_decision_representations: torch.Tensor,
     episodes: Sequence[Mapping[str, Any]],
     device: torch.device,
+    prepared: Optional[dict[str, Any]] = None,
 ) -> tuple[
     torch.Tensor,
     torch.Tensor,
@@ -6233,6 +6281,7 @@ def _fitted_q_targets_for_episode_batch(
                 ),
                 episodes=episodes,
                 device=device,
+                prepared=prepared,
             )
         )
         rewards = torch.from_numpy(
@@ -6324,6 +6373,9 @@ def _episode_native_exit_eval_loss(
         )
     episodes = [materialized[index] for index in selected]
     selected_index = torch.tensor(selected, device=device, dtype=torch.long)
+    prepared = _assemble_unified_exit_episode_inputs(
+        episodes=episodes, device=device
+    )
     q_values, valid, _state_valid, _terminal, _lengths = (
         _forward_unified_exit_episode_batch(
             model=model,
@@ -6334,6 +6386,7 @@ def _episode_native_exit_eval_loss(
             device=device,
             exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
             exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+            prepared=prepared,
         )
     )
     (
@@ -6352,6 +6405,7 @@ def _episode_native_exit_eval_loss(
             ),
             episodes=episodes,
             device=device,
+            prepared=prepared,
         )
     )
     if not torch.equal(valid, target_mask):
@@ -6534,6 +6588,9 @@ def _episode_native_exit_train(
         .clone()
         .requires_grad_(True)
     )
+    prepared = _assemble_unified_exit_episode_inputs(
+        episodes=selected_episodes, device=device
+    )
     q_values, valid, _state_valid, _terminal, _lengths = (
         _forward_unified_exit_episode_batch(
             model=model,
@@ -6542,6 +6599,7 @@ def _episode_native_exit_train(
             device=device,
             exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
             exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+            prepared=prepared,
         )
     )
     profile_online_forward = (
@@ -6563,6 +6621,7 @@ def _episode_native_exit_train(
             ),
             episodes=selected_episodes,
             device=device,
+            prepared=prepared,
         )
     )
     profile_target_forward = (
@@ -6757,6 +6816,9 @@ def _episode_native_exit_train_chunked(
         chunk_online_start = (
             _synchronized_exit_profile_clock(device) if profile_timing else None
         )
+        prepared = _assemble_unified_exit_episode_inputs(
+            episodes=chunk_episodes, device=device
+        )
         q_values, valid, _state_valid, _terminal, _lengths = (
             _forward_unified_exit_episode_batch(
                 model=model,
@@ -6765,6 +6827,7 @@ def _episode_native_exit_train_chunked(
                 device=device,
                 exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                 exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                prepared=prepared,
             )
         )
         chunk_online_end = (
@@ -6783,6 +6846,7 @@ def _episode_native_exit_train_chunked(
             ),
             episodes=chunk_episodes,
             device=device,
+            prepared=prepared,
         )
         chunk_target_end = (
             _synchronized_exit_profile_clock(device) if profile_timing else None
@@ -6821,6 +6885,7 @@ def _episode_native_exit_train_chunked(
         # Keep no large Exit graph alive across groups.  This is important on
         # WSL/DXG where a cached near-capacity allocation can fail residency.
         del q_values, valid, targets, target_mask, first_side_values, first_side_valid
+        del prepared
 
     if token.grad is None or not bool(torch.isfinite(token.grad).all().item()):
         raise RuntimeError("[UNIFIED_EXIT_EPISODE_TOKEN_GRADIENT_INVALID]")
@@ -8196,13 +8261,17 @@ def train_epoch(
             torch.cuda.reset_peak_memory_stats(device)
         if not _first_batch_logged:
             log.info("[TRAIN_RSS] before_forward rss_gib=%.2f", _train_rss_gib())
+        # One H2D per batch: the online and frozen-target forwards read the
+        # identical MTF tensors, and neither forward writes into its inputs,
+        # so sharing the transferred tensors is bit-identical to two copies.
+        multi_tf_kwargs = _multi_tf_kwargs_from_batch(batch, seq_x.device)
         out = _model_forward_fp32(
             model,
             seq_x,
             snap_x,
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
-            **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+            **multi_tf_kwargs,
         )
         _profile_entry_online_forward = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
@@ -8214,7 +8283,7 @@ def train_epoch(
                 snap_x,
                 ctx_cat=ctx_cat,
                 ctx_cont=ctx_cont,
-                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+                **multi_tf_kwargs,
             )
         _profile_entry_target_forward = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
@@ -10601,13 +10670,15 @@ def validate(
             ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
             ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
             batch_rows = int(seq_x.shape[0])
+            # Shared MTF H2D for both forwards (bit-identical; see train_epoch).
+            multi_tf_kwargs = _multi_tf_kwargs_from_batch(batch, seq_x.device)
             out = _model_forward_fp32(
                 model,
                 seq_x,
                 snap_x,
                 ctx_cat=ctx_cat,
                 ctx_cont=ctx_cont,
-                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+                **multi_tf_kwargs,
             )
             target_out = _model_forward_fp32(
                 target_model,
@@ -10615,7 +10686,7 @@ def validate(
                 snap_x,
                 ctx_cat=ctx_cat,
                 ctx_cont=ctx_cont,
-                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+                **multi_tf_kwargs,
             )
             entry_representations = out.get(
                 UNIFIED_EXIT_MODEL_REPRESENTATION_KEY

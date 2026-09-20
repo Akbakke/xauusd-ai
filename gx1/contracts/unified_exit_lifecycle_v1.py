@@ -1788,21 +1788,22 @@ class UnifiedExitLifecycleSplit:
         elapsed_wall_minutes = (
             (slice_open_ns - int(slice_open_ns[0])) // 60_000_000_000
         ) + 1
-        path_by_side = []
-        for side_index, pointer in enumerate((long_pointer, short_pointer)):
-            del side_index
-            path_by_side.append(
-                unified_exit_path_tensor_from_values(
-                    price_values=np.column_stack(
-                        [values[source_slice] for values in price_arrays]
-                    ),
-                    volumes=self._m1["volume"][source_slice],
-                    bars_in_trade=UNIFIED_EXIT_MAX_PATH_BARS,
-                    entry_bid=float(pointer[2]),
-                    entry_ask=float(pointer[3]),
-                    elapsed_wall_minutes=elapsed_wall_minutes,
-                )
-            )
+        # The side-source split-brain guard above proves entry_bid/entry_ask
+        # are exactly equal across the two side pointers, and every other
+        # input below is side-invariant, so the per-side tensors are
+        # bit-identical by construction: build once, present twice. The guard
+        # is load-bearing for this sharing and must stay directly above.
+        side_path = unified_exit_path_tensor_from_values(
+            price_values=np.column_stack(
+                [values[source_slice] for values in price_arrays]
+            ),
+            volumes=self._m1["volume"][source_slice],
+            bars_in_trade=UNIFIED_EXIT_MAX_PATH_BARS,
+            entry_bid=float(long_pointer[2]),
+            entry_ask=float(long_pointer[3]),
+            elapsed_wall_minutes=elapsed_wall_minutes,
+        )
+        path_by_side = [side_path, side_path]
         long_exit_reward = (
             np.asarray(self._m1["bid_close"][source_slice], dtype=np.float64)
             - float(long_pointer[3])

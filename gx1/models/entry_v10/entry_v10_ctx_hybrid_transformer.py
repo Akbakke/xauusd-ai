@@ -1936,6 +1936,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 device=tensor.device,
                 dtype=normalized_tf.dtype,
             )
+            # Fused post-loop scatter; see the Exit episode route for the
+            # disjointness/completeness argument that makes this bit-identical.
+            gate_scatter_indices: list[torch.Tensor] = []
+            gate_scatter_values: list[torch.Tensor] = []
             family_tokens: list[torch.Tensor] = []
             for specialist in self._specialist_names:
                 family_idx = getattr(
@@ -1947,11 +1951,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         f"{suffix}__{specialist}"
                     ](base_representation)
                 )
-                full_feature_gate = full_feature_gate.scatter(
-                    1,
-                    family_idx.view(1, -1).expand(batch_size, -1),
-                    feature_gate,
-                )
+                gate_scatter_indices.append(family_idx)
+                gate_scatter_values.append(feature_gate)
                 family_values = numeric_tf.index_select(dim=2, index=family_idx)
                 family_values = (
                     family_values
@@ -1974,6 +1975,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     self._add_pe(projected, f"pos_enc_{suffix}"),
                 )
                 family_tokens.append(encoded.mean(dim=1))
+            full_feature_gate = full_feature_gate.scatter(
+                1,
+                torch.cat(gate_scatter_indices)
+                .view(1, -1)
+                .expand(batch_size, -1),
+                torch.cat(gate_scatter_values, dim=1),
+            )
             family_grid_rows.append(torch.stack(family_tokens, dim=1))
             feature_gate_rows.append(full_feature_gate)
 
@@ -2342,6 +2350,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 dtype=numeric.dtype,
                 device=numeric.device,
             )
+            # One fused scatter after the family loop instead of eight chained
+            # out-of-place scatters: __init__ proves the per-family index sets
+            # are pairwise disjoint and jointly complete, so sequential and
+            # concatenated scatters write identical values (scatter is pure
+            # data movement; no arithmetic order exists to perturb), while the
+            # fused form avoids seven full-width intermediate allocations per
+            # timeframe held live in the autograd graph.
+            gate_scatter_indices: list[torch.Tensor] = []
+            gate_scatter_values: list[torch.Tensor] = []
             effective_tf_scale = self._effective_tf_input_scale(tf_name)
             for name in self._specialist_names:
                 indices = getattr(
@@ -2367,13 +2384,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         local_state.reshape(batch_size * state_count, d_model)
                     )
                 ).reshape(batch_size, state_count, -1)
-                full_feature_gate = full_feature_gate.scatter(
-                    2,
-                    indices.view(1, 1, -1).expand(
-                        batch_size, state_count, -1
-                    ),
-                    feature_gate,
-                )
+                gate_scatter_indices.append(indices)
+                gate_scatter_values.append(feature_gate)
                 current_owned_numeric = current_numeric_fields.index_select(
                     2, indices
                 )
@@ -2392,6 +2404,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         feature_gate[..., local_position].unsqueeze(-1)
                     )
                 family_states.append(gathered_state + current_residual)
+            full_feature_gate = full_feature_gate.scatter(
+                2,
+                torch.cat(gate_scatter_indices)
+                .view(1, 1, -1)
+                .expand(batch_size, state_count, -1),
+                torch.cat(gate_scatter_values, dim=2),
+            )
             tf_family_states.append(torch.stack(family_states, dim=2))
             tf_feature_gate_rows.append(full_feature_gate)
         family_tf = torch.stack(tf_family_states, dim=2)

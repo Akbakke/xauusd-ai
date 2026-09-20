@@ -234,6 +234,14 @@ def _patch_episode_owners(monkeypatch: pytest.MonkeyPatch, targets: torch.Tensor
     monkeypatch.setattr(
         trainer, "_fitted_q_targets_for_episode_batch", fitted_targets_batch
     )
+    # The shared per-chunk input assembly runs before the stubbed forwards
+    # and would read real episode keys the minimal fixtures do not carry;
+    # both consumers above are stubbed, so its value is unused here.
+    monkeypatch.setattr(
+        trainer,
+        "_assemble_unified_exit_episode_inputs",
+        lambda **kwargs: {},
+    )
 
 
 @pytest.mark.parametrize("exit_action_forward_chunk_rows", [None, 1])
@@ -391,6 +399,11 @@ def test_attended_exit_chunking_streams_complete_episode_groups(
     monkeypatch.setattr(trainer, "_forward_unified_exit_episode_batch", forward_batch)
     monkeypatch.setattr(
         trainer, "_fitted_q_targets_for_episode_batch", fitted_targets_batch
+    )
+    monkeypatch.setattr(
+        trainer,
+        "_assemble_unified_exit_episode_inputs",
+        lambda **kwargs: {},
     )
     model = _ExitModel()
     model.task_log_variances["unified_exit_action"].data.fill_(0.2)
