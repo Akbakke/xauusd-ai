@@ -1,5 +1,25 @@
 # Project-wide deep review — 2026-09-19
 
+> **Repair status — 2026-09-20.** Four repair waves are committed on
+> `audit/v9-premiere-20260905`, each with a green full canonical CPU suite:
+> `6a2be2a7` (wave 1: trainer hygiene + EMA warmup — closes A-3, A-4's
+> visibility, F1/F2/F5–F17/F19), `48d570ad` (wave 2: contract-derived
+> intra-epoch fitted-Q target refresh, iteration-state schema v2 — closes
+> A-1 and thereby the A-2 interaction; the monitor's absorbing property now
+> judges a fully propagated value function, which is the honest criterion),
+> `02babae8` (wave 3: cloud seams — closes B-1, B-3, B-4, B-5, A5, A8),
+> `233a602d` (wave 4: dataset chain — closes C-1, C-3, C-4, C-7).
+> **Still open, deliberately batched into ONE rebuild wave** because they
+> change fit populations or targets: C-2 (gap-spanning Exit episodes), C-5
+> (closed-interval upstream fits at a shared boundary), and the feature
+> encodings D-1…D-6 with their mediums. Cloud items still open: B-2
+> (plausibility floor needs an independent witness bound into the smoke
+> measurement), A6/A7 (billed instance time vs training time; FX staleness
+> window), C2/C3-cloud (provider-side deadline off-host; monotonic clock
+> backstop). Every remaining item requires either the rebuild or an
+> operator/provider decision; no training or spend is authorized by this
+> note.
+
 Operator-ordered full-project defect hunt, executed 2026-09-19 by five parallel
 read-only audits over (1) the decision-layer contracts, (2) the complete
 canonical trainer, (3) the feature layer, (4) the committed cloud-training
