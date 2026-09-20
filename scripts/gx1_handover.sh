@@ -418,9 +418,9 @@ def _active_candidate_session_status(launch_state: dict) -> tuple[str, ...]:
     ):
         bindings_path = Path(superseded["bindings_path"])
         if not bindings_path.is_absolute():
-            # Resolve relative to the launch-state file's own directory
-            # (the repo root), which this heredoc receives as argv[1].
-            bindings_path = Path(sys.argv[1]).resolve().parent / bindings_path
+            # Resolve relative to the repo root, which this heredoc
+            # receives as argv[1] (argv[2] is the launch-state file).
+            bindings_path = Path(sys.argv[1]).resolve() / bindings_path
         if bindings_path.is_file() and not bindings_path.is_symlink():
             bindings_bytes = bindings_path.read_bytes()
             if (
@@ -667,9 +667,9 @@ def _current_source_technical_recipe_status(
     ):
         bindings_path = Path(superseded["bindings_path"])
         if not bindings_path.is_absolute():
-            # Resolve relative to the launch-state file's own directory
-            # (the repo root), which this heredoc receives as argv[1].
-            bindings_path = Path(sys.argv[1]).resolve().parent / bindings_path
+            # Resolve relative to the repo root, which this heredoc
+            # receives as argv[1] (argv[2] is the launch-state file).
+            bindings_path = Path(sys.argv[1]).resolve() / bindings_path
         if bindings_path.is_file() and not bindings_path.is_symlink():
             bindings_bytes = bindings_path.read_bytes()
             if (
