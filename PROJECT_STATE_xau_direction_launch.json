@@ -156,7 +156,7 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
+    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_GATE_SMOKE_20260920T164815Z_RECIPE.json",
     "recipe_sha256": "1c53748b0303b2b2f5b983b257030b818e55dd8009f229ea4992a06015066a41",
     "source_commit": "bb882272538ff6220f7359a3e6636507a480732d",
