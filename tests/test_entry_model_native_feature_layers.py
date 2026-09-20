@@ -151,7 +151,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # narrower surface rather than a changed one.  The width itself is
             # never restated: it is read from the owner tuple below.
             (240, len(PRICE_DERIVED_FEATURE_NAMES)),
-            "c2e41f45317ddb571fac9c722984da81c8472d1751596d9f6dcb8286698f2dfe",
+            "fafcdee6b5d8451afc2c2b478c3a4dbfbea121bde7a6488f5e9f8db10bd38b5a",
             "e2dd5d7119a90e593815f46d205d8bbfb0315ec5df9dfc587503492bfb9e6752",
         ),
         "candle": (
@@ -181,8 +181,17 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # bars, i.e. the two extra prefix rows counted by a run-length
             # field.  Every other column is bit-identical and the name hash is
             # unchanged.
+            # 2026-09-20 (D-5): untouched by the spread repair; the value hash
+            # moved only because the layer floor rose 204 -> 209, adding five
+            # leading fixture bars. MEASURED attribution: rebuilding on the
+            # 204-row floor reproduces the previous hash
+            # 52288c6502211a316f5c67661a6136e6fd1cc26c1e20c225d648508714756058
+            # exactly, and exactly one column differs between the two —
+            # candle.raw_observed_body_direction_duration_bars, uniformly +5
+            # bars (the five extra prefix rows counted by a run-length field).
+            # Every other column is bit-identical; the name hash is unchanged.
             (240, 21),
-            "52288c6502211a316f5c67661a6136e6fd1cc26c1e20c225d648508714756058",
+            "1ed7cda355a71369af6ee82bcd479252d9a8f28c5c459c9ef9241059d57685a8",
             "9a869c450465859c43e7eab1bfca8a6bd7f9a3fc05e636df36a29d6c29ff26a7",
         ),
     }
@@ -705,8 +714,14 @@ def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
     )
     spread = block["spread"]
     atr14_positive = block["atr14_positive"]
-    expected_delta = (spread.diff() / atr14_positive).loc[samples["time"]]
-    expected_accel = (spread.diff().diff() / atr14_positive).loc[samples["time"]]
+    lookback = LOCAL_EMA_SLOPE_LOOKBACK_BARS
+    expected_delta = (
+        (spread - spread.shift(lookback)) / atr14_positive
+    ).loc[samples["time"]]
+    expected_accel = (
+        (spread - 2.0 * spread.shift(lookback) + spread.shift(2 * lookback))
+        / atr14_positive
+    ).loc[samples["time"]]
 
     local, local_names = build_price_derived_layer(samples, source_path)
     np.testing.assert_array_equal(
@@ -723,6 +738,21 @@ def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
     assert not np.allclose(
         expected_delta.to_numpy(dtype=np.float64),
         differenced_normalized,
+        equal_nan=True,
+    )
+    # D-5 non-duplication proof: the retired one-bar diff was EXACTLY
+    # (2/49)*(close-ema50) - (2/199)*(close-ema200) over the same ATR; the
+    # 5-bar delta must not reproduce that affine combination of two fields
+    # already in the tuple.
+    close = indexed["close"].astype(np.float64)
+    affine_duplicate = (
+        (2.0 / 49.0) * (close - block["ema50"])
+        - (2.0 / 199.0) * (close - block["ema200"])
+    ) / atr14_positive
+    assert not np.allclose(
+        expected_delta.to_numpy(dtype=np.float64),
+        affine_duplicate.loc[samples["time"]].to_numpy(dtype=np.float64),
+        equal_nan=True,
     )
 
 
@@ -834,7 +864,11 @@ def test_price_layer_warmup_floor_is_exactly_the_ema200_slope_first_finite_row(
     a NaN prefix as model evidence.
     """
 
-    assert PRICE_DERIVED_CAUSAL_WARMUP_ROWS == 199 + LOCAL_EMA_SLOPE_LOOKBACK_BARS
+    # D-5: the accel field's 2x lookback owns the floor now.
+    assert (
+        PRICE_DERIVED_CAUSAL_WARMUP_ROWS
+        == 199 + 2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS
+    )
 
     _matrix, _names, _samples, source, source_path = _valid_inputs(tmp_path)
     times = pd.DatetimeIndex(source["time"])

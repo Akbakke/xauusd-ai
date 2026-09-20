@@ -89,16 +89,17 @@ LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
 # price-vs-EMA cross events add one shift(1) on top of their EMA source (first
 # finite row: index 200 for the ema200 pair, 50 for the ema50 pair).
 #
-# 2026-08-19 fidelity repair (this wave): the floor moved 201 -> 204 and the
-# arithmetic is derived, never chosen.  ``local_ema200_slope_atr`` is
-# ``ema200[t] - ema200[t - LOCAL_EMA_SLOPE_LOOKBACK_BARS]``, so its first
-# finite row is the classic EMA200 first valid row (199) plus the lookback
-# (5) = 204, three rows later than the second spread derivative.  The ema50
-# side is 49 + 5 = 54 and stays well inside.  Sample rows must therefore begin
-# at source index 204 or later; verified on the full layer at native
-# M1 and M5 cadence: index 203 fails the layer's own finiteness gate and 204
-# passes.
-PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 204
+# 2026-08-19 fidelity repair: the floor moved 201 -> 204 (EMA200 first valid
+# row 199 plus the slope lookback 5), derived, never chosen.
+#
+# 2026-09-20 (deep-review D-5): the spread delta/accel moved from one-bar
+# diffs (an exact affine duplicate of the two price-vs-EMA gaps) to the same
+# LOCAL_EMA_SLOPE_LOOKBACK_BARS convention as the sibling slopes. The
+# longest warmup is now ``spread_accel_atr`` = spread first valid row (199)
+# plus 2 x lookback = 209; every other field stays at or inside 204. The
+# floor is derived from the same constants, never chosen; index 208 fails
+# the layer's own finiteness gate and 209 passes.
+PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + 2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
 # ratio ER = |close[t] - close[t-30]| / sum_{i=t-29..t} |close[i] - close[i-1]|
@@ -621,15 +622,25 @@ def build_price_derived_layer(
         ema200 - ema200.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
     ) / atr14_positive
 
-    def causal_delta(values: pd.Series) -> pd.Series:
-        return values.diff()
-
-    # Raw USD spread differences over the CURRENT bar's positive ATR (the
-    # convention of every k-bar change field in this repository), not
-    # differences of an already normalized series: the latter would fold the
-    # ATR's own bar-to-bar change into a quantity named for the spread.
-    spread_delta_atr = causal_delta(spread) / atr14_positive
-    spread_accel_atr = causal_delta(causal_delta(spread)) / atr14_positive
+    # 2026-09-20 (deep-review D-5) REPAIR: the one-bar diff made this field an
+    # exact affine combination of two fields already in the tuple —
+    # spread.diff()[t] == (2/49)*(close-ema50)[t] - (2/199)*(close-ema200)[t]
+    # by the EMA recurrence identity proven at the top of this module, i.e. a
+    # functional duplicate contributing no new evidence (verified numerically
+    # to 2.5e-13 on real block output). The repair adopts the exact
+    # convention of the sibling slope fields in this same block
+    # (LOCAL_EMA_SLOPE_LOOKBACK_BARS-bar lookback over the current bar's
+    # positive ATR), which is not an affine function of the current-bar gaps.
+    # Raw USD spread differences, never differences of a normalized series:
+    # the latter would fold the ATR's own change into the spread quantity.
+    spread_delta_atr = (
+        spread - spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / atr14_positive
+    spread_accel_atr = (
+        spread
+        - 2.0 * spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+        + spread.shift(2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / atr14_positive
 
     # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
     # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed

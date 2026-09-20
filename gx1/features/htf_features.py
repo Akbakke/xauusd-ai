@@ -34,8 +34,6 @@ import pandas as pd
 from gx1.time.session_detector import (
     TRADING_SESSION_BOUNDARY_OFFSET,
     TRADING_SESSION_BOUNDARY_UTC_HOUR,
-    TRADING_SESSION_CLOCK_SCHEMA_VERSION,
-    trading_session_id_vectorized,
     trading_session_label,
 )
 from gx1.features.technical_indicators_v1 import (
@@ -2518,129 +2516,6 @@ def _rolling_vwap(close: pd.Series, volume: pd.Series, window: int) -> pd.Series
     return pv_sum / v_sum
 
 
-_SESSION_VWAP_STATE_SCHEMA_VERSION = "htf_v4_session_vwap_state_v1"
-_SESSION_VWAP_STATE_KEYS = frozenset(
-    {
-        "schema_version",
-        "clock_schema_version",
-        "bar_duration_ns",
-        "last_index_ns",
-        "last_session_id",
-        "price_volume_sum",
-        "volume_sum",
-    }
-)
-
-
-def _session_vwap(
-    close: pd.Series,
-    volume: pd.Series,
-    *,
-    bar_duration: pd.Timedelta,
-    state: Mapping | None = None,
-    return_state: bool = False,
-):
-    """Causal VWAP on the shared UTC trading-session clock.
-
-    The recurrence is identical for one-shot, prefix, and chunked execution.
-    Missing weekend/holiday rows advance the session id without synthesizing
-    observations; the first observed row in a new id resets the accumulators.
-    """
-
-    if not isinstance(close, pd.Series) or not isinstance(volume, pd.Series):
-        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_INVALID")
-    if close.empty or volume.empty or not close.index.equals(volume.index):
-        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_GEOMETRY_INVALID")
-    if not isinstance(close.index, pd.DatetimeIndex):
-        raise RuntimeError("HTF_V4_SESSION_VWAP_CLOCK_INVALID")
-    if not isinstance(bar_duration, pd.Timedelta) or bar_duration <= pd.Timedelta(0):
-        raise RuntimeError("HTF_V4_SESSION_VWAP_BAR_DURATION_INVALID")
-    close_values = close.to_numpy(dtype=np.float64)
-    volume_values = volume.to_numpy(dtype=np.float64)
-    if not np.isfinite(close_values).all():
-        raise RuntimeError("HTF_V4_SESSION_VWAP_SOURCE_INVALID: close is non-finite")
-    if not np.isfinite(volume_values).all():
-        raise RuntimeError(
-            "HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume is non-finite"
-        )
-    if np.any(volume_values <= 0.0):
-        raise RuntimeError(
-            "HTF_V4_VOLUME_SOURCE_INVALID: session VWAP volume must be positive"
-        )
-    session_ids = trading_session_id_vectorized(
-        close.index,
-        context="HTF_V4_SESSION_VWAP",
-    )
-    bar_duration_ns = int(bar_duration.value)
-    grid_offset_ns = int((TRADING_SESSION_BOUNDARY_OFFSET % bar_duration).value)
-    if np.any((close.index.asi8 - grid_offset_ns) % bar_duration_ns != 0):
-        raise RuntimeError("HTF_V4_SESSION_VWAP_BAR_OFF_GRID")
-
-    if state is None:
-        previous_index_ns: int | None = None
-        previous_session_id: int | None = None
-        price_volume_sum = 0.0
-        volume_sum = 0.0
-    else:
-        if not isinstance(state, Mapping) or set(state) != _SESSION_VWAP_STATE_KEYS:
-            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_INVALID")
-        if (
-            state.get("schema_version") != _SESSION_VWAP_STATE_SCHEMA_VERSION
-            or state.get("clock_schema_version")
-            != TRADING_SESSION_CLOCK_SCHEMA_VERSION
-            or state.get("bar_duration_ns") != bar_duration_ns
-        ):
-            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_CONTRACT_MISMATCH")
-        previous_index_ns = state.get("last_index_ns")
-        previous_session_id = state.get("last_session_id")
-        price_volume_sum = state.get("price_volume_sum")
-        volume_sum = state.get("volume_sum")
-        integer_state = (previous_index_ns, previous_session_id)
-        numeric_state = (price_volume_sum, volume_sum)
-        if (
-            any(isinstance(value, (bool, np.bool_)) for value in integer_state)
-            or not all(isinstance(value, (int, np.integer)) for value in integer_state)
-            or any(isinstance(value, (bool, np.bool_)) for value in numeric_state)
-            or not all(
-                isinstance(value, (int, float, np.integer, np.floating))
-                for value in numeric_state
-            )
-            or not np.isfinite(np.asarray(numeric_state, dtype=np.float64)).all()
-            or float(volume_sum) <= 0.0
-            or int(close.index.asi8[0]) <= int(previous_index_ns)
-        ):
-            raise RuntimeError("HTF_V4_SESSION_VWAP_STATE_INVALID")
-        previous_index_ns = int(previous_index_ns)
-        previous_session_id = int(previous_session_id)
-        price_volume_sum = float(price_volume_sum)
-        volume_sum = float(volume_sum)
-
-    observed = np.empty(len(close_values), dtype=np.float64)
-    for row, (session_id, price, row_volume) in enumerate(
-        zip(session_ids, close_values, volume_values, strict=True)
-    ):
-        current_session_id = int(session_id)
-        if previous_session_id != current_session_id:
-            price_volume_sum = 0.0
-            volume_sum = 0.0
-        price_volume_sum += float(price) * float(row_volume)
-        volume_sum += float(row_volume)
-        observed[row] = price_volume_sum / volume_sum
-        previous_session_id = current_session_id
-
-    result = pd.Series(observed, index=close.index, name=close.name)
-    next_state = {
-        "schema_version": _SESSION_VWAP_STATE_SCHEMA_VERSION,
-        "clock_schema_version": TRADING_SESSION_CLOCK_SCHEMA_VERSION,
-        "bar_duration_ns": bar_duration_ns,
-        "last_index_ns": int(close.index.asi8[-1]),
-        "last_session_id": int(previous_session_id),
-        "price_volume_sum": float(price_volume_sum),
-        "volume_sum": float(volume_sum),
-    }
-    return (result, next_state) if return_state else result
-
-
 def _adx14(
     high: pd.Series,
     low: pd.Series,
@@ -3161,21 +3036,20 @@ def compute_per_bar_features_v4(
     stack[bear] = -1
     out["ema_stack_aligned_v2"] = stack
 
-    # Declared-TF selection (2026-08-09): value-identical to the retired
-    # >=23h median-spacing inference for the five declared timeframes, without
-    # inferring the clock from data or swallowing NaT spacing.
+    # 2026-09-20 (deep-review D-4) REPAIR: one formula on every lane. The
+    # session-anchored branch made this field an exact session-phase
+    # indicator — 16.7% of H4 rows were exactly 0.0 (the 22:00 UTC session
+    # opens, cumulative VWAP == that bar's close) and the effective lookback
+    # sawtoothed 1..bars-per-session within each day, while D1 used a fixed
+    # 5-bar window. Same defect class and same repair as the sibling
+    # `vwap_rolling5_slope_atr` (V30 wave 2): per-lane branching is
+    # forbidden, and the only union that invents nothing is to adopt the D1
+    # branch's OWN operand — the 5-bar rolling VWAP — everywhere. Session
+    # placement remains available to the model through the session/regime
+    # family's declared clock fields, not through a distance field's zeros.
     vwap_rolling5 = _rolling_vwap(close, volume, 5)
-    local_cycle_vwap = (
-        vwap_rolling5
-        if timeframe == "D1"
-        else _session_vwap(
-            close,
-            volume,
-            bar_duration=pd.Timedelta(MULTI_TF_RESAMPLE_RULES[timeframe]),
-        )
-    )
     out["vwap_local_cycle_dist_atr"] = (
-        (close - local_cycle_vwap) / atr_positive
+        (close - vwap_rolling5) / atr_positive
     )
     vwap20 = _rolling_vwap(close, volume, 20)
     out["vwap20_dist_atr"] = (close - vwap20) / atr_positive

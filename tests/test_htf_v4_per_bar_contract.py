@@ -138,25 +138,6 @@ def test_adx14_has_classic_wilder_seed_and_raw_scale() -> None:
     )
 
 
-def test_session_vwap_resets_at_trading_day_not_midnight() -> None:
-    index = pd.DatetimeIndex(
-        [
-            "2026-01-01T21:00:00Z",
-            "2026-01-01T22:00:00Z",
-            "2026-01-01T23:00:00Z",
-            "2026-01-02T00:00:00Z",
-        ]
-    )
-    close = pd.Series([10.0, 20.0, 30.0, 40.0], index=index)
-    volume = pd.Series(np.ones(4), index=index)
-    observed = htf._session_vwap(
-        close,
-        volume,
-        bar_duration=pd.Timedelta(hours=1),
-    )
-    np.testing.assert_array_equal(observed.to_numpy(), [10.0, 20.0, 25.0, 30.0])
-
-
 EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "atr_bps_14",
     "rsi14_centered",
@@ -1806,6 +1787,33 @@ def test_retired_per_tf_body_pct_is_exactly_the_unsigned_signed_twin() -> None:
     )
 
 
+def _retired_session_vwap_reference(
+    close: pd.Series, volume: pd.Series
+) -> pd.Series:
+    """Test-local copy of the retired per-trading-day VWAP accumulator."""
+
+    from gx1.time.session_detector import trading_session_id_vectorized
+
+    session_ids = trading_session_id_vectorized(
+        close.index, context="RETIRED_SESSION_VWAP_REFERENCE"
+    )
+    observed = np.empty(len(close), dtype=np.float64)
+    previous_id = None
+    price_volume_sum = 0.0
+    volume_sum = 0.0
+    for row, (session_id, price, row_volume) in enumerate(
+        zip(session_ids, close.to_numpy(), volume.to_numpy(), strict=True)
+    ):
+        if previous_id != int(session_id):
+            price_volume_sum = 0.0
+            volume_sum = 0.0
+        price_volume_sum += float(price) * float(row_volume)
+        volume_sum += float(row_volume)
+        observed[row] = price_volume_sum / volume_sum
+        previous_id = int(session_id)
+    return pd.Series(observed, index=close.index)
+
+
 def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator() -> None:
     """The per-TF VWAP slope is the 5-bar difference of a ROLLING 5-bar VWAP.
 
@@ -1820,7 +1828,11 @@ def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator()
 
     assert "vwap_local_cycle_slope_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
     assert "vwap_rolling5_slope_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
-    # The distance field still reads the session accumulator; only the slope moved.
+    # 2026-09-20 (deep-review D-4): the distance field now uses the same
+    # rolling-5 operand on every lane; the session accumulator is retired
+    # end to end. The reference below is a test-local copy of the retired
+    # per-trading-day accumulator, kept so this regression still proves the
+    # emitted columns do not reproduce it.
     assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
 
     bars = _bars(4_000, seed=515)
@@ -1862,11 +1874,7 @@ def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator()
             # D1's retired operand already WAS the rolling 5-bar VWAP, so the
             # emitted float there is unchanged and nothing distinguishes them.
             continue
-        session = htf._session_vwap(
-            close,
-            volume,
-            bar_duration=pd.Timedelta(htf.MULTI_TF_RESAMPLE_RULES[timeframe]),
-        )
+        session = _retired_session_vwap_reference(close, volume)
         retired = ((session - session.shift(5)) / atr_positive).to_numpy(
             dtype=np.float64
         )
