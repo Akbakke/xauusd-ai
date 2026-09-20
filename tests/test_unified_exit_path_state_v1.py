@@ -286,6 +286,7 @@ def test_path_state_rolls_tail_and_preserves_all_time_duration() -> None:
         bars_in_trade=envelope["bars_in_trade"],
         entry_bid=state.entry_bid,
         entry_ask=state.entry_ask,
+        entry_fill_time=pd.Timestamp(envelope["entry_fill_ts"]),
     )
     assert tensor.shape == (
         UNIFIED_EXIT_MAX_PATH_BARS,

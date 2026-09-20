@@ -57,13 +57,17 @@ from gx1.models.entry_v10.direction_decision_contract import (
 from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
 
 
-# v11 (2026-09-20, deep-review C-2): episode eligibility additionally
-# requires wall-clock minute-consecutive states (spans_source_gap), so a
-# weekend/closure gap inside the 512-state window excludes the entry —
-# matching the Entry-side exact-completeness convention. v10 lifecycle
-# files carry the old eligibility population and must fail closed.
+# v12 (2026-09-20, deep-review C-2 + operator decision: FULL supervision):
+# gap-spanning episodes are ELIGIBLE — a position held through a closure is
+# real economics — and the actual defect is repaired at the source instead:
+# the path tensor's elapsed channel carries real wall-clock minutes
+# (log1p_elapsed_wall_minutes), so bridged states age honestly. The
+# gap-spanning count is a diagnostic proof field, never an exclusion. The
+# short-lived v11 (gap exclusion; measured 37% TRAIN loss with a full
+# US-session Exit-supervision hole) and v10 (row-counter elapsed channel)
+# populations both fail closed.
 UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION = (
-    "gx1_unified_exit_lifecycle_episode_envelope_v11"
+    "gx1_unified_exit_lifecycle_episode_envelope_v12"
 )
 UNIFIED_EXIT_STATE_SELECTION_SCHEMA_VERSION = (
     "gx1_unified_exit_full_authoritative_state_pointer_population_v2"
@@ -1338,10 +1342,10 @@ class UnifiedExitLifecycleSplit:
             + int(pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value)
             > int(split_end.value)
         )
-        # C-2: independently reconstruct the wall-clock-continuity rule the
-        # producer applies — episode states must be minute-consecutive, so a
-        # weekend/closure gap inside the 512-state window excludes the entry
-        # (matching the Entry-side exact-completeness convention).
+        # C-2 (v12, full supervision): independently reconstruct the
+        # diagnostic gap-spanning count the producer records. Gap-spanning
+        # episodes remain eligible; their path tensors carry honest
+        # wall-clock ages instead of the retired row-counter channel.
         decision_delta_ns = int(
             pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS).value
         )
@@ -1354,7 +1358,7 @@ class UnifiedExitLifecycleSplit:
             - m1_ns[start_rows[continuous_positions]]
             != (path_state_count - 1) * decision_delta_ns
         )
-        eligible = complete_tail & ~crosses_split_end & ~spans_source_gap
+        eligible = complete_tail & ~crosses_split_end
         expected_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
         expected_starts = np.asarray(
             start_rows[expected_rows], dtype=np.int64
@@ -1386,12 +1390,14 @@ class UnifiedExitLifecycleSplit:
             ),
             "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
             "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
-            "spans_source_gap": int(np.count_nonzero(spans_source_gap)),
         }
+        expected_gap_spanning = int(np.count_nonzero(spans_source_gap))
         if (
             manifest.get("entry_rows") != self.entry_row_count
             or manifest.get("eligible_entry_rows") != len(expected_rows)
             or manifest.get("skipped_entry_rows") != expected_skipped
+            or manifest.get("gap_spanning_supervised_entry_rows")
+            != expected_gap_spanning
         ):
             raise RuntimeError(
                 f"UNIFIED_EXIT_LIFECYCLE_ELIGIBILITY_PROOF_INVALID: "
@@ -1771,6 +1777,17 @@ class UnifiedExitLifecycleSplit:
         )
         if len(price_arrays) != len(UNIFIED_EXIT_PATH_PRICE_FIELDS):
             raise RuntimeError("UNIFIED_EXIT_EPISODE_PATH_LAYOUT_INVALID")
+        # Real wall-clock position age per state (C-2, full supervision):
+        # the fill executes at the start row's bar open; state N's decision
+        # is at its own bar close, so age = (bar_open - fill_open)/1min + 1.
+        # Bit-identical to the retired observed-row counter on a gap-free
+        # window; jumps by the true closure length across a source gap.
+        slice_open_ns = np.asarray(
+            self._m1_times.asi8[source_slice], dtype=np.int64
+        )
+        elapsed_wall_minutes = (
+            (slice_open_ns - int(slice_open_ns[0])) // 60_000_000_000
+        ) + 1
         path_by_side = []
         for side_index, pointer in enumerate((long_pointer, short_pointer)):
             del side_index
@@ -1783,6 +1800,7 @@ class UnifiedExitLifecycleSplit:
                     bars_in_trade=UNIFIED_EXIT_MAX_PATH_BARS,
                     entry_bid=float(pointer[2]),
                     entry_ask=float(pointer[3]),
+                    elapsed_wall_minutes=elapsed_wall_minutes,
                 )
             )
         long_exit_reward = (

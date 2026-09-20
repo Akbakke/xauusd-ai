@@ -1497,6 +1497,7 @@ class SmartEntryLiveInference:
             bars_in_trade=int(envelope["bars_in_trade"]),
             entry_bid=entry_bid,
             entry_ask=entry_ask,
+            entry_fill_time=pd.Timestamp(envelope["entry_fill_ts"]),
         )
         bars_in_trade = int(envelope["bars_in_trade"])
         if not 1 <= bars_in_trade <= UNIFIED_EXIT_MAX_PATH_BARS:

@@ -2058,16 +2058,20 @@ def build_unified_exit_lifecycle_episodes(
         + decision_delta_ns
         > parsed_split_end.value
     )
-    # C-2 (docs/PROJECT_DEEP_REVIEW_20260919.md): episode states must be
-    # wall-clock consecutive, not only row-consecutive. A row-consecutive
-    # episode silently bridges weekends/closures: the elapsed-time channel
-    # says "one minute" across the gap while exit_now_reward jumps by the
-    # whole gap with zero financing — the largest spurious reward jumps in
-    # the corpus at exactly the states where the clock feature is wrong.
-    # The Entry-side labels already require exact wall-clock completeness
-    # (a closure inside the horizon invalidates the row); this applies the
-    # same declared convention to the Exit episode. The bound is fully
-    # derived: 511 = path_state_count - 1 one-minute state advances.
+    # C-2 (docs/PROJECT_DEEP_REVIEW_20260919.md, operator-decided
+    # 2026-09-20: FULL supervision). Gap-spanning episodes remain ELIGIBLE:
+    # a position held through a weekend/maintenance closure is real economics
+    # and its gap P&L is real. The measured 512-minute-continuity exclusion
+    # removed 37% of TRAIN entries (every entry within 8.5h of the daily
+    # maintenance break) and left the whole US session without Exit
+    # supervision — a train/serve population mismatch worse than the defect.
+    # The actual defect — the elapsed-time channel counting a closure as one
+    # minute — is repaired at the source instead: the path tensor's elapsed
+    # channel now carries real wall-clock minutes (episode schema v12,
+    # log1p_elapsed_wall_minutes), so bridged states age honestly. The
+    # gap-spanning count is retained as a DIAGNOSTIC population measurement,
+    # never an exclusion; financing across closures remains the separately
+    # declared executable-economics successor.
     spans_source_gap = np.zeros(len(entry_time), dtype=np.bool_)
     continuous_positions = np.flatnonzero(complete_tail & ~crosses_split_end)
     spans_source_gap[continuous_positions] = (
@@ -2075,14 +2079,14 @@ def build_unified_exit_lifecycle_episodes(
         - m1_ns[start_rows[continuous_positions]]
         != (path_state_count - 1) * decision_delta_ns
     )
-    eligible = complete_tail & ~crosses_split_end & ~spans_source_gap
+    eligible = complete_tail & ~crosses_split_end
     eligible_entry_rows = np.flatnonzero(eligible).astype(np.int64, copy=False)
     skipped = {
         "missing_entry_available_m1_open": int(np.count_nonzero(~exact_open)),
         "insufficient_m1_tail": int(np.count_nonzero(insufficient_tail)),
         "crosses_split_end": int(np.count_nonzero(crosses_split_end)),
-        "spans_source_gap": int(np.count_nonzero(spans_source_gap)),
     }
+    gap_spanning_supervised_entry_rows = int(np.count_nonzero(spans_source_gap))
     if len(eligible_entry_rows) == 0:
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES")
     eligible_start_rows = np.asarray(
@@ -2171,6 +2175,12 @@ def build_unified_exit_lifecycle_episodes(
         "m1_row_clock": EXIT_FEATURE_ROW_CLOCK,
         "market_closure_contract": market_closure_contract,
         "skipped_entry_rows": skipped,
+        # Diagnostic population measurement, never an exclusion (schema
+        # v12): supervised episodes whose 512-state window spans at least
+        # one source gap; their path tensors carry honest wall-clock ages.
+        "gap_spanning_supervised_entry_rows": (
+            gap_spanning_supervised_entry_rows
+        ),
         "split_end_utc": parsed_split_end.isoformat(),
         "entry_side_selection": "both_sides_for_every_causal_entry_snapshot",
         "state_population": (

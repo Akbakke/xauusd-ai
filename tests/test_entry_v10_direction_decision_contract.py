@@ -199,11 +199,13 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
         _closed_m1_row("2026-07-29T12:00:00Z"),
         _closed_m1_row("2026-07-29T12:01:00Z", shift=0.05),
     ]
+    fill_time = pd.Timestamp("2026-07-29T12:00:00Z")
     tensor = unified_exit_path_tensor(
         path_rows=rows,
         bars_in_trade=2,
         entry_bid=99.98,
         entry_ask=100.02,
+        entry_fill_time=fill_time,
     )
 
     assert tensor.shape == (2, UNIFIED_EXIT_PATH_FEATURE_DIM)
@@ -211,19 +213,27 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
     assert np.isfinite(tensor).all()
     assert tensor[0, 0] == pytest.approx(0.0)
     assert tensor[0, -3] == pytest.approx(np.log1p(100))
+    # Gap-free window: wall-clock minutes equal the observed-row index.
     assert tensor[:, -2].tolist() == pytest.approx(
         [np.log1p(1), np.log1p(2)]
     )
     assert tensor[0, -1] == pytest.approx(4.0)
 
+    # C-2 full supervision: a bridged gap ages the position HONESTLY — the
+    # second retained row is three wall-clock minutes after the fill even
+    # though it is only the second observed row.
     gapped = [rows[0], _closed_m1_row("2026-07-29T12:02:00Z")]
     gapped_tensor = unified_exit_path_tensor(
         path_rows=gapped,
         bars_in_trade=2,
         entry_bid=99.98,
         entry_ask=100.02,
+        entry_fill_time=fill_time,
     )
     assert gapped_tensor.shape == (2, UNIFIED_EXIT_PATH_FEATURE_DIM)
+    assert gapped_tensor[:, -2].tolist() == pytest.approx(
+        [np.log1p(1), np.log1p(3)]
+    )
 
     reversed_rows = [gapped[1], gapped[0]]
     with pytest.raises(ValueError, match="row clock duplicate/reversal"):
@@ -232,6 +242,7 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
             bars_in_trade=2,
             entry_bid=99.98,
             entry_ask=100.02,
+            entry_fill_time=fill_time,
         )
 
     noncanonical = [dict(rows[0])]
@@ -242,6 +253,7 @@ def test_unified_exit_path_tensor_preserves_literal_mba_prefix_without_side_rule
             bars_in_trade=1,
             entry_bid=99.98,
             entry_ask=100.02,
+            entry_fill_time=fill_time,
         )
 
 

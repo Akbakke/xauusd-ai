@@ -112,10 +112,18 @@ UNIFIED_EXIT_PATH_PRICE_FIELDS = (
     "mid_low",
     "mid_close",
 )
+# 2026-09-20 (deep-review C-2, operator-decided full supervision): the
+# elapsed channel is REAL wall-clock minutes since the entry fill, not the
+# observed-row index. On a gap-free window the two are bit-identical
+# (consecutive M1 rows are exactly one minute apart), so this changes values
+# only where the row counter lied: across weekend/maintenance gaps a held
+# position's true age now jumps honestly instead of counting one minute,
+# which is what made bridged episodes carry the corpus's largest spurious
+# reward-per-claimed-minute states. Same formula in train, replay and live.
 UNIFIED_EXIT_PATH_FEATURE_ORDER = (
     *tuple(f"{name}_bps_from_entry_mid" for name in UNIFIED_EXIT_PATH_PRICE_FIELDS),
     "log1p_volume",
-    "log1p_elapsed_bar_index",
+    "log1p_elapsed_wall_minutes",
     "entry_spread_bps",
 )
 UNIFIED_EXIT_PATH_FEATURE_DIM = len(UNIFIED_EXIT_PATH_FEATURE_ORDER)
@@ -477,14 +485,18 @@ def unified_exit_path_tensor(
     bars_in_trade: int,
     entry_bid: float,
     entry_ask: float,
+    entry_fill_time: "pd.Timestamp",
 ) -> np.ndarray:
     """Convert one exact literal M1 prefix to the sole Exit tensor surface.
 
     Prices are expressed in bps from the executable fill midpoint.  This is a
     deterministic unit transform, not a direction rule: long/short remains a
     separate learned embedding and all literal bid/ask/mid OHLC values survive
-    independently. The elapsed-bar feature preserves all-time duration when
-    only the bounded recent tail is retained.
+    independently. The elapsed feature carries REAL wall-clock minutes since
+    ``entry_fill_time`` (the entry bar open the fill executed at), derived
+    from each retained row's own close timestamp, so all-time duration is
+    preserved when only the bounded recent tail is retained and a source
+    gap ages the position honestly.
     """
 
     if not isinstance(path_rows, list) or not path_rows:
@@ -540,6 +552,22 @@ def unified_exit_path_tensor(
         previous_time = current_time
         canonical_rows.append(canonical)
 
+    parsed_fill_time = pd.Timestamp(entry_fill_time)
+    if parsed_fill_time.tzinfo is None:
+        raise ValueError("unified Exit entry fill time must be tz-aware UTC")
+    # Real position age at each retained state: the state's decision is at
+    # its bar CLOSE, one minute after that bar's open, so a fill at the
+    # entry bar open puts state N (open at fill + N-1 observed minutes on a
+    # gap-free clock) at wall-clock age (row_open - fill)/1min + 1.
+    elapsed_wall_minutes = np.asarray(
+        [
+            (pd.Timestamp(row["time"]) - parsed_fill_time)
+            // pd.Timedelta(minutes=1)
+            + 1
+            for row in canonical_rows
+        ],
+        dtype=np.int64,
+    )
     return unified_exit_path_tensor_from_values(
         price_values=np.asarray(
             [
@@ -555,6 +583,7 @@ def unified_exit_path_tensor(
         bars_in_trade=bars_in_trade,
         entry_bid=entry_bid,
         entry_ask=entry_ask,
+        elapsed_wall_minutes=elapsed_wall_minutes,
     )
 
 
@@ -565,8 +594,18 @@ def unified_exit_path_tensor_from_values(
     bars_in_trade: int,
     entry_bid: float,
     entry_ask: float,
+    elapsed_wall_minutes: np.ndarray,
 ) -> np.ndarray:
-    """Apply the one train/replay/live Exit path value transform."""
+    """Apply the one train/replay/live Exit path value transform.
+
+    ``elapsed_wall_minutes`` is the per-retained-row REAL wall-clock age of
+    the position in minutes since the entry fill (first observed state = 1).
+    On a gap-free window it equals the observed-row index exactly; across a
+    source gap it jumps by the true closure length. It must be a strictly
+    increasing positive integer-valued sequence whose first retained value
+    is at least the retained-row offset (``bars_in_trade - rows + 1``),
+    because wall-clock age can never lag the observed-row count.
+    """
 
     prices = np.asarray(price_values, dtype=np.float64)
     raw_volumes = np.asarray(volumes)
@@ -613,13 +652,21 @@ def unified_exit_path_tensor_from_values(
     ).astype(np.float32)
     tensor[:, -3] = np.log1p(parsed_volumes).astype(np.float32)
     first_elapsed_bar = bars_in_trade - prices.shape[0] + 1
-    tensor[:, -2] = np.log1p(
-        np.arange(
-            first_elapsed_bar,
-            bars_in_trade + 1,
-            dtype=np.float64,
+    parsed_elapsed = np.asarray(elapsed_wall_minutes, dtype=np.float64)
+    if (
+        parsed_elapsed.ndim != 1
+        or parsed_elapsed.shape[0] != prices.shape[0]
+        or not np.isfinite(parsed_elapsed).all()
+        or not np.equal(parsed_elapsed, np.floor(parsed_elapsed)).all()
+        or parsed_elapsed[0] < first_elapsed_bar
+        or (prices.shape[0] > 1 and not (np.diff(parsed_elapsed) >= 1.0).all())
+    ):
+        raise ValueError(
+            "unified Exit path elapsed wall minutes are invalid: expected a "
+            "strictly increasing integer-valued sequence starting at or "
+            "after the retained-row offset"
         )
-    ).astype(np.float32)
+    tensor[:, -2] = np.log1p(parsed_elapsed).astype(np.float32)
     tensor[:, -1] = np.float32(entry_spread_bps)
     if not np.isfinite(tensor).all():
         raise ValueError("unified Exit path tensor contains non-finite values")
@@ -808,7 +855,7 @@ def unified_entry_exit_contract_metadata() -> dict[str, Any]:
         ),
         "exit_path_transform": (
             "12 literal prices in bps from executable entry midpoint;"
-            "log1p(volume);log1p(all-time elapsed bar index);entry spread bps"
+            "log1p(volume);log1p(all-time elapsed wall-clock minutes);entry spread bps"
         ),
         "exit_side_order": list(UNIFIED_EXIT_SIDE_ORDER),
         "exit_frozen_entry_surface": UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,

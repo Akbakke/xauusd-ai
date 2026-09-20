@@ -1307,13 +1307,12 @@ def test_unified_exit_ineligible_entry_is_empty_but_half_pair_fails() -> None:
         split.materialize_causal_episode_core(0)
 
 
-def test_unified_exit_lifecycle_excludes_gap_spanning_episode_windows() -> None:
-    """C-2 (deep review 2026-09-19): wall-clock continuity is an eligibility
-    condition. A source gap INSIDE the 512-state window excludes the entry
-    (spans_source_gap), matching the Entry-side exact-completeness
-    convention: previously the elapsed-time channel said "one minute" across
-    the gap while exit_now_reward jumped by the whole closure with zero
-    financing. A gap-free window remains eligible and proves the row clock.
+def test_unified_exit_lifecycle_supervises_gap_spanning_windows_honestly() -> None:
+    """C-2 v12 (operator decision: FULL supervision). A source gap inside
+    the 512-state window keeps the entry ELIGIBLE — a held position's gap
+    P&L is real economics — and the episode is counted in the diagnostic
+    gap_spanning_supervised_entry_rows field; the honest-aging repair lives
+    in the path tensor's wall-clock elapsed channel, not in exclusion.
     """
 
     entries = pd.DataFrame(
@@ -1332,19 +1331,23 @@ def test_unified_exit_lifecycle_excludes_gap_spanning_episode_windows() -> None:
     assert proof["m1_row_clock"] == (
         "consecutive_authoritative_closed_m1_source_rows"
     )
-    assert proof["skipped_entry_rows"]["spans_source_gap"] == 0
+    assert proof["gap_spanning_supervised_entry_rows"] == 0
 
     gapped = source.drop(index=200).reset_index(drop=True)
-    with pytest.raises(
-        RuntimeError, match="UNIFIED_EXIT_LIFECYCLE_NO_COMPLETE_EPISODES"
-    ):
-        build_unified_exit_lifecycle_episodes(
-            min_m1_start_row=0,
-            entry_rows=entries,
-            closed_m1=gapped,
-            split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
-            market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
-        )
+    gapped_episodes, gapped_proof = build_unified_exit_lifecycle_episodes(
+        min_m1_start_row=0,
+        entry_rows=entries,
+        closed_m1=gapped,
+        split_end=gapped["time"].iloc[-1] + pd.Timedelta(minutes=1),
+        market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    )
+    assert len(gapped_episodes) == 2
+    assert gapped_proof["gap_spanning_supervised_entry_rows"] == 1
+    assert gapped_proof["skipped_entry_rows"] == {
+        "missing_entry_available_m1_open": 0,
+        "insufficient_m1_tail": 0,
+        "crosses_split_end": 0,
+    }
     with pytest.raises(RuntimeError, match="MARKET_CLOSURE_PROOF_REQUIRED"):
         build_unified_exit_lifecycle_episodes(
         min_m1_start_row=0,

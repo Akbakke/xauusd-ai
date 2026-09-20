@@ -1521,6 +1521,7 @@ def produce_canonical_unified_joint_sizing_proof(
                 bars_in_trade=int(envelope["bars_in_trade"]),
                 entry_bid=state.entry_bid,
                 entry_ask=state.entry_ask,
+                entry_fill_time=pd.Timestamp(envelope["entry_fill_ts"]),
             )
             side_index = 0 if state.side == "long" else 1
             current_mtf_hashes: dict[str, str] = {}
