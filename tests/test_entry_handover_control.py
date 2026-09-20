@@ -417,15 +417,26 @@ def test_handover_viewer_prints_current_goal() -> None:
     )
     reference = launch_state["current_source_technical_recipe"]
     assert f"train_recipe: {reference['status']}" in result.stdout
-    assert re.search(
-        r"candidate_session: SESSION_INTACT__checkpoint=\d+__phase=(?:train|validation)__epoch=\d+__next_batch=\d+",
-        result.stdout,
-    )
-    assert re.search(r"candidate_validation: (?:NOT_REACHED|REQUIRES_AUDIT)", result.stdout)
-    assert "candidate_session_contract_sha256: " in result.stdout
-    assert "candidate_session_state_sha256: " in result.stdout
-    assert "candidate_recipe_sha256: " in result.stdout
-    assert "candidate_source_bindings_sha256: " in result.stdout
+    if "superseded_pretest_runtime_bindings" in launch_state:
+        assert (
+            "candidate_session: SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__"
+            "SESSIONS_PRESERVED__REBUILD_REQUIRED" in result.stdout
+        )
+        assert "candidate_validation: NOT_CURRENT_AUTHORITY" in result.stdout
+        assert "candidate_session_contract_sha256: NONE" in result.stdout
+        assert "candidate_session_state_sha256: NONE" in result.stdout
+        assert "candidate_recipe_sha256: NONE" in result.stdout
+        assert "candidate_source_bindings_sha256: NONE" in result.stdout
+    else:
+        assert re.search(
+            r"candidate_session: SESSION_INTACT__checkpoint=\d+__phase=(?:train|validation)__epoch=\d+__next_batch=\d+",
+            result.stdout,
+        )
+        assert re.search(r"candidate_validation: (?:NOT_REACHED|REQUIRES_AUDIT)", result.stdout)
+        assert "candidate_session_contract_sha256: " in result.stdout
+        assert "candidate_session_state_sha256: " in result.stdout
+        assert "candidate_recipe_sha256: " in result.stdout
+        assert "candidate_source_bindings_sha256: " in result.stdout
     assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
     assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
     if reference["status"] in {
@@ -504,7 +515,11 @@ def test_handover_viewer_prints_current_goal() -> None:
         in result.stdout
     )
     assert "## Resume boundary" in result.stdout
-    if "candidate_guard_recovery" in json.loads(LAUNCH_STATE.read_text()):
+    launch_state_now = json.loads(LAUNCH_STATE.read_text())
+    if (
+        "candidate_guard_recovery" in launch_state_now
+        and "superseded_pretest_runtime_bindings" not in launch_state_now
+    ):
         assert "resume_stage: VERIFIED_GUARD_RECOVERY__CONTINUE_EXACT_CURRENT_SESSION__DO_NOT_RESET_TRAIN" in result.stdout
     else:
         assert (
@@ -613,8 +628,30 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         )
         assert superseded["superseded_by"].startswith("feature_surface_")
         assert "active_candidate_training_session" not in state
-        assert "current_source_technical_recipe" not in state
-        assert "current_pretest_trainability_readiness" not in state
+        # The rebuilt lane may carry its own new recipe/readiness references
+        # in the state alongside the preserved history (2026-09-20 FULLSUP
+        # smoke). When present they must be the current rebuilt-lane
+        # identities, never the superseded ones from the evidence file.
+        if "current_source_technical_recipe" in state:
+            rebuilt = state["current_source_technical_recipe"]
+            assert rebuilt["schema_version"] == (
+                "gx1_current_source_technical_recipe_reference_v1"
+            )
+            rebuilt_recipe_path = Path(rebuilt["recipe_path"])
+            assert rebuilt_recipe_path.is_file()
+            rebuilt_bytes = rebuilt_recipe_path.read_bytes()
+            assert hashlib.sha256(rebuilt_bytes).hexdigest() == (
+                rebuilt["recipe_sha256"]
+            )
+            assert json.loads(rebuilt_bytes)["dataset_run_id"] == (
+                rebuilt["dataset_run_id"]
+            )
+            readiness_binding = state["current_pretest_trainability_readiness"]
+            readiness_path = Path(readiness_binding["path"])
+            assert readiness_path.is_file()
+            assert hashlib.sha256(readiness_path.read_bytes()).hexdigest() == (
+                readiness_binding["sha256"]
+            )
         evidence_path = REPO / superseded["bindings_path"]
         evidence_bytes = evidence_path.read_bytes()
         assert hashlib.sha256(evidence_bytes).hexdigest() == (
@@ -861,9 +898,19 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
     assert "unexpected_ignored_path_count: 0" in result.stdout
     assert "prunable_worktree_count:" in result.stdout
     assert re.search(r"worktree_fingerprint: [0-9a-f]{64}", result.stdout)
-    assert re.search(r"candidate_session: SESSION_INTACT__checkpoint=\d+", result.stdout)
-    assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
-    assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
+    if "superseded_pretest_runtime_bindings" in launch_state:
+        assert (
+            "candidate_session: SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__"
+            "SESSIONS_PRESERVED__REBUILD_REQUIRED" in result.stdout
+        )
+        assert "candidate_recipe_sha256: NONE" in result.stdout
+        assert re.search(
+            r"candidate_source_closure: feature_surface_\S+", result.stdout
+        )
+    else:
+        assert re.search(r"candidate_session: SESSION_INTACT__checkpoint=\d+", result.stdout)
+        assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
+        assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
     reference = launch_state["current_source_technical_recipe"]
     assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
     assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
