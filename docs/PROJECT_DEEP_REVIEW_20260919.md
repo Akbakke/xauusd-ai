@@ -41,6 +41,25 @@
 > backstop). Every remaining item requires either the rebuild or an
 > operator/provider decision; no training or spend is authorized by this
 > note.
+>
+> **Rebuild executed — 2026-09-20.** The full five-year TRAIN/VAL chain ran
+> on the repaired 240-dim surface (run `PRETEST_V10_20260920T112706Z`):
+> half-open squeeze/registry fits on the exact declared window, derived
+> policy boundary stamped in the ranking, dataset root
+> `V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z` with episode
+> schema v12 (operator-decided FULL Exit supervision: 313,390/313,399
+> TRAIN and 5,500/5,509 VAL entries eligible; 116,167/1,765 gap-spanning
+> episodes supervised with the honest wall-clock elapsed channel and
+> counted as diagnostics). Every audit passed: cross-surface, full-input
+> liveness, pretrain, execution causality (training_authorized true),
+> foundation features/targets/specialist, sequence-source reconstruction
+> both splits, TEST guard SEALED_PRETEST_TEST_UNMATERIALIZED. The
+> intermediate v11-eligibility dataset under
+> `V10_FIVE_YEAR_ENTRY_NOTIONAL_20260920T131628Z/dataset` (~7.5 GB) is
+> superseded (its sibling feature bases remain live inputs bound into the
+> FULLSUP manifests — the root is NOT reclaimable as a whole); retention
+> is a separate operator call. Next boundary: fresh smoke/candidate
+> recipes and readiness against the FULLSUP dataset.
 
 Operator-ordered full-project defect hunt, executed 2026-09-19 by five parallel
 read-only audits over (1) the decision-layer contracts, (2) the complete
