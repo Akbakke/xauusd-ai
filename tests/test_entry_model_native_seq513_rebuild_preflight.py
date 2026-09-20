@@ -6,6 +6,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_policy_fit_train_end,
+)
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -381,10 +385,14 @@ def _build_fixture(
         source_parquet_sha256=_sha256(source),
         tape_provenance_sha256="b" * 64,
         train_start_utc=datetime.fromisoformat(SPLITS["train_start"]).isoformat(),
-        train_end_utc=datetime.fromisoformat(SPLITS["train_end"]).isoformat(),
+        train_end_utc=causal_m1_policy_fit_train_end(
+            pd.Timestamp(SPLITS["train_end"])
+        ).isoformat(),
     )
     candidate_names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
-    train_time_max = pd.Timestamp(SPLITS["train_end"]).floor("5min")
+    train_time_max = causal_m1_policy_fit_train_end(
+        pd.Timestamp(SPLITS["train_end"])
+    ).floor("5min")
     availability_times = pd.date_range(
         end=train_time_max,
         periods=256,
@@ -403,7 +411,9 @@ def _build_fixture(
         names=candidate_names,
         times=availability_times,
         train_start=pd.Timestamp(SPLITS["train_start"]),
-        train_end=pd.Timestamp(SPLITS["train_end"]),
+        train_end=causal_m1_policy_fit_train_end(
+            pd.Timestamp(SPLITS["train_end"])
+        ),
         diagnostic_target=np.square(availability_x.astype(np.float64)),
     )
     ranking = {
@@ -414,7 +424,10 @@ def _build_fixture(
         "producer_version": signal_manifest_producer.TRAIN_FEATURE_RANKING_PRODUCER_VERSION,
         "fit_scope": "train_only",
         "train_start_utc": SPLITS["train_start"],
-        "train_end_utc": SPLITS["train_end"],
+        # The ranking stamps the derived policy-fit boundary (C-1 owner).
+        "train_end_utc": causal_m1_policy_fit_train_end(
+            pd.Timestamp(SPLITS["train_end"])
+        ).isoformat(),
         "source_time_max_utc": train_time_max.isoformat(),
         "target_time_max_utc": train_time_max.isoformat(),
         "source_sha256": _sha256(source),

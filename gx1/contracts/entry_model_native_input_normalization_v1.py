@@ -865,7 +865,13 @@ def fit_surface_normalization(
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 deviations = np.abs(column - float(field_center))
                 positive = deviations[deviations > 0.0]
-                if positive.size:
+                # A scale supported by a single deviating observation is not
+                # a statistic: one large TRAIN event would become the
+                # denominator and asinh-flatten the whole column for the
+                # bundle's life. Require at least two positive deviations —
+                # the same minimum-support convention the sizing ECDF already
+                # enforces (unique >= 2); below it the field is UNSCALEABLE.
+                if positive.size >= 2:
                     field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):

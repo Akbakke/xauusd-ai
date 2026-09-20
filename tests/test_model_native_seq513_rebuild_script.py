@@ -47,7 +47,7 @@ def test_pretest_rebuild_requires_new_output_and_explicit_native_bindings() -> N
     assert 'AUTHORITY_ARGS=(--pretest-only' in source
     assert '"${AUTHORITY_ARGS[@]}"' in source
     assert 'FULL_INPUT_LIVENESS_JSON="$OUTPUT_DIR/' in source
-    assert 'pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)' in source
+    assert 'causal_m1_policy_fit_train_end(' in source
 
 
 def test_seq513_rebuild_is_explicit_model_native_and_never_trains() -> None:

@@ -48,16 +48,19 @@ _TAPE_PROVENANCE_FIXTURE = {
 
 def _splits() -> dict[str, dict[str, str]]:
     return {
+        # TRAIN aligns exactly with the synthetic V29 registry fixture's
+        # fitted window: the split-manifest contract now requires the frozen
+        # fit window to equal the declared TRAIN split (C-4).
         "train": {
-            "start": "2020-11-09 00:00:00+00:00",
-            "end": "2025-09-30 23:59:59+00:00",
+            "start": "2026-01-01 00:00:00+00:00",
+            "end": "2026-01-31 23:55:00+00:00",
         },
         "val": {
-            "start": "2025-10-01 00:00:00+00:00",
-            "end": "2025-12-31 23:59:59+00:00",
+            "start": "2026-02-01 00:00:00+00:00",
+            "end": "2026-02-28 23:59:59+00:00",
         },
         "test": {
-            "start": "2026-01-01 00:00:00+00:00",
+            "start": "2026-03-01 00:00:00+00:00",
             "end": "2026-06-26 03:25:00+00:00",
         },
     }
@@ -230,11 +233,12 @@ def test_pretest_split_contract_allows_touching_half_open_windows(
     )
     splits = {
         "train": {
-            "start": "2021-06-01T00:00:00Z",
-            "end": "2025-06-01T00:00:00Z",
+            "start": "2026-01-01T00:00:00Z",
+            "end": "2026-01-31T23:55:00Z",
         },
+        # Touching half-open boundary: VAL starts exactly at TRAIN's end.
         "val": {
-            "start": "2025-06-01T00:00:00Z",
+            "start": "2026-01-31T23:55:00Z",
             "end": "2026-07-01T00:00:00Z",
         },
     }

@@ -104,6 +104,7 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     model_native_aux_target_contract_metadata,
 )
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_policy_fit_train_end,
     ENTRY_CAUSAL_M1_TARGET_POLICY_SCHEMA_VERSION,
     causal_m1_direction_diagnostic_outcome_contract,
     causal_m1_direction_targets_from_policy,
@@ -2497,7 +2498,15 @@ def _require_model_native_seq513_split_manifest_contract(
         or set(mtf_binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_MTF_CACHE_BINDING_INVALID")
-    require_v29_registry_constants(mtf_binding["v29_registry_constants"])
+    # C-4 (docs/PROJECT_DEEP_REVIEW_20260919.md): the frozen registry-fit
+    # TRAIN window must equal this manifest's declared TRAIN split exactly —
+    # enforced here in the contract path, not only in the chain shell script,
+    # so a cache fitted on a different window cannot label this dataset.
+    require_v29_registry_constants(
+        mtf_binding["v29_registry_constants"],
+        expected_train_window_start=parsed["train_start"],
+        expected_train_window_end=parsed["train_end"],
+    )
     from gx1.features.volatility_squeeze_state_v1 import (
         require_volatility_squeeze_artifact_binding,
     )
@@ -4192,7 +4201,17 @@ def build_dataset_canonical(
         raise RuntimeError("V3_POSITION_SIZE_INVALID: target is missing or non-finite")
     if np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2:
         raise RuntimeError("V3_POSITION_SIZE_DEAD: target is constant")
-    log.info(
+    def _split_gated_label_proof_log(fmt: str, *args: object) -> None:
+        # TEST label statistics are withheld from the build log before the
+        # seal: printed base rates (tradable/side/session rates, sizing
+        # quantiles, touch rates) are operator-visible selection evidence.
+        # Same withholding policy as _log_label_distribution_proof; the
+        # underlying computations and validations still run for TEST.
+        if split_name == "test":
+            return
+        log.info(fmt, *args)
+
+    _split_gated_label_proof_log(
         "[V3_POSITION_SIZE] source=train_ecdf_selected_future_path "
         "tradable_n=%d p10=%.3f p50=%.3f p90=%.3f policy_sha256=%s",
         int(np.count_nonzero(y_position_size_mask)),
@@ -4259,7 +4278,7 @@ def build_dataset_canonical(
             dtype=np.float32
         )
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[V29_LINE_LABEL_PROOF] support_touch_rate=%.6f support_held_rate=%.6f "
         "resistance_touch_rate=%.6f resistance_held_rate=%.6f horizon_bars=%d",
         float(np.mean(y_line_support_touch_mask)),
@@ -4336,7 +4355,7 @@ def build_dataset_canonical(
     y_long_high_mae_low_mfe_early_failure = _long_high_mae_low_mfe.astype(np.float32)
     y_short_high_mae_low_mfe_early_failure = _short_high_mae_low_mfe.astype(np.float32)
 
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_HIER_LABEL_PROOF] trade=%.4f side_mask=%.4f line_support_touch=%.4f line_resistance_touch=%.4f "
         "countertrend_short_trap=%.4f countertrend_long_trap=%.4f mtf_conflict=%.4f",
         float(np.mean(y_trade)),
@@ -4363,7 +4382,7 @@ def build_dataset_canonical(
         if len(y_dir)
         else 0.0
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_DIAGNOSTIC_OUTCOME_SEMANTICS] split=%s source=executable_pnl_only "
         "target_mode=%s long_rate=%.6f short_rate=%.6f flat_rate=%.6f",
         _split_tag,
@@ -4372,14 +4391,14 @@ def build_dataset_canonical(
         _directional_short_rate,
         _directional_flat_rate,
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_DEAD_LONG_RULES] split=%s mfe_max=%.2f mae_min=%.2f rate=%.6f",
         _split_tag,
         mfe_low_threshold_bps,
         mae_high_threshold_bps,
         float(np.mean(y_dead_negative_long)) if len(y_dead_negative_long) else 0.0,
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_TEASER_LONG_RULES] split=%s mfe_min=%.2f mfe_max=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
         _split_tag,
         mfe_low_threshold_bps,
@@ -4388,7 +4407,7 @@ def build_dataset_canonical(
         path_low_threshold_bps,
         float(np.mean(y_teaser_negative_long)) if len(y_teaser_negative_long) else 0.0,
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_HARD_NEG_LONG_RULES] split=%s candidate_source=%s "
         "mfe_min=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
         _split_tag,
@@ -4398,7 +4417,7 @@ def build_dataset_canonical(
         path_low_threshold_bps,
         float(np.mean(y_hard_negative_long)) if len(y_hard_negative_long) else 0.0,
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_CLEAN_EDGE_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
         _split_tag,
         mfe_high_threshold_bps,
@@ -4406,7 +4425,7 @@ def build_dataset_canonical(
         path_high_threshold_bps,
         float(np.mean(y_clean_edge_long)) if len(y_clean_edge_long) else 0.0,
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_SURVIVAL_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
         _split_tag,
         mfe_median_threshold_bps,
@@ -4416,7 +4435,7 @@ def build_dataset_canonical(
     )
     # Tradable rate proof (split-aware)
     _tradable_rate = float(np.mean(y_tradable)) if len(y_tradable) else 0.0
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_TRADABLE_RATE_PROOF] split=%s n_rows=%d tradable_rate=%.6f",
         _split_tag,
         len(y_tradable),
@@ -4425,7 +4444,7 @@ def build_dataset_canonical(
     _quality_side_rate = (
         float(np.mean(_quality_side != -1)) if len(_quality_side) else 0.0
     )
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_QUALITY_SIDE_RATE_PROOF] split=%s n_rows=%d quality_side_rate=%.6f",
         _split_tag,
         len(_quality_side),
@@ -4435,7 +4454,7 @@ def build_dataset_canonical(
     _side_short = y_dir == MODEL_DIRECTION_SHORT_INDEX
     _long_rate = float(np.mean(y_tradable[_side_long])) if _side_long.any() else 0.0
     _short_rate = float(np.mean(y_tradable[_side_short])) if _side_short.any() else 0.0
-    log.info(
+    _split_gated_label_proof_log(
         "[ENTRY_TRADABLE_RATE_BY_SIDE] split=%s long_rate=%.6f short_rate=%.6f",
         _split_tag,
         _long_rate,
@@ -4446,7 +4465,7 @@ def build_dataset_canonical(
         for sid in sorted(set(_sess.tolist())):
             _mask = _sess == sid
             _rate = float(np.mean(y_tradable[_mask])) if _mask.any() else 0.0
-            log.info(
+            _split_gated_label_proof_log(
                 "[ENTRY_TRADABLE_RATE_BY_SESSION] split=%s session_id=%d session_name=%s rate=%.6f",
                 _split_tag,
                 int(sid),
@@ -5169,7 +5188,9 @@ def main() -> None:
 
     train_effective_end = _last_source_bar_before(train_end)
     val_effective_end = _last_source_bar_before(val_end)
-    train_policy_end = train_end - pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)
+    # One policy-boundary owner (C-1): builder, ranker and preflight all
+    # derive the fit/stamp boundary from the same contract function.
+    train_policy_end = causal_m1_policy_fit_train_end(train_end)
     state_contract = _model_native_state_contract(
         args=args,
         feature_history_start=start,

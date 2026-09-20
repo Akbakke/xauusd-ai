@@ -1339,8 +1339,19 @@ def _require_positive_finite_float(value: object, *, label: str) -> float:
     return out
 
 
-def require_v29_registry_constants(value: object) -> dict:
-    """Validate the exact TRAIN-fitted V29 registry constants payload."""
+def require_v29_registry_constants(
+    value: object,
+    *,
+    expected_train_window_start: "pd.Timestamp | None" = None,
+    expected_train_window_end: "pd.Timestamp | None" = None,
+) -> dict:
+    """Validate the exact TRAIN-fitted V29 registry constants payload.
+
+    When the caller declares its own TRAIN window, the frozen fit window must
+    equal it exactly: a cache fitted on a different window (including one
+    reaching into VAL/TEST) must fail closed here, in the contract owner,
+    not only in the chain shell script.
+    """
 
     if not isinstance(value, Mapping) or not value:
         raise RuntimeError(
@@ -1389,6 +1400,24 @@ def require_v29_registry_constants(value: object) -> dict:
             "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: inner split must lie "
             "strictly inside the declared TRAIN window"
         )
+    if (expected_train_window_start is None) != (
+        expected_train_window_end is None
+    ):
+        raise RuntimeError(
+            "HTF_V4_V29_REGISTRY_CONSTANTS_INVALID: expected TRAIN window "
+            "bounds must be provided together"
+        )
+    if expected_train_window_start is not None:
+        if (
+            pd.Timestamp(window_start) != pd.Timestamp(expected_train_window_start)
+            or pd.Timestamp(window_end) != pd.Timestamp(expected_train_window_end)
+        ):
+            raise RuntimeError(
+                "HTF_V4_V29_REGISTRY_CONSTANTS_TRAIN_WINDOW_MISMATCH: "
+                f"fitted=[{window_start}, {window_end}] "
+                f"declared=[{expected_train_window_start}, "
+                f"{expected_train_window_end}]"
+            )
     expected_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
     # Exact key SET, canonical iteration order for the value checks. Key
     # insertion order is not semantic here: the payload legitimately transits

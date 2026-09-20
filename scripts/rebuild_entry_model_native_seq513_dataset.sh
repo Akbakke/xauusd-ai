@@ -237,7 +237,7 @@ import sys
 from pathlib import Path
 
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
-from gx1.contracts.entry_causal_m1_outcomes_v1 import ENTRY_DECISION_BAR_SECONDS
+from gx1.contracts.entry_causal_m1_target_policy_v1 import causal_m1_policy_fit_train_end
 from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
     validate_signal_manifest_training_lineage,
 )
@@ -260,7 +260,11 @@ if sys.argv[11] == "1":
     if len(clock) == 0 or not clock.is_monotonic_increasing or not clock.is_unique:
         raise RuntimeError("PRETEST_REBUILD_SOURCE_CLOCK_INVALID")
     expected_time_max = clock[-1].isoformat()
-    expected_train_end = (pd.Timestamp(expected_train_end) - pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)).isoformat()
+
+import pandas as pd
+# One policy-boundary owner (C-1): the ranking always stamps the derived
+# policy-fit boundary, so the expectation always derives it too.
+expected_train_end = causal_m1_policy_fit_train_end(pd.Timestamp(expected_train_end)).isoformat()
 lineage = validate_signal_manifest_training_lineage(
     manifest_path=path,
     feature_ranking_path=ranking_path,

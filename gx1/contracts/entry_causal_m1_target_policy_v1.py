@@ -38,6 +38,23 @@ ENTRY_CAUSAL_M1_TARGET_POLICY_ACTION_RULE = "trade_better_exact_m1_executable_pn
 ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_TARGET_MODE = "train_fitted_exact_m1_execution_diagnostics_v1"
 ENTRY_CAUSAL_M1_DIAGNOSTIC_OUTCOME_LABEL_SOURCE = "train_fitted_exact_m1_fill_executable_pnl_at_selected_horizon"
 
+
+def causal_m1_policy_fit_train_end(train_end: "pd.Timestamp") -> "pd.Timestamp":
+    """The ONE owner of the TRAIN policy-fit boundary.
+
+    The declared split boundary is half-open: the decision bar opening at
+    ``train_end`` belongs to the next split, so the last decision bar whose
+    fit evidence lies wholly inside TRAIN opens one ``ENTRY_DECISION_BAR``
+    earlier. Every policy/ranking fit and every lineage expectation must
+    derive this boundary here — the builder, ranker, preflight and chain
+    previously computed it independently (builder shifted, ranker did not),
+    which made the ranking/build policy populations disagree and left the
+    preflight asserting a value nothing produced (C-1 in
+    docs/PROJECT_DEEP_REVIEW_20260919.md).
+    """
+
+    return train_end - pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)
+
 _POLICY_KEYS = {
     "schema_version", "decision", "fit_split", "fit_scope", "fit_method",
     "edge_fit_method", "path_threshold_fit_method", "action_rule",
