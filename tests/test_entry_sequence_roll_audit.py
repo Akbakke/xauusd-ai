@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.scripts.audit_entry_sequence_roll_v1 import audit_sequence_roll
 
 
@@ -18,7 +19,8 @@ def _write_split(
     break_roll: bool = False,
     time_offsets_m5: tuple[int, ...] = (0, 1, 2, 3),
 ) -> None:
-    rows, seq_len, width = 4, 96, 238
+    # Width derives from the signal owner (rule 13).
+    rows, seq_len, width = 4, 96, MODEL_NATIVE_SIGNAL_DIM
     source = np.arange((rows + seq_len - 1) * width, dtype=np.float32).reshape(
         rows + seq_len - 1, width
     )

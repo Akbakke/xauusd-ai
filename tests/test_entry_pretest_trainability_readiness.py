@@ -70,8 +70,12 @@ def _pretrain(path: Path, dataset_dir: str) -> Path:
             "failures": [],
             "dataset_dir": dataset_dir,
             "data_splits": ["train", "val"],
-            "contract_mode": "xau_seq513_model_native_direction_v20",
-            "expected_signal_dim": 238,
+            # Derived from the owners (rule 13): the readiness verifier
+            # compares both values against the live signal contract, so a
+            # restated literal here goes stale on every surface move (it did
+            # on 2026-09-20 when the level-registry wave moved the dim).
+            "contract_mode": readiness.MODEL_NATIVE_CONTRACT_MODE,
+            "expected_signal_dim": readiness.MODEL_NATIVE_SIGNAL_DIM,
             "large_artifact_hashes_verified": True,
             "require_mandatory_level_features": True,
             "require_inline_seq_structure": True,

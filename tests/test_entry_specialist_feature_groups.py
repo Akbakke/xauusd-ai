@@ -724,7 +724,13 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "level_above_last_reaction_atr",
         "level_above_max_reaction_atr",
         "level_above_mean_reaction_atr",
-        "level_above_recurrence_confirmed",
+        # 2026-09-20 D-2: pending-retest state is level-lifecycle liquidity
+        # evidence — same owner as the active slots it mirrors.
+        "level_above_pending_retest_age_bars",
+        "level_above_pending_retest_dist_atr",
+        # 2026-09-20 D-1: renamed with its repair (raw birth recurrence
+        # distance instead of the thresholded vote); same owner.
+        "level_above_recurrence_dist_atr",
         "level_above_touch_count",
         "level_bars_since_break",
         "level_bars_since_break_signed",
@@ -736,14 +742,21 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "level_below_last_reaction_atr",
         "level_below_max_reaction_atr",
         "level_below_mean_reaction_atr",
+        "level_below_pending_retest_age_bars",
+        "level_below_pending_retest_dist_atr",
         "level_below_present",
-        "level_below_recurrence_confirmed",
+        "level_below_recurrence_dist_atr",
         "level_below_touch_count",
         "level_break_down_event",
         "level_break_up_event",
         "level_broken_touch_count",
         "level_retest_fail_signed",
         "level_retest_hold_signed",
+        # 2026-09-20: round-number gridline distances are horizontal
+        # price-level proximity — liquidity-level evidence, not chart
+        # geometry (no sloped line) and not volatility (ATR is the unit).
+        "level_round_number_dist_100_atr",
+        "level_round_number_dist_50_atr",
         "smc_pivot_envelope_position",
         "smc_sweep_down_depth_atr",
         "smc_sweep_down_event",

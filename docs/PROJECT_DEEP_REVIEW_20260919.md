@@ -12,7 +12,20 @@
 > **Still open, deliberately batched into ONE rebuild wave** because they
 > change fit populations or targets: C-2 (gap-spanning Exit episodes), C-5
 > (closed-interval upstream fits at a shared boundary), and the feature
-> encodings D-1…D-6 with their mediums. Cloud items still open: B-2
+> encodings D-1…D-6 with their mediums. 2026-09-20, source-only (working
+> tree, no rebuild run): the level-registry share of that wave is
+> implemented — D-1's emitted medium (the thresholded
+> `recurrence_confirmed` vote is replaced by the raw
+> `level_*_recurrence_dist_atr` birth distance; the fitted threshold stays
+> bound as fit-chain lineage), the D-2 information restoration (four
+> `level_*_pending_retest_{dist_atr,age_bars}` slots, NO confirmation band
+> added to the event tape), and the reinstated pure-geometry
+> `level_round_number_dist_{50,100}_atr` fields (+6 columns per lane;
+> HTF matrix contract V21, cache manifest v31, per-TF liveness v21,
+> registry state schema 10). The D-2 break-rule dynamics themselves
+> (`SWING_LOOKBACK` sawtooth) and D-3…D-6 remain open; every cache/bundle
+> built on the V20 surface is invalidated by the schema bumps and the
+> rebuild wave is still pending. Cloud items still open: B-2
 > (plausibility floor needs an independent witness bound into the smoke
 > measurement), A6/A7 (billed instance time vs training time; FX staleness
 > window), C2/C3-cloud (provider-side deadline off-host; monotonic clock

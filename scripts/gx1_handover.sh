@@ -255,7 +255,11 @@ if (
     or hold.get("activation_authority") is not False
     or not isinstance(hold.get("reason"), str)
     or not hold["reason"]
-    or hold.get("report_path") != "docs/PREMIERE_CODE_REVIEW_20260905.md"
+    or hold.get("report_path")
+    not in {
+        "docs/PREMIERE_CODE_REVIEW_20260905.md",
+        "docs/PROJECT_DEEP_REVIEW_20260919.md",
+    }
 ):
     raise SystemExit("FATAL: pretraining review hold is malformed; launch remains blocked")
 print(f"mode: {sys.argv[2]}")
@@ -274,6 +278,8 @@ elif hold["reason"] == "PRETRAIN_READINESS_REPAIR_REQUIRED__NO_TRAINING_OR_CLOUD
     print("next_action: COMPLETE_CPU_REPAIRS_AND_REVIEW_PRESERVE_CHECKPOINT_THEN_VERIFY_SOURCE_LINEAGE_NO_TRAINING_OR_PURCHASE")
 elif hold["reason"] == "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED":
     print("next_action: PRESERVE_PACKAGE_NO_TRAINING__LATER_SELECT_HOST_TRANSFER_REHASH_GUARDED_SMOKE_AND_FRESH_GATE")
+elif hold["reason"] == "FEATURE_SURFACE_REBUILD_REQUIRED__THEN_EXTERNAL_HOST_AND_FRESH_GATE":
+    print("next_action: COMPLETE_REBUILD_WAVE_SOURCE_THEN_ONE_FULL_REBUILD_REFIT_AND_FRESH_READINESS_NO_TRAINING_OR_PURCHASE")
 else:
     print("next_action: CPU_SUCCESSOR_TRAIN_VAL_TARGET_POLICY_DATA_AND_AUDITS_THEN_NEW_SOURCE_BOUND_RECIPE")
 print("FATAL: pretraining review hold blocks launch", file=sys.stderr)
@@ -399,6 +405,57 @@ def _active_candidate_session_status(launch_state: dict) -> tuple[str, ...]:
     """
 
     reference = launch_state.get("active_candidate_training_session")
+    superseded = launch_state.get("superseded_pretest_runtime_bindings")
+    superseded_valid = False
+    if (
+        isinstance(superseded, dict)
+        and superseded.get("schema_version")
+        == "gx1_superseded_pretest_runtime_bindings_v1"
+        and str(superseded.get("superseded_by") or "").startswith(
+            "feature_surface_"
+        )
+        and isinstance(superseded.get("bindings_path"), str)
+    ):
+        bindings_path = Path(superseded["bindings_path"])
+        if not bindings_path.is_absolute():
+            # Resolve relative to the launch-state file's own directory
+            # (the repo root), which this heredoc receives as argv[1].
+            bindings_path = Path(sys.argv[1]).resolve().parent / bindings_path
+        if bindings_path.is_file() and not bindings_path.is_symlink():
+            bindings_bytes = bindings_path.read_bytes()
+            if (
+                hashlib.sha256(bindings_bytes).hexdigest()
+                == superseded.get("bindings_sha256")
+            ):
+                evidence = json.loads(bindings_bytes)
+                superseded_valid = (
+                    isinstance(evidence, dict)
+                    and evidence.get("schema_version")
+                    == "gx1_superseded_pretest_runtime_bindings_evidence_v1"
+                    and isinstance(
+                        evidence.get("active_candidate_training_session"),
+                        dict,
+                    )
+                    and isinstance(
+                        evidence.get("current_source_technical_recipe"), dict
+                    )
+                )
+    if reference is None:
+        if superseded_valid:
+            return (
+                "SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__SESSIONS_PRESERVED"
+                "__REBUILD_REQUIRED",
+                "NOT_CURRENT_AUTHORITY",
+                "NONE",
+                "NONE",
+                "NONE",
+                "NONE",
+                str(superseded.get("superseded_by")),
+            )
+        raise SystemExit(
+            "FATAL: active candidate session reference is missing and no "
+            "valid superseded-bindings block explains its absence"
+        )
     expected_reference_keys = {
         "schema_version", "session_dir", "recipe_audit_path", "recipe_audit_sha256",
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
@@ -597,6 +654,53 @@ def _current_source_technical_recipe_status(
     source bytes without granting CUDA, candidate, TEST or execution authority.
     """
     reference = launch_state.get("current_source_technical_recipe")
+    superseded = launch_state.get("superseded_pretest_runtime_bindings")
+    superseded_valid = False
+    if (
+        isinstance(superseded, dict)
+        and superseded.get("schema_version")
+        == "gx1_superseded_pretest_runtime_bindings_v1"
+        and str(superseded.get("superseded_by") or "").startswith(
+            "feature_surface_"
+        )
+        and isinstance(superseded.get("bindings_path"), str)
+    ):
+        bindings_path = Path(superseded["bindings_path"])
+        if not bindings_path.is_absolute():
+            # Resolve relative to the launch-state file's own directory
+            # (the repo root), which this heredoc receives as argv[1].
+            bindings_path = Path(sys.argv[1]).resolve().parent / bindings_path
+        if bindings_path.is_file() and not bindings_path.is_symlink():
+            bindings_bytes = bindings_path.read_bytes()
+            if (
+                hashlib.sha256(bindings_bytes).hexdigest()
+                == superseded.get("bindings_sha256")
+            ):
+                evidence = json.loads(bindings_bytes)
+                superseded_valid = (
+                    isinstance(evidence, dict)
+                    and evidence.get("schema_version")
+                    == "gx1_superseded_pretest_runtime_bindings_evidence_v1"
+                    and isinstance(
+                        evidence.get("active_candidate_training_session"),
+                        dict,
+                    )
+                    and isinstance(
+                        evidence.get("current_source_technical_recipe"), dict
+                    )
+                )
+    if reference is None:
+        if superseded_valid:
+            return (
+                "SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__REBUILD_REQUIRED",
+                "NONE",
+                "NONE",
+                str(superseded.get("superseded_by")),
+            )
+        raise SystemExit(
+            "FATAL: current-source technical recipe reference is missing "
+            "and no valid superseded-bindings block explains its absence"
+        )
     base_reference_keys = {
         "schema_version", "status", "recipe_path", "recipe_sha256",
         "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",

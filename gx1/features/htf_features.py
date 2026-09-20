@@ -680,7 +680,18 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # CANDLE_PRIMITIVE_FEATURE_VERSION in gx1.features.entry_candle_primitives_v1.
 # A V19 matrix is the same width and holds the broken numbers under a name that
 # no longer exists.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20"
+# V21 (2026-09-20, deep review D-1/D-2 + round-number reinstatement): the
+# level-registry block changes on every lane. The two thresholded
+# ``mtf_level_*_recurrence_confirmed`` binaries are RENAMED with their repair
+# to ``mtf_level_*_recurrence_dist_atr`` (raw birth-time nearest same-side
+# prior-anchor distance instead of a per-lane fitted-threshold vote whose base
+# rate spanned 0.97/M5 to 0.23/M15 under one name), and six columns per lane
+# are ADDED: the four ``mtf_level_*_pending_retest_{dist_atr,age_bars}``
+# break-retest state slots and the two ``mtf_level_round_number_dist_{50,100}_atr``
+# pure-geometry gridline distances. A V20 matrix is six columns per lane
+# narrower and answers the feature-name hash key with the retired thresholded
+# columns; it must not be read as current.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V21"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -715,7 +726,11 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V20"
 # reconstructed them from its warmup-trimmed M5 parquet.  Wilder/EMA state was
 # then a few float32 ULPs away from the full-history Entry owner on early D1
 # rows.  A v29 cache therefore cannot satisfy the train/serve byte contract.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v30"
+# v31 (2026-09-20) carries the level-registry D-1/D-2/round-number surface
+# (matrix contract V21): a v30 cache is six columns per lane narrower and
+# holds the retired thresholded recurrence binaries under names this owner no
+# longer emits.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v31"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
 )
@@ -733,7 +748,11 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # v20 (2026-08-19) describes the surface with the repaired
 # ``mtf_candle_raw_open_position_previous_range``; a v19 artifact answers
 # liveness for one name per lane that this surface no longer emits.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v20"
+# v21 (2026-09-20) describes the level-registry D-1/D-2/round-number surface:
+# two renamed recurrence columns and six new columns per lane; a v20 artifact
+# answers liveness for names this surface no longer emits and is silent on
+# the six new ones.
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v21"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered

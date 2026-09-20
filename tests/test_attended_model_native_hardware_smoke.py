@@ -18,14 +18,19 @@ def test_hardware_smoke_builds_exact_shape_contract_without_reading_market_data(
     assert normalization["lineage"]["train_parquet_path"].startswith(
         "/attended-hardware-smoke/"
     )
-    assert tuple(batch["seq_x"].shape) == (8, 96, 238)
-    assert tuple(batch["snap_x"].shape) == (8, 238)
+    # 2026-09-20 (level-registry D-1/D-2/round-number wave): the signal dim
+    # moves 238 -> 244 and the per-TF lane width 176 -> 182 (+6 level-registry
+    # columns per lane).  The literals are the drift guard, not the source —
+    # the owners are entry_model_native_signal_v1.MODEL_NATIVE_SIGNAL_DIM and
+    # htf_features.MULTI_TF_FEATURE_COUNT_V4.
+    assert tuple(batch["seq_x"].shape) == (8, 96, 244)
+    assert tuple(batch["snap_x"].shape) == (8, 244)
     assert tuple(batch["ctx_cont"].shape) == (8, 71)
     assert tuple(batch["ctx_cat"].shape) == (8, 1)
-    assert tuple(batch["seq_m15"].shape) == (8, 64, 176)
-    assert tuple(batch["seq_h1"].shape) == (8, 96, 176)
-    assert tuple(batch["seq_h4"].shape) == (8, 96, 176)
-    assert tuple(batch["seq_d1"].shape) == (8, 252, 176)
+    assert tuple(batch["seq_m15"].shape) == (8, 64, 182)
+    assert tuple(batch["seq_h1"].shape) == (8, 96, 182)
+    assert tuple(batch["seq_h4"].shape) == (8, 96, 182)
+    assert tuple(batch["seq_d1"].shape) == (8, 252, 182)
     assert (batch["seq_x"][:, -1, :] == batch["snap_x"]).all()
     for alias in model_native_context_temporal_alias_policy(smoke._signal_names())["aliases"]:
         assert (

@@ -1,0 +1,41 @@
+{
+  "schema_version": "gx1_superseded_pretest_runtime_bindings_evidence_v1",
+  "superseded_utc": "2026-09-20T00:00:00Z",
+  "superseded_by": "feature_surface_htf_v21_cache_v31_signal_244__rebuild_required",
+  "reason": "level-registry D-1/D-2/round-number repair moved the surface (per-TF 176->182, signal 238->244); see report_path. Preserved history, never current authority; fresh rebuild+readiness required.",
+  "report_path": "docs/PROJECT_DEEP_REVIEW_20260919.md",
+  "current_pretest_trainability_readiness": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/TRAINABILITY/ENTRY_PRETEST_TRAINABILITY_READINESS_20260906T062904212387Z.json",
+    "sha256": "46269bc5fbf266b4e6d25771c30a374a338315897330168f3749a3721d88d390"
+  },
+  "current_source_technical_recipe": {
+    "schema_version": "gx1_current_source_technical_recipe_reference_v1",
+    "status": "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY",
+    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
+    "recipe_sha256": "d22ece49d589bf4387e2df566bf3a9d802238b20e9815c88c8456de8c8dd3d52",
+    "source_commit": "7b1ccdaae6a7c5ef8a2d25e6b65f11146929936e",
+    "source_bindings_sha256": "59742fcfdf98e338e39ed1ba0ec4315da72e6ae0284dc4aa1c8ae5e37bf4e136",
+    "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z",
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z",
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
+    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/ENTRY_V9_FIVE_YEAR_HANDOVER_GATE_SMOKE_20260905T153048Z_POSTRUN_AUDIT/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260905T155439237233Z.json",
+    "postrun_bundle_audit_sha256": "15e45ed5a31c711eaf0a4440fe4342f632861a626defc610b9b8cd758e537f58",
+    "postrun_bundle_audit_decision": "FAIL",
+    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/CANDIDATE_READINESS/ENTRY_CANDIDATE_READINESS_20260906T062943428108Z.json",
+    "candidate_readiness_sha256": "d07c8e31d57d56fe7fd09b92ee4e4990b2697b26ea869a3d51e61cb99fa9afa6",
+    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
+    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/LAUNCH_GATE/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260906T063105728686Z.json",
+    "candidate_launch_gate_sha256": "e10ce617e4ba02e96218f674d50aec21a1989c49189005a9fb5dc66e891d3ed7",
+    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING"
+  },
+  "active_candidate_training_session": {
+    "schema_version": "gx1_active_candidate_training_session_reference_v1",
+    "session_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/.gx1-candidate-training-session.ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_BUNDLE",
+    "recipe_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/GUARD_RECOVERY_20260906T061447Z/ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z_RECIPE.json",
+    "recipe_audit_sha256": "d22ece49d589bf4387e2df566bf3a9d802238b20e9815c88c8456de8c8dd3d52",
+    "source_commit": "7b1ccdaae6a7c5ef8a2d25e6b65f11146929936e",
+    "source_bindings_sha256": "59742fcfdf98e338e39ed1ba0ec4315da72e6ae0284dc4aa1c8ae5e37bf4e136",
+    "run_id": "ENTRY_V9_FIVE_YEAR_HANDOVER_CANDIDATE_20260905T153048Z",
+    "dataset_run_id": "PRETEST_V3_20260829T173000Z"
+  }
+}

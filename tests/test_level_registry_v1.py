@@ -203,12 +203,18 @@ def test_declared_name_tuples_match_design_doc_verbatim():
     # *_completed_reaction_count columns and level_above_present are RETIRED
     # as exact functions of the touch counts beside them; level_below_present
     # and both runner-up masks stay (see the owner's tuple note).
+    # 2026-09-20 (deep review D-1/D-2 + round-number reinstatement): the two
+    # thresholded *_recurrence_confirmed binaries are renamed with their
+    # repair to *_recurrence_dist_atr (raw birth-time nearest same-side
+    # prior-anchor distance), and six columns join per lane: the four
+    # pending-retest slots and the two round-number gridline distances.
+    # The literal below is the drift guard, not the source.
     assert LEVEL_REGISTRY_M5_FEATURE_NAMES == (
         "level_above_dist_atr",
         "level_above2_dist_atr",
         "level_above2_present",
         "level_above_touch_count",
-        "level_above_recurrence_confirmed",
+        "level_above_recurrence_dist_atr",
         "level_above_age_bars",
         "level_above_bars_since_touch",
         "level_above_mean_reaction_atr",
@@ -219,7 +225,7 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_below2_dist_atr",
         "level_below2_present",
         "level_below_touch_count",
-        "level_below_recurrence_confirmed",
+        "level_below_recurrence_dist_atr",
         "level_below_age_bars",
         "level_below_bars_since_touch",
         "level_below_mean_reaction_atr",
@@ -232,6 +238,12 @@ def test_declared_name_tuples_match_design_doc_verbatim():
         "level_bars_since_break_signed",
         "level_retest_hold_signed",
         "level_retest_fail_signed",
+        "level_above_pending_retest_dist_atr",
+        "level_above_pending_retest_age_bars",
+        "level_below_pending_retest_dist_atr",
+        "level_below_pending_retest_age_bars",
+        "level_round_number_dist_50_atr",
+        "level_round_number_dist_100_atr",
     )
     assert LEVEL_REGISTRY_MTF_FEATURE_NAMES == tuple(
         f"mtf_{name}" for name in LEVEL_REGISTRY_M5_FEATURE_NAMES
@@ -475,7 +487,12 @@ def test_s1_all_immutable_anchors_and_recurrence_accounting():
         [SHIFT + 12.0, SHIFT + 11.75, SHIFT + 11.55]
     )
     assert [lv["member_pivot_bars"] for lv in state["levels"]] == [[5], [15], [20]]
-    assert [lv["recurrence_confirmed"] for lv in state["levels"]] == [0, 1, 1]
+    # D-1: the raw birth-time nearest same-side prior-anchor distance replaces
+    # the thresholded vote. First anchor of the side has no prior -> parked
+    # 0.0; the later anchors carry their exact admission distances (ATR = 1).
+    assert [lv["recurrence_dist_atr"] for lv in state["levels"]] == pytest.approx(
+        [0.0, 0.25, 0.20]
+    )
     # no breaks anywhere in S1
     assert _col(m5, names, "level_break_up_event")[8:].sum() == 0.0
     assert _col(m5, names, "level_break_down_event")[8:].sum() == 0.0
@@ -527,12 +544,12 @@ def test_alternating_high_low_pivots_keep_distinct_stable_anchor_identities():
         for event in lifecycle
         if event[0] == "recurrence"
     }
+    # D-1: the stored birth recurrence distance is bit-identical to the
+    # admission distance the lifecycle log carries; a level with no prior
+    # same-side anchor (no recurrence event) parks at exactly 0.0.
     for level in state["levels"]:
-        expected = int(
-            int(level["level_id"]) in recurrence_by_new_id
-            and recurrence_by_new_id[int(level["level_id"])] <= TOL
-        )
-        assert level["recurrence_confirmed"] == expected
+        expected = recurrence_by_new_id.get(int(level["level_id"]), 0.0)
+        assert level["recurrence_dist_atr"] == expected
 
     active = [level for level in state["levels"] if level["status"] == "active"]
     assert sum(level["side_of_origin"] == "high_pivot" for level in active) >= 5
@@ -636,6 +653,96 @@ def test_s4_retest_stays_pending_past_old_twenty_four_bar_window():
     lv = next(level for level in state["levels"] if level["break_side"] == -1)
     assert lv["retest_state"] == "pending"
     assert len(df) - 1 - lv["break_bar"] > 24
+
+
+def test_s2_pending_retest_slots_expose_broken_level_with_age_presence():
+    """D-2: the broken level is visible from the bar AFTER its break.
+
+    S2 breaks its only level (center SHIFT+7.0) down at t=13 and never
+    retests it, so from t=14 the pending slot on the ABOVE side (price is
+    below the broken support) must carry the raw signed-side distance and the
+    raw bars-since-break age, with age >= 1 iff occupied. The break bar
+    itself is excluded exactly as the retest check excludes it, so the
+    pending slots stay parked at 0.0 on t=13 while the break-event fields
+    carry that row.
+    """
+
+    df = _series_s2()
+    m5, names = compute_level_registry_m5_block_v1(df, recurrence_threshold_atr=TOL)
+    above_dist = _col(m5, names, "level_above_pending_retest_dist_atr")
+    above_age = _col(m5, names, "level_above_pending_retest_age_bars")
+    below_dist = _col(m5, names, "level_below_pending_retest_dist_atr")
+    below_age = _col(m5, names, "level_below_pending_retest_age_bars")
+    close = df["close"].to_numpy(dtype=np.float64)
+    # No pending level exists before the break; the break bar is excluded.
+    assert (above_dist[8:14] == 0.0).all()
+    assert (above_age[8:14] == 0.0).all()
+    # From t=14 on: the broken support sits above price (down-break), at the
+    # exact center distance in ATR units (ATR = 1) with a raw age counter.
+    for t in range(14, len(df)):
+        assert above_dist[t] == pytest.approx((SHIFT + 7.0) - close[t], abs=1e-3)
+        assert above_age[t] == float(t - 13)
+    # The presence convention: age >= 1 iff occupied, on every emitted row.
+    occupied = above_dist > 0.0
+    np.testing.assert_array_equal(above_age >= 1.0, occupied)
+    # No below-side pending level ever exists in S2.
+    assert (below_dist[8:] == 0.0).all()
+    assert (below_age[8:] == 0.0).all()
+
+
+def test_s3_pending_slot_empties_when_the_retest_resolves():
+    """A resolved retest (fail at t=15) leaves the pending index pre-emission.
+
+    S3's first level breaks down at t=13 exactly as in S2, so the above-side
+    pending slot is occupied with age 1 at t=14; the failed retest at t=15
+    resolves the episode at step 3 of that same bar, and the post-update
+    emission must already show the slot empty on the resolution row.
+    """
+
+    df = _series_s3()
+    m5, names = compute_level_registry_m5_block_v1(df, recurrence_threshold_atr=TOL)
+    above_age = _col(m5, names, "level_above_pending_retest_age_bars")
+    above_dist = _col(m5, names, "level_above_pending_retest_dist_atr")
+    fail = _col(m5, names, "level_retest_fail_signed")
+    assert fail[15] == -1.0
+    assert above_age[14] == 1.0 and above_dist[14] > 0.0
+    assert above_age[15] == 0.0 and above_dist[15] == 0.0
+    # The presence convention holds on every emitted row of the tape.
+    finite = np.isfinite(m5).all(axis=1)
+    np.testing.assert_array_equal(
+        above_age[finite] >= 1.0, above_dist[finite] > 0.0
+    )
+
+
+def test_round_number_distances_are_exact_signed_grid_geometry():
+    """Pure geometry: close minus the nearest 50/100 gridline, in bar ATR."""
+
+    from gx1.features.level_registry_v1 import (
+        ROUND_NUMBER_GRID_USD_100,
+        ROUND_NUMBER_GRID_USD_50,
+    )
+
+    assert ROUND_NUMBER_GRID_USD_50 == 50.0
+    assert ROUND_NUMBER_GRID_USD_100 == 100.0
+    df = _rng_df(n=200)
+    m5, names = compute_level_registry_m5_block_v1(df, recurrence_threshold_atr=0.6)
+    close = df["close"].to_numpy(dtype=np.float64)
+    atr = df["atr"].to_numpy(dtype=np.float64)
+    finite = np.isfinite(m5).all(axis=1)
+    assert finite.any()
+    for name, grid in (
+        ("level_round_number_dist_50_atr", 50.0),
+        ("level_round_number_dist_100_atr", 100.0),
+    ):
+        observed = _col(m5, names, name).astype(np.float64)
+        expected = (close - grid * np.floor(close / grid + 0.5)) / atr
+        np.testing.assert_allclose(
+            observed[finite], expected[finite], rtol=1e-6, atol=1e-6
+        )
+        # Signed: the SHIFT=4000 random walk crosses gridlines, so both signs
+        # must be observed on this tape.
+        live = observed[finite]
+        assert (live > 0.0).any() and (live < 0.0).any()
 
 
 def test_learned_lifetime_expires_eligibility_without_deleting_identity():
@@ -893,7 +1000,14 @@ def test_emitted_value_domains_on_generic_series():
         assert set(np.unique(_col(rows, names, name))) <= {0.0, 1.0}
     for name in ("level_retest_hold_signed", "level_retest_fail_signed"):
         assert set(np.unique(_col(rows, names, name))) <= {-1.0, 0.0, 1.0}
-    for name in ("level_above_dist_atr", "level_below_dist_atr"):
+    for name in (
+        "level_above_dist_atr",
+        "level_below_dist_atr",
+        "level_above_recurrence_dist_atr",
+        "level_below_recurrence_dist_atr",
+        "level_above_pending_retest_dist_atr",
+        "level_below_pending_retest_dist_atr",
+    ):
         col = _col(rows, names, name)
         assert (col >= 0.0).all()
     for name in (
@@ -905,9 +1019,23 @@ def test_emitted_value_domains_on_generic_series():
         "level_below_bars_since_touch",
         "level_broken_touch_count",
         "level_bars_since_break",
+        "level_above_pending_retest_age_bars",
+        "level_below_pending_retest_age_bars",
     ):
         col = _col(rows, names, name)
         assert (col >= 0.0).all()
+    # The signed round-number distances are bounded by half a gridline in the
+    # bar's own ATR units (a distance to the NEAREST gridline).
+    atr = df["atr"].to_numpy(dtype=np.float64)[finite]
+    for name, grid in (
+        ("level_round_number_dist_50_atr", 50.0),
+        ("level_round_number_dist_100_atr", 100.0),
+    ):
+        col = _col(rows, names, name).astype(np.float64)
+        # 1e-4 USD headroom: float32 storage of the float64 ratio rounds by
+        # at most ~2^-24 relative (~1.5e-6 USD at the 25/50 USD half-grid),
+        # far below one 0.01 price tick.
+        assert (np.abs(col * atr) <= grid / 2.0 + 1e-4).all()
 
 
 def test_hyperfit_binds_exact_population_and_learned_lifetime(tmp_path: Path):

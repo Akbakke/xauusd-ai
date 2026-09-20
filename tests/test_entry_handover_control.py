@@ -283,6 +283,10 @@ def test_source_only_handover_preserves_regenerable_cache_allowlist(tmp_path):
         "LOCAL_PRE_CLOUD_READINESS_COMPLETE__EXTERNAL_HOST_AND_FRESH_GATE_REQUIRED",
         "PRESERVE_PACKAGE_NO_TRAINING__LATER_SELECT_HOST_TRANSFER_REHASH_GUARDED_SMOKE_AND_FRESH_GATE",
     ),
+    (
+        "FEATURE_SURFACE_REBUILD_REQUIRED__THEN_EXTERNAL_HOST_AND_FRESH_GATE",
+        "COMPLETE_REBUILD_WAVE_SOURCE_THEN_ONE_FULL_REBUILD_REFIT_AND_FRESH_READINESS_NO_TRAINING_OR_PURCHASE",
+    ),
 ])
 def test_runtime_review_hold_reports_exact_recovery_and_blocks_all_execution(
     tmp_path, reason, next_action,
@@ -598,7 +602,31 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
     assert state["current_smoke_launch_evidence"] is None
-    candidate_session = state["active_candidate_training_session"]
+    if "superseded_pretest_runtime_bindings" in state:
+        # Feature-surface supersession (2026-09-20): the pretest runtime
+        # bindings leave the current role but every integrity invariant
+        # below still holds for the preserved blocks — history must stay
+        # verifiable, it just cannot be current authority.
+        superseded = state["superseded_pretest_runtime_bindings"]
+        assert superseded["schema_version"] == (
+            "gx1_superseded_pretest_runtime_bindings_v1"
+        )
+        assert superseded["superseded_by"].startswith("feature_surface_")
+        assert "active_candidate_training_session" not in state
+        assert "current_source_technical_recipe" not in state
+        assert "current_pretest_trainability_readiness" not in state
+        evidence_path = REPO / superseded["bindings_path"]
+        evidence_bytes = evidence_path.read_bytes()
+        assert hashlib.sha256(evidence_bytes).hexdigest() == (
+            superseded["bindings_sha256"]
+        )
+        reference_root = json.loads(evidence_bytes)
+        assert reference_root["schema_version"] == (
+            "gx1_superseded_pretest_runtime_bindings_evidence_v1"
+        )
+    else:
+        reference_root = state
+    candidate_session = reference_root["active_candidate_training_session"]
     assert candidate_session["schema_version"] == (
         "gx1_active_candidate_training_session_reference_v1"
     )
@@ -614,7 +642,7 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         r"[0-9a-f]{64}", candidate_session["source_bindings_sha256"]
     )
     assert re.fullmatch(r"[0-9a-f]{40}", candidate_session["source_commit"])
-    current_source_recipe = state["current_source_technical_recipe"]
+    current_source_recipe = reference_root["current_source_technical_recipe"]
     assert current_source_recipe["schema_version"] == (
         "gx1_current_source_technical_recipe_reference_v1"
     )
@@ -637,11 +665,22 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         assert current_source_recipe["status"] == "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY"
         assert current_source_recipe["recipe_path"] == candidate_session["recipe_audit_path"]
         assert current_source_recipe["recipe_sha256"] == candidate_session["recipe_audit_sha256"]
-        gate = require_pretest_candidate_launch_gate(
-            current_source_recipe["candidate_launch_gate_path"], current_source_recipe["candidate_launch_gate_sha256"],
-            expected_recipe_path=candidate_session["recipe_audit_path"], expected_recipe_sha256=candidate_session["recipe_audit_sha256"],
-        )
-        assert gate["run_id"] == candidate_session["run_id"]
+        if "superseded_pretest_runtime_bindings" not in state:
+            gate = require_pretest_candidate_launch_gate(
+                current_source_recipe["candidate_launch_gate_path"], current_source_recipe["candidate_launch_gate_sha256"],
+                expected_recipe_path=candidate_session["recipe_audit_path"], expected_recipe_sha256=candidate_session["recipe_audit_sha256"],
+            )
+            assert gate["run_id"] == candidate_session["run_id"]
+        else:
+            # Superseded configuration: the historical gate keeps byte
+            # integrity (asserted below) but must NOT revalidate against the
+            # moved current surface — it is preserved history, not authority.
+            gate_bytes = Path(
+                current_source_recipe["candidate_launch_gate_path"]
+            ).read_bytes()
+            assert hashlib.sha256(gate_bytes).hexdigest() == (
+                current_source_recipe["candidate_launch_gate_sha256"]
+            )
         for name in ("original_recipe", "original_contract", "original_pointer", "original_state"):
             binding = recovery[name]
             assert hashlib.sha256(Path(binding["path"]).read_bytes()).hexdigest() == binding["sha256"]

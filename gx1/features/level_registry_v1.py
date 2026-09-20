@@ -21,9 +21,25 @@ parameters produced by :func:`fit_level_registry_hyperparameters_v1` and are
 explicit inputs of every compute function (never module defaults); distance
 All distances, counts, ages, and reactions are emitted in raw units;
 current-slot presence masks encode current absence while global event ages
-remain NaN until their first genuine event. The former fixed
-50/100 USD round-number inputs are retired: no TRAIN artifact owned those
-periodicities, so they were not admissible market evidence.
+remain NaN until their first genuine event. The 50/100 USD round-number grid
+constants ``ROUND_NUMBER_GRID_USD_50``/``ROUND_NUMBER_GRID_USD_100`` are named
+contract-owner constants (rule 2a): the XAU round-number convention the
+retired fitted round-number inputs encoded, reinstated 2026-09-20 as PURE
+GEOMETRY (signed close-to-nearest-gridline distance in current-bar ATR units)
+with no fit and no TRAIN artifact — the 2026-08 retirement removed fitted
+periodicity *inputs* no TRAIN artifact owned, not the grid itself.
+
+D-1 (deep review 2026-09-19, repaired 2026-09-20): the thresholded birth-time
+recurrence vote ``level_{above,below}_recurrence_confirmed`` is retired — the
+fitted per-lane threshold made the same name mean a 0.97 base rate on M5 and
+0.23 on M15 — and replaced by the RAW evidence it thresholded:
+``level_{above,below}_recurrence_dist_atr``, the nearest same-birth-side
+immutable prior-anchor distance in birth-bar ATR units, recorded once at level
+birth (the exact distance the admission log already carries). The fitted
+``recurrence_threshold_atr`` parameter REMAINS in the registry state and the
+fit-chain contract (it is bound into manifests, carried chunk state and the
+canonical fit decomposition) but no longer shapes any emitted field; it is
+retained as fit-chain lineage pending a separate retirement decision.
 
 Interpretation notes — decisions the design doc leaves open; each stays inside
 the doc's stated conventions and is testable:
@@ -77,10 +93,14 @@ the doc's stated conventions and is testable:
    cannot change its origin/distance bytes. Breaks, touches and retests use exact
    anchor geometry on the eligible event set. TRAIN outcome labels come from
    the parameter-independent exact-center reaction/break/censor lifecycle;
-   serving never consumes those future labels. The frozen threshold only marks
-   the birth recurrence flag; lifetime only gates selected event/slot
-   eligibility. Separate hashes bind recurrence fit/apply parity, canonical
-   TRAIN outcome labels, selected eligibility replay and emissions.
+   serving never consumes those future labels. The frozen threshold shapes NO
+   emitted field since the 2026-09-20 D-1 repair (the raw birth recurrence
+   distance is emitted instead) and is retained as fit-chain lineage only;
+   lifetime only gates selected event/slot eligibility. Separate hashes bind
+   recurrence fit/apply parity, canonical TRAIN outcome labels, selected
+   eligibility replay and emissions. NO band or threshold enters the event
+   logic: breaks, touches, retests and the pending-retest/round-number
+   emissions below all use exact center/grid geometry.
 
 Wiring: none here.  Builders/contracts consume the declared name tuples
 ``LEVEL_REGISTRY_M5_FEATURE_NAMES`` / ``LEVEL_REGISTRY_MTF_FEATURE_NAMES`` in
@@ -113,7 +133,7 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
 LEVEL_REGISTRY_FEATURE_VERSION = (
-    "level_registry_v14_exact_function_slot_columns_retired"
+    "level_registry_v15_raw_recurrence_pending_retest_round_number"
 )
 # ---------------------------------------------------------------------------
 # Level kinds — only implemented or explicitly reserved identities remain.
@@ -146,6 +166,13 @@ def require_level_kind_implemented(kind: str) -> str:
 # ---------------------------------------------------------------------------
 
 LEVEL_REGISTRY_TIMEFRAMES = ("m1", "m5", "m15", "h1", "h4", "d1")
+
+# Round-number grid constants (rule 2a origin, one sentence): 50 and 100 USD
+# are the XAU round-number grid the retired fitted round-number inputs
+# encoded, reinstated 2026-09-20 as pure geometry — a named contract-owner
+# constant, no fit and no TRAIN artifact owns or scales it.
+ROUND_NUMBER_GRID_USD_50 = 50.0
+ROUND_NUMBER_GRID_USD_100 = 100.0
 
 # ---------------------------------------------------------------------------
 # Declared output contracts (exact names + order; stage 2 consumes these).
@@ -209,14 +236,63 @@ LEVEL_REGISTRY_TIMEFRAMES = ("m1", "m5", "m15", "h1", "h4", "d1")
 #     read presence from, and the runner-up distance can be arbitrarily small
 #     (two active levels one tick apart). The mask is the declared
 #     disambiguator for the runner-up parking value.
+#
+# 2026-09-20 (deep review D-1/D-2 + round-number reinstatement) — the surface
+# changes by a rename and six new columns per lane:
+#
+#   * ``level_{above,below}_recurrence_confirmed`` -> ``..._recurrence_dist_atr``
+#     (D-1).  The birth-time binary ``distance <= fitted threshold`` is retired
+#     — the per-lane fitted threshold made the same name mean a 0.97 base rate
+#     on M5 and 0.23 on M15 — and the RAW nearest same-birth-side immutable
+#     prior-anchor distance (birth-bar ATR units, the exact value the
+#     admission-distance log carries) is emitted instead, recorded once at
+#     level birth.  Disambiguator (see the parking table in ``_slot_fields``):
+#     the no-prior-anchor birth parks at 0.0, and that state is reachable ONLY
+#     while the slot holds the FIRST admitted anchor of its birth side (the
+#     immutable per-side anchor index is empty exactly until its first
+#     admission and never shrinks); a real 0.0 is an exact re-anchor — a later
+#     pivot printing bit-exactly a prior anchor's price, which the 0.01 XAUUSD
+#     grid makes genuinely reachable (the fit population separately excludes
+#     ``distance <= 0`` observations in
+#     ``_level_registry_outcome_stream_from_replay``, so the fit chain is
+#     untouched by the collision).  The residual first-anchor-per-side
+#     collision is stated rather than hidden, exactly like the below-side
+#     negative-zero note above.
+#   * ``level_{above,below}_pending_retest_dist_atr`` /
+#     ``..._pending_retest_age_bars`` (D-2 information restoration, NO band).
+#     On break the level moves to ``pending_retest_by_id`` and previously
+#     vanished from every emitted slot, so the model could not see "price is
+#     returning to the level it just broke".  Per side: the nearest
+#     pending-retest level by the SAME side rule, distance convention and
+#     level_id tie-break as the ACTIVE slots, restricted to retest-eligible
+#     levels (``break_bar < t`` — the retest check itself skips the break
+#     bar, whose firing row is already carried by ``level_break_*_event``).
+#     ``age_bars = t - break_bar`` is a raw counter.  Presence convention:
+#     ``age_bars >= 1`` iff the slot is occupied (eligibility starts the bar
+#     after the break, so the earliest observable pending age is exactly 1);
+#     the parked 0.0 distance is additionally unreachable as a real value,
+#     because an eligible pending level whose bar range touched the exact
+#     center would have resolved (held or failed) at step 3 of the same bar
+#     and left the pending index before emission, so an emitted pending
+#     distance is strictly positive and never a grid-collision -0.0.
+#   * ``level_round_number_dist_50_atr`` / ``level_round_number_dist_100_atr``
+#     — TIMELINE fields (every emitted bar, not slot fields): signed distance
+#     from the current close to the NEAREST 50-/100-USD gridline
+#     (``close - gridline``, positive above), in current-bar ATR units.  Pure
+#     geometry from the named module grid constants; no fit, no artifact, no
+#     presence semantics (a real 0.0 means close sits exactly on the
+#     gridline).  The exact-midpoint tie (close exactly halfway between two
+#     gridlines) resolves deterministically to the UPPER gridline
+#     (``floor(close/grid + 0.5)``), a measure-zero convention in the spirit
+#     of interpretation note 5.
 LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_above_dist_atr",
     "level_above2_dist_atr",
     "level_above2_present",
     "level_above_touch_count",
-    # Confirmed same-side recurrence pivots inside the TRAIN-frozen distance;
+    # Raw nearest same-birth-side prior-anchor distance at birth (D-1);
     # exact-center touches remain a separate primitive.
-    "level_above_recurrence_confirmed",
+    "level_above_recurrence_dist_atr",
     "level_above_age_bars",
     "level_above_bars_since_touch",
     "level_above_mean_reaction_atr",
@@ -227,7 +303,7 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_below2_dist_atr",
     "level_below2_present",
     "level_below_touch_count",
-    "level_below_recurrence_confirmed",
+    "level_below_recurrence_dist_atr",
     "level_below_age_bars",
     "level_below_bars_since_touch",
     "level_below_mean_reaction_atr",
@@ -247,6 +323,17 @@ LEVEL_REGISTRY_M5_FEATURE_NAMES = (
     "level_bars_since_break_signed",
     "level_retest_hold_signed",
     "level_retest_fail_signed",
+    # D-2 pending-retest state (2026-09-20): the nearest retest-eligible
+    # broken level per side; see the dated tuple note above for selection,
+    # parking and the age>=1 presence convention.
+    "level_above_pending_retest_dist_atr",
+    "level_above_pending_retest_age_bars",
+    "level_below_pending_retest_dist_atr",
+    "level_below_pending_retest_age_bars",
+    # Round-number pure geometry (2026-09-20): per-bar timeline fields, not
+    # slot fields; see the dated tuple note above.
+    "level_round_number_dist_50_atr",
+    "level_round_number_dist_100_atr",
 )
 
 LEVEL_REGISTRY_MTF_FEATURE_NAMES = tuple(
@@ -280,8 +367,16 @@ _LEVEL_REGISTRY_MTF_SOURCE_MAP = {
 # (a) ``side_of_origin`` is now lifecycle state, not a birth constant (a held
 # retest flips it and returns the level to ACTIVE), and (b) each open reaction
 # window carries a fifth element, the side frozen at its own t0.
+# State 10 (2026-09-20, D-1): the per-level key ``recurrence_confirmed``
+# (birth-time thresholded int) is replaced by ``recurrence_dist_atr`` (the raw
+# birth-time nearest same-birth-side prior-anchor distance, float, birth-bar
+# ATR units; 0.0 when no prior anchor existed at birth).  Carried schema-9
+# state is not reinterpretable — the old key cannot recover the distance — so
+# it is rejected rather than migrated.  ``recurrence_threshold_atr`` stays a
+# top-level state key: it is frozen bundle lineage (rule 18) even though it no
+# longer shapes any emitted field.
 LEVEL_REGISTRY_STATE_VERSION = (
-    "level_registry_v1_state_9_immutable_recurrence_full_mtf"
+    "level_registry_v1_state_10_raw_recurrence_distance"
 )
 LEVEL_REGISTRY_STATE_KEYS = (
     "state_version",
@@ -318,7 +413,7 @@ LEVEL_REGISTRY_LEVEL_STATE_KEYS = (
     "break_side",
     "retest_state",
     "prev_bar_intersects_center",
-    "recurrence_confirmed",
+    "recurrence_dist_atr",
     "open_reactions",
 )
 _SIDE_HIGH = "high_pivot"
@@ -445,6 +540,16 @@ def _validate_registry_state(
         for key in ("center_price", "reaction_sum_atr", "reaction_max_atr", "reaction_last_atr"):
             if not isinstance(lv[key], float) or not math.isfinite(lv[key]):
                 raise RuntimeError(f"[LEVEL_REGISTRY_STATE_INVALID] level {key}")
+        # The raw birth recurrence distance is a non-negative float (0.0 =
+        # no prior same-birth-side anchor at birth, or an exact re-anchor).
+        if (
+            not isinstance(lv["recurrence_dist_atr"], float)
+            or not math.isfinite(lv["recurrence_dist_atr"])
+            or lv["recurrence_dist_atr"] < 0.0
+        ):
+            raise RuntimeError(
+                "[LEVEL_REGISTRY_STATE_INVALID] level recurrence_dist_atr"
+            )
         for key in (
             "level_id",
             "touch_count",
@@ -452,7 +557,6 @@ def _validate_registry_state(
             "last_touch_bar",
             "last_eligibility_refresh_bar",
             "completed_reaction_count",
-            "recurrence_confirmed",
             "break_bar",
             "break_side",
         ):
@@ -616,7 +720,10 @@ def _new_level(
         "break_side": 0,
         "retest_state": "none",
         "prev_bar_intersects_center": False,
-        "recurrence_confirmed": 0,
+        # Overwritten at admission with the raw nearest same-birth-side
+        # prior-anchor distance; 0.0 iff no prior anchor exists at birth
+        # (reachable only for the first admitted anchor of a birth side).
+        "recurrence_dist_atr": 0.0,
         # Reaction window = [t0, atr0, center0, extreme, side_at_t0].  V30
         # package 8A froze the side alongside atr0/center0: the polarity flip
         # can now change a level's side WHILE a window is open, and the
@@ -658,6 +765,21 @@ def _slot_fields(
         #   runner-up   -> ``level_above2_present`` / ``level_below2_present``
         #                  (KEPT: the runner-up slot emits a distance only and
         #                  has no integer sibling to read presence from)
+        #   recurrence  -> ``level_*_recurrence_dist_atr`` (D-1, 2026-09-20):
+        #                  slot emptiness reads from the side's own witness
+        #                  above; INSIDE an occupied slot the parked 0.0 is
+        #                  the no-prior-anchor birth, reachable only while the
+        #                  slot holds the FIRST admitted anchor of its birth
+        #                  side, while a real 0.0 is an exact re-anchor
+        #                  (bit-equal pivot price on the 0.01 XAUUSD grid).
+        #                  That first-anchor-per-side collision is stated, not
+        #                  masked — the same accepted-residual style as the
+        #                  below-side negative zero.
+        #   pending     -> ``level_*_pending_retest_age_bars`` (>= 1 iff the
+        #                  pending slot is occupied: retest eligibility starts
+        #                  the bar after the break, so the parked 0.0 age is
+        #                  unreachable as a real value; the eligible pending
+        #                  distance is strictly positive, see the tuple note)
         return (
             0.0,
             dist2_value,
@@ -683,9 +805,12 @@ def _slot_fields(
         float(dist),
         dist2_value,
         float(level["touch_count"]) if evidence_live else 0.0,
-        # Confirmed same-side recurrence pivots inside the TRAIN-frozen
-        # distance. This is separate from exact-center touches.
-        float(level["recurrence_confirmed"]) if evidence_live else 0.0,
+        # D-1: the raw birth-time nearest same-birth-side prior-anchor
+        # distance (birth-bar ATR units). Separate from exact-center touches.
+        # The ``evidence_live`` gate is kept for exact structural parity with
+        # the retired thresholded column it replaces; on the serving path it
+        # is provably always True for an emitted slot (see proof (a) above).
+        float(level["recurrence_dist_atr"]) if evidence_live else 0.0,
         float(t - level["birth_bar"]),
         float(t - level["last_touch_bar"]),
         mean_reaction if count > 0 and evidence_live else 0.0,
@@ -1051,8 +1176,13 @@ def _run_level_registry(
 
                 level = _new_level(next_level_id, side, price, t, j, a)
                 next_level_id += 1
-                level["recurrence_confirmed"] = sum(
-                    distance <= tol for _prior_id, distance in comparisons
+                # D-1 (2026-09-20): record the RAW nearest same-birth-side
+                # prior-anchor distance (birth-bar ATR units, the same value
+                # the admission log carries). The fitted threshold ``tol`` no
+                # longer shapes any emitted field; it stays validated/carried
+                # state as fit-chain lineage only.
+                level["recurrence_dist_atr"] = (
+                    float(comparisons[0][1]) if comparisons else 0.0
                 )
                 levels.append(level)
                 insort(
@@ -1326,6 +1456,39 @@ def _run_level_registry(
                     below_dist = d
                 elif d < below_dist2:
                     below_dist2 = d
+        # D-2 (2026-09-20): the nearest retest-eligible PENDING level per
+        # side — the same side rule (``delta > 0`` is above), the same
+        # ATR-normalized distance and the same (distance, level_id) tie-break
+        # as the ACTIVE slots above.  ``break_bar == t`` is excluded exactly
+        # as the retest check (step 3) excludes it: the level is not
+        # retest-eligible on its own break bar (that row is carried by the
+        # ``level_break_*_event`` fields), which makes ``t - break_bar >= 1``
+        # on every occupied pending slot — the declared presence convention.
+        pending_above: dict[str, Any] | None = None
+        pending_below: dict[str, Any] | None = None
+        pending_above_dist = pending_below_dist = math.inf
+        for lv in pending_retest_by_id.values():
+            if int(lv["break_bar"]) == t:
+                continue
+            delta = lv["center_price"] - c
+            if delta > 0.0:
+                d = delta / a
+                if d < pending_above_dist or (
+                    d == pending_above_dist
+                    and pending_above is not None
+                    and lv["level_id"] < pending_above["level_id"]
+                ):
+                    pending_above = lv
+                    pending_above_dist = d
+            else:
+                d = -delta / a
+                if d < pending_below_dist or (
+                    d == pending_below_dist
+                    and pending_below is not None
+                    and lv["level_id"] < pending_below["level_id"]
+                ):
+                    pending_below = lv
+                    pending_below_dist = d
         above_vals = _slot_fields(
             above,
             above_dist,
@@ -1346,7 +1509,7 @@ def _run_level_registry(
             1.0 if math.isfinite(above_dist2) else 0.0
         )
         record["level_above_touch_count"].append(above_vals[2])
-        record["level_above_recurrence_confirmed"].append(above_vals[3])
+        record["level_above_recurrence_dist_atr"].append(above_vals[3])
         record["level_above_age_bars"].append(above_vals[4])
         record["level_above_bars_since_touch"].append(above_vals[5])
         record["level_above_mean_reaction_atr"].append(above_vals[6])
@@ -1359,7 +1522,7 @@ def _run_level_registry(
             1.0 if math.isfinite(below_dist2) else 0.0
         )
         record["level_below_touch_count"].append(below_vals[2])
-        record["level_below_recurrence_confirmed"].append(below_vals[3])
+        record["level_below_recurrence_dist_atr"].append(below_vals[3])
         record["level_below_age_bars"].append(below_vals[4])
         record["level_below_bars_since_touch"].append(below_vals[5])
         record["level_below_mean_reaction_atr"].append(below_vals[6])
@@ -1385,6 +1548,47 @@ def _run_level_registry(
         )
         record["level_retest_fail_signed"].append(
             float((fail_sign_sum > 0) - (fail_sign_sum < 0))
+        )
+        # D-2 pending-retest emissions: absent -> both park at 0.0; presence
+        # reads from ``age_bars >= 1`` (see the selection comment above).
+        record["level_above_pending_retest_dist_atr"].append(
+            float(pending_above_dist) if pending_above is not None else 0.0
+        )
+        record["level_above_pending_retest_age_bars"].append(
+            float(t - int(pending_above["break_bar"]))
+            if pending_above is not None
+            else 0.0
+        )
+        record["level_below_pending_retest_dist_atr"].append(
+            float(pending_below_dist) if pending_below is not None else 0.0
+        )
+        record["level_below_pending_retest_age_bars"].append(
+            float(t - int(pending_below["break_bar"]))
+            if pending_below is not None
+            else 0.0
+        )
+        # Round-number pure geometry: signed close-to-nearest-gridline
+        # distance in current-bar ATR units.  ``floor(c/grid + 0.5)`` picks
+        # the nearest gridline with the exact midpoint resolving to the UPPER
+        # line (deterministic measure-zero convention, interpretation-note-5
+        # style).  Timeline fields: they share the block's single
+        # chronological warmup prefix (rows before the first admitted level
+        # are NaN like every other column and are trimmed downstream).
+        record["level_round_number_dist_50_atr"].append(
+            (
+                c
+                - ROUND_NUMBER_GRID_USD_50
+                * math.floor(c / ROUND_NUMBER_GRID_USD_50 + 0.5)
+            )
+            / a
+        )
+        record["level_round_number_dist_100_atr"].append(
+            (
+                c
+                - ROUND_NUMBER_GRID_USD_100
+                * math.floor(c / ROUND_NUMBER_GRID_USD_100 + 0.5)
+            )
+            / a
         )
 
     out_state = {
@@ -1616,6 +1820,12 @@ def _fit_level_registry_canonical_tape_v1(
             "immutable_per_confirmed_pivot_anchor_exact_center_break_touch_"
             "and_parameter_independent_identity_retention"
         ),
+        # D-1 note (2026-09-20): this fit-chain marker string is DELIBERATELY
+        # unchanged although the emitted recurrence field is now the raw
+        # distance — the string is validated verbatim against bound artifacts
+        # (htf_features level-lane provenance validation) and describes the
+        # fit's own threshold selection, which is retained as lineage pending
+        # a separate retirement decision.
         "threshold_selection": (
             "recurrence_confirmed_on_nearest_same_side_distance"
         ),
@@ -2036,7 +2246,8 @@ def compute_level_registry_mtf_block_v1(
     tuple[np.ndarray, list[str]]
     | tuple[np.ndarray, list[str], dict[str, Any]]
 ):
-    """Per-TF V4 lane: the 11-field ``mtf_level_`` block (design doc §1.3).
+    """Per-TF V4 lane: the ``mtf_level_`` block (design doc §1.3); its width
+    is the declared name tuple's length, never restated here (rule 13).
 
     The same registry engine runs independently on each timeframe's closed
     bars (``tf`` selects the clock identity;
