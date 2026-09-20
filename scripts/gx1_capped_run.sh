@@ -58,7 +58,12 @@ TRAINER_MAX_WALL_SECONDS=7200
 TRAINER_MODEL_MAX_WALL_SECONDS=7200
 TRAINER_ATTENDED_STAGE_REQUIRED=false
 TRAINER_GPU_INDEX=0
-TRAINER_GPU_MAX_CORE_TEMP_C=65
+# 70 C is the constitution's documented active native guard (2026-08-28
+# hardware boundary; two V46 smokes stopped safely at 71 C). The prior 65 C
+# sits inside the sustained candidate workload's thermal equilibrium at the
+# operator-directed 300 W limit (measured 2026-09-20: 61-64 C at ~206 W,
+# transient trip ~90 s into training) and made every candidate segment stop.
+TRAINER_GPU_MAX_CORE_TEMP_C=70
 TRAINER_GPU_MAX_MEMORY_TEMP_C=80
 # Operator directive 2026-09-20: the Windows-side keeper enforces a 300 W
 # configured limit ("160 er for lite, 300 er bra"); the draw stop keeps the
