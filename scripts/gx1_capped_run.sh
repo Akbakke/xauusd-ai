@@ -60,8 +60,11 @@ TRAINER_ATTENDED_STAGE_REQUIRED=false
 TRAINER_GPU_INDEX=0
 TRAINER_GPU_MAX_CORE_TEMP_C=65
 TRAINER_GPU_MAX_MEMORY_TEMP_C=80
-TRAINER_GPU_MAX_POWER_LIMIT_W=160
-TRAINER_GPU_MAX_POWER_DRAW_W=170
+# Operator directive 2026-09-20: the Windows-side keeper enforces a 300 W
+# configured limit ("160 er for lite, 300 er bra"); the draw stop keeps the
+# existing +10 W hard-stop convention above the configured limit.
+TRAINER_GPU_MAX_POWER_LIMIT_W=300
+TRAINER_GPU_MAX_POWER_DRAW_W=310
 TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
 TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 TRAINER_HOST_TELEMETRY_QUERY_PATH="$REPO_ROOT/scripts/gx1_host_telemetry_bridge_query.sh"

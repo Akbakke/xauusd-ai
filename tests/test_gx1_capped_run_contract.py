@@ -1196,8 +1196,8 @@ def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() 
     assert "hardware diagnostic remains a single five-minute run" in source
     assert "TRAINER_GPU_MAX_CORE_TEMP_C=65" in source
     assert "TRAINER_GPU_MAX_MEMORY_TEMP_C=80" in source
-    assert "TRAINER_GPU_MAX_POWER_LIMIT_W=160" in source
-    assert "TRAINER_GPU_MAX_POWER_DRAW_W=170" in source
+    assert "TRAINER_GPU_MAX_POWER_LIMIT_W=300" in source
+    assert "TRAINER_GPU_MAX_POWER_DRAW_W=310" in source
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=12288" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1" in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
