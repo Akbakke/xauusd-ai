@@ -156,7 +156,10 @@
   },
   "current_source_technical_recipe": {
     "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+    "status": "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY",
+    "bundle_commit_manifest_sha256": "edaddad18d0e01e254976f9af3b34ec13d8a2c82e216b7ea782eac677084f668",
+    "bundle_commit_sha256": "c0c15891f9dea2c35e8b4597545dea699138f7bb3cf0fd9bfcbcb38270505d22",
+    "bundle_metadata_sha256": "2516281cfe03aeca8b7a8b8e33aa7e0080554c52f8a3ee4a3f345ec7fa555ab5",
     "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_GATE_SMOKE_20260920T181009Z_RECIPE.json",
     "recipe_sha256": "a4ba9aad5ed3fb76d2de708b4a2479d84153aedff2c8030d1d62ff6bc77f22fb",
     "source_commit": "5be2d7e2b60eb6899d757bdb37ddef8ca847f173",
