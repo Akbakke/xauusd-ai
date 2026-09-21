@@ -1,12 +1,18 @@
 # GX1 operating rules
 
-> **Authoritative status — 2026-09-08:** Read
-> [`CURRENT_CLOUD_TRAINING_STATUS_20260908.md`](docs/CURRENT_CLOUD_TRAINING_STATUS_20260908.md). The canonical
-> handover currently returns `BLOCK`; the review hold is active, no trainer is
-> running, and CUDA, TEST, paper/live and spending authority are all `NONE`.
-> The cloud-control package is uncommitted and has known failing CPU tests.
-> This block supersedes every lower runtime/status statement; lower dated text
-> remains architecture, policy or historical evidence only.
+> **Authoritative status — 2026-09-21:** Read
+> [`CURRENT_HANDOFF_20260921.md`](docs/CURRENT_HANDOFF_20260921.md) — the
+> takeover entrypoint: current surface (signal v35, per-TF V23), the executed
+> 2026-09-20/21 chain (guarded smoke, aborted 240-surface candidate, fidelity
+> wave `5ec2e537`), the running rebuild toward the 243-surface candidate, and
+> the exact next steps. The findings register steering current and future
+> waves is [`PIPELINE_FEATURE_FIDELITY_REVIEW_20260921.md`](docs/PIPELINE_FEATURE_FIDELITY_REVIEW_20260921.md).
+> The 2026-09-08 review hold was cleared by operator order 2026-09-20; local
+> guarded smoke and candidate training are operator-authorized, the GPU guard
+> is 70 C / 300 W limit / 310 W draw / 12 GiB (operator vedtak 20-21.09), and
+> TEST, paper/live and external spend remain `NONE`. `scripts/gx1_handover.sh`
+> outranks every document including this block; 9 tests reading the launch
+> state stay red mid-rebuild until the state rebind (documented transitional).
 
 ## Operator override — local pre-cloud package complete, 2026-09-07
 
