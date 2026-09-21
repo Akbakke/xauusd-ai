@@ -34,7 +34,20 @@ def test_current_v46_review_is_hash_bound_but_not_admitted() -> None:
 
     assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
     assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-    if "current_pretest_trainability_readiness" in state:
+    superseded = state.get("superseded_pretest_runtime_bindings")
+    if (
+        isinstance(superseded, dict)
+        and "current_source_technical_recipe" not in state
+    ):
+        # 2026-09-21: feature-surface supersession with the rebuild in
+        # flight — no current recipe/readiness exists yet and the retained
+        # V46 evidence cannot revalidate against post-wave schema constants,
+        # so the wrapper reports the rebuild-in-progress state explicitly.
+        assert summary["dataset_run_id"] == (
+            "SUPERSEDED_FEATURE_SURFACE_REBUILD_IN_PROGRESS"
+        )
+        assert summary["report_count"] == 0
+    elif "current_pretest_trainability_readiness" in state:
         assert summary["dataset_run_id"] == state["current_source_technical_recipe"]["dataset_run_id"]
         assert summary["report_count"] == 4
         with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):

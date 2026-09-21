@@ -228,6 +228,22 @@ def test_candidate_binding_requires_the_refreshed_current_liveness_before_traini
         ):
             launch._candidate_current_audited_dataset_binding(**arguments)
         return
+    superseded = state.get("superseded_pretest_runtime_bindings")
+    if (
+        isinstance(superseded, dict)
+        and "current_source_technical_recipe" not in state
+    ):
+        # 2026-09-21: feature-surface supersession, rebuild in flight — the
+        # wrapper reports a rebuild-in-progress dataset dir that can never
+        # resolve to the candidate's real dataset, so the candidate launch
+        # binding fails closed on the dataset equality (no candidate may
+        # launch mid-rebuild).
+        with pytest.raises(
+            launch.LaunchContractError,
+            match="candidate dataset does not match current audited dataset",
+        ):
+            launch._candidate_current_audited_dataset_binding(**arguments)
+        return
     if "pretraining_review_hold" in state:
         # Valid feature liveness cannot rescue a superseded target/causality
         # contract. Retained V46 evidence must not bind a new candidate.

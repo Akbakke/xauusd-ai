@@ -27,6 +27,8 @@ AUTHORITY_PATHS = (
     REPO / "docs/CURRENT_AUDIT_STATUS_20260828.md",
     REPO / "docs/CURRENT_CLOUD_TRAINING_STATUS_20260908.md",
     REPO / "docs/CURRENT_HANDOFF_20260903.md",
+    REPO / "docs/CURRENT_HANDOFF_20260921.md",
+    REPO / "docs/PIPELINE_FEATURE_FIDELITY_REVIEW_20260921.md",
     REPO / "docs/REPO_CLEANUP_CANDIDATES_20260903.md",
     REPO / "docs/PREMIERE_CODE_REVIEW_20260905.md",
     REPO / "docs/PRETRAIN_READINESS_REPAIR_20260906.md",
@@ -415,8 +417,9 @@ def test_handover_viewer_prints_current_goal() -> None:
         "HASH_BOUND_AUDITED_REPORT_ONLY_PRODUCTION_ECONOMICS_BLOCKED"
         in result.stdout
     )
-    reference = launch_state["current_source_technical_recipe"]
-    assert f"train_recipe: {reference['status']}" in result.stdout
+    reference = launch_state.get("current_source_technical_recipe")
+    if reference is not None:
+        assert f"train_recipe: {reference['status']}" in result.stdout
     if "superseded_pretest_runtime_bindings" in launch_state:
         assert (
             "candidate_session: SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__"
@@ -437,14 +440,22 @@ def test_handover_viewer_prints_current_goal() -> None:
         assert "candidate_session_state_sha256: " in result.stdout
         assert "candidate_recipe_sha256: " in result.stdout
         assert "candidate_source_bindings_sha256: " in result.stdout
-    assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
-    assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
-    if reference["status"] in {
-        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
-        "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
-    }:
-        assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED" in result.stdout
-        assert "CANDIDATE_GATE_READY" not in result.stdout
+    if reference is not None:
+        assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
+        assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
+        if reference["status"] in {
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
+            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
+        }:
+            assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__CUDA_NOT_EXECUTED" in result.stdout
+            assert "CANDIDATE_GATE_READY" not in result.stdout
+    else:
+        # 2026-09-21: feature-surface supersession, rebuild in flight.
+        assert (
+            "current_source_technical_recipe: "
+            "SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__REBUILD_REQUIRED"
+            in result.stdout
+        )
     assert (
         "fresh_31004_train: "
         "BLOCKED_PENDING_CLEAN_PREFLIGHT_AND_EXPLICIT_REAUTHORIZATION"
@@ -608,11 +619,18 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         summary = require_blocked_launch_state_with_current_audited_dataset(state)
         assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
         assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-        expected_run = (
-            state["current_source_technical_recipe"]["dataset_run_id"]
-            if "current_pretest_trainability_readiness" in state
-            else "V46_20260825T170935Z"
-        )
+        if "current_pretest_trainability_readiness" in state:
+            expected_run = state["current_source_technical_recipe"][
+                "dataset_run_id"
+            ]
+        elif (
+            "superseded_pretest_runtime_bindings" in state
+            and "current_source_technical_recipe" not in state
+        ):
+            # 2026-09-21: feature-surface supersession, rebuild in flight.
+            expected_run = "SUPERSEDED_FEATURE_SURFACE_REBUILD_IN_PROGRESS"
+        else:
+            expected_run = "V46_20260825T170935Z"
         assert summary["dataset_run_id"] == expected_run
     assert state["accepted_bundle_dir"] is None
     assert state["bundle_metadata_sha256"] is None
@@ -911,9 +929,23 @@ def test_handover_check_mode_is_minimal_and_path_order_hash_bound() -> None:
         assert re.search(r"candidate_session: SESSION_INTACT__checkpoint=\d+", result.stdout)
         assert re.search(r"candidate_recipe_sha256: [0-9a-f]{64}", result.stdout)
         assert "candidate_source_closure: FROZEN_COMMIT_BYTES_MATCH_RECIPE" in result.stdout
-    reference = launch_state["current_source_technical_recipe"]
-    assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
-    assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
+    if "current_source_technical_recipe" in launch_state:
+        reference = launch_state["current_source_technical_recipe"]
+        assert f"current_source_technical_recipe: {reference['status']}" in result.stdout
+        assert "current_source_technical_recipe_closure: LIVE_SOURCE_BYTES_MATCH_RECIPE__" in result.stdout
+    else:
+        # 2026-09-21: feature-surface supersession, rebuild in flight — no
+        # current recipe exists; the handover reports the rebuild-required
+        # closure instead.
+        assert (
+            "current_source_technical_recipe: "
+            "SUPERSEDED_BY_FEATURE_SURFACE_CHANGE__REBUILD_REQUIRED"
+            in result.stdout
+        )
+        assert (
+            "current_source_technical_recipe_closure: feature_surface_"
+            in result.stdout
+        )
     assert "## Host capacity" not in result.stdout
     assert "## Active GX1 process groups" not in result.stdout
     assert "## Full Handover (--verbose)" not in result.stdout

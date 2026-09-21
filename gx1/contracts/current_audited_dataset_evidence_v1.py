@@ -374,6 +374,34 @@ def require_blocked_launch_state_with_current_audited_dataset(
             "dataset_dir": report["dataset_dir"],
             "report_count": len(report["input_bindings"]) + 1,
         }
+    superseded = state.get("superseded_pretest_runtime_bindings")
+    if (
+        isinstance(superseded, Mapping)
+        and superseded.get("schema_version")
+        == "gx1_superseded_pretest_runtime_bindings_v1"
+        and str(superseded.get("superseded_by") or "").startswith(
+            "feature_surface_"
+        )
+    ):
+        # 2026-09-21: a feature-surface supersession leaves NO current
+        # recipe/readiness while the rebuild chain runs, and the retained
+        # V46 evidence block cannot revalidate against post-wave schema
+        # constants (its causality audit is a prior generation).  Mirror the
+        # candidate-session validator's superseded escape: report the
+        # rebuild-in-progress state explicitly instead of failing history
+        # against current contracts.  The handover separately hash-verifies
+        # the superseded bindings file; new recipes re-enter through the
+        # pretest branch above the moment they exist.
+        return {
+            "status": CURRENT_AUDITED_DATASET_STATUS,
+            "blocker": CURRENT_AUDITED_DATASET_BLOCKER,
+            "dataset_run_id": "SUPERSEDED_FEATURE_SURFACE_REBUILD_IN_PROGRESS",
+            # A path that can never resolve to a real dataset dir, so the
+            # candidate launch contract's equality check fails closed while
+            # the rebuild runs (no candidate may launch mid-supersession).
+            "dataset_dir": "/SUPERSEDED_FEATURE_SURFACE_REBUILD_IN_PROGRESS",
+            "report_count": 0,
+        }
     return require_current_audited_dataset_evidence(
         state.get("current_audited_dataset_evidence")
     )

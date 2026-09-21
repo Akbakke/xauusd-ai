@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-20T17:20:00Z",
+  "updated_utc": "2026-09-21T16:00:00Z",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -153,29 +153,5 @@
     "report_path": "docs/PROJECT_DEEP_REVIEW_20260919.md",
     "bindings_path": "SUPERSEDED_PRETEST_RUNTIME_BINDINGS_20260920.json",
     "bindings_sha256": "fc6e82f29c8c3008949270390c7925fe6c08873246d4673c8ed706c5a8117443"
-  },
-  "current_source_technical_recipe": {
-    "schema_version": "gx1_current_source_technical_recipe_reference_v1",
-    "status": "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY",
-    "postrun_bundle_audit_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_GATE_SMOKE_20260920T181009Z_POSTRUN_AUDIT/ENTRY_MODEL_NATIVE_SMOKE_BUNDLE_AUDIT_20260920T190149105796Z.json",
-    "postrun_bundle_audit_sha256": "c66bf204b4f469c91a029c0163d5409ff4bb4561b614f57ccf9236a9ca70e570",
-    "postrun_bundle_audit_decision": "FAIL",
-    "candidate_readiness_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_CANDIDATE_READINESS_20260921T115456Z/ENTRY_CANDIDATE_READINESS_20260921T115616173123Z.json",
-    "candidate_readiness_sha256": "34d29479e605b76411c083f698076abe3312ea8a08889f781eb6fc73b9b5e0cb",
-    "candidate_readiness_decision": "READY_FOR_CANDIDATE_TRAINING",
-    "candidate_launch_gate_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_CANDIDATE_GATE_20260921T115456Z/ENTRY_PRETEST_CANDIDATE_LAUNCH_GATE_20260921T115618316089Z.json",
-    "candidate_launch_gate_sha256": "973886b10120581f8e09448143f260be4640aa8611544eef6499d1b40c3e8e57",
-    "candidate_launch_gate_decision": "READY_FOR_PRETEST_CANDIDATE_TRAINING",
-    "recipe_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_CANDIDATE_20260921T115456Z_RECIPE.json",
-    "recipe_sha256": "29a144973efcf2ada24ff5f22672f1c524e74825da3d5e53611dc06966ca152c",
-    "source_commit": "72dde80a4c335fa7f03e644d949b8db80b8024e5",
-    "source_bindings_sha256": "cc8b25634ffa922d2631598a30713e6b5ef46e0640e6202435995576eeeff4fd",
-    "run_id": "ENTRY_V10_FULLSUP_CANDIDATE_20260921T115456Z",
-    "dataset_run_id": "PRETEST_V10_20260920T112706Z",
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_CANDIDATE_20260921T115456Z_BUNDLE"
-  },
-  "current_pretest_trainability_readiness": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V10_FIVE_YEAR_ENTRY_NOTIONAL_FULLSUP_20260920T151943Z/ENTRY_V10_FULLSUP_READINESS_20260921T115456Z/ENTRY_PRETEST_TRAINABILITY_READINESS_20260921T115600339197Z.json",
-    "sha256": "5217df7924828d77ea29d8f11fa33b1ff2cb72d73c8f58951ad9f226b7c50af0"
   }
 }
