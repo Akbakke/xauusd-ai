@@ -566,8 +566,21 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
 MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4 = {
     "M5": (),
     "M15": (),
-    "H1": (("_v1h1_atr_bps", "atr_bps_14"),),
-    "H4": (("_v1h4_atr_bps", "atr_bps_14"),),
+    # `_v1h{1,4}_ema_diff` is (EMA12-EMA26)/ATR14 on the closed TF bars — the
+    # same formula the 2026-09-21 fidelity wave added to the per-bar momentum
+    # lane as `macd_line_atr` (MACD line IS ema12-ema26).  The 2026-09-21 V11
+    # cross-surface audit measured both pairs byte-identical over the full
+    # decision population, which is exactly this table's dual-representation
+    # contract: current closed-TF value on the context/gating path, causal
+    # history on the sequence lane.
+    "H1": (
+        ("_v1h1_atr_bps", "atr_bps_14"),
+        ("_v1h1_ema_diff", "macd_line_atr"),
+    ),
+    "H4": (
+        ("_v1h4_atr_bps", "atr_bps_14"),
+        ("_v1h4_ema_diff", "macd_line_atr"),
+    ),
     "D1": (
         ("d1_atr14_bps_canon_v2", "atr_bps_14"),
         ("d1_ema_slope_20_canon_v2", "ema20_slope_atr"),
