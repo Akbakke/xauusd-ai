@@ -776,7 +776,6 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     ),
     "trend_ema_encoder": (
         "_v1_ema3_ema6_spread_atr",
-        "_v1_ema_diff",
         "_v1_kama30_change_5_atr",
         "_v1_tema20_change_3_atr",
         "chart.local_ema200_slope_atr",
@@ -818,8 +817,6 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ema20_slope_atr",
     ),
     "vol_compression_encoder": (
-        # 2026-09-21 (F-20): bps sibling replaces the raw-USD era proxy.
-        "_v1_atr14_bps",
         # 2026-09-21 (F-15): raw decoded squeeze bandwidth (intensity).
         "volatility.bandwidth_rel",
         "_v1_bb10_bandwidth_change_3",

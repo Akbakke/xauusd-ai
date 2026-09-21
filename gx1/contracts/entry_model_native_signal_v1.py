@@ -150,7 +150,7 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # v35 (2026-09-21 fidelity wave): base `_v1_atr14`->bps (F-20); local
 # price-derived layer loses the three exact-affine spread fields (F-9/F-10);
 # SMC local additions gain the sided CHoCH pair and last-sweep-side (F-18/19).
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v35"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v36"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v20"
 )
@@ -257,20 +257,29 @@ RETIRED_STATIC_REGIME_BUCKET_FIELDS = (
 )
 
 MODEL_NATIVE_BASE_FIELDS = (
-    # 2026-09-21 (F-20): the raw-USD ``_v1_atr14`` is replaced by its bps
-    # sibling — the raw field's level was largely the date (measured
-    # Spearman +0.58 vs row index, IQR x3.14 across the declared tape), the
-    # one surviving era proxy of the 2026-08-09 wave.  Same Wilder-14
-    # numerator, the ``atr/close*1e4`` convention every other ATR-level
-    # field on the surface already uses.
-    "_v1_atr14_bps",
+    # 2026-09-21 (F-20): the raw-USD ``_v1_atr14`` leaves the signal surface —
+    # its level was largely the date (measured Spearman +0.58 vs row index,
+    # IQR x3.14 across the declared tape), the one surviving era proxy of the
+    # 2026-08-09 wave.  It is NOT replaced by a base-block bps sibling: the
+    # surface already carries that exact quantity as the candidate
+    # ``ctx_cont.atr_bps``, and the first attempt at this repair added
+    # ``_v1_atr14_bps`` here, which the V11 specialist audit then measured
+    # bit-identical to it over 464,244 TRAIN rows (exact duplicate signal
+    # columns are forbidden).  ATR-in-bps therefore stays in the learned path
+    # through its one context owner; no market evidence leaves the model.
     "atr_z",
     "ret_1",
     "ret_20",
     "rvol_20",
     "ema20_slope_atr",
     "_v1_pk_sigma20",
-    "_v1_ema_diff",
+    # 2026-09-21: ``_v1_ema_diff`` leaves the base block. basic_v1 computes it
+    # as ``(ema12 - ema26) / atr14_positive`` and htf_features computes
+    # ``macd_line_atr`` as exactly that on the same closed bars, so the
+    # fidelity wave's new momentum-event field made the two bit-identical
+    # (V11 specialist audit, 464,244 TRAIN rows).  ``macd_line_atr`` is the
+    # kept half: it is the mandatory M5 momentum-event owner, carries the
+    # name the quantity is known by, and has the same owner on every clock.
     "_v1_ema3_ema6_spread_atr",
     "_v1_range_z",
     "_v1_kama30_change_5_atr",
