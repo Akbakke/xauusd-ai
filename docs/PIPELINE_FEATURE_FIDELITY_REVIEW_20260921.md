@@ -133,12 +133,18 @@ Missing trader primitives (measured gaps, not opinions):
   recoverable); no stochastic %K/%D; no hidden (continuation) divergence quadrants —
   pivot-pair RSI values never emitted, so unrecoverable; no second RSI/ATR period on
   lanes; squeeze intensity (bandwidth percentile) never emitted.
-- **F-16 [S]** 112 of 178 registered per-TF fields reach the model on **no** timeframe:
-  ADX-14, DI-spread, BB position/width, all four VWAP fields, the whole mtf_level (33),
-  mtf_candle (21), mtf_smc (14), mtf_geometry (7) blocks, the 50/200 event family per
-  TF — computed, cached, liveness-audited (890 columns) and then dropped: only 25
-  scalars + 10 regime projections escape. The MTF *sequence* routes see all 178, but
-  the compact scalar surface the ctx path consumes is 35/890.
+- **F-16 [S] (corrected 2026-09-21, rule 2d)** The first publication of this finding
+  overstated it as "112/178 fields reach the model on no timeframe" — **withdrawn**.
+  All 178 per-TF fields (ADX, DI, BB, VWAP, level/candle/smc/geometry blocks included)
+  DO enter the model as the 178-wide MTF sequence tensors on M15/H1/H4/D1 (Entry) and
+  all five TFs (Exit), each behind a learned per-field gate (the (4,178) gate evidence
+  proves consumption). What is true and remains: (a) 112 of the 178 names have no
+  M5-LOCAL twin on the 240 signal surface and no ctx scalar projection — the compact
+  current-bar decision surface consumes 35 of 890 cached columns, so the *scalar* route
+  is narrow by design or by omission (not adjudicated anywhere); (b) the M5 slice of
+  the cache is ~61% byte-identical recomputation of local layers and its remainder is
+  consumed only by the Exit route's M5 lane. The GPU-waste reading of the original
+  claim is therefore wrong; the routing-asymmetry reading stands.
 - **F-17 [S]** 136 fields retired by hand-edited constants with no attached evidence
   artifact (incl. `dow_cos`, leaving `dow_sin` non-injective; all cross-TF ATR ratios).
   The pipeline's own exclusion path is dead code (`decision="available"` hardcoded,
