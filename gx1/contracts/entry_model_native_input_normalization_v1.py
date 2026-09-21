@@ -50,7 +50,13 @@ SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS = {
     "smc_swing_state": (0, 1, 2, 3, 4),
 }
 CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
-MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
+# 2026-09-21 (F-18): the per-TF surface carries the same four-state pivot
+# enum the local lane has always had (mtf_smc_structure_bias mapped state 1
+# and state 2 both to 0.0 on 38.8% of measured M5 rows).  Same domain, same
+# embedding consumption, one categorical convention across both lanes.
+MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {
+    "mtf_smc_swing_state": (0, 1, 2, 3, 4),
+}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _LINEAGE_KEYS = {
     "dataset_run_id",

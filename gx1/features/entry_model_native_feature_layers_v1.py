@@ -78,6 +78,12 @@ PRICE_DERIVED_SOURCE_OHLC_FIELDS = ("high", "low", "close")
 # ``ema{50,200}_slope_atr`` on the same native M5 frame, which fails the moment
 # either side moves.
 LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
+# 2026-09-21 (F-22): the slow span mirrors the per-TF owner's pre-existing
+# slow-span slope lookback (materialize_build_canonical_features_v1's
+# ema100_slope_atr k=20) — at k=5 the 200-EMA slope carried rho 0.985-0.990
+# with the 200-EMA distance on every measured lane.  One convention per
+# concept on both surfaces; the local/per-TF bit-parity test enforces it.
+LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS = 20
 
 # Leading rows of a source frame on which the price-derived layer is undefined.
 # classic EMA200 seeds from 200 closes so its first valid row is index 199; the
@@ -92,14 +98,11 @@ LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
 # 2026-08-19 fidelity repair: the floor moved 201 -> 204 (EMA200 first valid
 # row 199 plus the slope lookback 5), derived, never chosen.
 #
-# 2026-09-20 (deep-review D-5): the spread delta/accel moved from one-bar
-# diffs (an exact affine duplicate of the two price-vs-EMA gaps) to the same
-# LOCAL_EMA_SLOPE_LOOKBACK_BARS convention as the sibling slopes. The
-# longest warmup is now ``spread_accel_atr`` = spread first valid row (199)
-# plus 2 x lookback = 209; every other field stays at or inside 204. The
-# floor is derived from the same constants, never chosen; index 208 fails
-# the layer's own finiteness gate and 209 passes.
-PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + 2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS
+# 2026-09-21 (F-10): the spread delta/accel are retired, so the longest
+# warmup returns to ``ema200_slope_atr`` = EMA200 first valid row (199) plus
+# the slope lookback — the 2026-08-19 floor.  Derived from the same
+# constants, never chosen.
+PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
 # ratio ER = |close[t] - close[t-30]| / sum_{i=t-29..t} |close[i] - close[i-1]|
@@ -110,7 +113,12 @@ PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + 2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS
 # MODEL_NATIVE_STATIC_CONTRACT_SHA256),
 # while V29/V30 additions live in the mandatory causal layers.
 PRICE_DERIVED_FEATURE_NAMES = (
-    "chart.local_ema50_200_spread_atr",
+    # 2026-09-21 fidelity wave (F-9): ``chart.local_ema50_200_spread_atr``
+    # RETIRED — measured 100.000% float32 bit-equal to
+    # ``local_price_vs_ema200_atr - local_price_vs_ema50_atr`` on the
+    # complete declared tape (same numerator algebra, same denominator, same
+    # row), the exact-affine class this layer itself retired
+    # ``spread_bps``/``spread_delta``/``spread_accel`` for.
     "chart.local_ema50_200_bull_state",
     "chart.local_ema50_200_cross_up",
     "chart.local_ema50_200_cross_down",
@@ -223,8 +231,12 @@ PRICE_DERIVED_FEATURE_NAMES = (
     # difference, not a difference of an already normalized series.  The unit
     # now lives in the name, so the value change cannot travel silently under
     # an unchanged field name.
-    "chart.local_ema50_200_spread_delta_atr",
-    "chart.local_ema50_200_spread_accel_atr",
+    # 2026-09-21 (F-10): ``spread_delta_atr`` RETIRED — measured bit-equal to
+    # ``local_ema50_slope_atr - local_ema200_slope_atr`` (the D-5 repair
+    # replaced one exact affine duplicate with another); ``spread_accel_atr``
+    # RETIRED with it — it survived only on a t-5-vs-t denominator mismatch,
+    # not on new numerator evidence, and both slopes remain inputs (rule 4:
+    # the primitives stay, the restatement goes).
     "chart.local_kama_efficiency_30",
     # V30 Phase-A completion (2026-08-13): trend_ema GAP-2/GAP-3 on the LOCAL
     # clock.  The per-TF lane carries the matching raw EMA-state durations,
@@ -619,28 +631,13 @@ def build_price_derived_layer(
         ema50 - ema50.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
     ) / atr14_positive
     ema200_slope_atr = (
-        ema200 - ema200.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+        ema200 - ema200.shift(LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS)
     ) / atr14_positive
 
-    # 2026-09-20 (deep-review D-5) REPAIR: the one-bar diff made this field an
-    # exact affine combination of two fields already in the tuple —
-    # spread.diff()[t] == (2/49)*(close-ema50)[t] - (2/199)*(close-ema200)[t]
-    # by the EMA recurrence identity proven at the top of this module, i.e. a
-    # functional duplicate contributing no new evidence (verified numerically
-    # to 2.5e-13 on real block output). The repair adopts the exact
-    # convention of the sibling slope fields in this same block
-    # (LOCAL_EMA_SLOPE_LOOKBACK_BARS-bar lookback over the current bar's
-    # positive ATR), which is not an affine function of the current-bar gaps.
-    # Raw USD spread differences, never differences of a normalized series:
-    # the latter would fold the ATR's own change into the spread quantity.
-    spread_delta_atr = (
-        spread - spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
-    ) / atr14_positive
-    spread_accel_atr = (
-        spread
-        - 2.0 * spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
-        + spread.shift(2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS)
-    ) / atr14_positive
+    # 2026-09-21 (F-10): the D-5 spread delta/accel were RETIRED at the
+    # tuple — the k-bar delta is exactly ``ema50_slope_atr -
+    # ema200_slope_atr`` (measured bit-equal), and the accel survived only
+    # on a denominator mismatch.  The slopes above carry the evidence.
 
     # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
     # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed
@@ -694,7 +691,6 @@ def build_price_derived_layer(
 
     raw = pd.DataFrame(
         {
-            "ema50_200_spread_atr": spread_atr,
             "ema50_200_bull_state": bull_state,
             "ema50_200_cross_up": _htf_cross_up_event_v4(spread),
             "ema50_200_cross_down": _htf_cross_down_event_v4(spread),
@@ -702,8 +698,6 @@ def build_price_derived_layer(
             "price_vs_ema200_atr": price_vs_ema200_atr,
             "ema50_slope_atr": ema50_slope_atr,
             "ema200_slope_atr": ema200_slope_atr,
-            "ema50_200_spread_delta_atr": spread_delta_atr,
-            "ema50_200_spread_accel_atr": spread_accel_atr,
             "kama_efficiency_30": kama_efficiency_30,
             "ema50_200_state_age_bars": ema50_200_state_age_bars,
             "price_vs_ema50_state_age_bars": price_state_age_bars[50],

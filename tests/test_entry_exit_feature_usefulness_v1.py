@@ -1466,7 +1466,7 @@ def _states(
             + np.arange(3, dtype=np.float32)[None, :] * 0.001
             + np.float32(index / 100.0)
         )
-    useful_index = names.index("_v1_atr14")
+    useful_index = names.index("_v1_atr14_bps")
     noise_index = names.index("atr_z")
     seq[:, :, useful_index] = block_sign[:, None] * np.array(
         [1.6, 1.8, 2.0], dtype=np.float32
@@ -1996,7 +1996,7 @@ def test_synthetic_useful_noise_and_interaction_are_measured(
     assert checked["decision"] == DECISION
     for task in ("entry", "exit"):
         metrics = checked["tasks"][task]["logical_field_metrics"]["local_signal"]
-        useful = metrics["local_signal._v1_atr14"]
+        useful = metrics["local_signal._v1_atr14_bps"]
         noise = metrics["local_signal.atr_z"]
         assert useful["paired_loss_delta"]["mean"] > 0.0
         assert useful["paired_margin_delta"]["mean"] > 0.0

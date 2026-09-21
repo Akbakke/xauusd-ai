@@ -34,6 +34,7 @@ PLUS5_FIRST_FINITE_ROW = {
 }
 BASIC_V1_FEATURES = (
     "_v1_atr14",
+    "_v1_atr14_bps",
     "_v1_pk_sigma20",
     "_v1_ema_diff",
     "_v1_vwap_drift48",
@@ -70,6 +71,7 @@ BASIC_V1_FORMULA_CONTRACT = (
 )
 BASIC_V1_FIRST_FINITE_ROW = {
     "_v1_atr14": 13,
+    "_v1_atr14_bps": 13,
     "_v1_pk_sigma20": 19,
     "_v1_ema_diff": 25,
     "_v1_vwap_drift48": 47,
@@ -590,6 +592,15 @@ def build_basic_v1(
     atr14 = wilder_atr(df["high"], df["low"], df["close"], 14)
     atr14_arr = atr14.to_numpy(dtype=np.float64) if hasattr(atr14, 'to_numpy') else np.asarray(atr14, dtype=np.float64)
     df["_v1_atr14"] = atr14_arr
+    # 2026-09-21 (F-20): the bps sibling of the raw-USD ATR, the same
+    # ``atr/close*1e4`` convention as ``atr_bps_14``/``atr_bps``.  The raw
+    # field's LEVEL is largely the date on this instrument (measured
+    # Spearman +0.58 vs row index, IQR x3.14 first-to-last third of the
+    # declared tape) — an era proxy; the bps form removes the price-level
+    # trend while keeping the volatility evidence.  The raw column stays in
+    # the frame for non-signal consumers; the signal contract now points at
+    # the bps form.
+    df["_v1_atr14_bps"] = atr14_arr / df["close"].to_numpy(dtype=np.float64) * 1e4
     
     # Del: Time parkinson separately (may have pandas rolling)
     t_parkinson_start = time.perf_counter()

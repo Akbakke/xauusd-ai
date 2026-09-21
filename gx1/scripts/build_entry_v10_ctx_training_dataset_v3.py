@@ -4147,7 +4147,31 @@ def build_dataset_canonical(
                 "XAU_STRUCTURAL_AUX_LABEL_REQUIREMENT_UNKNOWN: "
                 f"{requirement}"
             ) from exc
-        return _sig_col(candidates)
+        # Schema v7 (2026-09-21, F-9): a candidate is either one column name
+        # or the explicit ("difference", minuend, subtrahend) pair; the pair
+        # reproduces the retired spread's sign bit-exactly (same denominator).
+        for candidate in candidates:
+            if isinstance(candidate, str):
+                if candidate in signal_fields_emitted:
+                    return _sig_col((candidate,))
+                continue
+            kind, minuend, subtrahend = candidate
+            if kind != "difference":
+                raise RuntimeError(
+                    "XAU_STRUCTURAL_AUX_LABEL_REQUIREMENT_FORM_INVALID: "
+                    f"{candidate!r}"
+                )
+            if (
+                minuend in signal_fields_emitted
+                and subtrahend in signal_fields_emitted
+            ):
+                return (
+                    _sig_col((minuend,)) - _sig_col((subtrahend,))
+                ).astype(np.float32, copy=False)
+        raise RuntimeError(
+            "XAU_STRUCTURAL_AUX_LABEL_SIGNAL_MISSING: expected one of "
+            + repr(list(candidates))
+        )
 
     _trend_parts = np.vstack(
         [

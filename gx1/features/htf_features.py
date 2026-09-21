@@ -46,6 +46,7 @@ from gx1.features.technical_indicators_v1 import (
 )
 from gx1.features.event_age_v1 import (
     raw_event_age_bars,
+    raw_last_event_side,
     raw_state_age_bars,
 )
 from gx1.features.volume_features import (
@@ -277,12 +278,11 @@ def _candle_primitive_feature_names_v4() -> tuple[str, ...]:
 MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "atr_bps_14",
     "rsi14_centered",
-    # V30 emission win (2026-08-13): raw Wilder RSI k-bar velocity
-    # rsi14[t] - rsi14[t-5].  k=5 adopts this file's existing EMA-slope
-    # lookback convention (ema20/50/200_slope_atr use shift(5)); the value is
-    # algebraically bounded in [-100, 100] by the RSI domain, so no clip
-    # constant is introduced.
-    "rsi14_delta_5",
+    # ``rsi14_delta_5`` was RETIRED from this block on 2026-09-21 (F-11): it
+    # is exactly ``50*(rsi14_centered[t] - rsi14_centered[t-5])`` — a linear
+    # function of a retained column at two retained lags, measured bit-exact
+    # to f32 quantization on all five lanes.  The same exact-function class
+    # as the retired ``body_pct`` below.
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
@@ -295,11 +295,25 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "ema50_dist_atr",
     "ema100_dist_atr",
     "ema200_dist_atr",
+    # 2026-09-21 (F-22): the slow-span slopes move from the k=5 fast-span
+    # convention to the repo's own pre-existing slow-span lookback k=20
+    # (materialize_build_canonical_features_v1's ``ema100_slope_atr``, its
+    # constant asserted in tests since the canonical base block).  Measured:
+    # ema200 slope at k=5 carried rho 0.985-0.990 with ema200_dist_atr on
+    # every lane (a semantic collapse); at k=20 rho drops to ~0.94.  ema100
+    # finally gets its slope on the lanes (it had dist only — the one span
+    # with an asymmetric derived-field set).  ema20/ema50 keep k=5.
     "ema20_slope_atr",
     "ema50_slope_atr",
+    "ema100_slope_atr",
     "ema200_slope_atr",
     "ema_stack_aligned_v2",
-    "vwap_local_cycle_dist_atr",
+    # 2026-09-21 (F-24): renamed from ``vwap_local_cycle_dist_atr`` — the D-4
+    # repair changed the operand to the 5-bar rolling VWAP and the file's own
+    # rename rule ("keeping the old name over a rolling operand would trade a
+    # hollow field for a lying one") applies to the distance exactly as it
+    # applied to the slope.
+    "vwap_rolling5_dist_atr",
     "vwap20_dist_atr",
     "vwap96_dist_atr",
     "vwap_rolling5_slope_atr",
@@ -368,26 +382,44 @@ RSI_WILDER_MIDLINE = 50.0
 RSI_EXTREME_BAND_WIDTH = RSI_WILDER_MIDLINE - RSI_WILDER_OVERSOLD
 
 MULTI_TF_V4_TREND_EVENT_FEATURES = (
-    "ema50_200_spread_atr",
+    # 2026-09-21 fidelity wave (F-9): `ema50_200_spread_atr` retired — it is
+    # bit-exactly `ema200_dist_atr - ema50_dist_atr` (measured 100.000% f32
+    # bit-equal on all five lanes), the same exact-affine class as the retired
+    # `body_pct`. The threshold/edge/age fields below carry the non-affine
+    # information and stay. (F-14): the 20/50 pair — 3.3x more cross events
+    # than 50/200 measured on the declared tape — gets the same event family,
+    # plus the price-through-EMA20 pullback trigger; both were one-tuple gaps.
+    "ema20_50_bull_state",
+    "ema20_50_cross_up",
+    "ema20_50_cross_down",
+    "ema20_50_state_age_bars",
     "ema50_200_bull_state",
     "ema50_200_cross_up",
     "ema50_200_cross_down",
     "ema50_200_state_age_bars",
+    "price_x_ema20_cross_up",
+    "price_x_ema20_cross_down",
     "price_x_ema50_cross_up",
     "price_x_ema50_cross_down",
     "price_x_ema200_cross_up",
     "price_x_ema200_cross_down",
+    "price_vs_ema20_state_age_bars",
     "price_vs_ema50_state_age_bars",
     "price_vs_ema200_state_age_bars",
 )
 MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
-    "rsi_cross_up_30",
-    "rsi_cross_down_70",
-    "rsi_cross_up_50",
-    "rsi_cross_down_50",
+    # 2026-09-21 fidelity wave (F-11): the four RSI-threshold cross flags and
+    # both mom20 sign flips were RETIRED — each reproduced bit-exactly
+    # (0 mismatches, 678,661 rows, all five lanes) from `rsi14_centered` /
+    # `mom_20_atr` at lags 0 and 1, well inside every declared context
+    # window.  The AGE fields stay: their tails (max 364/457 bars measured)
+    # exceed any context window, so they carry non-recoverable information.
+    # (F-19): each side-merged age gains a `*_last_event_side` companion
+    # (+1 upper/-1 lower side, NaN before the first event) so the side of
+    # the last event is recoverable — the surface's own signed convention
+    # (`level_bars_since_break_signed`) applied to its own gaps.
     "rsi_extreme_event_age_bars",
-    "mom20_sign_flip_up",
-    "mom20_sign_flip_down",
+    "rsi_extreme_last_event_side",
     "bear_divergence_event",
     "bull_divergence_event",
     # V30 emission win (2026-08-13): the divergence STRENGTH the design doc
@@ -402,14 +434,31 @@ MULTI_TF_V4_MOMENTUM_EVENT_FEATURES = (
     "bear_divergence_strength",
     "bull_divergence_strength",
     "divergence_event_age_bars",
+    "divergence_last_event_side",
+    # 2026-09-21 (F-15): hidden (continuation) divergence — the two quadrants
+    # the regular pair cannot span (LH price + HH RSI bearish-continuation;
+    # HL price + LL RSI bullish-continuation).  Same confirmed-pivot
+    # machinery, same lag, same strength construction as the regular pair.
+    "hidden_bear_divergence_event",
+    "hidden_bull_divergence_event",
+    "hidden_bear_divergence_strength",
+    "hidden_bull_divergence_strength",
+    # 2026-09-21 (F-15): MACD 12/26/9 (the classic constants) and stochastic
+    # %K 14 — measured genuine gaps: neither is linearly recoverable from the
+    # retained surface (EMA-12/26 are not in the span; %K needs HH/LL).  The
+    # signal line is exactly line - hist, so two fields span all three.
+    "macd_line_atr",
+    "macd_hist_atr",
+    "stoch_k_14",
 )
 
 # Native-clock continuous momentum evidence. These are appended to the local
 # M5 Entry / M1 Exit event block so each decision sequence sees its own RSI
 # level, RSI velocity and short/medium momentum.
+# 2026-09-21 (F-11): ``rsi14_delta_5`` retired here for the same exact-linear
+# reason as the per-TF block above.
 LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES = (
     "rsi14_centered",
-    "rsi14_delta_5",
     "mom_5_atr",
     "mom_20_atr",
 )
@@ -705,7 +754,7 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # mirroring the level registry's signed convention; pre-first-break NaN
 # censoring is unchanged.  A V21 matrix is four columns per lane wider and
 # holds the sign-blind break age under a name that no longer exists.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V22"
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V23"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -750,7 +799,7 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V22"
 # break age, carries the sign-blind geomline break age under a retired name,
 # and binds a v1 squeeze manifest whose feature_names this owner no longer
 # emits.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v32"
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v33"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
 )
@@ -777,7 +826,7 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # the signed rename of the geomline break age; a v21 artifact answers
 # liveness for five names per lane this surface no longer emits and is
 # silent on geomline_bars_since_break_signed.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v22"
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v23"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
@@ -2708,6 +2757,7 @@ def _compute_v29_momentum_event_frame(
     *,
     high: pd.Series,
     low: pd.Series,
+    close: pd.Series,
     rsi: pd.Series,
     mom_20_atr: pd.Series,
     atr_positive: pd.Series,
@@ -2729,14 +2779,12 @@ def _compute_v29_momentum_event_frame(
     )
 
     frame = pd.DataFrame(index=rsi.index, dtype=np.float64)
-    # Momentum G2: RSI threshold events on the raw Wilder 0-100 series (the
-    # exact masked `rsi`, BEFORE the centered affine map).  Thresholds are
-    # Wilder's published 30/70 bands and the 50 midline (named module
-    # constants); a threshold cross is the zero-cross of (rsi - level).
-    frame["rsi_cross_up_30"] = _cross_up_event(rsi - RSI_WILDER_OVERSOLD)
-    frame["rsi_cross_down_70"] = _cross_down_event(rsi - RSI_WILDER_OVERBOUGHT)
-    frame["rsi_cross_up_50"] = _cross_up_event(rsi - RSI_WILDER_MIDLINE)
-    frame["rsi_cross_down_50"] = _cross_down_event(rsi - RSI_WILDER_MIDLINE)
+    # 2026-09-21 (F-11): the four RSI-threshold cross flags and both mom20
+    # sign flips were retired at their contract tuple — each was measured
+    # bit-exact from `rsi14_centered`/`mom_20_atr` at lags 0 and 1.  The
+    # extreme-event AGE survives (tail exceeds every context window) and,
+    # per F-19, gains a side companion so the merged oversold/overbought
+    # reset is no longer sign-blind.
     rsi_np = rsi.to_numpy(dtype=np.float64)
     rsi_valid = np.isfinite(rsi_np)
     rsi_extreme = rsi_valid & (
@@ -2745,12 +2793,11 @@ def _compute_v29_momentum_event_frame(
     frame["rsi_extreme_event_age_bars"] = raw_event_age_bars(
         rsi_extreme.astype(np.bool_), rsi_valid
     )
-
-    # Momentum G2: mom_20_atr zero-line sign flips.  Zero is the natural
-    # named constant of a signed difference, so the crossing series is the
-    # emitted raw field itself.
-    frame["mom20_sign_flip_up"] = _cross_up_event(mom_20_atr)
-    frame["mom20_sign_flip_down"] = _cross_down_event(mom_20_atr)
+    frame["rsi_extreme_last_event_side"] = raw_last_event_side(
+        rsi_extreme & (rsi_np >= RSI_WILDER_OVERBOUGHT),
+        rsi_extreme & (rsi_np <= RSI_WILDER_OVERSOLD),
+        rsi_valid,
+    )
 
     # Momentum G1: RSI divergence on confirmed price pivots.  One pivot
     # truth: smc_v1's _detect_swing_pivots/_track_recent_swings with its
@@ -2836,6 +2883,85 @@ def _compute_v29_momentum_event_frame(
     frame["divergence_event_age_bars"] = raw_event_age_bars(
         (bear_event | bull_event).astype(np.bool_), divergence_defined
     )
+    # F-19: side of the last divergence event (+1 bear/high side, -1 bull/low
+    # side, 0.0 both-on-same-bar), same honest prefix as the age above.
+    frame["divergence_last_event_side"] = raw_last_event_side(
+        bear_event & divergence_defined,
+        bull_event & divergence_defined,
+        divergence_defined,
+    )
+    # F-15: hidden (continuation) divergence — the two quadrants the regular
+    # pair cannot span.  Hidden bearish: price LOWER-high pivot pair with RSI
+    # HIGHER-high (downtrend continuation); hidden bullish: price HIGHER-low
+    # with RSI LOWER-low (uptrend continuation).  Same confirmed pivots, same
+    # causality argument, same strength construction (both factors positive
+    # exactly when the event is true, so each side emits a non-negative
+    # magnitude with direction in the field identity).
+    hidden_bear_event = (
+        new_high_pair
+        & bear_defined
+        & (high_np[clip_last_sh] < high_np[clip_prev_sh])
+        & (rsi_np[clip_last_sh] > rsi_np[clip_prev_sh])
+    )
+    hidden_bull_event = (
+        new_low_pair
+        & bull_defined
+        & (low_np[clip_last_sl] > low_np[clip_prev_sl])
+        & (rsi_np[clip_last_sl] < rsi_np[clip_prev_sl])
+    )
+    frame["hidden_bear_divergence_event"] = np.where(
+        bear_defined, hidden_bear_event.astype(np.float64), np.nan
+    )
+    frame["hidden_bull_divergence_event"] = np.where(
+        bull_defined, hidden_bull_event.astype(np.float64), np.nan
+    )
+    hidden_bear_strength = (
+        (rsi_np[clip_last_sh] - rsi_np[clip_prev_sh]) / RSI_WILDER_MIDLINE
+    ) * (
+        (high_np[clip_prev_sh] - high_np[clip_last_sh])
+        / atr_positive_np[clip_last_sh]
+    )
+    hidden_bull_strength = (
+        (rsi_np[clip_prev_sl] - rsi_np[clip_last_sl]) / RSI_WILDER_MIDLINE
+    ) * (
+        (low_np[clip_last_sl] - low_np[clip_prev_sl])
+        / atr_positive_np[clip_last_sl]
+    )
+    frame["hidden_bear_divergence_strength"] = np.where(
+        bear_defined, np.where(hidden_bear_event, hidden_bear_strength, 0.0), np.nan
+    )
+    frame["hidden_bull_divergence_strength"] = np.where(
+        bull_defined, np.where(hidden_bull_event, hidden_bull_strength, 0.0), np.nan
+    )
+    # F-15: MACD on the classic 12/26/9 published constants, ATR-normalized
+    # like every other price-difference field on this surface.  classic_ema
+    # requires a finite input, so the signal line is fitted on the defined
+    # suffix of the raw line (EMA-26's own warmup) and reindexed — the same
+    # honest-prefix pattern as every other warmup here.  The signal line is
+    # exactly line - hist, so the two emitted fields span all three.
+    ema12 = _ema(close, 12)
+    ema26 = _ema(close, 26)
+    macd_raw = ema12 - ema26
+    macd_defined = macd_raw.dropna()
+    macd_signal = pd.Series(np.nan, index=macd_raw.index, dtype=np.float64)
+    if len(macd_defined) >= 9:
+        macd_signal.loc[macd_defined.index] = _ema(macd_defined, 9).to_numpy()
+    frame["macd_line_atr"] = macd_raw / atr_positive
+    frame["macd_hist_atr"] = (macd_raw - macd_signal) / atr_positive
+    # F-15: stochastic %K over the published 14-bar window on the lane's own
+    # closed bars.  A zero high-low range over the full window is undefined
+    # and stays NaN via the surface's own divide-where-positive convention
+    # (the bb_position precedent); %D is a 3-bar smoothing of %K and thus an
+    # exact function inside every context window — deliberately not emitted.
+    hh14 = high.rolling(14, min_periods=14).max()
+    ll14 = low.rolling(14, min_periods=14).min()
+    stoch_range = (hh14 - ll14).to_numpy(dtype=np.float64)
+    stoch_num = (close - ll14).to_numpy(dtype=np.float64)
+    frame["stoch_k_14"] = np.where(
+        np.isfinite(stoch_range) & (stoch_range > 0.0),
+        stoch_num / stoch_range,
+        np.nan,
+    )
     return frame.loc[:, list(MULTI_TF_V4_MOMENTUM_EVENT_FEATURES)]
 
 
@@ -2873,6 +2999,7 @@ def compute_v29_momentum_event_block_from_ohlc(
     events = _compute_v29_momentum_event_frame(
         high=high,
         low=low,
+        close=close,
         rsi=rsi,
         mom_20_atr=mom_20_atr,
         atr_positive=atr_positive,
@@ -2884,7 +3011,6 @@ def compute_v29_momentum_event_block_from_ohlc(
             "rsi14_centered": (
                 (rsi - RSI_WILDER_MIDLINE) / RSI_WILDER_MIDLINE
             ),
-            "rsi14_delta_5": rsi - rsi.shift(5),
             "mom_5_atr": mom_5_atr,
             "mom_20_atr": mom_20_atr,
         },
@@ -2991,7 +3117,8 @@ def compute_per_bar_features_v4(
     # [-100, 100] algebraically, so no clip constant is introduced.  The
     # masked 14-row RSI warmup plus the 5-bar shift form one honest NaN
     # prefix.
-    out["rsi14_delta_5"] = rsi - rsi.shift(5)
+    # F-11 (2026-09-21): ``rsi14_delta_5`` retired at the contract tuple —
+    # exactly 50*(rsi14_centered[t] - rsi14_centered[t-5]).
     for lag in (5, 20):
         out[f"mom_{lag}_atr"] = (
             (close - close.shift(lag)) / atr_positive
@@ -3082,8 +3209,16 @@ def compute_per_bar_features_v4(
     out["ema50_slope_atr"] = (
         (ema50 - ema50.shift(5)) / atr_positive
     )
+    # F-22 (2026-09-21): the slow spans use the repo's own pre-existing
+    # slow-span slope lookback k=20 (materialize_build_canonical_features_v1's
+    # ema100_slope_atr constant).  Measured: ema200 slope at k=5 carried
+    # rho 0.985-0.990 with ema200_dist_atr on every lane — a redundancy
+    # collapse, not a slope.  ema100 gains its slope (dist-only until now).
+    out["ema100_slope_atr"] = (
+        (ema100 - ema100.shift(20)) / atr_positive
+    )
     out["ema200_slope_atr"] = (
-        (ema200 - ema200.shift(5)) / atr_positive
+        (ema200 - ema200.shift(20)) / atr_positive
     )
 
     bull = (ema20 > ema50) & (ema50 > ema100) & (ema100 > ema200)
@@ -3107,7 +3242,10 @@ def compute_per_bar_features_v4(
     # placement remains available to the model through the session/regime
     # family's declared clock fields, not through a distance field's zeros.
     vwap_rolling5 = _rolling_vwap(close, volume, 5)
-    out["vwap_local_cycle_dist_atr"] = (
+    # F-24 (2026-09-21): renamed from ``vwap_local_cycle_dist_atr`` — the
+    # operand has been the 5-bar rolling VWAP since D-4, and this file's own
+    # rename rule (below, at the slope sibling) applies to the distance too.
+    out["vwap_rolling5_dist_atr"] = (
         (close - vwap_rolling5) / atr_positive
     )
     vwap20 = _rolling_vwap(close, volume, 20)
@@ -3140,7 +3278,11 @@ def compute_per_bar_features_v4(
     )
 
     sma20 = close.rolling(20, min_periods=20).mean()
-    std20 = close.rolling(20, min_periods=20).std()
+    # F-23 (2026-09-21): ddof=0, unifying with the Bollinger-20/2 convention
+    # the squeeze owner and basic_v1 already share (two of the three owners).
+    # The prior pandas-default ddof=1 put this field exactly sqrt(20/19)-1 =
+    # 2.5978% off the identical object the squeeze state machine decided on.
+    std20 = close.rolling(20, min_periods=20).std(ddof=0)
     bb_upper = sma20 + 2.0 * std20
     bb_lower = sma20 - 2.0 * std20
     bb_width = bb_upper - bb_lower
@@ -3168,7 +3310,23 @@ def compute_per_bar_features_v4(
     # GAP-1: local and per-TF routes consume the exact same float64 EMA50/200
     # + positive-only Wilder ATR block, then cast once at storage boundary.
     spread_50_200 = ema_spread_block["spread"]
-    v29["ema50_200_spread_atr"] = ema_spread_block["spread_atr"]
+    # F-9: the ATR-normalized spread itself is retired (exact affine of the
+    # two dist fields); the raw spread series below still drives the
+    # state/cross/age family, which is threshold/edge information the dist
+    # fields do not restate.
+    # F-14: the 20/50 pair gets the identical event construction from the
+    # same classic-EMA series already computed above.
+    spread_20_50 = ema20 - ema50
+    bull_state_20_50 = (spread_20_50 > 0).astype(np.float64).where(
+        spread_20_50.notna()
+    )
+    v29["ema20_50_bull_state"] = bull_state_20_50
+    v29["ema20_50_cross_up"] = _cross_up_event(spread_20_50)
+    v29["ema20_50_cross_down"] = _cross_down_event(spread_20_50)
+    v29["ema20_50_state_age_bars"] = raw_state_age_bars(
+        bull_state_20_50.to_numpy(dtype=np.float64),
+        bull_state_20_50.notna().to_numpy(dtype=bool),
+    )
     bull_state_50_200 = (spread_50_200 > 0).astype(np.float64).where(
         spread_50_200.notna()
     )
@@ -3185,7 +3343,7 @@ def compute_per_bar_features_v4(
     # as GAP-1, same age convention as GAP-2).  The side's sign is already
     # carried by ema50_dist_atr/ema200_dist_atr above, so the age is emitted
     # unsigned in [0, 1] (rule 2e: no synthetic signed-zero packing).
-    for ema_span, ema_line in ((50, ema50), (200, ema200)):
+    for ema_span, ema_line in ((20, ema20), (50, ema50), (200, ema200)):
         price_gap = close - ema_line
         v29[f"price_x_ema{ema_span}_cross_up"] = _cross_up_event(price_gap)
         v29[f"price_x_ema{ema_span}_cross_down"] = _cross_down_event(price_gap)
@@ -3202,6 +3360,7 @@ def compute_per_bar_features_v4(
     momentum_events = _compute_v29_momentum_event_frame(
         high=high,
         low=low,
+        close=close,
         rsi=rsi,
         mom_20_atr=out["mom_20_atr"],
         atr_positive=atr_positive,
@@ -3517,7 +3676,17 @@ def _compute_model_native_mtf_scalar_frame_v4(
             close - low20
         ) / (high20 - low20).replace(0.0, np.nan)
         out["d1_change_5_bps_canon_v2"] = close.pct_change(5) * 10000.0
-        out["d1_dist_change_1bar_atr_v4"] = distance.diff()
+        # F-21 (2026-09-21): raw-spread difference over the CURRENT bar's
+        # positive ATR — this file's own declared derivative convention
+        # ("raw USD spread differences, never differences of a normalized
+        # series").  The prior `distance.diff()` differenced an already
+        # ATR-normalized series across two denominators, folding the ATR's
+        # own daily change into the field (measured: sign flipped on 6.44%
+        # of D1 rows from the denominator term alone).
+        raw_spread = mid - ema200
+        dist_change = (raw_spread - raw_spread.shift(1)) / atr14_positive
+        dist_change.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
+        out["d1_dist_change_1bar_atr_v4"] = dist_change
 
     if tuple(out.columns) != expected_fields:
         raise RuntimeError(

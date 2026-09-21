@@ -672,6 +672,9 @@ def test_specialist_audit_recomputes_and_rejects_same_group_mandatory_swap(
 # ---------------------------------------------------------------------------
 EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     "structure_swing_encoder": (
+        # 2026-09-21 (F-18): the sided CHoCH flags on the local clock.
+        "smc_choch_up",
+        "smc_choch_down",
         "bars_since_swing_high_break",
         "bars_since_swing_low_break",
         "chart.foundation_bos_down_event_age_bars",
@@ -702,6 +705,8 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "swing_low_sequence_delta_atr",
     ),
     "smc_liquidity_encoder": (
+        # 2026-09-21 (F-19): held side of the last sweep event.
+        "smc_sweep_last_event_side",
         "ctx_cont.dist_to_R1_atr",
         "ctx_cont.dist_to_R2_atr",
         "ctx_cont.dist_to_S1_atr",
@@ -778,9 +783,6 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "chart.local_ema50_200_bull_state",
         "chart.local_ema50_200_cross_down",
         "chart.local_ema50_200_cross_up",
-        "chart.local_ema50_200_spread_accel_atr",
-        "chart.local_ema50_200_spread_atr",
-        "chart.local_ema50_200_spread_delta_atr",
         "chart.local_ema50_200_state_age_bars",
         "chart.local_ema50_slope_atr",
         "chart.local_kama_efficiency_30",
@@ -816,7 +818,10 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ema20_slope_atr",
     ),
     "vol_compression_encoder": (
-        "_v1_atr14",
+        # 2026-09-21 (F-20): bps sibling replaces the raw-USD era proxy.
+        "_v1_atr14_bps",
+        # 2026-09-21 (F-15): raw decoded squeeze bandwidth (intensity).
+        "volatility.bandwidth_rel",
         "_v1_bb10_bandwidth_change_3",
         "_v1_bb_squeeze_20_2",
         "_v1_kurt_r",
@@ -840,6 +845,17 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "volatility.squeeze_release_age_bars",
     ),
     "momentum_flow_encoder": (
+        # 2026-09-21 fidelity wave (F-11/F-15/F-19): sided companions of the
+        # merged ages, hidden divergence pair, MACD 12/26/9 and %K-14.
+        "rsi_extreme_last_event_side",
+        "divergence_last_event_side",
+        "hidden_bear_divergence_event",
+        "hidden_bull_divergence_event",
+        "hidden_bear_divergence_strength",
+        "hidden_bull_divergence_strength",
+        "macd_line_atr",
+        "macd_hist_atr",
+        "stoch_k_14",
         "bear_divergence_event",
         "bear_divergence_strength",
         "bull_divergence_event",
@@ -857,18 +873,11 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ctx_cont.m15_rsi14_canon_v2",
         "ctx_cont.m5_rsi14_canon_v2",
         "divergence_event_age_bars",
-        "mom20_sign_flip_down",
-        "mom20_sign_flip_up",
         "mom_20_atr",
         "mom_5_atr",
         "ret_1",
         "ret_20",
         "rsi14_centered",
-        "rsi14_delta_5",
-        "rsi_cross_down_50",
-        "rsi_cross_down_70",
-        "rsi_cross_up_30",
-        "rsi_cross_up_50",
         "rsi_extreme_event_age_bars",
         "vol_pct_96",
         "vol_ratio_5_20",
@@ -1035,8 +1044,10 @@ def test_unit_suffix_never_outranks_the_quantity_the_field_measures() -> None:
     assert classify_entry_specialist_feature("ema50_dist_atr") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ema100_dist_atr") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ema200_dist_atr") == "trend_ema_encoder"
+    # 2026-09-21 (F-9): the spread field is retired from every live surface;
+    # the classifier's answer for the dead name is unadjudicated by design.
     assert (
-        classify_entry_specialist_feature("ema50_200_spread_atr") == "trend_ema_encoder"
+        classify_entry_specialist_feature("ema20_50_cross_up") == "trend_ema_encoder"
     )
     assert classify_entry_specialist_feature("mom_5_atr") == "momentum_flow_encoder"
     assert classify_entry_specialist_feature("mom_20_atr") == "momentum_flow_encoder"

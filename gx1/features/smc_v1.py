@@ -38,6 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 
 import numpy as np
 import pandas as pd
@@ -46,7 +47,7 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 
 
 SWING_LOOKBACK = 3  # bars look-around for swing pivot detection (3 → 7-bar window centered)
-SMC_CAUSAL_REPLAY_SCHEMA_VERSION = "smc_causal_replay_v4"
+SMC_CAUSAL_REPLAY_SCHEMA_VERSION = "smc_causal_replay_v5"
 # v3 (2026-08-18, V30 wave 2): the two emitted local sweep CONDITIONS are
 # renamed smc_sweep_{up,down}_state, matching their MTF siblings. Only the
 # emitted column spelling moves; SMC_CAUSAL_REPLAY_SCHEMA_VERSION and the
@@ -86,6 +87,11 @@ class SMCCausalReplayStateV2:
     consumed_sweep_high: SMCLevelIdentity | None
     consumed_sweep_low: SMCLevelIdentity | None
     last_sweep_event_idx: int
+    # 2026-09-21 (F-19): held side of the most recent one-shot sweep event
+    # (+1 up-sweep, -1 down-sweep, 0.0 both-on-same-bar, NaN before the
+    # first event) — carried exactly like the index so the merged age's
+    # side is recoverable across chunk boundaries.
+    last_sweep_event_side: float
 
 
 def _empty_smc_causal_replay_state(
@@ -111,6 +117,7 @@ def _empty_smc_causal_replay_state(
         consumed_sweep_high=None,
         consumed_sweep_low=None,
         last_sweep_event_idx=-1,
+        last_sweep_event_side=float("nan"),
     )
 
 
@@ -132,6 +139,14 @@ def _require_smc_causal_replay_state(
         or state.structure_regime not in (-1, 0, 1)
         or state.last_sweep_event_idx < -1
         or state.last_sweep_event_idx >= state.bars_seen
+        or (
+            state.last_sweep_event_idx == -1
+            and not math.isnan(state.last_sweep_event_side)
+        )
+        or (
+            state.last_sweep_event_idx >= 0
+            and state.last_sweep_event_side not in (-1.0, 0.0, 1.0)
+        )
     ):
         raise RuntimeError("[SMC_REPLAY_STATE_CONTRACT_INVALID]")
     for last_idx, last_price, prev_idx, prev_price in (
@@ -254,6 +269,7 @@ def replay_smc_causal_structure_v2(
         "sweep_up_event",
         "sweep_down_event",
         "sweep_event_age_bars",
+        "sweep_last_event_side",
     )
     integer_fields = {
         "last_high_idx",
@@ -311,6 +327,7 @@ def replay_smc_causal_structure_v2(
     consumed_sweep_high = current.consumed_sweep_high
     consumed_sweep_low = current.consumed_sweep_low
     last_sweep_event_idx = current.last_sweep_event_idx
+    last_sweep_event_side = current.last_sweep_event_side
 
     for offset in range(n_rows):
         absolute_row = current.bars_seen + offset
@@ -421,6 +438,13 @@ def replay_smc_causal_structure_v2(
             consumed_sweep_low = low_identity
         if sweep_up_event or sweep_down_event:
             last_sweep_event_idx = absolute_row
+            if sweep_up_event and sweep_down_event:
+                last_sweep_event_side = 0.0
+            elif sweep_up_event:
+                last_sweep_event_side = 1.0
+            else:
+                last_sweep_event_side = -1.0
+        values["sweep_last_event_side"][offset] = last_sweep_event_side
         values["sweep_up"][offset] = float(sweep_up)
         values["sweep_down"][offset] = float(sweep_down)
         values["sweep_up_event"][offset] = float(sweep_up_event)
@@ -453,6 +477,7 @@ def replay_smc_causal_structure_v2(
         consumed_sweep_high=consumed_sweep_high,
         consumed_sweep_low=consumed_sweep_low,
         last_sweep_event_idx=last_sweep_event_idx,
+        last_sweep_event_side=last_sweep_event_side,
     )
     _require_smc_causal_replay_state(next_state, swing_lookback=swing_lookback)
     return values, next_state
@@ -631,6 +656,11 @@ def compute_smc_features(
     choch = (
         (replay["choch_up"] > 0.0) | (replay["choch_down"] > 0.0)
     ).astype(np.float32)
+    choch_up_col = replay["choch_up"].astype(np.float32)
+    choch_down_col = replay["choch_down"].astype(np.float32)
+    sweep_last_event_side_col = replay["sweep_last_event_side"].astype(
+        np.float32
+    )
 
     # 5. Liquidity sweep — wick beyond swept level, close back inside
     sweep_up = replay["sweep_up"].astype(np.float32)
@@ -699,6 +729,12 @@ def compute_smc_features(
         out_cols["smc_sweep_down_depth_atr"] = sweep_down_depth_atr
         out_cols["smc_sweep_up_event"] = sweep_up_event
         out_cols["smc_sweep_down_event"] = sweep_down_event
+        # 2026-09-21 (F-18/F-19), appended in exact tuple order: the sided
+        # CHoCH flags the MTF sibling has carried since V30, and the held
+        # side of the last sweep event.
+        out_cols["smc_choch_up"] = choch_up_col
+        out_cols["smc_choch_down"] = choch_down_col
+        out_cols["smc_sweep_last_event_side"] = sweep_last_event_side_col
     expected_columns = tuple(SMC_FEATURE_NAMES) + (
         SMC_V30_ADDITION_NAMES_V1 if include_v30_additions else ()
     )
@@ -744,6 +780,9 @@ SMC_V30_ADDITION_NAMES_V1 = (
     "smc_sweep_down_depth_atr",
     "smc_sweep_up_event",
     "smc_sweep_down_event",
+    "smc_choch_up",
+    "smc_choch_down",
+    "smc_sweep_last_event_side",
 )
 if set(SMC_V30_ADDITION_NAMES_V1) & set(SMC_FEATURE_NAMES) or len(
     set(SMC_V30_ADDITION_NAMES_V1)
@@ -790,6 +829,19 @@ SMC_MTF_FEATURE_NAMES_V1 = (
     "mtf_smc_sweep_up_event",
     "mtf_smc_sweep_down_event",
     "mtf_smc_sweep_event_age_bars",
+    # 2026-09-21 fidelity wave:
+    #   mtf_smc_swing_state (F-18) — the exact four-state pivot enum the
+    #     local lane has always carried.  `mtf_smc_structure_bias` maps
+    #     state 1 (HH+LL broadening) and state 2 (LH+HL contraction) both
+    #     to 0.0 — measured on 38.81% of M5 rows — so two opposite
+    #     structural regimes were one float on every MTF lane.  The bias
+    #     stays (it is the signed mean the model may still want); the enum
+    #     restores the distinction.  Categorical domain {0,1,2,3,4}.
+    #   mtf_smc_sweep_last_event_side (F-19) — held side of the last sweep
+    #     event (+1 up / -1 down / 0.0 both / NaN before first), the sided
+    #     companion of the merged age above.
+    "mtf_smc_swing_state",
+    "mtf_smc_sweep_last_event_side",
 )
 
 # 2026-08-18 (V30 wave 2): three columns are RETIRED from this tuple because
@@ -1068,6 +1120,8 @@ def compute_smc_mtf_primitives_v1(
         "mtf_smc_sweep_up_event": sweep_up_event.astype(np.float64),
         "mtf_smc_sweep_down_event": sweep_down_event.astype(np.float64),
         "mtf_smc_sweep_event_age_bars": replay["sweep_event_age_bars"],
+        "mtf_smc_swing_state": replay["swing_state"].astype(np.float64),
+        "mtf_smc_sweep_last_event_side": replay["sweep_last_event_side"],
         "mtf_geometry_support_dist_atr": support_dist,
         "mtf_geometry_resistance_dist_atr": resistance_dist,
         "mtf_geometry_support_age_bars": support_age,

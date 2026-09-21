@@ -191,6 +191,15 @@ def input_normalization_fixture(
         if "regime_class_id" in mtf_names:
             values[:, mtf_names.index("regime_class_id")] = row % 5
             semantic = MTF_SEMANTIC_CATEGORICAL_DOMAINS
+        # 2026-09-21 (F-18): the real MTF surface now carries a declared
+        # semantic categorical; fixtures must emit in-domain values for
+        # every declared field, exactly as the real fit requires.
+        for name, domain in MTF_SEMANTIC_CATEGORICAL_DOMAINS.items():
+            if name in mtf_names:
+                values[:, mtf_names.index(name)] = np.asarray(
+                    domain, dtype=np.float32
+                )[row.astype(np.int64) % len(domain)]
+                semantic = MTF_SEMANTIC_CATEGORICAL_DOMAINS
         surfaces[f"mtf_{tf}"] = fit_surface_normalization(
             values,
             surface=f"mtf_{tf}",

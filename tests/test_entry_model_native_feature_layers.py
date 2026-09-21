@@ -15,6 +15,7 @@ from gx1.features.entry_foundation_structure_v1 import (
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     LOCAL_EMA_SLOPE_LOOKBACK_BARS,
+    LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS,
     MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
     PRICE_DERIVED_CAUSAL_WARMUP_ROWS,
     PRICE_DERIVED_FEATURE_NAMES,
@@ -151,8 +152,12 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # narrower surface rather than a changed one.  The width itself is
             # never restated: it is read from the owner tuple below.
             (240, len(PRICE_DERIVED_FEATURE_NAMES)),
-            "fafcdee6b5d8451afc2c2b478c3a4dbfbea121bde7a6488f5e9f8db10bd38b5a",
-            "e2dd5d7119a90e593815f46d205d8bbfb0315ec5df9dfc587503492bfb9e6752",
+            # 2026-09-21 fidelity wave: three exact-affine fields retired
+            # (F-9/F-10) and the slow-span slope moved to k=20 (F-22), so
+            # the value hash moves by design; regenerated on the same
+            # deterministic fixture.
+            "49e54f8a8470411aa028f1020c37bb099a4ab0e4afd3f1792cb6e297731f52aa",
+            "d2a71d7e4648741e287d73414b497ecda89c4363957bde84ce9e39db1cb68d16",
         ),
         "candle": (
             candle_x,
@@ -191,7 +196,7 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # bars (the five extra prefix rows counted by a run-length field).
             # Every other column is bit-identical; the name hash is unchanged.
             (240, 21),
-            "1ed7cda355a71369af6ee82bcd479252d9a8f28c5c459c9ef9241059d57685a8",
+            "0c9b1889a3d44583f82694b7259c5210add12a797c97b6fe13cfa4ae148fccee",
             "9a869c450465859c43e7eab1bfca8a6bd7f9a3fc05e636df36a29d6c29ff26a7",
         ),
     }
@@ -454,7 +459,6 @@ def test_native_momentum_builder_has_exact_clock_parity_warmup_and_chunks(
 
     expected_first_finite = {
         "rsi14_centered": 14,
-        "rsi14_delta_5": 19,
         "mom_5_atr": 13,
         "mom_20_atr": 20,
     }
@@ -464,11 +468,9 @@ def test_native_momentum_builder_has_exact_clock_parity_warmup_and_chunks(
         assert not finite[:expected_first].any()
         assert finite[expected_first:].all()
 
-    rsi = wilder_rsi(ohlc["close"], 14)
-    np.testing.assert_array_equal(
-        raw["rsi14_delta_5"].to_numpy(dtype=np.float64),
-        (rsi - rsi.shift(5)).to_numpy(dtype=np.float64),
-    )
+    # 2026-09-21 (F-11): ``rsi14_delta_5`` retired — exactly
+    # 50*(rsi14_centered[t]-rsi14_centered[t-5]).
+    assert "rsi14_delta_5" not in raw.columns
 
     split = len(samples) // 2
     left, left_names = build_momentum_event_m5_layer(
@@ -529,7 +531,11 @@ def test_native_price_builder_and_per_tf_share_exact_ema_spread_owner(
     source.to_parquet(source_path, index=False)
 
     local, local_names = build_price_derived_layer(samples, source_path)
-    local_position = local_names.index("chart.local_ema50_200_spread_atr")
+    # 2026-09-21 (F-9): the spread field is retired (exact affine of the two
+    # price-vs-EMA gaps); the shared block still owns the raw spread whose
+    # SIGN drives the surviving state field, asserted bit-exact here.
+    assert "chart.local_ema50_200_spread_atr" not in local_names
+    local_position = local_names.index("chart.local_ema50_200_bull_state")
     source_index = pd.DatetimeIndex(source["time"])
     indexed = source.set_index(source_index)
     shared = ema50_200_spread_atr_block(
@@ -537,10 +543,14 @@ def test_native_price_builder_and_per_tf_share_exact_ema_spread_owner(
         indexed["low"].astype(np.float64),
         indexed["close"].astype(np.float64),
     )
-    expected_storage = shared.loc[
-        samples["time"],
-        "spread_atr",
-    ].to_numpy(dtype=np.float32)
+    shared_spread = shared["spread"]
+    expected_storage = (
+        (shared_spread > 0)
+        .astype(np.float64)
+        .where(shared_spread.notna())
+        .loc[samples["time"]]
+        .to_numpy(dtype=np.float32)
+    )
     np.testing.assert_array_equal(local[:, local_position], expected_storage)
 
     if timeframe == "M5":
@@ -556,7 +566,7 @@ def test_native_price_builder_and_per_tf_share_exact_ema_spread_owner(
             local[:, local_position],
             per_tf.loc[
                 samples["time"],
-                "ema50_200_spread_atr",
+                "ema50_200_bull_state",
             ].to_numpy(dtype=np.float32),
         )
 
@@ -695,13 +705,13 @@ def test_retired_bps_slope_was_an_exact_multiple_of_the_price_gap(
 def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
     tmp_path: Path,
 ) -> None:
-    """delta/accel adopt the repository's k-bar change convention exactly.
+    """2026-09-21 (F-10): the spread delta/accel are retired outright.
 
-    ``mom_5_atr``, ``ema20_slope_atr``, ``_v1_tema20_change_3_atr`` and
-    ``_v1_kama30_change_5_atr`` all divide a RAW difference by the CURRENT
-    closed bar's positive ATR.  Differencing an already ATR-normalized series
-    instead would fold the ATR's own bar-to-bar change into a field named for
-    the spread, so the two are asserted to be different quantities here.
+    The D-5 5-bar delta was measured bit-equal to
+    ``local_ema50_slope_atr - local_ema200_slope_atr`` (same numerator
+    algebra over the same current-bar ATR), and the accel survived only on a
+    t-5-vs-t denominator mismatch.  The slopes remain inputs; this test pins
+    the retirement and the exact identity that motivated it.
     """
 
     _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
@@ -715,44 +725,24 @@ def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
     spread = block["spread"]
     atr14_positive = block["atr14_positive"]
     lookback = LOCAL_EMA_SLOPE_LOOKBACK_BARS
-    expected_delta = (
-        (spread - spread.shift(lookback)) / atr14_positive
-    ).loc[samples["time"]]
-    expected_accel = (
-        (spread - 2.0 * spread.shift(lookback) + spread.shift(2 * lookback))
-        / atr14_positive
-    ).loc[samples["time"]]
 
     local, local_names = build_price_derived_layer(samples, source_path)
+    assert "chart.local_ema50_200_spread_delta_atr" not in local_names
+    assert "chart.local_ema50_200_spread_accel_atr" not in local_names
+
+    retired_delta = (
+        (spread - spread.shift(lookback)) / atr14_positive
+    ).loc[samples["time"]]
+    slope_difference = (
+        (
+            (block["ema50"] - block["ema50"].shift(lookback))
+            - (block["ema200"] - block["ema200"].shift(lookback))
+        )
+        / atr14_positive
+    ).loc[samples["time"]]
     np.testing.assert_array_equal(
-        local[:, local_names.index("chart.local_ema50_200_spread_delta_atr")],
-        expected_delta.to_numpy(dtype=np.float32),
-    )
-    np.testing.assert_array_equal(
-        local[:, local_names.index("chart.local_ema50_200_spread_accel_atr")],
-        expected_accel.to_numpy(dtype=np.float32),
-    )
-    differenced_normalized = (
-        block["spread_atr"].diff().loc[samples["time"]].to_numpy(dtype=np.float64)
-    )
-    assert not np.allclose(
-        expected_delta.to_numpy(dtype=np.float64),
-        differenced_normalized,
-        equal_nan=True,
-    )
-    # D-5 non-duplication proof: the retired one-bar diff was EXACTLY
-    # (2/49)*(close-ema50) - (2/199)*(close-ema200) over the same ATR; the
-    # 5-bar delta must not reproduce that affine combination of two fields
-    # already in the tuple.
-    close = indexed["close"].astype(np.float64)
-    affine_duplicate = (
-        (2.0 / 49.0) * (close - block["ema50"])
-        - (2.0 / 199.0) * (close - block["ema200"])
-    ) / atr14_positive
-    assert not np.allclose(
-        expected_delta.to_numpy(dtype=np.float64),
-        affine_duplicate.loc[samples["time"]].to_numpy(dtype=np.float64),
-        equal_nan=True,
+        retired_delta.to_numpy(dtype=np.float32),
+        slope_difference.to_numpy(dtype=np.float32),
     )
 
 
@@ -800,10 +790,10 @@ def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
 
     _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
     local, local_names = build_price_derived_layer(samples, source_path)
-    spread_atr = local[
-        :, local_names.index("chart.local_ema50_200_spread_atr")
+    price_gap_atr = local[
+        :, local_names.index("chart.local_price_vs_ema50_atr")
     ].astype(np.float64)
-    assert np.all(np.abs(spread_atr) > 0.0)
+    assert np.isfinite(price_gap_atr).all()
 
     source_index = pd.DatetimeIndex(source["time"])
     indexed = source.set_index(source_index)
@@ -814,9 +804,6 @@ def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
     ctx_frame["bid_close"] = ctx_frame["close"]
     ctx_frame["ask_close"] = ctx_frame["close"]
     atr_bps = derive_model_native_atr_spread_bps(ctx_frame)["atr_bps"]
-    recovered = spread_atr * atr_bps.loc[samples["time"]].to_numpy(
-        dtype=np.float64
-    )
 
     block = ema50_200_spread_atr_block(
         indexed["high"].astype(np.float64),
@@ -824,6 +811,15 @@ def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
         indexed["close"].astype(np.float64),
     )
     close = indexed["close"].astype(np.float64)
+    # 2026-09-21 (F-9): the emitted spread field is retired; the recovery
+    # anchor is the shared block's own spread_atr (the identical quantity),
+    # so the bps identity remains exactly checkable without a layer field.
+    spread_atr_reference = (
+        block["spread_atr"].loc[samples["time"]].to_numpy(dtype=np.float64)
+    )
+    recovered = spread_atr_reference * atr_bps.loc[samples["time"]].to_numpy(
+        dtype=np.float64
+    )
     retired_spread_bps = (
         (block["spread"] / close.abs() * 1e4)
         .loc[samples["time"]]
@@ -846,7 +842,7 @@ def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
         )
     )
     assert not np.allclose(
-        spread_atr * midpoint_atr_bps,
+        spread_atr_reference * midpoint_atr_bps,
         retired_spread_bps,
         rtol=2e-6,
         atol=0.0,
@@ -867,7 +863,7 @@ def test_price_layer_warmup_floor_is_exactly_the_ema200_slope_first_finite_row(
     # D-5: the accel field's 2x lookback owns the floor now.
     assert (
         PRICE_DERIVED_CAUSAL_WARMUP_ROWS
-        == 199 + 2 * LOCAL_EMA_SLOPE_LOOKBACK_BARS
+        == 199 + LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS
     )
 
     _matrix, _names, _samples, source, source_path = _valid_inputs(tmp_path)

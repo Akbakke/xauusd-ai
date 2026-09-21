@@ -668,6 +668,12 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
             )
             for tensor in windows.values():
                 tensor[..., stack_index] = float(row % 3) - 1.0
+            # 2026-09-21 (F-18): every declared MTF semantic categorical must
+            # carry exact in-domain integers on the fixture surface.
+            for name, domain in serve_gate.MTF_SEMANTIC_CATEGORICAL_DOMAINS.items():
+                index = serve_parity.MULTI_TF_PER_BAR_FEATURES_V4.index(name)
+                for tensor in windows.values():
+                    tensor[..., index] = float(domain[row % len(domain)])
             return windows
 
     times = pd.date_range(
@@ -864,20 +870,39 @@ def test_individual_input_layout_uses_physical_owners_and_nominal_manifolds() ->
         "domain": [0, 1, 2, 3, 4],
         "manifold": "causal_local_history_category",
     }
-    # V30 (2026-08-14): the per-timeframe `regime_class_id` categorical is
-    # retired, so every multi-TF token is numeric.  The one declared local
-    # signal category stays an embedding owner alongside ctx_cat.
-    assert not serve_gate.MTF_SEMANTIC_CATEGORICAL_DOMAINS
+    # 2026-09-21 (F-18): the per-TF surface carries the four-state pivot
+    # enum as its one declared semantic categorical (the retired
+    # `regime_class_id` composite is not readmitted; this is the raw
+    # identified state the local lane always had).
+    assert serve_gate.MTF_SEMANTIC_CATEGORICAL_DOMAINS == {
+        "mtf_smc_swing_state": (0, 1, 2, 3, 4),
+    }
     mtf_tokens = {
         token
         for timeframe in serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
         for token in numeric[f"seq_{timeframe.lower()}"]["tokens"]
     }
     assert not [token for token in mtf_tokens if token.endswith(":regime_class_id")]
-    assert {row["surface"] for row in categorical} == {"ctx_cat", "signal"}
-    assert {row["token"] for row in categorical} == {
-        f"ctx_cat.{field}" for field in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
-    } | {"signal.smc_swing_state"}
+    # 2026-09-21 (F-18): the MTF surfaces carry their declared semantic
+    # categorical on every influence timeframe.
+    mtf_surfaces = {
+        f"seq_{timeframe.lower()}"
+        for timeframe in serve_parity.SERVE_PARITY_MULTI_TF_INFLUENCE_TIMEFRAMES
+    }
+    assert {row["surface"] for row in categorical} == (
+        {"ctx_cat", "signal"} | mtf_surfaces
+    )
+    assert {row["token"] for row in categorical} == (
+        {
+            f"ctx_cat.{field}"
+            for field in serve_parity.MODEL_NATIVE_CTX_CAT_FIELDS
+        }
+        | {"signal.smc_swing_state"}
+        | {
+            f"{surface.removeprefix('seq_')}:mtf_smc_swing_state"
+            for surface in mtf_surfaces
+        }
+    )
 
 
 def test_pinned_contract_rejects_direction_only_partial_head_artifact() -> None:

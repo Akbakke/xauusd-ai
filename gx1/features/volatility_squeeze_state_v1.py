@@ -116,6 +116,12 @@ _CLOCK_DURATION = {
 VOLATILITY_SQUEEZE_FEATURE_NAMES = (
     "volatility.bars_in_squeeze",
     "volatility.squeeze_release_age_bars",
+    # 2026-09-21 fidelity wave (F-15): the raw relative Bollinger bandwidth
+    # the state machine actually decodes on — the squeeze INTENSITY was
+    # never emitted, so a 40-bar mild compression and a 40-bar extreme coil
+    # read identically.  Same ddof=0 formula owner, same causal clock; no
+    # percentile fit, the model learns the scale.
+    "volatility.bandwidth_rel",
 )
 
 # The declared TRAIN window is carried by ``declared_train_window_start`` /
@@ -369,19 +375,30 @@ def bollinger_relative_bandwidth(close: np.ndarray) -> np.ndarray:
         raise RuntimeError("VOLATILITY_SQUEEZE_CLOSE_SOURCE_INVALID")
     if np.any(values <= 0.0):
         raise RuntimeError("VOLATILITY_SQUEEZE_CLOSE_SOURCE_NONPOSITIVE")
-    series = pd.Series(values, dtype=np.float64)
-    mean = series.rolling(
-        BOLLINGER_PERIOD_BARS,
-        min_periods=BOLLINGER_PERIOD_BARS,
-    ).mean()
-    std = series.rolling(
-        BOLLINGER_PERIOD_BARS,
-        min_periods=BOLLINGER_PERIOD_BARS,
-    ).std(ddof=0)
-    width = (
-        (2.0 * BOLLINGER_STD_MULTIPLIER) * std.to_numpy(dtype=np.float64)
-        / mean.to_numpy(dtype=np.float64)
-    )
+    # 2026-09-21 (F-15 exposure): window-exact two-pass mean/std per row.
+    # pandas' sliding aggregation accumulates from the series start, so the
+    # same 20-close window yielded last-ulp-different values depending on
+    # where a serve chunk began — invisible while only the decoded states
+    # were emitted, measurable once the raw bandwidth became a carrier
+    # (5/3600 elements at 5.8e-11 in the chunk-carry identity test).  A
+    # two-pass computation over exactly the window's own 20 values is
+    # bit-deterministic for identical windows regardless of chunking; fit
+    # and serve share this one function, so the six-clock artifacts are
+    # refitted on the next chain rather than reused.
+    if len(values) < BOLLINGER_PERIOD_BARS:
+        width = np.full(len(values), np.nan, dtype=np.float64)
+    else:
+        windows = np.lib.stride_tricks.sliding_window_view(
+            values, BOLLINGER_PERIOD_BARS
+        )
+        window_mean = windows.mean(axis=1)
+        window_std = np.sqrt(
+            ((windows - window_mean[:, None]) ** 2).mean(axis=1)
+        )
+        width = np.full(len(values), np.nan, dtype=np.float64)
+        width[BOLLINGER_PERIOD_BARS - 1 :] = (
+            (2.0 * BOLLINGER_STD_MULTIPLIER) * window_std / window_mean
+        )
     if not np.isnan(width[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all():
         raise RuntimeError("VOLATILITY_SQUEEZE_BANDWIDTH_PREFIX_INVALID")
     tail = width[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
@@ -1524,10 +1541,13 @@ def compute_volatility_squeeze_state(
                 last_release_duration = bars_in_squeeze
                 release_age = 0
             bars_in_squeeze = 0
-        # D-3 (2026-09-20): only the two carriers are emitted; ``active``,
-        # ``released`` and ``last_release_duration`` remain internal state.
+        # D-3 (2026-09-20): ``active``, ``released`` and
+        # ``last_release_duration`` remain internal state (exact functions of
+        # the carriers); the raw decoded bandwidth itself is a carrier since
+        # 2026-09-21 (F-15).
         out[row, 0] = float(bars_in_squeeze)
         out[row, 1] = float(release_age)
+        out[row, 2] = float(width)
 
     result = pd.DataFrame(
         out,

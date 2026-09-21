@@ -155,6 +155,8 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 "ema200_dist_atr",
                 "ema20_slope_atr",
                 "ema50_slope_atr",
+                # 2026-09-21 (F-22): ema100 finally has its slope on the lanes.
+                "ema100_slope_atr",
                 "ema200_slope_atr",
                 "ema_stack_aligned_v2",
                 "adx14",
@@ -179,9 +181,8 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
             "momentum_flow_encoder",
             (
                 "rsi14_centered",
-                # V30 (2026-08-13): raw Wilder RSI 5-bar velocity — momentum
-                # evidence beside its rsi14_centered sibling.
-                "rsi14_delta_5",
+                # 2026-09-21 (F-11): ``rsi14_delta_5`` retired with the per-TF
+                # surface — exactly 50*(rsi14_centered[t]-rsi14_centered[t-5]).
                 "mom_5_atr",
                 "mom_20_atr",
                 "bb_position",
@@ -195,7 +196,9 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
         (
             "session_regime_encoder",
             (
-                "vwap_local_cycle_dist_atr",
+                # 2026-09-21 (F-24): renamed with the operand it has had
+                # since D-4 (5-bar rolling VWAP distance).
+                "vwap_rolling5_dist_atr",
                 "vwap20_dist_atr",
                 "vwap96_dist_atr",
                 # 2026-08-18 (V30 wave 2): renamed with its repair — the slope
@@ -667,9 +670,13 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                     SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES
                 ),
                 "expected_specialist_counts": {
-                    "structure_swing_encoder": 1,
+                    # 2026-09-21 (F-18): the sided CHoCH flags join the BOS
+                    # displacement on the structure side (3 = displacement +
+                    # choch_up + choch_down); everything sweep-shaped stays
+                    # liquidity, including the F-19 last-event-side.
+                    "structure_swing_encoder": 3,
                     "smc_liquidity_encoder": (
-                        len(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES) - 1
+                        len(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES) - 3
                     ),
                 },
                 "owned_specialists": (
@@ -677,9 +684,10 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                     "smc_liquidity_encoder",
                 ),
                 "purpose": (
-                    "Native M5/M1 BOS displacement, sided sweep depth, "
-                    "and level-identity sweep events; raw sweep age/seen "
-                    "live in the canonical local SMC owner."
+                    "Native M5/M1 BOS displacement, sided CHoCH flags, "
+                    "sided sweep depth, level-identity sweep events and the "
+                    "last sweep side; raw sweep age/seen live in the "
+                    "canonical local SMC owner."
                 ),
             },
         ),

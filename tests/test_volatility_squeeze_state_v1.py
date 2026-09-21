@@ -101,11 +101,14 @@ def _fit(frame: pd.DataFrame, timeframe: str) -> dict:
 def test_bandwidth_has_honest_full_window_prefix() -> None:
     close = _closed_ohlcv("M5", rows=100)["close"].to_numpy(dtype=np.float64)
     observed = bollinger_relative_bandwidth(close)
-    expected = (
-        4.0
-        * pd.Series(close).rolling(20, min_periods=20).std(ddof=0)
-        / pd.Series(close).rolling(20, min_periods=20).mean()
-    ).to_numpy(dtype=np.float64)
+    # 2026-09-21: the owner computes window-exact two-pass mean/std per row
+    # (chunk-deterministic); the reference replicates that exact arithmetic,
+    # not pandas' start-dependent sliding aggregation.
+    windows = np.lib.stride_tricks.sliding_window_view(close, 20)
+    w_mean = windows.mean(axis=1)
+    w_std = np.sqrt(((windows - w_mean[:, None]) ** 2).mean(axis=1))
+    expected = np.full(len(close), np.nan, dtype=np.float64)
+    expected[19:] = 4.0 * w_std / w_mean
     np.testing.assert_allclose(observed, expected, rtol=0.0, atol=0.0, equal_nan=True)
     assert np.isnan(observed[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all()
     assert np.isfinite(observed[VOLATILITY_SQUEEZE_PREFIX_ROWS:]).all()
@@ -350,10 +353,18 @@ def test_same_owner_runs_independently_on_all_six_native_clocks(timeframe: str) 
     assert out.index.equals(frame.index)
     assert carry.timeframe == timeframe
     assert carry.params_sha256 == params["contract_sha256"]
-    # Both carriers are raw non-negative integer bar counts.
-    counts = out.dropna().to_numpy(dtype=np.float64)
+    # The two age carriers are raw non-negative integer bar counts; the
+    # F-15 bandwidth carrier (2026-09-21) is the raw decoded relative
+    # bandwidth — continuous, strictly positive.
+    counts = out[
+        ["volatility.bars_in_squeeze", "volatility.squeeze_release_age_bars"]
+    ].dropna().to_numpy(dtype=np.float64)
     assert (counts >= 0.0).all()
     assert (counts == np.floor(counts)).all()
+    bandwidth = out["volatility.bandwidth_rel"].dropna().to_numpy(
+        dtype=np.float64
+    )
+    assert (bandwidth > 0.0).all()
     live = out.iloc[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
     assert np.isfinite(live.to_numpy(dtype=np.float64)).all()
     assert all(live[column].nunique() > 1 for column in VOLATILITY_SQUEEZE_FEATURE_NAMES)

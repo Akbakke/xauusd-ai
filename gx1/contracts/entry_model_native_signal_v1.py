@@ -147,7 +147,10 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 #     rolling 5-bar VWAP instead of a cumulative session VWAP, and is renamed
 #     vwap_rolling5_slope_atr accordingly.
 # Widths are never restated here; execute the owner tuples.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v34"
+# v35 (2026-09-21 fidelity wave): base `_v1_atr14`->bps (F-20); local
+# price-derived layer loses the three exact-affine spread fields (F-9/F-10);
+# SMC local additions gain the sided CHoCH pair and last-sweep-side (F-18/19).
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v35"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v20"
 )
@@ -254,7 +257,13 @@ RETIRED_STATIC_REGIME_BUCKET_FIELDS = (
 )
 
 MODEL_NATIVE_BASE_FIELDS = (
-    "_v1_atr14",
+    # 2026-09-21 (F-20): the raw-USD ``_v1_atr14`` is replaced by its bps
+    # sibling — the raw field's level was largely the date (measured
+    # Spearman +0.58 vs row index, IQR x3.14 across the declared tape), the
+    # one surviving era proxy of the 2026-08-09 wave.  Same Wilder-14
+    # numerator, the ``atr/close*1e4`` convention every other ATR-level
+    # field on the surface already uses.
+    "_v1_atr14_bps",
     "atr_z",
     "ret_1",
     "ret_20",

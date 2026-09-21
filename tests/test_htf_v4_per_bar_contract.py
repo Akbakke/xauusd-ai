@@ -142,7 +142,6 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "atr_bps_14",
     "rsi14_centered",
     # V30 (2026-08-13): raw Wilder RSI 5-bar velocity.
-    "rsi14_delta_5",
     "mom_5_atr",
     "mom_20_atr",
     "close_open_atr",
@@ -156,11 +155,15 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     "ema200_dist_atr",
     "ema20_slope_atr",
     "ema50_slope_atr",
+    # 2026-09-21 (F-22): slow-span slopes at the pre-existing k=20 constant;
+    # ema100 finally has a lane slope.
+    "ema100_slope_atr",
     "ema200_slope_atr",
     "ema_stack_aligned_v2",
     # V30 (2026-08-14): the handwritten `regime_class_id` discretization is
     # retired; the raw EMA-stack alignment and trend-state age remain.
-    "vwap_local_cycle_dist_atr",
+    # 2026-09-21 (F-24): renamed with its D-4 operand.
+    "vwap_rolling5_dist_atr",
     "vwap20_dist_atr",
     "vwap96_dist_atr",
     "vwap_rolling5_slope_atr",
@@ -174,32 +177,48 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
 
 
 EXPECTED_V29_TREND_EVENT_FEATURES = (
-    "ema50_200_spread_atr",
+    # 2026-09-21 fidelity wave: spread retired (exact affine of the two dist
+    # fields); the 20/50 event family and price-x-EMA20 pullback triggers
+    # join their 50/200 siblings.
+    "ema20_50_bull_state",
+    "ema20_50_cross_up",
+    "ema20_50_cross_down",
+    "ema20_50_state_age_bars",
     "ema50_200_bull_state",
     "ema50_200_cross_up",
     "ema50_200_cross_down",
     "ema50_200_state_age_bars",
+    "price_x_ema20_cross_up",
+    "price_x_ema20_cross_down",
     "price_x_ema50_cross_up",
     "price_x_ema50_cross_down",
     "price_x_ema200_cross_up",
     "price_x_ema200_cross_down",
+    "price_vs_ema20_state_age_bars",
     "price_vs_ema50_state_age_bars",
     "price_vs_ema200_state_age_bars",
 )
 EXPECTED_V29_MOMENTUM_EVENT_FEATURES = (
-    "rsi_cross_up_30",
-    "rsi_cross_down_70",
-    "rsi_cross_up_50",
-    "rsi_cross_down_50",
+    # 2026-09-21 fidelity wave: the four RSI-threshold crosses and both
+    # mom20 sign flips retired (bit-exact functions of retained lags); the
+    # ages gain sided companions; hidden divergence + MACD 12/26/9 +
+    # stochastic %K-14 join the block.
     "rsi_extreme_event_age_bars",
-    "mom20_sign_flip_up",
-    "mom20_sign_flip_down",
+    "rsi_extreme_last_event_side",
     "bear_divergence_event",
     "bull_divergence_event",
     # V30 (2026-08-13): the event-gated divergence strengths.
     "bear_divergence_strength",
     "bull_divergence_strength",
     "divergence_event_age_bars",
+    "divergence_last_event_side",
+    "hidden_bear_divergence_event",
+    "hidden_bull_divergence_event",
+    "hidden_bear_divergence_strength",
+    "hidden_bull_divergence_strength",
+    "macd_line_atr",
+    "macd_hist_atr",
+    "stoch_k_14",
 )
 
 
@@ -291,7 +310,6 @@ def test_raw_technical_formulas_are_identical_on_all_five_native_clocks() -> Non
     technical_names = (
         "atr_bps_14",
         "rsi14_centered",
-        "rsi14_delta_5",
         "mom_5_atr",
         "mom_20_atr",
         "close_open_atr",
@@ -475,13 +493,14 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         # de-duplicated sweep events).
         "smc_liquidity_encoder": len(smc_v1.SMC_MTF_FEATURE_NAMES_V1)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES),
-        # V30 (2026-08-13): + di_spread_signed (trend) and rsi14_delta_5
-        # (momentum) in the explicit non-event routing tuples.
-        "trend_ema_encoder": 11
+        # V30 (2026-08-13): + di_spread_signed in the explicit non-event
+        # routing tuple; 2026-09-21 (F-22) + ema100_slope_atr, (F-11)
+        # - rsi14_delta_5.
+        "trend_ema_encoder": 12
         + len(htf.MULTI_TF_V4_TREND_EVENT_FEATURES),
             "vol_compression_encoder": 2
             + len(htf.MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES),
-        "momentum_flow_encoder": 5
+        "momentum_flow_encoder": 4
         + len(htf.MULTI_TF_V4_MOMENTUM_EVENT_FEATURES)
         + len(htf.MULTI_TF_V4_VOLUME_FEATURES),
         # V30 (2026-08-14): the handwritten `regime_class_id` discretization is
@@ -506,7 +525,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
     assert all(list(indices) == sorted(set(indices)) for indices in routing.values())
     assert "vwap_session_dist_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
     assert "vwap_session_slope_atr" not in htf.MULTI_TF_PER_BAR_FEATURES_V4
-    assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert "vwap_rolling5_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
 
 
 def test_v4_smc_and_geometry_are_causal_and_have_one_warmup_prefix() -> None:
@@ -665,11 +684,14 @@ def test_v30_package_8a_smc_owner_parity_emissions() -> None:
 
     # ── MTF owner: the three additions are appended, so the pre-existing
     # per-TF column order is byte-stable ahead of them.
-    assert SMC_MTF_FEATURE_NAMES_V1[-4:] == (
+    assert SMC_MTF_FEATURE_NAMES_V1[-6:] == (
         "mtf_smc_bos_displacement_atr",
         "mtf_smc_sweep_up_event",
         "mtf_smc_sweep_down_event",
         "mtf_smc_sweep_event_age_bars",
+        # 2026-09-21 (F-18/F-19), appended for byte-stable prior order:
+        "mtf_smc_swing_state",
+        "mtf_smc_sweep_last_event_side",
     )
     mtf = compute_smc_mtf_primitives_v1(frame)
     valid = np.isfinite(mtf["mtf_smc_pivot_envelope_position"].to_numpy())
@@ -1176,15 +1198,34 @@ def test_v29_trend_events_bit_identical_to_local_layer_formula() -> None:
         14,
     )
     atr_positive = atr14.where(atr14 > 0.0)
-    expected_spread_atr = (
-        (spread / atr_positive).to_numpy(dtype=np.float64)
-    ).astype(np.float32)
-    observed_spread_atr = matrix["ema50_200_spread_atr"].to_numpy(
-        dtype=np.float32
+    # 2026-09-21 (F-9): the ATR-normalized spread is retired — it was
+    # bit-exactly the difference of the two dist fields.  The raw spread's
+    # sign still drives the state/cross family, asserted here, and the new
+    # 20/50 pair follows the identical construction.
+    assert "ema50_200_spread_atr" not in matrix.columns
+    expected_bull = (
+        (spread > 0)
+        .astype(np.float64)
+        .where(spread.notna())
+        .to_numpy(dtype=np.float64)
     )
+    observed_bull = matrix["ema50_200_bull_state"].to_numpy(dtype=np.float64)
+    assert np.array_equal(observed_bull, expected_bull, equal_nan=True)
+    ema20 = htf._ema(close, 20)
+    ema50_series = htf._ema(close, 50)
+    spread_20_50 = ema20 - ema50_series
+    previous_20_50 = spread_20_50.shift(1)
+    valid_20_50 = (spread_20_50.notna() & previous_20_50.notna()).to_numpy()
+    expected_cross_up = (
+        ((spread_20_50 > 0) & (previous_20_50 <= 0))
+        .astype(np.float64)
+        .to_numpy()
+    )
+    observed_cross_up = matrix["ema20_50_cross_up"].to_numpy(dtype=np.float64)
     assert np.array_equal(
-        observed_spread_atr, expected_spread_atr, equal_nan=True
+        observed_cross_up[valid_20_50], expected_cross_up[valid_20_50]
     )
+    assert observed_cross_up[valid_20_50].sum() > 0
 
 
 def test_v29_rsi_threshold_events_use_raw_wilder_series() -> None:
@@ -1199,20 +1240,35 @@ def test_v29_rsi_threshold_events_use_raw_wilder_series() -> None:
     assert htf.RSI_WILDER_OVERBOUGHT == 70.0
     assert htf.RSI_WILDER_MIDLINE == 50.0
     assert htf.RSI_EXTREME_BAND_WIDTH == 20.0
-    cases = (
-        ("rsi_cross_up_30", (rsi > 30.0) & (previous <= 30.0)),
-        ("rsi_cross_down_70", (rsi < 70.0) & (previous >= 70.0)),
-        ("rsi_cross_up_50", (rsi > 50.0) & (previous <= 50.0)),
-        ("rsi_cross_down_50", (rsi < 50.0) & (previous >= 50.0)),
+    # 2026-09-21 (F-11): the four threshold-cross flags are retired
+    # (bit-exact functions of rsi14_centered at lags 0/1); the extreme AGE
+    # and its F-19 side companion carry the surviving evidence.
+    for retired in (
+        "rsi_cross_up_30",
+        "rsi_cross_down_70",
+        "rsi_cross_up_50",
+        "rsi_cross_down_50",
+    ):
+        assert retired not in matrix.columns, retired
+    rsi_np = rsi.to_numpy(dtype=np.float64)
+    rsi_valid = np.isfinite(rsi_np)
+    overbought = rsi_valid & (rsi_np >= 70.0)
+    oversold = rsi_valid & (rsi_np <= 30.0)
+    observed_side = matrix["rsi_extreme_last_event_side"].to_numpy(
+        dtype=np.float64
     )
-    for name, expected in cases:
-        observed = matrix[name].to_numpy(dtype=np.float64)
-        assert np.array_equal(
-            observed[valid],
-            expected.astype(np.float64).to_numpy()[valid],
-        ), name
-        assert not np.isfinite(observed[~valid]).any(), name
-        assert observed[valid].sum() > 0, name
+    expected_side = np.full(len(rsi_np), np.nan)
+    current = np.nan
+    for i in range(len(rsi_np)):
+        if overbought[i]:
+            current = 1.0
+        elif oversold[i]:
+            current = -1.0
+        if rsi_valid[i]:
+            expected_side[i] = current
+    assert np.array_equal(observed_side, expected_side, equal_nan=True)
+    finite_side = observed_side[np.isfinite(observed_side)]
+    assert len(finite_side) > 0 and set(np.unique(finite_side)) <= {-1.0, 1.0}
 
     # Raw age is unavailable before the first actual extreme and uncapped after.
     n = len(bars)
@@ -1252,16 +1308,13 @@ def test_v29_mom20_flips_and_cross_age_semantics() -> None:
     mom20 = (close - close.shift(20)) / atr_positive
     previous = mom20.shift(1)
     valid = (mom20.notna() & previous.notna()).to_numpy()
-    expected_up = ((mom20 > 0) & (previous <= 0)).astype(np.float64).to_numpy()
-    expected_down = (
-        ((mom20 < 0) & (previous >= 0)).astype(np.float64).to_numpy()
-    )
-    observed_up = matrix["mom20_sign_flip_up"].to_numpy(dtype=np.float64)
-    observed_down = matrix["mom20_sign_flip_down"].to_numpy(dtype=np.float64)
-    assert np.array_equal(observed_up[valid], expected_up[valid])
-    assert np.array_equal(observed_down[valid], expected_down[valid])
-    assert observed_up[valid].sum() > 0
-    assert observed_down[valid].sum() > 0
+    # 2026-09-21 (F-11): the sign-flip flags are retired (bit-exact
+    # functions of mom_20_atr at lags 0/1); the retained raw series must
+    # still be present and genuinely signed.
+    assert "mom20_sign_flip_up" not in matrix.columns
+    assert "mom20_sign_flip_down" not in matrix.columns
+    mom20_np = mom20.to_numpy(dtype=np.float64)
+    assert (mom20_np[valid] > 0).any() and (mom20_np[valid] < 0).any()
 
     # Raw state age resets at state flips and otherwise increments uncapped.
     state = matrix["ema50_200_bull_state"].to_numpy(dtype=np.float64)
@@ -1504,23 +1557,29 @@ def test_v29_event_columns_have_one_honest_warmup_prefix() -> None:
     # needs the previous bar.  Divergence floors are pivot/data-dependent and
     # are covered by the single-prefix loop above.
     expected_first_finite = {
-        "ema50_200_spread_atr": 199,
+        "ema20_50_bull_state": 49,
+        "ema20_50_cross_up": 50,
+        "ema20_50_cross_down": 50,
+        "ema20_50_state_age_bars": 49,
         "ema50_200_bull_state": 199,
         "ema50_200_cross_up": 200,
         "ema50_200_cross_down": 200,
         "ema50_200_state_age_bars": 199,
+        "price_x_ema20_cross_up": 20,
+        "price_x_ema20_cross_down": 20,
         "price_x_ema50_cross_up": 50,
         "price_x_ema50_cross_down": 50,
         "price_x_ema200_cross_up": 200,
         "price_x_ema200_cross_down": 200,
+        "price_vs_ema20_state_age_bars": 19,
         "price_vs_ema50_state_age_bars": 49,
         "price_vs_ema200_state_age_bars": 199,
-        "rsi_cross_up_30": 15,
-        "rsi_cross_down_70": 15,
-        "rsi_cross_up_50": 15,
-        "rsi_cross_down_50": 15,
-        "mom20_sign_flip_up": 21,
-        "mom20_sign_flip_down": 21,
+        # MACD 12/26/9: line at the EMA-26 seed (25); signal seeded on the
+        # first 9 defined line rows -> hist at 25+8=33.  Stochastic %K-14 at
+        # 13.  All derived from the published constants, never chosen.
+        "macd_line_atr": 25,
+        "macd_hist_atr": 33,
+        "stoch_k_14": 13,
     }
     for name, first_row in expected_first_finite.items():
         column = matrix[name].to_numpy(dtype=np.float64)
@@ -1833,7 +1892,7 @@ def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator()
     # end to end. The reference below is a test-local copy of the retired
     # per-trading-day accumulator, kept so this regression still proves the
     # emitted columns do not reproduce it.
-    assert "vwap_local_cycle_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert "vwap_rolling5_dist_atr" in htf.MULTI_TF_PER_BAR_FEATURES_V4
 
     bars = _bars(4_000, seed=515)
     closed_indices = htf.build_multi_tf_v4_closed_timestamp_indices(bars.index)
