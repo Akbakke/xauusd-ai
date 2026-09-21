@@ -547,6 +547,8 @@ def _validation_snapshot_fixture(*, rows: int = 1) -> dict[str, object]:
         entry_unique_target_rows=1,
         entry_target_equivalent_rows=0,
         entry_unique_target_agreement_rows=1,
+        val_exact_tie_entry_rows=0,
+        val_exact_tie_exit_states=0,
         full_trajectory_accumulator={
             "state_stream_chain_sha256": "0" * 64,
             "learned_realized": [1.0],

@@ -5814,6 +5814,7 @@ def _unified_exit_full_population_eval_loss(
     exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]] = None,
     exit_feature_tf_gate_epoch: Optional[dict[str, Any]] = None,
     full_trajectory_accumulator: Optional[dict[str, Any]] = None,
+    exit_replay_tie_state: Optional[dict[str, int]] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -5836,6 +5837,7 @@ def _unified_exit_full_population_eval_loss(
         exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
         exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
         full_trajectory_accumulator=full_trajectory_accumulator,
+        exit_replay_tie_state=exit_replay_tie_state,
     )
 
 def _train_unified_exit_full_population(
@@ -6324,6 +6326,7 @@ def _episode_native_exit_eval_loss(
     exit_cooperation_gate_epoch: Optional[dict[str, dict[str, Any]]],
     exit_feature_tf_gate_epoch: Optional[dict[str, Any]],
     full_trajectory_accumulator: Optional[dict[str, Any]] = None,
+    exit_replay_tie_state: Optional[dict[str, int]] = None,
 ) -> tuple[
     torch.Tensor,
     Dict[str, Any],
@@ -6417,7 +6420,30 @@ def _episode_native_exit_eval_loss(
     _episode_stats_update(
         stats, q_values=q_values, targets=targets, valid=valid
     )
-    if full_trajectory_accumulator is not None:
+    # Exact HOLD/EXIT_NOW Q ties make the replayed policy undefined (rule 3:
+    # ties fail closed). An undertrained epoch can carry Q differences below
+    # float32 resolution, so a tie disqualifies the EPOCH's replay evidence
+    # (trajectory and realized-PnL) rather than the training campaign. The
+    # replay owner and finalize contract keep refusing ties; this path only
+    # decides whether to attempt replays at all, and the count is surfaced
+    # loudly by validate().
+    batch_exit_tied_states = int(
+        (valid[..., 0] & valid[..., 1] & (q_values[..., 0] == q_values[..., 1]))
+        .sum()
+        .item()
+    )
+    epoch_replay_tied = False
+    if exit_replay_tie_state is not None:
+        exit_replay_tie_state["exit_tied_states"] = (
+            int(exit_replay_tie_state.get("exit_tied_states", 0))
+            + batch_exit_tied_states
+        )
+        epoch_replay_tied = exit_replay_tie_state["exit_tied_states"] > 0
+    elif batch_exit_tied_states > 0:
+        # Callers without an epoch tie carrier (research/smoke paths) keep
+        # the original fail-closed behaviour via the replay owner below.
+        epoch_replay_tied = False
+    if full_trajectory_accumulator is not None and not epoch_replay_tied:
         _accumulate_unified_exit_full_trajectory(
             full_trajectory_accumulator,
             raw_entry_indices=rows,
@@ -6458,19 +6484,20 @@ def _episode_native_exit_eval_loss(
         fill_binding_sha256=fill_hashes,
     )
     entry_realized_pnl = torch.zeros_like(entry_targets)
-    for selected_row, (episode, episode_q, episode_valid) in enumerate(
-        zip(episodes, q_values, valid)
-    ):
-        rewards = np.asarray(episode["exit_now_reward_bps"], dtype=np.float64)
-        for side_index in range(2):
-            replay = replay_unified_exit_fitted_q_policy(
-                predicted_q_bps=episode_q[side_index].detach().cpu().numpy(),
-                action_valid_mask=episode_valid[side_index].detach().cpu().numpy(),
-                exit_now_reward_bps=rewards[side_index],
-            )
-            entry_realized_pnl[selected_index[selected_row], side_index] = float(
-                replay["realized_executable_pnl_bps"]
-            )
+    if not epoch_replay_tied:
+        for selected_row, (episode, episode_q, episode_valid) in enumerate(
+            zip(episodes, q_values, valid)
+        ):
+            rewards = np.asarray(episode["exit_now_reward_bps"], dtype=np.float64)
+            for side_index in range(2):
+                replay = replay_unified_exit_fitted_q_policy(
+                    predicted_q_bps=episode_q[side_index].detach().cpu().numpy(),
+                    action_valid_mask=episode_valid[side_index].detach().cpu().numpy(),
+                    exit_now_reward_bps=rewards[side_index],
+                )
+                entry_realized_pnl[selected_index[selected_row], side_index] = float(
+                    replay["realized_executable_pnl_bps"]
+                )
     if valid_cells <= 0:
         return (
             loss_sum,
@@ -9001,6 +9028,8 @@ _CANDIDATE_VALIDATION_SNAPSHOT_KEYS = frozenset(
         "entry_unique_target_rows",
         "entry_target_equivalent_rows",
         "entry_unique_target_agreement_rows",
+        "val_exact_tie_entry_rows",
+        "val_exact_tie_exit_states",
         "full_trajectory_accumulator",
     )
 )
@@ -10627,6 +10656,8 @@ def validate(
         entry_unique_target_rows = 0
         entry_target_equivalent_rows = 0
         entry_unique_target_agreement_rows = 0
+        val_exact_tie_entry_rows = 0
+        exit_replay_tie_state: dict[str, int] = {"exit_tied_states": 0}
     else:
         restored = _restore_candidate_validation_snapshot(resume_validation_state)
         total = float(restored["total"])
@@ -10658,6 +10689,10 @@ def validate(
         entry_unique_target_agreement_rows = int(
             restored["entry_unique_target_agreement_rows"]
         )
+        val_exact_tie_entry_rows = int(restored["val_exact_tie_entry_rows"])
+        exit_replay_tie_state = {
+            "exit_tied_states": int(restored["val_exact_tie_exit_states"])
+        }
         full_trajectory_accumulator = restored["full_trajectory_accumulator"]
         if bool(collect_full_exit_trajectory) != bool(full_trajectory_accumulator):
             raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_MODE_MISMATCH]")
@@ -10723,6 +10758,7 @@ def validate(
                     exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
                     exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
                     full_trajectory_accumulator=full_trajectory_accumulator,
+                    exit_replay_tie_state=exit_replay_tie_state,
                 )
             )
             active_head_out = dict(out)
@@ -10843,30 +10879,47 @@ def validate(
             winner_count = masked_entry_q.eq(
                 masked_entry_q.amax(dim=1, keepdim=True)
             ).sum(dim=1)
-            if bool((winner_count != 1).any().item()):
-                raise RuntimeError("[ENTRY_FITTED_Q_VALIDATION_PREDICTED_TIE]")
-            entry_predictions = torch.argmax(masked_entry_q, dim=1)
-            realized_policy_pnl = entry_policy_realized_pnl_bps.gather(
-                1, entry_predictions[:, None]
-            ).squeeze(1)
-            target_best = entry_action_q_targets.masked_fill(
-                ~entry_action_q_valid, -torch.inf
-            ).amax(dim=1, keepdim=True)
-            target_equivalence = (
-                entry_action_q_targets == target_best
-            ) & entry_action_q_valid
-            target_tied = target_equivalence.sum(dim=1) > 1
-            target_agreement = target_equivalence.gather(
-                1, entry_predictions[:, None]
-            ).squeeze(1)
-            entry_target_equivalent_rows += int(target_tied.sum().item())
-            entry_unique_target_rows += int((~target_tied).sum().item())
-            entry_unique_target_agreement_rows += int(
-                (target_agreement & ~target_tied).sum().item()
-            )
-            entry_policy_realized_pnl_chunks.append(
-                realized_policy_pnl.detach().cpu().numpy()
-            )
+            batch_entry_tied_rows = int((winner_count != 1).sum().item())
+            if batch_entry_tied_rows > 0:
+                # Exact Entry argmax ties make the policy undefined for those
+                # rows (rule 3). An undertrained epoch may carry them, so the
+                # tie disqualifies the EPOCH's policy-PnL score instead of the
+                # campaign; counts surface loudly after the loop and the epoch
+                # can never become a best checkpoint.
+                val_exact_tie_entry_rows += batch_entry_tied_rows
+            if (
+                val_exact_tie_entry_rows == 0
+                and int(exit_replay_tie_state["exit_tied_states"]) == 0
+            ):
+                entry_predictions = torch.argmax(masked_entry_q, dim=1)
+                realized_policy_pnl = entry_policy_realized_pnl_bps.gather(
+                    1, entry_predictions[:, None]
+                ).squeeze(1)
+                target_best = entry_action_q_targets.masked_fill(
+                    ~entry_action_q_valid, -torch.inf
+                ).amax(dim=1, keepdim=True)
+                target_equivalence = (
+                    entry_action_q_targets == target_best
+                ) & entry_action_q_valid
+                target_tied = target_equivalence.sum(dim=1) > 1
+                target_agreement = target_equivalence.gather(
+                    1, entry_predictions[:, None]
+                ).squeeze(1)
+                entry_target_equivalent_rows += int(target_tied.sum().item())
+                entry_unique_target_rows += int((~target_tied).sum().item())
+                entry_unique_target_agreement_rows += int(
+                    (target_agreement & ~target_tied).sum().item()
+                )
+                entry_policy_realized_pnl_chunks.append(
+                    realized_policy_pnl.detach().cpu().numpy()
+                )
+            else:
+                # Keep the concatenated PnL stream shape-complete so the
+                # partial-resume bookkeeping stays exact; the values are
+                # never read because a tied epoch is unscorable.
+                entry_policy_realized_pnl_chunks.append(
+                    np.zeros(int(entry_action_q_targets.shape[0]), dtype=np.float64)
+                )
             def _checkpoint_validation_snapshot() -> dict[str, Any]:
                 snapshot = _candidate_validation_snapshot(
                     total=total,
@@ -10895,6 +10948,10 @@ def validate(
                     entry_target_equivalent_rows=entry_target_equivalent_rows,
                     entry_unique_target_agreement_rows=(
                         entry_unique_target_agreement_rows
+                    ),
+                    val_exact_tie_entry_rows=val_exact_tie_entry_rows,
+                    val_exact_tie_exit_states=int(
+                        exit_replay_tie_state["exit_tied_states"]
                     ),
                     full_trajectory_accumulator=full_trajectory_accumulator,
                 )
@@ -10951,6 +11008,10 @@ def validate(
         )
 
     acc = entry_unique_target_agreement_rows / max(1, entry_unique_target_rows)
+    val_epoch_exact_tied = (
+        int(val_exact_tie_entry_rows) > 0
+        or int(exit_replay_tie_state["exit_tied_states"]) > 0
+    )
     entry_policy_realized_pnl_bps = np.concatenate(
         entry_policy_realized_pnl_chunks, axis=0
     )
@@ -10961,9 +11022,6 @@ def validate(
         raise RuntimeError("[ENTRY_FITTED_Q_REALIZED_POLICY_PNL_INVALID]")
     stats: Dict[str, Any] = {
         "entry_action_q_raw_bps_mse_mean": (entry_q_loss_sum / max(1, n)),
-        "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean": float(
-            np.mean(entry_policy_realized_pnl_bps)
-        ),
         "entry_unique_target_rows": int(entry_unique_target_rows),
         "entry_target_equivalent_rows": int(entry_target_equivalent_rows),
         "entry_unique_target_action_agreement": (
@@ -10994,6 +11052,26 @@ def validate(
             / max(1, unified_exit_population_rows - unified_exit_tied_rows)
         ),
     }
+    if val_epoch_exact_tied:
+        # Rule 3 applied at epoch granularity: exact Entry-argmax or exit
+        # HOLD/EXIT_NOW Q ties make replayed policy evidence undefined, so
+        # the epoch carries no policy-PnL score (the key is omitted, never
+        # faked) and can never become a best checkpoint; checkpoint
+        # selection treats the missing monitor as no-improvement.
+        stats["val_exact_tie_unscorable"] = {
+            "entry_tied_rows": int(val_exact_tie_entry_rows),
+            "exit_tied_states": int(exit_replay_tie_state["exit_tied_states"]),
+        }
+        log.error(
+            "[VAL_EXACT_TIE_UNSCORABLE] entry_tied_rows=%d exit_tied_states=%d "
+            "policy_pnl_and_trajectory_evidence_omitted_this_epoch",
+            int(val_exact_tie_entry_rows),
+            int(exit_replay_tie_state["exit_tied_states"]),
+        )
+    else:
+        stats["entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"] = float(
+            np.mean(entry_policy_realized_pnl_bps)
+        )
     stats.update(
         {
             f"joint_task_log_variance_{name}": float(
@@ -11036,7 +11114,7 @@ def validate(
             stats["candidate_exit_gate_health_provisional_ok"] = not (
                 effective_exit_gate_failures
             )
-    if full_trajectory_accumulator is not None:
+    if full_trajectory_accumulator is not None and not val_epoch_exact_tied:
         stats["unified_exit_full_trajectory_validation"] = (
             _finalize_unified_exit_full_trajectory_validation(
                 full_trajectory_accumulator,
