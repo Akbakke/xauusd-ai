@@ -2,7 +2,7 @@
 
 > **Authoritative status — 2026-09-21:** Read
 > [`CURRENT_HANDOFF_20260921.md`](docs/CURRENT_HANDOFF_20260921.md) — the
-> takeover entrypoint: current surface (signal v35, per-TF V23), the executed
+> takeover entrypoint: current surface (signal v36, per-TF V23), the executed
 > 2026-09-20/21 chain (guarded smoke, aborted 240-surface candidate, fidelity
 > wave `5ec2e537`), the running rebuild toward the 243-surface candidate, and
 > the exact next steps. The findings register steering current and future

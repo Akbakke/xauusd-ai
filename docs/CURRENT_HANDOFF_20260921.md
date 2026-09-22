@@ -16,8 +16,8 @@ Agent-minnet (`~/.claude/projects/-home-andre2/memory/`) har arbeidsnotatet
   og `unified_exit_action` (HOLD/EXIT_NOW) fra samme bundle/delte encoder. Fitted-Q i
   rå bps; ingen kalibrerte sannsynligheter, ingen post-modell-regler. Ties feiler lukket
   (i VAL: epoch blir uskårbar, ikke fatal — `[VAL_EXACT_TIE_UNSCORABLE]`, trainer-eid).
-- **Flaten (etter fidelity-bølgen 21.09, commit `5ec2e537`):** signal v35 = 243 dim
-  (26 frossen base + 217 selected hvorav 150 mandatory + 67 kandidater); ctx_cont 71,
+- **Flaten (etter duplikat-reparasjonen 22.09, commit `e8a639ca`):** signal v36 = 241 dim
+  (24 frossen base + 217 selected hvorav 150 mandatory + 67 kandidater); ctx_cont 71,
   ctx_cat 1 (`session_id`); per-TF-matrise V23 = **190 felt × 5 TF-er** (M5/M15/H1/H4/D1),
   partisjonert eksakt over 8 spesialistfamilier (structure_swing 20, smc_liquidity 50,
   trend_ema 29, vol_compression 5, momentum_flow 22, session_regime 4, chart_geometry 38,
@@ -42,6 +42,27 @@ Agent-minnet (`~/.claude/projects/-home-andre2/memory/`) har arbeidsnotatet
 - **Ytelse (målt):** ~1,19–1,25 s/steg batch 8 på 240-flaten etter
   effektivitetsbølgen (commit `cd602015`, bit-identitet bevist med seedet probe);
   epoch = ~39k steg ≈ 7,2 segmenter + VAL ~1 t.
+
+## Oppdatering 22.09 morgen — duplikat-reparasjon + V12-rebuild
+
+Kjeden under ble kjørt enkeltvis (chain-driveren er feil verktøy for pretest,
+se «Kjente feller»). V11 kom helt fram til datasett + audit-kjede, og
+**spesialist-auditen fant to eksakte duplikatkolonner** som fidelity-bølgen selv
+hadde innført: `_v1_atr14_bps ≡ ctx_cont.atr_bps` og `_v1_ema_diff ≡
+macd_line_atr`, begge målt bit-identiske over 464 244 TRAIN-rader. Dette er noe
+ANNET enn kryss-flate-aliasene i `627894ac`: der er det to inputplan (ctx-skalar
+vs. sekvenshistorikk), her er det samme signalvektor på samme klokke. Reparert i
+`e8a639ca` ved å fjerne den redundante halvdelen av hvert par fra base-blokken
+— flaten er nå v36 = 241. V11 er dermed skrotet og V12 bygges fra båndet
+(V11s enriched-rammer ble korrekt avvist: den delte base-kontrakten binder
+`base_feature_count` og `ordered_signal_dim`, som begge flyttet seg).
+
+To driftsfeller bekreftet på nytt samme natt: (1) `pgrep -f <skriptnavn>` matcher
+vaktens EGEN kommandolinje og rapporterte «kjører» i åtte timer etter at kjeden
+var død — bruk en sentinel-fil som bare jobben selv skriver; (2) verten
+blåskjermet 21.09 kl. 21:20 (bugcheck 0xA, `winhvr.sys`, fjerde 0xA på en måned
+— se minnet `project_gx1_host_bsod_kills_long_runs_20260921`), så segment-resume
+er BSOD-forsikring, ikke bare varmeguard.
 
 ## Hvor vi STÅR akkurat nå (21.09 ~23:00)
 
