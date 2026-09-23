@@ -12247,8 +12247,200 @@ def _source_bound_bounded_teacher(
         "model_architecture_schema_version": module.MODEL_ARCHITECTURE_SCHEMA_VERSION,
         "model_output_schema_version": module.MODEL_OUTPUT_SCHEMA_VERSION,
         "dependency_source_binding": "current_recipe_source_closure",
-        "scope": "preserved_v9_initial_function_not_online_v10_deepcopy",
+        "scope": "preserved_source_bound_initial_function_not_online_deepcopy",
     }
+
+
+def _run_bounded_forecast_warmup(
+    *, model, optimizer, train_loader, train_ds, val_ds, device,
+    batch_size: int, seed: int, out_bundle_dir: Path,
+    initialization: Mapping[str, Any], recipe_source_provenance: Mapping[str, Any],
+    original_function_model=None, original_function_source=None,
+) -> None:
+    """One research-only pass using the existing exact-price forecast loss.
+
+    This terminal native branch exports no bundle or trading authority.
+    Unused heads and task weights receive no gradient or decoupled decay.
+    Shared encoders change, so later Entry/Exit economics require a new replay.
+    """
+    from torch.utils.data import Subset
+
+    directory = Path(str(out_bundle_dir) + ".direction_warmup")
+    directory.mkdir(parents=True, exist_ok=False)
+    report: dict[str, Any] = {
+        "schema_version": "gx1_bounded_forecast_warmup_v1",
+        "scope": "one_native_research_pass_exact_existing_forecast_L1",
+        "initialization": dict(initialization),
+        "recipe_source_provenance": dict(recipe_source_provenance),
+        "original_function_source": original_function_source,
+        "forecast_horizons_m5_bars": list(FORECAST_HORIZONS),
+        "target": "observed_future_close_return_bps",
+        "loss": "existing_forecast_L1_equal_existing_horizons",
+        "train_rows": len(train_ds),
+        "evaluation_rows_per_split": 512,
+        "optimizer_steps": 0,
+        "test_access": False,
+        "promotion_authority": False,
+        "economic_learning_gate_passed": False,
+        "stages": {},
+    }
+    report_path = directory / "RESULT.json"
+    initial_state = {
+        name: value.detach().cpu().clone()
+        for name, value in model.state_dict().items()
+    }
+    protected = {
+        name for name, _ in model.named_parameters()
+        if (
+            (name.startswith("head_") and not name.startswith("head_forecast."))
+            or name.startswith(("task_log_variances.", "entry_q_joint_"))
+        )
+    }
+    selections = {
+        split: deterministic_uniform_subsample_indices(
+            population_rows=len(ds), requested_rows=512, seed=int(seed),
+            split_salt=6101 if split == "train" else 6102,
+        ).tolist()
+        for split, ds in (("train", train_ds), ("val", val_ds))
+    }
+
+    def forward(batch, network=model):
+        return _model_forward_fp32(
+            network, batch["seq_x"].to(device), batch["snap_x"].to(device),
+            ctx_cat=batch["ctx_cat"].to(device),
+            ctx_cont=batch["ctx_cont"].to(device),
+            **_multi_tf_kwargs_from_batch(batch, device),
+        )
+
+    def measure(stage: str, network=model) -> None:
+        rng = _attended_session_rng_state(device=device)
+        weight_sha = _model_state_sha256(network)
+        network.eval()
+        stage_data = {}
+        try:
+            with torch.no_grad():
+                for split, ds in (("train", train_ds), ("val", val_ds)):
+                    loader = DataLoader(
+                        Subset(ds, selections[split]), batch_size=batch_size,
+                        shuffle=False, num_workers=0,
+                        generator=torch.Generator().manual_seed(int(seed)),
+                    )
+                    preds, targets, ids, qs = [], [], [], []
+                    for batch in loader:
+                        out = forward(batch, network)
+                        pred = _require_active_aux_head_prediction(
+                            out, batch, output_name="forecast_pred",
+                            target_names=_FORECAST_TARGET_COLS,
+                        )
+                        target = torch.stack(
+                            [batch[f"y_forecast_ret_K{k}"] for k in FORECAST_HORIZONS],
+                            dim=1,
+                        ).float()
+                        preds.append(pred.detach().cpu().numpy())
+                        targets.append(target.numpy())
+                        ids.append(batch["entry_row_index"].numpy())
+                        qs.append(out["entry_action_q_bps"].detach().cpu().numpy())
+                    pred = np.concatenate(preds)
+                    target = np.concatenate(targets)
+                    row_ids = np.concatenate(ids)
+                    if stage == "after":
+                        before = np.load(directory / f"before_{split}.npz")
+                        if not (
+                            np.array_equal(row_ids, before["row_indices"])
+                            and np.array_equal(target, before["target_bps"])
+                        ):
+                            raise RuntimeError("[DIRECTION_WARMUP_EVAL_POPULATION_CHANGED]")
+                    np.savez_compressed(
+                        directory / f"{stage}_{split}.npz",
+                        row_indices=row_ids, forecast_bps=pred, target_bps=target,
+                        entry_q_bps=np.concatenate(qs),
+                    )
+                    metrics = []
+                    for j, horizon in enumerate(FORECAST_HORIZONS):
+                        bull, bear = target[:, j] > 0, target[:, j] < 0
+                        if not bull.any() or not bear.any():
+                            raise RuntimeError("[DIRECTION_WARMUP_EVAL_SIDE_MISSING]")
+                        sign = np.sign(pred[:, j])
+                        br = float((sign[bull] == 1).mean())
+                        sr = float((sign[bear] == -1).mean())
+                        metrics.append({
+                            "horizon_m5_bars": int(horizon),
+                            "mae_bps": float(np.abs(pred[:, j] - target[:, j]).mean()),
+                            "balanced_accuracy": (br + sr) / 2,
+                            "bull_recall": br, "bear_recall": sr,
+                            "pred_long_short_neutral": [
+                                int((sign == side).sum()) for side in (1, -1, 0)
+                            ],
+                        })
+                    stage_data[split] = {"rows": len(row_ids), "metrics": metrics}
+        finally:
+            _restore_attended_session_rng_state(rng, device=device)
+        if _model_state_sha256(network) != weight_sha:
+            raise RuntimeError("[DIRECTION_WARMUP_EVAL_MUTATED_WEIGHTS]")
+        report["stages"][stage] = {
+            "model_state_sha256": weight_sha, "splits": stage_data,
+        }
+        report_path.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
+        log.info("[DIRECTION_WARMUP_MEASURED] stage=%s report=%s", stage, report_path)
+
+    if original_function_model is not None:
+        measure("original_function", original_function_model)
+    measure("before")
+    model.train()
+    optimizer.zero_grad(set_to_none=True)
+    supervised_rows = 0
+    loss_sum = 0.0
+    gradient_parameters: set[str] = set()
+    for batch in train_loader:
+        out = forward(batch)
+        # Reuse the existing exact-label objective, including shape/finite guards.
+        loss = dip_forecast_task_losses(out, batch, device)["forecast_return_bps"]
+        if not bool(torch.isfinite(loss).item()):
+            raise RuntimeError("[DIRECTION_WARMUP_LOSS_NONFINITE]")
+        loss.backward()
+        if report["optimizer_steps"] == 0:
+            gradients = [(name, parameter.grad) for name, parameter in model.named_parameters()
+                         if parameter.grad is not None]
+            if any(name in protected for name, _ in gradients):
+                raise RuntimeError("[DIRECTION_WARMUP_UNEXPECTED_HEAD_GRADIENT]")
+            nonzero = torch.stack([gradient.detach().abs().amax()
+                                   for _, gradient in gradients]).cpu().tolist()
+            gradient_parameters.update(name for (name, _), magnitude in zip(gradients, nonzero)
+                                       if magnitude > 0)
+        _optimizer_step_with_finite_gradients(model=model, optimizer=optimizer)
+        count = len(batch["entry_row_index"])
+        supervised_rows += count
+        loss_sum += float(loss.detach().cpu()) * count
+        report["optimizer_steps"] += 1
+    if supervised_rows != len(train_ds):
+        raise RuntimeError("[DIRECTION_WARMUP_INCOMPLETE_POPULATION]")
+    if not any(name.startswith("head_forecast.") for name in gradient_parameters):
+        raise RuntimeError("[DIRECTION_WARMUP_FORECAST_GRADIENT_MISSING]")
+    if not any(not name.startswith("head_") for name in gradient_parameters):
+        raise RuntimeError("[DIRECTION_WARMUP_ENCODER_GRADIENT_MISSING]")
+    current = model.state_dict()
+    if any(not torch.equal(initial_state[name], current[name].detach().cpu())
+           for name in protected):
+        raise RuntimeError("[DIRECTION_WARMUP_PROTECTED_PARAMETER_CHANGED]")
+    model.require_input_normalization_state()
+    report["supervised_rows"] = supervised_rows
+    report["fit_forecast_l1_bps"] = loss_sum / supervised_rows
+    report["first_step_parameters_receiving_nonzero_gradient"] = sorted(gradient_parameters)
+    report["protected_heads_and_task_weights_unchanged"] = True
+    measure("after")
+    checkpoint_path = directory / "AFTER_RAW_WEIGHTS.pt"
+    torch.save(
+        {"model_state": {name: value.detach().cpu() for name, value in current.items()},
+         "initialization": dict(initialization),
+         "recipe_source_provenance": dict(recipe_source_provenance),
+         "scope": "direction_research_only_no_bundle_or_promotion"},
+        checkpoint_path,
+    )
+    report["after_checkpoint_sha256"] = _sha256_file(checkpoint_path)
+    report["complete"] = True
+    report_path.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
+    log.info("[DIRECTION_WARMUP_COMPLETE] report=%s steps=%d bundle_written=0",
+             report_path, report["optimizer_steps"])
 
 
 def run_train(
@@ -12309,6 +12501,7 @@ def run_train(
     freeze_initial_teacher: bool = False,
     frozen_teacher_model_source_path: Optional[Path] = None,
     frozen_teacher_model_source_sha256: Optional[str] = None,
+    forecast_only_warmup: bool = False,
 ) -> None:
     run_started = time.perf_counter()
     _require_bound_learning_globals()
@@ -13387,6 +13580,11 @@ def run_train(
             recipe_source_provenance=recipe_source_provenance,
             input_normalization=input_normalization,
         )
+    if forecast_only_warmup and (
+        smoke_initialization is None or not freeze_initial_teacher
+        or frozen_teacher_model_source_path is None or int(grad_accum_steps) != 1
+    ):
+        raise RuntimeError("[DIRECTION_WARMUP_REQUIRES_BOUND_INITIALIZED_SMOKE]")
     entry_q_initial_state = _capture_entry_q_initial_state(model)
     unified_exit_initial_state = _capture_unified_exit_initial_state(model)
     log.info(
@@ -13508,6 +13706,23 @@ def run_train(
         ],
         lr=lr,
     )
+
+    if forecast_only_warmup:
+        original_function_model, original_function_source = _source_bound_bounded_teacher(
+            model=model, model_constructor_kwargs=model_constructor_kwargs,
+            source_path=frozen_teacher_model_source_path,
+            source_sha256=frozen_teacher_model_source_sha256, device=device,
+        )
+        _run_bounded_forecast_warmup(
+            model=model, optimizer=optimizer, train_loader=train_loader,
+            train_ds=train_ds, val_ds=val_ds, device=device,
+            batch_size=batch_size, seed=seed, out_bundle_dir=out_bundle_dir,
+            initialization=smoke_initialization,
+            recipe_source_provenance=recipe_source_provenance,
+            original_function_model=original_function_model,
+            original_function_source=original_function_source,
+        )
+        return
 
     # ── V30 package 5 stability dampers (recipe-owned, both exactly OFF-able) ─
     # (i) Cosine LR decay over the DECLARED epoch budget. The scheduler is the
@@ -15630,7 +15845,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
-        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False) or getattr(args, "frozen_teacher_model_source_path", None) is not None or getattr(args, "frozen_teacher_model_source_sha256", None) is not None:
+        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False) or getattr(args, "frozen_teacher_model_source_path", None) is not None or getattr(args, "frozen_teacher_model_source_sha256", None) is not None or getattr(args, "forecast_only_warmup", False):
             raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_REQUIRES_PRETEST_RECIPE]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
@@ -15738,6 +15953,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         })
     if getattr(args, "freeze_initial_teacher", False):
         observed["freeze_initial_teacher"] = True
+    if getattr(args, "forecast_only_warmup", False):
+        observed["forecast_only_warmup"] = True
     teacher_path = getattr(args, "frozen_teacher_model_source_path", None)
     teacher_sha = getattr(args, "frozen_teacher_model_source_sha256", None)
     if teacher_path is not None or teacher_sha is not None:
@@ -15834,6 +16051,8 @@ def main() -> None:
     parser.add_argument("--initial-checkpoint-path", type=Path)
     parser.add_argument("--initial-checkpoint-sha256", type=str)
     parser.add_argument("--freeze-initial-teacher", action="store_true")
+    parser.add_argument("--forecast-only-warmup", action="store_true",
+                        help="One initialized native research pass on existing forecast L1; no bundle.")
     parser.add_argument("--frozen-teacher-model-source-path", type=Path)
     parser.add_argument("--frozen-teacher-model-source-sha256", type=str)
     parser.add_argument("--candidate-gate-json", type=Path)
@@ -16112,6 +16331,7 @@ def main() -> None:
         initial_checkpoint_path=args.initial_checkpoint_path,
         initial_checkpoint_sha256=args.initial_checkpoint_sha256,
         freeze_initial_teacher=args.freeze_initial_teacher,
+        forecast_only_warmup=args.forecast_only_warmup,
         frozen_teacher_model_source_path=args.frozen_teacher_model_source_path,
         frozen_teacher_model_source_sha256=args.frozen_teacher_model_source_sha256,
     )

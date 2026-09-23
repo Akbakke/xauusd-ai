@@ -300,6 +300,8 @@ def build_pretest_technical_launch(
             "--initial-checkpoint-path", str(cli["initial_checkpoint_path"]),
             "--initial-checkpoint-sha256", str(cli["initial_checkpoint_sha256"]),
         ))
+        if cli.get("forecast_only_warmup") is True:
+            trainer_command.append("--forecast-only-warmup")
         if cli.get("freeze_initial_teacher") is True:
             trainer_command.append("--freeze-initial-teacher")
         if "frozen_teacher_model_source_path" in cli:

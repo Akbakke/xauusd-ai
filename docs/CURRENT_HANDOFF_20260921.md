@@ -31,7 +31,10 @@ ingen modell-/trenerendring eller nye optimizersteg. Frossen v10-readout bestod
 ikke senere VAL. Direkte inputbaseline fant svakt 5-minutters signal på siste
 TRAIN-år (51,06 % balansert treff), ikke dokumentert Entry-gevinst.
 En paret kontroll viste at original v8 ikke har samme all-bearish forecast som
-v10 med originalvektene. Neste kontroll binder originalfunksjonen som baseline.
+v10 med originalvektene. Original v8-baseline er nå fullført på1024 TRAIN /512 VAL: ingen horisont
+bestod retningsporten. Neste ene native forsøk prioriterer eksisterende forecast-L1
+på4096 TRAIN-rader, med original/før/etter på samme512 TRAIN /512 VAL.
+Se siste avsnitt i ENTRY_DIRECTION_FIRST_20260923.md for kode og omfang.
 Ingen nye koeffisienter er promotert; ingen større trening eller jobb er aktiv.
 Se ENTRY_DIRECTION_FIRST_20260923.md og ENTRY_GOAL_PROGRESS.json under
 /home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923 for etterprøvbare bevis.

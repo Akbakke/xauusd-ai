@@ -127,3 +127,59 @@ Rot: /home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923
 
 Skript, logger, frosne koeffisienter og caches er bevart i disse runtime-mappene.
 Ingen historiske planer skal automatisk relanseres.
+
+
+## Original v8-baseline og avgrenset native retningslæring
+
+Den planlagte original-v8-baselinen er fullført med returkode 0 på 193,56 sekunder.
+Samme 1024 TRAIN /512 VAL-rader og labels som v10-prøven er kontrollert bitlike.
+Checkpoint844s råvekter er uendret. Ingen nye fits eller optimizersteg.
+
+| Nominell horisont | Original v8 TRAIN balansert treff | Senere VAL | Justert VAL-intervall |
+|---|---:|---:|---:|
+| 5 minutter | 51,27 % | 49,55 % | 45,89–52,73 % |
+| 25 minutter | 55,13 % | 53,56 % | 49,60–57,62 % |
+| 60 minutter | 58,14 % | 51,45 % | 47,96–55,12 % |
+| 120 minutter | 59,97 % | 52,20 % | 47,67–56,26 % |
+
+Ingen horisont bestod porten. Original Entry-Q-spread valgte SHORT på alle
+1024 TRAIN /512 VAL-rader, selv om forecast ga begge fortegn.
+Dette begrunner direkte arbeid med retningslæring; flere gjentakelser av
+samme Exit-lærer-fit er ikke neste tiltak.
+
+Bevis: ENTRY_DIRECTION_ORIGINAL_V8_20260923/PLAN.json og RESULT.json.
+Plan-SHA: 777be8e2becc606d69bd8275d71a8805214da05f9dff2ab4153063ca0116c794.
+
+### Minste native utvidelse
+
+Et valgfritt, recipe-bundet forecast_only_warmup-flagg gir én avsluttende
+research-pass i den eksisterende canonical treneren. Det krever initialisert
+FP32-smoke med originalcheckpoint og en SHA-bundet, frossen originalfunksjon.
+Candidate, legacy-rute, ufullstendig binding og flaggavvik avvises.
+
+- Bruk eksisterende forecast-hode, L1 i Bps og alle fire eksisterende horisonter.
+  Ingen ny modellarkitektur, retningslogit, handelsterskel eller tapsvekt.
+- Lær fra observerte fremtidige prisutfall. Ingen Exit-rollouts eller
+  bootstrappede Exit-verdimål brukes i denne avgrensede læringspassen.
+- Bevar alle eksisterende inputfelt og tidsrammer. Forecast og delte encodere
+  mottar gradient; øvrige hoder, Entry-Q-ledd og task-vekter skal være bitlike.
+- Mål både originalfunksjon, endret online-funksjon før fit, og etter fit på
+  samme 512 TRAIN /512 VAL-rader. Disse er en låst delmengde av smoke-populasjonen.
+- Utdata er en researchrapport, før/etter-arrays og bevarte råvekter.
+  Ingen bundle, checkpointseleksjon eller promoteringsmyndighet produseres.
+- Delte encoderendringer kan påvirke Exit og Entry-Q selv med uendrede hoder.
+  Full økonomisk etterkontroll er derfor fortsatt påkrevd før bruk.
+
+Teknisk kontroll: 20 eksisterende recipe-/launcher-kontroller bestod.
+En separat syntetisk fire-stegs kjøring kontrollerte flaggbinding, avvisninger,
+de tre evalueringsstadiene, endret encoder/forecast, uendrede beskyttede hoder,
+like før/etter-rader og labels, og fravær av bundle/promotering. Dette er
+implementeringsbevis; ingen av de fire syntetiske stegene er markedsbasert læring.
+
+Neste ene forsøk er forhåndsavgrenset til 4096 TRAIN-rader, batch8,
+én passering /512 optimizersteg, og de samme eksisterende recipe-hyperparametrene.
+Kjør bare via eksisterende native launcher og gx1_capped_run, med alle vakter.
+Ingen full epoch eller full VAL. Ingen horisont velges fra VAL.
+En bedre forecast-MAE alene er ikke nok: vurder begge retningsrecalls, balansert
+treff og usikkerhet mot både før-fit og originalfunksjonen. All økonomisk
+Entry-seleksjon forblir uavklart til separat etterprøvbar måling foreligger.
