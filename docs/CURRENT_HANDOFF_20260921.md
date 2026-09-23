@@ -9,6 +9,11 @@ Checkpoint844 er bevart. Begge native kontroller er fullført: 64 steg hver, tot
 Før-baseline er eksakt lik. Fast lærer stabiliserte verdiene, men Entry er fortsatt
 SHORT512/512 og VAL med kostnadsscenariet -1,1859 Bps. Ingen trening er aktiv.
 Læringsmålet og rangeringen er nå kontrollert fra cache. PC er ikke restartet.
+Modellv10 har nå en avgrenset rettelse i to Entry-token-rutere: nullruter og
+manglende direkte gate-gradient er kontrollert rettet. Dette ga ikke bedre
+økonomi uten tilpasning. Ingen ny fit har startet. Native kildebinding av den
+bevarte v9-læreren må fullføres før kontrollert tilpasning; ikke erstatt den med
+en kopi av online v10. Se siste avsnitt i resultatrapporten.
 Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
 med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
 

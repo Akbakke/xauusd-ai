@@ -140,8 +140,8 @@ class UnifiedExitIncrementalCarry:
 # fence in the trainer before this path is entered.
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = "cuda_disabled_cpu_checkpointed_v2"
 CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v9"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v9"
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v10"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v10"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -2056,7 +2056,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ).reshape(batch_size, -1)
         family_tf_cooperation_gate = torch.softmax(
             route_family_context_logits
-            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
+            # Pre-norm attention leaves token magnitude unbounded. Keep
+            # value tokens intact; normalize only the input to the router.
+            + self.family_tf_token_gate(
+                nn.functional.layer_norm(
+                    cooperation_tokens, (cooperation_tokens.shape[-1],)
+                )
+            ).squeeze(-1),
             dim=1,
         )
         family_gate_by_tf = family_tf_cooperation_gate.reshape(
@@ -2081,7 +2087,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 1,
                 route_indices,
             )
-            + self.tf_token_gate(tf_attended).squeeze(-1),
+            + self.tf_token_gate(
+                nn.functional.layer_norm(
+                    tf_attended, (tf_attended.shape[-1],)
+                )
+            ).squeeze(-1),
             dim=1,
         )
         mtf_repr = (tf_attended * tf_gate.unsqueeze(-1)).sum(dim=1)

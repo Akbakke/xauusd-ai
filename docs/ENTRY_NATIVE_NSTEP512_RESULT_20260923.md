@@ -152,3 +152,49 @@ Ingen ny algoritme eller tidsstraff er implementert.
 Brukeren er spurt om samme nettoresultat skal vurderes bedre når kapitalen
 frigjøres tidligere. Dette gjelder læringsmålets preferanse, ikke en ny
 meglertillatelse eller maksimal holdetid. Trening forblir avsluttet.
+
+
+## Påvist rutingsblokkering og minimal v10-rettelse
+
+På siste512-VAL gikk 99,73 prosent av specialist-vekten til session-familien,
+og family/TF-ruting hadde nullruter. På63 allerede cachede VAL-innganger ble
+702 av2016 family/TF-vekter nøyaktig0. Token-input til gate var opptil354,90.
+En kontroll isolerte skalaen etter pre-norm attention som årsak til underflyten.
+Kun normalisering av family/TF-token-ruteren gjorde den etterfølgende TF-ruteren
+numerisk mettet; derfor normaliseres input til begge token-ruterne.
+
+Modellv10 endrer kun disse to rutingsberegningene, med samme parameterfrie
+LayerNorm som allerede brukes i specialist-token-ruteren. Ingen verdi-token,
+feature, timeframe, parameter, tap, kostnad, handelsterskel eller lærer er endret.
+Råvektene har fortsatt digest141e5040268381fa5a1095336abe437468c265d07108706c3d0dc7d20a672c59.
+
+Teknisk effekt, ikke læringsport: nullrutene ble0/2016. På én ekte rad fikk
+Entry-MSE mot samme frosne v9-n-step-mål gradient til alle32 rutingslogiter,
+mot22/32 før. Nye Entry-Q/token er bitlike den forhåndsmålte hook-kontrollen
+på63 rader; nye Exit-Q er bitlike på tre kontrollerte episoder.
+
+V9-lærerkilden er bevart i runtime/SOURCE_BEFORE_ROUTING_PAIR, SHA256
+69e97a1baa83482d604f37a1252357da80a24215cb29df2af1558d9302796552.
+Dens Entry-Q/token er bitlike originalcache på63 rader. Exit-valg og tie-masker
+er like på tre episoder. Exit-Q avvek opptil0,00006104 Bps fra råmodell-cachen:
+en separat kontroll reproduserte hele denne forskjellen ved å endre bare
+requires_grad fra true til false, med samme kilde, vekter, token, eval og no_grad.
+Den første strenge bitlikhetskontrollens feillogg er bevart; ingen bitlikhet
+mellom rå og frosset Exit-kjøring påstås.
+
+Før ny tilpasning var v10-kontrollens Entry-valg40 LONG/23 SHORT/0 FLAT,
+mot0/63/0 før. Exit ble beregnet på nytt med de endrede Entry-tokenene.
+Med alle åpne mark og samme kostnadsscenario falt netto vindusresultat
++6,8753→-0,2879 Bps; åpne posisjoner9→12. Flere ulike valg er ikke bedre
+seleksjon. Denne lille, gjenbrukte VAL-prøven er ingen forbedrings- eller edge-påstand.
+
+Ingen fit er startet etter v10-endringen. Neste nødvendige arbeid er å binde
+den bevarte v9-lærerens kilde og funksjon eksplisitt i eksisterende initialiserte
+native smoke-rute, for både trening og før/etter-måling. Online v10 krever ny
+før-baseline. Ikke bruk deepcopy av v10 som erstatning for den frosne v9-læreren.
+Ingen full epoch/full VAL eller relansering av tidligere recipe er tillatt.
+
+Bevis: ENTRY_ROUTING_PAIR_SOURCE_BINDING.json, ENTRY_ROUTING_PAIR_REAL_PARITY.json,
+ENTRY_ROUTING_PAIR_GRADIENT_PATH.json, ENTRY_FROZEN_REFERENCE_NUMERICS.json og
+ENTRY_TOKEN_ROUTING_PAIR_OUTCOMES.json. Parameter- og kildekontroller, CPU-vakt
+og originale checkpoints er bevart. Kostnads- og tidsmål er fortsatt uendret.
