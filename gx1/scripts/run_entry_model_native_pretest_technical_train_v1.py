@@ -295,6 +295,11 @@ def build_pretest_technical_launch(
         "--grad-clip-norm", str(cli["grad_clip_norm"]),
         "--weight-decay", str(cli["weight_decay"]), "--dropout", str(cli["dropout"]),
     ]
+    if "initial_checkpoint_path" in cli:
+        trainer_command.extend((
+            "--initial-checkpoint-path", str(cli["initial_checkpoint_path"]),
+            "--initial-checkpoint-sha256", str(cli["initial_checkpoint_sha256"]),
+        ))
     if cloud_host_profile is not None:
         trainer_command.extend((
             "--cloud-host-profile-json", str(cloud_host_profile_path_raw),

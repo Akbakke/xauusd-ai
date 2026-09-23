@@ -64,15 +64,23 @@ def test_pretest_launcher_derives_every_runtime_value_from_recipe(
     assert environment["GX1_V10_MULTI_TF_V4_CACHE_DIR"].endswith("MULTI_TF")
 
 
+@pytest.mark.parametrize("initialized", [False, True])
 def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     tmp_path: Path,
     monkeypatch,
+    initialized: bool,
 ) -> None:
     recipe = _recipe(tmp_path)
     cli = recipe["trainer_cli"]
     assert isinstance(cli, dict)
     cli["execution_tier"] = "canonical"
     cli["train_time_window"] = None
+    if initialized:
+        cli.update({
+            "precision_policy": "deterministic_fp32",
+            "initial_checkpoint_path": str(tmp_path / "candidate_state.pt"),
+            "initial_checkpoint_sha256": "b" * 64,
+        })
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     recipe_path = (tmp_path / "pretest-canonical-recipe.json").resolve()
     recipe_path.write_text(json.dumps(recipe, sort_keys=True), encoding="utf-8")
@@ -103,6 +111,11 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     assert command[command.index("--execution-tier") + 1] == "canonical"
     assert "--train-time-window-start-utc" not in command
     assert "--train-time-window-end-utc" not in command
+    if initialized:
+        assert command[command.index("--initial-checkpoint-path") + 1] == cli["initial_checkpoint_path"]
+        assert command[command.index("--initial-checkpoint-sha256") + 1] == "b" * 64
+    else:
+        assert "--initial-checkpoint-path" not in command
 
 
 def test_pretest_candidate_launcher_requires_immutable_launch_gate(
@@ -235,3 +248,15 @@ def test_legacy_trainer_recipe_does_not_require_pretest_gate(tmp_path: Path) -> 
     )
     args = SimpleNamespace(recipe_audit_json=recipe_path, profile="candidate")
     trainer._require_pretest_recipe_cli_match(args)
+
+
+def test_legacy_recipe_rejects_unbound_checkpoint_initialization(tmp_path: Path) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    recipe = tmp_path / "legacy.json"
+    recipe.write_text('{"schema_version":"entry_model_native_seq513_train_recipe_audit_v9"}')
+    args = SimpleNamespace(
+        recipe_audit_json=recipe, profile="smoke",
+        initial_checkpoint_path=tmp_path / "state.pt", initial_checkpoint_sha256="b" * 64,
+    )
+    with pytest.raises(RuntimeError, match="REQUIRES_PRETEST_RECIPE"):
+        trainer._require_pretest_recipe_cli_match(args)

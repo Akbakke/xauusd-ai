@@ -10708,7 +10708,14 @@ def validate(
     active_head_technical_smoke_min_supervised_rows: Optional[int] = None,
     technical_preflight_allow_static_exit_feature_gates: bool = False,
     candidate_allow_static_feature_gates: bool = False,
+    observation_sink: Optional[dict[str, Any]] = None,
 ):
+    if observation_sink is not None and (
+        not isinstance(observation_sink, dict) or observation_sink
+        or resume_validation_state is not None or validation_batch_offset != 0
+        or max_validation_batches is not None or validation_checkpoint_hook is not None
+    ):
+        raise RuntimeError("[ENTRY_VALIDATION_OBSERVATION_SINK_INVALID]")
     model.eval()
     target_model.eval()
     if any(parameter.requires_grad for parameter in target_model.parameters()):
@@ -10748,7 +10755,7 @@ def validate(
                 model=model,
                 target_model=target_model,
             )
-            if collect_full_exit_trajectory
+            if collect_full_exit_trajectory or observation_sink is not None
             else None
         )
         total = 0.0
@@ -11243,7 +11250,7 @@ def validate(
             stats["candidate_exit_gate_health_provisional_ok"] = not (
                 effective_exit_gate_failures
             )
-    if full_trajectory_accumulator is not None and not val_epoch_exact_tied:
+    if collect_full_exit_trajectory and full_trajectory_accumulator is not None and not val_epoch_exact_tied:
         stats["unified_exit_full_trajectory_validation"] = (
             _finalize_unified_exit_full_trajectory_validation(
                 full_trajectory_accumulator,
@@ -11297,6 +11304,20 @@ def validate(
             "[UNIFIED_EXIT_COOPERATION_GATE_HEALTH_CHECKPOINT_BLOCKED] %s",
             "; ".join(exit_gate_failures),
         )
+    if observation_sink is not None:
+        # Report-only bytes from this native pass. No extra model forwards and
+        # no admission override when branch health or exact ties fail.
+        observation_sink["exact_tie_unscorable"] = bool(val_epoch_exact_tied)
+        if not val_epoch_exact_tied:
+            component = active_head_epoch["heads"]["entry_action_q"]["components"]["entry_action_q_bps"]
+            observation_sink.update({
+                "entry_row_indices": np.concatenate(active_head_epoch["entry_row_index_chunks"]).tolist(),
+                "entry_q_bps": np.concatenate(component["prediction"], axis=0).tolist(),
+                "entry_action_valid_mask": np.concatenate(component["mask"], axis=0).astype(bool).tolist(),
+                "selected_marked_bps": entry_policy_marked_pnl_bps.tolist(),
+                "trajectory": dict(full_trajectory_accumulator),
+                "complete_trade_lifetime_economics": False,
+            })
     # AUC is intentionally disabled for this 3-class path (previously hardcoded 0.0)
     return total / max(1, n), float("nan"), acc, float("nan"), stats
 
@@ -12127,6 +12148,58 @@ def load_completed_candidate_epoch_for_seal(
     }
 
 
+
+def _initialize_bounded_smoke_weights(
+    *, model: nn.Module, checkpoint_path: Path, checkpoint_sha256: str,
+    recipe_source_provenance: Mapping[str, Any], input_normalization: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Import raw weights with exact parent lineage, never a resume cursor.
+
+    The current committed function is measured again before fitting. The
+    parent's optimizer, teacher, EMA and RNG remain archived and are not
+    represented as a current-function continuation.
+    """
+    path = Path(checkpoint_path)
+    contract_path = path.parent / _CANDIDATE_TRAINING_CONTRACT_FILENAME
+    for bound in (path, contract_path):
+        if not bound.is_absolute() or bound.is_symlink() or not bound.is_file() or bound.resolve() != bound:
+            raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_PATH_INVALID]")
+    if _sha256_file(path) != checkpoint_sha256:
+        raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_SHA_MISMATCH]")
+    state = torch.load(path, map_location="cpu", weights_only=False)
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    recipe = json.loads(Path(recipe_source_provenance["recipe_audit_path"]).read_text(encoding="utf-8"))
+    if (
+        not isinstance(state, Mapping) or set(state) != _CANDIDATE_TRAINING_STATE_KEYS
+        or state.get("schema_version") != _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION
+        or state.get("session_contract_sha256") != _sha256_file(contract_path)
+        or contract.get("dataset_run_id") != recipe["dataset_run_id"]
+        or contract.get("input_normalization_sha256") != input_normalization["contract_sha256"]
+    ):
+        raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_LINEAGE_INVALID]")
+    for parent_name, recipe_name in (
+        ("train_parquet", "train_parquet"), ("val_parquet", "val_parquet"),
+        ("m5_prebuilt_path", "m5_prebuilt"),
+        ("unified_exit_lifecycle_manifest", "unified_exit_lifecycle_manifest"),
+    ):
+        if contract["artifacts"][parent_name] != recipe["artifact_bindings"][recipe_name]:
+            raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_DATA_MISMATCH]")
+    model.load_state_dict(state["model_state"], strict=True)
+    model.require_input_normalization_state()
+    return {
+        "checkpoint_path": str(path), "checkpoint_sha256": checkpoint_sha256,
+        "parent_contract_sha256": state["session_contract_sha256"],
+        "parent_source_commit": contract["source_commit"],
+        "parent_checkpoint_index": int(state["checkpoint_index"]),
+        "parent_optimizer_steps": int(state["global_optimizer_steps"]),
+        "initialized_model_state_sha256": _model_state_sha256(model),
+        "model_architecture_schema_version": MODEL_ARCHITECTURE_SCHEMA_VERSION,
+        "function_source_commit": recipe_source_provenance["source_commit"],
+        "semantics": "raw_weights_in_current_function_new_optimizer_and_teacher_not_resume",
+        "parent_function_parity_claimed": False,
+    }
+
+
 def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
@@ -12180,6 +12253,8 @@ def run_train(
     val_sequence_source_audit_json: Optional[Path] = None,
     candidate_result_override: Optional[Mapping[str, Any]] = None,
     candidate_epoch_seal: Optional[Mapping[str, Any]] = None,
+    initial_checkpoint_path: Optional[Path] = None,
+    initial_checkpoint_sha256: Optional[str] = None,
 ) -> None:
     run_started = time.perf_counter()
     _require_bound_learning_globals()
@@ -13235,6 +13310,20 @@ def run_train(
     # exactly the immutable metadata contract before any optimizer state or
     # GPU work is allocated to a training candidate.
     model.require_input_normalization_state()
+    smoke_initialization = None
+    if initial_checkpoint_path is not None or initial_checkpoint_sha256 is not None:
+        if (
+            profile != "smoke" or execution_tier != "canonical" or device.type != "cuda"
+            or precision_policy != DETERMINISTIC_FP32 or int(epochs) != 1
+            or initial_checkpoint_path is None or initial_checkpoint_sha256 is None
+        ):
+            raise RuntimeError("[ENTRY_SMOKE_INITIALIZATION_SCOPE_INVALID]")
+        smoke_initialization = _initialize_bounded_smoke_weights(
+            model=model, checkpoint_path=initial_checkpoint_path,
+            checkpoint_sha256=initial_checkpoint_sha256,
+            recipe_source_provenance=recipe_source_provenance,
+            input_normalization=input_normalization,
+        )
     entry_q_initial_state = _capture_entry_q_initial_state(model)
     unified_exit_initial_state = _capture_unified_exit_initial_state(model)
     log.info(
@@ -13563,6 +13652,82 @@ def run_train(
         )
         return
 
+    comparison_target = None
+    comparison_directory = None
+    comparison_report: dict[str, Any] = {}
+    if smoke_initialization is not None:
+        comparison_directory = Path(str(out_bundle_dir) + ".learning_comparison")
+        comparison_directory.mkdir(parents=True, exist_ok=False)
+        comparison_target = copy.deepcopy(model).to(device).eval()
+        comparison_target.requires_grad_(False)
+        comparison_report = {
+            "schema_version": "gx1_bounded_native_learning_comparison_v1",
+            "scope": "bounded_train_and_development_val_observed_windows",
+            "initialization": smoke_initialization,
+            "recipe_source_provenance": recipe_source_provenance,
+            "population": {"train": train_population_selection, "val": val_population_selection},
+            "fixed_evaluation_teacher_sha256": _model_state_sha256(comparison_target),
+            "training_teacher_refresh": "unchanged_native_contract",
+            "test_access": False, "promotion_authority": False,
+            "complete_trade_lifetime_economics": False,
+            "stages": {},
+        }
+
+    def _measure_bounded_learning_stage(stage: str) -> None:
+        if comparison_target is None or comparison_directory is None:
+            return
+        rng = _attended_session_rng_state(device=device)
+        model_sha = _model_state_sha256(model)
+        stage_evidence = {}
+        try:
+            for split, dataset in (("train", train_ds), ("val", val_ds)):
+                # Evaluation order cannot consume the training sampler or RNG.
+                evaluation_loader = DataLoader(
+                    dataset, batch_size=batch_size, shuffle=False, num_workers=0,
+                    generator=torch.Generator().manual_seed(int(seed)),
+                )
+                observations: dict[str, Any] = {}
+                loss, _auc, _acc, _ratio, statistics = validate(
+                    model, comparison_target, evaluation_loader, device,
+                    active_head_technical_smoke_min_supervised_rows=_ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS,
+                    observation_sink=observations,
+                )
+                stage_evidence[split] = {
+                    "loss": loss, "statistics": statistics, "observations": observations,
+                }
+        finally:
+            _restore_attended_session_rng_state(rng, device=device)
+        if (
+            _model_state_sha256(model) != model_sha
+            or _model_state_sha256(comparison_target) != comparison_report["fixed_evaluation_teacher_sha256"]
+        ):
+            raise RuntimeError("[ENTRY_SMOKE_COMPARISON_MUTATED_WEIGHTS]")
+        comparison_report["stages"][stage] = {
+            "model_state_sha256": model_sha, "splits": stage_evidence,
+        }
+        if stage == "after":
+            snapshot_path = comparison_directory / "AFTER_RAW_WEIGHTS.pt"
+            torch.save({
+                "model_state": {k: v.detach().cpu().clone() for k, v in model.state_dict().items()},
+                "source_provenance": recipe_source_provenance,
+                "initialization": smoke_initialization,
+                "optimizer_steps": len(train_loader),
+                "promotion_authority": False,
+            }, snapshot_path)
+            comparison_report["after_raw_weights_sha256"] = _sha256_file(snapshot_path)
+            comparison_report["optimizer_steps"] = len(train_loader)
+        report_path = comparison_directory / "LEARNING_COMPARISON.json"
+        report_path.write_text(
+            json.dumps(comparison_report, indent=2, default=_train_json_default, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
+        log.info("[ENTRY_SMOKE_LEARNING_COMPARISON] stage=%s report=%s", stage, report_path)
+        if stage == "before" and any(
+            item["observations"]["exact_tie_unscorable"] for item in stage_evidence.values()
+        ):
+            raise RuntimeError("[ENTRY_SMOKE_INITIAL_BASELINE_UNSCORABLE]")
+
+    _measure_bounded_learning_stage("before")
     cloud_preflight_seconds = (
         time.perf_counter() - run_started if cloud_capacity_smoke else None
     )
@@ -13881,6 +14046,7 @@ def run_train(
                 raise RuntimeError("[ENTRY_CLOUD_CAPACITY_TRAIN_TIMER_INVALID]")
             cloud_train_measurement = dict(measurement_value)
         last_val_stats = dict(val_stats or {})
+        _measure_bounded_learning_stage("after")
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
             f"[EPOCH {epoch+1}/{epochs}] "
@@ -15375,6 +15541,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
+        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None:
+            raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_REQUIRES_PRETEST_RECIPE]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
         from gx1.contracts.entry_model_native_train_launch_v1 import (
@@ -15470,6 +15638,15 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
                 "cloud_capacity_gate_sha256": str(cloud_capacity_gate_sha256),
             }
         )
+    initial_checkpoint_path = getattr(args, "initial_checkpoint_path", None)
+    initial_checkpoint_sha256 = getattr(args, "initial_checkpoint_sha256", None)
+    if initial_checkpoint_path is not None or initial_checkpoint_sha256 is not None:
+        if initial_checkpoint_path is None or initial_checkpoint_sha256 is None:
+            raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_BINDING_INCOMPLETE]")
+        observed.update({
+            "initial_checkpoint_path": str(initial_checkpoint_path),
+            "initial_checkpoint_sha256": str(initial_checkpoint_sha256),
+        })
     expected = dict(recipe["trainer_cli"])
     expected.setdefault("precision_policy", DETERMINISTIC_FP32)
     if expected != observed:
@@ -15554,6 +15731,8 @@ def main() -> None:
     parser.add_argument("--val-sequence-source-audit-json", type=Path, required=True)
     parser.add_argument("--recipe-audit-json", type=Path, required=True)
     parser.add_argument("--recipe-audit-sha256", type=str, required=True)
+    parser.add_argument("--initial-checkpoint-path", type=Path)
+    parser.add_argument("--initial-checkpoint-sha256", type=str)
     parser.add_argument("--candidate-gate-json", type=Path)
     parser.add_argument("--candidate-gate-sha256", type=str)
     parser.add_argument("--cloud-host-profile-json", type=Path)
@@ -15827,6 +16006,8 @@ def main() -> None:
         val_sequence_roll_audit_json=args.val_sequence_roll_audit_json,
         train_sequence_source_audit_json=args.train_sequence_source_audit_json,
         val_sequence_source_audit_json=args.val_sequence_source_audit_json,
+        initial_checkpoint_path=args.initial_checkpoint_path,
+        initial_checkpoint_sha256=args.initial_checkpoint_sha256,
     )
 
 

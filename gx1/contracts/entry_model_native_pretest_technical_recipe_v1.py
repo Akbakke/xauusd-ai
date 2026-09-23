@@ -116,6 +116,9 @@ LEGACY_TRAINER_CLI_KEYS = frozenset(
     }
 )
 TRAINER_CLI_KEYS = LEGACY_TRAINER_CLI_KEYS | {"precision_policy"}
+INITIALIZED_SMOKE_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
+    "initial_checkpoint_path", "initial_checkpoint_sha256",
+}
 CLOUD_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
     "cloud_host_profile_path",
     "cloud_host_profile_sha256",
@@ -304,6 +307,7 @@ def require_pretest_technical_recipe_metadata(
     if not isinstance(trainer_cli, Mapping) or trainer_cli_keys not in {
         LEGACY_TRAINER_CLI_KEYS,
         TRAINER_CLI_KEYS,
+        INITIALIZED_SMOKE_TRAINER_CLI_KEYS,
         CLOUD_TRAINER_CLI_KEYS,
         CLOUD_CANDIDATE_TRAINER_CLI_KEYS,
     }:
@@ -341,6 +345,20 @@ def require_pretest_technical_recipe_metadata(
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc
+    if trainer_cli_keys == INITIALIZED_SMOKE_TRAINER_CLI_KEYS:
+        if (
+            profile != "smoke"
+            or trainer_cli["execution_tier"] != "canonical"
+            or trainer_cli["device"] != "cuda"
+            or precision_policy != DETERMINISTIC_FP32
+        ):
+            raise PretestTechnicalRecipeError("checkpoint initialization requires bounded canonical FP32 smoke")
+        checkpoint = _absolute(
+            trainer_cli["initial_checkpoint_path"], label="initial checkpoint"
+        )
+        if checkpoint.suffix != ".pt" or "test" in checkpoint.name.lower():
+            raise PretestTechnicalRecipeError("initial checkpoint filename invalid")
+        _sha(trainer_cli["initial_checkpoint_sha256"], label="initial checkpoint SHA256")
     cloud_profile_present = trainer_cli_keys in {
         CLOUD_TRAINER_CLI_KEYS,
         CLOUD_CANDIDATE_TRAINER_CLI_KEYS,

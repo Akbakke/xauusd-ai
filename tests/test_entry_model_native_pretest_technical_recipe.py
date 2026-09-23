@@ -359,3 +359,26 @@ def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path
     args.batch_size = 16
     with pytest.raises(RuntimeError, match="CLI_MISMATCH"):
         _require_pretest_recipe_cli_match(args)
+
+
+def test_initialized_smoke_is_hash_bound_and_never_candidate(tmp_path: Path) -> None:
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    cli.update({
+        "execution_tier": "canonical",
+        "train_time_window": None,
+        "precision_policy": "deterministic_fp32",
+        "initial_checkpoint_path": str(tmp_path / "candidate_state.pt"),
+        "initial_checkpoint_sha256": "b" * 64,
+    })
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    cli["initial_checkpoint_sha256"] = "invalid"
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="SHA256"):
+        require_pretest_technical_recipe_metadata(recipe)
+    cli["initial_checkpoint_sha256"] = "b" * 64
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    recipe["profile"] = "candidate"
+    with pytest.raises(PretestTechnicalRecipeError, match="bounded canonical FP32 smoke"):
+        require_pretest_technical_recipe_metadata(recipe)
