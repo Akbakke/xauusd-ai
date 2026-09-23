@@ -5,18 +5,18 @@ deretter [ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md](ENTRY_BOUNDED_NATIVE_
 deretter [ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md](ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md),
 deretter [ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md](ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md),
 deretter [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md).
-Checkpoint844 er bevart. Begge native kontroller er fullført: 64 steg hver, totalt128.
-Før-baseline er eksakt lik. Fast lærer stabiliserte verdiene, men Entry er fortsatt
-SHORT512/512 og VAL med kostnadsscenariet -1,1859 Bps. Ingen trening er aktiv.
-Læringsmålet og rangeringen er nå kontrollert fra cache. PC er ikke restartet.
-Modellv10 har nå en avgrenset rettelse i to Entry-token-rutere: nullruter og
-manglende direkte gate-gradient er kontrollert rettet. Dette ga ikke bedre
-økonomi uten tilpasning. Ingen ny fit har startet. Native kildebinding av den
-bevarte v9-læreren er nå implementert og kontrollert. Neste ene kontroll er
-64 steg med ny onlinev10-baseline og samme faste v9-lærer; se siste avsnitt i
-resultatrapporten og runtime-receipts før noen launch.
-Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
-med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
+Checkpoint844 er bevart. Tre native kontroller er fullført:64 steg hver, totalt192.
+Siste v10/v9-kontroll fullførte på668,39 sekunder, kilde2eee9ffa, returkode0.
+Frossen v9-lærer og kontrollerte målstatistikker var uendret. Onlinev10 fikk ny
+før-baseline og lavere TRAIN-MSE, men etter-fit velger Entry SHORT512/512 i begge
+splitter. VAL netto vindusmark er-0,8045 Bps, score/utfall-rangering-0,0363,
+og83 posisjoner er åpne. Læringsporten er ikke bestått. Ingen jobb er aktiv.
+Ikke relanser noen fullført plan eller promoter ettervektene. PC er ikke restartet.
+Rutingsrettelsen er numerisk kontrollert; bedre økonomisk seleksjon er ikke vist.
+Neste arbeid gjelder konsistente netto læringsmål i Entry/Exit/fortsettelsesverdi
+med eksisterende historisk kostnadspolicy. Ingen ekstra tidsstraff er innført.
+Se siste resultatavsnitt og runtime/ENTRY_GOAL_PROGRESS.json for etterprøvbare bevis.
+Tidligere oppstartsoppskrifter nedenfor er historikk. TEST forblir forseglet.
 
 # CURRENT HANDOFF — 2026-09-21 (kveld)
 

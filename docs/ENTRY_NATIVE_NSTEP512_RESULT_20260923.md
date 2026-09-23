@@ -219,3 +219,69 @@ Neste ene måling er onlinev10 mot denne uendrede v9-læreren, samme512 TRAIN,
 før-baseline; ikke krev lik onlinefunksjon medv9. Sjekk derimot uendrede
 lærermål, faktisk Entry-seleksjon, alle åpne mark og samme kostnadsscenario.
 Teknisk PASS gir ingen tillatelse til større trening.
+
+## Fullført v10/v9-kontroll: ingen bedre Entry-seleksjon
+
+ENTRY_V12_ROUTING512_20260923T101143Z fullførte 64 optimizersteg,
+10:16:58–10:28:06 UTC (668,39 sekunder), returkode0. Kilde2eee9ffa,
+recipeSHA1731df203129a146e89f573bdf0ebf0e42af99a540b813188209665935147ee8.
+RapportSHA85012f93ca95927a106cba96dd9a7fc2351f3923964d059c12b955411f5d2ae7.
+Samme512 TRAIN/512 senere utviklings-VAL, startvekter, seed og øvrige argumenter
+som fixed512. Onlinev10 ble målt på nytt før fit. Læreren beholdt v9-funksjonen
+og vektene; ingen refresh. Samtlige kontrollerte target-statistikker var eksakt
+like fixed512, både før og etter (middel/std/range/baseline-MSE og Exit-valgtellinger).
+Dette er målstatistikkparitet; det erstatter ikke en lagret radvis target-hash.
+
+|Måling|TRAIN før|TRAIN etter|VAL før|VAL etter|
+|---|---:|---:|---:|---:|
+|LONG/SHORT/FLAT|379/133/0|0/512/0|360/152/0|0/512/0|
+|Entry-MSE mot fast lærer|269,2021|257,2938|462,8464|434,1244|
+|Exit-MSE mot fast lærer|13,0729|6,5412|22,3668|12,9158|
+|Brutto vindusmark Bps/opportunity|-3,0667|-3,4237|-4,5974|3,1955|
+|Arkivert netto vindusmark Bps/opportunity|-7,2710|-7,4237|-8,7402|-0,8045|
+|Åpne valgte posisjoner|102|157|85|83|
+|Entry-score / observert mark, Spearman|0,2274|0,2961|0,2771|-0,0363|
+
+Alle handler og åpne mark er medregnet. Dette er gjenbrukt utviklings-VAL,
+ikke forseglet TEST eller full livsløps-/porteføljeavkastning.
+Etter-fit VAL har 429 lukkede posisjoner: netto sum+7680,61 Bps.
+83 åpne posisjoner har netto marksum-8092,51 Bps. Lukket median47 minutter,
+p90270,6 minutter; samlet observert notional-tid1749,05 timer.
+Samlet netto mark/tid er-0,2355 Bps/time; ikke snitt av enkeltposisjoners rater.
+
+Cachet dekomponering skiller Entry-valg fra Exit-utfall. På VAL, med før-fit
+Exit beholdt, endrer nye Entry-valg resultatet-8,7402→+0,1649 Bps. Men dette
+er nøyaktig alwaysSHORT. Med nye Exit-utfall blir samme valg-0,8045 Bps.
+Blanding av retninger er dermed erstattet av en retningskonstant; selektiv
+Entry er ikke demonstrert. Ingen FLAT velges i noen etter-fit-splitt.
+Session-specialistens middelandel øker99,43→99,86 prosent på VAL, mens de
+rettede family/TF-ruterne beholder positiv minimum middelandel.
+
+En ekstra cachekontroll av63 eldre VAL-rader med samme v9-funksjon finner
+n-step target-argmax LONG11/SHORT52/FLAT0. 112/126 sideforløp lukkes, ingen
+med negativ bruttoavkastning;14 er åpne. Åpne mål har middel-29,32 Bps,
+mot observert mark-58,81 Bps. Ingen rad får FLAT som beste target etter bare
+4 Bps fratrekk heller. Dette er etikett-/bootstrap-diagnostikk med fremtidige
+utfall, aldri et deployerbart valg. Fravær av FLAT som fasitvalg beviser ikke
+at regresjon på betinget forventning er ute av stand til å lære avståelse.
+Tilsvarende TRAIN-v9-cache finnes ikke; ingen ny modellberegning ble startet
+for dette. Den første kontrollen stoppet på manglende TRAIN-modellnøkkel;
+feilloggen er bevart, og det korrigerte omfanget er bare VAL63.
+
+Konklusjon: numerisk ruting er rettet, men 64-stegs tilpasningen bestod ikke
+Entry-læringsporten. Ikke promoter AFTER_RAW_WEIGHTS.pt, relanser denne planen
+eller start større trening. Totalt192 nye steg i tre avsluttede kontroller.
+Ingen jobb er aktiv. Opprinnelig checkpoint844 og alle tidligere resultater
+er bevart; PC er ikke restartet.
+
+Neste nødvendige arbeid er å avklare netto læringsmål gjennom hele
+Entry→Exit→bootstrap-kjeden med den allerede bundne historiske kostnadspolicyen.
+Ikke endre bare Entry-score, innfør en terskel, eller tolke sensurerte åpne
+mark som realiserte sluttresultater. Kostnadsenheter og fremtidig finansiering
+må være konsistente før en ny begrenset fit. Tidsbruk er allerede målt;
+en ekstra preferanse for rask frigjøring av kapital er fortsatt uavklart.
+Ingen slik tidsstraff eller maksimal holdetid er innført.
+
+Bevis i runtime: NATIVE_ROUTING512_COMPARISON.json,
+NATIVE_ROUTING512_TIME_COST_ANALYSIS.json,
+ENTRY_ROUTING512_TARGET_ABSTENTION_AUDIT.json og eksakt run/TERMINAL.json.
