@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 
-UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v2"
+UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v3"
 UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
 UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS = 0.0
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
@@ -101,8 +101,8 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "exit_target": "current_executable_trade_pnl_bps",
         "hold_target": "stop_gradient(max_valid_q_target_at_next_causal_state)",
         "entry_bridge": (
-            "stop_gradient(max_valid_q_target_at_first_authoritative_"
-            "post_fill_exit_state_per_side)"
+            "stop_gradient(frozen_policy_n_step_exit_reward_or_"
+            "observed_window_continuation_value_per_side)"
         ),
         "operator": UNIFIED_EXIT_FITTED_Q_OPERATOR,
         "target_snapshot_update": (
@@ -259,9 +259,8 @@ def unified_exit_first_state_side_values(
 ) -> torch.Tensor:
     """Return the frozen target-policy value at the first Exit state.
 
-    This is the only supported bridge for a later Entry Bellman target:
-    LONG/SHORT transition with zero initial reward to each side's first
-    authoritative post-fill Exit state.  Snapshot/fold/source lineage remains
+    This is the diagnostic one-step view. Native Entry training uses the
+    frozen-policy n-step bridge below. Snapshot/fold/source lineage remains
     owned by the fitted-Q training-state envelope that produced ``target_q``.
     """
 
@@ -283,6 +282,59 @@ def unified_exit_first_state_side_values(
     values = first_q.masked_fill(~first_valid, -torch.inf).amax(dim=-1)
     if not bool(torch.isfinite(values).all().item()):
         raise RuntimeError("UNIFIED_EXIT_FIRST_STATE_VALUE_NONFINITE")
+    return values.detach()
+
+
+
+def unified_exit_frozen_policy_n_step_side_values(
+    *,
+    frozen_target_q_bps: torch.Tensor,
+    exit_now_reward_bps: torch.Tensor,
+    action_valid_mask: torch.Tensor,
+    state_valid_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Evaluate the frozen policy through the available observation window.
+
+    Use the observed reward at its first unique EXIT. At an exact action tie
+    or an open window boundary, bootstrap the same frozen model without
+    selecting an action or inventing a terminal. Intermediate HOLD reward is
+    zero and gamma is one under this contract. Future price extrema are
+    never used to choose the exit. Returned Entry labels are stop-gradient.
+    """
+
+    unified_exit_first_state_side_values(
+        frozen_target_q_bps=frozen_target_q_bps,
+        action_valid_mask=action_valid_mask,
+        state_valid_mask=state_valid_mask,
+    )
+    if (
+        exit_now_reward_bps.shape != state_valid_mask.shape
+        or not bool(torch.isfinite(exit_now_reward_bps).all().item())
+        or not torch.equal(action_valid_mask[..., 1], state_valid_mask)
+        or bool((action_valid_mask[..., 0] & ~state_valid_mask).any().item())
+        or UNIFIED_EXIT_FITTED_Q_GAMMA != 1.0
+        or UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS != 0.0
+    ):
+        raise RuntimeError("UNIFIED_EXIT_POLICY_N_STEP_INPUT_INVALID")
+    count = state_valid_mask.sum(dim=-1)
+    clock = torch.arange(
+        frozen_target_q_bps.shape[-2], device=frozen_target_q_bps.device
+    )
+    if not torch.equal(state_valid_mask, clock < count.unsqueeze(-1)):
+        raise RuntimeError("UNIFIED_EXIT_POLICY_N_STEP_STATE_PREFIX_INVALID")
+
+    q = frozen_target_q_bps.detach().masked_fill(~action_valid_mask, -torch.inf)
+    exit_unique = state_valid_mask & (q[..., 1] > q[..., 0])
+    tied = state_valid_mask & action_valid_mask.all(dim=-1) & (q[..., 0] == q[..., 1])
+    stop = exit_unique | tied
+    first_stop = torch.where(stop, clock, clock.numel()).amin(dim=-1)
+    stop_index = torch.minimum(first_stop, count - 1).unsqueeze(-1)
+    exits_here = exit_unique.gather(-1, stop_index).squeeze(-1)
+    observed_exit = exit_now_reward_bps.detach().gather(-1, stop_index).squeeze(-1)
+    continuation = q.amax(dim=-1).gather(-1, stop_index).squeeze(-1)
+    values = torch.where(exits_here, observed_exit, continuation)
+    if not bool(torch.isfinite(values).all().item()):
+        raise RuntimeError("UNIFIED_EXIT_POLICY_N_STEP_VALUE_NONFINITE")
     return values.detach()
 
 
@@ -415,5 +467,6 @@ __all__ = (
     "require_unified_exit_fitted_q_iteration_state",
     "replay_unified_exit_fitted_q_policy",
     "unified_exit_first_state_side_values",
+    "unified_exit_frozen_policy_n_step_side_values",
     "unified_exit_fitted_q_contract",
 )

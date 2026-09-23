@@ -3,8 +3,10 @@
 Entry is the Bellman step immediately before unified Exit.  LONG and SHORT
 receive zero transition reward and continue into the corresponding first
 authoritative post-fill Exit state.  FLAT terminates immediately at zero bps.
-Only an immutable TRAIN-fitted Exit target snapshot may provide the two
-continuation values; future path outcomes are never read directly here.
+Only an immutable TRAIN-fitted Exit target snapshot provides the policy.
+The n-step bridge uses its first chosen EXIT reward, or its continuation
+value at an open observation boundary or exact tie. Future outcomes are
+training labels only, never Entry inputs or hindsight-optimal exit choices.
 """
 
 from __future__ import annotations
@@ -24,9 +26,9 @@ from gx1.contracts.unified_exit_fitted_q_v1 import (
 )
 
 
-ENTRY_FITTED_Q_SCHEMA_VERSION = "gx1_entry_fitted_q_v2"
+ENTRY_FITTED_Q_SCHEMA_VERSION = "gx1_entry_fitted_q_v3"
 ENTRY_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION = (
-    "gx1_entry_fitted_q_iteration_state_v2"
+    "gx1_entry_fitted_q_iteration_state_v3"
 )
 ENTRY_FITTED_Q_ACTION_ORDER = ("LONG", "SHORT", "FLAT")
 ENTRY_FITTED_Q_TARGET_UNIT = "raw_bps"
@@ -79,13 +81,22 @@ def entry_fitted_q_contract() -> dict[str, Any]:
         "target_economics": "gross_spread_inclusive_research_only",
         "gamma": ENTRY_FITTED_Q_GAMMA,
         "long_target": (
-            "stop_gradient(frozen_train_exit_target_model_"
+            "stop_gradient(frozen_train_exit_policy_n_step_"
             "V_at_first_authoritative_post_fill_long_state)"
         ),
         "short_target": (
-            "stop_gradient(frozen_train_exit_target_model_"
+            "stop_gradient(frozen_train_exit_policy_n_step_"
             "V_at_first_authoritative_post_fill_short_state)"
         ),
+        "n_step_policy": {
+            "action_source": "unique_argmax_frozen_train_exit_target_q",
+            "closed_path_value": "observed_reward_at_first_chosen_exit",
+            "open_window_value": "frozen_valid_q_max_at_last_observed_state",
+            "exact_action_tie": "bootstrap_value_at_first_tie_without_action",
+            "intermediate_hold_reward_bps": 0.0,
+            "horizon": "existing_observed_episode_window_not_trade_limit",
+            "extra_model_forwards": 0,
+        },
         "flat_target_bps": 0.0,
         "long_short_transition_reward_bps": 0.0,
         "flat_terminal": True,

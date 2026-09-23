@@ -132,3 +132,51 @@ def test_first_state_side_values_are_frozen_target_policy_values():
     assert envelope["iteration_index"] == 4
     assert envelope["train_split_sha256"] == "2" * 64
     assert len(envelope["envelope_sha256"]) == 64
+
+
+def test_entry_n_step_uses_frozen_chosen_exit_and_open_continuation():
+    from gx1.contracts.unified_exit_fitted_q_v1 import (
+        unified_exit_frozen_policy_n_step_side_values,
+    )
+
+    q = torch.tensor(
+        [[[[5.0, 0.0], [1.0, 2.0], [0.0, 99.0]],
+          [[3.0, 1.0], [2.0, 1.0], [-1.0, -2.0]]]],
+        requires_grad=True,
+    )
+    rewards = torch.tensor([[[0.0, 3.0, 1000.0], [-2.0, -5.0, -100.0]]])
+    values = unified_exit_frozen_policy_n_step_side_values(
+        frozen_target_q_bps=q,
+        exit_now_reward_bps=rewards,
+        action_valid_mask=torch.ones_like(q, dtype=torch.bool),
+        state_valid_mask=torch.ones(q.shape[:-1], dtype=torch.bool),
+    )
+    # No hindsight best exit and no forced liquidation of the still-open side.
+    assert values.tolist() == [[3.0, -1.0]]
+    assert not values.requires_grad
+
+
+def test_entry_n_step_bootstraps_at_tie_and_rejects_nonprefix_states():
+    from gx1.contracts.unified_exit_fitted_q_v1 import (
+        unified_exit_frozen_policy_n_step_side_values,
+    )
+
+    q = torch.tensor([[[[2.0, 2.0], [0.0, 9.0], [0.0, 10.0]]]])
+    rewards = torch.tensor([[[-1.0, 100.0, 1000.0]]])
+    valid = torch.ones_like(q, dtype=torch.bool)
+    states = torch.ones(q.shape[:-1], dtype=torch.bool)
+    assert unified_exit_frozen_policy_n_step_side_values(
+        frozen_target_q_bps=q,
+        exit_now_reward_bps=rewards,
+        action_valid_mask=valid,
+        state_valid_mask=states,
+    ).tolist() == [[2.0]]
+    states[..., 1] = False
+    valid[..., 1, :] = False
+    with pytest.raises(RuntimeError, match="STATE_PREFIX_INVALID"):
+        unified_exit_frozen_policy_n_step_side_values(
+            frozen_target_q_bps=q,
+            exit_now_reward_bps=rewards,
+            action_valid_mask=valid,
+            state_valid_mask=states,
+        )

@@ -189,7 +189,7 @@ from gx1.contracts.unified_exit_fitted_q_v1 import (
     UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS,
     build_unified_exit_fitted_q_targets,
     replay_unified_exit_fitted_q_policy,
-    unified_exit_first_state_side_values,
+    unified_exit_frozen_policy_n_step_side_values,
     unified_exit_fitted_q_contract,
     unified_exit_target_refresh_interval_optimizer_steps,
 )
@@ -6299,8 +6299,9 @@ def _fitted_q_targets_for_episode_batch(
             state_valid_mask=state_valid,
             terminal_mask=terminal,
         )
-        first_side_values = unified_exit_first_state_side_values(
+        first_side_values = unified_exit_frozen_policy_n_step_side_values(
             frozen_target_q_bps=target_q,
+            exit_now_reward_bps=rewards,
             action_valid_mask=valid,
             state_valid_mask=state_valid,
         )
