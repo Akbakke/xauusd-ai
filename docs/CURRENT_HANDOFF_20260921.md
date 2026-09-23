@@ -24,11 +24,17 @@ Videreføring av alle34 åpne TRAIN-sider er fullført:14 faktiske EXIT,20 forts
 åpne ved beregningsbudsjettet; alle34 prefikser bitlike og vektene uendret.
 De63 opprinnelige Entry-valgene har nå55 lukkede/8 åpne og netto mark-14,1569 Bps
 mot-6,2092 i det første vinduet. Dette er ulik observasjonstid, ikke full livsløps-PnL.
-Brukeren er spurt om neste mål skal være nettoresultat over tid med én åpen
-posisjon og FLAT som venting, eller total nettofortjeneste per handel. Svaret
-avventes før avhengig økonomisk målendring. Ingen ny readout-fit eller større trening.
-Ingen ekstra tidsstraff eller tapsvektendring er innført.
-Se siste resultatavsnitt og runtime/ENTRY_GOAL_PROGRESS.json for etterprøvbare bevis.
+Brukeren har gjenopptatt målet med retning først: LONG bullish / SHORT bearish.
+Les ENTRY_DIRECTION_FIRST_20260923.md først. Tidligere spørsmål om portefølje og
+tid er ingen forutsetning for dette arbeidet. To retningsdiagnoser er fullført;
+ingen modell-/trenerendring eller nye optimizersteg. Frossen v10-readout bestod
+ikke senere VAL. Direkte inputbaseline fant svakt 5-minutters signal på siste
+TRAIN-år (51,06 % balansert treff), ikke dokumentert Entry-gevinst.
+En paret kontroll viste at original v8 ikke har samme all-bearish forecast som
+v10 med originalvektene. Neste kontroll binder originalfunksjonen som baseline.
+Ingen nye koeffisienter er promotert; ingen større trening eller jobb er aktiv.
+Se ENTRY_DIRECTION_FIRST_20260923.md og ENTRY_GOAL_PROGRESS.json under
+/home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923 for etterprøvbare bevis.
 Tidligere oppstartsoppskrifter nedenfor er historikk. TEST forblir forseglet.
 
 # CURRENT HANDOFF — 2026-09-21 (kveld)

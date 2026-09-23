@@ -1,5 +1,12 @@
 # Fast lærer og Entry-feedback — 23.09.2026
 
+## Nyeste status: retning først
+
+Brukeren har gjenopptatt arbeidet med LONG bullish / SHORT bearish.
+Les [ENTRY_DIRECTION_FIRST_20260923.md](ENTRY_DIRECTION_FIRST_20260923.md).
+Spørsmålet om portefølje/tid nedenfor er historikk og blokkerer ikke dette målet.
+Ingen større trening er startet; nye retningsmålinger er rapportert separat.
+
 ## Nåstatus
 
 Begge avgrensede native kjøringer er fullført med returkode 0. Ingen trening er
