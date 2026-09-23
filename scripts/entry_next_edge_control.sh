@@ -84,6 +84,7 @@ Model-native seq513 evidence:
   model-native-trade-path-metrics
   model-native-serve-parity
   model-native-direction-pocket-audit
+  model-native-direction-walkforward --dataset-dir <dataset-dir> --native-m5-root <immutable-dir> [--multi-tf-cache-dir <immutable-dir>] --out-dir <new-dir> --fold-boundaries <UTC ...> --horizons <bars ...> --inner-fraction <f> --max-hgb-iter <n> [--feature-arms ...] [--target-scalings ...] [--learners ...] [--seeds ...] [--resume]
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> \
@@ -1123,6 +1124,27 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_model_native_serve_parity_v1 "$@"
+    ;;
+
+  model-native-direction-walkforward)
+    # Research instrument only (no candidate, TEST, promotion or trading
+    # authority): chronological walk-forward ceiling measurement with cheap
+    # learners on the model-native decision surface, delegating every
+    # statistic to the pre-registered selective-edge owner.  It fits over
+    # the complete TRAIN population like the ranker, so it runs under the
+    # producer cap rather than the 4G audit cap.
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --native-m5-root \
+      --out-dir \
+      --fold-boundaries \
+      --horizons \
+      --inner-fraction \
+      --max-hgb-iter; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.research_entry_direction_walkforward_v1 "$@"
     ;;
 
   model-native-direction-pocket-audit)
