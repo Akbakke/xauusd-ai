@@ -119,6 +119,9 @@ TRAINER_CLI_KEYS = LEGACY_TRAINER_CLI_KEYS | {"precision_policy"}
 INITIALIZED_SMOKE_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
     "initial_checkpoint_path", "initial_checkpoint_sha256",
 }
+FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS = INITIALIZED_SMOKE_TRAINER_CLI_KEYS | {
+    "freeze_initial_teacher",
+}
 CLOUD_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
     "cloud_host_profile_path",
     "cloud_host_profile_sha256",
@@ -308,6 +311,7 @@ def require_pretest_technical_recipe_metadata(
         LEGACY_TRAINER_CLI_KEYS,
         TRAINER_CLI_KEYS,
         INITIALIZED_SMOKE_TRAINER_CLI_KEYS,
+        FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS,
         CLOUD_TRAINER_CLI_KEYS,
         CLOUD_CANDIDATE_TRAINER_CLI_KEYS,
     }:
@@ -345,7 +349,9 @@ def require_pretest_technical_recipe_metadata(
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc
-    if trainer_cli_keys == INITIALIZED_SMOKE_TRAINER_CLI_KEYS:
+    if trainer_cli_keys in {INITIALIZED_SMOKE_TRAINER_CLI_KEYS, FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS}:
+        if "freeze_initial_teacher" in trainer_cli and trainer_cli["freeze_initial_teacher"] is not True:
+            raise PretestTechnicalRecipeError("fixed teacher policy must be explicitly true")
         if (
             profile != "smoke"
             or trainer_cli["execution_tier"] != "canonical"

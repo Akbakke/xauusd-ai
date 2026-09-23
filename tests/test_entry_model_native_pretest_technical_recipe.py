@@ -373,6 +373,14 @@ def test_initialized_smoke_is_hash_bound_and_never_candidate(tmp_path: Path) -> 
     })
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    cli["freeze_initial_teacher"] = True
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    cli["freeze_initial_teacher"] = False
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="explicitly true"):
+        require_pretest_technical_recipe_metadata(recipe)
+    cli["freeze_initial_teacher"] = True
     cli["initial_checkpoint_sha256"] = "invalid"
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     with pytest.raises(PretestTechnicalRecipeError, match="SHA256"):

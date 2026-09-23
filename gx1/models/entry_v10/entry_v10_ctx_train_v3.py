@@ -12255,6 +12255,7 @@ def run_train(
     candidate_epoch_seal: Optional[Mapping[str, Any]] = None,
     initial_checkpoint_path: Optional[Path] = None,
     initial_checkpoint_sha256: Optional[str] = None,
+    freeze_initial_teacher: bool = False,
 ) -> None:
     run_started = time.perf_counter()
     _require_bound_learning_globals()
@@ -13311,6 +13312,8 @@ def run_train(
     # GPU work is allocated to a training candidate.
     model.require_input_normalization_state()
     smoke_initialization = None
+    if freeze_initial_teacher and initial_checkpoint_path is None:
+        raise RuntimeError("[ENTRY_FIXED_TEACHER_REQUIRES_INITIALIZED_SMOKE]")
     if initial_checkpoint_path is not None or initial_checkpoint_sha256 is not None:
         if (
             profile != "smoke" or execution_tier != "canonical" or device.type != "cuda"
@@ -13667,7 +13670,10 @@ def run_train(
             "recipe_source_provenance": recipe_source_provenance,
             "population": {"train": train_population_selection, "val": val_population_selection},
             "fixed_evaluation_teacher_sha256": _model_state_sha256(comparison_target),
-            "training_teacher_refresh": "unchanged_native_contract",
+            "training_teacher_refresh": (
+                "frozen_initial_for_bounded_probe" if freeze_initial_teacher
+                else "unchanged_native_contract"
+            ),
             "test_access": False, "promotion_authority": False,
             "complete_trade_lifetime_economics": False,
             "stages": {},
@@ -13867,7 +13873,10 @@ def run_train(
         target_model.eval()
         epoch_optimizer_steps = -(-len(train_loader) // int(grad_accum_steps))
         epoch_refresh_interval = (
-            unified_exit_target_refresh_interval_optimizer_steps(
+            # A refresh just beyond this one-pass smoke budget preserves the
+            # same initial teacher for every update; no guessed cadence.
+            epoch_optimizer_steps + 1 if freeze_initial_teacher
+            else unified_exit_target_refresh_interval_optimizer_steps(
                 epoch_optimizer_steps
             )
         )
@@ -13929,6 +13938,8 @@ def run_train(
         if not tr_epoch_complete:
             raise RuntimeError("[ENTRY_CANONICAL_TRAIN_EPOCH_PARTIAL_FORBIDDEN]")
         target_model_state_sha256 = _model_state_sha256(target_model)
+        if freeze_initial_teacher and target_model_state_sha256 != comparison_report["fixed_evaluation_teacher_sha256"]:
+            raise RuntimeError("[ENTRY_FIXED_TEACHER_CHANGED_DURING_PROBE]")
         fitted_q_iteration_state = {
             "schema_version": (
                 UNIFIED_EXIT_FITTED_Q_ITERATION_STATE_SCHEMA_VERSION
@@ -15541,7 +15552,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
-        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None:
+        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False):
             raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_REQUIRES_PRETEST_RECIPE]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
@@ -15647,6 +15658,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
             "initial_checkpoint_path": str(initial_checkpoint_path),
             "initial_checkpoint_sha256": str(initial_checkpoint_sha256),
         })
+    if getattr(args, "freeze_initial_teacher", False):
+        observed["freeze_initial_teacher"] = True
     expected = dict(recipe["trainer_cli"])
     expected.setdefault("precision_policy", DETERMINISTIC_FP32)
     if expected != observed:
@@ -15733,6 +15746,7 @@ def main() -> None:
     parser.add_argument("--recipe-audit-sha256", type=str, required=True)
     parser.add_argument("--initial-checkpoint-path", type=Path)
     parser.add_argument("--initial-checkpoint-sha256", type=str)
+    parser.add_argument("--freeze-initial-teacher", action="store_true")
     parser.add_argument("--candidate-gate-json", type=Path)
     parser.add_argument("--candidate-gate-sha256", type=str)
     parser.add_argument("--cloud-host-profile-json", type=Path)
@@ -16008,6 +16022,7 @@ def main() -> None:
         val_sequence_source_audit_json=args.val_sequence_source_audit_json,
         initial_checkpoint_path=args.initial_checkpoint_path,
         initial_checkpoint_sha256=args.initial_checkpoint_sha256,
+        freeze_initial_teacher=args.freeze_initial_teacher,
     )
 
 

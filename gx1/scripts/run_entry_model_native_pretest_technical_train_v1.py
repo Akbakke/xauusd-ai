@@ -300,6 +300,8 @@ def build_pretest_technical_launch(
             "--initial-checkpoint-path", str(cli["initial_checkpoint_path"]),
             "--initial-checkpoint-sha256", str(cli["initial_checkpoint_sha256"]),
         ))
+        if cli.get("freeze_initial_teacher") is True:
+            trainer_command.append("--freeze-initial-teacher")
     if cloud_host_profile is not None:
         trainer_command.extend((
             "--cloud-host-profile-json", str(cloud_host_profile_path_raw),

@@ -80,6 +80,7 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
             "precision_policy": "deterministic_fp32",
             "initial_checkpoint_path": str(tmp_path / "candidate_state.pt"),
             "initial_checkpoint_sha256": "b" * 64,
+            "freeze_initial_teacher": True,
         })
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     recipe_path = (tmp_path / "pretest-canonical-recipe.json").resolve()
@@ -114,6 +115,7 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     if initialized:
         assert command[command.index("--initial-checkpoint-path") + 1] == cli["initial_checkpoint_path"]
         assert command[command.index("--initial-checkpoint-sha256") + 1] == "b" * 64
+        assert "--freeze-initial-teacher" in command
     else:
         assert "--initial-checkpoint-path" not in command
 

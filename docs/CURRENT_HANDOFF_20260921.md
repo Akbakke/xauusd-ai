@@ -1,10 +1,12 @@
 # Gjeldende oppdatering 23.09: V12 stoppet, Entry-forbedring aktiv
 
-Les [ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md](ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md) først,
+Les [ENTRY_NATIVE_NSTEP512_RESULT_20260923.md](ENTRY_NATIVE_NSTEP512_RESULT_20260923.md) først,
+deretter [ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md](ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md),
 deretter [ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md](ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md),
 deretter [ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md](ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md),
 deretter [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md).
-Checkpoint844 er bevart. Ingen ny trening eller PC-omstart er startet.
+Checkpoint844 er bevart. En avgrenset native måling har fullført64 optimizersteg.
+Entry er fortsatt SHORT512/512; én kontroll med fast lærer forberedes. PC er ikke restartet.
 Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
 med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
 

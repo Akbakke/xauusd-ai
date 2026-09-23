@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 
-UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v3"
+UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v4"
 UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
 UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS = 0.0
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
@@ -107,6 +107,9 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         "operator": UNIFIED_EXIT_FITTED_Q_OPERATOR,
         "target_snapshot_update": (
             "derived_intra_epoch_interval_steps_per_epoch_over_max_path_bars"
+        ),
+        "bounded_initialized_smoke_snapshot_exception": (
+            "explicit_recipe_freeze_initial_teacher_sets_interval_to_total_steps_plus_one"
         ),
         "target_snapshot_fitted_splits": ["train"],
         "validation_or_test_updates_target_snapshot": False,
