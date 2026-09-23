@@ -302,6 +302,8 @@ def build_pretest_technical_launch(
         ))
         if cli.get("forecast_only_warmup") is True:
             trainer_command.append("--forecast-only-warmup")
+        if cli.get("warmup_direction_bce") is True:
+            trainer_command.append("--warmup-direction-bce")
         if cli.get("freeze_initial_teacher") is True:
             trainer_command.append("--freeze-initial-teacher")
         if "frozen_teacher_model_source_path" in cli:

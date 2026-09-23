@@ -206,3 +206,46 @@ Ny oppstart krever fersk recipe på rettet, committet kilde. Samme4096-raders
 beregningsplan og forhåndslåste læringsport beholdes; dette er ingen ny variant.
 Bevis: run/START_FAILURE_DIAGNOSIS.json,
 DIRECTION_ORIGINAL_REFERENCE_LOADER_VERIFICATION.json og tilhørende logger.
+
+### Fullført L1-forsøk og neste avgrensede retningssammenligning
+
+ENTRY_DIRECTION_WARMUP4096_20260923T141919Z er fullført på7abae358:
+4096TRAIN,512optimizersteg,returkode0. Ingen horisont bestod retningsporten.
+På samme512VAL ble balansert treff48,79/50,65/50,39/51,11 prosent.
+Lavere forecast-L1 var hovedsakelig korreksjon av skjevhet: bare én horisont
+slo en konstant TRAIN-median på VAL, med0,00784Bps lavere MAE.
+Frossen råfeature-readout ga50,07–53,17 prosent på sammeVAL, uten støttet fordel.
+Snapshot/context-normaliseringen gjorde ingen av312 felt konstante.
+Volatilitetsskifte er målt; årsaken til svak retning er ikke bevist.
+
+Én eksplisitt recipe-bundet warmup_direction_bce-variant er nå implementert
+i samme eksisterende native research-gren. Den bruker samme fireutgangshode
+som retningslogits i dette forsøket, samme arkitektur, input, originale vekter
+og optimizerinnstillinger. Det er en kontroll av læringsmålet, ikke en påstand
+om at pris-L1 er en kodefeil. Standard L1-gren og normal trening er bevart.
+
+BCE bruker fortegnet til de eksisterende faktisk observerte fremtidsreturene.
+Eksakt nullretur gir ingen bullish/bearish-label, utelates fra tapet og telles.
+Ingen klasserevekting, ny handelsterskel eller tids-/kostnadsregel.
+Retningsscore lagres som direction_score, aldri forecast_bps; originalfunksjonens
+Bps er bare retningsreferanse. BCE-vektene er research-logits, ikke Bps-prognoser,
+kalibrerte sannsynligheter, handelsbundle eller promotering.
+
+Teknisk kontroll:20 eksisterende recipe-/launcher-tester bestod; syntetisk
+fire-stegs kontroll av både L1- og BCE-grenen bestod. Nullmasken har null gradient,
+feil retning straffes korrekt, tomme/ikke-endelige/ulike targets avvises,
+source-/flaggavvik avvises, beskyttede hoder er uendret, og outputenheter er tydelige.
+Dette er implementeringsbevis, ikke markedsbasert læring.
+
+Neste ene markedskontroll bruker samme4096TRAIN,batch8,512steg og512TRAIN/512VAL
+som L1-armen. Før-baseline og originalreferanse må være like L1-armens cache.
+Retningsporten krever lavere TRAIN-BCE, begge retninger og justerte parede VAL-
+intervaller mot original, før og fullført L1-arm. Alle fire horisonter rapporteres.
+Ingen full epoch/fullVAL, retuning eller større trening følger automatisk.
+Kjør først fra committet ren kilde og fersk recipe via eksisterende vakter.
+
+Runtimebevis under /home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923:
+DIRECTION_BCE_IMPLEMENTATION_VERIFICATION.json,
+DIRECTION_WARMUP_L1_REGRESSION_VERIFICATION.json,
+direction_bce_targeted_checks.log og DIRECTION_OBJECTIVE_COMPARISON_NEXT.json.
+Ingen ny markedstrening er startet ved denne kildeoppdateringen.
