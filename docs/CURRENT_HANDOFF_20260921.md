@@ -13,8 +13,14 @@ splitter. VAL netto vindusmark er-0,8045 Bps, score/utfall-rangering-0,0363,
 og83 posisjoner er åpne. Læringsporten er ikke bestått. Ingen jobb er aktiv.
 Ikke relanser noen fullført plan eller promoter ettervektene. PC er ikke restartet.
 Rutingsrettelsen er numerisk kontrollert; bedre økonomisk seleksjon er ikke vist.
-Neste arbeid gjelder konsistente netto læringsmål i Entry/Exit/fortsettelsesverdi
-med eksisterende historisk kostnadspolicy. Ingen ekstra tidsstraff er innført.
+Kostnadskorreksjon alene og direkte Exit-gradient til Entry-hodet forklarer ikke
+svak seleksjon i de kontrollerte tilfellene. Én låst analytisk readout-fit på
+63 TRAIN /63 senere VAL feilet: VAL+1,3745 netto Bps mot alwaysSHORT+9,2374,
+og side-MSE ble dårligere. Ingen vekter er promotert; ingen ny fit av denne prøven.
+Neste målte spørsmål er arvede usikkerhetsvekter etter endret Entry-target:
+normalisert Entry-tap er76,15 mot omtrent1 for andre oppgaver etter64 steg.
+Gradientvirkningen må avklares før en minimal eventuell initialiseringsrettelse.
+Ingen ekstra tidsstraff eller tapsvektendring er innført.
 Se siste resultatavsnitt og runtime/ENTRY_GOAL_PROGRESS.json for etterprøvbare bevis.
 Tidligere oppstartsoppskrifter nedenfor er historikk. TEST forblir forseglet.
 

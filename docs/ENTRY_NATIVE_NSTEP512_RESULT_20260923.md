@@ -285,3 +285,92 @@ Ingen slik tidsstraff eller maksimal holdetid er innført.
 Bevis i runtime: NATIVE_ROUTING512_COMPARISON.json,
 NATIVE_ROUTING512_TIME_COST_ANALYSIS.json,
 ENTRY_ROUTING512_TARGET_ABSTENTION_AUDIT.json og eksakt run/TERMINAL.json.
+
+## Avgrensede avklaringer etter v10-kontrollen
+
+Ingen modell-/treningskode er endret i denne runden. Følgende alternativer er
+vurdert med eksisterende cache før videre kodearbeid:
+
+- Konsekvent fratrekk av arkivert kostnad i observert EXIT-reward og frossen
+  Q ved samme tilstand bevarer lærerens HOLD/EXIT-valg på63 VAL-rader.
+  Framtidig finansiering utover åpen grense er fortsatt ukjent.
+  Et separat, hypotetisk4 Bps-fratrekk bare i Entry-score endrer6/512 TRAIN-
+  og2/512 VAL-valg; VAL netto blir-0,9344 mot-0,8045 Bps. Ingen slik regel er innført.
+- Alle fire representasjonsblokker inn til Entry varierer og mottar gradient.
+  Skala og lav effektiv dimensjon er målt; dette beviser ikke en avkobling
+  eller at enda en normalisering vil bedre seleksjonen.
+- Exit-lossens gradient til selve Entry-Q-hodet var0,0022–0,2365 prosent av
+  Entry-lossens gradient på tre forhåndsvalgte VAL-rader før/etter.
+  Kombinert gradient peker fortsatt nedover Entry-loss i alle seks tilfellene.
+  Dette avviser ikke all gradientkonflikt i delte encodere, men støtter ikke
+  å koble fra Entry-Q i Exit-tokenet som neste rettelse.
+- Eksisterende forecast/timing-hoder er kontrollert per horisont, med L1
+  som i faktisk trening og konstanter bestemt av512 TRAIN-labels. På63
+  senere VAL-rader slår forecast bare1/4 TRAIN-medianer (med0,0130 Bps),
+  timing2/12 og volatilitet3/3. Korrelasjon aggregert over ulike utkolonner
+  er ikke det samme som prediksjon innen hver horisont. Ingen hjelpescore
+  er gjort til handelsautoritet.
+
+Bevis: ENTRY_NET_COST_CONTRACT_AUDIT.json, ENTRY_INFORMATION_PATH_AUDIT.json,
+ENTRY_EXIT_HEAD_GRADIENT_AUDIT.json og ENTRY_AUXILIARY_HORIZON_SKILL_AUDIT.json.
+Informasjonskontrollens første sammenligning brukte batchet lineær algebra mot
+radvis original og feilet bitlikhet. Kontrollberegningen ble rettet til samme
+radrekkefølge; eksakt head-utdata-paritet og uendrede modellvekter bestod.
+Første feillogg er bevart.
+
+### Én låst lineær readout-prøve: STOP
+
+FROZEN_READOUT_PROBE_PLAN.json ble SHA-låst før fit:
+9ebdccf7e8cea4a90cb6798f7e72d8bf7e14db77c9c5af0a6965032c7fab45a0.
+Den eksisterende Ledoit–Wolf-formelen fra historisk review ble gjenbrukt som
+matematikkreferanse; ingen historisk runner eller GX1_CURRENT-kode ble startet.
+
+Det aktuelle v10-nettverket med checkpoint844s råvekter ble holdt helt uendret.
+63 av de samme64 tidligere valgte TRAIN-radene ble materialisert med eksisterende
+native dataset-/modellfunksjoner under auditvakten. 63 Entry-kall og63 Exit-kall,
+ingen nye VAL-encoder-/Exit-kall og ingen optimizersteg. Uendrede vekter er målt.
+TRAIN-cachen har SHA90bda5ccfa98215f2e7e2861b1d279607bdbca578e6ed127a7b3de4e2067a5d5.
+
+Fit bruker128 eksisterende Entry-hidden-koordinater og alle tre handlinger.
+Labels er denne samme frosne v10-Exit-policyens n-step-verdier i eksisterende
+bruttoenheter: faktisk første EXIT-reward, ellers åpen bootstrap, FLAT0.
+Dette er en selvstendig readout-avklaring, ikke samme lærer som v9-kontrollen.
+LW bestemmes bare fra TRAIN-input: delta0,0585650, lambda0,00674993.
+Koeffisientene ble skrevet og hashfrosset før senere VAL ble evaluert.
+Nye valg-Q brukes bare i ekstern diagnostikk; original Entry-Q, hidden,
+Exit-token og hele Exit-funksjonen er bevart. Ingen vekter er promotert.
+
+|Prøve på63 rader|TRAIN original|TRAIN readout|VAL original|VAL readout|
+|---|---:|---:|---:|---:|
+|LONG/SHORT/FLAT|39/24/0|29/29/5|40/23/0|46/13/4|
+|Netto vindusmark Bps/mulighet|-6,2092|8,6988|-0,2879|1,3745|
+|Åpne valgte posisjoner|13|3|12|8|
+|Score/netto-mark Spearman|0,3046|0,6308|0,3677|-0,0074|
+
+VAL side-MSE ble dårligere for begge sider: LONG930,26→1052,34 og
+SHORT679,43→1065,49. TRAIN-konstantenes VAL-MSE var912,71/610,25.
+Konstant SHORT med nøyaktig samme Exit ga+9,2374 netto Bps/mulighet.
+Prøven feilet de forhåndslåste verdi- og seleksjonskravene. Positivt readout-
+resultat alene er ikke bevis på bedre seleksjon. Denne prøven lukkes uten
+ny lambda, terskel, split eller labelendring. Alle økonomitall inkluderer åpne
+mark, men er verken full livsløpsavkastning eller en kapitalbegrenset portefølje.
+63 TRAIN-rader mot128 koordinater gir høy overtilpasningsrisiko; resultatet
+beviser ikke at enhver framtidig readout på mer data må feile.
+
+### Neste målte spørsmål: arvede usikkerhetsvekter
+
+Den eksisterende tapsformelen er exp(-s)*L+s. Med fast modell og positivt
+gjennomsnittstap har den betinget stasjonært punkt s=log(L).
+Før v10-kontrollen var TRAIN Entry-L269,2021 og arvet s1,19894:
+exp(-s)*L=81,168. Etter64 steg var dette76,146, og s hadde flyttet bare0,01862.
+De andre ni oppgavene lå etterpå omtrent0,97–1,67 på samme skala.
+ENTRY_TASK_UNCERTAINTY_SCALE_AUDIT.json binder målingen til native rapport.
+
+Dette er en konkret feilkalibrering i forhold til den nye tapsfordelingen,
+men dominans i tapets størrelse beviser ikke dominans i parametergradienten.
+Neste avklaring er gradientvirkningen på delte representasjoner og om den
+eksisterende vektingsregelen trenger TRAIN-basert initialisering etter
+target-/funksjonsendringen. Ingen tapsvekt, læringsrate, arkitektur eller
+ny trening er endret/startet på bakgrunn av denne målingen ennå.
+Totalt192 optimizersteg og én separat analytisk readout-fit i gjennomgangen.
+Ingen jobb er aktiv. TEST er forseglet og PC er ikke restartet.
