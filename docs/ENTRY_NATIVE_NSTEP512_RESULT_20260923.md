@@ -122,3 +122,33 @@ Rapport-SHA256: flyttende lærer
 fa771d8ea2f4c215213faf54b1765457d21c068a173bc40fcaa500172efe53f1;
 fast lærer
 911ef133d99dc78ca5ad833a24399c6c4e10e5437b79fe361f4f298acfda21ca.
+
+
+## Tidsmålet er sporet til eksisterende kode
+
+ENTRY_EXISTING_TIME_FEEDBACK_AUDIT.json binder kildefilene og den cachede
+målingen. Exit har allerede faktisk klokkealder. Delte representasjoner får
+supervisjon fra prisprognoser ved 1/5/12/24 M5-barer og risiko/timing ved
+12/48/96 M5-barer. Timing-hodet lærer plasseringen av ekstrempunkter som
+fraksjon av vinduet, ikke handlens faktiske holdetid. Det trengs ingen ny
+tidsfeature eller nytt hjelpehode for å introdusere selve tidsinformasjonen.
+
+Entry-Q bruker fortsatt brutto Bps, gamma=1 og null løpende HOLD-belønning.
+FLAT terminerer ved0; neste Entry etter venting eller frigjort kapital er ikke
+bundet som et fortsettende porteføljeforløp. Tidsinput alene gir derfor ingen
+eksplisitt pris på kapitalbinding.
+
+En konkret feilvei er avvist med eksisterende data: På siste VAL gir snittet
+av enkeltposisjonenes netto Bps/time +40,6922, mens samlet netto mark delt på
+samlet observert notional-tid er -0,3720 Bps/time. Begge inkluderer åpne mark.
+Det første snittet må ikke innføres som erstatning for samlet økonomi.
+
+Et mål for avkastning per tid er beskrevet av Wan, Naik og Sutton,
+[Average-Reward Learning and Planning with Options, NeurIPS2021, avsnitt2](https://papers.nips.cc/paper/2021/file/c058f544c737782deacefa532d9add4c-Paper.pdf).
+Anvendelse her krever et konsistent videre beslutningsforløp, inkludert FLAT,
+ventetid og kapital. Artikkelens forutsetninger er ikke dokumentert for GX1.
+Ingen ny algoritme eller tidsstraff er implementert.
+
+Brukeren er spurt om samme nettoresultat skal vurderes bedre når kapitalen
+frigjøres tidligere. Dette gjelder læringsmålets preferanse, ikke en ny
+meglertillatelse eller maksimal holdetid. Trening forblir avsluttet.
