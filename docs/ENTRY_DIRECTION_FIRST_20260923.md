@@ -249,3 +249,14 @@ DIRECTION_BCE_IMPLEMENTATION_VERIFICATION.json,
 DIRECTION_WARMUP_L1_REGRESSION_VERIFICATION.json,
 direction_bce_targeted_checks.log og DIRECTION_OBJECTIVE_COMPARISON_NEXT.json.
 Ingen ny markedstrening er startet ved denne kildeoppdateringen.
+
+### Direkte retningskontroll fullført: ingen horisont består
+
+ENTRY_DIRECTION_BCE4096_20260923T150750Z fullført15:20:11 UTC på7edb5579,
+returkode0,512steg. Original/før var bitlike L1-armens tilsvarende utdata.
+Balansert VAL-treff47,45/51,56/51,60/53,98 prosent; ingen horisont består
+de justerte parede intervallene mot original, før og L1. VAL-BCE er dessuten
+dårligere enn konstant TRAIN-prior på alle fire horisonter. Entry-Q fortsattSHORT512/512.
+Ingen bedre Entry-økonomi, promotering, ny tapsvariant eller større trening.
+1216 native optimizersteg totalt; alle opprinnelige checkpoints bevart.
+Full rapport:DIRECTION_BCE_RESULT_20260923.md under runtime. TEST fortsattforseglet.
