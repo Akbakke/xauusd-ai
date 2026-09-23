@@ -448,3 +448,66 @@ bind utvalg og beregningsbudsjett før kjøring. Den avsluttede readout-prøven
 skal ikke refittes. Ingen ny VAL-tuning eller større trening følger automatisk.
 Totalt fortsatt 192 optimizersteg og én analytisk fit. Ingen jobb aktiv,
 TEST forseglet, PC ikke restartet. Entry-forbedring er fortsatt ikke demonstrert.
+
+## Videreført TRAIN-policy og avklaring av læringsmålet
+
+Den forhåndsbundne kontrollen FROZEN_V10_TRAIN_CONTINUATION_PLAN.json
+(SHA6257a5567250cf2bfa63bda12ebe6eac10dc6080be0645913262abb3060b94f4)
+fulgte alle 34 åpne sider fra de samme 63 TRAIN-radene. Uendret v10-funksjon,
+checkpoint844s råvekter og opprinnelige Entry-token. Ingen nye Entry-/VAL-kall,
+fit eller optimizersteg. Beregningsrammen var 20 sekunder per tilfelle,
+900 sekunder samlet etter datasetinitialisering; dette er ingen holdetidsregel.
+
+Alle 34 native 512-prefikser var bitlike de bevarte utdataene.
+Kontrollen fullførte med returkode 0 og uendrede modellvekter.
+Selve videreføringen tok 495,88 sekunder. 14 posisjoner fikk første entydige
+modell-EXIT, 20 var fortsatt åpne ved beregningsgrensen. Alle 34 carry-tilstander
+er lagret med SHA og funksjons-/planbinding. Ingen nådde TRAIN-datagrensen.
+
+| Samme 63 opprinnelige Entry-valg | Opprinnelig vindu | Etter videreføring |
+|---|---:|---:|
+| Lukket / fortsatt åpen | 50 / 13 | 55 / 8 |
+| Netto mark per mulighet, Bps | -6,2092 | -14,1569 |
+| Summert observert notional-tid, timer | 184,45 | 599,02 |
+
+Begge kontrafaktiske sider samlet, 126 tilfeller: netto mark -5,9630→-8,8684
+Bps per side; fortsatt åpne sider 34→20. De 14 nye lukkede sidene har
+gjennomsnittlig netto +26,0651 Bps; de 20 fortsatt åpne har -117,4941 Bps.
+Lukkede vinnere alene ville derfor gitt et misvisende resultat.
+Observasjonstidene varierer med beregningsstopp. Dette er TRAIN-diagnostikk,
+ikke sammenlignbar full livsløpsavkastning, porteføljeavkastning eller ny læring.
+
+### Kjent EXIT-verdi forklarer ikke hovedproblemet i de korte treningsvinduene
+
+EXIT_KNOWN_REWARD_ANCHOR_AUDIT.json utvider en tidligere avvist diagnose til
+gjeldende v10-cache og disse nye TRAIN-endepunktene. Arithmetisk alternativ:
+Q_EXIT = observert lukkeverdi, Q_HOLD = observert lukkeverdi + gammel
+(Q_HOLD - Q_EXIT). Det endrer felles verdinivå, og bevarer reell handlingsrekkefølge.
+
+På 64 512 eksisterende tilstander per split gav FP32-beregningen ingen nye
+argmax-endringer eller eksakte ties. Men absolutte endringer i åpne Entry-labels
+var i snitt bare 1,2653 Bps på TRAIN / 1,7530 på VAL; signed TRAIN-snitt -0,0909.
+På de 20 senere åpne endepunktene var EXIT-prediksjonens MAE 6,5482 Bps.
+Dette begrunner ikke å presentere kjent-verdi-forankring som løsningen på svak
+Entry-seleksjon. Ingen slik modell-, policy- eller tapsendring er innført.
+
+### Beslutning som trengs før neste økonomiske målendring
+
+Gjeldende Entry-kontrakt har brutto belønning, gamma=1, HOLD-belønning 0 og
+flat_terminal=true / FLAT=0. Den modellerer ikke verdien av neste Entry etter
+venting eller frigjort kapital. Mer tidsinput alene endrer ikke dette.
+Den eksisterende serial_one_position_ledger er uttrykkelig en diagnostikk
+for fullførte posisjoner, ikke en treningskontrakt for dette fortsettende forløpet.
+
+Et konkret spørsmål er sendt til brukeren: skal neste Entry-mål være nettoresultat
+over tid i et sammenhengende historisk forløp med én åpen posisjon om gangen,
+der FLAT betyr venting til neste mulighet, eller fortsatt total nettofortjeneste
+per handel? Anbefalingen er den første varianten; svaret er ikke mottatt.
+Dette er et valg av læringsmål og kapitalbruk, ikke godkjenning av en allerede
+autorisert kodefeilrettelse. Ingen tidsstraff, kapasitetsregel eller ny
+porteføljekontrakt skal gjettes mens spørsmålet står åpent.
+
+Ingen større trening er startet. Kode og vekter er uendret. Målet er ikke
+oppnådd; neste avhengige endring avventer denne avklaringen.
+Bevis: FROZEN_V10_TRAIN_CONTINUATION_RESULT.json,
+FROZEN_V10_TRAIN_CONTINUATION_ANALYSIS.json og EXIT_KNOWN_REWARD_ANCHOR_AUDIT.json.

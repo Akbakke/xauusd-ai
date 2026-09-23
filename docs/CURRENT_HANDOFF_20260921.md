@@ -20,10 +20,13 @@ og side-MSE ble dårligere. Ingen vekter er promotert; ingen ny fit av denne pr�
 Gradientkontrollen begrunner ingen reset av usikkerhetsvekter: samlet retning
 reduserte begge tapsgrupper lokalt i seks kontrollerte tilfeller. Entry-pris og
 alle512 historiske prisutfall per side stemmer på63 TRAIN /63 senere VAL.
-Neste avklaring er bootstrap-forventningen på åpne TRAIN-posisjoner: ved grensen
-er gjennomsnittlig target-20,98 Bps mot observerbar brutto mark-43,41 Bps.
-Kontroller videre historikk med frossen funksjon og eksisterende carry-eiere;
-bind utvalg og beregningsbudsjett først. Ingen ny readout-fit eller større trening.
+Videreføring av alle34 åpne TRAIN-sider er fullført:14 faktiske EXIT,20 fortsatt
+åpne ved beregningsbudsjettet; alle34 prefikser bitlike og vektene uendret.
+De63 opprinnelige Entry-valgene har nå55 lukkede/8 åpne og netto mark-14,1569 Bps
+mot-6,2092 i det første vinduet. Dette er ulik observasjonstid, ikke full livsløps-PnL.
+Brukeren er spurt om neste mål skal være nettoresultat over tid med én åpen
+posisjon og FLAT som venting, eller total nettofortjeneste per handel. Svaret
+avventes før avhengig økonomisk målendring. Ingen ny readout-fit eller større trening.
 Ingen ekstra tidsstraff eller tapsvektendring er innført.
 Se siste resultatavsnitt og runtime/ENTRY_GOAL_PROGRESS.json for etterprøvbare bevis.
 Tidligere oppstartsoppskrifter nedenfor er historikk. TEST forblir forseglet.
