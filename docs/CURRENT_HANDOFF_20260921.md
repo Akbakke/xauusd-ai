@@ -5,8 +5,10 @@ deretter [ENTRY_BOUNDED_NATIVE_INITIALIZATION_20260923.md](ENTRY_BOUNDED_NATIVE_
 deretter [ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md](ENTRY_TIME_FEEDBACK_AND_NSTEP_20260923.md),
 deretter [ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md](ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md),
 deretter [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md).
-Checkpoint844 er bevart. En avgrenset native måling har fullført64 optimizersteg.
-Entry er fortsatt SHORT512/512; én kontroll med fast lærer forberedes. PC er ikke restartet.
+Checkpoint844 er bevart. Begge native kontroller er fullført: 64 steg hver, totalt128.
+Før-baseline er eksakt lik. Fast lærer stabiliserte verdiene, men Entry er fortsatt
+SHORT512/512 og VAL med kostnadsscenariet -1,1859 Bps. Ingen trening er aktiv.
+Læringsmålet og rangeringen er nå kontrollert fra cache. PC er ikke restartet.
 Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
 med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
 
