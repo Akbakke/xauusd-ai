@@ -6583,8 +6583,15 @@ def _episode_native_exit_train(
     profile_materialized = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
+    # The last HOLD remains a legal action, but its next-state label is
+    # unobserved. Normalize the loss by supervised cells, as in native VAL.
     total_valid = sum(
         int(np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_).sum())
+        - int(
+            np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_)[
+                ..., -1, 0
+            ].sum()
+        )
         for episode in episodes
         if episode is not None
     )
@@ -6657,13 +6664,15 @@ def _episode_native_exit_train(
     profile_target_forward = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
-    if not torch.equal(valid, target_mask):
+    expected_supervision = valid.clone()
+    expected_supervision[..., -1, 0] = False
+    if not torch.equal(expected_supervision, target_mask):
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
     q_loss_sum = nn.functional.mse_loss(
-        q_values[valid], targets[valid], reduction="sum"
+        q_values[target_mask], targets[target_mask], reduction="sum"
     )
     _episode_stats_update(
-        stats, q_values=q_values, targets=targets, valid=valid
+        stats, q_values=q_values, targets=targets, valid=target_mask
     )
     stats["eligible_entry_rows"] = len(selected_episodes)
     (
@@ -6790,8 +6799,15 @@ def _episode_native_exit_train_chunked(
     profile_materialized = (
         _synchronized_exit_profile_clock(device) if profile_timing else None
     )
+    # The last HOLD remains a legal action, but its next-state label is
+    # unobserved. Normalize the loss by supervised cells, as in native VAL.
     total_valid = sum(
         int(np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_).sum())
+        - int(
+            np.asarray(episode["exit_action_valid_mask"], dtype=np.bool_)[
+                ..., -1, 0
+            ].sum()
+        )
         for episode in episodes
         if episode is not None
     )
@@ -6881,13 +6897,15 @@ def _episode_native_exit_train_chunked(
         chunk_target_end = (
             _synchronized_exit_profile_clock(device) if profile_timing else None
         )
-        if not torch.equal(valid, target_mask):
+        expected_supervision = valid.clone()
+        expected_supervision[..., -1, 0] = False
+        if not torch.equal(expected_supervision, target_mask):
             raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
         q_loss_sum = nn.functional.mse_loss(
-            q_values[valid], targets[valid], reduction="sum"
+            q_values[target_mask], targets[target_mask], reduction="sum"
         )
         _episode_stats_update(
-            stats, q_values=q_values, targets=targets, valid=valid
+            stats, q_values=q_values, targets=targets, valid=target_mask
         )
         selected_first_values.index_copy_(0, positions, first_side_values)
         selected_first_valid.index_copy_(0, positions, first_side_valid)

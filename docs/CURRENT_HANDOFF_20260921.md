@@ -1,6 +1,7 @@
 # Gjeldende oppdatering 23.09: V12 stoppet, Entry-forbedring aktiv
 
-Les [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md) først.
+Les [ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md](ENTRY_TARGET_AND_EMA_DIAGNOSIS_20260923.md) først,
+deretter [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md).
 Checkpoint844 er bevart. Ingen ny trening eller PC-omstart er startet.
 Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
 med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
