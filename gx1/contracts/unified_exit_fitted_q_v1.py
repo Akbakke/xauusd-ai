@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 
-UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v1"
+UNIFIED_EXIT_FITTED_Q_SCHEMA_VERSION = "gx1_unified_exit_fitted_q_v2"
 UNIFIED_EXIT_FITTED_Q_GAMMA = 1.0
 UNIFIED_EXIT_INTERMEDIATE_HOLD_REWARD_BPS = 0.0
 UNIFIED_EXIT_FITTED_Q_OPERATOR = "frozen_target_network_max"
@@ -110,7 +110,9 @@ def unified_exit_fitted_q_contract() -> dict[str, Any]:
         ),
         "target_snapshot_fitted_splits": ["train"],
         "validation_or_test_updates_target_snapshot": False,
-        "terminal_valid_actions": ["EXIT_NOW"],
+        "compute_window_end_valid_actions": ["HOLD", "EXIT_NOW"],
+        "unobserved_next_state_hold_supervision": "masked_not_zero_or_forced_exit",
+        "maximum_trade_duration": None,
         "pathwise_hindsight_max_is_training_target": False,
         "pathwise_hindsight_role": "diagnostic_upper_bound_only",
         "double_q": {
@@ -241,7 +243,12 @@ def build_unified_exit_fitted_q_targets(
         )
     if not bool(torch.isfinite(target_q[action_valid_mask]).all().item()):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_TARGET_NONFINITE")
-    return target_q.detach(), action_valid_mask
+    # A HOLD at the last observed state has no next-state target in this
+    # window. Exclude only that unknown label from the loss. Its action stays
+    # valid in the policy and its frozen Q remains usable by the prior state.
+    supervision_mask = action_valid_mask.clone()
+    supervision_mask[..., -1, 0] = False
+    return target_q.detach(), supervision_mask
 
 
 def unified_exit_first_state_side_values(
@@ -285,7 +292,11 @@ def replay_unified_exit_fitted_q_policy(
     action_valid_mask: Any,
     exit_now_reward_bps: Any,
 ) -> dict[str, Any]:
-    """Replay unique valid Q argmax until executable EXIT_NOW."""
+    """Replay learned actions; preserve a still-open position at a window end.
+
+    marked_executable_pnl_bps includes both closed and right-censored paths.
+    Realized PnL and exit_state_index are absent for an unclosed position.
+    """
 
     q = np.asarray(predicted_q_bps, dtype=np.float64)
     valid = np.asarray(action_valid_mask, dtype=np.bool_)
@@ -298,8 +309,7 @@ def replay_unified_exit_fitted_q_policy(
         or q.shape[0] < 1
         or not np.isfinite(q).all()
         or not np.isfinite(rewards).all()
-        or not valid[-1, 1]
-        or valid[-1, 0]
+        or not valid.all()
     ):
         raise RuntimeError("UNIFIED_EXIT_FITTED_Q_POLICY_REPLAY_INPUT_INVALID")
     actions: list[int] = []
@@ -317,9 +327,21 @@ def replay_unified_exit_fitted_q_policy(
                 "exit_state_index": state,
                 "action_indices": actions,
                 "realized_executable_pnl_bps": float(rewards[state]),
-                "terminal_forced": state == q.shape[0] - 1,
+                "marked_executable_pnl_bps": float(rewards[state]),
+                "position_closed": True,
+                "right_censored": False,
+                "terminal_forced": False,
             }
-    raise RuntimeError("UNIFIED_EXIT_FITTED_Q_POLICY_DID_NOT_TERMINATE")
+    return {
+        "exit_state_index": None,
+        "last_observed_state_index": q.shape[0] - 1,
+        "action_indices": actions,
+        "realized_executable_pnl_bps": None,
+        "marked_executable_pnl_bps": float(rewards[-1]),
+        "position_closed": False,
+        "right_censored": True,
+        "terminal_forced": False,
+    }
 
 
 def build_unified_exit_first_state_value_envelope(

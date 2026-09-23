@@ -140,8 +140,8 @@ class UnifiedExitIncrementalCarry:
 # fence in the trainer before this path is entered.
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = "cuda_disabled_cpu_checkpointed_v2"
 CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v8"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v8"
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v9"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v9"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -1853,7 +1853,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         specialist_gate = torch.softmax(
             self.specialist_gate(z_v3)
-            + self.specialist_token_gate(specialist_tokens).squeeze(-1),
+            # Pre-norm attention leaves the residual token scale unbounded.
+            # Normalize only the routing input: retain the original token
+            # values in specialist_pool and learn the relative route weights.
+            + self.specialist_token_gate(
+                torch.nn.functional.layer_norm(
+                    specialist_tokens, (specialist_tokens.shape[-1],)
+                )
+            ).squeeze(-1),
             dim=1,
         )
         specialist_pool = (
@@ -2136,7 +2143,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         d_model = int(self.cfg.d_model)
         if (
             int(entry_decision_representation.shape[1]) != d_model
-            or not 1 <= state_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or state_count < 1
             or tuple(exit_local_history_x.shape)
             != (
                 batch_size,
@@ -2506,13 +2513,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             dtype=torch.long,
             device=q_values.device,
         )
-        if state_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
-            valid[:, :, -1, 0] = False
-            terminal_mask[:, :, -1] = True
-            # 1 = current capacity terminal. Zero means non-terminal. This is
-            # explicit so a later economic/data terminal contract can replace
-            # capacity without changing recurrent encoder semantics.
-            terminal_reason_index[:, :, -1] = 1
+        # A compute-window boundary never disables HOLD or creates an EXIT.
+        # Open recurrent state can continue through forward_exit_incremental_step.
         for name, value in (
             ("exit_episode_local_state", local_state),
             ("exit_episode_family_gate", family_gate),
@@ -2687,7 +2689,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if (
             isinstance(step_count, bool)
             or not isinstance(step_count, int)
-            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or step_count < 1
             or isinstance(batch_size, bool)
             or not isinstance(batch_size, int)
             or batch_size < 1
@@ -2765,7 +2767,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             != (batch_size, self._expected_ctx_cont_dim)
             or tuple(exit_path_row_x.shape)
             != (batch_size, 2, UNIFIED_EXIT_PATH_FEATURE_DIM)
-            or not 1 <= step_count <= UNIFIED_EXIT_EPISODE_STATE_COUNT
+            or step_count < 1
             or tuple(exit_mtf_new_rows) != expected_tf_names
             or (
                 carry is not None
@@ -3071,10 +3073,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         terminal_reason_index = torch.zeros(
             batch_size, 2, 1, dtype=torch.long, device=q_values.device
         )
-        if step_count == UNIFIED_EXIT_EPISODE_STATE_COUNT:
-            valid[..., 0] = False
-            terminal_mask[..., 0] = True
-            terminal_reason_index[..., 0] = 1
+        # Trade duration is unrestricted; only the learned Q argmax selects EXIT.
         output = {
             "exit_action_q_bps": q_values,
             "exit_action_valid_mask": valid,

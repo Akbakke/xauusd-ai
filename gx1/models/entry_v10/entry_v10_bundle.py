@@ -638,10 +638,25 @@ def _require_exact_model_native_bundle_metadata(
             training_profile == "candidate"
             and (
                 full_trajectory_validation.get("schema_version")
-                != "gx1_unified_exit_full_trajectory_validation_v7"
+                != "gx1_unified_exit_full_trajectory_validation_v8"
                 or full_trajectory_validation.get("decision") != "PASS"
                 or full_trajectory_validation.get("population")
-                != "all_causal_states_both_sides_batched_episode_forward"
+                != "all_observed_window_states_both_sides_batched_episode_forward"
+                or full_trajectory_validation.get("evaluation_scope")
+                != "observed_compute_window_closed_plus_open_mark_to_market"
+                or full_trajectory_validation.get("maximum_trade_duration") is not None
+                or full_trajectory_validation.get("capacity_forced_exit_count") != 0
+                or int(full_trajectory_validation.get("closed_position_count", -1)) < 0
+                or int(full_trajectory_validation.get("open_position_count", -1)) < 0
+                or (
+                    int(full_trajectory_validation.get("closed_position_count", -1))
+                    + int(full_trajectory_validation.get("open_position_count", -1))
+                    != int(full_trajectory_validation.get("eligible_entry_rows", 0)) * 2
+                )
+                or full_trajectory_validation.get("q_valid_cells_semantics")
+                != "supervised_cells_excluding_unknown_final_hold"
+                or int(full_trajectory_validation.get("policy_action_valid_cells", -1))
+                != int(full_trajectory_validation.get("population_rows", 0)) * 2
                 or int(full_trajectory_validation.get("population_rows", 0)) <= 0
                 or int(full_trajectory_validation.get("q_valid_cells", 0)) <= 0
                 or int(full_trajectory_validation.get("target_equivalent_action_rows", -1)) < 0
@@ -658,9 +673,9 @@ def _require_exact_model_native_bundle_metadata(
                 or any(
                     not math.isfinite(float(full_trajectory_validation.get(key, float("nan"))))
                     for key in (
-                        "learned_policy_mean_realized_executable_pnl_bps",
+                        "learned_policy_mean_marked_executable_pnl_bps",
                         "immediate_exit_mean_realized_executable_pnl_bps",
-                        "terminal_exit_mean_realized_executable_pnl_bps",
+                        "window_end_mark_to_market_executable_pnl_bps",
                     )
                 )
                 or int(full_trajectory_validation.get("long_population_rows", 0)) <= 0

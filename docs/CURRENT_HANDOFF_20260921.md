@@ -1,3 +1,10 @@
+# Gjeldende oppdatering 23.09: V12 stoppet, Entry-forbedring aktiv
+
+Les [ENTRY_REPAIR_20260923.md](ENTRY_REPAIR_20260923.md) først.
+Checkpoint844 er bevart. Ingen ny trening eller PC-omstart er startet.
+Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
+med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
+
 # CURRENT HANDOFF — 2026-09-21 (kveld)
 
 Dette er inngangspunktet for en ny agent. Les i denne rekkefølgen:

@@ -33,7 +33,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
 
 
 UNIFIED_EXIT_EPISODE_PACK_SCHEMA_VERSION = (
-    "gx1_unified_exit_causal_episode_pack_v1"
+    "gx1_unified_exit_causal_episode_pack_v2"
 )
 UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS = (
     EXIT_FEATURE_SEQUENCE_BARS - 1 + UNIFIED_EXIT_MAX_PATH_BARS
@@ -108,11 +108,11 @@ def unified_exit_episode_pack_contract() -> dict[str, Any]:
         "state_capacity": UNIFIED_EXIT_EPISODE_STATE_COUNT,
         "state_lengths": "explicit_per_side_not_encoder_weight_shape",
         "current_pack_supports_variable_length": False,
-        "current_terminal_semantics": "capacity_forced_at_512",
-        "open_next_wave": (
-            "data_or_economic_terminal_plus_financing_and_slippage"
-        ),
-        "terminal_reason_index": {"0": "not_terminal", "1": "capacity_terminal"},
+        "current_terminal_semantics": "compute_window_right_censoring_no_forced_exit",
+        "maximum_trade_duration": None,
+        "continuation": "persistent_incremental_recurrent_carry",
+        "open_next_wave": "financing_and_slippage",
+        "terminal_reason_index": {"0": "not_terminal"},
         "supervision": {
             "known_label": "current_executable_exit_now_reward_bps",
             "hold_label": "frozen_train_fitted_q_target_at_next_causal_state",
@@ -227,13 +227,11 @@ def require_unified_exit_episode_pack(
     if (
         not state_valid.all()
         or not np.array_equal(lengths, np.full(2, UNIFIED_EXIT_EPISODE_STATE_COUNT))
-        or not terminal[:, -1].all()
-        or terminal[:, :-1].any()
-        or np.any(terminal_reason[:, :-1] != 0)
-        or np.any(terminal_reason[:, -1] != 1)
+        or terminal.any()
+        or np.any(terminal_reason != 0)
         or not np.array_equal(valid[..., 1], state_valid)
         or not np.array_equal(valid[..., 0], state_valid & ~terminal)
-        or valid[:, -1].tolist() != [[False, True], [False, True]]
+        or valid[:, -1].tolist() != [[True, True], [True, True]]
     ):
         raise RuntimeError(
             f"{context}_UNIFIED_EXIT_EPISODE_PACK_TARGET_MASK_INVALID"

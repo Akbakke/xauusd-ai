@@ -32,7 +32,7 @@ ENTRY_FITTED_Q_ACTION_ORDER = ("LONG", "SHORT", "FLAT")
 ENTRY_FITTED_Q_TARGET_UNIT = "raw_bps"
 ENTRY_FITTED_Q_GAMMA = 1.0
 ENTRY_FITTED_Q_PRODUCTION_ECONOMICS_SCHEMA_VERSION = (
-    "gx1_entry_fitted_q_production_economics_v2"
+    "gx1_entry_fitted_q_production_economics_v3"
 )
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _ITERATION_FIELDS = frozenset(
@@ -131,7 +131,9 @@ def entry_fitted_q_production_economics_readiness() -> dict[str, Any]:
         "elapsed_wall_clock_state_bound": False,
         "source_gap_classification_bound": False,
         "variable_or_economic_terminal_bound": False,
-        "fixed_512_capacity_forced_terminal_present": True,
+        "fixed_512_capacity_forced_terminal_present": False,
+        "window_end_positions_right_censored": True,
+        "full_trade_lifetime_evaluation_bound": False,
         "portfolio_oos_replay_bound": False,
         "overlapping_trade_capital_constraints_bound": False,
         "immutable_gap_audit_artifact_bound": False,

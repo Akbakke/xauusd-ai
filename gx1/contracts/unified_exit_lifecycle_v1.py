@@ -1819,11 +1819,9 @@ class UnifiedExitLifecycleSplit:
             (2, UNIFIED_EXIT_MAX_PATH_BARS), dtype=np.bool_
         )
         terminal = np.zeros_like(state_valid)
-        terminal[:, -1] = True
+        # The materialization capacity limits computation, never trade duration.
         action_valid = np.repeat(state_valid[..., None], 2, axis=2)
-        action_valid[..., 0] &= ~terminal
         terminal_reason = np.zeros_like(state_valid, dtype=np.int64)
-        terminal_reason[:, -1] = 1
         if not np.isfinite(exit_now_reward).all():
             raise RuntimeError("UNIFIED_EXIT_EPISODE_EXIT_REWARD_NONFINITE")
         local_times = np.asarray(

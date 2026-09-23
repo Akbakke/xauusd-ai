@@ -6411,14 +6411,16 @@ def _episode_native_exit_eval_loss(
             prepared=prepared,
         )
     )
-    if not torch.equal(valid, target_mask):
+    expected_supervision = valid.clone()
+    expected_supervision[..., -1, 0] = False
+    if not torch.equal(expected_supervision, target_mask):
         raise RuntimeError("[UNIFIED_EXIT_FITTED_Q_MASK_SPLIT_BRAIN]")
     loss_sum = loss_sum + nn.functional.mse_loss(
-        q_values[valid], targets[valid], reduction="sum"
+        q_values[target_mask], targets[target_mask], reduction="sum"
     )
     stats["eligible_entry_rows"] = len(episodes)
     _episode_stats_update(
-        stats, q_values=q_values, targets=targets, valid=valid
+        stats, q_values=q_values, targets=targets, valid=target_mask
     )
     # Exact HOLD/EXIT_NOW Q ties make the replayed policy undefined (rule 3:
     # ties fail closed). An undertrained epoch can carry Q differences below
@@ -6452,6 +6454,7 @@ def _episode_native_exit_eval_loss(
             q_values=q_values,
             targets=targets,
             valid=valid,
+            supervision_mask=target_mask,
         )
     valid_cells = int(stats["q_valid_cells"])
     all_first_values = torch.zeros(
@@ -6483,7 +6486,7 @@ def _episode_native_exit_eval_loss(
         episode_pack_sha256=episode_hashes,
         fill_binding_sha256=fill_hashes,
     )
-    entry_realized_pnl = torch.zeros_like(entry_targets)
+    entry_marked_pnl = torch.zeros_like(entry_targets)
     if not epoch_replay_tied:
         for selected_row, (episode, episode_q, episode_valid) in enumerate(
             zip(episodes, q_values, valid)
@@ -6495,8 +6498,8 @@ def _episode_native_exit_eval_loss(
                     action_valid_mask=episode_valid[side_index].detach().cpu().numpy(),
                     exit_now_reward_bps=rewards[side_index],
                 )
-                entry_realized_pnl[selected_index[selected_row], side_index] = float(
-                    replay["realized_executable_pnl_bps"]
+                entry_marked_pnl[selected_index[selected_row], side_index] = float(
+                    replay["marked_executable_pnl_bps"]
                 )
     if valid_cells <= 0:
         return (
@@ -6504,7 +6507,7 @@ def _episode_native_exit_eval_loss(
             {**stats, "raw_loss": 0.0},
             entry_targets,
             entry_valid,
-            entry_realized_pnl,
+            entry_marked_pnl,
         )
     raw_loss = loss_sum / float(valid_cells)
     return (
@@ -6512,7 +6515,7 @@ def _episode_native_exit_eval_loss(
         {**stats, "raw_loss": float(raw_loss.detach().cpu().item())},
         entry_targets,
         entry_valid,
-        entry_realized_pnl,
+        entry_marked_pnl,
     )
 
 
@@ -7851,7 +7854,7 @@ def _entry_val_input_influence_contract(
 
 
 _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION = (
-    "gx1_unified_exit_full_trajectory_validation_v7"
+    "gx1_unified_exit_full_trajectory_validation_v8"
 )
 
 
@@ -7883,9 +7886,9 @@ def _new_unified_exit_full_trajectory_accumulator(
         "long_population_rows": 0,
         "short_population_rows": 0,
         "loss_sum": 0.0,
-        "learned_realized": [],
+        "learned_marked": [],
         "immediate_realized": [],
-        "terminal_realized": [],
+        "window_end_marked": [],
         "learned_exit_states": [],
         # A resumable digest chain, rather than a live hashlib object.  The
         # previous object could not be safely serialized at a candidate-session
@@ -7908,6 +7911,7 @@ def _accumulate_unified_exit_full_trajectory(
     q_values: torch.Tensor,
     targets: torch.Tensor,
     valid: torch.Tensor,
+    supervision_mask: torch.Tensor,
 ) -> None:
     """Record one validated batch without another model/target forward."""
 
@@ -7921,6 +7925,7 @@ def _accumulate_unified_exit_full_trajectory(
         )
         or q_values.shape != targets.shape
         or valid.shape != q_values.shape
+        or supervision_mask.shape != q_values.shape
         or tuple(q_values.shape[1:])
         != (2, UNIFIED_EXIT_MAX_PATH_BARS, 2)
     ):
@@ -7930,7 +7935,7 @@ def _accumulate_unified_exit_full_trajectory(
 
     flat_q = q_values.reshape(-1, 2)
     flat_target = targets.reshape(-1, 2)
-    flat_valid = valid.reshape(-1, 2)
+    flat_valid = supervision_mask.reshape(-1, 2)
     target_value = flat_target.masked_fill(~flat_valid, -torch.inf).amax(
         dim=1, keepdim=True
     )
@@ -7957,7 +7962,7 @@ def _accumulate_unified_exit_full_trajectory(
     )
     accumulator["loss_sum"] += float(
         nn.functional.mse_loss(
-            q_values[valid], targets[valid], reduction="sum"
+            q_values[supervision_mask], targets[supervision_mask], reduction="sum"
         )
         .detach()
         .cpu()
@@ -7979,16 +7984,16 @@ def _accumulate_unified_exit_full_trajectory(
                 action_valid_mask=valid_np[episode_position, side_index],
                 exit_now_reward_bps=rewards[side_index],
             )
-            accumulator["learned_realized"].append(
-                float(replay["realized_executable_pnl_bps"])
+            accumulator["learned_marked"].append(
+                float(replay["marked_executable_pnl_bps"])
             )
             accumulator["learned_exit_states"].append(
-                int(replay["exit_state_index"])
+                replay["exit_state_index"]
             )
             accumulator["immediate_realized"].append(
                 float(rewards[side_index, 0])
             )
-            accumulator["terminal_realized"].append(
+            accumulator["window_end_marked"].append(
                 float(rewards[side_index, -1])
             )
         stream_rows = np.column_stack((
@@ -8037,9 +8042,9 @@ def _finalize_unified_exit_full_trajectory_validation(
         "long_population_rows",
         "short_population_rows",
         "loss_sum",
-        "learned_realized",
+        "learned_marked",
         "immediate_realized",
-        "terminal_realized",
+        "window_end_marked",
         "learned_exit_states",
         "state_stream_chain_sha256",
     }
@@ -8052,9 +8057,9 @@ def _finalize_unified_exit_full_trajectory_validation(
     predicted_tied_rows = int(accumulator["predicted_tied_rows"])
     expected_population = eligible_entry_rows * 2 * UNIFIED_EXIT_MAX_PATH_BARS
     expected_valid = expected_population * 2 - eligible_entry_rows * 2
-    learned_realized = accumulator["learned_realized"]
+    learned_marked = accumulator["learned_marked"]
     immediate_realized = accumulator["immediate_realized"]
-    terminal_realized = accumulator["terminal_realized"]
+    window_end_marked = accumulator["window_end_marked"]
     learned_exit_states = accumulator["learned_exit_states"]
     loss_sum = float(accumulator["loss_sum"])
     if (
@@ -8070,9 +8075,9 @@ def _finalize_unified_exit_full_trajectory_validation(
         or not all(
             isinstance(values, list) and len(values) == eligible_entry_rows * 2
             for values in (
-                learned_realized,
+                learned_marked,
                 immediate_realized,
-                terminal_realized,
+                window_end_marked,
                 learned_exit_states,
             )
         )
@@ -8092,7 +8097,7 @@ def _finalize_unified_exit_full_trajectory_validation(
     return {
         "schema_version": _UNIFIED_EXIT_FULL_TRAJECTORY_VALIDATION_SCHEMA_VERSION,
         "decision": "PASS",
-        "population": "all_causal_states_both_sides_batched_episode_forward",
+        "population": "all_observed_window_states_both_sides_batched_episode_forward",
         "entry_rows_scanned": int(accumulator["entry_rows_scanned"]),
         "eligible_entry_rows": eligible_entry_rows,
         "population_rows": population_rows,
@@ -8114,16 +8119,26 @@ def _finalize_unified_exit_full_trajectory_validation(
             accumulator["unique_target_action_agreement_rows"]
         )
         / max(1, population_rows - equivalent_rows),
-        "learned_policy_mean_realized_executable_pnl_bps": float(
-            np.mean(learned_realized)
+        "learned_policy_mean_marked_executable_pnl_bps": float(
+            np.mean(learned_marked)
         ),
         "immediate_exit_mean_realized_executable_pnl_bps": float(
             np.mean(immediate_realized)
         ),
-        "terminal_exit_mean_realized_executable_pnl_bps": float(
-            np.mean(terminal_realized)
+        "window_end_mark_to_market_executable_pnl_bps": float(
+            np.mean(window_end_marked)
         ),
-        "learned_mean_exit_state_index": float(np.mean(learned_exit_states)),
+        "learned_mean_exit_state_index": (
+            float(np.mean([x for x in learned_exit_states if x is not None]))
+            if any(x is not None for x in learned_exit_states) else None
+        ),
+        "closed_position_count": sum(x is not None for x in learned_exit_states),
+        "open_position_count": sum(x is None for x in learned_exit_states),
+        "capacity_forced_exit_count": 0,
+        "evaluation_scope": "observed_compute_window_closed_plus_open_mark_to_market",
+        "maximum_trade_duration": None,
+        "q_valid_cells_semantics": "supervised_cells_excluding_unknown_final_hold",
+        "policy_action_valid_cells": population_rows * 2,
         "state_prediction_stream_sha256": state_stream,
         "online_model_state_sha256": accumulator["online_model_state_sha256"],
         "target_model_state_sha256": accumulator["target_model_state_sha256"],
@@ -8985,6 +9000,96 @@ def _active_head_target_surfaces(
     return surfaces
 
 
+def _entry_observed_selection_diagnostics(
+    accumulator: Mapping[str, Any],
+    *,
+    marked_pnl: np.ndarray,
+    trajectory_accumulator: Optional[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Compare chosen Entry scores with observed outcomes, separately from Q targets."""
+    component = accumulator["heads"]["entry_action_q"]["components"]["entry_action_q_bps"]
+    q = np.concatenate(component["prediction"], axis=0)
+    valid = np.concatenate(component["mask"], axis=0).astype(bool)
+    if q.shape != valid.shape or q.shape != (len(marked_pnl), 3):
+        raise RuntimeError("ENTRY_OBSERVED_SELECTION_POPULATION_INVALID")
+    scores = np.where(valid, q, -np.inf)
+    if not np.all((scores == scores.max(axis=1, keepdims=True)).sum(axis=1) == 1):
+        raise RuntimeError("ENTRY_OBSERVED_SELECTION_TIED")
+    actions = scores.argmax(axis=1)
+    chosen_q = scores[np.arange(len(scores)), actions]
+    selected = actions != 2
+    selected_rows = np.flatnonzero(selected)
+    q_rank = pd.Series(chosen_q[selected]).rank().to_numpy()
+    pnl_rank = pd.Series(marked_pnl[selected]).rank().to_numpy()
+    rank_ic = (
+        float(np.corrcoef(q_rank, pnl_rank)[0, 1])
+        if len(q_rank) > 1 and q_rank.std() > 0 and pnl_rank.std() > 0 else None
+    )
+    ranked = selected_rows[np.argsort(chosen_q[selected], kind="stable")]
+    deciles = [
+        {
+            "bucket": index + 1,
+            "rows": int(len(rows)),
+            "chosen_q_mean_bps": float(chosen_q[rows].mean()),
+            "observed_marked_mean_bps": float(marked_pnl[rows].mean()),
+        }
+        for index, rows in enumerate(
+            np.array_split(ranked, min(10, len(ranked))) if len(ranked) else []
+        )
+    ]
+    result = {
+        "evidence": "selected_policy_observed_window_outcomes_not_teacher_q_targets",
+        "rows": int(len(actions)),
+        "action_counts": {
+            name: int((actions == index).sum())
+            for index, name in enumerate(("LONG", "SHORT", "FLAT"))
+        },
+        "selected_trade_count": int(selected.sum()),
+        "coverage": float(selected.mean()),
+        "flat_baseline_bps": 0.0,
+        "mean_marked_bps_per_entry": float(marked_pnl.mean()),
+        "mean_marked_bps_per_selected_trade": (
+            float(marked_pnl[selected].mean()) if selected.any() else None
+        ),
+        "selected_q_to_observed_marked_rank_ic": rank_ic,
+        "selected_trade_q_deciles_with_observed_outcomes": deciles,
+        "outperforms_flat_in_observed_window": bool(selected.any() and marked_pnl.mean() > 0.0),
+        "complete_trade_lifetime_economics": False,
+    }
+    if trajectory_accumulator is not None:
+        eligible = valid[:, :2].all(axis=1)
+        if not np.all(valid[:, :2].any(axis=1) == eligible):
+            raise RuntimeError("ENTRY_OBSERVED_SELECTION_SIDE_MASK_INVALID")
+        states = np.asarray(
+            trajectory_accumulator["learned_exit_states"], dtype=object
+        ).reshape(-1, 2)
+        if len(states) != int(eligible.sum()):
+            raise RuntimeError("ENTRY_OBSERVED_SELECTION_TRAJECTORY_ROWS_INVALID")
+        observed_by_side = np.asarray(
+            trajectory_accumulator["learned_marked"], dtype=np.float64
+        ).reshape(-1, 2)
+        if observed_by_side.shape != states.shape:
+            raise RuntimeError("ENTRY_OBSERVED_SELECTION_OUTCOME_ROWS_INVALID")
+        result["always_long_same_exit_mean_marked_bps_per_entry"] = float(
+            observed_by_side[:, 0].sum() / len(actions)
+        )
+        result["always_short_same_exit_mean_marked_bps_per_entry"] = float(
+            observed_by_side[:, 1].sum() / len(actions)
+        )
+        result["economics_scope"] = "gross_spread_inclusive_closed_plus_open_window_mark_to_market"
+        eligible_indices = np.flatnonzero(eligible)
+        traded_indices = eligible_indices[selected[eligible_indices]]
+        chosen_states = states[selected[eligible_indices], actions[traded_indices]]
+        closed = np.array([value is not None for value in chosen_states], dtype=bool)
+        result.update({
+            "selected_closed_count": int(closed.sum()),
+            "selected_open_count": int((~closed).sum()),
+            "selected_closed_realized_bps_sum": float(marked_pnl[traded_indices][closed].sum()),
+            "selected_open_marked_bps_sum": float(marked_pnl[traded_indices][~closed].sum()),
+        })
+    return result
+
+
 def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
     return {
         "heads": {
@@ -9024,7 +9129,7 @@ _CANDIDATE_VALIDATION_SNAPSHOT_KEYS = frozenset(
         "unified_exit_now_rows",
         "unified_exit_correct",
         "active_head_epoch",
-        "entry_policy_realized_pnl_chunks",
+        "entry_policy_marked_pnl_chunks",
         "entry_unique_target_rows",
         "entry_target_equivalent_rows",
         "entry_unique_target_agreement_rows",
@@ -10652,7 +10757,7 @@ def validate(
         unified_exit_now_rows = 0
         unified_exit_correct = 0
         active_head_epoch = _new_active_head_epoch_accumulator()
-        entry_policy_realized_pnl_chunks: List[np.ndarray] = []
+        entry_policy_marked_pnl_chunks: List[np.ndarray] = []
         entry_unique_target_rows = 0
         entry_target_equivalent_rows = 0
         entry_unique_target_agreement_rows = 0
@@ -10681,8 +10786,8 @@ def validate(
         unified_exit_now_rows = int(restored["unified_exit_now_rows"])
         unified_exit_correct = int(restored["unified_exit_correct"])
         active_head_epoch = restored["active_head_epoch"]
-        entry_policy_realized_pnl_chunks = list(
-            restored["entry_policy_realized_pnl_chunks"]
+        entry_policy_marked_pnl_chunks = list(
+            restored["entry_policy_marked_pnl_chunks"]
         )
         entry_unique_target_rows = int(restored["entry_unique_target_rows"])
         entry_target_equivalent_rows = int(restored["entry_target_equivalent_rows"])
@@ -10743,7 +10848,7 @@ def validate(
                 unified_exit_stats,
                 entry_action_q_targets,
                 entry_action_q_valid,
-                entry_policy_realized_pnl_bps,
+                entry_policy_marked_pnl_bps,
             ) = (
                 _unified_exit_full_population_eval_loss(
                     model=model,
@@ -10892,7 +10997,7 @@ def validate(
                 and int(exit_replay_tie_state["exit_tied_states"]) == 0
             ):
                 entry_predictions = torch.argmax(masked_entry_q, dim=1)
-                realized_policy_pnl = entry_policy_realized_pnl_bps.gather(
+                marked_policy_pnl = entry_policy_marked_pnl_bps.gather(
                     1, entry_predictions[:, None]
                 ).squeeze(1)
                 target_best = entry_action_q_targets.masked_fill(
@@ -10910,14 +11015,14 @@ def validate(
                 entry_unique_target_agreement_rows += int(
                     (target_agreement & ~target_tied).sum().item()
                 )
-                entry_policy_realized_pnl_chunks.append(
-                    realized_policy_pnl.detach().cpu().numpy()
+                entry_policy_marked_pnl_chunks.append(
+                    marked_policy_pnl.detach().cpu().numpy()
                 )
             else:
                 # Keep the concatenated PnL stream shape-complete so the
                 # partial-resume bookkeeping stays exact; the values are
                 # never read because a tied epoch is unscorable.
-                entry_policy_realized_pnl_chunks.append(
+                entry_policy_marked_pnl_chunks.append(
                     np.zeros(int(entry_action_q_targets.shape[0]), dtype=np.float64)
                 )
             def _checkpoint_validation_snapshot() -> dict[str, Any]:
@@ -10943,7 +11048,7 @@ def validate(
                     unified_exit_now_rows=unified_exit_now_rows,
                     unified_exit_correct=unified_exit_correct,
                     active_head_epoch=active_head_epoch,
-                    entry_policy_realized_pnl_chunks=entry_policy_realized_pnl_chunks,
+                    entry_policy_marked_pnl_chunks=entry_policy_marked_pnl_chunks,
                     entry_unique_target_rows=entry_unique_target_rows,
                     entry_target_equivalent_rows=entry_target_equivalent_rows,
                     entry_unique_target_agreement_rows=(
@@ -11012,14 +11117,14 @@ def validate(
         int(val_exact_tie_entry_rows) > 0
         or int(exit_replay_tie_state["exit_tied_states"]) > 0
     )
-    entry_policy_realized_pnl_bps = np.concatenate(
-        entry_policy_realized_pnl_chunks, axis=0
+    entry_policy_marked_pnl_bps = np.concatenate(
+        entry_policy_marked_pnl_chunks, axis=0
     )
     if (
-        entry_policy_realized_pnl_bps.shape != (n,)
-        or not np.isfinite(entry_policy_realized_pnl_bps).all()
+        entry_policy_marked_pnl_bps.shape != (n,)
+        or not np.isfinite(entry_policy_marked_pnl_bps).all()
     ):
-        raise RuntimeError("[ENTRY_FITTED_Q_REALIZED_POLICY_PNL_INVALID]")
+        raise RuntimeError("[ENTRY_FITTED_Q_MARKED_POLICY_PNL_INVALID]")
     stats: Dict[str, Any] = {
         "entry_action_q_raw_bps_mse_mean": (entry_q_loss_sum / max(1, n)),
         "entry_unique_target_rows": int(entry_unique_target_rows),
@@ -11069,8 +11174,13 @@ def validate(
             int(exit_replay_tie_state["exit_tied_states"]),
         )
     else:
-        stats["entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"] = float(
-            np.mean(entry_policy_realized_pnl_bps)
+        stats["entry_policy_marked_gross_spread_inclusive_pnl_bps_mean"] = float(
+            np.mean(entry_policy_marked_pnl_bps)
+        )
+        stats["entry_selection_observed_outcomes"] = _entry_observed_selection_diagnostics(
+            active_head_epoch,
+            marked_pnl=entry_policy_marked_pnl_bps,
+            trajectory_accumulator=full_trajectory_accumulator,
         )
     stats.update(
         {
@@ -11705,7 +11815,7 @@ def _run_resumable_candidate_training(
         selection["last_val_stats"] = _candidate_snapshot_safe(dict(val_stats))
         policy_pnl = float(
             val_stats.get(
-                "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean",
+                "entry_policy_marked_gross_spread_inclusive_pnl_bps_mean",
                 float("nan"),
             )
         )
@@ -11735,6 +11845,29 @@ def _run_resumable_candidate_training(
             candidate_exit_gate_health_provisional_ok=bool(
                 val_stats.get("candidate_exit_gate_health_provisional_ok", False)
             ),
+        )
+        # Keep rejected epochs reviewable: a later VAL must not erase the
+        # reason a candidate was rejected or its observed Entry-selection score.
+        epoch_review = {
+            "schema_version": "gx1_candidate_epoch_review_v1",
+            "epoch": int(epoch_index) + 1,
+            "global_optimizer_steps": int(global_optimizer_steps),
+            "checkpoint_admission_ok": bool(admission_ok),
+            "checkpoint_monitor": selection["checkpoint_policy"]["checkpoint_monitor"],
+            "policy_marked_pnl_bps": policy_pnl if np.isfinite(policy_pnl) else None,
+            "entry_gate_failures": val_stats.get("cooperation_gate_health_failures", []),
+            "exit_gate_failures": val_stats.get("exit_cooperation_gate_health_failures", []),
+            "active_head_failures": val_stats.get("active_head_health_failures", []),
+            "validation": _candidate_snapshot_safe(dict(val_stats)),
+        }
+        _candidate_training_session_atomic_write_json(
+            session.directory / f"EPOCH_{int(epoch_index) + 1:04d}_REVIEW.json",
+            epoch_review,
+        )
+        log.info(
+            "[CANDIDATE_EPOCH_REVIEW] epoch=%d admitted=%s marked_bps=%s entry_failures=%s",
+            int(epoch_index) + 1, admission_ok, epoch_review["policy_marked_pnl_bps"],
+            epoch_review["entry_gate_failures"],
         )
         if admission_ok and np.isfinite(policy_pnl):
             full_trajectory = val_stats.get("unified_exit_full_trajectory_validation")
@@ -13840,7 +13973,7 @@ def run_train(
             )
         _policy_pnl = float(
             val_stats.get(
-                "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean",
+                "entry_policy_marked_gross_spread_inclusive_pnl_bps_mean",
                 float("nan"),
             )
         )
@@ -14184,7 +14317,7 @@ def run_train(
             int(full_trajectory_validation["q_valid_cells"]),
             int(full_trajectory_validation["target_equivalent_action_rows"]),
             float(full_trajectory_validation[
-                "learned_policy_mean_realized_executable_pnl_bps"
+                "learned_policy_mean_marked_executable_pnl_bps"
             ]),
             float(full_trajectory_validation["fitted_q_bellman_mse_mean"]),
             full_trajectory_validation["state_prediction_stream_sha256"],
@@ -14196,7 +14329,7 @@ def run_train(
             "required_for_candidate": True,
         }
         full_trajectory_validation = {
-            "schema_version": "gx1_unified_exit_full_trajectory_validation_v7",
+            "schema_version": "gx1_unified_exit_full_trajectory_validation_v8",
             "decision": "NOT_RUN_SMOKE_CANNOT_AUTHORIZE_CANDIDATE",
             "required_for_candidate": True,
         }
@@ -14503,7 +14636,7 @@ def run_train(
         "val_data_sha256": _sha256_file(Path(val_parquet)),
         "best_val_loss": best_val,
         "best_epoch": best_epoch,
-        "best_entry_policy_realized_gross_spread_inclusive_pnl_bps": (
+        "best_entry_policy_marked_gross_spread_inclusive_pnl_bps": (
             best_policy_pnl
         ),
         "ckpt_monitor": _ckpt_monitor,

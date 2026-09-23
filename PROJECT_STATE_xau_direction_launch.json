@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "updated_utc": "2026-09-21T16:00:00Z",
+  "updated_utc": "2026-09-23T06:26:06.832589+00:00",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -29,8 +29,8 @@
   "required_same_bundle_shared_encoder": true,
   "required_exact_closed_m1_exit_path_envelope": true,
   "external_decision_models_allowed": false,
-  "required_signal_dim": 243,
-  "required_base_signal_dim": 26,
+  "required_signal_dim": 241,
+  "required_base_signal_dim": 24,
   "required_selected_feature_count": 217,
   "required_mandatory_causal_layer_feature_count": 150,
   "required_available_candidate_feature_count": 67,
@@ -133,9 +133,9 @@
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
   "blockers": [
-    "The active surface is owned only by entry_model_native_signal_v1 and htf_features.MULTI_TF_PER_BAR_FEATURES_V4; gx1_handover.sh checks the required_* mirror against those owners. Every older surface artifact is invalid for new training.",
-    "Historical candidate gates do not override the current pretraining review hold. Chronological HAC rejects the retained smoke VAL hypothesis; physical TEST stays closed.",
-    "No admitted dataset or model exists. Repairs and source-lineage review are required before any continuation. Preserve the private checkpoint; no training or cloud authority. See docs/PREMIERE_CODE_REVIEW_20260905.md.",
+    "Operator stopped V12 candidate on 2026-09-23 and archived checkpoint844. Epoch1 completed with -4.406986 gross spread-inclusive bps per Entry opportunity and failed Entry gate health; no best model admitted.",
+    "Entry numerical routing and compute-window terminal semantics changed after stop. No old recipe or resume may authorize the changed source. New baseline and measured selective learning are required; see docs/ENTRY_REPAIR_20260923.md.",
+    "The model now permits recurrent carry beyond512; standard VAL still reports right-censored open positions at its compute-window end. Full-lifetime economic evaluation, causal executable fills and all costs remain unbound. TEST, paper and live stay blocked.",
     "Decision authority remains unique raw-bps fitted-Q argmax. Ten task influences use learned homoscedastic weights; streamed Exit gradients match the monolithic objective. Recipe-bound optimizer controls are stability settings, not alternate labels, fixed task weights or action-selection rules.",
     "Six-clock squeeze artifacts are TRAIN-window-bound and pair-bound; fit and serve share the causal forward-filter decoder, and each fresh chain must prove its own generation-local manifest binding, ordered variances and non-absorbing high state. No document path or historical squeeze hash grants admission.",
     "Exit remains native closed M1. No tick-resolution feature surface, dataset, OOS evaluation or trading claim is admitted.",

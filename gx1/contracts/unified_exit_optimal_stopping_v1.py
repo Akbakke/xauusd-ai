@@ -405,7 +405,9 @@ def replay_unified_exit_q_policy(
         raise RuntimeError("UNIFIED_EXIT_Q_POLICY_REPLAY_INPUT_INVALID")
     return replay_unified_exit_fitted_q_policy(
         predicted_q_bps=q,
-        action_valid_mask=valid,
+        # Hindsight labels end at their observed window. They do not own the
+        # learned policy's action mask or force it to close a position.
+        action_valid_mask=np.ones_like(valid),
         exit_now_reward_bps=exit_pnl,
     )
 

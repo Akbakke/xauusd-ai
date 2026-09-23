@@ -12,7 +12,7 @@ import math
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v3"
+SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v4"
 # The external candidate is permitted at most thirty complete TRAIN/VAL
 # epochs. This upper bound belongs in the frozen policy so a resumed process
 # cannot silently exceed the hash-bound candidate budget.
@@ -22,7 +22,7 @@ EARLY_STOP_PATIENCE = 5
 MINIMUM_EPOCHS_BEFORE_STOP = 1
 SAVE_TOP_K = 1
 EARLY_STOP_MIN_DELTA = 0.0
-CHECKPOINT_MONITOR = "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean"
+CHECKPOINT_MONITOR = "entry_policy_marked_gross_spread_inclusive_pnl_bps_mean"
 CHECKPOINT_MODE = "max"
 
 

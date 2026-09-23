@@ -583,7 +583,7 @@ def _load_selected_candidate_state(
         or checkpoint not in selection["top_k_checkpoints"]
         or checkpoint["sha256"] != selected_checkpoint_sha256
         or checkpoint["metric"] != selection["best_policy_pnl"]
-        or checkpoint["metric"] != metadata.get("best_entry_policy_realized_gross_spread_inclusive_pnl_bps")
+        or checkpoint["metric"] != metadata.get("best_entry_policy_marked_gross_spread_inclusive_pnl_bps")
     ):
         raise RuntimeError("NATIVE_EXIT_SELECTED_CHECKPOINT_BINDING_INVALID")
     checkpoint_path, _digest = _selected_file(directory / checkpoint["path"], selected_checkpoint_sha256)

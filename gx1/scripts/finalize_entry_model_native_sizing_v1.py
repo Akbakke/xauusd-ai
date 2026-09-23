@@ -1620,7 +1620,7 @@ def produce_canonical_unified_joint_sizing_proof(
             q_values = q_tensor[0].detach().cpu().to(torch.float64).numpy()
             valid_mask = valid_tensor[0].detach().cpu().numpy().astype(np.bool_)
             expected_valid = np.asarray(
-                [len(path_values) < UNIFIED_EXIT_MAX_PATH_BARS, True],
+                [True, True],
                 dtype=np.bool_,
             )
             if not np.array_equal(valid_mask, expected_valid):
