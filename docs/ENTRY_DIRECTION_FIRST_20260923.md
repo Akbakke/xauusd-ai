@@ -270,3 +270,51 @@ gaVAL68,28 % balansert treff,95 %-intervall64,53–71,98 %. Dette viser noe beva
 inputinformasjon, ikke fremtidsprediksjon eller økonomisk læring.
 1216 native optimizersteg og4 analytiske fits totalt; siste fit er kun inputdiagnose.
 Rapport:ENTRY_SELECTIVITY_AND_INFORMATION_20260923.md under runtime.
+
+### Entry-kontrast og PC-omstart fullfort
+
+Frossen Q_LONG minus Q_SHORT paa samme512VAL ga ingen stoettet retningsrangering
+i16 tilstands-/horisont-sammenligninger. Original, L1 og BCE velgerSHORT512/512;
+v10 foer tilpasning velger355LONG/157SHORT uten dokumentert retningsfordel.
+Ingen fit, optimizersteg, fortegnsbytte eller terskelendring. Se runtime-rapport
+ENTRY_Q_DIRECTION_AND_REBOOT_20260923.md og ENTRY_Q_DIRECTION_CONTRAST_20260923.
+
+Brukerbestilt PC-omstart fullfort23.09 kl.17:50:44,5 Oslo. Ny Windows- og WSL-boot,
+alle tre checkpoints uendrede, ingen autostart av trening. Signert GPU-telemetri
+verifisert med300W grense. REBOOT_COMPLETE.json binder etterkontrollene.
+Ingen ny trening klargjort;1216 optimizersteg og4 analytiske fits er uendret.
+
+### Direkte retningsfeedback til eksisterende Entry-fusjon
+
+TRAIN-diagnosen ENTRY_TEACHER_DIRECTION_TRAIN_20260923 viser at de63 tidligere
+lagrede v10-laerermalene velger25LONG/38SHORT. Det er andre maal enn den native
+kontrollens frosne v9-laerer; funnet skal ikke generaliseres til alle native labels.
+Balansert samsvar med observert fremtidsretning er40,00/56,07/63,03/73,19prosent
+ved5/25/60/120min. Dette er sammenheng mellom etiketter som begge bruker fremtid,
+ikke prediksjonskvalitet.194018av313399TRAIN-rader har baade bullish og bearish
+horisonter; dermed beholdes alle fire retninger separat.
+
+Den forrige BCE-kontrollen oppdaterte ikke siste Entry-fusjon. Den konkrete nye
+hypotesen er at samme retningsfeedback paa entry_q_joint_hidden kan gi bedre
+Entry-representasjon enn feedback bare paa forecast-z. Ett eksplisitt
+warmup_entry_joint-flagg er lagt til eksisterende recipe-bundne BCE research-gren.
+Samme eksisterende head_forecast brukes paa allerede eksponert Entry-hidden;
+ingen modellarkitektur, features, targets, horisonter eller tapsvekter endres.
+Standardforward og original-v8-referanse er uendret. Entry-Q- og Exit-hoder er
+beskyttet; siste Entry-fusjon skal naa motta gradient. Delte funksjoner kan endres,
+saa foer/etter skal maales paa samme input og Entry-kvalitet er fortsatt ubevist.
+
+Samme4096TRAIN/batch8/512steg og512TRAIN/512VAL planlegges som tidligere BCE.
+Den nye readoutplasseringen krever egen foer-baseline. Alle fire horisonter
+sammenlignes med original, egen foer-baseline og fullfort forecast-z-BCE;
+ingen horisont/terskel velges etter VAL. Ingen bundle, promotering eller TEST.
+
+Commit-vaktens avvik var kun lokale Claude modellpreferanser. Den versjonerte
+referansen er synkronisert til allerede valgt modell og reasoning-nivaa.
+Live innstillinger, sikkerhetsfelter, hooks og alle vakter er uendret.
+CLAUDE_MODEL_REFERENCE_SYNC.json dokumenterer semantisk kontroll og begge hasher.
+
+Teknisk kontroll:20 eksisterende recipe-/launcher-tester bestod. Syntetisk
+firestegs kontroll av ny Entry-rute og eksisterende BCE-rute bestod; ny rute
+oppdaterer Entry-fusjon og bevarer oekonomiske hoder. Modellarkitekturens SHA
+er uendret. Dette er implementeringsbevis, ikke dokumentert markedslaering.

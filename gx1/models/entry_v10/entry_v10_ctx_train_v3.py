@@ -12277,6 +12277,7 @@ def _run_bounded_forecast_warmup(
     initialization: Mapping[str, Any], recipe_source_provenance: Mapping[str, Any],
     original_function_model=None, original_function_source=None,
     warmup_direction_bce: bool = False,
+    warmup_entry_joint: bool = False,
 ) -> None:
     """One research pass using exact returns or explicitly bound sign feedback.
 
@@ -12286,6 +12287,8 @@ def _run_bounded_forecast_warmup(
     """
     from torch.utils.data import Subset
 
+    if warmup_entry_joint and not warmup_direction_bce:
+        raise RuntimeError("[ENTRY_JOINT_DIRECTION_REQUIRES_BCE_WARMUP]")
     directory = Path(str(out_bundle_dir) + ".direction_warmup")
     directory.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
@@ -12296,6 +12299,9 @@ def _run_bounded_forecast_warmup(
         "initialization": dict(initialization),
         "recipe_source_provenance": dict(recipe_source_provenance),
         "original_function_source": original_function_source,
+        "direction_representation": (
+            "entry_q_joint_hidden" if warmup_entry_joint else "forecast_z"
+        ),
         "forecast_horizons_m5_bars": list(FORECAST_HORIZONS),
         "target": ("observed_future_close_return_sign_excluding_exact_zero"
                    if warmup_direction_bce else "observed_future_close_return_bps"),
@@ -12318,7 +12324,8 @@ def _run_bounded_forecast_warmup(
         name for name, _ in model.named_parameters()
         if (
             (name.startswith("head_") and not name.startswith("head_forecast."))
-            or name.startswith(("task_log_variances.", "entry_q_joint_"))
+            or name.startswith("task_log_variances.")
+            or (not warmup_entry_joint and name.startswith("entry_q_joint_"))
         )
     }
     selections = {
@@ -12330,12 +12337,24 @@ def _run_bounded_forecast_warmup(
     }
 
     def forward(batch, network=model):
-        return _model_forward_fp32(
+        output = _model_forward_fp32(
             network, batch["seq_x"].to(device), batch["snap_x"].to(device),
             ctx_cat=batch["ctx_cat"].to(device),
             ctx_cont=batch["ctx_cont"].to(device),
             **_multi_tf_kwargs_from_batch(batch, device),
         )
+        # Research-only readout placement; the original reference and normal
+        # model forward retain their existing forecast and economic Q meaning.
+        if warmup_entry_joint and network is model:
+            hidden = output["entry_q_joint_hidden"]
+            if (
+                hidden.ndim != 2
+                or hidden.shape[1] != network.head_forecast.in_features
+                or not bool(torch.isfinite(hidden).all().item())
+            ):
+                raise RuntimeError("[ENTRY_JOINT_DIRECTION_REPRESENTATION_INVALID]")
+            output["forecast_pred"] = network.head_forecast(hidden)
+        return output
 
     def measure(stage: str, network=model) -> None:
         rng = _attended_session_rng_state(device=device)
@@ -12470,6 +12489,11 @@ def _run_bounded_forecast_warmup(
         raise RuntimeError("[DIRECTION_WARMUP_FORECAST_GRADIENT_MISSING]")
     if not any(not name.startswith("head_") for name in gradient_parameters):
         raise RuntimeError("[DIRECTION_WARMUP_ENCODER_GRADIENT_MISSING]")
+    if warmup_entry_joint and not all(
+        any(name.startswith(prefix) for name in gradient_parameters)
+        for prefix in ("entry_q_joint_norm.", "entry_q_joint_in.")
+    ):
+        raise RuntimeError("[ENTRY_JOINT_DIRECTION_GRADIENT_MISSING]")
     current = model.state_dict()
     if any(not torch.equal(initial_state[name], current[name].detach().cpu())
            for name in protected):
@@ -12490,6 +12514,7 @@ def _run_bounded_forecast_warmup(
         {"model_state": {name: value.detach().cpu() for name, value in current.items()},
          "initialization": dict(initialization),
          "recipe_source_provenance": dict(recipe_source_provenance),
+         "direction_representation": report["direction_representation"],
          "scope": ("direction_logit_research_only_not_forecast_or_trading_bundle"
                    if warmup_direction_bce else "direction_research_only_no_bundle_or_promotion")},
         checkpoint_path,
@@ -12561,6 +12586,7 @@ def run_train(
     frozen_teacher_model_source_sha256: Optional[str] = None,
     forecast_only_warmup: bool = False,
     warmup_direction_bce: bool = False,
+    warmup_entry_joint: bool = False,
 ) -> None:
     run_started = time.perf_counter()
     _require_bound_learning_globals()
@@ -13639,6 +13665,8 @@ def run_train(
             recipe_source_provenance=recipe_source_provenance,
             input_normalization=input_normalization,
         )
+    if warmup_entry_joint and not warmup_direction_bce:
+        raise RuntimeError("[ENTRY_JOINT_DIRECTION_REQUIRES_BCE_WARMUP]")
     if warmup_direction_bce and not forecast_only_warmup:
         raise RuntimeError("[DIRECTION_BCE_REQUIRES_BOUND_WARMUP]")
     if forecast_only_warmup and (
@@ -13784,6 +13812,7 @@ def run_train(
             original_function_model=original_function_model,
             original_function_source=original_function_source,
             warmup_direction_bce=warmup_direction_bce,
+            warmup_entry_joint=warmup_entry_joint,
         )
         return
 
@@ -15908,7 +15937,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
-        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False) or getattr(args, "frozen_teacher_model_source_path", None) is not None or getattr(args, "frozen_teacher_model_source_sha256", None) is not None or getattr(args, "forecast_only_warmup", False) or getattr(args, "warmup_direction_bce", False):
+        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False) or getattr(args, "frozen_teacher_model_source_path", None) is not None or getattr(args, "frozen_teacher_model_source_sha256", None) is not None or getattr(args, "forecast_only_warmup", False) or getattr(args, "warmup_direction_bce", False) or getattr(args, "warmup_entry_joint", False):
             raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_REQUIRES_PRETEST_RECIPE]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
@@ -16020,6 +16049,8 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         observed["forecast_only_warmup"] = True
     if getattr(args, "warmup_direction_bce", False):
         observed["warmup_direction_bce"] = True
+    if getattr(args, "warmup_entry_joint", False):
+        observed["warmup_entry_joint"] = True
     teacher_path = getattr(args, "frozen_teacher_model_source_path", None)
     teacher_sha = getattr(args, "frozen_teacher_model_source_sha256", None)
     if teacher_path is not None or teacher_sha is not None:
@@ -16118,6 +16149,8 @@ def main() -> None:
     parser.add_argument("--freeze-initial-teacher", action="store_true")
     parser.add_argument("--forecast-only-warmup", action="store_true",
                         help="One initialized native research pass on existing forecast L1; no bundle.")
+    parser.add_argument("--warmup-entry-joint", action="store_true",
+                        help="Bound BCE research readout on existing Entry joint representation; no bundle.")
     parser.add_argument("--warmup-direction-bce", action="store_true",
                         help="Bound research-only sign learning with logits; not forecast Bps or a bundle.")
     parser.add_argument("--frozen-teacher-model-source-path", type=Path)
@@ -16400,6 +16433,7 @@ def main() -> None:
         freeze_initial_teacher=args.freeze_initial_teacher,
         forecast_only_warmup=args.forecast_only_warmup,
         warmup_direction_bce=args.warmup_direction_bce,
+        warmup_entry_joint=args.warmup_entry_joint,
         frozen_teacher_model_source_path=args.frozen_teacher_model_source_path,
         frozen_teacher_model_source_sha256=args.frozen_teacher_model_source_sha256,
     )
