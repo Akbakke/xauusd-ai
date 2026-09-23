@@ -64,11 +64,12 @@ def test_pretest_launcher_derives_every_runtime_value_from_recipe(
     assert environment["GX1_V10_MULTI_TF_V4_CACHE_DIR"].endswith("MULTI_TF")
 
 
-@pytest.mark.parametrize("initialized", [False, True])
+@pytest.mark.parametrize("initialized,source_bound", [(False, False), (True, False), (True, True)])
 def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
     tmp_path: Path,
     monkeypatch,
     initialized: bool,
+    source_bound: bool,
 ) -> None:
     recipe = _recipe(tmp_path)
     cli = recipe["trainer_cli"]
@@ -81,6 +82,11 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
             "initial_checkpoint_path": str(tmp_path / "candidate_state.pt"),
             "initial_checkpoint_sha256": "b" * 64,
             "freeze_initial_teacher": True,
+        })
+    if source_bound:
+        cli.update({
+            "frozen_teacher_model_source_path": str(tmp_path / "frozen_teacher.py"),
+            "frozen_teacher_model_source_sha256": "c" * 64,
         })
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     recipe_path = (tmp_path / "pretest-canonical-recipe.json").resolve()
@@ -116,6 +122,11 @@ def test_pretest_launcher_allows_guarded_canonical_smoke_bundle_path(
         assert command[command.index("--initial-checkpoint-path") + 1] == cli["initial_checkpoint_path"]
         assert command[command.index("--initial-checkpoint-sha256") + 1] == "b" * 64
         assert "--freeze-initial-teacher" in command
+        if source_bound:
+            assert command[command.index("--frozen-teacher-model-source-path") + 1] == cli["frozen_teacher_model_source_path"]
+            assert command[command.index("--frozen-teacher-model-source-sha256") + 1] == "c" * 64
+        else:
+            assert "--frozen-teacher-model-source-path" not in command
     else:
         assert "--initial-checkpoint-path" not in command
 

@@ -12,8 +12,9 @@ Læringsmålet og rangeringen er nå kontrollert fra cache. PC er ikke restartet
 Modellv10 har nå en avgrenset rettelse i to Entry-token-rutere: nullruter og
 manglende direkte gate-gradient er kontrollert rettet. Dette ga ikke bedre
 økonomi uten tilpasning. Ingen ny fit har startet. Native kildebinding av den
-bevarte v9-læreren må fullføres før kontrollert tilpasning; ikke erstatt den med
-en kopi av online v10. Se siste avsnitt i resultatrapporten.
+bevarte v9-læreren er nå implementert og kontrollert. Neste ene kontroll er
+64 steg med ny onlinev10-baseline og samme faste v9-lærer; se siste avsnitt i
+resultatrapporten og runtime-receipts før noen launch.
 Tidligere oppstartsoppskrifter nedenfor er historikk og skal ikke relanseres
 med endret kilde. Full livsløps-VAL og bedre Entry er ikke dokumentert.
 

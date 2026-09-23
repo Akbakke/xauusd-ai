@@ -302,6 +302,11 @@ def build_pretest_technical_launch(
         ))
         if cli.get("freeze_initial_teacher") is True:
             trainer_command.append("--freeze-initial-teacher")
+        if "frozen_teacher_model_source_path" in cli:
+            trainer_command.extend((
+                "--frozen-teacher-model-source-path", str(cli["frozen_teacher_model_source_path"]),
+                "--frozen-teacher-model-source-sha256", str(cli["frozen_teacher_model_source_sha256"]),
+            ))
     if cloud_host_profile is not None:
         trainer_command.extend((
             "--cloud-host-profile-json", str(cloud_host_profile_path_raw),

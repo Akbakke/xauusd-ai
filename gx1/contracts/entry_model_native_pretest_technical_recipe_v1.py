@@ -122,6 +122,9 @@ INITIALIZED_SMOKE_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
 FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS = INITIALIZED_SMOKE_TRAINER_CLI_KEYS | {
     "freeze_initial_teacher",
 }
+SOURCE_BOUND_TEACHER_SMOKE_TRAINER_CLI_KEYS = FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS | {
+    "frozen_teacher_model_source_path", "frozen_teacher_model_source_sha256",
+}
 CLOUD_TRAINER_CLI_KEYS = TRAINER_CLI_KEYS | {
     "cloud_host_profile_path",
     "cloud_host_profile_sha256",
@@ -312,6 +315,7 @@ def require_pretest_technical_recipe_metadata(
         TRAINER_CLI_KEYS,
         INITIALIZED_SMOKE_TRAINER_CLI_KEYS,
         FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS,
+        SOURCE_BOUND_TEACHER_SMOKE_TRAINER_CLI_KEYS,
         CLOUD_TRAINER_CLI_KEYS,
         CLOUD_CANDIDATE_TRAINER_CLI_KEYS,
     }:
@@ -349,7 +353,7 @@ def require_pretest_technical_recipe_metadata(
         )
     except TrainingPrecisionPolicyError as exc:
         raise PretestTechnicalRecipeError("trainer precision policy invalid") from exc
-    if trainer_cli_keys in {INITIALIZED_SMOKE_TRAINER_CLI_KEYS, FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS}:
+    if trainer_cli_keys in {INITIALIZED_SMOKE_TRAINER_CLI_KEYS, FIXED_TEACHER_SMOKE_TRAINER_CLI_KEYS, SOURCE_BOUND_TEACHER_SMOKE_TRAINER_CLI_KEYS}:
         if "freeze_initial_teacher" in trainer_cli and trainer_cli["freeze_initial_teacher"] is not True:
             raise PretestTechnicalRecipeError("fixed teacher policy must be explicitly true")
         if (
@@ -365,6 +369,11 @@ def require_pretest_technical_recipe_metadata(
         if checkpoint.suffix != ".pt" or "test" in checkpoint.name.lower():
             raise PretestTechnicalRecipeError("initial checkpoint filename invalid")
         _sha(trainer_cli["initial_checkpoint_sha256"], label="initial checkpoint SHA256")
+    if trainer_cli_keys == SOURCE_BOUND_TEACHER_SMOKE_TRAINER_CLI_KEYS:
+        source = _absolute(trainer_cli["frozen_teacher_model_source_path"], label="frozen teacher source")
+        if source.suffix != ".py" or trainer_cli["epochs"] != 1:
+            raise PretestTechnicalRecipeError("frozen teacher source requires Python and one bounded epoch")
+        _sha(trainer_cli["frozen_teacher_model_source_sha256"], label="frozen teacher source SHA256")
     cloud_profile_present = trainer_cli_keys in {
         CLOUD_TRAINER_CLI_KEYS,
         CLOUD_CANDIDATE_TRAINER_CLI_KEYS,

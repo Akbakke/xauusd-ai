@@ -198,3 +198,24 @@ Bevis: ENTRY_ROUTING_PAIR_SOURCE_BINDING.json, ENTRY_ROUTING_PAIR_REAL_PARITY.js
 ENTRY_ROUTING_PAIR_GRADIENT_PATH.json, ENTRY_FROZEN_REFERENCE_NUMERICS.json og
 ENTRY_TOKEN_ROUTING_PAIR_OUTCOMES.json. Parameter- og kildekontroller, CPU-vakt
 og originale checkpoints er bevart. Kostnads- og tidsmål er fortsatt uendret.
+
+
+## Native binding av bevart lærer er klar
+
+Den eksisterende initialiserte smoke-ruten har nå en eksplisitt, SHA-bundet
+v9-modellkildefil for den faste læreren. Kun komplett kildepar i canonical
+FP32 CUDA smoke, fast lærer og én avgrenset epoch er tillatt. Trening og
+før/etter-evaluering bruker samme bevarte funksjon; lærerens klasse, kildehash
+og vektdigest kontrolleres. Den øvrige native løypen og læringsmålene er uendret.
+
+20 avgrensede recipe-/launcher-kontroller bestod. Den faktiske loaderen ble
+kontrollert på originalcheckpoint og ekte cachet input: Entry-Q/token og alle
+2048 Exit-Q-celler var bitlike den separat innlastede, frosne v9-referansen.
+Torch-, NumPy- og Python-RNG var uendret. Feil kildehash ble avvist.
+NATIVE_FROZEN_TEACHER_LOADER_REAL_CHECK.json binder denne kontrollen.
+
+Neste ene måling er onlinev10 mot denne uendrede v9-læreren, samme512 TRAIN,
+512 utviklings-VAL, seed, LR og64 steg som forrige faste kontroll. Mål ny v10
+før-baseline; ikke krev lik onlinefunksjon medv9. Sjekk derimot uendrede
+lærermål, faktisk Entry-seleksjon, alle åpne mark og samme kostnadsscenario.
+Teknisk PASS gir ingen tillatelse til større trening.

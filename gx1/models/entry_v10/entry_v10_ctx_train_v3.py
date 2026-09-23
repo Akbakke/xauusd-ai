@@ -12200,6 +12200,57 @@ def _initialize_bounded_smoke_weights(
     }
 
 
+
+def _source_bound_bounded_teacher(
+    *, model: nn.Module, model_constructor_kwargs: Mapping[str, Any],
+    source_path: Path, source_sha256: str, device: torch.device,
+) -> tuple[nn.Module, dict[str, Any]]:
+    """Preserve the v9 teacher function for the bounded v10 routing control."""
+    import importlib.util
+
+    path = Path(source_path)
+    if (
+        not path.is_absolute() or path.is_symlink() or not path.is_file()
+        or path.resolve() != path or path.suffix != ".py"
+    ):
+        raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_PATH_INVALID]")
+    source = path.read_bytes()
+    if hashlib.sha256(source).hexdigest() != source_sha256:
+        raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_SHA_MISMATCH]")
+    module_name = "gx1_bounded_frozen_teacher_" + source_sha256
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_IMPORT_INVALID]")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    rng = _attended_session_rng_state(device=device)
+    try:
+        # Execute the bytes actually verified, not a second file read.
+        exec(compile(source, str(path), "exec"), module.__dict__)
+        if (
+            module.MODEL_ARCHITECTURE_SCHEMA_VERSION != "entry_v10_ctx_hybrid_transformer_v9"
+            or module.MODEL_OUTPUT_SCHEMA_VERSION != "entry_v10_ctx_model_outputs_v9"
+        ):
+            raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_VERSION_INVALID]")
+        teacher = module.EntryV10CtxHybridTransformer(
+            **dict(model_constructor_kwargs)
+        ).to(device)
+    finally:
+        _restore_attended_session_rng_state(rng, device=device)
+    teacher.load_state_dict(model.state_dict(), strict=True)
+    teacher.require_input_normalization_state()
+    teacher.eval().requires_grad_(False)
+    if _model_state_sha256(teacher) != _model_state_sha256(model):
+        raise RuntimeError("[ENTRY_FROZEN_TEACHER_INITIAL_STATE_MISMATCH]")
+    return teacher, {
+        "path": str(path), "sha256": source_sha256,
+        "model_architecture_schema_version": module.MODEL_ARCHITECTURE_SCHEMA_VERSION,
+        "model_output_schema_version": module.MODEL_OUTPUT_SCHEMA_VERSION,
+        "dependency_source_binding": "current_recipe_source_closure",
+        "scope": "preserved_v9_initial_function_not_online_v10_deepcopy",
+    }
+
+
 def run_train(
     train_parquet: Path,
     train_manifest_path: Path,
@@ -12256,6 +12307,8 @@ def run_train(
     initial_checkpoint_path: Optional[Path] = None,
     initial_checkpoint_sha256: Optional[str] = None,
     freeze_initial_teacher: bool = False,
+    frozen_teacher_model_source_path: Optional[Path] = None,
+    frozen_teacher_model_source_sha256: Optional[str] = None,
 ) -> None:
     run_started = time.perf_counter()
     _require_bound_learning_globals()
@@ -13252,7 +13305,7 @@ def run_train(
                 _ATTENDED_CPU_MAX_OPTIMIZER_STEPS,
                 _ATTENDED_RESEARCH_UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS,
             )
-    model = EntryV10CtxHybridTransformer(
+    model_constructor_kwargs = dict(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
@@ -13305,13 +13358,20 @@ def run_train(
         specialist_fusion_scale=float(specialist_fusion_scale),
         cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
-    ).to(device)
+    )
+    model = EntryV10CtxHybridTransformer(**model_constructor_kwargs).to(device)
     # This is deliberately a preflight invariant, not a best-effort log.  It
     # proves the normalization buffers and their host-only routing caches are
     # exactly the immutable metadata contract before any optimizer state or
     # GPU work is allocated to a training candidate.
     model.require_input_normalization_state()
     smoke_initialization = None
+    if frozen_teacher_model_source_path is not None or frozen_teacher_model_source_sha256 is not None:
+        if (
+            frozen_teacher_model_source_path is None or frozen_teacher_model_source_sha256 is None
+            or not freeze_initial_teacher or initial_checkpoint_path is None
+        ):
+            raise RuntimeError("[ENTRY_FROZEN_TEACHER_REQUIRES_BOUND_INITIALIZED_FIXED_SMOKE]")
     if freeze_initial_teacher and initial_checkpoint_path is None:
         raise RuntimeError("[ENTRY_FIXED_TEACHER_REQUIRES_INITIALIZED_SMOKE]")
     if initial_checkpoint_path is not None or initial_checkpoint_sha256 is not None:
@@ -13656,13 +13716,21 @@ def run_train(
         return
 
     comparison_target = None
+    frozen_teacher_function_source = None
     comparison_directory = None
     comparison_report: dict[str, Any] = {}
     if smoke_initialization is not None:
         comparison_directory = Path(str(out_bundle_dir) + ".learning_comparison")
         comparison_directory.mkdir(parents=True, exist_ok=False)
-        comparison_target = copy.deepcopy(model).to(device).eval()
-        comparison_target.requires_grad_(False)
+        if frozen_teacher_model_source_path is not None:
+            comparison_target, frozen_teacher_function_source = _source_bound_bounded_teacher(
+                model=model, model_constructor_kwargs=model_constructor_kwargs,
+                source_path=frozen_teacher_model_source_path,
+                source_sha256=frozen_teacher_model_source_sha256, device=device,
+            )
+        else:
+            comparison_target = copy.deepcopy(model).to(device).eval()
+            comparison_target.requires_grad_(False)
         comparison_report = {
             "schema_version": "gx1_bounded_native_learning_comparison_v1",
             "scope": "bounded_train_and_development_val_observed_windows",
@@ -13670,6 +13738,7 @@ def run_train(
             "recipe_source_provenance": recipe_source_provenance,
             "population": {"train": train_population_selection, "val": val_population_selection},
             "fixed_evaluation_teacher_sha256": _model_state_sha256(comparison_target),
+            "fixed_evaluation_teacher_function_source": frozen_teacher_function_source,
             "training_teacher_refresh": (
                 "frozen_initial_for_bounded_probe" if freeze_initial_teacher
                 else "unchanged_native_contract"
@@ -13682,6 +13751,8 @@ def run_train(
     def _measure_bounded_learning_stage(stage: str) -> None:
         if comparison_target is None or comparison_directory is None:
             return
+        if frozen_teacher_function_source is not None and _sha256_file(Path(frozen_teacher_function_source["path"])) != frozen_teacher_function_source["sha256"]:
+            raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_CHANGED]")
         rng = _attended_session_rng_state(device=device)
         model_sha = _model_state_sha256(model)
         stage_evidence = {}
@@ -13868,7 +13939,9 @@ def run_train(
         # VAL/TEST; all Bellman targets are stop-gradient outputs from it.
         # The iteration state is assembled AFTER the epoch's training so its
         # target sha describes the exact snapshot validation judges.
-        target_model = copy.deepcopy(model).to(device)
+        target_model = copy.deepcopy(
+            comparison_target if frozen_teacher_function_source is not None else model
+        ).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
         epoch_optimizer_steps = -(-len(train_loader) // int(grad_accum_steps))
@@ -13938,6 +14011,11 @@ def run_train(
         if not tr_epoch_complete:
             raise RuntimeError("[ENTRY_CANONICAL_TRAIN_EPOCH_PARTIAL_FORBIDDEN]")
         target_model_state_sha256 = _model_state_sha256(target_model)
+        if frozen_teacher_function_source is not None and (
+            type(target_model) is not type(comparison_target)
+            or _sha256_file(Path(frozen_teacher_function_source["path"])) != frozen_teacher_function_source["sha256"]
+        ):
+            raise RuntimeError("[ENTRY_FROZEN_TEACHER_FUNCTION_CHANGED]")
         if freeze_initial_teacher and target_model_state_sha256 != comparison_report["fixed_evaluation_teacher_sha256"]:
             raise RuntimeError("[ENTRY_FIXED_TEACHER_CHANGED_DURING_PROBE]")
         fitted_q_iteration_state = {
@@ -15552,7 +15630,7 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
     candidate_gate_path = getattr(args, "candidate_gate_json", None)
     candidate_gate_sha256 = getattr(args, "candidate_gate_sha256", None)
     if not isinstance(payload, Mapping) or payload.get("schema_version") != PRETEST_TECHNICAL_RECIPE_SCHEMA_VERSION:
-        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False):
+        if getattr(args, "initial_checkpoint_path", None) is not None or getattr(args, "initial_checkpoint_sha256", None) is not None or getattr(args, "freeze_initial_teacher", False) or getattr(args, "frozen_teacher_model_source_path", None) is not None or getattr(args, "frozen_teacher_model_source_sha256", None) is not None:
             raise RuntimeError("[ENTRY_SMOKE_INITIAL_CHECKPOINT_REQUIRES_PRETEST_RECIPE]")
         if candidate_gate_path is not None or candidate_gate_sha256 is not None:
             raise RuntimeError("[ENTRY_TRAIN_PRETEST_CANDIDATE_GATE_UNEXPECTED]")
@@ -15660,6 +15738,15 @@ def _require_pretest_recipe_cli_match(args: argparse.Namespace) -> None:
         })
     if getattr(args, "freeze_initial_teacher", False):
         observed["freeze_initial_teacher"] = True
+    teacher_path = getattr(args, "frozen_teacher_model_source_path", None)
+    teacher_sha = getattr(args, "frozen_teacher_model_source_sha256", None)
+    if teacher_path is not None or teacher_sha is not None:
+        if teacher_path is None or teacher_sha is None:
+            raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_BINDING_INCOMPLETE]")
+        observed.update({
+            "frozen_teacher_model_source_path": str(teacher_path),
+            "frozen_teacher_model_source_sha256": str(teacher_sha),
+        })
     expected = dict(recipe["trainer_cli"])
     expected.setdefault("precision_policy", DETERMINISTIC_FP32)
     if expected != observed:
@@ -15747,6 +15834,8 @@ def main() -> None:
     parser.add_argument("--initial-checkpoint-path", type=Path)
     parser.add_argument("--initial-checkpoint-sha256", type=str)
     parser.add_argument("--freeze-initial-teacher", action="store_true")
+    parser.add_argument("--frozen-teacher-model-source-path", type=Path)
+    parser.add_argument("--frozen-teacher-model-source-sha256", type=str)
     parser.add_argument("--candidate-gate-json", type=Path)
     parser.add_argument("--candidate-gate-sha256", type=str)
     parser.add_argument("--cloud-host-profile-json", type=Path)
@@ -16023,6 +16112,8 @@ def main() -> None:
         initial_checkpoint_path=args.initial_checkpoint_path,
         initial_checkpoint_sha256=args.initial_checkpoint_sha256,
         freeze_initial_teacher=args.freeze_initial_teacher,
+        frozen_teacher_model_source_path=args.frozen_teacher_model_source_path,
+        frozen_teacher_model_source_sha256=args.frozen_teacher_model_source_sha256,
     )
 
 

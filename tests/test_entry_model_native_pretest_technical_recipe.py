@@ -356,6 +356,14 @@ def test_direct_trainer_rejects_any_cli_drift_from_pretest_recipe(tmp_path: Path
         train_time_window_end_utc=cli["train_time_window"]["end_utc"],
     )
     _require_pretest_recipe_cli_match(args)
+    args.frozen_teacher_model_source_path = tmp_path / "frozen_teacher.py"
+    with pytest.raises(RuntimeError, match="SOURCE_BINDING_INCOMPLETE"):
+        _require_pretest_recipe_cli_match(args)
+    args.frozen_teacher_model_source_sha256 = "c" * 64
+    with pytest.raises(RuntimeError, match="CLI_MISMATCH"):
+        _require_pretest_recipe_cli_match(args)
+    args.frozen_teacher_model_source_path = None
+    args.frozen_teacher_model_source_sha256 = None
     args.batch_size = 16
     with pytest.raises(RuntimeError, match="CLI_MISMATCH"):
         _require_pretest_recipe_cli_match(args)
@@ -389,4 +397,35 @@ def test_initialized_smoke_is_hash_bound_and_never_candidate(tmp_path: Path) -> 
     recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
     recipe["profile"] = "candidate"
     with pytest.raises(PretestTechnicalRecipeError, match="bounded canonical FP32 smoke"):
+        require_pretest_technical_recipe_metadata(recipe)
+
+def test_frozen_teacher_source_requires_complete_fixed_smoke_binding(tmp_path: Path) -> None:
+    recipe = _recipe(tmp_path)
+    cli = recipe["trainer_cli"]
+    cli.update({
+        "execution_tier": "canonical", "train_time_window": None,
+        "precision_policy": "deterministic_fp32", "epochs": 1,
+        "initial_checkpoint_path": str(tmp_path / "candidate_state.pt"),
+        "initial_checkpoint_sha256": "b" * 64, "freeze_initial_teacher": True,
+        "frozen_teacher_model_source_path": str(tmp_path / "frozen_teacher.py"),
+        "frozen_teacher_model_source_sha256": "c" * 64,
+    })
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    assert require_pretest_technical_recipe_metadata(recipe)["trainer_cli"] == cli
+    for key, bad in (
+        ("frozen_teacher_model_source_sha256", "invalid"),
+        ("frozen_teacher_model_source_path", str(tmp_path / "teacher.txt")),
+        ("frozen_teacher_model_source_path", "relative.py"),
+        ("freeze_initial_teacher", False),
+        ("epochs", 2),
+    ):
+        old = cli[key]
+        cli[key] = bad
+        recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+        with pytest.raises(PretestTechnicalRecipeError):
+            require_pretest_technical_recipe_metadata(recipe)
+        cli[key] = old
+    del cli["frozen_teacher_model_source_sha256"]
+    recipe["trainer_cli_sha256"] = canonical_json_sha256(cli)
+    with pytest.raises(PretestTechnicalRecipeError, match="contract keys"):
         require_pretest_technical_recipe_metadata(recipe)
