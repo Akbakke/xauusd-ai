@@ -77,6 +77,10 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_TIMEFRAMES
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4,
+    classify_entry_specialist_feature,
+)
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_FLAT_INDEX,
     MODEL_DIRECTION_LONG_INDEX,
@@ -84,6 +88,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SHORT_INDEX,
 )
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    MIN_PREREGISTERED_TRADE_ROWS,
     EVALUATION_COVERAGES,
     RESEARCH_LONG_OUTCOME_COLUMN,
     RESEARCH_SHORT_OUTCOME_COLUMN,
@@ -104,7 +109,23 @@ M5_BAR = pd.Timedelta(minutes=5)
 BPS = 1e4
 ATR_SCALE_FIELD = "atr_bps"
 LEARNERS = ("ridge", "hgb")
-FEATURE_ARMS = ("snapshot", "snapshot_mtf")
+FEATURE_ARMS = ("snapshot", "snapshot_mtf", "snapshot_patterns", "snapshot_mtf_patterns", "snapshot_cross", "snapshot_mtf_cross")
+ABLATION_MODES = ("none", "families", "lanes", "cross", "all")
+# Cross-asset research block (operator decision 2026-09-23; research measurement only, Entry contract unchanged).
+# Daily macro: log levels from the recovered research table (dxy, tnx, vix, realyld = log(TIP/IEF)); causal
+# transforms declared here; aligned with a conservative one-calendar-day lag (a decision on day D uses day D-1's row).
+CROSS_DAILY_INSTRUMENTS = ("dxy", "tnx", "vix", "realyld")
+CROSS_DAILY_CHANGE_DAYS = (1, 5, 20)
+CROSS_DAILY_Z_WINDOW_DAYS = 60
+CROSS_DAILY_Z_MIN_DAYS = 20
+CROSS_DAILY_LAG = pd.Timedelta(days=1)
+CROSS_DAILY_LEVEL_INSTRUMENTS = ("vix",)  # the only level used as a (bounded) regime input; trending levels are excluded
+# H1 FX bars (USD_JPY): last closed bar under the owner's MTF cutoff rule; log returns and realized vol in bars.
+CROSS_H1_RETURN_BARS = (1, 4, 24, 120)
+CROSS_H1_VOL_BARS = 24
+CROSS_H1_MAX_STALENESS = pd.Timedelta(hours=72)
+OOD_DISTANCE_GROUPS = ("mtf_lane:all", "patterns:all")
+OOD_DISTANCE_COLUMNS = {"all": "ood_abs_z_mean", "mtf_lane:all": "ood_abs_z_mean_mtf", "patterns:all": "ood_abs_z_mean_patterns"}
 TARGET_SCALINGS = ("raw", "atr")
 DECISION_RULES = ("argmax_flat", "contrast_always_trade")
 RIDGE_ALPHA_GRID = tuple(float(v) for v in np.logspace(-2.0, 4.0, 13))
@@ -146,6 +167,7 @@ class Dataset:
     ctx_cont: np.ndarray
     ctx_cat: np.ndarray
     ctx_cont_names: tuple[str, ...]
+    signal_names: tuple[str, ...]
     knee_long: np.ndarray
     knee_short: np.ndarray
     knee_horizon_bars: int
@@ -189,7 +211,7 @@ def load_dataset(dataset_dir: Path, *, split: str = "train") -> Dataset:
         raise RuntimeError("WALKFORWARD_KNEE_OUTCOME_NONFINITE")
     return Dataset(
         time=time_index, snap=snap, ctx_cont=ctx_cont, ctx_cat=ctx_cat,
-        ctx_cont_names=ctx_cont_names, knee_long=knee_long, knee_short=knee_short,
+        ctx_cont_names=ctx_cont_names, signal_names=tuple(contract["signal_bridge_fields"]), knee_long=knee_long, knee_short=knee_short,
         knee_horizon_bars=int(horizons[0]), manifest_sha256=_sha256_file(manifest_path),
         parquet_path=str(parquet),
     )
@@ -303,6 +325,109 @@ def load_mtf_last_closed(
     return matrix, tuple(names), {"aliases": alias_report, "cache_manifest_sha256": _sha256_file(manifest_path)}
 
 
+def load_pattern_primitives(parquet_path: Path, dataset_time: pd.DatetimeIndex) -> tuple[np.ndarray, tuple[str, ...], dict[str, Any]]:
+    """Align the research pattern primitives (``research_entry_pattern_primitives_v1``) to the decision rows by exact time."""
+    frame = pd.read_parquet(parquet_path)
+    frame["time"] = pd.to_datetime(frame["time"], utc=True)
+    index = pd.DatetimeIndex(frame["time"])
+    positions = index.searchsorted(dataset_time, side="left")
+    if np.any(positions >= len(index)) or not np.array_equal(index.values[positions], dataset_time.values):
+        raise RuntimeError("WALKFORWARD_PATTERN_ROWS_MISSING_FOR_DECISION_TIMES")
+    columns = tuple(c for c in frame.columns if c != "time")
+    matrix = frame[list(columns)].to_numpy(np.float32)[positions]
+    if not np.isfinite(matrix).all():
+        raise RuntimeError("WALKFORWARD_PATTERN_NONFINITE")
+    manifest = parquet_path.parent / "manifest.json"
+    return matrix, tuple(f"pattern:{c}" for c in columns), {"parquet": str(parquet_path), "sha256": _sha256_file(parquet_path), "manifest_sha256": _sha256_file(manifest) if manifest.is_file() else None, "columns": len(columns)}
+
+
+def load_cross_asset_block(
+    daily_parquet: Path | None, h1_parquet: Path | None, dataset_time: pd.DatetimeIndex
+) -> tuple[np.ndarray, tuple[str, ...], np.ndarray, dict[str, Any]]:
+    """Cross-asset research columns aligned to the decision rows, with a per-row validity mask.
+
+    Invalid rows (before warmup, after a series ends, stale H1 bar) are zero-filled and must be excluded through
+    the mask by the caller; they never enter a fit or a holdout.
+    """
+    if daily_parquet is None and h1_parquet is None:
+        raise RuntimeError("WALKFORWARD_CROSS_ARM_REQUIRES_INPUT")
+    blocks: list[np.ndarray] = []
+    names: list[str] = []
+    valid = np.ones(len(dataset_time), dtype=bool)
+    report: dict[str, Any] = {}
+    if daily_parquet is not None:
+        daily = pd.read_parquet(daily_parquet)
+        index = pd.DatetimeIndex(daily.index)
+        if index.tz is None:
+            index = index.tz_localize("UTC")
+        if not index.is_monotonic_increasing or index.has_duplicates:
+            raise RuntimeError("WALKFORWARD_CROSS_DAILY_INDEX_INVALID")
+        feats: dict[str, pd.Series] = {}
+        for inst in CROSS_DAILY_INSTRUMENTS:
+            column = f"{inst}_lvl"
+            if column not in daily.columns:
+                raise RuntimeError(f"WALKFORWARD_CROSS_DAILY_COLUMN_MISSING: {column}")
+            level = pd.Series(daily[column].to_numpy(np.float64), index=index)
+            if inst in CROSS_DAILY_LEVEL_INSTRUMENTS:
+                feats[f"cross:daily:{inst}_lvl"] = level
+            for days in CROSS_DAILY_CHANGE_DAYS:
+                feats[f"cross:daily:{inst}_chg{days}d"] = level - level.shift(days)
+            rolling = level.rolling(CROSS_DAILY_Z_WINDOW_DAYS, min_periods=CROSS_DAILY_Z_MIN_DAYS)
+            feats[f"cross:daily:{inst}_z{CROSS_DAILY_Z_WINDOW_DAYS}d"] = (level - rolling.mean()) / rolling.std()
+        daily_matrix = np.column_stack([v.to_numpy(np.float64) for v in feats.values()])
+        target_day = dataset_time.floor("D") - CROSS_DAILY_LAG
+        pos = index.searchsorted(target_day, side="left")
+        pos_clipped = np.minimum(pos, len(index) - 1)
+        daily_valid = (pos < len(index)) & (index.values[pos_clipped] == target_day.values)
+        rows = daily_matrix[pos_clipped]
+        daily_valid &= np.isfinite(rows).all(axis=1)
+        rows[~daily_valid] = 0.0
+        blocks.append(rows.astype(np.float32))
+        names.extend(feats.keys())
+        valid &= daily_valid
+        report["daily"] = {
+            "parquet": str(daily_parquet), "sha256": _sha256_file(daily_parquet), "rows": int(len(index)),
+            "span": [index[0].isoformat(), index[-1].isoformat()], "columns": len(feats), "lag": str(CROSS_DAILY_LAG),
+            "valid_decision_rows": int(daily_valid.sum()), "invalid_decision_rows": int((~daily_valid).sum()),
+            "provenance": "recovered research table without manifest; builder script only (see report notes)",
+        }
+    if h1_parquet is not None:
+        bars = pd.read_parquet(h1_parquet)
+        bars["time"] = pd.to_datetime(bars["time"], utc=True)
+        bars = bars.sort_values("time", kind="mergesort").reset_index(drop=True)
+        labels = pd.DatetimeIndex(bars["time"])
+        if labels.has_duplicates:
+            raise RuntimeError("WALKFORWARD_CROSS_H1_DUPLICATE_TIME")
+        log_close = np.log(bars["close"].to_numpy(np.float64))
+        h1_feats: dict[str, np.ndarray] = {}
+        for n_bars in CROSS_H1_RETURN_BARS:
+            h1_feats[f"cross:usdjpy_h1:ret{n_bars}"] = pd.Series(log_close).diff(n_bars).to_numpy()
+        h1_feats[f"cross:usdjpy_h1:rv{CROSS_H1_VOL_BARS}"] = pd.Series(log_close).diff().rolling(CROSS_H1_VOL_BARS).std().to_numpy()
+        h1_feats["cross:usdjpy_h1:spread_rel"] = ((bars["ask_close"] - bars["bid_close"]) / bars["close"]).to_numpy(np.float64)
+        h1_matrix = np.column_stack(list(h1_feats.values()))
+        cutoff = dataset_time + M5_BAR - MULTI_TF_SHIFT["H1"]
+        pos = labels.searchsorted(cutoff, side="right") - 1
+        pos_clipped = np.maximum(pos, 0)
+        staleness = cutoff - labels[pos_clipped]
+        h1_valid = (pos >= 0) & (staleness <= CROSS_H1_MAX_STALENESS)
+        rows = h1_matrix[pos_clipped]
+        h1_valid &= np.isfinite(rows).all(axis=1)
+        rows[~h1_valid] = 0.0
+        blocks.append(rows.astype(np.float32))
+        names.extend(h1_feats.keys())
+        valid &= h1_valid
+        report["usdjpy_h1"] = {
+            "parquet": str(h1_parquet), "sha256": _sha256_file(h1_parquet), "rows": int(len(labels)),
+            "span": [labels[0].isoformat(), labels[-1].isoformat()], "columns": len(h1_feats),
+            "cutoff_rule": "decision_time + M5 - H1 (owner MULTI_TF_SHIFT)", "max_staleness": str(CROSS_H1_MAX_STALENESS),
+            "valid_decision_rows": int(h1_valid.sum()), "invalid_decision_rows": int((~h1_valid).sum()),
+            "provenance": "recovered research bars without manifest (OANDA REST fetch, 2026-06-09 spike)",
+        }
+    report["valid_decision_rows"] = int(valid.sum())
+    report["invalid_decision_rows"] = int((~valid).sum())
+    return np.concatenate(blocks, axis=1), tuple(names), valid, report
+
+
 def one_hot_ctx_cat(ctx_cat: np.ndarray) -> tuple[np.ndarray, tuple[str, ...]]:
     columns: list[np.ndarray] = []
     names: list[str] = []
@@ -398,6 +523,45 @@ def _chunked_matvec(matrix: np.ndarray, beta: np.ndarray) -> np.ndarray:
     return out
 
 
+def standardized_abs_z_mean(
+    X_fit: np.ndarray, X_hold: np.ndarray, groups: dict[str, np.ndarray], *, fit_valid: np.ndarray | None = None
+) -> dict[str, np.ndarray]:
+    """Per-holdout-row mean |z| under the fit rows' column mean/std: a label-free distance from the fit distribution.
+
+    ``all`` covers every column; each entry of ``groups`` adds the same statistic over that column subset.
+    Two exact chunked passes (mean, then centred squares) keep the producer cap for the wide arms.
+    """
+    n_fit, p = X_fit.shape
+    if n_fit == 0 or X_hold.shape[1] != p or (fit_valid is not None and len(fit_valid) != n_fit):
+        raise RuntimeError("WALKFORWARD_OOD_DISTANCE_INPUT_INVALID")
+    n_used = n_fit if fit_valid is None else int(np.asarray(fit_valid, dtype=bool).sum())
+    if n_used == 0:
+        raise RuntimeError("WALKFORWARD_OOD_DISTANCE_INPUT_INVALID")
+
+    def _chunks():
+        for start in range(0, n_fit, GRAM_CHUNK_ROWS):
+            block = X_fit[start : start + GRAM_CHUNK_ROWS]
+            yield block if fit_valid is None else block[np.asarray(fit_valid[start : start + GRAM_CHUNK_ROWS], dtype=bool)]
+
+    total = np.zeros(p, dtype=np.float64)
+    for block in _chunks():
+        total += block.sum(axis=0, dtype=np.float64)
+    mean = total / n_used
+    squares = np.zeros(p, dtype=np.float64)
+    for block in _chunks():
+        centred = block.astype(np.float64) - mean
+        squares += np.einsum("ij,ij->j", centred, centred)
+    std = np.sqrt(squares / n_used)
+    std[std == 0] = 1.0
+    out = {name: np.empty(len(X_hold), dtype=np.float32) for name in ("all", *groups)}
+    for start in range(0, len(X_hold), GRAM_CHUNK_ROWS):
+        z = np.abs((X_hold[start : start + GRAM_CHUNK_ROWS].astype(np.float64) - mean) / std)
+        out["all"][start : start + len(z)] = z.mean(axis=1)
+        for name, cols in groups.items():
+            out[name][start : start + len(z)] = z[:, cols].mean(axis=1)
+    return out
+
+
 class RidgeGram:
     """Standardized design + Gram matrices for one (feature arm, fold), shared by every target/side/alpha.
 
@@ -424,24 +588,38 @@ class RidgeGram:
         self.n_features = int(X_fit.shape[1])
         self.mask_signature: tuple[bytes, bytes] | None = None
 
-    def fit_predict(self, y_fit: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
+    def fit_predict(self, y_fit: np.ndarray, *, keep: np.ndarray | None = None, alpha: float | None = None) -> tuple[np.ndarray, dict[str, Any]]:
+        """Ridge on all columns or on the ``keep`` subset (sub-Gram: an ablation costs one solve, not one Gram).
+
+        ``alpha`` fixed skips the inner grid search (used by the cardinality-matched null draws, which reuse the
+        full fit's selected alpha).  Dropped columns get a zero coefficient, so predictions need no column copies.
+        """
         y = np.asarray(y_fit, dtype=np.float64)
-        eye = np.eye(self.n_features)
-        inner_mean = float(np.mean(y[self.inner_fit_rows]))
-        xty_inner = _chunked_xty(self.Xs_fit, y - inner_mean, self.inner_fit_rows)
-        y_val = y[self.inner_val_rows]
-        best_alpha, best_mse = None, math.inf
-        for alpha in RIDGE_ALPHA_GRID:
-            beta = np.linalg.solve(self.gram_inner + alpha * eye, xty_inner)
-            pred_val = _chunked_matvec(self.Xs_fit[self.inner_val_rows], beta) + inner_mean
-            mse = float(np.mean((pred_val - y_val) ** 2))
-            if mse < best_mse:
-                best_alpha, best_mse = alpha, mse
+        cols = np.arange(self.n_features) if keep is None else np.asarray(keep, dtype=np.int64)
+        eye = np.eye(len(cols))
+        gram_full = self.gram_full[np.ix_(cols, cols)]
         full_mean = float(np.mean(y))
-        xty_full = _chunked_xty(self.Xs_fit, y - full_mean)
-        beta = np.linalg.solve(self.gram_full + best_alpha * eye, xty_full)
+        xty_full = _chunked_xty(self.Xs_fit, y - full_mean)[cols]
+        if alpha is None:
+            gram_inner = self.gram_inner[np.ix_(cols, cols)]
+            inner_mean = float(np.mean(y[self.inner_fit_rows]))
+            xty_inner = _chunked_xty(self.Xs_fit, y - inner_mean, self.inner_fit_rows)[cols]
+            y_val = y[self.inner_val_rows]
+            X_val = self.Xs_fit[self.inner_val_rows]
+            best_alpha, best_mse = None, math.inf
+            for candidate in RIDGE_ALPHA_GRID:
+                beta_val = np.zeros(self.n_features)
+                beta_val[cols] = np.linalg.solve(gram_inner + candidate * eye, xty_inner)
+                pred_val = _chunked_matvec(X_val, beta_val) + inner_mean
+                mse = float(np.mean((pred_val - y_val) ** 2))
+                if mse < best_mse:
+                    best_alpha, best_mse = candidate, mse
+        else:
+            best_alpha, best_mse = float(alpha), None
+        beta = np.zeros(self.n_features)
+        beta[cols] = np.linalg.solve(gram_full + best_alpha * eye, xty_full)
         pred = _chunked_matvec(self.Xs_pred, beta) + full_mean
-        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse}
+        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "columns": int(len(cols))}
 
 
 def fit_hgb(
@@ -492,6 +670,66 @@ def decisions(long_pred: np.ndarray, short_pred: np.ndarray, rule: str) -> tuple
     raise RuntimeError(f"WALKFORWARD_DECISION_RULE_INVALID: {rule}")
 
 
+def selected_mean_pnl_by_coverage(
+    side: np.ndarray, score: np.ndarray, long_all: np.ndarray, short_all: np.ndarray, top_fracs: tuple[float, ...]
+) -> dict[float, float | None]:
+    """Mean traded PnL per coverage with the evaluator's selection: score descending, ties by time (row order), FLAT dropped, None below the evaluator's minimum trade count."""
+    n = len(side)
+    ranked = np.lexsort((np.arange(n), -np.asarray(score, dtype=np.float64)))
+    out: dict[float, float | None] = {}
+    for top_frac in top_fracs:
+        n_budget = max(1, int(math.ceil(n * float(top_frac))))
+        sel = ranked[:n_budget]
+        traded = side[sel] != MODEL_DIRECTION_FLAT_INDEX
+        sel = sel[traded]
+        if len(sel) < MIN_PREREGISTERED_TRADE_ROWS:  # the evaluator reports no mean below its preregistered minimum
+            out[float(top_frac)] = None
+            continue
+        pnl = np.where(side[sel] == MODEL_DIRECTION_LONG_INDEX, long_all[sel], short_all[sel])
+        out[float(top_frac)] = float(np.mean(pnl))
+    return out
+
+
+def feature_column_groups(column_names: tuple[str, ...]) -> dict[str, np.ndarray]:
+    """Owner-mapped ablation groups over an arm's ordered columns.
+
+    Snapshot/context columns map to their specialist family through the
+    routing owner ``classify_entry_specialist_feature``; MTF columns
+    (``TF:field``) map to a lane group and, through
+    ``MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4``, to an MTF family group; pattern
+    columns (``pattern:TF:field``) form one group per timeframe; one-hot
+    context categories form ``ctx_cat``.
+    """
+    mtf_family_by_field: dict[str, str] = {}
+    for family, fields in MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.items():
+        for field in fields:
+            mtf_family_by_field[str(field)] = str(family)
+    groups: dict[str, list[int]] = {}
+
+    def put(group: str, index: int) -> None:
+        groups.setdefault(group, []).append(index)
+
+    for index, name in enumerate(column_names):
+        if name.startswith("pattern:"):
+            put(f"patterns:{name.split(':')[1]}", index)
+        elif name.startswith("cross:"):
+            put(f"cross:{name.split(':')[1]}", index)
+        elif ":" in name and name.split(":")[0] in MULTI_TF_SHIFT:
+            tf, field = name.split(":", 1)
+            put(f"mtf_lane:{tf}", index)
+            put(f"mtf_family:{mtf_family_by_field.get(field, 'unmapped')}", index)
+        elif name.startswith("session_id=="):
+            put("ctx_cat", index)
+        else:
+            put(f"family:{classify_entry_specialist_feature(name)}", index)
+    # union groups: "everything the pattern module adds" and "every MTF lane" (drop = the plain baseline arm on the same rows)
+    for prefix, union_name in (("patterns:", "patterns:all"), ("mtf_lane:", "mtf_lane:all"), ("cross:", "cross:all")):
+        members = sorted({i for g, idx in groups.items() if g.startswith(prefix) for i in idx})
+        if members:
+            groups[union_name] = members
+    return {group: np.asarray(sorted(indices), dtype=np.int64) for group, indices in groups.items()}
+
+
 def month_drift_sign(tape: Tape) -> pd.Series:
     """Realized sign of each calendar month's mid close-to-close drift on the tape (descriptive slice only)."""
     frame = pd.DataFrame({"time": tape.time.tz_convert(None), "mid": tape.mid})
@@ -532,8 +770,12 @@ def evaluate_frame(
         }
         if len(sel):
             long_mask = s == MODEL_DIRECTION_LONG_INDEX
+            best_constant = float(max(np.mean(long_all[sel]), np.mean(short_all[sel])))
             extra.update(
                 {
+                    "best_constant_side_mean_pnl_bps": best_constant,
+                    "excess_over_best_constant_bps": float(np.mean(pnl)) - best_constant,
+                    "beats_best_constant": bool(float(np.mean(pnl)) > best_constant),
                     "hit_rate_better_side": float(np.mean(s == better_side_realized)),
                     "p_long_chosen": float(np.mean(long_mask)),
                     "long_rows": int(long_mask.sum()),
@@ -614,14 +856,61 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     ctx_cat_matrix, ctx_cat_names = one_hot_ctx_cat(dataset.ctx_cat)
     snapshot = np.concatenate([dataset.snap, dataset.ctx_cont, ctx_cat_matrix], axis=1)
+    snapshot_names = tuple(dataset.signal_names) + tuple(f"ctx_cont.{n}" for n in dataset.ctx_cont_names) + tuple(ctx_cat_names)
     arms: dict[str, np.ndarray] = {"snapshot": snapshot}
+    arm_names: dict[str, tuple[str, ...]] = {"snapshot": snapshot_names}
     mtf_report: dict[str, Any] = {}
-    if "snapshot_mtf" in args.feature_arms:
+    needs_mtf = any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross"))
+    needs_cross = any(arm in args.feature_arms for arm in ("snapshot_cross", "snapshot_mtf_cross"))
+    needs_patterns = any(arm in args.feature_arms for arm in ("snapshot_patterns", "snapshot_mtf_patterns"))
+    mtf_matrix = mtf_names = None
+    if needs_mtf:
         if not args.multi_tf_cache_dir:
             raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
         mtf_matrix, mtf_names, mtf_report = load_mtf_last_closed(Path(args.multi_tf_cache_dir), dataset.time, dataset.ctx_cont, dataset.ctx_cont_names)
+    pattern_matrix = pattern_names = None
+    pattern_report: dict[str, Any] = {}
+    if needs_patterns:
+        if not args.pattern_primitives_parquet:
+            raise RuntimeError("WALKFORWARD_PATTERN_ARM_REQUIRES_PARQUET")
+        pattern_matrix, pattern_names, pattern_report = load_pattern_primitives(Path(args.pattern_primitives_parquet), dataset.time)
+    cross_matrix = cross_names = None
+    cross_report: dict[str, Any] = {}
+    arm_valid: dict[str, np.ndarray] = {}
+    val_arm_valid: dict[str, np.ndarray] = {}
+    if needs_cross:
+        daily_path = Path(args.cross_asset_daily_parquet) if args.cross_asset_daily_parquet else None
+        h1_path = Path(args.cross_asset_h1_parquet) if args.cross_asset_h1_parquet else None
+        cross_matrix, cross_names, cross_valid, cross_report = load_cross_asset_block(daily_path, h1_path, dataset.time)
+    if "snapshot_mtf" in args.feature_arms:
         arms["snapshot_mtf"] = np.concatenate([snapshot, mtf_matrix], axis=1)
-        del mtf_matrix
+        arm_names["snapshot_mtf"] = snapshot_names + tuple(mtf_names)
+    if "snapshot_cross" in args.feature_arms:
+        arms["snapshot_cross"] = np.concatenate([snapshot, cross_matrix], axis=1)
+        arm_names["snapshot_cross"] = snapshot_names + tuple(cross_names)
+        arm_valid["snapshot_cross"] = cross_valid
+    if "snapshot_mtf_cross" in args.feature_arms:
+        arms["snapshot_mtf_cross"] = np.concatenate([snapshot, mtf_matrix, cross_matrix], axis=1)
+        arm_names["snapshot_mtf_cross"] = snapshot_names + tuple(mtf_names) + tuple(cross_names)
+        arm_valid["snapshot_mtf_cross"] = cross_valid
+    if "snapshot_patterns" in args.feature_arms:
+        arms["snapshot_patterns"] = np.concatenate([snapshot, pattern_matrix], axis=1)
+        arm_names["snapshot_patterns"] = snapshot_names + tuple(pattern_names)
+    if "snapshot_mtf_patterns" in args.feature_arms:
+        arms["snapshot_mtf_patterns"] = np.concatenate([snapshot, mtf_matrix, pattern_matrix], axis=1)
+        arm_names["snapshot_mtf_patterns"] = snapshot_names + tuple(mtf_names) + tuple(pattern_names)
+    del mtf_matrix, pattern_matrix, cross_matrix
+    column_groups_by_arm = {arm: feature_column_groups(names) for arm, names in arm_names.items()}
+    ablation_groups: dict[str, dict[str, np.ndarray]] = {}
+    if args.ablation != "none":
+        for arm, groups in column_groups_by_arm.items():
+            if args.ablation == "families":
+                groups = {g: idx for g, idx in groups.items() if g.startswith("family:") or g.startswith("mtf_family:") or g.startswith("patterns:") or g == "mtf_lane:all"}
+            elif args.ablation == "lanes":
+                groups = {g: idx for g, idx in groups.items() if g.startswith("mtf_lane:") or g.startswith("patterns:") or g == "ctx_cat"}
+            elif args.ablation == "cross":
+                groups = {g: idx for g, idx in groups.items() if g.startswith("cross:")}
+            ablation_groups[arm] = groups
     atr_index = dataset.ctx_cont_names.index(ATR_SCALE_FIELD)
     atr = dataset.ctx_cont[:, atr_index].astype(np.float64)
     if np.any(atr <= 0):
@@ -648,10 +937,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         val_cat, _ = one_hot_ctx_cat(val_dataset.ctx_cat)
         val_snapshot = np.concatenate([val_dataset.snap, val_dataset.ctx_cont, val_cat], axis=1)
         val_arms["snapshot"] = val_snapshot
-        if "snapshot_mtf" in args.feature_arms:
+        val_mtf = val_pat = None
+        if needs_mtf:
             val_mtf, _, _ = load_mtf_last_closed(Path(args.multi_tf_cache_dir), val_dataset.time, val_dataset.ctx_cont, val_dataset.ctx_cont_names)
+        if needs_patterns:
+            val_pat, _, _ = load_pattern_primitives(Path(args.pattern_primitives_parquet), val_dataset.time)
+        if "snapshot_mtf" in args.feature_arms:
             val_arms["snapshot_mtf"] = np.concatenate([val_snapshot, val_mtf], axis=1)
-            del val_mtf
+        if "snapshot_patterns" in args.feature_arms:
+            val_arms["snapshot_patterns"] = np.concatenate([val_snapshot, val_pat], axis=1)
+        if "snapshot_mtf_patterns" in args.feature_arms:
+            val_arms["snapshot_mtf_patterns"] = np.concatenate([val_snapshot, val_mtf, val_pat], axis=1)
+        val_cross = None
+        if needs_cross:
+            val_cross, _, val_cross_valid, _ = load_cross_asset_block(daily_path, h1_path, val_dataset.time)
+            val_arm_valid = {arm: val_cross_valid for arm in ("snapshot_cross", "snapshot_mtf_cross") if arm in args.feature_arms}
+        if "snapshot_cross" in args.feature_arms:
+            val_arms["snapshot_cross"] = np.concatenate([val_snapshot, val_cross], axis=1)
+        if "snapshot_mtf_cross" in args.feature_arms:
+            val_arms["snapshot_mtf_cross"] = np.concatenate([val_snapshot, val_mtf, val_cross], axis=1)
+        del val_mtf, val_pat, val_cross
     month_sign = month_drift_sign(tape)
     predictions_dir = out_dir / "predictions"
     if args.persist_predictions:
@@ -703,6 +1008,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 X_hold_all = X
                 hold_time = dataset.time
                 hold_atr = atr
+            ood_distance: dict[str, np.ndarray] | None = None
+            if args.persist_predictions and pending:
+                # label-free distance of every holdout row from the stage's fit-period distribution (all rows before
+                # the holdout start, a chronological prefix; the horizon purge is irrelevant to column statistics)
+                fit_region = np.asarray(dataset.time < fold.holdout_start, dtype=bool)
+                n_fit_region = int(fit_region.sum())
+                if not (fit_region[:n_fit_region].all() and not fit_region[n_fit_region:].any()):
+                    raise RuntimeError("WALKFORWARD_FIT_REGION_NOT_PREFIX")
+                distance_groups = {g: idx for g, idx in column_groups_by_arm[arm].items() if g in OOD_DISTANCE_GROUPS}
+                fit_valid = arm_valid[arm][:n_fit_region] if arm in arm_valid else None
+                ood_distance = standardized_abs_z_mean(X[:n_fit_region], X_hold_all, distance_groups, fit_valid=fit_valid)
             ridge_gram: RidgeGram | None = None
             for target_name, scaling, learner, seed in pending:
                 long_y, short_y, valid_y, horizon = targets[target_name]
@@ -714,8 +1030,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 cache = per_config_dir / f"{key}.json"
                 fit_mask = base_fit_mask & valid_y
                 holdout_mask = base_holdout_mask & hold_valid
-                if stage_kind == "fold" and fold.holdout_end < train_end_exclusive:
-                    next_first = int(positions[np.asarray(dataset.time >= fold.holdout_end, dtype=bool)].min())
+                if arm in arm_valid:
+                    fit_mask &= arm_valid[arm]
+                    holdout_mask &= (val_arm_valid[arm] if stage_kind == "final_val" else arm_valid[arm])
+                if stage_kind == "fold":
+                    # A fold holdout may never label a row with prices beyond its own end: the next
+                    # fold's first TRAIN row, or (for the last fold) the first tape row at/after the
+                    # TRAIN split end when the tape extends into VAL for the confirmation stage.
+                    if fold.holdout_end < train_end_exclusive:
+                        next_first = int(positions[np.asarray(dataset.time >= fold.holdout_end, dtype=bool)].min())
+                    else:
+                        next_first = int(tape.time.searchsorted(train_end_exclusive, side="left"))
                     holdout_mask &= (positions + int(horizon)) < next_first
                 y_scale_fit = atr[fit_mask] if scaling == "atr" else np.ones(int(fit_mask.sum()))
                 y_scale_hold = hold_atr[holdout_mask] if scaling == "atr" else np.ones(int(holdout_mask.sum()))
@@ -738,15 +1063,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     fit_info[side_name] = info
                 rows_for_key: list[dict[str, Any]] = []
                 if args.persist_predictions:
-                    pd.DataFrame(
-                        {
-                            "time": hold_time[holdout_mask],
-                            "pred_long_bps": preds["long"],
-                            "pred_short_bps": preds["short"],
-                            RESEARCH_LONG_OUTCOME_COLUMN: hold_long[holdout_mask],
-                            RESEARCH_SHORT_OUTCOME_COLUMN: hold_short[holdout_mask],
-                        }
-                    ).to_parquet(predictions_dir / f"{key}.parquet", index=False)
+                    persisted = {
+                        "time": hold_time[holdout_mask],
+                        "pred_long_bps": preds["long"],
+                        "pred_short_bps": preds["short"],
+                        RESEARCH_LONG_OUTCOME_COLUMN: hold_long[holdout_mask],
+                        RESEARCH_SHORT_OUTCOME_COLUMN: hold_short[holdout_mask],
+                    }
+                    if ood_distance is not None:
+                        for group, values in ood_distance.items():
+                            persisted[OOD_DISTANCE_COLUMNS[group]] = values[holdout_mask]
+                    pd.DataFrame(persisted).to_parquet(predictions_dir / f"{key}.parquet", index=False)
                 for rule in args.decision_rules:
                     side, score, contrast = decisions(preds["long"], preds["short"], rule)
                     frame = pd.DataFrame(
@@ -773,6 +1100,74 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         ),
                     }
                     rows_for_key.extend(evaluate_frame(frame, fold=fold, month_sign=month_sign, meta=meta))
+                if learner == "ridge" and ablation_groups.get(arm) and ridge_gram is not None:
+                    full_by_rule = {r: {(row["top_frac"]): row for row in rows_for_key if row["decision_rule"] == r} for r in args.decision_rules}
+                    all_cols = np.arange(X.shape[1])
+                    null_draws = int(args.ablation_null_draws)
+                    null_rng = np.random.default_rng(int(seed) * 100003 + int(fold.index))
+                    hold_long_rows = hold_long[holdout_mask]
+                    hold_short_rows = hold_short[holdout_mask]
+                    for group_name, drop in ablation_groups[arm].items():
+                        keep = np.setdiff1d(all_cols, drop)
+                        abl_preds: dict[str, np.ndarray] = {}
+                        for side_name, y_all in (("long", long_y), ("short", short_y)):
+                            pred, _ = ridge_gram.fit_predict(y_all[fit_mask] / y_scale_fit, keep=keep)
+                            abl_preds[side_name] = pred * y_scale_hold
+                        group_rows: list[dict[str, Any]] = []
+                        for rule in args.decision_rules:
+                            side, score, contrast = decisions(abl_preds["long"], abl_preds["short"], rule)
+                            frame = pd.DataFrame(
+                                {
+                                    "split": f"fold{fold.index}" if stage_kind == "fold" else "final_val",
+                                    "model": f"{key}__{rule}__ablate_{group_name}",
+                                    "time": hold_time[holdout_mask],
+                                    "pred_direction": side,
+                                    "selection_score": score,
+                                    "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
+                                    "edge_score": contrast,
+                                    RESEARCH_LONG_OUTCOME_COLUMN: hold_long_rows,
+                                    RESEARCH_SHORT_OUTCOME_COLUMN: hold_short_rows,
+                                }
+                            )
+                            meta = {
+                                "target": target_name, "horizon_bars": int(horizon), "feature_arm": arm,
+                                "target_scaling": scaling, "learner": learner, "seed": int(seed), "decision_rule": rule,
+                                "fit_rows": int(fit_mask.sum()), "stage": stage_kind, "ablation_group": group_name,
+                                "ablated_columns": int(len(drop)), "outcome_definition": "ablation of one owner-mapped group; same rows and nulls as the full fit",
+                            }
+                            for row in evaluate_frame(frame, fold=fold, month_sign=month_sign, meta=meta):
+                                full = full_by_rule[rule].get(row["top_frac"])
+                                if full is not None and full.get("mean_pnl_bps") is not None and row.get("mean_pnl_bps") is not None:
+                                    row["delta_mean_pnl_bps_vs_full"] = float(row["mean_pnl_bps"] - full["mean_pnl_bps"])
+                                group_rows.append(row)
+                        if null_draws > 0 and 0 < len(drop) < X.shape[1]:
+                            # cardinality-matched null (fidelity review 2026-09-21, F-6): drop the same NUMBER of
+                            # columns drawn at random, refit at the full fit's selected alpha, same selection rule
+                            null_deltas: dict[str, dict[float, list[float]]] = {r: {float(tf): [] for tf in EVALUATION_COVERAGES} for r in args.decision_rules}
+                            for _ in range(null_draws):
+                                random_keep = np.setdiff1d(all_cols, null_rng.choice(X.shape[1], size=len(drop), replace=False))
+                                null_preds: dict[str, np.ndarray] = {}
+                                for side_name, y_all in (("long", long_y), ("short", short_y)):
+                                    pred, _ = ridge_gram.fit_predict(y_all[fit_mask] / y_scale_fit, keep=random_keep, alpha=float(fit_info[side_name]["alpha"]))
+                                    null_preds[side_name] = pred * y_scale_hold
+                                for rule in args.decision_rules:
+                                    side, score, _ = decisions(null_preds["long"], null_preds["short"], rule)
+                                    means = selected_mean_pnl_by_coverage(side, score, hold_long_rows, hold_short_rows, EVALUATION_COVERAGES)
+                                    for top_frac, mean_pnl in means.items():
+                                        full = full_by_rule[rule].get(top_frac)
+                                        if mean_pnl is not None and full is not None and full.get("mean_pnl_bps") is not None:
+                                            null_deltas[rule][top_frac].append(mean_pnl - float(full["mean_pnl_bps"]))
+                            for row in group_rows:
+                                deltas = null_deltas[row["decision_rule"]].get(float(row["top_frac"]), [])
+                                if len(deltas) == null_draws and "delta_mean_pnl_bps_vs_full" in row:
+                                    p05, p95 = float(np.percentile(deltas, 5.0)), float(np.percentile(deltas, 95.0))
+                                    row["ablation_null_draws"] = null_draws
+                                    row["ablation_null_delta_mean_bps"] = float(np.mean(deltas))
+                                    row["ablation_null_delta_p05_bps"] = p05
+                                    row["ablation_null_delta_p95_bps"] = p95
+                                    row["ablation_delta_below_null_p05"] = bool(row["delta_mean_pnl_bps_vs_full"] < p05)
+                                    row["ablation_delta_above_null_p95"] = bool(row["delta_mean_pnl_bps_vs_full"] > p95)
+                        rows_for_key.extend(group_rows)
                 fit_record = {"key": key, **fit_info, "fit_rows": int(fit_mask.sum()), "holdout_rows": int(holdout_mask.sum())}
                 cache.write_text(json.dumps({"rows": rows_for_key, "fit": fit_record}, default=_json_default), encoding="utf-8")
                 all_rows.extend(rows_for_key)
@@ -781,6 +1176,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             del ridge_gram
 
     metrics = pd.DataFrame(all_rows)
+    if "ablation_group" not in metrics.columns:
+        metrics = metrics.assign(ablation_group="none")
+    metrics = metrics.assign(ablation_group=metrics["ablation_group"].fillna("none"))
     metrics.to_csv(out_dir / "metrics.csv", index=False)
     summary = summarize(metrics)
     report = {
@@ -822,6 +1220,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "final_holdout": final_holdout,
             "final_holdout_rows": int(len(val_dataset.time)) if val_dataset is not None else 0,
             "persist_predictions": bool(args.persist_predictions),
+            "ablation": str(args.ablation),
+            "ablation_null_draws": int(args.ablation_null_draws),
+            "ablation_groups": {arm: {g: int(len(idx)) for g, idx in groups.items()} for arm, groups in ablation_groups.items()},
+            "pattern_primitives": pattern_report,
+            "cross_asset": cross_report,
+            "arm_valid_rows": {arm: int(v.sum()) for arm, v in arm_valid.items()},
+            "val_arm_valid_rows": {arm: int(v.sum()) for arm, v in val_arm_valid.items()},
         },
         "fits": fit_reports,
         "summary": summary,
@@ -835,7 +1240,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def summarize(metrics: pd.DataFrame) -> list[dict[str, Any]]:
     if metrics.empty:
         return []
-    group_keys = ["stage", "target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule", "top_frac"]
+    group_keys = ["stage", "target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule", "ablation_group", "top_frac"]
     out: list[dict[str, Any]] = []
     for keys, g in metrics.groupby(group_keys, sort=True):
         valid = g[g["mean_pnl_bps"].notna()]
@@ -865,14 +1270,14 @@ def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
         "",
         "strict_pass = preregistered primary_pass (excess over coin flip > 2 HAC SE AND mean > circular-shift p95) AND mean_pnl_bps > 0.",
         "",
-        "| stage | target | h | arm | scaling | learner | rule | cov | folds×seeds | mean bps | min bps | excess | primary | strict | hit | p_long | n |",
-        "|---|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| stage | target | h | arm | scaling | learner | rule | ablation | cov | folds×seeds | mean bps | min bps | excess | primary | strict | hit | p_long | n |",
+        "|---|---|---:|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for s in report["summary"]:
         def f(v: Any, nd: int = 2) -> str:
             return "" if v is None else f"{v:.{nd}f}"
         lines.append(
-            f"| {s['stage']} | {s['target']} | {s['horizon_bars']} | {s['feature_arm']} | {s['target_scaling']} | {s['learner']} | {s['decision_rule']} | "
+            f"| {s['stage']} | {s['target']} | {s['horizon_bars']} | {s['feature_arm']} | {s['target_scaling']} | {s['learner']} | {s['decision_rule']} | {s['ablation_group']} | "
             f"{s['top_frac']:.2f} | {s['fold_seed_rows']} | {f(s['mean_pnl_bps_avg'])} | {f(s['mean_pnl_bps_min'])} | {f(s['excess_over_coin_avg'])} | "
             f"{s['primary_pass_count']} | {s['strict_pass_count']} | {f(s['hit_rate_avg'],3)} | {f(s['p_long_chosen_avg'],3)} | {f(s['n_avg'],0)} |"
         )
@@ -900,6 +1305,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--targets", nargs="*", default=None, help="restrict to these target names (default: knee + every --horizons target)")
     parser.add_argument("--final-holdout", choices=["none", "val"], default="none", help="val: add a confirmation stage fitted on all TRAIN (purged) and evaluated on the VAL split")
     parser.add_argument("--persist-predictions", action="store_true", help="write per-row holdout predictions per config under out-dir/predictions")
+    parser.add_argument("--pattern-primitives-parquet", default=None, help="research pattern primitives aligned by time (enables the *_patterns arms)")
+    parser.add_argument("--cross-asset-daily-parquet", default=None, help="recovered daily macro log-level table ({dxy,tnx,vix,realyld}_lvl, UTC date index) for the *_cross arms")
+    parser.add_argument("--cross-asset-h1-parquet", default=None, help="recovered USD_JPY H1 bars (time, close, bid_close, ask_close) for the *_cross arms")
+    parser.add_argument("--ablation", choices=list(ABLATION_MODES), default="none", help="ridge-only owner-mapped group ablations: families, lanes or all")
+    parser.add_argument("--ablation-null-draws", type=int, default=0, help="cardinality-matched random-column null draws per ablated group (0 = none); explicit research input")
     return parser
 
 

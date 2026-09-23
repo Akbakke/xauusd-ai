@@ -270,7 +270,8 @@ def test_run_end_to_end_with_final_val_stage(tmp_path: Path) -> None:
     preds = sorted((out_dir / "predictions").glob("*.parquet"))
     assert len(preds) == 2 * 2 * 3
     frame = pd.read_parquet(preds[0])
-    assert {"time", "pred_long_bps", "pred_short_bps", RESEARCH_LONG_OUTCOME_COLUMN, RESEARCH_SHORT_OUTCOME_COLUMN} <= set(frame.columns)
+    assert {"time", "pred_long_bps", "pred_short_bps", RESEARCH_LONG_OUTCOME_COLUMN, RESEARCH_SHORT_OUTCOME_COLUMN, "ood_abs_z_mean"} <= set(frame.columns)
+    assert "ood_abs_z_mean_mtf" not in frame.columns and np.isfinite(frame["ood_abs_z_mean"]).all() and (frame["ood_abs_z_mean"] > 0).all()
     assert (out_dir / "summary.md").read_text(encoding="utf-8").startswith("# Entry direction walk-forward research")
 
 
@@ -283,3 +284,271 @@ def test_fit_hgb_honours_explicit_inputs_and_reports_them() -> None:
     assert info["learning_rate"] == 0.03 and info["min_samples_leaf"] == 50
     args = wf.build_parser().parse_args(["--dataset-dir", "d", "--native-m5-root", "m", "--out-dir", "o", "--fold-boundaries", "x", "--horizons", "1", "--inner-fraction", "0.2", "--max-hgb-iter", "3"])
     assert args.hgb_learning_rate == wf.HGB_LIBRARY_DEFAULT_LEARNING_RATE and args.hgb_min_samples_leaf == wf.HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF
+
+
+def test_ridge_gram_keep_subset_equals_fresh_fit_on_subset_columns() -> None:
+    rng = np.random.default_rng(11)
+    n, p = 3000, 9
+    X = rng.normal(size=(n, p)).astype(np.float32)
+    y = X[:, :4] @ rng.normal(size=4) + rng.normal(scale=0.5, size=n)
+    X_pred = rng.normal(size=(200, p)).astype(np.float32)
+    keep = np.array([0, 1, 2, 3, 6], dtype=np.int64)
+    full = wf.RidgeGram(X, X_pred, inner_fraction=0.2)
+    pred_sub, info_sub = full.fit_predict(y, keep=keep)
+    fresh = wf.RidgeGram(X[:, keep], X_pred[:, keep], inner_fraction=0.2)
+    pred_ref, info_ref = fresh.fit_predict(y)
+    assert info_sub["alpha"] == info_ref["alpha"] and info_sub["columns"] == 5
+    assert np.allclose(pred_sub, pred_ref, rtol=1e-5, atol=1e-5)
+    pred_all, info_all = full.fit_predict(y)
+    assert info_all["columns"] == p and not np.allclose(pred_all, pred_sub)
+
+
+def test_feature_column_groups_map_through_owners() -> None:
+    from gx1.features.entry_specialist_feature_groups_v1 import MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4
+
+    swing_field = str(next(iter(MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4["structure_swing_encoder"])))
+    trend_field = str(next(iter(MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4["trend_ema_encoder"])))
+    names = (
+        "f0", "ctx_cont.atr_bps", "session_id==0", "session_id==1",
+        f"H1:{swing_field}", f"H4:{swing_field}", f"H1:{trend_field}", "pattern:M5:fvg_bull_event", "pattern:H4:ema_stack",
+    )
+    groups = wf.feature_column_groups(names)
+    assert groups["family:unmapped"].tolist() == [0]
+    assert groups["family:vol_compression_encoder"].tolist() == [1]
+    assert groups["ctx_cat"].tolist() == [2, 3]
+    assert groups["mtf_lane:H1"].tolist() == [4, 6] and groups["mtf_lane:H4"].tolist() == [5]
+    assert groups["mtf_family:structure_swing_encoder"].tolist() == [4, 5]
+    assert groups["mtf_family:trend_ema_encoder"].tolist() == [6]
+    assert groups["patterns:M5"].tolist() == [7] and groups["patterns:H4"].tolist() == [8]
+    assert groups["patterns:all"].tolist() == [7, 8] and groups["mtf_lane:all"].tolist() == [4, 5, 6]
+    # every column lands in at least one group and the family/lane partitions each cover the MTF columns once
+    covered = sorted(set(int(i) for idx in groups.values() for i in idx))
+    assert covered == list(range(len(names)))
+
+
+def test_evaluate_frame_reports_best_constant_side_null() -> None:
+    n = 3000  # above the circular-null draw count so the owner null is computable
+    rng = np.random.default_rng(4)
+    long_out = rng.normal(5.0, 1.0, n)  # LONG always better on these rows
+    short_out = -long_out - 3.0
+    time = pd.date_range("2024-01-01T00:00:00Z", periods=n, freq="5min")
+    side = np.where(np.arange(n) % 2 == 0, MODEL_DIRECTION_LONG_INDEX, MODEL_DIRECTION_SHORT_INDEX)
+    frame = pd.DataFrame(
+        {
+            "split": "fold0", "model": "m", "time": time, "pred_direction": side, "selection_score": np.ones(n),
+            "selection_score_mode": wf.MODEL_DIRECTION_SELECTION_MODE, "edge_score": np.ones(n),
+            RESEARCH_LONG_OUTCOME_COLUMN: long_out, RESEARCH_SHORT_OUTCOME_COLUMN: short_out,
+        }
+    )
+    fold = wf.Fold(index=0, fit_start=time[0], holdout_start=time[0], holdout_end=time[-1] + pd.Timedelta(minutes=5))
+    month_sign = wf.month_drift_sign(wf.Tape(time=pd.DatetimeIndex(time), mid=np.ones(n), bid=np.ones(n), ask=np.ones(n), manifest_sha256="0" * 64, root="synthetic"))
+    rows = [r for r in wf.evaluate_frame(frame, fold=fold, month_sign=month_sign, meta={}) if r["top_frac"] == 1.0]
+    assert len(rows) == 1
+    row = rows[0]
+    # half LONG / half SHORT on rows where LONG always wins: always-LONG is the best constant and beats the mixed policy
+    assert row["best_constant_side_mean_pnl_bps"] == pytest.approx(float(np.mean(long_out)))
+    assert row["excess_over_best_constant_bps"] < 0 and row["beats_best_constant"] is False
+
+
+def test_load_pattern_primitives_aligns_by_time_and_fails_closed(tmp_path: Path) -> None:
+    time = pd.date_range("2024-01-01T00:00:00Z", periods=50, freq="5min")
+    prim = pd.DataFrame({"time": time, "M5:x": np.arange(50, dtype=float), "H1:y": np.ones(50)})
+    path = tmp_path / "pattern_primitives.parquet"
+    prim.to_parquet(path, index=False)
+    matrix, names, report = wf.load_pattern_primitives(path, pd.DatetimeIndex(time[10:20]))
+    assert names == ("pattern:M5:x", "pattern:H1:y") and matrix.shape == (10, 2) and matrix[:, 0].tolist() == list(range(10, 20))
+    assert report["columns"] == 2 and len(report["sha256"]) == 64
+    with pytest.raises(RuntimeError, match="WALKFORWARD_PATTERN_ROWS_MISSING"):
+        wf.load_pattern_primitives(path, pd.DatetimeIndex([time[-1] + pd.Timedelta(minutes=5)]))
+
+
+def test_run_end_to_end_with_pattern_arm_and_ablation(tmp_path: Path) -> None:
+    ds_dir, tape_dir = _write_synthetic_dataset_and_tape(tmp_path, train_rows=4000, val_rows=400, seed=9)
+    rows = 4400
+    time = pd.date_range("2024-01-01T00:00:00Z", periods=rows, freq="5min")
+    rng = np.random.default_rng(1)
+    prim = pd.DataFrame({"time": time, "M5:fvg_bull_event": (rng.uniform(size=rows) < 0.05).astype(float), "H4:ema_stack": rng.choice([-1.0, 0.0, 1.0], size=rows)})
+    prim_path = tmp_path / "pattern_primitives.parquet"
+    prim.to_parquet(prim_path, index=False)
+    out_dir = tmp_path / "out"
+    args = wf.build_parser().parse_args(
+        [
+            "--dataset-dir", str(ds_dir), "--native-m5-root", str(tape_dir), "--out-dir", str(out_dir),
+            "--fold-boundaries", "2024-01-08T00:00:00Z", "2024-01-14T21:20:00Z",
+            "--horizons", "12", "--learners", "ridge", "--feature-arms", "snapshot_patterns", "--target-scalings", "raw",
+            "--inner-fraction", "0.2", "--max-hgb-iter", "5", "--final-holdout", "val", "--decision-rules", "argmax_flat",
+            "--targets", "exec_close_h12", "--pattern-primitives-parquet", str(prim_path), "--ablation", "all", "--persist-predictions",
+            "--ablation-null-draws", "3",
+        ]
+    )
+    report = wf.run(args)
+    persisted = pd.read_parquet(sorted((out_dir / "predictions").glob("*.parquet"))[0])
+    assert {"ood_abs_z_mean", "ood_abs_z_mean_patterns"} <= set(persisted.columns) and "ood_abs_z_mean_mtf" not in persisted.columns
+    groups = report["config"]["ablation_groups"]["snapshot_patterns"]
+    assert groups["patterns:M5"] == 1 and groups["patterns:H4"] == 1 and groups["patterns:all"] == 2 and groups["ctx_cat"] >= 1 and "family:unmapped" in groups
+    assert report["config"]["pattern_primitives"]["columns"] == 2
+    metrics = pd.read_csv(out_dir / "metrics.csv")
+    assert set(metrics["ablation_group"]) == set(groups) | {"none"}
+    full = metrics[metrics["ablation_group"] == "none"]
+    ablated = metrics[metrics["ablation_group"] != "none"]
+    # one full row per (stage-split, coverage) and one ablated row per group for each of them
+    assert len(full) == (1 + 1) * 7 and len(ablated) == len(groups) * len(full)
+    merged = ablated.merge(full[["split", "top_frac", "mean_pnl_bps"]], on=["split", "top_frac"], suffixes=("", "_full"))
+    measurable = merged["mean_pnl_bps"].notna() & merged["mean_pnl_bps_full"].notna()
+    # the delta exists exactly where both the full and the ablated cell carry a measurement (rule 2e: no placeholder)
+    assert measurable.any() and (merged["delta_mean_pnl_bps_vs_full"].notna() == measurable).all()
+    assert np.allclose(merged.loc[measurable, "delta_mean_pnl_bps_vs_full"], merged.loc[measurable, "mean_pnl_bps"] - merged.loc[measurable, "mean_pnl_bps_full"])
+    assert {"best_constant_side_mean_pnl_bps", "excess_over_best_constant_bps", "beats_best_constant"} <= set(metrics.columns)
+    nulls = ablated[ablated["ablation_null_draws"].notna()]
+    assert len(nulls) > 0 and (nulls["ablation_null_draws"] == 3).all()
+    assert (nulls["ablation_null_delta_p05_bps"] <= nulls["ablation_null_delta_p95_bps"]).all()
+    assert report["config"]["ablation_null_draws"] == 3
+    summary = (out_dir / "summary.md").read_text(encoding="utf-8")
+    assert "| ablation |" in summary
+
+
+def test_fold_stage_identical_with_and_without_final_holdout(tmp_path: Path) -> None:
+    ds_dir, tape_dir = _write_synthetic_dataset_and_tape(tmp_path, train_rows=6000, val_rows=800)
+    common = [
+        "--dataset-dir", str(ds_dir), "--native-m5-root", str(tape_dir),
+        "--fold-boundaries", "2024-01-11T00:00:00Z", "2024-01-16T00:00:00Z", "2024-01-21T20:00:00Z",
+        "--horizons", "96", "--learners", "ridge", "--feature-arms", "snapshot", "--target-scalings", "raw",
+        "--inner-fraction", "0.2", "--max-hgb-iter", "5", "--decision-rules", "argmax_flat",
+    ]
+    wf.run(wf.build_parser().parse_args(common + ["--out-dir", str(tmp_path / "a"), "--final-holdout", "none"]))
+    wf.run(wf.build_parser().parse_args(common + ["--out-dir", str(tmp_path / "b"), "--final-holdout", "val"]))
+    a = pd.read_csv(tmp_path / "a" / "metrics.csv").sort_values(["model", "top_frac"]).reset_index(drop=True)
+    b = pd.read_csv(tmp_path / "b" / "metrics.csv")
+    b = b[b["stage"] == "fold"].sort_values(["model", "top_frac"]).reset_index(drop=True)
+    assert len(a) == len(b) and (a["holdout_rows"].to_numpy() == b["holdout_rows"].to_numpy()).all()
+    assert np.allclose(a["mean_pnl_bps"].fillna(0).to_numpy(), b["mean_pnl_bps"].fillna(0).to_numpy())
+
+
+def test_standardized_abs_z_mean_matches_dense_reference() -> None:
+    rng = np.random.default_rng(21)
+    X_fit = (rng.normal(size=(3000, 6)) * np.array([1, 2, 3, 4, 5, 6]) + 10).astype(np.float32)
+    X_fit[:, 5] = 1.0  # constant column: std 0 -> treated as 1
+    X_hold = rng.normal(size=(700, 6)).astype(np.float32)
+    monkey = wf.GRAM_CHUNK_ROWS
+    wf.GRAM_CHUNK_ROWS = 256
+    try:
+        out = wf.standardized_abs_z_mean(X_fit, X_hold, {"g": np.array([0, 2], dtype=np.int64)})
+    finally:
+        wf.GRAM_CHUNK_ROWS = monkey
+    mean = X_fit.astype(np.float64).mean(axis=0)
+    std = X_fit.astype(np.float64).std(axis=0)
+    std[std == 0] = 1.0
+    z = np.abs((X_hold.astype(np.float64) - mean) / std)
+    assert np.allclose(out["all"], z.mean(axis=1), rtol=1e-5, atol=1e-5)
+    assert np.allclose(out["g"], z[:, [0, 2]].mean(axis=1), rtol=1e-5, atol=1e-5)
+    with pytest.raises(RuntimeError, match="WALKFORWARD_OOD_DISTANCE_INPUT_INVALID"):
+        wf.standardized_abs_z_mean(X_fit[:0], X_hold, {})
+
+
+def test_selected_mean_pnl_by_coverage_matches_evaluate_frame() -> None:
+    n = 2500
+    rng = np.random.default_rng(8)
+    long_out = rng.normal(0.0, 30.0, n)
+    short_out = -long_out - 3.0
+    score = rng.normal(size=n)
+    score[::7] = score[0]  # ties are broken by time order in both implementations
+    side = np.where(rng.uniform(size=n) < 0.2, MODEL_DIRECTION_FLAT_INDEX, np.where(score > 0, MODEL_DIRECTION_LONG_INDEX, MODEL_DIRECTION_SHORT_INDEX))
+    time = pd.date_range("2024-01-01T00:00:00Z", periods=n, freq="5min")
+    frame = pd.DataFrame(
+        {
+            "split": "fold0", "model": "m", "time": time, "pred_direction": side, "selection_score": score,
+            "selection_score_mode": wf.MODEL_DIRECTION_SELECTION_MODE, "edge_score": score,
+            RESEARCH_LONG_OUTCOME_COLUMN: long_out, RESEARCH_SHORT_OUTCOME_COLUMN: short_out,
+        }
+    )
+    fold = wf.Fold(index=0, fit_start=time[0], holdout_start=time[0], holdout_end=time[-1] + pd.Timedelta(minutes=5))
+    month_sign = wf.month_drift_sign(wf.Tape(time=pd.DatetimeIndex(time), mid=np.ones(n), bid=np.ones(n), ask=np.ones(n), manifest_sha256="0" * 64, root="synthetic"))
+    rows = {r["top_frac"]: r for r in wf.evaluate_frame(frame, fold=fold, month_sign=month_sign, meta={})}
+    light = wf.selected_mean_pnl_by_coverage(side, score, long_out, short_out, wf.EVALUATION_COVERAGES)
+    assert any(v is None for v in light.values()) and any(v is not None for v in light.values())
+    for top_frac, mean_pnl in light.items():
+        if "mean_pnl_bps" in rows[top_frac]:
+            assert mean_pnl == pytest.approx(rows[top_frac]["mean_pnl_bps"])
+        else:
+            assert mean_pnl is None
+
+
+def test_ridge_gram_fixed_alpha_matches_grid_choice() -> None:
+    rng = np.random.default_rng(5)
+    X = rng.normal(size=(2000, 5)).astype(np.float32)
+    y = X[:, 0] * 2 + rng.normal(scale=0.3, size=2000)
+    X_pred = rng.normal(size=(100, 5)).astype(np.float32)
+    gram = wf.RidgeGram(X, X_pred, inner_fraction=0.2)
+    pred, info = gram.fit_predict(y)
+    pred_fixed, info_fixed = gram.fit_predict(y, alpha=info["alpha"])
+    assert info_fixed["inner_val_mse"] is None and info_fixed["alpha"] == info["alpha"]
+    assert np.allclose(pred, pred_fixed)
+
+
+def _write_cross_fixtures(root: Path, time: pd.DatetimeIndex, *, daily_end: pd.Timestamp, h1_end: pd.Timestamp) -> tuple[Path, Path]:
+    rng = np.random.default_rng(3)
+    days = pd.date_range((time[0] - pd.Timedelta(days=120)).floor("D"), daily_end.floor("D"), freq="D", tz="UTC")
+    daily = pd.DataFrame({f"{inst}_lvl": np.cumsum(rng.normal(0, 0.01, len(days))) + 4.5 for inst in wf.CROSS_DAILY_INSTRUMENTS}, index=days)
+    daily_path = root / "macro_features.parquet"
+    daily.to_parquet(daily_path)
+    hours = pd.date_range((time[0] - pd.Timedelta(days=10)).floor("h"), h1_end.floor("h"), freq="1h", tz="UTC")
+    close = 150.0 + np.cumsum(rng.normal(0, 0.05, len(hours)))
+    h1 = pd.DataFrame({"time": hours, "close": close, "bid_close": close - 0.01, "ask_close": close + 0.01})
+    h1_path = root / "USD_JPY_H1.parquet"
+    h1.to_parquet(h1_path, index=False)
+    return daily_path, h1_path
+
+
+def test_cross_asset_block_daily_lag_h1_cutoff_and_validity(tmp_path: Path) -> None:
+    time = pd.DatetimeIndex(pd.date_range("2024-03-01T00:00:00Z", periods=3000, freq="5min"))
+    daily_path, h1_path = _write_cross_fixtures(tmp_path, time, daily_end=pd.Timestamp("2024-03-06T00:00:00Z"), h1_end=pd.Timestamp("2024-03-05T12:00:00Z"))
+    matrix, names, valid, report = wf.load_cross_asset_block(daily_path, h1_path, time)
+    daily = pd.read_parquet(daily_path)
+    assert matrix.shape == (3000, len(names)) and np.isfinite(matrix).all()
+    # decision on 2024-03-03 (any hour) uses the row dated 2024-03-02: chg1d = lvl[03-02] - lvl[03-01]
+    i = int(np.flatnonzero(time == pd.Timestamp("2024-03-03T15:00:00Z"))[0])
+    col = names.index("cross:daily:dxy_chg1d")
+    expected = float(daily.loc["2024-03-02", "dxy_lvl"] - daily.loc["2024-03-01", "dxy_lvl"])
+    assert matrix[i, col] == pytest.approx(expected, rel=1e-5) and valid[i]
+    # H1: decision 10:55 -> cutoff 10:00 -> bar labelled 10:00 (closing 11:00); ret1 = log(close[10:00]) - log(close[09:00])
+    j = int(np.flatnonzero(time == pd.Timestamp("2024-03-02T10:55:00Z"))[0])
+    h1 = pd.read_parquet(h1_path).set_index("time")
+    r1 = float(np.log(h1.loc["2024-03-02T10:00:00Z", "close"]) - np.log(h1.loc["2024-03-02T09:00:00Z", "close"]))
+    assert matrix[j, names.index("cross:usdjpy_h1:ret1")] == pytest.approx(r1, rel=1e-5) and valid[j]
+    # after the H1 series ends (+72 h staleness) rows are invalid; after the daily series ends (+1 day lag) too
+    assert not valid[time > pd.Timestamp("2024-03-08T13:00:00Z")].any()
+    assert valid[time == pd.Timestamp("2024-03-05T12:00:00Z")].all()
+    assert report["daily"]["invalid_decision_rows"] + report["daily"]["valid_decision_rows"] == 3000
+    assert report["invalid_decision_rows"] == int((~valid).sum())
+    with pytest.raises(RuntimeError, match="WALKFORWARD_CROSS_ARM_REQUIRES_INPUT"):
+        wf.load_cross_asset_block(None, None, time)
+
+
+def test_run_end_to_end_cross_arm_drops_invalid_rows(tmp_path: Path) -> None:
+    ds_dir, tape_dir = _write_synthetic_dataset_and_tape(tmp_path, train_rows=4000, val_rows=1200, seed=13)  # VAL stays above the circular-null minimum after the drop
+    time = pd.DatetimeIndex(pd.date_range("2024-01-01T00:00:00Z", periods=5200, freq="5min"))
+    # daily series ends two days before the VAL end (TRAIN ends earlier and stays fully valid), H1 covers everything:
+    # VAL loses its last calendar day through the one-day lag
+    daily_path, h1_path = _write_cross_fixtures(tmp_path, time, daily_end=time[-1] - pd.Timedelta(days=2), h1_end=time[-1] + pd.Timedelta(hours=2))
+    out_dir = tmp_path / "out"
+    args = wf.build_parser().parse_args(
+        [
+            "--dataset-dir", str(ds_dir), "--native-m5-root", str(tape_dir), "--out-dir", str(out_dir),
+            "--fold-boundaries", "2024-01-08T00:00:00Z", "2024-01-14T21:20:00Z",
+            "--horizons", "12", "--learners", "ridge", "--feature-arms", "snapshot_cross", "--target-scalings", "raw",
+            "--inner-fraction", "0.2", "--max-hgb-iter", "5", "--final-holdout", "val", "--decision-rules", "argmax_flat",
+            "--targets", "exec_close_h12", "--cross-asset-daily-parquet", str(daily_path), "--cross-asset-h1-parquet", str(h1_path),
+            "--ablation", "cross", "--persist-predictions",
+        ]
+    )
+    report = wf.run(args)
+    groups = report["config"]["ablation_groups"]["snapshot_cross"]
+    assert set(groups) == {"cross:daily", "cross:usdjpy_h1", "cross:all"}
+    assert report["config"]["arm_valid_rows"]["snapshot_cross"] == 4000
+    assert 0 < report["config"]["val_arm_valid_rows"]["snapshot_cross"] < 1200
+    metrics = pd.read_csv(out_dir / "metrics.csv")
+    final = metrics[(metrics["stage"] == "final_val") & (metrics["ablation_group"] == "none")]
+    assert (final["holdout_rows"] == report["config"]["val_arm_valid_rows"]["snapshot_cross"]).all()
+    assert (metrics[metrics["ablation_group"] != "none"]["ablation_group"].isin(set(groups))).all()
+    persisted = pd.read_parquet(sorted((out_dir / "predictions").glob("*.parquet"))[-1])  # highest fold index = the final_val stage
+    assert len(persisted) == report["config"]["val_arm_valid_rows"]["snapshot_cross"] and np.isfinite(persisted["ood_abs_z_mean"]).all()

@@ -213,35 +213,167 @@ rad med to signifikante år; den er valgt blant ~190 celler og må bekreftes av
 en annen lærer (HGB, run2/run3) og av en uberørt bekreftelsesmåned (VAL juni
 2026) før den kalles et funn.
 
-## 7. Plan for mål/tap-endringer i eksisterende eiere (Phase B)
+**Run4, ridge, begge armer, bekreftelsesstadium på VAL juni 2026 (5 509 rader,
+fit på 313 206 TRAIN-rader med purge), 120 konfigurasjoner, 734 s [M]**
+(`run4_ridge_both_arms_valconfirm/`, instrument-sha og HEAD `0ea7c00c` i
+rapporten). VAL ble aldri brukt av instrumentet før dette stadiet.
 
-Rekkefølge etter regel 22: instrumentet avgjør om og hvilken variant som bygges.
+- **Ingen celle bekreftes.** Alle 96 (target × arm × skalering × dekning)
+  har negativ snitt-bps ved 25/5/2/1 % dekning, unntatt tre støyceller
+  (h96 snapshot atr 2 % / 1 %: +24 / +28 bps, n 111 / 56, langt under
+  sirkulær-p95 76 / 87; h288 mtf raw 1 %: +76, p95 279).
+- Lommen fra fold-stadiet (h=12, `atr`, `snapshot_mtf`, 1 %) gir **−42,5 bps**
+  på 56 handler med **100 % LONG valgt** i en måned der p(opp) på 1 t er 0,461;
+  5 %: −22,4 bps, 95 % LONG. Snapshot-armen: −33,8 / −10,2 bps.
+- MTF-armen velger LONG på 70–100 % av de valgte radene i alle celler; treff på
+  realisert bedre side 0,14–0,48. Fold-stadiene reproduserer run1b bit-eksakt
+  for alle folds og targets unntatt fold 3 / h288 (192 ekstra holdout-rader ved
+  TRAIN-slutt får etiketter med juni-priser når tapen strekkes til VAL-slutt;
+  maks avvik 2,13 bps; rettes i instrumentet etter run3; ingen run3-target
+  er berørt).
 
-1. **Per-rad skalert Entry-tap** (`ENTRY_ACTION_Q_LOSS_ROW_SCALE=atr_bps|none`,
-   recipe-eier): `((q − y)/atr_bps)²` over gyldige celler. Ingen ny modellutgang,
-   ingen mål-omskriving; Q og argmax forblir i bps. Bygges hvis instrumentets
-   `atr`-arm slår `raw`-armen på strict_pass over folds.
-2. **Per-prøve lært log-varians** (Kendall per rad) som neste trinn hvis 1 gir
-   effekt: ny utgang `entry_action_q_log_variance` fra `entry_q_joint_hidden`,
-   modell-/output-skjema v11, movement-/serve-/runtime-kontrakter oppdateres.
-3. **Teacher-fri kontrollarm** for Entry-målet (research-profil, ingen bundle):
-   realisert verdi under deklarert fast exit (knee-etikettene) i stedet for
-   frossen lærer-bootstrap. Kontrakten `fixed_horizon_target_authority: False`
-   holder: armen er diagnostikk, ikke beslutningsautoritet.
-4. **Horisont**: dersom instrumentet viser edge først ved 4–8 t, deklareres
-   retningssupervisjon på den skalaen; M5-klokken velger tidspunkt/abstensjon.
-5. **Regime**: krav om tosidig edge (LONG- og SHORT-valgte delmengder hver for
-   seg) og opp-/ned-måned-skiver er allerede i instrumentet.
-6. **Dynamikk**: FLAT-absorberende seleksjon, min-epoker før patience — etter
-   1–4, fordi de ikke skaper signal, bare bevarer det.
+Lesning etter run4: den forhåndsregistrerte bekreftelsen refuterer alle
+lineære seleksjonslommer på V12-flaten. Det de fire TRAIN-årene «lærte» var
+drift og regime (2021–2026-bull pluss vol-eksplosjonen 2025–26), ikke en
+betinget retning; i første måned med motsatt fortegn gikk alle armer LONG og
+tapte. Dette er samme mekanisme som Q-målets drift-intercept i §2.
+
+### 6.2 Utvidelser 23.09 kveld (kilde-bevist, resultater i §6.3 når kjeden er ferdig)
+
+Operatørens innvending — «mange leser momentum, flagg, FVG, støtte/motstand;
+hvorfor gjør ikke vi det?» og «gå opp i tidsramme? sørg for at ingenting
+svever ubrukt» — er gjort til tre målbare spørsmål i samme instrumentfamilie:
+
+1. **Attribusjon (er noe ubrukt?)** — `--ablation {families,lanes,all}` i
+   walk-forward-instrumentet: hver eier-mappede gruppe (spesialistfamilie via
+   `classify_entry_specialist_feature`, MTF-lane per tidsramme, MTF-familie via
+   `MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4`, mønster-blokk per tidsramme,
+   `ctx_cat`, og unionene `patterns:all` / `mtf_lane:all`) fjernes én om gangen
+   og ridge refittes på sub-Gram (én løsning per gruppe, ikke én ny Gram).
+   Rapportert som Δ bps mot full arm per dekning og fold, sammen med en
+   **kardinalitets-matchet null** (fidelity-registeret 21.09, F-6: «smc med 48
+   felt mot session med 4» er ellers et telleartefakt): samme *antall* kolonner
+   trukket tilfeldig, refittet ved full-modellens valgte alpha, samme
+   seleksjonsregel; p05/p95 av null-Δ rapporteres og gruppens Δ flagges under
+   p05 (bar verdi) eller over p95 (støy). Antall trekk er eksplisitt CLI-input
+   (`--ablation-null-draws`); med 20 trekk er p05 i praksis minimum av 20 og
+   feilen stor, så flagget er *antydende*, ikke bekreftende. En gruppe med
+   Δ ≈ 0 over alle folds er *lineært* ubrukt på denne horisonten; det beviser
+   ikke at den er ubrukt for sekvensmodellen (§8). Den native protokollen i
+   fidelity-registeret §3 (≥ 200 trekk, mean-substitusjon under fittet
+   normalisering, ≥ 5 seeds) forblir autoriteten; ingen familie pensjoneres av
+   noen av dem (regel 4).
+2. **Mønster-primitiver som input** — `gx1/scripts/research_entry_pattern_primitives_v1.py`
+   bygger fra tapen, på M5/H1/H4/D1 sist-lukkede barer med eierens
+   cutoff-regel: FVG (tre-lys-ubalanse) og order blocks (siste motsatte lys før
+   displacement) som sporede soner med retest/feil-hendelser, avstand i ATR,
+   alder og antall aktive; equal highs/lows-pools med sweep/brudd; flagg
+   (impuls + stram konsolidering + brudd); N-bar-range-brudd; EMA-stabling
+   (20/50/200), EMA200-helning og -avstand; forrige dags high/low/close,
+   fullført Asia-range, ukeåpning med brudd-hendelser. Alle terskler er
+   deklarerte CLI-input (regel 2a), ingen er tilpasset på data. Armene
+   `snapshot_patterns` og `snapshot_mtf_patterns` legger blokken til de
+   eksisterende armene, og `patterns:all`-ablasjonen gir baseline-armen på
+   nøyaktig samme rader.
+3. **Konfluens som eksplisitte regler** — `gx1/scripts/research_entry_pattern_setup_edge_v1.py`:
+   36 faste oppsett (FVG/OB-retest i høyere-TF-trend på M5/H1/H4, sweep-fade
+   av equal highs/lows ± H4-trend, flagg-brudd, range-brudd i H4-trend,
+   PDH/PDL-brudd i H4-trend, Asia-range-brudd i H1-trend, momentum-konfluens
+   H1+H4+D1, og «alle stabler bull/bear» som drift-referanse), scoret per
+   TRAIN-år og på VAL med myntkast-null, **beste-konstant-side-null**
+   (alltid-LONG / alltid-SHORT på de samme radene — drift-nøytral), HAC-SE og
+   sirkulær-null. Ingen regel er fittet; evaluatoren teller.
+
+4. **Kryss-asset (operatørvedtak 23.09, regel 1 uendret)** — armene
+   `snapshot_cross` / `snapshot_mtf_cross`. Inventar samme kveld: ingen rå DXY-,
+   rente- eller VIX-serie finnes; det som finnes er en avledet daglig tabell
+   (`GX1_DATA/research/cross_asset_fred_20260615/macro_features.parquet`, Yahoo
+   chart-JSON for DXY/TNX/VIX/TIP/IEF, log-nivåer, kalenderdag-union med ffill,
+   2020-09-30..2026-06-16, uten manifest, råfilene borte, byggeskript kausalt)
+   og USD_JPY H1 fra OANDA (`cross_asset_spike_20260609/USD_JPY_H1.parquet`,
+   2020-11-01..2026-06-07, uten manifest). Blokken deklareres i instrumentet:
+   daglig chg1d/chg5d/chg20d og z60 per instrument (VIX også som nivå), én
+   kalenderdags lag (beslutning dag D bruker dag D−1); USD_JPY H1 sist-lukket
+   under eierens cutoff med maks 72 t staleness: log-avkastning 1/4/24/120
+   barer, realisert vol 24, relativ spread. Rader uten gyldig kryssdata
+   utelates fra fit og holdout (VAL dekkes bare til 17.06 daglig / 07.06 H1).
+   Provenienskl.: gjenfunnede forskningsbytes, ikke deklarerte data — et funn
+   her er en grunn til å hente en manifestbundet serie, ikke et resultat.
+   Gammel kjede (pensjonert substrat, M5-horisont): nivå/residual/Z refutert
+   OOT med fortegnsflipp, kointegrert fair value refutert, `oot_macro_test`
+   hadde én dags look-ahead. Prior: lav.
+
+Samme kveld fikk `evaluate_frame` beste-konstant-side-nullen som felt
+(`best_constant_side_mean_pnl_bps`, `excess_over_best_constant_bps`,
+`beats_best_constant`), og fold-grensen ble tettet: en fold-holdout merker
+aldri en rad med priser etter sin egen slutt, heller ikke siste fold når tapen
+strekker seg inn i VAL for bekreftelsesstadiet (192 rader ved h288 i run4 ble
+merket med juni-priser; regresjonstest `test_fold_stage_identical_with_and_without_final_holdout`).
+Kontrollflaten fikk `model-native-pattern-primitives` og
+`model-native-pattern-setup-edge` under audit-cap.
+
+For §7.2b persisterer instrumentet nå, sammen med prediksjonene, en
+etikettfri avstand per holdout-rad fra fit-periodens fordeling:
+`ood_abs_z_mean` = gjennomsnittlig |z| over alle kolonner under fit-radenes
+kolonne-middel/-std (to eksakte chunkede pass), og det samme over MTF-lanene
+(`ood_abs_z_mean_mtf`) og mønsterblokken (`ood_abs_z_mean_patterns`) der de
+finnes. Fit-perioden er alle rader før holdout-start (kronologisk prefiks);
+horisont-purgen er irrelevant for kolonnestatistikk. Dette er en måling, ikke
+en regel: ingen terskel er deklarert.
+
+## 7. Hva bekreftelsen endrer i planen: fra tap/mål-varianter til abstensjon og informasjon
+
+Run4 er det avgjørende funnet i dette dokumentet. Fold-lommen som så robust ut
+(h12/atr/mtf/1 %, positiv 4/4 år) tapte −42,5 bps på den urørte juni-måneden
+med 100 % LONG i en nedmåned, og de lagrede prediksjonene viser mekanismen:
+samme modell som ga kontrast +1…+4 bps på fold 3 ga +12…+27 bps på VAL, mens
+korrelasjonen mot realisert utfall snudde fra +0,04…+0,08 til −0,08…−0,13.
+Det er lineær ekstrapolasjon av bull-drift på regime-features som lå utenfor
+fit-fordelingen (D1-ATR +3,3σ). Snapshot-armen uten MTF holdt seg nær null og
+tapte mindre. Dette er samme «confident-tail inversion» som den pensjonerte
+kjeden så i 2026.
+
+Konsekvenser, i rekkefølge:
+
+1. **Tap/mål-varianter kan ikke skape fortegnsinformasjon.** Per-rad
+   ATR-skalert tap, per-prøve lært log-varians og en lærer-fri kontrollarm
+   (forrige versjon av denne seksjonen) omvekter radene; de kan ikke gjøre en
+   feature-flate med korrelasjon +0,05 in-sample og −0,1 out-of-sample til
+   retning. De beholdes som *diagnostiske* armer i instrumentet, ikke som veien
+   til edge. Ingen av dem bygges i treneren før instrumentet viser en
+   fold-robust *og* VAL-bekreftet celle for dem.
+2. **Abstensjon er det eneste beviste stedet å hente verdi.** Målt: argmax
+   velger aldri FLAT i dag (brutto-mål, lærer-optimisme +9 bps), og den mest
+   selvsikre halen er den som inverterer. En Entry som failer closed der
+   inputen er utenfor fit-fordelingen ville ha tapt 0 i stedet for −42,5 bps
+   på VAL. Regel 3 tillater ingen post-modell-terskel; abstensjonen må derfor
+   sitte i selve Q-målene: (a) nettomål der kost inngår slik at FLAT = 0
+   faktisk konkurrerer, og (b) en målt OOD-diagnostikk (per-lane z-avstand /
+   Mahalanobis mot TRAIN-statistikk) som instrument først — for å tallfeste
+   ved hvilken avstand fold-lommens korrelasjon snur — før noen
+   trener-endring. Instrumentet er neste byggetrinn etter §6.3.
+3. **Horisont.** Kostnadsaritmetikken (§1) gjør 4 t–1 d til den eneste skalaen
+   der 52–54 % treff slår spread. Der er drift- og overlapp-nullene
+   strengere: h288 feiler sirkulær-null, og myntkast-nullen er for snill mot
+   drift. Beste-konstant-side-nullen (§6.2) er lagt inn nettopp derfor; ingen
+   celle på ≥ 8 t regnes som funn uten å slå den.
+4. **Ny informasjon er operatørens beslutning.** Alle fire lærere lander på
+   50–52 % treff per bar på samme flate; tuning og modellbytte flytter ikke
+   taket. Det som kan flytte det er informasjon flaten ikke bærer. Regel 1
+   forbyr andre instrumenters markedsdata i Entry; en eventuell åpning er en
+   kontraktsendring, ikke et research-valg.
+5. **Dynamikk** (FLAT-absorberende seleksjon, min-epoker før patience) bevarer
+   signal; de skaper det ikke. Uendret prioritet: etter 2.
 
 Alle native sammenligninger må evalueres med samme fold-semantikk som
-instrumentet (research-evaluering over eksplisitte TRAIN-tidsvinduer), ikke
-på 512 VAL-rader.
+instrumentet (research-evaluering over eksplisitte TRAIN-tidsvinduer) og med
+VAL som *bekreftelse*, aldri som seleksjon — ikke på 512 VAL-rader.
 
 ## 8. Ikke undersøkt, sagt uoppfordret
 
-- Ingen native modell er trent med noen av variantene i §7.
+- Ingen native modell er trent med noen av variantene i §7; ingen OOD-diagnostikk (§7.2b) er bygget eller målt.
+- Ablasjonen er lineær (ridge): en gruppe med Δ ≈ 0 kan fortsatt bære ikke-lineær eller sekvensiell informasjon for transformeren.
+- Mønster-primitivene er én deklarert parametrisering per konsept; ingen terskel-sveip er kjørt, og det skal ikke kjøres uten forhåndsregistrering (ellers er det tilpasning på TRAIN).
 - Instrumentets `snapshot_mtf`-arm bruker sist-lukkede per-TF-rader, ikke
   modellens 64/96/96/252-barers sekvenser; en sekvens-effekt kan ikke utelukkes.
 - Close-fill-returns på tapen er en research-konvensjon (ikke M1 neste-åpning-fill).

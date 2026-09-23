@@ -93,6 +93,20 @@ missing hash-bound artifact as terminal until a fresh gate proves otherwise.
 1. **XAUUSD only.** Entry contracts must not depend on another instrument's
    market data or expose another traded output.
 
+   **Research measurement authorized, contract unchanged (operator decision
+   2026-09-23):** the operator ordered a cross-asset arm after the direction
+   diagnosis (`docs/ENTRY_DIRECTION_SNR_DIAGNOSIS_20260923.md`). It lives only
+   in the walk-forward research instrument (`snapshot_cross` /
+   `snapshot_mtf_cross` arms of `research_entry_direction_walkforward_v1`),
+   reads only recovered research bytes already on disk (a daily Yahoo-derived
+   macro table and USD_JPY H1 bars under `GX1_DATA/research/`, no manifest,
+   provenance = builder scripts), applies a one-calendar-day lag and the
+   owner's MTF cutoff, and produces evidence, not inputs. No Entry contract,
+   bundle, recipe or serve path may consume another instrument's data until
+   this rule is amended explicitly on a VAL-confirmed result. Broker,
+   collector and download routes remain closed; a fresh external series
+   requires a named source and an immutable manifest before any fetch.
+
 2. **No fallback, guessed default, mutable `latest`, stale artifact, synthetic
    decision input or soft pass-through.** This is absolute, and it covers the
    evidence used to make a decision *about the code*, not only values inside
