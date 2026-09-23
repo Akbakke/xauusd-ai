@@ -183,3 +183,26 @@ Ingen full epoch eller full VAL. Ingen horisont velges fra VAL.
 En bedre forecast-MAE alene er ikke nok: vurder begge retningsrecalls, balansert
 treff og usikkerhet mot både før-fit og originalfunksjonen. All økonomisk
 Entry-seleksjon forblir uavklart til separat etterprøvbar måling foreligger.
+
+
+### Første oppstart stoppet før trening; v8-referansen er rettet
+
+ENTRY_DIRECTION_WARMUP4096_20260923T135523Z (source022a5d8a) avsluttet
+14:03:05 UTC med returkode1 etter345,57 sekunder. Referanse-loaderen krevde
+v9 og avviste korrekt original-v8 med ENTRY_FROZEN_TEACHER_SOURCE_VERSION_INVALID.
+Traceback er før warmup-funksjonen og før første optimizersteg: faktisk0 nye
+markedssteg, ingen baseline/ettervekter produsert. Planen er avsluttet.
+
+Minste rettelse: et eksplisitt internt original_direction_reference-flagg
+velger v8 bare for denne retningsreferansen. Standard v9-lærer er uendret.
+Den virkelige helperen er nå kontrollert mot checkpoint844 og tre bevarte
+VAL-input: forecast, Entry-Q og Entry-token er bitlike uavhengig lastet v8.
+Normalisering/vekter og Torch/NumPy/Python-RNG er uendret; feil hash og feil
+standardversjon avvises. Eksisterende v9-laster fungerer fortsatt.
+
+Vakten avsluttet med child_status1 uten maskinvarebrudd; målte topper:
+61 C kjerne,62 C minne,138,21 W og732 MiB GPU-minne.
+Ny oppstart krever fersk recipe på rettet, committet kilde. Samme4096-raders
+beregningsplan og forhåndslåste læringsport beholdes; dette er ingen ny variant.
+Bevis: run/START_FAILURE_DIAGNOSIS.json,
+DIRECTION_ORIGINAL_REFERENCE_LOADER_VERIFICATION.json og tilhørende logger.

@@ -12204,8 +12204,9 @@ def _initialize_bounded_smoke_weights(
 def _source_bound_bounded_teacher(
     *, model: nn.Module, model_constructor_kwargs: Mapping[str, Any],
     source_path: Path, source_sha256: str, device: torch.device,
+    original_direction_reference: bool = False,
 ) -> tuple[nn.Module, dict[str, Any]]:
-    """Preserve the v9 teacher function for the bounded v10 routing control."""
+    """Preserve the v9 teacher, or explicitly the original v8 direction reference."""
     import importlib.util
 
     path = Path(source_path)
@@ -12227,9 +12228,10 @@ def _source_bound_bounded_teacher(
     try:
         # Execute the bytes actually verified, not a second file read.
         exec(compile(source, str(path), "exec"), module.__dict__)
+        version = 8 if original_direction_reference else 9
         if (
-            module.MODEL_ARCHITECTURE_SCHEMA_VERSION != "entry_v10_ctx_hybrid_transformer_v9"
-            or module.MODEL_OUTPUT_SCHEMA_VERSION != "entry_v10_ctx_model_outputs_v9"
+            module.MODEL_ARCHITECTURE_SCHEMA_VERSION != f"entry_v10_ctx_hybrid_transformer_v{version}"
+            or module.MODEL_OUTPUT_SCHEMA_VERSION != f"entry_v10_ctx_model_outputs_v{version}"
         ):
             raise RuntimeError("[ENTRY_FROZEN_TEACHER_SOURCE_VERSION_INVALID]")
         teacher = module.EntryV10CtxHybridTransformer(
@@ -13712,6 +13714,7 @@ def run_train(
             model=model, model_constructor_kwargs=model_constructor_kwargs,
             source_path=frozen_teacher_model_source_path,
             source_sha256=frozen_teacher_model_source_sha256, device=device,
+            original_direction_reference=True,
         )
         _run_bounded_forecast_warmup(
             model=model, optimizer=optimizer, train_loader=train_loader,

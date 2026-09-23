@@ -27,14 +27,17 @@ mot-6,2092 i det første vinduet. Dette er ulik observasjonstid, ikke full livsl
 Brukeren har gjenopptatt målet med retning først: LONG bullish / SHORT bearish.
 Les ENTRY_DIRECTION_FIRST_20260923.md først. Tidligere spørsmål om portefølje og
 tid er ingen forutsetning for dette arbeidet. To retningsdiagnoser er fullført;
-ingen modell-/trenerendring eller nye optimizersteg. Frossen v10-readout bestod
+en native forecast-warmup er lagt til, men ingen nye markedsoptimizersteg er fullført. Frossen v10-readout bestod
 ikke senere VAL. Direkte inputbaseline fant svakt 5-minutters signal på siste
 TRAIN-år (51,06 % balansert treff), ikke dokumentert Entry-gevinst.
 En paret kontroll viste at original v8 ikke har samme all-bearish forecast som
 v10 med originalvektene. Original v8-baseline er nå fullført på1024 TRAIN /512 VAL: ingen horisont
 bestod retningsporten. Neste ene native forsøk prioriterer eksisterende forecast-L1
 på4096 TRAIN-rader, med original/før/etter på samme512 TRAIN /512 VAL.
-Se siste avsnitt i ENTRY_DIRECTION_FIRST_20260923.md for kode og omfang.
+Første warmup-oppstart stoppet før trening fordi referanse-loaderen bare tillot
+v9. Eksplisitt v8-referanse er rettet og kontrollert mot ekte checkpoint/input.
+Se siste avsnitt i ENTRY_DIRECTION_FIRST_20260923.md for feilkvittering og omfang.
+Under kildefrys brukes Mac-operatørkopien CURRENT_HANDOVER.md og eksakt runtime-kvittering.
 Ingen nye koeffisienter er promotert; ingen større trening eller jobb er aktiv.
 Se ENTRY_DIRECTION_FIRST_20260923.md og ENTRY_GOAL_PROGRESS.json under
 /home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923 for etterprøvbare bevis.
