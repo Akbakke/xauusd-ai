@@ -318,3 +318,15 @@ Teknisk kontroll:20 eksisterende recipe-/launcher-tester bestod. Syntetisk
 firestegs kontroll av ny Entry-rute og eksisterende BCE-rute bestod; ny rute
 oppdaterer Entry-fusjon og bevarer oekonomiske hoder. Modellarkitekturens SHA
 er uendret. Dette er implementeringsbevis, ikke dokumentert markedslaering.
+
+### Entry-fusjonens retningskontroll fullfort uten bestatt port
+
+ENTRY_JOINT_DIRECTION4096_20260923T162200Z avsluttet16:33:14UTC medreturkode0.
+512nye steg,1728totalt. Balansert VAL-treff50,95/51,93/51,60/50,09%; allefire
+porter feilet. Entry velgernaa31LONG/481SHORT paa512VAL. Disse endrede valgene
+ga svakere punktestimat for raa signert close-retur enn alltidSHORT paa allefire
+horisonter; parede intervaller inkluderer null. Ingen oekonomisk gevinst bevist.
+Bevar research-checkpointet. Ingen ny native trening eller promotering.
+Rapport:ENTRY_JOINT_DIRECTION_RESULT_20260923.md under runtime.
+Neste avgrensede hypotese er ikke-lineaere interaksjoner i eksisterende raw
+snapshot/context-input paa samme kronologiske TRAIN-splitt som lineaerreferansen.
