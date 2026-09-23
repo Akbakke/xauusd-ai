@@ -54,6 +54,7 @@ import argparse
 import hashlib
 import json
 import math
+import subprocess
 import time as _time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -107,6 +108,9 @@ FEATURE_ARMS = ("snapshot", "snapshot_mtf")
 TARGET_SCALINGS = ("raw", "atr")
 DECISION_RULES = ("argmax_flat", "contrast_always_trade")
 RIDGE_ALPHA_GRID = tuple(float(v) for v in np.logspace(-2.0, 4.0, 13))
+# scikit-learn 1.7 HistGradientBoostingRegressor library defaults (origin: the pinned library, not a tuned choice).
+HGB_LIBRARY_DEFAULT_LEARNING_RATE = 0.1
+HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF = 20
 
 
 def _sha256_file(path: Path) -> str:
@@ -149,9 +153,11 @@ class Dataset:
     parquet_path: str
 
 
-def load_dataset(dataset_dir: Path) -> Dataset:
-    parquet = dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.parquet"
-    manifest_path = dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json"
+def load_dataset(dataset_dir: Path, *, split: str = "train") -> Dataset:
+    if split not in ("train", "val"):
+        raise RuntimeError("WALKFORWARD_SPLIT_INVALID")
+    parquet = dataset_dir / f"entry_dataset__ENTRY_FITTED_Q_{split}.parquet"
+    manifest_path = dataset_dir / f"entry_dataset__ENTRY_FITTED_Q_{split}.manifest.json"
     if not parquet.is_file() or not manifest_path.is_file():
         raise RuntimeError("WALKFORWARD_DATASET_MISSING")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -345,6 +351,14 @@ def fold_masks(
     return fit, holdout
 
 
+def final_holdout_fit_mask(train_positions: np.ndarray, *, first_holdout_position: int, purge_bars: int) -> np.ndarray:
+    """Fit rows for the confirmation stage: every TRAIN row whose outcome window ends before the first VAL row."""
+    fit = (train_positions + int(purge_bars)) < int(first_holdout_position)
+    if fit.sum() < 1000:
+        raise RuntimeError("WALKFORWARD_FINAL_HOLDOUT_FIT_TOO_SMALL")
+    return fit
+
+
 def _inner_split(n_fit: int, inner_fraction: float) -> tuple[np.ndarray, np.ndarray]:
     cut = int(math.floor(n_fit * (1.0 - inner_fraction)))
     if cut < 100 or n_fit - cut < 100:
@@ -431,12 +445,16 @@ class RidgeGram:
 
 
 def fit_hgb(
-    X_fit: np.ndarray, y_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, max_iter: int, seed: int
+    X_fit: np.ndarray, y_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, max_iter: int, seed: int,
+    learning_rate: float = HGB_LIBRARY_DEFAULT_LEARNING_RATE, min_samples_leaf: int = HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     from sklearn.ensemble import HistGradientBoostingRegressor
 
     inner_fit, inner_val = _inner_split(len(y_fit), inner_fraction)
-    model = HistGradientBoostingRegressor(max_iter=int(max_iter), early_stopping=False, random_state=int(seed))
+    model = HistGradientBoostingRegressor(
+        max_iter=int(max_iter), early_stopping=False, random_state=int(seed),
+        learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
+    )
     model.fit(X_fit[inner_fit], y_fit[inner_fit])
     best_iter, best_mse = None, math.inf
     for iteration, staged in enumerate(model.staged_predict(X_fit[inner_val]), start=1):
@@ -450,7 +468,10 @@ def fit_hgb(
             break
     if pred is None:
         raise RuntimeError("WALKFORWARD_HGB_STAGED_PREDICT_FAILED")
-    return np.asarray(pred, dtype=np.float64), {"best_iter": best_iter, "inner_val_mse": best_mse, "max_iter": int(max_iter)}
+    return np.asarray(pred, dtype=np.float64), {
+        "best_iter": best_iter, "inner_val_mse": best_mse, "max_iter": int(max_iter),
+        "learning_rate": float(learning_rate), "min_samples_leaf": int(min_samples_leaf),
+    }
 
 
 def decisions(long_pred: np.ndarray, short_pred: np.ndarray, rule: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -532,6 +553,13 @@ def evaluate_frame(
     return out
 
 
+def _git_head() -> str | None:
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(Path(__file__).resolve().parents[2]), check=True, capture_output=True, text=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
 def _json_default(value: Any) -> Any:
     if isinstance(value, (np.floating,)):
         return float(value)
@@ -558,8 +586,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     train_manifest = json.loads((dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json").read_text(encoding="utf-8"))
     train_start = pd.Timestamp(train_manifest["splits"]["train"]["start"])
     train_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["start"])
-    tape = load_tape(Path(args.native_m5_root), truncate_before=train_end_exclusive)
+    val_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["end"])
+    final_holdout = str(args.final_holdout)
+    if final_holdout not in ("none", "val"):
+        raise RuntimeError("WALKFORWARD_FINAL_HOLDOUT_INVALID")
+    # The tape never extends past the VAL split end, so TEST bytes are never read; without the
+    # confirmation stage it stops at the TRAIN split end so no fold outcome can touch VAL either.
+    tape = load_tape(Path(args.native_m5_root), truncate_before=(val_end_exclusive if final_holdout == "val" else train_end_exclusive))
     positions = tape_positions(dataset.time, tape)
+    val_dataset: Dataset | None = None
+    val_positions: np.ndarray | None = None
+    if final_holdout == "val":
+        val_dataset = load_dataset(dataset_dir, split="val")
+        if val_dataset.knee_horizon_bars != dataset.knee_horizon_bars:
+            raise RuntimeError("WALKFORWARD_VAL_KNEE_HORIZON_MISMATCH")
+        val_positions = tape_positions(val_dataset.time, tape)
+        if int(val_positions.min()) <= int(positions.max()):
+            raise RuntimeError("WALKFORWARD_VAL_NOT_AFTER_TRAIN")
     boundaries = [pd.Timestamp(v) for v in args.fold_boundaries]
     if boundaries[-1] > train_end_exclusive:
         raise RuntimeError("WALKFORWARD_FOLD_BOUNDARY_BEYOND_TRAIN_END")
@@ -590,7 +633,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for h in horizons:
         long_bps, short_bps, valid = executable_horizon_targets(tape, positions, h)
         targets[f"exec_close_h{h}"] = (long_bps, short_bps, valid, h)
+    if args.targets:
+        unknown = sorted(set(args.targets) - set(targets))
+        if unknown:
+            raise RuntimeError(f"WALKFORWARD_TARGET_FILTER_UNKNOWN: {unknown}")
+        targets = {name: targets[name] for name in targets if name in set(args.targets)}
+    val_targets: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]] = {}
+    val_arms: dict[str, np.ndarray] = {}
+    if val_dataset is not None and val_positions is not None:
+        val_targets[KNEE_TARGET_NAME] = (val_dataset.knee_long, val_dataset.knee_short, np.ones(len(val_dataset.time), dtype=bool), val_dataset.knee_horizon_bars)
+        for h in horizons:
+            long_bps, short_bps, valid = executable_horizon_targets(tape, val_positions, h)
+            val_targets[f"exec_close_h{h}"] = (long_bps, short_bps, valid, h)
+        val_cat, _ = one_hot_ctx_cat(val_dataset.ctx_cat)
+        val_snapshot = np.concatenate([val_dataset.snap, val_dataset.ctx_cont, val_cat], axis=1)
+        val_arms["snapshot"] = val_snapshot
+        if "snapshot_mtf" in args.feature_arms:
+            val_mtf, _, _ = load_mtf_last_closed(Path(args.multi_tf_cache_dir), val_dataset.time, val_dataset.ctx_cont, val_dataset.ctx_cont_names)
+            val_arms["snapshot_mtf"] = np.concatenate([val_snapshot, val_mtf], axis=1)
+            del val_mtf
     month_sign = month_drift_sign(tape)
+    predictions_dir = out_dir / "predictions"
+    if args.persist_predictions:
+        predictions_dir.mkdir(exist_ok=True)
 
     all_rows: list[dict[str, Any]] = []
     fit_reports: list[dict[str, Any]] = []
@@ -605,9 +670,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         keys.append((target_name, scaling, learner, seed))
         return keys
 
+    stages: list[tuple[Fold, str]] = [(fold, "fold") for fold in folds]
+    if val_dataset is not None:
+        stages.append((Fold(index=len(folds), fit_start=train_start, holdout_start=train_end_exclusive, holdout_end=val_end_exclusive), "final_val"))
     for arm in args.feature_arms:
         X = arms[arm]
-        for fold in folds:
+        for fold, stage_kind in stages:
             pending = [
                 cfg for cfg in _config_keys(arm, fold)
                 if not (per_config_dir / f"{cfg[0]}__{arm}__{cfg[1]}__{cfg[2]}__seed{cfg[3]}__fold{fold.index}.json").is_file()
@@ -621,19 +689,36 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 fit_reports.append(payload["fit"])
             if not pending:
                 continue
-            base_fit_mask, base_holdout_mask = fold_masks(dataset.time, positions, fold, purge_bars=purge_bars)
+            if stage_kind == "final_val":
+                assert val_dataset is not None and val_positions is not None
+                base_fit_mask = final_holdout_fit_mask(positions, first_holdout_position=int(val_positions.min()), purge_bars=purge_bars)
+                base_holdout_mask = np.ones(len(val_dataset.time), dtype=bool)
+                X_hold_all = val_arms[arm]
+                hold_time = val_dataset.time
+                hold_atr = val_dataset.ctx_cont[:, atr_index].astype(np.float64)
+                if np.any(hold_atr <= 0):
+                    raise RuntimeError("WALKFORWARD_VAL_ATR_SCALE_NONPOSITIVE")
+            else:
+                base_fit_mask, base_holdout_mask = fold_masks(dataset.time, positions, fold, purge_bars=purge_bars)
+                X_hold_all = X
+                hold_time = dataset.time
+                hold_atr = atr
             ridge_gram: RidgeGram | None = None
             for target_name, scaling, learner, seed in pending:
                 long_y, short_y, valid_y, horizon = targets[target_name]
+                if stage_kind == "final_val":
+                    hold_long, hold_short, hold_valid, _ = val_targets[target_name]
+                else:
+                    hold_long, hold_short, hold_valid = long_y, short_y, valid_y
                 key = f"{target_name}__{arm}__{scaling}__{learner}__seed{seed}__fold{fold.index}"
                 cache = per_config_dir / f"{key}.json"
                 fit_mask = base_fit_mask & valid_y
-                holdout_mask = base_holdout_mask & valid_y
-                if fold.holdout_end < train_end_exclusive:
+                holdout_mask = base_holdout_mask & hold_valid
+                if stage_kind == "fold" and fold.holdout_end < train_end_exclusive:
                     next_first = int(positions[np.asarray(dataset.time >= fold.holdout_end, dtype=bool)].min())
                     holdout_mask &= (positions + int(horizon)) < next_first
                 y_scale_fit = atr[fit_mask] if scaling == "atr" else np.ones(int(fit_mask.sum()))
-                y_scale_hold = atr[holdout_mask] if scaling == "atr" else np.ones(int(holdout_mask.sum()))
+                y_scale_hold = hold_atr[holdout_mask] if scaling == "atr" else np.ones(int(holdout_mask.sum()))
                 preds: dict[str, np.ndarray] = {}
                 fit_info: dict[str, Any] = {}
                 for side_name, y_all in (("long", long_y), ("short", short_y)):
@@ -641,33 +726,46 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     if learner == "ridge":
                         # The Gram is shared across targets whenever the fit/holdout row sets coincide.
                         if ridge_gram is None or ridge_gram.Xs_fit.shape[0] != int(fit_mask.sum()) or ridge_gram.Xs_pred.shape[0] != int(holdout_mask.sum()) or ridge_gram.mask_signature != (fit_mask.tobytes(), holdout_mask.tobytes()):
-                            ridge_gram = RidgeGram(X[fit_mask], X[holdout_mask], inner_fraction=args.inner_fraction)
+                            ridge_gram = RidgeGram(X[fit_mask], X_hold_all[holdout_mask], inner_fraction=args.inner_fraction)
                             ridge_gram.mask_signature = (fit_mask.tobytes(), holdout_mask.tobytes())
                         pred, info = ridge_gram.fit_predict(y_fit)
                     else:
-                        pred, info = fit_hgb(X[fit_mask], y_fit, X[holdout_mask], inner_fraction=args.inner_fraction, max_iter=args.max_hgb_iter, seed=seed)
+                        pred, info = fit_hgb(
+                            X[fit_mask], y_fit, X_hold_all[holdout_mask], inner_fraction=args.inner_fraction, max_iter=args.max_hgb_iter, seed=seed,
+                            learning_rate=args.hgb_learning_rate, min_samples_leaf=args.hgb_min_samples_leaf,
+                        )
                     preds[side_name] = pred * y_scale_hold
                     fit_info[side_name] = info
                 rows_for_key: list[dict[str, Any]] = []
+                if args.persist_predictions:
+                    pd.DataFrame(
+                        {
+                            "time": hold_time[holdout_mask],
+                            "pred_long_bps": preds["long"],
+                            "pred_short_bps": preds["short"],
+                            RESEARCH_LONG_OUTCOME_COLUMN: hold_long[holdout_mask],
+                            RESEARCH_SHORT_OUTCOME_COLUMN: hold_short[holdout_mask],
+                        }
+                    ).to_parquet(predictions_dir / f"{key}.parquet", index=False)
                 for rule in args.decision_rules:
                     side, score, contrast = decisions(preds["long"], preds["short"], rule)
                     frame = pd.DataFrame(
                         {
-                            "split": f"fold{fold.index}",
+                            "split": f"fold{fold.index}" if stage_kind == "fold" else "final_val",
                             "model": f"{key}__{rule}",
-                            "time": dataset.time[holdout_mask],
+                            "time": hold_time[holdout_mask],
                             "pred_direction": side,
                             "selection_score": score,
                             "selection_score_mode": MODEL_DIRECTION_SELECTION_MODE,
                             "edge_score": contrast,
-                            RESEARCH_LONG_OUTCOME_COLUMN: long_y[holdout_mask],
-                            RESEARCH_SHORT_OUTCOME_COLUMN: short_y[holdout_mask],
+                            RESEARCH_LONG_OUTCOME_COLUMN: hold_long[holdout_mask],
+                            RESEARCH_SHORT_OUTCOME_COLUMN: hold_short[holdout_mask],
                         }
                     )
                     meta = {
                         "target": target_name, "horizon_bars": int(horizon), "feature_arm": arm,
                         "target_scaling": scaling, "learner": learner, "seed": int(seed), "decision_rule": rule,
-                        "fit_rows": int(fit_mask.sum()),
+                        "fit_rows": int(fit_mask.sum()), "stage": stage_kind,
                         "outcome_definition": (
                             "dataset knee-horizon M1 final PnL (research gross spread-inclusive)"
                             if target_name == KNEE_TARGET_NAME
@@ -689,6 +787,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "authority": AUTHORITY,
         "created_utc": _utc_now(),
+        "instrument_source_sha256": _sha256_file(Path(__file__)),
+        "git_head": _git_head(),
         "inputs": {
             "dataset_dir": str(dataset_dir),
             "dataset_train_parquet": dataset.parquet_path,
@@ -712,10 +812,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "decision_rules": list(args.decision_rules),
             "inner_fraction": args.inner_fraction,
             "max_hgb_iter": args.max_hgb_iter,
+            "hgb_learning_rate": float(args.hgb_learning_rate),
+            "hgb_min_samples_leaf": int(args.hgb_min_samples_leaf),
             "ridge_alpha_grid": list(RIDGE_ALPHA_GRID),
             "coverage_grid": list(EVALUATION_COVERAGES),
             "feature_counts": {arm: int(matrix.shape[1]) for arm, matrix in arms.items()},
             "ctx_cat_one_hot": list(ctx_cat_names),
+            "targets": list(targets),
+            "final_holdout": final_holdout,
+            "final_holdout_rows": int(len(val_dataset.time)) if val_dataset is not None else 0,
+            "persist_predictions": bool(args.persist_predictions),
         },
         "fits": fit_reports,
         "summary": summary,
@@ -729,7 +835,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def summarize(metrics: pd.DataFrame) -> list[dict[str, Any]]:
     if metrics.empty:
         return []
-    group_keys = ["target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule", "top_frac"]
+    group_keys = ["stage", "target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule", "top_frac"]
     out: list[dict[str, Any]] = []
     for keys, g in metrics.groupby(group_keys, sort=True):
         valid = g[g["mean_pnl_bps"].notna()]
@@ -759,14 +865,14 @@ def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
         "",
         "strict_pass = preregistered primary_pass (excess over coin flip > 2 HAC SE AND mean > circular-shift p95) AND mean_pnl_bps > 0.",
         "",
-        "| target | h | arm | scaling | learner | rule | cov | folds×seeds | mean bps | min bps | excess | primary | strict | hit | p_long | n |",
-        "|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| stage | target | h | arm | scaling | learner | rule | cov | folds×seeds | mean bps | min bps | excess | primary | strict | hit | p_long | n |",
+        "|---|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for s in report["summary"]:
         def f(v: Any, nd: int = 2) -> str:
             return "" if v is None else f"{v:.{nd}f}"
         lines.append(
-            f"| {s['target']} | {s['horizon_bars']} | {s['feature_arm']} | {s['target_scaling']} | {s['learner']} | {s['decision_rule']} | "
+            f"| {s['stage']} | {s['target']} | {s['horizon_bars']} | {s['feature_arm']} | {s['target_scaling']} | {s['learner']} | {s['decision_rule']} | "
             f"{s['top_frac']:.2f} | {s['fold_seed_rows']} | {f(s['mean_pnl_bps_avg'])} | {f(s['mean_pnl_bps_min'])} | {f(s['excess_over_coin_avg'])} | "
             f"{s['primary_pass_count']} | {s['strict_pass_count']} | {f(s['hit_rate_avg'],3)} | {f(s['p_long_chosen_avg'],3)} | {f(s['n_avg'],0)} |"
         )
@@ -788,7 +894,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seeds", nargs="+", default=["0"], help="HGB random states")
     parser.add_argument("--inner-fraction", type=float, required=True, help="tail fraction of each fit fold used to choose ridge alpha / HGB iterations")
     parser.add_argument("--max-hgb-iter", type=int, required=True)
+    parser.add_argument("--hgb-learning-rate", type=float, default=HGB_LIBRARY_DEFAULT_LEARNING_RATE, help="explicit research input; default is the pinned library default")
+    parser.add_argument("--hgb-min-samples-leaf", type=int, default=HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF, help="explicit research input; default is the pinned library default")
     parser.add_argument("--resume", action="store_true", help="reuse per-config results already written to out-dir")
+    parser.add_argument("--targets", nargs="*", default=None, help="restrict to these target names (default: knee + every --horizons target)")
+    parser.add_argument("--final-holdout", choices=["none", "val"], default="none", help="val: add a confirmation stage fitted on all TRAIN (purged) and evaluated on the VAL split")
+    parser.add_argument("--persist-predictions", action="store_true", help="write per-row holdout predictions per config under out-dir/predictions")
     return parser
 
 

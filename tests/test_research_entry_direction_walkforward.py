@@ -180,3 +180,106 @@ def test_ridge_gram_matches_dense_solution_and_chunks() -> None:
     ref = ((X_pred - mean) / scale).astype(np.float64) @ beta + y.mean()
     assert np.allclose(pred, ref, rtol=1e-4, atol=1e-4)
     assert info["alpha"] in wf.RIDGE_ALPHA_GRID
+
+
+def _write_synthetic_dataset_and_tape(root: Path, *, train_rows: int, val_rows: int, seed: int = 5) -> tuple[Path, Path]:
+    """Tiny dataset dir + native tape with the real column contract (mechanics only, rule 2c)."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_DIM,
+        MODEL_NATIVE_CTX_CONT_FIELDS,
+        MODEL_NATIVE_SIGNAL_DIM,
+    )
+
+    rng = np.random.default_rng(seed)
+    total = train_rows + val_rows
+    time = pd.date_range("2024-01-01T00:00:00Z", periods=total, freq="5min")
+    mid = 2000.0 + np.cumsum(rng.normal(0.0, 0.5, total))
+    tape_dir = root / "tape"
+    (tape_dir / "year=2024").mkdir(parents=True)
+    tape = pd.DataFrame({"time": time, "close": mid, "bid_close": mid - 0.15, "ask_close": mid + 0.15})
+    pq.write_table(pa.Table.from_pandas(tape, preserve_index=False), tape_dir / "year=2024" / "part.parquet")
+    (tape_dir / "MANIFEST.json").write_text("{}", encoding="utf-8")
+
+    ds_dir = root / "dataset"
+    ds_dir.mkdir()
+    ctx_names = list(MODEL_NATIVE_CTX_CONT_FIELDS)
+    atr_index = ctx_names.index("atr_bps")
+    splits = {"train": (0, train_rows), "val": (train_rows, total)}
+    split_bounds = {
+        "train": {"start": str(time[0]), "end": str(time[train_rows - 1])},
+        "val": {"start": str(time[train_rows]), "end": str(time[-1] + pd.Timedelta(minutes=5))},
+    }
+    for split, (lo, hi) in splits.items():
+        n = hi - lo
+        snap = rng.normal(size=(n, MODEL_NATIVE_SIGNAL_DIM))
+        ctx = rng.normal(size=(n, MODEL_NATIVE_CTX_CONT_DIM))
+        ctx[:, atr_index] = 5.0 + rng.uniform(0, 3, n)
+        cat = rng.integers(0, 4, size=(n, 1))
+        long_out = rng.normal(-2.0, 30.0, n)
+        short_out = -long_out - 3.0
+        table = pa.table(
+            {
+                "time": pa.array(time[lo:hi]),
+                "snap": pa.array(snap.tolist(), type=pa.list_(pa.float64())),
+                "ctx_cont": pa.array(ctx.tolist(), type=pa.list_(pa.float64())),
+                "ctx_cat": pa.array(cat.tolist(), type=pa.list_(pa.int64())),
+                "label_horizon_bars": pa.array(np.full(n, 19, dtype=np.int32)),
+                RESEARCH_LONG_OUTCOME_COLUMN: pa.array(long_out.astype(np.float32)),
+                RESEARCH_SHORT_OUTCOME_COLUMN: pa.array(short_out.astype(np.float32)),
+            }
+        )
+        pq.write_table(table, ds_dir / f"entry_dataset__ENTRY_FITTED_Q_{split}.parquet")
+        manifest = {
+            "feature_contract": {
+                "ctx_cont_names": ctx_names,
+                "ctx_cat_names": ["session_id"],
+                "signal_bridge_fields": [f"f{i}" for i in range(MODEL_NATIVE_SIGNAL_DIM)],
+            },
+            "splits": split_bounds,
+        }
+        (ds_dir / f"entry_dataset__ENTRY_FITTED_Q_{split}.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return ds_dir, tape_dir
+
+
+def test_run_end_to_end_with_final_val_stage(tmp_path: Path) -> None:
+    ds_dir, tape_dir = _write_synthetic_dataset_and_tape(tmp_path, train_rows=6000, val_rows=800)
+    out_dir = tmp_path / "out"
+    args = wf.build_parser().parse_args(
+        [
+            "--dataset-dir", str(ds_dir), "--native-m5-root", str(tape_dir), "--out-dir", str(out_dir),
+            "--fold-boundaries", "2024-01-11T00:00:00Z", "2024-01-16T00:00:00Z", "2024-01-21T20:00:00Z",
+            "--horizons", "12", "--learners", "ridge", "--feature-arms", "snapshot", "--target-scalings", "raw", "atr",
+            "--inner-fraction", "0.2", "--max-hgb-iter", "5", "--final-holdout", "val", "--persist-predictions",
+            "--decision-rules", "argmax_flat",
+        ]
+    )
+    report = wf.run(args)
+    assert report["config"]["final_holdout"] == "val" and report["config"]["final_holdout_rows"] == 800
+    assert report["instrument_source_sha256"] and len(report["instrument_source_sha256"]) == 64
+    metrics = pd.read_csv(out_dir / "metrics.csv")
+    # 2 targets x 2 scalings x (2 folds + final_val) x 7 coverages
+    assert len(metrics) == 2 * 2 * 3 * 7
+    assert set(metrics["stage"]) == {"fold", "final_val"}
+    final = metrics[metrics["stage"] == "final_val"]
+    assert (final["holdout_rows"] <= 800).all() and (final["fit_rows"] < 6000).all()
+    assert set(final["split"]) == {"final_val"}
+    # no fit row's outcome window may reach the first VAL row: fit_rows <= train_rows - purge
+    assert final["fit_rows"].max() <= 6000 - (19 + 1)
+    preds = sorted((out_dir / "predictions").glob("*.parquet"))
+    assert len(preds) == 2 * 2 * 3
+    frame = pd.read_parquet(preds[0])
+    assert {"time", "pred_long_bps", "pred_short_bps", RESEARCH_LONG_OUTCOME_COLUMN, RESEARCH_SHORT_OUTCOME_COLUMN} <= set(frame.columns)
+    assert (out_dir / "summary.md").read_text(encoding="utf-8").startswith("# Entry direction walk-forward research")
+
+
+def test_fit_hgb_honours_explicit_inputs_and_reports_them() -> None:
+    rng = np.random.default_rng(7)
+    X = rng.normal(size=(1500, 5)).astype(np.float32)
+    y = X[:, 0] * 2.0 + rng.normal(scale=0.3, size=1500)
+    pred, info = wf.fit_hgb(X, y, X[:50], inner_fraction=0.2, max_iter=20, seed=0, learning_rate=0.03, min_samples_leaf=50)
+    assert pred.shape == (50,) and 1 <= info["best_iter"] <= 20
+    assert info["learning_rate"] == 0.03 and info["min_samples_leaf"] == 50
+    args = wf.build_parser().parse_args(["--dataset-dir", "d", "--native-m5-root", "m", "--out-dir", "o", "--fold-boundaries", "x", "--horizons", "1", "--inner-fraction", "0.2", "--max-hgb-iter", "3"])
+    assert args.hgb_learning_rate == wf.HGB_LIBRARY_DEFAULT_LEARNING_RATE and args.hgb_min_samples_leaf == wf.HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF

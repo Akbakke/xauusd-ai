@@ -162,9 +162,56 @@ Kontrollflate: `scripts/entry_next_edge_control.sh model-native-direction-walkfo
 
 ### 6.1 Resultater
 
-Fylles inn per kjøring (run1 ridge begge armer; run2 HGB snapshot; run3 HGB
-snapshot_mtf; multi-seed på beste konfigurasjoner). Se `summary.md` i hver
-kjøringskatalog.
+**Run1b, ridge, begge armer, 96 konfigurasjoner, 609 s [M]** (evidens
+`ENTRY_DIRECTION_WALKFORWARD_20260923/run1b_ridge_both_arms/`; en første kjøring
+ble cgroup-drept ved 10,1 GiB på siste MTF-konfigurasjon og er forkastet som
+evidens, jf. regel 7). MTF-joinen er bevist eksakt: null avvik på 313 399 rader
+for alle seks eier-aliaser (H1/H4/D1 × atr/ema).
+
+- 100 % dekning: negativ snitt-bps i alle 96 konfigurasjoner (−0,1 … −2,8);
+  excess over myntkast 0,1–1,6 bps. Ingen alle-bar-retning.
+- 25 % dekning: strict_pass i høyst 1 av 4 folds i hver konfigurasjon.
+- 5 % dekning: strict_pass 1–2 av 4; folds 2023-06..2025-05 negative eller
+  null i nesten alle konfigurasjoner; 2025-06..2026-05 bærer edgen (+7,9 …
+  +43,6 bps). Treff på realisert bedre side 0,49–0,55.
+- 1 % dekning (≈645 rader/år, ≈2,6 handler/dag): **én celle er positiv i alle
+  fire år**: h=12 (60 min), `atr`-skalering, `snapshot_mtf`: +6,83 / +4,31 /
+  +1,39 / +17,77 bps (strict 2/4; HAC-SE 3,0 / 2,4 / 4,1 / 11,2; treff
+  0,58 / 0,55 / 0,53 / 0,56; LONG- og SHORT-valgte delmengder begge positive i
+  hvert år; p_long 0,88 i 2022-23, 0,11–0,15 senere). Ved 2 % faller folds
+  2023-25 til ~0. h=48 `atr` 1 %: +9,8 / −0,5 / +14,2 / +63,2 (strict 2).
+  h=24 `atr` 1 %: +6,2 / −0,6 / +4,0 / +34,7 (strict 1).
+- Dagshorisont (288 barer): store fold-snitt (+37 … +299 bps ved 1 %), men
+  sirkulær-shift-p95 er 31–110 bps og strict_pass 1/4: overlapp- og
+  drift-artefakt, ikke seleksjon. Forkastes.
+- `atr`-skalering mot `raw`: høyere fold-snitt ved 1–5 % for h=12/24/48/96 og
+  mindre long-tilt (p_long 0,3–0,5 mot 0,4–0,6); min-fold fortsatt negativ i
+  de fleste celler. Ikke et robust løft alene.
+- FLAT-andel med argmax_flat: 1–38 % av holdout-radene (ridge lærer negative
+  forventninger); ved 100 % dekning er snittet negativt uansett.
+
+**Run2, HGB (scikit-learn HistGradientBoosting, biblioteksdefault lr 0,1 /
+min_samples_leaf 20, iterasjoner valgt på indre kronologisk splitt), snapshot-arm,
+48 konfigurasjoner, 3 605 s [M]** (`run2_hgb_snapshot/`).
+
+- Den indre splitten valgte ett eneste tre i 30 av 48 fits og ≤ 10 trær i alle:
+  ingen boosting-runde etter den første generaliserer. Prediksjonene blir
+  nesten konstante; FLAT-andel 45–91 % av holdout-radene.
+- Under dagshorisonten er HGB dårligere enn ridge i hver celle: 5 % dekning
+  fold-snitt −0,8 … −17,5 bps (ridge +0,8 … +6,3), strict_pass 0–1 av 4.
+- Dagshorisont (288): HGB 25 % `atr` +13,7 snitt / +1,4 min (strict 1), 5 %
+  +41,7 / −4,1 (strict 2). Samme drift/overlapp-forbehold som over; ikke
+  seleksjonsevidens.
+
+Lesning etter run2: ikke-lineære interaksjoner på snapshot-flaten (Codex'
+neste hypotese 23.09) gir ingenting utover lineær ridge med biblioteksdefault;
+en langsommere variant (lr 0,03, min_leaf 200) og MTF-armen testes i run3.
+
+Lesning: den lineære flaten har ingen fold-robust retningsedge i bredden.
+Det finnes én smal lomme (60 min, topp 1 %, MTF-lag) som er positiv fire år på
+rad med to signifikante år; den er valgt blant ~190 celler og må bekreftes av
+en annen lærer (HGB, run2/run3) og av en uberørt bekreftelsesmåned (VAL juni
+2026) før den kalles et funn.
 
 ## 7. Plan for mål/tap-endringer i eksisterende eiere (Phase B)
 
