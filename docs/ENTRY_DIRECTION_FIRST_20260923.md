@@ -260,3 +260,13 @@ dårligere enn konstant TRAIN-prior på alle fire horisonter. Entry-Q fortsattSH
 Ingen bedre Entry-økonomi, promotering, ny tapsvariant eller større trening.
 1216 native optimizersteg totalt; alle opprinnelige checkpoints bevart.
 Full rapport:DIRECTION_BCE_RESULT_20260923.md under runtime. TEST fortsattforseglet.
+
+### Selektivitets- og informasjonskontroll fullført
+
+TRAIN-medianen av absolutt score brukt uendret på512VAL ga ingen støttet
+selektivitetsfordel i8 L1/BCE/horisont-sammenligninger. Ingen filterregel innført.
+En enkelt frossen readout av allerede observert ret_1 fra lagret Entry-hidden
+gaVAL68,28 % balansert treff,95 %-intervall64,53–71,98 %. Dette viser noe bevart
+inputinformasjon, ikke fremtidsprediksjon eller økonomisk læring.
+1216 native optimizersteg og4 analytiske fits totalt; siste fit er kun inputdiagnose.
+Rapport:ENTRY_SELECTIVITY_AND_INFORMATION_20260923.md under runtime.
