@@ -17,9 +17,13 @@ Kostnadskorreksjon alene og direkte Exit-gradient til Entry-hodet forklarer ikke
 svak seleksjon i de kontrollerte tilfellene. Én låst analytisk readout-fit på
 63 TRAIN /63 senere VAL feilet: VAL+1,3745 netto Bps mot alwaysSHORT+9,2374,
 og side-MSE ble dårligere. Ingen vekter er promotert; ingen ny fit av denne prøven.
-Neste målte spørsmål er arvede usikkerhetsvekter etter endret Entry-target:
-normalisert Entry-tap er76,15 mot omtrent1 for andre oppgaver etter64 steg.
-Gradientvirkningen må avklares før en minimal eventuell initialiseringsrettelse.
+Gradientkontrollen begrunner ingen reset av usikkerhetsvekter: samlet retning
+reduserte begge tapsgrupper lokalt i seks kontrollerte tilfeller. Entry-pris og
+alle512 historiske prisutfall per side stemmer på63 TRAIN /63 senere VAL.
+Neste avklaring er bootstrap-forventningen på åpne TRAIN-posisjoner: ved grensen
+er gjennomsnittlig target-20,98 Bps mot observerbar brutto mark-43,41 Bps.
+Kontroller videre historikk med frossen funksjon og eksisterende carry-eiere;
+bind utvalg og beregningsbudsjett først. Ingen ny readout-fit eller større trening.
 Ingen ekstra tidsstraff eller tapsvektendring er innført.
 Se siste resultatavsnitt og runtime/ENTRY_GOAL_PROGRESS.json for etterprøvbare bevis.
 Tidligere oppstartsoppskrifter nedenfor er historikk. TEST forblir forseglet.

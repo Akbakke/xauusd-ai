@@ -357,7 +357,7 @@ mark, men er verken full livsløpsavkastning eller en kapitalbegrenset porteføl
 63 TRAIN-rader mot128 koordinater gir høy overtilpasningsrisiko; resultatet
 beviser ikke at enhver framtidig readout på mer data må feile.
 
-### Neste målte spørsmål: arvede usikkerhetsvekter
+### Hypotese før gradientkontrollen: arvede usikkerhetsvekter
 
 Den eksisterende tapsformelen er exp(-s)*L+s. Med fast modell og positivt
 gjennomsnittstap har den betinget stasjonært punkt s=log(L).
@@ -366,7 +366,7 @@ exp(-s)*L=81,168. Etter64 steg var dette76,146, og s hadde flyttet bare0,01862.
 De andre ni oppgavene lå etterpå omtrent0,97–1,67 på samme skala.
 ENTRY_TASK_UNCERTAINTY_SCALE_AUDIT.json binder målingen til native rapport.
 
-Dette er en konkret feilkalibrering i forhold til den nye tapsfordelingen,
+Den arvede skalaen er langt fra det betinget stasjonære punktet for den nye tapsfordelingen,
 men dominans i tapets størrelse beviser ikke dominans i parametergradienten.
 Neste avklaring er gradientvirkningen på delte representasjoner og om den
 eksisterende vektingsregelen trenger TRAIN-basert initialisering etter
@@ -374,3 +374,77 @@ target-/funksjonsendringen. Ingen tapsvekt, læringsrate, arkitektur eller
 ny trening er endret/startet på bakgrunn av denne målingen ennå.
 Totalt192 optimizersteg og én separat analytisk readout-fit i gjennomgangen.
 Ingen jobb er aktiv. TEST er forseglet og PC er ikke restartet.
+
+## Gradient, tidskobling og markedsutfall — oppfølging 23.09
+
+Kilde før denne dokumentasjonsoppdateringen: 3f04653a.
+Ingen modell- eller treningskode er endret, ingen nye optimizersteg eller fits.
+
+### Usikkerhetsvektene: ingen målt grunn til reset
+
+ENTRY_SHARED_TASK_GRADIENT_AUDIT.json bruker tre på forhånd valgte, cachede
+utviklings-VAL-rader (0, 2710, 5420), før og etter native v10-kontrollen.
+Eksisterende tap, masker og usikkerhetsvekter er brukt, inkludert Exit.
+Målingen gjelder delte Entry-parametre, med hoder, Entry-readout/token,
+oppgaveskalarer og exit_-moduler utelatt: 538 tensorer / 6 762 713 koordinater.
+
+Entry-gradientens norm delt på de øvrige oppgavenes norm var 0,75–2,58 før
+og 1,04–2,46 etter. Samlet gradient hadde positivt skalarprodukt med både
+Entry-gradienten og den andre gruppens gradient i alle seks tilfeller:
+lokal nedstigning reduserer begge tap i disse eksemplene.
+Dette beviser ikke generell konfliktfrihet eller en bestemt Adam-oppdatering.
+Det store vektede tapet alene begrunner likevel ingen vektretting.
+En hypotetisk TRAIN-stasjonær Entry-presisjon ville her redusert Entry-gradienten
+til bare omtrent 0,009–0,032 av de øvrige oppgavene. Ingen reset, detach eller
+tapsvektsøk er gjort. De cachede v9-målene har tidligere dokumenterte små
+FP32-forskjeller fra frosset eval-kjerne; dette er ikke ny eksakt native målparitet.
+
+### Entry-pris, klokke og normalisering
+
+ENTRY_TARGET_MARK_AND_CLOCK_AUDIT.json gjenbruker de samme 63 TRAIN og
+63 senere utviklings-VAL fra den avsluttede readout-prøven. Ingen modellforward.
+
+- Entry-radens M5-start + 300 sekunder er eksakt M1-åpningen brukt som fill.
+- LONG bruker ask_open og SHORT bid_open. Alle 512 belønninger per side
+  stemmer med historisk bid_close/ask_close innen 0,001 Bps.
+- Beslutningstid er M1-start + 60 sekunder. Virkelig klokketid og gap inngår.
+- Gjeldende normaliseringsmetadata har 313 399 Entry-beslutninger og
+  1 764 423 Exit-beslutninger fra TRAIN; VAL/TEST-fit-rader er begge null.
+  Alle lagrede skalaer er endelige og positive. Dette er ikke en ny full refit.
+- Leste HTF-eiere velger åpningslabel <= tilgjengelig beslutningstid minus
+  TF-varighet. Runtime og normaliseringsutvalg bruker samme cutoff.
+  Median/IQR/asinh-koden viste ingen ny feil i de gjennomgåtte delene.
+- Motsatt akserekkefølge i Entry og Exit bruker separate parametermoduler.
+  Den er derfor ikke dokumentert som en feil der samme vekter brukes på feil akse.
+
+Dette er avgrenset kilde- og cachekontroll, ikke en erklæring om at alle
+feature-/datakvalitetsspørsmål er løst. Ingen datarebuild er begrunnet av funnene.
+
+### Åpne posisjoner: forventet fortsettelse er fortsatt ikke et observert utfall
+
+Samme frosne v10-policy og opprinnelige checkpoint844 som readout-prøven;
+dette er ikke native kontrollens bevarte v9-lærer. Begge kontrafaktiske sider
+inngår, uten ny handelsseleksjon.
+
+| Åpne sider ved vindusgrensen | TRAIN | Utviklings-VAL |
+|---|---:|---:|
+| Antall | 34 av 126 | 16 av 126 |
+| Gjennomsnittlig Entry-target, brutto Bps | -20,9808 | -29,0695 |
+| Samtidig observerbar brutto mark, Bps | -43,4143 | -58,4813 |
+| Netto mark under arkivert kostnadsscenario, Bps | -47,6143 | -62,6908 |
+| Target minus brutto mark, Bps | +22,4335 | +29,4118 |
+
+Lukkede labels stemmer med faktisk første EXIT-belønning innen kontrolltoleransen.
+Samtlige 92/110 lukkede sider i disse TRAIN/VAL-utvalgene er positive; tapene
+ligger på de åpne sidene. Videre historikk må derfor kontrollere forventet
+bedring før bootstrap-verdiene tolkes som pålitelige økonomiske tilbakemeldinger.
+Avvik fra dagens mark beviser ikke alene feil livsløpsverdi. Vindusmark skal
+ikke gjøres til et kunstig terminalt treningsmål eller tvungen EXIT.
+
+Neste avgrensede arbeid er å undersøke TRAIN-fortsettelse for denne frosne
+policyens åpne sider med eksisterende native carry-/historikkfunksjoner.
+Bevar funksjon, Entry-token, kostnadsomfang, faktisk tidsbruk og sensurering;
+bind utvalg og beregningsbudsjett før kjøring. Den avsluttede readout-prøven
+skal ikke refittes. Ingen ny VAL-tuning eller større trening følger automatisk.
+Totalt fortsatt 192 optimizersteg og én analytisk fit. Ingen jobb aktiv,
+TEST forseglet, PC ikke restartet. Entry-forbedring er fortsatt ikke demonstrert.
