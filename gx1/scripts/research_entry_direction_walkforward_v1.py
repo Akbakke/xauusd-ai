@@ -739,23 +739,36 @@ def fit_hgb(
         learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
     )
     model.fit(X_fit[inner_fit], y_fit[inner_fit])
-    best_iter, best_mse = None, math.inf
+    # A tree must improve on the constant learned from the same inner TRAIN.
+    constant_mean = float(np.mean(y_fit[inner_fit]))
+    constant_mse = float(np.mean((y_fit[inner_val] - constant_mean) ** 2))
+    best_iter, best_mse, stage_count = 0, constant_mse, 0
     for iteration, staged in enumerate(model.staged_predict(X_fit[inner_val]), start=1):
         mse = float(np.mean((staged - y_fit[inner_val]) ** 2))
+        if not np.isfinite(mse):
+            raise RuntimeError("WALKFORWARD_HGB_NONFINITE_VALIDATION_LOSS")
+        stage_count += 1
         if mse < best_mse:
             best_iter, best_mse = iteration, mse
-    if best_iter is None:
+    if not stage_count:
         raise RuntimeError("WALKFORWARD_HGB_STAGED_PREDICT_FAILED")
-    model = HistGradientBoostingRegressor(
-        max_iter=int(best_iter), early_stopping=False, random_state=int(seed),
-        learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
-    )
-    model.fit(X_fit, y_fit)
-    pred = model.predict(X_pred)
+    if best_iter == 0:
+        # Full-fold refit of a squared-error constant has this analytic solution.
+        pred = np.full(len(X_pred), float(np.mean(y_fit)), dtype=np.float64)
+    else:
+        model = HistGradientBoostingRegressor(
+            max_iter=int(best_iter), early_stopping=False, random_state=int(seed),
+            learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
+        )
+        model.fit(X_fit, y_fit)
+        pred = model.predict(X_pred)
     return np.asarray(pred, dtype=np.float64), {
         "fit_rows": len(y_fit), "inner_fit_rows": int(inner_fit.sum()),
         "inner_val_rows": int(inner_val.sum()), "inner_purged_rows": int((~(inner_fit | inner_val)).sum()),
         "best_iter": best_iter, "inner_val_mse": best_mse, "max_iter": int(max_iter),
+        "constant_inner_train_mean": constant_mean, "constant_inner_val_mse": constant_mse,
+        "model_kind": "constant" if best_iter == 0 else "hist_gradient_boosting",
+        "tree_refit_performed": best_iter != 0,
         "learning_rate": float(learning_rate), "min_samples_leaf": int(min_samples_leaf),
     }
 

@@ -1,5 +1,79 @@
 # Tidlige forskningsinputs og avgrenset HGB-sammenligning — 24.09.2026
 
+## Fullført sammenligning og observert modellvalgsfeil
+
+HGB_EARLY_CALIBRATED_20260924 avsluttet med rc0 kl. 17:32:24 UTC,
+1412,96 s, fra clean 5f123fe23a1d6c78b05ccecc46cf5b203b2d7c7d.
+258048 senere TRAIN-muligheter, fire årsperioder, åtte indre fits og åtte
+fullstendige refits. Samtlige valgte ett tre. Begge forhåndsbundne
+videreføringskrav feilet. Ingen juni/VAL-datasett eller native steg.
+
+| Korrigerte inputs | Valgte | Netto bps/valgt | Netto bps/mulighet |
+| --- | ---: | ---: | ---: |
+| Opprinnelig argmax_flat | 4399 | −6,704 | −0,114282 |
+| Krav om prediksjon over 4 bps utførelseskostnad | 1398 | −6,835 | −0,037029 |
+
+Regelens fire år ga −5,799 / −6,574 / −9,598 / +1,105 bps per valgt;
+siste år hadde bare 27 valgte. Justert intervall mot FLAT for kostnadsregelen
+var [−0,104700; −0,002158] bps per mulighet. Færre handler ga lavere tap
+per mulighet, uten dokumentert positiv økonomi.
+
+Balansert retningstreff på alle muligheter var samlet 50,953 prosent, men
+49,939 / 50,671 / 50,021 / 50,020 prosent i de fire årsperiodene: makrosnitt
+50,162 prosent. I siste år var 99,94 prosent av retningsprediksjonene bullish.
+Innen-år AUC var 0,4985 / 0,5057 / 0,5001 / 0,5072. Dette er beskrivende
+avlesninger av korrelerte rader, ikke nye signifikanstester.
+
+Alle fire økonomisammendrag ble gjenskapt eksakt fra lagrede per-side-utfall.
+For de 1398 valgte forventet modellen i snitt +8,179 brutto bps; observert
+brutto var −2,802 bps. Seleksjonsscoren overvurderte altså utfallet med
+10,981 bps i denne gruppen. Høyere prognose alene dokumenterer ikke kvalitet.
+
+### Konstantbaseline manglet i kapasitetsvalget
+
+En etterkontroll uten modell-fit viste at fem av åtte valgte ett-tre-modeller
+hadde større indre valideringsfeil enn gjennomsnittet av samme indre TRAIN.
+Den gamle velgeren undersøkte bare 1–300 trær og kunne derfor ikke velge den
+bedre konstanten. De tre andre modellene forbedret MSE mot konstanten med
+bare 0,274 / 0,044 / 0,023 prosent.
+
+Minste rettelse i research_entry_direction_walkforward_v1.fit_hgb:
+konstanten fra indre TRAIN inngår som nullalternativ. Et tre må slå dens MSE
+strengt; ved likhet beholdes konstanten. Vinner konstanten, beregnes dens
+full-fold-tilpasning som gjennomsnittet på den opprinnelige ytre fit-populasjonen.
+Tom eller ikke-endelig staged-validering feiler fortsatt. Ny metadata angir
+konstant-MSE, modelltype og om tre-refit faktisk ble gjort.
+
+Seks målrettede kontroller bestod: gjenbruk av full fold etter purget valg,
+konstant ved lik/dårligere tremodell, korrekt full-fold-gjennomsnitt,
+tom/ikke-endelig staged-validering og eksisterende eksplisitte HGB-parametere.
+Ingen fullsuite eller ny markedsmodelltrening for denne rettelsen.
+
+Virkningen ble rekonstruert på under to sekunder fra fullførte fits og
+kontrollerte TRAIN-gjennomsnitt. Fem sider velger null trær; tre SHORT-sider
+beholder sine eksisterende ett-tre-prediksjoner. Dette er en etterkontroll
+med gjenbrukte prediksjoner, ikke en ny faktisk treningskjøring.
+
+| Nullalternativ inkludert | Valgte | LONG/SHORT | Netto bps/valgt | Netto bps/mulighet |
+| --- | ---: | ---: | ---: | ---: |
+| Opprinnelig argmax_flat | 2404 | 0/2404 | −6,774 | −0,063105 |
+| Prediksjon over 4 bps | 635 | 0/635 | −5,814 | −0,014308 |
+
+Kostnadsregelens endring mot den korrigerte ett-tre-referansen var +0,022721
+bps per mulighet, med justert intervall [+0,000892; +0,052697]. Intervallet
+mot FLAT var [−0,073047; +0,007085]. Dette er mindre tap og riktig modellvalg,
+ikke en lønnsom eller tosidig retningsmodell. Det åpner ingen læringsport.
+
+Dette h12/ATR-oppsettet skal ikke få mer trening eller terskeltuning.
+Før ny læringsoppgave avgrenses må eksisterende direkte retningskontroller
+gjenbrukes: avklar hvilke inputflater, mål og tidsskiller de faktisk dekket.
+Ingen ny retningstrening er startet eller bundet her.
+
+Evidens: RESULT.json, CONSTANT_BASELINE_REVIEW.json,
+CONSTANT_ALTERNATIVE_PLAN.json, CONSTANT_ALTERNATIVE_RESULT.json,
+CONSTANT_ALTERNATIVE_TESTS.log og de private radprediksjonene under samme rot.
+Opprinnelige resultater og kildebindinger er bevart.
+
 ## Inputrettelsen er fullført
 
 EARLY_CALIBRATED_FEATURE_INPUTS_20260924 avsluttet med rc0 kl. 16:55:43 UTC,
@@ -40,7 +114,7 @@ dokumenterte kalibreringsfeilen og er bare historisk regnegrunnlag.
 en terskel valgt fra PnL eller en oppdatert meglerpris. Faktisk fremtidig
 finansiering og holdetid brukes bare i utfallsvurdering, aldri i seleksjonen.
 
-## Neste sammenligning, fastlagt før nye prediksjoner
+## Metode fastlagt før de fullførte prediksjonene
 
 HGB_EARLY_CALIBRATED_20260924 bruker samme eksisterende lærerfunksjon som
 HGB_CORRECTED_SELECTION: 1311 felt, h12 close-fill/ATR, seed 0, opptil 300

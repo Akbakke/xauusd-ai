@@ -68,12 +68,68 @@ def test_hgb_refits_full_fold_after_purged_model_selection(monkeypatch: pytest.M
     monkeypatch.setattr(sklearn.ensemble, "HistGradientBoostingRegressor", FakeHGB)
     X = np.zeros((1000, 2), dtype=np.float32)
     prediction, info = wf.fit_hgb(
-        X, np.full(1000, 2.0), X[:5], inner_fraction=0.2, max_iter=3, seed=0,
+        X, np.concatenate([np.zeros(800), np.full(200, 2.0)]), X[:5],
+        inner_fraction=0.2, max_iter=3, seed=0,
         fit_positions=np.arange(1000), purge_bars=12,
     )
     assert [n for n, _ in fits] == [788, 1000]
     assert fits[-1][1]["max_iter"] == 2 and np.all(prediction == 2)
     assert info["fit_rows"] == 1000 and info["inner_purged_rows"] == 12
+
+
+@pytest.mark.parametrize("stage", [1.0, 10.0])
+def test_hgb_constant_wins_tie_or_worse_tree_and_uses_full_fold_mean(monkeypatch, stage) -> None:
+    import sklearn.ensemble
+
+    fits = []
+
+    class FakeHGB:
+        def __init__(self, **params):
+            pass
+
+        def fit(self, X, y):
+            fits.append(len(y))
+            return self
+
+        def staged_predict(self, X):
+            yield np.full(len(X), stage)
+
+        def predict(self, X):
+            raise AssertionError("A winning constant must not refit a tree")
+
+    monkeypatch.setattr(sklearn.ensemble, "HistGradientBoostingRegressor", FakeHGB)
+    X = np.zeros((1000, 2), dtype=np.float32)
+    y = np.concatenate([np.ones(800), np.full(200, 3.0)])
+    pred, info = wf.fit_hgb(X, y, X[:5], inner_fraction=0.2, max_iter=1, seed=0,
+                            fit_positions=np.arange(1000), purge_bars=12)
+    assert fits == [788]
+    assert info["best_iter"] == 0 and info["model_kind"] == "constant"
+    assert info["constant_inner_train_mean"] == 1.0
+    assert info["constant_inner_val_mse"] == info["inner_val_mse"] == 4.0
+    assert info["tree_refit_performed"] is False
+    np.testing.assert_array_equal(pred, np.full(5, y.mean()))
+
+
+@pytest.mark.parametrize("stage", [None, float("nan")])
+def test_hgb_invalid_stages_cannot_silently_become_constant(monkeypatch, stage) -> None:
+    import sklearn.ensemble
+
+    class FakeHGB:
+        def __init__(self, **params):
+            pass
+
+        def fit(self, X, y):
+            return self
+
+        def staged_predict(self, X):
+            if stage is not None:
+                yield np.full(len(X), stage)
+
+    monkeypatch.setattr(sklearn.ensemble, "HistGradientBoostingRegressor", FakeHGB)
+    X = np.zeros((1000, 2), dtype=np.float32)
+    with pytest.raises(RuntimeError, match="WALKFORWARD_HGB_"):
+        wf.fit_hgb(X, np.ones(1000), X[:5], inner_fraction=0.2, max_iter=1, seed=0,
+                   fit_positions=np.arange(1000), purge_bars=12)
 
 
 def test_tape_filters_before_materialization_and_skips_future_partitions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
