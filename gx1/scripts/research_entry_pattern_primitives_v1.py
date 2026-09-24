@@ -92,14 +92,22 @@ def _sha256_file(path: Path) -> str:
 
 
 def load_tape_ohlcv(root: Path, *, truncate_before: pd.Timestamp) -> pd.DataFrame:
-    files = sorted(root.glob("year=*/*.parquet"))
+    truncate_before = pd.Timestamp(truncate_before)
+    if truncate_before.tzinfo is None:
+        raise RuntimeError("PATTERN_TAPE_BOUNDARY_NOT_UTC_AWARE")
+    truncate_before = truncate_before.tz_convert("UTC")
+    files = sorted(p for p in root.glob("year=*/*.parquet") if int(p.parent.name.split("=", 1)[1]) <= truncate_before.year)
     if not files or not (root / "MANIFEST.json").is_file():
         raise RuntimeError("PATTERN_TAPE_MISSING")
     cols = ["time", "open", "high", "low", "close", "volume", "bid_close", "ask_close"]
-    frame = pd.concat([pq.read_table(str(f), columns=cols).to_pandas() for f in files], ignore_index=True)
+    frame = pd.concat([
+        pq.read_table(str(f), columns=cols, filters=[("time", "<", truncate_before.to_pydatetime())]).to_pandas()
+        for f in files
+    ], ignore_index=True)
     frame["time"] = pd.to_datetime(frame["time"], utc=True)
     frame = frame.sort_values("time", kind="mergesort").reset_index(drop=True)
-    frame = frame[frame["time"] < truncate_before].reset_index(drop=True)
+    if frame.empty or not (frame["time"] < truncate_before).all():
+        raise RuntimeError("PATTERN_TAPE_READ_BOUNDARY_INVALID")
     if frame["time"].duplicated().any():
         raise RuntimeError("PATTERN_TAPE_DUPLICATE_TIME")
     for name in ("open", "high", "low", "close"):

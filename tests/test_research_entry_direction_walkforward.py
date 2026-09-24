@@ -14,6 +14,119 @@ import numpy as np
 import pandas as pd
 import pytest
 
+
+def test_inner_split_purges_actual_tape_positions() -> None:
+    positions = np.arange(1000, dtype=np.int64) * 3
+    fit, val = wf._inner_split(1000, 0.2, fit_positions=positions, purge_bars=24)
+    assert val.sum() == 200 and fit.sum() == 792
+    assert (positions[fit] + 24 < positions[val].min()).all()
+    assert (~(fit | val)).sum() == 8
+
+
+def test_ridge_inner_centering_matches_independent_reference() -> None:
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    X = np.arange(1000, dtype=np.float32)[:, None]
+    y = 3.0 * X[:, 0].astype(np.float64) + 7.0
+    gram = wf.RidgeGram(X, X[-10:], inner_fraction=0.2, fit_positions=np.arange(len(X)), purge_bars=24)
+    _, info = gram.fit_predict(y)
+    errors = []
+    for alpha in wf.RIDGE_ALPHA_GRID:
+        reference = make_pipeline(StandardScaler(), Ridge(alpha=alpha))
+        reference.fit(X[gram.inner_fit].astype(np.float64), y[gram.inner_fit])
+        errors.append(np.mean((reference.predict(X[gram.inner_val].astype(np.float64)) - y[gram.inner_val]) ** 2))
+    assert info["alpha"] == wf.RIDGE_ALPHA_GRID[int(np.argmin(errors))]
+    assert info["inner_val_mse"] == pytest.approx(min(errors), rel=1e-5, abs=1e-9)
+    assert info["inner_val_mse"] < 0.01
+    assert gram.inner_mean[0] == pytest.approx(X[gram.inner_fit].mean())
+    assert info["inner_purged_rows"] == 24
+
+
+def test_hgb_refits_full_fold_after_purged_model_selection(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sklearn.ensemble
+
+    fits = []
+
+    class FakeHGB:
+        def __init__(self, **params):
+            self.params = params
+
+        def fit(self, X, y):
+            fits.append((len(X), self.params))
+            return self
+
+        def staged_predict(self, X):
+            yield np.zeros(len(X))
+            yield np.full(len(X), 2.0)
+            yield np.full(len(X), 3.0)
+
+        def predict(self, X):
+            return np.full(len(X), self.params["max_iter"])
+
+    monkeypatch.setattr(sklearn.ensemble, "HistGradientBoostingRegressor", FakeHGB)
+    X = np.zeros((1000, 2), dtype=np.float32)
+    prediction, info = wf.fit_hgb(
+        X, np.full(1000, 2.0), X[:5], inner_fraction=0.2, max_iter=3, seed=0,
+        fit_positions=np.arange(1000), purge_bars=12,
+    )
+    assert [n for n, _ in fits] == [788, 1000]
+    assert fits[-1][1]["max_iter"] == 2 and np.all(prediction == 2)
+    assert info["fit_rows"] == 1000 and info["inner_purged_rows"] == 12
+
+
+def test_tape_filters_before_materialization_and_skips_future_partitions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    (tmp_path / "MANIFEST.json").write_text("{}")
+    (tmp_path / "year=2024").mkdir()
+    (tmp_path / "year=2025").mkdir()
+    (tmp_path / "year=2025" / "future.parquet").write_bytes(b"must not be read")
+    times = pd.date_range("2024-01-01", periods=10, freq="5min", tz="UTC")
+    pq.write_table(pa.table({"time": times, "close": np.full(10, 2000.0),
+                            "bid_close": np.full(10, 1999.9), "ask_close": np.full(10, 2000.1)}),
+                   tmp_path / "year=2024" / "part.parquet")
+    read_table = pq.read_table
+    calls = []
+
+    def checked_read(path, **kwargs):
+        assert kwargs["filters"] == [("time", "<", times[5].to_pydatetime())]
+        table = read_table(path, **kwargs)
+        assert len(table) == 5
+        calls.append(path)
+        return table
+
+    monkeypatch.setattr(wf.pq, "read_table", checked_read)
+    tape = wf.load_tape(tmp_path, truncate_before=times[5])
+    assert len(calls) == 1 and tape.time.equals(times[:5])
+
+
+def test_resume_rejects_changed_configuration_source_inputs_and_unbound_cache(tmp_path: Path) -> None:
+    (tmp_path / "per_config").mkdir()
+    spec = {"config": {"inner_fraction": 0.2}, "source_sha256": "a"}
+    inputs = {"arrays": {"X": "x", "y": "y"}}
+    digest = wf._check_run_binding(tmp_path, spec, inputs)
+    assert digest == wf._check_run_binding(tmp_path, spec, inputs)
+    for changed_spec, changed_inputs in [
+        ({**spec, "source_sha256": "b"}, inputs),
+        ({**spec, "config": {"inner_fraction": 0.3}}, inputs),
+        (spec, {"arrays": {"X": "changed", "y": "y"}}),
+    ]:
+        with pytest.raises(RuntimeError, match="RESUME_BINDING_MISMATCH"):
+            wf._check_run_binding(tmp_path, changed_spec, changed_inputs)
+    (tmp_path / "RUN_BINDING.json").unlink()
+    (tmp_path / "per_config" / "old.json").write_text("{}")
+    with pytest.raises(RuntimeError, match="RESUME_UNBOUND_CACHE"):
+        wf._check_run_binding(tmp_path, spec)
+
+
+def test_array_binding_detects_changed_values_and_shape() -> None:
+    X = np.arange(10, dtype=np.float32)
+    assert wf._array_sha256(X) != wf._array_sha256(X.reshape(5, 2))
+    assert wf._array_sha256(X) != wf._array_sha256(X + 1)
+
 from gx1.features.htf_features import MULTI_TF_SHIFT
 from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_FLAT_INDEX,
@@ -167,7 +280,7 @@ def test_ridge_gram_matches_dense_solution_and_chunks() -> None:
     monkey_chunk = wf.GRAM_CHUNK_ROWS
     wf.GRAM_CHUNK_ROWS = 512  # force many chunks
     try:
-        gram = wf.RidgeGram(X, X_pred, inner_fraction=0.2)
+        gram = wf.RidgeGram(X, X_pred, inner_fraction=0.2, fit_positions=np.arange(len(X)), purge_bars=0)
         pred, info = gram.fit_predict(y)
     finally:
         wf.GRAM_CHUNK_ROWS = monkey_chunk
@@ -279,7 +392,7 @@ def test_fit_hgb_honours_explicit_inputs_and_reports_them() -> None:
     rng = np.random.default_rng(7)
     X = rng.normal(size=(1500, 5)).astype(np.float32)
     y = X[:, 0] * 2.0 + rng.normal(scale=0.3, size=1500)
-    pred, info = wf.fit_hgb(X, y, X[:50], inner_fraction=0.2, max_iter=20, seed=0, learning_rate=0.03, min_samples_leaf=50)
+    pred, info = wf.fit_hgb(X, y, X[:50], inner_fraction=0.2, max_iter=20, seed=0, learning_rate=0.03, min_samples_leaf=50, fit_positions=np.arange(len(X)), purge_bars=12)
     assert pred.shape == (50,) and 1 <= info["best_iter"] <= 20
     assert info["learning_rate"] == 0.03 and info["min_samples_leaf"] == 50
     args = wf.build_parser().parse_args(["--dataset-dir", "d", "--native-m5-root", "m", "--out-dir", "o", "--fold-boundaries", "x", "--horizons", "1", "--inner-fraction", "0.2", "--max-hgb-iter", "3"])
@@ -293,9 +406,9 @@ def test_ridge_gram_keep_subset_equals_fresh_fit_on_subset_columns() -> None:
     y = X[:, :4] @ rng.normal(size=4) + rng.normal(scale=0.5, size=n)
     X_pred = rng.normal(size=(200, p)).astype(np.float32)
     keep = np.array([0, 1, 2, 3, 6], dtype=np.int64)
-    full = wf.RidgeGram(X, X_pred, inner_fraction=0.2)
+    full = wf.RidgeGram(X, X_pred, inner_fraction=0.2, fit_positions=np.arange(len(X)), purge_bars=0)
     pred_sub, info_sub = full.fit_predict(y, keep=keep)
-    fresh = wf.RidgeGram(X[:, keep], X_pred[:, keep], inner_fraction=0.2)
+    fresh = wf.RidgeGram(X[:, keep], X_pred[:, keep], inner_fraction=0.2, fit_positions=np.arange(len(X)), purge_bars=0)
     pred_ref, info_ref = fresh.fit_predict(y)
     assert info_sub["alpha"] == info_ref["alpha"] and info_sub["columns"] == 5
     assert np.allclose(pred_sub, pred_ref, rtol=1e-5, atol=1e-5)
@@ -478,7 +591,7 @@ def test_ridge_gram_fixed_alpha_matches_grid_choice() -> None:
     X = rng.normal(size=(2000, 5)).astype(np.float32)
     y = X[:, 0] * 2 + rng.normal(scale=0.3, size=2000)
     X_pred = rng.normal(size=(100, 5)).astype(np.float32)
-    gram = wf.RidgeGram(X, X_pred, inner_fraction=0.2)
+    gram = wf.RidgeGram(X, X_pred, inner_fraction=0.2, fit_positions=np.arange(len(X)), purge_bars=0)
     pred, info = gram.fit_predict(y)
     pred_fixed, info_fixed = gram.fit_predict(y, alpha=info["alpha"])
     assert info_fixed["inner_val_mse"] is None and info_fixed["alpha"] == info["alpha"]

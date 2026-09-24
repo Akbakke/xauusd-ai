@@ -9,6 +9,32 @@ import pytest
 from gx1.scripts import research_entry_pattern_primitives_v1 as pp
 
 
+def test_tape_reader_applies_boundary_before_materialization(tmp_path, monkeypatch) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    (tmp_path / "MANIFEST.json").write_text("{}")
+    (tmp_path / "year=2024").mkdir()
+    (tmp_path / "year=2025").mkdir()
+    (tmp_path / "year=2025" / "future.parquet").write_bytes(b"must not be read")
+    times = pd.date_range("2024-01-01", periods=10, freq="5min", tz="UTC")
+    fields = {name: np.full(10, 2000.0) for name in ("open", "high", "low", "close", "volume", "bid_close", "ask_close")}
+    pq.write_table(pa.table({"time": times, **fields}), tmp_path / "year=2024" / "part.parquet")
+    read_table = pq.read_table
+    calls = []
+
+    def checked_read(path, **kwargs):
+        assert kwargs["filters"] == [("time", "<", times[5].to_pydatetime())]
+        table = read_table(path, **kwargs)
+        assert len(table) == 5
+        calls.append(path)
+        return table
+
+    monkeypatch.setattr(pp.pq, "read_table", checked_read)
+    frame = pp.load_tape_ohlcv(tmp_path, truncate_before=times[5])
+    assert len(calls) == 1 and pd.DatetimeIndex(frame["time"]).equals(times[:5])
+
+
 def _params(**overrides) -> pp.Params:
     base = dict(
         swing_lookback=3, zone_lookback_bars=50, fvg_min_gap_atr=0.0, ob_displacement_atr=1.5, ob_displacement_bars=3,

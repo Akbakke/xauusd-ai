@@ -43,15 +43,17 @@ events and cannot fit anything.  A TRAIN-internal per-fold learner cannot
 live in either without mixing contracts, so this bounded research
 authority imports the evaluator's functions instead of duplicating them.
 
-No TEST bytes are read: the tape is truncated at the dataset TRAIN split end
-before any statistic is computed, and every fit/holdout row whose outcome
-window crosses its fold boundary is dropped.
+The tape reader filters before materializing rows, at TRAIN end (or VAL end
+for an explicit development-VAL stage). Parquet may decode a mixed row group
+internally; no beyond-boundary rows are returned to research calculations.
+Fit/holdout outcome windows must remain within their chronological boundaries.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import math
 import subprocess
@@ -231,17 +233,28 @@ def load_tape(native_m5_root: Path, *, truncate_before: pd.Timestamp) -> Tape:
     manifest = native_m5_root / "MANIFEST.json"
     if not manifest.is_file():
         raise RuntimeError("WALKFORWARD_TAPE_MANIFEST_MISSING")
-    files = sorted(native_m5_root.glob("year=*/*.parquet"))
+    truncate_before = pd.Timestamp(truncate_before)
+    if truncate_before.tzinfo is None:
+        raise RuntimeError("WALKFORWARD_TAPE_BOUNDARY_NOT_UTC_AWARE")
+    truncate_before = truncate_before.tz_convert("UTC")
+    files = sorted(
+        p for p in native_m5_root.glob("year=*/*.parquet")
+        if int(p.parent.name.split("=", 1)[1]) <= truncate_before.year
+    )
     if not files:
         raise RuntimeError("WALKFORWARD_TAPE_EMPTY")
     frames = [
-        pq.read_table(str(f), columns=["time", "close", "bid_close", "ask_close"]).to_pandas()
+        pq.read_table(
+            str(f), columns=["time", "close", "bid_close", "ask_close"],
+            filters=[("time", "<", truncate_before.to_pydatetime())],
+        ).to_pandas()
         for f in files
     ]
     frame = pd.concat(frames, ignore_index=True)
     frame["time"] = pd.to_datetime(frame["time"], utc=True)
     frame = frame.sort_values("time", kind="mergesort").reset_index(drop=True)
-    frame = frame[frame["time"] < truncate_before].reset_index(drop=True)
+    if frame.empty or not (frame["time"] < truncate_before).all():
+        raise RuntimeError("WALKFORWARD_TAPE_READ_BOUNDARY_INVALID")
     time_index = pd.DatetimeIndex(frame["time"])
     if time_index.has_duplicates:
         raise RuntimeError("WALKFORWARD_TAPE_DUPLICATE_TIME")
@@ -484,43 +497,71 @@ def final_holdout_fit_mask(train_positions: np.ndarray, *, first_holdout_positio
     return fit
 
 
-def _inner_split(n_fit: int, inner_fraction: float) -> tuple[np.ndarray, np.ndarray]:
+def _inner_split(
+    n_fit: int, inner_fraction: float, *, fit_positions: np.ndarray, purge_bars: int
+) -> tuple[np.ndarray, np.ndarray]:
+    positions = np.asarray(fit_positions, dtype=np.int64)
+    if positions.shape != (n_fit,) or np.any(np.diff(positions) <= 0) or purge_bars < 0:
+        raise RuntimeError("WALKFORWARD_INNER_POSITIONS_INVALID")
+    if not 0 < inner_fraction < 1:
+        raise RuntimeError("WALKFORWARD_INNER_FRACTION_INVALID")
     cut = int(math.floor(n_fit * (1.0 - inner_fraction)))
     if cut < 100 or n_fit - cut < 100:
         raise RuntimeError("WALKFORWARD_INNER_SPLIT_TOO_SMALL")
     inner_fit = np.zeros(n_fit, dtype=bool)
     inner_fit[:cut] = True
-    return inner_fit, ~inner_fit
+    inner_val = ~inner_fit
+    inner_fit &= positions + int(purge_bars) < positions[cut]
+    if int(inner_fit.sum()) < 100:
+        raise RuntimeError("WALKFORWARD_INNER_PURGED_FIT_TOO_SMALL")
+    return inner_fit, inner_val
 
 
 GRAM_CHUNK_ROWS = 16384
 
 
-def _chunked_gram(matrix: np.ndarray, rows: np.ndarray | None = None) -> np.ndarray:
+def _chunked_gram(matrix: np.ndarray, rows: np.ndarray | None = None, *, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
     """Float64 X^T X accumulated over row blocks of a float32 matrix (no full float64 copy)."""
     width = int(matrix.shape[1])
     gram = np.zeros((width, width), dtype=np.float64)
     index = np.arange(matrix.shape[0]) if rows is None else rows
     for start in range(0, len(index), GRAM_CHUNK_ROWS):
         block = matrix[index[start:start + GRAM_CHUNK_ROWS]].astype(np.float64, copy=False)
+        block = (block - mean) / scale
         gram += block.T @ block
     return gram
 
 
-def _chunked_xty(matrix: np.ndarray, y: np.ndarray, rows: np.ndarray | None = None) -> np.ndarray:
+def _chunked_xty(matrix: np.ndarray, y: np.ndarray, rows: np.ndarray | None = None, *, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
     index = np.arange(matrix.shape[0]) if rows is None else rows
     out = np.zeros(int(matrix.shape[1]), dtype=np.float64)
     for start in range(0, len(index), GRAM_CHUNK_ROWS):
         sel = index[start:start + GRAM_CHUNK_ROWS]
-        out += matrix[sel].astype(np.float64, copy=False).T @ y[sel]
+        block = (matrix[sel].astype(np.float64, copy=False) - mean) / scale
+        out += block.T @ y[sel]
     return out
 
 
-def _chunked_matvec(matrix: np.ndarray, beta: np.ndarray) -> np.ndarray:
+def _chunked_matvec(matrix: np.ndarray, beta: np.ndarray, *, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
     out = np.empty(int(matrix.shape[0]), dtype=np.float64)
     for start in range(0, matrix.shape[0], GRAM_CHUNK_ROWS):
-        out[start:start + GRAM_CHUNK_ROWS] = matrix[start:start + GRAM_CHUNK_ROWS].astype(np.float64, copy=False) @ beta
+        block = (matrix[start:start + GRAM_CHUNK_ROWS].astype(np.float64, copy=False) - mean) / scale
+        out[start:start + GRAM_CHUNK_ROWS] = block @ beta
     return out
+
+
+def _design_scale(matrix: np.ndarray, rows: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    mean = np.zeros(matrix.shape[1], dtype=np.float64)
+    for start in range(0, len(rows), GRAM_CHUNK_ROWS):
+        mean += matrix[rows[start:start + GRAM_CHUNK_ROWS]].sum(axis=0, dtype=np.float64)
+    mean /= len(rows)
+    variance = np.zeros_like(mean)
+    for start in range(0, len(rows), GRAM_CHUNK_ROWS):
+        block = matrix[rows[start:start + GRAM_CHUNK_ROWS]].astype(np.float64) - mean
+        variance += np.sum(block * block, axis=0)
+    scale = np.sqrt(variance / len(rows))
+    scale[scale == 0] = 1.0
+    return mean, scale
 
 
 def standardized_abs_z_mean(
@@ -565,26 +606,25 @@ def standardized_abs_z_mean(
 class RidgeGram:
     """Standardized design + Gram matrices for one (feature arm, fold), shared by every target/side/alpha.
 
-    Standardization statistics come from the complete fit fold (label-free).
-    The alpha grid is scored on the inner chronological split with the inner
-    Gram; the selected alpha is refitted on the full fit fold.  Intercepts are
-    handled by centering y (features are already zero-mean on the fit fold).
+    Alpha selection uses only purged inner-training rows for X/y centering
+    and X scaling. The selected alpha is refitted with full-fold statistics.
     All float64 work is chunked over row blocks so the producer cap holds for
     the 1,076-wide MTF arm (the un-chunked version was cgroup-killed at 10 GiB
     on 2026-09-23).
     """
 
-    def __init__(self, X_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float) -> None:
-        mean = X_fit.mean(axis=0, dtype=np.float32)
-        scale = X_fit.std(axis=0, dtype=np.float32)
-        scale[scale == 0] = 1.0
-        self.Xs_fit = ((X_fit - mean) / scale).astype(np.float32, copy=False)
-        self.Xs_pred = ((X_pred - mean) / scale).astype(np.float32, copy=False)
-        self.inner_fit, self.inner_val = _inner_split(len(X_fit), inner_fraction)
+    def __init__(self, X_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, fit_positions: np.ndarray, purge_bars: int) -> None:
+        self.X_fit = X_fit
+        self.X_pred = X_pred
+        self.inner_fit, self.inner_val = _inner_split(
+            len(X_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars
+        )
         self.inner_fit_rows = np.flatnonzero(self.inner_fit)
         self.inner_val_rows = np.flatnonzero(self.inner_val)
-        self.gram_full = _chunked_gram(self.Xs_fit)
-        self.gram_inner = _chunked_gram(self.Xs_fit, self.inner_fit_rows)
+        self.mean, self.scale = _design_scale(X_fit, np.arange(len(X_fit)))
+        self.inner_mean, self.inner_scale = _design_scale(X_fit, self.inner_fit_rows)
+        self.gram_full = _chunked_gram(X_fit, mean=self.mean, scale=self.scale)
+        self.gram_inner = _chunked_gram(X_fit, self.inner_fit_rows, mean=self.inner_mean, scale=self.inner_scale)
         self.n_features = int(X_fit.shape[1])
         self.mask_signature: tuple[bytes, bytes] | None = None
 
@@ -599,18 +639,18 @@ class RidgeGram:
         eye = np.eye(len(cols))
         gram_full = self.gram_full[np.ix_(cols, cols)]
         full_mean = float(np.mean(y))
-        xty_full = _chunked_xty(self.Xs_fit, y - full_mean)[cols]
+        xty_full = _chunked_xty(self.X_fit, y - full_mean, mean=self.mean, scale=self.scale)[cols]
         if alpha is None:
             gram_inner = self.gram_inner[np.ix_(cols, cols)]
             inner_mean = float(np.mean(y[self.inner_fit_rows]))
-            xty_inner = _chunked_xty(self.Xs_fit, y - inner_mean, self.inner_fit_rows)[cols]
+            xty_inner = _chunked_xty(self.X_fit, y - inner_mean, self.inner_fit_rows, mean=self.inner_mean, scale=self.inner_scale)[cols]
             y_val = y[self.inner_val_rows]
-            X_val = self.Xs_fit[self.inner_val_rows]
+            X_val = self.X_fit[self.inner_val_rows]
             best_alpha, best_mse = None, math.inf
             for candidate in RIDGE_ALPHA_GRID:
                 beta_val = np.zeros(self.n_features)
                 beta_val[cols] = np.linalg.solve(gram_inner + candidate * eye, xty_inner)
-                pred_val = _chunked_matvec(X_val, beta_val) + inner_mean
+                pred_val = _chunked_matvec(X_val, beta_val, mean=self.inner_mean, scale=self.inner_scale) + inner_mean
                 mse = float(np.mean((pred_val - y_val) ** 2))
                 if mse < best_mse:
                     best_alpha, best_mse = candidate, mse
@@ -618,17 +658,21 @@ class RidgeGram:
             best_alpha, best_mse = float(alpha), None
         beta = np.zeros(self.n_features)
         beta[cols] = np.linalg.solve(gram_full + best_alpha * eye, xty_full)
-        pred = _chunked_matvec(self.Xs_pred, beta) + full_mean
-        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "columns": int(len(cols))}
+        pred = _chunked_matvec(self.X_pred, beta, mean=self.mean, scale=self.scale) + full_mean
+        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "columns": int(len(cols)),
+                      "fit_rows": len(y), "inner_fit_rows": len(self.inner_fit_rows),
+                      "inner_val_rows": len(self.inner_val_rows),
+                      "inner_purged_rows": int((~(self.inner_fit | self.inner_val)).sum())}
 
 
 def fit_hgb(
     X_fit: np.ndarray, y_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, max_iter: int, seed: int,
+    fit_positions: np.ndarray, purge_bars: int,
     learning_rate: float = HGB_LIBRARY_DEFAULT_LEARNING_RATE, min_samples_leaf: int = HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     from sklearn.ensemble import HistGradientBoostingRegressor
 
-    inner_fit, inner_val = _inner_split(len(y_fit), inner_fraction)
+    inner_fit, inner_val = _inner_split(len(y_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars)
     model = HistGradientBoostingRegressor(
         max_iter=int(max_iter), early_stopping=False, random_state=int(seed),
         learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
@@ -639,14 +683,17 @@ def fit_hgb(
         mse = float(np.mean((staged - y_fit[inner_val]) ** 2))
         if mse < best_mse:
             best_iter, best_mse = iteration, mse
-    pred = None
-    for iteration, staged in enumerate(model.staged_predict(X_pred), start=1):
-        if iteration == best_iter:
-            pred = staged
-            break
-    if pred is None:
+    if best_iter is None:
         raise RuntimeError("WALKFORWARD_HGB_STAGED_PREDICT_FAILED")
+    model = HistGradientBoostingRegressor(
+        max_iter=int(best_iter), early_stopping=False, random_state=int(seed),
+        learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
+    )
+    model.fit(X_fit, y_fit)
+    pred = model.predict(X_pred)
     return np.asarray(pred, dtype=np.float64), {
+        "fit_rows": len(y_fit), "inner_fit_rows": int(inner_fit.sum()),
+        "inner_val_rows": int(inner_val.sum()), "inner_purged_rows": int((~(inner_fit | inner_val)).sum()),
         "best_iter": best_iter, "inner_val_mse": best_mse, "max_iter": int(max_iter),
         "learning_rate": float(learning_rate), "min_samples_leaf": int(min_samples_leaf),
     }
@@ -814,6 +861,30 @@ def _json_default(value: Any) -> Any:
     raise TypeError(f"unserializable: {type(value)!r}")
 
 
+def _array_sha256(values: np.ndarray) -> str:
+    array = np.asarray(values)
+    digest = hashlib.sha256(str((array.shape, array.dtype.str)).encode())
+    for start in range(0, len(array), GRAM_CHUNK_ROWS):
+        digest.update(np.ascontiguousarray(array[start:start + GRAM_CHUNK_ROWS]).tobytes())
+    return digest.hexdigest()
+
+
+def _check_run_binding(out_dir: Path, spec: dict[str, Any], inputs: dict[str, Any] | None = None) -> str | None:
+    path = out_dir / "RUN_BINDING.json"
+    binding = {"spec": spec, "inputs": inputs}
+    if path.exists():
+        previous = json.loads(path.read_text(encoding="utf-8"))
+        if previous.get("spec") != spec or (inputs is not None and previous.get("inputs") != inputs):
+            raise RuntimeError("WALKFORWARD_RESUME_BINDING_MISMATCH")
+    elif any((out_dir / "per_config").glob("*.json")):
+        raise RuntimeError("WALKFORWARD_RESUME_UNBOUND_CACHE")
+    elif inputs is not None:
+        path.write_text(json.dumps(binding, sort_keys=True, indent=2), encoding="utf-8")
+    if inputs is None:
+        return None
+    return hashlib.sha256(json.dumps(binding, sort_keys=True).encode()).hexdigest()
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     started = _time.monotonic()
     out_dir = Path(args.out_dir)
@@ -822,6 +893,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     per_config_dir = out_dir / "per_config"
     per_config_dir.mkdir(exist_ok=True)
+    run_spec = {
+        "config": {key: value for key, value in vars(args).items() if key not in ("resume", "out_dir")},
+        "instrument_source_sha256": _sha256_file(Path(__file__)),
+        "evaluator_source_sha256": _sha256_file(Path(inspect.getfile(build_metric_rows))),
+        "git_head": _git_head(),
+    }
+    _check_run_binding(out_dir, run_spec)
 
     dataset_dir = Path(args.dataset_dir)
     dataset = load_dataset(dataset_dir)
@@ -832,8 +910,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     final_holdout = str(args.final_holdout)
     if final_holdout not in ("none", "val"):
         raise RuntimeError("WALKFORWARD_FINAL_HOLDOUT_INVALID")
-    # The tape never extends past the VAL split end, so TEST bytes are never read; without the
-    # confirmation stage it stops at the TRAIN split end so no fold outcome can touch VAL either.
+    # Push the allowed split boundary into the reader before rows are materialized.
     tape = load_tape(Path(args.native_m5_root), truncate_before=(val_end_exclusive if final_holdout == "val" else train_end_exclusive))
     positions = tape_positions(dataset.time, tape)
     val_dataset: Dataset | None = None
@@ -962,6 +1039,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.persist_predictions:
         predictions_dir.mkdir(exist_ok=True)
 
+    # Bind the exact already-loaded arrays used by the run, without hashing sealed tape rows.
+    bound_arrays = {"time": dataset.time.asi8, "positions": positions, "atr": atr,
+                    "tape_time": tape.time.asi8, "tape_mid": tape.mid, "tape_bid": tape.bid, "tape_ask": tape.ask}
+    for label, matrices in (("features", arms), ("val_features", val_arms), ("valid", arm_valid), ("val_valid", val_arm_valid)):
+        bound_arrays.update({f"{label}:{name}": values for name, values in matrices.items()})
+    for label, outcomes in (("target", targets), ("val_target", val_targets)):
+        for name, (long_values, short_values, valid, _) in outcomes.items():
+            bound_arrays.update({f"{label}:{name}:long": long_values, f"{label}:{name}:short": short_values,
+                                 f"{label}:{name}:valid": valid})
+    if val_dataset is not None:
+        bound_arrays["val_time"] = val_dataset.time.asi8
+        bound_arrays["val_atr"] = val_dataset.ctx_cont[:, atr_index]
+    input_binding = {
+        "arrays": {name: _array_sha256(values) for name, values in bound_arrays.items()},
+        "feature_names": {name: list(names) for name, names in arm_names.items()},
+        "train_manifest_sha256": dataset.manifest_sha256, "tape_manifest_sha256": tape.manifest_sha256,
+        "val_manifest_sha256": val_dataset.manifest_sha256 if val_dataset is not None else None,
+    }
+    run_binding_sha256 = _check_run_binding(out_dir, run_spec, input_binding)
+
     all_rows: list[dict[str, Any]] = []
     fit_reports: list[dict[str, Any]] = []
 
@@ -990,6 +1087,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     continue
                 cache = per_config_dir / f"{cfg[0]}__{arm}__{cfg[1]}__{cfg[2]}__seed{cfg[3]}__fold{fold.index}.json"
                 payload = json.loads(cache.read_text(encoding="utf-8"))
+                if payload.get("run_binding_sha256") != run_binding_sha256:
+                    raise RuntimeError(f"WALKFORWARD_RESUME_CACHE_MISMATCH: {cache.name}")
                 all_rows.extend(payload["rows"])
                 fit_reports.append(payload["fit"])
             if not pending:
@@ -1050,14 +1149,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     y_fit = y_all[fit_mask] / y_scale_fit
                     if learner == "ridge":
                         # The Gram is shared across targets whenever the fit/holdout row sets coincide.
-                        if ridge_gram is None or ridge_gram.Xs_fit.shape[0] != int(fit_mask.sum()) or ridge_gram.Xs_pred.shape[0] != int(holdout_mask.sum()) or ridge_gram.mask_signature != (fit_mask.tobytes(), holdout_mask.tobytes()):
-                            ridge_gram = RidgeGram(X[fit_mask], X_hold_all[holdout_mask], inner_fraction=args.inner_fraction)
+                        if ridge_gram is None or ridge_gram.X_fit.shape[0] != int(fit_mask.sum()) or ridge_gram.X_pred.shape[0] != int(holdout_mask.sum()) or ridge_gram.mask_signature != (fit_mask.tobytes(), holdout_mask.tobytes()):
+                            ridge_gram = RidgeGram(X[fit_mask], X_hold_all[holdout_mask], inner_fraction=args.inner_fraction,
+                                                   fit_positions=positions[fit_mask], purge_bars=purge_bars)
                             ridge_gram.mask_signature = (fit_mask.tobytes(), holdout_mask.tobytes())
                         pred, info = ridge_gram.fit_predict(y_fit)
                     else:
                         pred, info = fit_hgb(
                             X[fit_mask], y_fit, X_hold_all[holdout_mask], inner_fraction=args.inner_fraction, max_iter=args.max_hgb_iter, seed=seed,
                             learning_rate=args.hgb_learning_rate, min_samples_leaf=args.hgb_min_samples_leaf,
+                            fit_positions=positions[fit_mask], purge_bars=purge_bars,
                         )
                     preds[side_name] = pred * y_scale_hold
                     fit_info[side_name] = info
@@ -1169,7 +1270,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                     row["ablation_delta_above_null_p95"] = bool(row["delta_mean_pnl_bps_vs_full"] > p95)
                         rows_for_key.extend(group_rows)
                 fit_record = {"key": key, **fit_info, "fit_rows": int(fit_mask.sum()), "holdout_rows": int(holdout_mask.sum())}
-                cache.write_text(json.dumps({"rows": rows_for_key, "fit": fit_record}, default=_json_default), encoding="utf-8")
+                cache.write_text(json.dumps({"run_binding_sha256": run_binding_sha256, "rows": rows_for_key, "fit": fit_record}, default=_json_default), encoding="utf-8")
                 all_rows.extend(rows_for_key)
                 fit_reports.append(fit_record)
                 print(f"[walkforward] done {key} ({_time.monotonic() - started:.0f}s)", flush=True)
@@ -1183,6 +1284,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     summary = summarize(metrics)
     report = {
         "schema_version": SCHEMA_VERSION,
+        "run_binding_sha256": run_binding_sha256,
         "authority": AUTHORITY,
         "created_utc": _utc_now(),
         "instrument_source_sha256": _sha256_file(Path(__file__)),
@@ -1196,7 +1298,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "multi_tf_cache": mtf_report,
             "train_start": train_start.isoformat(),
             "train_end_exclusive": train_end_exclusive.isoformat(),
-            "tape_truncated_before": train_end_exclusive.isoformat(),
+            "tape_truncated_before": (val_end_exclusive if final_holdout == "val" else train_end_exclusive).isoformat(),
         },
         "config": {
             "fold_boundaries": [b.isoformat() for b in boundaries],
