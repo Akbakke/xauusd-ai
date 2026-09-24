@@ -1,5 +1,9 @@
 # PDH-brudd i bullish H4: kontrollert TRAIN-funn — 24.09.2026
 
+Senere oppfølging: [native synlighet og kausal læringskontroll](ENTRY_PDH_NATIVE_LEARNING_20260924.md).
+Gruppelæringen feilet i gjenbrukt juni; native valg på alle 299 hendelser er
+nå målt uten ny trening. Resultatene nedenfor er bevart som tidligere TRAIN-evidens.
+
 ## Beslutning
 
 Behold denne ene hypotesen som forskningskandidat. Bruddet tilfører en positiv
