@@ -1,5 +1,7 @@
 # Bred kombinasjonslæring og HGB-refit — 24.09.2026
 
+> Oppfølging fullført: [mønsterfelt i ikke-lineær Entry](ENTRY_PATTERN_INTERACTIONS_20260924.md). Den låste h12-varianten bestod ikke videreføringsporten.
+
 ## Spørsmålet og omfanget
 
 Brukeren ba om bredere kombinasjonslæring fremfor langvarig arbeid med ett
