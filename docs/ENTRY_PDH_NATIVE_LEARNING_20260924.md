@@ -1,5 +1,9 @@
 # PDH/H4: native synlighet og kausal læringskontroll — 24.09.2026
 
+Senere oppfølging: [Entry-head med observert nettofeedback](ENTRY_OBSERVED_NET_HEAD_20260924.md).
+Én avgrenset head-fit er nå fullført med bedre juni-punktresultat enn v10-
+referansen, men uten bestått økonomisk port. Ingen native modell er endret.
+
 ## Beslutning og avgrensing
 
 Oppfølging av [PDH/H4-kontrollen](ENTRY_PDH_H4_STATE_CONTROL_20260924.md).
