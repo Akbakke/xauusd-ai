@@ -486,6 +486,49 @@ forhåndsregistrerte kriteriet (fold-robust + VAL-strict). Det som står igjen
 som ubevist, ikke refutert: `pdh_break_trend_H4` ved 4–8 t (for få rader),
 regime-nivå abstensjon (§7.2), og en manifestbundet realrente-serie.
 
+**run3b — HGB på MTF-armen med lr 0,03 / min_leaf 200 (3,8 t):** samme dom som run3a.
+Beste celle h24/atr/contrast/1 % er positiv 3/4 folds (7,8/8,9/−6,2/30,5,
+strict 3/4) og +19,8 på juni uten strict; h48/atr/argmax/1 % 3/4 og −26,8 på
+juni. Ingen celle er 4/4 og VAL-strict. FLAT-andelen ved full dekning er
+fortsatt 0,3–1,0. Boosting, uansett læringsrate, tilfører ingenting utover
+ridge på denne flaten.
+
+**Konfluens-oppsett, samlet femårsperiode (kjede 4, `setup_edge_pooled_v1`,
+144 celler, én periode 2021-06..2026-05):** 18 celler passerer strict, alle
+LONG i H4/D1-opptrend, ingen SHORT. `pdh_break_trend_H4` passerer på alle fire
+horisonter (n = 299; 2 t +4,7, 4 t +7,2, 8 t +9,6, 1 d +13,3 bps; t mot
+myntkast 3,5–4,2; 3,8–6,4 bps over sirkulær p95, dvs. over tilfeldige LONG-rader
+med samme antall; HAC-SE 1,9–3,8). Men drift-referansen `trend_all_bull_any_bar`
+passerer også strict ved 8 t og 1 d (n = 64 779; +1,8 / +5,2 bps, t 5,0 / 6,3),
+og `momentum_confluence_long` og `range_break_up_M5_trend_H4` likeså. Lesning:
+i den samlede perioden ga «LONG når H4/D1 peker opp» 2–7 bps mer per 4–8 t
+enn tilfeldige LONG-rader, med PDH-bruddet som den sterkeste og sjeldneste
+varianten. Det er trendfølging i et oksemarked målt over fem år: effekten er
+konsentrert i 2023–24 og 2025–26 (§6.3, per-år strict 2/5), har ingen
+SHORT-speiling (H4-bear-stabler var for sjeldne til å måles), og juni 2026 har
+null rader å bekrefte på. Klasse: *målt positivt i samlet TRAIN, ikke bekreftet
+ut av sample, ikke skilt fra regimedrift ved årlig oppløsning.* Det er
+kampanjens eneste positive måling, og den er svak: ved n = 299 er 5 bps ≈ 1,5
+SE. Den kan bare avgjøres med framtidige rader; ingen terskel-sveip skal
+kjøres på den (det ville være tilpasning).
+
+**run7c — kryss-asset på den manifestbundne FRED-tabellen (operatørvedtak 24.09
+«kjør alt dette»; DFII10 realrente, DGS10, DTWEXBGS bred dollarindeks, VIXCLS;
+publikasjons-skiftede tilgjengelighetsdatoer + én dags lag; 313 399 gyldige
+TRAIN-rader, full juni-VAL 5 509 rader; 57 min):** samme dom som run7a, nå på
+rene data. Ingen celle er 4/4 og VAL-strict; de 3/4-cellene taper −39 til −114
+bps på juni. Δ mot ren MTF-arm på identiske rader er negativ på folds ved 5 %
+dekning (h48/atr: −6,2 / −10,0 i fold 2–3), og ablasjonen sier det samme:
+å fjerne FRED-blokken forbedrer folds ved 5 % med +4,5 bps i snitt (over
+null-p95 i 30/48 celler) og ved full dekning +0,4 (19/48). På juni bærer
+blokken −4,0 bps ved full dekning (under p05 i 8/12) — én måned. Konklusjon:
+daglig makro med ærlig lag, fra en kilde med manifest, tilfører ingen robust
+retningsinformasjon på 2 t–1 d; den skader in-sample-forward. Kryss-asset-
+hypotesen er dermed refutert på V12 ved det forhåndsregistrerte kriteriet,
+både på gjenfunnede og på manifestbundne bytes. Det som ikke er testet:
+intradag makro (ingen kilde uten megler), posisjonering (COT, ukentlig) og
+horisonter over én dag (for få uavhengige observasjoner i fem år).
+
 ### 6.4 Brukbarhetsrevisjon av hele beslutningsflaten (24.09, operatør: «dobbeltsjekk at ALLE funksjonene er brukbare») [M]
 
 Kjørt på de ekte V12-TRAIN-bytene: 313 399 rader × 1 072 kolonner (241 signal +
