@@ -779,7 +779,7 @@ def fit_volatility_squeeze_params(
     # This low-level fitter accepts TRAIN rows only.  Selection from a larger
     # tape is owned by the six-clock manifest fitter below and occurs before a
     # single observation reaches this function.
-    if source.index[0] < window_start or source.index[-1] > window_end:
+    if source.index[0] < window_start or source.index[-1] + _CLOCK_DURATION[clock] > window_end:
         raise RuntimeError("VOLATILITY_SQUEEZE_FIT_SOURCE_OUTSIDE_TRAIN")
     train = source
     if len(source) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
@@ -1263,10 +1263,12 @@ def fit_volatility_squeeze_artifact_manifest(
             timeframe=clock,
             context=f"VOLATILITY_SQUEEZE_{clock}_FIT_SOURCE",
         )
-        # C-5: half-open [start, end) — see the registry fit sites; the
-        # boundary bar belongs to the next split.
+        # Opening labels alone do not bound observed data: an H4/D1 bar
+        # can open in TRAIN but close in the following split. Admit only
+        # bars fully available by the declared end.
         train = full_source.loc[
-            (full_source.index >= start) & (full_source.index < end)
+            (full_source.index >= start)
+            & ((full_source.index + _CLOCK_DURATION[clock]) <= end)
         ]
         if len(train) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
             raise RuntimeError(f"VOLATILITY_SQUEEZE_{clock}_TRAIN_WINDOW_TOO_SHORT")

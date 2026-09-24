@@ -309,8 +309,8 @@ def _feature_fit_binding(root: Path, *, end: str = "2023-12-31T00:00:00Z") -> di
 
 @pytest.mark.parametrize("owner", ["registry", "volatility_squeeze"])
 def test_feature_fit_guard_rejects_future_and_allows_half_open_boundary(owner: str) -> None:
-    records = [{"owner": owner, "fit_end_exclusive": "2024-02-01T00:00:00Z"}]
-    wf.require_feature_fit_before(records, pd.Timestamp("2024-02-01T00:00:00Z"), context="outer")
+    records = [{"owner": owner, "fit_end_exclusive": "2024-02-01T22:00:00Z"}]
+    wf.require_feature_fit_before(records, pd.Timestamp("2024-02-01T22:00:00Z"), context="outer")
     with pytest.raises(RuntimeError, match="FEATURE_FIT_AFTER_EVALUATION_START"):
         wf.require_feature_fit_before(records, pd.Timestamp("2024-01-01T00:00:00Z"), context="outer")
 
@@ -738,3 +738,22 @@ def test_run_end_to_end_cross_arm_drops_invalid_rows(tmp_path: Path) -> None:
     assert (metrics[metrics["ablation_group"] != "none"]["ablation_group"].isin(set(groups))).all()
     persisted = pd.read_parquet(sorted((out_dir / "predictions").glob("*.parquet"))[-1])  # highest fold index = the final_val stage
     assert len(persisted) == report["config"]["val_arm_valid_rows"]["snapshot_cross"] and np.isfinite(persisted["ood_abs_z_mean"]).all()
+
+
+@pytest.mark.parametrize("end,available", [
+    ("2026-05-31T23:55:00Z", "2026-06-01T22:00:00Z"),
+    ("2026-05-31T22:00:00Z", "2026-05-31T22:00:00Z"),
+])
+def test_feature_fit_lineage_bounds_last_bar_close(tmp_path: Path, end: str, available: str) -> None:
+    records = wf.feature_fit_lineage(_feature_fit_binding(tmp_path, end=end))
+    vol = next(r for r in records if r["owner"] == "volatility_squeeze")
+    assert pd.Timestamp(vol["fit_data_available_by_upper_bound"]) == pd.Timestamp(available)
+    wf.require_feature_fit_before(records, pd.Timestamp(available), context="at_last_close")
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_AFTER_EVALUATION_START"):
+        wf.require_feature_fit_before(records, pd.Timestamp(available) - pd.Timedelta(1, unit="ns"), context="before_last_close")
+
+
+def test_feature_fit_guard_rejects_legacy_june_overlap() -> None:
+    records = [{"owner": "volatility_squeeze", "fit_end_exclusive": "2026-05-31T23:55:00Z"}]
+    with pytest.raises(RuntimeError, match="available_by_upper_bound=2026-06-01T22"):
+        wf.require_feature_fit_before(records, pd.Timestamp("2026-06-01T00:00:00Z"), context="june")

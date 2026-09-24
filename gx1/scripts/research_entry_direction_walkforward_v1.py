@@ -77,6 +77,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 from gx1.features.htf_features import (
     MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4,
     MULTI_TF_SHIFT,
+    multi_tf_bar_label,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_TIMEFRAMES
 from gx1.features.entry_specialist_feature_groups_v1 import (
@@ -145,6 +146,15 @@ def _sha256_file(path: Path) -> str:
 
 
 
+def _feature_fit_available_by(owner: str, end: pd.Timestamp) -> pd.Timestamp:
+    # Legacy squeeze artifacts selected by opening label and do not record
+    # their last fitted bar. Bound possible availability by the largest
+    # clock's close. An end already on the D1 boundary remains unchanged.
+    if owner == "volatility_squeeze":
+        return multi_tf_bar_label(end - pd.Timedelta(1, unit="ns"), "D1") + MULTI_TF_SHIFT["D1"]
+    return end
+
+
 def feature_fit_lineage(binding: dict[str, Any]) -> list[dict[str, str]]:
     """Read learned feature fit bounds; last-closed joins alone do not prove chronology."""
     try:
@@ -166,7 +176,9 @@ def feature_fit_lineage(binding: dict[str, Any]) -> list[dict[str, str]]:
             if pd.isna(start) or pd.isna(end) or start.tzinfo is None or end.tzinfo is None or start >= end:
                 raise ValueError("invalid feature-fit interval")
             result.append({"owner": name, "fit_start": start.isoformat(),
-                           "fit_end_exclusive": end.isoformat(), "binding_sha256": digest})
+                           "fit_end_exclusive": end.isoformat(),
+                           "fit_data_available_by_upper_bound": _feature_fit_available_by(name, end).isoformat(),
+                           "binding_sha256": digest})
         return result
     except (KeyError, TypeError, ValueError, OSError) as exc:
         raise RuntimeError("WALKFORWARD_FEATURE_FIT_LINEAGE_MISSING_OR_INVALID") from exc
@@ -183,11 +195,13 @@ def require_feature_fit_before(
         end = pd.Timestamp(item["fit_end_exclusive"])
         if pd.isna(end) or end.tzinfo is None:
             raise RuntimeError("WALKFORWARD_FEATURE_FIT_LINEAGE_MISSING_OR_INVALID")
-        # Fit bounds are half-open; ending exactly at the evaluation start is allowed.
-        if end > cutoff:
+        available_by = _feature_fit_available_by(item["owner"], end)
+        # Exact equality is legal only once every fitted bar could be closed.
+        if available_by > cutoff:
             raise RuntimeError(
                 f"WALKFORWARD_FEATURE_FIT_AFTER_EVALUATION_START: {context} "
                 f"owner={item['owner']} fitted_until={end.isoformat()} "
+                f"available_by_upper_bound={available_by.isoformat()} "
                 f"evaluation_start={cutoff.isoformat()}"
             )
 

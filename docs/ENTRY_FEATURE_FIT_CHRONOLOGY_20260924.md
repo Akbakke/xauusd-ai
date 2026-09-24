@@ -1,5 +1,14 @@
 # Feature-tilpasning krysset walk-forward-grensene — 24.09.2026
 
+## Oppdatert: også den gamle juni-grensen berøres
+
+Se ENTRY_EARLY_FEATURE_CALIBRATION_20260924.md. En etterfølgende kontroll
+gjenskapte de gamle H4/D1-volatilitetsinputene med identiske lagrede hasher.
+Siste bar åpnet i mai, men lukket 1. juni kl. 02/22 UTC. Den første rene
+datokontrollens juni-PASS var derfor for svakt. Fitteren bruker nå lukket
+bargrense, og forskningsporten avviser også den gamle juni-bindingen.
+Ny, tidlig parameterpakke er fullført. Featureinput må fortsatt regenereres.
+
 ## Observert feil
 
 Forsøkene delte modelltilpasningen kronologisk, men brukte en felles featureflate

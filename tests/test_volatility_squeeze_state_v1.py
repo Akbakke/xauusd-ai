@@ -93,7 +93,7 @@ def _fit(frame: pd.DataFrame, timeframe: str) -> dict:
         frame,
         timeframe=timeframe,
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=frame.index[-1],
+        declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ[timeframe]),
         source_provenance=_provenance(timeframe),
     )
 
@@ -143,14 +143,14 @@ def test_fit_uses_only_declared_train_rows() -> None:
         frame.loc[:cutoff],
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=cutoff,
+        declared_train_window_end=cutoff + pd.Timedelta(_FREQ["M5"]),
         source_provenance=_provenance("M5"),
     )
     right = fit_volatility_squeeze_params(
         changed_future.loc[:cutoff],
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=cutoff,
+        declared_train_window_end=cutoff + pd.Timedelta(_FREQ["M5"]),
         source_provenance=_provenance("M5"),
     )
     assert left["fit"] == right["fit"]
@@ -167,7 +167,7 @@ def test_time_permutation_is_rejected_and_degenerate_fits_fail_closed() -> None:
             frame.iloc[permutation],
             timeframe="M5",
             declared_train_window_start=frame.index[0],
-            declared_train_window_end=frame.index[-1],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
             source_provenance=_provenance("M5"),
         )
     with pytest.raises(RuntimeError, match="UNIDENTIFIABLE"):
@@ -184,7 +184,7 @@ def test_fit_rejects_wrong_native_clock_and_runtime_has_no_bare_payload_route() 
             frame,
             timeframe="M5",
             declared_train_window_start=frame.index[0],
-            declared_train_window_end=frame.index[-1],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
             source_provenance=_provenance("M5"),
         )
     with pytest.raises(RuntimeError, match="PARAMS_KEYS_INVALID"):
@@ -418,7 +418,7 @@ def test_mutated_bound_source_manifest_invalidates_frozen_params(
         frame,
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=frame.index[-1],
+        declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
         source_provenance=provenance,
     )
     bound.write_text("mutated-v2\n", encoding="utf-8")
@@ -660,3 +660,43 @@ def test_served_state_sequence_is_a_fixed_point_of_its_own_fit() -> None:
         # at least two active -> inactive (release) edges in the served run.
         active_mask = served > 0.0
         assert int((active_mask[:-1] & ~active_mask[1:]).sum()) >= 2
+
+
+@pytest.mark.parametrize("clock", VOLATILITY_SQUEEZE_CLOCKS)
+def test_fit_rejects_bar_closing_after_declared_end(clock, monkeypatch) -> None:
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    frame = _closed_ohlcv(clock, rows=60)
+    def forbidden(*args, **kwargs):
+        pytest.fail("a not-yet-closed bar reached model fit")
+    monkeypatch.setattr(owner, "_fit_two_state_model", forbidden)
+    with pytest.raises(RuntimeError, match="FIT_SOURCE_OUTSIDE_TRAIN"):
+        owner.fit_volatility_squeeze_params(
+            frame, timeframe=clock,
+            declared_train_window_start=frame.index[0],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ[clock]) / 2,
+            source_provenance=_provenance(clock),
+        )
+
+
+@pytest.mark.parametrize("clock", ["H4", "D1"])
+def test_manifest_excludes_bar_closing_after_declared_end(clock, tmp_path, monkeypatch) -> None:
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    frame = _closed_ohlcv(clock, rows=60)
+    duration = pd.Timedelta(_FREQ[clock])
+    end = frame.index[-1] + duration / 2
+    class ObservedFitInput(Exception):
+        pass
+    def observe(train, **kwargs):
+        pd.testing.assert_frame_equal(train, frame.iloc[:-1].astype(float))
+        assert (train.index + duration <= end).all()
+        raise ObservedFitInput
+    # Isolate the population selector before any fitting or publishing.
+    monkeypatch.setattr(owner, "VOLATILITY_SQUEEZE_CLOCKS", (clock,))
+    monkeypatch.setattr(owner, "fit_volatility_squeeze_params", observe)
+    with pytest.raises(ObservedFitInput):
+        owner.fit_volatility_squeeze_artifact_manifest(
+            {clock: frame}, declared_train_window_start=frame.index[0],
+            declared_train_window_end=end,
+            source_provenance_by_clock={clock: _provenance(clock)},
+            output_dir=tmp_path,
+        )
