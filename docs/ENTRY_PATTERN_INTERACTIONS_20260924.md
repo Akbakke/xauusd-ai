@@ -1,5 +1,7 @@
 # Mønsterfelt i bred ikke-lineær Entry — 24.09.2026
 
+> Tidsforløpet er nå kontrollert: [samme innganger ved fem vinduer](ENTRY_FIXED_CHOICE_TIME_PATH_20260924.md). Samlet netto er fortsatt negativt ved alle fem.
+
 ## Avgrensning
 
 Oppfølging av [bred kombinasjonskontroll](ENTRY_BROAD_COMBINATIONS_20260924.md).
