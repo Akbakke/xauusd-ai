@@ -1,3 +1,7 @@
+> Oppdatert: regenereringen er fullført med rc0 24.09 kl. 16:55:43 UTC.
+> Se [fullført inputrettelse og neste sammenligning](ENTRY_EARLY_INPUT_COMPARISON_20260924.md).
+> Avsnittet om neste avgrensning nedenfor beskriver den daværende planen.
+
 # Tidlig featurekalibrering og lukket bargrense — 24.09.2026
 
 ## Ferdig parameterpakke
