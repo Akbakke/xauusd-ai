@@ -99,3 +99,25 @@ full rebuild eller parameterjakt. Alle featurefamilier skal beholdes.
 
 Denne rettelsen gjør målingen strengere. Økonomisk nyttig Entry er fortsatt
 ikke dokumentert, og det overordnede målet er aktivt.
+
+## Målt første indre grense og tilgjengelig støtte
+
+Etterfølgende avgrenset kontroll leste bare TRAIN-tidspunkter og eksisterende
+pris-tapes tidskolonne. Alle fire ytre fit-masker og indre delinger gjengir
+forrige kontrolls hasher. Første indre kontroll starter **29.03.2022 kl. 00:15
+UTC**. En felles parameterpakke må derfor slutte senest der, med halvåpent
+fit-vindu; juni 2022 alene er ikke en tilstrekkelig tidlig grense.
+
+Fra opprinnelig TRAIN-start til denne grensen finnes 58802 M5-rader og 213
+lukkede D1-rader. Eksisterende kilde før TRAIN-start, fra 01.01.2019 kl. 23:00
+UTC til 01.06.2021, inneholder 170596 M5-rader og 622 lukkede D1-rader.
+Dette viser tilgjengelig historikk, ikke at registry-eiernes hendelsesstøtte
+eller en ny parameterpakke er godkjent. Ingen fit eller ny datainnhenting.
+
+Native datasettkontrakt krever at registry-fit-vindu er likt deklarert native
+TRAIN-vindu. Den skal ikke svekkes eller omgås ved å endre metadata på eksisterende
+data. En tidligere frosset forskningsflate trenger separat, sannferdig binding
+og de eksisterende beregningseierne. Ingen full native rebuild er startet.
+
+Evidens: FEATURE_CALIBRATION_BOUNDARY_20260924 under samme V12-reviewrot.
+RESULT, måleskript og terminalkvittering er bevart. Audit-vakt 4 GiB, rc0.
