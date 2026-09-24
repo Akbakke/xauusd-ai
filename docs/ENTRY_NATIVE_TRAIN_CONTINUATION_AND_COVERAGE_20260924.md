@@ -76,3 +76,18 @@ Neste inngrep må knyttes til en målt læringsblokkering, særlig sammenhengen
 mellom læringsmål, direkte treningsdekning og observerte utfall. Ingen ny
 terskeljakt, full native trening eller juni-tilpasning på dette grunnlaget.
 Målet om nyttig og selektiv Entry er fortsatt aktivt, ikke oppnådd.
+
+## Etterkontroll: kjent EXIT-verdi ved de sene tilstandene
+
+LATE_EXIT_VALUE_REVIEW.json sammenligner de samme20 sidene ved forrige og
+nåværende endepunkt, uten forwards eller fit. MAE for Q_EXIT mot kjent
+spreadinkludert lukkebelønning steg fra6,548 til14,337bps; største avvik
+204,838bps. De13 fortsatt åpne sidene har MAE20,506bps. Dette er målbar
+feil i en verdi som er kjent i tilstanden, ikke bevis for størrelsen på
+feilen i forventet fremtidig HOLD-verdi.
+
+Tidligere kontroll av kjent reward-ankring er gjenbrukt: et felles skift av
+begge handlingsverdier retter Q_EXIT, men bevarer HOLD/EXIT-rangeringen
+bortsett fra mulige flyttallsbånd. Ingen slik kalibrering er innført som en
+påstått Entry-forbedring. De sju nye lukkede utfallene er et selektert utvalg;
+de kan ikke alene kalibrere de gjenstående åpne livsløpene.
