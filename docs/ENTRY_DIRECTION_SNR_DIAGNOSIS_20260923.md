@@ -1,5 +1,13 @@
 # Entry-retning: signal/støy-diagnose og instrument — 2026-09-23
 
+> **Review 24.09:** Les [målereparasjonen og den fullførte før/etter-kontrollen](ENTRY_MEASUREMENT_REPAIR_20260924.md)
+> sammen med denne historiske analysen. Den negative h12/juni-målingen består
+> etter retting. Generelle utsagn nedenfor om umulig retningsinformasjon,
+> bevist abstensjon og utelukket lekkasje går utover målegrunnlaget.
+> Juni er gjenbrukt utviklings-VAL. Pooled-oppsettenes h12/24/48/96 er
+> 1/2/4/8 timer med M5-barer; flere timeangivelser nedenfor er feil.
+
+
 Operatørspørsmål: *«Vi har masse features og en dyp AI-modell, men entry har
 så og si myntkast på retningsprediksjon. Hvorfor klarer vi ikke finne
 retningen?»* Operatørvedtak samme kveld: *«gjør alt dette her»* — instrument,

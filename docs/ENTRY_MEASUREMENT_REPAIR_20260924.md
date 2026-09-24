@@ -72,3 +72,50 @@ er om en på forhånd definert situasjon gir bedre senere utfall enn en relevant
 referanse med tilsvarende trend/side og eksponering. Brudd over forrige dags
 topp med H4-opptrend er en eksisterende hypotese, ikke en ny kjøpsregel eller
 en bekreftet løsning. Gjenbruk ferdige analyser før mer beregning.
+
+## Fullført før/etter-kontroll — 24.09 kl. 12:28:58 UTC
+
+PAIRED_H12_REPLAY fullførte med rc=0 på kilde ee42853573b59247139428f897de4afab115d80a.
+Fem konfigurasjoner (to sider per fold/stadium), 129,67 s instrumenttid.
+PAIRED_PLAN.json ble skrevet før kjøring; PAIRED_TERMINAL.json binder plan,
+kilde og logg. Sammenligningen fullførte bak audit-vakten med rc=0.
+
+Alle 263 557 gamle/nye evalueringsrader hadde identiske tidsstempler og eksakt
+like realiserte LONG/SHORT-utfall. Ingen gammel grenseoverskridende rad falt ut
+for akkurat h12. Fit-antall og TRAIN/tape/MTF-manifestene matchet.
+Hver indre fit purget 266–269 beslutningsrader ved 289 tape-barers purge.
+Valgt alpha var fortsatt 10 000 på begge sider i alle fem stadier.
+Det forklarer hvorfor den korrigerte indre modellseleksjonen ikke endret
+full-refittens valg mer enn små numeriske forskjeller: 24 av 263 557 argmax-valg
+endret seg, ingen i juni. Dette begrunner ikke et nytt alpha-søk.
+
+| Periode | Høyest rangerte 1 %, gammel → rettet, bps | Antall |
+|---|---:|---:|
+| 2022–23 | +6,826 → +6,826 | 633 |
+| 2023–24 | +4,310 → +4,310 | 643 |
+| 2024–25 | +1,389 → +1,389 | 653 |
+| 2025–26 | +17,774 → +17,774 | 653 |
+| Juni 2026, utviklings-VAL | −42,478 → −42,478 | 56 |
+
+Juni ved full dekning: 4 964 handler, 3 702 LONG / 1 262 SHORT og 545 FLAT,
+−5,308 bps per valgt handel; uendret. Ved topp 5 %: −22,414 bps; uendret.
+Den høyest rangerte 1 %-halen er fortsatt 56 LONG og ingen SHORT.
+Rapportens generelle utsagn om at argmax aldri velger FLAT gjelder derfor
+ikke denne ridge-målingen.
+
+**Konklusjon:** de fem reparasjonene er nødvendige for korrekt måling, men
+de forklarer ikke juni-tapet i denne avgrensede ridge-kontrollen. Ingen bedre
+Entry eller bestått læringsport er påvist. Dette resultatet gjelder ikke
+automatisk alle andre mål eller den rettede HGB-refitten.
+
+Topp-prosentilene rangeres med hele evalueringsperiodens scorefordeling.
+De er retrospektiv seleksjonsdiagnostikk, ikke dokumentasjon av en kausal
+inngangsterskel som kunne vært brukt på hvert daværende tidspunkt.
+Utfallsmeanene er spread-inkluderte close-fill-målinger før øvrige kostnader;
+overlappende handler er ikke en gjennomførbar portefølje.
+
+Neste avklaring er avgrenset situasjonsvalg: om den eksisterende PDH/H4-hypotesen
+tilfører noe utover en kjent bullish H4-tilstand med tilsvarende eksponering.
+Den må vurderes mot en referanse som kan velges før utfallet, og deretter
+bekreftes på senere uavhengige data. De gjenbrukte TRAIN/juni-resultatene kan
+ikke alene gi slik bekreftelse. Ingen ny større treningsjobb er startet.
