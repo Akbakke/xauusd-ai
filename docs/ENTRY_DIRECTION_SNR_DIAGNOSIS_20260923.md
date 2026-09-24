@@ -238,6 +238,17 @@ drift og regime (2021–2026-bull pluss vol-eksplosjonen 2025–26), ikke en
 betinget retning; i første måned med motsatt fortegn gikk alle armer LONG og
 tapte. Dette er samme mekanisme som Q-målets drift-intercept i §2.
 
+**run3a — HGB på MTF-armen (bibliotek-default lr 0,1 / min_leaf 20, seed 0, knee/2 t/4 t/8 t, VAL-stadium) [M]:**
+ingen celle positiv i alle fire folds. Beste celle h48/atr/5 % er positiv 3/4
+(−2,7 / +1,0 / +1,6 / +8,0) med strict 0/4 og VAL +6,1 uten strict. De to
+VAL-cellene som passerer strict (h24/raw/contrast/1 %: +40,4; knee/raw/contrast/1 %:
++33,9) er negative i alle fire folds; å velge dem ville vært populasjonsfellen
+fra 2026-06-23, ikke et funn. Modellen er nesten konstant: FLAT-andel ved full
+dekning 0,36–1,00 per fold og 0,66–1,00 på VAL, så «1 %-dekning» er ofte tom
+(NaN). Konklusjon: boosting med default-læringsrate tilfører ingenting utover
+ridge på samme flate; run3b (lr 0,03 / min_leaf 200) kjører etter kjede 3 som
+robusthetssjekk, ikke som håp.
+
 ### 6.2 Utvidelser 23.09 kveld (kilde-bevist, resultater i §6.3 når kjeden er ferdig)
 
 Operatørens innvending — «mange leser momentum, flagg, FVG, støtte/motstand;
@@ -321,6 +332,220 @@ finnes. Fit-perioden er alle rader før holdout-start (kronologisk prefiks);
 horisont-purgen er irrelevant for kolonnestatistikk. Dette er en måling, ikke
 en regel: ingen terskel er deklarert.
 
+### 6.3 Kjede 3 (natt til 24.09): mønstre, attribusjon, kryss-asset, konfluens [M]
+
+Primitivene på ekte tape (318 908 beslutningsrader, 235 kolonner, 4 tidsrammer):
+FVG-hendelser på 11–12 % av M5-barer, order blocks 2,3 %, equal pools 2,6 %,
+range-brudd 3,7 %, flagg-brudd 0,06 % (~300 på M5 over fem år, 56 på H1, 9 på
+H4). D1: 14,5 % bullish mot 8,8 % bearish FVG — gullets oksemarked i tallene.
+
+**run5a — `snapshot_mtf_patterns` (1 311 kolonner), ridge, VAL-stadium, 60 konfigurasjoner, 630 s:**
+ingen celle er både fold-robust og VAL-bekreftet. Tre celler er positive i
+alle fire folds (h48/atr/1 %: +13,4/+9,0/+10,1/+47,2, strict 2/4; h24/atr/1 %;
+h288/raw/1 %), og de to første taper −54,7 og −33,9 bps på juni 2026 med
+p_long 1,0 — samme drift-ekstrapolasjon som run4. Cellene med positiv VAL
+(h288/raw/1 % +42,4, h96/raw/1 % +45,6, h48/raw/1 % +28,8) er juni-månedens
+SHORT-drift: p_long 0,0–0,3, og ingen av dem slår beste-konstant-side-nullen
+(alltid-SHORT på samme rader: +42,4 / +67,8 / +69,1) eller sirkulær p95. Δ mot
+run4s `snapshot_mtf` på identiske folds er ±0–3 bps ved 5 % dekning og
+fortegnsløst ved 1 % (n ≈ 56–700). Mønsterblokken flytter ikke den lineære
+retningsprediksjonen; konfluens som eksplisitte regler måles i setup-evaluatoren
+under.
+
+**run5b — `snapshot_patterns` (551 kolonner, uten MTF), ridge, VAL-stadium:**
+heller ingen celle som er fold-robust, VAL-strict og slår beste-konstant. Uten
+MTF-lanene velger armen SHORT-tungt i juni (p_long lav), så VAL-cellene på
+4 t–1 d blir positive (h96/raw/5 %: +90,9; h288/raw/1 %: +161), men det er
+måneds-driften: alltid-SHORT på samme rader er like god eller bedre, og bare
+én celle (h96/raw/1 %: +107,0, n ≈ 56) passerer VAL-strict — den er negativ
+i fold 2 (−16,9) og strict bare 2/4 i folds, og under 36 × 2 sammenligninger
+er én VAL-strict-celle ventet ved tilfeldighet. Ikke et funn; notert som
+ikke undersøkt videre (TEST er forseglet, neste måned er eneste ferske
+holdout).
+
+**run6 — attribusjon på `snapshot_mtf_patterns`, 27 eier-mappede grupper +
+kardinalitets-null (20 trekk), knee/2 t/8 t × raw/atr × 4 folds = 24 celler
+per gruppe, 6,6 t kjøretid:** dette er den første økonomiske attribusjonen i
+prosjektet (F-1 i fidelity-registeret), lineær og på TRAIN-folds. Målt:
+
+- *Ingen gruppe bærer mer enn ~1 bps lineær retningsverdi.* Ved full dekning
+  er alle Δ mellom −0,33 og +0,52 bps; ved 5 % dekning mellom −0,83 og +2,39.
+- *MTF-lanene bærer det lille som finnes.* `mtf_lane:all` (760 kolonner):
+  Δ −0,33 ved full dekning, under null-p05 i 13/24 celler; `mtf_lane:D1`
+  −0,33 (7/24); `mtf_family:smc_liquidity` −0,23 (10/24);
+  `mtf_family:vol_compression` −0,10 (9/24 med bare 20 kolonner). Ved 5 %:
+  `mtf_family:trend_ema` −0,83, `mtf_lane:H1` −0,70, `mtf_family:chart_geometry`
+  −0,65, `mtf_family:structure_swing` −0,61, `mtf_lane:D1` −0,57.
+- *De samme lanene er det som knekker på VAL.* Å fjerne `mtf_lane:all` gir
+  +7,8 bps på juni (over null-p95 i 6/6 celler), `mtf_lane:D1` +4,0,
+  `mtf_family:smc_liquidity` +4,6; ved 5 % gir `mtf_lane:all` +16,2. Det er
+  run4-mekanismen målt som attribusjon: regime-lanene gir in-sample verdi og
+  ekstrapolerer ut av sample. Unntak: `mtf_family:trend_ema` er verdifull både
+  på folds (−0,83) og på VAL (−6,2, under p05 i 4/6).
+- *Mønsterblokken subtraherer lineært.* `patterns:all` (235 kolonner): Δ +0,52
+  ved full dekning (over null-p95 i 11/24) og +2,39 ved 5 % (8/24);
+  `patterns:D1` +0,29 / +1,76. Sparsomme hendelseskolonner er støy for ridge;
+  på VAL er fortegnet motsatt (−1,2 / −10,1), som er samme drift-historie.
+- *De lokale M5-familiene er nær null hver for seg* (|Δ| ≤ 0,3 ved 5 %); ingen
+  er «ubrukt», ingen er avgjørende.
+
+Regel 2f-ramme: HAC-SE per fold-celle er ~0,3–0,5 bps ved full dekning og
+~1,5–2 bps ved 5 %, så bare de gjentatte mønstrene over (13/24, 11/24) er
+utenfor støy; enkelttall er det ikke. Lineær ablasjon sier ingenting om
+ikke-lineær eller sekvensiell bruk i transformeren (§8); den native protokollen
+i fidelity-registeret §3 står. Ingen familie pensjoneres (regel 4).
+
+**Fit-avstand (§7.2b) målt på run5a sine persisterte prediksjoner, MTF-laneavstand
+(`ood_abs_z_mean_mtf`, kvartiler fra folds anvendt på VAL):**
+
+- *Selvsikkerhet er en monoton funksjon av avstand.* Gjennomsnittlig |predikert
+  kontrast| stiger med avstandskvartil i hver fold og på VAL (h48/atr: fold 0
+  56 → 63 → 72 → 102 bps; VAL 35 → 52 → 80 → 98). De 5 % mest «sikre» radene
+  ligger nesten utelukkende i øverste avstandskvartil (h48/atr fold 0: 2 024
+  av 3 164; VAL: 245 av 276). Lav dekning velger per konstruksjon radene
+  modellen har minst støtte for.
+- *Men en per-rad-avstand skiller ikke juni.* Korrelasjonen mellom predikert
+  og realisert kontrast er negativ i alle fire kvartiler på VAL (−0,06 til
+  −0,21 for h48/atr; −0,06 til −0,17 for h96/raw), og VAL-radene fordeler seg
+  nesten normalt over fold-kvartilene (25/19/22/33 %). Inversjonen er en
+  hel-måneds regimehendelse, ikke en hale av avvikende rader; den globale
+  gjennomsnitts-|z| over 760 kolonner fortynner den ene D1-ATR-kolonnen som
+  faktisk lå +3,3σ ute.
+- Konsekvens for §7.2: en abstensjon basert på global inputavstand ville ikke
+  reddet juni. Det som skiller måneden er regimenivå (volatilitetsklokken),
+  og en enkeltfelt-regel der er en håndskrevet port — forbudt som post-modell
+  (regel 3) og tillatt bare som lært input. Avstandskolonnene beholdes som
+  måling; ingen terskel deklareres.
+
+**run7a — kryss-asset daglig makro (`snapshot_mtf_cross`, 1 093 kolonner: 17
+makrokolonner fra DXY/TNX/VIX/realrente-proxy med én dags lag), ridge, VAL til
+17.06 (3 280 rader), 60 konfigurasjoner, 56 min:** ingen celle er fold-robust
+og VAL-bekreftet. Cellene som er positive i alle fire folds (h12/atr/1 %,
+h24/atr/1 %, knee/atr/1 %) taper −64 / −56 / −65 bps på juni, som er 21–23 bps
+*verre* enn samme celler uten makro (run4). Ablasjonen av makroblokken på
+folds: å fjerne den *forbedrer* 5 %-dekning med +2,2 bps i snitt (over
+null-p95 i 26/48 celler) og full dekning med +0,8 (17/48) — blokken er støy
+in-sample-forward. På juni gir blokken −3,4 / −3,6 bps ved fjerning (under p05
+i 7/12 ved full dekning), altså litt verdi i én måned. Konklusjon: daglig
+makro med ærlig lag tilfører ingen robust retningsinformasjon på 2 t–1 d på
+V12 heller; den gamle kjedens refutasjon står nå også på nytt substrat, med
+riktig lag og VAL-bekreftelse. Proveniensen er svak (gjenfunnede Yahoo-bytes),
+så dette er et resultat om *disse* seriene, ikke et bevis om makro generelt;
+en manifestbundet realrente-serie (DFII10) er den eneste varianten som ikke
+er testet.
+
+**run7b — daglig makro + USD_JPY H1 (`snapshot_mtf_cross`, 1 099 kolonner), VAL
+til 07.06 (2 024 rader, 1 %-celler tomme), 81 min:** samme bilde. Å fjerne
+kryssblokken forbedrer folds ved 5 % med +2,3 bps (over null-p95 i 23/48);
+USD_JPY-blokken alene er null (Δ +0,1 / +0,0, flaggene balanserte 7/7 og
+8/13). På den ene VAL-uken bærer makroblokken verdi ved full dekning
+(−9,0 ved fjerning, under p05 i 8/12) — én uke, ingen konklusjon.
+
+**Konfluens som faste regler (`research_entry_pattern_setup_edge_v1`): 36
+oppsett × 4 horisonter, per TRAIN-år + juni, 140 celler med måling:** ingen
+celle er strict i tre eller flere år. Det trader-øyet ser, ser evaluatoren
+også: LONG-oppsett i H4/D1-opptrend er positive i de fleste år —
+`pdh_break_trend_H4` (første lukk over forrige dags high med H4-stabel
+bullish) er positiv alle fem år ved 4 t og 8 t (8 t: +4,6/+4,6/+12,1/+5,1/+18,4
+bps, n = 40–82 per år), `eql_sweep_fade_H1_trend_H4_bull` alle fem år ved 8 t
+(min +5,4), `asia_hi_break_trend_H1` alle fem år ved 2 t. Men mot den ærlige
+nullen — tilfeldige rader i samme år med samme side (sirkulær p95) — skiller
+de seg bare ut i to av fem år (2023–24 og 2025–26), og drift-referansen
+`trend_all_bull_any_bar` (alle barer med H1+H4+D1 bullish) passerer strict i
+nøyaktig det samme sterkeste året. Med n ≈ 50 per år er HAC-SE 4–7 bps, så
+en 5-bps-effekt er ikke målbar per år (regel 2f), og over 144 celler er seks
+«5/5 positive» ventet av drift og tilfeldighet alene. SHORT-oppsettene er
+negative i nesten alle år (oksemarked). Juni har null rader for LONG-oppsett i
+opptrend (ingen PDH-brudd med H4-bull i en nedmåned), så VAL kan ikke
+bekrefte noe. Klasse: *ikke demonstrert ved denne styrken*, ikke «refutert»
+for `pdh_break_trend_H4`; alt annet er drift. Ingen regel er fittet; ingen
+terskel-sveip er kjørt eller skal kjøres uten forhåndsregistrering.
+
+**Regimeklokken målt (§7.2b, neste instrument): prediksjonskvalitet som funksjon
+av D1-ATR-z alene (`atr_bps_14` i D1-lanen, sist-lukket, z under hvert
+stadiums fit-periode), run5a-prediksjoner, h12 og h48 atr:** klokken skiller
+ikke. Juni 2026 ligger på z 1,5–2,1 under full-TRAIN-statistikk (ikke +3,3σ;
+det tallet var mot en annen populasjon), og begge juni-binnene inverterer
+(korr −0,10 til −0,18). Men fold 3 (2025–26) hadde 44 % av radene over z 3
+(snitt 6,0) og var *positiv* der (h48: korr +0,07, topp-5 % +6,4 bps), og i
+fold 1–2 er korrelasjonen per bin fortegnsløs (−0,16 til +0,23 uten mønster).
+Konsekvens: en regime-nivå abstensjon på volatilitetsklokken har ingen støtte i
+folds; det som skiller juni er ikke vol-nivået, men at en LONG-tilbøyelig
+modell fittet på et oksemarked møtte en nedmåned. Det er trendvending, og
+ingen input i flaten varsler den. §7.2b nedgraderes fra «neste byggetrinn» til
+«ikke støttet av målingen»; det som gjenstår der er nettomål slik at FLAT
+konkurrerer (§7.2a).
+
+**Kjede 3, samlet:** mønstre som input flytter ingenting lineært; attribusjonen
+viser at ingen familie bærer over ~1 bps og at MTF-lanene er både kilden til
+in-sample-verdi og til juni-inversjonen; per-rad-avstand skiller ikke
+regimet; daglig makro med ærlig lag tilfører ingen robust verdi; konfluens
+som regler er drift ved målbar styrke. «Retning fra pris alene på V12» og
+«retning fra pris + disse makrobytene» er begge refutert ved det
+forhåndsregistrerte kriteriet (fold-robust + VAL-strict). Det som står igjen
+som ubevist, ikke refutert: `pdh_break_trend_H4` ved 4–8 t (for få rader),
+regime-nivå abstensjon (§7.2), og en manifestbundet realrente-serie.
+
+### 6.4 Brukbarhetsrevisjon av hele beslutningsflaten (24.09, operatør: «dobbeltsjekk at ALLE funksjonene er brukbare») [M]
+
+Kjørt på de ekte V12-TRAIN-bytene: 313 399 rader × 1 072 kolonner (241 signal +
+71 ctx_cont + 4 MTF-laner × 190, sist-lukket under eierens cutoff). Evidens:
+`GX1_RUNS/V12_EPOCH1_REVIEW_20260923/FEATURE_USABILITY_AUDIT_20260924/`
+(`columns.csv` per kolonne, `fidelity.csv`, `duplicates.json`, `families.csv`,
+script arkivert samme sted). Lett, lesende diagnostikk utenfor capped runner
+(run3b holdt låsen); ingen beslutningsverdi.
+
+- **Fidelitet: 48 av 49 uavhengige omregninger treffer Pearson 1,0000.** ATR14
+  i bps, EMA20/50/200-avstand i ATR, EMA200-helning (k = 20), momentum 5/20,
+  RSI14 sentrert og Bollinger-bredde, på M15/H1/H4/D1, regnet på nytt fra
+  tapen gjennom eierne (`wilder_atr`, `wilder_rsi`, `classic_ema`) og samplet
+  med cutoff-regelen; M5 `ret_1`/`ret_20`/`rvol_20`, `ctx_cont.atr_bps`,
+  `close_return_5_bps`, H1/H4/D1 ATR-bps-projeksjonene: alle 1,0000.
+  `hour_sin`/`hour_cos`/`dow_sin` 0,992–0,997 mot UTC-klokka (minutt-komponent),
+  `D1_dist_from_ema200_atr` 0,996 (mid mot close, F-24, kjent). Den ene under
+  0,9 er revisjonens egen proxy-feil (EMA20-helning målt mot EMA200-referanse).
+  Sesjons-id ↔ UTC-time er kontiguøs (0: 22–06, 1: 06–11, 2: 11–15, 3: 15–20).
+  **Feltene beregner det navnene sier.**
+- **Liveness: 0 døde kolonner.** 34 kolonner har én verdi på ≥ 99 % av radene,
+  og alle er sjeldne hendelsesflagg (EMA-kryss, `level_present`,
+  `geomline_retest_fail`, D1-divergens) — sjeldne av natur, ikke døde; for en
+  lineær lærer er de nesten tomme, for transformeren er de embeddings.
+- **Duplikater: 71 eksakte grupper og 38 nær-par (≥ 0,999), alle etter design.**
+  57 er ctx_cont-aliasene som ligger bit-likt i signalblokken (register §1,
+  «71/71 alias overlap by design»), 14 er ctx-skalarprojeksjoner av MTF-felt
+  (`_v1h1_ema_diff` ≡ `H1:macd_line_atr`, `_v1h1_atr_bps` ≡ `H1:atr_bps_14`,
+  `*_trend_state_age_bars_v2` ≡ `TF:trend_state_age_bars`,
+  `*_ema_stack_aligned_v2`, `*_rsi14_canon_v2` ≡ `TF:rsi14_centered`). Ingen
+  uventet duplikat; 130 par ≥ 0,98 inkluderer registerets F-12-klasse.
+- **Lekkasje: ingen.** 19 kolonner har |ρ| > 0,05 mot framtiden, alle mot
+  1-dags-avkastningen (0,052–0,075), alle er trege D1-trend/nivå-tilstander
+  (`D1:ema200_slope_atr`, `D1:mtf_level_above_touch_count`,
+  `price_vs_ema200_state_age_bars` …) med fortegnsstabilitet 1–5 av 6
+  perioder. Det er oksemarkedets drift sett gjennom trege features, ikke
+  lekkasje: overlappende 288-bars-vinduer gir effektiv n ≈ 1 100 dager og
+  SE ≈ 0,03, så 0,06 er ~2 SE. En lekkasje ville ligget langt over 0,1 og vært
+  stabil hvert år.
+- **Informasjon om fortiden: ja.** Median maks-|ρ| mot forrige 1/12/48/288
+  barer er 0,125; 293 kolonner over 0,3 (momentum/trend-familiene 0,4–0,6);
+  142 under 0,02 (sesjon, vol-tilstander, sjeldne flagg — forventet).
+- **Informasjon om framtiden: nesten ingen, og det lille er drift.** Mot
+  8-timers-kontrasten: median |ρ| 0,0056, p90 0,021, maks 0,045
+  (`D1:mtf_level_above_touch_count`); 127 kolonner over 0,02, 3 over 0,04.
+  Mot 1 time: maks 0,028, ingen over 0,04. 26 kolonner har |ρ| > 0,02 med
+  samme fortegn i ≥ 5 av 6 perioder — alle er H1/H4/D1-trend, EMA-avstand og
+  nivå-tilstander, dvs. «hvilken vei har markedet gått i det siste», og
+  minste års-|ρ| ligger på 0,004–0,016. iid-SE per år er 0,0044, så disse er
+  reelle men små, og de er nøyaktig regime-featurene som ekstrapolerte feil
+  i juni (§6.3).
+
+**Svar på operatørens spørsmål, i tre klasser:** *målt*: alle 1 072 kolonner
+er levende, korrekt beregnet der en uavhengig referanse finnes (49 sjekker),
+uten lekkasje, og bærer informasjon om fortiden; *målt*: ingen kolonne bærer
+mer enn |ρ| 0,045 om de neste åtte timene, og median er 0,006; *ikke
+undersøkt*: fidelitet for konsepter uten uavhengig referanse (SMC-nivåer,
+geometri, divergens-sider) er bare sjekket for liveness og duplikater, ikke
+for semantikk. Inputene er ikke problemet. Målet har ikke svaret.
+
 ## 7. Hva bekreftelsen endrer i planen: fra tap/mål-varianter til abstensjon og informasjon
 
 Run4 er det avgjørende funnet i dette dokumentet. Fold-lommen som så robust ut
@@ -342,16 +567,19 @@ Konsekvenser, i rekkefølge:
    retning. De beholdes som *diagnostiske* armer i instrumentet, ikke som veien
    til edge. Ingen av dem bygges i treneren før instrumentet viser en
    fold-robust *og* VAL-bekreftet celle for dem.
-2. **Abstensjon er det eneste beviste stedet å hente verdi.** Målt: argmax
-   velger aldri FLAT i dag (brutto-mål, lærer-optimisme +9 bps), og den mest
-   selvsikre halen er den som inverterer. En Entry som failer closed der
-   inputen er utenfor fit-fordelingen ville ha tapt 0 i stedet for −42,5 bps
-   på VAL. Regel 3 tillater ingen post-modell-terskel; abstensjonen må derfor
-   sitte i selve Q-målene: (a) nettomål der kost inngår slik at FLAT = 0
-   faktisk konkurrerer, og (b) en målt OOD-diagnostikk (per-lane z-avstand /
-   Mahalanobis mot TRAIN-statistikk) som instrument først — for å tallfeste
-   ved hvilken avstand fold-lommens korrelasjon snur — før noen
-   trener-endring. Instrumentet er neste byggetrinn etter §6.3.
+2. **Abstensjon er det eneste beviste stedet å hente verdi, og den må være
+   regime-nivå, ikke rad-nivå.** Målt: argmax velger aldri FLAT i dag
+   (brutto-mål, lærer-optimisme +9 bps), og den mest selvsikre halen er den
+   som inverterer. Målt i §6.3: selvsikkerhet er monoton i fit-avstand, men en
+   per-rad-avstand skiller ikke juni — hele måneden inverterer. En Entry som
+   failer closed der *regimet* er utenfor fit-fordelingen ville ha tapt 0 i
+   stedet for −42,5 bps på VAL. Regel 3 tillater ingen post-modell-terskel;
+   abstensjonen må derfor sitte i selve Q-målene: (a) nettomål der kost inngår
+   slik at FLAT = 0 faktisk konkurrerer, og (b) regimeklokken som lært
+   betingelse — men (b) er målt i §6.3 og *ikke støttet*: D1-ATR-z skiller
+   ikke gode fra dårlige perioder på folds (2025–26 var +6σ og positiv; juni
+   var +1,9σ og invertert). Det som gjenstår er (a), og en ærlig erkjennelse
+   av at trendvending etter et oksemarked ikke varsles av noen input i flaten.
 3. **Horisont.** Kostnadsaritmetikken (§1) gjør 4 t–1 d til den eneste skalaen
    der 52–54 % treff slår spread. Der er drift- og overlapp-nullene
    strengere: h288 feiler sirkulær-null, og myntkast-nullen er for snill mot
