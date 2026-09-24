@@ -144,6 +144,53 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+
+def feature_fit_lineage(binding: dict[str, Any]) -> list[dict[str, str]]:
+    """Read learned feature fit bounds; last-closed joins alone do not prove chronology."""
+    try:
+        registry = binding["v29_registry_constants"]
+        volatility_binding = binding["volatility_squeeze_artifact_set"]
+        volatility_path = Path(volatility_binding["manifest_path"])
+        if _sha256_file(volatility_path) != volatility_binding["manifest_file_sha256"]:
+            raise RuntimeError("WALKFORWARD_FEATURE_FIT_MANIFEST_HASH_MISMATCH")
+        volatility = json.loads(volatility_path.read_text(encoding="utf-8"))
+        sources = (
+            ("registry", registry, str(registry["contract_sha256"])),
+            ("volatility_squeeze", volatility["common_train_lineage"],
+             volatility_binding["manifest_file_sha256"]),
+        )
+        result = []
+        for name, source, digest in sources:
+            start = pd.Timestamp(source["declared_train_window_start"])
+            end = pd.Timestamp(source["declared_train_window_end"])
+            if pd.isna(start) or pd.isna(end) or start.tzinfo is None or end.tzinfo is None or start >= end:
+                raise ValueError("invalid feature-fit interval")
+            result.append({"owner": name, "fit_start": start.isoformat(),
+                           "fit_end_exclusive": end.isoformat(), "binding_sha256": digest})
+        return result
+    except (KeyError, TypeError, ValueError, OSError) as exc:
+        raise RuntimeError("WALKFORWARD_FEATURE_FIT_LINEAGE_MISSING_OR_INVALID") from exc
+
+
+def require_feature_fit_before(
+    lineage: list[dict[str, str]], cutoff: pd.Timestamp, *, context: str
+) -> None:
+    """Reject preprocessing learned from the period being evaluated, including inner selection."""
+    cutoff = pd.Timestamp(cutoff)
+    if not lineage or pd.isna(cutoff) or cutoff.tzinfo is None:
+        raise RuntimeError("WALKFORWARD_FEATURE_FIT_CUTOFF_INVALID")
+    for item in lineage:
+        end = pd.Timestamp(item["fit_end_exclusive"])
+        if pd.isna(end) or end.tzinfo is None:
+            raise RuntimeError("WALKFORWARD_FEATURE_FIT_LINEAGE_MISSING_OR_INVALID")
+        # Fit bounds are half-open; ending exactly at the evaluation start is allowed.
+        if end > cutoff:
+            raise RuntimeError(
+                f"WALKFORWARD_FEATURE_FIT_AFTER_EVALUATION_START: {context} "
+                f"owner={item['owner']} fitted_until={end.isoformat()} "
+                f"evaluation_start={cutoff.isoformat()}"
+            )
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -902,8 +949,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _check_run_binding(out_dir, run_spec)
 
     dataset_dir = Path(args.dataset_dir)
-    dataset = load_dataset(dataset_dir)
     train_manifest = json.loads((dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json").read_text(encoding="utf-8"))
+    # Snapshot fields also include fitted registry/volatility outputs. Check before
+    # materializing price/features, even when no extra MTF arm was requested.
+    feature_fits = feature_fit_lineage(train_manifest.get("extra", {}).get("multi_tf_cache_binding", {}))
+    if any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross")):
+        if not args.multi_tf_cache_dir:
+            raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
+        cache_manifest = json.loads((Path(args.multi_tf_cache_dir) / "manifest.json").read_text(encoding="utf-8"))
+        feature_fits.extend(feature_fit_lineage(cache_manifest))
+    require_feature_fit_before(feature_fits, pd.Timestamp(args.fold_boundaries[0]), context="first_outer_fold")
+    dataset = load_dataset(dataset_dir)
     train_start = pd.Timestamp(train_manifest["splits"]["train"]["start"])
     train_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["start"])
     val_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["end"])
@@ -1054,6 +1110,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     input_binding = {
         "arrays": {name: _array_sha256(values) for name, values in bound_arrays.items()},
         "feature_names": {name: list(names) for name, names in arm_names.items()},
+        "feature_fit_lineage": feature_fits,
         "train_manifest_sha256": dataset.manifest_sha256, "tape_manifest_sha256": tape.manifest_sha256,
         "val_manifest_sha256": val_dataset.manifest_sha256 if val_dataset is not None else None,
     }
@@ -1141,6 +1198,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     else:
                         next_first = int(tape.time.searchsorted(train_end_exclusive, side="left"))
                     holdout_mask &= (positions + int(horizon)) < next_first
+                # The inner model-selection population needs its own feature-fit bound.
+                _, inner_val = _inner_split(
+                    int(fit_mask.sum()), args.inner_fraction,
+                    fit_positions=positions[fit_mask], purge_bars=purge_bars,
+                )
+                require_feature_fit_before(
+                    feature_fits, dataset.time[fit_mask][inner_val][0],
+                    context=f"{key}:inner_selection",
+                )
                 y_scale_fit = atr[fit_mask] if scaling == "atr" else np.ones(int(fit_mask.sum()))
                 y_scale_hold = hold_atr[holdout_mask] if scaling == "atr" else np.ones(int(holdout_mask.sum()))
                 preds: dict[str, np.ndarray] = {}

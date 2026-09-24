@@ -1,5 +1,9 @@
 # Korrigert HGB-kapasitetsvalg — 24.09.2026
 
+> **Senere funn:** [Feature-fit-kronologi](ENTRY_FEATURE_FIT_CHRONOLOGY_20260924.md) viser at
+> cacheparametere er tilpasset etter de tidlige holdout-startene. Den parede
+> nullforskjellen nedenfor står, men årsavlesningene er ikke fullt kronologiske OOS-bevis.
+
 ## Konkret avklaring
 
 Mønsterforsøket med1311 inputfelt hadde arvet iterasjonstall valgt uten sine235

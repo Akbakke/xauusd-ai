@@ -1,5 +1,15 @@
 # Entry-retning: signal/støy-diagnose og instrument — 2026-09-23
 
+> **Korreksjon 24.09.2026:** Les [ENTRY_FEATURE_FIT_CHRONOLOGY_20260924.md](ENTRY_FEATURE_FIT_CHRONOLOGY_20260924.md).
+> De historiske årsavlesningene brukte features med registry-/volatilitetsparametere
+> tilpasset frem til mai 2026, også når holdout startet i 2022–2025.
+> Tallene er bevart, men disse avlesningene er ikke fullt kronologiske OOS-bevis.
+> Lav fremtidskorrelasjon beviser verken fravær av lekkasje eller fravær av
+> alle ikke-lineære signaler. Fidelity gjelder bare de undersøkte formlene.
+> Generelle utsagn nedenfor om at pris-/makroinformasjon er «refutert», eller at
+> inputene ikke kan være problemet, må begrenses til de konkrete gamle forsøkene.
+
+
 > **Review 24.09:** Les [målereparasjonen og den fullførte før/etter-kontrollen](ENTRY_MEASUREMENT_REPAIR_20260924.md)
 > sammen med denne historiske analysen. Den negative h12/juni-målingen består
 > etter retting. Generelle utsagn nedenfor om umulig retningsinformasjon,
@@ -568,14 +578,12 @@ script arkivert samme sted). Lett, lesende diagnostikk utenfor capped runner
   `*_trend_state_age_bars_v2` ≡ `TF:trend_state_age_bars`,
   `*_ema_stack_aligned_v2`, `*_rsi14_canon_v2` ≡ `TF:rsi14_centered`). Ingen
   uventet duplikat; 130 par ≥ 0,98 inkluderer registerets F-12-klasse.
-- **Lekkasje: ingen.** 19 kolonner har |ρ| > 0,05 mot framtiden, alle mot
-  1-dags-avkastningen (0,052–0,075), alle er trege D1-trend/nivå-tilstander
-  (`D1:ema200_slope_atr`, `D1:mtf_level_above_touch_count`,
-  `price_vs_ema200_state_age_bars` …) med fortegnsstabilitet 1–5 av 6
-  perioder. Det er oksemarkedets drift sett gjennom trege features, ikke
-  lekkasje: overlappende 288-bars-vinduer gir effektiv n ≈ 1 100 dager og
-  SE ≈ 0,03, så 0,06 er ~2 SE. En lekkasje ville ligget langt over 0,1 og vært
-  stabil hvert år.
+- **Korrelasjonskontroll, ikke lekkasjebevis.** 19 kolonner har |ρ| > 0,05
+  mot framtiden, alle mot 1-dags-avkastningen (0,052–0,075). Dette omfatter
+  trege D1-trend-/nivåtilstander med varierende fortegnsstabilitet.
+  Korrelasjonsstørrelse og stabilitet kan ikke utelukke lekkasje. Ingen
+  terskel ved 0,1 har en slik beviskraft. Korreksjonen over dokumenterer
+  faktisk fremtidig feature-tilpasning relativt til de indre/årlige kontrollene.
 - **Informasjon om fortiden: ja.** Median maks-|ρ| mot forrige 1/12/48/288
   barer er 0,125; 293 kolonner over 0,3 (momentum/trend-familiene 0,4–0,6);
   142 under 0,02 (sesjon, vol-tilstander, sjeldne flagg — forventet).
@@ -590,12 +598,14 @@ script arkivert samme sted). Lett, lesende diagnostikk utenfor capped runner
   i juni (§6.3).
 
 **Svar på operatørens spørsmål, i tre klasser:** *målt*: alle 1 072 kolonner
-er levende, korrekt beregnet der en uavhengig referanse finnes (49 sjekker),
-uten lekkasje, og bærer informasjon om fortiden; *målt*: ingen kolonne bærer
+er levende og bærer informasjon om fortiden. De 49 referansesjekkene gir
+avgrenset formelstøtte; de dokumenterer ikke generell kausalitet eller
+numerisk paritet for alle feltene; *målt*: ingen kolonne bærer
 mer enn |ρ| 0,045 om de neste åtte timene, og median er 0,006; *ikke
 undersøkt*: fidelitet for konsepter uten uavhengig referanse (SMC-nivåer,
 geometri, divergens-sider) er bare sjekket for liveness og duplikater, ikke
-for semantikk. Inputene er ikke problemet. Målet har ikke svaret.
+for semantikk. Det er derfor ikke grunnlag for å konkludere at alle
+inputs er feilfrie eller at ingen nyttig retningsinformasjon kan finnes.
 
 ## 7. Hva bekreftelsen endrer i planen: fra tap/mål-varianter til abstensjon og informasjon
 

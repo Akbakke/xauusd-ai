@@ -295,6 +295,78 @@ def test_ridge_gram_matches_dense_solution_and_chunks() -> None:
     assert info["alpha"] in wf.RIDGE_ALPHA_GRID
 
 
+
+def _feature_fit_binding(root: Path, *, end: str = "2023-12-31T00:00:00Z") -> dict:
+    # Declared synthetic preprocessing provenance; mechanics only, not market evidence.
+    lineage = {"declared_train_window_start": "2023-01-01T00:00:00Z",
+               "declared_train_window_end": end}
+    path = root / "synthetic_volatility_manifest.json"
+    path.write_text(json.dumps({"common_train_lineage": lineage}))
+    return {"v29_registry_constants": {**lineage, "contract_sha256": "0" * 64},
+            "volatility_squeeze_artifact_set": {
+                "manifest_path": str(path), "manifest_file_sha256": wf._sha256_file(path)}}
+
+
+@pytest.mark.parametrize("owner", ["registry", "volatility_squeeze"])
+def test_feature_fit_guard_rejects_future_and_allows_half_open_boundary(owner: str) -> None:
+    records = [{"owner": owner, "fit_end_exclusive": "2024-02-01T00:00:00Z"}]
+    wf.require_feature_fit_before(records, pd.Timestamp("2024-02-01T00:00:00Z"), context="outer")
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_AFTER_EVALUATION_START"):
+        wf.require_feature_fit_before(records, pd.Timestamp("2024-01-01T00:00:00Z"), context="outer")
+
+
+@pytest.mark.parametrize("cutoff", ["2024-01-01", "NaT"])
+def test_feature_fit_guard_rejects_invalid_cutoff(cutoff: str) -> None:
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_CUTOFF_INVALID"):
+        wf.require_feature_fit_before([{"owner": "registry", "fit_end_exclusive": "2023-01-01T00:00:00Z"}],
+                                      pd.Timestamp(cutoff), context="outer")
+
+
+def test_feature_fit_lineage_requires_metadata_and_bound_manifest(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_LINEAGE_MISSING_OR_INVALID"):
+        wf.feature_fit_lineage({})
+    binding = _feature_fit_binding(tmp_path)
+    records = wf.feature_fit_lineage(binding)
+    assert {r["owner"] for r in records} == {"registry", "volatility_squeeze"}
+    Path(binding["volatility_squeeze_artifact_set"]["manifest_path"]).write_text("{}")
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_MANIFEST_HASH_MISMATCH"):
+        wf.feature_fit_lineage(binding)
+
+
+@pytest.mark.parametrize("end", ["NaT", "2023-12-31", "2022-12-31T00:00:00Z"])
+def test_feature_fit_lineage_rejects_invalid_fit_bounds(tmp_path: Path, end: str) -> None:
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_LINEAGE_MISSING_OR_INVALID"):
+        wf.feature_fit_lineage(_feature_fit_binding(tmp_path, end=end))
+
+
+@pytest.mark.parametrize("end,context", [
+    ("2024-02-01T00:00:00Z", "first_outer_fold"),
+    ("2024-01-10T00:00:00Z", "inner_selection"),
+])
+def test_run_rejects_feature_fit_before_loading_or_learning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, end: str, context: str
+) -> None:
+    ds, tape = _write_synthetic_dataset_and_tape(tmp_path, train_rows=6000, val_rows=800)
+    manifest_path = ds / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["extra"]["multi_tf_cache_binding"] = _feature_fit_binding(tmp_path, end=end)
+    manifest_path.write_text(json.dumps(manifest))
+    def forbidden(*args, **kwargs):
+        pytest.fail("leaking preprocessing reached dataset materialization or learner")
+    if context == "first_outer_fold":
+        monkeypatch.setattr(wf, "load_dataset", forbidden)
+    monkeypatch.setattr(wf, "RidgeGram", forbidden)
+    monkeypatch.setattr(wf, "fit_hgb", forbidden)
+    args = wf.build_parser().parse_args([
+        "--dataset-dir", str(ds), "--native-m5-root", str(tape), "--out-dir", str(tmp_path / "out"),
+        "--fold-boundaries", "2024-01-11T00:00:00Z", "2024-01-21T20:00:00Z",
+        "--horizons", "12", "--learners", "ridge", "--feature-arms", "snapshot",
+        "--target-scalings", "raw", "--inner-fraction", "0.2", "--max-hgb-iter", "5",
+        "--final-holdout", "none", "--decision-rules", "argmax_flat",
+    ])
+    with pytest.raises(RuntimeError, match=f"FEATURE_FIT_AFTER_EVALUATION_START: .*{context}"):
+        wf.run(args)
+
 def _write_synthetic_dataset_and_tape(root: Path, *, train_rows: int, val_rows: int, seed: int = 5) -> tuple[Path, Path]:
     """Tiny dataset dir + native tape with the real column contract (mechanics only, rule 2c)."""
     import pyarrow as pa
@@ -351,6 +423,7 @@ def _write_synthetic_dataset_and_tape(root: Path, *, train_rows: int, val_rows: 
                 "signal_bridge_fields": [f"f{i}" for i in range(MODEL_NATIVE_SIGNAL_DIM)],
             },
             "splits": split_bounds,
+            "extra": {"multi_tf_cache_binding": _feature_fit_binding(root)},
         }
         (ds_dir / f"entry_dataset__ENTRY_FITTED_Q_{split}.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     return ds_dir, tape_dir
