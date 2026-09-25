@@ -1,0 +1,56 @@
+{
+  "completed_utc": "2026-09-25T22:12:54.997879+00:00",
+  "decision": "COVERAGE_ONLY_NO_FIT_NO_TRAINING",
+  "m15": {
+    "coverage_fraction": 1.0,
+    "eligible_m5_decisions": 104188,
+    "ess_definition": "(sum weekly valid row counts)^2 / sum(weekly valid row counts^2)",
+    "exact_decision_time_m1_fill": 104188,
+    "invalid_incomplete_or_gapped_path": 0,
+    "invalid_no_exact_fill": 0,
+    "utc_calendar_weeks_with_purged_valid_labels": 261,
+    "valid_complete_95m_quote_paths": 104188,
+    "valid_labels_after_95m_boundary_purge": 101282,
+    "week_block_ess": 258.665393
+  },
+  "m5": {
+    "coverage_fraction": 1.0,
+    "eligible_m5_decisions": 313399,
+    "ess_definition": "(sum weekly valid row counts)^2 / sum(weekly valid row counts^2)",
+    "exact_decision_time_m1_fill": 313399,
+    "invalid_incomplete_or_gapped_path": 0,
+    "invalid_no_exact_fill": 0,
+    "utc_calendar_weeks_with_purged_valid_labels": 261,
+    "valid_complete_95m_quote_paths": 313399,
+    "valid_labels_after_95m_boundary_purge": 304744,
+    "week_block_ess": 258.599737
+  },
+  "schema_version": "gx1_entry_direct_outcome_coverage_v1",
+  "source_bindings": {
+    "cost_policy_sha256": "a48f8e56da21cfa670a80c3b4bfdf735d8ce0b29a25e269184bd5f44fb240a69",
+    "cost_policy_used_for_pnl": false,
+    "full_train_inputs_sha256": "56167496540bc045975343b1f80587d1ce52da564c2eeaab6f566889b8b2bee1",
+    "m1_train_manifest_sha256": "e5c99322bbe878a7a148dd840f9ae5547fb2a1fe8f90c0138058b20fd795c843",
+    "m1_train_parquet_sha256": "ee0bdee2bf76846ef0a715a537457cb0653ecac1585742603b84b51de87874f8",
+    "m1_train_root_sha256": "1db91672a998206c7e47e478193f8badfd381747690d9c192ca2c8410dcc8db0",
+    "m5_train_manifest_sha256": "9311e6d8617c92b7b3dec1c6fab8042002b9610431828266c39976460689f7e6",
+    "m5_train_parquet_sha256": "dec6216669864e807dc0c58e66dc53def84b515efb4d1f3c0fd0b48d1c1777af"
+  },
+  "source_commit": "1bad21f2",
+  "started_utc": "2026-09-25T22:12:53.669061+00:00",
+  "target_contract": {
+    "fill_clock": "exact M1 open at completed M5 decision time (M5 bar start + 300 seconds)",
+    "horizon_m5_bars": 19,
+    "horizon_minutes": 95,
+    "m15_anchor": "completed M5 decision time exactly on a UTC 15-minute boundary",
+    "persisted_row_level_labels": false
+  },
+  "train_population": {
+    "m1_first_utc": "2021-05-31T11:00:00+00:00",
+    "m1_last_utc": "2026-05-31T23:59:00+00:00",
+    "m1_rows": 1764986,
+    "m5_first_utc": "2021-06-01T00:00:00+00:00",
+    "m5_last_utc": "2026-05-29T14:50:00+00:00",
+    "m5_rows": 313399
+  }
+}

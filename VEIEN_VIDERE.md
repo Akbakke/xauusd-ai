@@ -1,6 +1,6 @@
 # Neste steg: policy-konsistent selector lukket etter negativ måling — 24.09.2026
 
-Den gamle selectorhypotesen er stengt. Neste separate retning er direkte Entry-supervisjon fra framtidige M1 BID/ASK-utfall, definert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). Første mål er én target-dekning/ESS-måling; ingen fit, optimizersteg eller TEST. Canonical kjørepolicy er ikke åpnet for et nytt run.
+Den gamle selectorhypotesen er stengt. Den nye direkte M1 BID/ASK-hypotesen er forhåndsdefinert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). TRAIN-only dekningsmåling er ferdig: M5 313399/313399 og M15 104188/104188 gyldige 95-minutters stier; blokk-ESS etter purging 258,60/258,67. Aggregert bevis står i handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json. Ingen nettoavkastningsfordeling, fit eller trening er målt. Neste trinn er å binde den faktiske netto-targetsemantikken og den ikke-null vent-/fortsettelsesverdien før targetverdier materialiseres. training_enabled=false; ingen model fit eller TEST.
 
 Gjeldende resultat og stoppbeslutning står i
 [ENTRY_SELECTOR_CACHE_FIT_20260924.md](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).

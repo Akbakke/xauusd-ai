@@ -2,6 +2,8 @@
 
 Den gamle selectorhypotesen er fortsatt lukket. En egen direkte M1 BID/ASK Entry-hypotese er definert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). Første avgrensning er kun target-dekning/ESS; ingen fit eller trening er åpnet. Se NEXT_RUN_POLICY.json for gjeldende run-tilstand.
 
+**Dekningsmålingen er fullført** med den eksisterende M1-koden, CPU-audit under 4 GB cgroup, TRAIN-only. M5: 313399 av 313399 komplette 95-minutters quote-stier; M15: 104188 av 104188. Etter 95-minutters purge ved UTC-ukeskiller var blokk-ESS 258,60 for M5 og 258,67 for M15. Dette måler bare target-tilgjengelighet og blokktelling; ingen nettoavkastningsstatistikk, fit eller trening ble produsert. Se [måleresultatet](handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json).
+
 Les [resultatrapporten](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
 Den tidligere native representasjonsuttakingen var allerede fullført:
 16 Entry-forwards, eksakt original Q og Exit-kontekst, null Exit-rollouts og
