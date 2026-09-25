@@ -1,5 +1,7 @@
 # Neste steg: policy-konsistent selector lukket etter negativ måling — 24.09.2026
 
+Den gamle selectorhypotesen er stengt. Neste separate retning er direkte Entry-supervisjon fra framtidige M1 BID/ASK-utfall, definert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). Første mål er én target-dekning/ESS-måling; ingen fit, optimizersteg eller TEST. Canonical kjørepolicy er ikke åpnet for et nytt run.
+
 Gjeldende resultat og stoppbeslutning står i
 [ENTRY_SELECTOR_CACHE_FIT_20260924.md](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
 Den native representasjonsuttakingen og den ene forhåndsbestemte 127/129

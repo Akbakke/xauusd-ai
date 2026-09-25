@@ -1,5 +1,7 @@
 # Gjeldende status: policy-konsistent Entry-selector stoppet — 24.09.2026
 
+Den gamle selectorhypotesen er fortsatt lukket. En egen direkte M1 BID/ASK Entry-hypotese er definert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). Første avgrensning er kun target-dekning/ESS; ingen fit eller trening er åpnet. Se NEXT_RUN_POLICY.json for gjeldende run-tilstand.
+
 Les [resultatrapporten](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
 Den tidligere native representasjonsuttakingen var allerede fullført:
 16 Entry-forwards, eksakt original Q og Exit-kontekst, null Exit-rollouts og
