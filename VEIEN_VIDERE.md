@@ -1,4 +1,19 @@
-# Neste: én avgrenset prøve av policykonsistent Entry
+# Neste steg: policy-konsistent selector lukket etter negativ måling — 24.09.2026
+
+Gjeldende resultat og stoppbeslutning står i
+[ENTRY_SELECTOR_CACHE_FIT_20260924.md](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
+Den native representasjonsuttakingen og den ene forhåndsbestemte 127/129
+Ledoit–Wolf-fitten er fullført. Verdiprediksjonene tapte mot original512 og
+fit-konstantene; check-netto var negativ. Selector-hypotesen er lukket.
+
+Ikke kjør extraction, fit, terskel-/lambda-/feature-/split-søk på denne
+hypotesen. Ingen native trening, full epoch, full VAL, CONTROL, TEST,
+live eller papirhandel er åpnet. training_enabled=false; ingen ny jobb er
+bundet. Historisk design nedenfor er bevart for revisjon, ikke som startordre.
+
+---
+
+## Historisk plan før uttrekking og fit
 
 Designavklaringen og tre brukerbestilte agentgjennomganger er ferdige.
 Gjenbruk handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json.

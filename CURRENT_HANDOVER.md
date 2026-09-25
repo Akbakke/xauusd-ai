@@ -1,3 +1,26 @@
+# Gjeldende status: policy-konsistent Entry-selector stoppet — 24.09.2026
+
+Les [resultatrapporten](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
+Den tidligere native representasjonsuttakingen var allerede fullført:
+16 Entry-forwards, eksakt original Q og Exit-kontekst, null Exit-rollouts og
+null optimizersteg. Cacheparitet bestod. Én separat, forhåndsbestemt
+Ledoit–Wolf-readout ble deretter målt på 127 fit-rader og 129 kronologiske
+check-rader. Beslutning: STOP_SELECTOR_HYPOTHESIS.
+
+Check-MSE og sentrert feil ble dårligere enn både original512 og fit-konstant
+på LONG og SHORT. Uendret argmax valgte 62 LONG, 0 SHORT og 67 FLAT.
+Check-netto var −292,244 bps over 129 muligheter og −239,172 bps i
+én-posisjonsreplay. Ingen generalisering eller lønnsomhet er bevist.
+
+Denne selector-hypotesen er stengt: ikke relanser uttrekkingen, ikke refit,
+ikke endre terskel, lambda, features eller tidsdeling. Originalmodell,
+checkpoint og Exit forblir uendret. training_enabled=false; full epoch,
+full VAL, CONTROL, TEST, live og papirhandel er fortsatt stengt. Ingen ny
+kjøring er bundet. Før mer arbeid må en egen, faglig forskjellig hypotese
+forhåndsbindes.
+
+---
+
 # GX1 — hele frosne Exit-policyen er vurdert
 
 FROZEN_EXIT_TRAIN_POLICY_20260919 er fullført, vurdert og deaktivert.
@@ -39,6 +62,6 @@ Tidligere operatørkopi under kildefrys er historikk. Målet er fortsatt aktivt.
 Minimal native uttrekking av eksisterende Entry-representasjoner er implementert.
 19 målrettede tester bestod under beregningsvakt. Én uttrekking er nå bundet:
 NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 Entry-kall,0 fits/0 Exit-rollout,
-0 optimizersteg og krav om eksakt original Q og Exit-kontrakt. Native måling er
-ikke startet. Fullfør commit/push og eksisterende native klargjøring; følg
-VEIEN_VIDERE.md. Ingen forbedret handelsfordel er påvist.
+0 optimizersteg og krav om eksakt original Q og Exit-kontrakt. Native måling var ikke startet da denne historiske delen ble skrevet. Den
+fullførte observasjonen og negative selector-målingen står øverst; denne eldre
+oppstartsplanen er ikke en nåværende kjøreordre.

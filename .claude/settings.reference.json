@@ -24,7 +24,7 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "claude-fable-5-1",
   "hooks": {
     "PreToolUse": [
       {
@@ -57,6 +57,11 @@
         ]
       }
     ]
+  },
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "xhigh"
+    }
   },
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",

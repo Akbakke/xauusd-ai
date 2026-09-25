@@ -1665,7 +1665,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "VEIEN_VIDERE.md; one extraction scope bound after19 tests. Native parity and fit remain unmeasured.",
+  "handover_resume_point": "docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; completed negative selector fit, scope closed, no run bound.",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1695,7 +1695,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
-  "latest_observation_utc": "2026-09-19T20:30:36.681854+00:00",
+  "latest_observation_utc": "2026-09-24T19:16:24+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1981,7 +1981,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "The Entry representation probe passed19 targeted tests. One extraction-only scope is bound: NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 original Entry forwards,0 Exit rollouts,0 fits and0 optimizer steps. Finish mandatory commit/push, materialize the existing native campaign and follow its guarded Windows launch protocol. Verify exact original Q and original rollout-contract hash, preserve the origin cursor and checkpoint. Then freeze the resulting cache and bind one existing Ledoit-Wolf fit127/check129 using the already recorded stop criteria. Do not repeat the full policy evaluation or tune thresholds/splits/costs. TEST sealed.",
+  "next_action": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "observed_processes": [],
   "observed_utc": "2026-09-19T20:30:36.681854+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
@@ -2141,9 +2141,9 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88/RESULT.json",
     "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
   },
-  "run_id": "FROZEN_EXIT_TRAIN_POLICY_20260919",
-  "runtime_root": "/home/andre2/GX1_RUNS/FROZEN_EXIT_TRAIN_POLICY_20260919_BOOT470",
-  "runtime_root_scope": "Completed frozen TRAIN policy evaluation; original training session/checkpoint retained.",
+  "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
+  "runtime_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS",
+  "runtime_root_scope": "One cached CPU Entry selector fit after exact-parity native representation extraction; decision STOP, no model update.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -2158,7 +2158,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "ENTRY_REPRESENTATION_PROBE_BOUND_NOT_STARTED",
+  "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {
@@ -2216,5 +2216,44 @@
     "state": "Disabled",
     "task_name": "GX1NativeLearningCalibration"
   },
-  "windows_task_state": "Disabled"
+  "windows_task_state": "Disabled",
+  "next_diagnostic": null,
+  "completed_entry_representation_probe": {
+    "status": "ORIGINAL_ENTRY_AND_EXIT_CONTEXT_PARITY_PASS",
+    "observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
+      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
+    },
+    "cache": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
+      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
+    },
+    "entry_forwards": 16,
+    "exit_rollout_forwards": 0,
+    "new_fits": 0,
+    "optimizer_steps": 0,
+    "training_enabled": false
+  },
+  "completed_entry_selector_cache_fit": {
+    "status": "STOP_SELECTOR_HYPOTHESIS",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN.json",
+      "sha256": "e8adc89c5d6737f3519a73db7f45063388dc4ad72a88fd0e069e52e20a3cb526"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
+    },
+    "fit_rows": 127,
+    "check_rows": 129,
+    "check_value_gate_passed": false,
+    "check_net_gate_passed": false,
+    "new_fits": 1,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "original_model_modified": false,
+    "test_data_used": false,
+    "generalization_proven": false,
+    "profitability_proven": false
+  }
 }

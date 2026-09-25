@@ -1327,6 +1327,19 @@
       "max_wall_seconds": 10800,
       "policy_batch_size": 256,
       "progress_interval_forwards": 64
+    },
+    "status": "COMPLETE_PARITY_PASS",
+    "completed_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
+      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
+    },
+    "cache": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
+      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
+    },
+    "completed_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
+      "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
     }
   },
   "frozen_exit_train_footprint": {
@@ -1346,13 +1359,17 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "handover_resume_point": {
     "instructions": "VEIEN_VIDERE.md",
-    "new_native_run_bound": true,
-    "next_deliverable": "The Entry representation probe passed19 targeted tests. One extraction-only scope is bound: NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 original Entry forwards,0 Exit rollouts,0 fits and0 optimizer steps. Finish mandatory commit/push, materialize the existing native campaign and follow its guarded Windows launch protocol. Verify exact original Q and original rollout-contract hash, preserve the origin cursor and checkpoint. Then freeze the resulting cache and bind one existing Ledoit-Wolf fit127/check129 using the already recorded stop criteria. Do not repeat the full policy evaluation or tune thresholds/splits/costs. TEST sealed.",
+    "new_native_run_bound": false,
+    "next_deliverable": "None is currently bound. Reuse docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; do not refit or retune this selector. A future proposal must be a distinct hypothesis with a fresh predeclared plan.",
     "optimizer_steps_completed": 512,
-    "status": "ENTRY_REPRESENTATION_PROBE_BOUND_NOT_STARTED",
+    "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
     "tests": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
       "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
+    },
+    "entry_selector_cache_fit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
     }
   },
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
@@ -1607,8 +1624,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "The Entry representation probe passed19 targeted tests. One extraction-only scope is bound: NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 original Entry forwards,0 Exit rollouts,0 fits and0 optimizer steps. Finish mandatory commit/push, materialize the existing native campaign and follow its guarded Windows launch protocol. Verify exact original Q and original rollout-contract hash, preserve the origin cursor and checkpoint. Then freeze the resulting cache and bind one existing Ledoit-Wolf fit127/check129 using the already recorded stop criteria. Do not repeat the full policy evaluation or tune thresholds/splits/costs. TEST sealed.",
-  "observed_utc": "2026-09-19T20:30:36.681854+00:00",
+  "next_action": "The native entry representation extraction completed with exact original Q and Exit-context parity. The one predeclared CPU Ledoit-Wolf selector fit (127 fit / 129 reused-TRAIN check rows) failed both value and net gates. Close this hypothesis: do not repeat extraction, refit, or tune features, lambda, thresholds, or splits. training_enabled remains false; full epoch/VAL/CONTROL/TEST/live/paper are closed. No run is bound. Any further research requires a separate, materially distinct and chronologically predeclared hypothesis.",
+  "observed_utc": "2026-09-24T19:16:24+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -1764,7 +1781,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "ENTRY_REPRESENTATION_PROBE_BOUND_NOT_STARTED",
+  "status": "STOP_ENTRY_SELECTOR_HYPOTHESIS",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {
@@ -1773,5 +1790,49 @@
   },
   "train_population_scope": "latest_year_2025_2026_v1",
   "training_enabled": false,
-  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1"
+  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1",
+  "entry_representation_test_revalidation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PREFLIGHT_TEST_20260924.json",
+    "sha256": "a2ad42122015beaf765d541a6e580ce19339a7208ded2314d175d2edfe48cc3b"
+  },
+  "entry_selector_cache_fit": {
+    "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
+    "status": "STOP_SELECTOR_HYPOTHESIS",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN.json",
+      "sha256": "e8adc89c5d6737f3519a73db7f45063388dc4ad72a88fd0e069e52e20a3cb526"
+    },
+    "superseded_preflight_plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN_ATTEMPT_001.json",
+      "sha256": "3bbf4f47e99c07ccf3ed765b73726cd913f4b1325039bc0f7f242bb9faeaf6af"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
+    },
+    "frozen_fit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/FROZEN_FIT.json",
+      "sha256": "12aadfea3b7997b60ad767bbc03aa652a2a35987e5c63aafab7e437ee57a4456"
+    },
+    "selector_binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_BINDING.json",
+      "sha256": "98f42b1699cba876dbfa3e5458dd1fc418bf7a7ac8f6055591f194dc11155670"
+    },
+    "coefficients": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_COEFFICIENTS.pt",
+      "sha256": "118885443db1e7aa3e103b4ec2dfcbd742061e80b8810d1b439e9c3e8d86446a"
+    },
+    "fit_rows": 127,
+    "check_rows": 129,
+    "check_value_gate_passed": false,
+    "check_net_gate_passed": false,
+    "new_fits": 1,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "original_model_modified": false,
+    "generalization_proven": false,
+    "profitability_proven": false,
+    "training_enabled": false
+  }
 }
