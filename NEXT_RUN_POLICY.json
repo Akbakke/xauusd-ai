@@ -291,7 +291,7 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/NATIVE_RECIPE.json",
       "sha256": "8bdc047e20b3d5b059505e6c9c67a70f57d2c59573d941f39f2de25185da1683"
     },
-    "next_action": "Old selector hypothesis remains closed. A separate direct M1 BID/ASK Entry outcome hypothesis is predeclared in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. First scope is one bounded target-coverage/ESS measurement only (zero fits, zero optimizer steps, no TEST), after exact source/cost/run bindings are prepared. training_enabled remains false; no native window is bound; do not launch training.",
+    "next_action": "Old selector hypothesis remains closed. The direct M1 BID/ASK Entry outcome hypothesis and single CPU-only target coverage/ESS audit are predeclared in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Scope is TRAIN M5 timestamps plus the bound M1 TRAIN child view, one guarded audit invocation, aggregate-only receipt, zero fits/optimizer steps, no VAL or TEST. training_enabled remains false; no model native window is bound; do not launch training.",
     "optimizer_steps": 256,
     "plan": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PLAN.json",
