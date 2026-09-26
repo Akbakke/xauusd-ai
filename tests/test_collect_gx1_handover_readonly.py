@@ -379,3 +379,101 @@ def test_native_window_cli_requires_pair_and_require_next_run(monkeypatch, argum
     with pytest.raises(SystemExit) as rejected:
         main()
     assert rejected.value.code == 2
+
+
+def _identity_repo(tmp_path):
+    from scripts.collect_gx1_handover_readonly import LAUNCH_STATE_NAME
+    repo=tmp_path/'identity'
+    repo.mkdir()
+    _git(repo,'init','-q','-b','work/gx1-current')
+    _git(repo,'config','user.name','Fixture')
+    _git(repo,'config','user.email','fixture@example.invalid')
+    (repo/'.gitignore').write_text('*.log\n__pycache__/\n.pytest_cache/\n.venv/\n')
+    state={'reviewed_local_runtime_exclusions':{'schema_version':'gx1_reviewed_local_runtime_exclusions_v1',
+                                                'paths':['.claude/worktrees/','.env','.venv/']}}
+    (repo/LAUNCH_STATE_NAME).write_text(json.dumps(state))
+    (repo/'pkg').mkdir()
+    (repo/'pkg'/'module.py').write_text('value = 1\n')
+    _git(repo,'add','.')
+    _git(repo,'commit','-qm','identity fixture')
+    return repo
+
+
+def test_source_identity_admits_reviewed_exclusions_and_caches(tmp_path):
+    from scripts.collect_gx1_handover_readonly import source_identity
+    repo=_identity_repo(tmp_path)
+    (repo/'pkg'/'__pycache__').mkdir()
+    (repo/'pkg'/'__pycache__'/'module.cpython-310.pyc').write_bytes(b'\0')
+    (repo/'.pytest_cache').mkdir()
+    (repo/'.pytest_cache'/'README.md').write_text('cache\n')
+    (repo/'.venv').mkdir()
+    (repo/'.venv'/'pyvenv.cfg').write_text('home = /usr/bin\n')
+    identity=source_identity(repo)
+    assert identity['source_identity_gate']=='READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS'
+    assert (identity['changed_path_count'],identity['prunable_worktree_count'],identity['unexpected_ignored_path_count'])==(0,0,0)
+    assert identity['reviewed_ignored_path_count']==identity['ignored_path_count']==3
+    assert identity['head_commit']==_git(repo,'rev-parse','HEAD')
+    assert source_identity(repo)['worktree_fingerprint']==identity['worktree_fingerprint']
+
+
+def test_source_identity_blocks_unreviewed_ignored_content(tmp_path):
+    from scripts.collect_gx1_handover_readonly import source_identity
+    repo=_identity_repo(tmp_path)
+    (repo/'retired'/'__pycache__').mkdir(parents=True)
+    (repo/'retired'/'__pycache__'/'gone.cpython-310.pyc').write_bytes(b'\0')
+    (repo/'run.log').write_text('evidence\n')
+    identity=source_identity(repo)
+    assert identity['source_identity_gate']=='BLOCK_UNEXPECTED_IGNORED_CONTENT'
+    assert identity['unexpected_ignored_paths']==['retired/','run.log']
+    assert identity['unexpected_ignored_path_count']==2
+
+
+def test_source_identity_binds_untracked_bytes_and_blocks_dirty_tree(tmp_path):
+    from scripts.collect_gx1_handover_readonly import source_identity
+    repo=_identity_repo(tmp_path)
+    clean=source_identity(repo)['worktree_fingerprint']
+    note=repo/'note.txt'
+    note.write_text('a\n')
+    first=source_identity(repo)
+    note.write_text('b\n')
+    second=source_identity(repo)
+    assert first['source_identity_gate']==second['source_identity_gate']=='BLOCK_DIRTY_WORKTREE'
+    assert len({clean,first['worktree_fingerprint'],second['worktree_fingerprint']})==3
+
+
+def test_source_identity_rejects_symlinked_virtual_environment(tmp_path):
+    from scripts.collect_gx1_handover_readonly import source_identity
+    repo=_identity_repo(tmp_path)
+    target=tmp_path/'other-venv'
+    target.mkdir()
+    (target/'pyvenv.cfg').write_text('home = /usr/bin\n')
+    (repo/'.venv').symlink_to(target)
+    with pytest.raises(ValueError,match='virtual environment'):
+        source_identity(repo)
+
+
+def test_source_identity_rejects_widened_exclusions(tmp_path):
+    from scripts.collect_gx1_handover_readonly import LAUNCH_STATE_NAME, source_identity
+    repo=_identity_repo(tmp_path)
+    state=json.loads((repo/LAUNCH_STATE_NAME).read_text())
+    state['reviewed_local_runtime_exclusions']['paths'].append('data/')
+    (repo/LAUNCH_STATE_NAME).write_text(json.dumps(state))
+    _git(repo,'commit','-qam','widen exclusions')
+    with pytest.raises(ValueError,match='exclusions are invalid'):
+        source_identity(repo)
+
+
+@pytest.mark.parametrize('source_only,expected',[(False,0),(True,2)])
+def test_handover_prints_identity_lines_and_source_only_blocks(monkeypatch,capsys,source_only,expected):
+    import scripts.collect_gx1_handover_readonly as collector
+    identity={'head_commit':'c'*40,'worktree_fingerprint':'f'*64,'changed_path_count':0,'ignored_path_count':1,
+              'prunable_worktree_count':0,'reviewed_ignored_path_count':0,'unexpected_ignored_path_count':1,
+              'source_identity_gate':'BLOCK_UNEXPECTED_IGNORED_CONTENT','unexpected_ignored_paths':['stale/']}
+    monkeypatch.setattr(collector,'native_status',lambda *_a,**_k:{'decision':'OBSERVATION_ONLY_NOT_RUN_AUTHORITY'})
+    monkeypatch.setattr(collector,'source_identity',lambda _repo:identity)
+    monkeypatch.setattr('sys.argv',['collector','--native-binding','/unused/COMPLETED_RUN.json',
+                                    *(['--source-only'] if source_only else [])])
+    assert collector.main()==expected
+    lines=capsys.readouterr().out.splitlines()
+    assert 'unexpected_ignored_path_count: 1' in lines and 'prunable_worktree_count: 0' in lines
+    assert 'unexpected_ignored_paths: ["stale/"]' in lines

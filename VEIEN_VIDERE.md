@@ -34,8 +34,9 @@ nedtrekk til 220 W ved 80 °C.
    ukeshorisont** — nytt, eksplisitt kontraktvalg (ikke en stille økning av 96-barers-taket),
    der Entry-verdien kommer fra direkte utførbare utfall og FLAT = 0 etter netto kost;
    beslutningsklokke og horisont tas fra den målingen.
-6. **Rebuild** (først: port kjedens kildeidentitetsport fra arkivgrenens handover, den feiler
-   lukket nå): squeeze-refit (v4, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
+6. **Rebuild** (kildeidentitetsporten er portert 26.09 og CURRENT har eget Python-miljø; porten
+   blokkerer til `gx1/monitoring/` med foreldreløs bytekode er fjernet, se Opprydding):
+   squeeze-refit (v4, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
    med ny run-id → post-rebuild-audits → lifecycle-v2-laget (ENTRY_WINDOW, normalisering,
    bindinger, random-access-indeks, recipes). Gjenbrukbart: tapene, M1-child-views, stengning,
    kostpolicy og økonomi (etter egne hash-bindinger).
@@ -47,8 +48,9 @@ nedtrekk til 220 W ved 80 °C.
 ## Opprydding
 
 Gjort 26.09 (se konsolideringsrapporten). Gjenstår: triage av 17 eksisterende testfeil; fjerning av
-worktree-ene V22/V31/V33/V37/V38/V39/V41 og backup-tarballen (operatørens kommando); V30,
-EXIT_LIFECYCLE_V2 og V40 når Python-miljøet, kostbevisene og handover-sjekken er flyttet hit.
+`gx1/monitoring/` (bare bytekode for en slettet modul), worktree-ene V22/V30/V31/V33/V37/V38/V39/V41
+og backup-tarballen (operatørens kommando; V30 trengs ikke etter at CURRENT fikk eget miljø);
+EXIT_LIFECYCLE_V2 og V40 når kostbevisene og handover-sjekken er flyttet hit.
 
 ## Ikke gjør
 

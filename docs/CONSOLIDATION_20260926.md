@@ -57,9 +57,8 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
   pensjonerte navn og med 7 nye 0/1-felt (samme konstruksjon som søsknene, bevist fra kilde);
   squeeze-manifest v4 (lukket-bar-fit); den foreldreløse `_v1_atr14_bps` er ikke tatt inn. Eierne
   eksekvert: signal 241 = 24 + 150 + 67, per-TF 190. Rebuild-skriptene peker på sin egen
-  kodebase; kjedens kildeidentitetsport forventer fortsatt arkivgrenens handover-tekst og feiler
-  lukket til rebuild-bølgen porterer den. Tester: ~385 fokuserte grønne; hele suiten 5 777 tester
-  med 19 feil, der 18 finnes identisk i Codex' b57c98dd (se «Eksisterende testgjeld») og 1 ny er
+  kodebase; kjedens kildeidentitetsport er portert (se «Kildeidentitet og Python-miljø»).
+  Tester: ~385 fokuserte grønne; hele suiten 5 777 tester med 19 feil, der 18 finnes identisk i Codex' b57c98dd (se «Eksisterende testgjeld») og 1 ny er
   rettet (ridge-konstantalternativet på støydata; `summarize` tåler null målbare celler).
 - **M3 trenerfeil** på den kjørte stien (fra 6a2be2a7): gate-entropi-sjekken kan aldri slå
   inn (clamp før multiplikasjon), active-head-diagnostikk (én sesjonsklokke, FLAT ikke unntatt,
@@ -101,8 +100,23 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
   `tests/test_entry_v10_ctx_model_shapes.py` feilet da bare i hele-suite-rekkefølge.
 - Hele suiten etter oppryddingen: 5 575 tester, 17 feil — alle finnes identisk i b57c98dd.
 - Utenfor repoet (krever operatørens kommando, tillatelse): worktree-ene V22/V31/V33/V37/V38/V39/V41
-  og backup-tarballen (identisk kopi i `C:\Users\Andre\`). V30 og EXIT_LIFECYCLE_V2 bærer
-  CURRENTs Python-miljø og hash-bundne kostbevis; V40 brukes av handover-sjekken.
+  og backup-tarballen (identisk kopi i `C:\Users\Andre\`). EXIT_LIFECYCLE_V2 bærer hash-bundne
+  kostbevis; V40 brukes av handover-sjekken. V30 trengs ikke lenger (se under).
+
+## Kildeidentitet og Python-miljø
+
+- `scripts/collect_gx1_handover_readonly.py` beregner nå kildeidentiteten slik arkivgrenens
+  handover gjorde (HEAD, sporet diff og usporede bytes i `worktree_fingerprint`; ignorerte stier
+  klassifisert mot launch-state-listen `.claude/worktrees/`, `.env`, `.venv/` pluss
+  regenererbare cacher) og skriver linjene rebuild-kjeden, trenerwrapperen og edge-kontrollen
+  krever. `--source-only` avslutter med 2 ved BLOCK. Målt 26.09 på dette treet: én ugjennomgått
+  sti, `gx1/monitoring/` (bare bytekode for en modul slettet i c8adbb99); sletting krever
+  operatørens kommando.
+- `.venv` var en symlink-kjede CURRENT → V30 → EXIT_LIFECYCLE_V2 (og konsollskriptene pekte videre
+  til GX1_ENGINE). CURRENT har nå et eget miljø: site-packages kopiert lokalt, `pip freeze`
+  identisk (71 pakker), `verify_rebuild_dependency_readiness_v1` PASS mot `requirements.txt`, ruff
+  og py-spy kopiert, konsollskript med egen shebang; `gx1` importeres fra CURRENTs kilde.
+- Tre små, urefererte logger under `handover_snapshot/` (16.09) er nå sporet i stedet for ignorert.
 
 ## Eksisterende testgjeld (finnes i b57c98dd, før konsolideringen)
 

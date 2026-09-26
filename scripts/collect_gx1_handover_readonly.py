@@ -53,6 +53,151 @@ def _git(repo: Path, *args: str) -> str:
     return completed.stdout.rstrip("\n")
 
 
+# Ported from the archived handover (archive/gx1-engine-audit-v9-20260926:
+# scripts/gx1_handover.sh). Ignored bytes are invisible to the worktree
+# fingerprint (GX1_RULES.md rule 24), so a heavy route may bind its source only
+# when every ignored path is a reviewed local runtime exclusion or a
+# regenerable cache. The launch state owns the exclusion list; this pins it.
+LAUNCH_STATE_NAME = "PROJECT_STATE_xau_direction_launch.json"
+REVIEWED_LOCAL_RUNTIME_EXCLUSIONS_SCHEMA = "gx1_reviewed_local_runtime_exclusions_v1"
+REVIEWED_LOCAL_RUNTIME_EXCLUSION_PATHS = frozenset({".claude/worktrees/", ".env", ".venv/"})
+REVIEWED_REGENERABLE_CACHE_PATHS = frozenset({".pytest_cache/", ".ruff_cache/"})
+# The rebuild chain, the trainer wrapper and the edge control gate on these lines.
+SOURCE_IDENTITY_KEYS = (
+    "head_commit", "worktree_fingerprint", "changed_path_count", "ignored_path_count",
+    "prunable_worktree_count", "reviewed_ignored_path_count",
+    "unexpected_ignored_path_count", "source_identity_gate",
+)
+
+
+def _git_bytes(repo: Path, *args: str) -> bytes:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+    ).stdout
+
+
+def _reviewed_local_runtime_exclusions(repo: Path, worktree_porcelain: str) -> frozenset[str]:
+    state = json.loads(_regular_file(str(repo / LAUNCH_STATE_NAME), label="launch_state").read_text())
+    reviewed = state.get("reviewed_local_runtime_exclusions")
+    if (
+        not isinstance(reviewed, dict)
+        or set(reviewed) != {"schema_version", "paths"}
+        or reviewed["schema_version"] != REVIEWED_LOCAL_RUNTIME_EXCLUSIONS_SCHEMA
+        or not isinstance(reviewed["paths"], list)
+        or not all(isinstance(path, str) for path in reviewed["paths"])
+        or len(reviewed["paths"]) != len(REVIEWED_LOCAL_RUNTIME_EXCLUSION_PATHS)
+        or set(reviewed["paths"]) != REVIEWED_LOCAL_RUNTIME_EXCLUSION_PATHS
+    ):
+        raise ValueError("reviewed local runtime exclusions are invalid")
+    environment_file = repo / ".env"
+    if environment_file.is_symlink() or (
+        environment_file.exists()
+        and (
+            not environment_file.is_file()
+            or os.stat(environment_file, follow_symlinks=False).st_mode & 0o077
+        )
+    ):
+        raise ValueError("reviewed local .env exclusion is unsafe")
+    venv = repo / ".venv"
+    if venv.is_symlink() or (
+        venv.exists()
+        and (
+            not venv.is_dir()
+            or (venv / "pyvenv.cfg").is_symlink()
+            or not (venv / "pyvenv.cfg").is_file()
+        )
+    ):
+        raise ValueError("reviewed local virtual environment exclusion is invalid")
+    worktree_root = repo / ".claude" / "worktrees"
+    registered = {
+        Path(line.removeprefix("worktree ")).resolve()
+        for line in worktree_porcelain.splitlines()
+        if line.startswith("worktree ")
+    }
+    if worktree_root.is_symlink() or (
+        worktree_root.exists()
+        and (
+            not worktree_root.is_dir()
+            or not any(
+                str(path).startswith(str(worktree_root.resolve()) + os.sep)
+                for path in registered
+            )
+        )
+    ):
+        raise ValueError("reviewed local Claude worktree exclusion is invalid")
+    return frozenset(reviewed["paths"])
+
+
+def source_identity(repo: Path) -> dict[str, object]:
+    """Bind HEAD, the tracked diff and untracked bytes; classify ignored content."""
+    head = _git_bytes(repo, "rev-parse", "--verify", "HEAD")
+    worktree = hashlib.sha256()
+    for label, payload in (
+        (b"head", head),
+        (b"tracked-diff", _git_bytes(repo, "diff", "--binary", "--no-ext-diff", "HEAD", "--")),
+    ):
+        worktree.update(len(label).to_bytes(4, "big"))
+        worktree.update(label)
+        worktree.update(len(payload).to_bytes(8, "big"))
+        worktree.update(payload)
+    untracked = _git_bytes(repo, "ls-files", "--others", "--exclude-standard", "-z")
+    for raw in filter(None, untracked.split(b"\0")):
+        path = repo / os.fsdecode(raw)
+        if path.is_symlink():
+            kind, payload = b"symlink", os.readlink(path).encode("utf-8", errors="surrogateescape")
+        elif path.is_file():
+            kind, payload = b"file", path.read_bytes()
+        else:
+            raise ValueError(f"unsupported untracked entry: {path}")
+        for value in (raw, kind, payload):
+            worktree.update(len(value).to_bytes(8, "big"))
+            worktree.update(value)
+    status = _git_bytes(repo, "status", "--porcelain=v1", "-z")
+    changed = len(tuple(filter(None, status.split(b"\0"))))
+    ignored_status = _git_bytes(repo, "status", "--ignored", "--porcelain=v1", "-z")
+    ignored_paths = tuple(
+        os.fsdecode(entry[3:])
+        for entry in filter(None, ignored_status.split(b"\0"))
+        if entry.startswith(b"!! ")
+    )
+    worktree_porcelain = _git_bytes(repo, "worktree", "list", "--porcelain").decode("utf-8")
+    prunable = sum(1 for line in worktree_porcelain.splitlines() if line.startswith("prunable"))
+    exclusions = _reviewed_local_runtime_exclusions(repo, worktree_porcelain)
+
+    def reviewed(path: str) -> bool:
+        return (
+            path in exclusions
+            or path in REVIEWED_REGENERABLE_CACHE_PATHS
+            or path.endswith("/__pycache__/")
+        )
+
+    unexpected = sorted(path for path in ignored_paths if not reviewed(path))
+    if prunable:
+        gate = "BLOCK_PRUNABLE_WORKTREE_REGISTRATION"
+    elif changed:
+        gate = "BLOCK_DIRTY_WORKTREE"
+    elif unexpected:
+        gate = "BLOCK_UNEXPECTED_IGNORED_CONTENT"
+    else:
+        gate = "READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS"
+    return {
+        "head_commit": head.decode("utf-8").strip(),
+        "worktree_fingerprint": worktree.hexdigest(),
+        "changed_path_count": changed,
+        "ignored_path_count": len(ignored_paths),
+        "prunable_worktree_count": prunable,
+        "reviewed_ignored_path_count": len(ignored_paths) - len(unexpected),
+        "unexpected_ignored_path_count": len(unexpected),
+        "source_identity_gate": gate,
+        "unexpected_ignored_paths": unexpected,
+    }
+
+
 def next_run_readiness(
     repo: Path, *, native_window_policy: Path | None = None,
     native_window_policy_file_sha256: str | None = None,
@@ -388,7 +533,15 @@ def main() -> int:
         return 0 if result["decision"] == "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES" else 78
     if args.native_binding is None:
         parser.error("--native-binding is required; legacy bundle/launch paths are retired")
-    print(json.dumps(native_status(args.native_binding, source_only=args.source_only), indent=2))
+    status = native_status(args.native_binding, source_only=args.source_only)
+    identity = source_identity(repo)
+    print(json.dumps(status, indent=2))
+    for key in SOURCE_IDENTITY_KEYS:
+        print(f"{key}: {identity[key]}")
+    if identity["unexpected_ignored_paths"]:
+        print("unexpected_ignored_paths: " + json.dumps(identity["unexpected_ignored_paths"]))
+    if args.source_only and str(identity["source_identity_gate"]).startswith("BLOCK"):
+        return 2
     return 0
 
 

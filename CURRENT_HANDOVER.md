@@ -42,4 +42,6 @@ papirhandel er stengt. TEST er forseglet. Kildekoden har nå den reparerte featu
 (signal 241, per-TF 190); datasettet må bygges på nytt. Eksisterende V9-/lifecycle-v2-artefakter
 og sjekkpunkter hører til v34-flaten og evalueres bare på commit 7c9421a5 eller eldre.
 Walk-forward-instrumentet støtter ukeshorisont (beslutningsklokke, ikke-overlappende statistikk,
-kostpolicy, tidlig kalibrerte inputs).
+kostpolicy, tidlig kalibrerte inputs). CURRENT har eget Python-miljø (`.venv`, identisk pakkesett,
+avhengighetssjekken består), og `gx1_handover.sh` skriver kildeidentiteten som tunge ruter krever
+(`source_identity_gate`).
