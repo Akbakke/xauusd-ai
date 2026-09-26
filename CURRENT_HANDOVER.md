@@ -33,7 +33,8 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 - **Ukesretning, forhåndsregistrert (26.09): NO-GO.** 0 av 48 celler slår alltid-LONG i noe år
   2023–26; modellene kollapser til «vær long» eller taper når de avviker. 2021–26 er ett
   oksemarked — lengre historikk med fallende markeder er den avgjørende forutsetningen;
-  operatøren vedtok 26.09 å hente fra 2005 (venter på gyldig OANDA-token)
+  operatøren vedtok 26.09 å hente fra 2005; native M5 + M1 fra 2006-03-19 er hentet 27.09
+  ([docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md))
   ([docs/WEEKLY_DIRECTION_RESULT_20260926.md](docs/WEEKLY_DIRECTION_RESULT_20260926.md)).
 
 ## Tilstand

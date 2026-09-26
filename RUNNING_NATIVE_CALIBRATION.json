@@ -1981,9 +1981,9 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Operator decision 2026-09-26: fetch native XAU_USD M5 and M1 from 2005-01-01 to 2026-07-01 (vedtak OANDA_{M5,M1}_PRETEST_2005_20260926) via gx1.scripts.backfill_xauusd_m5_from_oanda through the capped runner. Blocked on a valid OANDA token in .env (401 on 2026-09-26). Then verify overlap against the 2019 tape, rebuild with the earliest valid TRAIN start, and rerun the preregistered weekly measurement. No native training, full epoch, full VAL, CONTROL or TEST.",
+  "next_action": "Native XAU_USD M5 and M1 from 2006-03-19 to 2026-06-30 are published (docs/HISTORY_2005_INTAKE_20260926.md). Next: rebuild the dataset on the 2006 tapes (source-identity gate needs gx1/monitoring removed; squeeze refit; earliest valid TRAIN start from the longest lookback), then rerun the preregistered weekly measurement. No native training, full epoch, full VAL, CONTROL or TEST.",
   "observed_processes": [],
-  "observed_utc": "2026-09-26T21:40:20.976664+00:00",
+  "observed_utc": "2026-09-26T22:25:54.318049+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2291,7 +2291,20 @@
         "OANDA_M5_PRETEST_2005_20260926",
         "OANDA_M1_PRETEST_2005_20260926"
       ],
-      "status": "BLOCKED_OANDA_TOKEN_REJECTED_401"
+      "status": "PUBLISHED_FROM_2006_03_19",
+      "tapes": {
+        "M5": {
+          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2005_20260701_PRETEST_20260926",
+          "rows": 1446228,
+          "canonical_rows_sha256": "ae08e57b9696913eb40006b5b5182177201ef25b9476f90d94349271bb99c025"
+        },
+        "M1": {
+          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2005_20260701_PRETEST_20260926",
+          "rows": 7047777,
+          "canonical_rows_sha256": "67bb206f484390d62d3bf10a98ad90026303f91c2f44ca4690d1e4305d7d12f0"
+        }
+      },
+      "report": "docs/HISTORY_2005_INTAKE_20260926.md"
     }
   },
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",

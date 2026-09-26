@@ -10,8 +10,9 @@ Ingen. **Vedtatt 26.09: hent fra 2005.** Native M5 + M1 XAU_USD fra OANDA, 2005-
 2026-07-01 (TEST-grensen), via den eksisterende produsenten med manifest; vedtakene
 `OANDA_M5_PRETEST_2005_20260926` og `OANDA_M1_PRETEST_2005_20260926` er bundet i
 `gx1/contracts/oanda_history_ingest_approval_v1.py`. Grunn: 2019–26 mangler de fallende
-gullmarkedene (2008, 2011–15, 2016, 2018). Hentingen venter på et gyldig OANDA-token i
-`.env` (tokenet fra august avvises med 401, målt 26.09).
+gullmarkedene (2008, 2011–15, 2016, 2018). **Hentet 27.09**: M5 og M1 fra 2006-03-19 (OANDAs
+første bar), overlappet mot 2019-tapen er rad-identisk bortsett fra et fylt hull 2024-05-20; se
+[docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md).
 
 Vedtatt 26.09: guard-testen ignorerer preferanser (`model`, `theme`); GPU-kjernestopp 85 °C,
 nedtrekk til 220 W ved 80 °C.
@@ -31,7 +32,7 @@ nedtrekk til 220 W ved 80 °C.
    1/2/4 uker, ridge og HGB med konstant-alternativ, mot alltid-LONG, på de tidlig kalibrerte
    v36-dataene. Kjørt på tre gyldige årsholdouts 2023-06..2026-05 med strengere GO-regel (3 av 3);
    fold 0 stoppet på kronologivakten (avviket står i resultatet). 0 av 48 celler slo alltid-LONG.
-5. **Hent 2005– (vedtatt)**, kontroller byte-likhet mot 2019-tapen på overlappet, rebuild med
+5. ~~Hent 2005–~~ **ferdig 27.09** (fra 2006-03-19), deretter rebuild på 2006-tapene med
    tidligst mulig TRAIN-start (lengste lookback avgjør), deretter samme forhåndsregistrerte
    måling på data med fallende markeder. Først ved GO/LOVENDE: **målkontrakt for
    ukeshorisont** — nytt, eksplisitt kontraktvalg (ikke en stille økning av 96-barers-taket),
