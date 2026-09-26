@@ -85,15 +85,33 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
   beskytter ikke grenens V12-artefakter i retention-grafen — ingen opprydding før en
   arkivautoritet dekker begge linjene (regel 9).
 
+## Opprydding 26.09 (egen commit)
+
+- Slettet 264 sporede filer uten bruk, med bevis fra en statisk import- og referansegraf over
+  alle 1 086 sporede filer: 24 kodefiler (forbudte live/paper/collector/journal/broker-fill/
+  live-tail-moduler, V9-launch-registeret, dashboards og frakoblede V9-verktøy), 13 testfiler som
+  bare testet dem, 21 dokumenter uten lenke fra styring, poster, kode eller tester, 204 foreldede
+  kopier i `handover_snapshot/` (poster binder originalene under GX1_DATA) og 2 andre.
+- 9 testfiler beskåret etter en gjennomgått, eksplisitt liste (bare noder som refererte til
+  slettede moduler); `tests/test_retired_entry_iql_absence.py` har fått en fraværstest som hindrer
+  at de forbudte modulene kommer tilbake.
+- Testisolasjon: `tests/conftest.py` gjenoppretter torchs globale tilstand (tråder, dtype,
+  determinisme, matmul-presisjon) etter hver test. Målt: `tests/test_candidate_training_session.py`
+  etterlot 8 tråder og deterministisk modus, og en paritetstest i
+  `tests/test_entry_v10_ctx_model_shapes.py` feilet da bare i hele-suite-rekkefølge.
+- Hele suiten etter oppryddingen: 5 575 tester, 17 feil — alle finnes identisk i b57c98dd.
+- Utenfor repoet (krever operatørens kommando, tillatelse): worktree-ene V22/V31/V33/V37/V38/V39/V41
+  og backup-tarballen (identisk kopi i `C:\Users\Andre\`). V30 og EXIT_LIFECYCLE_V2 bærer
+  CURRENTs Python-miljø og hash-bundne kostbevis; V40 brukes av handover-sjekken.
+
 ## Eksisterende testgjeld (finnes i b57c98dd, før konsolideringen)
 
-18 tester feiler likt på Codex' siste commit: `test_candidate_checkpoint_resume_equivalence` (1),
-`test_chronological_measurement_binding` (2), `test_chronological_sampled_targets` (1),
-`test_entry_candidate_epoch_seal` (1), `test_gx1_capped_run_contract` (5, pensjonert trenerrute),
-`test_run_unified_exit_random_access_fixed_step_v1` (2), `test_unified_exit_economic_step_provider_closure_v1` (1),
-`test_unified_exit_full_population_epoch_v1` (1) og `test_unified_exit_val_policy_censoring` (4).
-De skal triageres (fjerne foreldede tester eller rette koden) i oppryddingsbølgen; de er ikke
-forårsaket av sammenslåingen.
+17 tester feiler likt på Codex' siste commit: `test_chronological_measurement_binding` (2),
+`test_chronological_sampled_targets` (1), `test_entry_candidate_epoch_seal` (1),
+`test_gx1_capped_run_contract` (5, pensjonert trenerrute), `test_run_unified_exit_random_access_fixed_step_v1` (2),
+`test_unified_exit_economic_step_provider_closure_v1` (1), `test_unified_exit_full_population_epoch_v1` (1)
+og `test_unified_exit_val_policy_censoring` (4). De skal triageres (fjerne foreldede tester eller
+rette koden); de er ikke forårsaket av sammenslåingen.
 
 ## Åpne operatørvedtak
 

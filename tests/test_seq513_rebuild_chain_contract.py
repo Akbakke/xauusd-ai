@@ -429,7 +429,6 @@ def test_no_producer_route_binds_a_split_manifest_it_runs_before() -> None:
         "scripts/entry_next_edge_control.sh",
         "gx1/scripts/prebuild_multi_tf_cache_v4.py",
         "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py",
-        "gx1/scripts/benchmark_level_registry_v1.py",
         "gx1/features/level_registry_v1.py",
         "gx1/features/trendline_registry_v1.py",
         "gx1/features/htf_features.py",

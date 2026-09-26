@@ -41,12 +41,11 @@ nedtrekk til 220 W ved 80 °C.
 8. **Native trening** først når steg 4 viser noe utover drift, og innenfor en ny, bundet
    NEXT_RUN_POLICY.
 
-## Opprydding (pågår)
+## Opprydding
 
-Slettelisten (264 filer, bevis i analysen fra 26.09) og triage av 18 eksisterende testfeil gjøres i
-egen commit. Worktree-ene V22/V31/V33/V37/V38/V39/V41 og backup-tarballen krever operatørens
-kommando (tillatelse); V30 og EXIT_LIFECYCLE_V2 bærer Python-miljøet og hash-bundne kostbevis, og
-V40 brukes av handover-sjekken — de fjernes først når det er løst.
+Gjort 26.09 (se konsolideringsrapporten). Gjenstår: triage av 17 eksisterende testfeil; fjerning av
+worktree-ene V22/V31/V33/V37/V38/V39/V41 og backup-tarballen (operatørens kommando); V30,
+EXIT_LIFECYCLE_V2 og V40 når Python-miljøet, kostbevisene og handover-sjekken er flyttet hit.
 
 ## Ikke gjør
 

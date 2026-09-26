@@ -23,10 +23,6 @@ from gx1.contracts.model_native_serve_gate_v1 import (
     DIRECTION_POCKET_REQUIRED_EVIDENCE_POCKETS,
     UTC_TIME_COVERAGE_SCHEMA_VERSION,
 )
-from gx1.execution.v12_paper_runner import (
-    MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS,
-    require_executable_model_native_entry_decision,
-)
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
     MULTI_TF_PER_BAR_FEATURES_V4,
@@ -296,45 +292,6 @@ def test_smart_decision_follows_final_model_argmax_exactly(
     assert decision["side_mae_bps"] == [3.0, 8.0]
     assert not any(key.startswith("expected_utility") for key in decision)
     assert not any(key.startswith("expected_utility") for key in snapshot)
-
-
-def test_actual_smart_decision_keyset_forms_exact_executable_pipeline_envelope(
-    tmp_path: Path,
-) -> None:
-    head = _decision_head()
-    head.update(
-        {
-            "context_age_m5_bars": 0,
-            "context_cutoff_ts": "2026-07-08T18:00:00+00:00",
-            "context_refresh_in_flight": False,
-            "context_mtf_incremental": False,
-        }
-    )
-    decision = _decision_engine(tmp_path).decide(head, atr_bps=9.0)
-    timing = {
-        "decision_available_ts": "2026-07-08T18:05:00+00:00",
-        "entry_signal_latency_sec": 30.0,
-        "context_cutoff_ts": decision["context_cutoff_ts"],
-        "context_age_m5_bars": decision["context_age_m5_bars"],
-    }
-    decision["_v10_snapshot"] = {**decision["_v10_snapshot"], **timing}
-    decision.update(
-        {
-            "decision_available_ts": timing["decision_available_ts"],
-            "entry_signal_latency_sec": timing["entry_signal_latency_sec"],
-            "entry_signal_latency_min": 0.5,
-                "entry_signal_latency_cap_sec": 90.0,
-                "entry_signal_stale": False,
-                "entry_source_pair_generation_id": "1" * 64,
-                "entry_source_pair_manifest_sha256": "2" * 64,
-            }
-        )
-
-    assert set(decision) == set(MODEL_NATIVE_EXECUTABLE_DECISION_REQUIRED_FIELDS)
-    assert require_executable_model_native_entry_decision(
-        decision,
-        "2026-07-08T18:05:00+00:00",
-    ) == decision["_v10_snapshot"]
 
 
 @pytest.mark.parametrize(

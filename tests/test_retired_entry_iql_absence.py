@@ -60,13 +60,33 @@ def test_live_entry_stack_cannot_import_retired_entry_iql() -> None:
         "gx1.runtime.entry_iql_v2_adapter",
     }
     live_modules = (
-        REPO / "gx1/execution/v12_pipeline.py",
-        REPO / "gx1/execution/v12_paper_runner.py",
         REPO / "gx1/execution/v12_smart_entry_live.py",
         REPO / "gx1/execution/v12_model_native_state_live.py",
     )
     for module in live_modules:
         assert _imported_modules(module).isdisjoint(forbidden), module
+
+
+# Forbidden-route modules removed in the 2026-09-26 consolidation cleanup (GX1_RULES.md, Omfang):
+# paper/live execution, collector, live journal, broker fill economics, live-tail publication,
+# the V9 launch/approval registry and the live dashboards. They may not return.
+RETIRED_FORBIDDEN_ROUTE_MODULES = (
+    "gx1/execution/v12_paper_runner.py",
+    "gx1/execution/v12_pipeline.py",
+    "gx1/execution/v12_oanda_data_collector.py",
+    "gx1/monitoring/trade_journal.py",
+    "gx1/contracts/oanda_fill_economics_v1.py",
+    "gx1/contracts/live_tail_publication_v1.py",
+    "gx1/contracts/entry_model_native_launch_transaction_v1.py",
+    "gx1/contracts/entry_model_native_launch_approval_v1.py",
+    "scripts/gx1_dashboard.py",
+    "scripts/gx1_telegram_notifier.py",
+)
+
+
+def test_retired_forbidden_route_modules_are_physically_absent() -> None:
+    present = [path for path in RETIRED_FORBIDDEN_ROUTE_MODULES if (REPO / path).exists()]
+    assert present == []
 
 
 def test_control_surface_has_no_entry_iql_reopening_route() -> None:
