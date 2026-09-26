@@ -4,7 +4,11 @@ Få modellen til å lære tilstandsavhengige Entry- og Exit-verdier og ta bedre
 beslutninger enn relevante enkle baselines. Deretter kreves kronologisk
 beslutningskvalitet og positiv kostnadsjustert økonomi. Målet er fortsatt aktivt.
 
-Nå:512-prøven er fullført. Exit tar bedre tilstandsavhengige valg på gjenbrukt
+Nå: Ny direkte Entry-hypotese bruker kostnadsjusterte, sidekorrekte framtidige
+BID/ASK-utfall; FLAT lærer et eget ventemål basert på neste M5/M15-mulighet.
+95-minutters dekning/ESS er målt, men ikke avkastningsfordelingen. Neste mål er
+en ferskt kostnadsrevalidert, policy-bundet måling av 100/110-minutters utfall.
+Ingen trening er åpnet. 512-prøven er fullført. Exit tar bedre tilstandsavhengige valg på gjenbrukt
 TRAIN, men Entry er fortsatt FLAT256/256. Samlet læringsport er ikke bestått.
 512-scope er stengt; den separate nullstegs TRAIN-evalueringen er ferdig med negativ netto; ingen ny kjøring er bundet. Se VEIEN_VIDERE.md og
 CONVERGENCE512_REVIEW_20260919.md for det gjenværende Entry-spørsmålet.

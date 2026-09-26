@@ -1,8 +1,8 @@
-# Gjeldende status: policy-konsistent Entry-selector stoppet — 24.09.2026
+# Gjeldende status: direkte Entry-utfall og fortsettelsesverdi — 26.09.2026
 
-Den gamle selectorhypotesen er fortsatt lukket. En egen direkte M1 BID/ASK Entry-hypotese er definert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). Første avgrensning er kun target-dekning/ESS; ingen fit eller trening er åpnet. Se NEXT_RUN_POLICY.json for gjeldende run-tilstand.
+Den gamle selectorhypotesen er lukket. Arbeidet følger nå den separate direkte M1 BID/ASK Entry-hypotesen i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). 95-minutters dekning/ESS er målt. LONG/SHORT-netto og ventemålet for neste M5/M15-beslutning er definert; neste datakjøring venter på fersk kostnadsrevalidering og eksplisitt audit-binding. Ingen modelltilpasning eller trening er åpnet. Se NEXT_RUN_POLICY.json.
 
-**Dekningsmålingen er fullført** med den eksisterende M1-koden, CPU-audit under 4 GB cgroup, TRAIN-only. M5: 313399 av 313399 komplette 95-minutters quote-stier; M15: 104188 av 104188. Etter 95-minutters purge ved UTC-ukeskiller var blokk-ESS 258,60 for M5 og 258,67 for M15. Dette måler bare target-tilgjengelighet og blokktelling; ingen nettoavkastningsstatistikk, fit eller trening ble produsert. Se [måleresultatet](handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json).
+**Dekningsmålingen er fullført** med den eksisterende M1-koden, CPU-audit under 4 GB cgroup, TRAIN-only. M5: 313399 av 313399 komplette 95-minutters quote-stier; M15: 104188 av 104188. Etter 95-minutters purge ved UTC-ukeskiller var blokk-ESS 258,60 for M5 og 258,67 for M15. Dette måler bare 95-minutters target-tilgjengelighet og blokktelling; ingen nettoavkastningsstatistikk, fit eller trening ble produsert. Ventemålet er nå definert som neste M5/M15-beslutnings kostnadsjusterte markedsmulighet, ikke Exit-Q eller en strategi-PnL-fasit. Neste måling trenger komplette stier på 100 minutter for M5 og 110 minutter for M15. Krever eksplisitt bundet audit-policy; trening er fortsatt stengt. Se [måleresultatet](handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json).
 
 Les [resultatrapporten](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
 Den tidligere native representasjonsuttakingen var allerede fullført:

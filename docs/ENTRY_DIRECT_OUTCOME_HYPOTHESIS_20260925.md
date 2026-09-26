@@ -19,6 +19,32 @@ The hypothesis is that direct, executable LONG/SHORT outcome targets provide mor
 
 Before training, report total eligible rows, valid full-path labels, invalid reasons, timestamp coverage, and block-based effective sample size. Report M5 and M15 separately. For block ESS, use fixed UTC calendar weeks; purge labels whose 95-minute outcome window intersects the first or last 95 minutes of a week, then report valid rows per remaining week and ESS = (sum weekly counts)^2 / sum(weekly counts^2). This is a block-count estimate, not an iid-row sample count. The existing exact-timestamp counts are not full-path coverage and cannot stand in for this measurement.
 
+## Separate Entry targets: side outcomes and the value of waiting
+
+For each eligible decision at time t, define two supervised market-outcome targets from the exact executable quote path and the bound prospective cost scenario:
+
+- Y_long(t) = R_long_net(t): enter LONG at the decision-time ASK and mark/exit at BID after 95 minutes, less the bound entry/exit costs and elapsed-time financing.
+- Y_short(t) = R_short_net(t): enter SHORT at the decision-time BID and mark/exit at ASK after 95 minutes, with the same cost accounting.
+- Y_wait(t, cadence) = max(0, R_long_net(t + cadence), R_short_net(t + cadence)): the best cost-adjusted opportunity available at the next eligible decision, measured over the following 95 minutes. Cadence is 5 minutes for the M5 schedule and 15 minutes for the M15 schedule.
+
+The model receives only the existing causal features at t and predicts these three targets. Future quotes, realized side choice, target-validity flags, and cost components are labels/audit metadata only; they must not enter model inputs. Use a separate direct-outcome head and preserve the existing Exit-facing entry_action_q_bps unchanged. Select LONG or SHORT only when its predicted net value is positive and strictly exceeds both the other side and predicted wait value; otherwise select FLAT. Exact ties resolve to FLAT. This makes FLAT a learned, potentially nonzero continuation forecast, not a constant zero or an instruction to trade.
+
+The next-decision opportunity target is a supervised forecast target, not realized strategy action value: it assumes the best future side is known when the future label is constructed. It can teach whether waiting is likely to preserve a cost-positive opportunity, but must not be reported as strategy PnL or recursively treated as a calibrated Bellman value. Measure actual selectivity and economics in a separate chronological replay under one identical causal Exit, one-position overlap accounting, and open positions included. Do not use Exit-Q as the direct market target.
+
+The existing 95-minute coverage is insufficient for these three targets because waiting shifts the start of the future path. Require complete exact-quote paths through 100 minutes for M5 and 110 minutes for M15 (95-minute horizon plus the schedule cadence), including all required minutes and the endpoint. Keep the existing weekly purge/block-ESS method, shifted to each target's full information window. Report gross returns and each cost separately, then net-return distributions and invalid reasons by side, cadence, and year. The versioned cost schedule remains a prospective scenario, not verified historical broker PnL.
+
+Target materialization remains a separate bounded audit requiring canonical policy authority. It must write only aggregate evidence unless a later reviewed contract explicitly authorizes row labels. No model fit or weight change follows automatically from sufficient coverage.
+
+## Candidate fit and comparison, only after a new policy binding
+
+If the cost-adjusted target audit is complete and its receipts support the target, the first fit should be one controlled comparison, not a search:
+
+- Train one separate direct scorer per schedule, using the existing causal feature/timeframe inputs and the same fresh initialization for both arms. Train all scorer layers; do not warm-start them from the old Exit-Q-trained Entry checkpoint. Leave the original Entry and Exit checkpoints frozen. During every replay, feed the fixed Exit the exact original Entry-Q/context it received before this experiment; only the separate scorer may choose whether a new position is opened.
+- Train all backbone layers and this new output against the corresponding direct continuous labels. Use mean-squared error on each output after scaling each target by a scale estimated from the chronological fit segment only; convert predictions back to bps for selection and reports. Keep labels uncapped and keep the existing optimizer recipe fixed. No target, threshold, feature, horizon, architecture, or optimizer search.
+- Use one fixed chronological split inside TRAIN, with the later segment held out once for a check. Apply the same calendar cutoff to M5 and M15; M15 is the exact 15-minute subset. Exclude fit examples whose full target window crosses the cutoff; purge 110 minutes at the boundary. Fit all feature/target normalization from the earlier segment only. Do not use June 2026 VAL or TEST to tune anything.
+- Compare each arm's three predictions to a constant predictor fitted on that same earlier segment. Then apply the frozen rule above without fitting a threshold. Separately replay selected actions with one identical causal Exit policy and one-position accounting; report every eligible opportunity, selected trades, open-position marks, net PnL, and results by month. A market-target metric or positive TRAIN fit is not an economics PASS.
+- Proceed to any fit only if a new canonical run policy explicitly binds the data, split, target/head semantics, budgets, and receipts. This document itself grants no fit or launch authority. TEST stays sealed.
+
 ## Prebound source identities
 
 These are existing TRAIN-only source bindings; they are not permission to launch:

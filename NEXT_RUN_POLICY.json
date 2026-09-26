@@ -291,7 +291,7 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/NATIVE_RECIPE.json",
       "sha256": "8bdc047e20b3d5b059505e6c9c67a70f57d2c59573d941f39f2de25185da1683"
     },
-    "next_action": "The one TRAIN-only, capped, CPU coverage/ESS audit for the separate direct M1 BID/ASK Entry hypothesis is complete; see handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json. M5 had 313399/313399 and M15 104188/104188 complete 95-minute quote paths; purged weekly block ESS 258.60/258.67. No cost-adjusted return distribution, row-level labels, fit, optimizer steps, or TEST. Next work must bind direct net-target and nonzero wait/continuation semantics before any labels are materialized. training_enabled remains false; no model native window is bound.",
+    "next_action": "Old selector hypothesis remains closed. The direct M1 BID/ASK Entry outcome hypothesis and single CPU-only target coverage/ESS audit are predeclared in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Scope is TRAIN M5 timestamps plus the bound M1 TRAIN child view, one guarded audit invocation, aggregate-only receipt, zero fits/optimizer steps, no VAL or TEST. training_enabled remains false; no model native window is bound; do not launch training.",
     "optimizer_steps": 256,
     "plan": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919/PLAN.json",
@@ -1624,8 +1624,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "The native entry representation extraction completed with exact original Q and Exit-context parity. The one predeclared CPU Ledoit-Wolf selector fit (127 fit / 129 reused-TRAIN check rows) failed both value and net gates. Close this hypothesis: do not repeat extraction, refit, or tune features, lambda, thresholds, or splits. training_enabled remains false; full epoch/VAL/CONTROL/TEST/live/paper are closed. No run is bound. Any further research requires a separate, materially distinct and chronologically predeclared hypothesis.",
-  "observed_utc": "2026-09-24T19:16:24+00:00",
+  "next_action": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
+  "observed_utc": "2026-09-26T16:40:29+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
