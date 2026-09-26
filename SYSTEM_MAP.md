@@ -1,11 +1,10 @@
-Siste læringsresultat19. september: Entry fuse256 gir litt bedre verdiestimat,
-men uendrede Entry/Exit-valg. Ingen bestått læringsport. Se
-docs/ENTRY_FUSE_FIXED256_REVIEW_20260919.md og CURRENT_HANDOVER.md.
+Status står bare i CURRENT_HANDOVER.md. Dette er arkitekturkartet (oppdatert 26.09.2026).
 
-# Gjeldende GX1-systemkart — 18. september 2026
+# GX1-systemkart
 
-Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current. GX1_ENGINE/.git er
-felles Git-lagring, ikke alternativ oppstartsvei. Data: /home/andre2/GX1_DATA.
+Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current (eneste kodebase).
+GX1_ENGINE/.git er felles Git-lagring; grenen der er arkivert
+(`archive/gx1-engine-audit-v9-20260926`), aldri arbeidssted. Data: /home/andre2/GX1_DATA.
 
 ## Modell og læringskjede
 
@@ -14,7 +13,8 @@ Kausale native features og TRAIN-eid normalisering
 → Exit: lokal M1-historikk + M5/M15/H1/H4/D1, HOLD/EXIT_NOW
 → samme V4 BID/ASK-, kostnads- og økonomiberegning i trening og evaluering.
 
-Alle 200 features, åtte familier og tidsrammer bevares. Hver timeframe bruker
+Alle features, åtte familier og tidsrammer bevares; dimensjonene leses ved å eksekvere
+`gx1/contracts/entry_model_native_signal_v1.py`, aldri fra dokumenter. Hver timeframe bruker
 sin tilgjengelige lukkede klokke. Antall features er ikke antall uavhengige
 signaler. Sammenkobling alene dokumenterer ingen prediksjons- eller handelsfordel.
 
@@ -24,6 +24,15 @@ Dette innebærer ikke full isolasjon av alle delte parametere. Exit har egne
 exit_episode_family_tf-rutere; null Exit-gradient på Entry-ruteren er ikke
 bevis for at Exit-ruteren er frakoblet. Forecast er hjelpeoppgaver, ikke direkte
 handlingsfasit. Exit har også kausal prissti og livstidssammendrag.
+
+## Tidsskala i dagens mål
+
+Retningsmålet (`gx1/contracts/entry_direction_target_policy_v1.py`) velger horisont med et
+knee-søk over 1..`ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS` = 96 M5-barer (8 timer); valgt
+19 (95 min). Exit-referansepolicyen holder med 119/120 per M1-steg (~2 t). Inputene dekker uker
+og år (H4 96, D1 252 barer), men målene gjør det ikke. Målt 26.09: retningen ligger på
+uker–måneder (docs/DIRECTION_TIMESCALE_20260926.md). En ukeshorisont krever en eksplisitt ny
+målkontrakt (VEIEN_VIDERE.md), ikke en stille økning av taket.
 
 ## Gjeldende targets i det avsluttede forsøket
 

@@ -1,71 +1,39 @@
-# Gjeldende status: direkte Entry-utfall og fortsettelsesverdi — 26.09.2026
+# Gjeldende status — 26.09.2026: én kodebase, retning på uker
 
-Den gamle selectorhypotesen er lukket. Arbeidet følger nå den separate direkte M1 BID/ASK Entry-hypotesen i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). 95-minutters dekning/ESS er målt. LONG/SHORT-netto og ventemålet for neste M5/M15-beslutning er definert; neste datakjøring venter på fersk kostnadsrevalidering og eksplisitt audit-binding. Ingen modelltilpasning eller trening er åpnet. Se NEXT_RUN_POLICY.json.
+**Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
+(arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
+[VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
+overstyrer prosa.
 
-**Dekningsmålingen er fullført** med den eksisterende M1-koden, CPU-audit under 4 GB cgroup, TRAIN-only. M5: 313399 av 313399 komplette 95-minutters quote-stier; M15: 104188 av 104188. Etter 95-minutters purge ved UTC-ukeskiller var blokk-ESS 258,60 for M5 og 258,67 for M15. Dette måler bare 95-minutters target-tilgjengelighet og blokktelling; ingen nettoavkastningsstatistikk, fit eller trening ble produsert. Ventemålet er nå definert som neste M5/M15-beslutnings kostnadsjusterte markedsmulighet, ikke Exit-Q eller en strategi-PnL-fasit. Neste måling trenger komplette stier på 100 minutter for M5 og 110 minutter for M15. Krever eksplisitt bundet audit-policy; trening er fortsatt stengt. Se [måleresultatet](handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json).
+## Konsolidering (operatørvedtak 26.09)
 
-Les [resultatrapporten](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
-Den tidligere native representasjonsuttakingen var allerede fullført:
-16 Entry-forwards, eksakt original Q og Exit-kontekst, null Exit-rollouts og
-null optimizersteg. Cacheparitet bestod. Én separat, forhåndsbestemt
-Ledoit–Wolf-readout ble deretter målt på 127 fit-rader og 129 kronologiske
-check-rader. Beslutning: STOP_SELECTOR_HYPOTHESIS.
+Det fantes to spor: fra 19.09 ble det arbeidet i `/home/andre2/src/GX1_ENGINE` på en foreldet
+08.09-base fordi rot-loaderen pekte dit. Nå er dette eneste kodebase; den arkiverte grenen er
+tagget `archive/gx1-engine-audit-v9-20260926` og slått inn selektivt. Detaljer, hva som er tatt
+og ikke tatt, og hvorfor: [docs/CONSOLIDATION_20260926.md](docs/CONSOLIDATION_20260926.md).
+Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RULES.md` og
+`AGENTS.md` — samme regler for Claude og Codex. Én agent om gangen.
 
-Check-MSE og sentrert feil ble dårligere enn både original512 og fit-konstant
-på LONG og SHORT. Uendret argmax valgte 62 LONG, 0 SHORT og 67 FLAT.
-Check-netto var −292,244 bps over 129 muligheter og −239,172 bps i
-én-posisjonsreplay. Ingen generalisering eller lønnsomhet er bevist.
+## Hva vi vet
 
-Denne selector-hypotesen er stengt: ikke relanser uttrekkingen, ikke refit,
-ikke endre terskel, lambda, features eller tidsdeling. Originalmodell,
-checkpoint og Exit forblir uendret. training_enabled=false; full epoch,
-full VAL, CONTROL, TEST, live og papirhandel er fortsatt stengt. Ingen ny
-kjøring er bundet. Før mer arbeid må en egen, faglig forskjellig hypotese
-forhåndsbindes.
+- **Retningen ligger på uker–måneder, ikke på 95 minutter.** Trenden er ~1,6 % av bevegelsen
+  per 95-minutters vindu; bekreftede M1-svingninger fortsetter med 49–51 %; retningsmålet hadde
+  et hardt tak på 8 timer. På ukeshorisont tjente alltid-LONG etter all kost i 3 av 4 år, og
+  ingenting (380 D1/H4-felt, trendregler) slo den — i 2021–26 er det lærbare driften. Se
+  [docs/DIRECTION_TIMESCALE_20260926.md](docs/DIRECTION_TIMESCALE_20260926.md).
+- **Den direkte M1-hypotesen** (25.–26.09) bruker samme etiketter som knee-målet, og vent-målet
+  velger side i ettertid (+13,7 bps skjevhet); den kjøres ikke videre.
+- **Native lifecycle-v2-modellen:** Entry FLAT256/256 (alle side-Q negative etter kost), Exit
+  slår umiddelbar lukking på gjenbrukt TRAIN, samlet læringsport ikke bestått
+  ([docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md),
+  [docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md](docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md)).
+- **Retningsforskningen 23.–24.09** (walk-forward, mønstre, kryss-aktiva, HGB, direkte
+  klassifikasjon) er slått inn under `docs/`, med Codex' forbehold 24.09; ingen robust
+  retning på 95 min–8 t ble funnet.
 
----
+## Tilstand
 
-# GX1 — hele frosne Exit-policyen er vurdert
-
-FROZEN_EXIT_TRAIN_POLICY_20260919 er fullført, vurdert og deaktivert.
-Guard PASS; null nye optimizersteg; original512/lærer/cursor bevart.
-Alle512 kontrafaktiske handler fikk faktiske modell-EXIT. Ingen åpne posisjoner,
-sensurering eller ressursavbrudd. Entry er fortsatt FLAT256/256 og faktisk netto0.
-
-|Hele Exit512 på TRAIN256|LONG|SHORT|
-|---|---:|---:|
-|Gjennomsnittlig netto Bps|−4,1080|−5,1893|
-|Bedring mot umiddelbar EXIT Bps|+1,8409|+0,5902|
-|Positive måneder|2/9|0/9|
-
-Den forhåndsbestemte øvre/nedre rangeringshalvdelen ga−3,3433/−4,8623 Bps.
-Øvre halvdel er bedre i5/9 måneder, men fortsatt negativ. Det foreløpige
-hybridresultatet−0,3998 for øvre halvdel var ikke fullpolicy-resultatet.
-Bedre Exit enn umiddelbar lukking er målt på TRAIN; profitabel Entry/Exit-strategi,
-kronologisk kvalitet og læringsport er fortsatt ikke dokumentert.
-
-1083 forwards og21333 tilstander; selve rollout tok160,51s, native arbeid776,79s.
-Kjøring19:14:01–19:29:19 UTC /21:14:01–21:29:19 Oslo2026-09-19; controller
-Disabled19:33:30 UTC. Ingen aktiv jobb eller ny kjøreautorisasjon.
-
-Entry lærer fortsatt Q_mu, mens hele forløpet brukte pi512. Cachet sammenligning
-bekrefter ulike mål/utfall; dette er et designspørsmål, ikke automatisk en kodefeil.
-Policykonsistente fullpolicy-labels og cachet baseline er nå ferdige: alle256
-rader/512 sider og409 negative labels er bevart, FLAT0. Tre uttrykkelig bestilte
-agentgjennomganger prioriterer én regularisert Entry-selector som avkreftingsprøve.
-Entry-Q inngår også i Exit-tokenet; kandidatens valgverdier må holdes separat
-fra hele originalfunksjonen. Fit127/check129 er brukt TRAIN, ikke uavhengig VAL.
-Følg VEIEN_VIDERE.md for konkret måling og stoppkriterier. Ingen fits er bundet. Kun den avgrensede uttrekkingen nedenfor er tillatt. Kostnader og terskler er uendret. Ikke relanser planen.
-
-Bevis: docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md og de tre nye snapshotene
-FROZEN_TRAIN_POLICY_REVIEW, FROZEN_TRAIN_POLICY_COMPLETION og
-ENTRY_COMPLETE_POLICY_TARGET_ALIGNMENT under handover_snapshot.
-Kun /home/andre2/src/GX1_CURRENT, work/gx1-current. Mac er overleveringskopi.
-Tidligere operatørkopi under kildefrys er historikk. Målet er fortsatt aktivt.
-
-Minimal native uttrekking av eksisterende Entry-representasjoner er implementert.
-19 målrettede tester bestod under beregningsvakt. Én uttrekking er nå bundet:
-NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919,16 Entry-kall,0 fits/0 Exit-rollout,
-0 optimizersteg og krav om eksakt original Q og Exit-kontrakt. Native måling var ikke startet da denne historiske delen ble skrevet. Den
-fullførte observasjonen og negative selector-målingen står øverst; denne eldre
-oppstartsplanen er ikke en nåværende kjøreordre.
+Ingen jobb kjører. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
+papirhandel er stengt. TEST er forseglet. Featureflaten her er fortsatt signal v34 (238);
+den reparerte v36-flaten (241) og nytt datasett kommer i egne steg (VEIEN_VIDERE.md).
+Eksisterende V9-/lifecycle-v2-artefakter og sjekkpunkter hører til v34-flaten.

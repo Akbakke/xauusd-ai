@@ -1,61 +1,54 @@
-# Arbeidsregler for GX1 — oppdatert 2026-09-19
+# Arbeidsregler for GX1 — oppdatert 2026-09-26
 
-Krev målbar læring før mer omfattende trening. Teknisk PASS er ikke bevis på
-bedre handelsbeslutninger eller positiv kostnadsjustert netto Bps.
+Gjelder alle agenter (Codex leser denne fila; Claude får den via `CLAUDE.md`). De bindende
+prosjektreglene står i [GX1_RULES.md](GX1_RULES.md) — les dem først. Krev målbar læring før
+mer omfattende trening. Teknisk PASS er ikke bevis på bedre handelsbeslutninger eller
+positiv kostnadsjustert netto bps.
 
-- Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current. Mac-mappen er
-  en overleveringskopi. Historiske kildekopier er avhengigheter og dokumentasjon,
-  aldri alternative oppstartsveier.
-- Start med ./handover.sh --check på Mac, eller bash scripts/gx1_handover.sh --check
-  i Linux-repositoriet. Les CURRENT_HANDOVER.md, GX1_ARBEIDSMAAL.md,
-  NEXT_RUN_POLICY.json, VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.
-  CURRENT_HANDOVER.md angir eventuell operatørkopi under kildefrys.
-  Ikke relanser en allerede aktiv eller fullført plan.
-  Entry fuse256 er ferdig analysert: bedre verdiestimat, uendrede Entry/Exit-valg,
-  læringsport ikke bestått. Gjenbruk review; neste avklaring står i VEIEN_VIDERE.md.
-- CURRENT_HANDOVER.md er eneste gjeldende fortelling. RUNNING_NATIVE_CALIBRATION.json
-  beskriver siste arbeid; prosesser, checkpoints og receipts må bekrefte nåstatus.
-  COMPLETED_RUN.json og filer merket historikk er bevis, aldri startinstrukser.
-- Én agent og én tung jobb samtidig. Gjenbruk ferdige analyser, cachede inputs,
-  targets, outputs og beståtte tester. Ingen minuttvis modellpolling eller arbeid
-  for å fylle ventetiden. Kontroller stabil langkjøring omtrent hver time;
-  automatiske sikkerhetsvakter håndterer hyppig maskinvarekontroll.
-- Endre modell-/treningskode bare for en konkret, observert blokkering. Forklar
-  blokkeringen og minste rettelse først. Ingen forebyggende refaktorering, nye
-  rammeverk, brede regel-/terskel-/modell-/tapsvektsøk eller gjentatte fullsuiter.
-- Bruk bare eksisterende native campaign via gx1_capped_run.sh og etablerte
-  maskinvarevakter. TRAIN16, VAL256, åtte CPU-arbeidere, tre timers VAL-vinduer,
-  FP32/TF32 av. Ingen separate VAL-kjørere eller historiske smoker som fallback.
-- Ingen full epoch eller full VAL mens læringsporten er uavklart. En gjennomført
-  teknisk kontroll skal ikke automatisk gjentas eller utløse større trening.
-  Gjeldende tillatt omfang står i NEXT_RUN_POLICY.json; training_enabled er false.
-- Bevar alle 200 features, åtte familier, tidsrammer og kausalitet. «Ingen fast
-  grense»: ingen fast tapsgrense eller maksimal holdetid. Beregningshorisont
-  og bootstrap er læringsberegning, ikke en handelsregel om holdetid. Gjeldende
-  120-stegs referanseberegning er beskrevet i SYSTEM_MAP.md; fem steg er historikk.
-- Ved endret ONLINE-funksjon må ny initialbaseline måles; lik vekthash er
-  ikke funksjonsparitet. Bevar frossen lærerfunksjon og bind modellkilden.
-- Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT
-  er ikke dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet.
-  TRAIN-tilpasning, senere VAL-kvalitet og samlet økonomi rapporteres hver for seg.
-- TEST forblir forseglet. Ingen live-/papirhandel eller spending. Medregn alle
-  valgte handler og åpne posisjoner ved økonomivurdering; lukkede vinnere alene
-  er aldri samlet lønnsomhet. Juni 2026 er gjenbrukt utviklings-VAL.
-- Bevar fullførte resultater, originale checkpoints og aktiv kjøring. Ikke endre
-  frosset kilde under kjøring eller starte om for dokumentasjon/opprydding.
-- Stående autorisasjon gjelder nødvendig arbeid innen oppgaven. Ikke spør om
-  samme godkjenning igjen. Oppdater overlevering ved vesentlige endringer og
-  commit/push ferdig arbeid når den aktive kildebindingen tillater det.
-  Brukeren ga2026-09-17 stående godkjenning for offentlig push av ferdig GX1-kode,
-  dokumentasjon, interne artefaktstier og aggregerte bevis til Akbakke/xauusd-ai,
-  work/gx1-current. Gjør dette automatisk uten ny bekreftelse. Rådata, modellvekter
-  og hemmeligheter inngår ikke i publiseringen. Plattformens sikkerhetskontroller
-  gjelder fortsatt; dette fjerner bare gjentatt prosjektbekreftelse.
-- Brukeren har bestilt diskopprydding. Slett bare dokumentert overflødige filer;
-  kontroller aktive referanser og bevar modell-/data-/runtime-avhengigheter,
-  unike resultater og checkpoints. Sletting skal ha en kort etterprøvbar logg.
-- Skill lokale driftsgrenser fra produsentspesifikasjoner. En overskredet lokal
-  temperaturgrense er ikke alene bevis på overoppheting.
+- **Én kodebase:** bruk bare `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
+  Andre worktrees og grener er git-lagring og historikk, aldri arbeidssteder. Den arkiverte
+  `audit/v9-premiere-20260905` (worktree `/home/andre2/src/GX1_ENGINE`) er slått inn her og
+  tagget `archive/gx1-engine-audit-v9-20260926`; ikke commit der. Mac-mappen er en
+  overleveringskopi.
+- **Én agent om gangen.** Claude og Codex jobber aldri parallelt eller på hvert sitt spor.
+  Start med `git branch --show-current` (må være `work/gx1-current`) og `git log -5`; bygg på
+  den forrige agentens commits.
+- Start med `bash scripts/gx1_handover.sh --check`. Les deretter CURRENT_HANDOVER.md,
+  GX1_ARBEIDSMAAL.md, VEIEN_VIDERE.md og NEXT_RUN_POLICY.json. Ikke relanser en aktiv
+  eller fullført plan.
+- CURRENT_HANDOVER.md er eneste gjeldende fortelling. Prosesser, checkpoints og receipts må
+  bekrefte nåstatus. COMPLETED_RUN.json og filer merket historikk er bevis, aldri
+  startinstrukser.
+- Én tung jobb samtidig. Gjenbruk ferdige analyser, cachede inputs, targets, outputs og
+  beståtte tester. Ingen minuttvis modellpolling. Kontroller stabil langkjøring omtrent
+  hver time; automatiske vakter håndterer hyppig maskinvarekontroll.
+- Endre modell-/treningskode bare for en konkret, observert blokkering eller et vedtatt
+  designskifte. Forklar blokkeringen og minste rettelse først. Ingen forebyggende
+  refaktorering, nye rammeverk, brede regel-/terskel-/modell-/tapsvektsøk eller gjentatte
+  fullsuiter.
+- Tung trening bare via eksisterende native campaign gjennom `scripts/gx1_capped_run.sh` og
+  etablerte maskinvarevakter; profil og tillatt omfang står i NEXT_RUN_POLICY.json.
+  `training_enabled=false` stenger ny trening. Ingen full epoch eller full VAL mens
+  læringsporten er uavklart.
+- Bevar alle features, åtte familier, tidsrammer og kausalitet. Ingen fast tapsgrense eller
+  maksimal holdetid; en beregningshorisont er ikke en handelsregel.
+- Ved endret ONLINE-funksjon må ny initialbaseline måles; lik vekthash er ikke
+  funksjonsparitet.
+- Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT er ikke
+  dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet. TRAIN-tilpasning,
+  senere generalisering og samlet økonomi rapporteres hver for seg. På lange horisonter er
+  alltid-LONG / kjøp-og-hold valgt før perioden referansen, ikke myntkast.
+- TEST forblir forseglet. Ingen live-/papirhandel eller spending. Medregn alle valgte handler
+  og åpne posisjoner ved økonomivurdering. Juni 2026 er gjenbrukt utviklings-VAL.
+- Bevar fullførte resultater, originale checkpoints og aktiv kjøring. Ikke endre frosset kilde
+  under kjøring.
+- Stående autorisasjon gjelder nødvendig arbeid innen oppgaven; ikke spør om samme godkjenning
+  igjen. Oppdater overlevering ved vesentlige endringer i samme bølge som koden.
+  Brukeren ga 2026-09-17 stående godkjenning for push av ferdig GX1-kode, dokumentasjon,
+  interne artefaktstier og aggregerte bevis til Akbakke/xauusd-ai, `work/gx1-current`.
+  Rådata, modellvekter og hemmeligheter publiseres aldri. Force-push krever eget vedtak.
+- Diskopprydding: bare via retention-eieren (GX1_RULES.md regel 9), med etterprøvbar logg.
+- Skill lokale driftsgrenser fra produsentspesifikasjoner.
 
-Ingen antagelser der tilstanden kan måles. Bruk tokens konservativt. Når en
-nødvendig rettelse er kontrollert, gå videre mot læringsmålet uten å utvide jobben.
+Ingen antagelser der tilstanden kan måles. Når en nødvendig rettelse er kontrollert, gå videre
+mot målet uten å utvide jobben.

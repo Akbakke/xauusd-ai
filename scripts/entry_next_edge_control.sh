@@ -84,6 +84,9 @@ Model-native seq513 evidence:
   model-native-trade-path-metrics
   model-native-serve-parity
   model-native-direction-pocket-audit
+  model-native-direction-walkforward --dataset-dir <dataset-dir> --native-m5-root <immutable-dir> [--multi-tf-cache-dir <immutable-dir>] --out-dir <new-dir> --fold-boundaries <UTC ...> --horizons <bars ...> --inner-fraction <f> --max-hgb-iter <n> [--feature-arms ...] [--target-scalings ...] [--learners ...] [--seeds ...] [--resume]
+  model-native-pattern-primitives --native-m5-root <immutable-dir> --dataset-dir <dataset-dir> [--include-val] --out-dir <new-dir> --zone-lookback-bars <n> --fvg-min-gap-atr <f> --ob-displacement-atr <f> --ob-displacement-bars <n> --ob-search-bars <n> --eq-tolerance-atr <f> --flag-impulse-bars <n> --flag-impulse-atr <f> --flag-consolidation-min-bars <n> --flag-consolidation-max-bars <n> --flag-consolidation-atr <f> --range-breakout-bars <n> --age-cap-bars <n>
+  model-native-pattern-setup-edge --pattern-primitives-parquet <parquet> --dataset-dir <dataset-dir> --native-m5-root <immutable-dir> --horizons <bars ...> --period-boundaries <UTC ...> --out-dir <new-dir>
 
 Immutable run-lineage execution (evidence gates remain authoritative):
   model-native-smoke-train --run-id <id> <all other explicit arguments> \
@@ -1123,6 +1126,49 @@ case "$cmd" in
       require_flag "$cmd" "$flag" "$@"
     done
     exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.verify_model_native_serve_parity_v1 "$@"
+    ;;
+
+  model-native-direction-walkforward)
+    # Research instrument only (no candidate, TEST, promotion or trading
+    # authority): chronological walk-forward ceiling measurement with cheap
+    # learners on the model-native decision surface, delegating every
+    # statistic to the pre-registered selective-edge owner.  It fits over
+    # the complete TRAIN population like the ranker, so it runs under the
+    # producer cap rather than the 4G audit cap.
+    reject_non_authoritative_args "$@"
+    for flag in \
+      --dataset-dir \
+      --native-m5-root \
+      --out-dir \
+      --fold-boundaries \
+      --horizons \
+      --inner-fraction \
+      --max-hgb-iter; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${PRODUCER_CAP[@]}" "$PY" -m gx1.scripts.research_entry_direction_walkforward_v1 "$@"
+    ;;
+
+  model-native-pattern-primitives)
+    # Research only: tape-based FVG / order-block / equal-pool / session-level /
+    # flag / range-break primitives on every closed timeframe for the research
+    # instruments.  No production owner exists for these concepts (indicator
+    # audit 2026-08-13); the module is not a feature-surface producer.
+    reject_non_authoritative_args "$@"
+    for flag in --native-m5-root --dataset-dir --out-dir --zone-lookback-bars --age-cap-bars; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.research_entry_pattern_primitives_v1 "$@"
+    ;;
+
+  model-native-pattern-setup-edge)
+    # Research only: fixed confluence rules scored with the pre-registered
+    # selective-edge statistics per TRAIN year and on the VAL confirmation month.
+    reject_non_authoritative_args "$@"
+    for flag in --pattern-primitives-parquet --dataset-dir --native-m5-root --horizons --period-boundaries --out-dir; do
+      require_flag "$cmd" "$flag" "$@"
+    done
+    exec "${AUDIT_CAP[@]}" "$PY" -m gx1.scripts.research_entry_pattern_setup_edge_v1 "$@"
     ;;
 
   model-native-direction-pocket-audit)

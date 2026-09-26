@@ -1289,59 +1289,6 @@
     "value_semantics": "Q_mu_stationary_reference_after_first_action"
   },
   "exit_value_initialization": "close_now_baseline_v1",
-  "frozen_entry_selector_probe": {
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "control_forwards": 0,
-    "exit_rollout_forwards": 0,
-    "max_entry_forwards": 16,
-    "max_invocations": 1,
-    "new_fits": 0,
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 512,
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/CANDIDATE_BUNDLE",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PLAN.json",
-      "sha256": "cdec83b099f266b823b68566a716dad1489dc09a8e6e03e8d7785423bd3ab95b"
-    },
-    "run_id": "NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919",
-    "source_bindings_sha256": "19a2c8b68d28383343f64cb5e6faed50d073d12c34fb834c3e1aa28947b78e6e",
-    "test_data_used": false,
-    "train_entries": 256,
-    "val_limits": {
-      "cpu_pipeline_workers": 8,
-      "max_model_forwards": 46573,
-      "max_state_views": 3375234,
-      "max_wall_seconds": 10800,
-      "policy_batch_size": 256,
-      "progress_interval_forwards": 64
-    },
-    "status": "COMPLETE_PARITY_PASS",
-    "completed_observation": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
-      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
-    },
-    "cache": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
-      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
-    },
-    "completed_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
-      "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
-    }
-  },
   "frozen_exit_train_footprint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/FOOTPRINT.json",
     "sha256": "821aa8f2073d01380760e1009882033f9f3a59788bb0872c18818e045adfd9b8"
@@ -1357,21 +1304,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": {
-    "instructions": "VEIEN_VIDERE.md",
-    "new_native_run_bound": false,
-    "next_deliverable": "None is currently bound. Reuse docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; do not refit or retune this selector. A future proposal must be a distinct hypothesis with a fresh predeclared plan.",
-    "optimizer_steps_completed": 512,
-    "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
-    "tests": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
-      "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
-    },
-    "entry_selector_cache_fit": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
-      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
-    }
-  },
+  "handover_resume_point": "VEIEN_VIDERE.md; docs/CONSOLIDATION_20260926.md; docs/DIRECTION_TIMESCALE_20260926.md",
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "last_diagnostic_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
@@ -1624,8 +1557,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-26T16:40:29+00:00",
+  "next_action": "Consolidation 2026-09-26: one codebase (work/gx1-current); archived branch tagged archive/gx1-engine-audit-v9-20260926. Follow VEIEN_VIDERE.md in order: M4 weekly research instrument, M2 v36 feature surface, preregistered weekly walk-forward vs always-long, then a weekly target contract and rebuild. No native training, full epoch, full VAL, CONTROL or TEST.",
+  "observed_utc": "2026-09-26T17:36:46.731263+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -1781,7 +1714,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "STOP_ENTRY_SELECTOR_HYPOTHESIS",
+  "status": "CONSOLIDATED_ONE_CODEBASE_DIRECTION_MOVED_TO_WEEKS",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {
@@ -1834,5 +1767,92 @@
     "generalization_proven": false,
     "profitability_proven": false,
     "training_enabled": false
+  },
+  "consolidation_20260926": {
+    "decided_by": "operator 2026-09-26",
+    "canonical": "/home/andre2/src/GX1_CURRENT work/gx1-current",
+    "archived_branch": "audit/v9-premiere-20260905",
+    "archived_worktree": "/home/andre2/src/GX1_ENGINE (shared .git storage; never a work location)",
+    "archive_tag": "archive/gx1-engine-audit-v9-20260926",
+    "merge": "strategy ours + explicit per-file import (no silent merges)",
+    "report": "docs/CONSOLIDATION_20260926.md",
+    "direction_timescale_evidence": "docs/DIRECTION_TIMESCALE_20260926.md",
+    "direct_outcome_hypothesis_20260925": "closed_not_executed: labels identical to V9/V12 knee labels; Y_wait hindsight bias +13.7 bps",
+    "planned_steps": "VEIEN_VIDERE.md (M4 weekly instrument, M2 v36 surface, preregistered weekly walk-forward, weekly target contract, rebuild, M3 trainer fixes)",
+    "open_operator_decisions": [
+      "realign .claude/settings.reference.json with live settings (commit blocker)",
+      "longer XAU_USD history covering bear markets (named source + manifest)",
+      "native-route GPU core stop 85 C vs 70 C decided 2026-09-20/21 for the archived route"
+    ],
+    "training_enabled": false
+  },
+  "handover_resume_point_before_consolidation_20260926": {
+    "instructions": "VEIEN_VIDERE.md",
+    "new_native_run_bound": false,
+    "next_deliverable": "None is currently bound. Reuse docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; do not refit or retune this selector. A future proposal must be a distinct hypothesis with a fresh predeclared plan.",
+    "optimizer_steps_completed": 512,
+    "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
+    "tests": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
+      "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
+    },
+    "entry_selector_cache_fit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
+    }
+  },
+  "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
+  "completed_frozen_entry_selector_probe": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "control_forwards": 0,
+    "exit_rollout_forwards": 0,
+    "max_entry_forwards": 16,
+    "max_invocations": 1,
+    "new_fits": 0,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/CANDIDATE_BUNDLE",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PLAN.json",
+      "sha256": "cdec83b099f266b823b68566a716dad1489dc09a8e6e03e8d7785423bd3ab95b"
+    },
+    "run_id": "NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919",
+    "source_bindings_sha256": "19a2c8b68d28383343f64cb5e6faed50d073d12c34fb834c3e1aa28947b78e6e",
+    "test_data_used": false,
+    "train_entries": 256,
+    "val_limits": {
+      "cpu_pipeline_workers": 8,
+      "max_model_forwards": 46573,
+      "max_state_views": 3375234,
+      "max_wall_seconds": 10800,
+      "policy_batch_size": 256,
+      "progress_interval_forwards": 64
+    },
+    "status": "COMPLETE_PARITY_PASS",
+    "completed_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
+      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
+    },
+    "cache": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
+      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
+    },
+    "completed_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
+      "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
+    }
   }
 }

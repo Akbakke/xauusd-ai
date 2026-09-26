@@ -1665,7 +1665,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; completed negative selector fit, scope closed, no run bound.",
+  "handover_resume_point": "VEIEN_VIDERE.md; docs/CONSOLIDATION_20260926.md; docs/DIRECTION_TIMESCALE_20260926.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1981,9 +1981,9 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
+  "next_action": "Consolidation 2026-09-26: one codebase (work/gx1-current); archived branch tagged archive/gx1-engine-audit-v9-20260926. Follow VEIEN_VIDERE.md in order: M4 weekly research instrument, M2 v36 feature surface, preregistered weekly walk-forward vs always-long, then a weekly target contract and rebuild. No native training, full epoch, full VAL, CONTROL or TEST.",
   "observed_processes": [],
-  "observed_utc": "2026-09-19T20:30:36.681854+00:00",
+  "observed_utc": "2026-09-26T17:36:46.731263+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2158,7 +2158,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
+  "status": "CONSOLIDATED_ONE_CODEBASE_DIRECTION_MOVED_TO_WEEKS",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {
@@ -2255,5 +2255,25 @@
     "test_data_used": false,
     "generalization_proven": false,
     "profitability_proven": false
-  }
+  },
+  "consolidation_20260926": {
+    "decided_by": "operator 2026-09-26",
+    "canonical": "/home/andre2/src/GX1_CURRENT work/gx1-current",
+    "archived_branch": "audit/v9-premiere-20260905",
+    "archived_worktree": "/home/andre2/src/GX1_ENGINE (shared .git storage; never a work location)",
+    "archive_tag": "archive/gx1-engine-audit-v9-20260926",
+    "merge": "strategy ours + explicit per-file import (no silent merges)",
+    "report": "docs/CONSOLIDATION_20260926.md",
+    "direction_timescale_evidence": "docs/DIRECTION_TIMESCALE_20260926.md",
+    "direct_outcome_hypothesis_20260925": "closed_not_executed: labels identical to V9/V12 knee labels; Y_wait hindsight bias +13.7 bps",
+    "planned_steps": "VEIEN_VIDERE.md (M4 weekly instrument, M2 v36 surface, preregistered weekly walk-forward, weekly target contract, rebuild, M3 trainer fixes)",
+    "open_operator_decisions": [
+      "realign .claude/settings.reference.json with live settings (commit blocker)",
+      "longer XAU_USD history covering bear markets (named source + manifest)",
+      "native-route GPU core stop 85 C vs 70 C decided 2026-09-20/21 for the archived route"
+    ],
+    "training_enabled": false
+  },
+  "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
+  "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP"
 }

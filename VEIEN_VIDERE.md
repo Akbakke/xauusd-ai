@@ -1,92 +1,46 @@
-# Neste steg: direkte M1-netto- og ventemål — 26.09.2026
+# Veien videre — 26.09.2026
 
-Den gamle selectorhypotesen er stengt. Den nye direkte M1 BID/ASK-hypotesen er forhåndsdefinert i [ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md](docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md). TRAIN-only dekning/ESS for 95-minutters sideutfall er målt: M5 313399/313399 og M15 104188/104188 gyldige stier; blokk-ESS etter purging 258,60/258,67. Aggregert bevis står i handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json. Ingen nettoavkastningsfordeling, fit eller trening er målt. Direkte LONG/SHORT-mål er sidekorrekte netto BID/ASK-utfall. FLAT får eget neste-beslutningsmål: best cost-positive LONG/SHORT-mulighet som starter ved neste M5/M15-beslutning, sammenlignet mot null. Det er et markedsmulighetsmål, ikke faktisk strategi-PnL eller Exit-Q. Neste measurement needs exact complete paths of 100 minutes (M5) and 110 minutes (M15), plus cost-adjusted distribution and block ESS, through a policy-bound audit only. training_enabled=false; no fit, model change, or TEST.
+Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git diff --check`
+og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
+`scripts/gx1_capped_run.sh`.
 
-Gjeldende resultat og stoppbeslutning står i
-[ENTRY_SELECTOR_CACHE_FIT_20260924.md](docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md).
-Den native representasjonsuttakingen og den ene forhåndsbestemte 127/129
-Ledoit–Wolf-fitten er fullført. Verdiprediksjonene tapte mot original512 og
-fit-konstantene; check-netto var negativ. Selector-hypotesen er lukket.
+## Operatørvedtak som gjenstår
 
-Ikke kjør extraction, fit, terskel-/lambda-/feature-/split-søk på denne
-hypotesen. Ingen native trening, full epoch, full VAL, CONTROL, TEST,
-live eller papirhandel er åpnet. training_enabled=false; ingen ny jobb er
-bundet. Historisk design nedenfor er bevart for revisjon, ikke som startordre.
+1. **Guard-referansen** blokkerer alle commits til `.claude/settings.reference.json` er lik live
+   `~/.claude/settings.json` (feltet `model`). Kun operatøren endrer dette.
+2. **Lengre gullhistorikk** (XAU_USD, samme instrument, f.eks. D1/H4 fra ~2005 via den
+   eksisterende OANDA-backfill-produsenten med manifest) — nødvendig for å lære noe annet enn
+   «vær long» på ukeshorisont.
+3. **GPU-kjernestopp på native rute:** 85 °C i dag vs. 70 °C vedtatt 20.–21.09 for grenens rute.
 
----
+## Kodesteg
 
-## Historisk plan før uttrekking og fit
+1. **M1 — konsolidering** (denne bølgen): commit, arkiv-tag, rot-loader, relativ
+   `core.hooksPath`. Se [docs/CONSOLIDATION_20260926.md](docs/CONSOLIDATION_20260926.md).
+2. **M4 — forskningsinstrument for uker** (før datasett): `--decision-clock {M5,H1,H4,D1}`,
+   statistikk på ikke-overlappende perioder med parvis differanse mot alltid-LONG og en kausal
+   konstant valgt på fit-perioden, vern mot sirkulær-null ved ≤ 512 rader, `model_kind` i
+   metadata. HAC/sirkulær-null brukes ikke som PASS på lange horisonter.
+3. **M2 — featureflaten v36** (241, per-TF 190) med tilpasningene i konsolideringsrapporten;
+   eierne eksekveres for å bekrefte dimensjonene; fokuserte tester.
+4. **Forhåndsregistrert ukesmåling** med instrumentet: beslutning på H4/D1-slutt, horisonter
+   1/2/4 uker, ridge og HGB med konstant-alternativ, fire årsholdouts, mot alltid-LONG; på de
+   tidlig kalibrerte v36-dataene. Første, enklere måling er gjort
+   ([docs/DIRECTION_TIMESCALE_20260926.md](docs/DIRECTION_TIMESCALE_20260926.md) §6).
+5. **Målkontrakt for ukeshorisont**: nytt, eksplisitt kontraktvalg (ikke en stille økning av
+   96-barers-taket), der Entry-verdien kommer fra direkte utførbare utfall og FLAT = 0 etter
+   netto kost. Beslutningsklokke og horisont fra steg 4.
+6. **Rebuild**: squeeze-refit (v3, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
+   med ny run-id → post-rebuild-audits → lifecycle-v2-laget (ENTRY_WINDOW, normalisering,
+   bindinger, random-access-indeks, recipes). Gjenbrukbart: tapene, M1-child-views, stengning,
+   kostpolicy og økonomi (etter egne hash-bindinger).
+7. **M3 — trenerfeil** før neste native trening (gate-entropi fail-open, active-head-diagnostikk,
+   gamma-metadata).
+8. **Native trening** først når steg 4 viser noe utover drift, og innenfor en ny, bundet
+   NEXT_RUN_POLICY.
 
-Designavklaringen og tre brukerbestilte agentgjennomganger er ferdige.
-Gjenbruk handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json.
-Ingen ny fit, forward eller optimizeroppdatering er utført. Kun uttrekking er bundet.
-Selve modell-/treningsmatematikken er uendret. Native uttrekking er implementert:
-en midlertidig observer-hook leser eksisterende Entry-head-input uten å erstatte
-input/output. Den krever16 kall,256 rader, eksakt gammel Q og identisk full
-Exit-kontrakt. Cachen bevarer hidden/Q/tokens; originalmodell/cursor kontrolleres.
-Planen tillater0 fits og0 Exit-rollout-kall. Native oppstart gjenstår.
+## Ikke gjør
 
-Syntaks og diff er kontrollert;19 målrettede tester bestod under eksisterende
-beregningsvakt. Låseieren avsluttet, og den ene kølagte testprosessen fullførte.
-Ikke gjenta disse testene uten nye relevante endringer. TEST_REVIEW ligger i
-NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919 og handover_snapshot.
-
-Én uttrekking er nå bundet i frozen_entry_selector_probe i NEXT_RUN_POLICY.json.
-Fullfør obligatoriske commit-kontroller/push, materialiser én native campaign
-med eksisterende klargjøringsrutine og følg controllerens vanlige maskinvare- og
-oppstartskrav. Planen i entry_representation_preparation er kildeavhengighet.
-Native paritet er fortsatt umålt; ingen fit er tillatt av uttrekkingsplanen.
-Den fullførte fullpolicy-planen må ikke relanseres. Etter paritets-PASS bindes
-én separat, kort cache-fit under auditvakten med reglene nedenfor.
-
-Netto for hele frosne Exit512 på TRAIN256 er LONG−4,1080 / SHORT−5,1893 Bps.
-Øvre rangerte halvdel gir−3,3433 Bps; faktisk Entry er FLAT256/256.
-Exit slår umiddelbar lukking, men ingen profitabel Entry/Exit-strategi er påvist.
-
-Entry lærer Q_mu, mens forløpene følger pi512. Lagrede fullpolicy-utfall er nå
-bundet som støyende signerte labels for samme frosne pi512: begge sider for
-alle256 rader, alle409 negative labels, opprinnelige kostnader og FLAT0.
-Ingen framtidig beste side, gevinstutvalg, ekstra likvidasjon eller bootstrap.
-Fill-/exitmetadata er labelproveniens og skal aldri brukes som Entry-input.
-
-Entry-Q og entry_q_joint_hidden inngår begge i Exit-tokenet. Derfor bevarer
-kandidaten hele original512-forwarden, originale Q-verdier og Exit-kontekst.
-Et separat eksemplar av eksisterende lineære readout kan bare levere valg-Q
-etter at originaltokenet er laget. Frysing av Exit-vekter alene er utilstrekkelig.
-
-Neste konkrete leveranse er ett separat bundet native omfang som henter
-original hidden for de samme256 radene og kontrollerer opprinnelige Q-verdier
-og Exit-token. Sistnevnte er allerede hashbundet i lagret rollout-kontrakt;
-gjenoppbygg nøyaktig samme kontrakt med original factory/cohort/modell/budsjett.
-Ved identisk kontrakt kan fullpolicy-utfallene gjenbrukes uten1083 nye
-Exit-forwards. Pariteten er foreløpig ikke målt. Gjenbruk eksisterende native
-campaign, vakter, checkpoint-eier, inputs, readoutmatematikk og posisjonsregnskap.
-Ingen separat runner, ny modellarkitektur eller ny targetsimulering.
-
-Én forhåndslåst analytisk fit kan deretter undersøke hypotesen: fit127 fra
-juni–september2025 og check129 fra oktober2025–februar2026. Alle fit-handler
-avsluttes før checkperioden. Dette er likevel brukt TRAIN; originalmodellen
-har allerede vært trent, og kontrollutfallene er kjent utviklingsbevis.
-127 fitrader mot128 koordinater pluss intercept gir høy overtilpasningsrisiko.
-Bruk den eksisterende Ledoit–Wolf-regelen fra fit-inputs alene, samme lambda
-for alle tre handlinger og upenalisert intercept. Ikke gjenbruk gammel lambda.
-Frys koeffisientene før check vurderes. Ingen parameter-, feature- eller terskelsøk.
-Den historiske operatøren er matematikkreferanse, aldri alternativ oppstartsvei.
-
-Forhåndsbestemt stopp: Brutt paritet/ugyldige tall avviser beregningen. På
-check129 må både LONG og SHORT forbedre MSE og sentrert feil mot original512
-og fit-konstanter. Uendret argmax med FLAT0 må velge handler og gi positiv netto
-både over alle129 muligheter og i eksisterende én-posisjonsregnskap. Rapporter
-måneder, antall handler og gevinstkonsentrasjon. Uklare eller konsentrerte
-resultater gir ikke automatisk GO. Ingen handler eller svak økonomi gir STOP.
-Ved STOP lukkes denne selector-hypotesen uten ny lambda, terskel, split eller
-mer uendret trening. En teknisk feil kan bare få sin minste begrunnede rettelse.
-
-Selv tydelig positivt utfall kan bare begrunne en separat bundet kronologisk
-utviklingsmåling; det beviser ikke varig handelsfordel. Mars–mai og juni2026
-er allerede utviklingsdata. TEST forblir forseglet. Ingen full epoch/full VAL,
-live/paper/spending eller kostnadsendring. training_enabled er fortsatt false.
-
-Ikke gjenta fullpolicy-rollout, rangeringstest, forkastet FLAT-bias/forecast-
-hypotese eller beståtte fullsuiter. De tre agentene har levert; én tung jobb
-om gangen gjelder fortsatt. Målet er aktivt og ikke oppnådd.
+Ikke relanser selector-, direct-outcome- eller 512-planene. Ikke tren på 95-minuttersmålet
+igjen. Ikke gjør terskel-, horisont- eller featuresøk uten forhåndsregistrering. Ikke rydd
+artefakter fra den arkiverte grenen før en arkivautoritet dekker dem (regel 9).

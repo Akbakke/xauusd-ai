@@ -1,5 +1,16 @@
 # Direct Entry outcome hypothesis — 2026-09-25
 
+> **Review 2026-09-26 (operator-ordered consolidation) — do not execute this plan.**
+> Measured in [DIRECTION_TIMESCALE_20260926.md](DIRECTION_TIMESCALE_20260926.md):
+> (1) the 95-minute side targets already exist bit-identically in the bound V9 dataset and in
+> V12 (`y_{long,short}_final_pnl_at_direction_horizon_bps`, 313,399/313,399 rows) and were
+> tested teacher-free by the walk-forward instrument without a robust result (direct HGB sign
+> AUC 0.497–0.500); (2) `Y_wait = max(0, R_long_net(t+cadence), R_short_net(t+cadence))`
+> averages +13.7 bps against −5.3/−6.0 for the side targets — a hindsight side choice that
+> forces FLAT on 57.9 % of rows even with perfect foresight and on every row without
+> information. The operator moved the direction question to multi-day/week horizons
+> (see VEIEN_VIDERE.md). Kept as history.
+
 Status: predeclared research hypothesis; no target extraction, fit, model change, or optimizer update has been run. TEST remains sealed.
 
 ## Objective
