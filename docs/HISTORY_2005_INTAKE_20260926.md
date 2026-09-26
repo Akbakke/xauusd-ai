@@ -29,7 +29,34 @@ Sammenlignet mot `XAU_{M5,M1}_NATIVE_2019_20260701_PRETEST_20260829` på hele de
   tapene er strengt mer komplette.
 - Følge: datasett bygd fra 2019-tapene mangler dette vinduet. Neste rebuild bruker 2006-tapene.
 
+## Kvalitet per år (målt 27.09, `GX1_RUNS/HISTORY_2005_20260926/tape_quality_by_year.json`)
+
+- Ingen high < low eller close utenfor spennet noe år; spread ≤ 0 bare på 1 M5- og 4 M1-barer (2012).
+- ~205 hull > 30 min per år er den daglige pausen; enkelte hull på 13–24 t ligger rundt helligdager
+  (2006–08, 2011, 2018).
+- **Spread (median/p95 bps, M5):** 2006 12,0/26,0 · 2007 6,2/10,9 · 2008 6,9/26,7 · 2009 4,9/17,0 ·
+  2010–2021 ≈ 2,0–2,9 · 2022–2026 1,4–1,9. Den bundne kostpolicyen (2 bps per utførelse) undervurderer
+  2006–2009; kost må tas fra tapens bid/ask for de årene.
+- **Volum (tick-antall, median per M5-bar):** titall i 2006–2011 mot tusenvis nå. Råvolum er en
+  epokeproxy og må normaliseres før de tidlige årene går inn i TRAIN.
+
+## Blokkeringer før rebuild (bevist fra kilde 27.09)
+
+1. **Delte vedtak-id-er.** Parprodusenten `gx1.execution.v12_canonical_incremental` krever samme
+   `explicit_vedtak_id` på M1- og M5-tapen (`:1161-1183`); godkjenningseieren gir én id per tidsramme.
+2. **Ingen TEST-rader.** Rebuild-kjeden kjører alltid full modus og krever at kildens siste rad er
+   `--test-end`; tapene slutter ved TEST-grensen. Dataset-wrapperen har en `--pretest-only`-rute som
+   kjeden ikke sender videre.
+3. **Bootstrap-syklus:** parbygging krever en V4-cache med frosne registerkonstanter og squeeze-sett,
+   mens squeeze-fit krever parmanifestet; hvordan syklusen ble brutt sist er ikke registrert.
+4. **Squeeze-manifest v4 finnes ikke** (alle sett på disk er v1/v3); refit er obligatorisk og må binde
+   samme par og TRAIN-vindu som kjeden.
+
+Tidligste TRAIN-start (estimat, ikke målt): tapestart + ~220 D1-barer oppvarming i parproduktet
+(→ historikk tidlig 2007) + 252 lukkede D1-barer før TRAIN (kjedekrav) → TRAIN fra ~feb. 2008.
+Nedstrøms lifecycle-v2/random-access-laget har hardkodet TRAIN-start 2021-06-01 og må endres før
+native trening, ikke før ukesmålingen.
+
 ## Ikke undersøkt
 
-- Kvaliteten på de eldste årene (2006–2010): spreader, hull og volum per år er ikke revidert.
 - Om OANDAs tidlige data har andre handelstider eller sesjonsmønstre enn i dag.
