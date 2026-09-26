@@ -22,16 +22,20 @@ OANDA_HISTORY_INGEST_APPROVAL_SCHEMA_VERSION = (
     "gx1_oanda_history_ingest_approval_v1"
 )
 OANDA_HISTORY_PRETEST_END_UTC = "2026-07-01T00:00:00Z"
-# decision id -> (timeframe, exact bootstrap start). Every bootstrap ends at
-# the sealed TEST boundary above.
-# 2026-08-29: the pre-TEST audit intake from 2019.
+# decision id -> (admitted timeframes, exact bootstrap start). Every bootstrap
+# ends at the sealed TEST boundary above.
+# 2026-08-29: the pre-TEST audit intake from 2019 (one id per timeframe).
 # 2026-09-26: operator decision "hent fra 2005" -- falling gold markets
-# (2008, 2011-2015, 2016, 2018) are absent from the 2019 tape.
+# (2008, 2011-2015, 2016, 2018) are absent from the 2019 tape. One id admits
+# both timeframes because the canonical pair producer and its lineage
+# validator require M1 and M5 to carry the same source decision
+# (gx1/execution/v12_canonical_incremental.py, v12_state_from_prebuilt.py).
+# The first 2005 intake used one id per timeframe and cannot form a pair; its
+# tapes remain immutable history.
 OANDA_HISTORY_INGEST_APPROVALS = {
-    "OANDA_M1_PRETEST_CURRENT_20260829": ("M1", "2019-01-01T00:00:00Z"),
-    "OANDA_M5_PRETEST_CURRENT_20260829": ("M5", "2019-01-01T00:00:00Z"),
-    "OANDA_M1_PRETEST_2005_20260926": ("M1", "2005-01-01T00:00:00Z"),
-    "OANDA_M5_PRETEST_2005_20260926": ("M5", "2005-01-01T00:00:00Z"),
+    "OANDA_M1_PRETEST_CURRENT_20260829": (frozenset({"M1"}), "2019-01-01T00:00:00Z"),
+    "OANDA_M5_PRETEST_CURRENT_20260829": (frozenset({"M5"}), "2019-01-01T00:00:00Z"),
+    "OANDA_PAIR_PRETEST_2005_20260927": (frozenset({"M1", "M5"}), "2005-01-01T00:00:00Z"),
 }
 _SUCCESSOR_MODE = CANONICAL_NATIVE_SUCCESSOR_MODE
 
@@ -54,7 +58,7 @@ def require_approved_oanda_history_ingest(
             "to canonical M1 or M5 history."
         )
     approval = OANDA_HISTORY_INGEST_APPROVALS.get(vedtak)
-    if approval is None or approval[0] != normalized_timeframe:
+    if approval is None or normalized_timeframe not in approval[0]:
         raise GateError(
             "GX1_OANDA_HISTORY_INGEST_FORBIDDEN: explicit authorization "
             "does not match an approved read-only history intake."

@@ -43,8 +43,11 @@ Sammenlignet mot `XAU_{M5,M1}_NATIVE_2019_20260701_PRETEST_20260829` på hele de
 ## Blokkeringer før rebuild (bevist fra kilde 27.09)
 
 1. **Delte vedtak-id-er.** Parprodusenten `gx1.execution.v12_canonical_incremental` krever samme
-   `explicit_vedtak_id` på M1- og M5-tapen (`:1161-1183`); godkjenningseieren gir én id per tidsramme.
-2. **Ingen TEST-rader.** Rebuild-kjeden kjører alltid full modus og krever at kildens siste rad er
+   `explicit_vedtak_id` på M1- og M5-tapen (`:1161-1183`); godkjenningseieren ga én id per tidsramme.
+   **Løst 27.09:** ett parvedtak `OANDA_PAIR_PRETEST_2005_20260927` for begge tidsrammer (samme
+   konvensjon som alle tidligere par) og ny henting; de første 2005-tapene over er immutabel historikk
+   og kan ikke danne et par.
+2. **Ingen TEST-rader** (operatørvedtak 27.09: A — bygg uten TEST, kjeden får `--pretest-only`). Rebuild-kjeden kjører alltid full modus og krever at kildens siste rad er
    `--test-end`; tapene slutter ved TEST-grensen. Dataset-wrapperen har en `--pretest-only`-rute som
    kjeden ikke sender videre.
 3. **Bootstrap-syklus:** parbygging krever en V4-cache med frosne registerkonstanter og squeeze-sett,

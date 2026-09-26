@@ -1436,8 +1436,10 @@ def test_history_authorization_binds_each_decision_to_its_own_start() -> None:
         require_approved_oanda_history_ingest,
     )
 
+    vedtak = "OANDA_PAIR_PRETEST_2005_20260927"
     for timeframe in ("M1", "M5"):
-        vedtak = f"OANDA_{timeframe}_PRETEST_2005_20260926"
+        # One pair decision admits both timeframes: the pair producer requires
+        # M1 and M5 to carry the same source decision.
         assert require_approved_oanda_history_ingest(
             vedtak_id=vedtak,
             timeframe=timeframe,
@@ -1446,11 +1448,13 @@ def test_history_authorization_binds_each_decision_to_its_own_start() -> None:
             end_utc="2026-07-01T00:00:00Z",
         ) == vedtak
         # The 2005 decision cannot publish the 2019 interval, nor the reverse,
-        # and no decision may extend past the sealed TEST boundary.
+        # no decision may extend past the sealed TEST boundary, and the
+        # superseded per-timeframe 2005 ids are no longer admitted.
         for rejected_vedtak, start, end in (
             (vedtak, "2019-01-01T00:00:00Z", "2026-07-01T00:00:00Z"),
             (f"OANDA_{timeframe}_PRETEST_CURRENT_20260829", "2005-01-01T00:00:00Z", "2026-07-01T00:00:00Z"),
             (vedtak, "2005-01-01T00:00:00Z", "2026-08-01T00:00:00Z"),
+            (f"OANDA_{timeframe}_PRETEST_2005_20260926", "2005-01-01T00:00:00Z", "2026-07-01T00:00:00Z"),
         ):
             with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
                 require_approved_oanda_history_ingest(
@@ -1460,11 +1464,3 @@ def test_history_authorization_binds_each_decision_to_its_own_start() -> None:
                     start_utc=start,
                     end_utc=end,
                 )
-    with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
-        require_approved_oanda_history_ingest(
-            vedtak_id="OANDA_M5_PRETEST_2005_20260926",
-            timeframe="M1",
-            publication_mode="bootstrap",
-            start_utc="2005-01-01T00:00:00Z",
-            end_utc="2026-07-01T00:00:00Z",
-        )
