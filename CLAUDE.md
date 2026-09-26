@@ -1,3 +1,9 @@
+> **ARKIVERT 2026-09-26 — IKKE JOBB HER.** Denne grenen (`audit/v9-premiere-20260905`) er slått
+> inn i den eneste kodebasen `/home/andre2/src/GX1_CURRENT` (branch `work/gx1-current`) og tagget
+> `archive/gx1-engine-audit-v9-20260926`. Denne mappen er bare felles git-lagring. Regler, status og
+> neste steg: `GX1_CURRENT/GX1_RULES.md`, `GX1_CURRENT/CURRENT_HANDOVER.md`,
+> `GX1_CURRENT/docs/CONSOLIDATION_20260926.md`. Alt under er historikk.
+
 # GX1 operating rules
 
 > **Authoritative status — 2026-09-21:** Read

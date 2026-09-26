@@ -26,6 +26,15 @@ PAIRS = [
 ]
 
 
+# Personal session preferences are not guardrails; switching model or theme must not block a
+# commit (operator 2026-09-26). Permissions, hooks, env and the dangerous-mode flag stay exact.
+SETTINGS_PREFERENCE_KEYS = frozenset({"model", "modelSettings", "theme", "agentPushNotifEnabled"})
+
+
+def _guarded_settings(raw: bytes) -> dict:
+    return {k: v for k, v in json.loads(raw).items() if k not in SETTINGS_PREFERENCE_KEYS}
+
+
 @pytest.mark.parametrize("live,ref", PAIRS, ids=[p[1].name for p in PAIRS])
 def test_guard_artifact_matches_versioned_reference(live: Path, ref: Path):
     assert ref.exists(), (
@@ -42,6 +51,13 @@ def test_guard_artifact_matches_versioned_reference(live: Path, ref: Path):
     if not live.exists():
         return
     live_b = live.read_bytes()
+    if ref.name == "settings.reference.json":
+        assert _guarded_settings(live_b) == _guarded_settings(ref_b), (
+            f"GUARD DRIFT: guarded settings keys in live {live} != versioned {ref} "
+            f"(preferences {sorted(SETTINGS_PREFERENCE_KEYS)} are ignored).\n"
+            f"  If the change is INTENTIONAL, update the ref:  cp {live} {ref}  (then commit)."
+        )
+        return
     assert live_b == ref_b, (
         f"GUARD DRIFT: live {live} != versioned {ref}.\n"
         f"  If the change is INTENTIONAL, update the ref:  cp {live} {ref}  (then commit).\n"
