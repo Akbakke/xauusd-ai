@@ -9,8 +9,10 @@ og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om g
 Ingen. **Vedtatt 26.09: hent fra 2005.** Native M5 + M1 XAU_USD fra OANDA, 2005-01-01 →
 2026-07-01 (TEST-grensen), via den eksisterende produsenten med manifest; parvedtaket
 `OANDA_PAIR_PRETEST_2005_20260927` (samme id på M1 og M5, som parprodusenten krever) er bundet i
-`gx1/contracts/oanda_history_ingest_approval_v1.py`. **Vedtatt 27.09 (A):** rebuild uten TEST-rader
-(`--pretest-only` gjennom kjeden); TEST-bytene leses ikke. Grunn: 2019–26 mangler de fallende
+`gx1/contracts/oanda_history_ingest_approval_v1.py`. **Vedtatt 27.09 (B, erstatter A):** kjeden kjøres
+uendret i full modus; 2006-tapene forlenges i successor-modus til 2026-09-01, og juli–august 2026
+blir forseglet TEST (samme ordning som V46). A ble forlatt fordi en pretest-modus i kjeden krever
+endrede valideringer. Grunn: 2019–26 mangler de fallende
 gullmarkedene (2008, 2011–15, 2016, 2018). **Hentet 27.09**: M5 og M1 fra 2006-03-19 (OANDAs
 første bar), overlappet mot 2019-tapen er rad-identisk bortsett fra et fylt hull 2024-05-20; se
 [docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md).

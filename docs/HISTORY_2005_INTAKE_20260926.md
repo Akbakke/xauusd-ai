@@ -47,7 +47,9 @@ Sammenlignet mot `XAU_{M5,M1}_NATIVE_2019_20260701_PRETEST_20260829` på hele de
    **Løst 27.09:** ett parvedtak `OANDA_PAIR_PRETEST_2005_20260927` for begge tidsrammer (samme
    konvensjon som alle tidligere par) og ny henting; de første 2005-tapene over er immutabel historikk
    og kan ikke danne et par.
-2. **Ingen TEST-rader** (operatørvedtak 27.09: A — bygg uten TEST, kjeden får `--pretest-only`). Rebuild-kjeden kjører alltid full modus og krever at kildens siste rad er
+2. **Ingen TEST-rader** (operatørvedtak 27.09: B — forleng tapene til 2026-09-01 i successor-modus;
+   juli–august 2026 blir forseglet TEST, kjeden kjøres uendret). Partapene med felles vedtak:
+   `XAU_{M5,M1}_NATIVE_2005_20260701_PAIR_20260927`, rad-identiske med første henting. Rebuild-kjeden kjører alltid full modus og krever at kildens siste rad er
    `--test-end`; tapene slutter ved TEST-grensen. Dataset-wrapperen har en `--pretest-only`-rute som
    kjeden ikke sender videre.
 3. **Bootstrap-syklus:** parbygging krever en V4-cache med frosne registerkonstanter og squeeze-sett,
