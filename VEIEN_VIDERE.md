@@ -6,10 +6,12 @@ og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om g
 
 ## Operatørvedtak som gjenstår
 
-1. **Lengre gullhistorikk** (XAU_USD, samme instrument): native M5 + M1 fra OANDA via den
-   eksisterende backfill-produsenten med manifest, så alle tidsrammer (M5/M15/H1/H4/D1) bygges
-   av samme eiere. Uten nedmarkeder i dataene (2021–26 er ett oksemarked) kan modellen ikke lære
-   å gå short i et fallende marked.
+Ingen. **Vedtatt 26.09: hent fra 2005.** Native M5 + M1 XAU_USD fra OANDA, 2005-01-01 →
+2026-07-01 (TEST-grensen), via den eksisterende produsenten med manifest; vedtakene
+`OANDA_M5_PRETEST_2005_20260926` og `OANDA_M1_PRETEST_2005_20260926` er bundet i
+`gx1/contracts/oanda_history_ingest_approval_v1.py`. Grunn: 2019–26 mangler de fallende
+gullmarkedene (2008, 2011–15, 2016, 2018). Hentingen venter på et gyldig OANDA-token i
+`.env` (tokenet fra august avvises med 401, målt 26.09).
 
 Vedtatt 26.09: guard-testen ignorerer preferanser (`model`, `theme`); GPU-kjernestopp 85 °C,
 nedtrekk til 220 W ved 80 °C.
@@ -29,7 +31,8 @@ nedtrekk til 220 W ved 80 °C.
    1/2/4 uker, ridge og HGB med konstant-alternativ, mot alltid-LONG, på de tidlig kalibrerte
    v36-dataene. Kjørt på tre gyldige årsholdouts 2023-06..2026-05 med strengere GO-regel (3 av 3);
    fold 0 stoppet på kronologivakten (avviket står i resultatet). 0 av 48 celler slo alltid-LONG.
-5. **Lengre historikk først** (operatørvedtak, se øverst), deretter samme forhåndsregistrerte
+5. **Hent 2005– (vedtatt)**, kontroller byte-likhet mot 2019-tapen på overlappet, rebuild med
+   tidligst mulig TRAIN-start (lengste lookback avgjør), deretter samme forhåndsregistrerte
    måling på data med fallende markeder. Først ved GO/LOVENDE: **målkontrakt for
    ukeshorisont** — nytt, eksplisitt kontraktvalg (ikke en stille økning av 96-barers-taket),
    der Entry-verdien kommer fra direkte utførbare utfall og FLAT = 0 etter netto kost;

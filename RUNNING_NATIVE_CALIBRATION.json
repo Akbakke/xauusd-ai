@@ -1981,9 +1981,9 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Weekly direction (preregistered, 2026-09-26) is NO-GO on 2021-26: no cell beats always-LONG in any year. Next: operator decision on longer XAU_USD history (native M5+M1 via the OANDA backfill with manifest), then the same preregistered measurement on data with falling markets; only on GO a weekly target contract and dataset rebuild. No native training, full epoch, full VAL, CONTROL or TEST.",
+  "next_action": "Operator decision 2026-09-26: fetch native XAU_USD M5 and M1 from 2005-01-01 to 2026-07-01 (vedtak OANDA_{M5,M1}_PRETEST_2005_20260926) via gx1.scripts.backfill_xauusd_m5_from_oanda through the capped runner. Blocked on a valid OANDA token in .env (401 on 2026-09-26). Then verify overlap against the 2019 tape, rebuild with the earliest valid TRAIN start, and rerun the preregistered weekly measurement. No native training, full epoch, full VAL, CONTROL or TEST.",
   "observed_processes": [],
-  "observed_utc": "2026-09-26T20:38:32.305676+00:00",
+  "observed_utc": "2026-09-26T21:40:20.976664+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2280,6 +2280,18 @@
       "result": "docs/WEEKLY_DIRECTION_RESULT_20260926.md",
       "decision": "NO_GO",
       "evidence_root": "/home/andre2/GX1_RUNS/WEEKLY_DIRECTION_20260926"
+    },
+    "history_2005_decision": {
+      "decided_utc": "2026-09-26",
+      "interval": [
+        "2005-01-01T00:00:00Z",
+        "2026-07-01T00:00:00Z"
+      ],
+      "vedtak": [
+        "OANDA_M5_PRETEST_2005_20260926",
+        "OANDA_M1_PRETEST_2005_20260926"
+      ],
+      "status": "BLOCKED_OANDA_TOKEN_REJECTED_401"
     }
   },
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",

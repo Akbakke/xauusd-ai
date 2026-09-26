@@ -1429,3 +1429,42 @@ def test_native_root_is_accepted_as_current_tape_provenance(
             expected_run_id="XAU_SEQ513_TEST_RUN_01",
             require_current=True,
         )
+
+
+def test_history_authorization_binds_each_decision_to_its_own_start() -> None:
+    from gx1.contracts.oanda_history_ingest_approval_v1 import (
+        require_approved_oanda_history_ingest,
+    )
+
+    for timeframe in ("M1", "M5"):
+        vedtak = f"OANDA_{timeframe}_PRETEST_2005_20260926"
+        assert require_approved_oanda_history_ingest(
+            vedtak_id=vedtak,
+            timeframe=timeframe,
+            publication_mode="bootstrap",
+            start_utc="2005-01-01T00:00:00Z",
+            end_utc="2026-07-01T00:00:00Z",
+        ) == vedtak
+        # The 2005 decision cannot publish the 2019 interval, nor the reverse,
+        # and no decision may extend past the sealed TEST boundary.
+        for rejected_vedtak, start, end in (
+            (vedtak, "2019-01-01T00:00:00Z", "2026-07-01T00:00:00Z"),
+            (f"OANDA_{timeframe}_PRETEST_CURRENT_20260829", "2005-01-01T00:00:00Z", "2026-07-01T00:00:00Z"),
+            (vedtak, "2005-01-01T00:00:00Z", "2026-08-01T00:00:00Z"),
+        ):
+            with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
+                require_approved_oanda_history_ingest(
+                    vedtak_id=rejected_vedtak,
+                    timeframe=timeframe,
+                    publication_mode="bootstrap",
+                    start_utc=start,
+                    end_utc=end,
+                )
+    with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
+        require_approved_oanda_history_ingest(
+            vedtak_id="OANDA_M5_PRETEST_2005_20260926",
+            timeframe="M1",
+            publication_mode="bootstrap",
+            start_utc="2005-01-01T00:00:00Z",
+            end_utc="2026-07-01T00:00:00Z",
+        )
