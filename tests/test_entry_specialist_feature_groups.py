@@ -672,6 +672,9 @@ def test_specialist_audit_recomputes_and_rejects_same_group_mandatory_swap(
 # ---------------------------------------------------------------------------
 EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     "structure_swing_encoder": (
+        # 2026-09-21 (F-18): the sided CHoCH flags on the local clock.
+        "smc_choch_up",
+        "smc_choch_down",
         "bars_since_swing_high_break",
         "bars_since_swing_low_break",
         "chart.foundation_bos_down_event_age_bars",
@@ -702,6 +705,8 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "swing_low_sequence_delta_atr",
     ),
     "smc_liquidity_encoder": (
+        # 2026-09-21 (F-19): held side of the last sweep event.
+        "smc_sweep_last_event_side",
         "ctx_cont.dist_to_R1_atr",
         "ctx_cont.dist_to_R2_atr",
         "ctx_cont.dist_to_S1_atr",
@@ -724,9 +729,18 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "level_above_last_reaction_atr",
         "level_above_max_reaction_atr",
         "level_above_mean_reaction_atr",
-        "level_above_recurrence_confirmed",
+        # 2026-09-20 D-2: pending-retest state is level-lifecycle liquidity
+        # evidence — same owner as the active slots it mirrors.
+        "level_above_pending_retest_age_bars",
+        "level_above_pending_retest_dist_atr",
+        # 2026-09-20 D-1: renamed with its repair (raw birth recurrence
+        # distance instead of the thresholded vote); same owner.
+        "level_above_recurrence_dist_atr",
         "level_above_touch_count",
-        "level_bars_since_break",
+        # ADJUDICATED 2026-09-20 (deep review A1): the unsigned
+        # level_bars_since_break leaves this ledger with the field itself —
+        # bit-identical to abs() of the signed twin below, which stays in
+        # this same specialist.
         "level_bars_since_break_signed",
         "level_below2_dist_atr",
         "level_below2_present",
@@ -736,14 +750,21 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "level_below_last_reaction_atr",
         "level_below_max_reaction_atr",
         "level_below_mean_reaction_atr",
+        "level_below_pending_retest_age_bars",
+        "level_below_pending_retest_dist_atr",
         "level_below_present",
-        "level_below_recurrence_confirmed",
+        "level_below_recurrence_dist_atr",
         "level_below_touch_count",
         "level_break_down_event",
         "level_break_up_event",
         "level_broken_touch_count",
         "level_retest_fail_signed",
         "level_retest_hold_signed",
+        # 2026-09-20: round-number gridline distances are horizontal
+        # price-level proximity — liquidity-level evidence, not chart
+        # geometry (no sloped line) and not volatility (ATR is the unit).
+        "level_round_number_dist_100_atr",
+        "level_round_number_dist_50_atr",
         "smc_pivot_envelope_position",
         "smc_sweep_down_depth_atr",
         "smc_sweep_down_event",
@@ -755,16 +776,12 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     ),
     "trend_ema_encoder": (
         "_v1_ema3_ema6_spread_atr",
-        "_v1_ema_diff",
         "_v1_kama30_change_5_atr",
         "_v1_tema20_change_3_atr",
         "chart.local_ema200_slope_atr",
         "chart.local_ema50_200_bull_state",
         "chart.local_ema50_200_cross_down",
         "chart.local_ema50_200_cross_up",
-        "chart.local_ema50_200_spread_accel_atr",
-        "chart.local_ema50_200_spread_atr",
-        "chart.local_ema50_200_spread_delta_atr",
         "chart.local_ema50_200_state_age_bars",
         "chart.local_ema50_slope_atr",
         "chart.local_kama_efficiency_30",
@@ -800,7 +817,8 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ema20_slope_atr",
     ),
     "vol_compression_encoder": (
-        "_v1_atr14",
+        # 2026-09-21 (F-15): raw decoded squeeze bandwidth (intensity).
+        "volatility.bandwidth_rel",
         "_v1_bb10_bandwidth_change_3",
         "_v1_bb_squeeze_20_2",
         "_v1_kurt_r",
@@ -814,13 +832,27 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ctx_cont.d1_range_z_20_canon_v2",
         "ctx_cont.m15_range_z_20_canon_v2",
         "rvol_20",
+        # ADJUDICATED 2026-09-20 (deep review D-3): squeeze_active,
+        # duration_at_release and squeeze_release_event leave this ledger
+        # with the fields themselves — each was an exact function of the two
+        # carriers below plus one bar of history, measured bit-identical on
+        # all six clocks.  The routing decision is unchanged: the squeeze
+        # owner keeps the compression/release evidence in this specialist.
         "volatility.bars_in_squeeze",
-        "volatility.duration_at_release",
-        "volatility.squeeze_active",
         "volatility.squeeze_release_age_bars",
-        "volatility.squeeze_release_event",
     ),
     "momentum_flow_encoder": (
+        # 2026-09-21 fidelity wave (F-11/F-15/F-19): sided companions of the
+        # merged ages, hidden divergence pair, MACD 12/26/9 and %K-14.
+        "rsi_extreme_last_event_side",
+        "divergence_last_event_side",
+        "hidden_bear_divergence_event",
+        "hidden_bull_divergence_event",
+        "hidden_bear_divergence_strength",
+        "hidden_bull_divergence_strength",
+        "macd_line_atr",
+        "macd_hist_atr",
+        "stoch_k_14",
         "bear_divergence_event",
         "bear_divergence_strength",
         "bull_divergence_event",
@@ -838,18 +870,11 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "ctx_cont.m15_rsi14_canon_v2",
         "ctx_cont.m5_rsi14_canon_v2",
         "divergence_event_age_bars",
-        "mom20_sign_flip_down",
-        "mom20_sign_flip_up",
         "mom_20_atr",
         "mom_5_atr",
         "ret_1",
         "ret_20",
         "rsi14_centered",
-        "rsi14_delta_5",
-        "rsi_cross_down_50",
-        "rsi_cross_down_70",
-        "rsi_cross_up_30",
-        "rsi_cross_up_50",
         "rsi_extreme_event_age_bars",
         "vol_pct_96",
         "vol_ratio_5_20",
@@ -881,7 +906,10 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "chart.geomline_above_max_dev_atr",
         "chart.geomline_above_slope_atr_per_bar",
         "chart.geomline_above_touch_count",
-        "chart.geomline_bars_since_break",
+        # RENAMED 2026-09-20 (deep review B9): the break age is now signed by
+        # the remembered break side, mirroring level_bars_since_break_signed;
+        # same owner, same specialist.
+        "chart.geomline_bars_since_break_signed",
         "chart.geomline_below_active_count",
         "chart.geomline_below_age_bars",
         "chart.geomline_below_dist_atr",
@@ -1013,8 +1041,10 @@ def test_unit_suffix_never_outranks_the_quantity_the_field_measures() -> None:
     assert classify_entry_specialist_feature("ema50_dist_atr") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ema100_dist_atr") == "trend_ema_encoder"
     assert classify_entry_specialist_feature("ema200_dist_atr") == "trend_ema_encoder"
+    # 2026-09-21 (F-9): the spread field is retired from every live surface;
+    # the classifier's answer for the dead name is unadjudicated by design.
     assert (
-        classify_entry_specialist_feature("ema50_200_spread_atr") == "trend_ema_encoder"
+        classify_entry_specialist_feature("ema20_50_cross_up") == "trend_ema_encoder"
     )
     assert classify_entry_specialist_feature("mom_5_atr") == "momentum_flow_encoder"
     assert classify_entry_specialist_feature("mom_20_atr") == "momentum_flow_encoder"

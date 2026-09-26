@@ -15,6 +15,7 @@ from gx1.contracts.entry_sequence_integrity_v1 import (
     REQUIRED_CHECKS,
     require_sequence_integrity_audit,
 )
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.scripts.audit_entry_sequence_integrity_v1 import audit_sequence_integrity
 
 
@@ -29,7 +30,10 @@ def _write_split(
     time_offsets_m5: tuple[int, ...] = (0, 1, 4, 5),
     break_chain: bool = False,
 ) -> Path:
-    seq_len, width = 96, 238
+    # Width derives from the signal owner (rule 13): the audit under test
+    # reshapes against MODEL_NATIVE_SIGNAL_DIM, so a restated literal goes
+    # stale on every surface move.
+    seq_len, width = 96, MODEL_NATIVE_SIGNAL_DIM
     source = np.arange((max(event_positions) + seq_len) * width, dtype=np.float32).reshape(
         max(event_positions) + seq_len, width
     )
@@ -123,7 +127,7 @@ def test_sequence_integrity_proves_physical_event_chain_across_calendar_gap(
         expected_source_parquet_sha256=report["source_parquet_sha256"],
         expected_rows=4,
         expected_seq_len=96,
-        expected_signal_dim=238,
+        expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
     ) == report
 
 

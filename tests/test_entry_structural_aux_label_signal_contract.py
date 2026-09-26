@@ -25,7 +25,19 @@ def test_every_structural_aux_requirement_is_code_owned_and_mandatory() -> None:
         )
     )
     for candidates in STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS.values():
-        assert mandatory.intersection(candidates)
+        # Schema v7 (2026-09-21, F-9): a candidate is a single column name or
+        # the explicit ("difference", minuend, subtrahend) pair; both column
+        # forms must be mandatory for the candidate to satisfy the label.
+        satisfied = False
+        for candidate in candidates:
+            fields = (
+                (candidate,)
+                if isinstance(candidate, str)
+                else tuple(candidate[1:])
+            )
+            if all(field in mandatory for field in fields):
+                satisfied = True
+        assert satisfied, candidates
 
     signal_contract = model_native_signal_contract_metadata(
         canonical_model_native_selected_fields()
@@ -69,4 +81,6 @@ def test_dataset_builder_uses_the_complete_named_requirement_registry() -> None:
         and isinstance(call.func, ast.Name)
         and call.func.id == "_sig_col"
     ]
-    assert len(direct_sig_calls) == 1
+    # Schema v7 (2026-09-21): single-column path + difference minuend and
+    # subtrahend - three routed reads, all through the one _sig_col accessor.
+    assert len(direct_sig_calls) == 3

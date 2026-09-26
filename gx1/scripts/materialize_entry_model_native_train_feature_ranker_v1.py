@@ -70,6 +70,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
 )
 from gx1.contracts.entry_causal_m1_target_policy_v1 import (
     causal_m1_direction_targets_from_policy,
+    causal_m1_policy_fit_train_end,
     fit_causal_m1_target_policy,
     require_causal_m1_target_policy,
 )
@@ -706,7 +707,13 @@ def main() -> None:
     run_id = require_entry_run_id(args.run_id)
     history_start = _parse_utc_arg(args.history_start, field="history_start")
     train_start = _parse_utc_arg(args.train_start, field="train_start")
-    train_end = _parse_utc_arg(args.train_end, field="train_end")
+    # --train-end is the DECLARED split boundary; the fit/stamp boundary is
+    # derived by the one policy-boundary owner so ranking and dataset build
+    # fit the identical population (C-1 repair: the ranker previously fit
+    # through the closed boundary while the builder shifted one bar back).
+    train_end = causal_m1_policy_fit_train_end(
+        _parse_utc_arg(args.train_end, field="train_end")
+    )
     if not history_start <= train_start < train_end:
         raise RuntimeError("FEATURE_RANKER_WINDOW_ORDER_INVALID")
 

@@ -13,11 +13,12 @@ import hashlib
 import numpy as np
 
 
-RAW_AGE_OWNER_SCHEMA_VERSION = "gx1_raw_event_and_state_age_v1"
+RAW_AGE_OWNER_SCHEMA_VERSION = "gx1_raw_event_and_state_age_v2"
 RAW_AGE_FORMULA_CONTRACT = (
     "clock=caller_native_observed_rows_only",
     "event_age=nan_until_first_true_then_zero_and_uncapped_integer_increment",
     "state_age=nan_outside_valid_prefix_then_zero_on_first_or_changed_state",
+    "last_event_side=nan_until_first_sided_event_then_held_plus_minus_one_or_zero_both",
     "transform=none_no_clip_no_log_no_sentinel",
 )
 RAW_AGE_FORMULA_SHA256 = hashlib.sha256(
@@ -149,6 +150,46 @@ def raw_state_age_bars(state_values, valid_mask=None) -> np.ndarray:
     return ages
 
 
+def raw_last_event_side(
+    upper_events: np.ndarray,
+    lower_events: np.ndarray,
+    valid_mask: np.ndarray,
+) -> np.ndarray:
+    """Held side (+1 upper / -1 lower) of the most recent sided event.
+
+    2026-09-21 fidelity wave (F-19): several surfaces merge an upper-side and
+    a lower-side event stream into one age counter, which loses the side of
+    the last event unrecoverably.  This companion holds +1 after the most
+    recent upper event, -1 after the most recent lower event, and NaN before
+    the first event of either side — the same honest-prefix convention as
+    ``raw_event_age_bars``.  A row where both sides fire on the same bar
+    (e.g. a bear and a bull divergence confirming together) holds the exact
+    ternary value 0.0: both-sides is a genuine market state, not an error,
+    and neither +1 nor -1 would be honest for it.
+    """
+
+    upper = np.asarray(upper_events, dtype=np.bool_)
+    lower = np.asarray(lower_events, dtype=np.bool_)
+    valid = np.asarray(valid_mask, dtype=np.bool_)
+    if upper.shape != lower.shape or upper.shape != valid.shape:
+        raise RuntimeError("[RAW_LAST_EVENT_SIDE_SHAPE_MISMATCH]")
+    if bool(np.any((upper | lower) & ~valid)):
+        raise RuntimeError("[RAW_LAST_EVENT_SIDE_EVENT_OUTSIDE_VALID]")
+    _require_one_suffix(valid, context="RAW_LAST_EVENT_SIDE")
+    sides = np.full(len(upper), np.nan, dtype=np.float64)
+    current = np.nan
+    for row in range(len(upper)):
+        if upper[row] and lower[row]:
+            current = 0.0
+        elif upper[row]:
+            current = 1.0
+        elif lower[row]:
+            current = -1.0
+        if valid[row]:
+            sides[row] = current
+    return sides
+
+
 __all__ = [
     "RAW_AGE_FORMULA_CONTRACT",
     "RAW_AGE_FORMULA_SHA256",
@@ -156,5 +197,6 @@ __all__ = [
     "raw_age_contract_metadata",
     "raw_event_age_bars",
     "raw_event_age_from_last_observed_row",
+    "raw_last_event_side",
     "raw_state_age_bars",
 ]

@@ -19,6 +19,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+    causal_m1_policy_fit_train_end,
+)
 from gx1.contracts.entry_model_native_state_v2 import (
     MODEL_NATIVE_HISTORY_MODE,
     MODEL_NATIVE_STATE_SCHEMA_VERSION,
@@ -1516,7 +1519,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 expected_history_start_utc=split_schedule["history"]["start"],
                 expected_time_max_utc=split_schedule["test"]["end"],
                 expected_train_start_utc=split_schedule["train"]["start"],
-                expected_train_end_utc=split_schedule["train"]["end"],
+                # The ranking stamps the policy-fit boundary, derived by the
+                # one owner from the declared split end (C-1): expecting the
+                # raw split end here was the vacuous assertion.
+                expected_train_end_utc=causal_m1_policy_fit_train_end(
+                    pd.Timestamp(split_schedule["train"]["end"])
+                ).isoformat(),
             )
         except (RuntimeError, TypeError, ValueError) as exc:
             signal_lineage_failures.append(str(exc))

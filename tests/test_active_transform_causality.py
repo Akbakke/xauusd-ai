@@ -321,7 +321,7 @@ def test_htf_v4_warmup_is_explicit_and_future_append_is_prefix_invariant() -> No
     assert before.iloc[0].isna().any()
     complete = np.isfinite(before.to_numpy()).all(axis=1)
     assert not complete.any()
-    assert before["geomline_bars_since_break"].isna().all()
+    assert before["geomline_bars_since_break_signed"].isna().all()
     np.testing.assert_allclose(
         before.to_numpy(),
         after.iloc[: len(before)].to_numpy(),

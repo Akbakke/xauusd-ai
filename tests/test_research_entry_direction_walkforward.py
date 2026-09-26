@@ -621,6 +621,9 @@ def test_run_end_to_end_with_pattern_arm_and_ablation(tmp_path: Path) -> None:
             "--inner-fraction", "0.2", "--max-hgb-iter", "5", "--final-holdout", "val", "--decision-rules", "argmax_flat",
             "--targets", "exec_close_h12", "--pattern-primitives-parquet", str(prim_path), "--ablation", "all", "--persist-predictions",
             "--ablation-null-draws", "3",
+            # ablation mechanics need a ridge that trades on this noise fixture; v2's constant
+            # alternative correctly prefers the constant on pure noise (FLAT everywhere)
+            "--ridge-constant-alternative", "off",
         ]
     )
     report = wf.run(args)

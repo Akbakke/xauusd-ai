@@ -93,7 +93,7 @@ def _fit(frame: pd.DataFrame, timeframe: str) -> dict:
         frame,
         timeframe=timeframe,
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=frame.index[-1],
+        declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ[timeframe]),
         source_provenance=_provenance(timeframe),
     )
 
@@ -101,11 +101,14 @@ def _fit(frame: pd.DataFrame, timeframe: str) -> dict:
 def test_bandwidth_has_honest_full_window_prefix() -> None:
     close = _closed_ohlcv("M5", rows=100)["close"].to_numpy(dtype=np.float64)
     observed = bollinger_relative_bandwidth(close)
-    expected = (
-        4.0
-        * pd.Series(close).rolling(20, min_periods=20).std(ddof=0)
-        / pd.Series(close).rolling(20, min_periods=20).mean()
-    ).to_numpy(dtype=np.float64)
+    # 2026-09-21: the owner computes window-exact two-pass mean/std per row
+    # (chunk-deterministic); the reference replicates that exact arithmetic,
+    # not pandas' start-dependent sliding aggregation.
+    windows = np.lib.stride_tricks.sliding_window_view(close, 20)
+    w_mean = windows.mean(axis=1)
+    w_std = np.sqrt(((windows - w_mean[:, None]) ** 2).mean(axis=1))
+    expected = np.full(len(close), np.nan, dtype=np.float64)
+    expected[19:] = 4.0 * w_std / w_mean
     np.testing.assert_allclose(observed, expected, rtol=0.0, atol=0.0, equal_nan=True)
     assert np.isnan(observed[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all()
     assert np.isfinite(observed[VOLATILITY_SQUEEZE_PREFIX_ROWS:]).all()
@@ -140,14 +143,14 @@ def test_fit_uses_only_declared_train_rows() -> None:
         frame.loc[:cutoff],
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=cutoff,
+        declared_train_window_end=cutoff + pd.Timedelta(_FREQ["M5"]),
         source_provenance=_provenance("M5"),
     )
     right = fit_volatility_squeeze_params(
         changed_future.loc[:cutoff],
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=cutoff,
+        declared_train_window_end=cutoff + pd.Timedelta(_FREQ["M5"]),
         source_provenance=_provenance("M5"),
     )
     assert left["fit"] == right["fit"]
@@ -164,7 +167,7 @@ def test_time_permutation_is_rejected_and_degenerate_fits_fail_closed() -> None:
             frame.iloc[permutation],
             timeframe="M5",
             declared_train_window_start=frame.index[0],
-            declared_train_window_end=frame.index[-1],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
             source_provenance=_provenance("M5"),
         )
     with pytest.raises(RuntimeError, match="UNIDENTIFIABLE"):
@@ -181,7 +184,7 @@ def test_fit_rejects_wrong_native_clock_and_runtime_has_no_bare_payload_route() 
             frame,
             timeframe="M5",
             declared_train_window_start=frame.index[0],
-            declared_train_window_end=frame.index[-1],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
             source_provenance=_provenance("M5"),
         )
     with pytest.raises(RuntimeError, match="PARAMS_KEYS_INVALID"):
@@ -192,7 +195,15 @@ def test_fit_rejects_wrong_native_clock_and_runtime_has_no_bare_payload_route() 
         )
 
 
-def test_runtime_events_are_genuine_edges_with_raw_duration_and_age() -> None:
+def test_runtime_carriers_encode_edges_duration_and_left_censored_age() -> None:
+    """D-3 (2026-09-20): the two carriers carry the whole state machine.
+
+    The retired ``squeeze_active`` / ``squeeze_release_event`` /
+    ``duration_at_release`` emissions are exact functions of the carriers and
+    one bar of history; this test derives them through those identities and
+    proves the same edge/duration/age behaviour the retired columns proved.
+    """
+
     frame = _closed_ohlcv("M5")
     params = _fit(frame, "M5")
     out, _ = compute_volatility_squeeze_state(
@@ -200,32 +211,51 @@ def test_runtime_events_are_genuine_edges_with_raw_duration_and_age() -> None:
         timeframe="M5",
         params=params,
     )
-    active = out["volatility.squeeze_active"].to_numpy(dtype=np.float64)
     duration = out["volatility.bars_in_squeeze"].to_numpy(dtype=np.float64)
-    event = out["volatility.squeeze_release_event"].to_numpy(dtype=np.float64)
-    at_release = out["volatility.duration_at_release"].to_numpy(dtype=np.float64)
     age = out["volatility.squeeze_release_age_bars"].to_numpy(dtype=np.float64)
 
     assert np.isnan(out.iloc[:19].to_numpy(dtype=np.float64)).all()
-    release_rows = np.flatnonzero(event == 1.0)
+    # Recovery identity: active = 1[bars_in_squeeze > 0]; a release is the
+    # active -> inactive edge, which must coincide exactly with age == 0
+    # after the first release.
+    active = duration > 0.0
+    release = np.zeros(len(out), dtype=bool)
+    release[1:] = active[:-1] & ~active[1:] & np.isfinite(duration[1:])
+    release_rows = np.flatnonzero(release)
     assert len(release_rows) >= 2
     for row in release_rows:
-        assert active[row - 1] == 1.0
-        assert active[row] == 0.0
-        assert event[row - 1] == 0.0
-        assert at_release[row] == duration[row - 1]
+        assert duration[row - 1] > 0.0
+        assert duration[row] == 0.0
+        # duration_at_release recovery: bars_in_squeeze[t-1] on the edge row.
         assert age[row] == 0.0
         if row + 1 < len(age):
             assert age[row + 1] == 1.0
     first_release = int(release_rows[0])
-    assert np.isnan(at_release[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all()
     assert np.isnan(age[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all()
-    assert np.all(at_release[VOLATILITY_SQUEEZE_PREFIX_ROWS:first_release] == 0.0)
+    assert np.isnan(duration[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all()
+    # B15 left-censored clock: from the first warmed observation the age
+    # counts 0, 1, 2, ... with no release observed — "k bars since history
+    # start" is indistinguishable from "k bars since release" by contract.
     np.testing.assert_array_equal(
         age[VOLATILITY_SQUEEZE_PREFIX_ROWS:first_release],
         np.arange(first_release - VOLATILITY_SQUEEZE_PREFIX_ROWS),
     )
-    assert np.all(at_release[(event == 0.0) & np.isfinite(event)] == 0.0)
+    # After the first release, age == 0 exactly on release edges.
+    post = np.arange(first_release, len(out))
+    np.testing.assert_array_equal(
+        age[post] == 0.0,
+        release[post],
+    )
+    # Raw duration semantics inside squeeze episodes: 1 on entry, +1 while
+    # the state persists.
+    finite = np.isfinite(duration)
+    for t in range(VOLATILITY_SQUEEZE_PREFIX_ROWS + 1, len(out)):
+        if not (finite[t] and finite[t - 1]):
+            continue
+        if active[t] and active[t - 1]:
+            assert duration[t] == duration[t - 1] + 1.0
+        elif active[t]:
+            assert duration[t] == 1.0
 
 
 def test_chunk_carry_and_prefix_causality_are_exact() -> None:
@@ -280,8 +310,12 @@ def test_release_on_first_suffix_row_is_exactly_once_at_chunk_boundary() -> None
         timeframe="M5",
         params=params,
     )
-    event = full["volatility.squeeze_release_event"].to_numpy(dtype=np.float64)
-    boundary = int(np.flatnonzero(event == 1.0)[1])
+    # D-3: derive the release edge from the carriers (active -> inactive).
+    duration = full["volatility.bars_in_squeeze"].to_numpy(dtype=np.float64)
+    active = duration > 0.0
+    release = np.zeros(len(full), dtype=bool)
+    release[1:] = active[:-1] & ~active[1:] & np.isfinite(duration[1:])
+    boundary = int(np.flatnonzero(release)[1])
     left, carry = compute_volatility_squeeze_state(
         frame.iloc[:boundary],
         timeframe="M5",
@@ -293,9 +327,13 @@ def test_release_on_first_suffix_row_is_exactly_once_at_chunk_boundary() -> None
         params=params,
         carry=carry,
     )
-    assert left["volatility.squeeze_release_event"].iloc[-1] == 0.0
-    assert right["volatility.squeeze_release_event"].iloc[0] == 1.0
-    assert right["volatility.squeeze_release_event"].iloc[1] == 0.0
+    # The pre-boundary bar is still in squeeze; the first suffix row is the
+    # release edge (duration drops to 0 and the release age resets to 0
+    # exactly once).
+    assert left["volatility.bars_in_squeeze"].iloc[-1] > 0.0
+    assert right["volatility.bars_in_squeeze"].iloc[0] == 0.0
+    assert right["volatility.squeeze_release_age_bars"].iloc[0] == 0.0
+    assert right["volatility.squeeze_release_age_bars"].iloc[1] == 1.0
     np.testing.assert_array_equal(
         pd.concat([left, right]).to_numpy(dtype=np.float32),
         full.to_numpy(dtype=np.float32),
@@ -315,7 +353,18 @@ def test_same_owner_runs_independently_on_all_six_native_clocks(timeframe: str) 
     assert out.index.equals(frame.index)
     assert carry.timeframe == timeframe
     assert carry.params_sha256 == params["contract_sha256"]
-    assert (out["volatility.squeeze_release_event"].dropna().isin([0.0, 1.0])).all()
+    # The two age carriers are raw non-negative integer bar counts; the
+    # F-15 bandwidth carrier (2026-09-21) is the raw decoded relative
+    # bandwidth — continuous, strictly positive.
+    counts = out[
+        ["volatility.bars_in_squeeze", "volatility.squeeze_release_age_bars"]
+    ].dropna().to_numpy(dtype=np.float64)
+    assert (counts >= 0.0).all()
+    assert (counts == np.floor(counts)).all()
+    bandwidth = out["volatility.bandwidth_rel"].dropna().to_numpy(
+        dtype=np.float64
+    )
+    assert (bandwidth > 0.0).all()
     live = out.iloc[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
     assert np.isfinite(live.to_numpy(dtype=np.float64)).all()
     assert all(live[column].nunique() > 1 for column in VOLATILITY_SQUEEZE_FEATURE_NAMES)
@@ -369,7 +418,7 @@ def test_mutated_bound_source_manifest_invalidates_frozen_params(
         frame,
         timeframe="M5",
         declared_train_window_start=frame.index[0],
-        declared_train_window_end=frame.index[-1],
+        declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ["M5"]),
         source_provenance=provenance,
     )
     bound.write_text("mutated-v2\n", encoding="utf-8")
@@ -586,8 +635,10 @@ def test_served_state_sequence_is_a_fixed_point_of_its_own_fit() -> None:
             timeframe=timeframe,
             params=params,
         )
-        active = out["volatility.squeeze_active"].to_numpy(dtype=np.float64)
-        served = active[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
+        # D-3: the latent state is recovered from the carrier —
+        # active (state 0) iff bars_in_squeeze > 0.
+        duration = out["volatility.bars_in_squeeze"].to_numpy(dtype=np.float64)
+        served = duration[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
         assert np.isfinite(served).all()
         states = (served == 0.0).astype(np.int8)
         assert set(np.unique(states).tolist()) == {0, 1}
@@ -605,6 +656,47 @@ def test_served_state_sequence_is_a_fixed_point_of_its_own_fit() -> None:
         assert transition.tolist() == fitted["transition_probability"]
         assert initial.tolist() == fitted["initial_probability"]
 
-        # Both directions actually occur, so no emitted field is a constant.
-        event = out["volatility.squeeze_release_event"].to_numpy(dtype=np.float64)
-        assert np.nansum(event) >= 2.0
+        # Both directions actually occur, so no emitted field is a constant:
+        # at least two active -> inactive (release) edges in the served run.
+        active_mask = served > 0.0
+        assert int((active_mask[:-1] & ~active_mask[1:]).sum()) >= 2
+
+
+@pytest.mark.parametrize("clock", VOLATILITY_SQUEEZE_CLOCKS)
+def test_fit_rejects_bar_closing_after_declared_end(clock, monkeypatch) -> None:
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    frame = _closed_ohlcv(clock, rows=60)
+    def forbidden(*args, **kwargs):
+        pytest.fail("a not-yet-closed bar reached model fit")
+    monkeypatch.setattr(owner, "_fit_two_state_model", forbidden)
+    with pytest.raises(RuntimeError, match="FIT_SOURCE_OUTSIDE_TRAIN"):
+        owner.fit_volatility_squeeze_params(
+            frame, timeframe=clock,
+            declared_train_window_start=frame.index[0],
+            declared_train_window_end=frame.index[-1] + pd.Timedelta(_FREQ[clock]) / 2,
+            source_provenance=_provenance(clock),
+        )
+
+
+@pytest.mark.parametrize("clock", ["H4", "D1"])
+def test_manifest_excludes_bar_closing_after_declared_end(clock, tmp_path, monkeypatch) -> None:
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    frame = _closed_ohlcv(clock, rows=60)
+    duration = pd.Timedelta(_FREQ[clock])
+    end = frame.index[-1] + duration / 2
+    class ObservedFitInput(Exception):
+        pass
+    def observe(train, **kwargs):
+        pd.testing.assert_frame_equal(train, frame.iloc[:-1].astype(float))
+        assert (train.index + duration <= end).all()
+        raise ObservedFitInput
+    # Isolate the population selector before any fitting or publishing.
+    monkeypatch.setattr(owner, "VOLATILITY_SQUEEZE_CLOCKS", (clock,))
+    monkeypatch.setattr(owner, "fit_volatility_squeeze_params", observe)
+    with pytest.raises(ObservedFitInput):
+        owner.fit_volatility_squeeze_artifact_manifest(
+            {clock: frame}, declared_train_window_start=frame.index[0],
+            declared_train_window_end=end,
+            source_provenance_by_clock={clock: _provenance(clock)},
+            output_dir=tmp_path,
+        )

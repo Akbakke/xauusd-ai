@@ -13,7 +13,8 @@
 # immutable paths.
 set -Eeuo pipefail
 
-ENG=/home/andre2/src/GX1_ENGINE
+# The repository this script belongs to (the canonical codebase); never the archived worktree.
+ENG="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PY=$ENG/.venv/bin/python
 
 RUN_ID=

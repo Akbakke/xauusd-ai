@@ -878,7 +878,8 @@ class RidgeGram:
     """
 
     def __init__(self, X_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, fit_positions: np.ndarray, purge_bars: int,
-                 min_inner_rows: int = DEFAULT_MIN_INNER_ROWS) -> None:
+                 min_inner_rows: int = DEFAULT_MIN_INNER_ROWS, constant_alternative: bool = True) -> None:
+        self.constant_alternative = bool(constant_alternative)
         self.X_fit = X_fit
         self.X_pred = X_pred
         self.inner_fit, self.inner_val = _inner_split(
@@ -922,7 +923,7 @@ class RidgeGram:
             # Same convention as fit_hgb (89ed73b6): the selected alpha must beat the inner-TRAIN
             # constant strictly; otherwise the full-fold constant (its analytic refit) is used.
             constant_mse = float(np.mean((y_val - inner_mean) ** 2))
-            use_constant = not best_mse < constant_mse
+            use_constant = self.constant_alternative and not best_mse < constant_mse
         else:
             best_alpha, best_mse, constant_mse, use_constant = float(alpha), None, None, False
         if use_constant:
@@ -1502,7 +1503,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         if ridge_gram is None or ridge_gram.X_fit.shape[0] != int(fit_mask.sum()) or ridge_gram.X_pred.shape[0] != int(holdout_mask.sum()) or ridge_gram.mask_signature != (fit_mask.tobytes(), holdout_mask.tobytes()):
                             ridge_gram = RidgeGram(X[fit_mask], X_hold_all[holdout_mask], inner_fraction=args.inner_fraction,
                                                    fit_positions=positions[fit_mask], purge_bars=purge_bars,
-                                                   min_inner_rows=args.min_inner_rows)
+                                                   min_inner_rows=args.min_inner_rows,
+                                                   constant_alternative=args.ridge_constant_alternative == "on")
                             ridge_gram.mask_signature = (fit_mask.tobytes(), holdout_mask.tobytes())
                         pred, info = ridge_gram.fit_predict(y_fit)
                     else:
@@ -1703,7 +1705,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "statistics": str(args.statistics),
             "min_fit_rows": int(args.min_fit_rows),
             "min_inner_rows": int(args.min_inner_rows),
-            "ridge_constant_alternative": True,
+            "ridge_constant_alternative": str(args.ridge_constant_alternative),
             "early_calibrated_inputs": early_report,
             "cost_policy": cost_policy,
             "val_arm_valid_rows": {arm: int(v.sum()) for arm, v in val_arm_valid.items()},
@@ -1724,7 +1726,9 @@ def summarize(metrics: pd.DataFrame) -> list[dict[str, Any]]:
     group_keys = ["stage", "target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule", "ablation_group", "top_frac"]
     out: list[dict[str, Any]] = []
     for keys, g in metrics.groupby(group_keys, sort=True):
-        valid = g[g["mean_pnl_bps"].notna()]
+        # rule 2e: the evaluator omits mean_pnl_bps below its minimum trade count, so a run in
+        # which no cell traded (e.g. every fit chose the constant and FLAT) has no such column.
+        valid = g[g["mean_pnl_bps"].notna()] if "mean_pnl_bps" in g else g.iloc[0:0]
         out.append(
             {
                 **dict(zip(group_keys, keys)),
@@ -1844,6 +1848,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cost-policy-sha256", default=None)
     parser.add_argument("--min-fit-rows", type=int, default=DEFAULT_MIN_FIT_ROWS, help="explicit research input; rows, not independent outcomes")
     parser.add_argument("--min-inner-rows", type=int, default=DEFAULT_MIN_INNER_ROWS, help="explicit research input; rows, not independent outcomes")
+    parser.add_argument("--ridge-constant-alternative", choices=["on", "off"], default="on",
+                        help="on: the chosen alpha must beat the inner-TRAIN constant (v2); off reproduces v1 selection for paired comparisons")
     return parser
 
 

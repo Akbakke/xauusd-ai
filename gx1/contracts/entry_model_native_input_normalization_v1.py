@@ -29,8 +29,8 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES,
 )
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v8"
-TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v5"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v9"
+TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v6"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
@@ -51,7 +51,13 @@ SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS = {
     "smc_swing_state": (0, 1, 2, 3, 4),
 }
 CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
-MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {}
+# 2026-09-21 (F-18): the per-TF surface carries the same four-state pivot
+# enum the local lane has always had (mtf_smc_structure_bias mapped state 1
+# and state 2 both to 0.0 on 38.8% of measured M5 rows).  Same domain, same
+# embedding consumption, one categorical convention across both lanes.
+MTF_SEMANTIC_CATEGORICAL_DOMAINS: dict[str, tuple[int, ...]] = {
+    "mtf_smc_swing_state": (0, 1, 2, 3, 4),
+}
 MTF_SEMANTIC_BINARY_FIELDS = frozenset(
     MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4
 )
@@ -902,7 +908,13 @@ def fit_surface_normalization(
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 deviations = np.abs(column - float(field_center))
                 positive = deviations[deviations > 0.0]
-                if positive.size:
+                # A scale supported by a single deviating observation is not
+                # a statistic: one large TRAIN event would become the
+                # denominator and asinh-flatten the whole column for the
+                # bundle's life. Require at least two positive deviations —
+                # the same minimum-support convention the sizing ECDF already
+                # enforces (unique >= 2); below it the field is UNSCALEABLE.
+                if positive.size >= 2:
                     field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):

@@ -48,14 +48,19 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
 
 ### Planlagt i egne commits (M2–M4)
 
-- **M2 featureflate** (signal v34 → v36: 238 → 241 = 24 + 150 + 67; per-TF 176 → 190):
-  826504f3, 280e56fd (kun featurekode), f9e40213 (kun featuredeler), 5ec2e537, 627894ac,
-  e8a639ca (+ fjern foreldreløse `_v1_atr14_bps`), b1b034bf (+ ny squeeze-manifestversjon),
-  233a602d tilpasset (C-1 grenseeier, C-3 TEST-logg med hjelper definert før bruk, C-4
-  registry-vindu, C-7 MAD ≥ 2 avvik med versjonsbump av normaliseringen). CURRENTs
-  `MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4` må oppdateres (10 pensjonerte navn ut, nye
-  binærfelt inn etter verifikasjon), og normaliseringen må få kategori-domenet for
-  `mtf_smc_swing_state`. Deretter full rebuild (squeeze → kjede → audits → lifecycle-v2-lag).
+- **M2 featureflate — gjort 26.09** (egen commit). Hentet fra arkivgrenen: 233a602d (tilpasset),
+  826504f3, 280e56fd og f9e40213 (bare featuredeler), 5ec2e537, 627894ac, e8a639ca (uten
+  innstillingsfila) og squeeze-delen av b1b034bf. Tilpasninger: builder-hjelperen for TEST-gatet
+  logging defineres før bruk og gater også den flyttede `[V3_POSITION_SIZE]`-loggen; normalisering
+  v9 / transform v6 (skala krever ≥ 2 avvik) med både `MTF_SEMANTIC_CATEGORICAL_DOMAINS`
+  (`mtf_smc_swing_state`) og CURRENTs binærfelt; `MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4` uten 10
+  pensjonerte navn og med 7 nye 0/1-felt (samme konstruksjon som søsknene, bevist fra kilde);
+  squeeze-manifest v4 (lukket-bar-fit); den foreldreløse `_v1_atr14_bps` er ikke tatt inn. Eierne
+  eksekvert: signal 241 = 24 + 150 + 67, per-TF 190. Rebuild-skriptene peker på sin egen
+  kodebase; kjedens kildeidentitetsport forventer fortsatt arkivgrenens handover-tekst og feiler
+  lukket til rebuild-bølgen porterer den. Tester: ~385 fokuserte grønne; hele suiten 5 777 tester
+  med 19 feil, der 18 finnes identisk i Codex' b57c98dd (se «Eksisterende testgjeld») og 1 ny er
+  rettet (ridge-konstantalternativet på støydata; `summarize` tåler null målbare celler).
 - **M3 trenerfeil** på den kjørte stien (fra 6a2be2a7): gate-entropi-sjekken kan aldri slå
   inn (clamp før multiplikasjon), active-head-diagnostikk (én sesjonsklokke, FLAT ikke unntatt,
   eksakt null-test, manglende masker feiler lukket, stille clamps fjernet), gamma-metadata.
@@ -79,6 +84,16 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
   evidens; de passer ikke denne kodebasens flate. `PROJECT_STATE_xau_direction_launch.json` her
   beskytter ikke grenens V12-artefakter i retention-grafen — ingen opprydding før en
   arkivautoritet dekker begge linjene (regel 9).
+
+## Eksisterende testgjeld (finnes i b57c98dd, før konsolideringen)
+
+18 tester feiler likt på Codex' siste commit: `test_candidate_checkpoint_resume_equivalence` (1),
+`test_chronological_measurement_binding` (2), `test_chronological_sampled_targets` (1),
+`test_entry_candidate_epoch_seal` (1), `test_gx1_capped_run_contract` (5, pensjonert trenerrute),
+`test_run_unified_exit_random_access_fixed_step_v1` (2), `test_unified_exit_economic_step_provider_closure_v1` (1),
+`test_unified_exit_full_population_epoch_v1` (1) og `test_unified_exit_val_policy_censoring` (4).
+De skal triageres (fjerne foreldede tester eller rette koden) i oppryddingsbølgen; de er ikke
+forårsaket av sammenslåingen.
 
 ## Åpne operatørvedtak
 

@@ -34,6 +34,8 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 ## Tilstand
 
 Ingen jobb kjører. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
-papirhandel er stengt. TEST er forseglet. Featureflaten her er fortsatt signal v34 (238);
-den reparerte v36-flaten (241) og nytt datasett kommer i egne steg (VEIEN_VIDERE.md).
-Eksisterende V9-/lifecycle-v2-artefakter og sjekkpunkter hører til v34-flaten.
+papirhandel er stengt. TEST er forseglet. Kildekoden har nå den reparerte featureflaten v36
+(signal 241, per-TF 190); datasettet må bygges på nytt. Eksisterende V9-/lifecycle-v2-artefakter
+og sjekkpunkter hører til v34-flaten og evalueres bare på commit 7c9421a5 eller eldre.
+Walk-forward-instrumentet støtter ukeshorisont (beslutningsklokke, ikke-overlappende statistikk,
+kostpolicy, tidlig kalibrerte inputs).

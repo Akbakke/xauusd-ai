@@ -20,13 +20,27 @@ from typing import Any
 # auxiliaries use forward-realized trendline-registry touch/hold labels, not
 # same-bar hand-fused S/R score fields, so they have no signal prerequisite.
 STRUCTURAL_AUX_LABEL_SIGNAL_SCHEMA_VERSION = (
-    "entry_structural_aux_label_signal_v6"
+    "entry_structural_aux_label_signal_v7"
 )
 STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS = OrderedDict(
     [
         (
+            # 2026-09-21 (F-9): ``chart.local_ema50_200_spread_atr`` is
+            # retired as an exact affine duplicate; the label needs only the
+            # SIGN of the 50/200 spread, which the declared difference pair
+            # reproduces bit-exactly ((close-ema200)/atr - (close-ema50)/atr
+            # = (ema50-ema200)/atr on every row — same denominator, so the
+            # sign is preserved exactly, including exact zeros).  Schema v7
+            # introduces the explicit difference form ("difference",
+            # minuend, subtrahend); a bare string remains a single column.
             "trend_m5",
-            ("chart.local_ema50_200_spread_atr",),
+            (
+                (
+                    "difference",
+                    "chart.local_price_vs_ema200_atr",
+                    "chart.local_price_vs_ema50_atr",
+                ),
+            ),
         ),
         (
             "trend_m15",
@@ -70,17 +84,42 @@ def structural_aux_label_signal_contract_metadata(
 
     mandatory = tuple(str(field) for field in mandatory_fields)
     mandatory_set = set(mandatory)
-    resolved: OrderedDict[str, str] = OrderedDict()
-    missing: OrderedDict[str, list[str]] = OrderedDict()
+    resolved: OrderedDict[str, Any] = OrderedDict()
+    missing: OrderedDict[str, list[Any]] = OrderedDict()
+
+    def _candidate_fields(candidate: Any) -> tuple[str, ...]:
+        if isinstance(candidate, str):
+            return (candidate,)
+        if (
+            isinstance(candidate, (tuple, list))
+            and len(candidate) == 3
+            and candidate[0] == "difference"
+            and all(isinstance(part, str) for part in candidate[1:])
+        ):
+            return (str(candidate[1]), str(candidate[2]))
+        raise RuntimeError(
+            "STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENT_FORM_INVALID: "
+            + repr(candidate)
+        )
+
     for label, candidates in STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS.items():
         selected = next(
-            (field for field in candidates if field in mandatory_set),
+            (
+                candidate
+                for candidate in candidates
+                if all(
+                    field in mandatory_set
+                    for field in _candidate_fields(candidate)
+                )
+            ),
             None,
         )
         if selected is None:
-            missing[label] = list(candidates)
+            missing[label] = [list(c) if not isinstance(c, str) else c for c in candidates]
         else:
-            resolved[label] = selected
+            resolved[label] = (
+                selected if isinstance(selected, str) else list(selected)
+            )
     if missing:
         raise RuntimeError(
             "STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS_NOT_MANDATORY: "
@@ -93,7 +132,10 @@ def structural_aux_label_signal_contract_metadata(
         ),
         "requirement_count": len(STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS),
         "requirements": {
-            label: list(candidates)
+            label: [
+                list(candidate) if not isinstance(candidate, str) else candidate
+                for candidate in candidates
+            ]
             for label, candidates in STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS.items()
         },
         "resolved_mandatory_fields": dict(resolved),

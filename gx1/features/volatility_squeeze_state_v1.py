@@ -10,11 +10,22 @@ there is no hand-picked bandwidth, percentile, duration or release threshold.
 Fit and runtime share exactly one decoder: the causal forward filter.  It
 carries the accumulated state log-odds and uses no future observation, so the
 TRAIN state sequence the fit converges on is the sequence serve reproduces.
-``release_event`` is emitted exactly once on a low-volatility ->
-high-volatility transition.  Durations and ages are raw native-bar counts;
-TRAIN-only model-input normalization owns their scale.  Before enough close
-history, or before the first observed release for release-memory fields,
-absence of knowledge is NaN rather than a fabricated zero/sentinel.
+The state machine internally tracks the squeeze-active state, the one-shot
+release edge and the completed duration at release; the EMITTED surface is
+the two raw carriers ``bars_in_squeeze`` and ``squeeze_release_age_bars``
+(see the D-3 note at ``VOLATILITY_SQUEEZE_FEATURE_NAMES``).  Durations and
+ages are raw native-bar counts; TRAIN-only model-input normalization owns
+their scale.  Before enough close history, absence of knowledge is a NaN
+warmup prefix.  ``squeeze_release_age_bars`` is a LEFT-CENSORED causal clock,
+not a NaN-before-first-event field (contract corrected 2026-09-20, deep
+review B15): it starts at 0 on the first fully warmed state observation,
+advances every bar and resets to 0 on a release, so before the first observed
+release the value "k" means "k bars since history start, no release observed"
+and is indistinguishable from "k bars since a release".  This censoring is
+accepted and deliberate — the module previously claimed NaN for pre-release
+absence while implementing this clock, and the numeric behaviour, which every
+downstream all-finite post-warmup gate and the admitted TRAIN artifacts
+depend on, is the contract; the claim was the defect.
 
 Until 2026-08-18 the fit decoded globally (Viterbi) while serve decoded with a
 one-step argmax over ``log transition[previous_state] + emission``, which
@@ -52,8 +63,19 @@ from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
 VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION = (
     "gx1_volatility_squeeze_state_train_fit_v2"
 )
+# v2 (2026-09-20, deep review D-3): the manifest binds the emitted feature
+# names, and the emission narrowed 5 -> 2 per lane (see the note at
+# VOLATILITY_SQUEEZE_FEATURE_NAMES).  A v1 manifest answers ``feature_names``
+# with the three retired exactly-derived columns and must fail closed rather
+# than describe a surface this owner no longer emits; the fit payloads
+# themselves are unchanged (the fit is on relative bandwidth, not on the
+# emitted columns).
+# v3 (2026-09-20, C-5): fit population is half-open [start, end).
+# v4 (2026-09-26, consolidation): the manifest fit admits only bars CLOSED by the declared end
+# (b1b034bf); v3 artifacts fitted before that fix may contain H4/D1 bars closing after TRAIN end
+# and must fail closed instead of validating under unchanged identity.
 VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION = (
-    "gx1_volatility_squeeze_six_clock_manifest_v1"
+    "gx1_volatility_squeeze_six_clock_manifest_v4"
 )
 VOLATILITY_SQUEEZE_STATE_OWNER = (
     "gx1.features.volatility_squeeze_state_v1"
@@ -78,12 +100,31 @@ _CLOCK_DURATION = {
     "H4": pd.Timedelta(hours=4),
     "D1": pd.Timedelta(days=1),
 }
+# 2026-09-20 (deep review D-3) — the emitted surface narrows 5 -> 2 per lane.
+# ``squeeze_active``, ``squeeze_release_event`` and ``duration_at_release``
+# are RETIRED from emission: measured bit-identical to 16 digits on all six
+# clocks of the hash-bound V46 cache, each was an exact function of the two
+# carriers that stay —
+#   squeeze_active[t]       == 1[bars_in_squeeze[t] > 0]
+#   squeeze_release_event[t] == 1[squeeze_release_age_bars[t] == 0]
+#   duration_at_release[t]  == bars_in_squeeze[t-1] * squeeze_release_event[t]
+# The sequence model recovers all three exactly from the two retained
+# carriers and one bar of history, so CLAUDE.md rule 4 holds: the information
+# is a deterministic function of retained model inputs.  The internal state
+# machine is untouched — the decoder still tracks active/release state — and
+# only the emission narrows.  The functional triple was invisible to the
+# duplicate detector because mandatory fields are excluded from its candidate
+# pool (the D-3 finding), which is why this adjudication lives here at the
+# owner.
 VOLATILITY_SQUEEZE_FEATURE_NAMES = (
-    "volatility.squeeze_active",
     "volatility.bars_in_squeeze",
-    "volatility.squeeze_release_event",
-    "volatility.duration_at_release",
     "volatility.squeeze_release_age_bars",
+    # 2026-09-21 fidelity wave (F-15): the raw relative Bollinger bandwidth
+    # the state machine actually decodes on — the squeeze INTENSITY was
+    # never emitted, so a 40-bar mild compression and a 40-bar extreme coil
+    # read identically.  Same ddof=0 formula owner, same causal clock; no
+    # percentile fit, the model learns the scale.
+    "volatility.bandwidth_rel",
 )
 
 # The declared TRAIN window is carried by ``declared_train_window_start`` /
@@ -337,19 +378,30 @@ def bollinger_relative_bandwidth(close: np.ndarray) -> np.ndarray:
         raise RuntimeError("VOLATILITY_SQUEEZE_CLOSE_SOURCE_INVALID")
     if np.any(values <= 0.0):
         raise RuntimeError("VOLATILITY_SQUEEZE_CLOSE_SOURCE_NONPOSITIVE")
-    series = pd.Series(values, dtype=np.float64)
-    mean = series.rolling(
-        BOLLINGER_PERIOD_BARS,
-        min_periods=BOLLINGER_PERIOD_BARS,
-    ).mean()
-    std = series.rolling(
-        BOLLINGER_PERIOD_BARS,
-        min_periods=BOLLINGER_PERIOD_BARS,
-    ).std(ddof=0)
-    width = (
-        (2.0 * BOLLINGER_STD_MULTIPLIER) * std.to_numpy(dtype=np.float64)
-        / mean.to_numpy(dtype=np.float64)
-    )
+    # 2026-09-21 (F-15 exposure): window-exact two-pass mean/std per row.
+    # pandas' sliding aggregation accumulates from the series start, so the
+    # same 20-close window yielded last-ulp-different values depending on
+    # where a serve chunk began — invisible while only the decoded states
+    # were emitted, measurable once the raw bandwidth became a carrier
+    # (5/3600 elements at 5.8e-11 in the chunk-carry identity test).  A
+    # two-pass computation over exactly the window's own 20 values is
+    # bit-deterministic for identical windows regardless of chunking; fit
+    # and serve share this one function, so the six-clock artifacts are
+    # refitted on the next chain rather than reused.
+    if len(values) < BOLLINGER_PERIOD_BARS:
+        width = np.full(len(values), np.nan, dtype=np.float64)
+    else:
+        windows = np.lib.stride_tricks.sliding_window_view(
+            values, BOLLINGER_PERIOD_BARS
+        )
+        window_mean = windows.mean(axis=1)
+        window_std = np.sqrt(
+            ((windows - window_mean[:, None]) ** 2).mean(axis=1)
+        )
+        width = np.full(len(values), np.nan, dtype=np.float64)
+        width[BOLLINGER_PERIOD_BARS - 1 :] = (
+            (2.0 * BOLLINGER_STD_MULTIPLIER) * window_std / window_mean
+        )
     if not np.isnan(width[:VOLATILITY_SQUEEZE_PREFIX_ROWS]).all():
         raise RuntimeError("VOLATILITY_SQUEEZE_BANDWIDTH_PREFIX_INVALID")
     tail = width[VOLATILITY_SQUEEZE_PREFIX_ROWS:]
@@ -730,7 +782,7 @@ def fit_volatility_squeeze_params(
     # This low-level fitter accepts TRAIN rows only.  Selection from a larger
     # tape is owned by the six-clock manifest fitter below and occurs before a
     # single observation reaches this function.
-    if source.index[0] < window_start or source.index[-1] > window_end:
+    if source.index[0] < window_start or source.index[-1] + _CLOCK_DURATION[clock] > window_end:
         raise RuntimeError("VOLATILITY_SQUEEZE_FIT_SOURCE_OUTSIDE_TRAIN")
     train = source
     if len(source) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
@@ -1214,7 +1266,13 @@ def fit_volatility_squeeze_artifact_manifest(
             timeframe=clock,
             context=f"VOLATILITY_SQUEEZE_{clock}_FIT_SOURCE",
         )
-        train = full_source.loc[(full_source.index >= start) & (full_source.index <= end)]
+        # Opening labels alone do not bound observed data: an H4/D1 bar
+        # can open in TRAIN but close in the following split. Admit only
+        # bars fully available by the declared end.
+        train = full_source.loc[
+            (full_source.index >= start)
+            & ((full_source.index + _CLOCK_DURATION[clock]) <= end)
+        ]
         if len(train) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
             raise RuntimeError(f"VOLATILITY_SQUEEZE_{clock}_TRAIN_WINDOW_TOO_SHORT")
         provenance = _require_source_provenance(
@@ -1388,12 +1446,16 @@ def compute_volatility_squeeze_state(
 ) -> tuple[pd.DataFrame, VolatilitySqueezeCarryState]:
     """Compute one clock's causal state and return exact continuation carry.
 
-    ``duration_at_release`` is event-local: it is zero when no release occurs
-    and the completed squeeze duration on the release row. ``release_age`` is
-    a left-censored causal clock. It starts at zero on the first fully warmed
-    state observation, advances until a release and resets to zero on release.
-    This keeps absence-of-an-observed-release explicit and finite without
-    fabricating a pre-history event or filling an unknown market value.
+    Emitted columns are the two carriers ``bars_in_squeeze`` and
+    ``squeeze_release_age_bars`` (D-3, 2026-09-20: the active flag, release
+    edge and duration-at-release are exact functions of these two plus one
+    bar of history and are no longer emitted; the state machine below still
+    tracks them, and ``last_release_duration`` stays in the carry so chunked
+    and one-shot evaluation remain bit-identical). ``release_age`` is a
+    left-censored causal clock (module contract, B15). It starts at zero on
+    the first fully warmed state observation, advances until a release and
+    resets to zero on release, so pre-first-release rows are finite and
+    censored rather than NaN.
     """
 
     clock = _require_timeframe(timeframe)
@@ -1484,11 +1546,13 @@ def compute_volatility_squeeze_state(
                 last_release_duration = bars_in_squeeze
                 release_age = 0
             bars_in_squeeze = 0
-        out[row, 0] = float(active)
-        out[row, 1] = float(bars_in_squeeze)
-        out[row, 2] = float(released)
-        out[row, 3] = float(last_release_duration) if released else 0.0
-        out[row, 4] = float(release_age)
+        # D-3 (2026-09-20): ``active``, ``released`` and
+        # ``last_release_duration`` remain internal state (exact functions of
+        # the carriers); the raw decoded bandwidth itself is a carrier since
+        # 2026-09-21 (F-15).
+        out[row, 0] = float(bars_in_squeeze)
+        out[row, 1] = float(release_age)
+        out[row, 2] = float(width)
 
     result = pd.DataFrame(
         out,

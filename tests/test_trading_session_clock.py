@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 import inspect
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -134,76 +133,14 @@ def test_all_mtf_grids_derive_phase_from_one_session_boundary() -> None:
     ) == pd.Timestamp("2026-01-01T22:00:00Z")
 
 
-def test_h4_session_vwap_resets_on_an_exact_bar_boundary() -> None:
-    index = pd.DatetimeIndex(
-        [
-            "2026-01-01T18:00:00Z",
-            "2026-01-01T22:00:00Z",
-            "2026-01-02T02:00:00Z",
-        ]
-    )
-    close = pd.Series([10.0, 20.0, 30.0], index=index)
-    volume = pd.Series(np.ones(len(index)), index=index)
-    observed = htf._session_vwap(
-        close,
-        volume,
-        bar_duration=pd.Timedelta(hours=4),
-    )
-    np.testing.assert_array_equal(observed.to_numpy(), [10.0, 20.0, 25.0])
 
 
-@pytest.mark.parametrize("bar_duration", [pd.Timedelta(minutes=1), pd.Timedelta(minutes=5)])
-def test_session_vwap_is_bit_exact_for_prefix_and_chunks(
-    bar_duration: pd.Timedelta,
-) -> None:
-    index = pd.date_range(
-        "2026-01-01T21:50:00Z",
-        periods=20,
-        freq=bar_duration,
-    )
-    close = pd.Series(np.linspace(2000.0, 2019.0, len(index)), index=index)
-    volume = pd.Series(np.arange(1, len(index) + 1, dtype=np.float64), index=index)
-    full = htf._session_vwap(
-        close,
-        volume,
-        bar_duration=bar_duration,
-    )
-    split = 7 if bar_duration == pd.Timedelta(minutes=1) else 2
-    prefix, state = htf._session_vwap(
-        close.iloc[:split],
-        volume.iloc[:split],
-        bar_duration=bar_duration,
-        return_state=True,
-    )
-    suffix, _ = htf._session_vwap(
-        close.iloc[split:],
-        volume.iloc[split:],
-        bar_duration=bar_duration,
-        state=state,
-        return_state=True,
-    )
-    chunked = pd.concat([prefix, suffix])
-    np.testing.assert_array_equal(prefix.to_numpy(), full.iloc[:split].to_numpy())
-    np.testing.assert_array_equal(chunked.to_numpy(), full.to_numpy())
-
-    stale = dict(state)
-    stale["clock_schema_version"] = "retired_midnight_clock"
-    with pytest.raises(RuntimeError, match="STATE_CONTRACT_MISMATCH"):
-        htf._session_vwap(
-            close.iloc[split:],
-            volume.iloc[split:],
-            bar_duration=bar_duration,
-            state=stale,
-        )
 
 
 def test_clock_source_guard_forbids_local_midnight_vwap_owner() -> None:
     htf_source = inspect.getsource(htf)
     oanda_source = inspect.getsource(OandaClient.get_candles)
     assert "SESSION_BOUNDARIES as _SESSION_BOUNDARIES" not in htf_source
-    assert "trading_session_id_vectorized(" in inspect.getsource(
-        htf._session_vwap
-    )
     assert '"alignmentTimezone": "UTC"' in oanda_source
     assert "dailyAlignment" not in oanda_source
 

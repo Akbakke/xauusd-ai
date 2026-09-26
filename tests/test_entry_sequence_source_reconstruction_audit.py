@@ -15,6 +15,7 @@ from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
     REQUIRED_CHECKS,
     require_sequence_source_reconstruction_audit,
 )
+from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.scripts import audit_entry_sequence_source_reconstruction_v1 as sequence_audit
 from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import (
     audit_sequence_source_reconstruction,
@@ -26,7 +27,9 @@ def _sha256(path: Path) -> str:
 
 
 def _write_fixture(tmp_path: Path, *, break_sequence: bool = False) -> tuple[Path, Path]:
-    width, seq_len = 238, 96
+    # Width derives from the signal owner (rule 13); see the audit's own
+    # MODEL_NATIVE_SIGNAL_DIM binding.
+    width, seq_len = MODEL_NATIVE_SIGNAL_DIM, 96
     source = np.arange((seq_len + 8) * width, dtype=np.float32).reshape(seq_len + 8, width)
     source_times = pd.Timestamp("2025-01-05T16:05:00Z") + pd.to_timedelta(
         np.arange(len(source)) * 5, unit="min"
@@ -127,7 +130,7 @@ def test_source_reconstruction_audit_proves_filtered_windows_across_batches(
         expected_feature_surface=json.loads(manifest.read_text(encoding="utf-8")),
         expected_rows=4,
         expected_seq_len=96,
-        expected_signal_dim=238,
+        expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
     ) == report
 
 

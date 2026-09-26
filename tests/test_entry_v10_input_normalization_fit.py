@@ -121,6 +121,13 @@ def _mtf_values(rows: int) -> np.ndarray:
         values[:, index] = (
             np.arange(rows) % (offset + 2) == offset
         ).astype(np.float32)
+    # 2026-09-21 (F-18): every declared MTF semantic categorical must carry
+    # exact in-domain integers, mirroring the signal-surface convention.
+    for name, domain in MTF_SEMANTIC_CATEGORICAL_DOMAINS.items():
+        position = list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)
+        values[:, position] = np.asarray(domain, dtype=np.float32)[
+            np.arange(rows) % len(domain)
+        ]
     return values
 
 
@@ -293,6 +300,11 @@ def _artifacts(
             frame.attrs["feats_np"][:, index] = (
                 np.arange(len(frame)) % (binary_offset + 2) == binary_offset
             ).astype(np.float32)
+        for name, domain in MTF_SEMANTIC_CATEGORICAL_DOMAINS.items():
+            position = list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)
+            frame.attrs["feats_np"][:, position] = np.asarray(
+                domain, dtype=np.float32
+            )[np.arange(len(frame)) % len(domain)]
     for tf_offset, (timeframe, frame) in enumerate(features.items()):
         scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
             timeframe

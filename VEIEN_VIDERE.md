@@ -22,8 +22,8 @@ nedtrekk til 220 W ved 80 °C.
    statistikk på ikke-overlappende perioder med parvis differanse mot alltid-LONG og en kausal
    konstant valgt på fit-perioden, vern mot sirkulær-null ved ≤ 512 rader, `model_kind` i
    metadata. HAC/sirkulær-null brukes ikke som PASS på lange horisonter.
-3. **M2 — featureflaten v36** (241, per-TF 190) med tilpasningene i konsolideringsrapporten;
-   eierne eksekveres for å bekrefte dimensjonene; fokuserte tester.
+3. ~~M2 — featureflaten v36~~ **ferdig 26.09**: signal 241, per-TF 190 (eierne eksekvert).
+   Gamle V9-/lifecycle-v2-artefakter (v34) kan ikke lastes på HEAD; evaluer dem på 7c9421a5.
 4. **Forhåndsregistrert ukesmåling** med instrumentet: beslutning på H4/D1-slutt, horisonter
    1/2/4 uker, ridge og HGB med konstant-alternativ, fire årsholdouts, mot alltid-LONG; på de
    tidlig kalibrerte v36-dataene. Første, enklere måling er gjort
@@ -31,7 +31,8 @@ nedtrekk til 220 W ved 80 °C.
 5. **Målkontrakt for ukeshorisont**: nytt, eksplisitt kontraktvalg (ikke en stille økning av
    96-barers-taket), der Entry-verdien kommer fra direkte utførbare utfall og FLAT = 0 etter
    netto kost. Beslutningsklokke og horisont fra steg 4.
-6. **Rebuild**: squeeze-refit (v3, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
+6. **Rebuild** (først: port kjedens kildeidentitetsport fra arkivgrenens handover, den feiler
+   lukket nå): squeeze-refit (v4, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
    med ny run-id → post-rebuild-audits → lifecycle-v2-laget (ENTRY_WINDOW, normalisering,
    bindinger, random-access-indeks, recipes). Gjenbrukbart: tapene, M1-child-views, stengning,
    kostpolicy og økonomi (etter egne hash-bindinger).
@@ -39,6 +40,13 @@ nedtrekk til 220 W ved 80 °C.
    gamma-metadata).
 8. **Native trening** først når steg 4 viser noe utover drift, og innenfor en ny, bundet
    NEXT_RUN_POLICY.
+
+## Opprydding (pågår)
+
+Slettelisten (264 filer, bevis i analysen fra 26.09) og triage av 18 eksisterende testfeil gjøres i
+egen commit. Worktree-ene V22/V31/V33/V37/V38/V39/V41 og backup-tarballen krever operatørens
+kommando (tillatelse); V30 og EXIT_LIFECYCLE_V2 bærer Python-miljøet og hash-bundne kostbevis, og
+V40 brukes av handover-sjekken — de fjernes først når det er løst.
 
 ## Ikke gjør
 
