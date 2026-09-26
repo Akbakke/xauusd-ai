@@ -82,9 +82,9 @@ vi tar det beste fra dette og fortsetter.»* Eneste kodebase er `work/gx1-curren
 
 ## Åpne operatørvedtak
 
-1. Guard-referansen (`.claude/settings.reference.json` vs live `model`) blokkerer alle commits.
-2. GPU-kjernestopp på native rute: i dag 85 °C (+ nedtrekk til 200 W ved 80 °C); vedtaket
-   20.–21.09 om 70 °C gjaldt grenens trenerrute.
+1. ~~Guard-referansen~~ løst 26.09 (dcdd93c0) og testen ignorerer nå preferanser.
+2. GPU: **vedtatt 26.09** — kjernestopp 85 °C, nedtrekk til 220 W ved 80 °C (var 200 W);
+   70 °C-vedtaket 20.–21.09 gjaldt bare den arkiverte trenerruten.
 3. Lengre XAU_USD-historikk (bjørnemarkeder) for ukesretning — krever navngitt kilde og manifest.
 
 ## Ikke undersøkt

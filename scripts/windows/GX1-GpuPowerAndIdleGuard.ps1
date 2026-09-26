@@ -112,8 +112,10 @@ function Test-Gx1NormalIdleSample {
 function Get-Gx1ThermalPowerLimit {
     param([psobject]$Config, [psobject]$Sample)
     # Latch down for this guard lifetime; normal rechecks never raise it again.
-    if ([int]$Config.power_limit_w -gt 200 -and [double]$Sample.core_temp_c -ge 80) {
-        return 200
+    # Operator decision 2026-09-26: at >= 80 C core the limit drops to 220 W (was 200 W);
+    # the native route's 85 C core stop is unchanged.
+    if ([int]$Config.power_limit_w -gt 220 -and [double]$Sample.core_temp_c -ge 80) {
+        return 220
     }
     return [int]$Config.power_limit_w
 }
@@ -279,7 +281,7 @@ function Invoke-Gx1GpuRecovery {
 }
 
 function Invoke-Gx1PolicySelfTest {
-    foreach ($case in @(@(300,79,300), @(300,80,200), @(300,85,200), @(200,70,200), @(160,85,160))) {
+    foreach ($case in @(@(300,79,300), @(300,80,220), @(300,85,220), @(220,85,220), @(200,70,200), @(160,85,160))) {
         $actual = Get-Gx1ThermalPowerLimit -Config ([pscustomobject]@{power_limit_w=$case[0]}) -Sample ([pscustomobject]@{core_temp_c=$case[1]})
         if ($actual -ne $case[2]) { throw 'Thermal power reduction policy mismatch' }
     }

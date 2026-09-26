@@ -2268,11 +2268,13 @@
     "direct_outcome_hypothesis_20260925": "closed_not_executed: labels identical to V9/V12 knee labels; Y_wait hindsight bias +13.7 bps",
     "planned_steps": "VEIEN_VIDERE.md (M4 weekly instrument, M2 v36 surface, preregistered weekly walk-forward, weekly target contract, rebuild, M3 trainer fixes)",
     "open_operator_decisions": [
-      "realign .claude/settings.reference.json with live settings (commit blocker)",
-      "longer XAU_USD history covering bear markets (named source + manifest)",
-      "native-route GPU core stop 85 C vs 70 C decided 2026-09-20/21 for the archived route"
+      "longer XAU_USD history covering bear markets (named source + manifest)"
     ],
-    "training_enabled": false
+    "training_enabled": false,
+    "decided_20260926": [
+      "settings guard ignores personal preferences (model, theme)",
+      "GPU native route: 85 C core stop; latch to 220 W at >= 80 C (was 200 W)"
+    ]
   },
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP"

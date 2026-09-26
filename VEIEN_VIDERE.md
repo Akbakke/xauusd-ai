@@ -11,7 +11,8 @@ og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om g
 2. **Lengre gullhistorikk** (XAU_USD, samme instrument, f.eks. D1/H4 fra ~2005 via den
    eksisterende OANDA-backfill-produsenten med manifest) — nødvendig for å lære noe annet enn
    «vær long» på ukeshorisont.
-3. **GPU-kjernestopp på native rute:** 85 °C i dag vs. 70 °C vedtatt 20.–21.09 for grenens rute.
+3. ~~GPU-grense~~ **Vedtatt 26.09:** kjernestopp 85 °C på native rute; ved ≥ 80 °C låses effekten
+   til 220 W (før 200 W). Installert i `scripts/windows/GX1-GpuPowerAndIdleGuard.ps1` og på Windows.
 
 ## Kodesteg
 
