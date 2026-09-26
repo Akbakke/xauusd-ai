@@ -1304,7 +1304,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "VEIEN_VIDERE.md; docs/CONSOLIDATION_20260926.md; docs/DIRECTION_TIMESCALE_20260926.md",
+  "handover_resume_point": "VEIEN_VIDERE.md; docs/WEEKLY_DIRECTION_RESULT_20260926.md; docs/CONSOLIDATION_20260926.md",
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "last_diagnostic_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
@@ -1557,8 +1557,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "Consolidation 2026-09-26: one codebase (work/gx1-current); archived branch tagged archive/gx1-engine-audit-v9-20260926. Follow VEIEN_VIDERE.md in order: M4 weekly research instrument, M2 v36 feature surface, preregistered weekly walk-forward vs always-long, then a weekly target contract and rebuild. No native training, full epoch, full VAL, CONTROL or TEST.",
-  "observed_utc": "2026-09-26T17:36:46.731263+00:00",
+  "next_action": "Weekly direction (preregistered, 2026-09-26) is NO-GO on 2021-26: no cell beats always-LONG in any year. Next: operator decision on longer XAU_USD history (native M5+M1 via the OANDA backfill with manifest), then the same preregistered measurement on data with falling markets; only on GO a weekly target contract and dataset rebuild. No native training, full epoch, full VAL, CONTROL or TEST.",
+  "observed_utc": "2026-09-26T20:38:32.305676+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -1786,7 +1786,13 @@
     "decided_20260926": [
       "settings guard ignores personal preferences (model, theme)",
       "GPU native route: 85 C core stop; latch to 220 W at >= 80 C (was 200 W)"
-    ]
+    ],
+    "weekly_direction_preregistered": {
+      "prereg": "docs/WEEKLY_DIRECTION_PREREG_20260926.md",
+      "result": "docs/WEEKLY_DIRECTION_RESULT_20260926.md",
+      "decision": "NO_GO",
+      "evidence_root": "/home/andre2/GX1_RUNS/WEEKLY_DIRECTION_20260926"
+    }
   },
   "handover_resume_point_before_consolidation_20260926": {
     "instructions": "VEIEN_VIDERE.md",

@@ -116,6 +116,10 @@ skal være long, kan ikke måles uten historikk som inneholder bjørnemarkeder (
 2011–2015, 2008). Med ~50 uavhengige uker per år er 95 %-intervallene ±10–30 bps per
 beslutning.
 
+**Forhåndsregistrert oppfølging (samme dag): NO-GO.** Med alle 1 311 felt, H4/D1-beslutninger og
+ridge/HGB slo ingen av 48 celler alltid-LONG i noe år; se
+[WEEKLY_DIRECTION_RESULT_20260926.md](WEEKLY_DIRECTION_RESULT_20260926.md).
+
 ## 7. Konsekvens for designet
 
 Retningsbeslutningen må stilles på skalaen der den finnes (dager–uker), med få beslutninger

@@ -13,6 +13,8 @@
 - `docs/DIRECTION_TIMESCALE_20260926.md` — retning vs. tidsskala, svingninger, ukesmåling,
   8-timers-taket, direkte mål og vent-mål.
 - `docs/CONSOLIDATION_20260926.md` — sammenslåingen og planen for M2–M4.
+- `docs/WEEKLY_DIRECTION_PREREG_20260926.md` + `docs/WEEKLY_DIRECTION_RESULT_20260926.md` —
+  forhåndsregistrert ukesmåling og resultat (NO-GO på 2021–26).
 - `docs/ENTRY_DIRECTION_SNR_DIAGNOSIS_20260923.md` — kost/støy og walk-forward 23.–24.09, med
   forbeholdene i `docs/ENTRY_FEATURE_FIT_CHRONOLOGY_20260924.md` og
   `docs/ENTRY_MEASUREMENT_REPAIR_20260924.md`.
