@@ -813,3 +813,101 @@ def test_feature_fit_guard_rejects_legacy_june_overlap() -> None:
     records = [{"owner": "volatility_squeeze", "fit_end_exclusive": "2026-05-31T23:55:00Z"}]
     with pytest.raises(RuntimeError, match="available_by_upper_bound=2026-06-01T22"):
         wf.require_feature_fit_before(records, pd.Timestamp("2026-06-01T00:00:00Z"), context="june")
+
+
+# --- weekly-horizon extensions (2026-09-26): mechanics only, synthetic data (rule 2c) -----------------
+
+def test_decision_clock_keeps_first_decision_after_each_closed_bar() -> None:
+    time = pd.date_range("2024-01-02T17:30:00Z", periods=24, freq="5min")  # spans the 18:00 and 20:00 H1 closes
+    keep = wf.decision_clock_mask(time, "H1")
+    # decision instant t+5min: the first row whose decision falls into a new H1 bar is kept
+    kept = time[keep]
+    assert kept[0] == time[0]
+    assert list(kept[1:]) == [pd.Timestamp("2024-01-02T17:55:00Z"), pd.Timestamp("2024-01-02T18:55:00Z")]
+    assert wf.decision_clock_mask(time, "M5").all()
+    with pytest.raises(RuntimeError, match="DECISION_CLOCK_INVALID"):
+        wf.decision_clock_mask(time, "W1")
+
+
+def test_nonoverlap_rows_greedy_stride() -> None:
+    positions = np.array([0, 1, 2, 5, 6, 11, 12, 30])
+    assert wf.nonoverlap_rows(positions, 5).tolist() == [0, 3, 5, 7]
+    with pytest.raises(RuntimeError, match="NONOVERLAP_INPUT_INVALID"):
+        wf.nonoverlap_rows(np.array([0, 0, 1]), 2)
+
+
+def test_cost_policy_nets_two_executions_and_side_financing(tmp_path: Path) -> None:
+    policy = {
+        "decision": "PREREGISTERED_PROSPECTIVE_POLICY_NOT_HISTORICAL_TRUTH",
+        "latency_slippage": {"central_bps_per_execution": 2.0},
+        "commission": {"bps_per_execution": 0.0},
+        "financing_or_swap": {"accrual": "actual_elapsed_wall_clock", "long_annual_cost_rate": 0.054,
+                              "short_annual_cost_rate": 0.0, "seconds_per_year": 31557600.0},
+    }
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(policy), encoding="utf-8")
+    import hashlib
+    loaded = wf.load_cost_policy(path, hashlib.sha256(path.read_bytes()).hexdigest())
+    week = 7 * 86400.0
+    long_net, short_net = wf.apply_cost_policy(np.array([10.0]), np.array([-5.0]), np.array([week]), loaded)
+    assert long_net[0] == pytest.approx(10.0 - 4.0 - 0.054 * week / 31557600.0 * 1e4)
+    assert short_net[0] == pytest.approx(-5.0 - 4.0)
+    with pytest.raises(RuntimeError, match="COST_POLICY_HASH_MISMATCH"):
+        wf.load_cost_policy(path, "0" * 64)
+
+
+def test_ridge_constant_alternative_wins_on_noise_and_loses_on_signal(monkeypatch: pytest.MonkeyPatch) -> None:
+    rng = np.random.default_rng(3)
+    n, p = 400, 300
+    X = rng.normal(size=(n, p))
+    positions = np.arange(n) * 10
+    monkeypatch.setattr(wf, "RIDGE_ALPHA_GRID", (1e-6,))  # an overfitting grid, so the constant must win on noise
+    gram = wf.RidgeGram(X, X[:50], inner_fraction=0.25, fit_positions=positions, purge_bars=1)
+    y_noise = rng.normal(size=n)
+    pred, info = gram.fit_predict(y_noise)
+    assert info["model_kind"] == "constant" and np.allclose(pred, y_noise.mean())
+    w = np.zeros(p)
+    w[:5] = 3.0
+    y_signal = X @ w + 0.01 * rng.normal(size=n)
+    monkeypatch.setattr(wf, "RIDGE_ALPHA_GRID", (1.0,))
+    pred2, info2 = gram.fit_predict(y_signal)
+    assert info2["model_kind"] == "ridge" and info2["inner_val_mse"] < info2["constant_inner_val_mse"]
+
+
+def test_evaluate_nonoverlap_pairs_model_with_always_long_and_fit_constant() -> None:
+    side = np.array([wf.MODEL_DIRECTION_SHORT_INDEX, wf.MODEL_DIRECTION_LONG_INDEX, wf.MODEL_DIRECTION_FLAT_INDEX, wf.MODEL_DIRECTION_SHORT_INDEX])
+    long_out = np.array([-10.0, 5.0, 3.0, -4.0])
+    short_out = np.array([8.0, -7.0, -5.0, 2.0])
+    out = wf.evaluate_nonoverlap(side=side, long_outcome=long_out, short_outcome=short_out,
+                                 positions=np.array([0, 10, 20, 30]), horizon_bars=10,
+                                 fit_long_mean=1.0, fit_short_mean=-1.0)
+    assert out["blocks"] == 4 and out["causal_constant_side"] == "LONG"
+    assert out["model"]["mean"] == pytest.approx((8.0 + 5.0 + 0.0 + 2.0) / 4)
+    assert out["delta_vs_always_long"]["mean"] == pytest.approx(((8 + 10) + 0 + (0 - 3) + (2 + 4)) / 4)
+    assert out["delta_vs_always_long"]["mean"] == pytest.approx(out["delta_vs_causal_constant"]["mean"])
+
+
+def test_run_weekly_style_clock_and_nonoverlap_statistics(tmp_path: Path) -> None:
+    ds_dir, tape_dir = _write_synthetic_dataset_and_tape(tmp_path, train_rows=6000, val_rows=800)
+    out_dir = tmp_path / "out_nonoverlap"
+    args = wf.build_parser().parse_args(
+        [
+            "--dataset-dir", str(ds_dir), "--native-m5-root", str(tape_dir), "--out-dir", str(out_dir),
+            "--fold-boundaries", "2024-01-11T00:00:00Z", "2024-01-16T00:00:00Z", "2024-01-21T20:00:00Z",
+            "--horizons", "24", "--targets", "exec_close_h24", "--learners", "ridge", "hgb", "--feature-arms", "snapshot",
+            "--target-scalings", "raw", "--inner-fraction", "0.2", "--max-hgb-iter", "3", "--decision-rules", "argmax_flat",
+            "--decision-clock", "H1", "--statistics", "both", "--min-fit-rows", "100", "--min-inner-rows", "20",
+        ]
+    )
+    report = wf.run(args)
+    assert report["config"]["decision_clock"]["clock"] == "H1"
+    assert report["config"]["decision_clock"]["decision_rows"] < report["config"]["decision_clock"]["dataset_rows"] // 10
+    nonoverlap = json.loads((out_dir / "nonoverlap.json").read_text(encoding="utf-8"))
+    assert nonoverlap["rows"] and all(r["statistics"] == "nonoverlap" for r in nonoverlap["rows"])
+    assert {r["learner"] for r in nonoverlap["rows"]} == {"ridge", "hgb"}
+    for row in nonoverlap["rows"]:
+        assert row["blocks"] <= row["holdout_rows"] and row["model_kind_long"] in {"ridge", "constant", "hist_gradient_boosting"}
+    assert report["nonoverlap_summary"] and "Non-overlapping blocks" in (out_dir / "summary.md").read_text(encoding="utf-8")
+    # holdouts at <= 512 rows are omitted from the coverage grid instead of crashing the circular null
+    metrics = pd.read_csv(out_dir / "metrics.csv") if (out_dir / "metrics.csv").stat().st_size > 1 else pd.DataFrame()
+    assert metrics.empty or (metrics["holdout_rows"] > wf.CIRCULAR_SHIFT_NULL_DRAWS).all()

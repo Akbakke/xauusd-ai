@@ -6,19 +6,19 @@ og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om g
 
 ## Operatørvedtak som gjenstår
 
-1. **Guard-referansen** blokkerer alle commits til `.claude/settings.reference.json` er lik live
-   `~/.claude/settings.json` (feltet `model`). Kun operatøren endrer dette.
-2. **Lengre gullhistorikk** (XAU_USD, samme instrument, f.eks. D1/H4 fra ~2005 via den
-   eksisterende OANDA-backfill-produsenten med manifest) — nødvendig for å lære noe annet enn
-   «vær long» på ukeshorisont.
-3. ~~GPU-grense~~ **Vedtatt 26.09:** kjernestopp 85 °C på native rute; ved ≥ 80 °C låses effekten
-   til 220 W (før 200 W). Installert i `scripts/windows/GX1-GpuPowerAndIdleGuard.ps1` og på Windows.
+1. **Lengre gullhistorikk** (XAU_USD, samme instrument): native M5 + M1 fra OANDA via den
+   eksisterende backfill-produsenten med manifest, så alle tidsrammer (M5/M15/H1/H4/D1) bygges
+   av samme eiere. Uten nedmarkeder i dataene (2021–26 er ett oksemarked) kan modellen ikke lære
+   å gå short i et fallende marked.
+
+Vedtatt 26.09: guard-testen ignorerer preferanser (`model`, `theme`); GPU-kjernestopp 85 °C,
+nedtrekk til 220 W ved 80 °C.
 
 ## Kodesteg
 
-1. **M1 — konsolidering** (denne bølgen): commit, arkiv-tag, rot-loader, relativ
-   `core.hooksPath`. Se [docs/CONSOLIDATION_20260926.md](docs/CONSOLIDATION_20260926.md).
-2. **M4 — forskningsinstrument for uker** (før datasett): `--decision-clock {M5,H1,H4,D1}`,
+1. ~~M1 — konsolidering~~ **ferdig 26.09** (809ba049, 755dd3aa). Se
+   [docs/CONSOLIDATION_20260926.md](docs/CONSOLIDATION_20260926.md).
+2. ~~M4 — forskningsinstrument for uker~~ **ferdig 26.09**: `--decision-clock {M5,H1,H4,D1}`,
    statistikk på ikke-overlappende perioder med parvis differanse mot alltid-LONG og en kausal
    konstant valgt på fit-perioden, vern mot sirkulær-null ved ≤ 512 rader, `model_kind` i
    metadata. HAC/sirkulær-null brukes ikke som PASS på lange horisonter.

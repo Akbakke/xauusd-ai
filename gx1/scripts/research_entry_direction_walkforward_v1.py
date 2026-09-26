@@ -58,7 +58,7 @@ import json
 import math
 import subprocess
 import time as _time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -91,6 +91,7 @@ from gx1.models.entry_v10.direction_decision_contract import (
     MODEL_DIRECTION_SHORT_INDEX,
 )
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    CIRCULAR_SHIFT_NULL_DRAWS,
     MIN_PREREGISTERED_TRADE_ROWS,
     EVALUATION_COVERAGES,
     RESEARCH_LONG_OUTCOME_COLUMN,
@@ -98,7 +99,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     build_metric_rows,
 )
 
-SCHEMA_VERSION = "entry_direction_walkforward_research_v1"
+SCHEMA_VERSION = "entry_direction_walkforward_research_v2"
 AUTHORITY = {
     "research_only": True,
     "candidate": False,
@@ -131,6 +132,19 @@ OOD_DISTANCE_GROUPS = ("mtf_lane:all", "patterns:all")
 OOD_DISTANCE_COLUMNS = {"all": "ood_abs_z_mean", "mtf_lane:all": "ood_abs_z_mean_mtf", "patterns:all": "ood_abs_z_mean_patterns"}
 TARGET_SCALINGS = ("raw", "atr")
 DECISION_RULES = ("argmax_flat", "contrast_always_trade")
+# Decision clocks: M5 = every dataset row; coarser clocks keep the first M5 decision after each newly
+# closed bar of that timeframe (timestamps only), so weekly-horizon runs are not 1,440 near-copies per week.
+DECISION_CLOCKS = ("M5", "M15", "H1", "H4", "D1")
+M5_DECISION_DELAY = pd.Timedelta(minutes=5)
+# coverage_grid = the pre-registered evaluator statistics (HAC SE is understated ~sqrt(h/17) for overlapping
+# labels, so it is not valid on long horizons); nonoverlap = greedy chronological stride >= horizon with paired
+# deltas against always-LONG and the fit-period constant, SE = sd/sqrt(blocks).
+STATISTICS_MODES = ("coverage_grid", "nonoverlap", "both")
+EARLY_CALIBRATED_RESULT_STATUS = "RESEARCH_INPUT_REGENERATION_COMPLETE_NOT_LEARNING"
+EARLY_CALIBRATED_MTF_SCHEMA = "gx1_early_calibrated_research_mtf_v1"
+# Existing row minimums (unchanged defaults; explicit CLI inputs for coarse decision clocks).
+DEFAULT_MIN_FIT_ROWS = 1000
+DEFAULT_MIN_INNER_ROWS = 100
 RIDGE_ALPHA_GRID = tuple(float(v) for v in np.logspace(-2.0, 4.0, 13))
 # scikit-learn 1.7 HistGradientBoostingRegressor library defaults (origin: the pinned library, not a tuned choice).
 HGB_LIBRARY_DEFAULT_LEARNING_RATE = 0.1
@@ -336,6 +350,180 @@ def tape_positions(dataset_time: pd.DatetimeIndex, tape: Tape) -> np.ndarray:
     return positions.astype(np.int64)
 
 
+def decision_clock_mask(dataset_time: pd.DatetimeIndex, clock: str) -> np.ndarray:
+    """Rows kept by a decision clock, from timestamps only.
+
+    A row timestamped at M5 bar start ``t`` decides at ``t + 5 min``. For a coarser clock the
+    row is kept when the clock's bar containing its decision instant differs from the previous
+    row's, i.e. the first decision after a new bar of that timeframe has closed.
+    """
+    if clock not in DECISION_CLOCKS:
+        raise RuntimeError(f"WALKFORWARD_DECISION_CLOCK_INVALID: {clock}")
+    if clock == "M5":
+        return np.ones(len(dataset_time), dtype=bool)
+    labels = np.asarray(multi_tf_bar_label(dataset_time + M5_DECISION_DELAY, clock).asi8)
+    keep = np.ones(len(labels), dtype=bool)
+    keep[1:] = labels[1:] != labels[:-1]
+    return keep
+
+
+def subset_dataset(dataset: Dataset, keep: np.ndarray) -> Dataset:
+    keep = np.asarray(keep, dtype=bool)
+    if keep.shape != (len(dataset.time),) or not keep.any():
+        raise RuntimeError("WALKFORWARD_DATASET_SUBSET_INVALID")
+    return replace(
+        dataset, time=dataset.time[keep], snap=dataset.snap[keep], ctx_cont=dataset.ctx_cont[keep],
+        ctx_cat=dataset.ctx_cat[keep], knee_long=dataset.knee_long[keep], knee_short=dataset.knee_short[keep],
+    )
+
+
+def load_early_calibrated_inputs(result_path: Path) -> dict[str, Any]:
+    """Validate the 2026-09-24 early-calibration regeneration and its research MTF package.
+
+    The regeneration refitted the registry/volatility owners before the first inner check and
+    rebuilt only the affected local blocks and MTF lanes. Every bound file hash is checked here;
+    the dataset-side checks happen in :func:`apply_early_calibrated_blocks`.
+    """
+    result = json.loads(Path(result_path).read_text(encoding="utf-8"))
+    if result.get("status") != EARLY_CALIBRATED_RESULT_STATUS or result.get("TEST") is not False:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_STATUS_INVALID")
+    manifest_path = Path(result["research_mtf_manifest"])
+    if _sha256_file(manifest_path) != result["research_mtf_manifest_sha256"]:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_MTF_MANIFEST_HASH")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != EARLY_CALIBRATED_MTF_SCHEMA or manifest.get("research_only") is not True:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_MTF_SCHEMA")
+    for name, digest in manifest["files"].items():
+        if _sha256_file(manifest_path.parent / name) != digest:
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_MTF_FILE_HASH: {name}")
+    lineage = feature_fit_lineage(manifest)
+    if lineage != result["feature_fit_lineage"]:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_LINEAGE_MISMATCH")
+    for block in result["local_blocks"]:
+        spec = block["new_array"]
+        if _sha256_file(Path(spec["path"])) != spec["sha256"]:
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_BLOCK_HASH: {block['kind']}")
+    return {"result": result, "result_path": str(result_path), "result_sha256": _sha256_file(Path(result_path)),
+            "mtf_dir": manifest_path.parent, "feature_fit_lineage": lineage}
+
+
+def apply_early_calibrated_blocks(dataset: Dataset, early: dict[str, Any]) -> tuple[Dataset, dict[str, Any]]:
+    """Replace the registry/squeeze-dependent local signal blocks with their early-calibrated values."""
+    result = early["result"]
+    if dataset.manifest_sha256 != result["native_dataset_manifest_sha256"]:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_DATASET_MISMATCH")
+    if _array_sha256(dataset.time.asi8) != result["train_time_sha256"]:
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_TIME_MISMATCH")
+    for name, digest in result["original_native_array_sha256"].items():
+        if _array_sha256(getattr(dataset, name)) != digest:
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_ORIGINAL_ARRAY_MISMATCH: {name}")
+    snap = dataset.snap.copy()
+    replaced: list[int] = []
+    for block in result["local_blocks"]:
+        idx = [int(i) for i in block["indices"]]
+        if [dataset.signal_names[i] for i in idx] != list(block["names"]):
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_BLOCK_NAMES: {block['kind']}")
+        if _array_sha256(dataset.snap[:, idx]) != block["old_array_sha256"]:
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_BLOCK_OLD_VALUES: {block['kind']}")
+        spec = block["new_array"]
+        values = np.load(spec["path"], allow_pickle=False)
+        if list(values.shape) != list(spec["shape"]) or values.dtype != np.dtype(spec["dtype"]) or not np.isfinite(values).all():
+            raise RuntimeError(f"WALKFORWARD_EARLY_INPUTS_BLOCK_VALUES: {block['kind']}")
+        snap[:, idx] = values
+        replaced.extend(idx)
+    if len(replaced) != len(set(replaced)):
+        raise RuntimeError("WALKFORWARD_EARLY_INPUTS_BLOCK_OVERLAP")
+    report = {"result": early["result_path"], "result_sha256": early["result_sha256"],
+              "replaced_signal_columns": len(replaced), "research_mtf_dir": str(early["mtf_dir"]),
+              "feature_fit_lineage": early["feature_fit_lineage"]}
+    return replace(dataset, snap=snap), report
+
+
+def load_cost_policy(path: Path, sha256: str) -> dict[str, Any]:
+    """Read the bound prospective cost scenario (never historical broker truth)."""
+    if _sha256_file(path) != sha256:
+        raise RuntimeError("WALKFORWARD_COST_POLICY_HASH_MISMATCH")
+    policy = json.loads(path.read_text(encoding="utf-8"))
+    financing = policy["financing_or_swap"]
+    parameters = {
+        "slippage_bps_per_execution": float(policy["latency_slippage"]["central_bps_per_execution"]),
+        "commission_bps_per_execution": float(policy["commission"]["bps_per_execution"]),
+        "long_annual_cost_rate": float(financing["long_annual_cost_rate"]),
+        "short_annual_cost_rate": float(financing["short_annual_cost_rate"]),
+        "seconds_per_year": float(financing["seconds_per_year"]),
+    }
+    if financing.get("accrual") != "actual_elapsed_wall_clock" or not all(np.isfinite(list(parameters.values()))):
+        raise RuntimeError("WALKFORWARD_COST_POLICY_INVALID")
+    return {"path": str(path), "sha256": sha256, "decision": policy.get("decision"), **parameters}
+
+
+def apply_cost_policy(long_bps: np.ndarray, short_bps: np.ndarray, elapsed_seconds: np.ndarray, policy: dict[str, Any]) -> tuple[np.ndarray, np.ndarray]:
+    """Spread-inclusive outcomes minus two executions of slippage/commission and wall-clock financing."""
+    executions = 2.0 * (policy["slippage_bps_per_execution"] + policy["commission_bps_per_execution"])
+    years = np.asarray(elapsed_seconds, dtype=np.float64) / policy["seconds_per_year"]
+    long_net = np.asarray(long_bps, dtype=np.float64) - executions - policy["long_annual_cost_rate"] * years * BPS
+    short_net = np.asarray(short_bps, dtype=np.float64) - executions - policy["short_annual_cost_rate"] * years * BPS
+    return long_net, short_net
+
+
+def nonoverlap_rows(positions: np.ndarray, horizon_bars: int) -> np.ndarray:
+    """Greedy chronological stride: indices whose outcome windows (tape bars) never overlap."""
+    positions = np.asarray(positions, dtype=np.int64)
+    if horizon_bars <= 0 or np.any(np.diff(positions) <= 0):
+        raise RuntimeError("WALKFORWARD_NONOVERLAP_INPUT_INVALID")
+    chosen: list[int] = []
+    next_free = None
+    for i, position in enumerate(positions):
+        if next_free is None or position >= next_free:
+            chosen.append(i)
+            next_free = int(position) + int(horizon_bars)
+    return np.asarray(chosen, dtype=np.int64)
+
+
+def _mean_se(values: np.ndarray) -> dict[str, Any]:
+    values = np.asarray(values, dtype=np.float64)
+    n = int(len(values))
+    if n == 0:
+        return {"n": 0}
+    out: dict[str, Any] = {"n": n, "mean": float(values.mean())}
+    if n > 1:
+        se = float(values.std(ddof=1) / math.sqrt(n))
+        out["se"] = se
+        if se > 0:
+            out["t"] = out["mean"] / se
+    return out
+
+
+def evaluate_nonoverlap(
+    *, side: np.ndarray, long_outcome: np.ndarray, short_outcome: np.ndarray, positions: np.ndarray,
+    horizon_bars: int, fit_long_mean: float, fit_short_mean: float,
+) -> dict[str, Any]:
+    """Model vs always-LONG and vs the fit-period constant on non-overlapping outcome blocks."""
+    blocks = nonoverlap_rows(positions, horizon_bars)
+    s = np.asarray(side)[blocks]
+    lo = np.asarray(long_outcome, dtype=np.float64)[blocks]
+    sh = np.asarray(short_outcome, dtype=np.float64)[blocks]
+    model = np.where(s == MODEL_DIRECTION_LONG_INDEX, lo, np.where(s == MODEL_DIRECTION_SHORT_INDEX, sh, 0.0))
+    constant_side, _, _ = decisions(np.array([fit_long_mean]), np.array([fit_short_mean]), "argmax_flat")
+    c = int(constant_side[0])
+    constant = lo if c == MODEL_DIRECTION_LONG_INDEX else (sh if c == MODEL_DIRECTION_SHORT_INDEX else np.zeros_like(lo))
+    return {
+        "statistics": "nonoverlap",
+        "holdout_rows": int(len(side)),
+        "blocks": int(len(blocks)),
+        "exposure_share": float(np.mean(s != MODEL_DIRECTION_FLAT_INDEX)) if len(s) else None,
+        "long_share": float(np.mean(s == MODEL_DIRECTION_LONG_INDEX)) if len(s) else None,
+        "model": _mean_se(model),
+        "always_long": _mean_se(lo),
+        "causal_constant_side": {MODEL_DIRECTION_LONG_INDEX: "LONG", MODEL_DIRECTION_SHORT_INDEX: "SHORT"}.get(c, "FLAT"),
+        "causal_constant": _mean_se(constant),
+        "delta_vs_always_long": _mean_se(model - lo),
+        "delta_vs_causal_constant": _mean_se(model - constant),
+        "block_deltas_vs_always_long": (model - lo).tolist(),
+        "block_deltas_vs_causal_constant": (model - constant).tolist(),
+    }
+
+
 def executable_horizon_targets(tape: Tape, positions: np.ndarray, horizon_bars: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Executable close-fill research returns per side; NaN where the window leaves the tape."""
     n = len(tape.time)
@@ -348,6 +536,17 @@ def executable_horizon_targets(tape: Tape, positions: np.ndarray, horizon_bars: 
     long_bps[valid] = (tape.bid[f] / tape.ask[p] - 1.0) * BPS
     short_bps[valid] = (1.0 - tape.ask[f] / tape.bid[p]) * BPS
     return long_bps, short_bps, valid
+
+
+def horizon_elapsed_seconds(tape: Tape, positions: np.ndarray, horizon_bars: int) -> np.ndarray:
+    """Actual wall-clock seconds from each entry bar to its exit bar on the tape (NaN off-tape)."""
+    positions = np.asarray(positions, dtype=np.int64)
+    exit_positions = positions + int(horizon_bars)
+    out = np.full(len(positions), np.nan, dtype=np.float64)
+    ok = exit_positions < len(tape.time)
+    t = tape.time.asi8
+    out[ok] = (t[exit_positions[ok]] - t[positions[ok]]) / 1e9
+    return out
 
 
 def _decision_cutoff_ns(dataset_time: pd.DatetimeIndex, timeframe: str) -> np.ndarray:
@@ -536,7 +735,8 @@ def build_folds(boundaries: list[pd.Timestamp], train_start: pd.Timestamp) -> li
 
 
 def fold_masks(
-    dataset_time: pd.DatetimeIndex, positions: np.ndarray, fold: Fold, *, purge_bars: int
+    dataset_time: pd.DatetimeIndex, positions: np.ndarray, fold: Fold, *, purge_bars: int,
+    min_fit_rows: int = DEFAULT_MIN_FIT_ROWS,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Fit rows whose outcome windows end strictly before the first holdout row; holdout rows contained in the fold."""
     holdout = np.asarray((dataset_time >= fold.holdout_start) & (dataset_time < fold.holdout_end), dtype=bool)
@@ -545,21 +745,24 @@ def fold_masks(
     first_holdout_position = int(positions[holdout].min())
     fit = np.asarray(dataset_time >= fold.fit_start, dtype=bool) & np.asarray(dataset_time < fold.holdout_start, dtype=bool)
     fit &= (positions + int(purge_bars)) < first_holdout_position
-    if fit.sum() < 1000:
+    if fit.sum() < int(min_fit_rows):
         raise RuntimeError(f"WALKFORWARD_FOLD_FIT_TOO_SMALL: {fold.index}")
     return fit, holdout
 
 
-def final_holdout_fit_mask(train_positions: np.ndarray, *, first_holdout_position: int, purge_bars: int) -> np.ndarray:
+def final_holdout_fit_mask(
+    train_positions: np.ndarray, *, first_holdout_position: int, purge_bars: int, min_fit_rows: int = DEFAULT_MIN_FIT_ROWS,
+) -> np.ndarray:
     """Fit rows for the confirmation stage: every TRAIN row whose outcome window ends before the first VAL row."""
     fit = (train_positions + int(purge_bars)) < int(first_holdout_position)
-    if fit.sum() < 1000:
+    if fit.sum() < int(min_fit_rows):
         raise RuntimeError("WALKFORWARD_FINAL_HOLDOUT_FIT_TOO_SMALL")
     return fit
 
 
 def _inner_split(
-    n_fit: int, inner_fraction: float, *, fit_positions: np.ndarray, purge_bars: int
+    n_fit: int, inner_fraction: float, *, fit_positions: np.ndarray, purge_bars: int,
+    min_rows: int = DEFAULT_MIN_INNER_ROWS,
 ) -> tuple[np.ndarray, np.ndarray]:
     positions = np.asarray(fit_positions, dtype=np.int64)
     if positions.shape != (n_fit,) or np.any(np.diff(positions) <= 0) or purge_bars < 0:
@@ -567,13 +770,13 @@ def _inner_split(
     if not 0 < inner_fraction < 1:
         raise RuntimeError("WALKFORWARD_INNER_FRACTION_INVALID")
     cut = int(math.floor(n_fit * (1.0 - inner_fraction)))
-    if cut < 100 or n_fit - cut < 100:
+    if cut < int(min_rows) or n_fit - cut < int(min_rows):
         raise RuntimeError("WALKFORWARD_INNER_SPLIT_TOO_SMALL")
     inner_fit = np.zeros(n_fit, dtype=bool)
     inner_fit[:cut] = True
     inner_val = ~inner_fit
     inner_fit &= positions + int(purge_bars) < positions[cut]
-    if int(inner_fit.sum()) < 100:
+    if int(inner_fit.sum()) < int(min_rows):
         raise RuntimeError("WALKFORWARD_INNER_PURGED_FIT_TOO_SMALL")
     return inner_fit, inner_val
 
@@ -674,11 +877,12 @@ class RidgeGram:
     on 2026-09-23).
     """
 
-    def __init__(self, X_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, fit_positions: np.ndarray, purge_bars: int) -> None:
+    def __init__(self, X_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, fit_positions: np.ndarray, purge_bars: int,
+                 min_inner_rows: int = DEFAULT_MIN_INNER_ROWS) -> None:
         self.X_fit = X_fit
         self.X_pred = X_pred
         self.inner_fit, self.inner_val = _inner_split(
-            len(X_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars
+            len(X_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars, min_rows=min_inner_rows,
         )
         self.inner_fit_rows = np.flatnonzero(self.inner_fit)
         self.inner_val_rows = np.flatnonzero(self.inner_val)
@@ -715,12 +919,20 @@ class RidgeGram:
                 mse = float(np.mean((pred_val - y_val) ** 2))
                 if mse < best_mse:
                     best_alpha, best_mse = candidate, mse
+            # Same convention as fit_hgb (89ed73b6): the selected alpha must beat the inner-TRAIN
+            # constant strictly; otherwise the full-fold constant (its analytic refit) is used.
+            constant_mse = float(np.mean((y_val - inner_mean) ** 2))
+            use_constant = not best_mse < constant_mse
         else:
-            best_alpha, best_mse = float(alpha), None
-        beta = np.zeros(self.n_features)
-        beta[cols] = np.linalg.solve(gram_full + best_alpha * eye, xty_full)
-        pred = _chunked_matvec(self.X_pred, beta, mean=self.mean, scale=self.scale) + full_mean
-        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "columns": int(len(cols)),
+            best_alpha, best_mse, constant_mse, use_constant = float(alpha), None, None, False
+        if use_constant:
+            pred = np.full(self.X_pred.shape[0], full_mean, dtype=np.float64)
+        else:
+            beta = np.zeros(self.n_features)
+            beta[cols] = np.linalg.solve(gram_full + best_alpha * eye, xty_full)
+            pred = _chunked_matvec(self.X_pred, beta, mean=self.mean, scale=self.scale) + full_mean
+        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "constant_inner_val_mse": constant_mse,
+                      "model_kind": "constant" if use_constant else "ridge", "columns": int(len(cols)),
                       "fit_rows": len(y), "inner_fit_rows": len(self.inner_fit_rows),
                       "inner_val_rows": len(self.inner_val_rows),
                       "inner_purged_rows": int((~(self.inner_fit | self.inner_val)).sum())}
@@ -730,10 +942,12 @@ def fit_hgb(
     X_fit: np.ndarray, y_fit: np.ndarray, X_pred: np.ndarray, *, inner_fraction: float, max_iter: int, seed: int,
     fit_positions: np.ndarray, purge_bars: int,
     learning_rate: float = HGB_LIBRARY_DEFAULT_LEARNING_RATE, min_samples_leaf: int = HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF,
+    min_inner_rows: int = DEFAULT_MIN_INNER_ROWS,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     from sklearn.ensemble import HistGradientBoostingRegressor
 
-    inner_fit, inner_val = _inner_split(len(y_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars)
+    inner_fit, inner_val = _inner_split(len(y_fit), inner_fraction, fit_positions=fit_positions, purge_bars=purge_bars,
+                                        min_rows=min_inner_rows)
     model = HistGradientBoostingRegressor(
         max_iter=int(max_iter), early_stopping=False, random_state=int(seed),
         learning_rate=float(learning_rate), min_samples_leaf=int(min_samples_leaf),
@@ -979,14 +1193,33 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     train_manifest = json.loads((dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json").read_text(encoding="utf-8"))
     # Snapshot fields also include fitted registry/volatility outputs. Check before
     # materializing price/features, even when no extra MTF arm was requested.
-    feature_fits = feature_fit_lineage(train_manifest.get("extra", {}).get("multi_tf_cache_binding", {}))
-    if any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross")):
-        if not args.multi_tf_cache_dir:
-            raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
-        cache_manifest = json.loads((Path(args.multi_tf_cache_dir) / "manifest.json").read_text(encoding="utf-8"))
-        feature_fits.extend(feature_fit_lineage(cache_manifest))
+    early = load_early_calibrated_inputs(Path(args.early_calibrated_inputs)) if args.early_calibrated_inputs else None
+    if early is not None:
+        # The regenerated local blocks and research MTF lanes replace every registry/volatility-fitted
+        # input, so their early lineage is the one the chronology guards must see.
+        if args.multi_tf_cache_dir:
+            raise RuntimeError("WALKFORWARD_EARLY_INPUTS_REPLACE_MTF_CACHE")
+        if args.final_holdout != "none":
+            raise RuntimeError("WALKFORWARD_EARLY_INPUTS_ARE_TRAIN_ONLY")
+        feature_fits = list(early["feature_fit_lineage"])
+        mtf_dir: Path | None = early["mtf_dir"]
+    else:
+        feature_fits = feature_fit_lineage(train_manifest.get("extra", {}).get("multi_tf_cache_binding", {}))
+        mtf_dir = Path(args.multi_tf_cache_dir) if args.multi_tf_cache_dir else None
+        if any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross")):
+            if mtf_dir is None:
+                raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
+            cache_manifest = json.loads((mtf_dir / "manifest.json").read_text(encoding="utf-8"))
+            feature_fits.extend(feature_fit_lineage(cache_manifest))
     require_feature_fit_before(feature_fits, pd.Timestamp(args.fold_boundaries[0]), context="first_outer_fold")
     dataset = load_dataset(dataset_dir)
+    early_report: dict[str, Any] = {}
+    if early is not None:
+        dataset, early_report = apply_early_calibrated_blocks(dataset, early)
+    clock_keep = decision_clock_mask(dataset.time, args.decision_clock)
+    decision_clock_report = {"clock": args.decision_clock, "dataset_rows": int(len(clock_keep)), "decision_rows": int(clock_keep.sum())}
+    if args.decision_clock != "M5":
+        dataset = subset_dataset(dataset, clock_keep)
     train_start = pd.Timestamp(train_manifest["splits"]["train"]["start"])
     train_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["start"])
     val_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["end"])
@@ -1000,6 +1233,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     val_positions: np.ndarray | None = None
     if final_holdout == "val":
         val_dataset = load_dataset(dataset_dir, split="val")
+        if args.decision_clock != "M5":
+            val_dataset = subset_dataset(val_dataset, decision_clock_mask(val_dataset.time, args.decision_clock))
         if val_dataset.knee_horizon_bars != dataset.knee_horizon_bars:
             raise RuntimeError("WALKFORWARD_VAL_KNEE_HORIZON_MISMATCH")
         val_positions = tape_positions(val_dataset.time, tape)
@@ -1025,9 +1260,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     needs_patterns = any(arm in args.feature_arms for arm in ("snapshot_patterns", "snapshot_mtf_patterns"))
     mtf_matrix = mtf_names = None
     if needs_mtf:
-        if not args.multi_tf_cache_dir:
+        if mtf_dir is None:
             raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
-        mtf_matrix, mtf_names, mtf_report = load_mtf_last_closed(Path(args.multi_tf_cache_dir), dataset.time, dataset.ctx_cont, dataset.ctx_cont_names)
+        mtf_matrix, mtf_names, mtf_report = load_mtf_last_closed(mtf_dir, dataset.time, dataset.ctx_cont, dataset.ctx_cont_names)
     pattern_matrix = pattern_names = None
     pattern_report: dict[str, Any] = {}
     if needs_patterns:
@@ -1087,6 +1322,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if unknown:
             raise RuntimeError(f"WALKFORWARD_TARGET_FILTER_UNKNOWN: {unknown}")
         targets = {name: targets[name] for name in targets if name in set(args.targets)}
+    if args.cost_policy and not args.cost_policy_sha256:
+        raise RuntimeError("WALKFORWARD_COST_POLICY_SHA_REQUIRED")
+    cost_policy = load_cost_policy(Path(args.cost_policy), str(args.cost_policy_sha256)) if args.cost_policy else None
+
+    def _net(outcomes: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]], pos: np.ndarray) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]]:
+        if cost_policy is None:
+            return outcomes
+        netted = {}
+        for name, (long_values, short_values, valid, horizon) in outcomes.items():
+            if name == KNEE_TARGET_NAME:
+                # the dataset owner requires the exact 5*h-minute M1 path for every knee label
+                elapsed = np.full(len(long_values), float(horizon) * 300.0)
+            else:
+                elapsed = horizon_elapsed_seconds(tape, pos, horizon)
+            long_net, short_net = apply_cost_policy(long_values, short_values, elapsed, cost_policy)
+            netted[name] = (long_net, short_net, valid & np.isfinite(long_net) & np.isfinite(short_net), horizon)
+        return netted
+
+    targets = _net(targets, positions)
     val_targets: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]] = {}
     val_arms: dict[str, np.ndarray] = {}
     if val_dataset is not None and val_positions is not None:
@@ -1094,12 +1348,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for h in horizons:
             long_bps, short_bps, valid = executable_horizon_targets(tape, val_positions, h)
             val_targets[f"exec_close_h{h}"] = (long_bps, short_bps, valid, h)
+        val_targets = _net(val_targets, val_positions)
         val_cat, _ = one_hot_ctx_cat(val_dataset.ctx_cat)
         val_snapshot = np.concatenate([val_dataset.snap, val_dataset.ctx_cont, val_cat], axis=1)
         val_arms["snapshot"] = val_snapshot
         val_mtf = val_pat = None
         if needs_mtf:
-            val_mtf, _, _ = load_mtf_last_closed(Path(args.multi_tf_cache_dir), val_dataset.time, val_dataset.ctx_cont, val_dataset.ctx_cont_names)
+            val_mtf, _, _ = load_mtf_last_closed(mtf_dir, val_dataset.time, val_dataset.ctx_cont, val_dataset.ctx_cont_names)
         if needs_patterns:
             val_pat, _, _ = load_pattern_primitives(Path(args.pattern_primitives_parquet), val_dataset.time)
         if "snapshot_mtf" in args.feature_arms:
@@ -1179,7 +1434,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             if stage_kind == "final_val":
                 assert val_dataset is not None and val_positions is not None
-                base_fit_mask = final_holdout_fit_mask(positions, first_holdout_position=int(val_positions.min()), purge_bars=purge_bars)
+                base_fit_mask = final_holdout_fit_mask(positions, first_holdout_position=int(val_positions.min()), purge_bars=purge_bars,
+                                                       min_fit_rows=args.min_fit_rows)
                 base_holdout_mask = np.ones(len(val_dataset.time), dtype=bool)
                 X_hold_all = val_arms[arm]
                 hold_time = val_dataset.time
@@ -1187,7 +1443,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 if np.any(hold_atr <= 0):
                     raise RuntimeError("WALKFORWARD_VAL_ATR_SCALE_NONPOSITIVE")
             else:
-                base_fit_mask, base_holdout_mask = fold_masks(dataset.time, positions, fold, purge_bars=purge_bars)
+                base_fit_mask, base_holdout_mask = fold_masks(dataset.time, positions, fold, purge_bars=purge_bars,
+                                                              min_fit_rows=args.min_fit_rows)
                 X_hold_all = X
                 hold_time = dataset.time
                 hold_atr = atr
@@ -1228,7 +1485,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 # The inner model-selection population needs its own feature-fit bound.
                 _, inner_val = _inner_split(
                     int(fit_mask.sum()), args.inner_fraction,
-                    fit_positions=positions[fit_mask], purge_bars=purge_bars,
+                    fit_positions=positions[fit_mask], purge_bars=purge_bars, min_rows=args.min_inner_rows,
                 )
                 require_feature_fit_before(
                     feature_fits, dataset.time[fit_mask][inner_val][0],
@@ -1244,14 +1501,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         # The Gram is shared across targets whenever the fit/holdout row sets coincide.
                         if ridge_gram is None or ridge_gram.X_fit.shape[0] != int(fit_mask.sum()) or ridge_gram.X_pred.shape[0] != int(holdout_mask.sum()) or ridge_gram.mask_signature != (fit_mask.tobytes(), holdout_mask.tobytes()):
                             ridge_gram = RidgeGram(X[fit_mask], X_hold_all[holdout_mask], inner_fraction=args.inner_fraction,
-                                                   fit_positions=positions[fit_mask], purge_bars=purge_bars)
+                                                   fit_positions=positions[fit_mask], purge_bars=purge_bars,
+                                                   min_inner_rows=args.min_inner_rows)
                             ridge_gram.mask_signature = (fit_mask.tobytes(), holdout_mask.tobytes())
                         pred, info = ridge_gram.fit_predict(y_fit)
                     else:
                         pred, info = fit_hgb(
                             X[fit_mask], y_fit, X_hold_all[holdout_mask], inner_fraction=args.inner_fraction, max_iter=args.max_hgb_iter, seed=seed,
                             learning_rate=args.hgb_learning_rate, min_samples_leaf=args.hgb_min_samples_leaf,
-                            fit_positions=positions[fit_mask], purge_bars=purge_bars,
+                            fit_positions=positions[fit_mask], purge_bars=purge_bars, min_inner_rows=args.min_inner_rows,
                         )
                     preds[side_name] = pred * y_scale_hold
                     fit_info[side_name] = info
@@ -1286,14 +1544,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     meta = {
                         "target": target_name, "horizon_bars": int(horizon), "feature_arm": arm,
                         "target_scaling": scaling, "learner": learner, "seed": int(seed), "decision_rule": rule,
-                        "fit_rows": int(fit_mask.sum()), "stage": stage_kind,
+                        "fit_rows": int(fit_mask.sum()), "stage": stage_kind, "decision_clock": args.decision_clock,
+                        "model_kind_long": fit_info["long"].get("model_kind"), "model_kind_short": fit_info["short"].get("model_kind"),
                         "outcome_definition": (
-                            "dataset knee-horizon M1 final PnL (research gross spread-inclusive)"
-                            if target_name == KNEE_TARGET_NAME
-                            else "native M5 tape executable close-fill return (research convention)"
+                            ("dataset knee-horizon M1 final PnL" if target_name == KNEE_TARGET_NAME
+                             else "native M5 tape executable close-fill return (research convention)")
+                            + ("; net of the bound prospective cost scenario" if cost_policy is not None
+                               else "; gross spread-inclusive")
                         ),
                     }
-                    rows_for_key.extend(evaluate_frame(frame, fold=fold, month_sign=month_sign, meta=meta))
+                    run_grid = args.statistics == "coverage_grid" or (
+                        args.statistics == "both" and int(holdout_mask.sum()) > CIRCULAR_SHIFT_NULL_DRAWS)
+                    if run_grid:
+                        rows_for_key.extend(evaluate_frame(frame, fold=fold, month_sign=month_sign, meta=meta))
+                    if args.statistics in ("nonoverlap", "both"):
+                        hold_positions = val_positions if stage_kind == "final_val" else positions
+                        nonoverlap = evaluate_nonoverlap(
+                            side=side, long_outcome=hold_long[holdout_mask], short_outcome=hold_short[holdout_mask],
+                            positions=hold_positions[holdout_mask], horizon_bars=int(horizon),
+                            fit_long_mean=float(np.mean(long_y[fit_mask])), fit_short_mean=float(np.mean(short_y[fit_mask])),
+                        )
+                        rows_for_key.append({
+                            **nonoverlap, "fold": fold.index, "holdout_start": fold.holdout_start.isoformat(),
+                            "holdout_end": fold.holdout_end.isoformat(), **meta,
+                        })
                 if learner == "ridge" and ablation_groups.get(arm) and ridge_gram is not None:
                     full_by_rule = {r: {(row["top_frac"]): row for row in rows_for_key if row["decision_rule"] == r} for r in args.decision_rules}
                     all_cols = np.arange(X.shape[1])
@@ -1369,7 +1643,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 print(f"[walkforward] done {key} ({_time.monotonic() - started:.0f}s)", flush=True)
             del ridge_gram
 
-    metrics = pd.DataFrame(all_rows)
+    nonoverlap_rows_all = [row for row in all_rows if row.get("statistics") == "nonoverlap"]
+    metrics = pd.DataFrame([row for row in all_rows if row.get("statistics") != "nonoverlap"])
+    nonoverlap_summary = summarize_nonoverlap(nonoverlap_rows_all)
+    (out_dir / "nonoverlap.json").write_text(json.dumps({"rows": nonoverlap_rows_all, "summary": nonoverlap_summary},
+                                                        indent=2, default=_json_default), encoding="utf-8")
     if "ablation_group" not in metrics.columns:
         metrics = metrics.assign(ablation_group="none")
     metrics = metrics.assign(ablation_group=metrics["ablation_group"].fillna("none"))
@@ -1421,10 +1699,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "pattern_primitives": pattern_report,
             "cross_asset": cross_report,
             "arm_valid_rows": {arm: int(v.sum()) for arm, v in arm_valid.items()},
+            "decision_clock": decision_clock_report,
+            "statistics": str(args.statistics),
+            "min_fit_rows": int(args.min_fit_rows),
+            "min_inner_rows": int(args.min_inner_rows),
+            "ridge_constant_alternative": True,
+            "early_calibrated_inputs": early_report,
+            "cost_policy": cost_policy,
             "val_arm_valid_rows": {arm: int(v.sum()) for arm, v in val_arm_valid.items()},
         },
         "fits": fit_reports,
         "summary": summary,
+        "nonoverlap_summary": nonoverlap_summary,
         "elapsed_seconds": _time.monotonic() - started,
     }
     (out_dir / "report.json").write_text(json.dumps(report, indent=2, default=_json_default), encoding="utf-8")
@@ -1456,6 +1742,31 @@ def summarize(metrics: pd.DataFrame) -> list[dict[str, Any]]:
     return out
 
 
+def summarize_nonoverlap(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Pool non-overlapping block deltas over folds (and seeds) per configuration."""
+    keys = ("stage", "target", "horizon_bars", "feature_arm", "target_scaling", "learner", "decision_rule")
+    grouped: dict[tuple, list[dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(tuple(row.get(k) for k in keys), []).append(row)
+    out: list[dict[str, Any]] = []
+    for key, group in sorted(grouped.items(), key=lambda item: tuple(str(v) for v in item[0])):
+        deltas_long = np.concatenate([np.asarray(r["block_deltas_vs_always_long"], dtype=np.float64) for r in group])
+        deltas_const = np.concatenate([np.asarray(r["block_deltas_vs_causal_constant"], dtype=np.float64) for r in group])
+        out.append({
+            **dict(zip(keys, key)),
+            "folds_x_seeds": len(group),
+            "blocks": int(len(deltas_long)),
+            "per_fold_model_mean_bps": [r["model"].get("mean") for r in group],
+            "per_fold_always_long_mean_bps": [r["always_long"].get("mean") for r in group],
+            "per_fold_delta_vs_always_long_bps": [r["delta_vs_always_long"].get("mean") for r in group],
+            "per_fold_long_share": [r.get("long_share") for r in group],
+            "pooled_delta_vs_always_long": _mean_se(deltas_long),
+            "pooled_delta_vs_causal_constant": _mean_se(deltas_const),
+            "folds_model_beats_always_long": int(sum(1 for r in group if (r["delta_vs_always_long"].get("mean") or 0.0) > 0.0)),
+        })
+    return out
+
+
 def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
     lines = [
         "# Entry direction walk-forward research (no authority)",
@@ -1476,6 +1787,24 @@ def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
             f"{s['top_frac']:.2f} | {s['fold_seed_rows']} | {f(s['mean_pnl_bps_avg'])} | {f(s['mean_pnl_bps_min'])} | {f(s['excess_over_coin_avg'])} | "
             f"{s['primary_pass_count']} | {s['strict_pass_count']} | {f(s['hit_rate_avg'],3)} | {f(s['p_long_chosen_avg'],3)} | {f(s['n_avg'],0)} |"
         )
+    if report.get("nonoverlap_summary"):
+        lines += [
+            "",
+            "## Non-overlapping blocks (paired deltas; SE = sd/sqrt(blocks))",
+            "",
+            "| stage | target | h | arm | scaling | learner | rule | blocks | Δ vs always-LONG | SE | t | folds beating | Δ vs fit constant |",
+            "|---|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|",
+        ]
+        for s in report["nonoverlap_summary"]:
+            d = s["pooled_delta_vs_always_long"]
+            c = s["pooled_delta_vs_causal_constant"]
+            def g(v: Any) -> str:
+                return "" if v is None else f"{v:.2f}"
+            lines.append(
+                f"| {s['stage']} | {s['target']} | {s['horizon_bars']} | {s['feature_arm']} | {s['target_scaling']} | {s['learner']} | "
+                f"{s['decision_rule']} | {s['blocks']} | {g(d.get('mean'))} | {g(d.get('se'))} | {g(d.get('t'))} | "
+                f"{s['folds_model_beats_always_long']}/{s['folds_x_seeds']} | {g(c.get('mean'))} |"
+            )
     return "\n".join(lines) + "\n"
 
 
@@ -1505,6 +1834,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cross-asset-h1-parquet", default=None, help="recovered USD_JPY H1 bars (time, close, bid_close, ask_close) for the *_cross arms")
     parser.add_argument("--ablation", choices=list(ABLATION_MODES), default="none", help="ridge-only owner-mapped group ablations: families, lanes or all")
     parser.add_argument("--ablation-null-draws", type=int, default=0, help="cardinality-matched random-column null draws per ablated group (0 = none); explicit research input")
+    parser.add_argument("--decision-clock", choices=list(DECISION_CLOCKS), default="M5",
+                        help="M5 = every row; coarser = first decision after each newly closed bar of that timeframe")
+    parser.add_argument("--statistics", choices=list(STATISTICS_MODES), default="coverage_grid",
+                        help="coverage_grid (pre-registered evaluator), nonoverlap (paired block deltas vs always-LONG), or both")
+    parser.add_argument("--early-calibrated-inputs", default=None,
+                        help="RESULT.json of the early-calibration regeneration; replaces fitted local blocks and the MTF source (TRAIN only)")
+    parser.add_argument("--cost-policy", default=None, help="bound prospective cost policy JSON; targets become net of its scenario")
+    parser.add_argument("--cost-policy-sha256", default=None)
+    parser.add_argument("--min-fit-rows", type=int, default=DEFAULT_MIN_FIT_ROWS, help="explicit research input; rows, not independent outcomes")
+    parser.add_argument("--min-inner-rows", type=int, default=DEFAULT_MIN_INNER_ROWS, help="explicit research input; rows, not independent outcomes")
     return parser
 
 
